@@ -6,7 +6,9 @@ struct HardwareMonitorView: View {
     @State private var memoryUsage: Double = 0
     @State private var gpuUsage: Double = 0
     @State private var mlxActive: Bool = false
-    @State private var timer: Timer?
+
+    /// 使用 Timer.publish 自动管理生命周期，View 销毁时自动取消
+    private let timer = Timer.publish(every: 2.0, on: .main, in: .common).autoconnect()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -47,13 +49,8 @@ struct HardwareMonitorView: View {
         .padding()
         .background(Color(nsColor: .controlBackgroundColor))
         .cornerRadius(12)
-        .onAppear {
-            timer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
-                refreshMetrics()
-            }
-        }
-        .onDisappear {
-            timer?.invalidate()
+        .onReceive(timer) { _ in
+            refreshMetrics()
         }
     }
 

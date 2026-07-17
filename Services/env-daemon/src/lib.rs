@@ -1,8 +1,6 @@
-use std::collections::HashMap;
 use std::process::Command;
 use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
-use anyhow::{Result, Context};
 
 /// 环境健康检查项
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -42,7 +40,8 @@ pub struct HealthChecker {
 
 impl HealthChecker {
     pub fn new() -> Self {
-        let home = std::env::var("HOME").unwrap_or_else(|_| "/Users/dahai".to_string());
+        let home = std::env::var("HOME")
+            .expect("HOME 环境变量必须设置");
         let home_dir = PathBuf::from(&home);
         Self {
             home_dir: home_dir.clone(),
@@ -71,12 +70,12 @@ impl HealthChecker {
             .output();
         match output {
             Ok(o) if o.status.success() => {
-                let path = String::from_utf8_lossy(&o.stdout).trim().to_string();
+                let _xcode_path = String::from_utf8_lossy(&o.stdout).trim().to_string();
                 HealthCheckItem {
                     id: "xcode".into(),
                     label: "Xcode CLI Tools".into(),
                     status: CheckStatus::Passed,
-                    detail: Some(path),
+                    detail: Some(_xcode_path),
                     fixable: true,
                 }
             }

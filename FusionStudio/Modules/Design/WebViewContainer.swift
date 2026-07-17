@@ -50,17 +50,17 @@ struct WebViewContainer: NSViewRepresentable {
     }
 
     class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
-        var parent: WebViewContainer
+        let onMessage: ((String) -> Void)?
 
         init(_ parent: WebViewContainer) {
-            self.parent = parent
+            self.onMessage = parent.onMessage
         }
 
         func userContentController(_ userContentController: WKUserContentController,
                                     didReceive message: WKScriptMessage) {
             if message.name == "fusionBridge",
                let body = message.body as? String {
-                parent.onMessage?(body)
+                onMessage?(body)
             }
         }
 
