@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project type="local">
+  <fileVersion>2</fileVersion>
+  <configurationList>
+    <configuration id="xcconfig">
+      <key>SWIFT_VERSION</key>
+      <value>5.9</value>
+    </configuration>
+  </configurationList>
+</project>

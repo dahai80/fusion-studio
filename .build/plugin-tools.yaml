@@ -1,0 +1,81 @@
+client:
+  name: basic
+  file-system: device-agnostic
+tools: {}
+targets:
+  "FusionStudio-arm64-apple-macosx-debug.exe": ["<FusionStudio-arm64-apple-macosx-debug.exe>"]
+  "FusionStudio-arm64-apple-macosx-debug.module": ["<FusionStudio-arm64-apple-macosx-debug.module>"]
+  "PackageStructure": ["<PackageStructure>"]
+  "main": ["<FusionStudio-arm64-apple-macosx-debug.exe>","<FusionStudio-arm64-apple-macosx-debug.module>"]
+  "test": ["<FusionStudio-arm64-apple-macosx-debug.exe>","<FusionStudio-arm64-apple-macosx-debug.module>"]
+default: "main"
+nodes:
+  "/Users/dahai/fusion/fusion-studio/FusionStudio/":
+    is-directory-structure: true
+    content-exclusion-patterns: [".git",".build"]
+  "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio":
+    is-mutated: true
+commands:
+  "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio-entitlement.plist":
+    tool: write-auxiliary-file
+    inputs: ["<entitlement-plist>","<com.apple.security.get-task-allow>"]
+    outputs: ["/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio-entitlement.plist"]
+    description: "Write auxiliary file /Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio-entitlement.plist"
+
+  "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/sources":
+    tool: write-auxiliary-file
+    inputs: ["<sources-file-list>","/Users/dahai/fusion/fusion-studio/FusionStudio/Bridge/IPCClient.swift","/Users/dahai/fusion/fusion-studio/FusionStudio/Common/AboutView.swift","/Users/dahai/fusion/fusion-studio/FusionStudio/Common/AppState.swift","/Users/dahai/fusion/fusion-studio/FusionStudio/ContentView.swift","/Users/dahai/fusion/fusion-studio/FusionStudio/Environment/EnvironmentHealthCard.swift","/Users/dahai/fusion/fusion-studio/FusionStudio/FusionStudioApp.swift","/Users/dahai/fusion/fusion-studio/FusionStudio/Modules/Code/CodeEditorView.swift","/Users/dahai/fusion/fusion-studio/FusionStudio/Modules/Design/WebViewContainer.swift","/Users/dahai/fusion/fusion-studio/FusionStudio/Navigation/ModuleDetailView.swift","/Users/dahai/fusion/fusion-studio/FusionStudio/Navigation/SidebarView.swift","/Users/dahai/fusion/fusion-studio/FusionStudio/Settings/SettingsView.swift","/Users/dahai/fusion/fusion-studio/FusionStudio/TaskManager/HardwareMonitorView.swift","/Users/dahai/fusion/fusion-studio/FusionStudio/TaskManager/TaskQueueView.swift"]
+    outputs: ["/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/sources"]
+    description: "Write auxiliary file /Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/sources"
+
+  "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.product/Objects.LinkFileList":
+    tool: write-auxiliary-file
+    inputs: ["<link-file-list>","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/AboutView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/AppState.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/CodeEditorView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/ContentView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/EnvironmentHealthCard.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/FusionStudioApp.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/HardwareMonitorView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/IPCClient.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/ModuleDetailView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/SettingsView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/SidebarView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/TaskQueueView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/WebViewContainer.swift.o"]
+    outputs: ["/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.product/Objects.LinkFileList"]
+    description: "Write auxiliary file /Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.product/Objects.LinkFileList"
+
+  "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt":
+    tool: write-auxiliary-file
+    inputs: ["<swift-get-version>","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"]
+    outputs: ["/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"]
+    always-out-of-date: "true"
+    description: "Write auxiliary file /Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+
+  "<FusionStudio-arm64-apple-macosx-debug.exe>":
+    tool: phony
+    inputs: ["<FusionStudio-arm64-apple-macosx-debug.exe-CodeSigning>"]
+    outputs: ["<FusionStudio-arm64-apple-macosx-debug.exe>"]
+
+  "<FusionStudio-arm64-apple-macosx-debug.module>":
+    tool: phony
+    inputs: ["/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/IPCClient.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/AboutView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/AppState.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/ContentView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/EnvironmentHealthCard.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/FusionStudioApp.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/CodeEditorView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/WebViewContainer.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/ModuleDetailView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/SidebarView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/SettingsView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/HardwareMonitorView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/TaskQueueView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/Modules/FusionStudio.swiftmodule"]
+    outputs: ["<FusionStudio-arm64-apple-macosx-debug.module>"]
+
+  "C.FusionStudio-arm64-apple-macosx-debug.exe":
+    tool: shell
+    inputs: ["/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/AboutView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/AppState.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/CodeEditorView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/ContentView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/EnvironmentHealthCard.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/FusionStudioApp.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/HardwareMonitorView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/IPCClient.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/ModuleDetailView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/SettingsView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/SidebarView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/TaskQueueView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/WebViewContainer.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.product/Objects.LinkFileList"]
+    outputs: ["/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio"]
+    description: "Linking ./.build/arm64-apple-macosx/debug/FusionStudio"
+    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc","-L","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug","-o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio","-module-name","FusionStudio","-Xlinker","-no_warn_duplicate_libraries","-emit-executable","-Xlinker","-alias","-Xlinker","_FusionStudio_main","-Xlinker","_main","-Xlinker","-rpath","-Xlinker","@loader_path","@/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.product/Objects.LinkFileList","-Xlinker","-rpath","-Xlinker","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-6.2/macosx","-target","arm64-apple-macosx14.0","-Xlinker","-add_ast_path","-Xlinker","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/Modules/FusionStudio.swiftmodule","-plugin-path","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing","-sdk","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-I","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-L","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-g"]
+
+  "C.FusionStudio-arm64-apple-macosx-debug.exe-entitlements":
+    tool: shell
+    inputs: ["/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio-entitlement.plist"]
+    outputs: ["<FusionStudio-arm64-apple-macosx-debug.exe-CodeSigning>"]
+    description: "Applying debug entitlements to ./.build/arm64-apple-macosx/debug/FusionStudio"
+    args: ["codesign","--force","--sign","-","--entitlements","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio-entitlement.plist","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio"]
+
+  "C.FusionStudio-arm64-apple-macosx-debug.module":
+    tool: shell
+    inputs: ["/Users/dahai/fusion/fusion-studio/FusionStudio/Bridge/IPCClient.swift","/Users/dahai/fusion/fusion-studio/FusionStudio/Common/AboutView.swift","/Users/dahai/fusion/fusion-studio/FusionStudio/Common/AppState.swift","/Users/dahai/fusion/fusion-studio/FusionStudio/ContentView.swift","/Users/dahai/fusion/fusion-studio/FusionStudio/Environment/EnvironmentHealthCard.swift","/Users/dahai/fusion/fusion-studio/FusionStudio/FusionStudioApp.swift","/Users/dahai/fusion/fusion-studio/FusionStudio/Modules/Code/CodeEditorView.swift","/Users/dahai/fusion/fusion-studio/FusionStudio/Modules/Design/WebViewContainer.swift","/Users/dahai/fusion/fusion-studio/FusionStudio/Navigation/ModuleDetailView.swift","/Users/dahai/fusion/fusion-studio/FusionStudio/Navigation/SidebarView.swift","/Users/dahai/fusion/fusion-studio/FusionStudio/Settings/SettingsView.swift","/Users/dahai/fusion/fusion-studio/FusionStudio/TaskManager/HardwareMonitorView.swift","/Users/dahai/fusion/fusion-studio/FusionStudio/TaskManager/TaskQueueView.swift","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/sources"]
+    outputs: ["/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/IPCClient.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/AboutView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/AppState.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/ContentView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/EnvironmentHealthCard.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/FusionStudioApp.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/CodeEditorView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/WebViewContainer.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/ModuleDetailView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/SidebarView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/SettingsView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/HardwareMonitorView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/TaskQueueView.swift.o","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/Modules/FusionStudio.swiftmodule"]
+    description: "Compiling Swift Module 'FusionStudio' (13 sources)"
+    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc","-module-name","FusionStudio","-emit-dependencies","-emit-module","-emit-module-path","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/Modules/FusionStudio.swiftmodule","-output-file-map","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/output-file-map.json","-incremental","-c","@/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/sources","-I","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/Modules","-target","arm64-apple-macosx14.0","-incremental","-enable-batch-mode","-serialize-diagnostics","-index-store-path","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/index/store","-Onone","-enable-testing","-j18","-DSWIFT_PACKAGE","-DDEBUG","-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE","-module-cache-path","/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/ModuleCache","-parseable-output","-Xfrontend","-entry-point-function-name","-Xfrontend","FusionStudio_main","-swift-version","5","-plugin-path","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing","-sdk","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-I","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-L","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-g","-Xcc","-isysroot","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk","-Xcc","-F","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-Xcc","-fPIC","-Xcc","-g","-package-name","fusion_studio"]
+
+  "PackageStructure":
+    tool: package-structure-tool
+    inputs: ["/Users/dahai/fusion/fusion-studio/FusionStudio/","/Users/dahai/fusion/fusion-studio/Package.swift","/Users/dahai/fusion/fusion-studio/Package.resolved"]
+    outputs: ["<PackageStructure>"]
+    description: "Planning build"
+    allow-missing-inputs: true
+

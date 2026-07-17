@@ -1,0 +1,479 @@
+{
+  "builtTestProducts" : [
+
+  ],
+  "copyCommands" : {
+
+  },
+  "explicitTargetDependencyImportCheckingMode" : {
+    "none" : {
+
+    }
+  },
+  "generatedSourceTargetSet" : [
+
+  ],
+  "pluginDescriptions" : [
+
+  ],
+  "swiftCommands" : {
+    "C.FusionStudio-arm64-apple-macosx-debug.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/sources",
+      "importPath" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/FusionStudio/Bridge/IPCClient.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/FusionStudio/Common/AboutView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/FusionStudio/Common/AppState.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/FusionStudio/ContentView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/FusionStudio/Environment/EnvironmentHealthCard.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/FusionStudio/FusionStudioApp.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/FusionStudio/Modules/Code/CodeEditorView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/FusionStudio/Modules/Design/WebViewContainer.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/FusionStudio/Navigation/ModuleDetailView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/FusionStudio/Navigation/SidebarView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/FusionStudio/Settings/SettingsView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/FusionStudio/TaskManager/HardwareMonitorView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/FusionStudio/TaskManager/TaskQueueView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/sources"
+        }
+      ],
+      "isLibrary" : false,
+      "moduleName" : "FusionStudio",
+      "moduleOutputPath" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/Modules/FusionStudio.swiftmodule",
+      "objects" : [
+        "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/IPCClient.swift.o",
+        "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/AboutView.swift.o",
+        "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/AppState.swift.o",
+        "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/ContentView.swift.o",
+        "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/EnvironmentHealthCard.swift.o",
+        "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/FusionStudioApp.swift.o",
+        "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/CodeEditorView.swift.o",
+        "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/WebViewContainer.swift.o",
+        "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/ModuleDetailView.swift.o",
+        "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/SidebarView.swift.o",
+        "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/SettingsView.swift.o",
+        "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/HardwareMonitorView.swift.o",
+        "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/TaskQueueView.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx14.0",
+        "-incremental",
+        "-enable-batch-mode",
+        "-serialize-diagnostics",
+        "-index-store-path",
+        "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/index/store",
+        "-Onone",
+        "-enable-testing",
+        "-j18",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-module-cache-path",
+        "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-Xfrontend",
+        "-entry-point-function-name",
+        "-Xfrontend",
+        "FusionStudio_main",
+        "-swift-version",
+        "5",
+        "-plugin-path",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "fusion_studio"
+      ],
+      "outputFileMapPath" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/IPCClient.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/AboutView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/AppState.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/ContentView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/EnvironmentHealthCard.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/FusionStudioApp.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/CodeEditorView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/WebViewContainer.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/ModuleDetailView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/SidebarView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/SettingsView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/HardwareMonitorView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/TaskQueueView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/Modules/FusionStudio.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/dahai/fusion/fusion-studio/FusionStudio/Bridge/IPCClient.swift",
+        "/Users/dahai/fusion/fusion-studio/FusionStudio/Common/AboutView.swift",
+        "/Users/dahai/fusion/fusion-studio/FusionStudio/Common/AppState.swift",
+        "/Users/dahai/fusion/fusion-studio/FusionStudio/ContentView.swift",
+        "/Users/dahai/fusion/fusion-studio/FusionStudio/Environment/EnvironmentHealthCard.swift",
+        "/Users/dahai/fusion/fusion-studio/FusionStudio/FusionStudioApp.swift",
+        "/Users/dahai/fusion/fusion-studio/FusionStudio/Modules/Code/CodeEditorView.swift",
+        "/Users/dahai/fusion/fusion-studio/FusionStudio/Modules/Design/WebViewContainer.swift",
+        "/Users/dahai/fusion/fusion-studio/FusionStudio/Navigation/ModuleDetailView.swift",
+        "/Users/dahai/fusion/fusion-studio/FusionStudio/Navigation/SidebarView.swift",
+        "/Users/dahai/fusion/fusion-studio/FusionStudio/Settings/SettingsView.swift",
+        "/Users/dahai/fusion/fusion-studio/FusionStudio/TaskManager/HardwareMonitorView.swift",
+        "/Users/dahai/fusion/fusion-studio/FusionStudio/TaskManager/TaskQueueView.swift"
+      ],
+      "tempsPath" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build",
+      "wholeModuleOptimization" : false
+    }
+  },
+  "swiftFrontendCommands" : {
+
+  },
+  "swiftTargetScanArgs" : {
+    "FusionStudio" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "FusionStudio",
+      "-package-name",
+      "fusion_studio",
+      "-c",
+      "/Users/dahai/fusion/fusion-studio/FusionStudio/Bridge/IPCClient.swift",
+      "/Users/dahai/fusion/fusion-studio/FusionStudio/Common/AboutView.swift",
+      "/Users/dahai/fusion/fusion-studio/FusionStudio/Common/AppState.swift",
+      "/Users/dahai/fusion/fusion-studio/FusionStudio/ContentView.swift",
+      "/Users/dahai/fusion/fusion-studio/FusionStudio/Environment/EnvironmentHealthCard.swift",
+      "/Users/dahai/fusion/fusion-studio/FusionStudio/FusionStudioApp.swift",
+      "/Users/dahai/fusion/fusion-studio/FusionStudio/Modules/Code/CodeEditorView.swift",
+      "/Users/dahai/fusion/fusion-studio/FusionStudio/Modules/Design/WebViewContainer.swift",
+      "/Users/dahai/fusion/fusion-studio/FusionStudio/Navigation/ModuleDetailView.swift",
+      "/Users/dahai/fusion/fusion-studio/FusionStudio/Navigation/SidebarView.swift",
+      "/Users/dahai/fusion/fusion-studio/FusionStudio/Settings/SettingsView.swift",
+      "/Users/dahai/fusion/fusion-studio/FusionStudio/TaskManager/HardwareMonitorView.swift",
+      "/Users/dahai/fusion/fusion-studio/FusionStudio/TaskManager/TaskQueueView.swift",
+      "-I",
+      "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx14.0",
+      "-incremental",
+      "-enable-batch-mode",
+      "-serialize-diagnostics",
+      "-index-store-path",
+      "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/index/store",
+      "-Onone",
+      "-enable-testing",
+      "-j18",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-module-cache-path",
+      "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-Xfrontend",
+      "-entry-point-function-name",
+      "-Xfrontend",
+      "FusionStudio_main",
+      "-swift-version",
+      "5",
+      "-plugin-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "fusion_studio",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ]
+  },
+  "targetDependencyMap" : {
+    "FusionStudio" : [
+
+    ]
+  },
+  "testDiscoveryCommands" : {
+
+  },
+  "testEntryPointCommands" : {
+
+  },
+  "traitConfiguration" : {
+    "default" : {
+
+    }
+  },
+  "writeCommands" : {
+    "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio-entitlement.plist" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<entitlement-plist>"
+        },
+        {
+          "kind" : "virtual",
+          "name" : "<com.apple.security.get-task-allow>"
+        }
+      ],
+      "outputFilePath" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio-entitlement.plist"
+    },
+    "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/FusionStudio/Bridge/IPCClient.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/FusionStudio/Common/AboutView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/FusionStudio/Common/AppState.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/FusionStudio/ContentView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/FusionStudio/Environment/EnvironmentHealthCard.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/FusionStudio/FusionStudioApp.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/FusionStudio/Modules/Code/CodeEditorView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/FusionStudio/Modules/Design/WebViewContainer.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/FusionStudio/Navigation/ModuleDetailView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/FusionStudio/Navigation/SidebarView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/FusionStudio/Settings/SettingsView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/FusionStudio/TaskManager/HardwareMonitorView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/FusionStudio/TaskManager/TaskQueueView.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/sources"
+    },
+    "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.product/Objects.LinkFileList" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<link-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/AboutView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/AppState.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/CodeEditorView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/ContentView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/EnvironmentHealthCard.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/FusionStudioApp.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/HardwareMonitorView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/IPCClient.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/ModuleDetailView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/SettingsView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/SidebarView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/TaskQueueView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.build/WebViewContainer.swift.o"
+        }
+      ],
+      "outputFilePath" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/FusionStudio.product/Objects.LinkFileList"
+    },
+    "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt" : {
+      "alwaysOutOfDate" : true,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<swift-get-version>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+        }
+      ],
+      "outputFilePath" : "/Users/dahai/fusion/fusion-studio/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+    }
+  }
+}
