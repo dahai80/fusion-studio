@@ -1,0 +1,126 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  # ─── 构建 Release ─────────────────────────────────────
+  build-release:
+    name: Build Release ${{ github.ref_name }}
+    runs-on: macos-14
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
+      - name: Show versions
+        run: |
+          swift --version
+          rustc --version
+          cargo --version
+
+      - name: Build Rust services
+        run: |
+          cd Services/env-daemon
+          cargo build --release 2>&1 | tail -5
+
+      - name: Build SwiftUI app
+        run: swift build -c release 2>&1 | tail -5
+
+      - name: Package .app
+        run: |
+          CONFIGURATION=release ./Scripts/build.sh package 2>&1 | tail -10
+
+      - name: Create DMG
+        run: |
+          ./Scripts/build.sh dmg 2>&1 | tail -5
+
+      - name: List artifacts
+        run: |
+          ls -lh .build/*.dmg .build/*.app 2>/dev/null || echo "No artifacts found"
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: FusionStudio-${{ github.ref_name }}-arm64
+          path: .build/*.dmg
+          if-no-files-found: error
+
+  # ─── 创建 GitHub Release ─────────────────────────────
+  create-release:
+    name: Create GitHub Release
+    needs: [build-release]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download DMG
+        uses: actions/download-artifact@v4
+        with:
+          name: FusionStudio-${{ github.ref_name }}-arm64
+          path: .artifacts
+
+      - name: Generate Release Notes
+        id: notes
+        run: |
+          cat > .release-notes.md << 'EOF'
+          # Fusion Studio ${{ github.ref_name }}
+
+          ## 下载
+
+          - [FusionStudio-${{ github.ref_name }}-arm64.dmg](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/FusionStudio-${{ github.ref_name }}-arm64.dmg)
+
+          ## 系统要求
+
+          - macOS 14+ (Sonoma 或更高)
+          - Apple Silicon (M1–M5)
+
+          ## 安装
+
+          1. 下载 DMG 文件
+          2. 双击打开
+          3. 将 Fusion Studio 拖入 Applications 文件夹
+          4. 首次启动时，运行环境自检以安装所有依赖
+
+          ## 更新日志
+
+          ### 新增
+
+          - 全部 10 个模块入口已完善
+          - 局域网协作功能
+          - 插件系统支持
+          - 高级渲染/仿真参数调节
+
+          ### 修复
+
+          - 多项性能优化和内存泄漏修复
+
+          ### 注意
+
+          - 首次启动可能需要几分钟完成环境自检
+          - 需要 fusion-mlx 服务运行以使用 AI 功能
+          EOF
+          echo "done"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Fusion Studio ${{ github.ref_name }}
+          body_path: .release-notes.md
+          files: |
+            .artifacts/*.dmg
+          draft: false
+          prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}

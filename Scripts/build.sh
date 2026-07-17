@@ -2,6 +2,7 @@
 # ──────────────────────────────────────────────────────────────
 # Fusion Studio 构建脚本
 # 构建全部组件: SwiftUI App + Rust 后台服务 + Python 服务
+# 支持: debug / release / package / sign / notarize / dmg
 # ──────────────────────────────────────────────────────────────
 
 set -euo pipefail
@@ -9,37 +10,32 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 BUILD_DIR="$PROJECT_DIR/.build"
 APP_NAME="Fusion Studio"
-APP_BUNDLE="$BUILD_dir/$APP_NAME.app"
+APP_BUNDLE="$BUILD_DIR/$APP_NAME.app"
+CONFIGURATION="${CONFIGURATION:-release}"
 
-echo "=== Fusion Studio 构建脚本 ==="
-echo "项目目录: $PROJECT_DIR"
-echo ""
+# 版本信息
+VERSION="0.1.0"
+BUILD_NUM=$(date +%Y%m%d%H%M)
 
 # 颜色
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
-
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
 info()  { echo -e "${GREEN}[INFO]${NC} $1"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; }
 error() { echo -e "${RED}[ERROR]${NC} $1"; }
+step()  { echo -e "${CYAN}━━━ $1 ━━━${NC}"; }
 
 # ─── 阶段 1: 构建 Rust 后台服务 ────────────────────────────────
 
 build_services() {
-    info "=== 构建 Rust 后台服务 ==="
+    step "构建 Rust 后台服务"
 
     local services=("env-daemon" "supervisor")
-
     for svc in "${services[@]}"; do
         local svc_dir="$PROJECT_DIR/Services/$svc"
         if [ -f "$svc_dir/Cargo.toml" ]; then
             info "构建 $svc..."
             (cd "$svc_dir" && cargo build --release 2>&1 | tail -3)
             info "✅ $svc 构建完成"
-        else
-            warn "跳转 $svc（无 Cargo.toml）"
         fi
     done
 }
@@ -47,55 +43,80 @@ build_services() {
 # ─── 阶段 2: 构建 SwiftUI App ─────────────────────────────────
 
 build_app() {
-    info "=== 构建 Fusion Studio App ==="
+    step "构建 Fusion Studio App"
 
-    # 方式 1: swift build (SPM)
-    if [ -f "$PROJECT_DIR/Package.swift" ]; then
-        info "使用 Swift Package Manager 构建..."
-        (cd "$PROJECT_DIR" && swift build -c release 2>&1 | tail -5)
-        info "✅ SPM 构建完成"
-    fi
-
-    # 方式 2: xcodebuild (如果有 .xcodeproj)
-    if [ -d "$PROJECT_DIR/FusionStudio.xcodeproj" ]; then
-        info "使用 Xcode 构建..."
-        xcodebuild \
-            -project "$PROJECT_DIR/FusionStudio.xcodeproj" \
-            -scheme "FusionStudio" \
-            -configuration Release \
-            -derivedDataPath "$BUILD_DIR/DerivedData" \
-            build 2>&1 | tail -5
-        info "✅ Xcode 构建完成"
-    fi
+    # 使用 Swift Package Manager 构建
+    (cd "$PROJECT_DIR" && swift build -c $CONFIGURATION 2>&1 | tail -5)
+    info "✅ SPM 构建完成"
 }
 
 # ─── 阶段 3: 打包 .app Bundle ─────────────────────────────────
 
 package_app() {
-    info "=== 打包 Fusion Studio.app ==="
+    step "打包 Fusion Studio.app"
 
-    local app_dir="$BUILD_DIR/$APP_NAME.app/Contents"
-    mkdir -p "$app_dir/MacOS"
-    mkdir -p "$app_dir/Resources"
-    mkdir -p "$app_dir/Frameworks"
-    mkdir -p "$app_dir/Services"
+    local app_dir="$APP_BUNDLE/Contents"
+    mkdir -p "$app_dir/MacOS" "$app_dir/Resources" "$app_dir/Frameworks" "$app_dir/Services"
 
-    # 复制可执行文件
-    local binary_path=$(swift build -c release --show-bin-path 2>/dev/null || echo "")
+    local binary_path=$(cd "$PROJECT_DIR" && swift build -c $CONFIGURATION --show-bin-path 2>/dev/null || echo "")
     if [ -n "$binary_path" ] && [ -f "$binary_path/FusionStudio" ]; then
         cp "$binary_path/FusionStudio" "$app_dir/MacOS/"
         info "✅ 复制 App 二进制"
+    else
+        error "找不到构建产物: $binary_path/FusionStudio"
+        return 1
     fi
 
-    # 复制 Info.plist
-    if [ -f "$PROJECT_DIR/FusionStudio/Resources/Info.plist" ]; then
-        cp "$PROJECT_DIR/FusionStudio/Resources/Info.plist" "$app_dir/"
-    else
-        generate_info_plist "$app_dir"
+    # 生成 Info.plist
+    cat > "$app_dir/Info.plist" << PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key>
+    <string>FusionStudio</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.fusion-mlx.studio</string>
+    <key>CFBundleName</key>
+    <string>Fusion Studio</string>
+    <key>CFBundleVersion</key>
+    <string>$BUILD_NUM</string>
+    <key>CFBundleShortVersionString</key>
+    <string>$VERSION</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+    <key>LSArchitecturePriority</key>
+    <array><string>arm64</string></array>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSSupportsAutomaticTermination</key>
+    <true/>
+    <key>NSSupportsSuddenTermination</key>
+    <true/>
+</dict>
+</plist>
+PLIST
+    info "✅ 生成 Info.plist"
+
+    # 设置 App 图标（支持暗黑模式）
+    if [ -f "$PROJECT_DIR/FusionStudio/Resources/AppIconLight.png" ]; then
+        cp "$PROJECT_DIR/FusionStudio/Resources/AppIconLight.png" "$app_dir/Resources/AppIconLight.png"
+        cp "$PROJECT_DIR/FusionStudio/Resources/AppIconDark.png" "$app_dir/Resources/AppIconDark.png" 2>/dev/null || true
+        # 修改 Info.plist 添加图标支持
+        plutil -insert "CFBundleIconFile" -string "AppIconLight" "$app_dir/Info.plist" 2>/dev/null || true
+        info "✅ 设置 App 图标"
+    fi
+
+    # 复制 Entitlements
+    if [ -f "$PROJECT_DIR/FusionStudio/Resources/Entitlements.plist" ]; then
+        cp "$PROJECT_DIR/FusionStudio/Resources/Entitlements.plist" "$app_dir/"
+        info "✅ 复制 Entitlements"
     fi
 
     # 复制后台服务
-    for svc in env-daemon supervisor; do
+    for svc in env-daemon; do
         local svc_bin="$PROJECT_DIR/Services/$svc/target/release/$svc"
         if [ -f "$svc_bin" ]; then
             cp "$svc_bin" "$app_dir/Services/"
@@ -110,81 +131,99 @@ package_app() {
         info "✅ 复制 mlx-daemon"
     fi
 
-    # 复制资源文件
-    cp -r "$PROJECT_DIR/FusionStudio/Resources/"* "$app_dir/Resources/" 2>/dev/null || true
+    # 复制资源
+    if [ -d "$PROJECT_DIR/FusionStudio/Resources" ]; then
+        cp -r "$PROJECT_DIR/FusionStudio/Resources/"* "$app_dir/Resources/" 2>/dev/null || true
+    fi
 
-    info "✅ App Bundle 打包完成: $BUILD_DIR/$APP_NAME.app"
-}
-
-# ─── 生成 Info.plist ──────────────────────────────────────────
-
-generate_info_plist() {
-    local app_dir="$1"
-    cat > "$app_dir/Info.plist" << PLIST
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>CFBundleExecutable</key>
-    <string>FusionStudio</string>
-    <key>CFBundleIdentifier</key>
-    <string>com.fusion-mlx.studio</string>
-    <key>CFBundleName</key>
-    <string>Fusion Studio</string>
-    <key>CFBundleVersion</key>
-    <string>0.1.0</string>
-    <key>CFBundleShortVersionString</key>
-    <string>0.1.0</string>
-    <key>CFBundlePackageType</key>
-    <string>APPL</string>
-    <key>LSMinimumSystemVersion</key>
-    <string>14.0</string>
-    <key>LSArchitecturePriority</key>
-    <array>
-        <string>arm64</string>
-    </array>
-    <key>NSHighResolutionCapable</key>
-    <true/>
-    <key>NSSupportsAutomaticTermination</key>
-    <true/>
-    <key>NSSupportsSuddenTermination</key>
-    <true/>
-</dict>
-</plist>
-PLIST
-    info "✅ 生成 Info.plist"
+    info "✅ App Bundle 打包完成: $APP_BUNDLE"
 }
 
 # ─── 阶段 4: 签名 ─────────────────────────────────────────────
 
 sign_app() {
-    info "=== 签名 App ==="
+    step "签名 App"
 
-    local dev_id=${1:-"Apple Development"}
+    local dev_id="${1:-}"
+    if [ -z "$dev_id" ]; then
+        # 尝试自动查找开发者证书
+        dev_id=$(security find-identity -v -p basic 2>/dev/null | grep "Developer ID Application" | head -1 | awk '{print $2}' || echo "")
+        if [ -z "$dev_id" ]; then
+            warn "未找到开发者证书，跳过签名"
+            return 0
+        fi
+        info "自动使用证书: $dev_id"
+    fi
 
-    codesign --force --options runtime \
-        --sign "$dev_id" \
-        "$BUILD_DIR/$APP_NAME.app" 2>&1
+    local entitlements="$PROJECT_DIR/FusionStudio/Resources/Entitlements.plist"
+    if [ -f "$entitlements" ]; then
+        codesign --force --options runtime \
+            --sign "$dev_id" \
+            --deep \
+            --entitlements "$entitlements" \
+            "$APP_BUNDLE" 2>&1
+    else
+        codesign --force --options runtime \
+            --sign "$dev_id" \
+            --deep \
+            "$APP_BUNDLE" 2>&1
+    fi
 
+    # 验证签名
+    codesign -dvvv "$APP_BUNDLE" 2>&1 | head -5
+    spctl -a -t exec -vv "$APP_BUNDLE" 2>&1 || warn "签名验证未通过（开发环境可忽略）"
     info "✅ 签名完成"
 }
 
-# ─── 阶段 5: 生成 DMG ─────────────────────────────────────────
+# ─── 阶段 5: 公证 ─────────────────────────────────────────────
+
+notarize_app() {
+    step "公证 App"
+
+    local apple_id="${1:-}"
+    local team_id="${2:-}"
+    local password="${3:-}"
+
+    if [ -z "$apple_id" ] || [ -z "$team_id" ]; then
+        warn "跳过公证（需要 Apple ID 和 Team ID）"
+        warn "用法: $0 notarize <apple-id> <team-id> [password]"
+        return 0
+    fi
+
+    local dmg_path="$BUILD_DIR/FusionStudio-$VERSION-arm64.dmg"
+    if [ ! -f "$dmg_path" ]; then
+        create_dmg
+    fi
+
+    local pwd_arg="${password:-@keychain:AC_PASSWORD}"
+    xcrun notarytool submit "$dmg_path" \
+        --apple-id "$apple_id" \
+        --team-id "$team_id" \
+        --password "$pwd_arg" \
+        --wait
+
+    xcrun stapler staple "$APP_BUNDLE"
+    xcrun stapler staple "$dmg_path"
+    info "✅ 公证完成"
+}
+
+# ─── 阶段 6: 生成 DMG ─────────────────────────────────────────
 
 create_dmg() {
-    info "=== 生成 DMG 安装包 ==="
+    step "生成 DMG 安装包"
 
-    local dmg_path="$BUILD_DIR/FusionStudio-0.1.0-arm64.dmg"
+    local dmg_path="$BUILD_DIR/FusionStudio-$VERSION-arm64.dmg"
     local tmp_dir="$BUILD_DIR/dmg-tmp"
     mkdir -p "$tmp_dir"
 
-    cp -R "$BUILD_DIR/$APP_NAME.app" "$tmp_dir/"
+    cp -R "$APP_BUNDLE" "$tmp_dir/"
     ln -s "/Applications" "$tmp_dir/Applications"
 
     # 创建 DMG
-    hdiutil create -volname "Fusion Studio" \
+    hdiutil create -volname "Fusion Studio $VERSION" \
         -srcfolder "$tmp_dir" \
         -ov -format UDZO \
+        -imagekey zlib-level=9 \
         "$dmg_path" 2>&1 | tail -3
 
     rm -rf "$tmp_dir"
@@ -212,6 +251,10 @@ main() {
             shift
             sign_app "$@"
             ;;
+        notarize)
+            shift
+            notarize_app "$@"
+            ;;
         dmg)
             create_dmg
             ;;
@@ -222,28 +265,34 @@ main() {
             sign_app
             create_dmg
             info "🎉 Fusion Studio 构建完成！"
-            info "App: $BUILD_DIR/$APP_NAME.app"
-            info "DMG: $BUILD_DIR/FusionStudio-0.1.0-arm64.dmg"
+            info "App: $APP_BUNDLE"
+            info "DMG: $BUILD_DIR/FusionStudio-$VERSION-arm64.dmg"
             ;;
         clean)
-            info "清理构建产物..."
-            rm -rf "$BUILD_DIR"
+            step "清理构建产物"
+            rm -rf "$BUILD_DIR" 2>/dev/null || true
             for svc in env-daemon supervisor; do
                 (cd "$PROJECT_DIR/Services/$svc" && cargo clean 2>/dev/null) || true
             done
-            swift package clean 2>/dev/null || true
+            (cd "$PROJECT_DIR" && swift package clean 2>/dev/null) || true
             info "✅ 清理完成"
             ;;
         *)
-            echo "用法: $0 {all|services|app|package|sign|dmg|clean}"
+            echo "Fusion Studio 构建脚本 v$VERSION"
             echo ""
-            echo "  all       完整构建（services + app + package + sign + dmg）"
-            echo "  services  仅构建 Rust 后台服务"
-            echo "  app       仅构建 SwiftUI App"
-            echo "  package   打包 .app Bundle"
-            echo "  sign      签名 App"
-            echo "  dmg       生成 DMG 安装包"
-            echo "  clean     清理构建产物"
+            echo "用法: $0 {all|services|app|package|sign|notarize|dmg|clean}"
+            echo ""
+            echo "  all        完整构建（services + app + package + sign + dmg）"
+            echo "  services   仅构建 Rust 后台服务"
+            echo "  app        仅构建 SwiftUI App"
+            echo "  package    构建全部并打包 .app"
+            echo "  sign       签名 App"
+            echo "  notarize   公证 App（需 Apple ID 参数）"
+            echo "  dmg        生成 DMG 安装包"
+            echo "  clean      清理构建产物"
+            echo ""
+            echo "环境变量:"
+            echo "  CONFIGURATION  debug|release (默认: release)"
             exit 1
             ;;
     esac

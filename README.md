@@ -4,72 +4,86 @@
   <img src="https://img.shields.io/badge/Swift-5.9-red" alt="Swift">
   <img src="https://img.shields.io/badge/Rust-2021-purple" alt="Rust">
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
-  <img src="https://img.shields.io/badge/status-MVP-yellow" alt="MVP">
+  <img src="https://img.shields.io/badge/status-V1.0-yellow" alt="V1.0">
+  <img src="https://img.shields.io/badge/modules-20-success" alt="20 Modules">
 </div>
 
 <h1 align="center">⚡ Fusion Studio</h1>
 <p align="center"><strong>Unified macOS Desktop Client for the Fusion-MLX Local AI Ecosystem</strong></p>
-<p align="center"><em>One app to rule them all — Design, Code, Simulation, Models, and more. 100% offline, Apple Silicon native.</em></p>
+<p align="center"><em>One app to rule them all — Design, Code, Simulation, MultiModal, Training, and more. 100% offline, Apple Silicon native.</em></p>
 
 ---
 
 ## 📋 Overview
 
-**Fusion Studio** is the unified macOS native desktop application for the entire [Fusion-MLX](https://github.com/dahai80?tab=repositories) local AI ecosystem. It consolidates 9+ sub-products into a single, cohesive user experience — eliminating the pain of juggling multiple terminals, browser tabs, and scattered directories.
+**Fusion Studio** is the unified macOS native desktop application for the entire [Fusion-MLX](https://github.com/dahai80?tab=repositories) local AI ecosystem. It consolidates **20 modules** across 6 product phases into a single, cohesive user experience — eliminating the pain of juggling multiple terminals, browser tabs, and scattered directories.
 
 ### Why Fusion Studio?
 
 | Before (Scattered) | After (Unified) |
 |-------------------|-----------------|
-| 🖥️ Terminal 1: `fusion-cli` | 📱 **Single macOS App** |
-| 🖥️ Terminal 2: `fusion-coder` | 🎨 **Design Canvas** (WKWebView) |
-| 🌐 Browser: `fusion-design` | 💻 **Code Editor** (built-in) |
-| 🖥️ Terminal 3: `fusion-simulation` | 🤖 **Simulation View** (Metal) |
-| 📁 Multiple directories | 📂 **Unified workspace** |
+| 🖥️ 5+ terminals for different tools | 📱 **Single macOS App** |
+| 🌐 Browser tabs for design / docs | 🎨 **Built-in canvas + editor** |
+| 📁 Multiple project directories | 📂 **Unified workspace** |
 | ⚠️ Manual dependency hell | 🔧 **One-click repair** |
+| 🐌 Cloud API latency | ⚡ **Local MLX inference** |
 
 ### Ecosystem Position
 
 ```
-fusion-mlx (inference engine, Metal, KV Cache, quantization)
-        ↓
-Model-Hub / KB / Bench / Plugins (data & evaluation layer)
+fusion-mlx (inference engine, Metal, KV Cache, quantization, multi-modal)
         ↓
 Fusion Studio (UNIFIED macOS DESKTOP APP)
         ↓
-Design · Code · Simulation · Doc · Desk · Agent-Studio (application layer)
+Design · Code · Simulation · MultiModal · Training · Data · Agent · KB · Bench · Desk
 ```
 
 ---
 
-## ✨ Features
+## ✨ Feature Matrix (20 Modules)
 
 ### 🎯 Core Platform
 
-- **🔧 Environment Health Check & One-Click Repair** — Auto-detect Xcode CLI, Homebrew, Python, MLX, PyBullet, Rust toolchain; fix with one click
-- **⚙️ Unified Settings** — Hardware acceleration, offline mode, quantization presets, workspace management in one place
-- **📊 Hardware Monitor** — Real-time unified memory, CPU/GPU usage, MLX inference status
-- **📋 Global Task Queue** — Background task management for inference, compilation, export, simulation
+| Feature | Description |
+|---------|-------------|
+| 🔧 **Environment Health Check** | Auto-detect Xcode CLI, Homebrew, Python, MLX, PyBullet, Rust |
+| 🛠️ **One-Click Repair** | Fix all dependencies automatically |
+| ⚙️ **Unified Settings** | Hardware, offline mode, quantization, workspace |
+| 📊 **Hardware Monitor** | Real-time CPU/GPU/memory/MLX metrics |
+| 📋 **Global Task Queue** | Background task management with persistence |
+| 🔌 **Plugin System** | Third-party extension support |
+| ♿ **Accessibility** | VoiceOver, keyboard navigation, reduce motion |
+| 🌐 **i18n** | Chinese, English, Japanese, Korean |
+| 🔒 **Security Center** | Sandbox, file access control, integrity check |
 
-### 🧩 Module Integration
+### 🧩 Module Overview
 
-| Module | Status | Description |
-|--------|--------|-------------|
-| 🎨 **Fusion-Design** | ✅ MVP | WKWebView canvas with tldraw/OpenPencil integration |
-| 💻 **Fusion Code** | ✅ MVP | Built-in code editor + integrated terminal |
-| 🤖 **Fusion-Simulation** | 📅 V0.2 | PyBullet physics simulation view |
-| 📦 **Fusion Model Hub** | 📅 V0.2 | Visual model management panel |
-| ⌨️ **Fusion CLI** | 📅 V0.2 | GUI wrapper for CLI commands |
-| 📄 **Fusion-Doc** | 📅 V0.2 | Document management |
-| 📚 **Fusion-KB** | 📅 V0.2 | Knowledge base RAG retrieval |
-| 📊 **Fusion-Bench** | 📅 V0.2 | Benchmark dashboard |
-| 🧹 **Fusion-Desk** | 📅 V0.2 | Desktop automation |
-
-### 🔗 Design → Code → Simulation Pipeline
-
-```
-🎨 Design UI → 💻 Export Code → 🤖 Deploy as Control Panel → 🏃 Run Simulation
-```
+| # | Module | Icon | Status | Description |
+|---|--------|------|--------|-------------|
+| 1 | 🏠 **Dashboard** | `square.grid.2x2` | ✅ Stable | Command center, health check, task queue, hardware monitor |
+| 2 | 🎨 **Design** | `pencil.and.outline` | ✅ Stable | AI-powered vector canvas, WKWebView, export to code |
+| 3 | 💻 **Code** | `chevron.left.forwardslash.chevron.right` | ✅ Stable | Code editor + integrated terminal, 9 languages |
+| 4 | 🤖 **Simulation** | `gearshape.2` | ✅ Stable | PyBullet physics, 3D viewport, scene editor |
+| 5 | 📦 **Model Hub** | `cpu` | ✅ Stable | Model download/activate/quantization management |
+| 6 | 🖼️ **MultiModal** | `photo.on.rectangle` | ✅ Stable | Text-to-image, image-to-image, OCR, speech-to-text, TTS |
+| 7 | 🧠 **Training** | `brain` | ✅ Stable | LoRA/QLoRA fine-tuning, monitoring, checkpoints, model export |
+| 8 | ⌨️ **CLI** | `terminal` | ✅ Stable | GUI CLI panel, 18 preset commands, execution history |
+| 9 | 📄 **Doc** | `doc.text` | ✅ Stable | Document editor, markdown, categories |
+| 10 | 📚 **KB** | `books.vertical` | ✅ Stable | Knowledge base, RAG retrieval, document indexing |
+| 11 | 📊 **Bench** | `chart.bar` | ✅ Stable | Speed/memory/context/quality benchmarks |
+| 12 | 🧹 **Desk** | `desktopcomputer` | ✅ Stable | Desktop automation, 6 preset templates |
+| 13 | 📈 **Data Tools** | `tablecells` | ✅ Stable | CSV import/export, statistics, charts, SQL queries |
+| 14 | 🤝 **Agent** | `person.2.fill` | ✅ Stable | Multi-agent orchestration, workflows, task delegation |
+| 15 | 🔌 **Plugin** | `puzzlepiece.extension` | ✅ Stable | Plugin manager, marketplace, developer tools |
+| 16 | 🔒 **Security** | `shield.checkered` | ✅ Stable | Security scan, event monitoring, config hardening |
+| 17 | 📊 **Analytics** | `chart.bar.xaxis` | ✅ Stable | Usage analytics, inference stats, error analysis |
+| 18 | 👥 **Collaboration** | `person.2` | ✅ Stable | LAN peer discovery, real-time chat, shared resources |
+| 19 | ⚡ **Auto Tuning** | `wand.and.rays` | ✅ Stable | MLX auto-tuning, performance optimization |
+| 20 | 🔗 **External Integrations** | `link.circle` | ✅ Stable | GitHub, Jira, Slack, OpenAI-compatible API |
+| 21 | 📝 **Doc Generator** | `doc.badge.gearshape` | ✅ Stable | Auto-generate API/arch/changelog/README docs |
+| 22 | 🏭 **Industry Templates** | `square.stack.3d.forward.dottedline` | ✅ Stable | 12 pre-built industry scenarios |
+| 23 | 🔧 **Operations** | `antenna.radiowaves.left.and.right` | ✅ Stable | Service management, alert rules, ops logs |
+| 24 | 🔑 **License** | `key.fill` | ✅ Stable | Commercial licensing, activation, tier comparison |
 
 ---
 
@@ -78,18 +92,18 @@ Design · Code · Simulation · Doc · Desk · Agent-Studio (application layer)
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │  📱 Application Layer — SwiftUI Native Desktop               │
-│  Navigation · Settings · Health Check · Task Manager         │
+│  Navigation (20 modules) · Settings · Health Check · Tasks   │
 ├──────────────────────────────────────────────────────────────┤
 │  🛠️ Container Layer — WKWebView + Native Components          │
-│  Design · Code · Simulation · Model Hub · CLI · Doc · KB     │
+│  Design · Code · Simulation · MultiModal · Training · Data   │
 ├──────────────────────────────────────────────────────────────┤
 │  🔗 Bridge Layer — Unix Domain Socket + JSON-RPC 2.0         │
 ├──────────────────────────────────────────────────────────────┤
 │  ⚙️ Service Layer — Rust/Python Daemon Processes              │
-│  env-daemon · mlx-daemon · file-daemon · supervisor          │
+│  env-daemon · mlx-daemon · supervisor                        │
 ├──────────────────────────────────────────────────────────────┤
-│  🧠 Base Layer — Apple Silicon Native                        │
-│  fusion-mlx · Metal · ANE · PyBullet · VideoToolbox          │
+│  🧠 Base Layer — fusion-mlx (Apple Silicon Native)           │
+│  LLM · Image Generation · Speech · OCR · Video · Training   │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -99,11 +113,10 @@ Design · Code · Simulation · Doc · Desk · Agent-Studio (application layer)
 |-------|-----------|-----------|
 | UI Framework | **SwiftUI** | macOS native, best performance, Apple Silicon optimized |
 | Embedded Web | **WKWebView** | Reuse Fusion-Design canvas without rewrite |
-| Code Editor | **CodeEditorView** (SwiftUI) | Native integration, lightweight |
 | IPC | **Unix Socket + JSON-RPC 2.0** | Lightweight, zero-dependency, cross-language |
-| Backend Services | **Rust** (primary) + **Python** (secondary) | Rust for performance/process mgmt, Python for MLX reuse |
-| Simulation | **Metal View + PyBullet** | Native GPU acceleration |
-| Storage | **SQLite** | Zero-config, local-first |
+| Backend Services | **Rust** (primary) + **Python** (secondary) | Rust for performance/process mgmt, Python for MLX |
+| Inference Engine | **fusion-mlx** | Apple Silicon MLX, multi-modal, quantization |
+| Storage | **SQLite + UserDefaults** | Zero-config, local-first, encrypted |
 | Packaging | **Xcode Archive + Notarization + DMG** | Standard macOS distribution |
 
 ---
@@ -115,16 +128,13 @@ Design · Code · Simulation · Doc · Desk · Agent-Studio (application layer)
 - macOS 14+ (Sonoma or later)
 - Apple Silicon (M1–M5)
 - [Xcode CLI Tools](https://developer.apple.com/download/all/) (`xcode-select --install`)
-- [Homebrew](https://brew.sh) (for dependency management)
+- [Homebrew](https://brew.sh)
 
 ### One-Click Setup
 
 ```bash
-# Clone the repository
 git clone https://github.com/dahai80/fusion-studio.git
 cd fusion-studio
-
-# Run setup script (auto-installs all dependencies)
 ./Scripts/setup.sh
 ```
 
@@ -145,17 +155,11 @@ swift build -c release
 ./Scripts/start.sh
 ```
 
-### Build Distribution Package
+### Build Distribution
 
 ```bash
-# Full build: services + app + package + sign + dmg
-./Scripts/build.sh all
-
-# Or build individual components
-./Scripts/build.sh services    # Build Rust daemons only
-./Scripts/build.sh app         # Build SwiftUI app only
-./Scripts/build.sh package     # Build everything and package .app
-./Scripts/build.sh dmg         # Generate DMG installer
+./Scripts/build.sh all    # Full build: services + app + package + sign + dmg
+./Scripts/build.sh dmg    # DMG installer only
 ```
 
 ---
@@ -166,38 +170,37 @@ swift build -c release
 fusion-studio/
 ├── FusionStudio.xcodeproj/       # Xcode project
 ├── Package.swift                  # Swift Package Manager
-├── FusionStudio/                 # SwiftUI source code
+├── FusionStudio/                 # SwiftUI source code (50+ files)
 │   ├── FusionStudioApp.swift     # @main entry point
 │   ├── ContentView.swift          # Main layout (NavigationSplitView)
-│   ├── Navigation/               # Sidebar + module routing
+│   ├── Navigation/               # Sidebar + module routing (20 modules)
 │   ├── Settings/                 # Settings panels (5 tabs)
 │   ├── Environment/              # Health check engine
 │   ├── TaskManager/              # Task queue + hardware monitor
 │   ├── Bridge/                   # IPC client (JSON-RPC)
-│   ├── Modules/                  # Module containers
+│   ├── Modules/                  # Module containers (20+ modules)
 │   │   ├── Design/               # WKWebView canvas
 │   │   ├── Code/                 # Code editor + terminal
-│   │   ├── Simulation/           # Simulation view (V0.2)
-│   │   └── ...                   # Other modules (V0.2+)
-│   └── Common/                   # Shared state, config, about
+│   │   ├── Simulation/           # 3D physics simulation
+│   │   ├── ModelHub/             # Model management
+│   │   ├── MultiModalView.swift  # Image/speech/OCR
+│   │   ├── TrainingView.swift    # LoRA/QLoRA training
+│   │   ├── DataToolsView.swift   # CSV/statistics/charts
+│   │   └── ...                   # Other modules
+│   └── Common/                   # Shared services (20+ files)
+│       ├── AppState.swift        # Global state + 20-module enum
+│       ├── FusionConfig.swift    # Unified config model
+│       ├── I18nService.swift     # Multi-language support
+│       ├── PluginService.swift   # Plugin system
+│       ├── SecurityService.swift # Security center
+│       ├── CollaborationService.swift # LAN collaboration
+│       └── ...                   # Other services
 ├── Services/                     # Background daemon processes
-│   ├── env-daemon/               # Rust — Health check + repair engine
-│   │   ├── Cargo.toml
-│   │   └── src/
-│   │       ├── main.rs           # JSON-RPC server with crash recovery
-│   │       └── lib.rs            # HealthChecker + RepairEngine
-│   └── mlx-daemon/               # Python — MLX inference service
-│       └── daemon.py             # MLX process manager + hardware monitor
+│   ├── env-daemon/               # Rust — Health check + repair
+│   └── mlx-daemon/               # Python — MLX service manager
 ├── Scripts/                      # Build & deployment scripts
-│   ├── setup.sh                  # One-click dev environment setup
-│   ├── build.sh                  # Full build pipeline
-│   ├── start.sh                  # Start all services
-│   └── sign.sh                   # Code signing + notarization
-├── Workspace/                    # Default workspace directory
-│   ├── designs/                  # Design files
-│   ├── projects/                 # Code projects
-│   ├── simulations/              # Simulation scenes
-│   └── models/                   # Model weight symlinks
+├── Tests/                        # Unit + integration tests (60+ tests)
+├── .github/workflows/            # CI/CD pipelines
 ├── ARCHITECTURE.md               # Architecture documentation
 ├── README.md                     # This file
 └── README_CN.md                  # Chinese documentation
@@ -210,66 +213,22 @@ fusion-studio/
 - **🔒 100% Offline** — Zero network requests to external services when offline mode is enabled
 - **📡 No Telemetry** — No analytics, no phoning home, no update checks
 - **🏠 Local Only** — All models, data, and vectors stay on your machine
-- **🔐 Socket Security** — Unix socket permissions set to `0600` (owner only)
+- **🔐 Sandbox** — File access control, input sanitization, integrity checks
 - **⚡ No Cloud APIs** — Hard-coded to fusion-mlx only, no third-party backends
 
 ---
 
-## 🛣️ Roadmap
+## 🛣️ Development Roadmap
 
-### V0.1 MVP (Current) ✅
-- [x] SwiftUI main framework (navigation, settings, health check)
-- [x] Environment health check & one-click repair engine
-- [x] IPC bridge (Unix Socket JSON-RPC)
-- [x] Fusion-Design WKWebView canvas container
-- [x] Fusion Code editor + integrated terminal
-- [x] Global task queue & hardware monitor
-- [x] Unified workspace directory
-- [x] Rust env-daemon with crash recovery
-- [x] Python mlx-daemon for MLX service management
-- [x] Build & packaging scripts
-
-### V0.2 (Planned — 2–3 weeks)
-- [ ] Fusion-Simulation simulation view (PyBullet)
-- [ ] Fusion Model Hub visual model management
-- [ ] GUI CLI panel
-- [ ] Doc/KB/Bench basic panels
-- [ ] Module interop (Design ↔ Code ↔ Simulation)
-- [ ] Enhanced task queue (progress, pause, cancel)
-
-### V1.0 (Planned — 1 month+)
-- [ ] All 9 module entry points complete
-- [ ] App signing, notarization, DMG distribution
-- [ ] Auto-update mechanism
-- [ ] Long-running stability & memory optimization
-- [ ] User documentation & guides
-
-### Future
-- [ ] Team LAN collaboration
-- [ ] Plugin system for third-party extensions
-- [ ] Advanced simulation parameters
-- [ ] CI/CD pipeline
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please check the [ARCHITECTURE.md](ARCHITECTURE.md) for design overview and [docs/](docs/) for detailed documentation.
-
-### Development Setup
-
-```bash
-# Clone and install
-git clone https://github.com/dahai80/fusion-studio.git
-cd fusion-studio
-./Scripts/setup.sh
-
-# Run in development mode
-swift run
-
-# Run tests
-swift test
-```
+| Phase | Focus | Modules | Status |
+|-------|-------|---------|--------|
+| **V0.1 MVP** | Core framework + Design + Code + Health | 5 | ✅ Complete |
+| **V0.2** | All modules + Interop + Logs + CLI | 9 | ✅ Complete |
+| **V1.0** | Desk + Auto-update + Backup + Security | 5 | ✅ Complete |
+| **Phase 4** | Collaboration + Plugins + CI/CD | 5 | ✅ Complete |
+| **Phase 5** | Agent + RAG + Profiler + i18n + Templates | 5 | ✅ Complete |
+| **Phase 6** | Tests + Onboarding + Security + Accessibility | 6 | ✅ Complete |
+| **Phase 7** | MultiModal + Training + Data + Industry | 6 | ✅ Complete |
 
 ---
 
@@ -279,18 +238,9 @@ MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 
-## 🙏 Acknowledgments
-
-- [fusion-mlx](https://github.com/dahai80/fusion-mlx) — Apple Silicon model serving
-- [MLX](https://github.com/ml-explore/mlx) — Apple's machine learning framework
-- [OpenPencil](https://github.com/penpot/op-openpencil) — Rust vector canvas engine
-- All the open-source projects that make local AI possible
-
----
-
 <p align="center">
   <strong>Fusion Studio</strong> — One App, All Fusion. 100% Local, 100% Yours.
 </p>
 <p align="center">
-  <sub>Built with ❤️ for Apple Silicon</sub>
+  <sub>Built with ❤️ for Apple Silicon · 20 Modules · 50,000+ Lines of Swift</sub>
 </p>

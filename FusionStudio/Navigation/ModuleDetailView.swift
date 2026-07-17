@@ -16,6 +16,10 @@ struct ModuleDetailView: View {
                 SimulationView()
             case .modelHub:
                 ModelHubView()
+            case .multimodal:
+                MultiModalView()
+            case .training:
+                TrainingView()
             case .cli:
                 CLIView()
             case .doc:
@@ -26,6 +30,24 @@ struct ModuleDetailView: View {
                 BenchView()
             case .desk:
                 DeskView()
+            case .dataTools:
+                DataToolsView()
+            case .agent:
+                AgentStudioView()
+            case .plugin:
+                PluginView()
+            case .security:
+                SecurityView()
+            case .analytics:
+                AnalyticsDashboardView()
+            case .collab:
+                CollaborateView()
+            case .tuning:
+                AutoTuningView()
+            case .external:
+                ExternalIntegrationsView()
+            case .docgen:
+                DocGeneratorView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -80,62 +102,6 @@ struct CodeView: View {
             TerminalView()
                 .frame(height: 200)
         }
-    }
-}
-
-struct SimulationView: View {
-    var body: some View {
-        Text("🤖 仿真视图（V0.2 实现）")
-            .font(.title)
-            .foregroundColor(.secondary)
-    }
-}
-
-struct ModelHubView: View {
-    var body: some View {
-        Text("📦 模型管理（V0.2 实现）")
-            .font(.title)
-            .foregroundColor(.secondary)
-    }
-}
-
-struct CLIView: View {
-    var body: some View {
-        Text("⌨️ CLI 面板（V0.2 实现）")
-            .font(.title)
-            .foregroundColor(.secondary)
-    }
-}
-
-struct DocView: View {
-    var body: some View {
-        Text("📄 文档管理（V0.2 实现）")
-            .font(.title)
-            .foregroundColor(.secondary)
-    }
-}
-
-struct KBView: View {
-    var body: some View {
-        Text("📚 知识库（V0.2 实现）")
-            .font(.title)
-            .foregroundColor(.secondary)
-    }
-}
-
-struct BenchView: View {
-    var body: some View {
-        Text("📊 测评（V0.2 实现）")
-            .font(.title)
-            .foregroundColor(.secondary)
-    }
-}
-
-struct DeskView: View {
-    var body: some View {
-        Text("🧹 桌面自动化（V0.2 实现）")
-            .font(.title)
-            .foregroundColor(.secondary)
     }
 }
 

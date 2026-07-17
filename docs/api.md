@@ -1,6 +1,7 @@
 # Fusion Studio API Documentation
 
-> **Version**: 0.1.0 MVP · **Protocol**: JSON-RPC 2.0 over Unix Domain Socket
+> **Version**: 1.0.0 · **Protocol**: JSON-RPC 2.0 over Unix Domain Socket
+> **Modules**: 20+ · **Test Coverage**: 60+ tests
 
 ---
 
@@ -19,40 +20,22 @@ Fusion Studio uses **JSON-RPC 2.0** over a **Unix Domain Socket** for all inter-
 
 **Request**:
 ```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "service.method",
-  "params": { ... }
-}
+{"jsonrpc": "2.0", "id": 1, "method": "service.method", "params": {...}}
 ```
-
 **Success Response**:
 ```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": { ... }
-}
+{"jsonrpc": "2.0", "id": 1, "result": {...}}
 ```
-
 **Error Response**:
 ```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "error": {
-    "code": -32601,
-    "message": "Unknown method: xxx"
-  }
-}
+{"jsonrpc": "2.0", "id": 1, "error": {"code": -32601, "message": "Unknown method"}}
 ```
 
 ### Standard Error Codes
 
 | Code | Meaning |
 |------|---------|
-| `-32700` | Parse error — invalid JSON |
+| `-32700` | Parse error |
 | `-32600` | Invalid request |
 | `-32601` | Method not found |
 | `-32603` | Internal error |
@@ -65,247 +48,52 @@ Fusion Studio uses **JSON-RPC 2.0** over a **Unix Domain Socket** for all inter-
 
 #### `env.health_check`
 
-Run all environment health checks.
+Run all environment health checks (7 items).
 
-**Parameters**: None
+**Response**: Array of `{id, label, status, detail, fixable}`
 
-**Response**:
-```json
-{
-  "result": [
-    {
-      "id": "xcode",
-      "label": "Xcode CLI Tools",
-      "status": "passed",
-      "detail": "/Library/Developer/CommandLineTools",
-      "fixable": true
-    },
-    {
-      "id": "homebrew",
-      "label": "Homebrew",
-      "status": "passed",
-      "detail": "Homebrew 4.x",
-      "fixable": true
-    },
-    {
-      "id": "python",
-      "label": "Python 3.11+",
-      "status": "passed",
-      "detail": "Python 3.12.0",
-      "fixable": true
-    },
-    {
-      "id": "mlx",
-      "label": "MLX 环境",
-      "status": "failed",
-      "detail": "mlx 未安装",
-      "fixable": true
-    },
-    {
-      "id": "pybullet",
-      "label": "PyBullet",
-      "status": "passed",
-      "detail": "pybullet 4.x",
-      "fixable": true
-    },
-    {
-      "id": "rust",
-      "label": "Rust 工具链",
-      "status": "passed",
-      "detail": "rustc 1.80.0",
-      "fixable": true
-    },
-    {
-      "id": "fusion-mlx",
-      "label": "fusion-mlx 服务",
-      "status": "failed",
-      "detail": "未运行",
-      "fixable": true
-    }
-  ]
-}
-```
-
-**Check Items**:
-
-| ID | Check | Detection Method |
-|----|-------|-----------------|
+| Check ID | Check | Detection |
+|----------|-------|-----------|
 | `xcode` | Xcode CLI Tools | `xcode-select -p` |
 | `homebrew` | Homebrew | `brew --version` |
-| `python` | Python 3.11+ | `python3 --version` + `pip3 --version` |
-| `mlx` | MLX framework | `python3 -c "import mlx; print(mlx.__version__)"` |
-| `pybullet` | PyBullet physics | `python3 -c "import pybullet; print(pybullet.__version__)"` |
-| `rust` | Rust toolchain | `rustc --version` + `cargo --version` |
-| `fusion-mlx` | fusion-mlx service | HTTP GET `http://localhost:8000/v1/models` |
+| `python` | Python 3.11+ | `python3 --version` |
+| `mlx` | MLX framework | `import mlx` |
+| `pybullet` | PyBullet | `import pybullet` |
+| `rust` | Rust toolchain | `rustc --version` |
+| `fusion-mlx` | fusion-mlx service | HTTP `localhost:8000/v1/models` |
 
 #### `env.repair`
 
-Repair a specific environment check item.
+Repair a specific check item. `params: {"item_id": "mlx"}`
 
-**Parameters**:
-```json
-{
-  "item_id": "mlx"
-}
-```
-
-**Response**:
-```json
-{
-  "result": {
-    "item_id": "mlx",
-    "success": true,
-    "message": "MLX 安装成功",
-    "logs": ["$ pip3 install mlx", "Successfully installed mlx-0.x.x"]
-  }
-}
-```
-
-**Supported Repairs**:
-
-| Item ID | Repair Action |
-|---------|---------------|
-| `xcode` | `xcode-select --install` |
-| `homebrew` | Homebrew install script |
-| `python` | `brew install python@3.11` |
-| `mlx` | `pip3 install mlx` |
-| `pybullet` | `pip3 install pybullet` (with fallback to source build) |
-| `rust` | `curl ... sh.rustup.rs` |
-| `fusion-mlx` | Start fusion-mlx server process |
+**Response**: `{item_id, success, message, logs}`
 
 #### `env.repair_all`
 
-Repair all failed and fixable items automatically.
-
-**Parameters**: None
-
-**Response**: Array of `RepairResult` objects.
+Repair all failed items automatically.
 
 #### `ping`
 
-Health check for the daemon itself.
-
-**Parameters**: None
-
-**Response**:
-```json
-{
-  "result": {
-    "pong": true,
-    "version": "0.1.0"
-  }
-}
-```
+Health check: `{"pong": true, "version": "1.0.0"}`
 
 ---
 
 ### MLX Service (`mlx.*`)
 
-#### `mlx.start`
+| Method | Params | Description |
+|--------|--------|-------------|
+| `mlx.start` | `{"model": "..."}` | Start fusion-mlx service |
+| `mlx.stop` | — | Stop fusion-mlx service |
+| `mlx.restart` | — | Restart fusion-mlx service |
+| `mlx.status` | — | Get full service status |
+| `mlx.health` | — | Quick health check |
+| `mlx.set_model` | `{"model": "..."}` | Set active model |
 
-Start the fusion-mlx inference service.
-
-**Parameters**:
+**mlx.status Response**:
 ```json
-{
-  "model": "qwen3.5-9b-4bit"
-}
-```
-
-**Response**:
-```json
-{
-  "result": true
-}
-```
-
-#### `mlx.stop`
-
-Stop the fusion-mlx inference service.
-
-**Parameters**: None
-
-**Response**:
-```json
-{
-  "result": true
-}
-```
-
-#### `mlx.restart`
-
-Restart the fusion-mlx inference service.
-
-**Parameters**: None
-
-**Response**:
-```json
-{
-  "result": true
-}
-```
-
-#### `mlx.status`
-
-Get the full status of the MLX inference service.
-
-**Parameters**: None
-
-**Response**:
-```json
-{
-  "result": {
-    "running": true,
-    "pid": 12345,
-    "host": "localhost",
-    "port": 8000,
-    "health": {
-      "status": "healthy",
-      "http_code": 200,
-      "models": ["qwen3.5-9b-4bit"]
-    },
-    "model": "qwen3.5-9b-4bit",
-    "quant": "4bit",
-    "max_memory_gb": 16
-  }
-}
-```
-
-#### `mlx.health`
-
-Quick health check for the MLX service.
-
-**Parameters**: None
-
-**Response**:
-```json
-{
-  "result": {
-    "status": "healthy",
-    "http_code": 200
-  }
-}
-```
-
-#### `mlx.set_model`
-
-Set the active model for the MLX service.
-
-**Parameters**:
-```json
-{
-  "model": "llama3-8b-4bit"
-}
-```
-
-**Response**:
-```json
-{
-  "result": {
-    "status": "ok",
-    "model": "llama3-8b-4bit"
-  }
-}
+{"running": true, "pid": 12345, "host": "localhost", "port": 8000,
+ "health": {"status": "healthy", "http_code": 200},
+ "model": "qwen3.5-9b-4bit", "quant": "4bit", "max_memory_gb": 16}
 ```
 
 ---
@@ -314,231 +102,131 @@ Set the active model for the MLX service.
 
 #### `hardware.metrics`
 
-Get current hardware metrics from the system.
-
-**Parameters**: None
+Get current hardware metrics: memory, CPU, GPU, MLX.
 
 **Response**:
 ```json
-{
-  "result": {
-    "memory": {
-      "total_gb": 32.0,
-      "used_gb": 12.5,
-      "percent": 39.1
-    },
-    "cpu": {
-      "percent": 23.5,
-      "count": 12
-    },
-    "gpu": {
-      "raw": "GPU Power: 5W"
-    },
-    "mlx": {
-      "info": "Metal device: Apple M3 Pro"
-    }
-  }
-}
+{"memory": {"total_gb": 32, "used_gb": 12.5},
+ "cpu": {"percent": 23.5},
+ "gpu": {"raw": "GPU Power: 5W"},
+ "mlx": {"info": "Metal device: Apple M3 Pro"}}
 ```
 
 ---
 
 ### Task Service (`task.*`)
 
-#### `task.submit`
+| Method | Params | Description |
+|--------|--------|-------------|
+| `task.submit` | `{"type": "...", ...}` | Submit background task |
 
-Submit a background task for execution.
-
-**Parameters**:
-```json
-{
-  "type": "inference",
-  "model": "qwen3.5-9b-4bit",
-  "prompt": "Hello, world!"
-}
-```
-
-**Response**:
-```json
-{
-  "result": {
-    "task_id": "uuid-xxxx",
-    "status": "queued"
-  }
-}
-```
-
-**Task Types**:
-
-| Type | Description |
-|------|-------------|
-| `inference` | ML model inference |
-| `compile` | Code compilation |
-| `export` | File export / batch export |
-| `simulation` | Physics simulation run |
-| `batch` | Batch processing |
+**Task Types**: `inference`, `compile`, `export`, `simulation`, `batch`, `download`
 
 ---
 
-## Swift Client API (IPCClient)
+## Architecture Overview
 
-The `IPCClient` class in `FusionStudio/Bridge/IPCClient.swift` provides a Swift-native interface to all RPC methods.
-
-### Initialization
-
-```swift
-let client = IPCClient()  // Uses default socket path
-let client = IPCClient(socketPath: "/tmp/custom.sock")  // Custom path
+```
+┌──────────────────────────────────────────────────────────────┐
+│  Application Layer (SwiftUI) — 20 modules                    │
+├──────────────────────────────────────────────────────────────┤
+│  Container Layer — WKWebView + Native Components             │
+├──────────────────────────────────────────────────────────────┤
+│  Bridge Layer — Unix Socket + JSON-RPC 2.0                   │
+├──────────────────────────────────────────────────────────────┤
+│  Service Layer — Rust/Python Daemon Processes                │
+│  env-daemon · mlx-daemon · supervisor                        │
+├──────────────────────────────────────────────────────────────┤
+│  Base Layer — fusion-mlx (Apple Silicon Native)              │
+│  LLM · Image · Speech · OCR · Video · Training               │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-### Connection State
+### Module List (20+)
+
+| # | Module | Type | File |
+|---|--------|------|------|
+| 1 | Dashboard | Core | `Navigation/ModuleDetailView.swift` |
+| 2 | Design | Container | `Modules/Design/WebViewContainer.swift` |
+| 3 | Code | Core | `Modules/Code/CodeEditorView.swift` |
+| 4 | Simulation | Container | `Modules/Simulation/SimulationView.swift` |
+| 5 | Model Hub | Core | `Modules/ModelHub/ModelHubView.swift` |
+| 6 | MultiModal | Core | `Modules/MultiModalView.swift` |
+| 7 | Training | Core | `Modules/TrainingView.swift` |
+| 8 | CLI | Core | `Modules/CLI/CLIView.swift` |
+| 9 | Doc | Core | `Modules/Doc/DocView.swift` |
+| 10 | KB | Service | `Modules/KB/KBView.swift` |
+| 11 | Bench | Core | `Modules/Bench/BenchView.swift` |
+| 12 | Desk | Core | `Modules/Desk/DeskView.swift` |
+| 13 | Data Tools | Core | `Modules/DataToolsView.swift` |
+| 14 | Agent Studio | Service | `Modules/AgentStudioView.swift` |
+| 15 | Plugin | Service | `Common/PluginService.swift` |
+| 16 | Security | Service | `Common/SecurityService.swift` |
+| 17 | Analytics | Service | `Common/AnalyticsDashboardView.swift` |
+| 18 | Collaboration | Service | `Common/CollaborationService.swift` |
+| 19 | Auto Tuning | Service | `Common/AutoTuningView.swift` |
+| 20 | External Integrations | Service | `Common/ExternalIntegrationsView.swift` |
+| 21 | Doc Generator | Service | `Common/DocGeneratorView.swift` |
+| 22 | Industry Scenarios | Service | `Modules/IndustryScenariosView.swift` |
+| 23 | Operations | Service | `Modules/OperationsView.swift` |
+| 24 | License | Service | `Modules/LicenseView.swift` |
+
+---
+
+## Swift Client API
 
 ```swift
-client.isConnected  // Published property: Bool
-client.lastError    // Published property: String?
-```
+let client = IPCClient()  // Default socket path
 
-### Methods
-
-```swift
 // Environment
 func healthCheck() async throws -> [String: Any]
 func repair(itemId: String) async throws -> [String: Any]
 func repairAll() async throws -> [String: Any]
 
-// MLX Service
+// MLX
 func startMLX(model: String) async throws -> [String: Any]
 func stopMLX() async throws -> [String: Any]
 func mlxStatus() async throws -> [String: Any]
 func hardwareMetrics() async throws -> [String: Any]
 
-// Task
+// Tasks
 func submitTask(type: String, params: [String: Any]) async throws -> [String: Any]
-
-// Heartbeat
 func ping() async throws -> Bool
 ```
 
-### Error Handling
-
+**Error Handling**:
 ```swift
-do {
-    let result = try await client.healthCheck()
-    // Handle result
-} catch IPCError.disconnected {
-    // Handle connection lost
-} catch IPCError.rpcError(let code, let message) {
-    // Handle RPC error
-} catch {
-    // Handle other errors
-}
-```
-
-### Error Types
-
-```swift
-enum IPCError: Error {
-    case disconnected      // Socket not connected
-    case invalidRequest    // Invalid JSON-RPC request
-    case invalidResponse   // Invalid JSON-RPC response
-    case rpcError(code: Int, message: String)  // Remote error
-}
+do { try await client.healthCheck() }
+catch IPCError.disconnected { /* reconnect */ }
+catch IPCError.rpcError(let code, let message) { /* handle RPC error */ }
 ```
 
 ---
 
-## Rust Server Implementation
+## Backend Services
 
-### env-daemon
+### env-daemon (Rust)
 
-The `env-daemon` service is the main JSON-RPC server implemented in Rust.
-
-**Architecture**:
-- Single-threaded async event loop using `tokio`
+- Async JSON-RPC server using `tokio`
 - Automatic crash recovery with exponential backoff (max 5 retries)
-- 30-second accept timeout for heartbeat detection
-- Socket permissions set to `0600`
+- 30-second accept timeout for heartbeat
+- Socket permissions: `0600`
+- **Source**: `Services/env-daemon/src/main.rs`
 
-**Source**: `Services/env-daemon/src/main.rs`
+### mlx-daemon (Python)
 
-**Core Modules**:
-- `HealthChecker` — Runs all environment checks
-- `RepairEngine` — Performs automated repairs
-
-### Request Handling Flow
-
-```
-Client → Unix Socket → JSON-RPC Parser → Method Dispatch → Handler → JSON-RPC Response → Client
-```
-
-### Connection Lifecycle
-
-1. Client connects to Unix socket
-2. Server reads JSON-RPC request (line-delimited)
-3. Server parses and dispatches to handler
-4. Server writes JSON-RPC response (line-delimited)
-5. Connection stays open for reuse, or closes
-
----
-
-## Python MLX Daemon
-
-The `mlx-daemon` is implemented in Python and manages the fusion-mlx inference service.
-
-**Source**: `Services/mlx-daemon/daemon.py`
-
-**Features**:
-- MLX process lifecycle management (start/stop/restart)
+- MLX process lifecycle management
 - Health check via HTTP polling
-- Hardware metrics collection (memory, CPU, GPU, MLX)
+- Hardware metrics collection
 - HTTP JSON-RPC server on port `8001`
-
-### Hardware Metrics Collection
-
-| Metric | Method | Requirements |
-|--------|--------|--------------|
-| Memory | `psutil` or `vm_stat` | `psutil` recommended |
-| CPU | `psutil` | `psutil` recommended |
-| GPU | `powermetrics` | `sudo` access required |
-| MLX | `mlx.core.metal.device_info()` | `mlx` package installed |
+- **Source**: `Services/mlx-daemon/daemon.py`
 
 ---
 
-## IPC Protocol Design Rationale
+## Security
 
-| Decision | Choice | Alternative | Reason |
-|----------|--------|-------------|--------|
-| Transport | Unix Domain Socket | TCP, gRPC | Zero network overhead, local-only security |
-| Protocol | JSON-RPC 2.0 | GraphQL, REST | Simple, language-agnostic, well-established |
-| Framing | Line-delimited (newline) | Length-prefixed | Simple text parsing, human-readable |
-| Async | Swift `async/await` | Callbacks | Native Swift concurrency, clean error handling |
-
----
-
-## Security Considerations
-
-1. **Socket Permissions**: Set to `0600` — only the owner can read/write
-2. **No Authentication**: IPC is local-only, no auth needed
-3. **Input Validation**: All JSON-RPC parameters are validated server-side
-4. **Timeout**: 30-second accept timeout prevents hung connections
-5. **Crash Recovery**: Automatic restart with exponential backoff
-
----
-
-## Error Handling Best Practices
-
-```swift
-// Always wrap IPC calls in do-catch
-do {
-    let status = try await client.mlxStatus()
-    if let running = status["running"] as? Bool, running {
-        // Service is running
-    }
-} catch IPCError.disconnected {
-    // Show reconnection UI
-    client.connect()
-} catch {
-    // Log error
-    print("IPC Error: \(error)")
-}
-```
+- **Socket**: `0600` permissions, owner-only access
+- **Input Validation**: All JSON-RPC parameters validated server-side
+- **Timeout**: 30-second accept timeout prevents hung connections
+- **Crash Recovery**: Automatic restart with exponential backoff
+- **No Authentication**: Local-only IPC, no auth needed

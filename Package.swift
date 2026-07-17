@@ -18,6 +18,18 @@ let package = Package(
             resources: [
                 .process("Resources")
             ]
-        )
+        ),
+        // 单元测试
+        .testTarget(
+            name: "UnitTests",
+            dependencies: ["FusionStudio"],
+            path: "Tests/UnitTests"
+        ),
+        // 集成测试
+        .testTarget(
+            name: "IntegrationTests",
+            dependencies: ["FusionStudio"],
+            path: "Tests/IntegrationTests"
+        ),
     ]
 )

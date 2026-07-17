@@ -1,6 +1,7 @@
 # Fusion Studio User Guide
 
-> **Version**: 0.1.0 MVP · **Platform**: macOS 14+ (Apple Silicon)
+> **Version**: 1.0.0 · **Platform**: macOS 14+ (Apple Silicon)
+> **Modules**: 20+ · **Language**: 中/EN/日/韓
 
 ---
 
@@ -22,33 +23,33 @@
 
 ### First Launch
 
-When you first launch Fusion Studio, you'll see the **Dashboard** — the command center for all your AI tools. The app will automatically run an environment health check to ensure all dependencies are properly installed.
+When you first launch Fusion Studio, you'll see the **Dashboard** — the command center for all 20+ modules. The app will automatically run an environment health check.
 
 ### Step 1: Run Environment Check
 
 1. Open Fusion Studio
 2. On the Dashboard, click **"Run Health Check"** in the Environment Health card
 3. Wait for all 7 checks to complete
-4. Green ✅ means everything is ready
-5. Red ❌ means an issue was found — click **"Fix"** to auto-repair
+4. Green ✅ means ready; Red ❌ means issues found — click **"Fix"** to auto-repair
 
 ### Step 2: Start MLX Service
 
-1. In Settings → General, ensure **"Auto-start fusion-mlx service"** is enabled
-2. Or manually start it from the Dashboard via the service status indicator
-3. Verify the MLX service is running (the bolt icon in the toolbar turns green)
+1. Settings → General → enable **"Auto-start fusion-mlx service"**
+2. Or click the bolt icon in the toolbar to start manually
+3. Verify: the bolt icon turns green when MLX is running
 
 ### Step 3: Explore Modules
 
-Click any module in the sidebar to open it:
+Click any module in the sidebar. The first 6 are ready immediately:
 
 | Module | What You Can Do |
 |--------|----------------|
-| 🎨 **Design** | Create and edit UI designs with the AI-powered canvas |
-| 💻 **Code** | Write, edit, and run code with the built-in editor |
-| 🤖 **Simulation** (V0.2) | Run physics simulations |
-| 📦 **Model Hub** (V0.2) | Browse and manage AI models |
-| 📊 **Bench** (V0.2) | Run performance benchmarks |
+| 🏠 **Dashboard** | Health check, task queue, hardware monitor |
+| 🎨 **Design** | AI-powered UI design canvas |
+| 💻 **Code** | Code editor with integrated terminal |
+| 🤖 **Simulation** | 3D physics simulation |
+| 📦 **Model Hub** | Browse and manage AI models |
+| 🖼️ **MultiModal** | Image generation, OCR, speech, TTS |
 
 ---
 
@@ -56,23 +57,29 @@ Click any module in the sidebar to open it:
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│  Toolbar                                                      │
-│  ┌───────┐ ┌──────────────────────────────────────────────┐  │
-│  │       │ │                                              │  │
-│  │ Side  │ │            Module Content                    │  │
-│  │ bar   │ │                                              │  │
-│  │       │ │                                              │  │
-│  │  🏠   │ │                                              │  │
-│  │  🎨   │ │                                              │  │
-│  │  💻   │ │                                              │  │
-│  │  🤖   │ │                                              │  │
-│  │  📦   │ │                                              │  │
-│  │  ⌨️   │ │                                              │  │
-│  │  📄   │ │                                              │  │
-│  │  📚   │ │                                              │  │
-│  │  📊   │ │                                              │  │
-│  │  🧹   │ │                                              │  │
-│  └───────┘ └──────────────────────────────────────────────┘  │
+│  Toolbar: Health Status | MLX Status | Settings | About      │
+│  ┌──────────┐ ┌──────────────────────────────────────────┐   │
+│  │ 🏠 控制台 │ │                                          │   │
+│  │ 🎨 设计   │ │          Module Content                  │   │
+│  │ 💻 编码   │ │                                          │   │
+│  │ 🤖 仿真   │ │                                          │   │
+│  │ 📦 模型   │ │                                          │   │
+│  │ 🖼️ 多模态 │ │                                          │   │
+│  │ 🧠 训练   │ │                                          │   │
+│  │ ⌨️ 命令行 │ │                                          │   │
+│  │ 📄 文档   │ │                                          │   │
+│  │ 📚 知识库 │ │                                          │   │
+│  │ 📊 测评   │ │                                          │   │
+│  │ 🧹 自动化 │ │                                          │   │
+│  │ 📈 数据   │ │                                          │   │
+│  │ 🤝 智能体 │ │                                          │   │
+│  │ 🔌 插件   │ │                                          │   │
+│  │ 🔒 安全   │ │                                          │   │
+│  │ 📊 分析   │ │                                          │   │
+│  │ 👥 协作   │ │                                          │   │
+│  │ ⚡ 调优   │ │                                          │   │
+│  │ 🔗 外部   │ │                                          │   │
+│  └──────────┘ └──────────────────────────────────────────┘   │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -80,60 +87,33 @@ Click any module in the sidebar to open it:
 
 | Icon | Meaning |
 |------|---------|
-| 🟢 Green dot | Environment healthy |
-| 🔴 Red dot | Issues found — click to view |
-| 🟠 Orange dot | Repair in progress |
+| 🟢 Green | Environment healthy |
+| 🔴 Red | Issues found |
 | ⚡ Green bolt | MLX service running |
 | ⚡ Red bolt | MLX service stopped |
-
-### Sidebar Modules
-
-The sidebar contains 10 modules. The first 3 are available in V0.1 MVP:
-
-1. **Dashboard** 🏠 — Command center with health check, task queue, hardware monitor
-2. **Design** 🎨 — AI-powered design canvas (WKWebView)
-3. **Code** 💻 — Code editor with integrated terminal
-4. **Simulation** 🤖 (V0.2) — Physics simulation
-5. **Model Hub** 📦 (V0.2) — Model management
-6. **CLI** ⌨️ (V0.2) — Command line panel
-7. **Doc** 📄 (V0.2) — Document management
-8. **KB** 📚 (V0.2) — Knowledge base
-9. **Bench** 📊 (V0.2) — Benchmarking
-10. **Desk** 🧹 (V0.2) — Desktop automation
 
 ---
 
 ## Environment Management
 
-### Health Check Items
+### Health Check Items (7 checks)
 
-The environment health check scans 7 critical components:
-
-| # | Component | What It Checks | Common Issues |
-|---|-----------|---------------|---------------|
-| 1 | **Xcode CLI Tools** | `xcode-select -p` | Not installed after macOS update |
+| # | Component | Detection | Common Issues |
+|---|-----------|-----------|---------------|
+| 1 | **Xcode CLI Tools** | `xcode-select -p` | Missing after macOS update |
 | 2 | **Homebrew** | `brew --version` | Missing after fresh install |
-| 3 | **Python 3.11+** | `python3` + `pip3` | Wrong version or missing pip |
-| 4 | **MLX** | Python `import mlx` | Not installed or wrong version |
-| 5 | **PyBullet** | Python `import pybullet` | Compilation failure on M-series |
-| 6 | **Rust Toolchain** | `rustc` + `cargo` | Not installed |
+| 3 | **Python 3.11+** | `python3 --version` | Wrong version |
+| 4 | **MLX** | `import mlx` | Not installed |
+| 5 | **PyBullet** | `import pybullet` | Compilation failure |
+| 6 | **Rust Toolchain** | `rustc --version` | Not installed |
 | 7 | **fusion-mlx** | HTTP `localhost:8000` | Service not running |
 
 ### One-Click Repair
 
-When an issue is found, click the **"Fix"** button next to the failed item. The repair engine will:
-
+Click **"Fix"** next to any failed item. The repair engine will:
 1. Install the missing dependency
 2. Verify the installation
-3. Report success or failure with detailed logs
-
-### Common PyBullet Issues
-
-PyBullet often fails to compile on Apple Silicon. The repair engine handles this with:
-
-1. First attempt: `pip3 install pybullet`
-2. Fallback: `pip3 install --no-binary pybullet pybullet` (source compile)
-3. If both fail: display detailed error logs for manual troubleshooting
+3. Report success/failure with logs
 
 ---
 
@@ -141,130 +121,141 @@ PyBullet often fails to compile on Apple Silicon. The repair engine handles this
 
 ### 1. Dashboard (Control Center)
 
-The Dashboard is your command center, showing:
-
-- **Environment Health Card** — 7 check items with status indicators
+- **Environment Health Card** — 7 check items with status
 - **Task Queue** — Running and pending background tasks
-- **Hardware Monitor** — Real-time memory, CPU, GPU, MLX metrics
+- **Hardware Monitor** — Real-time CPU/GPU/memory/MLX metrics
 
 ### 2. Design Canvas
 
-The Design module embeds a WKWebView with the Fusion-Design canvas:
+WKWebView with Fusion-Design canvas:
+- Vector canvas with zoom/pan
+- AI-powered UI generation
+- One-click code export to Code module
 
-- Full vector canvas with zoom/pan
-- AI-powered UI generation (via fusion-mlx)
-- One-click code export to the Code module
-- JavaScript bridge for native → web communication
-
-**JavaScript Bridge API**:
-
-```javascript
-// Send message to native app
-window.fusionStudio.sendToNative({ type: 'export_code', format: 'swiftui', data: {...} });
-
-// Export design to code
-const result = await window.fusionStudio.exportCode('react', { ... });
-```
+**JavaScript Bridge**: `window.fusionStudio.sendToNative({...})`
 
 ### 3. Code Editor
 
-The Code module provides:
+- **Editor**: Syntax highlighting for 9 languages
+- **Terminal**: Integrated command-line interface
+- **Languages**: Swift, Python, Rust, JavaScript, TypeScript, HTML, CSS, JSON, YAML
 
-- **Code Editor** — Full-featured text editor with syntax highlighting
-- **Integrated Terminal** — Command-line interface for running scripts
-- **Toolbar** — Run, format, copy, and font size controls
+### 4. Simulation
 
-**Supported Languages**: Swift, Python, Rust, JavaScript, TypeScript, HTML, CSS, JSON, YAML
+- 3D physics with PyBullet
+- Scene list, editor, physics config
+- Real-time FPS and status monitoring
 
-**Terminal Commands**:
+### 5. Model Hub
 
-| Command | Description |
-|---------|-------------|
-| `help` | Show available commands |
-| `clear` | Clear terminal |
-| `status` | Show Fusion Studio service status |
-| `mlx` | Show MLX inference status |
+- Model list with search and filter
+- Download, activate, delete models
+- Quantization options (2bit to fp16)
+
+### 6. MultiModal
+
+- **Text-to-Image**: Generate images from prompts
+- **Image-to-Image**: Transform existing images
+- **OCR**: Extract text from images
+- **Speech-to-Text**: Transcribe audio
+- **Text-to-Speech**: Generate speech from text
+
+### 7. Training
+
+- LoRA/QLoRA fine-tuning
+- Training monitoring (loss, lr, epoch)
+- Checkpoint management
+- Model export (MLX/GGUF/CoreML/ONNX)
+
+### 8. Data Tools
+
+- CSV import/export
+- Data statistics and summary
+- Bar/line charts
+- SQL query support
+
+### 9. Agent Studio
+
+- 5 built-in agent types (Code, Research, Design, Analysis, General)
+- Task delegation and workflow orchestration
+- Agent conversation log
+
+### 10. Other Modules
+
+| Module | Description |
+|--------|-------------|
+| **CLI** | 18 preset commands, execution history |
+| **Doc** | Markdown document editor |
+| **KB** | RAG retrieval, document indexing |
+| **Bench** | Speed/memory/context benchmarks |
+| **Desk** | Desktop automation templates |
+| **Plugin** | Plugin manager and developer tools |
+| **Security** | Security scan and event monitoring |
+| **Analytics** | Usage analytics and inference stats |
+| **Collaboration** | LAN peer discovery and chat |
+| **Auto Tuning** | MLX performance optimization |
+| **External Integrations** | GitHub/Jira/Slack/API |
+| **Doc Generator** | Auto-generate documentation |
+| **Industry Scenarios** | 12 pre-built templates |
+| **Operations** | Service management and alerts |
+| **License** | Commercial licensing and activation |
 
 ---
 
 ## Settings & Configuration
 
-### General Settings
+### General
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| Launch at Login | Off | Auto-start Fusion Studio on login |
+| Language | zh-CN | Interface language (4 languages) |
 | Auto-start MLX | On | Auto-start fusion-mlx service |
-| Minimize to Menu Bar | Off | Minimize to menu bar instead of Dock |
-| Language | zh-CN | Interface language |
-
-### Hardware Acceleration
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| Preferred Device | Auto | GPU (Metal), ANE, CPU, or Auto |
-| Max Memory | 16 GB | Maximum memory for MLX inference |
-| Enable Metal | On | Use Metal GPU acceleration |
-| Enable ANE | On | Use Apple Neural Engine |
-
-### Network & Offline
-
-| Setting | Default | Description |
-|---------|---------|-------------|
+| Launch at Login | Off | Auto-start on login |
 | Offline Mode | On | Block all network requests |
-| Allow Model Download | On | Permit model downloads (disabled in offline mode) |
-| Allow Update Check | On | Check for app updates (disabled in offline mode) |
 
-### Quantization Presets
+### Hardware
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| Default Quant | 4bit | 2bit/3bit/4bit/5bit/6bit/8bit/fp16 |
-| Default Format | mlx | mlx/gguf/safetensors |
-
-### Workspace
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| Workspace Path | `~/FusionStudio/workspace` | Root directory for all project files |
+| Setting | Default | Options |
+|---------|---------|---------|
+| Preferred Device | Auto | GPU/ANE/CPU/Auto |
+| Max Memory | 16 GB | 4-64 GB |
+| Quantization | 4bit | 2bit/3bit/4bit/5bit/6bit/8bit/fp16 |
 
 ---
 
 ## Task Management
 
-### Submitting Tasks
+### Task Types
 
-Tasks can be submitted from any module. Common task types:
+| Type | Description | Example |
+|------|-------------|---------|
+| 🔄 Inference | ML model inference | Qwen3.5 chat |
+| 🔧 Compile | Code compilation | Swift build |
+| 📤 Export | File export | Design export |
+| ⚙️ Simulation | Physics simulation | Robot arm |
+| 📦 Batch | Batch processing | Bulk export |
+| 📥 Download | Model download | Qwen3.5 9B |
 
-| Type | Example | Progress |
-|------|---------|----------|
-| 🔄 **Inference** | AI model inference | Progress bar |
-| 🔧 **Compile** | Code compilation | Spinner |
-| 📤 **Export** | File export | Progress bar |
-| ⚙️ **Simulation** | Physics simulation | Status indicator |
-| 📦 **Batch** | Batch processing | Queue position |
+### Task Queue Features
 
-### Task Queue
-
-The task queue shows:
-
-- **Active tasks**: Currently running with progress %
-- **Queued tasks**: Waiting in line
-- **Completed tasks**: Recent finished tasks
-- **Failed tasks**: Tasks that encountered errors
+- Progress tracking with sub-tasks
+- Pause/Resume/Cancel support
+- Persistent storage (UserDefaults)
+- Task detail view with logs
+- History filtering
 
 ---
 
 ## Hardware Monitoring
 
-The hardware monitor updates every 2 seconds, showing:
+| Metric | Display | Range |
+|--------|---------|-------|
+| Memory | Used GB / Total GB | 4-16 GB / 32 GB |
+| GPU | Percentage | 5-100% |
+| CPU | Percentage | 10-100% |
+| MLX | Active / Idle | — |
 
-| Metric | Display | Typical Range |
-|--------|---------|---------------|
-| **Unified Memory** | Used GB / Total GB | 4-16 GB / 32 GB |
-| **GPU Usage** | Percentage | 5-40% idle, 60-100% under load |
-| **CPU Load** | Percentage | 10-30% idle, 70-100% under load |
-| **MLX Status** | Active / Idle | Changes during inference |
+Updates every 2 seconds via `Timer.publish`.
 
 ---
 
@@ -272,49 +263,23 @@ The hardware monitor updates every 2 seconds, showing:
 
 ### Common Issues
 
-#### "Cannot connect to fusion-mlx"
+**"Cannot connect to fusion-mlx"**
+→ Dashboard → Health Check → Click "Fix" on fusion-mlx item
 
-**Cause**: The MLX inference service is not running.
+**"PyBullet compilation failed"**
+→ `brew install cmake glfw glew` → `pip3 install pybullet`
 
-**Solution**:
-1. Go to Dashboard → Environment Health Card
-2. Check if "fusion-mlx service" shows ❌
-3. Click "Fix" to auto-start the service
-4. Or manually start: `fusion-mlx serve --port 8000`
+**"Socket connection refused"**
+→ `./Scripts/start.sh` from terminal → Restart Fusion Studio
 
-#### "PyBullet compilation failed"
-
-**Cause**: PyBullet requires CMake and GLFW, which may be missing.
-
-**Solution**:
-1. Run: `brew install cmake glfw glew`
-2. Run: `pip3 install pybullet`
-3. If still failing, check the error logs in the repair dialog
-
-#### "Homebrew not found"
-
-**Cause**: Homebrew is not installed.
-
-**Solution**:
-1. Click "Fix" in the health check card (auto-installs Homebrew)
-2. Or manually install: `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
-
-#### "Socket connection refused"
-
-**Cause**: The env-daemon background service is not running.
-
-**Solution**:
-1. Run: `./Scripts/start.sh` from the terminal
-2. Or restart Fusion Studio (the app auto-starts the daemon)
+**"MLX model not found"**
+→ Model Hub → Download the model → Activate it
 
 ### Logs
-
-All service logs are written to standard output. To view logs:
 
 ```bash
 # View env-daemon logs
 ./Services/env-daemon/target/release/env-daemon
-
 # View mlx-daemon logs
 python3 Services/mlx-daemon/daemon.py --no-daemon
 ```
@@ -323,35 +288,17 @@ python3 Services/mlx-daemon/daemon.py --no-daemon
 
 ## FAQ
 
-### Q: Is Fusion Studio really 100% offline?
+**Q: Is Fusion Studio 100% offline?**
+A: Yes. When Offline Mode is enabled, all network requests are blocked. Model downloads are optional.
 
-**A**: Yes. When Offline Mode is enabled in Settings, all network requests are blocked. No data ever leaves your machine. Model downloads can be enabled separately and are only used for initial model acquisition.
+**Q: What chips are supported?**
+A: All M-series chips (M1-M5). Apple Silicon native.
 
-### Q: What Apple Silicon chips are supported?
+**Q: How do I update?**
+A: Settings → Check for Updates, or pull latest from GitHub and rebuild.
 
-**A**: All M-series chips (M1, M2, M3, M4, M5) are supported. The app is optimized for unified memory architecture and Metal/ANE acceleration.
+**Q: Can I use external models?**
+A: Yes. Any MLX-compatible model works. Use Model Hub or place models in workspace.
 
-### Q: Can I use Fusion Studio without a GPU?
-
-**A**: Yes, but performance will be significantly reduced. The app runs on CPU-only mode, but MLX inference requires a GPU for reasonable performance.
-
-### Q: How do I update Fusion Studio?
-
-**A**: Auto-update is planned for V1.0. For now, pull the latest code and rebuild:
-
-```bash
-git pull origin master
-./Scripts/build.sh all
-```
-
-### Q: Can I use external AI models?
-
-**A**: Yes, Fusion Studio is compatible with any MLX-compatible model. Use the Model Hub (V0.2) or manually place models in the workspace directory.
-
-### Q: How do I contribute?
-
-**A**: See [CONTRIBUTING](../README.md#contributing) in the main README. We welcome pull requests, bug reports, and feature requests.
-
----
-
-> **Need more help?** Open an issue on [GitHub](https://github.com/dahai80/fusion-studio/issues) or check the [ARCHITECTURE.md](../ARCHITECTURE.md) for design details.
+**Q: How to contribute?**
+A: Open issues/PRs on GitHub. See README for details.

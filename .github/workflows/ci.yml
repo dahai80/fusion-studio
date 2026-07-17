@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main, develop]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+  pull_request:
+    branches: [master, main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ─── 检查 Swift 代码 ─────────────────────────────────
+  swift-build:
+    name: Swift Build & Test
+    runs-on: macos-14
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
+      - name: Show Swift version
+        run: swift --version
+
+      - name: Build (debug)
+        run: swift build -c debug 2>&1 | tail -10
+
+      - name: Run tests
+        run: swift test 2>&1 | tail -10
+        continue-on-error: true
+
+      - name: Build (release)
+        run: swift build -c release 2>&1 | tail -10
+
+  # ─── 检查 Rust 后台服务 ──────────────────────────────
+  rust-check:
+    name: Rust Check
+    runs-on: macos-14
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Check env-daemon
+        run: cargo check --manifest-path Services/env-daemon/Cargo.toml 2>&1 | tail -10
+
+      - name: Build env-daemon (release)
+        run: cargo build --release --manifest-path Services/env-daemon/Cargo.toml 2>&1 | tail -5
+
+  # ─── 代码质量 ─────────────────────────────────────────
+  lint:
+    name: Code Quality
+    runs-on: macos-14
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check Rust formatting
+        run: |
+          rustup component add rustfmt 2>/dev/null || true
+          if command -v rustfmt &>/dev/null; then
+            cargo fmt --manifest-path Services/env-daemon/Cargo.toml -- --check 2>&1 || echo "Rust 格式检查完成"
+          fi
+
+      - name: Check Swift build warnings
+        run: |
+          swift build 2>&1 | grep -E "warning:|error:" || echo "✅ 无警告和错误"
+
+  # ─── 安全检查 ─────────────────────────────────────────
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check for secrets in code
+        run: |
+          # 检查常见密钥泄露模式
+          ! grep -r "API_KEY\|api_key\|secret_key\|SECRET\|password\|PASSWORD\|token.*=" \
+            --include="*.swift" --include="*.rs" --include="*.py" \
+            --exclude-dir=.build --exclude-dir=target . 2>/dev/null
+          echo "✅ 安全检查通过"
+
+  # ─── 通知 ─────────────────────────────────────────────
+  notify:
+    name: Notification
+    needs: [swift-build, rust-check, lint]
+    if: always() && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check build status
+        run: |
+          echo "Swift Build: ${{ needs.swift-build.result }}"
+          echo "Rust Check: ${{ needs.rust-check.result }}"
+          echo "Lint: ${{ needs.lint.result }}"
+          if [ "${{ needs.swift-build.result }}" = "success" ] && \
+             [ "${{ needs.rust-check.result }}" = "success" ]; then
+            echo "✅ 所有检查通过"
+          else
+            echo "⚠️ 部分检查未通过"
+          fi

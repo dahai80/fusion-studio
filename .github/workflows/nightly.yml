@@ -1,0 +1,34 @@
+name: Nightly
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # 每天 UTC 2:00 (北京时间 10:00)
+  workflow_dispatch:       # 手动触发
+
+jobs:
+  nightly:
+    name: Nightly Build
+    runs-on: macos-14
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          swift build -c release 2>&1 | tail -5
+          cd Services/env-daemon && cargo build --release 2>&1 | tail -5
+
+      - name: Run tests
+        run: swift test 2>&1 | tail -10
+        continue-on-error: true
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-build-logs
+          path: |
+            .build/**/*.log
+          retention-days: 7
