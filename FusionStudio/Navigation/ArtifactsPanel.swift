@@ -1,7 +1,7 @@
 // Callers: SectionContentView (case .artifacts).
 // Affected API: ArtifactsPanel (artifact gallery with search, list, detail view).
 // Data schemas: ArtifactModel (id, name, type, version, tokenCount, summary, updatedAt).
-// Communication: IPCClient.artifact* methods (HTTP JSON-RPC to artifacts-engine on port 8900).
+// Communication: IPCClient.artifact* methods (HTTP JSON-RPC to artifacts-engine on port 8892).
 // User instruction: "马上给上游提交issue和pr"
 
 import SwiftUI
