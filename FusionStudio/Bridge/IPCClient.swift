@@ -259,6 +259,118 @@ class IPCClient: ObservableObject {
         return result["pong"] as? Bool ?? false
     }
 
+    // MARK: - Artifacts Engine (HTTP JSON-RPC on port 8900)
+
+    private let artifactsEngineURL = "http://127.0.0.1:8900"
+
+    private func artifactsCall(method: String, params: [String: Any] = [:]) async throws -> [String: Any] {
+        var request: [String: Any] = [
+            "jsonrpc": "2.0",
+            "id": Int(Date().timeIntervalSince1970 * 1000),
+            "method": method,
+        ]
+        if !params.isEmpty {
+            request["params"] = params
+        }
+        guard let requestData = try? JSONSerialization.data(withJSONObject: request) else {
+            throw IPCError.invalidRequest
+        }
+        guard let url = URL(string: artifactsEngineURL) else {
+            throw IPCError.invalidRequest
+        }
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = "POST"
+        urlRequest.httpBody = requestData
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.timeoutInterval = 30
+        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw IPCError.invalidResponse
+        }
+        guard httpResponse.statusCode == 200 else {
+            throw IPCError.rpcError(code: httpResponse.statusCode, message: "HTTP \(httpResponse.statusCode)")
+        }
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw IPCError.invalidResponse
+        }
+        if let error = json["error"] as? [String: Any] {
+            let code = error["code"] as? Int ?? -1
+            let msg = error["message"] as? String ?? "Unknown error"
+            throw IPCError.rpcError(code: code, message: msg)
+        }
+        return json["result"] as? [String: Any] ?? [:]
+    }
+
+    func artifactCreate(sessionId: String, name: String, type: String, content: String, summary: String? = nil) async throws -> [String: Any] {
+        var params: [String: Any] = [
+            "session_id": sessionId,
+            "name": name,
+            "type": type,
+            "content": content,
+        ]
+        if let s = summary { params["summary"] = s }
+        return try await artifactsCall(method: "artifact.create", params: params)
+    }
+
+    func artifactGet(artifactId: String) async throws -> [String: Any] {
+        return try await artifactsCall(method: "artifact.get", params: ["artifact_id": artifactId])
+    }
+
+    func artifactGetContent(artifactId: String, version: Int? = nil) async throws -> [String: Any] {
+        var params: [String: Any] = ["artifact_id": artifactId]
+        if let v = version { params["version"] = v }
+        return try await artifactsCall(method: "artifact.get_content", params: params)
+    }
+
+    func artifactList(sessionId: String, includeDeleted: Bool = false) async throws -> [String: Any] {
+        var params: [String: Any] = ["session_id": sessionId]
+        if includeDeleted { params["include_deleted"] = true }
+        return try await artifactsCall(method: "artifact.list", params: params)
+    }
+
+    func artifactDelete(artifactId: String, hard: Bool = false) async throws -> [String: Any] {
+        return try await artifactsCall(method: "artifact.delete", params: ["artifact_id": artifactId, "hard": hard])
+    }
+
+    func artifactUpdate(artifactId: String, content: String, changeLog: String? = nil) async throws -> [String: Any] {
+        var params: [String: Any] = ["artifact_id": artifactId, "content": content]
+        if let cl = changeLog { params["change_log"] = cl }
+        return try await artifactsCall(method: "artifact.update", params: params)
+    }
+
+    func artifactVersionList(artifactId: String) async throws -> [String: Any] {
+        return try await artifactsCall(method: "artifact.version_list", params: ["artifact_id": artifactId])
+    }
+
+    func artifactVersionRollback(artifactId: String, targetVersion: Int) async throws -> [String: Any] {
+        return try await artifactsCall(method: "artifact.version_rollback", params: ["artifact_id": artifactId, "target_version": targetVersion])
+    }
+
+    func artifactInject(messages: [[String: Any]], outputBudget: Int = 8192) async throws -> [String: Any] {
+        return try await artifactsCall(method: "artifact.inject", params: ["messages": messages, "output_budget": outputBudget])
+    }
+
+    func artifactCheckSafety(messages: [[String: Any]], outputBudget: Int = 8192) async throws -> [String: Any] {
+        return try await artifactsCall(method: "artifact.check_safety", params: ["messages": messages, "output_budget": outputBudget])
+    }
+
+    func artifactExport(artifactId: String, format: String = "json") async throws -> [String: Any] {
+        return try await artifactsCall(method: "artifact.export", params: ["artifact_id": artifactId, "format": format])
+    }
+
+    func artifactExportSession(sessionId: String, format: String = "json") async throws -> [String: Any] {
+        return try await artifactsCall(method: "artifact.export_session", params: ["session_id": sessionId, "format": format])
+    }
+
+    func artifactImport(data: [String: Any]) async throws -> [String: Any] {
+        return try await artifactsCall(method: "artifact.import", params: ["data": data])
+    }
+
+    func artifactPing() async throws -> Bool {
+        let result = try await artifactsCall(method: "ping", params: [:])
+        return result["pong"] as? Bool ?? false
+    }
+
     // MARK: - 辅助方法
 
     private func setError(_ msg: String) {
