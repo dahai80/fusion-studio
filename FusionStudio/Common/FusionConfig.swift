@@ -39,6 +39,18 @@ class FusionConfig: ObservableObject {
     @AppStorage("mlxModel") var mlxModel = ""
     @AppStorage("mlxPath") var mlxPath = ""
 
+    // User instruction: "所有的项目要有一个配置文件，配置类的卸载配置文件里面，不能写死在代码里面"
+    // Importers/callers: IPCClient.swift reads FusionConfig.shared.artifactsEngineURL; ArtifactsPanel reads via IPCClient
+    // Affected API: new @AppStorage fields artifactsEngineHost/artifactsEnginePort, computed property artifactsEngineURL
+    // Data schemas: @AppStorage (UserDefaults) persistence for host/port
+
+    // MARK: - Artifacts Engine
+    @AppStorage("artifactsEngineHost") var artifactsEngineHost = "127.0.0.1"
+    @AppStorage("artifactsEnginePort") var artifactsEnginePort = 8892
+
+    /// Artifacts Engine 服务地址
+    var artifactsEngineURL: String { "http://\(artifactsEngineHost):\(artifactsEnginePort)" }
+
     // MARK: - 便捷方法
 
     /// 是否处于离线模式
@@ -55,7 +67,7 @@ class FusionConfig: ObservableObject {
     /// 展开的 MLX 路径
     var expandedMLXPath: String {
         if mlxPath.isEmpty {
-            return NSHomeDirectory() + "/claude-home/fusion-mlx"
+            return NSHomeDirectory() + "/.fusion-mlx"
         }
         return (mlxPath as NSString).expandingTildeInPath
     }
@@ -85,5 +97,8 @@ class FusionConfig: ObservableObject {
         mlxPort = 8000
         mlxModel = ""
         mlxPath = ""
+
+        artifactsEngineHost = "127.0.0.1"
+        artifactsEnginePort = 8892
     }
 }
