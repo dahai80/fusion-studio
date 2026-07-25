@@ -430,9 +430,11 @@ class IPCClient: ObservableObject {
         return try await call(method: "deploy.list_formats")
     }
 
-    // MARK: - Artifacts Engine (HTTP JSON-RPC on port 8892)
+    // MARK: - Artifacts Engine (HTTP JSON-RPC, config from FusionConfig)
 
-    private let artifactsEngineURL = "http://127.0.0.1:8892"
+    private var artifactsEngineURL: String {
+        FusionConfig.shared.artifactsEngineURL
+    }
 
     private func artifactsCall(method: String, params: [String: Any] = [:]) async throws -> [String: Any] {
         var request: [String: Any] = [
