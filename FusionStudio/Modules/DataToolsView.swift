@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView routing.
+// Affected API: DataToolsView (replacing NSColor with StudioTheme tokens).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -100,6 +105,7 @@ class DataToolManager: ObservableObject {
 // MARK: - 数据工具面板
 
 struct DataToolsView: View {
+    @Environment(\.studioTheme) private var theme
     @StateObject private var manager = DataToolManager.shared
     @State private var selectedTab: DataTab = .table
     @State private var showFilePicker = false
@@ -134,7 +140,7 @@ struct DataToolsView: View {
                 }
             }
             .padding(.horizontal, 12).padding(.vertical, 6)
-            .background(Color(nsColor: .controlBackgroundColor))
+            .background(theme.surfaceSecondary)
 
             Divider()
 
@@ -209,6 +215,7 @@ struct DataToolsView: View {
 // MARK: - 数据表
 
 struct DataTableView: View {
+    @Environment(\.studioTheme) private var theme
     @StateObject private var manager = DataToolManager.shared
 
     var body: some View {
@@ -237,7 +244,7 @@ struct DataTableView: View {
                                     .font(.system(.caption, design: .monospaced)).fontWeight(.bold)
                                     .frame(minWidth: 100, alignment: .leading)
                                     .padding(.horizontal, 8).padding(.vertical, 4)
-                                    .background(Color(nsColor: .controlBackgroundColor))
+                                    .background(theme.surfaceSecondary)
                             }
                         }
                         Divider()

@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView routing.
+// Affected API: MLXOptimizerView (replacing NSColor with StudioTheme tokens).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import SwiftUI
 
 // MARK: - 模型优化配置
@@ -68,29 +73,46 @@ class MLXOptimizer: ObservableObject {
         benchmarkProgress = 0
         stats = []
 
-        let levels = ModelOptimizationConfig.QuantizationLevel.allCases
-        var current = 0
+        // 调用 fusion-mlx 的基准测试 API
+        Task { [weak self] in
+            guard let self = self else { return }
+            do {
+                let url = URL(string: "http://localhost:8000/v1/benchmarks")!
+                var request = URLRequest(url: url)
+                request.httpMethod = "POST"
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                let body: [String: Any] = ["model": "auto"]
+                request.httpBody = try JSONSerialization.data(withJSONObject: body)
+                request.timeoutInterval = 300
 
-        Timer.scheduledTimer(withTimeInterval: 0.8, repeats: true) { [weak self] timer in
-            guard let self = self else { timer.invalidate(); return }
-            if current >= levels.count {
-                timer.invalidate()
-                self.isBenchmarking = false
-                self.generateRecommendation()
-                return
+                let (data, response) = try await URLSession.shared.data(for: request)
+                if let httpResp = response as? HTTPURLResponse,
+                   httpResp.statusCode == 200,
+                   let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let results = json["results"] as? [[String: Any]] {
+                    for r in results {
+                        let stat = InferenceStats(
+                            timestamp: Date(),
+                            tokensPerSecond: r["tokens_per_second"] as? Double ?? 0,
+                            memoryUsed: r["memory_gb"] as? Double ?? 0,
+                            latencyMs: r["latency_ms"] as? Double ?? 0,
+                            modelName: r["model"] as? String ?? "unknown",
+                            quantLevel: r["quantization"] as? String ?? "4bit"
+                        )
+                        await MainActor.run { self.stats.append(stat) }
+                    }
+                }
+                await MainActor.run {
+                    self.isBenchmarking = false
+                    self.generateRecommendation()
+                    self.objectWillChange.send()
+                }
+            } catch {
+                await MainActor.run {
+                    self.isBenchmarking = false
+                    self.objectWillChange.send()
+                }
             }
-            let level = levels[current]
-            let stat = InferenceStats(
-                timestamp: Date(),
-                tokensPerSecond: Double.random(in: 20...120),
-                memoryUsed: level.memoryGB + Double.random(in: 0.2...0.8),
-                latencyMs: Double.random(in: 10...200),
-                modelName: "Qwen3.5-9B",
-                quantLevel: level.rawValue
-            )
-            self.stats.append(stat)
-            self.benchmarkProgress = Double(current + 1) / Double(levels.count)
-            current += 1
         }
     }
 
@@ -296,6 +318,7 @@ struct BenchmarkView: View {
 // MARK: - 推理统计
 
 struct InferenceStatsView: View {
+    @Environment(\.studioTheme) private var theme
     @StateObject private var optimizer = MLXOptimizer.shared
 
     var body: some View {
@@ -322,7 +345,7 @@ struct InferenceStatsView: View {
                             }
                         }
                         .padding()
-                        .background(Color(nsColor: .controlBackgroundColor))
+                        .background(theme.surfaceSecondary)
                         .cornerRadius(10)
                     }
                 }

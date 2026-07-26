@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView routing.
+// Affected API: AdvancedSettingsView (replacing NSColor with StudioTheme tokens).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import SwiftUI
 
 // MARK: - 渲染质量预设
@@ -317,6 +322,7 @@ struct AdvancedSimulationView: View {
 // MARK: - 性能基准测试
 
 struct PerformanceBenchmarkView: View {
+    @Environment(\.studioTheme) private var theme
     @State private var isRunning = false
     @State private var results: [BenchResult] = []
     @State private var progress: Double = 0
@@ -380,7 +386,7 @@ struct PerformanceBenchmarkView: View {
             }
         }
         .padding()
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(theme.surfaceSecondary)
         .cornerRadius(12)
     }
 

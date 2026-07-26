@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView routing for log module.
+// Affected API: LogToolbar (replacing NSColor with theme token).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import SwiftUI
 import Combine
 
@@ -254,6 +259,7 @@ struct LogPanelView: View {
 
 struct LogToolbar: View {
     @StateObject private var logManager = LogManager.shared
+    @Environment(\.studioTheme) private var theme
 
     var body: some View {
         HStack(spacing: 8) {
@@ -312,7 +318,7 @@ struct LogToolbar: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(theme.surfaceSecondary)
     }
 
     private func exportLogs() {

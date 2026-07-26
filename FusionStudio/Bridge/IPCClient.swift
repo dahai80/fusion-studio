@@ -430,6 +430,102 @@ class IPCClient: ObservableObject {
         return try await call(method: "deploy.list_formats")
     }
 
+    // MARK: - Agent CRUD
+
+    func agentCreate(name: String, model: String = "", systemPrompt: String = "", temperature: Double = 0.7, maxTokens: Int = 4096, tools: [String] = [], capabilities: [String] = [], safetyLevel: String = "L1", tags: [String] = [], description: String = "", soul: String = "") async throws -> [String: Any] {
+        var params: [String: Any] = ["name": name, "model": model, "system_prompt": systemPrompt, "temperature": temperature, "max_tokens": maxTokens, "tools": tools, "capabilities": capabilities, "safety_level": safetyLevel, "tags": tags, "description": description]
+        if !soul.isEmpty { params["soul"] = soul }
+        return try await call(method: "agent.create", params: params)
+    }
+
+    func agentGet(agentId: String) async throws -> [String: Any] {
+        return try await call(method: "agent.get", params: ["agent_id": agentId])
+    }
+
+    func agentList(tags: [String] = [], capabilities: [String] = []) async throws -> [String: Any] {
+        var params: [String: Any] = [:]
+        if !tags.isEmpty { params["tags"] = tags }
+        if !capabilities.isEmpty { params["capabilities"] = capabilities }
+        return try await call(method: "agent.list", params: params)
+    }
+
+    func agentUpdate(agentId: String, name: String? = nil, model: String? = nil, systemPrompt: String? = nil, temperature: Double? = nil, maxTokens: Int? = nil, tools: [String]? = nil, capabilities: [String]? = nil, safetyLevel: String? = nil, tags: [String]? = nil, description: String? = nil) async throws -> [String: Any] {
+        var params: [String: Any] = ["agent_id": agentId]
+        if let v = name { params["name"] = v }
+        if let v = model { params["model"] = v }
+        if let v = systemPrompt { params["system_prompt"] = v }
+        if let v = temperature { params["temperature"] = v }
+        if let v = maxTokens { params["max_tokens"] = v }
+        if let v = tools { params["tools"] = v }
+        if let v = capabilities { params["capabilities"] = v }
+        if let v = safetyLevel { params["safety_level"] = v }
+        if let v = tags { params["tags"] = v }
+        if let v = description { params["description"] = v }
+        return try await call(method: "agent.update", params: params)
+    }
+
+    func agentDelete(agentId: String) async throws -> [String: Any] {
+        return try await call(method: "agent.delete", params: ["agent_id": agentId])
+    }
+
+    func agentConfigure(agentId: String, config: [String: Any]) async throws -> [String: Any] {
+        return try await call(method: "agent.configure", params: ["agent_id": agentId, "config": config])
+    }
+
+    func agentExecute(agentId: String, input: String) async throws -> [String: Any] {
+        return try await call(method: "agent.execute", params: ["agent_id": agentId, "input": input])
+    }
+
+    func agentListSkills(agentId: String) async throws -> [String: Any] {
+        return try await call(method: "agent.list_skills", params: ["agent_id": agentId])
+    }
+
+    func agentAddSkill(agentId: String, skillName: String, skillDef: [String: Any] = [:]) async throws -> [String: Any] {
+        return try await call(method: "agent.add_skill", params: ["agent_id": agentId, "skill_name": skillName, "skill_def": skillDef])
+    }
+
+    func agentDeleteSkill(agentId: String, skillName: String) async throws -> [String: Any] {
+        return try await call(method: "agent.delete_skill", params: ["agent_id": agentId, "skill_name": skillName])
+    }
+
+    func agentGetSoul(agentId: String) async throws -> [String: Any] {
+        return try await call(method: "agent.get_soul", params: ["agent_id": agentId])
+    }
+
+    func agentUpdateSoul(agentId: String, soul: String) async throws -> [String: Any] {
+        return try await call(method: "agent.update_soul", params: ["agent_id": agentId, "soul": soul])
+    }
+
+    // MARK: - Marketplace
+
+    func marketplaceSearch(query: String = "", category: String = "", tags: [String]? = nil, sortBy: String = "name", limit: Int = 50) async throws -> [String: Any] {
+        var params: [String: Any] = ["query": query, "category": category, "sort_by": sortBy, "limit": limit]
+        if let t = tags { params["tags"] = t }
+        return try await call(method: "marketplace.search", params: params)
+    }
+
+    func marketplaceGet(entryId: String) async throws -> [String: Any] {
+        return try await call(method: "marketplace.get", params: ["entry_id": entryId])
+    }
+
+    func marketplacePublish(name: String, author: String = "", description: String = "", category: String = "", tags: [String] = [], version: String = "1.0.0", graphData: [String: Any] = [:]) async throws -> [String: Any] {
+        return try await call(method: "marketplace.publish", params: ["name": name, "author": author, "description": description, "category": category, "tags": tags, "version": version, "graph_data": graphData])
+    }
+
+    func marketplaceUnpublish(entryId: String) async throws -> [String: Any] {
+        return try await call(method: "marketplace.unpublish", params: ["entry_id": entryId])
+    }
+
+    func marketplaceListCategories() async throws -> [String: Any] {
+        return try await call(method: "marketplace.list_categories")
+    }
+
+    func marketplaceInstall(entryId: String, targetDir: String = "") async throws -> [String: Any] {
+        var params: [String: Any] = ["entry_id": entryId]
+        if !targetDir.isEmpty { params["target_dir"] = targetDir }
+        return try await call(method: "marketplace.install", params: params)
+    }
+
     // MARK: - Artifacts Engine (HTTP JSON-RPC, config from FusionConfig)
 
     private var artifactsEngineURL: String {

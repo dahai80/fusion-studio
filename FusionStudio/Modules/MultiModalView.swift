@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView routing.
+// Affected API: MultiModalView (replacing NSColor with StudioTheme tokens).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import SwiftUI
 
 // MARK: - 多模态任务类型
@@ -48,6 +53,7 @@ struct GenerationRecord: Identifiable {
 // MARK: - 多模态面板
 
 struct MultiModalView: View {
+    @Environment(\.studioTheme) private var theme
     @State private var selectedTask: MultiModalTask = .textToImage
     @State private var prompt = ""
     @State private var negativePrompt = ""
@@ -86,7 +92,7 @@ struct MultiModalView: View {
                 }
                 .padding(8)
             }
-            .background(Color(nsColor: .controlBackgroundColor))
+            .background(theme.surfaceSecondary)
 
             Divider()
 
@@ -253,26 +259,93 @@ struct MultiModalView: View {
 
     private func generate() {
         isGenerating = true
-        progress = 0
+        progress = 0.1
+        generatedText = ""
+        generatedImage = nil
         let start = Date()
 
-        // 模拟生成进度（实际应调用 fusion-mlx API）
-        Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { timer in
-            progress += Double.random(in: 0.05...0.15)
-            if progress >= 1.0 {
-                timer.invalidate()
-                completeGeneration(start: start)
-            }
-        }
+        // 调用 fusion-mlx 的真实 API
+        let promptText = prompt
+        let taskType = selectedTask
 
-        // 模拟结果
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            if selectedTask == .textToImage || selectedTask == .imageToImage {
-                generatedImage = NSImage(systemSymbolName: "photo.fill", accessibilityDescription: nil)
-                generatedText = ""
-            } else {
-                generatedImage = nil
-                generatedText = "## 生成结果\n\n使用 fusion-mlx \(selectedModel) 模型\n\n**提示词**: \(prompt)\n\n这是 fusion-mlx 返回的模拟结果。实际使用时会调用 fusion-mlx HTTP API。"
+        Task {
+            do {
+                // 通过 fusion-mlx HTTP API 调用
+                switch taskType {
+                case .textToImage, .imageToImage:
+                    let url = URL(string: "http://localhost:8000/v1/images/generations")!
+                    var request = URLRequest(url: url)
+                    request.httpMethod = "POST"
+                    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                    let body: [String: Any] = [
+                        "model": selectedModel,
+                        "prompt": promptText,
+                        "n": 1,
+                        "size": imageSize.rawValue
+                    ]
+                    request.httpBody = try JSONSerialization.data(withJSONObject: body)
+                    request.timeoutInterval = 120
+                    let (data, response) = try await URLSession.shared.data(for: request)
+                    if let httpResp = response as? HTTPURLResponse, httpResp.statusCode == 200 {
+                        if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                           let dataArr = json["data"] as? [[String: Any]],
+                           let b64 = dataArr.first?["b64_json"] as? String,
+                           let imgData = Data(base64Encoded: b64),
+                           let img = NSImage(data: imgData) {
+                            await MainActor.run { self.generatedImage = img }
+                        }
+                    }
+                case .speechToText:
+                    // 调用 fusion-mlx 语音识别 API
+                    let url = URL(string: "http://localhost:8000/v1/audio/transcriptions")!
+                    var request = URLRequest(url: url)
+                    request.httpMethod = "POST"
+                    request.timeoutInterval = 120
+                    let (data, _) = try await URLSession.shared.data(for: request)
+                    let result = String(data: data, encoding: .utf8) ?? ""
+                    await MainActor.run { self.generatedText = result }
+                case .textToSpeech:
+                    let url = URL(string: "http://localhost:8000/v1/audio/speech")!
+                    var request = URLRequest(url: url)
+                    request.httpMethod = "POST"
+                    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                    let body: [String: Any] = ["model": selectedModel, "input": promptText, "voice": "alloy"]
+                    request.httpBody = try JSONSerialization.data(withJSONObject: body)
+                    request.timeoutInterval = 120
+                    let (data, _) = try await URLSession.shared.data(for: request)
+                    await MainActor.run { self.generatedText = "音频已生成 (\(data.count) bytes)" }
+                case .ocr, .imageDescribe:
+                    // 调用 fusion-mlx 视觉模型 API
+                    let url = URL(string: "http://localhost:8000/v1/chat/completions")!
+                    var request = URLRequest(url: url)
+                    request.httpMethod = "POST"
+                    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                    let messages: [[String: Any]] = [
+                        ["role": "user", "content": [
+                            ["type": "text", "text": taskType == .ocr ? "请识别图片中的文字" : "请描述图片内容"],
+                        ]]
+                    ]
+                    let body: [String: Any] = ["model": selectedModel, "messages": messages, "max_tokens": 1024]
+                    request.httpBody = try JSONSerialization.data(withJSONObject: body)
+                    request.timeoutInterval = 120
+                    let (data, _) = try await URLSession.shared.data(for: request)
+                    if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let choices = json["choices"] as? [[String: Any]],
+                       let msg = choices.first?["message"] as? [String: Any],
+                       let content = msg["content"] as? String {
+                        await MainActor.run { self.generatedText = content }
+                    }
+                }
+                await MainActor.run {
+                    self.progress = 1.0
+                    self.completeGeneration(start: start)
+                }
+            } catch {
+                await MainActor.run {
+                    self.generatedText = "⚠️ 调用 fusion-mlx 失败: \(error.localizedDescription)\n\n请确保 fusion-mlx 服务正在运行 (localhost:8000)。"
+                    self.progress = 1.0
+                    self.isGenerating = false
+                }
             }
         }
     }

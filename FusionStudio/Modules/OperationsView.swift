@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView routing.
+// Affected API: OperationsView (replacing NSColor with StudioTheme tokens).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import SwiftUI
 
 // MARK: - 运维状态
@@ -108,6 +113,7 @@ class OperationsManager: ObservableObject {
 // MARK: - 运维面板
 
 struct OperationsView: View {
+    @Environment(\.studioTheme) private var theme
     @StateObject private var ops = OperationsManager.shared
     @State private var selectedTab: OpsTab = .dashboard
 
@@ -129,7 +135,7 @@ struct OperationsView: View {
                 )).toggleStyle(.switch).controlSize(.small)
             }
             .padding(.horizontal, 12).padding(.vertical, 6)
-            .background(Color(nsColor: .controlBackgroundColor))
+            .background(theme.surfaceSecondary)
 
             Divider()
 
@@ -178,6 +184,7 @@ struct OpsDashboard: View {
 }
 
 struct OpsCard: View {
+    @Environment(\.studioTheme) private var theme
     let title: String; let value: String; let icon: String; let color: Color; let progress: Double
     var body: some View {
         VStack(spacing: 6) {
@@ -187,7 +194,7 @@ struct OpsCard: View {
             ProgressView(value: min(max(progress, 0), 1)).tint(color)
         }
         .padding()
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(theme.surfaceSecondary)
         .cornerRadius(10)
     }
 }

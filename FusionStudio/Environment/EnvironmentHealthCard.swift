@@ -3,29 +3,33 @@ import SwiftUI
 /// 环境健康检查卡片（控制台首页）
 struct EnvironmentHealthCard: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var bridge: AgentBridge
     @State private var checkResults: [HealthCheckItem] = []
     @State private var isChecking = false
+    @Environment(\.studioTheme) private var theme
 
     let checks: [HealthCheckItem.Def] = [
-        .init(id: "xcode", label: "Xcode CLI Tools", icon: "hammer"),
-        .init(id: "homebrew", label: "Homebrew", icon: "mug"),
         .init(id: "python", label: "Python 3.11+", icon: "laptopcomputer"),
-        .init(id: "mlx", label: "MLX 环境", icon: "cpu"),
-        .init(id: "pybullet", label: "PyBullet", icon: "gearshape.2"),
-        .init(id: "rust", label: "Rust 工具链", icon: "chevron.left.forwardslash.chevron.right"),
-        .init(id: "fusion-mlx", label: "fusion-mlx 服务", icon: "bolt"),
+        .init(id: "mlx_server", label: "MLX 服务进程", icon: "cpu"),
+        .init(id: "mlx_api", label: "MLX API (port 11434)", icon: "bolt"),
+        .init(id: "daemon_socket", label: "Daemon UDS Socket", icon: "externaldrive"),
+        .init(id: "httpx", label: "HTTP Client (httpx)", icon: "network"),
+        .init(id: "model_cache", label: "Model Cache", icon: "internaldrive"),
     ]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Label("环境健康检查", systemImage: "stethoscope")
-                    .font(.headline)
+                    .font(.system(size: theme.textSize, weight: .semibold))
+                    .foregroundStyle(theme.text)
                 Spacer()
                 Button(action: runHealthCheck) {
-                    Label(isChecking ? "检测中..." : "重新检测",
-                          systemImage: "arrow.clockwise")
+                    Label(isChecking ? "检测中..." : "重新检测", systemImage: "arrow.clockwise")
+                        .font(.system(size: theme.smallTextSize))
                 }
+                .buttonStyle(.plain)
+                .foregroundStyle(theme.accent)
                 .disabled(isChecking)
             }
 
@@ -34,10 +38,11 @@ struct EnvironmentHealthCard: View {
                     Spacer()
                     VStack(spacing: 8) {
                         Image(systemName: "questionmark.circle")
-                            .font(.largeTitle)
-                            .foregroundColor(.secondary)
+                            .font(.system(size: 24))
+                            .foregroundStyle(theme.textTertiary)
                         Text("点击「重新检测」开始环境检查")
-                            .foregroundColor(.secondary)
+                            .font(.system(size: theme.smallTextSize))
+                            .foregroundStyle(theme.textSecondary)
                     }
                     Spacer()
                 }
@@ -46,43 +51,45 @@ struct EnvironmentHealthCard: View {
                 ForEach(checkResults) { item in
                     HStack {
                         Image(systemName: item.icon)
-                            .frame(width: 20)
+                            .foregroundStyle(theme.textSecondary)
+                            .frame(width: 18)
                         Text(item.label)
+                            .font(.system(size: theme.textSize))
+                            .foregroundStyle(theme.text)
                             .frame(width: 140, alignment: .leading)
                         Spacer()
                         HStack(spacing: 4) {
                             Circle()
                                 .fill(item.status.color)
-                                .frame(width: 8, height: 8)
+                                .frame(width: 6, height: 6)
                             Text(item.status.text)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                                .font(.system(size: theme.smallTextSize))
+                                .foregroundStyle(theme.textSecondary)
                         }
                         if let detail = item.detail {
                             Text(detail)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                                .font(.system(size: theme.captionSize))
+                                .foregroundStyle(theme.textTertiary)
                                 .lineLimit(1)
                         }
                         if item.status == .failed {
-                            Button("修复") {
-                                repairItem(item)
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.small)
-                            .tint(.orange)
+                            Button("修复") { repairItem(item) }
+                                .buttonStyle(.plain)
+                                .font(.system(size: theme.smallTextSize, weight: .medium))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .background(theme.amberDot)
+                                .cornerRadius(6)
                         }
                     }
                     .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(item.status == .failed ? Color.red.opacity(0.05) : Color.clear)
-                    .cornerRadius(6)
+                    .padding(.vertical, 6)
+                    .background(item.status == .failed ? theme.warningBg.opacity(0.3) : Color.clear)
+                    .cornerRadius(theme.rowRadius)
                 }
             }
         }
-        .padding()
-        .background(Color(nsColor: .controlBackgroundColor))
-        .cornerRadius(12)
     }
 
     private func runHealthCheck() {
@@ -92,36 +99,64 @@ struct EnvironmentHealthCard: View {
 
         Task {
             var results: [HealthCheckItem] = []
-            for check in checks {
-                let result = await performCheck(check)
-                results.append(result)
+            do {
+                let result = try await bridge.fullHealthCheck()
+                let checkDicts = result["checks"] as? [String: [String: Any]] ?? [:]
+
+                for def in checks {
+                    let checkInfo = checkDicts[def.id]
+                    let ok = checkInfo?["ok"] as? Bool ?? false
+                    var detail = ""
+                    if let v = checkInfo?["version"] as? String { detail = "v\(v)" }
+                    if let p = checkInfo?["port"] as? Int { detail = "port \(p)" }
+                    if let path = checkInfo?["path"] as? String { detail = path }
+                    if let msg = checkInfo?["message"] as? String { detail = msg }
+
+                    results.append(HealthCheckItem(
+                        id: def.id,
+                        label: def.label,
+                        icon: def.icon,
+                        status: ok ? .passed : .failed,
+                        detail: detail.isEmpty ? nil : detail
+                    ))
+                }
+
+                let mlxOk = checkDicts["mlx_api"]?["ok"] as? Bool ?? false
+                await MainActor.run {
+                    appState.isMLXRunning = mlxOk
+                }
+            } catch {
+                for def in checks {
+                    results.append(HealthCheckItem(
+                        id: def.id,
+                        label: def.label,
+                        icon: def.icon,
+                        status: .failed,
+                        detail: "Daemon not connected"
+                    ))
+                }
             }
+
             await MainActor.run {
                 checkResults = results
                 isChecking = false
                 let hasIssues = results.contains { $0.status == .failed }
                 appState.healthStatus = hasIssues ? .issuesFound : .healthy
+                appState.isHealthCheckPassed = !hasIssues
             }
         }
     }
 
     private func performCheck(_ def: HealthCheckItem.Def) async -> HealthCheckItem {
-        // 模拟检查（后续替换为真实 IPC 调用）
-        try? await Task.sleep(nanoseconds: 500_000_000)
-        return HealthCheckItem(
-            id: def.id,
-            label: def.label,
-            icon: def.icon,
-            status: .passed,
-            detail: "v3.0"
-        )
+        return HealthCheckItem(id: def.id, label: def.label, icon: def.icon, status: .checking, detail: nil)
     }
 
     private func repairItem(_ item: HealthCheckItem) {
         appState.healthStatus = .repairing
         Task {
-            // 调用修复引擎
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            do {
+                _ = try await bridge.repair(itemId: item.id)
+            } catch {}
             await MainActor.run {
                 appState.healthStatus = .healthy
                 runHealthCheck()

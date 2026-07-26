@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView routing.
+// Affected API: TaskQueueView (replacing NSColor with StudioTheme tokens).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import Foundation
 import SwiftUI
 import Combine
@@ -291,6 +296,7 @@ class TaskManager: ObservableObject {
 // MARK: - 任务队列视图（增强版）
 
 struct TaskQueueView: View {
+    @Environment(\.studioTheme) private var theme
     @StateObject private var manager = TaskManager.shared
     @State private var selectedTask: TaskItem?
     @State private var showClearAlert = false
@@ -370,7 +376,7 @@ struct TaskQueueView: View {
             }
         }
         .padding()
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(theme.surfaceSecondary)
         .cornerRadius(12)
         .alert("清除任务", isPresented: $showClearAlert) {
             Button("清除已完成", action: { manager.clearCompleted() })
@@ -707,7 +713,7 @@ struct TaskDemoView: View {
             }
 
             if progress >= 1.0 {
-                manager.complete(id, result: ["size": "5.2 GB", "path": "~/.fusion/models/qwen3.5-9b-4bit", "duration": "\(step)s"])
+                manager.complete(id, result: ["size": "5.2 GB", "path": "~/.fusion-mlx/models/qwen3.5-9b-4bit", "duration": "\(step)s"])
                 timer.invalidate()
                 demoRunning = false
             }

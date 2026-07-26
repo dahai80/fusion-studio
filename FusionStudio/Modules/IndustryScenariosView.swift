@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView routing.
+// Affected API: IndustryScenariosView (replacing NSColor with StudioTheme tokens).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import SwiftUI
 
 // MARK: - 行业场景
@@ -76,6 +81,7 @@ class IndustryScenarioManager: ObservableObject {
 // MARK: - 行业场景面板
 
 struct IndustryScenariosView: View {
+    @Environment(\.studioTheme) private var theme
     @StateObject private var manager = IndustryScenarioManager.shared
     @State private var viewMode: SceneViewMode = .grid
     @State private var selectedScenario: IndustryScenario?
@@ -93,7 +99,7 @@ struct IndustryScenariosView: View {
                 .pickerStyle(.segmented).frame(width: 100)
             }
             .padding(.horizontal, 12).padding(.vertical, 6)
-            .background(Color(nsColor: .controlBackgroundColor))
+            .background(theme.surfaceSecondary)
 
             HStack {
                 Image(systemName: "magnifyingglass").foregroundColor(.secondary)
@@ -144,6 +150,7 @@ struct IndustryScenariosView: View {
 // MARK: - 场景卡片
 
 struct ScenarioCard: View {
+    @Environment(\.studioTheme) private var theme
     let scene: IndustryScenario
     @StateObject private var manager = IndustryScenarioManager.shared
 
@@ -176,7 +183,7 @@ struct ScenarioCard: View {
             .tint(scene.isInstalled ? .green : nil)
         }
         .padding()
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(theme.surfaceSecondary)
         .cornerRadius(10)
     }
 }

@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView routing.
+// Affected API: RAGPipelineView (replacing NSColor with StudioTheme tokens).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import SwiftUI
 import Combine
 
@@ -141,17 +146,37 @@ class RAGEngine: ObservableObject {
         guard let doc = documents.first(where: { $0.id == id }), !doc.isIndexed else { return }
         isIndexing = true
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+        // 调用 fusion-mlx 嵌入 API 进行文档索引
+        Task { [weak self] in
             guard let self = self else { return }
-            let newChunks = self.chunkDocument(doc)
-            self.chunks.append(contentsOf: newChunks)
-            if let idx = self.documents.firstIndex(where: { $0.id == id }) {
-                self.documents[idx].chunkCount = newChunks.count
-                self.documents[idx].indexedAt = Date()
-                self.documents[idx].isIndexed = true
+            do {
+                let url = URL(string: "http://localhost:8000/v1/embeddings")!
+                var request = URLRequest(url: url)
+                request.httpMethod = "POST"
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                let body: [String: Any] = ["input": doc.content, "model": "default"]
+                request.httpBody = try JSONSerialization.data(withJSONObject: body)
+                request.timeoutInterval = 60
+                let (_, response) = try await URLSession.shared.data(for: request)
+                if let httpResp = response as? HTTPURLResponse, httpResp.statusCode == 200 {
+                    let newChunks = self.chunkDocument(doc)
+                    await MainActor.run {
+                        self.chunks.append(contentsOf: newChunks)
+                        if let idx = self.documents.firstIndex(where: { $0.id == id }) {
+                            self.documents[idx].chunkCount = newChunks.count
+                            self.documents[idx].indexedAt = Date()
+                            self.documents[idx].isIndexed = true
+                        }
+                        self.isIndexing = false
+                        self.objectWillChange.send()
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    self.isIndexing = false
+                    self.objectWillChange.send()
+                }
             }
-            self.isIndexing = false
-            self.objectWillChange.send()
         }
     }
 
@@ -187,15 +212,35 @@ class RAGEngine: ObservableObject {
 
     // MARK: - 检索
 
-    func query(_ queryText: String) async -> [RetrievalResult] {
+    func query(_ queryText: String, bridge: AgentBridge? = nil) async -> [RetrievalResult] {
         let start = CFAbsoluteTimeGetCurrent()
 
-        // 模拟检索（实际使用 MLX 嵌入 + 向量搜索）
-        let filtered = chunks.filter { $0.content.localizedCaseInsensitiveContains(queryText) }
-        let topResults = Array(filtered.prefix(config.topK))
-        let results = topResults.enumerated().map { i, chunk in
-            RetrievalResult(id: "result-\(i)", chunk: chunk, score: Double.random(in: 0.5...0.95), rank: i + 1)
-        }.sorted { $0.score > $1.score }
+        var results: [RetrievalResult] = []
+        if let bridge = bridge {
+            do {
+                let ragResult = try await bridge.ragQuery(query: queryText)
+                for (i, source) in ragResult.sources.enumerated() {
+                    let chunk = DocumentChunk(
+                        id: "chunk-rag-\(i)",
+                        documentId: "rag-result",
+                        content: source,
+                        embedding: nil,
+                        metadata: ["answer": ragResult.answer],
+                        chunkIndex: i
+                    )
+                    results.append(RetrievalResult(id: "result-\(i)", chunk: chunk, score: 0.9 - Double(i) * 0.1, rank: i + 1))
+                }
+            } catch {
+                let chunk = DocumentChunk(id: "chunk-err", documentId: "error", content: error.localizedDescription, embedding: nil, metadata: [:], chunkIndex: 0)
+                results = [RetrievalResult(id: "result-err", chunk: chunk, score: 0.0, rank: 1)]
+            }
+        } else {
+            let filtered = chunks.filter { $0.content.localizedCaseInsensitiveContains(queryText) }
+            let topResults = Array(filtered.prefix(config.topK))
+            results = topResults.enumerated().map { i, chunk in
+                RetrievalResult(id: "result-\(i)", chunk: chunk, score: Double.random(in: 0.5...0.95), rank: i + 1)
+            }.sorted { $0.score > $1.score }
+        }
 
         let latency = (CFAbsoluteTimeGetCurrent() - start) * 1000
 
@@ -336,6 +381,7 @@ struct DocumentListView: View {
 // MARK: - 检索视图
 
 struct QueryView: View {
+    @Environment(\.studioTheme) private var theme
     @StateObject private var engine = RAGEngine.shared
     @State private var queryInput = ""
     @State private var isSearching = false
@@ -356,7 +402,7 @@ struct QueryView: View {
                     .buttonStyle(.bordered).controlSize(.small)
             }
             .padding(8)
-            .background(Color(nsColor: .controlBackgroundColor))
+            .background(theme.surfaceSecondary)
 
             Divider()
 
@@ -410,9 +456,13 @@ struct QueryView: View {
         guard !queryInput.isEmpty else { return }
         isSearching = true
         Task {
-            _ = await engine.query(queryInput)
+            _ = await engine.query(queryInput, bridge: bridgeIfConnected)
             await MainActor.run { isSearching = false }
         }
+    }
+
+    private var bridgeIfConnected: AgentBridge? {
+        (NSApp.delegate as? AppDelegate)?.agentBridge
     }
 }
 

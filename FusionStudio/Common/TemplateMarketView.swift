@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView routing.
+// Affected API: TemplateMarketView (replacing NSColor with StudioTheme tokens).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import SwiftUI
 
 // MARK: - 模板分类
@@ -117,11 +122,61 @@ class TemplateMarket: ObservableObject {
         templates.insert(template, at: 0)
         objectWillChange.send()
     }
+
+    func loadFromBridge(_ bridge: AgentBridge) async {
+        do {
+            let bridgeTemplates = try await bridge.fetchTemplates()
+            await MainActor.run {
+                for bt in bridgeTemplates {
+                    if !templates.contains(where: { $0.id == bt.id }) {
+                        let cat: TemplateCategory = switch bt.category {
+                        case "design": .design
+                        case "code": .code
+                        case "simulation": .simulation
+                        case "workflow": .workflow
+                        case "report": .report
+                        case "automation": .automation
+                        default: .all
+                        }
+                        let tpl = UserTemplate(
+                            id: bt.id,
+                            name: bt.name,
+                            description: bt.description,
+                            category: cat,
+                            author: "Agent Studio",
+                            version: "1.0.0",
+                            rating: 0,
+                            downloadCount: 0,
+                            tags: bt.variables,
+                            isLocal: true,
+                            isFavorite: false,
+                            installDate: Date(),
+                            content: [:]
+                        )
+                        templates.append(tpl)
+                    }
+                }
+                objectWillChange.send()
+            }
+        } catch {
+        }
+    }
+
+    func instantiateTemplate(_ templateId: String, variables: [String: String]? = nil, bridge: AgentBridge?) async -> Bool {
+        guard let bridge = bridge else { return false }
+        do {
+            _ = try await bridge.templateInstantiate(templateId: templateId, variables: variables)
+            return true
+        } catch {
+            return false
+        }
+    }
 }
 
 // MARK: - 模板市场视图
 
 struct TemplateMarketView: View {
+    @Environment(\.studioTheme) private var theme
     @StateObject private var market = TemplateMarket.shared
     @State private var showCreateSheet = false
     @State private var selectedTemplate: UserTemplate?
@@ -149,7 +204,7 @@ struct TemplateMarketView: View {
                     .buttonStyle(.borderedProminent).controlSize(.small)
             }
             .padding(8)
-            .background(Color(nsColor: .controlBackgroundColor))
+            .background(theme.surfaceSecondary)
 
             // 分类
             ScrollView(.horizontal, showsIndicators: false) {
@@ -199,12 +254,20 @@ struct TemplateMarketView: View {
         }
         .sheet(isPresented: $showCreateSheet) { CreateTemplateSheet() }
         .sheet(item: $selectedTemplate) { template in MarketTemplateDetailView(template: template) }
+        .onAppear {
+            Task {
+                if let bridge = (NSApp.delegate as? AppDelegate)?.agentBridge {
+                    await market.loadFromBridge(bridge)
+                }
+            }
+        }
     }
 }
 
 // MARK: - 模板卡片
 
 struct TemplateCardView: View {
+    @Environment(\.studioTheme) private var theme
     let template: UserTemplate
     @StateObject private var market = TemplateMarket.shared
 
@@ -239,7 +302,7 @@ struct TemplateCardView: View {
             }
         }
         .padding()
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(theme.surfaceSecondary)
         .cornerRadius(10)
     }
 }
@@ -247,6 +310,7 @@ struct TemplateCardView: View {
 // MARK: - 模板列表行
 
 struct TemplateListRow: View {
+    @Environment(\.studioTheme) private var theme
     let template: UserTemplate
     @StateObject private var market = TemplateMarket.shared
 
@@ -277,7 +341,7 @@ struct TemplateListRow: View {
             }
         }
         .padding(8)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(theme.surfaceSecondary)
         .cornerRadius(8)
     }
 }

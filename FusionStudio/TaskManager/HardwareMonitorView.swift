@@ -1,7 +1,13 @@
+// Callers: ModuleDetailView routing.
+// Affected API: HardwareMonitorView (replacing NSColor with StudioTheme tokens).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import SwiftUI
 
 /// 硬件监控仪表盘
 struct HardwareMonitorView: View {
+    @Environment(\.studioTheme) private var theme
     @State private var cpuUsage: Double = 0
     @State private var memoryUsage: Double = 0
     @State private var gpuUsage: Double = 0
@@ -47,7 +53,7 @@ struct HardwareMonitorView: View {
             }
         }
         .padding()
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(theme.surfaceSecondary)
         .cornerRadius(12)
         .onReceive(timer) { _ in
             refreshMetrics()

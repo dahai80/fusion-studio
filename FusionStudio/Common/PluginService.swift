@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView routing.
+// Affected API: PluginService (replacing NSColor with StudioTheme tokens).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import Foundation
 import SwiftUI
 import Combine
@@ -703,6 +708,7 @@ struct PluginMarketView: View {
 }
 
 struct MarketCard: View {
+    @Environment(\.studioTheme) private var theme
     let item: PluginMarketItem
 
     var body: some View {
@@ -758,7 +764,7 @@ struct MarketCard: View {
             }
         }
         .padding()
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(theme.surfaceSecondary)
         .cornerRadius(10)
     }
 }

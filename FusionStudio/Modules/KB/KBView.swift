@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView routing.
+// Affected API: KBView (replacing NSColor with StudioTheme tokens).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import SwiftUI
 
 /// 知识库条目
@@ -26,6 +31,7 @@ let sampleKBEntries: [KBEntry] = [
 ]
 
 struct KBView: View {
+    @Environment(\.studioTheme) private var theme
     @State private var entries: [KBEntry] = sampleKBEntries
     @State private var searchText = ""
     @State private var selectedEntry: KBEntry?
@@ -56,7 +62,7 @@ struct KBView: View {
                     }
                 }
                 .padding(8)
-                .background(Color(nsColor: .controlBackgroundColor))
+                .background(theme.surfaceSecondary)
 
                 Divider()
 

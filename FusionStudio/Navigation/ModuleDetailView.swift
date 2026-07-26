@@ -48,6 +48,16 @@ struct ModuleDetailView: View {
                 ExternalIntegrationsView()
             case .docgen:
                 DocGeneratorView()
+            case .clusterOverview:
+                ClusterOverviewView()
+            case .clusterTopology:
+                ClusterTopologyView()
+            case .taskMonitor:
+                TaskMonitorView()
+            case .alertCenter:
+                AlertCenterView()
+            case .nodeActions:
+                NodeActionsView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -59,48 +69,76 @@ struct ModuleDetailView: View {
 struct DashboardView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var taskManager: TaskManager
+    @Environment(\.studioTheme) private var theme
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                Text("控制台")
-                    .font(.largeTitle)
-                    .bold()
+            VStack(alignment: .leading, spacing: 0) {
+                ScreenHeader(eyebrow: "Fusion Studio", title: "Dashboard", subtitle: "Command center — health checks, tasks, and hardware monitoring.")
 
-                // 环境状态卡片
-                EnvironmentHealthCard()
+                ListGroup {
+                    EnvironmentHealthCard()
+                        .padding(14)
+                }
 
-                // 任务队列
-                TaskQueueView()
+                ListGroup {
+                    TaskQueueView()
+                        .padding(14)
+                }
 
-                // 硬件监控
-                HardwareMonitorView()
+                ListGroup {
+                    HardwareMonitorView()
+                        .padding(14)
+                }
             }
-            .padding()
+            .padding(.bottom, 20)
         }
+        .background(theme.contentBg)
     }
 }
 
 struct DesignView: View {
+    @State private var isLoading = true
+    @State private var loadError: String?
+
     var body: some View {
-        WebViewContainer(url: "http://localhost:8080")
-            .overlay {
-                if !isServiceRunning {
-                    ServiceNotRunningView(serviceName: "Fusion-Design")
+        ZStack {
+            WebViewContainer(url: "http://localhost:8080", isLoading: $isLoading, error: $loadError)
+
+            if isLoading {
+                VStack(spacing: 12) {
+                    ProgressView()
+                        .controlSize(.large)
+                    Text("正在连接 Fusion-Design 服务...")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
                 }
             }
-    }
 
-    private var isServiceRunning: Bool { true }
-}
-
-struct CodeView: View {
-    var body: some View {
-        VStack(spacing: 0) {
-            CodeEditorView()
-            Divider()
-            TerminalView()
-                .frame(height: 200)
+            if let error = loadError {
+                VStack(spacing: 16) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 36))
+                        .foregroundColor(.orange)
+                    Text("无法加载设计画布")
+                        .font(.title2)
+                        .bold()
+                    Text(error)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                    Text("请确保 Fusion-Design 服务已启动 (localhost:8080)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Button("重试") {
+                        loadError = nil
+                        isLoading = true
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .padding()
+            }
         }
     }
 }

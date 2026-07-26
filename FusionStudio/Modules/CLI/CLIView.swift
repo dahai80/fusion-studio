@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView routing.
+// Affected API: CLIView (replacing NSColor with StudioTheme tokens).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import SwiftUI
 
 /// CLI 命令预设
@@ -73,6 +78,7 @@ struct CommandHistory: Identifiable {
 // MARK: - 主视图
 
 struct CLIView: View {
+    @Environment(\.studioTheme) private var theme
     @State private var commandInput = ""
     @State private var history: [CommandHistory] = []
     @State private var isExecuting = false
@@ -147,7 +153,7 @@ struct CLIView: View {
                     .controlSize(.small)
                 }
                 .padding(8)
-                .background(Color(nsColor: .controlBackgroundColor))
+                .background(theme.surfaceSecondary)
 
                 Divider()
 

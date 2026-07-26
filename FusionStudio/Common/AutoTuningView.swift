@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView routing.
+// Affected API: AutoTuningView (replacing NSColor with StudioTheme tokens).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import SwiftUI
 
 // MARK: - 调优维度
@@ -178,6 +183,7 @@ class AutoTuningEngine: ObservableObject {
 // MARK: - 自动调优面板
 
 struct AutoTuningView: View {
+    @Environment(\.studioTheme) private var theme
     @StateObject private var engine = AutoTuningEngine.shared
     @State private var selectedTab: TuningTab = .dashboard
 
@@ -207,7 +213,7 @@ struct AutoTuningView: View {
                 }
             }
             .padding(.horizontal, 12).padding(.vertical, 6)
-            .background(Color(nsColor: .controlBackgroundColor))
+            .background(theme.surfaceSecondary)
 
             Divider()
 
@@ -270,6 +276,7 @@ struct TuningDashboard: View {
 }
 
 struct TuningCard: View {
+    @Environment(\.studioTheme) private var theme
     let title: String; let value: String; let icon: String; let color: Color
     var body: some View {
         VStack(spacing: 8) {
@@ -279,7 +286,7 @@ struct TuningCard: View {
         }
         .padding()
         .frame(maxWidth: .infinity)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(theme.surfaceSecondary)
         .cornerRadius(10)
     }
 }
@@ -382,6 +389,7 @@ struct TuningConfigView: View {
 // MARK: - 优化建议
 
 struct TuningRecommendationsView: View {
+    @Environment(\.studioTheme) private var theme
     @StateObject private var engine = AutoTuningEngine.shared
 
     var body: some View {
@@ -404,7 +412,7 @@ struct TuningRecommendationsView: View {
                         }
                     }
                     .padding()
-                    .background(Color(nsColor: .controlBackgroundColor))
+                    .background(theme.surfaceSecondary)
                     .cornerRadius(10)
                 }
             }

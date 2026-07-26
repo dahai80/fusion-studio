@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView routing.
+// Affected API: LicenseView (replacing NSColor with StudioTheme tokens).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import SwiftUI
 
 // MARK: - 许可证类型
@@ -115,6 +120,7 @@ class LicenseManager: ObservableObject {
 // MARK: - 授权面板
 
 struct LicenseView: View {
+    @Environment(\.studioTheme) private var theme
     @StateObject private var manager = LicenseManager.shared
     @State private var licenseKey = ""
     @State private var email = ""
@@ -134,7 +140,7 @@ struct LicenseView: View {
                 LicenseBadge(type: manager.status.licenseType)
             }
             .padding(.horizontal, 12).padding(.vertical, 6)
-            .background(Color(nsColor: .controlBackgroundColor))
+            .background(theme.surfaceSecondary)
 
             Divider()
 
@@ -230,6 +236,7 @@ struct LicRow: View {
 // MARK: - 版本对比
 
 struct LicensePlansView: View {
+    @Environment(\.studioTheme) private var theme
     var body: some View {
         ScrollView {
             VStack(spacing: 12) {
@@ -253,7 +260,7 @@ struct LicensePlansView: View {
                         }
                     }
                     .padding()
-                    .background(Color(nsColor: .controlBackgroundColor))
+                    .background(theme.surfaceSecondary)
                     .cornerRadius(10)
                     .padding(.horizontal)
                 }

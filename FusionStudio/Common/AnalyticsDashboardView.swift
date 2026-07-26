@@ -1,4 +1,12 @@
+// Callers: ModuleDetailView routing for analytics/dashboard module.
+// Affected API: AnalyticsDashboardView, MetricCardView (replacing NSColor with theme tokens).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import SwiftUI
+import os.log
+
+private let analyticsLog = Logger(subsystem: "com.fusion.studio", category: "AnalyticsDashboard")
 
 // MARK: - 分析指标
 
@@ -87,6 +95,7 @@ class AnalyticsEngine: ObservableObject {
 struct AnalyticsDashboardView: View {
     @StateObject private var analytics = AnalyticsEngine.shared
     @State private var selectedTab: AnalyticsTab = .overview
+    @Environment(\.studioTheme) private var theme
 
     enum AnalyticsTab: String, CaseIterable {
         case overview  = "概览"
@@ -113,7 +122,7 @@ struct AnalyticsDashboardView: View {
                 .disabled(analytics.isRefreshing)
             }
             .padding(.horizontal, 12).padding(.vertical, 6)
-            .background(Color(nsColor: .controlBackgroundColor))
+            .background(theme.surfaceSecondary)
 
             Divider()
 
@@ -162,6 +171,7 @@ struct OverviewTab: View {
 
 struct MetricCardView: View {
     let metric: AnalyticsMetric
+    @Environment(\.studioTheme) private var theme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -175,7 +185,7 @@ struct MetricCardView: View {
             Text(metric.name).font(.caption).foregroundColor(.secondary).lineLimit(1)
         }
         .padding()
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(theme.surfaceSecondary)
         .cornerRadius(10)
     }
 }

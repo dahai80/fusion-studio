@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView routing.
+// Affected API: SimulationView (replacing NSColor with StudioTheme tokens).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import SwiftUI
 
 /// 仿真场景模型
@@ -259,6 +264,7 @@ struct SceneRow: View {
 // MARK: - 仿真工具栏
 
 struct SimulationToolbar: View {
+    @Environment(\.studioTheme) private var theme
     @Binding var isRunning: Bool
     @Binding var config: SimulationConfig
     let selectedScene: SimulationScene?
@@ -315,7 +321,7 @@ struct SimulationToolbar: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 6)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(theme.surfaceSecondary)
     }
 }
 
