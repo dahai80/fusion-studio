@@ -244,6 +244,17 @@ class MultiNodeEngine: ObservableObject {
         fetchAutoscalerConfig()
     }
 
+    func registerKVCache(cacheId: String, modelName: String, nodeId: String, sizeMb: Double, ttlSeconds: Int = 3600) async throws {
+        let body: [String: Any] = [
+            "cache_id": cacheId,
+            "model_name": modelName,
+            "node_id": nodeId,
+            "size_mb": sizeMb,
+            "ttl_seconds": ttlSeconds,
+        ]
+        _ = try await post("/api/kv/register", body: body)
+    }
+
     func exportLogs() async throws -> Data {
         let url = URL(string: "\(baseURL)/api/v1/observability/logs/export")!
         let (data, _) = try await session.data(from: url)
@@ -300,6 +311,93 @@ class MultiNodeEngine: ObservableObject {
             do {
                 let decoded = try JSONDecoder().decode(AgentHardwareInfo.self, from: data)
                 completion(.success(decoded))
+            } catch {
+                completion(.failure(error))
+            }
+        }.resume()
+    }
+
+    func checkAgentHealth(agentURL: String = "http://127.0.0.1:9755", completion: @escaping (Result<Bool, Error>) -> Void) {
+        guard let url = URL(string: "\(agentURL)/api/health") else {
+            completion(.failure(EngineError.invalidURL)); return
+        }
+        session.dataTask(with: url) { data, _, error in
+            if let err = error { completion(.failure(err)); return }
+            guard let data = data else { completion(.failure(EngineError.noData)); return }
+            do {
+                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   json["status"] as? String == "ok" {
+                    completion(.success(true))
+                } else {
+                    completion(.success(false))
+                }
+            } catch {
+                completion(.failure(error))
+            }
+        }.resume()
+    }
+
+    func agentKVLookup(modelName: String, promptHash: String, agentURL: String = "http://127.0.0.1:9755", completion: @escaping (Result<KVCacheEntry, Error>) -> Void) {
+        guard let url = URL(string: "\(agentURL)/api/kv/lookup") else {
+            completion(.failure(EngineError.invalidURL)); return
+        }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body = ["model_name": modelName, "prompt_hash": promptHash]
+        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        session.dataTask(with: req) { data, _, error in
+            if let err = error { completion(.failure(err)); return }
+            guard let data = data else { completion(.failure(EngineError.noData)); return }
+            do {
+                let decoded = try JSONDecoder().decode(KVCacheEntry.self, from: data)
+                completion(.success(decoded))
+            } catch {
+                completion(.failure(error))
+            }
+        }.resume()
+    }
+
+    func agentKVTransfer(cacheId: String, targetNode: String, agentURL: String = "http://127.0.0.1:9755", completion: @escaping (Result<Bool, Error>) -> Void) {
+        guard let url = URL(string: "\(agentURL)/api/kv/transfer") else {
+            completion(.failure(EngineError.invalidURL)); return
+        }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body = ["cache_id": cacheId, "target_node": targetNode]
+        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        session.dataTask(with: req) { data, _, error in
+            if let err = error { completion(.failure(err)); return }
+            if let data = data,
+               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               json["status"] as? String == "ok" {
+                completion(.success(true))
+            } else {
+                completion(.success(false))
+            }
+        }.resume()
+    }
+
+    func agentKVWarm(modelName: String, prompts: [String], agentURL: String = "http://127.0.0.1:9755", completion: @escaping (Result<Int, Error>) -> Void) {
+        guard let url = URL(string: "\(agentURL)/api/kv/warm") else {
+            completion(.failure(EngineError.invalidURL)); return
+        }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body = ["model_name": modelName, "prompts": prompts]
+        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        session.dataTask(with: req) { data, _, error in
+            if let err = error { completion(.failure(err)); return }
+            guard let data = data else { completion(.failure(EngineError.noData)); return }
+            do {
+                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    let warmed = json["warmed"] as? Int ?? 0
+                    completion(.success(warmed))
+                } else {
+                    completion(.success(0))
+                }
             } catch {
                 completion(.failure(error))
             }
