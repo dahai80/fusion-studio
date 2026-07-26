@@ -233,6 +233,52 @@ class MultiNodeEngine: ObservableObject {
         return try await post("/api/join", body: body)
     }
 
+    // MARK: - Routing
+
+    func fetchRoutingSummary(completion: @escaping (Result<RoutingSummary, Error>) -> Void) {
+        get("/api/routing/summary") { result in completion(result) }
+    }
+
+    // MARK: - KV Cache (Master)
+
+    func findKVCache(modelName: String, completion: @escaping (Result<KVCacheEntry, Error>) -> Void) {
+        get("/api/kv/find/\(modelName)") { result in completion(result) }
+    }
+
+    // MARK: - Agent Server (port 9755)
+
+    func fetchAgentKVStats(agentURL: String = "http://127.0.0.1:9755", completion: @escaping (Result<KVStatsResponse, Error>) -> Void) {
+        guard let url = URL(string: "\(agentURL)/api/kv/stats") else {
+            completion(.failure(EngineError.invalidURL)); return
+        }
+        session.dataTask(with: url) { data, _, error in
+            if let err = error { completion(.failure(err)); return }
+            guard let data = data else { completion(.failure(EngineError.noData)); return }
+            do {
+                let decoded = try JSONDecoder().decode(KVStatsResponse.self, from: data)
+                completion(.success(decoded))
+            } catch {
+                completion(.failure(error))
+            }
+        }.resume()
+    }
+
+    func fetchAgentHardware(agentURL: String = "http://127.0.0.1:9755", completion: @escaping (Result<AgentHardwareInfo, Error>) -> Void) {
+        guard let url = URL(string: "\(agentURL)/api/hardware") else {
+            completion(.failure(EngineError.invalidURL)); return
+        }
+        session.dataTask(with: url) { data, _, error in
+            if let err = error { completion(.failure(err)); return }
+            guard let data = data else { completion(.failure(EngineError.noData)); return }
+            do {
+                let decoded = try JSONDecoder().decode(AgentHardwareInfo.self, from: data)
+                completion(.success(decoded))
+            } catch {
+                completion(.failure(error))
+            }
+        }.resume()
+    }
+
     // MARK: - Generic HTTP helpers
 
     private func get<T: Decodable>(_ path: String, completion: @escaping (Result<T, Error>) -> Void) {

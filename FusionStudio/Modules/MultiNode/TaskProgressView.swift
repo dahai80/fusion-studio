@@ -1,0 +1,251 @@
+// Importers/callers: ModuleDetailView, TaskMonitorView context menu
+// Affected API: engine.fetchTaskProgress(), engine.fetchTaskTimeline()
+// Data schemas: TaskProgress, TaskTimeline, TimelineEvent, SubTask
+// User verbatim: "做一遍检查，所有需要GUI的都要在fusion-studio落地"
+
+import SwiftUI
+import os.log
+
+private let progressLog = Logger(subsystem: "com.fusion.studio", category: "TaskProgress")
+
+struct TaskProgressView: View {
+    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var engine: MultiNodeEngine
+    @Environment(\.studioTheme) var theme
+
+    @State private var selectedTaskId: String = ""
+    @State private var progress: TaskProgress?
+    @State private var timeline: TaskTimeline?
+    @State private var isLoading = false
+    @State private var error: String?
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                ScreenHeader(eyebrow: "Multi-Node", title: "任务详情", subtitle: "查看任务进度、时间线和子任务状态")
+
+                taskPicker
+                if let taskId = currentTaskId {
+                    progressContent(taskId: taskId)
+                } else {
+                    emptyState
+                }
+            }
+            .padding(.bottom, theme.spacing2XL)
+        }
+        .background(theme.contentBg)
+        .onAppear { engine.startPolling() }
+        .onDisappear { engine.stopPolling() }
+    }
+
+    private var currentTaskId: String? {
+        if case .clusterTask(let id) = appState.inspectorContext { return id }
+        return selectedTaskId.isEmpty ? nil : selectedTaskId
+    }
+
+    private var taskPicker: some View {
+        ListGroup {
+            StudioSectionHeader(title: "选择任务")
+            HStack(spacing: theme.spacingM) {
+                Picker("任务", selection: $selectedTaskId) {
+                    Text("从 Inspector 选择").tag("")
+                    ForEach(engine.tasks) { task in
+                        Text("\(task.id) — \(task.name)").tag(task.id)
+                    }
+                }
+                .pickerStyle(.menu)
+                .frame(maxWidth: 300)
+
+                FusionButton("加载详情", icon: "arrow.clockwise", style: .secondary, size: .small, isLoading: isLoading, isDisabled: currentTaskId == nil) {
+                    loadDetails()
+                }
+            }
+            .padding(.horizontal, theme.spacingL)
+            .padding(.vertical, theme.spacingS)
+        }
+    }
+
+    private func progressContent(taskId: String) -> some View {
+        VStack(spacing: 0) {
+            if let err = error {
+                ListGroup {
+                    HStack(spacing: theme.spacingS) {
+                        Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(theme.amberDot)
+                        Text(err).font(.system(size: theme.smallTextSize)).foregroundStyle(theme.textSecondary)
+                    }
+                    .padding(theme.spacingL)
+                }
+            }
+
+            if let prog = progress {
+                progressBarSection(prog)
+            }
+
+            if let tl = timeline {
+                timelineSection(tl)
+            }
+
+            if let task = engine.tasks.first(where: { $0.id == taskId }) {
+                subTasksSection(task)
+            }
+        }
+    }
+
+    private func progressBarSection(_ prog: TaskProgress) -> some View {
+        ListGroup {
+            StudioSectionHeader(title: "执行进度")
+
+            VStack(spacing: theme.spacingM) {
+                ProgressView(value: prog.progress)
+                    .progressViewStyle(.linear)
+                    .tint(theme.accent)
+
+                HStack(spacing: theme.spacingL) {
+                    Label("\(Int(prog.progress * 100))%", systemImage: "chart.pie")
+                    Label("\(prog.completedShards)/\(prog.totalShards) shards", systemImage: "square.grid.2x2")
+                    if let elapsed = prog.elapsedSeconds {
+                        Label(formatDuration(elapsed), systemImage: "clock")
+                    }
+                    if let remaining = prog.remainingSeconds {
+                        Label("剩余 \(formatDuration(remaining))", systemImage: "hourglass")
+                    }
+                }
+                .font(.system(size: theme.footnoteSize))
+                .foregroundStyle(theme.textSecondary)
+            }
+            .padding(.horizontal, theme.spacingL)
+            .padding(.vertical, theme.spacingL)
+        }
+    }
+
+    private func timelineSection(_ tl: TaskTimeline) -> some View {
+        ListGroup {
+            StudioSectionHeader(title: "时间线")
+
+            ForEach(tl.events) { event in
+                HStack(alignment: .top, spacing: theme.spacingM) {
+                    VStack(spacing: 0) {
+                        Circle().fill(theme.accent).frame(width: 8, height: 8)
+                        if event.id != tl.events.last?.id {
+                            Rectangle().fill(theme.accent.opacity(0.3)).frame(width: 2).frame(minHeight: 24)
+                        }
+                    }
+                    .padding(.top, 4)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(event.event)
+                            .font(.system(size: theme.smallTextSize, weight: .medium))
+                            .foregroundStyle(theme.text)
+                        if let detail = event.detail {
+                            Text(detail)
+                                .font(.system(size: theme.captionSize))
+                                .foregroundStyle(theme.textSecondary)
+                        }
+                        Text(event.timestamp)
+                            .font(.system(size: theme.captionSize, design: .monospaced))
+                            .foregroundStyle(theme.textTertiary)
+                    }
+                }
+                .padding(.horizontal, theme.spacingL)
+                .padding(.vertical, theme.spacingXS)
+            }
+        }
+    }
+
+    private func subTasksSection(_ task: ClusterTask) -> some View {
+        Group {
+            if let subs = task.subTasks, !subs.isEmpty {
+                ListGroup {
+                    StudioSectionHeader(title: "子任务 (\(subs.count))")
+                    ForEach(subs, id: \.subTaskId) { sub in
+                        HStack(spacing: theme.spacingM) {
+                            subStatusDot(sub.status)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(sub.subTaskId)
+                                    .font(.system(size: theme.footnoteSize, design: .monospaced))
+                                    .foregroundStyle(theme.text)
+                                Text("Node: \(sub.nodeId)")
+                                    .font(.system(size: theme.captionSize))
+                                    .foregroundStyle(theme.textTertiary)
+                            }
+                            Spacer()
+                            if let p = sub.progress {
+                                Text("\(Int(p * 100))%")
+                                    .font(.system(size: theme.captionSize, weight: .medium, design: .monospaced))
+                                    .foregroundStyle(theme.textSecondary)
+                                ProgressView(value: p)
+                                    .progressViewStyle(.linear)
+                                    .frame(width: 60)
+                            }
+                        }
+                        .padding(.horizontal, theme.spacingL)
+                        .padding(.vertical, theme.spacingS)
+                    }
+                }
+            }
+        }
+    }
+
+    private var emptyState: some View {
+        ListGroup {
+            VStack(spacing: theme.spacingM) {
+                Image(systemName: "list.bullet.clipboard")
+                    .font(.system(size: 32))
+                    .foregroundStyle(theme.textTertiary)
+                Text("请从任务监控面板选择任务，或在上方下拉选择")
+                    .font(.system(size: theme.textSize))
+                    .foregroundStyle(theme.textTertiary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, theme.spacing2XL)
+        }
+    }
+
+    private func subStatusDot(_ status: String) -> some View {
+        let color: Color = switch status {
+        case "running": theme.greenDot
+        case "completed": theme.accent
+        case "failed": theme.redDot
+        default: theme.textTertiary
+        }
+        return Circle().fill(color).frame(width: 8, height: 8)
+    }
+
+    private func formatDuration(_ seconds: Double) -> String {
+        if seconds < 60 { return String(format: "%.0fs", seconds) }
+        if seconds < 3600 { return String(format: "%.1fm", seconds / 60) }
+        return String(format: "%.1fh", seconds / 3600)
+    }
+
+    private func loadDetails() {
+        guard let tid = currentTaskId else { return }
+        isLoading = true
+        error = nil
+        progressLog.info("Loading details for task: \(tid)")
+
+        engine.fetchTaskProgress(taskId: tid) { [self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let prog):
+                    self.progress = prog
+                    progressLog.info("Task progress loaded: \(prog.progress)")
+                case .failure(let err):
+                    progressLog.error("Task progress failed: \(err.localizedDescription)")
+                    self.error = "进度加载失败: \(err.localizedDescription)"
+                }
+                self.isLoading = false
+            }
+        }
+
+        engine.fetchTaskTimeline(taskId: tid) { [self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let tl):
+                    self.timeline = tl
+                case .failure(let err):
+                    progressLog.debug("Timeline not available: \(err.localizedDescription)")
+                }
+            }
+        }
+    }
+}
