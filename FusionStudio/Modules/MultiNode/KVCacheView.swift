@@ -18,6 +18,13 @@ struct KVCacheView: View {
     @State private var foundEntry: KVCacheEntry?
     @State private var isSearching = false
     @State private var searchError: String?
+    @State private var agentHealthy: Bool?
+    @State private var warmModel = ""
+    @State private var warmPrompt = ""
+    @State private var isWarming = false
+    @State private var warmResult: Int?
+    @State private var transferTargetNode = ""
+    @State private var isTransferring = false
 
     var body: some View {
         ScrollView {
@@ -25,7 +32,10 @@ struct KVCacheView: View {
                 ScreenHeader(eyebrow: "Multi-Node", title: "KV 缓存", subtitle: "管理集群 KV 缓存、查看命中率和节点分布")
 
                 statsStrip
+                healthStrip
                 searchSection
+                warmSection
+                transferSection
                 hardwareSection
                 byModelSection
             }
@@ -35,6 +45,7 @@ struct KVCacheView: View {
         .onAppear {
             loadStats()
             loadHardware()
+            checkHealth()
         }
     }
 
@@ -148,6 +159,69 @@ struct KVCacheView: View {
         }
     }
 
+    private var healthStrip: some View {
+        HStack(spacing: theme.spacingS) {
+            Circle()
+                .fill(agentHealthy == true ? theme.greenDot : (agentHealthy == false ? theme.redDot : theme.textTertiary))
+                .frame(width: 8, height: 8)
+            Text(agentHealthy == true ? "Agent 在线" : (agentHealthy == false ? "Agent 离线" : "检测中..."))
+                .font(.system(size: theme.footnoteSize))
+                .foregroundStyle(theme.textSecondary)
+            Spacer()
+            FusionButton("刷新", icon: "arrow.clockwise", style: .ghost, size: .small) {
+                checkHealth()
+            }
+        }
+        .padding(.horizontal, theme.spacingL)
+        .padding(.bottom, theme.spacingM)
+    }
+
+    private var warmSection: some View {
+        ListGroup {
+            StudioSectionHeader(title: "KV 预热")
+            HStack(spacing: theme.spacingM) {
+                TextField("模型名称", text: $warmModel)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: theme.smallTextSize, design: .monospaced))
+                TextField("预热 Prompt", text: $warmPrompt)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: theme.smallTextSize))
+                FusionButton("预热", icon: "flame", style: .secondary, size: .small,
+                    isLoading: isWarming, isDisabled: warmModel.trimmingCharacters(in: .whitespaces).isEmpty) {
+                    warmKV()
+                }
+            }
+            .padding(.horizontal, theme.spacingL)
+            .padding(.vertical, theme.spacingS)
+
+            if let warmed = warmResult {
+                HStack(spacing: theme.spacingS) {
+                    Image(systemName: "checkmark.circle.fill").foregroundStyle(theme.greenDot)
+                    Text("已预热 \(warmed) 条缓存").font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textSecondary)
+                }
+                .padding(.horizontal, theme.spacingL)
+                .padding(.vertical, theme.spacingXS)
+            }
+        }
+    }
+
+    private var transferSection: some View {
+        ListGroup {
+            StudioSectionHeader(title: "KV 迁移")
+            HStack(spacing: theme.spacingM) {
+                TextField("目标节点ID", text: $transferTargetNode)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: theme.smallTextSize, design: .monospaced))
+                FusionButton("迁移", icon: "arrow.right.circle", style: .secondary, size: .small,
+                    isLoading: isTransferring, isDisabled: foundEntry == nil || transferTargetNode.trimmingCharacters(in: .whitespaces).isEmpty) {
+                    transferKV()
+                }
+            }
+            .padding(.horizontal, theme.spacingL)
+            .padding(.vertical, theme.spacingS)
+        }
+    }
+
     private var byModelSection: some View {
         Group {
             if let byModel = kvStats?.byModel, !byModel.isEmpty {
@@ -229,6 +303,64 @@ struct KVCacheView: View {
                 case .failure(let err):
                     self.searchError = "未找到该模型的 KV 缓存: \(err.localizedDescription)"
                     kvLog.debug("KV find failed: \(err.localizedDescription)")
+                }
+            }
+        }
+    }
+
+    private func checkHealth() {
+        engine.checkAgentHealth { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let ok):
+                    self.agentHealthy = ok
+                case .failure:
+                    self.agentHealthy = false
+                }
+            }
+        }
+    }
+
+    private func warmKV() {
+        let model = warmModel.trimmingCharacters(in: .whitespaces)
+        guard !model.isEmpty else { return }
+        isWarming = true
+        warmResult = nil
+        let prompts = warmPrompt.trimmingCharacters(in: .whitespaces).isEmpty
+            ? [model] : warmPrompt.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+        engine.agentKVWarm(modelName: model, prompts: prompts) { result in
+            DispatchQueue.main.async {
+                isWarming = false
+                switch result {
+                case .success(let count):
+                    self.warmResult = count
+                    loadStats()
+                    kvLog.info("KV warmed: \(count) entries")
+                case .failure(let err):
+                    kvLog.error("KV warm failed: \(err.localizedDescription)")
+                }
+            }
+        }
+    }
+
+    private func transferKV() {
+        guard let entry = foundEntry else { return }
+        let target = transferTargetNode.trimmingCharacters(in: .whitespaces)
+        guard !target.isEmpty else { return }
+        isTransferring = true
+        engine.agentKVTransfer(cacheId: entry.cacheId, targetNode: target) { result in
+            DispatchQueue.main.async {
+                isTransferring = false
+                switch result {
+                case .success(let ok):
+                    if ok {
+                        kvLog.info("KV transferred: \(entry.cacheId) -> \(target)")
+                        loadStats()
+                    } else {
+                        kvLog.error("KV transfer returned false")
+                    }
+                case .failure(let err):
+                    kvLog.error("KV transfer failed: \(err.localizedDescription)")
                 }
             }
         }
