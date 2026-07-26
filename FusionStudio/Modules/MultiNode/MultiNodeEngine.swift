@@ -116,6 +116,22 @@ class MultiNodeEngine: ObservableObject {
         }
     }
 
+    func fetchNodeMetrics(nodeId: String, completion: @escaping (Result<LoadMetrics, Error>) -> Void) {
+        get("/api/v1/nodes/\(nodeId)/metrics") { [weak self] (result: Result<NodeMetricsResponse, Error>) in
+            switch result {
+            case .success(let resp):
+                let metrics = LoadMetrics.from(resp)
+                DispatchQueue.main.async {
+                    self?.nodeMetricsRaw[nodeId] = resp
+                    self?.nodeMetrics[nodeId] = metrics
+                }
+                completion(.success(metrics))
+            case .failure(let err):
+                completion(.failure(err))
+            }
+        }
+    }
+
     func fetchTaskProgress(taskId: String, completion: @escaping (Result<TaskProgress, Error>) -> Void) {
         get("/api/v1/tasks/\(taskId)/progress") { result in completion(result) }
     }
@@ -194,6 +210,17 @@ class MultiNodeEngine: ObservableObject {
     func migrateTask(taskId: String, targetNodeId: String) async throws {
         _ = try await post("/api/tasks/\(taskId)/migrate", body: ["target_node_id": targetNodeId])
         fetchTasks()
+    }
+
+    func migrateTask(taskId: String, targetNodeId: String, completion: @escaping (Result<Void, Error>) -> Void) {
+        Task {
+            do {
+                try await migrateTask(taskId: taskId, targetNodeId: targetNodeId)
+                completion(.success(()))
+            } catch {
+                completion(.failure(error))
+            }
+        }
     }
 
     func submitTask(name: String, mode: String, modelName: String, priority: Int = 5, requiredCapability: String? = nil) async throws -> [String: Any] {

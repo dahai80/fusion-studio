@@ -10,6 +10,10 @@ struct TaskMonitorView: View {
 
     @State private var selectedTab: TaskTab = .all
     @State private var searchText = ""
+    @State private var showMigrateSheet = false
+    @State private var migrateTaskId = ""
+    @State private var migrateTargetNode = ""
+    @State private var isMigrating = false
 
     enum TaskTab: String, CaseIterable {
         case all = "全部"
@@ -32,6 +36,62 @@ struct TaskMonitorView: View {
         .background(theme.contentBg)
         .onAppear { engine.startPolling() }
         .onDisappear { engine.stopPolling() }
+        .sheet(isPresented: $showMigrateSheet) {
+            migrateSheet
+        }
+    }
+
+    private var migrateSheet: some View {
+        VStack(spacing: theme.spacingL) {
+            Text("迁移任务")
+                .font(.system(size: theme.bodySize, weight: .bold))
+                .foregroundStyle(theme.text)
+
+            StudioRow(label: "任务ID") {
+                Text(migrateTaskId)
+                    .font(.system(size: theme.smallTextSize, design: .monospaced))
+                    .foregroundStyle(theme.textSecondary)
+            }
+
+            StudioRow(label: "目标节点") {
+                Picker("选择节点", selection: $migrateTargetNode) {
+                    Text("请选择").tag("")
+                    ForEach(engine.nodes) { node in
+                        Text("\(node.name) (\(node.status.rawValue))").tag(node.id)
+                    }
+                }
+                .pickerStyle(.menu)
+            }
+
+            HStack(spacing: theme.spacingM) {
+                FusionButton("取消", icon: "xmark", style: .secondary, size: .regular) {
+                    showMigrateSheet = false
+                }
+                FusionButton("确认迁移", icon: "arrow.right.circle", style: .primary, size: .regular,
+                    isLoading: isMigrating, isDisabled: migrateTargetNode.isEmpty) {
+                    performMigration()
+                }
+            }
+            .padding(.top, theme.spacingM)
+        }
+        .padding(theme.spacingXL)
+        .frame(width: 420)
+        .background(theme.surfaceElevated)
+        .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusLarge, style: .continuous))
+    }
+
+    private func performMigration() {
+        isMigrating = true
+        engine.migrateTask(taskId: migrateTaskId, targetNodeId: migrateTargetNode) { result in
+            isMigrating = false
+            switch result {
+            case .success:
+                taskLog.info("Task migrated: \(self.migrateTaskId) -> \(self.migrateTargetNode)")
+                showMigrateSheet = false
+            case .failure(let error):
+                taskLog.error("Migration failed: \(error.localizedDescription)")
+            }
+        }
     }
 
     private var tabBar: some View {
@@ -111,6 +171,11 @@ struct TaskMonitorView: View {
                         }
                         Button("降级任务") {
                             Task { try? await engine.degradeTask(taskId: task.id) }
+                        }
+                        Button("迁移任务") {
+                            migrateTaskId = task.id
+                            migrateTargetNode = ""
+                            showMigrateSheet = true
                         }
                     }
                     if task.status == .failed {
