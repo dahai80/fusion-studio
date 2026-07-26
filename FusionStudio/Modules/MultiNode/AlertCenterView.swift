@@ -10,6 +10,7 @@ struct AlertCenterView: View {
 
     @State private var selectedTab: AlertTab = .active
     @State private var acknowledgedAlerts: Set<String> = []
+    @State private var isExporting = false
 
     enum AlertTab: String, CaseIterable {
         case active = "活跃告警"
@@ -21,6 +22,15 @@ struct AlertCenterView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 ScreenHeader(eyebrow: "Multi-Node", title: "告警中心", subtitle: "集群异常检测与智能建议")
+
+                HStack {
+                    Spacer()
+                    FusionButton("导出日志", icon: "arrow.down.doc", style: .secondary, size: .small,
+                        isLoading: isExporting) {
+                        exportAlertLog()
+                    }
+                }
+                .padding(.horizontal, theme.spacingL)
 
                 tabBar
 
@@ -218,5 +228,29 @@ struct AlertCenterView: View {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
         return formatter.localizedString(for: date, relativeTo: Date())
+    }
+
+    private func exportAlertLog() {
+        isExporting = true
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.plainText]
+        panel.nameFieldStringValue = "fusion-alerts-\(Int(Date().timeIntervalSince1970)).log"
+        panel.begin { response in
+            isExporting = false
+            guard response == .OK, let url = panel.url else { return }
+            let lines = engine.alerts.map { alert in
+                let ts = alert.createdAt.map { String($0) } ?? "N/A"
+                let level = alert.isCritical ? "CRITICAL" : "WARNING"
+                let node = alert.nodeId ?? "N/A"
+                return "[\(ts)] [\(level)] node=\(node) title=\(alert.title ?? "-") msg=\(alert.message)"
+            }
+            let content = lines.joined(separator: "\n")
+            do {
+                try content.write(to: url, atomically: true, encoding: .utf8)
+                alertLog.info("Alert log exported to \(url.path)")
+            } catch {
+                alertLog.error("Export failed: \(error.localizedDescription)")
+            }
+        }
     }
 }

@@ -179,6 +179,9 @@ struct NodeInspectorContent: View {
     @EnvironmentObject var engine: MultiNodeEngine
     @Environment(\.studioTheme) private var theme
 
+    @State private var metrics: LoadMetrics?
+    @State private var isLoadingMetrics = false
+
     private var node: ClusterNode? {
         engine.nodes.first { $0.id == nodeId }
     }
@@ -203,11 +206,38 @@ struct NodeInspectorContent: View {
                 inspectorField("负载", value: String(format: "%.0f%%", n.taskLoadRatio * 100))
                 inspectorField("评分", value: String(format: "%.2f", n.score))
             }
+            if let m = metrics {
+                inspectorSection("详细指标") {
+                    inspectorField("CPU使用率", value: String(format: "%.1f%%", m.cpuPercent))
+                    inspectorField("内存使用率", value: String(format: "%.1f%%", m.memoryPercent))
+                    inspectorField("GPU使用率", value: String(format: "%.1f%%", m.gpuPercent))
+                    inspectorField("队列长度", value: "\(m.queueLength)")
+                }
+            }
+            FusionButton("刷新指标", icon: "arrow.clockwise", style: .ghost, size: .small,
+                isLoading: isLoadingMetrics) {
+                loadMetrics(nodeId: n.id)
+            }
+            .padding(.top, theme.spacingXS)
         } else {
             inspectorSection("节点") {
                 Text("加载中...")
                     .font(.system(size: theme.footnoteSize))
                     .foregroundStyle(theme.textTertiary)
+            }
+        }
+    }
+
+    private func loadMetrics(nodeId: String) {
+        isLoadingMetrics = true
+        engine.fetchNodeMetrics(nodeId: nodeId) { result in
+            isLoadingMetrics = false
+            switch result {
+            case .success(let m):
+                metrics = m
+                inspectorLog.info("Node metrics loaded for \(nodeId)")
+            case .failure(let error):
+                inspectorLog.error("Metrics fetch failed: \(error.localizedDescription)")
             }
         }
     }
@@ -232,6 +262,21 @@ struct ClusterTaskInspectorContent: View {
                 inspectorField("模型", value: t.modelName)
                 inspectorField("优先级", value: "\(t.priority ?? 5)")
             }
+            inspectorSection("时间") {
+                if let created = t.createdAt {
+                    inspectorField("创建时间", value: formatTs(created))
+                }
+                if let started = t.startedAt {
+                    inspectorField("开始时间", value: formatTs(started))
+                }
+                if let completed = t.completedAt {
+                    inspectorField("完成时间", value: formatTs(completed))
+                }
+                if let created = t.createdAt, let completed = t.completedAt {
+                    let elapsed = completed - created
+                    inspectorField("耗时", value: formatDuration(elapsed))
+                }
+            }
             inspectorSection("分配") {
                 if t.assignedNodes.isEmpty {
                     inspectorField("节点", value: "未分配")
@@ -253,6 +298,19 @@ struct ClusterTaskInspectorContent: View {
                     .foregroundStyle(theme.textTertiary)
             }
         }
+    }
+
+    private func formatTs(_ ts: Double) -> String {
+        let date = Date(timeIntervalSince1970: ts)
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        return formatter.string(from: date)
+    }
+
+    private func formatDuration(_ seconds: Double) -> String {
+        if seconds < 60 { return String(format: "%.1f秒", seconds) }
+        if seconds < 3600 { return String(format: "%.1f分钟", seconds / 60) }
+        return String(format: "%.1f小时", seconds / 3600)
     }
 }
 
