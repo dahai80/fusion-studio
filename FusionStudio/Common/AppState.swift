@@ -63,7 +63,7 @@ enum ProductSheet: String, CaseIterable, Identifiable {
         case .agentStudio:
             return [.agent, .plugin, .security, .kb, .dataTools]
         case .multiNode:
-            return [.clusterOverview, .clusterTopology, .taskMonitor, .alertCenter, .nodeActions, .submitTask, .taskProgress, .routingStrategy, .kvCache, .multimodal, .simulation, .analytics, .collab, .external]
+            return [.clusterOverview, .clusterTopology, .taskMonitor, .alertCenter, .nodeActions, .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb, .multimodal, .simulation, .analytics, .collab, .external]
         }
     }
 }
@@ -99,6 +99,7 @@ enum Module: String, CaseIterable, Identifiable {
     case taskProgress = "任务详情"
     case routingStrategy = "路由策略"
     case kvCache = "KV缓存"
+    case serviceWeb = "服务面板"
 
     var id: String { rawValue }
 
@@ -134,6 +135,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .taskProgress: return "chart.bar.doc.horizontal"
         case .routingStrategy: return "arrow.triangle.branch"
         case .kvCache: return "internaldrive"
+        case .serviceWeb: return "globe"
         }
     }
 
@@ -147,7 +149,7 @@ enum Module: String, CaseIterable, Identifiable {
             return .agentStudio
         case .multimodal, .simulation, .analytics, .collab, .external, .desk,
              .clusterOverview, .clusterTopology, .taskMonitor, .alertCenter, .nodeActions,
-             .submitTask, .taskProgress, .routingStrategy, .kvCache:
+             .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb:
             return .multiNode
         }
     }

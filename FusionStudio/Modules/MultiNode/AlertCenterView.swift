@@ -50,7 +50,7 @@ struct AlertCenterView: View {
                         Text(tab.rawValue)
                             .font(.system(size: theme.smallTextSize, weight: tab == selectedTab ? .semibold : .regular))
                         if tab == .active {
-                            let count = engine.alerts.filter { !($0.acknowledged ?? false) }.count
+                            let count = engine.alerts.filter { !($0.resolved ?? false) }.count
                             if count > 0 {
                                 Text("\(count)")
                                     .font(.system(size: theme.captionSize, weight: .bold))
@@ -78,7 +78,7 @@ struct AlertCenterView: View {
     }
 
     private var activeAlerts: [AlertItem] {
-        engine.alerts.filter { !($0.acknowledged ?? false) && !acknowledgedAlerts.contains($0.id) }
+        engine.alerts.filter { !($0.resolved ?? false) && !acknowledgedAlerts.contains($0.id) }
     }
 
     private var activeAlertsSection: some View {
