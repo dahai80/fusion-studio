@@ -66,6 +66,8 @@ struct ModuleDetailView: View {
                 RoutingStrategyView()
             case .kvCache:
                 KVCacheView()
+            case .serviceWeb:
+                ServiceWebView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
