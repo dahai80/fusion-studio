@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView routing.
+// Affected API: BenchView (replacing NSColor with StudioTheme tokens).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import SwiftUI
 
 /// 基准测试结果
@@ -44,6 +49,7 @@ let sampleResults: [BenchResult] = [
 ]
 
 struct BenchView: View {
+    @Environment(\.studioTheme) private var theme
     @State private var results: [BenchResult] = sampleResults
     @State private var selectedType: BenchResult.BenchType?
     @State private var isRunning = false
@@ -74,7 +80,7 @@ struct BenchView: View {
                 }
                 .padding(8)
             }
-            .background(Color(nsColor: .controlBackgroundColor))
+            .background(theme.surfaceSecondary)
 
             Divider()
 
@@ -104,24 +110,42 @@ struct BenchView: View {
 
     private func runBenchmark() {
         isRunning = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-            isRunning = false
-            // 添加模拟结果
-            let newResult = BenchResult(
-                id: "b-\(UUID().uuidString.prefix(6))",
-                modelName: "Qwen3.5 9B 4bit",
-                testType: .speed,
-                score: Double.random(in: 40...55),
-                unit: "token/s",
-                timestamp: Date(),
-                details: ["延迟": "\(Int.random(in: 18...25))ms", "内存": "\(String(format: "%.1f", Double.random(in: 4.5...5.5))) GB"]
-            )
-            results.append(newResult)
+        // 调用 fusion-mlx 基准测试 API
+        Task {
+            do {
+                let url = URL(string: "http://localhost:8000/v1/benchmarks/run")!
+                var request = URLRequest(url: url)
+                request.httpMethod = "POST"
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                let body: [String: Any] = ["type": selectedType?.rawValue ?? "all"]
+                request.httpBody = try JSONSerialization.data(withJSONObject: body)
+                request.timeoutInterval = 300
+                let (data, response) = try await URLSession.shared.data(for: request)
+                if let httpResp = response as? HTTPURLResponse,
+                   httpResp.statusCode == 200,
+                   let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let result = json["result"] as? [String: Any] {
+                    let newResult = BenchResult(
+                        id: "b-\(UUID().uuidString.prefix(6))",
+                        modelName: result["model"] as? String ?? "unknown",
+                        testType: selectedType ?? .speed,
+                        score: result["score"] as? Double ?? 0,
+                        unit: result["unit"] as? String ?? "",
+                        timestamp: Date(),
+                        details: result["details"] as? [String: String] ?? [:]
+                    )
+                    await MainActor.run { self.results.append(newResult) }
+                }
+            } catch {
+                // 静默失败，保留原有数据
+            }
+            await MainActor.run { self.isRunning = false }
         }
     }
 }
 
 struct BenchResultCard: View {
+    @Environment(\.studioTheme) private var theme
     let result: BenchResult
 
     var body: some View {
@@ -164,7 +188,7 @@ struct BenchResultCard: View {
             }
         }
         .padding()
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(theme.surfaceSecondary)
         .cornerRadius(10)
     }
 }

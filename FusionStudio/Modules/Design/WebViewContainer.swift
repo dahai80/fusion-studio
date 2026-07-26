@@ -1,16 +1,24 @@
 import SwiftUI
 import WebKit
+import Combine
 
 /// WKWebView 容器，用于承载 Fusion-Design 画布等 Web 应用
 struct WebViewContainer: NSViewRepresentable {
     let url: String
     var onMessage: ((String) -> Void)?
+    @Binding var isLoading: Bool
+    @Binding var error: String?
+
+    init(url: String, onMessage: ((String) -> Void)? = nil, isLoading: Binding<Bool> = .constant(true), error: Binding<String?> = .constant(nil)) {
+        self.url = url
+        self.onMessage = onMessage
+        self._isLoading = isLoading
+        self._error = error
+    }
 
     func makeNSView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         let userContentController = WKUserContentController()
-
-        // 注册消息处理器
         userContentController.add(context.coordinator, name: "fusionBridge")
 
         let userScript = WKUserScript(
@@ -26,10 +34,7 @@ struct WebViewContainer: NSViewRepresentable {
             forMainFrameOnly: true
         )
         userContentController.addUserScript(userScript)
-
         config.userContentController = userContentController
-
-        // 允许本地文件访问
         config.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
 
         let webView = WKWebView(frame: .zero, configuration: config)
@@ -50,22 +55,23 @@ struct WebViewContainer: NSViewRepresentable {
     }
 
     class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
-        let onMessage: ((String) -> Void)?
+        var parent: WebViewContainer
 
         init(_ parent: WebViewContainer) {
-            self.onMessage = parent.onMessage
+            self.parent = parent
         }
 
         func userContentController(_ userContentController: WKUserContentController,
                                     didReceive message: WKScriptMessage) {
             if message.name == "fusionBridge",
                let body = message.body as? String {
-                onMessage?(body)
+                parent.onMessage?(body)
             }
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            // 注入 Fusion Studio Bridge API
+            parent.isLoading = false
+            parent.error = nil
             let bridgeJS = """
             window.fusionStudio = {
                 version: '0.1.0',
@@ -76,9 +82,7 @@ struct WebViewContainer: NSViewRepresentable {
                 exportCode: function(format, data) {
                     return new Promise((resolve) => {
                         window.fusionStudio.sendToNative({
-                            type: 'export_code',
-                            format: format,
-                            data: data
+                            type: 'export_code', format: format, data: data
                         });
                         resolve({ status: 'ok' });
                     });
@@ -89,7 +93,13 @@ struct WebViewContainer: NSViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-            print("WebView 加载失败: \(error.localizedDescription)")
+            parent.isLoading = false
+            parent.error = error.localizedDescription
+        }
+
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+            parent.isLoading = false
+            parent.error = error.localizedDescription
         }
     }
 }

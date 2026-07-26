@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView routing.
+// Affected API: ExternalIntegrationsView (replacing NSColor with StudioTheme tokens).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import SwiftUI
 
 // MARK: - 外部服务类型
@@ -125,6 +130,7 @@ class ExternalIntegrationManager: ObservableObject {
 // MARK: - 外部集成面板
 
 struct ExternalIntegrationsView: View {
+    @Environment(\.studioTheme) private var theme
     @StateObject private var manager = ExternalIntegrationManager.shared
     @State private var showAddSheet = false
     @State private var selectedService: ExternalService = .github
@@ -145,7 +151,7 @@ struct ExternalIntegrationsView: View {
                 .disabled(manager.isSyncing)
             }
             .padding(.horizontal, 12).padding(.vertical, 6)
-            .background(Color(nsColor: .controlBackgroundColor))
+            .background(theme.surfaceSecondary)
 
             Divider()
 

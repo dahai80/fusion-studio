@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView routing.
+// Affected API: ModelHubView (replacing NSColor with StudioTheme tokens).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import SwiftUI
 
 /// 模型元数据
@@ -24,17 +29,18 @@ struct ModelInfo: Identifiable, Hashable, Codable {
     }
 
     static let presets: [ModelInfo] = [
-        ModelInfo(id: "qwen3.5-9b-4bit", name: "Qwen3.5 9B", path: "~/.fusion/models/qwen3.5-9b-4bit", sizeGB: 5.2, quantization: "4bit", format: "mlx", family: "Qwen", parameters: "9B", isDownloaded: false, isActive: false, downloadProgress: 0, description: "通义千问 3.5，9B 参数，4bit 量化，适合通用对话和代码生成"),
-        ModelInfo(id: "llama3-8b-4bit", name: "Llama 3 8B", path: "~/.fusion/models/llama3-8b-4bit", sizeGB: 4.8, quantization: "4bit", format: "mlx", family: "Llama", parameters: "8B", isDownloaded: false, isActive: false, downloadProgress: 0, description: "Meta Llama 3，8B 参数，4bit 量化，高质量通用模型"),
-        ModelInfo(id: "deepseek-coder-6.7b-4bit", name: "DeepSeek Coder 6.7B", path: "~/.fusion/models/deepseek-coder-6.7b-4bit", sizeGB: 3.9, quantization: "4bit", format: "mlx", family: "DeepSeek", parameters: "6.7B", isDownloaded: false, isActive: false, downloadProgress: 0, description: "DeepSeek 代码专用模型，6.7B 参数，4bit 量化"),
-        ModelInfo(id: "qwen2-vl-7b-4bit", name: "Qwen2-VL 7B", path: "~/.fusion/models/qwen2-vl-7b-4bit", sizeGB: 4.2, quantization: "4bit", format: "mlx", family: "Qwen", parameters: "7B", isDownloaded: false, isActive: false, downloadProgress: 0, description: "Qwen2 视觉语言模型，支持图像理解"),
-        ModelInfo(id: "sd3.5-medium", name: "Stable Diffusion 3.5", path: "~/.fusion/models/sd3.5-medium", sizeGB: 6.5, quantization: "fp16", format: "mlx", family: "Stable Diffusion", parameters: "2.5B", isDownloaded: false, isActive: false, downloadProgress: 0, description: "文生图模型，支持 txt2img / img2img"),
+        ModelInfo(id: "qwen3.5-9b-4bit", name: "Qwen3.5 9B", path: "~/.fusion-mlx/models/qwen3.5-9b-4bit", sizeGB: 5.2, quantization: "4bit", format: "mlx", family: "Qwen", parameters: "9B", isDownloaded: false, isActive: false, downloadProgress: 0, description: "通义千问 3.5，9B 参数，4bit 量化，适合通用对话和代码生成"),
+        ModelInfo(id: "llama3-8b-4bit", name: "Llama 3 8B", path: "~/.fusion-mlx/models/llama3-8b-4bit", sizeGB: 4.8, quantization: "4bit", format: "mlx", family: "Llama", parameters: "8B", isDownloaded: false, isActive: false, downloadProgress: 0, description: "Meta Llama 3，8B 参数，4bit 量化，高质量通用模型"),
+        ModelInfo(id: "deepseek-coder-6.7b-4bit", name: "DeepSeek Coder 6.7B", path: "~/.fusion-mlx/models/deepseek-coder-6.7b-4bit", sizeGB: 3.9, quantization: "4bit", format: "mlx", family: "DeepSeek", parameters: "6.7B", isDownloaded: false, isActive: false, downloadProgress: 0, description: "DeepSeek 代码专用模型，6.7B 参数，4bit 量化"),
+        ModelInfo(id: "qwen2-vl-7b-4bit", name: "Qwen2-VL 7B", path: "~/.fusion-mlx/models/qwen2-vl-7b-4bit", sizeGB: 4.2, quantization: "4bit", format: "mlx", family: "Qwen", parameters: "7B", isDownloaded: false, isActive: false, downloadProgress: 0, description: "Qwen2 视觉语言模型，支持图像理解"),
+        ModelInfo(id: "sd3.5-medium", name: "Stable Diffusion 3.5", path: "~/.fusion-mlx/models/sd3.5-medium", sizeGB: 6.5, quantization: "fp16", format: "mlx", family: "Stable Diffusion", parameters: "2.5B", isDownloaded: false, isActive: false, downloadProgress: 0, description: "文生图模型，支持 txt2img / img2img"),
     ]
 }
 
 // MARK: - 主视图
 
 struct ModelHubView: View {
+    @Environment(\.studioTheme) private var theme
     @State private var models: [ModelInfo] = ModelInfo.presets
     @State private var selectedModel: ModelInfo?
     @State private var searchText = ""
@@ -69,7 +75,7 @@ struct ModelHubView: View {
                         .textFieldStyle(.plain)
                 }
                 .padding(8)
-                .background(Color(nsColor: .controlBackgroundColor))
+                .background(theme.surfaceSecondary)
 
                 Divider()
 
@@ -428,7 +434,7 @@ struct DownloadModelView: View {
                     let model = ModelInfo(
                         id: modelName.lowercased().replacingOccurrences(of: " ", with: "-"),
                         name: modelName,
-                        path: "~/.fusion/models/\(modelName.lowercased())",
+                        path: "~/.fusion-mlx/models/\(modelName.lowercased())",
                         sizeGB: 0,
                         quantization: "4bit",
                         format: "mlx",

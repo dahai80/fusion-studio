@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView routing.
+// Affected API: AutoUpdateManager (replacing NSColor with StudioTheme tokens).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import SwiftUI
 import Combine
 
@@ -279,6 +284,7 @@ struct UpdateSettingsView: View {
 // MARK: - 更新弹窗
 
 struct UpdateSheetView: View {
+    @Environment(\.studioTheme) private var theme
     @StateObject private var updateManager = AutoUpdateManager.shared
     @Environment(\.dismiss) var dismiss
 
@@ -303,7 +309,7 @@ struct UpdateSheetView: View {
                         .padding()
                 }
                 .frame(height: 200)
-                .background(Color(nsColor: .controlBackgroundColor))
+                .background(theme.surfaceSecondary)
                 .cornerRadius(8)
 
                 if let url = version.downloadURL {

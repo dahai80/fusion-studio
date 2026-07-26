@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView routing.
+// Affected API: DocGeneratorView (replacing NSColor with StudioTheme tokens).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import SwiftUI
 import Foundation
 
@@ -386,6 +391,7 @@ class DocGenerator: ObservableObject {
 // MARK: - 文档生成面板
 
 struct DocGeneratorView: View {
+    @Environment(\.studioTheme) private var theme
     @StateObject private var generator = DocGenerator.shared
     @State private var selectedType: DocGenType = .api
 
@@ -405,7 +411,7 @@ struct DocGeneratorView: View {
                 }
                 .padding(8)
             }
-            .background(Color(nsColor: .controlBackgroundColor))
+            .background(theme.surfaceSecondary)
 
             Divider()
 

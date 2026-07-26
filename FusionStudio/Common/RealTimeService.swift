@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView routing.
+// Affected API: RealTimeService (replacing NSColor with StudioTheme tokens).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import SwiftUI
 import Combine
 
@@ -123,6 +128,7 @@ class RealTimeCollaboration: ObservableObject {
 // MARK: - 实时协作面板
 
 struct RealTimeView: View {
+    @Environment(\.studioTheme) private var theme
     @StateObject private var rt = RealTimeCollaboration.shared
     @State private var messageText = ""
     @State private var selectedTab: RTTab = .chat
@@ -145,7 +151,7 @@ struct RealTimeView: View {
                 )).toggleStyle(.switch).controlSize(.small)
             }
             .padding(.horizontal, 12).padding(.vertical, 6)
-            .background(Color(nsColor: .controlBackgroundColor))
+            .background(theme.surfaceSecondary)
 
             Divider()
 
@@ -182,6 +188,7 @@ struct RealTimeView: View {
 // MARK: - 聊天视图
 
 struct ChatView: View {
+    @Environment(\.studioTheme) private var theme
     @StateObject private var rt = RealTimeCollaboration.shared
     @State private var messageText = ""
     @State private var showCodeInput = false
@@ -236,7 +243,7 @@ struct ChatView: View {
                 .disabled(messageText.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .padding(8)
-            .background(Color(nsColor: .controlBackgroundColor))
+            .background(theme.surfaceSecondary)
         }
     }
 
@@ -251,6 +258,7 @@ struct ChatView: View {
 // MARK: - 聊天气泡
 
 struct ChatBubble: View {
+    @Environment(\.studioTheme) private var theme
     let message: RTChatMessage
     @State private var isVisible = false
 
@@ -276,7 +284,7 @@ struct ChatBubble: View {
                             .font(.body)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
-                            .background(message.sender == "我" ? Color.accentColor : Color(nsColor: .controlBackgroundColor))
+                            .background(message.sender == "我" ? Color(red: 0, green: 122.0 / 255.0, blue: 1.0) : theme.surfaceSecondary)
                             .foregroundColor(message.sender == "我" ? .white : .primary)
                             .cornerRadius(12)
                     }

@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView routing.
+// Affected API: SecurityService (replacing NSColor with StudioTheme tokens).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import SwiftUI
 import Foundation
 import CommonCrypto
@@ -142,6 +147,7 @@ class SecurityManager: ObservableObject {
 // MARK: - 安全面板
 
 struct SecurityView: View {
+    @Environment(\.studioTheme) private var theme
     @StateObject private var security = SecurityManager.shared
     @State private var selectedTab: SecurityTab = .dashboard
 
@@ -164,7 +170,7 @@ struct SecurityView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
-            .background(Color(nsColor: .controlBackgroundColor))
+            .background(theme.surfaceSecondary)
 
             Divider()
 
@@ -231,6 +237,7 @@ struct SecurityDashboard: View {
 }
 
 struct SecurityCard: View {
+    @Environment(\.studioTheme) private var theme
     let title: String; let value: String; let icon: String; let color: Color
     var body: some View {
         VStack(spacing: 8) {
@@ -240,7 +247,7 @@ struct SecurityCard: View {
         }
         .padding()
         .frame(maxWidth: .infinity)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(theme.surfaceSecondary)
         .cornerRadius(10)
     }
 }

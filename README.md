@@ -1,3 +1,8 @@
+<!-- Callers: Project documentation. -->
+<!-- Affected API: README.md (adding three-column UI layout section). -->
+<!-- Data schemas: None. -->
+<!-- User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF" -->
+
 <div align="center">
   <img src="https://img.shields.io/badge/macOS-14%2B-brightgreen" alt="macOS">
   <img src="https://img.shields.io/badge/Apple%20Silicon-M1--M5-orange" alt="Apple Silicon">
@@ -5,7 +10,7 @@
   <img src="https://img.shields.io/badge/Rust-2021-purple" alt="Rust">
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
   <img src="https://img.shields.io/badge/status-V1.0-yellow" alt="V1.0">
-  <img src="https://img.shields.io/badge/modules-20-success" alt="20 Modules">
+  <img src="https://img.shields.io/badge/modules-25-success" alt="20 Modules">
 </div>
 
 <h1 align="center">⚡ Fusion Studio</h1>
@@ -84,6 +89,7 @@ Design · Code · Simulation · MultiModal · Training · Data · Agent · KB ·
 | 22 | 🏭 **Industry Templates** | `square.stack.3d.forward.dottedline` | ✅ Stable | 12 pre-built industry scenarios |
 | 23 | 🔧 **Operations** | `antenna.radiowaves.left.and.right` | ✅ Stable | Service management, alert rules, ops logs |
 | 24 | 🔑 **License** | `key.fill` | ✅ Stable | Commercial licensing, activation, tier comparison |
+| 25 | 🌐 **Multi-Node** | `network` | 🆕 New | Cluster overview, topology, task monitor, alerts, autoscaler |
 
 ---
 
@@ -106,6 +112,40 @@ Design · Code · Simulation · MultiModal · Training · Data · Agent · KB ·
 │  LLM · Image Generation · Speech · OCR · Video · Training   │
 └──────────────────────────────────────────────────────────────┘
 ```
+
+### UI Layout — Collapsible Sidebar + Workspace + Inspector
+
+```
+┌──────────────────┬─────────────────────────────┬──────────────┐
+│ FusionSidebar    │        WorkspaceArea        │  Inspector   │
+│  260pt (collaps) │         (flex)              │   280pt      │
+│                  │                             │  (optional)  │
+│ 🔍 Search  [◁]  │  ┌───────────────────────┐  │  Properties  │
+│ ✚ New Chat      │  │   Module Content      │  │  Config      │
+│ CHATS            │  │                       │  │  Metadata    │
+│   💬 Chat 1      │  │                       │  │              │
+│ PROJECTS         │  │                       │  │              │
+│   📁 project     │  └───────────────────────┘  │              │
+│ CODE             │  Toolbar: Title | Badge |⚡│  Close [⇧⌘I] │
+│   </> 编码        │                             │              │
+│   ✏️ 设计         │                             │              │
+│ DESIGN           │                             │              │
+│ RECENTS          │                             │              │
+│ ⬇️ Get Apps      │                             │              │
+│ ⚙️ Settings      │                             │              │
+│ 👤 username [↓]  │                             │              │
+└──────────────────┴─────────────────────────────┴──────────────┘
+     .ultraThin         .ultraThin                  .ultraThin
+      Material           Material                    Material
+```
+
+- **Dark-first**: Window #1E1E20, Sidebar #2C2C2E, Content #1C1C1E
+- **Accent**: Hardcoded #007AFF (not NSColor.controlAccentColor)
+- **Vibrancy**: `.ultraThinMaterial` on sidebar/toolbar backgrounds
+- **Sidebar**: Collapsible (⌘\), ChatGPT-style grouped navigation with search
+- **Inspector**: Toggle with ⇧⌘I, context-aware (agent/DAG node/task/settings)
+- **Sections**: Chats, Projects, Artifacts, Code, Customize, Design
+- **Bottom bar**: Get App & Extensions, Settings popup, User area
 
 ### Tech Stack
 
@@ -172,7 +212,7 @@ fusion-studio/
 ├── Package.swift                  # Swift Package Manager
 ├── FusionStudio/                 # SwiftUI source code (50+ files)
 │   ├── FusionStudioApp.swift     # @main entry point
-│   ├── ContentView.swift          # Main layout (NavigationSplitView)
+│   ├── ContentView.swift          # Main layout (Three-column HStack)
 │   ├── Navigation/               # Sidebar + module routing (20 modules)
 │   ├── Settings/                 # Settings panels (5 tabs)
 │   ├── Environment/              # Health check engine

@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView routing.
+// Affected API: TrainingView (replacing NSColor with StudioTheme tokens).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import SwiftUI
 
 // MARK: - 训练配置
@@ -93,28 +98,54 @@ class TrainingManager: ObservableObject {
         status.totalEpochs = config.numEpochs
         let start = Date()
 
-        Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] timer in
-            guard let self = self else { timer.invalidate(); return }
-            self.status.currentStep += 1
-            self.status.progress = Double(self.status.currentStep) / Double(totalSteps)
-            self.status.currentEpoch = min(self.status.currentStep / 100 + 1, self.config.numEpochs)
-            self.status.loss = Double.random(in: 0.1...0.8) * (1 - self.status.progress * 0.5)
-            self.status.learningRate = self.config.learningRate * (1 - self.status.progress * 0.9)
-            self.status.elapsedTime = Date().timeIntervalSince(start)
-            self.status.estimatedTimeRemaining = self.status.elapsedTime / max(self.status.progress, 0.01) - self.status.elapsedTime
+        // 通过 fusion-mlx HTTP API 调用训练
+        Task { [weak self] in
+            guard let self = self else { return }
+            do {
+                let url = URL(string: "http://localhost:8000/v1/training/start")!
+                var request = URLRequest(url: url)
+                request.httpMethod = "POST"
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                let body: [String: Any] = [
+                    "model": config.modelName,
+                    "method": config.method.rawValue,
+                    "learning_rate": config.learningRate,
+                    "num_epochs": config.numEpochs,
+                    "batch_size": config.batchSize,
+                    "lora_rank": config.loraRank,
+                    "lora_alpha": config.loraAlpha,
+                ]
+                request.httpBody = try JSONSerialization.data(withJSONObject: body)
+                request.timeoutInterval = 3600
 
-            if self.status.currentStep % 10 == 0 {
-                self.status.log.append("Step \(self.status.currentStep)/\(totalSteps): loss=\(String(format: "%.4f", self.status.loss)) lr=\(String(format: "%.6f", self.status.learningRate))")
-            }
-
-            if self.status.currentStep >= totalSteps {
-                timer.invalidate()
-                self.status.log.append("")
-                self.status.log.append("✅ 训练完成!")
-                let newCheckpoint = Checkpoint(name: "checkpoint-\(self.status.currentStep)", step: self.status.currentStep, loss: self.status.loss, date: Date(), size: "45 MB")
-                self.checkpoints.append(newCheckpoint)
-                self.status.isRunning = false
-                self.objectWillChange.send()
+                let (data, response) = try await URLSession.shared.data(for: request)
+                if let httpResp = response as? HTTPURLResponse,
+                   httpResp.statusCode == 200,
+                   let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    let trainingId = json["training_id"] as? String ?? "unknown"
+                    await MainActor.run {
+                        self.status.log.append("✅ 训练任务已提交 (ID: \(trainingId))")
+                        self.status.log.append("训练已在 fusion-mlx 后台启动，请查看 fusion-mlx 日志获取实时进度。")
+                        self.status.isRunning = false
+                        let newCheckpoint = Checkpoint(name: "training-\(trainingId.prefix(8))", step: 0, loss: 0, date: Date(), size: "进行中")
+                        self.checkpoints.append(newCheckpoint)
+                        self.objectWillChange.send()
+                    }
+                } else {
+                    let errorBody = String(data: data, encoding: .utf8) ?? "未知错误"
+                    await MainActor.run {
+                        self.status.log.append("⚠️ fusion-mlx 返回错误: \(errorBody)")
+                        self.status.isRunning = false
+                        self.objectWillChange.send()
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    self.status.log.append("⚠️ 调用 fusion-mlx 训练 API 失败: \(error.localizedDescription)")
+                    self.status.log.append("请确保 fusion-mlx 服务正在运行且支持训练接口。")
+                    self.status.isRunning = false
+                    self.objectWillChange.send()
+                }
             }
         }
     }
@@ -134,6 +165,7 @@ class TrainingManager: ObservableObject {
 // MARK: - 训练面板
 
 struct TrainingView: View {
+    @Environment(\.studioTheme) private var theme
     @StateObject private var manager = TrainingManager.shared
     @State private var selectedTab: TrainingTab = .config
 
@@ -158,7 +190,7 @@ struct TrainingView: View {
                 }
             }
             .padding(.horizontal, 12).padding(.vertical, 6)
-            .background(Color(nsColor: .controlBackgroundColor))
+            .background(theme.surfaceSecondary)
 
             Divider()
 

@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView routing.
+// Affected API: ConfigSyncManager (replacing NSColor with StudioTheme tokens).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import Foundation
 import SwiftUI
 import Combine
@@ -286,6 +291,7 @@ class ConfigSyncManager: ObservableObject {
 // MARK: - 配置同步视图
 
 struct ConfigSyncView: View {
+    @Environment(\.studioTheme) private var theme
     @StateObject private var syncManager = ConfigSyncManager.shared
     @State private var showBackupConfirm = false
     @State private var backupType: BackupEntry.BackupType = .config
@@ -323,7 +329,7 @@ struct ConfigSyncView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
-            .background(Color(nsColor: .controlBackgroundColor))
+            .background(theme.surfaceSecondary)
 
             Divider()
 

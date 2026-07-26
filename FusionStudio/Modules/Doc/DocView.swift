@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView routing.
+// Affected API: DocView (replacing NSColor with StudioTheme tokens).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import SwiftUI
 
 /// 文档条目
@@ -44,6 +49,7 @@ let sampleDocs: [DocEntry] = [
 ]
 
 struct DocView: View {
+    @Environment(\.studioTheme) private var theme
     @State private var documents: [DocEntry] = sampleDocs
     @State private var selectedDoc: DocEntry?
     @State private var searchText = ""
@@ -71,7 +77,7 @@ struct DocView: View {
                         .textFieldStyle(.plain)
                 }
                 .padding(8)
-                .background(Color(nsColor: .controlBackgroundColor))
+                .background(theme.surfaceSecondary)
 
                 Divider()
 
@@ -118,6 +124,7 @@ struct DocView: View {
 }
 
 struct DocEditor: View {
+    @Environment(\.studioTheme) private var theme
     @Binding var doc: DocEntry
 
     var body: some View {
@@ -133,7 +140,7 @@ struct DocEditor: View {
                     .foregroundColor(.secondary)
             }
             .padding(8)
-            .background(Color(nsColor: .controlBackgroundColor))
+            .background(theme.surfaceSecondary)
 
             Divider()
 

@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView routing.
+// Affected API: CollaborationService (replacing NSColor with StudioTheme tokens).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import Foundation
 import SwiftUI
 import Combine
@@ -335,6 +340,7 @@ class CollaborationService: ObservableObject {
 // MARK: - 协作面板
 
 struct CollaborateView: View {
+    @Environment(\.studioTheme) private var theme
     @StateObject private var collab = CollaborationService.shared
     @State private var selectedTab: CollabTab = .peers
     @State private var showCreateSession = false
@@ -365,7 +371,7 @@ struct CollaborateView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
-            .background(Color(nsColor: .controlBackgroundColor))
+            .background(theme.surfaceSecondary)
 
             Divider()
 

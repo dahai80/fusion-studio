@@ -1,14 +1,22 @@
 import SwiftUI
+import os.log
 
-/// 全局应用状态
+private let appStateLog = Logger(subsystem: "com.fusion.studio", category: "AppState")
+
 class AppState: ObservableObject {
-    @Published var selectedModule: Module = .dashboard
+    @Published var selectedModule: Module = .code
+    @Published var selectedSheet: ProductSheet = .code
+    @Published var activeSection: SidebarSection = .code
     @Published var showAboutPanel = false
     @Published var showHelp = false
     @Published var showSettings = false
     @Published var isHealthCheckPassed = false
     @Published var isMLXRunning = false
     @Published var healthStatus: HealthStatus = .checking
+    @Published var isInspectorVisible: Bool = false
+    @Published var inspectorContext: InspectorContext = .none
+    @Published var isSidebarCollapsed: Bool = true
+    @Published var sidebarWidth: CGFloat = 260
 
     enum HealthStatus {
         case checking
@@ -18,7 +26,48 @@ class AppState: ObservableObject {
     }
 }
 
-/// 模块枚举（对应九大产品 + 扩展模块）
+enum InspectorContext: Equatable {
+    case none
+    case agent(id: String)
+    case dagNode(id: String)
+    case task(id: String)
+    case node(id: String)
+    case clusterTask(id: String)
+    case settings
+    case custom(title: String)
+}
+
+enum ProductSheet: String, CaseIterable, Identifiable {
+    case mlx = "Fusion-MLX"
+    case code = "Fusion-Code"
+    case agentStudio = "Agent Studio"
+    case multiNode = "Multi-Node"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .mlx: "chip"
+        case .code: "chevron.left.forwardslash.chevron.right"
+        case .agentStudio: "person.2.fill"
+        case .multiNode: "network"
+        }
+    }
+
+    var modules: [Module] {
+        switch self {
+        case .mlx:
+            return [.dashboard, .modelHub, .training, .tuning, .bench]
+        case .code:
+            return [.code, .design, .doc, .docgen, .cli]
+        case .agentStudio:
+            return [.agent, .plugin, .security, .kb, .dataTools]
+        case .multiNode:
+            return [.clusterOverview, .clusterTopology, .taskMonitor, .alertCenter, .nodeActions, .multimodal, .simulation, .analytics, .collab, .external]
+        }
+    }
+}
+
 enum Module: String, CaseIterable, Identifiable {
     case dashboard = "控制台"
     case design    = "设计"
@@ -41,6 +90,11 @@ enum Module: String, CaseIterable, Identifiable {
     case tuning    = "调优"
     case external  = "外部集成"
     case docgen    = "文档生成"
+    case clusterOverview = "集群总览"
+    case clusterTopology = "拓扑图"
+    case taskMonitor = "任务监控"
+    case alertCenter = "告警中心"
+    case nodeActions = "节点管理"
 
     var id: String { rawValue }
 
@@ -67,6 +121,76 @@ enum Module: String, CaseIterable, Identifiable {
         case .tuning:     return "wand.and.rays"
         case .external:   return "link.circle"
         case .docgen:     return "doc.badge.gearshape"
+        case .clusterOverview: return "square.grid.2x2"
+        case .clusterTopology: return "point.3.connected.trianglepath.dotted"
+        case .taskMonitor: return "list.bullet.clipboard"
+        case .alertCenter: return "exclamationmark.triangle"
+        case .nodeActions: return "slider.horizontal.3"
         }
+    }
+
+    var sheet: ProductSheet {
+        switch self {
+        case .dashboard, .modelHub, .training, .tuning, .bench:
+            return .mlx
+        case .design, .code, .doc, .docgen, .cli:
+            return .code
+        case .agent, .plugin, .security, .kb, .dataTools:
+            return .agentStudio
+        case .multimodal, .simulation, .analytics, .collab, .external, .desk,
+             .clusterOverview, .clusterTopology, .taskMonitor, .alertCenter, .nodeActions:
+            return .multiNode
+        }
+    }
+}
+
+enum SidebarSection: String, CaseIterable, Identifiable {
+    case chats = "Chats"
+    case projects = "Projects"
+    case artifacts = "Artifacts"
+    case code = "Code"
+    case customize = "Customize"
+    case design = "Design"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .chats:     return "message"
+        case .projects:  return "folder"
+        case .artifacts: return "cube.box"
+        case .code:      return "chevron.left.forwardslash.chevron.right"
+        case .customize: return "paintpalette"
+        case .design:    return "pencil.and.outline"
+        }
+    }
+
+    var modules: [Module] {
+        switch self {
+        case .chats:     return [.code]
+        case .projects:  return []
+        case .artifacts: return []
+        case .code:      return [.code, .design, .doc, .docgen, .cli]
+        case .customize: return []
+        case .design:    return [.design]
+        }
+    }
+}
+
+struct SidebarItem: Identifiable {
+    let id: String
+    let section: SidebarSection
+    let icon: String
+    let title: String
+    let module: Module?
+    let badge: String?
+
+    init(section: SidebarSection, icon: String, title: String, module: Module? = nil, badge: String? = nil) {
+        self.id = module?.rawValue ?? "\(section.rawValue)-\(title)"
+        self.section = section
+        self.icon = icon
+        self.title = title
+        self.module = module
+        self.badge = badge
     }
 }

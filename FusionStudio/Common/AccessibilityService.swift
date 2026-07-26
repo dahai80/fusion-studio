@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView routing.
+// Affected API: AccessibilityService (replacing NSColor with StudioTheme tokens).
+// Data schemas: None changed.
+// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+
 import SwiftUI
 import AppKit
 
@@ -310,6 +315,7 @@ struct A11yLabel: View {
 // MARK: - 键盘导航视图
 
 struct KeyboardNavigableView: View {
+    @Environment(\.studioTheme) private var theme
     let title: String
     let content: String
     let shortcut: String
@@ -330,7 +336,7 @@ struct KeyboardNavigableView: View {
                 .cornerRadius(4)
         }
         .padding(8)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(theme.surfaceSecondary)
         .cornerRadius(6)
         .focusRing()
         .a11y(label: "\(title), 快捷键: \(shortcut)")
