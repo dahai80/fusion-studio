@@ -386,7 +386,7 @@ class MultiNodeEngine: ObservableObject {
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let body = ["model_name": modelName, "prompts": prompts]
+        let body: [String: Any] = ["model_name": modelName, "prompts": prompts]
         req.httpBody = try? JSONSerialization.data(withJSONObject: body)
         session.dataTask(with: req) { data, _, error in
             if let err = error { completion(.failure(err)); return }
