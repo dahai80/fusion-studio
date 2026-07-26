@@ -451,3 +451,98 @@ struct AnyCodable: Codable, Equatable {
         String(describing: lhs.value) == String(describing: rhs.value)
     }
 }
+
+// MARK: - /api/routing/summary 响应
+
+struct RoutingSummary: Codable {
+    let strategy: String
+    let nodes: [RoutingNodeInfo]?
+    let totalLoad: Double?
+    let avgLoad: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case strategy, nodes
+        case totalLoad = "total_load"
+        case avgLoad = "avg_load"
+    }
+}
+
+struct RoutingNodeInfo: Codable, Identifiable {
+    var id: String { nodeId }
+    let nodeId: String
+    let load: Double
+    let activeTasks: Int
+    let maxTasks: Int
+
+    enum CodingKeys: String, CodingKey {
+        case nodeId = "node_id"
+        case load
+        case activeTasks = "active_tasks"
+        case maxTasks = "max_tasks"
+    }
+}
+
+// MARK: - /api/kv/find/{model_name} 响应
+
+struct KVCacheEntry: Codable, Identifiable {
+    var id: String { cacheId }
+    let cacheId: String
+    let modelName: String
+    let nodeId: String
+    let sizeMb: Double
+    let accessCount: Int
+
+    enum CodingKeys: String, CodingKey {
+        case cacheId = "cache_id"
+        case modelName = "model_name"
+        case nodeId = "node_id"
+        case sizeMb = "size_mb"
+        case accessCount = "access_count"
+    }
+}
+
+// MARK: - Agent Server /api/kv/stats 响应
+
+struct KVStatsResponse: Codable {
+    let totalEntries: Int
+    let totalSizeMb: Double
+    let byModel: [String: ModelKVInfo]?
+    let hitRate: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case totalEntries = "total_entries"
+        case totalSizeMb = "total_size_mb"
+        case byModel = "by_model"
+        case hitRate = "hit_rate"
+    }
+}
+
+struct ModelKVInfo: Codable {
+    let count: Int
+    let sizeMb: Double
+    let avgAccessCount: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case count
+        case sizeMb = "size_mb"
+        case avgAccessCount = "avg_access_count"
+    }
+}
+
+// MARK: - Agent Server /api/hardware 响应
+
+struct AgentHardwareInfo: Codable {
+    let nodeId: String?
+    let cpuCores: Int?
+    let memoryGB: Double?
+    let gpuCores: Int?
+    let deviceModel: String?
+
+    enum CodingKeys: String, CodingKey {
+        case nodeId = "node_id"
+        case cpuCores = "cpu_cores"
+        case memoryGB = "memory_gb"
+        case gpuCores = "gpu_cores"
+        case deviceModel = "device_model"
+    }
+}

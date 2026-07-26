@@ -58,6 +58,14 @@ struct ModuleDetailView: View {
                 AlertCenterView()
             case .nodeActions:
                 NodeActionsView()
+            case .submitTask:
+                SubmitTaskView()
+            case .taskProgress:
+                TaskProgressView()
+            case .routingStrategy:
+                RoutingStrategyView()
+            case .kvCache:
+                KVCacheView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
