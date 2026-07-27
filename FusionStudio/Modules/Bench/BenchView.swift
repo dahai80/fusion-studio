@@ -1,11 +1,13 @@
 // Callers: ModuleDetailView routing.
 // Affected API: BenchView (replacing NSColor with StudioTheme tokens).
 // Data schemas: None changed.
-// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+// User instruction: "落地2，1先等一等" — embed fusion-bench WebView into fusion-studio
 
 import SwiftUI
+import os.log
 
-/// 基准测试结果
+private let benchLog = Logger(subsystem: "com.fusion.studio", category: "BenchView")
+
 struct BenchResult: Identifiable {
     let id: String
     let modelName: String
@@ -53,6 +55,12 @@ struct BenchView: View {
     @State private var results: [BenchResult] = sampleResults
     @State private var selectedType: BenchResult.BenchType?
     @State private var isRunning = false
+    @State private var selectedTab: BenchTab = .results
+
+    enum BenchTab: String, CaseIterable {
+        case results  = "测试结果"
+        case webPanel = "完整面板"
+    }
 
     var filteredResults: [BenchResult] {
         if let type = selectedType {
@@ -63,7 +71,47 @@ struct BenchView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // 类型选择
+            tabPicker
+
+            switch selectedTab {
+            case .results:
+                benchResultsContent
+            case .webPanel:
+                BenchWebPanelView()
+            }
+        }
+    }
+
+    private var tabPicker: some View {
+        HStack(spacing: 0) {
+            ForEach(BenchTab.allCases, id: \.self) { tab in
+                Button {
+                    withAnimation(theme.springDefault) { selectedTab = tab }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: tab == .results ? "chart.bar" : "globe")
+                            .font(.system(size: 12))
+                        Text(tab.rawValue)
+                            .font(.system(size: theme.smallTextSize, weight: tab == selectedTab ? .semibold : .regular))
+                    }
+                    .foregroundStyle(tab == selectedTab ? theme.accent : theme.textSecondary)
+                    .padding(.horizontal, theme.spacingL)
+                    .padding(.vertical, theme.spacingS)
+                    .background(
+                        tab == selectedTab ? theme.accentSoft : Color.clear,
+                        in: RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, theme.spacingL)
+        .padding(.bottom, theme.spacingM)
+    }
+
+    private var benchResultsContent: some View {
+        VStack(spacing: 0) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(BenchResult.BenchType.allCases, id: \.self) { type in
@@ -84,7 +132,6 @@ struct BenchView: View {
 
             Divider()
 
-            // 运行按钮
             HStack {
                 Spacer()
                 Button(action: runBenchmark) {
@@ -96,7 +143,6 @@ struct BenchView: View {
                 .padding(8)
             }
 
-            // 结果列表
             ScrollView {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 300))], spacing: 12) {
                     ForEach(filteredResults) { result in
@@ -110,7 +156,6 @@ struct BenchView: View {
 
     private func runBenchmark() {
         isRunning = true
-        // 调用 fusion-mlx 基准测试 API
         Task {
             do {
                 let url = URL(string: "http://localhost:8000/v1/benchmarks/run")!
@@ -137,10 +182,126 @@ struct BenchView: View {
                     await MainActor.run { self.results.append(newResult) }
                 }
             } catch {
-                // 静默失败，保留原有数据
+                benchLog.error("Benchmark run failed: \(error.localizedDescription)")
             }
             await MainActor.run { self.isRunning = false }
         }
+    }
+}
+
+// MARK: - Bench WebView 面板
+
+struct BenchWebPanelView: View {
+    @Environment(\.studioTheme) var theme
+    @State private var isLoading = true
+    @State private var loadError: String?
+    @State private var serviceStatus: BenchServiceReachability = .unknown
+
+    private let benchSiteURL = "http://localhost:3000"
+
+    enum BenchServiceReachability {
+        case online, offline, unknown
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            serviceStatusBar
+
+            ZStack {
+                WebViewContainer(url: benchSiteURL, isLoading: $isLoading, error: $loadError)
+
+                if isLoading && loadError == nil {
+                    VStack(spacing: 12) {
+                        ProgressView().controlSize(.large)
+                        Text("正在连接 Fusion-Bench bench-site...")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                if let error = loadError {
+                    VStack(spacing: 16) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 36))
+                            .foregroundColor(.orange)
+                        Text("无法加载基准测试面板")
+                            .font(.title2)
+                            .bold()
+                        Text(error)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("启动方式:").font(.subheadline).fontWeight(.semibold)
+                            Text("1. 启动后端: cd fusion-bench && ./start.sh start").font(.caption).foregroundColor(.secondary)
+                            Text("2. 启动前端: cd fusion-bench/bench-site && npm run dev").font(.caption).foregroundColor(.secondary)
+                            Text("前端默认端口: 3000 (Next.js dev server)").font(.caption).foregroundColor(.secondary)
+                        }
+                        .padding()
+                        .background(theme.surfaceElevated)
+                        .cornerRadius(8)
+                        FusionButton("重试", style: .secondary, size: .small, isLoading: false, isDisabled: false) {
+                            loadError = nil
+                            isLoading = true
+                        }
+                    }
+                    .padding()
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .onAppear { checkService() }
+    }
+
+    private var serviceStatusBar: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(statusColor)
+                .frame(width: 8, height: 8)
+            Text(statusText)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Spacer()
+            FusionButton("检查状态", style: .secondary, size: .small, isLoading: false, isDisabled: false) {
+                checkService()
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(theme.surfaceSecondary)
+    }
+
+    private var statusColor: Color {
+        switch serviceStatus {
+        case .online: return theme.greenDot
+        case .offline: return theme.redDot
+        case .unknown: return theme.amberDot
+        }
+    }
+
+    private var statusText: String {
+        switch serviceStatus {
+        case .online: return "Fusion-Bench API 在线"
+        case .offline: return "Fusion-Bench API 离线"
+        case .unknown: return "检查中..."
+        }
+    }
+
+    private func checkService() {
+        serviceStatus = .unknown
+        let url = URL(string: "http://localhost:8000/api/v1/system/info")!
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 3
+        URLSession.shared.dataTask(with: request) { _, response, error in
+            DispatchQueue.main.async {
+                if let httpResp = response as? HTTPURLResponse, httpResp.statusCode == 200 {
+                    self.serviceStatus = .online
+                } else {
+                    self.serviceStatus = .offline
+                }
+            }
+        }.resume()
     }
 }
 

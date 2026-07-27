@@ -1,7 +1,7 @@
 // Callers: ModuleDetailView routing.
 // Affected API: SecurityService (replacing NSColor with StudioTheme tokens).
 // Data schemas: None changed.
-// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+// User instruction: "落地2，1先等一等" — embed fusion-security + fusion-bench WebView into fusion-studio
 
 import SwiftUI
 import Foundation
@@ -114,11 +114,9 @@ class SecurityManager: ObservableObject {
             "/tmp",
         ]
 
-        // 防止路径遍历
         let resolved = (path as NSString).standardizingPath
         guard !resolved.contains("..") else { return false }
 
-        // 检查是否在允许的目录内
         for prefix in allowedPrefixes {
             if resolved.hasPrefix(prefix) { return true }
         }
@@ -126,7 +124,6 @@ class SecurityManager: ObservableObject {
     }
 
     func sanitizeInput(_ input: String) -> String {
-        // 移除潜在的 Shell 注入字符
         let dangerous = [";", "|", "&", "$", "`", "\\", ">", "<", "!", "\n", "\r"]
         var sanitized = input
         for char in dangerous { sanitized = sanitized.replacingOccurrences(of: char, with: "") }
@@ -156,6 +153,7 @@ struct SecurityView: View {
         case scan      = "安全扫描"
         case events    = "安全事件"
         case config    = "安全配置"
+        case webPanel  = "完整面板"
     }
 
     var body: some View {
@@ -187,6 +185,7 @@ struct SecurityView: View {
             case .scan:      SecurityScanView()
             case .events:    SecurityEventsView()
             case .config:    SecurityConfigView()
+            case .webPanel:  SecurityWebPanelView()
             }
         }
     }
@@ -197,7 +196,124 @@ struct SecurityView: View {
         case .scan:      return "magnifyingglass"
         case .events:    return "exclamationmark.shield"
         case .config:    return "gearshape"
+        case .webPanel:  return "globe"
         }
+    }
+}
+
+// MARK: - Security WebView 面板
+
+struct SecurityWebPanelView: View {
+    @Environment(\.studioTheme) var theme
+    @State private var isLoading = true
+    @State private var loadError: String?
+    @State private var serviceStatus: ServiceReachability = .unknown
+
+    private let securityURL = "http://localhost:3000"
+
+    enum ServiceReachability {
+        case online, offline, unknown
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            serviceStatusBar
+
+            ZStack {
+                WebViewContainer(url: securityURL, isLoading: $isLoading, error: $loadError)
+
+                if isLoading && loadError == nil {
+                    VStack(spacing: 12) {
+                        ProgressView().controlSize(.large)
+                        Text("正在连接 Fusion-Security 前端...")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                if let error = loadError {
+                    VStack(spacing: 16) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 36))
+                            .foregroundColor(.orange)
+                        Text("无法加载安全审计面板")
+                            .font(.title2)
+                            .bold()
+                        Text(error)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("启动方式:").font(.subheadline).fontWeight(.semibold)
+                            Text("1. 启动后端: cd fusion-security && python -m fusion_security.api.app").font(.caption).foregroundColor(.secondary)
+                            Text("2. 启动前端: cd fusion-security/frontend && npm run dev").font(.caption).foregroundColor(.secondary)
+                            Text("前端默认端口: 3000, 后端默认端口: 8000").font(.caption).foregroundColor(.secondary)
+                        }
+                        .padding()
+                        .background(theme.surfaceElevated)
+                        .cornerRadius(8)
+                        FusionButton("重试", style: .secondary, size: .small, isLoading: false, isDisabled: false) {
+                            loadError = nil
+                            isLoading = true
+                        }
+                    }
+                    .padding()
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .onAppear { checkService() }
+    }
+
+    private var serviceStatusBar: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(statusColor)
+                .frame(width: 8, height: 8)
+            Text(statusText)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Spacer()
+            FusionButton("检查状态", style: .secondary, size: .small, isLoading: false, isDisabled: false) {
+                checkService()
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(theme.surfaceSecondary)
+    }
+
+    private var statusColor: Color {
+        switch serviceStatus {
+        case .online: return theme.greenDot
+        case .offline: return theme.redDot
+        case .unknown: return theme.amberDot
+        }
+    }
+
+    private var statusText: String {
+        switch serviceStatus {
+        case .online: return "Fusion-Security 后端在线 (localhost:8000)"
+        case .offline: return "Fusion-Security 后端离线"
+        case .unknown: return "检查中..."
+        }
+    }
+
+    private func checkService() {
+        serviceStatus = .unknown
+        let url = URL(string: "http://localhost:8000/api/v1/system/info")!
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 3
+        URLSession.shared.dataTask(with: request) { _, response, error in
+            DispatchQueue.main.async {
+                if let httpResp = response as? HTTPURLResponse, httpResp.statusCode == 200 {
+                    self.serviceStatus = .online
+                } else {
+                    self.serviceStatus = .offline
+                }
+            }
+        }.resume()
     }
 }
 
