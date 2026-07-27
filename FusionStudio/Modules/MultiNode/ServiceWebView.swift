@@ -34,14 +34,14 @@ struct ServiceWebView: View {
             case .benchSite:
                 ServiceWebEmbed(
                     title: "Fusion-Bench",
-                    url: "http://localhost:3456",
-                    description: "基准测试面板 — 需启动 fusion-bench bench-site (端口 3456)"
+                    url: "http://localhost:3000",
+                    description: "基准测试面板 — 需启动 fusion-bench bench-site (端口 3000, npm run dev)"
                 )
             case .securityDashboard:
                 ServiceWebEmbed(
                     title: "Fusion-Security",
-                    url: "http://localhost:5173",
-                    description: "安全审计面板 — 需启动 fusion-security 前端 (端口 5173)"
+                    url: "http://localhost:3000",
+                    description: "安全审计面板 — 需启动 fusion-security 前端 (端口 3000)"
                 )
             }
         }
