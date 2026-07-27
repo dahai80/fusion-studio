@@ -56,7 +56,7 @@ struct TaskMonitorView: View {
             StudioRow(label: "目标节点") {
                 Picker("选择节点", selection: $migrateTargetNode) {
                     Text("请选择").tag("")
-                    ForEach(engine.nodes) { node in
+                    ForEach(engine.nodes, id: \.id) { node in
                         Text("\(node.name) (\(node.status.rawValue))").tag(node.id)
                     }
                 }
