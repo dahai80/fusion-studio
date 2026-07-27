@@ -59,11 +59,11 @@ enum ProductSheet: String, CaseIterable, Identifiable {
         case .mlx:
             return [.dashboard, .modelHub, .training, .tuning, .bench]
         case .code:
-            return [.code, .design, .doc, .docgen, .cli]
+            return [.code, .design, .doc, .docgen, .cli, .deploy]
         case .agentStudio:
-            return [.agent, .plugin, .security, .kb, .dataTools]
+            return [.agent, .plugin, .security, .kb, .dataTools, .rag, .memory, .planner]
         case .multiNode:
-            return [.clusterOverview, .clusterTopology, .taskMonitor, .alertCenter, .nodeActions, .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb, .multimodal, .simulation, .analytics, .collab, .external]
+            return [.clusterOverview, .clusterTopology, .taskMonitor, .alertCenter, .nodeActions, .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb, .multimodal, .simulation, .analytics, .collab, .external, .operations]
         }
     }
 }
@@ -100,6 +100,11 @@ enum Module: String, CaseIterable, Identifiable {
     case routingStrategy = "路由策略"
     case kvCache = "KV缓存"
     case serviceWeb = "服务面板"
+    case rag        = "RAG"
+    case memory     = "记忆"
+    case planner    = "规划"
+    case deploy     = "部署"
+    case operations = "运维"
 
     var id: String { rawValue }
 
@@ -136,6 +141,11 @@ enum Module: String, CaseIterable, Identifiable {
         case .routingStrategy: return "arrow.triangle.branch"
         case .kvCache: return "internaldrive"
         case .serviceWeb: return "globe"
+        case .rag:       return "magnifyingglass"
+        case .memory:    return "brain.head.profile"
+        case .planner:   return "list.bullet.rectangle"
+        case .deploy:    return "arrow.up.doc"
+        case .operations: return "gauge"
         }
     }
 
@@ -149,8 +159,13 @@ enum Module: String, CaseIterable, Identifiable {
             return .agentStudio
         case .multimodal, .simulation, .analytics, .collab, .external, .desk,
              .clusterOverview, .clusterTopology, .taskMonitor, .alertCenter, .nodeActions,
-             .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb:
+             .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb,
+             .operations:
             return .multiNode
+        case .rag, .memory, .planner:
+            return .agentStudio
+        case .deploy:
+            return .code
         }
     }
 }

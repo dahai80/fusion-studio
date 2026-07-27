@@ -43,7 +43,7 @@ struct ModuleDetailView: View {
             case .collab:
                 CollaborateView()
             case .tuning:
-                AutoTuningView()
+                MLXOptimizerView()
             case .external:
                 ExternalIntegrationsView()
             case .docgen:
@@ -68,6 +68,16 @@ struct ModuleDetailView: View {
                 KVCacheView()
             case .serviceWeb:
                 ServiceWebView()
+            case .rag:
+                RAGPipelineView()
+            case .memory:
+                MemoryView()
+            case .planner:
+                PlannerView()
+            case .deploy:
+                DeployView()
+            case .operations:
+                OperationsView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

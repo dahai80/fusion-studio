@@ -54,13 +54,14 @@ struct TaskMonitorView: View {
             }
 
             StudioRow(label: "目标节点") {
-                Picker("选择节点", selection: $migrateTargetNode) {
-                    Text("请选择").tag("")
-                    ForEach(engine.nodes, id: \.id) { node in
-                        Text("\(node.name) (\(node.status.rawValue))").tag(node.id)
-                    }
+                Menu {
+                    Button("请选择") { migrateTargetNode = "" }
+                    nodeMenuItems
+                } label: {
+                    Text(migrateTargetNode.isEmpty ? "请选择" : migrateTargetNode)
+                        .font(.system(size: theme.smallTextSize, design: .monospaced))
+                        .foregroundStyle(theme.textSecondary)
                 }
-                .pickerStyle(.menu)
             }
 
             HStack(spacing: theme.spacingM) {
@@ -209,5 +210,14 @@ struct TaskMonitorView: View {
     private var selectedTaskId: String? {
         if case .clusterTask(let id) = appState.inspectorContext { return id }
         return nil
+    }
+
+    @ViewBuilder
+    private var nodeMenuItems: some View {
+        ForEach(Array(engine.nodes.enumerated()), id: \.offset) { _, node in
+            Button("\(node.hostname) (\(node.status.rawValue))") {
+                migrateTargetNode = node.id
+            }
+        }
     }
 }
