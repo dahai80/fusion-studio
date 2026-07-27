@@ -99,14 +99,14 @@ struct ExecuteRequest: Codable, Equatable {
     var input: String
 }
 
-struct PlanStepModel: Codable, Equatable, Identifiable {
+struct PlanStepModel: Codable, Equatable, Identifiable, Hashable {
     var id: String
     var description: String
     var status: String
     var result: String?
 }
 
-struct PlanModel: Codable, Equatable, Identifiable {
+struct PlanModel: Codable, Equatable, Identifiable, Hashable {
     var id: String
     var task: String
     var status: String
@@ -351,6 +351,25 @@ final class AgentBridge: ObservableObject {
         }
     }
 
+    func graphGet(graphId: String) async throws -> AgentGraphModel? {
+        guard let client = ipcClient else {
+            throw BridgeError.notConnected
+        }
+        logger.info("graphGet: graphId=\(graphId)")
+        do {
+            let result = try await client.graphGet(graphId: graphId)
+            guard let graphData = result["graph"] as? [String: Any] else {
+                return nil
+            }
+            return Self.parseGraphModel(from: graphData)
+        } catch let error as IPCError {
+            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
+            self.lastError = bridgeErr
+            logger.error("graphGet: \(error)")
+            throw bridgeErr
+        }
+    }
+
     func deleteGraph(id: UUID) async throws {
         guard let client = ipcClient else {
             throw BridgeError.notConnected
@@ -411,6 +430,36 @@ final class AgentBridge: ObservableObject {
         self.isExecuting = false
     }
 
+    func hardwareMetrics() async throws -> [String: Any] {
+        guard let client = ipcClient else {
+            throw BridgeError.notConnected
+        }
+        logger.info("hardwareMetrics")
+        do {
+            return try await client.hardwareMetrics()
+        } catch let error as IPCError {
+            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
+            self.lastError = bridgeErr
+            logger.error("hardwareMetrics: \(error)")
+            throw bridgeErr
+        }
+    }
+
+    func knowledgeSearch(query: String, limit: Int = 5) async throws -> [String: Any] {
+        guard let client = ipcClient else {
+            throw BridgeError.notConnected
+        }
+        logger.info("knowledgeSearch: query=\(query)")
+        do {
+            return try await client.knowledgeSearch(query: query, limit: limit)
+        } catch let error as IPCError {
+            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
+            self.lastError = bridgeErr
+            logger.error("knowledgeSearch: \(error)")
+            throw bridgeErr
+        }
+    }
+
     // MARK: - MLX Operations
 
     func fetchModels() async throws -> [MLXModelInfo] {
@@ -456,6 +505,29 @@ final class AgentBridge: ObservableObject {
             throw BridgeError.notConnected
         }
         return try await client.call(method: "mlx.stop")
+    }
+
+    func restartMLX(model: String = "") async throws -> [String: Any] {
+        guard let client = ipcClient else {
+            throw BridgeError.notConnected
+        }
+        var params: [String: Any] = [:]
+        if !model.isEmpty { params["model"] = model }
+        return try await client.call(method: "mlx.restart", params: params)
+    }
+
+    func mlxStatus() async throws -> [String: Any] {
+        guard let client = ipcClient else {
+            throw BridgeError.notConnected
+        }
+        return try await client.call(method: "mlx.status")
+    }
+
+    func mlxSetModel(model: String) async throws -> [String: Any] {
+        guard let client = ipcClient else {
+            throw BridgeError.notConnected
+        }
+        return try await client.call(method: "mlx.set_model", params: ["model": model])
     }
 
     func infer(messages: [[String: String]], model: String = "", temperature: Double = 0.7, maxTokens: Int = 2048) async throws -> String {
@@ -1087,11 +1159,11 @@ final class AgentBridge: ObservableObject {
         }
     }
 
-    func agentExecute(agentId: String, input: String, context: [String: Any] = [:]) async throws -> [String: Any] {
+    func agentExecute(agentId: String, input: String) async throws -> [String: Any] {
         guard let client = ipcClient else { throw BridgeError.notConnected }
         logger.info("agentExecute: id=\(agentId)")
         do {
-            return try await client.agentExecute(agentId: agentId, input: input, context: context)
+            return try await client.agentExecute(agentId: agentId, input: input)
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
             self.lastError = bridgeErr
@@ -1113,11 +1185,11 @@ final class AgentBridge: ObservableObject {
         }
     }
 
-    func agentAddSkill(agentId: String, skillName: String, skillContent: String) async throws -> Bool {
+    func agentAddSkill(agentId: String, skillName: String, skillDef: [String: Any] = [:]) async throws -> Bool {
         guard let client = ipcClient else { throw BridgeError.notConnected }
         logger.info("agentAddSkill: id=\(agentId) skill=\(skillName)")
         do {
-            let result = try await client.agentAddSkill(agentId: agentId, skillName: skillName, skillContent: skillContent)
+            let result = try await client.agentAddSkill(agentId: agentId, skillName: skillName, skillDef: skillDef)
             let added = result["added"] as? Bool ?? true
             if added {
                 if !self.agentSkills.contains(skillName) {
@@ -1218,11 +1290,11 @@ final class AgentBridge: ObservableObject {
         }
     }
 
-    func marketplacePublish(agentId: String, category: String = "", tags: [String] = []) async throws -> MarketplaceEntryModel {
+    func marketplacePublish(name: String, author: String = "", description: String = "", category: String = "", tags: [String] = [], version: String = "1.0.0", graphData: [String: Any] = [:]) async throws -> MarketplaceEntryModel {
         guard let client = ipcClient else { throw BridgeError.notConnected }
-        logger.info("marketplacePublish: agentId=\(agentId)")
+        logger.info("marketplacePublish: name=\(name)")
         do {
-            let result = try await client.marketplacePublish(agentId: agentId, category: category, tags: tags)
+            let result = try await client.marketplacePublish(name: name, author: author, description: description, category: category, tags: tags, version: version, graphData: graphData)
             guard let entry = Self.parseMarketplaceEntry(from: result) else {
                 throw BridgeError.decodeError("Failed to parse marketplace.publish response")
             }

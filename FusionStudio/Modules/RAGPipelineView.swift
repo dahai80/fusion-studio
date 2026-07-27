@@ -1,12 +1,9 @@
 // Callers: ModuleDetailView routing.
-// Affected API: RAGPipelineView (replacing NSColor with StudioTheme tokens).
-// Data schemas: None changed.
-// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+// Refactored: Query results read from bridge.ragResults directly, RAGEngine kept only for document/chunk indexing.
 
 import SwiftUI
 import Combine
-
-// MARK: - 文档块
+import os
 
 struct DocumentChunk: Identifiable, Hashable {
     let id: String
@@ -15,12 +12,7 @@ struct DocumentChunk: Identifiable, Hashable {
     let embedding: [Float]?
     let metadata: [String: String]
     let chunkIndex: Int
-
-    func hash(into hasher: inout Hasher) { hasher.combine(id) }
-    static func == (lhs: DocumentChunk, rhs: DocumentChunk) -> Bool { lhs.id == rhs.id }
 }
-
-// MARK: - 检索结果
 
 struct RetrievalResult: Identifiable, Hashable {
     let id: String
@@ -29,10 +21,8 @@ struct RetrievalResult: Identifiable, Hashable {
     let rank: Int
 
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
-    static func == (lhs: RetrievalResult, rhs: RetrievalResult) -> Bool { lhs.id == rhs.id }
+    static func == (lhs: DocumentChunk, rhs: DocumentChunk) -> Bool { lhs.id == rhs.id }
 }
-
-// MARK: - 检索策略
 
 enum RetrievalStrategy: String, CaseIterable {
     case dense   = "稠密检索"
@@ -58,8 +48,6 @@ enum RetrievalStrategy: String, CaseIterable {
     }
 }
 
-// MARK: - 分块策略
-
 enum ChunkStrategy: String, CaseIterable {
     case fixed    = "固定大小"
     case semantic = "语义分块"
@@ -76,8 +64,6 @@ enum ChunkStrategy: String, CaseIterable {
     }
 }
 
-// MARK: - RAG 流水线
-
 struct RAGPipelineConfig {
     var chunkSize: Int = 512
     var chunkOverlap: Int = 64
@@ -90,8 +76,6 @@ struct RAGPipelineConfig {
     var includeMetadata: Bool = true
 }
 
-// MARK: - RAG 引擎
-
 class RAGEngine: ObservableObject {
     static let shared = RAGEngine()
 
@@ -99,8 +83,7 @@ class RAGEngine: ObservableObject {
     @Published var chunks: [DocumentChunk] = []
     @Published var config = RAGPipelineConfig()
     @Published var isIndexing = false
-    @Published var lastQueryResults: [RetrievalResult] = []
-    @Published var queryHistory: [RAGQuery] = []
+    private let logger = Logger(subsystem: "com.fusion.studio", category: "RAGEngine")
 
     struct RAGDocument: Identifiable, Hashable {
         let id: String
@@ -115,38 +98,13 @@ class RAGEngine: ObservableObject {
         static func == (lhs: RAGDocument, rhs: RAGDocument) -> Bool { lhs.id == rhs.id }
     }
 
-    struct RAGQuery: Identifiable, Hashable {
-        let id: String
-        let query: String
-        let strategy: RetrievalStrategy
-        let results: [RetrievalResult]
-        let timestamp: Date
-        let latencyMs: Double
-
-        func hash(into hasher: inout Hasher) { hasher.combine(id) }
-        static func == (lhs: RAGQuery, rhs: RAGQuery) -> Bool { lhs.id == rhs.id }
-    }
-
     init() {
-        loadSampleDocuments()
     }
-
-    private func loadSampleDocuments() {
-        documents = [
-            RAGDocument(id: "doc-1", title: "Fusion Studio 使用指南", content: "Fusion Studio 是 Fusion-MLX 生态的统一桌面客户端...", source: "docs/guide.md", chunkCount: 0, indexedAt: nil, isIndexed: false),
-            RAGDocument(id: "doc-2", title: "API 文档", content: "Fusion Studio 使用 JSON-RPC 2.0 协议...", source: "docs/api.md", chunkCount: 0, indexedAt: nil, isIndexed: false),
-            RAGDocument(id: "doc-3", title: "架构设计文档", content: "Fusion Studio 采用五层架构...", source: "ARCHITECTURE.md", chunkCount: 0, indexedAt: nil, isIndexed: false),
-            RAGDocument(id: "doc-4", title: "MLX 模型推理指南", content: "fusion-mlx 是 Apple Silicon 上的推理引擎...", source: "fusion-mlx/docs", chunkCount: 0, indexedAt: nil, isIndexed: false),
-        ]
-    }
-
-    // MARK: - 索引
 
     func indexDocument(_ id: String) {
         guard let doc = documents.first(where: { $0.id == id }), !doc.isIndexed else { return }
         isIndexing = true
 
-        // 调用 fusion-mlx 嵌入 API 进行文档索引
         Task { [weak self] in
             guard let self = self else { return }
             do {
@@ -210,68 +168,15 @@ class RAGEngine: ObservableObject {
         return chunks
     }
 
-    // MARK: - 检索
-
-    func query(_ queryText: String, bridge: AgentBridge? = nil) async -> [RetrievalResult] {
-        let start = CFAbsoluteTimeGetCurrent()
-
-        var results: [RetrievalResult] = []
-        if let bridge = bridge {
-            do {
-                let ragResult = try await bridge.ragQuery(query: queryText)
-                for (i, source) in ragResult.sources.enumerated() {
-                    let chunk = DocumentChunk(
-                        id: "chunk-rag-\(i)",
-                        documentId: "rag-result",
-                        content: source,
-                        embedding: nil,
-                        metadata: ["answer": ragResult.answer],
-                        chunkIndex: i
-                    )
-                    results.append(RetrievalResult(id: "result-\(i)", chunk: chunk, score: 0.9 - Double(i) * 0.1, rank: i + 1))
-                }
-            } catch {
-                let chunk = DocumentChunk(id: "chunk-err", documentId: "error", content: error.localizedDescription, embedding: nil, metadata: [:], chunkIndex: 0)
-                results = [RetrievalResult(id: "result-err", chunk: chunk, score: 0.0, rank: 1)]
-            }
-        } else {
-            let filtered = chunks.filter { $0.content.localizedCaseInsensitiveContains(queryText) }
-            let topResults = Array(filtered.prefix(config.topK))
-            results = topResults.enumerated().map { i, chunk in
-                RetrievalResult(id: "result-\(i)", chunk: chunk, score: Double.random(in: 0.5...0.95), rank: i + 1)
-            }.sorted { $0.score > $1.score }
-        }
-
-        let latency = (CFAbsoluteTimeGetCurrent() - start) * 1000
-
-        await MainActor.run {
-            lastQueryResults = results
-            let queryRecord = RAGQuery(
-                id: "q-\(UUID().uuidString.prefix(6))",
-                query: queryText,
-                strategy: config.retrievalStrategy,
-                results: results,
-                timestamp: Date(),
-                latencyMs: latency
-            )
-            queryHistory.append(queryRecord)
-            if queryHistory.count > 50 { queryHistory.removeFirst(queryHistory.count - 50) }
-            objectWillChange.send()
-        }
-        return results
-    }
-
     func clearDocuments() {
         documents.removeAll()
         chunks.removeAll()
-        lastQueryResults.removeAll()
         objectWillChange.send()
     }
 }
 
-// MARK: - RAG 面板
-
 struct RAGPipelineView: View {
+    @EnvironmentObject private var bridge: AgentBridge
     @StateObject private var engine = RAGEngine.shared
     @State private var selectedTab: RAGTab = .documents
     @State private var queryInput = ""
@@ -312,8 +217,6 @@ struct RAGPipelineView: View {
         }
     }
 }
-
-// MARK: - 文档列表
 
 struct DocumentListView: View {
     @StateObject private var engine = RAGEngine.shared
@@ -378,18 +281,39 @@ struct DocumentListView: View {
     }
 }
 
-// MARK: - 检索视图
-
 struct QueryView: View {
     @Environment(\.studioTheme) private var theme
-    @StateObject private var engine = RAGEngine.shared
+    @EnvironmentObject private var bridge: AgentBridge
     @State private var queryInput = ""
     @State private var isSearching = false
+    @State private var searchMode: SearchMode = .query
+    @State private var localResults: [RetrievalResult] = []
+    private let logger = Logger(subsystem: "com.fusion.studio", category: "RAGQueryView")
+
+    enum SearchMode: String, CaseIterable {
+        case query = "Query"
+        case retrieve = "Retrieve"
+        case knowledge = "Knowledge"
+    }
+
+    private var displayResults: [RAGResultModel] {
+        switch searchMode {
+        case .query:
+            return bridge.ragResults
+        case .retrieve, .knowledge:
+            return []
+        }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            // 搜索栏
             HStack(spacing: 8) {
+                Picker("Mode", selection: $searchMode) {
+                    ForEach(SearchMode.allCases, id: \.self) { m in Text(m.rawValue) }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 180)
+
                 Image(systemName: "magnifyingglass").foregroundColor(.secondary)
                 TextField("输入检索查询...", text: $queryInput)
                     .textFieldStyle(.plain)
@@ -398,54 +322,89 @@ struct QueryView: View {
                 if isSearching { ProgressView().controlSize(.small) }
                 Button(action: search) { Image(systemName: "play.fill") }
                     .buttonStyle(.borderedProminent).controlSize(.small).disabled(queryInput.isEmpty || isSearching)
-                Button("清空") { engine.lastQueryResults.removeAll() }
-                    .buttonStyle(.bordered).controlSize(.small)
+                Button("清空") {
+                    localResults.removeAll()
+                    bridge.ragResults.removeAll()
+                }
+                .buttonStyle(.bordered).controlSize(.small)
             }
             .padding(8)
             .background(theme.surfaceSecondary)
 
             Divider()
 
-            // 结果
-            if engine.lastQueryResults.isEmpty && !isSearching {
-                VStack(spacing: 12) {
+            if searchMode == .query {
+                if bridge.ragResults.isEmpty && !isSearching {
+                    VStack(spacing: 12) {
+                        Spacer()
+                        Image(systemName: "magnifyingglass").font(.system(size: 40)).foregroundColor(.secondary)
+                        Text("输入查询开始检索").foregroundColor(.secondary)
+                        Spacer()
+                    }
+                } else if isSearching {
+                    ProgressView("检索中...").padding()
                     Spacer()
-                    Image(systemName: "magnifyingglass").font(.system(size: 40)).foregroundColor(.secondary)
-                    Text("输入查询开始检索").foregroundColor(.secondary)
-                    Text("当前使用 \(engine.config.retrievalStrategy.rawValue) 策略").font(.caption).foregroundColor(.secondary)
-                    Spacer()
-                }
-            } else if isSearching {
-                ProgressView("检索中...").padding()
-                Spacer()
-            } else {
-                List {
-                    Text("找到 \(engine.lastQueryResults.count) 个结果")
-                        .font(.headline).foregroundColor(.secondary)
-                    ForEach(engine.lastQueryResults) { result in
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text("#\(result.rank)").font(.caption).foregroundColor(.secondary)
-                                Text("\(result.score, specifier: "%.1f")%")
-                                    .font(.caption).foregroundColor(.blue)
-                                Spacer()
-                                Text(engine.documents.first(where: { $0.id == result.chunk.documentId })?.title ?? "")
-                                    .font(.caption).foregroundColor(.secondary)
-                            }
-                            Text(result.chunk.content)
-                                .font(.system(.body, design: .monospaced))
-                                .lineLimit(4)
-                            if !result.chunk.metadata.isEmpty {
-                                HStack {
-                                    ForEach(Array(result.chunk.metadata.keys), id: \.self) { key in
-                                        Text("\(key): \(result.chunk.metadata[key] ?? "")")
-                                            .font(.system(size: 8)).padding(.horizontal, 4)
-                                            .background(Color.accentColor.opacity(0.1)).cornerRadius(3)
+                } else {
+                    List {
+                        Text("找到 \(bridge.ragResults.count) 个结果")
+                            .font(.headline).foregroundColor(.secondary)
+                        ForEach(bridge.ragResults) { result in
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(result.answer)
+                                    .font(.system(.body, design: .monospaced))
+                                    .lineLimit(4)
+                                if !result.sources.isEmpty {
+                                    HStack {
+                                        ForEach(result.sources.indices, id: \.self) { i in
+                                            Text(result.sources[i])
+                                                .font(.system(size: 8)).padding(.horizontal, 4)
+                                                .background(Color.accentColor.opacity(0.1)).cornerRadius(3)
+                                                .lineLimit(1)
+                                        }
                                     }
                                 }
                             }
+                            .padding(.vertical, 4)
                         }
-                        .padding(.vertical, 4)
+                    }
+                }
+            } else {
+                if localResults.isEmpty && !isSearching {
+                    VStack(spacing: 12) {
+                        Spacer()
+                        Image(systemName: "magnifyingglass").font(.system(size: 40)).foregroundColor(.secondary)
+                        Text("输入查询开始检索").foregroundColor(.secondary)
+                        Spacer()
+                    }
+                } else if isSearching {
+                    ProgressView("检索中...").padding()
+                    Spacer()
+                } else {
+                    List {
+                        Text("找到 \(localResults.count) 个结果")
+                            .font(.headline).foregroundColor(.secondary)
+                        ForEach(localResults) { result in
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Text("#\(result.rank)").font(.caption).foregroundColor(.secondary)
+                                    Text("\(result.score, specifier: "%.1f")%")
+                                        .font(.caption).foregroundColor(.blue)
+                                }
+                                Text(result.chunk.content)
+                                    .font(.system(.body, design: .monospaced))
+                                    .lineLimit(4)
+                                if !result.chunk.metadata.isEmpty {
+                                    HStack {
+                                        ForEach(Array(result.chunk.metadata.keys), id: \.self) { key in
+                                            Text("\(key): \(result.chunk.metadata[key] ?? "")")
+                                                .font(.system(size: 8)).padding(.horizontal, 4)
+                                                .background(Color.accentColor.opacity(0.1)).cornerRadius(3)
+                                        }
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
                     }
                 }
             }
@@ -456,17 +415,63 @@ struct QueryView: View {
         guard !queryInput.isEmpty else { return }
         isSearching = true
         Task {
-            _ = await engine.query(queryInput, bridge: bridgeIfConnected)
-            await MainActor.run { isSearching = false }
+            switch searchMode {
+            case .query:
+                do {
+                    _ = try await bridge.ragQuery(query: queryInput)
+                } catch {
+                    logger.error("ragQuery: \(error.localizedDescription)")
+                }
+            case .retrieve:
+                do {
+                    let sources = try await bridge.ragRetrieve(query: queryInput, config: [:])
+                    var results: [RetrievalResult] = []
+                    for (i, source) in sources.enumerated() {
+                        let chunk = DocumentChunk(
+                            id: "chunk-retrieve-\(i)",
+                            documentId: "retrieve",
+                            content: source,
+                            embedding: nil,
+                            metadata: [:],
+                            chunkIndex: i
+                        )
+                        results.append(RetrievalResult(id: "result-\(i)", chunk: chunk, score: 0.9 - Double(i) * 0.1, rank: i + 1))
+                    }
+                    localResults = results
+                } catch {
+                    logger.error("ragRetrieve: \(error.localizedDescription)")
+                    let chunk = DocumentChunk(id: "chunk-err", documentId: "error", content: error.localizedDescription, embedding: nil, metadata: [:], chunkIndex: 0)
+                    localResults = [RetrievalResult(id: "result-err", chunk: chunk, score: 0.0, rank: 1)]
+                }
+            case .knowledge:
+                do {
+                    let result = try await bridge.knowledgeSearch(query: queryInput)
+                    let entries = result["results"] as? [[String: Any]] ?? []
+                    var results: [RetrievalResult] = []
+                    for (i, entry) in entries.enumerated() {
+                        let content = entry["content"] as? String ?? entry["text"] as? String ?? String(describing: entry)
+                        let chunk = DocumentChunk(
+                            id: "chunk-knowledge-\(i)",
+                            documentId: "knowledge",
+                            content: content,
+                            embedding: nil,
+                            metadata: entry,
+                            chunkIndex: i
+                        )
+                        let score = entry["score"] as? Double ?? (0.9 - Double(i) * 0.1)
+                        results.append(RetrievalResult(id: "result-knowledge-\(i)", chunk: chunk, score: score, rank: i + 1))
+                    }
+                    localResults = results
+                } catch {
+                    logger.error("knowledgeSearch: \(error.localizedDescription)")
+                    let chunk = DocumentChunk(id: "chunk-err", documentId: "error", content: error.localizedDescription, embedding: nil, metadata: [:], chunkIndex: 0)
+                    localResults = [RetrievalResult(id: "result-err", chunk: chunk, score: 0.0, rank: 1)]
+                }
+            }
+            isSearching = false
         }
     }
-
-    private var bridgeIfConnected: AgentBridge? {
-        (NSApp.delegate as? AppDelegate)?.agentBridge
-    }
 }
-
-// MARK: - 配置
 
 struct RAGConfigView: View {
     @StateObject private var engine = RAGEngine.shared
@@ -513,7 +518,6 @@ struct RAGConfigView: View {
             Section("统计") {
                 HStack { Text("文档数"); Spacer(); Text("\(engine.documents.count)").font(.system(.body, design: .monospaced)) }
                 HStack { Text("文档块数"); Spacer(); Text("\(engine.chunks.count)").font(.system(.body, design: .monospaced)) }
-                HStack { Text("查询次数"); Spacer(); Text("\(engine.queryHistory.count)").font(.system(.body, design: .monospaced)) }
             }
         }
         .padding()
@@ -521,13 +525,11 @@ struct RAGConfigView: View {
     }
 }
 
-// MARK: - 查询历史
-
 struct QueryHistoryView: View {
-    @StateObject private var engine = RAGEngine.shared
+    @EnvironmentObject private var bridge: AgentBridge
 
     var body: some View {
-        if engine.queryHistory.isEmpty {
+        if bridge.ragResults.isEmpty {
             VStack(spacing: 12) {
                 Spacer()
                 Image(systemName: "clock.arrow.circlepath").font(.system(size: 40)).foregroundColor(.secondary)
@@ -536,22 +538,15 @@ struct QueryHistoryView: View {
             }
         } else {
             List {
-                ForEach(engine.queryHistory.reversed()) { record in
+                ForEach(bridge.ragResults.reversed()) { result in
                     VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Text(record.query).font(.headline)
-                            Spacer()
-                            Text("\(record.latencyMs, specifier: "%.0f")ms").font(.caption).foregroundColor(.secondary)
-                        }
-                        HStack {
-                            Text(record.strategy.rawValue).font(.caption2).padding(.horizontal, 4)
-                                .background(Color.accentColor.opacity(0.1)).cornerRadius(3)
-                            Text("\(record.results.count) 个结果").font(.caption2).foregroundColor(.secondary)
-                            Text(record.timestamp, style: .time).font(.caption2).foregroundColor(.secondary)
-                        }
-                        if !record.results.isEmpty {
-                            Text("最佳: \(record.results.first?.chunk.content.prefix(80) ?? "")...")
-                                .font(.caption).foregroundColor(.secondary).lineLimit(1)
+                        Text(result.query).font(.headline)
+                        Text(result.answer)
+                            .font(.caption).foregroundColor(.secondary).lineLimit(2)
+                        if !result.sources.isEmpty {
+                            HStack {
+                                Text("\(result.sources.count) 个来源").font(.caption2).foregroundColor(.secondary)
+                            }
                         }
                     }
                     .padding(.vertical, 4)

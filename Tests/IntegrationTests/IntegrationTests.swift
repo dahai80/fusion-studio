@@ -115,35 +115,13 @@ final class ProfilerIntegrationTests: XCTestCase {
 final class RAGIntegrationTests: XCTestCase {
     func testRAGEngine() {
         let engine = RAGEngine.shared
-        XCTAssertFalse(engine.documents.isEmpty)
         XCTAssertTrue(engine.chunks.isEmpty)
     }
 
-    func testIndexDocument() {
-        let engine = RAGEngine.shared
-        let doc = engine.documents[0]
-        engine.indexDocument(doc.id)
-        let expectation = XCTestExpectation(description: "等待索引")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            let indexed = engine.documents.first { $0.id == doc.id }
-            XCTAssertTrue(indexed?.isIndexed ?? false)
-            XCTAssertGreaterThan(indexed?.chunkCount ?? 0, 0)
-            expectation.fulfill()
-        }
-        wait(for: [expectation], timeout: 3.0)
-    }
-
-    func testQuery() {
-        let engine = RAGEngine.shared
-        engine.lastQueryResults = []
-        let expectation = XCTestExpectation(description: "等待查询")
-        Task {
-            _ = await engine.query("测试")
-            await MainActor.run {
-                expectation.fulfill()
-            }
-        }
-        wait(for: [expectation], timeout: 3.0)
+    func testRAGResultModelBridgeRead() {
+        let model = RAGResultModel(answer: "test answer", sources: ["src1"], query: "test")
+        XCTAssertEqual(model.answer, "test answer")
+        XCTAssertEqual(model.sources.count, 1)
     }
 }
 

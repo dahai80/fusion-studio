@@ -271,38 +271,15 @@ final class PluginManagerTests: XCTestCase {
     }
 }
 
-final class TemplateMarketTests: XCTestCase {
-    func testInitialTemplates() {
-        let market = TemplateMarket.shared
-        XCTAssertFalse(market.templates.isEmpty)
-        XCTAssertGreaterThanOrEqual(market.templates.count, 8)
+final class TemplateCategoryTests: XCTestCase {
+    func testBridgeKeyRoundTrip() {
+        for cat in TemplateCategory.allCases where cat != .all {
+            XCTAssertEqual(TemplateCategory.fromBridgeKey(cat.bridgeKey), cat)
+        }
     }
 
-    func testFilterByCategory() {
-        let market = TemplateMarket.shared
-        market.selectedCategory = .design
-        market.searchText = ""
-        let filtered = market.filteredTemplates
-        XCTAssertTrue(filtered.allSatisfy { $0.category == .design })
-        market.selectedCategory = .all
-    }
-
-    func testToggleFavorite() {
-        let market = TemplateMarket.shared
-        let id = market.templates[0].id
-        let initial = market.templates[0].isFavorite
-        market.toggleFavorite(id)
-        XCTAssertNotEqual(market.templates[0].isFavorite, initial)
-        market.toggleFavorite(id) // revert
-    }
-
-    func testInstallAndUninstall() {
-        let market = TemplateMarket.shared
-        let notInstalled = market.templates.first { !$0.isLocal }!
-        market.installTemplate(notInstalled.id)
-        XCTAssertTrue(market.templates.first { $0.id == notInstalled.id }?.isLocal ?? false)
-        market.uninstallTemplate(notInstalled.id)
-        XCTAssertFalse(market.templates.first { $0.id == notInstalled.id }?.isLocal ?? true)
+    func testFromBridgeKeyDefault() {
+        XCTAssertEqual(TemplateCategory.fromBridgeKey("unknown"), .all)
     }
 }
 

@@ -72,7 +72,10 @@ struct PlannerView: View {
         List(bridge.plans, selection: $selectedPlan) { plan in
             PlanRowView(plan: plan, isSelected: selectedPlan?.id == plan.id)
                 .tag(plan)
-                .onTapGesture { selectedPlan = plan }
+                .onTapGesture {
+                    selectedPlan = plan
+                    bridge.currentPlan = plan
+                }
         }
         .listStyle(.sidebar)
     }
@@ -252,6 +255,8 @@ struct PlanDetailView: View {
         isActing = true
         do {
             _ = try await bridge.plannerApprovePlan(planId: plan.id)
+            _ = try await bridge.plannerGetPlan(planId: plan.id)
+            _ = try await bridge.fetchPlans()
         } catch {
             logger.error("approvePlan: \(error)")
         }
@@ -262,6 +267,8 @@ struct PlanDetailView: View {
         isActing = true
         do {
             _ = try await bridge.plannerRejectPlan(planId: plan.id)
+            _ = try await bridge.plannerGetPlan(planId: plan.id)
+            _ = try await bridge.fetchPlans()
         } catch {
             logger.error("rejectPlan: \(error)")
         }
@@ -272,6 +279,8 @@ struct PlanDetailView: View {
         isActing = true
         do {
             _ = try await bridge.plannerExecutePlan(planId: plan.id)
+            _ = try await bridge.plannerGetPlan(planId: plan.id)
+            _ = try await bridge.fetchPlans()
         } catch {
             logger.error("executePlan: \(error)")
         }
@@ -282,6 +291,8 @@ struct PlanDetailView: View {
         isActing = true
         do {
             _ = try await bridge.plannerCancelPlan(planId: plan.id)
+            _ = try await bridge.plannerGetPlan(planId: plan.id)
+            _ = try await bridge.fetchPlans()
         } catch {
             logger.error("cancelPlan: \(error)")
         }
@@ -335,6 +346,15 @@ struct StepRowView: View {
                 if isExecuting {
                     ProgressView()
                         .scaleEffect(0.6)
+                    Button(action: {
+                        bridge.cancelExecution()
+                        isExecuting = false
+                    }) {
+                        Image(systemName: "stop.fill")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.mini)
+                    .foregroundColor(.red)
                 }
             }
         }
@@ -347,6 +367,8 @@ struct StepRowView: View {
         isExecuting = true
         do {
             _ = try await bridge.plannerExecuteStep(planId: planId, stepId: step.id)
+            _ = try await bridge.plannerGetPlan(planId: planId)
+            _ = try await bridge.fetchPlans()
         } catch {
             logger.error("executeStep: \(error)")
         }
