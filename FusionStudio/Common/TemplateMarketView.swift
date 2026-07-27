@@ -1,11 +1,8 @@
 // Callers: ModuleDetailView routing.
-// Affected API: TemplateMarketView (replacing NSColor with StudioTheme tokens).
-// Data schemas: None changed.
-// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+// Refactored: GUI reads bridge.marketplaceEntries directly, TemplateMarket singleton removed.
 
 import SwiftUI
-
-// MARK: - 模板分类
+import os
 
 enum TemplateCategory: String, CaseIterable {
     case all        = "全部"
@@ -27,171 +24,79 @@ enum TemplateCategory: String, CaseIterable {
         case .automation: return "desktopcomputer"
         }
     }
-}
 
-// MARK: - 模板
-
-struct UserTemplate: Identifiable, Hashable {
-    let id: String
-    var name: String
-    var description: String
-    var category: TemplateCategory
-    var author: String
-    var version: String
-    var rating: Double
-    var downloadCount: Int
-    var tags: [String]
-    var isLocal: Bool
-    var isFavorite: Bool
-    var installDate: Date?
-    var content: [String: Any]
-
-    func hash(into hasher: inout Hasher) { hasher.combine(id) }
-    static func == (lhs: UserTemplate, rhs: UserTemplate) -> Bool { lhs.id == rhs.id }
-}
-
-// MARK: - 模板市场
-
-class TemplateMarket: ObservableObject {
-    static let shared = TemplateMarket()
-
-    @Published var templates: [UserTemplate] = []
-    @Published var searchText = ""
-    @Published var selectedCategory: TemplateCategory = .all
-    @Published var showFavoritesOnly = false
-
-    var filteredTemplates: [UserTemplate] {
-        var result = templates
-        if selectedCategory != .all { result = result.filter { $0.category == selectedCategory } }
-        if !searchText.isEmpty { result = result.filter { $0.name.localizedCaseInsensitiveContains(searchText) || $0.tags.contains { $0.localizedCaseInsensitiveContains(searchText) } } }
-        if showFavoritesOnly { result = result.filter { $0.isFavorite } }
-        return result
-    }
-
-    init() { loadSampleTemplates() }
-
-    private func loadSampleTemplates() {
-        templates = [
-            UserTemplate(id: "tpl-1", name: "现代仪表盘", description: "数据可视化仪表盘模板，支持实时图表和指标卡片", category: .design, author: "Fusion Studio", version: "1.0.0", rating: 4.8, downloadCount: 2340, tags: ["仪表盘", "数据可视化", "图表"], isLocal: true, isFavorite: true, installDate: Date(), content: [:]),
-            UserTemplate(id: "tpl-2", name: "SwiftUI 列表页", description: "标准列表页模板，包含搜索、筛选、下拉刷新", category: .code, author: "Fusion Studio", version: "1.2.0", rating: 4.6, downloadCount: 1890, tags: ["SwiftUI", "列表", "iOS"], isLocal: true, isFavorite: false, installDate: Date(), content: [:]),
-            UserTemplate(id: "tpl-3", name: "六轴机械臂", description: "六轴工业机器人仿真场景，包含运动学模型", category: .simulation, author: "SimLab", version: "0.9.0", rating: 4.9, downloadCount: 1560, tags: ["机器人", "机械臂", "运动学"], isLocal: false, isFavorite: true, installDate: nil, content: [:]),
-            UserTemplate(id: "tpl-4", name: "代码审查流程", description: "自动代码审查工作流，集成多智能体协作", category: .workflow, author: "DevTools", version: "1.0.0", rating: 4.5, downloadCount: 980, tags: ["代码审查", "工作流", "自动化"], isLocal: false, isFavorite: false, installDate: nil, content: [:]),
-            UserTemplate(id: "tpl-5", name: "季度报告", description: "季度业务报告模板，自动生成数据分析和图表", category: .report, author: "DataViz", version: "2.1.0", rating: 4.3, downloadCount: 3200, tags: ["报表", "数据分析", "季度"], isLocal: true, isFavorite: true, installDate: Date(), content: [:]),
-            UserTemplate(id: "tpl-6", name: "文件整理助手", description: "自动化文件分类整理模板，按类型/日期/项目归档", category: .automation, author: "DeskBot", version: "1.1.0", rating: 4.7, downloadCount: 4500, tags: ["文件管理", "自动化", "整理"], isLocal: false, isFavorite: false, installDate: nil, content: [:]),
-            UserTemplate(id: "tpl-7", name: "深色主题", description: "完整的深色主题设计系统，包含配色和组件", category: .design, author: "DesignPro", version: "2.0.0", rating: 4.4, downloadCount: 6700, tags: ["主题", "深色模式", "设计系统"], isLocal: false, isFavorite: false, installDate: nil, content: [:]),
-            UserTemplate(id: "tpl-8", name: "API 接口生成", description: "根据 OpenAPI 规范自动生成 Swift/TypeScript 客户端", category: .code, author: "APIGen", version: "1.3.0", rating: 4.2, downloadCount: 1200, tags: ["API", "代码生成", "OpenAPI"], isLocal: false, isFavorite: false, installDate: nil, content: [:]),
-        ]
-    }
-
-    func toggleFavorite(_ id: String) {
-        guard let idx = templates.firstIndex(where: { $0.id == id }) else { return }
-        templates[idx].isFavorite.toggle()
-        objectWillChange.send()
-    }
-
-    func installTemplate(_ id: String) {
-        guard let idx = templates.firstIndex(where: { $0.id == id }) else { return }
-        templates[idx].isLocal = true
-        templates[idx].installDate = Date()
-        objectWillChange.send()
-    }
-
-    func uninstallTemplate(_ id: String) {
-        guard let idx = templates.firstIndex(where: { $0.id == id }) else { return }
-        templates[idx].isLocal = false
-        templates[idx].installDate = nil
-        objectWillChange.send()
-    }
-
-    func createTemplate(name: String, description: String, category: TemplateCategory) {
-        let template = UserTemplate(
-            id: "tpl-\(UUID().uuidString.prefix(6))",
-            name: name,
-            description: description,
-            category: category,
-            author: "本地",
-            version: "0.1.0",
-            rating: 0,
-            downloadCount: 0,
-            tags: [],
-            isLocal: true,
-            isFavorite: false,
-            installDate: Date(),
-            content: [:]
-        )
-        templates.insert(template, at: 0)
-        objectWillChange.send()
-    }
-
-    func loadFromBridge(_ bridge: AgentBridge) async {
-        do {
-            let bridgeTemplates = try await bridge.fetchTemplates()
-            await MainActor.run {
-                for bt in bridgeTemplates {
-                    if !templates.contains(where: { $0.id == bt.id }) {
-                        let cat: TemplateCategory = switch bt.category {
-                        case "design": .design
-                        case "code": .code
-                        case "simulation": .simulation
-                        case "workflow": .workflow
-                        case "report": .report
-                        case "automation": .automation
-                        default: .all
-                        }
-                        let tpl = UserTemplate(
-                            id: bt.id,
-                            name: bt.name,
-                            description: bt.description,
-                            category: cat,
-                            author: "Agent Studio",
-                            version: "1.0.0",
-                            rating: 0,
-                            downloadCount: 0,
-                            tags: bt.variables,
-                            isLocal: true,
-                            isFavorite: false,
-                            installDate: Date(),
-                            content: [:]
-                        )
-                        templates.append(tpl)
-                    }
-                }
-                objectWillChange.send()
-            }
-        } catch {
+    var bridgeKey: String {
+        switch self {
+        case .all: return ""
+        case .design: return "design"
+        case .code: return "code"
+        case .simulation: return "simulation"
+        case .workflow: return "workflow"
+        case .report: return "report"
+        case .automation: return "automation"
         }
     }
 
-    func instantiateTemplate(_ templateId: String, variables: [String: String]? = nil, bridge: AgentBridge?) async -> Bool {
-        guard let bridge = bridge else { return false }
-        do {
-            _ = try await bridge.templateInstantiate(templateId: templateId, variables: variables)
-            return true
-        } catch {
-            return false
+    static func fromBridgeKey(_ key: String) -> TemplateCategory {
+        switch key {
+        case "design": return .design
+        case "code": return .code
+        case "simulation": return .simulation
+        case "workflow": return .workflow
+        case "report": return .report
+        case "automation": return .automation
+        default: return .all
         }
     }
 }
-
-// MARK: - 模板市场视图
 
 struct TemplateMarketView: View {
     @Environment(\.studioTheme) private var theme
-    @StateObject private var market = TemplateMarket.shared
+    @EnvironmentObject private var bridge: AgentBridge
     @State private var showCreateSheet = false
-    @State private var selectedTemplate: UserTemplate?
+    @State private var selectedEntry: MarketplaceEntryModel?
     @State private var viewMode: TemplateViewMode = .grid
+    @State private var searchText = ""
+    @State private var selectedCategory: TemplateCategory = .all
+    @State private var showFavoritesOnly = false
+    @State private var favorites: Set<String> = []
+    @State private var isLoading = false
+    private let logger = Logger(subsystem: "com.fusion.studio", category: "TemplateMarket")
 
     enum TemplateViewMode: String, CaseIterable {
         case grid = "网格"; case list = "列表"
     }
 
+    private var filteredEntries: [MarketplaceEntryModel] {
+        var result = bridge.marketplaceEntries
+        if selectedCategory != .all {
+            result = result.filter { TemplateCategory.fromBridgeKey($0.category) == selectedCategory }
+        }
+        if !searchText.isEmpty {
+            result = result.filter {
+                $0.name.localizedCaseInsensitiveContains(searchText) ||
+                $0.tags.contains { $0.localizedCaseInsensitiveContains(searchText) }
+            }
+        }
+        if showFavoritesOnly {
+            result = result.filter { favorites.contains($0.id) }
+        }
+        return result
+    }
+
+    private func isInstalled(_ entry: MarketplaceEntryModel) -> Bool {
+        bridge.agents.contains(where: { $0.id == entry.id })
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            // 搜索栏
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass").foregroundColor(.secondary)
-                TextField("搜索模板...", text: $market.searchText).textFieldStyle(.plain)
+                TextField("搜索模板...", text: $searchText).textFieldStyle(.plain)
+                    .onSubmit {
+                        Task { await search() }
+                    }
+                if isLoading { ProgressView().controlSize(.small) }
                 Spacer()
                 Picker("", selection: $viewMode) {
                     ForEach(TemplateViewMode.allCases, id: \.self) { mode in
@@ -199,22 +104,23 @@ struct TemplateMarketView: View {
                     }
                 }
                 .pickerStyle(.segmented).frame(width: 100)
-                Toggle("仅收藏", isOn: $market.showFavoritesOnly).toggleStyle(.checkbox).controlSize(.small)
+                Toggle("仅收藏", isOn: $showFavoritesOnly).toggleStyle(.checkbox).controlSize(.small)
                 Button(action: { showCreateSheet = true }) { Label("新建", systemImage: "plus") }
                     .buttonStyle(.borderedProminent).controlSize(.small)
             }
             .padding(8)
             .background(theme.surfaceSecondary)
 
-            // 分类
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
                     ForEach(TemplateCategory.allCases, id: \.self) { cat in
-                        Button(action: { market.selectedCategory = cat }) {
+                        let isSelected = selectedCategory == cat
+                        Button(action: { selectedCategory = cat }) {
                             Label(cat.rawValue, systemImage: cat.icon)
                         }
-                        .buttonStyle(.bordered).controlSize(.small)
-                        .tint(market.selectedCategory == cat ? .accentColor : nil)
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .tint(isSelected ? .accentColor : nil)
                     }
                 }
                 .padding(8)
@@ -222,8 +128,7 @@ struct TemplateMarketView: View {
 
             Divider()
 
-            // 内容
-            if market.filteredTemplates.isEmpty {
+            if filteredEntries.isEmpty && !isLoading {
                 VStack(spacing: 12) {
                     Spacer()
                     Image(systemName: "square.grid.2x2").font(.system(size: 40)).foregroundColor(.secondary)
@@ -234,17 +139,17 @@ struct TemplateMarketView: View {
                 ScrollView {
                     if viewMode == .grid {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 280))], spacing: 12) {
-                            ForEach(market.filteredTemplates) { template in
-                                TemplateCardView(template: template)
-                                    .onTapGesture { selectedTemplate = template }
+                            ForEach(filteredEntries) { entry in
+                                TemplateCardView(entry: entry, isFavorite: favorites.contains(entry.id), isInstalled: isInstalled(entry))
+                                    .onTapGesture { selectedEntry = entry }
                             }
                         }
                         .padding()
                     } else {
                         LazyVStack(spacing: 8) {
-                            ForEach(market.filteredTemplates) { template in
-                                TemplateListRow(template: template)
-                                    .onTapGesture { selectedTemplate = template }
+                            ForEach(filteredEntries) { entry in
+                                TemplateListRow(entry: entry, isFavorite: favorites.contains(entry.id), isInstalled: isInstalled(entry))
+                                    .onTapGesture { selectedEntry = entry }
                             }
                         }
                         .padding()
@@ -253,111 +158,139 @@ struct TemplateMarketView: View {
             }
         }
         .sheet(isPresented: $showCreateSheet) { CreateTemplateSheet() }
-        .sheet(item: $selectedTemplate) { template in MarketTemplateDetailView(template: template) }
-        .onAppear {
-            Task {
-                if let bridge = (NSApp.delegate as? AppDelegate)?.agentBridge {
-                    await market.loadFromBridge(bridge)
-                }
-            }
+        .sheet(item: $selectedEntry) { entry in
+            MarketEntryDetailView(entry: entry, isFavorite: favorites.contains(entry.id), isInstalled: isInstalled(entry))
         }
+        .onAppear {
+            Task { await search() }
+        }
+        .onChange(of: selectedCategory) { _ in
+            Task { await search() }
+        }
+    }
+
+    private func search() async {
+        isLoading = true
+        do {
+            _ = try await bridge.marketplaceSearch(query: searchText, category: selectedCategory.bridgeKey)
+            _ = try await bridge.fetchMarketplaceCategories()
+        } catch {
+            logger.error("search: \(error.localizedDescription)")
+        }
+        isLoading = false
     }
 }
 
-// MARK: - 模板卡片
-
 struct TemplateCardView: View {
     @Environment(\.studioTheme) private var theme
-    let template: UserTemplate
-    @StateObject private var market = TemplateMarket.shared
+    @EnvironmentObject private var bridge: AgentBridge
+    let entry: MarketplaceEntryModel
+    let isFavorite: Bool
+    let isInstalled: Bool
+    @State private var localIsInstalled: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Image(systemName: template.category.icon).font(.title2).foregroundColor(.accentColor)
+                Image(systemName: TemplateCategory.fromBridgeKey(entry.category).icon)
+                    .font(.title2).foregroundColor(.accentColor)
                 Spacer()
-                Button(action: { market.toggleFavorite(template.id) }) {
-                    Image(systemName: template.isFavorite ? "star.fill" : "star")
-                        .foregroundColor(template.isFavorite ? .yellow : .gray)
-                }.buttonStyle(.plain)
+                Image(systemName: isFavorite ? "star.fill" : "star")
+                    .foregroundColor(isFavorite ? .yellow : .gray)
             }
-            Text(template.name).font(.headline).lineLimit(1)
-            Text(template.description).font(.caption).foregroundColor(.secondary).lineLimit(2)
+            Text(entry.name).font(.headline).lineLimit(1)
+            Text(entry.description).font(.caption).foregroundColor(.secondary).lineLimit(2)
             HStack {
                 Image(systemName: "person").font(.caption2)
-                Text(template.author).font(.caption2)
+                Text(entry.author).font(.caption2)
                 Spacer()
                 Image(systemName: "star.fill").font(.caption2).foregroundColor(.yellow)
-                Text("\(template.rating, specifier: "%.1f")").font(.caption2)
+                Text("\(entry.rating, specifier: "%.1f")").font(.caption2)
             }
             HStack {
-                Text("v\(template.version)").font(.caption2).foregroundColor(.secondary)
+                Text("v\(entry.version)").font(.caption2).foregroundColor(.secondary)
                 Spacer()
-                if template.isLocal {
+                if localIsInstalled {
                     Label("已安装", systemImage: "checkmark.circle.fill").font(.caption2).foregroundColor(.green)
                 } else {
-                    Button("安装") { market.installTemplate(template.id) }
-                        .buttonStyle(.borderedProminent).controlSize(.small)
+                    Button("安装") {
+                        Task {
+                            _ = try? await bridge.marketplaceInstall(entryId: entry.id)
+                            localIsInstalled = true
+                        }
+                    }
+                    .buttonStyle(.borderedProminent).controlSize(.small)
                 }
             }
         }
         .padding()
         .background(theme.surfaceSecondary)
         .cornerRadius(10)
+        .onAppear { localIsInstalled = isInstalled }
     }
 }
 
-// MARK: - 模板列表行
-
 struct TemplateListRow: View {
     @Environment(\.studioTheme) private var theme
-    let template: UserTemplate
-    @StateObject private var market = TemplateMarket.shared
+    @EnvironmentObject private var bridge: AgentBridge
+    let entry: MarketplaceEntryModel
+    let isFavorite: Bool
+    let isInstalled: Bool
+    @State private var localIsInstalled: Bool = false
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: template.category.icon).foregroundColor(.accentColor).frame(width: 24)
+            Image(systemName: TemplateCategory.fromBridgeKey(entry.category).icon)
+                .foregroundColor(.accentColor).frame(width: 24)
             VStack(alignment: .leading, spacing: 2) {
                 HStack {
-                    Text(template.name).font(.headline)
-                    if template.isFavorite { Image(systemName: "star.fill").font(.caption).foregroundColor(.yellow) }
+                    Text(entry.name).font(.headline)
+                    if isFavorite { Image(systemName: "star.fill").font(.caption).foregroundColor(.yellow) }
                 }
-                Text(template.description).font(.caption).foregroundColor(.secondary).lineLimit(1)
+                Text(entry.description).font(.caption).foregroundColor(.secondary).lineLimit(1)
                 HStack(spacing: 8) {
-                    Text(template.author).font(.caption2).foregroundColor(.secondary)
-                    Text("v\(template.version)").font(.caption2).foregroundColor(.secondary)
+                    Text(entry.author).font(.caption2).foregroundColor(.secondary)
+                    Text("v\(entry.version)").font(.caption2).foregroundColor(.secondary)
                     HStack(spacing: 2) {
                         Image(systemName: "star.fill").font(.system(size: 8)).foregroundColor(.yellow)
-                        Text("\(template.rating, specifier: "%.1f")").font(.caption2)
+                        Text("\(entry.rating, specifier: "%.1f")").font(.caption2)
                     }
-                    Text("· \(template.downloadCount) 下载").font(.caption2).foregroundColor(.secondary)
+                    Text("· \(entry.downloads) 下载").font(.caption2).foregroundColor(.secondary)
                 }
             }
             Spacer()
-            if template.isLocal {
+            if localIsInstalled {
                 Label("已安装", systemImage: "checkmark.circle.fill").font(.caption).foregroundColor(.green)
             } else {
-                Button("安装") { market.installTemplate(template.id) }.buttonStyle(.borderedProminent).controlSize(.small)
+                Button("安装") {
+                    Task {
+                        _ = try? await bridge.marketplaceInstall(entryId: entry.id)
+                        localIsInstalled = true
+                    }
+                }.buttonStyle(.borderedProminent).controlSize(.small)
             }
         }
         .padding(8)
         .background(theme.surfaceSecondary)
         .cornerRadius(8)
+        .onAppear { localIsInstalled = isInstalled }
     }
 }
 
-// MARK: - 模板详情
-
-struct MarketTemplateDetailView: View {
-    let template: UserTemplate
+struct MarketEntryDetailView: View {
+    let entry: MarketplaceEntryModel
+    let isFavorite: Bool
+    let isInstalled: Bool
     @Environment(\.dismiss) var dismiss
-    @StateObject private var market = TemplateMarket.shared
+    @EnvironmentObject private var bridge: AgentBridge
+    @State private var localIsInstalled: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Image(systemName: template.category.icon).font(.title).foregroundColor(.accentColor)
-                Text(template.name).font(.title2).bold()
+                Image(systemName: TemplateCategory.fromBridgeKey(entry.category).icon)
+                    .font(.title).foregroundColor(.accentColor)
+                Text(entry.name).font(.title2).bold()
                 Spacer()
                 Button("关闭") { dismiss() }.buttonStyle(.borderedProminent)
             }
@@ -366,22 +299,19 @@ struct MarketTemplateDetailView: View {
 
             GroupBox("基本信息") {
                 VStack(alignment: .leading, spacing: 6) {
-                    TDetailRow("描述", template.description)
-                    TDetailRow("分类", template.category.rawValue)
-                    TDetailRow("作者", template.author)
-                    TDetailRow("版本", template.version)
-                    TDetailRow("评分", String(format: "%.1f", template.rating) + " / 5.0")
-                    TDetailRow("下载", "\(template.downloadCount)")
-                    if let date = template.installDate {
-                        TDetailRow("安装时间", date.formatted(date: .numeric, time: .shortened))
-                    }
+                    TDetailRow("描述", entry.description)
+                    TDetailRow("分类", TemplateCategory.fromBridgeKey(entry.category).rawValue)
+                    TDetailRow("作者", entry.author)
+                    TDetailRow("版本", entry.version)
+                    TDetailRow("评分", String(format: "%.1f", entry.rating) + " / 5.0")
+                    TDetailRow("下载", "\(entry.downloads)")
                 }
                 .padding(8)
             }
 
             GroupBox("标签") {
                 HStack {
-                    ForEach(template.tags, id: \.self) { tag in
+                    ForEach(entry.tags, id: \.self) { tag in
                         Text(tag).font(.caption).padding(.horizontal, 6).padding(.vertical, 2)
                             .background(Color.accentColor.opacity(0.1)).cornerRadius(3)
                     }
@@ -393,19 +323,32 @@ struct MarketTemplateDetailView: View {
 
             HStack {
                 Spacer()
-                if template.isLocal {
-                    Button("卸载") { market.uninstallTemplate(template.id); dismiss() }
-                        .buttonStyle(.bordered).foregroundColor(.red)
-                    Button("应用") { dismiss() }.buttonStyle(.borderedProminent)
+                if localIsInstalled {
+                    Button("卸载") {
+                        Task { _ = try? await bridge.marketplaceUnpublish(entryId: entry.id) }
+                        dismiss()
+                    }
+                    .buttonStyle(.bordered).foregroundColor(.red)
+                    Button("应用") {
+                        Task { _ = try? await bridge.templateInstantiate(templateId: entry.id) }
+                        dismiss()
+                    }.buttonStyle(.borderedProminent)
                 } else {
-                    Button("安装模板") { market.installTemplate(template.id); dismiss() }
-                        .buttonStyle(.borderedProminent)
+                    Button("安装模板") {
+                        Task {
+                            _ = try? await bridge.marketplaceInstall(entryId: entry.id)
+                            localIsInstalled = true
+                        }
+                        dismiss()
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
                 Spacer()
             }
         }
         .padding()
         .frame(width: 400, height: 450)
+        .onAppear { localIsInstalled = isInstalled }
     }
 }
 
@@ -421,29 +364,41 @@ struct TDetailRow: View {
     }
 }
 
-// MARK: - 创建模板
-
 struct CreateTemplateSheet: View {
     @Environment(\.dismiss) var dismiss
-    @StateObject private var market = TemplateMarket.shared
+    @EnvironmentObject private var bridge: AgentBridge
     @State private var name = ""
     @State private var description = ""
     @State private var category: TemplateCategory = .design
+    @State private var tags = ""
+    @State private var version = "1.0.0"
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("创建新模板").font(.title2).bold()
+            Text("发布新模板").font(.title2).bold()
             TextField("模板名称", text: $name).textFieldStyle(.roundedBorder)
             TextField("描述", text: $description).textFieldStyle(.roundedBorder)
             Picker("分类", selection: $category) {
-                ForEach(TemplateCategory.allCases, id: \.self) { cat in
+                ForEach(TemplateCategory.allCases.filter { $0 != .all }, id: \.self) { cat in
                     Label(cat.rawValue, systemImage: cat.icon).tag(cat)
                 }
             }
+            TextField("标签 (逗号分隔)", text: $tags).textFieldStyle(.roundedBorder)
+            TextField("版本", text: $version).textFieldStyle(.roundedBorder)
             HStack {
                 Button("取消") { dismiss() }.buttonStyle(.bordered)
-                Button("创建") {
-                    market.createTemplate(name: name, description: description, category: category)
+                Button("发布") {
+                    let tagList = tags.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+                    Task {
+                        _ = try? await bridge.marketplacePublish(
+                            name: name,
+                            author: "本地",
+                            description: description,
+                            category: category.bridgeKey,
+                            tags: tagList,
+                            version: version
+                        )
+                    }
                     dismiss()
                 }.buttonStyle(.borderedProminent).disabled(name.isEmpty)
             }

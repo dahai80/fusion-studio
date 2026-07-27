@@ -136,13 +136,18 @@ class MLXOptimizer: ObservableObject {
 // MARK: - MLX 优化视图
 
 struct MLXOptimizerView: View {
+    @EnvironmentObject private var bridge: AgentBridge
     @StateObject private var optimizer = MLXOptimizer.shared
     @State private var selectedTab: OptimizerTab = .config
+    @State private var mlxStatusInfo: [String: Any] = [:]
+    @State private var hwMetrics: [String: Any] = [:]
+    @State private var isLoadingStatus = false
 
     enum OptimizerTab: String, CaseIterable {
-        case config  = "优化配置"
-        case bench   = "基准测试"
-        case stats   = "推理统计"
+        case config    = "优化配置"
+        case server    = "服务器"
+        case bench     = "基准测试"
+        case stats     = "推理统计"
         case recommend = "推荐配置"
     }
 
@@ -158,16 +163,28 @@ struct MLXOptimizerView: View {
 
             switch selectedTab {
             case .config:    OptimizerConfigView()
+            case .server:    ServerControlView(bridge: bridge, mlxStatusInfo: $mlxStatusInfo, hwMetrics: $hwMetrics, isLoadingStatus: $isLoadingStatus)
             case .bench:     BenchmarkView()
             case .stats:     InferenceStatsView()
             case .recommend: RecommendationView()
             }
         }
+        .onAppear {
+            Task { await refreshServerStatus() }
+        }
+    }
+
+    private func refreshServerStatus() async {
+        isLoadingStatus = true
+        if let status = try? await bridge.mlxStatus() { mlxStatusInfo = status }
+        if let metrics = try? await bridge.hardwareMetrics() { hwMetrics = metrics }
+        isLoadingStatus = false
     }
 
     private func tabIcon(_ tab: OptimizerTab) -> String {
         switch tab {
         case .config:    return "slider.horizontal.3"
+        case .server:    return "server.rack"
         case .bench:     return "speedometer"
         case .stats:     return "chart.bar"
         case .recommend: return "wand.and.stars"
@@ -492,5 +509,102 @@ struct ModelConversionView: View {
                 timer.invalidate(); isConverting = false
             }
         }
+    }
+}
+
+// MARK: - 服务器控制
+
+struct ServerControlView: View {
+    @Environment(\.studioTheme) private var theme
+    @ObservedObject var bridge: AgentBridge
+    @Binding var mlxStatusInfo: [String: Any]
+    @Binding var hwMetrics: [String: Any]
+    @Binding var isLoadingStatus: Bool
+    @State private var restartModel = ""
+    @State private var statusText = ""
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                // 服务器控制
+                GroupBox("服务器控制") {
+                    HStack(spacing: 12) {
+                        Button(action: { Task { try? await bridge.startMLX(model: restartModel); await refresh() } }) {
+                            Label("启动", systemImage: "play.fill")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+
+                        Button(action: { Task { try? await bridge.stopMLX(); await refresh() } }) {
+                            Label("停止", systemImage: "stop.fill")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .foregroundColor(.red)
+
+                        Button(action: { Task { try? await bridge.restartMLX(model: restartModel); await refresh() } }) {
+                            Label("重启", systemImage: "arrow.clockwise")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+
+                        Spacer()
+
+                        Button(action: { Task { await refresh() } }) {
+                            Image(systemName: "arrow.clockwise.circle")
+                        }
+                        .buttonStyle(.borderless)
+                        .controlSize(.small)
+                    }
+                    .padding(8)
+                }
+
+                // 服务器状态
+                GroupBox("服务器状态") {
+                    if isLoadingStatus {
+                        HStack { Spacer(); ProgressView(); Spacer() }
+                    } else if mlxStatusInfo.isEmpty {
+                        Text("未连接").foregroundColor(.secondary).padding(8)
+                    } else {
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(mlxStatusInfo.sorted(by: { $0.key < $1.key }), id: \.key) { key, value in
+                                HStack {
+                                    Text(key).foregroundColor(.secondary).frame(width: 120, alignment: .leading)
+                                    Text(String(describing: value)).font(.system(.body, design: .monospaced))
+                                    Spacer()
+                                }
+                            }
+                        }
+                        .padding(8)
+                    }
+                }
+
+                // 硬件指标
+                GroupBox("硬件指标") {
+                    if hwMetrics.isEmpty {
+                        Text("无数据").foregroundColor(.secondary).padding(8)
+                    } else {
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(hwMetrics.sorted(by: { $0.key < $1.key }), id: \.key) { key, value in
+                                HStack {
+                                    Text(key).foregroundColor(.secondary).frame(width: 120, alignment: .leading)
+                                    Text(String(describing: value)).font(.system(.body, design: .monospaced))
+                                    Spacer()
+                                }
+                            }
+                        }
+                        .padding(8)
+                    }
+                }
+            }
+            .padding()
+        }
+    }
+
+    private func refresh() async {
+        isLoadingStatus = true
+        if let status = try? await bridge.mlxStatus() { mlxStatusInfo = status }
+        if let metrics = try? await bridge.hardwareMetrics() { hwMetrics = metrics }
+        isLoadingStatus = false
     }
 }

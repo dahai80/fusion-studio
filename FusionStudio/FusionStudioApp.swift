@@ -38,6 +38,7 @@ struct FusionStudioApp: App {
                 .onAppear {
                     agentBridge.setIPCClient(ipcClient)
                     ipcClient.connect()
+                    ArtifactSidebarCache.shared.configure(ipcClient: ipcClient)
                     Task {
                         await performStartupHealthCheck()
                     }

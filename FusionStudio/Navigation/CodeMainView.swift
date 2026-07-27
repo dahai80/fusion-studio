@@ -229,6 +229,7 @@ struct CodeMainView: View {
                     Button(action: {
                         selectedModel = model.name
                         agent.selectedModel = model.name
+                        Task { try? await bridge.mlxSetModel(model: model.name) }
                         codeMainLog.info("Model selected: \(model.name)")
                     }) {
                         HStack {

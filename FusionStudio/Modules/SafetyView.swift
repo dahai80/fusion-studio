@@ -9,6 +9,7 @@ struct SafetyView: View {
 
     enum SafetyTab: String, CaseIterable {
         case check = "Check"
+        case evaluate = "Evaluate"
         case pending = "Pending"
         case policy = "Policy"
     }
@@ -30,6 +31,8 @@ struct SafetyView: View {
                 switch selectedTab {
                 case .check:
                     SafetyCheckView()
+                case .evaluate:
+                    SafetyEvaluateView()
                 case .pending:
                     SafetyPendingView()
                 case .policy:
@@ -159,6 +162,116 @@ struct SafetyCheckView: View {
     }
 }
 
+struct SafetyEvaluateView: View {
+    @EnvironmentObject var bridge: AgentBridge
+    @State private var category = ""
+    @State private var content = ""
+    @State private var context = ""
+    @State private var isEvaluating = false
+    @State private var result: SafetyActionModel?
+
+    private let logger = Logger(subsystem: "com.fusion.studio", category: "SafetyEvaluateView")
+
+    var body: some View {
+        VStack(spacing: 16) {
+            GroupBox("Evaluate Action") {
+                VStack(spacing: 8) {
+                    TextField("Category (e.g. code_execution, file_access)", text: $category)
+                        .textFieldStyle(.roundedBorder)
+                    TextEditor(text: $content)
+                        .frame(minHeight: 60, maxHeight: 120)
+                        .border(Color.gray.opacity(0.3))
+                    TextField("Context (optional)", text: $context)
+                        .textFieldStyle(.roundedBorder)
+                    HStack {
+                        Spacer()
+                        Button("Evaluate") {
+                            Task { await evaluateAction() }
+                        }
+                        .disabled(category.isEmpty || isEvaluating)
+                        .buttonStyle(.borderedProminent)
+                        Spacer()
+                    }
+                }
+            }
+            .padding(.horizontal)
+
+            if let result {
+                evaluateResultView(result)
+            }
+
+            Spacer()
+        }
+        .padding(.vertical)
+    }
+
+    private func evaluateResultView(_ result: SafetyActionModel) -> some View {
+        GroupBox("Evaluation Result") {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("Action ID:").fontWeight(.semibold)
+                    Text(result.id).font(.caption).foregroundColor(.secondary)
+                }
+                HStack {
+                    Text("Category:").fontWeight(.semibold)
+                    Text(result.category)
+                }
+                HStack {
+                    Text("Status:").fontWeight(.semibold)
+                    Text(result.status)
+                        .foregroundColor(result.status == "approved" ? .green : .orange)
+                }
+                if !result.reason.isEmpty {
+                    HStack {
+                        Text("Reason:").fontWeight(.semibold)
+                        Text(result.reason).font(.caption)
+                    }
+                }
+                HStack(spacing: 12) {
+                    Button("Approve") {
+                        Task { await approveAction(result.id) }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.green)
+                    Button("Reject") {
+                        Task { await rejectAction(result.id) }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.red)
+                }
+            }
+        }
+        .padding(.horizontal)
+    }
+
+    private func evaluateAction() async {
+        isEvaluating = true
+        do {
+            result = try await bridge.safetyEvaluateAction(category: category, content: content, context: context)
+        } catch {
+            logger.error("evaluateAction: \(error)")
+        }
+        isEvaluating = false
+    }
+
+    private func approveAction(_ actionId: String) async {
+        do {
+            _ = try await bridge.safetyApproveAction(actionId: actionId)
+            result?.status = "approved"
+        } catch {
+            logger.error("approveAction: \(error)")
+        }
+    }
+
+    private func rejectAction(_ actionId: String) async {
+        do {
+            _ = try await bridge.safetyRejectAction(actionId: actionId)
+            result?.status = "rejected"
+        } catch {
+            logger.error("rejectAction: \(error)")
+        }
+    }
+}
 struct SafetyPendingView: View {
     @EnvironmentObject var bridge: AgentBridge
 
