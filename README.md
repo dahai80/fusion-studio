@@ -91,6 +91,26 @@ Design · Code · Simulation · MultiModal · Training · Data · Agent · KB ·
 | 24 | 🔑 **License** | `key.fill` | ✅ Stable | Commercial licensing, activation, tier comparison |
 | 25 | 🌐 **Multi-Node** | `network` | 🆕 New | Cluster overview, topology, task monitor, alerts, autoscaler |
 
+### 📦 Artifacts Integration
+
+Fusion Studio integrates with [fusion-artifacts-engine](https://github.com/dahai80/fusion-artifacts-engine) for persistent artifact management. The Artifacts panel and sidebar provide full CRUD, version control, and context injection:
+
+| Feature | UI Location | Backend API |
+|---------|------------|-------------|
+| Create artifact (name/type/content/summary) | `+` button → Create Sheet | `artifact.create` |
+| Browse artifacts with search | Main panel list + sidebar | `artifact.list` |
+| View content (text + HTML preview) | Detail pane (WKWebView for HTML) | `artifact.get_content` |
+| Edit content / new version | Pencil button → Edit Sheet | `artifact.update` |
+| Version history with rollback | Clock button → Version Sheet | `artifact.version_list`, `artifact.version_rollback` |
+| Export to JSON | Upload button → Export Sheet | `artifact.export` |
+| Import from JSON | Download button → Import Sheet | `artifact.import` |
+| Inject artifacts into context | `text.append` button → Inject Sheet | `artifact.inject` |
+| Safety check (token budget) | Inject Sheet → Safety tab | `artifact.check_safety` |
+| Session switching | Session badge popover | `artifact.list` (per session) |
+| Sidebar live list | Artifacts section in sidebar | Auto-refresh via `ArtifactSidebarCache` |
+
+**Communication**: HTTP JSON-RPC 2.0 to `127.0.0.1:8892` (separate from UDS channel).
+
 ---
 
 ## 🏗️ Architecture

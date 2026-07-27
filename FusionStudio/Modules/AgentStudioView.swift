@@ -1789,7 +1789,7 @@ struct WorkflowDetailView: View {
                                     .font(.system(size: theme.smallTextSize, weight: .medium))
                                     .foregroundStyle(theme.text)
                                 Spacer()
-                                FusionTag(node.type, color: nodeTypeColor(node.type))
+                                FusionTag(node.type, color: nodeTypeTagColor(node.type))
                             }
                             .padding(.vertical, theme.spacingS)
                             if index < graph.nodes.count - 1 {
@@ -1910,7 +1910,20 @@ struct WorkflowDetailView: View {
             .foregroundStyle(nodeTypeColor(type))
     }
 
-    private func nodeTypeColor(_ type: String) -> TagColor {
+    private func nodeTypeTagColor(_ type: String) -> TagColor {
+        switch type {
+        case "start": return .green
+        case "llm": return .purple
+        case "tool": return .blue
+        case "condition": return .orange
+        case "loop": return .blue
+        case "end": return .gray
+        case "error_handler": return .red
+        default: return .gray
+        }
+    }
+
+    private func nodeTypeColor(_ type: String) -> Color {
         switch type {
         case "start": return .green
         case "llm": return .purple

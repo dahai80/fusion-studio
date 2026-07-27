@@ -12,6 +12,9 @@ struct DocumentChunk: Identifiable, Hashable {
     let embedding: [Float]?
     let metadata: [String: String]
     let chunkIndex: Int
+
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
+    static func == (lhs: DocumentChunk, rhs: DocumentChunk) -> Bool { lhs.id == rhs.id }
 }
 
 struct RetrievalResult: Identifiable, Hashable {
@@ -21,7 +24,7 @@ struct RetrievalResult: Identifiable, Hashable {
     let rank: Int
 
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
-    static func == (lhs: DocumentChunk, rhs: DocumentChunk) -> Bool { lhs.id == rhs.id }
+    static func == (lhs: RetrievalResult, rhs: RetrievalResult) -> Bool { lhs.id == rhs.id }
 }
 
 enum RetrievalStrategy: String, CaseIterable {
@@ -450,12 +453,13 @@ struct QueryView: View {
                     var results: [RetrievalResult] = []
                     for (i, entry) in entries.enumerated() {
                         let content = entry["content"] as? String ?? entry["text"] as? String ?? String(describing: entry)
+                        let stringMeta = entry.mapValues { String(describing: $0) }
                         let chunk = DocumentChunk(
                             id: "chunk-knowledge-\(i)",
                             documentId: "knowledge",
                             content: content,
                             embedding: nil,
-                            metadata: entry,
+                            metadata: stringMeta,
                             chunkIndex: i
                         )
                         let score = entry["score"] as? Double ?? (0.9 - Double(i) * 0.1)

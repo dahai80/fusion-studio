@@ -143,6 +143,7 @@ struct SafetyActionModel: Codable, Equatable, Identifiable {
     var category: String
     var status: String
     var content: String
+    var reason: String = ""
 }
 
 struct TemplateModel: Codable, Equatable, Identifiable {

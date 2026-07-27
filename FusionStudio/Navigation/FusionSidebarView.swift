@@ -258,18 +258,100 @@ struct FusionSidebarView: View {
     }
 
     private var artifactsContent: some View {
-        HStack(spacing: theme.spacingS) {
-            Image(systemName: "cube.box")
-                .font(.system(size: theme.iconXS))
-                .foregroundStyle(theme.textTertiary)
-                .frame(width: 20)
-            Text("Coming Soon")
-                .font(.system(size: theme.footnoteSize))
-                .foregroundStyle(theme.textTertiary)
-            Spacer()
+        VStack(spacing: 0) {
+            let sidebarArtifacts = ArtifactSidebarCache.shared.artifacts
+            if sidebarArtifacts.isEmpty {
+                HStack(spacing: theme.spacingS) {
+                    Image(systemName: "cube.box")
+                        .font(.system(size: theme.iconXS))
+                        .foregroundStyle(theme.textTertiary)
+                        .frame(width: 20)
+                    Text("No artifacts yet")
+                        .font(.system(size: theme.footnoteSize))
+                        .foregroundStyle(theme.textTertiary)
+                    Spacer()
+                }
+                .padding(.horizontal, theme.spacingM)
+                .padding(.vertical, theme.spacingS)
+            } else {
+                ForEach(sidebarArtifacts.prefix(10)) { artifact in
+                    sidebarArtifactRow(artifact)
+                }
+            }
+
+            Button(action: {
+                appState.activeSection = .artifacts
+                sidebarLog.info("Navigated to artifacts panel")
+            }) {
+                HStack(spacing: theme.spacingXS) {
+                    Image(systemName: "cube.box")
+                        .font(.system(size: theme.iconXS))
+                    Text("Open Artifacts")
+                        .font(.system(size: theme.footnoteSize))
+                }
+                .foregroundStyle(theme.accent)
+                .padding(.horizontal, theme.spacing2XL)
+                .padding(.vertical, 4)
+            }
+            .buttonStyle(.plain)
         }
-        .padding(.horizontal, theme.spacingM)
-        .padding(.vertical, theme.spacingS)
+    }
+
+    private func sidebarArtifactRow(_ artifact: ArtifactModel) -> some View {
+        Button(action: {
+            appState.activeSection = .artifacts
+            sidebarLog.info("Selected artifact: \(artifact.name)")
+        }) {
+            HStack(spacing: theme.spacingS) {
+                Image(systemName: iconForArtifactType(artifact.type))
+                    .font(.system(size: theme.iconXS))
+                    .foregroundStyle(colorForArtifactType(artifact.type))
+                    .frame(width: 20)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(artifact.name)
+                        .font(.system(size: theme.footnoteSize))
+                        .foregroundStyle(theme.text)
+                        .lineLimit(1)
+                    HStack(spacing: 4) {
+                        Text(artifact.type.uppercased())
+                            .font(.system(size: 8, weight: .medium))
+                            .foregroundStyle(theme.textTertiary)
+                        Text("v\(artifact.currentVersion)")
+                            .font(.system(size: 8))
+                            .foregroundStyle(theme.textTertiary)
+                    }
+                }
+
+                Spacer()
+            }
+            .padding(.horizontal, theme.spacingM)
+            .padding(.vertical, 3)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func iconForArtifactType(_ type: String) -> String {
+        switch type.lowercased() {
+        case "code": return "chevron.left.forwardslash.chevron.right"
+        case "markdown": return "doc.text"
+        case "html": return "globe"
+        case "react": return "atom"
+        case "data": return "tablecells"
+        default: return "doc"
+        }
+    }
+
+    private func colorForArtifactType(_ type: String) -> Color {
+        switch type.lowercased() {
+        case "code": return .blue
+        case "markdown": return .purple
+        case "html": return .orange
+        case "react": return .cyan
+        case "data": return .green
+        default: return .gray
+        }
     }
 
     private var codeModulesContent: some View {
