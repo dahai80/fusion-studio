@@ -131,17 +131,19 @@ class ChatSessionStore: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
 
-    private let ipc: IPCClient
+    private var ipc: IPCClient?
 
-    init(ipc: IPCClient) {
-        self.ipc = ipc
+    init() {}
+
+    func setIPCClient(_ client: IPCClient) {
+        self.ipc = client
     }
 
     func loadSessions() async {
         isLoading = true
         defer { isLoading = false }
         do {
-            let result = try await ipc.call(method: "chat.list")
+            let result = try await ipc!.call(method: "chat.list")
             if let list = result["sessions"] as? [[String: Any]] {
                 sessions = list.compactMap { parseSessionData($0) }
                 chatStoreLog.info("Loaded \(self.sessions.count) chat sessions")
@@ -157,7 +159,7 @@ class ChatSessionStore: ObservableObject {
             var params: [String: Any] = ["mode": mode]
             if !title.isEmpty { params["title"] = title }
             if !graphId.isEmpty { params["graph_id"] = graphId }
-            let result = try await ipc.call(method: "chat.create", params: params)
+            let result = try await ipc!.call(method: "chat.create", params: params)
             if let session = parseSessionData(result) {
                 sessions.insert(session, at: 0)
                 activeSession = session
@@ -175,7 +177,7 @@ class ChatSessionStore: ObservableObject {
 
     func deleteSession(_ sessionId: String) async {
         do {
-            _ = try await ipc.call(method: "chat.delete", params: ["session_id": sessionId])
+            _ = try await ipc!.call(method: "chat.delete", params: ["session_id": sessionId])
             sessions.removeAll { $0.id == sessionId }
             if activeSession?.id == sessionId {
                 activeSession = sessions.first
@@ -199,7 +201,7 @@ class ChatSessionStore: ObservableObject {
                 "message": text,
             ]
             if !mode.isEmpty { params["mode"] = mode }
-            let result = try await ipc.call(method: "chat.send", params: params)
+            let result = try await ipc!.call(method: "chat.send", params: params)
 
             if let events = result["events"] as? [[String: Any]] {
                 var content = ""
@@ -238,7 +240,7 @@ class ChatSessionStore: ObservableObject {
     func branch(at messageId: String) async {
         guard let session = activeSession else { return }
         do {
-            let result = try await ipc.call(method: "chat.branch", params: [
+            let result = try await ipc!.call(method: "chat.branch", params: [
                 "session_id": session.id,
                 "message_id": messageId,
             ])
@@ -255,7 +257,7 @@ class ChatSessionStore: ObservableObject {
     func editMessage(_ messageId: String, newContent: String) async {
         guard let session = activeSession else { return }
         do {
-            let result = try await ipc.call(method: "chat.edit", params: [
+            let result = try await ipc!.call(method: "chat.edit", params: [
                 "session_id": session.id,
                 "message_id": messageId,
                 "content": newContent,

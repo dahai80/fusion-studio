@@ -15,6 +15,8 @@ struct FusionStudioApp: App {
     @StateObject private var screenContext = ScreenContextManager()
     @StateObject private var multiNodeEngine = MultiNodeEngine()
     @StateObject private var designBridge = DesignBridge()
+    @StateObject private var streamingBridge = StreamingBridge()
+    @StateObject private var chatStore = ChatSessionStore()
 
     init() {
         // Dock 图标延后到 onAppear 中设置，init 阶段 NSApp 尚未就绪
@@ -39,6 +41,8 @@ struct FusionStudioApp: App {
                 .environmentObject(screenContext)
                 .environmentObject(multiNodeEngine)
                 .environmentObject(designBridge)
+                .environmentObject(streamingBridge)
+                .environmentObject(chatStore)
                 .studioThemed()
                 .onAppear {
                     agentBridge.setIPCClient(ipcClient)
@@ -50,6 +54,8 @@ struct FusionStudioApp: App {
                     ContextAssembler.shared.setIPCClient(ipcClient)
                     FusionProjectManager.shared.setIPCClient(ipcClient)
                     ipcClient.connect()
+                    streamingBridge.connect()
+                    chatStore.setIPCClient(ipcClient)
                     ArtifactSidebarCache.shared.configure(ipcClient: ipcClient)
                     Task {
                         await performStartupHealthCheck()

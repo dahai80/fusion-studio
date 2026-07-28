@@ -423,7 +423,7 @@ FusionDesignSystem/
 | **fusion-artifacts-engine** | artifact.create type=html/react | ✅ 已支持 | — |
 | **fusion-artifacts-engine** | artifact.update_version source=ai_generation | ✅ 已支持 | — |
 | **fusion-artifacts-engine** | artifact.export_code | ✅ 已支持 | — |
-| **fusion-artifacts-engine** | project_id 范围 | ❌ 需提 Issue | P1 |
+| **fusion-artifacts-engine** | project_id 范围 | ✅ PR #8 已落地 (commit 360fd87)，客户端已接入 | — |
 | **fusion-artifacts-engine** | 设计 Token 存储 (metadata 扩展) | 需提 Issue | P2 |
 | **fusion-agent-studio** | knowledge.search 按设计 Token scope 检索 | ✅ scope 参数已支持 | — |
 | **fusion-agent-studio** | knowledge.ingest 设计组件库 | ✅ 已支持 | — |
@@ -533,6 +533,7 @@ Fusion Design 的核心差异化优势在于 **离线运行 + 项目绑定 + 全
 | 13 | 截图导入 ScreenshotToCode | fusion-mlx multimodal待确认 | ✅ stub完成，DesignBridge.importScreenshot已实现，multimodal待fusion-mlx |
 | 15 | Figma 集成 | Figma-Context-MCP待调研 | ✅ stub完成，FigmaBridge+convertToHTML已实现，MCP连接待上游 |
 | 16 | artifact↔文件双向同步 | artifact.sync API待上游 | ✅ 已实现！artifact.sync API已在fusion-artifacts-engine存在 |
+| — | project_id 范围隔离 | fusion-artifacts-engine不支持project_id | ✅ PR #8 落地，IPCClient+DesignBridge+ArtifactsPanel+ArtifactSidebarCache已接入 |
 
 ### 验证结果
 
