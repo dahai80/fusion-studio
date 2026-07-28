@@ -588,7 +588,7 @@ class IPCClient: ObservableObject {
         return json["result"] as? [String: Any] ?? [:]
     }
 
-    func artifactCreate(sessionId: String, name: String, type: String, kind: String? = nil, content: String, summary: String? = nil, projectId: String? = nil) async throws -> [String: Any] {
+    func artifactCreate(sessionId: String, name: String, type: String, kind: String? = nil, content: String, summary: String? = nil, projectId: String? = nil, metadata: [String: Any]? = nil) async throws -> [String: Any] {
         var params: [String: Any] = [
             "session_id": sessionId,
             "name": name,
@@ -598,6 +598,7 @@ class IPCClient: ObservableObject {
         if let k = kind { params["kind"] = k }
         if let s = summary { params["summary"] = s }
         if let p = projectId { params["project_id"] = p }
+        if let m = metadata { params["metadata"] = m }
         return try await artifactsCall(method: "artifact.create", params: params)
     }
 
@@ -622,10 +623,11 @@ class IPCClient: ObservableObject {
         return try await artifactsCall(method: "artifact.delete", params: ["artifact_id": artifactId, "hard": hard])
     }
 
-    func artifactUpdate(artifactId: String, content: String, changeLog: String? = nil, projectId: String? = nil) async throws -> [String: Any] {
+    func artifactUpdate(artifactId: String, content: String, changeLog: String? = nil, projectId: String? = nil, metadata: [String: Any]? = nil) async throws -> [String: Any] {
         var params: [String: Any] = ["artifact_id": artifactId, "content": content]
         if let cl = changeLog { params["change_log"] = cl }
         if let p = projectId { params["project_id"] = p }
+        if let m = metadata { params["metadata"] = m }
         return try await artifactsCall(method: "artifact.update", params: params)
     }
 

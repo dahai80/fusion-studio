@@ -45,6 +45,11 @@ enum JSONValue: Codable, Equatable {
         case .array(let value): try container.encode(value)
         }
     }
+
+    var stringValue: String? {
+        if case .string(let v) = self { return v }
+        return nil
+    }
 }
 
 struct PositionModel: Codable, Equatable {
@@ -431,6 +436,65 @@ final class AgentBridge: ObservableObject {
     func cancelExecution() {
         logger.info("cancelExecution")
         self.isExecuting = false
+    }
+
+    func updateGraph(id: UUID, name: String? = nil, nodes: [NodeConfigModel]? = nil, edges: [EdgeModel]? = nil) async throws -> AgentGraphModel? {
+        guard let client = ipcClient else {
+            throw BridgeError.notConnected
+        }
+        logger.info("updateGraph: id=\(id)")
+        var params: [String: Any] = ["graph_id": id.uuidString]
+        if let name { params["name"] = name }
+        if let nodes {
+            params["nodes"] = nodes.map { node -> [String: Any] in
+                let label: String
+                if case .string(let v) = node.config["label"] { label = v } else { label = "" }
+                return ["id": node.id, "type": node.type, "label": label]
+            }
+        }
+        if let edges {
+            params["edges"] = edges.map { ["source_id": $0.source, "target_id": $0.target, "label": $0.condition ?? ""] }
+        }
+        do {
+            let result = try await client.call(method: "graph.update", params: params)
+            return Self.parseGraphModel(from: result)
+        } catch let error as IPCError {
+            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
+            self.lastError = bridgeErr
+            logger.error("updateGraph: \(error)")
+            throw bridgeErr
+        }
+    }
+
+    func fetchTools() async throws -> [[String: Any]] {
+        guard let client = ipcClient else {
+            throw BridgeError.notConnected
+        }
+        logger.info("fetchTools")
+        do {
+            let result = try await client.call(method: "tool.list", params: [:])
+            return result["tools"] as? [[String: Any]] ?? []
+        } catch let error as IPCError {
+            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
+            self.lastError = bridgeErr
+            logger.error("fetchTools: \(error)")
+            throw bridgeErr
+        }
+    }
+
+    func getTool(name: String) async throws -> [String: Any] {
+        guard let client = ipcClient else {
+            throw BridgeError.notConnected
+        }
+        logger.info("getTool: \(name)")
+        do {
+            return try await client.call(method: "tool.get", params: ["name": name])
+        } catch let error as IPCError {
+            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
+            self.lastError = bridgeErr
+            logger.error("getTool: \(error)")
+            throw bridgeErr
+        }
     }
 
     func hardwareMetrics() async throws -> [String: Any] {
