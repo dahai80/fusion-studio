@@ -60,6 +60,7 @@ class FusionConfig: ObservableObject {
     @AppStorage("fusionRagHost") var fusionRagHost = "127.0.0.1"
     @AppStorage("fusionRagPort") var fusionRagPort = 11436
     @AppStorage("fusionRagApiKey") var fusionRagApiKey = ""
+    @AppStorage("fusionRagEmbed") var fusionRagEmbed = "BGE-M3"
 
     /// Fusion-RAG 服务地址
     var fusionRagURL: String { "http://\(fusionRagHost):\(fusionRagPort)" }
