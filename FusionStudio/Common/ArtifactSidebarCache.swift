@@ -33,7 +33,8 @@ class ArtifactSidebarCache: ObservableObject {
         }
         Task { @MainActor in
             do {
-                let result = try await client.artifactList(sessionId: "default")
+                let projectId = FusionProjectManager.shared.activeProject?.id.uuidString
+                let result = try await client.artifactList(sessionId: "default", projectId: projectId)
                 let items = result["artifacts"] as? [[String: Any]] ?? []
                 var parsed: [ArtifactModel] = []
                 for item in items {

@@ -588,7 +588,7 @@ class IPCClient: ObservableObject {
         return json["result"] as? [String: Any] ?? [:]
     }
 
-    func artifactCreate(sessionId: String, name: String, type: String, kind: String? = nil, content: String, summary: String? = nil) async throws -> [String: Any] {
+    func artifactCreate(sessionId: String, name: String, type: String, kind: String? = nil, content: String, summary: String? = nil, projectId: String? = nil) async throws -> [String: Any] {
         var params: [String: Any] = [
             "session_id": sessionId,
             "name": name,
@@ -597,6 +597,7 @@ class IPCClient: ObservableObject {
         ]
         if let k = kind { params["kind"] = k }
         if let s = summary { params["summary"] = s }
+        if let p = projectId { params["project_id"] = p }
         return try await artifactsCall(method: "artifact.create", params: params)
     }
 
@@ -610,9 +611,10 @@ class IPCClient: ObservableObject {
         return try await artifactsCall(method: "artifact.get_content", params: params)
     }
 
-    func artifactList(sessionId: String, includeDeleted: Bool = false) async throws -> [String: Any] {
+    func artifactList(sessionId: String, includeDeleted: Bool = false, projectId: String? = nil) async throws -> [String: Any] {
         var params: [String: Any] = ["session_id": sessionId]
         if includeDeleted { params["include_deleted"] = true }
+        if let p = projectId { params["project_id"] = p }
         return try await artifactsCall(method: "artifact.list", params: params)
     }
 
@@ -620,9 +622,10 @@ class IPCClient: ObservableObject {
         return try await artifactsCall(method: "artifact.delete", params: ["artifact_id": artifactId, "hard": hard])
     }
 
-    func artifactUpdate(artifactId: String, content: String, changeLog: String? = nil) async throws -> [String: Any] {
+    func artifactUpdate(artifactId: String, content: String, changeLog: String? = nil, projectId: String? = nil) async throws -> [String: Any] {
         var params: [String: Any] = ["artifact_id": artifactId, "content": content]
         if let cl = changeLog { params["change_log"] = cl }
+        if let p = projectId { params["project_id"] = p }
         return try await artifactsCall(method: "artifact.update", params: params)
     }
 
@@ -688,6 +691,36 @@ class IPCClient: ObservableObject {
             "name": name,
             "session_id": sessionId
         ])
+    }
+
+    // MARK: - Artifacts Engine (REST endpoints)
+
+    func artifactTokenCount(text: String, model: String? = nil) async throws -> [String: Any] {
+        let baseURL = artifactsEngineURL
+        guard let url = URL(string: "\(baseURL)/api/token-count") else {
+            throw IPCError.invalidRequest
+        }
+        var body: [String: Any] = ["text": text]
+        if let m = model { body["model"] = m }
+        guard let requestData = try? JSONSerialization.data(withJSONObject: body) else {
+            throw IPCError.invalidRequest
+        }
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = "POST"
+        urlRequest.httpBody = requestData
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.timeoutInterval = 15
+        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw IPCError.invalidResponse
+        }
+        guard httpResponse.statusCode == 200 else {
+            throw IPCError.rpcError(code: httpResponse.statusCode, message: "artifactTokenCount HTTP \(httpResponse.statusCode)")
+        }
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw IPCError.invalidResponse
+        }
+        return json
     }
 
     // MARK: - 辅助方法

@@ -508,7 +508,8 @@ struct ArtifactsPanel: View {
         errorMessage = nil
         Task {
             do {
-                let result = try await ipcClient.artifactList(sessionId: sessionId)
+                let projectId = FusionProjectManager.shared.activeProject?.id.uuidString
+                let result = try await ipcClient.artifactList(sessionId: sessionId, projectId: projectId)
                 let items = result["artifacts"] as? [[String: Any]] ?? []
                 var parsed: [ArtifactModel] = []
                 for item in items {
@@ -1137,7 +1138,8 @@ struct ArtifactCreateChatSheet: View {
                     name: artifactName.isEmpty ? template.name : artifactName,
                     type: template.type,
                     kind: template.kind.rawValue,
-                    content: generatedContent
+                    content: generatedContent,
+                    projectId: FusionProjectManager.shared.activeProject?.id.uuidString
                 )
                 artifactsLog.info("Created artifact from chat: \(self.artifactName)")
                 onComplete(nil)
@@ -1248,7 +1250,8 @@ struct CreateArtifactSheet: View {
                 _ = try await ipcClient.artifactCreate(
                     sessionId: sessionId, name: name, type: type,
                     kind: kind.rawValue,
-                    content: content, summary: summary.isEmpty ? nil : summary
+                    content: content, summary: summary.isEmpty ? nil : summary,
+                    projectId: FusionProjectManager.shared.activeProject?.id.uuidString
                 )
                 artifactsLog.info("Created artifact: \(self.name)")
                 onComplete(nil)
@@ -1335,7 +1338,8 @@ struct EditContentSheet: View {
             do {
                 _ = try await ipcClient.artifactUpdate(
                     artifactId: artifact.id, content: content,
-                    changeLog: changeLog.isEmpty ? nil : changeLog
+                    changeLog: changeLog.isEmpty ? nil : changeLog,
+                    projectId: FusionProjectManager.shared.activeProject?.id.uuidString
                 )
                 artifactsLog.info("Updated artifact \(self.artifact.id)")
                 onComplete(true)

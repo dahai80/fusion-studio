@@ -327,20 +327,23 @@ class DesignBridge: ObservableObject {
         }
 
         do {
+            let projectId = FusionProjectManager.shared.activeProject?.id.uuidString
             if artifactId.isEmpty {
                 let result = try await ipc.artifactCreate(
                     sessionId: sessionId,
                     name: currentArtifactTitle.isEmpty ? "Design \(DateFormatter.shortDate.string(from: Date()))" : currentArtifactTitle,
                     type: currentArtifactType,
                     kind: kindForType(currentArtifactType),
-                    content: currentArtifactCode
+                    content: currentArtifactCode,
+                    projectId: projectId
                 )
                 if let id = result["id"] as? String { artifactId = id }
             } else {
                 _ = try await ipc.artifactUpdate(
                     artifactId: artifactId,
                     content: currentArtifactCode,
-                    changeLog: "Updated via Design"
+                    changeLog: "Updated via Design",
+                    projectId: projectId
                 )
             }
             artifactSaved = true
