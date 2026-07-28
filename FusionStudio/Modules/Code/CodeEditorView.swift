@@ -639,6 +639,7 @@ struct CodeView: View {
         case chat = "Chat"
         case files = "Files"
         case git = "Git"
+        case preview = "Design"
     }
 
     var body: some View {
@@ -651,6 +652,7 @@ struct CodeView: View {
                     case .chat:  ChatHistoryView()
                     case .files: FileTreeView()
                     case .git:   GitStatusView()
+                    case .preview: CodeDesignPreviewPanel()
                     }
                 }
                 .frame(minWidth: 220, maxWidth: 300)
@@ -701,6 +703,7 @@ struct CodeView: View {
         case .chat: return "message"
         case .files: return workspace.hasProject ? "folder.fill" : "folder"
         case .git: return "arrow.triangle.branch"
+        case .preview: return "paintbrush"
         }
     }
 

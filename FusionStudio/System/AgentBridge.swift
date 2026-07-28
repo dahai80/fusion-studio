@@ -497,6 +497,103 @@ final class AgentBridge: ObservableObject {
         }
     }
 
+    func listSessions() async throws -> [[String: Any]] {
+        guard let client = ipcClient else {
+            throw BridgeError.notConnected
+        }
+        logger.info("listSessions")
+        do {
+            let result = try await client.call(method: "session.list", params: [:]) as [String: Any]
+            if let sessions = result["sessions"] as? [[String: Any]] {
+                return sessions
+            }
+            return []
+        } catch let error as IPCError {
+            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
+            self.lastError = bridgeErr
+            logger.error("listSessions: \(error)")
+            throw bridgeErr
+        }
+    }
+
+    // MARK: - Cron Management
+
+    func cronRegister(id: String = "", name: String, expression: String, graphId: String = "", enabled: Bool = true, inputData: String = "", maxRetries: Int = 0) async throws -> [String: Any] {
+        guard let client = ipcClient else {
+            throw BridgeError.notConnected
+        }
+        var params: [String: Any] = [
+            "name": name,
+            "expression": expression,
+            "enabled": enabled,
+            "max_retries": maxRetries,
+        ]
+        if !id.isEmpty { params["id"] = id }
+        if !graphId.isEmpty { params["graph_id"] = graphId }
+        if !inputData.isEmpty { params["input_data"] = inputData }
+        logger.info("cronRegister: \(name) \(expression)")
+        do {
+            return try await client.call(method: "cron.register", params: params)
+        } catch let error as IPCError {
+            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
+            self.lastError = bridgeErr
+            throw bridgeErr
+        }
+    }
+
+    func cronUnregister(id: String) async throws -> [String: Any] {
+        guard let client = ipcClient else {
+            throw BridgeError.notConnected
+        }
+        logger.info("cronUnregister: \(id)")
+        do {
+            return try await client.call(method: "cron.unregister", params: ["id": id])
+        } catch let error as IPCError {
+            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
+            self.lastError = bridgeErr
+            throw bridgeErr
+        }
+    }
+
+    func cronList() async throws -> [[String: Any]] {
+        guard let client = ipcClient else {
+            throw BridgeError.notConnected
+        }
+        logger.info("cronList")
+        do {
+            let result = try await client.call(method: "cron.list", params: [:]) as [String: Any]
+            if let jobs = result["jobs"] as? [[String: Any]] {
+                return jobs
+            }
+            return []
+        } catch let error as IPCError {
+            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
+            self.lastError = bridgeErr
+            logger.error("cronList: \(error)")
+            throw bridgeErr
+        }
+    }
+
+    func cronListExecutions(jobId: String = "", limit: Int = 20) async throws -> [[String: Any]] {
+        guard let client = ipcClient else {
+            throw BridgeError.notConnected
+        }
+        var params: [String: Any] = ["limit": limit]
+        if !jobId.isEmpty { params["job_id"] = jobId }
+        logger.info("cronListExecutions: jobId=\(jobId)")
+        do {
+            let result = try await client.call(method: "cron.list_executions", params: params) as [String: Any]
+            if let executions = result["executions"] as? [[String: Any]] {
+                return executions
+            }
+            return []
+        } catch let error as IPCError {
+            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
+            self.lastError = bridgeErr
+            throw bridgeErr
+        }
+    }
+
     func hardwareMetrics() async throws -> [String: Any] {
         guard let client = ipcClient else {
             throw BridgeError.notConnected
@@ -1565,6 +1662,22 @@ final class AgentBridge: ObservableObject {
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
             self.lastError = bridgeErr
+            throw bridgeErr
+        }
+    }
+
+    func marketplaceUninstall(entryId: String) async throws -> Bool {
+        guard let client = ipcClient else {
+            throw BridgeError.notConnected
+        }
+        logger.info("marketplaceUninstall: \(entryId)")
+        do {
+            let result = try await client.call(method: "marketplace.uninstall", params: ["entry_id": entryId]) as [String: Any]
+            return result["success"] as? Bool ?? false
+        } catch let error as IPCError {
+            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
+            self.lastError = bridgeErr
+            logger.error("marketplaceUninstall: \(error)")
             throw bridgeErr
         }
     }

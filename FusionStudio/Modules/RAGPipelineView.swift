@@ -104,41 +104,121 @@ class RAGEngine: ObservableObject {
     init() {
     }
 
+    // Callers: RAGPipelineView document indexing, indexAll().
+    // Affected API: fusion-mlx /v1/embeddings (now available, issue #225 CLOSED).
+    // Data schemas: DocumentChunk.embedding now populated with real Float vectors; localSearch/cosineSimilarity added.
+    // User instruction: "现在上游的issue和pr已经修复了，没有阻塞了，继续吧" — wire real embeddings now unblocked.
     func indexDocument(_ id: String) {
         guard let doc = documents.first(where: { $0.id == id }), !doc.isIndexed else { return }
         isIndexing = true
 
         Task { [weak self] in
             guard let self = self else { return }
-            do {
-                let url = URL(string: "http://localhost:8000/v1/embeddings")!
-                var request = URLRequest(url: url)
-                request.httpMethod = "POST"
-                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                let body: [String: Any] = ["input": doc.content, "model": "default"]
-                request.httpBody = try JSONSerialization.data(withJSONObject: body)
-                request.timeoutInterval = 60
-                let (_, response) = try await URLSession.shared.data(for: request)
-                if let httpResp = response as? HTTPURLResponse, httpResp.statusCode == 200 {
-                    let newChunks = self.chunkDocument(doc)
-                    await MainActor.run {
-                        self.chunks.append(contentsOf: newChunks)
-                        if let idx = self.documents.firstIndex(where: { $0.id == id }) {
-                            self.documents[idx].chunkCount = newChunks.count
-                            self.documents[idx].indexedAt = Date()
-                            self.documents[idx].isIndexed = true
-                        }
-                        self.isIndexing = false
-                        self.objectWillChange.send()
-                    }
+            let newChunks = self.chunkDocument(doc)
+            var embeddedChunks: [DocumentChunk] = []
+
+            for chunk in newChunks {
+                let embedding = await self.fetchEmbedding(text: chunk.content)
+                embeddedChunks.append(DocumentChunk(
+                    id: chunk.id,
+                    documentId: chunk.documentId,
+                    content: chunk.content,
+                    embedding: embedding,
+                    metadata: chunk.metadata,
+                    chunkIndex: chunk.chunkIndex
+                ))
+            }
+
+            await MainActor.run {
+                self.chunks.append(contentsOf: embeddedChunks)
+                let chunkCount = embeddedChunks.count
+                let embCount = embeddedChunks.filter { $0.embedding != nil }.count
+                if let idx = self.documents.firstIndex(where: { $0.id == id }) {
+                    self.documents[idx].chunkCount = chunkCount
+                    self.documents[idx].indexedAt = Date()
+                    self.documents[idx].isIndexed = true
                 }
-            } catch {
-                await MainActor.run {
-                    self.isIndexing = false
-                    self.objectWillChange.send()
-                }
+                self.isIndexing = false
+                self.objectWillChange.send()
+                self.logger.info("RAGEngine: indexed doc \(id), \(chunkCount) chunks, \(embCount) with embeddings")
             }
         }
+    }
+
+    private func fetchEmbedding(text: String) async -> [Float]? {
+        do {
+            let url = URL(string: "http://localhost:8000/v1/embeddings")!
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            let body: [String: Any] = ["input": text, "model": "default"]
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+            request.timeoutInterval = 60
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResp = response as? HTTPURLResponse, httpResp.statusCode == 200 else {
+                self.logger.warning("RAGEngine: embedding API non-200, falling back to nil")
+                return nil
+            }
+            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let dataArray = json["data"] as? [[String: Any]],
+                  let first = dataArray.first,
+                  let embeddingArr = first["embedding"] as? [Double] else {
+                self.logger.warning("RAGEngine: could not parse embedding from response")
+                return nil
+            }
+            return embeddingArr.map { Float($0) }
+        } catch {
+            self.logger.warning("RAGEngine: embedding fetch failed: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    func localSearch(query: String, topK: Int = 5) -> [RetrievalResult] {
+        let hasEmbeddings = chunks.contains { $0.embedding != nil }
+        guard hasEmbeddings else {
+            logger.info("RAGEngine: localSearch skipped — no embeddings available")
+            return []
+        }
+        guard let qVec = fetchEmbeddingSync(text: query) else {
+            logger.warning("RAGEngine: localSearch — could not get query embedding")
+            return []
+        }
+
+        var scored: [(chunk: DocumentChunk, score: Double)] = []
+        for chunk in chunks {
+            guard let emb = chunk.embedding else { continue }
+            let score = cosineSimilarity(qVec, emb)
+            scored.append((chunk, score))
+        }
+        scored.sort { $0.score > $1.score }
+        let top = Array(scored.prefix(topK))
+        return top.enumerated().map { (i, item) in
+            RetrievalResult(id: "local-\(item.chunk.id)", chunk: item.chunk, score: item.score, rank: i + 1)
+        }
+    }
+
+    private func fetchEmbeddingSync(text: String) -> [Float]? {
+        let sem = DispatchSemaphore(value: 0)
+        var result: [Float]?
+        Task {
+            result = await fetchEmbedding(text: text)
+            sem.signal()
+        }
+        _ = sem.wait(timeout: .now() + 30)
+        return result
+    }
+
+    private func cosineSimilarity(_ a: [Float], _ b: [Float]) -> Double {
+        guard a.count == b.count, !a.isEmpty else { return 0 }
+        var dot: Float = 0, normA: Float = 0, normB: Float = 0
+        for i in 0..<a.count {
+            dot += a[i] * b[i]
+            normA += a[i] * a[i]
+            normB += b[i] * b[i]
+        }
+        let denom = sqrt(normA) * sqrt(normB)
+        guard denom > 0 else { return 0 }
+        return Double(dot / denom)
     }
 
     func indexAll() {

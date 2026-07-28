@@ -710,7 +710,7 @@ class DesignBridge: ObservableObject {
         return name.components(separatedBy: invalidChars).joined(separator: "_")
     }
 
-    // MARK: - Screenshot Import (blocked by fusion-mlx multimodal)
+    // MARK: - Screenshot Import (requires fusion-mlx VLM model, e.g. Qwen2.5-VL)
 
     @Published var isImportingScreenshot: Bool = false
 
@@ -755,8 +755,8 @@ class DesignBridge: ObservableObject {
             }
 
             if httpResp.statusCode == 422 {
-                errorMessage = "Screenshot import requires multimodal model support (not yet available in fusion-mlx)"
-                designBridgeLog.warning("DesignBridge: screenshot import blocked — multimodal not supported (422)")
+                errorMessage = "Screenshot import requires a VLM model (e.g. Qwen2.5-VL). Current model does not support image input."
+                designBridgeLog.warning("DesignBridge: screenshot import — model does not support image input (422)")
             } else if httpResp.statusCode == 200 {
                 if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let choices = json["choices"] as? [[String: Any]],
@@ -782,23 +782,6 @@ class DesignBridge: ObservableObject {
         isImportingScreenshot = false
     }
 
-    // MARK: - Figma Import (blocked by Figma-Context-MCP)
-
-    func importFromFigma(fileKey: String) async {
-        let figmaBridge = FigmaBridge()
-        guard let design = await figmaBridge.fetchDesign(fileKey: fileKey) else {
-            errorMessage = "Figma import not yet available (requires Figma-Context-MCP)"
-            designBridgeLog.warning("DesignBridge: Figma import blocked — MCP not available")
-            return
-        }
-
-        let html = figmaBridge.convertDesignToHTML(design)
-        currentArtifactCode = html
-        currentArtifactType = "html"
-        currentArtifactTitle = design.fileName
-        artifactSaved = false
-        designBridgeLog.info("DesignBridge: Figma design imported — \(html.count) chars")
-    }
 }
 
 private extension DateFormatter {

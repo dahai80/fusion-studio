@@ -8,17 +8,22 @@ import os.log
 
 private let chatsLog = Logger(subsystem: "com.fusion.studio", category: "ChatsPanel")
 
+// Callers: SectionContentView (case .chats). Affected API: moveSelectedToProject(), ChatStore.moveChats().
+// Data schemas: ChatRecord gains projectId field; ChatStore gains moveChats(ids:projectId:) and projects list.
+// User instruction: "现在上游的issue和pr已经修复了，没有阻塞了，继续吧" — implement placeholder actions.
 struct ChatRecord: Identifiable {
     let id = UUID()
     let title: String
     let preview: String
     let date: Date
     let module: String
+    var projectId: String?
 }
 
 class ChatStore: ObservableObject {
     static let shared = ChatStore()
     @Published var records: [ChatRecord] = []
+    @Published var projects: [String] = ["Default", "Code Module", "Design Module"]
 
     init() {
         records = [
@@ -34,6 +39,13 @@ class ChatStore: ObservableObject {
         records.removeAll { ids.contains($0.id) }
         chatsLog.info("Deleted \(ids.count) chat records")
     }
+
+    func moveChats(ids: Set<UUID>, projectId: String) {
+        for i in records.indices where ids.contains(records[i].id) {
+            records[i].projectId = projectId
+        }
+        chatsLog.info("Moved \(ids.count) chats to project \(projectId)")
+    }
 }
 
 struct ChatsPanel: View {
@@ -43,6 +55,7 @@ struct ChatsPanel: View {
     @State private var isSelectMode = false
     @State private var selectedIds: Set<UUID> = []
     @State private var filterOption = "All"
+    @State private var showProjectPicker = false
 
     private var filteredRecords: [ChatRecord] {
         if searchText.isEmpty { return store.records }
@@ -151,12 +164,20 @@ struct ChatsPanel: View {
                 .font(.system(size: theme.footnoteSize))
                 .foregroundStyle(theme.textTertiary)
 
-            Button(action: moveSelectedToProject) {
+            Menu {
+                ForEach(store.projects, id: \.self) { project in
+                    Button(project) {
+                        store.moveChats(ids: selectedIds, projectId: project)
+                        selectedIds.removeAll()
+                        isSelectMode = false
+                    }
+                }
+            } label: {
                 Text("Move to Project")
                     .font(.system(size: theme.footnoteSize, weight: .medium))
                     .foregroundStyle(theme.accent)
             }
-            .buttonStyle(.plain)
+            .menuStyle(.borderlessButton)
             .disabled(selectedIds.isEmpty)
 
             Button(action: deleteSelected) {
@@ -247,7 +268,6 @@ struct ChatsPanel: View {
     }
 
     private func moveSelectedToProject() {
-        chatsLog.info("Move \(selectedIds.count) chats to project — placeholder")
-        selectedIds.removeAll()
+        showProjectPicker = true
     }
 }

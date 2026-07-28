@@ -284,6 +284,8 @@ struct MarketEntryDetailView: View {
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject private var bridge: AgentBridge
     @State private var localIsInstalled: Bool = false
+    @State private var isOperating: Bool = false
+    @State private var operationMessage: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -319,35 +321,78 @@ struct MarketEntryDetailView: View {
                 .padding(8)
             }
 
+            if let msg = operationMessage {
+                Text(msg)
+                    .font(.caption)
+                    .foregroundColor(msg.contains("成功") ? .green : .orange)
+                    .padding(8)
+                    .frame(maxWidth: .infinity)
+                    .background(Color.accentColor.opacity(0.05))
+                    .cornerRadius(6)
+            }
+
             Spacer()
 
             HStack {
                 Spacer()
+                if isOperating {
+                    ProgressView()
+                        .controlSize(.small)
+                }
                 if localIsInstalled {
                     Button("卸载") {
-                        Task { _ = try? await bridge.marketplaceUnpublish(entryId: entry.id) }
-                        dismiss()
+                        Task {
+                            isOperating = true
+                            operationMessage = nil
+                            do {
+                                let ok = try await bridge.marketplaceUninstall(entryId: entry.id)
+                                operationMessage = ok ? "卸载成功" : "卸载失败"
+                                if ok { localIsInstalled = false }
+                            } catch {
+                                operationMessage = "卸载失败: \(error.localizedDescription)"
+                            }
+                            isOperating = false
+                        }
                     }
                     .buttonStyle(.bordered).foregroundColor(.red)
+                    .disabled(isOperating)
                     Button("应用") {
-                        Task { _ = try? await bridge.templateInstantiate(templateId: entry.id) }
-                        dismiss()
+                        Task {
+                            isOperating = true
+                            operationMessage = nil
+                            do {
+                                _ = try await bridge.templateInstantiate(templateId: entry.id)
+                                operationMessage = "应用成功"
+                            } catch {
+                                operationMessage = "应用失败: \(error.localizedDescription)"
+                            }
+                            isOperating = false
+                        }
                     }.buttonStyle(.borderedProminent)
+                    .disabled(isOperating)
                 } else {
                     Button("安装模板") {
                         Task {
-                            _ = try? await bridge.marketplaceInstall(entryId: entry.id)
-                            localIsInstalled = true
+                            isOperating = true
+                            operationMessage = nil
+                            do {
+                                _ = try await bridge.marketplaceInstall(entryId: entry.id)
+                                localIsInstalled = true
+                                operationMessage = "安装成功"
+                            } catch {
+                                operationMessage = "安装失败: \(error.localizedDescription)"
+                            }
+                            isOperating = false
                         }
-                        dismiss()
                     }
                     .buttonStyle(.borderedProminent)
+                    .disabled(isOperating)
                 }
                 Spacer()
             }
         }
         .padding()
-        .frame(width: 400, height: 450)
+        .frame(width: 400, height: 480)
         .onAppear { localIsInstalled = isInstalled }
     }
 }

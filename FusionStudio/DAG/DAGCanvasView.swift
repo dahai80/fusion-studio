@@ -1,7 +1,7 @@
 // Callers: AgentStudioView workflow tab, standalone DAG editor.
 // Affected API: DAGCanvasView (120fps Canvas DAG), DAGViewModel, DAGNodeCard.
-// Data schemas: DAGNode, DAGEdge, DAGLayout.
-// User instruction: "落地外壳（SwiftUI）：负责 120fps 的极致交互、系统级感知（FSEvents, Accessibility）和沙箱管理。调用 frontend-design 来做好 UI 和 UX 交互设计"
+// Data schemas: DAGNode, DAGEdge, DAGLayout. Connected to AgentBridge for real graph CRUD.
+// User instruction: "继续Phase 3" — P3-1 DAG Canvas连接后端
 
 import SwiftUI
 import os.log
@@ -63,6 +63,10 @@ class DAGViewModel: ObservableObject {
     @Published var hoveredNodeId: String?
     @Published var isSimulating: Bool = false
     @Published var simulationStep: Int = 0
+    @Published var currentGraphId: UUID?
+    @Published var currentGraphName: String = ""
+    @Published var isLoading: Bool = false
+    @Published var errorMessage: String?
 
     private let logger = Logger(subsystem: "com.fusion.studio", category: "DAGCanvas")
     private var simulationTimer: Timer?
@@ -72,6 +76,129 @@ class DAGViewModel: ObservableObject {
         layout.edges = edges
         autoLayout()
         logger.info("Loaded DAG with \(nodes.count) nodes, \(edges.count) edges")
+    }
+
+    func loadFromBridge(_ bridge: AgentBridge, graphId: UUID? = nil) async {
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            if let gid = graphId {
+                guard let graph = try await bridge.graphGet(graphId: gid.uuidString) else {
+                    errorMessage = "Graph not found"
+                    return
+                }
+                currentGraphId = graph.id
+                currentGraphName = graph.name
+                let nodes = graph.nodes.map { DAGNode(
+                    id: $0.id,
+                    type: DAGNode.NodeType(rawValue: $0.type) ?? .llm,
+                    label: $0.config["label"]?.stringValue ?? $0.id,
+                    position: CGPoint(x: $0.position?.x ?? 0, y: $0.position?.y ?? 0),
+                    state: .idle
+                )}
+                let edges = graph.edges.map { DAGEdge(
+                    id: $0.id,
+                    sourceId: $0.source,
+                    targetId: $0.target,
+                    label: $0.condition,
+                    isAnimated: false
+                )}
+                loadFromGraph(nodes: nodes, edges: edges)
+            } else if let first = bridge.graphs.first {
+                currentGraphId = first.id
+                currentGraphName = first.name
+                let nodes = first.nodes.map { DAGNode(
+                    id: $0.id,
+                    type: DAGNode.NodeType(rawValue: $0.type) ?? .llm,
+                    label: $0.config["label"]?.stringValue ?? $0.id,
+                    position: CGPoint(x: $0.position?.x ?? 0, y: $0.position?.y ?? 0),
+                    state: .idle
+                )}
+                let edges = first.edges.map { DAGEdge(
+                    id: $0.id,
+                    sourceId: $0.source,
+                    targetId: $0.target,
+                    label: $0.condition,
+                    isAnimated: false
+                )}
+                loadFromGraph(nodes: nodes, edges: edges)
+            } else {
+                loadFromGraph(nodes: [], edges: [])
+                logger.info("No graphs available, empty canvas")
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+            logger.error("loadFromBridge: \(error.localizedDescription)")
+        }
+    }
+
+    func saveToBridge(_ bridge: AgentBridge) async {
+        guard let graphId = currentGraphId else {
+            do {
+                let nodes = layout.nodes.map { NodeConfigModel(
+                    id: $0.id, type: $0.type.rawValue,
+                    config: ["label": .string($0.label)],
+                    position: PositionModel(x: $0.position.x, y: $0.position.y)
+                )}
+                let edges = layout.edges.map { EdgeModel(
+                    id: $0.id, source: $0.sourceId, target: $0.targetId, condition: $0.label
+                )}
+                _ = try await bridge.createGraph(name: currentGraphName.isEmpty ? "Untitled" : currentGraphName, nodes: nodes, edges: edges)
+                try? await bridge.fetchGraphs()
+                if let created = bridge.graphs.first { currentGraphId = created.id }
+                logger.info("Created new graph via bridge")
+            } catch {
+                errorMessage = error.localizedDescription
+                logger.error("saveToBridge create: \(error.localizedDescription)")
+            }
+            return
+        }
+        do {
+            let nodes = layout.nodes.map { NodeConfigModel(
+                id: $0.id, type: $0.type.rawValue,
+                config: ["label": .string($0.label)],
+                position: PositionModel(x: $0.position.x, y: $0.position.y)
+            )}
+            let edges = layout.edges.map { EdgeModel(
+                id: $0.id, source: $0.sourceId, target: $0.targetId, condition: $0.label
+            )}
+            _ = try await bridge.updateGraph(id: graphId, name: currentGraphName, nodes: nodes, edges: edges)
+            logger.info("Saved graph \(graphId) via bridge")
+        } catch {
+            errorMessage = error.localizedDescription
+            logger.error("saveToBridge update: \(error.localizedDescription)")
+        }
+    }
+
+    func executeGraph(_ bridge: AgentBridge) async {
+        guard let graphId = currentGraphId else { return }
+        isSimulating = true
+        simulationStep = 0
+        for i in layout.nodes.indices { layout.nodes[i].state = .idle }
+        for i in layout.edges.indices { layout.edges[i].isAnimated = false }
+        do {
+            try await bridge.executeGraph(id: graphId, input: "")
+            let events = bridge.events
+            for (idx, ev) in events.enumerated() {
+                if idx < layout.nodes.count {
+                    layout.nodes[idx].state = .running
+                    if idx > 0 { layout.nodes[idx - 1].state = .completed }
+                    if let eIdx = layout.edges.firstIndex(where: { $0.sourceId == layout.nodes[max(0, idx - 1)].id && $0.targetId == layout.nodes[idx].id }) {
+                        layout.edges[eIdx].isAnimated = true
+                    }
+                }
+            }
+            if !layout.nodes.isEmpty { layout.nodes[layout.nodes.count - 1].state = .completed }
+            isSimulating = false
+            logger.info("Graph execution complete: \(events.count) events")
+        } catch {
+            for i in layout.nodes.indices {
+                if layout.nodes[i].state == .running { layout.nodes[i].state = .error }
+            }
+            isSimulating = false
+            errorMessage = error.localizedDescription
+            logger.error("executeGraph: \(error.localizedDescription)")
+        }
     }
 
     func addNode(_ node: DAGNode) {
@@ -100,20 +227,6 @@ class DAGViewModel: ObservableObject {
         selectedNodeId = id
     }
 
-    func startSimulation() {
-        isSimulating = true
-        simulationStep = 0
-        for i in layout.nodes.indices { layout.nodes[i].state = .idle }
-        for i in layout.edges.indices { layout.edges[i].isAnimated = false }
-
-        simulationTimer = Timer.scheduledTimer(withTimeInterval: 1.2, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.advanceSimulation()
-            }
-        }
-        logger.info("DAG simulation started")
-    }
-
     func stopSimulation() {
         isSimulating = false
         simulationTimer?.invalidate()
@@ -121,31 +234,6 @@ class DAGViewModel: ObservableObject {
         for i in layout.nodes.indices { layout.nodes[i].state = .idle }
         for i in layout.edges.indices { layout.edges[i].isAnimated = false }
         logger.info("DAG simulation stopped")
-    }
-
-    private func advanceSimulation() {
-        let sortedNodes = layout.nodes.sorted { $0.position.x < $1.position.x }
-        guard simulationStep < sortedNodes.count else {
-            stopSimulation()
-            return
-        }
-
-        let node = sortedNodes[simulationStep]
-        if let idx = layout.nodes.firstIndex(where: { $0.id == node.id }) {
-            layout.nodes[idx].state = .running
-        }
-
-        if simulationStep > 0 {
-            let prevNode = sortedNodes[simulationStep - 1]
-            if let idx = layout.nodes.firstIndex(where: { $0.id == prevNode.id }) {
-                layout.nodes[idx].state = .completed
-            }
-            if let eIdx = layout.edges.firstIndex(where: { $0.sourceId == prevNode.id && $0.targetId == node.id }) {
-                layout.edges[eIdx].isAnimated = true
-            }
-        }
-
-        simulationStep += 1
     }
 
     private func autoLayout() {
@@ -185,6 +273,7 @@ class DAGViewModel: ObservableObject {
 
 struct DAGCanvasView: View {
     @StateObject private var viewModel = DAGViewModel()
+    @EnvironmentObject var bridge: AgentBridge
     @Environment(\.studioTheme) var theme
 
     var body: some View {
@@ -256,41 +345,43 @@ struct DAGCanvasView: View {
             }
         }
         .background(theme.surfacePrimary)
+        .contextMenu {
+            ForEach(DAGNode.NodeType.allCases, id: \.self) { type in
+                Button {
+                    let id = "node_\(UUID().uuidString.prefix(8))"
+                    viewModel.addNode(DAGNode(
+                        id: id, type: type, label: type.rawValue.capitalized,
+                        position: CGPoint(x: CGFloat.random(in: -200...200), y: CGFloat.random(in: -100...100)),
+                        state: .idle
+                    ))
+                } label: {
+                    Label(type.rawValue.capitalized, systemImage: type.icon)
+                }
+            }
+        }
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
-                FusionButton(viewModel.isSimulating ? "Stop" : "Run", icon: viewModel.isSimulating ? "stop.fill" : "play.fill", style: viewModel.isSimulating ? .destructive : .primary, size: .small) {
-                    if viewModel.isSimulating { viewModel.stopSimulation() } else { viewModel.startSimulation() }
+                if viewModel.isLoading {
+                    ProgressView().scaleEffect(0.6)
                 }
-                FusionButton("Reset", icon: "arrow.counterclockwise", style: .secondary, size: .small) {
-                    viewModel.stopSimulation()
+                FusionButton(viewModel.isSimulating ? "Stop" : "Run", icon: viewModel.isSimulating ? "stop.fill" : "play.fill", style: viewModel.isSimulating ? .destructive : .primary, size: .small) {
+                    if viewModel.isSimulating {
+                        viewModel.stopSimulation()
+                    } else {
+                        Task { await viewModel.executeGraph(bridge) }
+                    }
+                }
+                FusionButton("Save", icon: "square.and.arrow.down", style: .secondary, size: .small) {
+                    Task { await viewModel.saveToBridge(bridge) }
+                }
+                FusionButton("Reload", icon: "arrow.clockwise", style: .secondary, size: .small) {
+                    Task { await viewModel.loadFromBridge(bridge) }
                 }
             }
         }
         .onAppear {
-            viewModel.loadFromGraph(nodes: sampleNodes, edges: sampleEdges)
+            Task { await viewModel.loadFromBridge(bridge) }
         }
-    }
-
-    private var sampleNodes: [DAGNode] {
-        [
-            DAGNode(id: "start", type: .start, label: "Start", position: CGPoint(x: -300, y: 0), state: .idle),
-            DAGNode(id: "llm1", type: .llm, label: "LLM Analyze", position: CGPoint(x: -100, y: -60), state: .idle),
-            DAGNode(id: "tool1", type: .tool, label: "Search Tool", position: CGPoint(x: -100, y: 60), state: .idle),
-            DAGNode(id: "cond1", type: .condition, label: "Check Result", position: CGPoint(x: 100, y: 0), state: .idle),
-            DAGNode(id: "llm2", type: .llm, label: "LLM Generate", position: CGPoint(x: 300, y: 0), state: .idle),
-            DAGNode(id: "end", type: .end, label: "End", position: CGPoint(x: 500, y: 0), state: .idle),
-        ]
-    }
-
-    private var sampleEdges: [DAGEdge] {
-        [
-            DAGEdge(id: "e1", sourceId: "start", targetId: "llm1", label: nil, isAnimated: false),
-            DAGEdge(id: "e2", sourceId: "start", targetId: "tool1", label: nil, isAnimated: false),
-            DAGEdge(id: "e3", sourceId: "llm1", targetId: "cond1", label: nil, isAnimated: false),
-            DAGEdge(id: "e4", sourceId: "tool1", targetId: "cond1", label: nil, isAnimated: false),
-            DAGEdge(id: "e5", sourceId: "cond1", targetId: "llm2", label: "yes", isAnimated: false),
-            DAGEdge(id: "e6", sourceId: "llm2", targetId: "end", label: nil, isAnimated: false),
-        ]
     }
 }
 

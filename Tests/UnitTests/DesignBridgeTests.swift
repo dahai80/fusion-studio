@@ -371,37 +371,37 @@ extension DesignBridgeTests {
     }
 }
 
-// MARK: - FigmaBridge Tests
+// MARK: - PenpotBridge Tests
 
 @MainActor
 extension DesignBridgeTests {
 
-    func testFigmaBridgeNotConnected() async {
-        let figma = FigmaBridge()
-        let connected = await figma.checkConnection()
+    func testPenpotBridgeNotConnected() async {
+        let penpot = PenpotBridge()
+        let connected = await penpot.checkConnection()
         XCTAssertFalse(connected)
     }
 
-    func testFigmaBridgeListFilesEmpty() async {
-        let figma = FigmaBridge()
-        let files = await figma.listFiles()
+    func testPenpotBridgeListFilesEmpty() async {
+        let penpot = PenpotBridge()
+        let files = await penpot.listFiles()
         XCTAssertTrue(files.isEmpty)
     }
 
-    func testFigmaConvertToHTML() {
-        let figma = FigmaBridge()
-        let design = FigmaDesignData(
+    func testPenpotConvertToHTML() {
+        let penpot = PenpotBridge()
+        let design = PenpotDesignData(
             fileKey: "test123",
             fileName: "Test File",
             nodes: [
-                FigmaNode(id: "1", name: "Frame1", type: "FRAME", boundingBox: ["width": 400, "height": 300], children: nil, styles: nil)
+                PenpotNode(id: "1", name: "Frame1", type: "FRAME", boundingBox: ["width": 400, "height": 300], children: nil, styles: nil)
             ],
             colors: ["#3B82F6", "#EF4444"],
             typography: [:],
             spacing: [:],
             components: []
         )
-        let html = figma.convertDesignToHTML(design)
+        let html = penpot.convertDesignToHTML(design)
         XCTAssertTrue(html.contains("Test File"))
         XCTAssertTrue(html.contains("bg-gray-900"))
         XCTAssertTrue(html.contains("--color-0: #3B82F6"))
@@ -464,5 +464,266 @@ extension DesignBridgeTests {
         ]
         XCTAssertEqual(meta["component_name"] as? String, "")
         XCTAssertEqual(meta["framework"] as? String, "react")
+    }
+}
+
+// MARK: - Phase 4: DesignCodeLink Tests
+
+@MainActor
+extension DesignBridgeTests {
+
+    func testDesignCodeLinkSingleton() {
+        let link1 = DesignCodeLink.shared
+        let link2 = DesignCodeLink.shared
+        XCTAssertFalse(link1.isActive)
+        XCTAssertTrue(link1 === link2)
+    }
+
+    func testDesignCodeLinkMarkDesignWrite() {
+        let link = DesignCodeLink.shared
+        link.markDesignWrite(artifactName: "TestArtifact")
+    }
+
+    func testDesignCodeLinkDeactivateWhenNotActive() {
+        let link = DesignCodeLink.shared
+        link.deactivate()
+        XCTAssertFalse(link.isActive)
+    }
+
+    func testSyncDirectionRawValues() {
+        XCTAssertEqual(DesignCodeLink.SyncDirection.designToFile.rawValue, "design→file")
+        XCTAssertEqual(DesignCodeLink.SyncDirection.fileToDesign.rawValue, "file→design")
+    }
+}
+
+// MARK: - Phase 4: DesignArtifactExporter Tests
+
+extension DesignBridgeTests {
+
+    func testExporterTypeFromExtension() {
+        XCTAssertEqual(DesignArtifactExporter.shared.typeFromExtension("html"), "html")
+        XCTAssertEqual(DesignArtifactExporter.shared.typeFromExtension("jsx"), "react")
+        XCTAssertEqual(DesignArtifactExporter.shared.typeFromExtension("tsx"), "react")
+        XCTAssertEqual(DesignArtifactExporter.shared.typeFromExtension("swift"), "swiftui")
+        XCTAssertEqual(DesignArtifactExporter.shared.typeFromExtension("svg"), "svg")
+        XCTAssertEqual(DesignArtifactExporter.shared.typeFromExtension("md"), "markdown")
+        XCTAssertEqual(DesignArtifactExporter.shared.typeFromExtension("css"), "html")
+    }
+
+    func testExporterExportResultInit() {
+        let success = ExportResult(success: true, path: "/tmp/test.html", error: nil)
+        XCTAssertTrue(success.success)
+        XCTAssertEqual(success.path, "/tmp/test.html")
+        XCTAssertNil(success.error)
+
+        let failure = ExportResult(success: false, path: "", error: "no project")
+        XCTAssertFalse(failure.success)
+        XCTAssertEqual(failure.error, "no project")
+    }
+}
+
+// MARK: - Phase 4: ArtifactVersionDiff Tests
+
+extension DesignBridgeTests {
+
+    func testDiffLineTypeEquality() {
+        XCTAssertEqual(DiffLineType.unchanged, DiffLineType.unchanged)
+        XCTAssertNotEqual(DiffLineType.added, DiffLineType.deleted)
+    }
+
+    func testDiffLineInit() {
+        let line = DiffLine(type: .added, oldLineNum: nil, newLineNum: 5, content: "hello")
+        XCTAssertEqual(line.type, .added)
+        XCTAssertNil(line.oldLineNum)
+        XCTAssertEqual(line.newLineNum, 5)
+        XCTAssertEqual(line.content, "hello")
+    }
+
+    func testDiffResultInit() {
+        let result = DiffResult(additions: 3, deletions: 1, lines: [])
+        XCTAssertEqual(result.additions, 3)
+        XCTAssertEqual(result.deletions, 1)
+        XCTAssertTrue(result.lines.isEmpty)
+    }
+}
+
+// MARK: - Phase 4: DesignWorkflowOrchestrator Tests
+
+@MainActor
+extension DesignBridgeTests {
+
+    func testWorkflowRecipeSteps() {
+        let d2c = WorkflowRecipe.designToCode
+        XCTAssertEqual(d2c.steps.count, 4)
+        XCTAssertEqual(d2c.steps[0], .createDesign)
+        XCTAssertEqual(d2c.steps[3], .openInEditor)
+
+        let c2d = WorkflowRecipe.codeToDesign
+        XCTAssertEqual(c2d.steps.count, 4)
+
+        let s2d2c = WorkflowRecipe.screenshotToDesignToCode
+        XCTAssertEqual(s2d2c.steps.count, 5)
+    }
+
+    func testWorkflowStepIcons() {
+        for step in [WorkflowStep.createDesign, .exportToCode, .captureScreenshot, .generateDesign] {
+            XCTAssertFalse(step.icon.isEmpty)
+        }
+    }
+
+    func testOrchestratorInitial() {
+        let orch = DesignWorkflowOrchestrator.shared
+        XCTAssertNil(orch.activeRecipe)
+        XCTAssertFalse(orch.isRunning)
+        XCTAssertEqual(orch.progress, 0)
+        XCTAssertNil(orch.currentStep)
+    }
+
+    func testOrchestratorCancel() {
+        let orch = DesignWorkflowOrchestrator.shared
+        orch.cancel()
+        XCTAssertNil(orch.activeRecipe)
+        XCTAssertFalse(orch.isRunning)
+    }
+}
+
+// MARK: - Phase 4: CodeDesignPreviewPanel Notification Tests
+
+extension DesignBridgeTests {
+
+    func testSwitchToDesignModuleNotification() {
+        let name = Notification.Name.switchToDesignModule
+        XCTAssertEqual(name.rawValue, "switchToDesignModule")
+    }
+
+    func testSwitchToCodeModuleNotification() {
+        let name = Notification.Name.switchToCodeModule
+        XCTAssertEqual(name.rawValue, "switchToCodeModule")
+    }
+
+    // MARK: - FusionDesignSystem (P2 #8)
+
+    func testDesignSystemPresetComponents() {
+        let ds = FusionDesignSystem.shared
+        XCTAssertGreaterThanOrEqual(ds.components.count, 9)
+    }
+
+    func testDesignSystemComponentByCategory() {
+        let ds = FusionDesignSystem.shared
+        let buttons = ds.components(in: .button)
+        XCTAssertGreaterThanOrEqual(buttons.count, 1)
+        XCTAssertEqual(buttons.first?.name, "Button")
+    }
+
+    func testDesignSystemComponentByName() {
+        let ds = FusionDesignSystem.shared
+        XCTAssertNotNil(ds.component(by: "Button"))
+        XCTAssertNotNil(ds.component(by: "Card"))
+        XCTAssertNil(ds.component(by: "NonExistent"))
+    }
+
+    func testDesignSystemRenderComponent() {
+        let ds = FusionDesignSystem.shared
+        guard let btn = ds.component(by: "Button") else { XCTFail(); return }
+        let html = ds.renderComponent(btn, variant: .secondary, size: .large)
+        XCTAssertTrue(html.contains("fusion-btn-secondary"))
+        XCTAssertTrue(html.contains("component-lg"))
+    }
+
+    func testDesignSystemInjectIntoPrompt() {
+        let ds = FusionDesignSystem.shared
+        guard let btn = ds.component(by: "Button") else { XCTFail(); return }
+        let ctx = ds.injectIntoPrompt(btn)
+        XCTAssertTrue(ctx.contains("Button"))
+        XCTAssertTrue(ctx.contains("primary"))
+    }
+
+    func testComponentVariantAllCases() {
+        XCTAssertEqual(ComponentVariant.allCases.count, 6)
+    }
+
+    func testComponentSizeAllCases() {
+        XCTAssertEqual(ComponentSize.allCases.count, 3)
+        XCTAssertEqual(ComponentSize.small.displayName, "小")
+    }
+
+    func testComponentCategoryAllCases() {
+        XCTAssertEqual(ComponentCategory.allCases.count, 9)
+    }
+
+    func testDesignTemplateAllCases() {
+        XCTAssertEqual(DesignTemplate.allCases.count, 5)
+        XCTAssertFalse(DesignTemplate.dashboard.description.isEmpty)
+    }
+
+    func testDesignSystemTemplates() {
+        let ds = FusionDesignSystem.shared
+        XCTAssertGreaterThanOrEqual(ds.templates.count, 5)
+        XCTAssertNotNil(ds.templates[.dashboard])
+    }
+
+    func testDesignSystemFilteredComponents() {
+        let ds = FusionDesignSystem.shared
+        ds.selectedCategory = .button
+        ds.searchQuery = ""
+        let filtered = ds.filteredComponents
+        XCTAssertTrue(filtered.allSatisfy { $0.category == .button })
+        ds.selectedCategory = nil
+    }
+
+    // MARK: - DesignInspectorView (P2 #9)
+
+    func testInspectorSectionAllCases() {
+        XCTAssertEqual(InspectorSection.allCases.count, 6)
+    }
+
+    func testLayoutModeAllCases() {
+        XCTAssertEqual(LayoutMode.allCases.count, 4)
+    }
+
+    func testFlexDirectionAllCases() {
+        XCTAssertEqual(FlexDirection.allCases.count, 4)
+    }
+
+    func testJustifyContentDisplayNames() {
+        XCTAssertEqual(JustifyContent.center.displayName, "居中")
+        XCTAssertEqual(JustifyContent.between.displayName, "两端对齐")
+    }
+
+    func testAlignItemsDisplayNames() {
+        XCTAssertEqual(AlignItems.stretch.displayName, "拉伸")
+    }
+
+    func testStylePropertiesDefaultCSS() {
+        let props = StyleProperties()
+        let css = props.toCSS()
+        XCTAssertTrue(css.contains("display: flex"))
+        XCTAssertTrue(css.contains("font-size: 14px"))
+    }
+
+    func testStylePropertiesCardPresetCSS() {
+        let props = StylePreset.card.properties
+        let css = props.toCSS()
+        XCTAssertTrue(css.contains("background-color: #1C1C1E"))
+        XCTAssertTrue(css.contains("border-radius: 12px"))
+    }
+
+    func testStylePresetAllCases() {
+        XCTAssertEqual(StylePreset.allCases.count, 5)
+    }
+
+    func testBoxValueUniform() {
+        let uniform = BoxValue(top: "8px", right: "8px", bottom: "8px", left: "8px")
+        XCTAssertTrue(uniform.isUniform)
+        let nonUniform = BoxValue(top: "8px", right: "0", bottom: "8px", left: "0")
+        XCTAssertFalse(nonUniform.isUniform)
+    }
+
+    func testDesignInspectorStateReset() {
+        let state = DesignInspectorState.shared
+        state.properties.fontSize = "99px"
+        state.reset()
+        XCTAssertEqual(state.properties.fontSize, "14px")
+        XCTAssertNil(state.selectedElement)
     }
 }

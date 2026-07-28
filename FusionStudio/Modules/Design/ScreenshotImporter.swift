@@ -1,7 +1,7 @@
 // Callers: DesignChatPanel (screenshot import button), DesignBridge (importScreenshot)
 // Affected API: DesignBridge.importScreenshot(_:), fusion-mlx /v1/chat/completions (multimodal image_url)
 // Data schemas: ScreenshotImportResult (extractedHTML/designTokens/detectedComponents/confidence), NSImage→base64 PNG
-// User instruction: "继续完成遗留和defer的任务" — Phase 3 Task #13 screenshot-to-code stub
+// Status: fully functional — uses fusion-mlx VLM multimodal (image_url) for screenshot-to-code
 
 import AppKit
 import os.log

@@ -316,6 +316,7 @@ struct SafetyActionRow: View {
     @EnvironmentObject var bridge: AgentBridge
     let action: SafetyActionModel
     @State private var isActing: Bool = false
+    @State private var showPreview: Bool = false
 
     private let logger = Logger(subsystem: "com.fusion.studio", category: "SafetyActionRow")
 
@@ -338,48 +339,86 @@ struct SafetyActionRow: View {
     }
 
     var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: statusIcon)
-                .foregroundColor(statusColor)
-                .font(.title3)
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Text(action.category)
-                        .font(.headline)
-                    Text(action.status)
-                        .font(.caption)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 2)
-                        .background(statusColor.opacity(0.2))
-                        .foregroundColor(statusColor)
-                        .cornerRadius(3)
-                }
-                if !action.content.isEmpty {
-                    Text(action.content)
-                        .font(.caption)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 10) {
+                Image(systemName: statusIcon)
+                    .foregroundColor(statusColor)
+                    .font(.title3)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text(action.category)
+                            .font(.headline)
+                        Text(action.status)
+                            .font(.caption)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 2)
+                            .background(statusColor.opacity(0.2))
+                            .foregroundColor(statusColor)
+                            .cornerRadius(3)
+                        if action.category == "file_write" || action.category == "shell_exec" {
+                            Text("GATEWAY")
+                                .font(.caption2)
+                                .fontWeight(.bold)
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 2)
+                                .background(Color.red.opacity(0.15))
+                                .foregroundColor(.red)
+                                .cornerRadius(3)
+                        }
+                    }
+                    if !action.content.isEmpty {
+                        Text(action.content)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
+                    }
+                    Text(action.id)
+                        .font(.caption2)
                         .foregroundColor(.secondary)
-                        .lineLimit(2)
                 }
-                Text(action.id)
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+                Spacer()
+                if action.status == "pending" {
+                    HStack(spacing: 4) {
+                        if !action.content.isEmpty {
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.2)) { showPreview.toggle() }
+                            } label: {
+                                Image(systemName: showPreview ? "chevron.up" : "eye")
+                                    .font(.caption)
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                        }
+                        Button("Approve") {
+                            Task { await approve() }
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        Button("Reject") {
+                            Task { await reject() }
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .foregroundColor(.red)
+                    }
+                    .disabled(isActing)
+                }
             }
-            Spacer()
-            if action.status == "pending" {
-                HStack(spacing: 4) {
-                    Button("Approve") {
-                        Task { await approve() }
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    Button("Reject") {
-                        Task { await reject() }
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .foregroundColor(.red)
+            if showPreview && !action.content.isEmpty {
+                ScrollView {
+                    Text(action.content)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundColor(.primary)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(8)
                 }
-                .disabled(isActing)
+                .frame(maxHeight: 120)
+                .background(Color(nsColor: .textBackgroundColor))
+                .cornerRadius(6)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6).stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                )
             }
         }
         .padding(.vertical, 4)
