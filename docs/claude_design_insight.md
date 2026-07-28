@@ -534,16 +534,17 @@ Fusion Design 的核心差异化优势在于 **离线运行 + 项目绑定 + 全
 | 15 | Figma 集成 | Figma-Context-MCP待调研 | ✅ stub完成，FigmaBridge+convertToHTML已实现，MCP连接待上游 |
 | 16 | artifact↔文件双向同步 | artifact.sync API待上游 | ✅ 已实现！artifact.sync API已在fusion-artifacts-engine存在 |
 | — | project_id 范围隔离 | fusion-artifacts-engine不支持project_id | ✅ PR #8 落地，IPCClient+DesignBridge+ArtifactsPanel+ArtifactSidebarCache已接入 |
+| — | design metadata | artifact无结构化metadata字段 | ✅ IPCClient支持metadata参数，DesignBridge保存时传递design_metadata (component_name/framework/layout_type/source) |
 
 ### 验证结果
 
 - `swift build -c debug` — 0 error
-- `swift test --filter DesignBridgeTests` — 46/46 passed
+- `swift test --filter DesignBridgeTests` — 48/48 passed
 
-### 上游Issue待提
+### 上游Issue状态
 
 详见 `docs/upstream-issues.md`:
-1. fusion-artifacts-engine: project_id scope
-2. fusion-artifacts-engine: Design metadata extension
-3. fusion-mlx: Verify tool_use streaming completeness
-4. fusion-mlx: Multimodal input support
+1. fusion-artifacts-engine: project_id scope → ✅ 已落地
+2. fusion-artifacts-engine: Design metadata extension → 客户端已准备（metadata参数已加），等上游支持存储
+3. fusion-agent-studio: tool_use streaming → 待验证
+4. fusion-agent-studio: multimodal input → 待支持
