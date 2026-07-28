@@ -130,6 +130,7 @@ class ProjectWorkspace: ObservableObject {
 
     private let recentKey = "fusion-studio.recent-projects"
     private var loadTask: Task<Void, Never>?
+    private var checkpoints: [String: String] = [:]
 
     var totalFileCount: Int {
         countFiles(files)
@@ -286,7 +287,99 @@ class ProjectWorkspace: ObservableObject {
         files = []
         selectedFile = nil
         searchText = ""
+        checkpoints.removeAll()
         codeLog.info("Project closed")
+    }
+
+    // MARK: - File Read/Write
+
+    func loadFileContent(_ file: CodeFile) -> String? {
+        let url = URL(fileURLWithPath: file.path)
+        do {
+            let content = try String(contentsOf: url, encoding: .utf8)
+            codeLog.info("File content loaded: \(file.name)")
+            return content
+        } catch {
+            codeLog.error("Failed to read file \(file.name): \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    @discardableResult
+    func write(file: CodeFile, content: String) -> Bool {
+        let url = URL(fileURLWithPath: file.path)
+
+        do {
+            let original = try? String(contentsOf: url, encoding: .utf8)
+            checkpoints[file.path] = original ?? ""
+
+            try content.write(to: url, atomically: true, encoding: .utf8)
+
+            if var found = findFile(in: files, path: file.path) {
+                found.content = content
+                found.isModified = false
+                updateFile(in: &files, path: file.path, updated: found)
+            }
+            if selectedFile?.path == file.path {
+                selectedFile?.content = content
+                selectedFile?.isModified = false
+            }
+
+            codeLog.info("File saved: \(file.name), checkpoint stored")
+            return true
+        } catch {
+            codeLog.error("Failed to write file \(file.name): \(error.localizedDescription)")
+            return false
+        }
+    }
+
+    func undoLastWrite(_ file: CodeFile) -> Bool {
+        guard let original = checkpoints[file.path] else {
+            codeLog.warning("No checkpoint for file: \(file.name)")
+            return false
+        }
+        let url = URL(fileURLWithPath: file.path)
+        do {
+            try original.write(to: url, atomically: true, encoding: .utf8)
+            checkpoints.removeValue(forKey: file.path)
+
+            if selectedFile?.path == file.path {
+                selectedFile?.content = original
+                selectedFile?.isModified = false
+            }
+
+            codeLog.info("Checkpoint restored for: \(file.name)")
+            return true
+        } catch {
+            codeLog.error("Failed to restore checkpoint: \(error.localizedDescription)")
+            return false
+        }
+    }
+
+    func hasCheckpoint(_ file: CodeFile) -> Bool {
+        checkpoints[file.path] != nil
+    }
+
+    private func findFile(in files: [CodeFile], path: String) -> CodeFile? {
+        for f in files {
+            if f.path == path { return f }
+            if f.isDirectory, let children = f.children {
+                if let found = findFile(in: children, path: path) { return found }
+            }
+        }
+        return nil
+    }
+
+    private func updateFile(in files: inout [CodeFile], path: String, updated: CodeFile) {
+        for i in files.indices {
+            if files[i].path == path {
+                files[i] = updated
+                return
+            }
+            if files[i].isDirectory {
+                updateFile(in: &files[i].children!, path: path, updated: updated)
+            }
+        }
     }
 
     // MARK: - Scan
@@ -452,7 +545,7 @@ class CodeAgent: ObservableObject {
         let role: String; let content: String; let timestamp: Date; let codeBlocks: [String]
     }
 
-    func askAI(prompt: String, context: String = "", language: String = "") {
+    func askAI(prompt: String, context: String = "", language: String = "", effort: String = "medium", thinking: Bool = false) {
         isThinking = true
         var fullPrompt = prompt
         if !context.isEmpty {
@@ -472,7 +565,9 @@ class CodeAgent: ObservableObject {
                     messages: messages,
                     model: self.selectedModel,
                     temperature: 0.7,
-                    maxTokens: 2048
+                    maxTokens: 2048,
+                    effort: effort,
+                    thinking: thinking
                 )
                 let blocks = extractCodeBlocks(from: response)
                 await MainActor.run {

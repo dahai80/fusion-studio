@@ -105,6 +105,7 @@ enum Module: String, CaseIterable, Identifiable {
     case planner    = "规划"
     case deploy     = "部署"
     case operations = "运维"
+    case eduK12 = "教育"
 
     var id: String { rawValue }
 
@@ -146,6 +147,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .planner:   return "list.bullet.rectangle"
         case .deploy:    return "arrow.up.doc"
         case .operations: return "gauge"
+        case .eduK12:     return "graduationcap"
         }
     }
 
@@ -166,6 +168,8 @@ enum Module: String, CaseIterable, Identifiable {
             return .agentStudio
         case .deploy:
             return .code
+        case .eduK12:
+            return .mlx
         }
     }
 }

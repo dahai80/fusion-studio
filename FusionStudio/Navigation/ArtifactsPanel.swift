@@ -4,10 +4,53 @@ import os.log
 
 private let artifactsLog = Logger(subsystem: "com.fusion.studio", category: "ArtifactsPanel")
 
+enum ArtifactKind: String, CaseIterable, Hashable {
+    case app
+    case code
+    case document
+    case game
+    case tool
+    case template
+
+    var label: String {
+        switch self {
+        case .app: return "App"
+        case .code: return "Code"
+        case .document: return "Document"
+        case .game: return "Game"
+        case .tool: return "Tool"
+        case .template: return "Template"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .app: return "app.badge"
+        case .code: return "chevron.left.forwardslash.chevron.right"
+        case .document: return "doc.text"
+        case .game: return "gamecontroller"
+        case .tool: return "wrench.and.screwdriver"
+        case .template: return "square.grid.2x2"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .app: return .blue
+        case .code: return .purple
+        case .document: return .indigo
+        case .game: return .green
+        case .tool: return .orange
+        case .template: return .teal
+        }
+    }
+}
+
 struct ArtifactModel: Identifiable, Hashable {
     let id: String
     let name: String
     let type: String
+    let kind: ArtifactKind
     let currentVersion: Int
     let tokenCount: Int
     let summary: String?
@@ -36,7 +79,9 @@ struct ArtifactsPanel: View {
     @State private var errorMessage: String?
     @State private var engineOnline = false
     @State private var sessionId = "default"
+    @State private var showTemplatePicker = false
     @State private var showCreateSheet = false
+    @State private var selectedTemplate: ArtifactTemplate?
     @State private var showEditSheet = false
     @State private var showVersionSheet = false
     @State private var showExportSheet = false
@@ -68,8 +113,21 @@ struct ArtifactsPanel: View {
         .onAppear {
             checkEngineAndLoad()
         }
+        .sheet(isPresented: $showTemplatePicker) {
+            TemplatePickerSheet { template in
+                selectedTemplate = template
+                showTemplatePicker = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    showCreateSheet = true
+                }
+            }
+        }
         .sheet(isPresented: $showCreateSheet) {
-            CreateArtifactSheet(sessionId: sessionId) { _ in loadArtifacts() }
+            if let template = selectedTemplate {
+                ArtifactCreateChatSheet(sessionId: sessionId, template: template) { _ in loadArtifacts() }
+            } else {
+                CreateArtifactSheet(sessionId: sessionId) { _ in loadArtifacts() }
+            }
         }
         .sheet(isPresented: $showEditSheet) {
             if let art = selectedArtifact {
@@ -159,7 +217,7 @@ struct ArtifactsPanel: View {
             .buttonStyle(.plain)
             .help("Import Artifact")
 
-            Button(action: { showCreateSheet = true }) {
+            Button(action: { showTemplatePicker = true }) {
                 Image(systemName: "plus")
                     .font(.system(size: theme.iconS))
                     .foregroundStyle(theme.textTertiary)
@@ -186,6 +244,7 @@ struct ArtifactsPanel: View {
         return artifacts.filter {
             $0.name.localizedCaseInsensitiveContains(searchText) ||
             $0.type.localizedCaseInsensitiveContains(searchText) ||
+            $0.kind.label.localizedCaseInsensitiveContains(searchText) ||
             ($0.summary?.localizedCaseInsensitiveContains(searchText) ?? false)
         }
     }
@@ -214,9 +273,9 @@ struct ArtifactsPanel: View {
 
     private func artifactRow(_ artifact: ArtifactModel) -> some View {
         HStack(spacing: theme.spacingS) {
-            Image(systemName: iconForType(artifact.type))
+            Image(systemName: artifact.kind.icon)
                 .font(.system(size: theme.iconS))
-                .foregroundStyle(colorForType(artifact.type))
+                .foregroundStyle(artifact.kind.color)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(artifact.name)
@@ -225,14 +284,14 @@ struct ArtifactsPanel: View {
                     .lineLimit(1)
 
                 HStack(spacing: theme.spacingXS) {
-                    Text(artifact.type.uppercased())
+                    Text(artifact.kind.label.uppercased())
                         .font(.system(size: 9, weight: .medium))
                         .foregroundStyle(theme.textTertiary)
                         .padding(.horizontal, 4)
                         .padding(.vertical, 1)
                         .background(
                             RoundedRectangle(cornerRadius: 3, style: .continuous)
-                                .fill(colorForType(artifact.type).opacity(0.15))
+                                .fill(artifact.kind.color.opacity(0.15))
                         )
 
                     Text("v\(artifact.currentVersion)")
@@ -289,8 +348,8 @@ struct ArtifactsPanel: View {
 
     private func detailHeader(_ artifact: ArtifactModel) -> some View {
         HStack(spacing: theme.spacingS) {
-            Image(systemName: iconForType(artifact.type))
-                .foregroundStyle(colorForType(artifact.type))
+            Image(systemName: artifact.kind.icon)
+                .foregroundStyle(artifact.kind.color)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(artifact.name)
@@ -373,7 +432,7 @@ struct ArtifactsPanel: View {
             }
 
             HStack(spacing: theme.spacingM) {
-                Button(action: { showCreateSheet = true }) {
+                Button(action: { showTemplatePicker = true }) {
                     HStack(spacing: theme.spacingXS) {
                         Image(systemName: "plus")
                             .font(.system(size: theme.iconS))
@@ -505,6 +564,8 @@ struct ArtifactsPanel: View {
         guard let id = dict["id"] as? String,
               let name = dict["name"] as? String,
               let type = dict["type"] as? String else { return nil }
+        let kindRaw = dict["kind"] as? String ?? kindFallback(for: type)
+        let kind = ArtifactKind(rawValue: kindRaw) ?? kindFallbackEnum(for: type)
         let version = dict["current_version"] as? Int ?? 1
         let tokens = dict["token_count"] as? Int ?? 0
         let summary = dict["summary"] as? String
@@ -514,31 +575,24 @@ struct ArtifactsPanel: View {
         } else {
             updatedAt = Date()
         }
-        return ArtifactModel(id: id, name: name, type: type, currentVersion: version,
+        return ArtifactModel(id: id, name: name, type: type, kind: kind, currentVersion: version,
                              tokenCount: tokens, summary: summary, updatedAt: updatedAt)
     }
 
-    private func iconForType(_ type: String) -> String {
+    private func kindFallback(for type: String) -> String {
         switch type.lowercased() {
-        case "code": return "chevron.left.forwardslash.chevron.right"
-        case "markdown": return "doc.text"
-        case "html": return "globe"
-        case "react": return "atom"
-        case "data": return "tablecells"
-        default: return "doc"
+        case "html", "react": return "app"
+        case "markdown": return "document"
+        case "code": return "code"
+        case "data": return "tool"
+        default: return "code"
         }
     }
 
-    private func colorForType(_ type: String) -> Color {
-        switch type.lowercased() {
-        case "code": return .blue
-        case "markdown": return .purple
-        case "html": return .orange
-        case "react": return .cyan
-        case "data": return .green
-        default: return .gray
-        }
+    private func kindFallbackEnum(for type: String) -> ArtifactKind {
+        ArtifactKind(rawValue: kindFallback(for: type)) ?? .code
     }
+
 }
 
 // MARK: - HTMLPreviewView
@@ -571,7 +625,554 @@ struct HTMLPreviewView: NSViewRepresentable {
     }
 }
 
-// MARK: - CreateArtifactSheet
+// MARK: - ArtifactTemplate
+
+struct ArtifactTemplate: Identifiable, Hashable {
+    let id: String
+    let name: String
+    let icon: String
+    let description: String
+    let type: String
+    let kind: ArtifactKind
+    let defaultContent: String
+}
+
+private let artifactTemplates: [ArtifactTemplate] = [
+    ArtifactTemplate(
+        id: "apps-and-websites",
+        name: "Apps and websites",
+        icon: "globe",
+        description: "A new interactive artifact for a website, app surface, or product workflow.",
+        type: "html",
+        kind: .app,
+        defaultContent: "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>My App</title>\n  <style>\n    body { font-family: -apple-system, sans-serif; margin: 0; padding: 20px; }\n  </style>\n</head>\n<body>\n  <h1>Hello World</h1>\n  <p>Start building your app here.</p>\n</body>\n</html>"
+    ),
+    ArtifactTemplate(
+        id: "documents-and-templates",
+        name: "Documents and templates",
+        icon: "doc.text",
+        description: "A structured artifact for a document, repeatable template, or formatted brief.",
+        type: "markdown",
+        kind: .document,
+        defaultContent: "# Document Title\n\n## Overview\n\nStart writing your document here.\n\n## Details\n\n- Point 1\n- Point 2\n- Point 3\n\n## Summary\n\nTBD"
+    ),
+    ArtifactTemplate(
+        id: "games",
+        name: "Games",
+        icon: "gamecontroller",
+        description: "A playable artifact for a game, simulation, or interactive challenge.",
+        type: "html",
+        kind: .game,
+        defaultContent: "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>My Game</title>\n  <style>\n    canvas { border: 1px solid #333; display: block; margin: 20px auto; }\n  </style>\n</head>\n<body>\n  <h1 style=\"text-align:center\">Game</h1>\n  <canvas id=\"canvas\" width=\"480\" height=\"320\"></canvas>\n  <script>\n    const canvas = document.getElementById('canvas');\n    const ctx = canvas.getContext('2d');\n    ctx.fillStyle = '#007AFF';\n    ctx.fillRect(10, 10, 50, 50);\n  </script>\n</body>\n</html>"
+    ),
+    ArtifactTemplate(
+        id: "productivity-tools",
+        name: "Productivity tools",
+        icon: "chart.bar",
+        description: "A utility artifact for planning, tracking, calculating, or repeatable work.",
+        type: "html",
+        kind: .tool,
+        defaultContent: "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>Productivity Tool</title>\n  <style>\n    body { font-family: -apple-system, sans-serif; padding: 20px; }\n    input, button { padding: 8px 12px; margin: 4px; }\n  </style>\n</head>\n<body>\n  <h1>Tool</h1>\n  <input type=\"text\" placeholder=\"Enter value...\">\n  <button onclick=\"alert('Done')\">Process</button>\n</body>\n</html>"
+    ),
+    ArtifactTemplate(
+        id: "creative-projects",
+        name: "Creative projects",
+        icon: "paintbrush",
+        description: "A visual or expressive artifact for creative exploration and presentation.",
+        type: "html",
+        kind: .template,
+        defaultContent: "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>Creative Project</title>\n  <style>\n    body { margin: 0; overflow: hidden; background: #1a1a2e; }\n    canvas { display: block; }\n  </style>\n</head>\n<body>\n  <canvas id=\"canvas\"></canvas>\n  <script>\n    const c = document.getElementById('canvas');\n    const ctx = c.getContext('2d');\n    c.width = window.innerWidth;\n    c.height = window.innerHeight;\n    ctx.fillStyle = '#e94560';\n    ctx.beginPath();\n    ctx.arc(c.width/2, c.height/2, 80, 0, Math.PI*2);\n    ctx.fill();\n  </script>\n</body>\n</html>"
+    ),
+    ArtifactTemplate(
+        id: "quiz-or-survey",
+        name: "Quiz or survey",
+        icon: "questionmark.circle",
+        description: "A question-led artifact for collecting answers, testing knowledge, or guiding choices.",
+        type: "html",
+        kind: .template,
+        defaultContent: "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>Quiz</title>\n  <style>\n    body { font-family: -apple-system, sans-serif; padding: 20px; max-width: 600px; margin: auto; }\n    .question { margin: 16px 0; padding: 12px; border: 1px solid #ddd; border-radius: 8px; }\n    label { display: block; padding: 4px 0; }\n  </style>\n</head>\n<body>\n  <h1>Quiz</h1>\n  <div class=\"question\">\n    <p>Question 1?</p>\n    <label><input type=\"radio\" name=\"q1\"> Option A</label>\n    <label><input type=\"radio\" name=\"q1\"> Option B</label>\n    <label><input type=\"radio\" name=\"q1\"> Option C</label>\n  </div>\n  <button onclick=\"alert('Submitted!')\">Submit</button>\n</body>\n</html>"
+    ),
+    ArtifactTemplate(
+        id: "start-from-scratch",
+        name: "Start from scratch",
+        icon: "pencil.and.outline",
+        description: "A blank artifact canvas ready for a custom idea.",
+        type: "code",
+        kind: .app,
+        defaultContent: ""
+    )
+]
+
+// MARK: - TemplatePickerSheet
+
+struct TemplatePickerSheet: View {
+    @Environment(\.studioTheme) private var theme
+    @Environment(\.dismiss) private var dismiss
+
+    let onSelect: (ArtifactTemplate) -> Void
+
+    @State private var hoveredTemplate: String?
+    @State private var selectedId: String?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Choose a Template")
+                    .font(.system(size: theme.headlineSize, weight: .semibold))
+                    .foregroundStyle(theme.text)
+                Spacer()
+                Button(action: { dismiss() }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: theme.iconM))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, theme.spacingXL)
+            .padding(.top, theme.spacingL)
+            .padding(.bottom, theme.spacingS)
+
+            Text("Let's get cooking! Pick an artifact category or start building your idea from scratch.")
+                .font(.system(size: theme.footnoteSize))
+                .foregroundStyle(theme.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, theme.spacingXL)
+                .padding(.bottom, theme.spacingL)
+
+            Rectangle().fill(theme.separator).frame(height: 1)
+
+            ScrollView {
+                LazyVGrid(
+                    columns: Array(repeating: GridItem(.flexible(), spacing: theme.spacingM), count: 4),
+                    spacing: theme.spacingM
+                ) {
+                    ForEach(artifactTemplates) { template in
+                        templateCard(template)
+                    }
+                }
+                .padding(theme.spacingXL)
+            }
+
+            if let selId = selectedId, let sel = artifactTemplates.first(where: { $0.id == selId }) {
+                HStack {
+                    Spacer()
+                    Button("Cancel") { dismiss() }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(theme.textSecondary)
+                    Button(action: {
+                        artifactsLog.info("Template confirmed: \(sel.id)")
+                        onSelect(sel)
+                    }) {
+                        HStack(spacing: theme.spacingXS) {
+                            Image(systemName: "arrow.right")
+                                .font(.system(size: theme.iconS))
+                            Text("Continue")
+                                .font(.system(size: theme.textSize, weight: .medium))
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, theme.spacingL)
+                        .padding(.vertical, theme.spacingS)
+                        .background(
+                            RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
+                                .fill(theme.accent)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, theme.spacingXL)
+                .padding(.vertical, theme.spacingM)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .frame(width: 640, height: 480)
+        .background(theme.contentBg)
+        .animation(.easeInOut(duration: theme.animationFast), value: selectedId)
+    }
+
+    private func templateCard(_ template: ArtifactTemplate) -> some View {
+        let isHovered = hoveredTemplate == template.id
+        let isSelected = selectedId == template.id
+        let isOtherSelected = selectedId != nil && !isSelected
+        let color = template.kind.color
+
+        return VStack(alignment: .leading, spacing: theme.spacingXS) {
+            HStack(spacing: theme.spacingXS) {
+                Image(systemName: template.icon)
+                    .font(.system(size: theme.iconL))
+                    .foregroundStyle(color)
+                    .rotationEffect(.degrees(isHovered ? 2 : 0))
+                    .scaleEffect(isHovered ? 1.05 : 1.0)
+
+                Spacer()
+            }
+
+            Text(template.name)
+                .font(.system(size: theme.captionSize, weight: .semibold))
+                .foregroundStyle(theme.text)
+                .lineLimit(1)
+
+            Text(template.description)
+                .font(.system(size: 9))
+                .foregroundStyle(theme.textSecondary)
+                .lineLimit(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(theme.spacingM)
+        .frame(minHeight: 112)
+        .background(
+            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                .fill(isSelected ? color.opacity(0.08) : (isHovered ? theme.surfaceElevated : theme.groupBg))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                .stroke(isSelected ? color : (isHovered ? color.opacity(0.4) : theme.groupBorder),
+                        lineWidth: isSelected ? 2 : 1)
+        )
+        .opacity(isOtherSelected ? 0.5 : 1.0)
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            hoveredTemplate = hovering ? template.id : nil
+        }
+        .onTapGesture {
+            withAnimation(.easeInOut(duration: theme.animationFast)) {
+                selectedId = isSelected ? nil : template.id
+            }
+            artifactsLog.info("Template \(isSelected ? "deselected" : "selected"): \(template.id)")
+        }
+        .animation(.easeInOut(duration: 0.3), value: isHovered)
+    }
+}
+
+// MARK: - ArtifactCreateChatSheet
+
+struct ArtifactCreateChatSheet: View {
+    @Environment(\.studioTheme) private var theme
+    @EnvironmentObject var ipcClient: IPCClient
+    @EnvironmentObject var agentBridge: AgentBridge
+    @Environment(\.dismiss) private var dismiss
+
+    let sessionId: String
+    let template: ArtifactTemplate
+    let onComplete: (ArtifactModel?) -> Void
+
+    @State private var userPrompt = ""
+    @State private var chatMessages: [ChatMessage] = []
+    @State private var generatedContent = ""
+    @State private var artifactName = ""
+    @State private var isGenerating = false
+    @State private var showPreview = false
+    @State private var showManualEdit = false
+    @State private var errorMessage: String?
+
+    struct ChatMessage: Identifiable {
+        let id = UUID()
+        let role: String
+        let content: String
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            headerBar
+            Rectangle().fill(theme.separator).frame(height: 1)
+
+            if showPreview {
+                previewArea
+            } else {
+                chatArea
+            }
+
+            Rectangle().fill(theme.separator).frame(height: 1)
+            inputBar
+        }
+        .frame(width: 680, height: 540)
+        .background(theme.contentBg)
+        .onAppear {
+            artifactName = template.name
+            chatMessages.append(ChatMessage(
+                role: "system",
+                content: "You are creating a \(template.kind.label) artifact. Describe what you want to build and I'll generate it for you."
+            ))
+        }
+    }
+
+    private var headerBar: some View {
+        HStack(spacing: theme.spacingS) {
+            Image(systemName: template.kind.icon)
+                .foregroundStyle(template.kind.color)
+            Text(template.name)
+                .font(.system(size: theme.textSize, weight: .semibold))
+                .foregroundStyle(theme.text)
+
+            Spacer()
+
+            if !generatedContent.isEmpty {
+                Button(action: { showPreview.toggle() }) {
+                    Image(systemName: showPreview ? "bubble.left.and.bubble.right" : "eye")
+                        .font(.system(size: theme.iconS))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .buttonStyle(.plain)
+                .help(showPreview ? "Show Chat" : "Preview")
+            }
+
+            Button(action: { dismiss() }) {
+                Image(systemName: "xmark")
+                    .font(.system(size: theme.iconS))
+                    .foregroundStyle(theme.textTertiary)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, theme.spacingL)
+        .padding(.vertical, theme.spacingS)
+    }
+
+    private var chatArea: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: theme.spacingS) {
+                    ForEach(chatMessages) { msg in
+                        chatBubble(msg)
+                            .id(msg.id)
+                    }
+                }
+                .padding(theme.spacingL)
+            }
+            .onChange(of: chatMessages.count) { _ in
+                if let last = chatMessages.last {
+                    withAnimation(.easeOut(duration: theme.animationFast)) {
+                        proxy.scrollTo(last.id, anchor: .bottom)
+                    }
+                }
+            }
+        }
+    }
+
+    private func chatBubble(_ msg: ChatMessage) -> some View {
+        let isUser = msg.role == "user"
+        return HStack {
+            if isUser { Spacer() }
+            VStack(alignment: isUser ? .trailing : .leading, spacing: theme.spacingXS) {
+                Text(isUser ? "You" : "Assistant")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(theme.textTertiary)
+                Text(msg.content)
+                    .font(.system(size: theme.footnoteSize))
+                    .foregroundStyle(theme.text)
+                    .textSelection(.enabled)
+                    .padding(theme.spacingM)
+                    .background(
+                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                            .fill(isUser ? theme.accent.opacity(0.15) : theme.groupBg)
+                    )
+            }
+            if !isUser { Spacer() }
+        }
+    }
+
+    private var previewArea: some View {
+        HSplitView {
+            ScrollView {
+                LazyVStack(spacing: theme.spacingS) {
+                    ForEach(chatMessages) { msg in
+                        chatBubble(msg)
+                    }
+                }
+                .padding(theme.spacingL)
+            }
+            .frame(minWidth: 240)
+
+            VStack(spacing: 0) {
+                HStack {
+                    Text("Preview")
+                        .font(.system(size: theme.footnoteSize, weight: .medium))
+                        .foregroundStyle(theme.textSecondary)
+                    Spacer()
+                }
+                .padding(.horizontal, theme.spacingM)
+                .padding(.vertical, theme.spacingXS)
+
+                if template.type == "html" {
+                    HTMLPreviewView(htmlContent: generatedContent)
+                } else {
+                    ScrollView {
+                        Text(generatedContent)
+                            .font(.system(size: 12, design: .monospaced))
+                            .foregroundStyle(theme.text)
+                            .textSelection(.enabled)
+                            .padding(theme.spacingM)
+                    }
+                }
+            }
+            .frame(minWidth: 280)
+        }
+    }
+
+    private var inputBar: some View {
+        VStack(spacing: theme.spacingS) {
+            if let error = errorMessage {
+                Text(error)
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(.red)
+                    .padding(.horizontal, theme.spacingL)
+            }
+
+            HStack(spacing: theme.spacingS) {
+                TextField("Describe what you want to build...", text: $userPrompt)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: theme.textSize))
+                    .onSubmit { generateArtifact() }
+
+                if !generatedContent.isEmpty {
+                    Button(action: { showManualEdit = true }) {
+                        Image(systemName: "pencil")
+                            .font(.system(size: theme.iconS))
+                            .foregroundStyle(theme.textTertiary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Edit Manually")
+                    .popover(isPresented: $showManualEdit) {
+                        ManualEditPopover(
+                            name: $artifactName,
+                            content: $generatedContent,
+                            template: template
+                        )
+                    }
+                }
+
+                Button(action: { generateArtifact() }) {
+                    Image(systemName: isGenerating ? "stop" : "arrow.up.circle.fill")
+                        .font(.system(size: theme.iconL))
+                        .foregroundStyle(isGenerating ? theme.textTertiary : theme.accent)
+                }
+                .buttonStyle(.plain)
+                .disabled(userPrompt.isEmpty && generatedContent.isEmpty)
+                .help(isGenerating ? "Stop" : "Generate")
+
+                if !generatedContent.isEmpty {
+                    Button(action: { saveArtifact() }) {
+                        Text("Create")
+                            .font(.system(size: theme.footnoteSize, weight: .medium))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, theme.spacingM)
+                            .padding(.vertical, theme.spacingXS)
+                            .background(
+                                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                    .fill(theme.accent)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .help("Save Artifact")
+                }
+            }
+            .padding(.horizontal, theme.spacingL)
+            .padding(.bottom, theme.spacingM)
+        }
+    }
+
+    private func generateArtifact() {
+        guard !userPrompt.isEmpty else { return }
+        let prompt = userPrompt
+        userPrompt = ""
+
+        chatMessages.append(ChatMessage(role: "user", content: prompt))
+        isGenerating = true
+        errorMessage = nil
+
+        let systemPrompt = buildSystemPrompt()
+        var messages: [[String: String]] = [
+            ["role": "system", "content": systemPrompt]
+        ]
+        for msg in chatMessages where msg.role != "system" {
+            messages.append(["role": msg.role, "content": msg.content])
+        }
+
+        Task {
+            do {
+                let response = try await agentBridge.infer(
+                    messages: messages,
+                    temperature: 0.7,
+                    maxTokens: 4096
+                )
+                generatedContent = extractContent(from: response)
+                chatMessages.append(ChatMessage(role: "assistant", content: response))
+                artifactsLog.info("Generated artifact content: \(generatedContent.count) chars")
+            } catch {
+                errorMessage = "Generation failed: \(error.localizedDescription)"
+                artifactsLog.error("generateArtifact: \(error)")
+            }
+            isGenerating = false
+        }
+    }
+
+    private func buildSystemPrompt() -> String {
+        return """
+        You are an artifact creator for a \(template.kind.label) category. \
+        When the user describes what they want, generate the complete artifact content. \
+        Output format: \(template.type). \
+        Rules: Output ONLY the artifact content, no explanations or markdown fences. \
+        For HTML artifacts, output a complete HTML document. \
+        For markdown artifacts, output markdown. \
+        For code artifacts, output the code.
+        """
+    }
+
+    private func extractContent(from response: String) -> String {
+        var content = response
+        if content.hasPrefix("```") {
+            if let firstNewline = content.firstIndex(of: "\n") {
+                content = String(content[firstNewline...]).trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            if content.hasSuffix("```") {
+                content = String(content.dropLast(3)).trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+        }
+        return content
+    }
+
+    private func saveArtifact() {
+        Task {
+            do {
+                _ = try await ipcClient.artifactCreate(
+                    sessionId: sessionId,
+                    name: artifactName.isEmpty ? template.name : artifactName,
+                    type: template.type,
+                    kind: template.kind.rawValue,
+                    content: generatedContent
+                )
+                artifactsLog.info("Created artifact from chat: \(self.artifactName)")
+                onComplete(nil)
+                dismiss()
+            } catch {
+                errorMessage = "Save failed: \(error.localizedDescription)"
+                artifactsLog.error("saveArtifact: \(error)")
+            }
+        }
+    }
+}
+
+// MARK: - ManualEditPopover
+
+struct ManualEditPopover: View {
+    @Environment(\.studioTheme) private var theme
+    @Binding var name: String
+    @Binding var content: String
+    let template: ArtifactTemplate
+
+    var body: some View {
+        VStack(spacing: theme.spacingM) {
+            TextField("Artifact name", text: $name)
+                .textFieldStyle(.roundedBorder)
+
+            TextEditor(text: $content)
+                .font(.system(size: 11, design: .monospaced))
+                .frame(minHeight: 200)
+        }
+        .padding(theme.spacingM)
+        .frame(width: 400, height: 300)
+    }
+}
+
+// MARK: - CreateArtifactSheet (manual fallback)
 
 struct CreateArtifactSheet: View {
     @Environment(\.studioTheme) private var theme
@@ -583,12 +1184,18 @@ struct CreateArtifactSheet: View {
 
     @State private var name = ""
     @State private var type = "code"
+    @State private var kind: ArtifactKind = .code
     @State private var content = ""
     @State private var summary = ""
     @State private var isCreating = false
     @State private var errorMessage: String?
 
     private let types = ["code", "markdown", "html", "react", "data"]
+
+    init(sessionId: String, onComplete: @escaping (ArtifactModel?) -> Void) {
+        self.sessionId = sessionId
+        self.onComplete = onComplete
+    }
 
     var body: some View {
         VStack(spacing: theme.spacingL) {
@@ -626,7 +1233,7 @@ struct CreateArtifactSheet: View {
                         RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
                             .fill(theme.accent)
                     )
-                    .disabled(name.isEmpty || content.isEmpty || isCreating)
+                    .disabled(name.isEmpty || (content.isEmpty && type != "code") || isCreating)
             }
         }
         .padding(theme.spacingL)
@@ -640,6 +1247,7 @@ struct CreateArtifactSheet: View {
             do {
                 _ = try await ipcClient.artifactCreate(
                     sessionId: sessionId, name: name, type: type,
+                    kind: kind.rawValue,
                     content: content, summary: summary.isEmpty ? nil : summary
                 )
                 artifactsLog.info("Created artifact: \(self.name)")

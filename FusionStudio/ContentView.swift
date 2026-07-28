@@ -133,7 +133,7 @@ struct SectionContentView: View {
             case .artifacts:
                 ArtifactsPanel()
             case .code:
-                CodeMainView()
+                FusionCodeView()
             case .customize:
                 CustomizePanel()
             case .design:

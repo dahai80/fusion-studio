@@ -202,6 +202,8 @@ final class AgentBridge: ObservableObject {
     @Published var isExecuting: Bool = false
     @Published var lastError: BridgeError?
     @Published var models: [MLXModelInfo] = []
+    @Published var chatMessages: [ChatMessageRecord] = []
+    @Published var isInferring: Bool = false
 
     // MARK: - Module Published Properties
 
@@ -464,25 +466,49 @@ final class AgentBridge: ObservableObject {
     // MARK: - MLX Operations
 
     func fetchModels() async throws -> [MLXModelInfo] {
-        guard let client = ipcClient else {
-            throw BridgeError.notConnected
+        let config = FusionConfig.shared
+        let baseURL = config.mlxBaseURL
+        let apiKey = config.mlxResolvedApiKey
+        guard let url = URL(string: "\(baseURL)/v1/models") else {
+            throw BridgeError.ipcError("Invalid MLX URL: \(baseURL)")
         }
         do {
-            let result = try await client.call(method: "mlx.status")
-            let modelsData = result["models"] as? [[String: Any]] ?? []
+            var request = URLRequest(url: url)
+            request.httpMethod = "GET"
+            request.timeoutInterval = 10
+            if !apiKey.isEmpty {
+                request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+            }
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResp = response as? HTTPURLResponse else {
+                throw BridgeError.ipcError("Non-HTTP response from MLX")
+            }
+            guard httpResp.statusCode == 200 else {
+                let body = String(data: data, encoding: .utf8) ?? ""
+                logger.error("fetchModels: HTTP \(httpResp.statusCode) — \(body)")
+                throw BridgeError.ipcError("MLX returned HTTP \(httpResp.statusCode)")
+            }
+            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let modelList = json["data"] as? [[String: Any]] else {
+                throw BridgeError.decodeError("Invalid /v1/models response")
+            }
             var parsed: [MLXModelInfo] = []
-            for m in modelsData {
+            for m in modelList {
+                let id = m["id"] as? String ?? ""
                 parsed.append(MLXModelInfo(
-                    id: m["id"] as? String ?? "",
-                    name: m["id"] as? String ?? m["name"] as? String ?? "",
+                    id: id,
+                    name: id,
                     object: m["object"] as? String,
                     owned_by: m["owned_by"] as? String
                 ))
             }
             self.models = parsed
-            logger.info("fetchModels: received \(parsed.count) models")
+            logger.info("fetchModels: received \(parsed.count) models from \(baseURL)")
             return parsed
-        } catch let error as IPCError {
+        } catch let error as BridgeError {
+            self.lastError = error
+            throw error
+        } catch {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
             self.lastError = bridgeErr
             logger.error("fetchModels: \(error)")
@@ -531,24 +557,196 @@ final class AgentBridge: ObservableObject {
         return try await client.call(method: "mlx.set_model", params: ["model": model])
     }
 
-    func infer(messages: [[String: String]], model: String = "", temperature: Double = 0.7, maxTokens: Int = 2048) async throws -> String {
-        guard let client = ipcClient else {
+    // MARK: - Project Chat
+
+    func sendProjectChat(_ userMessage: String) async throws -> String {
+        let pm = FusionProjectManager.shared
+        guard let project = pm.activeProject else {
             throw BridgeError.notConnected
         }
-        var params: [String: Any] = [
+
+        if pm.activeSession == nil {
+            _ = pm.createSession(projectId: project.id, title: String(userMessage.prefix(40)), model: project.settings.defaultModel)
+        }
+
+        let userRecord = ChatMessageRecord(role: "user", content: userMessage)
+        chatMessages.append(userRecord)
+        if let session = pm.activeSession {
+            pm.addMessage(toSession: session.id, role: "user", content: userMessage)
+        }
+
+        let systemPrompt = await ContextAssembler.shared.assembleWithRAG(project: pm.activeProject, query: userMessage)
+        var messages: [[String: String]] = [["role": "system", "content": systemPrompt]]
+        for msg in chatMessages {
+            messages.append(["role": msg.role, "content": msg.content])
+        }
+
+        isInferring = true
+        defer { isInferring = false }
+
+        let projectSettings = pm.activeProject?.settings ?? ProjectSettings()
+        let response = try await inferStream(
+            messages: messages,
+            model: projectSettings.defaultModel,
+            temperature: projectSettings.temperature,
+            maxTokens: projectSettings.maxTokens,
+            onToken: { token in
+                Task { @MainActor in
+                    if let lastIdx = self.chatMessages.indices.last, self.chatMessages[lastIdx].role == "assistant" {
+                        self.chatMessages[lastIdx].content += token
+                    }
+                }
+            }
+        )
+
+        let assistantRecord = ChatMessageRecord(role: "assistant", content: response)
+        chatMessages.append(assistantRecord)
+        if let session = pm.activeSession {
+            pm.addMessage(toSession: session.id, role: "assistant", content: response)
+        }
+
+        return response
+    }
+
+    func clearChat() {
+        chatMessages = []
+        FusionProjectManager.shared.activeSession = nil
+    }
+
+    func loadSessionMessages(_ session: ProjectSession) {
+        chatMessages = session.messages
+    }
+
+    func infer(messages: [[String: String]], model: String = "", temperature: Double = 0.7, maxTokens: Int = 2048, effort: String = "medium", thinking: Bool = false) async throws -> String {
+        let config = FusionConfig.shared
+        let baseURL = config.mlxBaseURL
+        let apiKey = config.mlxResolvedApiKey
+        guard let url = URL(string: "\(baseURL)/v1/chat/completions") else {
+            throw BridgeError.ipcError("Invalid MLX URL: \(baseURL)")
+        }
+        var body: [String: Any] = [
             "messages": messages,
             "temperature": temperature,
             "max_tokens": maxTokens,
         ]
         if !model.isEmpty {
-            params["model"] = model
+            body["model"] = model
         }
-        let result = try await client.call(method: "mlx.infer", params: params)
-        if let status = result["status"] as? String, status == "error" {
-            let msg = result["message"] as? String ?? "Inference failed"
-            throw BridgeError.ipcError(msg)
+        if !effort.isEmpty {
+            body["reasoning_effort"] = effort
         }
-        return result["content"] as? String ?? ""
+        if thinking {
+            body["chat_template_kwargs"] = ["enable_thinking": true]
+        }
+        guard let requestData = try? JSONSerialization.data(withJSONObject: body) else {
+            throw BridgeError.ipcError("Failed to encode request")
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.httpBody = requestData
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 120
+        if !apiKey.isEmpty {
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        }
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResp = response as? HTTPURLResponse else {
+            throw BridgeError.ipcError("Non-HTTP response from MLX")
+        }
+        guard httpResp.statusCode == 200 else {
+            let responseBody = String(data: data, encoding: .utf8) ?? ""
+            logger.error("infer: HTTP \(httpResp.statusCode) — \(responseBody)")
+            throw BridgeError.ipcError("MLX inference returned HTTP \(httpResp.statusCode)")
+        }
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let choices = json["choices"] as? [[String: Any]],
+              let firstChoice = choices.first,
+              let message = firstChoice["message"] as? [String: Any] else {
+            throw BridgeError.decodeError("Invalid /v1/chat/completions response")
+        }
+        var content = message["content"] as? String ?? ""
+        if thinking, let reasoning = message["reasoning_content"] as? String, !reasoning.isEmpty {
+            content = "<think>\n\(reasoning)\n</think>\n\n\(content)"
+        }
+        logger.info("infer: received \(content.count) chars, effort=\(effort), thinking=\(thinking)")
+        return content
+    }
+
+    func inferStream(messages: [[String: String]], model: String = "", temperature: Double = 0.7, maxTokens: Int = 2048, effort: String = "medium", thinking: Bool = false, onToken: @escaping (String) -> Void) async throws -> String {
+        let config = FusionConfig.shared
+        let baseURL = config.mlxBaseURL
+        let apiKey = config.mlxResolvedApiKey
+        guard let url = URL(string: "\(baseURL)/v1/chat/completions") else {
+            throw BridgeError.ipcError("Invalid MLX URL: \(baseURL)")
+        }
+        var body: [String: Any] = [
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": maxTokens,
+            "stream": true,
+        ]
+        if !model.isEmpty {
+            body["model"] = model
+        }
+        if !effort.isEmpty {
+            body["reasoning_effort"] = effort
+        }
+        if thinking {
+            body["chat_template_kwargs"] = ["enable_thinking": true]
+        }
+        guard let requestData = try? JSONSerialization.data(withJSONObject: body) else {
+            throw BridgeError.ipcError("Failed to encode request")
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.httpBody = requestData
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+        request.timeoutInterval = 300
+        if !apiKey.isEmpty {
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        }
+
+        let (bytes, response) = try await URLSession.shared.bytes(for: request)
+        guard let httpResp = response as? HTTPURLResponse, httpResp.statusCode == 200 else {
+            throw BridgeError.ipcError("MLX streaming returned non-200")
+        }
+
+        var fullContent = ""
+        var thinkingContent = ""
+        var isInThinking = thinking
+        for try await line in bytes.lines {
+            guard line.hasPrefix("data: ") else { continue }
+            let payload = String(line.dropFirst(6))
+            if payload == "[DONE]" { break }
+            guard let data = payload.data(using: .utf8),
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let choices = json["choices"] as? [[String: Any]],
+                  let firstChoice = choices.first,
+                  let delta = firstChoice["delta"] as? [String: Any] else {
+                continue
+            }
+            if let token = delta["content"] as? String, !token.isEmpty {
+                if isInThinking {
+                    thinkingContent += token
+                } else {
+                    fullContent += token
+                    onToken(token)
+                }
+            }
+            if let reasoningToken = delta["reasoning_content"] as? String, !reasoningToken.isEmpty {
+                thinkingContent += reasoningToken
+            }
+            if delta["content"] != nil || delta["reasoning_content"] != nil { continue }
+            if let finishReason = firstChoice["finish_reason"] as? String, finishReason == "stop" {
+                isInThinking = false
+            }
+        }
+        if !thinkingContent.isEmpty {
+            fullContent = " phy\n\(thinkingContent)\n \n\n\(fullContent)"
+        }
+        logger.info("inferStream: received \(fullContent.count) chars total")
+        return fullContent
     }
 
     // MARK: - Planner Operations

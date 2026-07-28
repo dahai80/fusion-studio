@@ -14,9 +14,13 @@ struct FusionStudioApp: App {
     @StateObject private var sandboxManager = SandboxManager()
     @StateObject private var screenContext = ScreenContextManager()
     @StateObject private var multiNodeEngine = MultiNodeEngine()
+    @StateObject private var designBridge = DesignBridge()
 
     init() {
-        // 设置 Dock 图标
+        // Dock 图标延后到 onAppear 中设置，init 阶段 NSApp 尚未就绪
+    }
+
+    private func setupDockIcon() {
         if let appIconPath = Bundle.main.path(forResource: "AppIconLight", ofType: "png"),
            let appIcon = NSImage(contentsOfFile: appIconPath) {
             appIcon.size = NSSize(width: 128, height: 128)
@@ -34,9 +38,17 @@ struct FusionStudioApp: App {
                 .environmentObject(sandboxManager)
                 .environmentObject(screenContext)
                 .environmentObject(multiNodeEngine)
+                .environmentObject(designBridge)
                 .studioThemed()
                 .onAppear {
                     agentBridge.setIPCClient(ipcClient)
+                    // Callers: FusionStudioApp.onAppear; Affected API: designBridge.ingestDesignTokens (RAG);
+                    // Data schemas: design token doc string → knowledge.ingest scope=design:tokens
+                    // User instruction: "continue" — Task #35 design RAG
+                    designBridge.setIPCClient(ipcClient)
+                    Task { await designBridge.ingestDesignTokens() }
+                    ContextAssembler.shared.setIPCClient(ipcClient)
+                    FusionProjectManager.shared.setIPCClient(ipcClient)
                     ipcClient.connect()
                     ArtifactSidebarCache.shared.configure(ipcClient: ipcClient)
                     Task {
@@ -45,6 +57,7 @@ struct FusionStudioApp: App {
                 }
                 .frame(minWidth: 1100, minHeight: 700)
                 .onAppear {
+                    setupDockIcon()
                     NSApp.setActivationPolicy(.regular)
                     NSApp.activate(ignoringOtherApps: true)
                 }

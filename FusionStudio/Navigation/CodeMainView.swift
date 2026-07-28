@@ -47,6 +47,12 @@ struct QuickAction: Identifiable {
     let prompt: String
 }
 
+enum ModelPickerPage {
+    case main
+    case effort
+    case moreModels
+}
+
 struct CodeMainView: View {
     @Environment(\.studioTheme) private var theme
     @EnvironmentObject var appState: AppState
@@ -56,6 +62,14 @@ struct CodeMainView: View {
     @State private var inputText = ""
     @State private var isWebSearchEnabled = false
     @State private var selectedModel = ""
+    @State private var micVolume: Double = 0.8
+    @State private var holdToRecord = true
+    @State private var isVoiceMode = false
+    @State private var showMicSettings = false
+    @State private var showModelPicker = false
+    @State private var selectedEffort: String = "Medium"
+    @State private var thinkingEnabled = false
+    @State private var modelPickerPage: ModelPickerPage = .main
 
     private let quickActions: [QuickAction] = [
         QuickAction(icon: "pencil.line", title: "Write", prompt: "Help me write something"),
@@ -77,56 +91,17 @@ struct CodeMainView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if agent.conversation.isEmpty && !workspace.hasProject {
-                welcomeAndInput
-            } else {
-                chatAndInput
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onAppear {
-            agent.agentBridge = bridge
-            if selectedModel.isEmpty && !bridge.models.isEmpty {
-                selectedModel = bridge.models.first?.name ?? ""
-                agent.selectedModel = selectedModel
-            }
-            Task {
-                try? await bridge.fetchModels()
-                if selectedModel.isEmpty, let first = bridge.models.first?.name {
-                    selectedModel = first
-                    agent.selectedModel = first
-                }
-            }
-        }
-    }
-
-    private var welcomeAndInput: some View {
-        VStack(spacing: theme.spacing2XL) {
-            Spacer()
-
-            Text("\(greeting), \(NSUserName())")
-                .font(.system(size: 28, weight: .bold))
-                .foregroundStyle(theme.text)
-
-            Spacer()
-                .frame(height: theme.spacingXL)
-
-            inputBox
-                .frame(maxWidth: 680)
-
-            quickActionsBar
-                .frame(maxWidth: 680)
-
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private var chatAndInput: some View {
-        VStack(spacing: 0) {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: theme.spacingM) {
+                        if agent.conversation.isEmpty && !workspace.hasProject {
+                            Spacer(minLength: 0)
+                            Text("\(greeting), \(NSUserName())")
+                                .font(.system(size: 28, weight: .bold))
+                                .foregroundStyle(theme.text)
+                                .frame(maxWidth: .infinity)
+                                .padding(.top, 80)
+                        }
                         ForEach(agent.conversation) { msg in
                             CodeMainMessageBubble(message: msg)
                                 .id(msg.id)
@@ -154,16 +129,32 @@ struct CodeMainView: View {
                     Spacer()
                 }
 
-                HStack {
-                    Spacer()
-                    quickActionsBar
-                        .frame(maxWidth: 680)
-                    Spacer()
+                if agent.conversation.isEmpty {
+                    HStack {
+                        Spacer()
+                        quickActionsBar
+                            .frame(maxWidth: 680)
+                        Spacer()
+                    }
                 }
             }
             .padding(.vertical, theme.spacingM)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onAppear {
+            agent.agentBridge = bridge
+            if selectedModel.isEmpty && !bridge.models.isEmpty {
+                selectedModel = bridge.models.first?.name ?? ""
+                agent.selectedModel = selectedModel
+            }
+            Task {
+                try? await bridge.fetchModels()
+                if selectedModel.isEmpty, let first = bridge.models.first?.name {
+                    selectedModel = first
+                    agent.selectedModel = first
+                }
+            }
+        }
     }
 
     private var inputBox: some View {
@@ -175,6 +166,15 @@ struct CodeMainView: View {
                 .frame(minHeight: 48, maxHeight: 200)
                 .padding(.horizontal, theme.spacingM)
                 .padding(.top, theme.spacingS)
+                .onKeyPress(.return) {
+                    if NSEvent.modifierFlags.contains(.shift) {
+                        return .ignored
+                    }
+                    let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !text.isEmpty else { return .handled }
+                    sendMessage()
+                    return .handled
+                }
 
             HStack(spacing: 0) {
                 plusButtonMenu
@@ -186,15 +186,16 @@ struct CodeMainView: View {
                 Spacer()
                     .frame(width: theme.spacingS)
 
-                Button(action: sendMessage) {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.system(size: 28))
-                        .foregroundStyle(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? theme.textQuaternary : theme.accent)
-                }
-                .buttonStyle(.plain)
-                .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .padding(.trailing, theme.spacingM)
-                .padding(.bottom, theme.spacingS)
+                micButton
+
+                Spacer()
+                    .frame(width: theme.spacingS)
+
+                voiceButton
+
+                Spacer()
+                    .frame(width: theme.spacingM)
+                    .padding(.bottom, theme.spacingS)
             }
         }
         .background(
@@ -218,36 +219,11 @@ struct CodeMainView: View {
     }
 
     private var modelSelector: some View {
-        Menu {
-            if bridge.models.isEmpty {
-                Button(action: {}) {
-                    Text("No models available")
-                }
-                .disabled(true)
-            } else {
-                ForEach(bridge.models) { model in
-                    Button(action: {
-                        selectedModel = model.name
-                        agent.selectedModel = model.name
-                        Task { try? await bridge.mlxSetModel(model: model.name) }
-                        codeMainLog.info("Model selected: \(model.name)")
-                    }) {
-                        HStack {
-                            Text(model.name)
-                            if selectedModel == model.name {
-                                Image(systemName: "checkmark")
-                            }
-                        }
-                    }
-                }
-            }
-        } label: {
+        Button(action: { showModelPicker.toggle() }) {
             HStack(spacing: 4) {
-                Image(systemName: "cpu")
-                    .font(.system(size: 10))
                 Text(selectedModel.isEmpty ? "Select model" : selectedModel)
                     .font(.system(size: theme.captionSize, weight: .medium))
-                Image(systemName: "chevron.up.chevron.down")
+                Image(systemName: "chevron.down")
                     .font(.system(size: 8))
             }
             .foregroundStyle(theme.textSecondary)
@@ -258,8 +234,241 @@ struct CodeMainView: View {
                     .fill(theme.separator.opacity(0.5))
             )
         }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
+        .buttonStyle(.plain)
+        .padding(.bottom, theme.spacingS)
+        .popover(isPresented: $showModelPicker, arrowEdge: .bottom) {
+            HStack(spacing: 0) {
+                VStack(alignment: .leading, spacing: 2) {
+                    if bridge.models.isEmpty {
+                        Text("No models available")
+                            .font(.system(size: 12))
+                            .foregroundStyle(theme.textTertiary)
+                            .padding(.vertical, 4)
+                    } else {
+                        let displayModels = Array(bridge.models.prefix(4))
+                        ForEach(displayModels) { model in
+                            Button(action: {
+                                selectedModel = model.name
+                                agent.selectedModel = model.name
+                                Task { try? await bridge.mlxSetModel(model: model.name) }
+                                codeMainLog.info("Model selected: \(model.name)")
+                                modelPickerPage = .main
+                                showModelPicker = false
+                            }) {
+                                HStack {
+                                    Text(model.name)
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(theme.text)
+                                    Spacer()
+                                    if selectedModel == model.name {
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 10))
+                                            .foregroundStyle(theme.accent)
+                                    }
+                                }
+                                .contentShape(Rectangle())
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                        .fill(selectedModel == model.name ? theme.accent.opacity(0.1) : Color.clear)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+
+                        Divider().padding(.vertical, 2)
+
+                        HStack {
+                            Text("Effort")
+                                .font(.system(size: 12))
+                                .foregroundStyle(theme.text)
+                            Spacer()
+                            Text(selectedEffort)
+                                .font(.system(size: 11))
+                                .foregroundStyle(theme.textTertiary)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(theme.textTertiary)
+                        }
+                        .contentShape(Rectangle())
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 5)
+                        .background(
+                            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                .fill(modelPickerPage == .effort ? theme.accent.opacity(0.08) : Color.clear)
+                        )
+                        .onHover { hovering in
+                            if hovering { modelPickerPage = .effort }
+                        }
+
+                        if bridge.models.count > 4 {
+                            Divider().padding(.vertical, 2)
+
+                            HStack {
+                                Text("More Models")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(theme.text)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .foregroundStyle(theme.textTertiary)
+                            }
+                            .contentShape(Rectangle())
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 5)
+                            .background(
+                                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                    .fill(modelPickerPage == .moreModels ? theme.accent.opacity(0.08) : Color.clear)
+                            )
+                            .onHover { hovering in
+                                if hovering { modelPickerPage = .moreModels }
+                            }
+                        }
+                    }
+                }
+                .padding(.vertical, 6)
+                .frame(width: 200)
+
+                if modelPickerPage != .main {
+                    Divider().padding(.vertical, 6)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        switch modelPickerPage {
+                        case .effort:
+                            ForEach(["Low", "Medium", "High", "Extra", "Max"], id: \.self) { level in
+                                Button(action: {
+                                    selectedEffort = level
+                                    codeMainLog.info("Effort set to: \(level)")
+                                    modelPickerPage = .main
+                                }) {
+                                    HStack {
+                                        Text(level)
+                                            .font(.system(size: 12))
+                                            .foregroundStyle(theme.text)
+                                        Spacer()
+                                        if selectedEffort == level {
+                                            Image(systemName: "checkmark")
+                                                .font(.system(size: 10))
+                                                .foregroundStyle(theme.accent)
+                                        }
+                                    }
+                                    .contentShape(Rectangle())
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                            .fill(selectedEffort == level ? theme.accent.opacity(0.1) : Color.clear)
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
+
+                            Divider().padding(.vertical, 2)
+
+                            HStack {
+                                Text("Thinking")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(theme.text)
+                                Spacer()
+                                Toggle("", isOn: $thinkingEnabled)
+                                    .toggleStyle(.switch)
+                                    .controlSize(.small)
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+
+                        case .moreModels:
+                            let moreModels = Array(bridge.models.dropFirst(4))
+                            ForEach(moreModels) { model in
+                                Button(action: {
+                                    selectedModel = model.name
+                                    agent.selectedModel = model.name
+                                    Task { try? await bridge.mlxSetModel(model: model.name) }
+                                    codeMainLog.info("Model selected: \(model.name)")
+                                    showModelPicker = false
+                                }) {
+                                    HStack {
+                                        Text(model.name)
+                                            .font(.system(size: 12))
+                                            .foregroundStyle(theme.text)
+                                            .lineLimit(1)
+                                        Spacer()
+                                        if selectedModel == model.name {
+                                            Image(systemName: "checkmark")
+                                                .font(.system(size: 10))
+                                                .foregroundStyle(theme.accent)
+                                        }
+                                    }
+                                    .contentShape(Rectangle())
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                            .fill(selectedModel == model.name ? theme.accent.opacity(0.1) : Color.clear)
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
+
+                        default:
+                            EmptyView()
+                        }
+                    }
+                    .padding(.vertical, 6)
+                    .frame(width: 180)
+                }
+            }
+        }
+    }
+
+    private var micButton: some View {
+        Button(action: { showMicSettings.toggle() }) {
+            Image(systemName: "mic")
+                .font(.system(size: 16))
+                .foregroundStyle(theme.textSecondary)
+        }
+        .buttonStyle(.plain)
+        .padding(.bottom, theme.spacingS)
+        .popover(isPresented: $showMicSettings, arrowEdge: .top) {
+            VStack(spacing: theme.spacingM) {
+                Text("Microphone")
+                    .font(.system(size: theme.captionSize, weight: .semibold))
+
+                HStack(spacing: theme.spacingS) {
+                    Text("Volume")
+                        .font(.system(size: 11))
+                        .foregroundStyle(theme.textSecondary)
+                        .frame(width: 48, alignment: .leading)
+                    Slider(value: $micVolume, in: 0...1)
+                        .frame(width: 120)
+                }
+
+                HStack(spacing: theme.spacingS) {
+                    Text("Hold to Record")
+                        .font(.system(size: 11))
+                        .foregroundStyle(theme.textSecondary)
+                    Spacer()
+                    Toggle("", isOn: $holdToRecord)
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
+                }
+                .frame(width: 188)
+            }
+            .padding(theme.spacingM)
+        }
+    }
+
+    private var voiceButton: some View {
+        Button(action: {
+            isVoiceMode.toggle()
+            codeMainLog.info("Voice mode: \(isVoiceMode)")
+        }) {
+            Image(systemName: isVoiceMode ? "waveform" : "waveform.path")
+                .font(.system(size: 16))
+                .foregroundStyle(isVoiceMode ? theme.accent : theme.textSecondary)
+        }
+        .buttonStyle(.plain)
         .padding(.bottom, theme.spacingS)
     }
 
@@ -352,9 +561,10 @@ struct CodeMainView: View {
     private func sendMessage() {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
-        agent.askAI(prompt: text)
+        let effort = selectedEffort.lowercased()
+        agent.askAI(prompt: text, effort: effort, thinking: thinkingEnabled)
         inputText = ""
-        codeMainLog.info("Message sent: \(text.prefix(50))")
+        codeMainLog.info("Message sent: \(text.prefix(50)) effort=\(effort) thinking=\(thinkingEnabled)")
     }
 
     private func takeScreenshot() {

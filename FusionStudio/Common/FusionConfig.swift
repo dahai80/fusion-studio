@@ -35,7 +35,8 @@ class FusionConfig: ObservableObject {
 
     // MARK: - MLX
     @AppStorage("mlxHost") var mlxHost = "localhost"
-    @AppStorage("mlxPort") var mlxPort = 8000
+    @AppStorage("mlxPort") var mlxPort = 11434
+    @AppStorage("mlxApiKey") var mlxApiKey = ""
     @AppStorage("mlxModel") var mlxModel = ""
     @AppStorage("mlxPath") var mlxPath = ""
 
@@ -58,6 +59,18 @@ class FusionConfig: ObservableObject {
 
     /// MLX 服务地址
     var mlxBaseURL: String { "http://\(mlxHost):\(mlxPort)" }
+
+    /// MLX API Key (from ~/.fusion-mlx/settings.json)
+    var mlxResolvedApiKey: String {
+        if !mlxApiKey.isEmpty { return mlxApiKey }
+        if let data = try? Data(contentsOf: URL(fileURLWithPath: NSHomeDirectory() + "/.fusion-mlx/settings.json")),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let auth = json["auth"] as? [String: Any],
+           let key = auth["api_key"] as? String {
+            return key
+        }
+        return ""
+    }
 
     /// 展开的工作区路径
     var expandedWorkspacePath: String {
@@ -94,7 +107,7 @@ class FusionConfig: ObservableObject {
         workspacePath = "~/FusionStudio/workspace"
         ipcSocketPath = "/tmp/fusion-studio.sock"
         mlxHost = "localhost"
-        mlxPort = 8000
+        mlxPort = 11434
         mlxModel = ""
         mlxPath = ""
 

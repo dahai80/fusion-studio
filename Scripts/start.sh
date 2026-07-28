@@ -25,6 +25,9 @@ cleanup() {
     if [ -n "${MLX_DAEMON_PID:-}" ]; then
         kill "$MLX_DAEMON_PID" 2>/dev/null || true
     fi
+    if [ -n "${ARTIFACTS_ENGINE_PID:-}" ]; then
+        kill "$ARTIFACTS_ENGINE_PID" 2>/dev/null || true
+    fi
     exit 0
 }
 
@@ -64,6 +67,47 @@ start_mlx_daemon() {
     sleep 2
 }
 
+# ─── 启动 Artifacts Engine ──────────────────────────────────────
+
+start_artifacts_engine() {
+    info "启动 Artifacts Engine (fusion-artifacts-engine)..."
+    local artifacts_dir="$HOME/fusion/fusion-artifacts-engine"
+
+    if [ ! -d "$artifacts_dir" ]; then
+        warn "fusion-artifacts-engine 未找到: $artifacts_dir，跳过"
+        return 0
+    fi
+
+    # 优先使用 venv
+    local python="python3"
+    if [ -f "$artifacts_dir/.venv/bin/activate" ]; then
+        source "$artifacts_dir/.venv/bin/activate"
+        python="python"
+    fi
+
+    # 检查是否已在运行
+    if curl -sf http://127.0.0.1:8892 -H "Content-Type: application/json" \
+         -d '{"jsonrpc":"2.0","method":"ping","id":1}' 2>/dev/null | grep -q '"pong"'; then
+        info "artifacts-engine 已在运行，跳过启动"
+        return 0
+    fi
+
+    (cd "$artifacts_dir" && $python -m fusion_artifacts_engine start) &
+    ARTIFACTS_ENGINE_PID=$!
+    info "artifacts-engine 已启动 (PID: $ARTIFACTS_ENGINE_PID)"
+
+    # 等待就绪
+    for i in $(seq 1 10); do
+        sleep 1
+        if curl -sf http://127.0.0.1:8892 -H "Content-Type: application/json" \
+             -d '{"jsonrpc":"2.0","method":"ping","id":1}' 2>/dev/null | grep -q '"pong"'; then
+            info "artifacts-engine 就绪"
+            return 0
+        fi
+    done
+    warn "artifacts-engine 启动超时，继续后续流程"
+}
+
 # ─── 启动 SwiftUI App ────────────────────────────────────────
 
 start_app() {
@@ -89,6 +133,7 @@ main() {
 
     start_env_daemon
     start_mlx_daemon
+    start_artifacts_engine
     start_app
 
     info "所有服务已启动"

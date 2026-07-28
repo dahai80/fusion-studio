@@ -40,6 +40,8 @@ class ArtifactSidebarCache: ObservableObject {
                     guard let id = item["id"] as? String,
                           let name = item["name"] as? String,
                           let type = item["type"] as? String else { continue }
+                    let kindRaw = item["kind"] as? String ?? "code"
+                    let kind = ArtifactKind(rawValue: kindRaw) ?? .code
                     let version = item["current_version"] as? Int ?? 1
                     let tokens = item["token_count"] as? Int ?? 0
                     let summary = item["summary"] as? String
@@ -49,7 +51,7 @@ class ArtifactSidebarCache: ObservableObject {
                     } else {
                         updatedAt = Date()
                     }
-                    parsed.append(ArtifactModel(id: id, name: name, type: type,
+                    parsed.append(ArtifactModel(id: id, name: name, type: type, kind: kind,
                                                 currentVersion: version, tokenCount: tokens,
                                                 summary: summary, updatedAt: updatedAt))
                 }
