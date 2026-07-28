@@ -4,6 +4,9 @@
 // User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
 
 import SwiftUI
+import Metal
+import MetalKit
+import os.log
 
 /// 仿真场景模型
 struct SimulationScene: Identifiable, Hashable, Codable {
@@ -373,57 +376,164 @@ struct SimulationViewport: View {
 
 // MARK: - Metal 仿真渲染视图
 
-struct MetalSimulationView: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSView {
-        // 创建 Metal 兼容的视图
-        let view = NSView()
-        view.wantsLayer = true
-        view.layer?.backgroundColor = NSColor.black.cgColor
+private let simLog = Logger(subsystem: "com.fusion.studio", category: "MetalSimulation")
 
-        // 添加简单的坐标网格指示
-        let gridLayer = CATextLayer()
-        gridLayer.string = "Simulation Viewport (Metal Ready)"
-        gridLayer.fontSize = 14
-        gridLayer.foregroundColor = NSColor.gray.cgColor
-        gridLayer.frame = CGRect(x: 20, y: 20, width: 300, height: 20)
-        gridLayer.alignmentMode = .left
-        view.layer?.addSublayer(gridLayer)
+class SimulationRenderer: NSObject, MTKViewDelegate {
+    private let device: MTLDevice
+    private let commandQueue: MTLCommandQueue
+    private let pipelineState: MTLRenderPipelineState
+    private var gridVertexBuffer: MTLBuffer?
+    private var crossVertexBuffer: MTLBuffer?
+    private var vertexCount = 0
+    private var crossVertexCount = 0
+    private var rotation: Float = 0
 
-        // 添加中心十字
-        let crossLayer = CAShapeLayer()
-        let crossPath = NSBezierPath()
-        crossPath.move(to: NSPoint(x: -10, y: 0))
-        crossPath.line(to: NSPoint(x: 10, y: 0))
-        crossPath.move(to: NSPoint(x: 0, y: -10))
-        crossPath.line(to: NSPoint(x: 0, y: 10))
-        crossLayer.path = crossPath.cgPath
-        crossLayer.strokeColor = NSColor.gray.withAlphaComponent(0.3).cgColor
-        crossLayer.lineWidth = 1
-        view.layer?.addSublayer(crossLayer)
-
-        // 添加网格
-        let gridLines = CAShapeLayer()
-        let gridPath = NSBezierPath()
-        let gridSize: CGFloat = 200
-        let step: CGFloat = 20
-        for i in stride(from: -gridSize, through: gridSize, by: step) {
-            gridPath.move(to: NSPoint(x: i, y: -gridSize))
-            gridPath.line(to: NSPoint(x: i, y: gridSize))
-            gridPath.move(to: NSPoint(x: -gridSize, y: i))
-            gridPath.line(to: NSPoint(x: gridSize, y: i))
+    init?(mtkView: MTKView) {
+        guard let device = MTLCreateSystemDefaultDevice() else {
+            simLog.error("Metal: no default device available")
+            return nil
         }
-        gridLines.path = gridPath.cgPath
-        gridLines.strokeColor = NSColor.gray.withAlphaComponent(0.15).cgColor
-        gridLines.lineWidth = 0.5
-        view.layer?.addSublayer(gridLines)
+        self.device = device
+        guard let queue = device.makeCommandQueue() else {
+            simLog.error("Metal: failed to create command queue")
+            return nil
+        }
+        self.commandQueue = queue
 
-        // Metal 初始化（V1.0 完整实现）
-        // 使用 MTKView 替换 TODO
+        let shaderSource = """
+        #include <metal_stdlib>
+        using namespace metal;
+        struct VertexOut { float4 position [[position]]; };
+        struct Uniforms { float rotation; float width; float height; };
+        vertex VertexOut gridVertex(constant Uniforms& u [[buffer(0)]],
+                                     constant float3* pos [[buffer(1)]],
+                                     uint vid [[vertex_id]]) {
+            float aspect = u.width / u.height;
+            float3 p = pos[vid];
+            float c = cos(u.rotation); float s = sin(u.rotation);
+            float2 rotated = float2(p.x * c - p.y * s, p.x * s + p.y * c);
+            return VertexOut { float4(rotated.x / (aspect * 200.0), rotated.y / 200.0, 0, 1) };
+        }
+        fragment float4 gridFragment() { return float4(0.3, 0.3, 0.35, 0.4); }
+        """
+        let library = try? device.makeLibrary(source: shaderSource, options: nil)
+        let vertexFunc = library?.makeFunction(name: "gridVertex")
+        let fragmentFunc = library?.makeFunction(name: "gridFragment")
 
-        return view
+        if vertexFunc == nil || fragmentFunc == nil {
+            simLog.info("Metal: shader functions not found, using clear-color only renderer")
+        }
+
+        let pipelineDesc = MTLRenderPipelineDescriptor()
+        pipelineDesc.vertexFunction = vertexFunc
+        pipelineDesc.fragmentFunction = fragmentFunc
+        pipelineDesc.colorAttachments[0].pixelFormat = mtkView.colorPixelFormat
+
+        guard let pipeline = try? device.makeRenderPipelineState(descriptor: pipelineDesc) else {
+            simLog.error("Metal: failed to create pipeline state")
+            return nil
+        }
+        self.pipelineState = pipeline
+
+        super.init()
+
+        buildGridBuffers()
+        simLog.info("Metal: renderer initialized with \(self.vertexCount) grid vertices")
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) {}
+    private func buildGridBuffers() {
+        let gridSize: Float = 200
+        let step: Float = 20
+        var vertices: [Float] = []
+        var i: Float = -gridSize
+        while i <= gridSize {
+            vertices.append(contentsOf: [i, -gridSize, 0, i, gridSize, 0])
+            vertices.append(contentsOf: [-gridSize, i, 0, gridSize, i, 0])
+            i += step
+        }
+        vertexCount = vertices.count / 3
+        gridVertexBuffer = device.makeBuffer(bytes: vertices, length: vertices.count * MemoryLayout<Float>.size, options: [])
+
+        var crossVerts: [Float] = [-10, 0, 0, 10, 0, 0, 0, -10, 0, 0, 10, 0]
+        crossVertexCount = crossVerts.count / 3
+        crossVertexBuffer = device.makeBuffer(bytes: crossVerts, length: crossVerts.count * MemoryLayout<Float>.size, options: [])
+    }
+
+    func draw(in view: MTKView) {
+        guard let drawable = view.currentDrawable,
+              let renderPass = view.currentRenderPassDescriptor else { return }
+
+        rotation += 0.002
+
+        guard let cmdBuffer = commandQueue.makeCommandBuffer(),
+              let encoder = cmdBuffer.makeRenderCommandEncoder(descriptor: renderPass) else { return }
+
+        encoder.setRenderPipelineState(pipelineState)
+
+        var uniforms: [Float] = [rotation, Float(view.drawableSize.width), Float(view.drawableSize.height)]
+        encoder.setVertexBytes(&uniforms, length: uniforms.count * MemoryLayout<Float>.size, index: 0)
+
+        if let gridBuf = gridVertexBuffer {
+            encoder.setVertexBuffer(gridBuf, offset: 0, index: 1)
+            encoder.drawPrimitives(type: .line, vertexStart: 0, vertexCount: vertexCount)
+        }
+        if let crossBuf = crossVertexBuffer {
+            encoder.setVertexBuffer(crossBuf, offset: 0, index: 1)
+            encoder.drawPrimitives(type: .line, vertexStart: 0, vertexCount: crossVertexCount)
+        }
+
+        encoder.endEncoding()
+        cmdBuffer.present(drawable)
+        cmdBuffer.commit()
+    }
+
+    func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
+}
+
+struct MetalSimulationView: NSViewRepresentable {
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    func makeNSView(context: Context) -> MTKView {
+        let mtkView = MTKView()
+        if let device = MTLCreateSystemDefaultDevice() {
+            mtkView.device = device
+            mtkView.wantsLayer = true
+            mtkView.layer?.backgroundColor = NSColor.black.cgColor
+            mtkView.colorPixelFormat = .bgra8Unorm
+            mtkView.clearColor = MTLClearColor(red: 0.04, green: 0.04, blue: 0.06, alpha: 1.0)
+            mtkView.enableSetNeedsDisplay = false
+            mtkView.isPaused = false
+            mtkView.preferredFramesPerSecond = 60
+            mtkView.delegate = context.coordinator
+            simLog.info("Metal: MTKView created with device \(device.name)")
+        } else {
+            simLog.error("Metal: MTLCreateSystemDefaultDevice returned nil")
+            mtkView.wantsLayer = true
+            mtkView.layer?.backgroundColor = NSColor.black.cgColor
+        }
+        return mtkView
+    }
+
+    func updateNSView(_ nsView: MTKView, context: Context) {}
+
+    class Coordinator: NSObject, MTKViewDelegate {
+        private var renderer: SimulationRenderer?
+
+        override init() {
+            super.init()
+        }
+
+        func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
+            renderer?.mtkView(view, drawableSizeWillChange: size)
+        }
+
+        func draw(in view: MTKView) {
+            if renderer == nil {
+                renderer = SimulationRenderer(mtkView: view)
+            }
+            renderer?.draw(in: view)
+        }
+    }
 }
 
 // MARK: - 场景编辑器

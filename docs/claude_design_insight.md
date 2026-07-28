@@ -521,8 +521,8 @@ Fusion Design 的核心差异化优势在于 **离线运行 + 项目绑定 + 全
 | `SwiftUIExporter.swift` (新) | HTML→SwiftUI转换提示词+代码提取 |
 | `FusionStudioApp.swift` (改) | 启动时ingestDesignTokens |
 | `DesignBridgeTests.swift` (改) | 新增14测试，共36/36通过 |
-| `ScreenshotImporter.swift` (新) | 截图→代码管线（stub，待fusion-mlx multimodal） |
-| `FigmaBridge.swift` (新) | Figma MCP集成（stub，待Figma-Context-MCP） |
+| `ScreenshotImporter.swift` (新) | 截图→代码管线（已实现，使用fusion-mlx VLM multimodal image_url） |
+| `PenpotBridge.swift` (新，原FigmaBridge) | Penpot开源设计工具RPC集成（已实现，替代Figma） |
 | `IPCClient.swift` (改) | 新增artifactSync/artifactWatch/artifactExportCode/artifactImportCode |
 | `DesignBridge.swift` (改) | artifact↔文件双向同步（使用artifact.sync API + fallback），截图导入，Figma导入 |
 
@@ -530,8 +530,8 @@ Fusion Design 的核心差异化优势在于 **离线运行 + 项目绑定 + 全
 
 | # | 任务 | 原阻塞原因 | 当前状态 |
 |---|------|----------|----------|
-| 13 | 截图导入 ScreenshotToCode | fusion-mlx multimodal待确认 | ✅ stub完成，DesignBridge.importScreenshot已实现，multimodal待fusion-mlx |
-| 15 | Figma 集成 | Figma-Context-MCP待调研 | ✅ stub完成，FigmaBridge+convertToHTML已实现，MCP连接待上游 |
+| 13 | 截图导入 ScreenshotToCode | fusion-mlx multimodal待确认 | ✅ 已实现！VLM multimodal image_url已可用(issue #40 CLOSED)，ScreenshotImporter完整工作 |
+| 15 | Penpot 集成（原Figma） | Figma-Context-MCP待调研 | ✅ 已实现！PenpotBridge替代FigmaBridge，RPC API已接入(get-profile/get-file/export-binfile等) |
 | 16 | artifact↔文件双向同步 | artifact.sync API待上游 | ✅ 已实现！artifact.sync API已在fusion-artifacts-engine存在 |
 | — | project_id 范围隔离 | fusion-artifacts-engine不支持project_id | ✅ PR #8 落地，IPCClient+DesignBridge+ArtifactsPanel+ArtifactSidebarCache已接入 |
 | — | design metadata | artifact无结构化metadata字段 | ✅ IPCClient支持metadata参数，DesignBridge保存时传递design_metadata (component_name/framework/layout_type/source) |
