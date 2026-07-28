@@ -9,11 +9,13 @@ struct MemoryView: View {
 
     private let logger = Logger(subsystem: "com.fusion.studio", category: "MemoryView")
 
+    // Callers: MemoryView tabs. Affected API: memory.recall_relevant/auto_forget. User instruction: "审视是否所有需要功能和api所有需要的GUI都在~/fusion/fusion-studio都已经有对应GUI了，所有有问题的都要在fusion-studio补齐GUI"
     enum MemoryTab: String, CaseIterable {
-        case recent = "Recent"
-        case recall = "Recall"
-        case store = "Store"
-        case manage = "Manage"
+        case recent   = "Recent"
+        case recall   = "Recall"
+        case relevant = "Context"
+        case store    = "Store"
+        case manage   = "Manage"
     }
 
     var body: some View {
@@ -35,6 +37,8 @@ struct MemoryView: View {
                     MemoryRecentView()
                 case .recall:
                     MemoryRecallView()
+                case .relevant:
+                    MemoryRelevantView()
                 case .store:
                     MemoryStoreView()
                 case .manage:
@@ -361,6 +365,100 @@ struct MemoryManageView: View {
             _ = try await bridge.fetchRecentMemories()
         } catch {
             logger.error("refreshStats: \(error)")
+        }
+    }
+}
+
+struct MemoryRelevantView: View {
+    @EnvironmentObject var bridge: AgentBridge
+    @Environment(\.studioTheme) var theme
+    @State private var query: String = ""
+    @State private var context: String = ""
+    @State private var results: [[String: Any]] = []
+    @State private var isSearching: Bool = false
+    @State private var autoForgetResult: String?
+    @State private var maxAge: Int = 30
+    @State private var minImportance: Int = 3
+    @State private var dryRun: Bool = true
+    private let logger = Logger(subsystem: "com.fusion.studio", category: "MemoryRelevant")
+
+    var body: some View {
+        VStack(spacing: theme.spacingM) {
+            GroupBox("Context-Aware Recall") {
+                VStack(spacing: theme.spacingS) {
+                    TextField("Query", text: $query)
+                        .textFieldStyle(.roundedBorder)
+                    TextField("Context (optional)", text: $context)
+                        .textFieldStyle(.roundedBorder)
+                    Button("Recall Relevant") { performRecall() }
+                        .disabled(query.isEmpty || isSearching)
+                }
+            }
+            .padding(.horizontal, theme.spacingM)
+
+            if isSearching {
+                ProgressView()
+            } else if !results.isEmpty {
+                List(Array(results.enumerated()), id: \.offset) { _, item in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(item["content"] as? String ?? "").lineLimit(3)
+                        HStack {
+                            Text(item["scope"] as? String ?? "").font(.caption2).foregroundStyle(theme.textTertiary)
+                            if let score = item["score"] as? Double {
+                                Text(String(format: "%.2f", score)).font(.caption2).foregroundStyle(theme.accent)
+                            }
+                        }
+                    }
+                }
+            }
+
+            Divider()
+
+            GroupBox("Auto Forget") {
+                VStack(spacing: theme.spacingS) {
+                    HStack {
+                        LabeledContent("Max Age (days)") { Stepper("\(maxAge)", value: $maxAge, in: 1...365) }
+                        LabeledContent("Min Importance") { Stepper("\(minImportance)", value: $minImportance, in: 0...10) }
+                    }
+                    Toggle("Dry Run", isOn: $dryRun)
+                    Button("Run Auto Forget") { performAutoForget() }
+                    if let result = autoForgetResult {
+                        Text(result).font(.caption).foregroundStyle(theme.textTertiary)
+                    }
+                }
+            }
+            .padding(.horizontal, theme.spacingM)
+
+            Spacer()
+        }
+    }
+
+    private func performRecall() {
+        isSearching = true
+        Task {
+            do {
+                let result = try await bridge.ipcClient!.memoryRecallRelevant(
+                    query: query, context: context
+                )
+                results = result["entries"] as? [[String: Any]] ?? []
+            } catch {
+                logger.error("recallRelevant failed: \(error.localizedDescription)")
+            }
+            isSearching = false
+        }
+    }
+
+    private func performAutoForget() {
+        Task {
+            do {
+                let result = try await bridge.ipcClient!.memoryAutoForget(
+                    maxAge: maxAge, minImportance: minImportance, dryRun: dryRun
+                )
+                let count = result["removed_count"] as? Int ?? 0
+                autoForgetResult = dryRun ? "Would remove \(count) entries" : "Removed \(count) entries"
+            } catch {
+                autoForgetResult = "Error: \(error.localizedDescription)"
+            }
         }
     }
 }

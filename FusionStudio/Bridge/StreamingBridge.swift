@@ -1,9 +1,11 @@
 // Callers: UnifiedChatView, AgentStudioView — real-time streaming event bridge
-// Affected API: AgentBridge @MainActor ObservableObject (WebSocket listener, event publishing)
+// Affected API: StreamingBridge (streamEvents auto-trim at 500, trimStreamEvents, memoryCheckMB)
 // Data schemas: StreamChatEvent (type/sessionId/event), published as @Published streamEvents
+// User instruction: "按照P1~P6顺序实施所有未完成的任务" — Task #37 P6-3 内存泄漏检测+长时间运行稳定性
 
 import Combine
 import Foundation
+import MachO
 import Network
 import os.log
 
@@ -40,6 +42,8 @@ class StreamingBridge: ObservableObject {
     @Published var streamEvents: [StreamChatEvent] = []
     @Published var isStreaming: Bool = false
     @Published var isConnected: Bool = false
+
+    private static let maxStreamEvents = 500
 
     private var connection: NWConnection?
     private let queue = DispatchQueue(label: "com.fusion-studio.ws", qos: .userInitiated)
@@ -160,6 +164,7 @@ class StreamingBridge: ObservableObject {
                 Task { @MainActor [weak self] in
                     guard let self = self else { return }
                     self.streamEvents.append(event)
+                    self.trimStreamEvents()
                     if event.isToken {
                         self.accumulatedContent += event.content
                     }
@@ -172,6 +177,27 @@ class StreamingBridge: ObservableObject {
                 }
             }
         }
+    }
+
+    private func trimStreamEvents() {
+        if streamEvents.count > Self.maxStreamEvents {
+            let dropCount = streamEvents.count - Self.maxStreamEvents
+            streamEvents.removeFirst(dropCount)
+            let kept = streamEvents.count
+            bridgeLog.info("StreamingBridge: trimmed \(dropCount) old events, keeping \(kept)")
+        }
+    }
+
+    func memoryCheckMB() -> Double {
+        var info = mach_task_basic_info()
+        var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size) / 4
+        let result = withUnsafeMutablePointer(to: &info) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
+                task_info(mach_task_self_, task_flavor_t(MACH_TASK_BASIC_INFO), $0, &count)
+            }
+        }
+        guard result == KERN_SUCCESS else { return 0 }
+        return Double(info.resident_size) / 1024.0 / 1024.0
     }
 
     private func scheduleReconnect() {

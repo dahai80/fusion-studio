@@ -147,12 +147,19 @@ struct BoxValue {
     var isUniform: Bool { top == right && right == bottom && bottom == left }
 }
 
+// Callers: DesignCanvasView.Coordinator (node.select/drag/resize events), DesignInspectorView (UI binding).
+// Affected API: DesignInspectorState.shared, Notification.Name.designInspectorMutateNode.
+// Data schemas: BridgeEvent payload (node_id, dx, dy, w, h), MutateNode command JSON.
+// User instruction: "现在开始实施" — Task #11 P2-2
+
 class DesignInspectorState: ObservableObject {
     static let shared = DesignInspectorState()
 
     @Published var properties: StyleProperties = StyleProperties()
     @Published var selectedElement: String? = nil
     @Published var expandedSections: Set<InspectorSection> = Set(InspectorSection.allCases)
+    var _lastDragDX: Float = 0
+    var _lastDragDY: Float = 0
 
     init() {
         logger.info("DesignInspectorState initialized")
@@ -175,6 +182,73 @@ class DesignInspectorState: ObservableObject {
         properties = preset.properties
         logger.info("Applied style preset: \(preset.rawValue)")
     }
+
+    func pushSizeToCanvas() {
+        guard let nodeID = selectedElement else { return }
+        let w = parsePxValue(properties.width)
+        let h = parsePxValue(properties.height)
+        guard w != nil || h != nil else { return }
+        NotificationCenter.default.post(
+            name: .designInspectorMutateNode,
+            object: nil,
+            userInfo: [
+                "node_id": nodeID,
+                "w": w ?? NSNull(),
+                "h": h ?? NSNull(),
+            ]
+        )
+        logger.info("DesignInspectorState: pushSizeToCanvas nodeID=\(nodeID) w=\(w?.description ?? "nil") h=\(h?.description ?? "nil")")
+    }
+
+    func pushStyleToCanvas() {
+        guard let nodeID = selectedElement else { return }
+        var userInfo: [String: Any] = ["node_id": nodeID]
+
+        let w = parsePxValue(properties.width)
+        let h = parsePxValue(properties.height)
+        if let w = w { userInfo["w"] = w }
+        if let h = h { userInfo["h"] = h }
+
+        if properties.backgroundColor != "transparent" {
+            userInfo["fill"] = properties.backgroundColor
+        }
+        if properties.borderColor != "transparent" {
+            userInfo["stroke"] = properties.borderColor
+            if let sw = parsePxValue(properties.borderWidth) {
+                userInfo["stroke_width"] = sw
+            }
+        }
+        if let r = parsePxValue(properties.borderRadius) {
+            userInfo["radius"] = r
+        }
+        if let fs = parsePxValue(properties.fontSize) {
+            userInfo["font_size"] = fs
+        }
+        if properties.fontFamily != "system-ui" {
+            userInfo["font_family"] = properties.fontFamily
+        }
+        if let o = Float(properties.opacity), o != 1.0 {
+            userInfo["opacity"] = o
+        }
+
+        NotificationCenter.default.post(
+            name: .designInspectorMutateNode,
+            object: nil,
+            userInfo: userInfo
+        )
+        logger.info("DesignInspectorState: pushStyleToCanvas nodeID=\(nodeID) fields=\(userInfo.keys.filter { $0 != "node_id" }.joined(separator: ","))")
+    }
+
+    private func parsePxValue(_ s: String) -> Float? {
+        let trimmed = s.trimmingCharacters(in: CharacterSet(charactersIn: "px "))
+        return Float(trimmed)
+    }
+}
+
+extension Notification.Name {
+    static let designInspectorMutateNode = Notification.Name("designInspectorMutateNode")
+    static let designInspectorShowNode = Notification.Name("designInspectorShowNode")
+    static let designInspectorHide = Notification.Name("designInspectorHide")
 }
 
 enum StylePreset: String, CaseIterable, Identifiable {
@@ -236,6 +310,7 @@ enum StylePreset: String, CaseIterable, Identifiable {
 struct DesignInspectorView: View {
     @StateObject private var state = DesignInspectorState.shared
     @Environment(\.studioTheme) var theme
+    @EnvironmentObject var appState: AppState
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -252,6 +327,30 @@ struct DesignInspectorView: View {
             }
             Rectangle().fill(theme.separator).frame(height: 1)
             cssOutputBar
+        }
+        .onAppear {
+            observeNotifications()
+        }
+    }
+
+    private func observeNotifications() {
+        NotificationCenter.default.addObserver(
+            forName: .designInspectorShowNode,
+            object: nil,
+            queue: .main
+        ) { notification in
+            if let nodeID = notification.userInfo?["node_id"] as? String {
+                appState.inspectorContext = .node(id: nodeID)
+                appState.isInspectorVisible = true
+            }
+        }
+        NotificationCenter.default.addObserver(
+            forName: .designInspectorHide,
+            object: nil,
+            queue: .main
+        ) { _ in
+            appState.inspectorContext = .none
+            appState.isInspectorVisible = false
         }
     }
 
@@ -375,8 +474,16 @@ struct DesignInspectorView: View {
                     .pickerStyle(.segmented)
                 }
             }
-            propertyRow("宽度") { textField("auto", text: $state.properties.width) }
-            propertyRow("高度") { textField("auto", text: $state.properties.height) }
+            propertyRow("宽度") {
+                textField("auto", text: $state.properties.width) {
+                    state.pushSizeToCanvas()
+                }
+            }
+            propertyRow("高度") {
+                textField("auto", text: $state.properties.height) {
+                    state.pushSizeToCanvas()
+                }
+            }
         }
         .padding(.horizontal, theme.spacingM)
         .padding(.vertical, theme.spacingXS)
@@ -493,8 +600,8 @@ struct DesignInspectorView: View {
         }
     }
 
-    private func textField(_ placeholder: String, text: Binding<String>) -> some View {
-        TextField(placeholder, text: text)
+    private func textField(_ placeholder: String, text: Binding<String>, onCommit: @escaping () -> Void = {}) -> some View {
+        TextField(placeholder, text: text, onCommit: onCommit)
             .textFieldStyle(.plain)
             .font(.system(size: theme.captionSize, design: .monospaced))
             .foregroundColor(theme.text)
@@ -510,7 +617,7 @@ struct DesignInspectorView: View {
                 .font(.system(size: theme.captionSize))
                 .foregroundColor(theme.textSecondary)
                 .frame(width: 80, alignment: .leading)
-            TextField("#FFFFFF", text: text)
+            TextField("#FFFFFF", text: text, onCommit: { state.pushStyleToCanvas() })
                 .textFieldStyle(.plain)
                 .font(.system(size: theme.captionSize, design: .monospaced))
                 .foregroundColor(theme.text)

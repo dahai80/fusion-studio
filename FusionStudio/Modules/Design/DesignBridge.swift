@@ -1,10 +1,12 @@
 // Callers: DesignView, DesignChatPanel, DesignPreviewView — all Design module views.
-// Affected API: DesignBridge @MainActor ObservableObject (published properties + async methods).
+// Affected API: DesignBridge @MainActor ObservableObject (published properties + async methods + memoryCheckMB).
 // Data schemas: DesignMessage (role/content/timestamp/artifactInfo), ArtifactParseResult (type/title/identifier/code), DesignPage (id/artifactId/title/type/code/createdAt).
-// User instruction: "continue" — Phase 3 Task #34 multi-page design management
+// User instruction: "按照P1~P6顺序实施所有未完成的任务" — Task #37 P6-3 内存泄漏检测+长时间运行稳定性
 
 import AppKit
 import Combine
+import MachO
+import WebKit
 import os.log
 
 private let designBridgeLog = Logger(subsystem: "com.fusion.studio", category: "DesignBridge")
@@ -56,6 +58,11 @@ class DesignBridge: ObservableObject {
     @Published var currentArtifactTitle: String = ""
     @Published var isGenerating: Bool = false
     @Published var artifactSaved: Bool = false
+
+    // MARK: - Inference Progress
+    @Published var inferenceStep: String = ""
+    @Published var streamTokenCount: Int = 0
+    @Published var streamPreviewText: String = ""
     @Published var errorMessage: String?
     @Published var artifactId: String = ""
     @Published var versionHistory: [[String: Any]] = []
@@ -63,12 +70,355 @@ class DesignBridge: ObservableObject {
     @Published var pages: [DesignPage] = []
     @Published var currentPageIndex: Int = -1
 
+    // Callers: DesignCanvasView (wasm bridge), DesignView (canvas mode).
+    // Affected API: selectedNodeID Published, canvasWebView weak ref, sendCanvasCommand().
+    // Data schemas: BridgeCommand JSON via evaluateJavaScript.
+    // User instruction: "现在开始实施" — Task #5
+
+    @Published var selectedNodeID: String?
+    @Published var lastRenderedDocumentJSON: String?
+    @Published var marqueeSelectedNodeIDs: [String] = []
+
+    // MARK: - Plan Preview State
+    @Published var pendingPlanCode: String?
+    @Published var isPlanPreviewActive: Bool = false
+    @Published var pendingPlanTitle: String = ""
+
     private var parseState: ArtifactParseState = .idle
     private var parseBuffer: String = ""
     private var currentIdentifier: String = ""
     private var rawAssistantContent: String = ""
     private var ipcClient: IPCClient?
     private var sessionId: String = "design-\(UUID().uuidString.prefix(8))"
+    weak var canvasWebView: WKWebView?
+    private var codeWatchTimer: Timer?
+
+    // MARK: - Canvas Bridge Commands
+
+    func sendCanvasCommand(_ command: BridgeCommand) {
+        guard let webView = canvasWebView else {
+            designBridgeLog.warning("DesignBridge: canvasWebView nil, command dropped")
+            return
+        }
+        DesignCanvasView.sendCommand(command, to: webView)
+    }
+
+    func applyDesignTokensToCanvas(_ css: String) {
+        sendCanvasCommand(.applyTokens(css: css))
+    }
+
+    func renderDocumentToCanvas(_ documentJSON: String) {
+        lastRenderedDocumentJSON = documentJSON
+        sendCanvasCommand(.pageRender(documentJSON: documentJSON))
+    }
+
+    func clearCanvas() {
+        sendCanvasCommand(.clearCanvas)
+    }
+
+    func selectCanvasNode(_ nodeID: String) {
+        selectedNodeID = nodeID
+        sendCanvasCommand(.selectNode(nodeID: nodeID))
+    }
+
+    func mutateCanvasNode(_ nodeID: String, x: Float?, y: Float?, w: Float?, h: Float?,
+                          fill: String? = nil, stroke: String? = nil, strokeWidth: Float? = nil,
+                          radius: Float? = nil, fontSize: Float? = nil, fontFamily: String? = nil,
+                          opacity: Float? = nil) {
+        sendCanvasCommand(.mutateNode(nodeID: nodeID, x: x, y: y, w: w, h: h,
+                                       fill: fill, stroke: stroke, strokeWidth: strokeWidth,
+                                       radius: radius, fontSize: fontSize, fontFamily: fontFamily,
+                                       opacity: opacity))
+        designBridgeLog.info("DesignBridge: mutateCanvasNode id=\(nodeID) w=\(w?.description ?? "nil") h=\(h?.description ?? "nil")")
+    }
+
+    func setNodeVisibility(_ nodeID: String, visible: Bool) {
+        sendCanvasCommand(.setNodeVisibility(nodeID: nodeID, visible: visible))
+        designBridgeLog.info("DesignBridge: setNodeVisibility id=\(nodeID) visible=\(visible)")
+    }
+
+    func reorderNode(_ nodeID: String, newIndex: Int) {
+        sendCanvasCommand(.reorderNode(nodeID: nodeID, newIndex: newIndex))
+        designBridgeLog.info("DesignBridge: reorderNode id=\(nodeID) newIndex=\(newIndex)")
+    }
+
+    func applyLocalEdit(nodesJSON: String, instruction: String) {
+        guard !marqueeSelectedNodeIDs.isEmpty else {
+            designBridgeLog.warning("DesignBridge: applyLocalEdit with no marquee selection")
+            return
+        }
+        let cliPath = findFusionDesignCLI()
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: cliPath)
+        process.arguments = ["generate", "--skill", "local-edit", "--input", "\(nodesJSON)|||\(instruction)"]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        do {
+            try process.run()
+            process.waitUntilExit()
+            guard process.terminationStatus == 0 else {
+                designBridgeLog.error("DesignBridge: local-edit CLI failed with status \(process.terminationStatus)")
+                return
+            }
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            let output = String(data: data, encoding: .utf8) ?? ""
+            applyPartialEditResult(output)
+        } catch {
+            designBridgeLog.error("DesignBridge: local-edit CLI error: \(error)")
+        }
+    }
+
+    private func applyPartialEditResult(_ resultJSON: String) {
+        guard let data = resultJSON.data(using: .utf8),
+              let nodes = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+            designBridgeLog.error("DesignBridge: applyPartialEditResult invalid JSON")
+            return
+        }
+        for node in nodes {
+            guard let nodeID = node["id"] as? String else { continue }
+            let x = node["x"] as? Float
+            let y = node["y"] as? Float
+            let w = node["w"] as? Float
+            let h = node["h"] as? Float
+            let fill = node["fill"] as? String
+            let stroke = node["stroke"] as? String
+            let radius = node["radius"] as? Float
+            let opacity = node["opacity"] as? Float
+            mutateCanvasNode(nodeID, x: x, y: y, w: w, h: h,
+                             fill: fill, stroke: stroke, radius: radius, opacity: opacity)
+        }
+        designBridgeLog.info("DesignBridge: applied partial edit to \(nodes.count) nodes")
+    }
+
+    private var mutateObserver: NSObjectProtocol?
+
+    func startObservingInspectorChanges() {
+        guard mutateObserver == nil else { return }
+        mutateObserver = NotificationCenter.default.addObserver(
+            forName: .designInspectorMutateNode,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self = self else { return }
+            let userInfo = notification.userInfo ?? [:]
+            guard let nodeID = userInfo["node_id"] as? String else { return }
+            let w = userInfo["w"] as? Float
+            let h = userInfo["h"] as? Float
+            let fill = userInfo["fill"] as? String
+            let stroke = userInfo["stroke"] as? String
+            let strokeWidth = userInfo["stroke_width"] as? Float
+            let radius = userInfo["radius"] as? Float
+            let fontSize = userInfo["font_size"] as? Float
+            let fontFamily = userInfo["font_family"] as? String
+            let opacity = userInfo["opacity"] as? Float
+            self.mutateCanvasNode(nodeID, x: nil, y: nil, w: w, h: h,
+                                   fill: fill, stroke: stroke, strokeWidth: strokeWidth,
+                                   radius: radius, fontSize: fontSize, fontFamily: fontFamily,
+                                   opacity: opacity)
+        }
+        designBridgeLog.info("DesignBridge: started observing inspector changes")
+    }
+
+    deinit {
+        if let obs = mutateObserver {
+            NotificationCenter.default.removeObserver(obs)
+        }
+        codeWatchTimer?.invalidate()
+    }
+
+    // MARK: - Reverse Code Watch (Fusion Code → Canvas)
+
+    /// 启动反向监听：每 3 秒扫描 fusion-code IPC 目录的 style-change 消息。
+    func startWatchingCodeChanges() {
+        guard codeWatchTimer == nil else { return }
+        codeWatchTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
+            self?.pollCodeChanges()
+        }
+        designBridgeLog.info("DesignBridge: code watch started (3s interval)")
+    }
+
+    func stopWatchingCodeChanges() {
+        codeWatchTimer?.invalidate()
+        codeWatchTimer = nil
+        designBridgeLog.info("DesignBridge: code watch stopped")
+    }
+
+    private func pollCodeChanges() {
+        let ipcBase = NSHomeDirectory() + "/.fusion-ipc"
+        let dir = ipcBase + "/fusion-code"
+        let fm = FileManager.default
+        guard let files = try? fm.contentsOfDirectory(atPath: dir).sorted() else { return }
+
+        for name in files {
+            let path = dir + "/" + name
+            guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let action = json["action"] as? String,
+                  action == "style-change" else {
+                continue
+            }
+            // 消费：读后删除
+            try? fm.removeItem(atPath: path)
+
+            guard let payload = json["payload"] as? [String: Any],
+                  let mutations = payload["mutations"] as? [[String: Any]] else {
+                designBridgeLog.warning("DesignBridge: style-change payload missing mutations")
+                continue
+            }
+            designBridgeLog.info("DesignBridge: applying \(mutations.count) reverse mutations")
+            for m in mutations {
+                guard let nodeID = m["node_id"] as? String else { continue }
+                mutateCanvasNode(
+                    nodeID,
+                    x: m["x"] as? Float,
+                    y: m["y"] as? Float,
+                    w: m["w"] as? Float,
+                    h: m["h"] as? Float,
+                    fill: m["fill"] as? String,
+                    stroke: m["stroke"] as? String,
+                    strokeWidth: nil,
+                    radius: m["radius"] as? Float,
+                    fontSize: nil,
+                    fontFamily: nil,
+                    opacity: m["opacity"] as? Float
+                )
+            }
+        }
+    }
+
+    // MARK: - AI Artifact → Canvas Rendering
+
+    /// AI artifact 完成后：HTML→PenDocument→Plan Preview + Token CSS 注入。
+    /// 预览模式下先暂存，用户确认后才写入画布。
+    private func renderArtifactToCanvas() async {
+        // 1. HTML → PenDocument JSON via CLI
+        guard let penDocJSON = parseHtmlViaCLI(currentArtifactCode) else {
+            designBridgeLog.warning("DesignBridge: parseHtmlViaCLI failed, skipping canvas render")
+            return
+        }
+        // 2. 注入设计 Token CSS
+        if let tokenCSS = fetchTokenCSSViaCLI() {
+            applyDesignTokensToCanvas(tokenCSS)
+            designBridgeLog.info("DesignBridge: token CSS injected (\(tokenCSS.count) chars)")
+        }
+        // 3. Plan 预览：暂存到 pendingPlanCode，不直接渲染
+        pendingPlanCode = penDocJSON
+        pendingPlanTitle = currentArtifactTitle
+        isPlanPreviewActive = true
+        // 发送 PlanPreview 命令到 wasm，让画布显示虚线预览
+        sendCanvasCommand(.planPreview(documentJSON: penDocJSON))
+        designBridgeLog.info("DesignBridge: Plan preview staged, title=\(self.currentArtifactTitle)")
+    }
+
+    /// 确认 Plan：将暂存的 PenDocument 写入画布。
+    func acceptPlan() {
+        guard let code = pendingPlanCode else { return }
+        renderDocumentToCanvas(code)
+        pendingPlanCode = nil
+        isPlanPreviewActive = false
+        sendCanvasCommand(.planApply)
+        designBridgeLog.info("DesignBridge: Plan accepted and rendered to canvas")
+    }
+
+    /// 拒绝 Plan：清除预览，恢复画布状态。
+    func rejectPlan() {
+        pendingPlanCode = nil
+        isPlanPreviewActive = false
+        sendCanvasCommand(.planReject)
+        designBridgeLog.info("DesignBridge: Plan rejected, preview cleared")
+    }
+
+    /// 调用 fusion-design parse-html CLI 将 HTML 转为 PenDocument JSON。
+    private func parseHtmlViaCLI(_ html: String) -> String? {
+        let cliPath = findFusionDesignCLI()
+        guard !cliPath.isEmpty else {
+            designBridgeLog.warning("DesignBridge: fusion-design CLI not found")
+            return nil
+        }
+        let process = Process()
+        let pipe = Pipe()
+        let inputPipe = Pipe()
+
+        process.executableURL = URL(fileURLWithPath: cliPath)
+        process.arguments = ["parse-html", "--page", currentArtifactTitle.isEmpty ? "Page" : currentArtifactTitle]
+        process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
+        process.standardInput = inputPipe
+
+        do {
+            try process.run()
+            // Write HTML to stdin
+            guard let htmlData = html.data(using: .utf8) else { return nil }
+            inputPipe.fileHandleForWriting.write(htmlData)
+            try? inputPipe.fileHandleForWriting.close()
+
+            process.waitUntilExit()
+            guard process.terminationStatus == 0 else {
+                designBridgeLog.warning("DesignBridge: parse-html exited with \(process.terminationStatus)")
+                return nil
+            }
+            let outputData = pipe.fileHandleForReading.readDataToEndOfFile()
+            return String(data: outputData, encoding: .utf8)
+        } catch {
+            designBridgeLog.error("DesignBridge: parse-html failed: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    /// 调用 fusion-design token-css CLI 获取当前设计规范的 CSS Custom Properties。
+    private func fetchTokenCSSViaCLI() -> String? {
+        let cliPath = findFusionDesignCLI()
+        guard !cliPath.isEmpty else { return nil }
+
+        let process = Process()
+        let pipe = Pipe()
+
+        process.executableURL = URL(fileURLWithPath: cliPath)
+        process.arguments = ["token-css", "--design-system", "apple-hig"] // matches fd-design-system id "apple-hig"
+        process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
+
+        do {
+            try process.run()
+            process.waitUntilExit()
+            guard process.terminationStatus == 0 else { return nil }
+            let outputData = pipe.fileHandleForReading.readDataToEndOfFile()
+            return String(data: outputData, encoding: .utf8)
+        } catch {
+            designBridgeLog.error("DesignBridge: token-css failed: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    /// 查找 fusion-design CLI 二进制路径。
+    private func findFusionDesignCLI() -> String {
+        // 优先使用同 bundle 内的 CLI
+        if let bundlePath = Bundle.main.path(forResource: "fusion-design", ofType: nil) {
+            return bundlePath
+        }
+        // 开发模式：使用 cargo build 输出
+        let devPath = NSHomeDirectory() + "/fusion/fusion-design/target/debug/fusion-design"
+        if FileManager.default.fileExists(atPath: devPath) {
+            return devPath
+        }
+        // 尝试 PATH
+        let result = Process()
+        result.executableURL = URL(fileURLWithPath: "/usr/bin/which")
+        result.arguments = ["fusion-design"]
+        let pipe = Pipe()
+        result.standardOutput = pipe
+        do {
+            try result.run()
+            result.waitUntilExit()
+            if result.terminationStatus == 0 {
+                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                if let path = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines), !path.isEmpty {
+                    return path
+                }
+            }
+        } catch {}
+        return ""
+    }
 
     func setIPCClient(_ client: IPCClient) {
         self.ipcClient = client
@@ -88,6 +438,9 @@ class DesignBridge: ObservableObject {
         parseState = .idle
         parseBuffer = ""
         rawAssistantContent = ""
+        inferenceStep = "connecting"
+        streamTokenCount = 0
+        streamPreviewText = ""
 
         var systemPrompt = DesignPrompts.systemPrompt
         if !currentArtifactCode.isEmpty {
@@ -146,6 +499,7 @@ class DesignBridge: ObservableObject {
                 throw NSError(domain: "DesignBridge", code: -1, userInfo: [NSLocalizedDescriptionKey: "MLX streaming returned non-200"])
             }
 
+            inferenceStep = "generating"
             var assistantContent = ""
             for try await line in bytes.lines {
                 guard line.hasPrefix("data: ") else { continue }
@@ -164,6 +518,13 @@ class DesignBridge: ObservableObject {
                 assistantContent += token
                 rawAssistantContent += token
                 processStreamToken(token)
+
+                streamTokenCount += 1
+                let previewBase = assistantContent.suffix(120)
+                streamPreviewText = String(previewBase)
+                if streamTokenCount == 1 {
+                    inferenceStep = "streaming"
+                }
             }
 
             let finalArtifact = extractArtifactFromComplete(rawAssistantContent)
@@ -185,12 +546,21 @@ class DesignBridge: ObservableObject {
                 }
             }
 
+            // AI artifact 完成 → 渲染到 wasm 画布
+            if !currentArtifactCode.isEmpty && canvasWebView != nil {
+                inferenceStep = "rendering"
+                await renderArtifactToCanvas()
+            }
+
         } catch {
             errorMessage = "Generation failed: \(error.localizedDescription)"
             designBridgeLog.error("DesignBridge sendDesignChat: \(error)")
         }
 
         isGenerating = false
+        inferenceStep = ""
+        streamTokenCount = 0
+        streamPreviewText = ""
     }
 
     // MARK: - Stream Token Parsing (antArtifact XML)
@@ -382,6 +752,18 @@ class DesignBridge: ObservableObject {
 
     // MARK: - Utility
 
+    func memoryCheckMB() -> Double {
+        var info = mach_task_basic_info()
+        var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size) / 4
+        let result = withUnsafeMutablePointer(to: &info) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
+                task_info(mach_task_self_, task_flavor_t(MACH_TASK_BASIC_INFO), $0, &count)
+            }
+        }
+        guard result == KERN_SUCCESS else { return 0 }
+        return Double(info.resident_size) / 1024.0 / 1024.0
+    }
+
     func clearConversation() {
         messages = []
         currentArtifactCode = ""
@@ -397,6 +779,9 @@ class DesignBridge: ObservableObject {
         parseBuffer = ""
         rawAssistantContent = ""
         sessionId = "design-\(UUID().uuidString.prefix(8))"
+        inferenceStep = ""
+        streamTokenCount = 0
+        streamPreviewText = ""
     }
 
     // MARK: - Multi-Page Management
@@ -612,6 +997,116 @@ class DesignBridge: ObservableObject {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(exportedSwiftUICode, forType: .string)
         designBridgeLog.info("DesignBridge: SwiftUI code copied")
+    }
+
+    // MARK: - Codegen Export (HTML/React/Tailwind via CLI)
+
+    @Published var exportedCodegenCode: String = ""
+    @Published var isExportingCodegen: Bool = false
+
+    func exportAsCodegen(target: String, componentName: String) async {
+        guard let documentJSON = lastRenderedDocumentJSON, !documentJSON.isEmpty else {
+            errorMessage = "No document to export"
+            return
+        }
+
+        isExportingCodegen = true
+        let cliPath = findFusionDesignCLI()
+        guard !cliPath.isEmpty else {
+            errorMessage = "fusion-design CLI not found"
+            isExportingCodegen = false
+            return
+        }
+
+        let process = Process()
+        let outputPipe = Pipe()
+        let inputPipe = Pipe()
+
+        process.executableURL = URL(fileURLWithPath: cliPath)
+        process.arguments = ["codegen", "--target", target, "--component", componentName]
+        process.standardOutput = outputPipe
+        process.standardError = FileHandle.nullDevice
+        process.standardInput = inputPipe
+
+        do {
+            try process.run()
+            if let data = documentJSON.data(using: .utf8) {
+                inputPipe.fileHandleForWriting.write(data)
+                try? inputPipe.fileHandleForWriting.close()
+            }
+            process.waitUntilExit()
+            guard process.terminationStatus == 0 else {
+                errorMessage = "codegen exited with status \(process.terminationStatus)"
+                isExportingCodegen = false
+                return
+            }
+            let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
+            exportedCodegenCode = String(data: outputData, encoding: .utf8) ?? ""
+            designBridgeLog.info("DesignBridge: codegen export done, target=\(target), \(self.exportedCodegenCode.count) chars")
+        } catch {
+            errorMessage = "Codegen export failed: \(error.localizedDescription)"
+            designBridgeLog.error("DesignBridge exportAsCodegen: \(error)")
+        }
+        isExportingCodegen = false
+    }
+
+    func copyExportedCodegen() {
+        guard !exportedCodegenCode.isEmpty else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(exportedCodegenCode, forType: .string)
+        designBridgeLog.info("DesignBridge: codegen code copied")
+    }
+
+    // MARK: - Batch Export (SVG/HTML/JSON via CLI)
+
+    @Published var isBatchExporting: Bool = false
+    @Published var batchExportResult: String = ""
+
+    func batchExportPages(format: String, to outputDir: String) async {
+        guard let documentJSON = lastRenderedDocumentJSON, !documentJSON.isEmpty else {
+            errorMessage = "No document to export"
+            return
+        }
+
+        isBatchExporting = true
+        batchExportResult = ""
+        let cliPath = findFusionDesignCLI()
+        guard !cliPath.isEmpty else {
+            errorMessage = "fusion-design CLI not found"
+            isBatchExporting = false
+            return
+        }
+
+        let process = Process()
+        let outputPipe = Pipe()
+        let inputPipe = Pipe()
+
+        process.executableURL = URL(fileURLWithPath: cliPath)
+        process.arguments = ["export", "--format", format, "--out", outputDir]
+        process.standardOutput = outputPipe
+        process.standardError = FileHandle.nullDevice
+        process.standardInput = inputPipe
+
+        do {
+            try process.run()
+            if let data = documentJSON.data(using: .utf8) {
+                inputPipe.fileHandleForWriting.write(data)
+                try? inputPipe.fileHandleForWriting.close()
+            }
+            process.waitUntilExit()
+            guard process.terminationStatus == 0 else {
+                errorMessage = "export exited with status \(process.terminationStatus)"
+                isBatchExporting = false
+                return
+            }
+            let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
+            batchExportResult = String(data: outputData, encoding: .utf8) ?? ""
+            designBridgeLog.info("DesignBridge: batch export done, format=\(format), result=\(self.batchExportResult)")
+        } catch {
+            errorMessage = "Batch export failed: \(error.localizedDescription)"
+            designBridgeLog.error("DesignBridge batchExportPages: \(error)")
+        }
+        isBatchExporting = false
     }
 
     // MARK: - Artifact ↔ File Sync

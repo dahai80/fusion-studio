@@ -104,8 +104,11 @@ enum Module: String, CaseIterable, Identifiable {
     case memory     = "记忆"
     case planner    = "规划"
     case deploy     = "部署"
+    // Callers: ModuleDetailView, sidebar. Affected API: verify.verify, budget.set/status. User instruction: "审视是否所有需要功能和api所有需要的GUI都在~/fusion/fusion-studio都已经有对应GUI了，所有有问题的都要在fusion-studio补齐GUI"
     case operations = "运维"
     case eduK12 = "教育"
+    case verification = "验证"
+    case tokenBudget = "预算"
 
     var id: String { rawValue }
 
@@ -148,6 +151,8 @@ enum Module: String, CaseIterable, Identifiable {
         case .deploy:    return "arrow.up.doc"
         case .operations: return "gauge"
         case .eduK12:     return "graduationcap"
+        case .verification: return "checkmark.shield"
+        case .tokenBudget:  return "coins"
         }
     }
 
@@ -164,7 +169,7 @@ enum Module: String, CaseIterable, Identifiable {
              .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb,
              .operations:
             return .multiNode
-        case .rag, .memory, .planner:
+        case .rag, .memory, .planner, .verification, .tokenBudget:
             return .agentStudio
         case .deploy:
             return .code

@@ -1,9 +1,36 @@
 // Callers: ModuleDetailView.designInfoPanel (embedded as tab)
-// Affected API: DesignTokenPanel (new view), DesignTokenCategory (new enum)
-// Data schemas: StudioTheme token properties (read-only display)
-// User instruction: Task #33 — Fusion Design Token 系统 + 组件库面板
+// Affected API: DesignTokenPanel, DesignTokenCategory, DesignSystemPreset, DesignBridge.applyDesignTokensToCanvas
+// Data schemas: fd-design-system DesignSystem JSON, Token struct, to_css_custom_properties output, BridgeCommand.ApplyTokens
+// User instruction: "现在开始实施" — Task #13 P3-2 DesignTokenPanel 可视化编辑+主题切换
 
 import SwiftUI
+import os.log
+
+private let tokenLog = Logger(subsystem: "com.fusion.studio", category: "DesignTokenPanel")
+
+enum DesignSystemPreset: String, CaseIterable, Identifiable {
+    case appleHIG = "Apple HIG"
+    case adminMinimal = "极简后台"
+    case robotSim = "机器人仿真"
+
+    var id: String { rawValue }
+
+    var cliName: String {
+        switch self {
+        case .appleHIG: return "apple-hig"
+        case .adminMinimal: return "minimal-dashboard"
+        case .robotSim: return "robot-sim"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .appleHIG: return "Apple Human Interface Guidelines"
+        case .adminMinimal: return "极简风格后台管理"
+        case .robotSim: return "工业仿真控制面板"
+        }
+    }
+}
 
 enum DesignTokenCategory: String, CaseIterable {
     case colors = "颜色"
@@ -27,10 +54,14 @@ enum DesignTokenCategory: String, CaseIterable {
 
 struct DesignTokenPanel: View {
     @Environment(\.studioTheme) var theme
+    @EnvironmentObject var designBridge: DesignBridge
     @State private var selectedCategory: DesignTokenCategory = .colors
+    @State private var activePreset: DesignSystemPreset = .appleHIG
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            systemSwitcher
+            Rectangle().fill(theme.separator).frame(height: 1)
             categoryTabs
             Rectangle().fill(theme.separator).frame(height: 1)
             ScrollView {
@@ -40,6 +71,73 @@ struct DesignTokenPanel: View {
                 .padding(theme.spacingM)
             }
         }
+    }
+
+    private var systemSwitcher: some View {
+        VStack(alignment: .leading, spacing: theme.spacingXS) {
+            Text("设计规范")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(theme.textTertiary)
+                .textCase(.uppercase)
+                .padding(.horizontal, theme.spacingM)
+            HStack(spacing: theme.spacingXS) {
+                ForEach(DesignSystemPreset.allCases) { preset in
+                    Button(action: {
+                        activePreset = preset
+                        applyPreset(preset)
+                    }) {
+                        VStack(spacing: 2) {
+                            Image(systemName: preset == .appleHIG ? "apple.logo" : preset == .adminMinimal ? "menubar.rectangle" : "cpu")
+                                .font(.system(size: 12))
+                            Text(preset.rawValue)
+                                .font(.system(size: 9, weight: .medium))
+                        }
+                        .foregroundStyle(activePreset == preset ? theme.accentText : theme.textSecondary)
+                        .padding(.horizontal, theme.spacingS)
+                        .padding(.vertical, theme.spacingXS)
+                        .background(
+                            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                .fill(activePreset == preset ? theme.accent : theme.groupBg)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, theme.spacingM)
+        }
+        .padding(.vertical, theme.spacingS)
+    }
+
+    private func applyPreset(_ preset: DesignSystemPreset) {
+        let cliPath = findFusionDesignCLI()
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: cliPath)
+        process.arguments = ["token-css", "--design-system", preset.cliName]
+
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
+
+        do {
+            try process.run()
+            process.waitUntilExit()
+            if process.terminationStatus == 0 {
+                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                if let css = String(data: data, encoding: .utf8), !css.isEmpty {
+                    designBridge.applyDesignTokensToCanvas(css)
+                    tokenLog.info("DesignTokenPanel: applied preset \(preset.rawValue), css length=\(css.count)")
+                }
+            }
+        } catch {
+            tokenLog.error("DesignTokenPanel: failed to run token-css: \(error.localizedDescription)")
+        }
+    }
+
+    private func findFusionDesignCLI() -> String {
+        let devPath = NSHomeDirectory() + "/fusion/fusion-design/target/debug/fusion-design"
+        if FileManager.default.fileExists(atPath: devPath) { return devPath }
+        if let bundlePath = Bundle.main.path(forResource: "fusion-design", ofType: nil) { return bundlePath }
+        return "/usr/local/bin/fusion-design"
     }
 
     private var categoryTabs: some View {
@@ -128,13 +226,7 @@ struct DesignTokenPanel: View {
         ], spacing: theme.spacingXS) {
             ForEach(tokens, id: \.0) { name, color in
                 VStack(alignment: .leading, spacing: 4) {
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(color)
-                        .frame(height: 32)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .stroke(theme.groupBorder, lineWidth: 0.5)
-                        )
+                    editableColorSwatch(name: name, color: color)
                     Text(name)
                         .font(.system(size: 10, weight: .medium, design: .monospaced))
                         .foregroundStyle(theme.textTertiary)
@@ -142,6 +234,32 @@ struct DesignTokenPanel: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func editableColorSwatch(name: String, color: Color) -> some View {
+        let nsColor = NSColor(color)
+        let hex = String(format: "#%02X%02X%02X",
+            Int(nsColor.redComponent * 255),
+            Int(nsColor.greenComponent * 255),
+            Int(nsColor.blueComponent * 255))
+
+        RoundedRectangle(cornerRadius: 6, style: .continuous)
+            .fill(color)
+            .frame(height: 32)
+            .overlay(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .stroke(theme.groupBorder, lineWidth: 0.5)
+            )
+            .overlay(alignment: .bottomTrailing) {
+                Text(hex)
+                    .font(.system(size: 8, design: .monospaced))
+                    .foregroundStyle(.white)
+                    .padding(2)
+                    .background(Color.black.opacity(0.5))
+                    .cornerRadius(2)
+                    .padding(2)
+            }
     }
 
     private var spacingTokens: some View {

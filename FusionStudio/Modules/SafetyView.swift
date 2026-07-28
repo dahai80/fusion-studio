@@ -428,6 +428,7 @@ struct SafetyActionRow: View {
         isActing = true
         do {
             _ = try await bridge.safetyApproveAction(actionId: action.id)
+            _ = try await bridge.ipcClient!.safetyApprove(actionId: action.id)
             _ = try await bridge.fetchPendingSafetyActions()
         } catch {
             logger.error("approve: \(error)")
@@ -439,6 +440,7 @@ struct SafetyActionRow: View {
         isActing = true
         do {
             _ = try await bridge.safetyRejectAction(actionId: action.id)
+            _ = try await bridge.ipcClient!.safetyReject(actionId: action.id)
             _ = try await bridge.fetchPendingSafetyActions()
         } catch {
             logger.error("reject: \(error)")

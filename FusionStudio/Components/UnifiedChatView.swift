@@ -1,6 +1,7 @@
 // Callers: AgentStudioView, ContentView — unified chat interface replacing fragmented chat panels
-// Affected API: UnifiedChatView (reads ChatSessionStore + StreamingBridge via @EnvironmentObject)
+// Affected API: UnifiedChatView streamingIndicator (enhanced with phase-aware progress + token preview)
 // Data schemas: ChatSessionData, ChatMessageData from ChatSessionStore, StreamChatEvent from StreamingBridge
+// User instruction: "按照P1~P6顺序实施所有未完成的任务" — Task #36 P6-2 AI 推理异步+进度提示
 
 import SwiftUI
 import os.log
@@ -15,9 +16,12 @@ struct UnifiedChatView: View {
     @State private var inputText: String = ""
     @State private var selectedMode: ChatMode = .simple
     @State private var showSessionList: Bool = false
+    // Callers: AgentStudioView, ContentView. Affected API: chat.switch_branch/branches. Data schemas: ChatMessageData siblings from chat.branches. User instruction: "审视是否所有需要功能和api所有需要的GUI都在~/fusion/fusion-studio都已经有对应GUI了，所有有问题的都要在fusion-studio补齐GUI"
     @State private var editingMessageId: String?
     @State private var editContent: String = ""
     @State private var autoScroll: Bool = true
+    @State private var branchPickerMsgId: String?
+    @State private var branchSiblings: [ChatMessageData] = []
 
     var body: some View {
         VStack(spacing: 0) {
@@ -188,17 +192,74 @@ struct UnifiedChatView: View {
     }
 
     private var streamingIndicator: some View {
-        HStack(spacing: theme.spacingS) {
-            ProgressView()
-                .scaleEffect(0.7)
-            Text("Thinking...")
-                .font(.system(size: theme.captionSize))
-                .foregroundStyle(theme.textTertiary)
+        VStack(alignment: .leading, spacing: theme.spacingXS) {
+            HStack(spacing: theme.spacingS) {
+                streamingPhaseIcon
+                Text(streamingPhaseLabel)
+                    .font(.system(size: theme.captionSize, weight: .medium))
+                    .foregroundStyle(theme.text)
+                if !streamingBridge.streamEvents.filter({ $0.isToken }).isEmpty {
+                    let tokenCount = streamingBridge.streamEvents.filter({ $0.isToken }).count
+                    Text("\(tokenCount) tokens")
+                        .font(.system(size: theme.captionSize))
+                        .foregroundStyle(theme.textTertiary)
+                }
+            }
+
+            let tokenEvents = streamingBridge.streamEvents.filter { $0.isToken }
+            if !tokenEvents.isEmpty {
+                let recentTokens = tokenEvents.suffix(20).map { $0.content }.joined()
+                Text(recentTokens)
+                    .font(.system(size: theme.captionSize, design: .monospaced))
+                    .foregroundStyle(theme.textSecondary)
+                    .lineLimit(2)
+                    .truncationMode(.tail)
+            }
         }
         .padding(.horizontal, theme.spacingM)
         .padding(.vertical, theme.spacingS)
         .background(theme.surfaceSecondary)
         .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall))
+    }
+
+    private var streamingPhaseLabel: String {
+        let events = streamingBridge.streamEvents
+        if events.contains(where: { $0.isThinking }) { return "Thinking..." }
+        if events.contains(where: { $0.isToolCall }) { return "Using tools..." }
+        if events.contains(where: { $0.isToken }) { return "Generating..." }
+        return "Thinking..."
+    }
+
+    private var streamingPhaseIcon: some View {
+        let events = streamingBridge.streamEvents
+        if events.contains(where: { $0.isThinking }) {
+            return AnyView(
+                Image(systemName: "brain")
+                    .font(.system(size: 10))
+                    .foregroundStyle(theme.accent)
+                    .symbolEffect(.pulse, options: .repeating)
+            )
+        }
+        if events.contains(where: { $0.isToolCall }) {
+            return AnyView(
+                Image(systemName: "wrench")
+                    .font(.system(size: 10))
+                    .foregroundStyle(theme.accent)
+            )
+        }
+        if events.contains(where: { $0.isToken }) {
+            return AnyView(
+                Image(systemName: "text.cursor")
+                    .font(.system(size: 10))
+                    .foregroundStyle(theme.accent)
+                    .symbolEffect(.pulse, options: .repeating)
+            )
+        }
+        return AnyView(
+            ProgressView()
+                .scaleEffect(0.6)
+                .frame(width: 12, height: 12)
+        )
     }
 
     private var emptyState: some View {
@@ -252,9 +313,27 @@ struct UnifiedChatView: View {
                         .buttonStyle(.plain)
 
                         if msg.childrenIds.count > 1 {
-                            Text("\(msg.childrenIds.count) branches")
+                            Menu {
+                                ForEach(msg.childrenIds, id: \.self) { childId in
+                                    let isActive = chatStore.activeSession?.activeBranch == childId
+                                    Button {
+                                        Task { await chatStore.switchBranch(to: childId) }
+                                    } label: {
+                                        HStack {
+                                            Text(childId.prefix(8))
+                                            if isActive { Image(systemName: "checkmark") }
+                                        }
+                                    }
+                                }
+                            } label: {
+                                HStack(spacing: 2) {
+                                    Image(systemName: "arrow.branch")
+                                    Text("\(msg.childrenIds.count)")
+                                }
                                 .font(.system(size: 10))
-                                .foregroundStyle(theme.textQuaternary)
+                                .foregroundStyle(theme.accent)
+                            }
+                            .menuStyle(.borderlessButton)
                         }
 
                         Button {

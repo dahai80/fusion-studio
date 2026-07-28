@@ -30,6 +30,12 @@ struct ToolBrowserView: View {
     @State private var errorMessage: String?
     @State private var testInput: String = ""
     @State private var testOutput: String = ""
+    @State private var showRegisterSheet: Bool = false
+    @State private var regName: String = ""
+    @State private var regDesc: String = ""
+    @State private var regParams: String = "{}"
+    @State private var regCode: String = ""
+    @State private var regBusy: Bool = false
 
     private let logger = Logger(subsystem: "com.fusion.studio", category: "ToolBrowser")
 
@@ -63,6 +69,30 @@ struct ToolBrowserView: View {
         .onAppear {
             Task { await loadTools() }
         }
+        .sheet(isPresented: $showRegisterSheet) {
+            VStack(spacing: theme.spacingM) {
+                Text("Register Dynamic Tool").font(.headline)
+                TextField("Name", text: $regName)
+                    .textFieldStyle(.roundedBorder)
+                TextField("Description", text: $regDesc)
+                    .textFieldStyle(.roundedBorder)
+                TextEditor(text: $regParams)
+                    .font(.system(size: theme.smallTextSize, design: .monospaced))
+                    .frame(height: 80)
+                    .border(theme.textTertiary)
+                TextEditor(text: $regCode)
+                    .font(.system(size: theme.smallTextSize, design: .monospaced))
+                    .frame(height: 80)
+                    .border(theme.textTertiary)
+                HStack {
+                    Button("Cancel") { showRegisterSheet = false }
+                    Button("Register") { Task { await registerTool() } }
+                        .disabled(regName.isEmpty || regBusy)
+                }
+            }
+            .padding()
+            .frame(width: 400)
+        }
     }
 
     private var toolListView: some View {
@@ -87,6 +117,16 @@ struct ToolBrowserView: View {
                     .tag(tool.id)
             }
             .listStyle(.sidebar)
+            Button {
+                showRegisterSheet = true
+            } label: {
+                Label("Register Tool", systemImage: "plus")
+                    .font(.system(size: theme.smallTextSize))
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .padding(.horizontal, theme.spacingS)
+            .padding(.vertical, theme.spacingXS)
         }
     }
 
@@ -147,6 +187,15 @@ struct ToolBrowserView: View {
                         toolHeader(tool)
                         toolParameters(tool)
                         toolTestPanel(tool)
+                        if tool.category == "dynamic" || tool.category == "plugin" {
+                            Button(role: .destructive) {
+                                Task { await unregisterTool(tool.name) }
+                            } label: {
+                                Label("Unregister Tool", systemImage: "trash")
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                        }
                     }
                     .padding(theme.spacingL)
                 }
@@ -290,6 +339,40 @@ struct ToolBrowserView: View {
         } catch {
             errorMessage = error.localizedDescription
             logger.error("fetchTools failed: \(error.localizedDescription)")
+        }
+    }
+
+    private func unregisterTool(_ name: String) async {
+        do {
+            _ = try await bridge.ipcClient!.toolDynamicUnregister(name: name)
+            logger.info("Unregistered tool: \(name)")
+            await loadTools()
+            selectedTool = nil
+        } catch {
+            errorMessage = error.localizedDescription
+            logger.error("toolDynamicUnregister failed: \(error.localizedDescription)")
+        }
+    }
+
+    private func registerTool() async {
+        regBusy = true
+        defer { regBusy = false }
+        guard let paramsData = regParams.data(using: .utf8),
+              let paramsObj = try? JSONSerialization.jsonObject(with: paramsData) as? [String: Any] else {
+            errorMessage = "Invalid JSON parameters"
+            return
+        }
+        do {
+            _ = try await bridge.ipcClient!.toolDynamicRegister(
+                name: regName, description: regDesc, parameters: paramsObj, code: regCode
+            )
+            logger.info("Registered tool: \(regName)")
+            showRegisterSheet = false
+            regName = ""; regDesc = ""; regParams = "{}"; regCode = ""
+            await loadTools()
+        } catch {
+            errorMessage = error.localizedDescription
+            logger.error("toolDynamicRegister failed: \(error.localizedDescription)")
         }
     }
 }

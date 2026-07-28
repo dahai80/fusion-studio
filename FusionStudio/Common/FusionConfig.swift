@@ -52,6 +52,18 @@ class FusionConfig: ObservableObject {
     /// Artifacts Engine 服务地址
     var artifactsEngineURL: String { "http://\(artifactsEngineHost):\(artifactsEnginePort)" }
 
+    // MARK: - Fusion-RAG
+    // callers: RAGAPIClient.swift reads FusionConfig.shared.fusionRagURL / fusionRagApiKey
+    // API: fusion-rag HTTP API on port 11436, auth via X-API-Key header
+    // schema: @AppStorage persistence, same pattern as mlxHost/mlxPort
+    // user instruction: "完成所有待办任务"
+    @AppStorage("fusionRagHost") var fusionRagHost = "127.0.0.1"
+    @AppStorage("fusionRagPort") var fusionRagPort = 11436
+    @AppStorage("fusionRagApiKey") var fusionRagApiKey = ""
+
+    /// Fusion-RAG 服务地址
+    var fusionRagURL: String { "http://\(fusionRagHost):\(fusionRagPort)" }
+
     // MARK: - 便捷方法
 
     /// 是否处于离线模式
@@ -113,5 +125,9 @@ class FusionConfig: ObservableObject {
 
         artifactsEngineHost = "127.0.0.1"
         artifactsEnginePort = 8892
+
+        fusionRagHost = "127.0.0.1"
+        fusionRagPort = 11436
+        fusionRagApiKey = ""
     }
 }

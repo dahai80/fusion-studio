@@ -237,6 +237,63 @@ class ChatSessionStore: ObservableObject {
         }
     }
 
+    func sendMultimodal(session: ChatSessionData, content: [[String: Any]], mode: String = "") async {
+        guard let ipc = ipc else { return }
+        var updated = activeSession ?? session
+        let userMsg = ChatMessageData(
+            role: "user",
+            content: "[multimodal]",
+            mode: mode.isEmpty ? session.mode : mode,
+            parentId: updated.messages.last?.id ?? ""
+        )
+        updated.messages.append(userMsg)
+        activeSession = updated
+
+        do {
+            var params: [String: Any] = [
+                "session_id": session.id,
+                "message": "[multimodal]",
+                "content": content,
+            ]
+            if !mode.isEmpty { params["mode"] = mode }
+            let result = try await ipc.call(method: "chat.send", params: params)
+
+            if let errorCode = result["code"] as? Int, errorCode == 422 {
+                errorMessage = result["message"] as? String ?? "Vision model required for image input"
+                return
+            }
+
+            if let events = result["events"] as? [[String: Any]] {
+                var textContent = ""
+                var toolCalls: [[String: Any]] = []
+                for ev in events {
+                    if ev["type"] as? String == "token", let c = ev["content"] as? String {
+                        textContent += c
+                    }
+                    if ev["type"] as? String == "tool_call" {
+                        toolCalls.append(ev["args"] as? [String: Any] ?? [:])
+                    }
+                }
+                let assistantMsg = ChatMessageData(
+                    role: "assistant",
+                    content: textContent,
+                    mode: mode,
+                    parentId: userMsg.id,
+                    toolCalls: toolCalls
+                )
+                var updatedSession = activeSession ?? session
+                updatedSession.messages.append(assistantMsg)
+                activeSession = updatedSession
+                if let idx = sessions.firstIndex(where: { $0.id == session.id }) {
+                    sessions[idx] = updatedSession
+                }
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+            chatStoreLog.error("chat.send multimodal failed: \(error.localizedDescription)")
+        }
+    }
+
     func branch(at messageId: String) async {
         guard let session = activeSession else { return }
         do {
@@ -252,6 +309,47 @@ class ChatSessionStore: ObservableObject {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    // Callers: UnifiedChatView branch picker. Affected API: chat.switch_branch/branches/message_tree. Data schemas: branchId=String, returns ChatSessionData or [ChatMessageData]. User instruction: "审视是否所有需要功能和api所有需要的GUI都在~/fusion/fusion-studio都已经有对应GUI了，所有有问题的都要在fusion-studio补齐GUI"
+    func switchBranch(to branchId: String) async {
+        guard let session = activeSession else { return }
+        do {
+            let result = try await ipc!.chatSwitchBranch(sessionId: session.id, branchId: branchId)
+            if let updated = parseSessionData(result) {
+                activeSession = updated
+                if let idx = sessions.firstIndex(where: { $0.id == session.id }) {
+                    sessions[idx] = updated
+                }
+                chatStoreLog.info("Switched branch to \(branchId)")
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+            chatStoreLog.error("chat.switch_branch failed: \(error.localizedDescription)")
+        }
+    }
+
+    func listBranches(at messageId: String) async -> [ChatMessageData] {
+        guard let session = activeSession else { return [] }
+        do {
+            let result = try await ipc!.chatBranches(sessionId: session.id, messageId: messageId)
+            if let branches = result["branches"] as? [[String: Any]] {
+                return branches.compactMap { parseMessageData($0) }
+            }
+        } catch {
+            chatStoreLog.error("chat.branches failed: \(error.localizedDescription)")
+        }
+        return []
+    }
+
+    func loadMessageTree() async -> [String: Any]? {
+        guard let session = activeSession else { return nil }
+        do {
+            return try await ipc!.chatMessageTree(sessionId: session.id)
+        } catch {
+            chatStoreLog.error("chat.message_tree failed: \(error.localizedDescription)")
+        }
+        return nil
     }
 
     func editMessage(_ messageId: String, newContent: String) async {

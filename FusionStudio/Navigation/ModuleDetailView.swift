@@ -78,8 +78,13 @@ struct ModuleDetailView: View {
                 DeployView()
             case .operations:
                 OperationsView()
+            // Callers: ModuleDetailView routing. Affected API: verify.verify, budget.set/status. User instruction: "审视是否所有需要功能和api所有需要的GUI都在~/fusion/fusion-studio都已经有对应GUI了，所有有问题的都要在fusion-studio补齐GUI"
             case .eduK12:
                 EduK12View()
+            case .verification:
+                VerificationView()
+            case .tokenBudget:
+                TokenBudgetView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -125,26 +130,100 @@ struct DashboardView: View {
 // Data schemas: reads DesignBridge.currentArtifactCode/Title/Type; DesignPreviewView.PreviewDeviceMode.
 // User instruction: "按照你的方案和优先级启动落地"
 
+// Callers: SectionContentView routes to DesignView when Design module is active.
+// Affected API: DesignView (added DesignCanvasView toggle with DesignCanvasMode),
+//   DesignBridge (selectedNodeID binding), DesignCanvasView (wasm canvas).
+// Data schemas: DesignCanvasMode enum (preview/canvas), BridgeCommand/BridgeEvent JSON.
+// User instruction: "现在开始实施" — Task #5: Fusion-Studio 加载 wasm 画布
+
+enum DesignCanvasMode: String, CaseIterable {
+    case preview = "preview"
+    case canvas = "canvas"
+
+    var label: String {
+        switch self {
+        case .preview: return "Preview"
+        case .canvas: return "Canvas"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .preview: return "safari"
+        case .canvas: return "square.on.square"
+        }
+    }
+}
+
 struct DesignView: View {
     @Environment(\.studioTheme) private var theme
     @EnvironmentObject var designBridge: DesignBridge
 
     @State private var deviceMode: PreviewDeviceMode = .desktop
+    @State private var canvasMode: DesignCanvasMode = .preview
+    @State private var selectedNodeID: String?
 
     var body: some View {
         HSplitView {
             DesignChatPanel()
 
-            DesignPreviewView(
-                htmlContent: $designBridge.currentArtifactCode,
-                deviceMode: deviceMode
-            )
-            .frame(minWidth: 400, idealWidth: 600)
+            canvasContent
+                .frame(minWidth: 400, idealWidth: 600)
 
             designInfoPanel
                 .frame(minWidth: 200, idealWidth: 260, maxWidth: 320)
         }
         .background(theme.contentBg)
+    }
+
+    private var canvasContent: some View {
+        VStack(spacing: 0) {
+            canvasModeBar
+            switch canvasMode {
+            case .preview:
+                DesignPreviewView(
+                    htmlContent: $designBridge.currentArtifactCode,
+                    deviceMode: deviceMode
+                )
+            case .canvas:
+                DesignCanvasView(
+                    selectedNodeID: $selectedNodeID
+                )
+            }
+        }
+    }
+
+    private var canvasModeBar: some View {
+        HStack(spacing: theme.spacingS) {
+            ForEach(DesignCanvasMode.allCases, id: \.self) { mode in
+                Button(action: { canvasMode = mode }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: mode.icon)
+                            .font(.system(size: 10))
+                        Text(mode.label)
+                            .font(.system(size: theme.captionSize, weight: .medium))
+                    }
+                    .foregroundStyle(canvasMode == mode ? theme.accentText : theme.textSecondary)
+                    .padding(.horizontal, theme.spacingS)
+                    .padding(.vertical, theme.spacingXS)
+                    .background(
+                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                            .fill(canvasMode == mode ? theme.accent : Color.clear)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+            Spacer()
+            if canvasMode == .canvas, let nodeID = selectedNodeID {
+                Text("Node: \(nodeID)")
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(theme.textTertiary)
+                    .lineLimit(1)
+            }
+        }
+        .padding(.horizontal, theme.spacingS)
+        .padding(.vertical, theme.spacingXS)
+        .background(theme.surfaceElevated)
     }
 
     // Callers: DesignView body; Affected API: designInfoPanel (tabbed: 属性 + Design System);
@@ -182,6 +261,8 @@ struct DesignView: View {
                 switch infoPanelTab {
                 case .properties:
                     propertiesContent
+                case .layers:
+                    DesignLayersView(selectedNodeID: $selectedNodeID)
                 case .tokens:
                     DesignTokenPanel()
                 }
@@ -304,10 +385,12 @@ struct DesignView: View {
 // Data schemas: 2 cases with rawValue + icon; User instruction: Task #33
 enum InfoPanelTab: String, CaseIterable {
     case properties = "属性"
+    case layers = "图层"
     case tokens = "Design System"
     var icon: String {
         switch self {
         case .properties: return "info.circle"
+        case .layers: return "square.3.layers.3d"
         case .tokens: return "paintpalette"
         }
     }

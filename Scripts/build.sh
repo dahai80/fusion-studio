@@ -136,6 +136,34 @@ PLIST
         cp -r "$PROJECT_DIR/FusionStudio/Resources/"* "$app_dir/Resources/" 2>/dev/null || true
     fi
 
+    # 构建 + 复制 fusion-design CLI
+    local fd_dir="$HOME/fusion/fusion-design"
+    if [ -f "$fd_dir/Cargo.toml" ]; then
+        info "构建 fusion-design CLI..."
+        (cd "$fd_dir" && cargo build --release -p fd-cli 2>&1 | tail -3)
+        local fd_cli="$fd_dir/target/release/fusion-design"
+        if [ -f "$fd_cli" ]; then
+            cp "$fd_cli" "$app_dir/Resources/"
+            info "✅ 复制 fusion-design CLI"
+        else
+            warn "fusion-design CLI 未找到, 跳过"
+        fi
+        # 更新 wasm
+        local fd_wasm="$fd_dir/target/wasm32-unknown-unknown/release/fd_host_web_bg.wasm"
+        if [ ! -f "$fd_wasm" ]; then
+            fd_wasm="$fd_dir/target/wasm32-unknown-unknown/debug/fd_host_web_bg.wasm"
+        fi
+        if [ -f "$fd_wasm" ]; then
+            cp "$fd_wasm" "$app_dir/Resources/wasm/"
+            local fd_js="$fd_dir/target/wasm32-unknown-unknown/release/fd_host_web.js"
+            [ ! -f "$fd_js" ] && fd_js="$fd_dir/target/wasm32-unknown-unknown/debug/fd_host_web.js"
+            [ -f "$fd_js" ] && cp "$fd_js" "$app_dir/Resources/wasm/"
+            info "✅ 复制 fd-host-web wasm + js glue"
+        fi
+    else
+        warn "fusion-design 源码未找到, 跳过 CLI + wasm 构建"
+    fi
+
     info "✅ App Bundle 打包完成: $APP_BUNDLE"
 }
 

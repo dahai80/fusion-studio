@@ -265,11 +265,13 @@ struct RAGPipelineView: View {
     @State private var queryInput = ""
     @State private var isSearching = false
 
+    // Callers: RAGPipelineView. Affected API: rag.vector_search. User instruction: "审视是否所有需要功能和api所有需要的GUI都在~/fusion/fusion-studio都已经有对应GUI了，所有有问题的都要在fusion-studio补齐GUI"
     enum RAGTab: String, CaseIterable {
-        case documents = "文档"
-        case query     = "检索"
-        case config    = "配置"
-        case history   = "历史"
+        case documents    = "文档"
+        case query        = "检索"
+        case vectorSearch = "向量"
+        case config       = "配置"
+        case history      = "历史"
     }
 
     var body: some View {
@@ -283,20 +285,22 @@ struct RAGPipelineView: View {
             .padding(8)
 
             switch selectedTab {
-            case .documents: DocumentListView()
-            case .query:     QueryView()
-            case .config:    RAGConfigView()
-            case .history:   QueryHistoryView()
+            case .documents:    DocumentListView()
+            case .query:        QueryView()
+            case .vectorSearch: VectorSearchView()
+            case .config:       RAGConfigView()
+            case .history:      QueryHistoryView()
             }
         }
     }
 
     private func tabIcon(_ tab: RAGTab) -> String {
         switch tab {
-        case .documents: return "doc.text"
-        case .query:     return "magnifyingglass"
-        case .config:    return "gearshape"
-        case .history:   return "clock.arrow.circlepath"
+        case .documents:    return "doc.text"
+        case .query:        return "magnifyingglass"
+        case .vectorSearch: return "arrow.triangle.2.circlepath"
+        case .config:       return "gearshape"
+        case .history:      return "clock.arrow.circlepath"
         }
     }
 }
@@ -636,6 +640,90 @@ struct QueryHistoryView: View {
                     .padding(.vertical, 4)
                 }
             }
+        }
+    }
+}
+
+// Callers: RAGPipelineView vectorSearch tab. Affected API: rag.vector_search. User instruction: "审视是否所有需要功能和api所有需要的GUI都在~/fusion/fusion-studio都已经有对应GUI了，所有有问题的都要在fusion-studio补齐GUI"
+struct VectorSearchView: View {
+    @EnvironmentObject var bridge: AgentBridge
+    @Environment(\.studioTheme) private var theme
+    @State private var queryInput: String = ""
+    @State private var limit: Int = 10
+    @State private var threshold: Double = 0.5
+    @State private var results: [[String: Any]] = []
+    @State private var isSearching: Bool = false
+    @State private var errorMsg: String?
+
+    var body: some View {
+        VStack(spacing: theme.spacingM) {
+            HStack(spacing: theme.spacingS) {
+                TextField("向量搜索查询...", text: $queryInput)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit { performSearch() }
+
+                Button("搜索") { performSearch() }
+                    .disabled(queryInput.isEmpty || isSearching)
+            }
+            .padding(.horizontal, theme.spacingM)
+
+            HStack(spacing: theme.spacingL) {
+                LabeledContent("数量") {
+                    Stepper("\(limit)", value: $limit, in: 1...50)
+                }
+                LabeledContent("阈值") {
+                    Slider(value: $threshold, in: 0...1, step: 0.05) {
+                        Text(String(format: "%.2f", threshold))
+                    }
+                }
+            }
+            .padding(.horizontal, theme.spacingM)
+
+            if let err = errorMsg {
+                Text(err).foregroundStyle(.red).font(.caption)
+            }
+
+            if isSearching {
+                ProgressView("搜索中...")
+            } else if results.isEmpty && !queryInput.isEmpty {
+                Text("无结果").foregroundStyle(theme.textTertiary)
+            } else {
+                List(Array(results.enumerated()), id: \.offset) { _, item in
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text(item["id"] as? String ?? "").font(.caption).foregroundStyle(theme.textTertiary)
+                            Spacer()
+                            if let score = item["score"] as? Double {
+                                Text(String(format: "%.3f", score))
+                                    .font(.caption).foregroundStyle(theme.accent)
+                            }
+                        }
+                        Text(item["content"] as? String ?? "")
+                            .font(.system(size: theme.textSize))
+                            .lineLimit(4)
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
+
+            Spacer()
+        }
+    }
+
+    private func performSearch() {
+        guard !queryInput.isEmpty else { return }
+        isSearching = true
+        errorMsg = nil
+        Task {
+            do {
+                let result = try await bridge.ipcClient!.ragVectorSearch(
+                    query: queryInput, limit: limit, threshold: threshold
+                )
+                results = result["results"] as? [[String: Any]] ?? []
+            } catch {
+                errorMsg = error.localizedDescription
+            }
+            isSearching = false
         }
     }
 }

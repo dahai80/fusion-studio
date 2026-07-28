@@ -1,631 +1,1374 @@
-// Callers: ModuleDetailView routing.
-// Affected API: DeskView (replacing NSColor with StudioTheme tokens).
-// Data schemas: None changed.
-// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+// Callers: ModuleDetailView routing (.desk → DeskView).
+// Affected API: DeskView 8-tab IPC architecture + 9 new bridge method GUI interactions.
+// Data schemas: DeskBridge @EnvironmentObject, DeskNodeDetail, DeskTemplateDetail, DeskWorkflowExecStatus, DeskMLXModel, event subscribe/poll.
+// User instruction: "补充9个方法的桥接和对应的GUI交互"
 
 import SwiftUI
 
-/// 自动化模板
-struct DeskTemplate: Identifiable, Hashable {
-    let id: String
-    var name: String
-    var description: String
-    var category: DeskCategory
-    var icon: String
-    var lastRun: Date?
-    var runCount: Int
-    var isFavorite: Bool
-    var steps: [DeskStep]
+enum DeskTab: String, CaseIterable, Identifiable {
+    case templates  = "模板"
+    case workflows  = "工作流"
+    case agents     = "智能体"
+    case sessions   = "会话"
+    case permissions = "权限"
+    case mlx        = "MLX"
+    case system     = "系统"
+    case events     = "事件"
 
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    static func == (lhs: DeskTemplate, rhs: DeskTemplate) -> Bool { lhs.id == rhs.id }
+    var id: String { rawValue }
 
-    enum DeskCategory: String, CaseIterable {
-        case file    = "文件管理"
-        case system  = "系统操作"
-        case network = "网络"
-        case ai      = "AI 处理"
-        case custom  = "自定义"
-
-        var icon: String {
-            switch self {
-            case .file:   return "folder"
-            case .system: return "gearshape"
-            case .network: return "antenna.radiowaves.left.and.right"
-            case .ai:     return "brain"
-            case .custom: return "wrench.and.screwdriver"
-            }
+    var icon: String {
+        switch self {
+        case .templates:   return "square.stack"
+        case .workflows:   return "arrow.triangle.branch"
+        case .agents:      return "person.2.fill"
+        case .sessions:    return "clock.arrow.circlepath"
+        case .permissions: return "lock.shield"
+        case .mlx:         return "cpu"
+        case .system:      return "desktopcomputer"
+        case .events:      return "bell.badge"
         }
     }
 }
 
-/// 自动化步骤
-struct DeskStep: Identifiable, Hashable {
-    let id: String
-    var action: String
-    var target: String
-    var parameters: [String: String]
-    var order: Int
-
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    static func == (lhs: DeskStep, rhs: DeskStep) -> Bool { lhs.id == rhs.id }
-}
-
-/// 自动化任务
-struct DeskTask: Identifiable, Hashable {
-    let id: String
-    let templateId: String
-    var name: String
-    var status: TaskStatus
-    var progress: Double
-    var startedAt: Date?
-    var completedAt: Date?
-    var log: [String]
-
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    static func == (lhs: DeskTask, rhs: DeskTask) -> Bool { lhs.id == rhs.id }
-}
-
-// MARK: - 预设模板
-
-let deskPresets: [DeskTemplate] = [
-    DeskTemplate(id: "t1", name: "整理下载文件夹", description: "按文件类型自动分类整理 Downloads 目录", category: .file, icon: "tray.and.arrow.down", lastRun: nil, runCount: 0, isFavorite: true, steps: [
-        DeskStep(id: "s1", action: "list_files", target: "~/Downloads", parameters: ["recursive": "false"], order: 1),
-        DeskStep(id: "s2", action: "categorize", target: "~/Downloads", parameters: ["by": "extension"], order: 2),
-        DeskStep(id: "s3", action: "move_files", target: "~/Downloads/Organized", parameters: ["create_dirs": "true"], order: 3),
-    ]),
-    DeskTemplate(id: "t2", name: "清理缓存", description: "清理系统缓存和临时文件释放空间", category: .system, icon: "trash", lastRun: nil, runCount: 0, isFavorite: true, steps: [
-        DeskStep(id: "s4", action: "clean_cache", target: "~/Library/Caches", parameters: ["dry_run": "true"], order: 1),
-        DeskStep(id: "s5", action: "clean_temp", target: "/tmp", parameters: ["older_than": "7d"], order: 2),
-        DeskStep(id: "s6", action: "report", target: "", parameters: ["format": "size"], order: 3),
-    ]),
-    DeskTemplate(id: "t3", name: "批量重命名", description: "按规则批量重命名文件（序列号/日期/前缀）", category: .file, icon: "character.cursor.ibeam", lastRun: nil, runCount: 0, isFavorite: false, steps: [
-        DeskStep(id: "s7", action: "select_files", target: "", parameters: ["pattern": "*.*"], order: 1),
-        DeskStep(id: "s8", action: "rename", target: "", parameters: ["rule": "prefix_001", "start": "1"], order: 2),
-    ]),
-    DeskTemplate(id: "t4", name: "AI 批量处理图片", description: "使用 fusion-mlx 批量处理图片（压缩/格式转换）", category: .ai, icon: "photo.on.rectangle", lastRun: nil, runCount: 0, isFavorite: false, steps: [
-        DeskStep(id: "s9", action: "scan_images", target: "~/Pictures", parameters: ["formats": "png,jpg"], order: 1),
-        DeskStep(id: "s10", action: "ai_process", target: "", parameters: ["task": "compress", "quality": "85"], order: 2),
-        DeskStep(id: "s11", action: "save_output", target: "~/Pictures/Processed", parameters: ["overwrite": "false"], order: 3),
-    ]),
-    DeskTemplate(id: "t5", name: "定时备份", description: "将指定目录备份到备份位置，支持增量", category: .system, icon: "clock.arrow.circlepath", lastRun: nil, runCount: 0, isFavorite: true, steps: [
-        DeskStep(id: "s12", action: "select_source", target: "~/Documents", parameters: ["include": "*.pdf,*.docx"], order: 1),
-        DeskStep(id: "s13", action: "backup", target: "~/Backups", parameters: ["type": "incremental", "compress": "true"], order: 2),
-        DeskStep(id: "s14", action: "verify", target: "", parameters: ["checksum": "sha256"], order: 3),
-    ]),
-    DeskTemplate(id: "t6", name: "网络监控", description: "监控网络状态并记录异常", category: .network, icon: "network", lastRun: nil, runCount: 0, isFavorite: false, steps: [
-        DeskStep(id: "s15", action: "ping_test", target: "8.8.8.8", parameters: ["count": "5", "interval": "1s"], order: 1),
-        DeskStep(id: "s16", action: "speed_test", target: "", parameters: ["server": "auto"], order: 2),
-        DeskStep(id: "s17", action: "log_result", target: "", parameters: ["output": "csv"], order: 3),
-    ]),
-]
-
-// MARK: - 主视图
+// MARK: - Main DeskView
 
 struct DeskView: View {
+    @EnvironmentObject var bridge: DeskBridge
     @Environment(\.studioTheme) private var theme
-    @State private var templates: [DeskTemplate] = deskPresets
-    @State private var selectedTemplate: DeskTemplate?
-    @State private var tasks: [DeskTask] = []
-    @State private var searchText = ""
-    @State private var selectedCategory: DeskTemplate.DeskCategory?
-    @State private var showTemplateEditor = false
-    @State private var viewMode: ViewMode = .grid
+    @State private var selectedTab: DeskTab = .templates
 
-    enum ViewMode: String, CaseIterable {
-        case grid  = "网格"
-        case list  = "列表"
-        case run   = "运行历史"
+    var body: some View {
+        VStack(spacing: 0) {
+            deskTabBar
+            Divider()
+            if !bridge.isConnected {
+                disconnectedView
+            } else {
+                tabContent
+            }
+        }
+        .task {
+            await bridge.loadAll()
+        }
     }
 
-    var filteredTemplates: [DeskTemplate] {
-        var result = templates
-        if let cat = selectedCategory {
-            result = result.filter { $0.category == cat }
+    private var deskTabBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 4) {
+                ForEach(DeskTab.allCases) { tab in
+                    Button(action: { selectedTab = tab }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: tab.icon)
+                                .font(.system(size: 11))
+                            Text(tab.rawValue)
+                                .font(.system(size: 12, weight: .medium))
+                        }
+                        .foregroundStyle(selectedTab == tab ? theme.accentText : theme.textSecondary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(selectedTab == tab ? theme.accent : Color.clear)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
         }
-        if !searchText.isEmpty {
-            result = result.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+        .background(theme.toolbarBg)
+    }
+
+    private var disconnectedView: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 40))
+                .foregroundColor(.orange)
+            Text("Fusion-Desk 服务未连接")
+                .font(.title3)
+                .foregroundColor(theme.text)
+            Text("请启动 fusion-desk 服务后重试")
+                .font(.subheadline)
+                .foregroundColor(theme.textSecondary)
+            Button("重新连接") {
+                Task { await bridge.loadAll() }
+            }
+            .buttonStyle(.borderedProminent)
+            Spacer()
         }
-        return result
+    }
+
+    @ViewBuilder
+    private var tabContent: some View {
+        switch selectedTab {
+        case .templates:   DeskTemplateTab()
+        case .workflows:   DeskWorkflowTab()
+        case .agents:      DeskAgentTab()
+        case .sessions:    DeskSessionTab()
+        case .permissions: DeskPermissionTab()
+        case .mlx:         DeskMLXTab()
+        case .system:      DeskSystemTab()
+        case .events:      DeskEventsTab()
+        }
+    }
+}
+
+// MARK: - Template Tab (uses getTemplate for detail popup)
+
+struct DeskTemplateTab: View {
+    @EnvironmentObject var bridge: DeskBridge
+    @Environment(\.studioTheme) private var theme
+    @State private var searchText = ""
+    @State private var runningTemplateId: String?
+    @State private var runResult: String?
+    @State private var showDetail = false
+
+    var filteredTemplates: [DeskTemplateInfo] {
+        if searchText.isEmpty { return bridge.templates }
+        return bridge.templates.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            // 工具栏
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
-                    .foregroundColor(.secondary)
-                TextField("搜索自动化模板...", text: $searchText)
+                    .foregroundColor(theme.textTertiary)
+                TextField("搜索模板...", text: $searchText)
                     .textFieldStyle(.plain)
-
                 Spacer()
-
-                Picker("", selection: $viewMode) {
-                    ForEach(ViewMode.allCases, id: \.self) { mode in
-                        Text(mode.rawValue).tag(mode)
-                    }
+                Text("\(bridge.templates.count) 个模板")
+                    .font(.caption)
+                    .foregroundColor(theme.textTertiary)
+                Button(action: { Task { await bridge.loadTemplates() } }) {
+                    Image(systemName: "arrow.clockwise")
                 }
-                .pickerStyle(.segmented)
-                .frame(width: 200)
-
-                Button(action: { showTemplateEditor = true }) {
-                    Label("新建模板", systemImage: "plus")
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
+                .buttonStyle(.borderless)
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 6)
+            .padding(.vertical, 8)
             .background(theme.surfaceSecondary)
 
             Divider()
 
-            // 分类筛选
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    ForEach(DeskTemplate.DeskCategory.allCases, id: \.self) { cat in
-                        let isSelected = selectedCategory == cat
-                        Button(action: {
-                            withAnimation { selectedCategory = selectedCategory == cat ? nil : cat }
-                        }) {
-                            Label(cat.rawValue, systemImage: cat.icon)
+            if bridge.isLoading {
+                ProgressView("加载中...")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if filteredTemplates.isEmpty {
+                deskEmptyState(icon: "square.stack", text: "暂无模板")
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 8) {
+                        ForEach(filteredTemplates) { tpl in
+                            HStack(spacing: 12) {
+                                Image(systemName: "square.stack")
+                                    .foregroundColor(theme.accent)
+                                    .frame(width: 28)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(tpl.name)
+                                        .font(.headline)
+                                        .foregroundColor(theme.text)
+                                    Text(tpl.description)
+                                        .font(.caption)
+                                        .foregroundColor(theme.textSecondary)
+                                        .lineLimit(2)
+                                }
+
+                                Spacer()
+
+                                if !tpl.category.isEmpty {
+                                    Text(tpl.category)
+                                        .font(.caption2)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(theme.accentSoft)
+                                        .cornerRadius(4)
+                                }
+
+                                Button(action: { showTemplateDetail(tpl.id) }) {
+                                    Image(systemName: "info.circle")
+                                }
+                                .buttonStyle(.borderless)
+                                .controlSize(.small)
+
+                                Button(action: { runTemplate(tpl) }) {
+                                    Image(systemName: "play.fill")
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .controlSize(.small)
+                                .disabled(runningTemplateId != nil)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(theme.surfaceSecondary)
+                            .cornerRadius(8)
                         }
-                        .buttonStyle(.bordered)
+                    }
+                    .padding(12)
+                }
+            }
+
+            if let result = runResult {
+                HStack {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                    Text(result)
+                        .font(.caption)
+                        .foregroundColor(theme.textSecondary)
+                    Spacer()
+                    Button("关闭") { runResult = nil }
+                        .buttonStyle(.borderless)
                         .controlSize(.small)
-                        .tint(isSelected ? Color.accentColor : nil)
-                    }
                 }
-                .padding(8)
-            }
-
-            Divider()
-
-            // 内容
-            switch viewMode {
-            case .grid:
-                TemplateGridView(templates: filteredTemplates, selectedTemplate: $selectedTemplate, onRun: runTemplate)
-            case .list:
-                TemplateListView(templates: filteredTemplates, selectedTemplate: $selectedTemplate, onRun: runTemplate)
-            case .run:
-                TaskHistoryView(tasks: tasks)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(theme.surfaceElevated)
             }
         }
-        .sheet(isPresented: $showTemplateEditor) {
-            TemplateEditorView { template in
-                templates.append(template)
-            }
-        }
-        .sheet(item: $selectedTemplate) { template in
-            TemplateDetailView(template: template, onRun: runTemplate)
+        .sheet(isPresented: $showDetail) {
+            templateDetailSheet
         }
     }
 
-    private func runTemplate(_ template: DeskTemplate) {
-        let task = DeskTask(
-            id: UUID().uuidString.prefix(8).lowercased(),
-            templateId: template.id,
-            name: template.name,
-            status: .running,
-            progress: 0,
-            startedAt: Date(),
-            log: ["开始执行: \(template.name)"]
-        )
-        tasks.append(task)
-
-        // 模拟执行
-        Task { [self] in
-            
-            for i in 0..<template.steps.count {
-                try? await Task.sleep(nanoseconds: 1_500_000_000)
-                await MainActor.run {
-                    if let idx = self.tasks.firstIndex(where: { $0.id == task.id }) {
-                        self.tasks[idx].progress = Double(i + 1) / Double(template.steps.count)
-                        self.tasks[idx].log.append("步骤 \(i+1)/\(template.steps.count): \(template.steps[i].action) → \(template.steps[i].target)")
-                    }
-                }
-            }
-            try? await Task.sleep(nanoseconds: 500_000_000)
-            await MainActor.run {
-                if let idx = tasks.firstIndex(where: { $0.id == task.id }) {
-                    tasks[idx].status = .completed
-                    tasks[idx].progress = 1.0
-                    tasks[idx].completedAt = Date()
-                    tasks[idx].log.append("✅ 完成: \(template.name)")
-                }
-                if let tIdx = templates.firstIndex(where: { $0.id == template.id }) {
-                    templates[tIdx].lastRun = Date()
-                    templates[tIdx].runCount += 1
-                }
-            }
-        }
-    }
-}
-
-// MARK: - 网格视图
-
-struct TemplateGridView: View {
-    let templates: [DeskTemplate]
-    @Binding var selectedTemplate: DeskTemplate?
-    let onRun: (DeskTemplate) -> Void
-
-    let columns = [GridItem(.adaptive(minimum: 180), spacing: 12)]
-
-    var body: some View {
-        if templates.isEmpty {
-            VStack(spacing: 12) {
-                Spacer()
-                Image(systemName: "square.grid.2x2")
-                    .font(.system(size: 40))
-                    .foregroundColor(.secondary)
-                Text("暂无匹配模板")
-                    .foregroundColor(.secondary)
-                Spacer()
-            }
-        } else {
-            ScrollView {
-                LazyVGrid(columns: columns, spacing: 12) {
-                    ForEach(templates) { template in
-                        TemplateCard(template: template, onRun: onRun)
-                            .onTapGesture { selectedTemplate = template }
-                    }
-                }
-                .padding()
-            }
-        }
-    }
-}
-
-struct TemplateCard: View {
-    @Environment(\.studioTheme) private var theme
-    let template: DeskTemplate
-    let onRun: (DeskTemplate) -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+    private var templateDetailSheet: some View {
+        VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Image(systemName: template.icon)
-                    .font(.title2)
-                    .foregroundColor(.accentColor)
+                Text("模板详情")
+                    .font(.title3)
+                    .foregroundColor(theme.text)
                 Spacer()
-                if template.isFavorite {
-                    Image(systemName: "star.fill")
-                        .font(.caption)
-                        .foregroundColor(.yellow)
+                Button("关闭") { showDetail = false }
+                    .buttonStyle(.borderless)
+            }
+
+            if let detail = bridge.selectedTemplateDetail {
+                Group {
+                    LabeledContent("名称", value: detail.name)
+                    LabeledContent("分类", value: detail.category)
+                    LabeledContent("描述", value: detail.description)
                 }
-            }
+                .font(.subheadline)
 
-            Text(template.name)
-                .font(.headline)
-                .lineLimit(1)
-
-            Text(template.description)
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .lineLimit(2)
-
-            Spacer()
-
-            HStack {
-                Text("\(template.steps.count) 步")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                Spacer()
-                if let last = template.lastRun {
-                    Text(last, style: .date)
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-            }
-
-            Button(action: { onRun(template) }) {
-                Label("运行", systemImage: "play.fill")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.small)
-        }
-        .padding()
-        .frame(height: 180)
-        .background(theme.surfaceSecondary)
-        .cornerRadius(10)
-    }
-}
-
-// MARK: - 列表视图
-
-struct TemplateListView: View {
-    let templates: [DeskTemplate]
-    @Binding var selectedTemplate: DeskTemplate?
-    let onRun: (DeskTemplate) -> Void
-
-    var body: some View {
-        List(templates) { template in
-            HStack(spacing: 12) {
-                Image(systemName: template.icon)
-                    .foregroundColor(.accentColor)
-                    .frame(width: 24)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(template.name)
+                if !detail.steps.isEmpty {
+                    Divider()
+                    Text("步骤")
                         .font(.headline)
-                    Text(template.description)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-
-                Spacer()
-
-                HStack(spacing: 12) {
-                    Text("\(template.steps.count) 步")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Text(template.category.rawValue)
-                        .font(.caption2)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 1)
-                        .background(Color.accentColor.opacity(0.1))
-                        .cornerRadius(3)
-
-                    Button(action: { onRun(template) }) {
-                        Image(systemName: "play.fill")
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
-                }
-            }
-            .padding(.vertical, 4)
-            .contentShape(Rectangle())
-            .onTapGesture { selectedTemplate = template }
-        }
-    }
-}
-
-// MARK: - 任务历史
-
-struct TaskHistoryView: View {
-    let tasks: [DeskTask]
-
-    var body: some View {
-        if tasks.isEmpty {
-            VStack(spacing: 12) {
-                Spacer()
-                Image(systemName: "clock.arrow.circlepath")
-                    .font(.system(size: 40))
-                    .foregroundColor(.secondary)
-                Text("暂无运行记录")
-                    .foregroundColor(.secondary)
-                Text("运行自动化模板后，执行记录将显示在这里")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                Spacer()
-            }
-        } else {
-            List(tasks.reversed()) { task in
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack {
-                        Image(systemName: task.status.icon)
-                            .foregroundColor(task.status.color)
-                        Text(task.name)
-                            .font(.headline)
-                        Spacer()
-                        Text(task.status.rawValue)
-                            .font(.caption)
-                            .foregroundColor(task.status.color)
-                    }
-
-                    ProgressView(value: task.progress)
-                        .tint(task.status.color)
-
-                    if let start = task.startedAt {
-                        HStack {
-                            Text("开始: \(start.formatted(date: .numeric, time: .shortened))")
-                            if let end = task.completedAt {
-                                Text("结束: \(end.formatted(date: .numeric, time: .shortened))")
+                        .foregroundColor(theme.text)
+                    ForEach(detail.steps.indices, id: \.self) { i in
+                        let step = detail.steps[i]
+                        HStack(spacing: 8) {
+                            Text("\(i + 1)")
+                                .font(.caption)
+                                .foregroundColor(theme.accent)
+                                .frame(width: 20)
+                            Text(step["name"] ?? "Step \(i + 1)")
+                                .foregroundColor(theme.text)
+                            Spacer()
+                            if let node = step["node"] {
+                                Text(node)
+                                    .font(.caption)
+                                    .foregroundColor(theme.textTertiary)
                             }
                         }
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                    }
-
-                    if !task.log.isEmpty {
-                        VStack(alignment: .leading, spacing: 2) {
-                            ForEach(task.log.suffix(3), id: \.self) { line in
-                                Text(line)
-                                    .font(.system(size: 9, design: .monospaced))
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .padding(6)
-                        .background(Color.black.opacity(0.05))
-                        .cornerRadius(4)
+                        .font(.subheadline)
                     }
                 }
-                .padding(.vertical, 4)
+            } else {
+                ProgressView("加载中...")
             }
-        }
-    }
-}
-
-// MARK: - 模板详情
-
-struct TemplateDetailView: View {
-    let template: DeskTemplate
-    let onRun: (DeskTemplate) -> Void
-    @Environment(\.dismiss) var dismiss
-    @State private var showConfirm = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Image(systemName: template.icon)
-                    .font(.title)
-                    .foregroundColor(.accentColor)
-                Text(template.name)
-                    .font(.title2)
-                    .bold()
-                Spacer()
-                Button("关闭") { dismiss() }
-                    .buttonStyle(.borderedProminent)
-            }
-
-            Divider()
-
-            GroupBox("基本信息") {
-                VStack(alignment: .leading, spacing: 6) {
-                    DetailRow("描述", template.description)
-                    DetailRow("分类", template.category.rawValue)
-                    DetailRow("步骤数", "\(template.steps.count)")
-                    DetailRow("运行次数", "\(template.runCount)")
-                    if let last = template.lastRun {
-                        DetailRow("上次运行", last.formatted(date: .numeric, time: .shortened))
-                    }
-                }
-                .padding(8)
-            }
-
-            GroupBox("执行步骤") {
-                ForEach(template.steps.sorted(by: { $0.order < $1.order })) { step in
-                    HStack(spacing: 8) {
-                        Text("\(step.order)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .frame(width: 20)
-                        Text(step.action)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .frame(width: 100, alignment: .leading)
-                        Text(step.target)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                        Spacer()
-                    }
-                    .padding(.vertical, 2)
-                }
-                .padding(8)
-            }
-
             Spacer()
+        }
+        .padding(20)
+        .frame(minWidth: 400, minHeight: 300)
+        .background(theme.contentBg)
+    }
 
-            HStack {
-                Spacer()
-                Button(action: { showConfirm = true }) {
-                    Label("运行此模板", systemImage: "play.fill")
-                        .frame(width: 160)
+    private func showTemplateDetail(_ id: String) {
+        Task {
+            await bridge.getTemplate(templateId: id)
+            showDetail = true
+        }
+    }
+
+    private func runTemplate(_ tpl: DeskTemplateInfo) {
+        runningTemplateId = tpl.id
+        Task {
+            let result = await bridge.runTemplate(templateId: tpl.id)
+            runningTemplateId = nil
+            if let r = result {
+                let status = r["status"] as? String ?? "unknown"
+                runResult = "模板 \(tpl.name): \(status)"
+            } else {
+                runResult = "模板 \(tpl.name): 执行失败"
+            }
+        }
+    }
+}
+
+// MARK: - Workflow Tab (uses getWorkflowStatus for execution tracking)
+
+struct DeskWorkflowTab: View {
+    @EnvironmentObject var bridge: DeskBridge
+    @Environment(\.studioTheme) private var theme
+    @State private var promptText = ""
+    @State private var showExecStatus = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                TextField("输入自然语言创建工作流...", text: $promptText)
+                    .textFieldStyle(.plain)
+                    .onSubmit { createWorkflow() }
+
+                Button(action: createWorkflow) {
+                    Label("创建", systemImage: "plus")
                 }
                 .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+                .controlSize(.small)
+                .disabled(promptText.isEmpty)
+
                 Spacer()
-            }
-        }
-        .padding()
-        .frame(width: 460, height: 500)
-        .alert("确认运行", isPresented: $showConfirm) {
-            Button("取消", role: .cancel) {}
-            Button("运行") {
-                onRun(template)
-                dismiss()
-            }
-        } message: {
-            Text("将执行「\(template.name)」，共 \(template.steps.count) 个步骤")
-        }
-    }
-}
 
-// MARK: - 模板编辑器
+                Text("\(bridge.workflows.count) 个工作流")
+                    .font(.caption)
+                    .foregroundColor(theme.textTertiary)
 
-struct TemplateEditorView: View {
-    @Environment(\.dismiss) var dismiss
-    @State private var name = ""
-    @State private var description = ""
-    @State private var category: DeskTemplate.DeskCategory = .custom
-    @State private var steps: [DeskStep] = []
-    let onSave: (DeskTemplate) -> Void
-
-    var body: some View {
-        VStack(spacing: 16) {
-            Text("新建自动化模板")
-                .font(.title2)
-                .bold()
-
-            TextField("模板名称", text: $name)
-                .textFieldStyle(.roundedBorder)
-
-            TextField("描述", text: $description)
-                .textFieldStyle(.roundedBorder)
-
-            Picker("分类", selection: $category) {
-                ForEach(DeskTemplate.DeskCategory.allCases, id: \.self) { cat in
-                    Label(cat.rawValue, systemImage: cat.icon).tag(cat)
+                Button("执行状态") {
+                    Task {
+                        await bridge.getWorkflowStatus()
+                        showExecStatus = true
+                    }
                 }
-            }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
 
-            HStack {
-                Text("执行步骤")
-                    .font(.headline)
-                Spacer()
-                Button(action: addStep) {
-                    Image(systemName: "plus.circle")
+                Button(action: { Task { await bridge.loadWorkflows() } }) {
+                    Image(systemName: "arrow.clockwise")
                 }
                 .buttonStyle(.borderless)
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(theme.surfaceSecondary)
 
-            List {
-                ForEach(steps.indices, id: \.self) { i in
-                    HStack {
-                        Text("\(i + 1)")
-                            .foregroundColor(.secondary)
-                            .frame(width: 20)
-                        TextField("动作", text: Binding(
-                            get: { steps[i].action },
-                            set: { steps[i].action = $0 }
-                        ))
-                        .frame(width: 120)
-                        TextField("目标", text: Binding(
-                            get: { steps[i].target },
-                            set: { steps[i].target = $0 }
-                        ))
-                    }
-                }
-                .onDelete { steps.remove(atOffsets: $0) }
-            }
-            .frame(minHeight: 100)
+            Divider()
 
-            HStack {
-                Button("取消") { dismiss() }
-                    .buttonStyle(.bordered)
-                Button("保存") {
-                    let template = DeskTemplate(
-                        id: "custom-\(UUID().uuidString.prefix(6))",
-                        name: name.isEmpty ? "新模板" : name,
-                        description: description,
-                        category: category,
-                        icon: "wrench.and.screwdriver",
-                        lastRun: nil,
-                        runCount: 0,
-                        isFavorite: false,
-                        steps: steps.enumerated().map { i, s in
-                            DeskStep(id: "step-\(i)", action: s.action, target: s.target, parameters: [:], order: i + 1)
+            if bridge.isLoading {
+                ProgressView("加载中...").frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if bridge.workflows.isEmpty {
+                deskEmptyState(icon: "arrow.triangle.branch", text: "暂无工作流，输入提示语创建")
+            } else {
+                List(bridge.workflows) { wf in
+                    HStack(spacing: 12) {
+                        Image(systemName: "arrow.triangle.branch")
+                            .foregroundColor(theme.accent)
+                            .frame(width: 28)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(wf.name)
+                                .font(.headline)
+                                .foregroundColor(theme.text)
+                            Text(wf.summary)
+                                .font(.caption)
+                                .foregroundColor(theme.textSecondary)
                         }
-                    )
-                    onSave(template)
-                    dismiss()
+
+                        Spacer()
+
+                        Text(wf.status)
+                            .font(.caption2)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(theme.accentSoft)
+                            .cornerRadius(4)
+
+                        Button(action: { cancelWorkflow(wf.id) }) {
+                            Image(systemName: "xmark.circle")
+                                .foregroundColor(theme.accentDestructive)
+                        }
+                        .buttonStyle(.borderless)
+                        .controlSize(.small)
+                    }
+                    .padding(.vertical, 4)
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(name.isEmpty)
             }
         }
-        .padding()
-        .frame(width: 420, height: 500)
+        .sheet(isPresented: $showExecStatus) {
+            workflowExecStatusSheet
+        }
     }
 
-    private func addStep() {
-        steps.append(DeskStep(id: "step-\(steps.count)", action: "", target: "", parameters: [:], order: steps.count + 1))
+    private var workflowExecStatusSheet: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("工作流执行状态")
+                    .font(.title3)
+                    .foregroundColor(theme.text)
+                Spacer()
+                Button("刷新") {
+                    Task { await bridge.getWorkflowStatus() }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                Button("关闭") { showExecStatus = false }
+                    .buttonStyle(.borderless)
+            }
+
+            if bridge.workflowExecStatuses.isEmpty {
+                Text("当前无执行中的工作流")
+                    .foregroundColor(theme.textSecondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List(Array(bridge.workflowExecStatuses.values), id: \.executionId) { ex in
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text(ex.executionId)
+                                .font(.headline)
+                                .foregroundColor(theme.text)
+                            Spacer()
+                            Text(ex.status)
+                                .font(.caption2)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(ex.status == "completed" ? Color.green.opacity(0.15) : theme.accentSoft)
+                                .foregroundColor(ex.status == "completed" ? .green : theme.accent)
+                                .cornerRadius(4)
+                        }
+                        if !ex.currentNode.isEmpty {
+                            Text("当前节点: \(ex.currentNode)")
+                                .font(.caption)
+                                .foregroundColor(theme.textTertiary)
+                        }
+                        if ex.progress > 0 {
+                            ProgressView(value: ex.progress)
+                                .progressViewStyle(.linear)
+                        }
+                        if !ex.result.isEmpty {
+                            Text(ex.result)
+                                .font(.caption)
+                                .foregroundColor(theme.textSecondary)
+                                .lineLimit(3)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+        }
+        .padding(20)
+        .frame(minWidth: 500, minHeight: 300)
+        .background(theme.contentBg)
+    }
+
+    private func createWorkflow() {
+        guard !promptText.isEmpty else { return }
+        let prompt = promptText
+        promptText = ""
+        Task {
+            let result = await bridge.createWorkflow(prompt: prompt)
+            if let _ = result {
+                await bridge.loadWorkflows()
+            }
+        }
+    }
+
+    private func cancelWorkflow(_ executionId: String) {
+        Task {
+            await bridge.cancelWorkflow(executionId: executionId)
+            await bridge.getWorkflowStatus()
+        }
+    }
+}
+
+// MARK: - Agent Tab (uses getNodeInfo for node detail in system tab, kept here unchanged)
+
+struct DeskAgentTab: View {
+    @EnvironmentObject var bridge: DeskBridge
+    @Environment(\.studioTheme) private var theme
+    @State private var taskInput = ""
+    @State private var submittedTaskId: String?
+    @State private var agentStatusDetail: [String: Any]?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                TextField("提交任务给智能体...", text: $taskInput)
+                    .textFieldStyle(.plain)
+                    .onSubmit { submitTask() }
+
+                Button(action: submitTask) {
+                    Label("提交", systemImage: "paperplane")
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+                .disabled(taskInput.isEmpty)
+
+                Spacer()
+
+                Text("\(bridge.agents.count) 个智能体")
+                    .font(.caption)
+                    .foregroundColor(theme.textTertiary)
+
+                Button(action: { Task { await bridge.loadAgents() } }) {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .buttonStyle(.borderless)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(theme.surfaceSecondary)
+
+            Divider()
+
+            if bridge.agents.isEmpty {
+                deskEmptyState(icon: "person.2.fill", text: "暂无智能体")
+            } else {
+                List(bridge.agents) { agent in
+                    HStack(spacing: 12) {
+                        Image(systemName: "person.fill")
+                            .foregroundColor(theme.accent)
+                            .frame(width: 28)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(agent.name)
+                                .font(.headline)
+                                .foregroundColor(theme.text)
+                            Text("ID: \(agent.id)")
+                                .font(.caption)
+                                .foregroundColor(theme.textTertiary)
+                        }
+
+                        Spacer()
+
+                        Text(agent.status)
+                            .font(.caption2)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(theme.accentSoft)
+                            .cornerRadius(4)
+
+                        Button(action: { checkAgentStatus(agent.id) }) {
+                            Image(systemName: "eye")
+                        }
+                        .buttonStyle(.borderless)
+                        .controlSize(.small)
+
+                        Button(action: { cancelTask(agent.id) }) {
+                            Image(systemName: "xmark.circle")
+                                .foregroundColor(theme.accentDestructive)
+                        }
+                        .buttonStyle(.borderless)
+                        .controlSize(.small)
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+
+            if let tid = submittedTaskId {
+                HStack {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("任务 \(tid) 已提交")
+                        .font(.caption)
+                        .foregroundColor(theme.textSecondary)
+                    Spacer()
+                    Button("查看状态") {
+                        Task { checkAgentStatus(tid) }
+                    }
+                    .buttonStyle(.borderless)
+                    .controlSize(.small)
+                    Button("关闭") { submittedTaskId = nil }
+                        .buttonStyle(.borderless)
+                        .controlSize(.small)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(theme.surfaceElevated)
+            }
+
+            if let status = agentStatusDetail {
+                HStack(spacing: 8) {
+                    Image(systemName: "info.circle")
+                        .foregroundColor(theme.accent)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("状态: \(status["status"] as? String ?? "unknown")")
+                            .font(.caption)
+                            .foregroundColor(theme.text)
+                        if let progress = status["progress"] as? Double {
+                            Text("进度: \(String(format: "%.0f%%", progress * 100))")
+                                .font(.caption2)
+                                .foregroundColor(theme.textTertiary)
+                        }
+                    }
+                    Spacer()
+                    Button("关闭") { agentStatusDetail = nil }
+                        .buttonStyle(.borderless)
+                        .controlSize(.small)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(theme.surfaceElevated)
+            }
+        }
+    }
+
+    private func submitTask() {
+        guard !taskInput.isEmpty else { return }
+        let task = taskInput
+        taskInput = ""
+        Task {
+            let tid = await bridge.submitAgentTask(task: task)
+            if let tid = tid {
+                submittedTaskId = tid
+                await bridge.loadAgents()
+            }
+        }
+    }
+
+    private func checkAgentStatus(_ taskId: String) {
+        Task {
+            if let result = await bridge.getAgentStatus(taskId: taskId) {
+                agentStatusDetail = result
+            }
+        }
+    }
+
+    private func cancelTask(_ taskId: String) {
+        Task {
+            await bridge.cancelAgentTask(taskId: taskId)
+            await bridge.loadAgents()
+        }
+    }
+}
+
+// MARK: - Session Tab (uses getSession, updateSession)
+
+struct DeskSessionTab: View {
+    @EnvironmentObject var bridge: DeskBridge
+    @Environment(\.studioTheme) private var theme
+    @State private var newSessionName = ""
+    @State private var showCreateSession = false
+    @State private var showEditSession = false
+    @State private var editingSessionId: String?
+    @State private var editSessionName = ""
+    @State private var editSessionDesc = ""
+    @State private var sessionDetail: DeskSession?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Spacer()
+                Button(action: { showCreateSession = true }) {
+                    Label("新建会话", systemImage: "plus")
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+
+                Text("\(bridge.sessions.count) 个会话")
+                    .font(.caption)
+                    .foregroundColor(theme.textTertiary)
+
+                Button(action: { Task { await bridge.loadSessions() } }) {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .buttonStyle(.borderless)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(theme.surfaceSecondary)
+
+            Divider()
+
+            if bridge.sessions.isEmpty {
+                deskEmptyState(icon: "clock.arrow.circlepath", text: "暂无会话")
+            } else {
+                List(bridge.sessions) { session in
+                    HStack(spacing: 12) {
+                        Image(systemName: "clock.arrow.circlepath")
+                            .foregroundColor(theme.accent)
+                            .frame(width: 28)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(session.name)
+                                .font(.headline)
+                                .foregroundColor(theme.text)
+                            HStack(spacing: 8) {
+                                Text("步骤: \(session.steps)")
+                                    .font(.caption)
+                                    .foregroundColor(theme.textTertiary)
+                                if let updated = session.updatedAt {
+                                    Text(updated)
+                                        .font(.caption2)
+                                        .foregroundColor(theme.textQuaternary)
+                                }
+                            }
+                        }
+
+                        Spacer()
+
+                        Text(session.status)
+                            .font(.caption2)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(theme.accentSoft)
+                            .cornerRadius(4)
+
+                        Button(action: { loadSessionDetail(session.id) }) {
+                            Image(systemName: "eye")
+                        }
+                        .buttonStyle(.borderless)
+                        .controlSize(.small)
+
+                        Menu {
+                            Button("编辑") {
+                                editingSessionId = session.id
+                                editSessionName = session.name
+                                editSessionDesc = ""
+                                showEditSession = true
+                            }
+                            Button("分叉") {
+                                Task { await bridge.forkSession(sessionId: session.id) }
+                            }
+                            Button("删除", role: .destructive) {
+                                Task { await bridge.deleteSession(sessionId: session.id) }
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                        }
+                        .menuStyle(.borderlessButton)
+                        .controlSize(.small)
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+        }
+        .alert("新建会话", isPresented: $showCreateSession) {
+            TextField("会话名称", text: $newSessionName)
+            Button("取消", role: .cancel) { newSessionName = "" }
+            Button("创建") {
+                guard !newSessionName.isEmpty else { return }
+                let name = newSessionName
+                newSessionName = ""
+                Task { await bridge.createSession(name: name) }
+            }
+        }
+        .alert("编辑会话", isPresented: $showEditSession) {
+            TextField("名称", text: $editSessionName)
+            TextField("描述", text: $editSessionDesc)
+            Button("取消", role: .cancel) {}
+            Button("保存") {
+                guard let sid = editingSessionId, !editSessionName.isEmpty else { return }
+                var updates: [String: Any] = ["name": editSessionName]
+                if !editSessionDesc.isEmpty {
+                    updates["description"] = editSessionDesc
+                }
+                Task { await bridge.updateSession(sessionId: sid, updates: updates) }
+            }
+        }
+        .sheet(isPresented: .init(
+            get: { sessionDetail != nil },
+            set: { if !$0 { sessionDetail = nil } }
+        )) {
+            sessionDetailSheet
+        }
+    }
+
+    private var sessionDetailSheet: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("会话详情")
+                    .font(.title3)
+                    .foregroundColor(theme.text)
+                Spacer()
+                Button("关闭") { sessionDetail = nil }
+                    .buttonStyle(.borderless)
+            }
+
+            if let s = sessionDetail {
+                Group {
+                    LabeledContent("ID", value: s.id)
+                    LabeledContent("名称", value: s.name)
+                    LabeledContent("状态", value: s.status)
+                    LabeledContent("步骤数", value: "\(s.steps)")
+                }
+                .font(.subheadline)
+            }
+            Spacer()
+        }
+        .padding(20)
+        .frame(minWidth: 350, minHeight: 250)
+        .background(theme.contentBg)
+    }
+
+    private func loadSessionDetail(_ sessionId: String) {
+        Task {
+            sessionDetail = await bridge.getSession(sessionId: sessionId)
+        }
+    }
+}
+
+// MARK: - Permission Tab (uses checkPermission)
+
+struct DeskPermissionTab: View {
+    @EnvironmentObject var bridge: DeskBridge
+    @Environment(\.studioTheme) private var theme
+    @State private var checkToolName = ""
+    @State private var showCheckResult = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Text("权限规则")
+                    .font(.headline)
+                    .foregroundColor(theme.text)
+
+                Spacer()
+
+                HStack(spacing: 4) {
+                    TextField("检查工具", text: $checkToolName)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 120)
+                        .controlSize(.small)
+                    Button("检查") {
+                        guard !checkToolName.isEmpty else { return }
+                        Task {
+                            await bridge.checkPermission(toolName: checkToolName)
+                            showCheckResult = true
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+
+                Button("重置全部") {
+                    Task { await bridge.resetPermissions() }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .foregroundColor(theme.accentDestructive)
+
+                Button(action: { Task { await bridge.loadPermissions() } }) {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .buttonStyle(.borderless)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(theme.surfaceSecondary)
+
+            Divider()
+
+            if showCheckResult, let result = bridge.permissionCheckResult {
+                HStack(spacing: 8) {
+                    let allowed = result["allowed"] as? Bool ?? false
+                    Image(systemName: allowed ? "checkmark.circle.fill" : "xmark.circle.fill")
+                        .foregroundColor(allowed ? .green : .red)
+                    Text("工具 \(checkToolName): \(allowed ? "允许" : "拒绝")")
+                        .font(.caption)
+                        .foregroundColor(theme.text)
+                    Spacer()
+                    Button("关闭") { showCheckResult = false }
+                        .buttonStyle(.borderless)
+                        .controlSize(.small)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(theme.surfaceElevated)
+            }
+
+            if bridge.permissions.isEmpty {
+                deskEmptyState(icon: "lock.shield", text: "暂无权限规则")
+            } else {
+                List(bridge.permissions) { rule in
+                    HStack(spacing: 12) {
+                        Image(systemName: rule.allowed ? "checkmark.shield.fill" : "xmark.shield.fill")
+                            .foregroundColor(rule.allowed ? .green : .red)
+                            .frame(width: 28)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(rule.toolName)
+                                .font(.headline)
+                                .foregroundColor(theme.text)
+                            Text("范围: \(rule.scope)")
+                                .font(.caption)
+                                .foregroundColor(theme.textTertiary)
+                        }
+
+                        Spacer()
+
+                        Text(rule.allowed ? "允许" : "拒绝")
+                            .font(.caption2)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(rule.allowed ? Color.green.opacity(0.15) : Color.red.opacity(0.15))
+                            .foregroundColor(rule.allowed ? .green : .red)
+                            .cornerRadius(4)
+
+                        Button("切换") {
+                            Task {
+                                if rule.allowed {
+                                    await bridge.denyPermission(toolName: rule.toolName, scope: rule.scope)
+                                } else {
+                                    await bridge.approvePermission(toolName: rule.toolName, scope: rule.scope)
+                                }
+                            }
+                        }
+                        .buttonStyle(.borderless)
+                        .controlSize(.small)
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - MLX Tab (uses loadMLXModels for dropdown)
+
+struct DeskMLXTab: View {
+    @EnvironmentObject var bridge: DeskBridge
+    @Environment(\.studioTheme) private var theme
+    @State private var startModel = ""
+    @State private var showModelPicker = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Fusion-MLX 状态")
+                        .font(.headline)
+                        .foregroundColor(theme.text)
+                    if let status = bridge.mlxStatus {
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(status.status == "running" ? Color.green : Color.red)
+                                .frame(width: 8, height: 8)
+                            Text(status.status == "running" ? "运行中" : "已停止")
+                                .font(.subheadline)
+                                .foregroundColor(theme.textSecondary)
+                        }
+                    }
+                }
+
+                Spacer()
+
+                HStack(spacing: 8) {
+                    Menu {
+                        ForEach(bridge.mlxModels) { model in
+                            Button(action: { startModel = model.name }) {
+                                HStack {
+                                    Text(model.name)
+                                    if !model.size.isEmpty {
+                                        Text("(\(model.size))")
+                                            .foregroundColor(theme.textTertiary)
+                                    }
+                                }
+                            }
+                        }
+                        if bridge.mlxModels.isEmpty {
+                            Text("无可用模型")
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "list.bullet")
+                            Text(bridge.mlxModels.isEmpty ? "模型列表" : "\(bridge.mlxModels.count) 个模型")
+                        }
+                        .font(.caption)
+                    }
+                    .menuStyle(.borderlessButton)
+                    .controlSize(.small)
+
+                    TextField("模型名称", text: $startModel)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 160)
+                        .controlSize(.small)
+
+                    Button("启动") {
+                        Task { await bridge.startMLX(model: startModel) }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+
+                    Button("停止") {
+                        Task { await bridge.stopMLX() }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .foregroundColor(theme.accentDestructive)
+
+                    Button(action: {
+                        Task {
+                            await bridge.loadMLXStatus()
+                            await bridge.loadMLXModels()
+                        }
+                    }) {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .buttonStyle(.borderless)
+                }
+            }
+            .padding(12)
+            .background(theme.surfaceSecondary)
+
+            Divider()
+
+            Spacer()
+
+            if let status = bridge.mlxStatus, status.status == "running" {
+                VStack(spacing: 16) {
+                    Image(systemName: "cpu")
+                        .font(.system(size: 48))
+                        .foregroundColor(.green)
+                    Text("Fusion-MLX 运行中")
+                        .font(.title3)
+                        .foregroundColor(theme.text)
+                }
+            } else {
+                VStack(spacing: 16) {
+                    Image(systemName: "moon.zzz")
+                        .font(.system(size: 48))
+                        .foregroundColor(theme.textTertiary)
+                    Text("Fusion-MLX 未启动")
+                        .font(.title3)
+                        .foregroundColor(theme.textSecondary)
+                    Text("从模型列表选择或输入名称，点击「启动」")
+                        .font(.subheadline)
+                        .foregroundColor(theme.textTertiary)
+                }
+            }
+
+            Spacer()
+        }
+    }
+}
+
+// MARK: - System Tab (uses getNodeInfo for node detail popup)
+
+struct DeskSystemTab: View {
+    @EnvironmentObject var bridge: DeskBridge
+    @Environment(\.studioTheme) private var theme
+    @State private var showNodeDetail = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Text("系统信息")
+                    .font(.headline)
+                    .foregroundColor(theme.text)
+                Spacer()
+                Button(action: {
+                    Task {
+                        await bridge.loadSystemInfo()
+                        await bridge.loadNodeCategories()
+                    }
+                }) {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .buttonStyle(.borderless)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(theme.surfaceSecondary)
+
+            Divider()
+
+            if let info = bridge.systemInfo {
+                ScrollView {
+                    VStack(spacing: 12) {
+                        infoRow(icon: "desktopcomputer", label: "平台", value: info.platform)
+                        infoRow(icon: "chevron.left.forwardslash.chevron.right", label: "Python", value: info.python)
+                        infoRow(icon: "cpu", label: "CPU 核心数", value: "\(info.cpuCount)")
+                        infoRow(icon: "memorychip", label: "内存总量", value: "\(String(format: "%.1f", info.memoryTotalGB)) GB")
+                        infoRow(icon: "gauge", label: "内存使用", value: "\(String(format: "%.1f", info.memoryUsedPct))%")
+                        infoRow(icon: "internaldrive", label: "磁盘剩余", value: "\(String(format: "%.1f", info.diskFreeGB)) GB")
+
+                        Divider()
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("节点分类")
+                                .font(.headline)
+                                .foregroundColor(theme.text)
+                            ForEach(bridge.nodeCategories.sorted(by: { $0.key < $1.key }), id: \.key) { cat, count in
+                                HStack {
+                                    Text(cat)
+                                        .foregroundColor(theme.textSecondary)
+                                    Spacer()
+                                    Text("\(count)")
+                                        .foregroundColor(theme.accent)
+                                        .fontWeight(.medium)
+                                }
+                                .font(.subheadline)
+                            }
+                        }
+                        .padding(12)
+                        .background(theme.surfaceSecondary)
+                        .cornerRadius(8)
+
+                        Divider()
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("节点列表")
+                                .font(.headline)
+                                .foregroundColor(theme.text)
+                            ForEach(bridge.nodes) { node in
+                                HStack(spacing: 8) {
+                                    Image(systemName: "cube")
+                                        .foregroundColor(theme.accent)
+                                        .frame(width: 20)
+                                    Text(node.name)
+                                        .foregroundColor(theme.text)
+                                    Spacer()
+                                    Text(node.category)
+                                        .font(.caption)
+                                        .foregroundColor(theme.textTertiary)
+                                    Button(action: { loadNodeDetail(node.name) }) {
+                                        Image(systemName: "info.circle")
+                                    }
+                                    .buttonStyle(.borderless)
+                                    .controlSize(.small)
+                                }
+                                .font(.subheadline)
+                            }
+                        }
+                        .padding(12)
+                        .background(theme.surfaceSecondary)
+                        .cornerRadius(8)
+                    }
+                    .padding(12)
+                }
+            } else {
+                deskEmptyState(icon: "desktopcomputer", text: "系统信息加载中...")
+            }
+        }
+        .sheet(isPresented: $showNodeDetail) {
+            nodeDetailSheet
+        }
+    }
+
+    private var nodeDetailSheet: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("节点详情")
+                    .font(.title3)
+                    .foregroundColor(theme.text)
+                Spacer()
+                Button("关闭") { showNodeDetail = false }
+                    .buttonStyle(.borderless)
+            }
+
+            if let detail = bridge.selectedNodeDetail {
+                Group {
+                    LabeledContent("名称", value: detail.name)
+                    LabeledContent("分类", value: detail.category)
+                    LabeledContent("描述", value: detail.description)
+                }
+                .font(.subheadline)
+
+                if !detail.inputs.isEmpty {
+                    Divider()
+                    Text("输入参数")
+                        .font(.headline)
+                        .foregroundColor(theme.text)
+                    ForEach(Array(detail.inputs.sorted(by: { $0.key < $1.key })), id: \.key) { key, val in
+                        HStack {
+                            Text(key)
+                                .foregroundColor(theme.textSecondary)
+                            Spacer()
+                            Text(val)
+                                .foregroundColor(theme.accent)
+                        }
+                        .font(.caption)
+                    }
+                }
+
+                if !detail.outputs.isEmpty {
+                    Divider()
+                    Text("输出")
+                        .font(.headline)
+                        .foregroundColor(theme.text)
+                    ForEach(Array(detail.outputs.sorted(by: { $0.key < $1.key })), id: \.key) { key, val in
+                        HStack {
+                            Text(key)
+                                .foregroundColor(theme.textSecondary)
+                            Spacer()
+                            Text(val)
+                                .foregroundColor(theme.accent)
+                        }
+                        .font(.caption)
+                    }
+                }
+            } else {
+                ProgressView("加载中...")
+            }
+            Spacer()
+        }
+        .padding(20)
+        .frame(minWidth: 400, minHeight: 300)
+        .background(theme.contentBg)
+    }
+
+    private func infoRow(icon: String, label: String, value: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .foregroundColor(theme.accent)
+                .frame(width: 28)
+            Text(label)
+                .foregroundColor(theme.textSecondary)
+            Spacer()
+            Text(value)
+                .foregroundColor(theme.text)
+                .fontWeight(.medium)
+        }
+        .font(.subheadline)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(theme.surfaceSecondary)
+        .cornerRadius(8)
+    }
+
+    private func loadNodeDetail(_ name: String) {
+        Task {
+            await bridge.getNodeInfo(name: name)
+            showNodeDetail = true
+        }
+    }
+}
+
+// MARK: - Events Tab (uses subscribeEvents + pollEvents)
+
+struct DeskEventsTab: View {
+    @EnvironmentObject var bridge: DeskBridge
+    @Environment(\.studioTheme) private var theme
+    @State private var isPolling = false
+    @State private var pollTimer: Timer?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Text("事件流")
+                    .font(.headline)
+                    .foregroundColor(theme.text)
+
+                Spacer()
+
+                if bridge.eventSubscriptionId != nil {
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(isPolling ? Color.green : Color.orange)
+                            .frame(width: 6, height: 6)
+                        Text(isPolling ? "轮询中" : "已订阅")
+                            .font(.caption)
+                            .foregroundColor(theme.textTertiary)
+                    }
+                }
+
+                Text("\(bridge.recentEvents.count) 个事件")
+                    .font(.caption)
+                    .foregroundColor(theme.textTertiary)
+
+                Button(isPolling ? "停止轮询" : "开始轮询") {
+                    togglePolling()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+
+                Button(action: { Task { await bridge.loadRecentEvents() } }) {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .buttonStyle(.borderless)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(theme.surfaceSecondary)
+
+            Divider()
+
+            if bridge.recentEvents.isEmpty {
+                deskEmptyState(icon: "bell.badge", text: "暂无事件")
+            } else {
+                List(bridge.recentEvents) { evt in
+                    HStack(spacing: 12) {
+                        Image(systemName: eventTypeIcon(evt.type))
+                            .foregroundColor(theme.accent)
+                            .frame(width: 28)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(evt.type)
+                                .font(.headline)
+                                .foregroundColor(theme.text)
+                            Text("来源: \(evt.source)")
+                                .font(.caption)
+                                .foregroundColor(theme.textTertiary)
+                        }
+
+                        Spacer()
+
+                        Text(formatTimestamp(evt.timestamp))
+                            .font(.caption2)
+                            .foregroundColor(theme.textQuaternary)
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+        }
+        .onDisappear {
+            stopPolling()
+        }
+    }
+
+    private func togglePolling() {
+        if isPolling {
+            stopPolling()
+        } else {
+            startPolling()
+        }
+    }
+
+    private func startPolling() {
+        isPolling = true
+        pollTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
+            Task { @MainActor in
+                await bridge.pollEvents()
+            }
+        }
+    }
+
+    private func stopPolling() {
+        isPolling = false
+        pollTimer?.invalidate()
+        pollTimer = nil
+    }
+
+    private func eventTypeIcon(_ type: String) -> String {
+        switch type.lowercased() {
+        case let t where t.contains("error"): return "exclamationmark.triangle.fill"
+        case let t where t.contains("start"): return "play.fill"
+        case let t where t.contains("stop"):  return "stop.fill"
+        case let t where t.contains("complete"): return "checkmark.circle.fill"
+        default: return "bell.fill"
+        }
+    }
+
+    private func formatTimestamp(_ ts: Double) -> String {
+        let date = Date(timeIntervalSince1970: ts)
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        return formatter.string(from: date)
+    }
+}
+
+// MARK: - Shared Empty State
+
+private func deskEmptyState(icon: String, text: String) -> some View {
+    VStack(spacing: 12) {
+        Spacer()
+        Image(systemName: icon)
+            .font(.system(size: 36))
+            .foregroundColor(.secondary)
+        Text(text)
+            .foregroundColor(.secondary)
+        Spacer()
     }
 }

@@ -1,7 +1,7 @@
 // Callers: DesignView — left panel of 3-column layout for design chat interaction
-// Affected API: DesignChatPanel View (reads DesignBridge via @EnvironmentObject), DesignBridge.addPage/switchToPage
-// Data schemas: DesignMessage, DesignPage (id/artifactId/title/type/code/createdAt), DesignBridge.pages
-// User instruction: "continue" — Phase 3 Task #34 multi-page design
+// Affected API: DesignChatPanel View, DesignBridge.exportAsCodegen/copyExportedCodegen/batchExportPages
+// Data schemas: DesignMessage, DesignPage, CodegenTargetArg, ExportFormatArg (html/svg/json)
+// User instruction: "现在开始实施" — Task #16 P3-5 fd-export PNG/SVG/HTML 批量导出
 
 import SwiftUI
 import os.log
@@ -18,6 +18,8 @@ struct DesignChatPanel: View {
     @State private var autoScroll: Bool = true
     @State private var showPageList: Bool = false
     @State private var showSwiftUIExport: Bool = false
+    @State private var showCodegenExport: Bool = false
+    @State private var showBatchExport: Bool = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -31,6 +33,11 @@ struct DesignChatPanel: View {
 
             messageList
 
+            if designBridge.isPlanPreviewActive {
+                planPreviewBar
+                Rectangle().fill(theme.separator).frame(height: 1)
+            }
+
             Rectangle().fill(theme.separator).frame(height: 1)
             inputArea
         }
@@ -38,9 +45,20 @@ struct DesignChatPanel: View {
         .sheet(isPresented: $showSwiftUIExport) {
             swiftUIExportSheet
         }
+        .sheet(isPresented: $showCodegenExport) {
+            codegenExportSheet
+        }
+        .sheet(isPresented: $showBatchExport) {
+            batchExportSheet
+        }
         .onChange(of: designBridge.exportedSwiftUICode) {
             if !designBridge.exportedSwiftUICode.isEmpty && !showSwiftUIExport {
                 showSwiftUIExport = true
+            }
+        }
+        .onChange(of: designBridge.exportedCodegenCode) {
+            if !designBridge.exportedCodegenCode.isEmpty && !showCodegenExport {
+                showCodegenExport = true
             }
         }
     }
@@ -79,6 +97,40 @@ struct DesignChatPanel: View {
         .background(theme.windowBg)
     }
 
+    private var codegenExportSheet: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("代码导出")
+                    .font(.system(size: theme.textSize, weight: .semibold))
+                    .foregroundStyle(theme.text)
+                Spacer()
+                Button("复制") {
+                    designBridge.copyExportedCodegen()
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(theme.accent)
+                Button("关闭") {
+                    showCodegenExport = false
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(theme.textTertiary)
+            }
+            .padding(theme.spacingM)
+
+            Rectangle().fill(theme.separator).frame(height: 1)
+
+            ScrollView {
+                Text(designBridge.exportedCodegenCode)
+                    .font(.system(size: theme.captionSize, weight: .regular, design: .monospaced))
+                    .foregroundStyle(theme.codeText)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(theme.spacingM)
+            }
+        }
+        .frame(width: 560, height: 480)
+        .background(theme.windowBg)
+    }
+
     private var chatHeader: some View {
         HStack(spacing: theme.spacingS) {
             Image(systemName: "paintbrush.pointed")
@@ -90,9 +142,17 @@ struct DesignChatPanel: View {
                     .font(.system(size: theme.textSize, weight: .semibold))
                     .foregroundStyle(theme.text)
                 if designBridge.isGenerating {
-                    Text("生成中...")
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(theme.accent)
+                    HStack(spacing: 4) {
+                        inferenceStepIcon
+                        Text(inferenceStepLabel)
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(theme.accent)
+                        if designBridge.streamTokenCount > 0 {
+                            Text("\(designBridge.streamTokenCount) tokens")
+                                .font(.system(size: 9))
+                                .foregroundStyle(theme.textTertiary)
+                        }
+                    }
                 } else if !designBridge.currentArtifactTitle.isEmpty {
                     Text(designBridge.currentArtifactTitle)
                         .font(.system(size: 9))
@@ -145,6 +205,10 @@ struct DesignChatPanel: View {
                             messageBubble(msg)
                                 .id(msg.id)
                         }
+
+                        if designBridge.isGenerating {
+                            inferenceProgressBubble
+                        }
                     }
                 }
                 .padding(theme.spacingM)
@@ -153,6 +217,13 @@ struct DesignChatPanel: View {
                 if autoScroll, let last = designBridge.messages.last {
                     withAnimation(.easeOut(duration: 0.2)) {
                         proxy.scrollTo(last.id, anchor: .bottom)
+                    }
+                }
+            }
+            .onChange(of: designBridge.streamTokenCount) {
+                if autoScroll {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        proxy.scrollTo("inference-progress", anchor: .bottom)
                     }
                 }
             }
@@ -318,6 +389,10 @@ struct DesignChatPanel: View {
 
     private var inputArea: some View {
         VStack(spacing: theme.spacingS) {
+            if !designBridge.marqueeSelectedNodeIDs.isEmpty {
+                marqueeEditBanner
+            }
+
             if let error = designBridge.errorMessage {
                 HStack(spacing: theme.spacingXS) {
                     Image(systemName: "exclamationmark.triangle")
@@ -443,6 +518,74 @@ struct DesignChatPanel: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(designBridge.isExportingSwiftUI)
+
+                    Menu {
+                        Button("HTML") {
+                            Task { await exportCodegen(target: "html") }
+                        }
+                        Button("React + Tailwind") {
+                            Task { await exportCodegen(target: "react-tailwind") }
+                        }
+                        Button("Tailwind only") {
+                            Task { await exportCodegen(target: "tailwind-only") }
+                        }
+                    } label: {
+                        HStack(spacing: theme.spacingXS) {
+                            if designBridge.isExportingCodegen {
+                                ProgressView()
+                                    .scaleEffect(0.6)
+                                    .frame(width: 12, height: 12)
+                            } else {
+                                Image(systemName: "chevron.left.forwardslash.chevron.right")
+                                    .font(.system(size: theme.iconS))
+                            }
+                            Text(designBridge.isExportingCodegen ? "导出中" : "Code")
+                                .font(.system(size: theme.footnoteSize, weight: .medium))
+                        }
+                        .foregroundStyle(theme.textSecondary)
+                        .padding(.horizontal, theme.spacingM)
+                        .padding(.vertical, theme.spacingXS)
+                        .background(
+                            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                .stroke(theme.groupBorder, lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(designBridge.isExportingCodegen)
+
+                    Menu {
+                        Button("SVG") {
+                            Task { await batchExport(format: "svg") }
+                        }
+                        Button("HTML") {
+                            Task { await batchExport(format: "html") }
+                        }
+                        Button("JSON") {
+                            Task { await batchExport(format: "json") }
+                        }
+                    } label: {
+                        HStack(spacing: theme.spacingXS) {
+                            if designBridge.isBatchExporting {
+                                ProgressView()
+                                    .scaleEffect(0.6)
+                                    .frame(width: 12, height: 12)
+                            } else {
+                                Image(systemName: "square.and.arrow.up")
+                                    .font(.system(size: theme.iconS))
+                            }
+                            Text(designBridge.isBatchExporting ? "导出中" : "导出")
+                                .font(.system(size: theme.footnoteSize, weight: .medium))
+                        }
+                        .foregroundStyle(theme.textSecondary)
+                        .padding(.horizontal, theme.spacingM)
+                        .padding(.vertical, theme.spacingXS)
+                        .background(
+                            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                .stroke(theme.groupBorder, lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(designBridge.isBatchExporting)
                 }
 
                 Spacer()
@@ -504,11 +647,48 @@ struct DesignChatPanel: View {
             chatPanelLog.info("DesignChatPanel: stop requested (not supported in current streaming)")
             return
         }
+
+        // 如果有框选节点，走 local-edit 流程
+        if !designBridge.marqueeSelectedNodeIDs.isEmpty {
+            let nodeIDs = designBridge.marqueeSelectedNodeIDs
+            let instruction = inputText
+            inputText = ""
+            let nodesJSON = buildNodesJSON(from: nodeIDs)
+            designBridge.applyLocalEdit(nodesJSON: nodesJSON, instruction: instruction)
+            designBridge.marqueeSelectedNodeIDs = []
+            return
+        }
+
         let message = inputText
         inputText = ""
         Task {
             await designBridge.sendDesignChat(message)
         }
+    }
+
+    private func buildNodesJSON(from nodeIDs: [String]) -> String {
+        guard let penDocJSON = designBridge.lastRenderedDocumentJSON,
+              let data = penDocJSON.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let pages = json["pages"] as? [[String: Any]] else {
+            return "[]"
+        }
+        var nodes: [[String: Any]] = []
+        let pageIndex = designBridge.currentPageIndex
+        if pageIndex >= 0 && pageIndex < pages.count,
+           let pageDict = pages[pageIndex] as? [String: Any],
+           let allNodes = pageDict["nodes"] as? [[String: Any]] {
+            for node in allNodes {
+                if let id = node["id"] as? String, nodeIDs.contains(id) {
+                    nodes.append(node)
+                }
+            }
+        }
+        if let jsonData = try? JSONSerialization.data(withJSONObject: nodes, options: []),
+           let str = String(data: jsonData, encoding: .utf8) {
+            return str
+        }
+        return "[]"
     }
 
     private func saveArtifact() {
@@ -523,7 +703,81 @@ struct DesignChatPanel: View {
         }
     }
 
+    private func exportCodegen(target: String) async {
+        let name = designBridge.currentArtifactTitle.isEmpty ? "MyComponent" : designBridge.currentArtifactTitle
+        await designBridge.exportAsCodegen(target: target, componentName: name)
+    }
+
     // MARK: - Page List
+
+    private var marqueeEditBanner: some View {
+        HStack(spacing: theme.spacingXS) {
+            Image(systemName: "selection.pin.in.out")
+                .font(.system(size: theme.iconS))
+                .foregroundColor(theme.accent)
+            Text("已框选 \(designBridge.marqueeSelectedNodeIDs.count) 个节点")
+                .font(.system(size: theme.captionSize))
+                .foregroundColor(theme.text)
+            Spacer()
+            Button(action: {
+                designBridge.marqueeSelectedNodeIDs = []
+            }) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 10))
+                    .foregroundColor(theme.textTertiary)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, theme.spacingM)
+        .padding(.vertical, theme.spacingXS)
+        .background(
+            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall)
+                .fill(theme.accentSoft)
+        )
+        .padding(.horizontal, theme.spacingM)
+    }
+
+    private var planPreviewBar: some View {
+        HStack(spacing: theme.spacingS) {
+            Image(systemName: "eye")
+                .font(.system(size: theme.iconS))
+                .foregroundStyle(theme.accent)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("预览: \(designBridge.pendingPlanTitle)")
+                    .font(.system(size: theme.footnoteSize, weight: .medium))
+                    .foregroundStyle(theme.text)
+                Text("AI 建议的更改，确认后写入画布")
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(theme.textTertiary)
+            }
+            Spacer()
+            Button("拒绝") {
+                designBridge.rejectPlan()
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(theme.textTertiary)
+            .padding(.horizontal, theme.spacingS)
+            .padding(.vertical, theme.spacingXS)
+            .background(
+                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                    .stroke(theme.groupBorder, lineWidth: 1)
+            )
+            Button("确认") {
+                designBridge.acceptPlan()
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(theme.accentText)
+            .padding(.horizontal, theme.spacingM)
+            .padding(.vertical, theme.spacingXS)
+            .background(
+                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                    .fill(theme.accent)
+            )
+        }
+        .padding(.horizontal, theme.spacingM)
+        .padding(.vertical, theme.spacingS)
+        .background(theme.accentSoft)
+    }
 
     private var pageListView: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -583,5 +837,205 @@ struct DesignChatPanel: View {
             }
         }
         .padding(.vertical, theme.spacingXS)
+    }
+
+    private var batchExportSheet: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("批量导出")
+                    .font(.system(size: theme.textSize, weight: .semibold))
+                    .foregroundStyle(theme.text)
+                Spacer()
+                Button("关闭") {
+                    showBatchExport = false
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(theme.textTertiary)
+            }
+            .padding(theme.spacingM)
+
+            Rectangle().fill(theme.separator).frame(height: 1)
+
+            if designBridge.isBatchExporting {
+                VStack(spacing: theme.spacingM) {
+                    ProgressView()
+                        .controlSize(.regular)
+                    Text("正在导出...")
+                        .font(.system(size: theme.footnoteSize))
+                        .foregroundStyle(theme.textSecondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if !designBridge.batchExportResult.isEmpty {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: theme.spacingS) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundStyle(.green)
+                        Text(designBridge.batchExportResult)
+                            .font(.system(size: theme.footnoteSize))
+                            .foregroundStyle(theme.text)
+                    }
+                    .padding(theme.spacingM)
+                }
+            } else {
+                VStack(spacing: theme.spacingM) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 36))
+                        .foregroundStyle(theme.textTertiary)
+                    Text("选择导出格式")
+                        .font(.system(size: theme.textSize, weight: .medium))
+                        .foregroundStyle(theme.text)
+                    HStack(spacing: theme.spacingM) {
+                        Button("SVG") { Task { await batchExport(format: "svg") } }
+                            .buttonStyle(.plain)
+                            .padding(.horizontal, theme.spacingM)
+                            .padding(.vertical, theme.spacingS)
+                            .background(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall).stroke(theme.accent, lineWidth: 1))
+                            .foregroundStyle(theme.accent)
+                        Button("HTML") { Task { await batchExport(format: "html") } }
+                            .buttonStyle(.plain)
+                            .padding(.horizontal, theme.spacingM)
+                            .padding(.vertical, theme.spacingS)
+                            .background(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall).stroke(theme.accent, lineWidth: 1))
+                            .foregroundStyle(theme.accent)
+                        Button("JSON") { Task { await batchExport(format: "json") } }
+                            .buttonStyle(.plain)
+                            .padding(.horizontal, theme.spacingM)
+                            .padding(.vertical, theme.spacingS)
+                            .background(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall).stroke(theme.accent, lineWidth: 1))
+                            .foregroundStyle(theme.accent)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .frame(width: 420, height: 320)
+        .background(theme.windowBg)
+    }
+
+    private func batchExport(format: String) async {
+        let downloadsDir = NSSearchPathForDirectoriesInDomains(.downloadsDirectory, .userDomainMask, true).first ?? "/tmp"
+        let outDir = (downloadsDir as NSString).appendingPathComponent("fusion-design-export")
+        await designBridge.batchExportPages(format: format, to: outDir)
+        if !designBridge.batchExportResult.isEmpty {
+            showBatchExport = true
+        }
+    }
+
+    // MARK: - Inference Progress Views
+
+    private var inferenceStepLabel: String {
+        switch designBridge.inferenceStep {
+        case "connecting": return "连接中..."
+        case "generating": return "推理中..."
+        case "streaming": return "生成中..."
+        case "rendering": return "渲染画布..."
+        default: return "生成中..."
+        }
+    }
+
+    private var inferenceStepIcon: some View {
+        Group {
+            switch designBridge.inferenceStep {
+            case "connecting":
+                Image(systemName: "antenna.radiowaves.left.and.right")
+                    .font(.system(size: 9))
+                    .foregroundStyle(theme.accent)
+            case "generating":
+                ProgressView()
+                    .scaleEffect(0.5)
+                    .frame(width: 12, height: 12)
+            case "streaming":
+                Image(systemName: "text.cursor")
+                    .font(.system(size: 9))
+                    .foregroundStyle(theme.accent)
+                    .symbolEffect(.pulse, options: .repeating)
+            case "rendering":
+                Image(systemName: "paintbrush.pointed")
+                    .font(.system(size: 9))
+                    .foregroundStyle(theme.accent)
+                    .symbolEffect(.pulse, options: .repeating)
+            default:
+                ProgressView()
+                    .scaleEffect(0.5)
+                    .frame(width: 12, height: 12)
+            }
+        }
+    }
+
+    private var inferenceProgressBubble: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: theme.spacingXS) {
+                    ProgressView()
+                        .scaleEffect(0.6)
+                        .frame(width: 12, height: 12)
+                    Text(inferenceStepLabel)
+                        .font(.system(size: theme.footnoteSize, weight: .medium))
+                        .foregroundStyle(theme.text)
+                    if designBridge.streamTokenCount > 0 {
+                        Text("\(designBridge.streamTokenCount) tokens")
+                            .font(.system(size: theme.captionSize))
+                            .foregroundStyle(theme.textTertiary)
+                    }
+                }
+
+                if !designBridge.streamPreviewText.isEmpty {
+                    Text(designBridge.streamPreviewText)
+                        .font(.system(size: theme.captionSize, design: .monospaced))
+                        .foregroundStyle(theme.textSecondary)
+                        .lineLimit(2)
+                        .truncationMode(.tail)
+                }
+
+                inferenceStepBar
+            }
+            Spacer(minLength: 40)
+        }
+        .padding(theme.spacingM)
+        .background(
+            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                .fill(theme.groupBg)
+        )
+        .id("inference-progress")
+    }
+
+    private var inferenceStepBar: some View {
+        let steps = [
+            ("connecting", "连接"),
+            ("generating", "推理"),
+            ("streaming", "生成"),
+            ("rendering", "渲染"),
+        ]
+        let stepOrder = ["connecting", "generating", "streaming", "rendering"]
+        let currentIdx = stepOrder.firstIndex(of: designBridge.inferenceStep) ?? 0
+
+        return HStack(spacing: theme.spacingXS) {
+            ForEach(Array(steps.enumerated()), id: \.offset) { idx, step in
+                HStack(spacing: 2) {
+                    if idx < currentIdx {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 8))
+                            .foregroundStyle(.green)
+                    } else if idx == currentIdx {
+                        Circle()
+                            .fill(theme.accent)
+                            .frame(width: 6, height: 6)
+                    } else {
+                        Circle()
+                            .fill(theme.textQuaternary)
+                            .frame(width: 6, height: 6)
+                    }
+                    Text(step.1)
+                        .font(.system(size: 8))
+                        .foregroundStyle(idx <= currentIdx ? theme.text : theme.textTertiary)
+                }
+                if idx < steps.count - 1 {
+                    Rectangle()
+                        .fill(idx < currentIdx ? theme.accent : theme.groupBorder)
+                        .frame(width: 12, height: 1)
+                }
+            }
+        }
     }
 }

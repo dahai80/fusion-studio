@@ -17,6 +17,8 @@ struct FusionStudioApp: App {
     @StateObject private var designBridge = DesignBridge()
     @StateObject private var streamingBridge = StreamingBridge()
     @StateObject private var chatStore = ChatSessionStore()
+    // Callers: FusionStudioApp body; Affected API: deskBridge injected via .environmentObject, used by DeskView 8-tab IPC architecture; Data schemas: DeskBridge models; User instruction: "对功能和api进行全量分析检测，看是否都在fusion-studio都有对应的GUI，如果没有需要立即补充GUI"
+    @StateObject private var deskBridge = DeskBridge()
 
     init() {
         // Dock 图标延后到 onAppear 中设置，init 阶段 NSApp 尚未就绪
@@ -43,6 +45,7 @@ struct FusionStudioApp: App {
                 .environmentObject(designBridge)
                 .environmentObject(streamingBridge)
                 .environmentObject(chatStore)
+                .environmentObject(deskBridge)
                 .studioThemed()
                 .onAppear {
                     agentBridge.setIPCClient(ipcClient)
@@ -56,6 +59,7 @@ struct FusionStudioApp: App {
                     ipcClient.connect()
                     streamingBridge.connect()
                     chatStore.setIPCClient(ipcClient)
+                    deskBridge.setIPCClient(ipcClient)
                     ArtifactSidebarCache.shared.configure(ipcClient: ipcClient)
                     Task {
                         await performStartupHealthCheck()

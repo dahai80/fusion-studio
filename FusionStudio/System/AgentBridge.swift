@@ -231,8 +231,9 @@ final class AgentBridge: ObservableObject {
     @Published var marketplaceEntries: [MarketplaceEntryModel] = []
     @Published var marketplaceCategories: [String] = []
 
+    // Callers: TokenBudgetView, VectorSearchView, MemoryRelevantView, ToolBrowserView, SafetyView. Affected API: all new IPC bridge methods. User instruction: "审视是否所有需要功能和api所有需要的GUI都在~/fusion/fusion-studio都已经有对应GUI了，所有有问题的都要在fusion-studio补齐GUI"
     private let logger = Logger(subsystem: "com.fusion.studio", category: "AgentBridge")
-    private var ipcClient: IPCClient?
+    var ipcClient: IPCClient?
 
     func setIPCClient(_ client: IPCClient) {
         self.ipcClient = client

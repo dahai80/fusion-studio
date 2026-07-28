@@ -66,7 +66,15 @@ struct InspectorPanel: View {
                 case .custom(let title):
                     CustomInspectorContent(title: title)
                 case .node(let id):
-                    NodeInspectorContent(nodeId: id)
+                    // Callers: ContentView InspectorPanel, DesignCanvasView node.select → DesignInspectorState → AppState.inspectorContext
+                    // Affected API: InspectorPanel switch on .node context, DesignInspectorView for design section
+                    // Data schemas: InspectorContext.node(id), AppState.activeSection
+                    // User instruction: "按照P1~P6顺序实施所有未完成的任务" — Task #19 P2-2 选中节点→InspectorPanel联动
+                    if appState.activeSection == .design {
+                        DesignInspectorView()
+                    } else {
+                        NodeInspectorContent(nodeId: id)
+                    }
                 case .clusterTask(let id):
                     ClusterTaskInspectorContent(taskId: id)
                 }
@@ -83,7 +91,7 @@ struct InspectorPanel: View {
         case .task(let id): return "Task"
         case .settings: return "Settings"
         case .custom(let title): return title
-        case .node: return "节点"
+        case .node: return appState.activeSection == .design ? "样式检查器" : "节点"
         case .clusterTask: return "任务"
         }
     }
