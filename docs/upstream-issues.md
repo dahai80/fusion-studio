@@ -76,3 +76,10 @@ Design module needs screenshot-to-code, requiring image input in /v1/chat/comple
 ### Use case
 - Screenshot import: screenshot → vision model → HTML
 - Figma import: rendered frames → vision model → HTML
+
+## Issue 提交记录 (2026-07-28)
+
+1. fusion-artifacts-engine project_id scope → https://github.com/dahai80/fusion-artifacts-engine/issues/9
+2. fusion-artifacts-engine design metadata → https://github.com/dahai80/fusion-artifacts-engine/issues/10
+3. fusion-agent-studio tool_use streaming → https://github.com/dahai80/fusion-agent-studio/issues/4
+4. fusion-agent-studio multimodal input → https://github.com/dahai80/fusion-agent-studio/issues/5
