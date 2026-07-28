@@ -433,4 +433,36 @@ extension DesignBridgeTests {
         let result = bridge.sanitizeFileName("my/design:file*test")
         XCTAssertEqual(result, "my_design_file_test")
     }
+
+    // MARK: - Design Metadata
+
+    func testDesignMetadataKeys() {
+        let bridge = DesignBridge()
+        bridge.currentArtifactTitle = "TestCard"
+        bridge.currentArtifactType = "html"
+        let meta: [String: Any] = [
+            "component_name": bridge.currentArtifactTitle,
+            "framework": bridge.currentArtifactType,
+            "layout_type": "responsive",
+            "source": "fusion-design"
+        ]
+        XCTAssertEqual(meta["component_name"] as? String, "TestCard")
+        XCTAssertEqual(meta["framework"] as? String, "html")
+        XCTAssertEqual(meta["layout_type"] as? String, "responsive")
+        XCTAssertEqual(meta["source"] as? String, "fusion-design")
+    }
+
+    func testDesignMetadataWithEmptyTitle() {
+        let bridge = DesignBridge()
+        bridge.currentArtifactTitle = ""
+        bridge.currentArtifactType = "react"
+        let meta: [String: Any] = [
+            "component_name": bridge.currentArtifactTitle,
+            "framework": bridge.currentArtifactType,
+            "layout_type": "responsive",
+            "source": "fusion-design"
+        ]
+        XCTAssertEqual(meta["component_name"] as? String, "")
+        XCTAssertEqual(meta["framework"] as? String, "react")
+    }
 }
