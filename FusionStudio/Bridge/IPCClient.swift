@@ -181,28 +181,26 @@ class IPCClient: ObservableObject {
                 let n = Darwin.read(self.socketFd, &byte, 1)
                 if n > 0 {
                     if byte == 0x0A {
-                        // 完整消息
                         self.handleResponse(buffer)
                         buffer = Data()
                     } else {
                         buffer.append(byte)
                     }
                 } else if n == 0 {
-                    // 连接关闭
                     DispatchQueue.main.async {
                         self.isConnected = false
                         self.scheduleReconnect()
                     }
                     break
-                } else if errno != EAGAIN {
-                    // 错误
+                } else if errno == EAGAIN {
+                    Thread.sleep(forTimeInterval: 0.01)
+                } else {
                     DispatchQueue.main.async {
                         self.isConnected = false
                         self.scheduleReconnect()
                     }
                     break
                 }
-                // EAGAIN = 无数据可读，继续循环
             }
         }
     }
@@ -283,6 +281,26 @@ class IPCClient: ObservableObject {
 
     func knowledgeSearch(query: String, limit: Int = 5) async throws -> [String: Any] {
         return try await call(method: "knowledge.search", params: ["query": query, "limit": limit])
+    }
+
+    // Callers: FusionProjectManager. Affected API: knowledge.ingest (new).
+    // Data schemas: KnowledgeEntry (content, scope, metadata). User instruction: "立即落地fusion projects"
+    func knowledgeIngest(content: String, scope: String = "default", metadata: [String: Any]? = nil) async throws -> [String: Any] {
+        var params: [String: Any] = ["content": content, "scope": scope]
+        if let m = metadata { params["metadata"] = m }
+        return try await call(method: "knowledge.ingest", params: params)
+    }
+
+    // Callers: FusionProjectManager. Affected API: knowledge.delete (new).
+    // Data schemas: entry_id string. User instruction: "立即落地fusion projects"
+    func knowledgeDelete(entryId: String) async throws -> [String: Any] {
+        return try await call(method: "knowledge.delete", params: ["entry_id": entryId])
+    }
+
+    // Callers: FusionProjectManager. Affected API: knowledge.list (new).
+    // Data schemas: scope string, limit int. User instruction: "立即落地fusion projects"
+    func knowledgeList(scope: String = "", limit: Int = 100) async throws -> [String: Any] {
+        return try await call(method: "knowledge.list", params: ["scope": scope, "limit": limit])
     }
 
     // MARK: - Planner
@@ -570,13 +588,14 @@ class IPCClient: ObservableObject {
         return json["result"] as? [String: Any] ?? [:]
     }
 
-    func artifactCreate(sessionId: String, name: String, type: String, content: String, summary: String? = nil) async throws -> [String: Any] {
+    func artifactCreate(sessionId: String, name: String, type: String, kind: String? = nil, content: String, summary: String? = nil) async throws -> [String: Any] {
         var params: [String: Any] = [
             "session_id": sessionId,
             "name": name,
             "type": type,
             "content": content,
         ]
+        if let k = kind { params["kind"] = k }
         if let s = summary { params["summary"] = s }
         return try await artifactsCall(method: "artifact.create", params: params)
     }
@@ -638,6 +657,37 @@ class IPCClient: ObservableObject {
     func artifactPing() async throws -> Bool {
         let result = try await artifactsCall(method: "ping", params: [:])
         return result["pong"] as? Bool ?? false
+    }
+
+    func artifactSync(artifactId: String, filePath: String, direction: String = "bidirectional") async throws -> [String: Any] {
+        return try await artifactsCall(method: "artifact.sync", params: [
+            "artifact_id": artifactId,
+            "file_path": filePath,
+            "direction": direction
+        ])
+    }
+
+    func artifactWatch(artifactId: String, action: String = "register") async throws -> [String: Any] {
+        return try await artifactsCall(method: "artifact.watch", params: [
+            "artifact_id": artifactId,
+            "action": action
+        ])
+    }
+
+    func artifactExportCode(artifactId: String, language: String = "swift") async throws -> [String: Any] {
+        return try await artifactsCall(method: "artifact.export_code", params: [
+            "artifact_id": artifactId,
+            "language": language
+        ])
+    }
+
+    func artifactImportCode(code: String, language: String, name: String, sessionId: String) async throws -> [String: Any] {
+        return try await artifactsCall(method: "artifact.import_code", params: [
+            "code": code,
+            "language": language,
+            "name": name,
+            "session_id": sessionId
+        ])
     }
 
     // MARK: - 辅助方法
