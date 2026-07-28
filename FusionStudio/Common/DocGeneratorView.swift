@@ -300,7 +300,7 @@ class DocGenerator: ObservableObject {
             - Model Hub 模型管理
             - CLI 图形化面板
 
-            ## [0.1.0] - 2026-07-01
+            ## [0.1.1] - 2026-07-01
 
             ### 新增
             - 初始 MVP 版本
