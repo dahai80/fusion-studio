@@ -533,6 +533,7 @@ class CodeAgent: ObservableObject {
     @Published var conversation: [CodeMessage] = []
     @Published var currentFile: CodeFile?
     @Published var fileContexts: [CodeFile] = []
+    @Published var scrollToMessageId: UUID?
     weak var agentBridge: AgentBridge?
     var selectedModel: String = ""
 
@@ -1120,15 +1121,20 @@ struct ChatHistoryView: View {
             } else {
                 List {
                     ForEach(agent.conversation.filter { $0.role == "user" }.reversed().prefix(10)) { msg in
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(msg.content.prefix(60))
-                                .font(.system(size: 11))
-                                .lineLimit(2)
-                            Text(msg.timestamp, style: .time)
-                                .font(.system(size: 9))
-                                .foregroundColor(.secondary)
+                        Button(action: { agent.scrollToMessageId = msg.id }) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(msg.content.prefix(60))
+                                    .font(.system(size: 11))
+                                    .lineLimit(2)
+                                Text(msg.timestamp, style: .time)
+                                    .font(.system(size: 9))
+                                    .foregroundColor(.secondary)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 4)
+                            .contentShape(Rectangle())
                         }
-                        .padding(.vertical, 4)
+                        .buttonStyle(.plain)
                     }
                 }
                 .listStyle(.plain)
@@ -1543,6 +1549,11 @@ struct ChatContentView: View {
             }
             .onChange(of: agent.conversation.count) { _, _ in
                 withAnimation { proxy.scrollTo(agent.conversation.last?.id, anchor: .bottom) }
+            }
+            .onChange(of: agent.scrollToMessageId) { _, id in
+                guard let id else { return }
+                withAnimation { proxy.scrollTo(id, anchor: .center) }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { agent.scrollToMessageId = nil }
             }
         }
         .background(theme.inputBg)

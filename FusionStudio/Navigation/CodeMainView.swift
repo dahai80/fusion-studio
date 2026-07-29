@@ -143,15 +143,15 @@ struct CodeMainView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
             agent.agentBridge = bridge
-            if selectedModel.isEmpty && !bridge.models.isEmpty {
-                selectedModel = bridge.models.first?.name ?? ""
+            if selectedModel.isEmpty, let def = MLXModelInfo.preferredDefault(in: bridge.models) {
+                selectedModel = def.name
                 agent.selectedModel = selectedModel
             }
             Task {
                 try? await bridge.fetchModels()
-                if selectedModel.isEmpty, let first = bridge.models.first?.name {
-                    selectedModel = first
-                    agent.selectedModel = first
+                if selectedModel.isEmpty, let def = MLXModelInfo.preferredDefault(in: bridge.models) {
+                    selectedModel = def.name
+                    agent.selectedModel = def.name
                 }
             }
         }
@@ -245,7 +245,7 @@ struct CodeMainView: View {
                             .foregroundStyle(theme.textTertiary)
                             .padding(.vertical, 4)
                     } else {
-                        let displayModels = Array(bridge.models.prefix(4))
+                        let displayModels = Array(bridge.models.filter { $0.isTextChatModel }.prefix(4))
                         ForEach(displayModels) { model in
                             Button(action: {
                                 selectedModel = model.name
@@ -302,7 +302,7 @@ struct CodeMainView: View {
                             if hovering { modelPickerPage = .effort }
                         }
 
-                        if bridge.models.count > 4 {
+                        if bridge.models.filter { $0.isTextChatModel }.count > 4 {
                             Divider().padding(.vertical, 2)
 
                             HStack {
@@ -379,7 +379,7 @@ struct CodeMainView: View {
                             .padding(.vertical, 4)
 
                         case .moreModels:
-                            let moreModels = Array(bridge.models.dropFirst(4))
+                            let moreModels = Array(bridge.models.filter { $0.isTextChatModel }.dropFirst(4))
                             ForEach(moreModels) { model in
                                 Button(action: {
                                     selectedModel = model.name

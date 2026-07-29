@@ -91,6 +91,31 @@ struct MLXModelInfo: Codable, Equatable, Identifiable {
     var name: String
     var object: String?
     var owned_by: String?
+
+    var isTextChatModel: Bool {
+        let n = name.lowercased()
+        let nonText = ["flux", "stable-diffusion", "sdxl", "sd-turbo", "sd3",
+                       "mochi", "ltx-video", "ltxvideo", "wan2", "cogvideo", "cogview",
+                       "whisper", "parler", "bark", "xtts", "coqui", "openvoice",
+                       "clip", "siglip", "dinov2", "kandinsky", "shap-e", "audioldm"]
+        for token in nonText where n.contains(token) { return false }
+        return true
+    }
+
+    static func preferredDefault(in models: [MLXModelInfo]) -> MLXModelInfo? {
+        let chat = models.filter { $0.isTextChatModel }
+        guard !chat.isEmpty else { return models.first }
+        func score(_ m: MLXModelInfo) -> Int {
+            let n = m.name.lowercased()
+            var s = 0
+            if n.contains("qwen") { s += 100 }
+            if n.contains("3.6") || n.contains("3-6") { s += 30 }
+            if n.contains("9b") { s += 50 }
+            if n.contains("4bit") || n.contains("4-bit") || n.contains("-4b") || n.contains("_4b") { s += 40 }
+            return s
+        }
+        return chat.max(by: { score($0) < score($1) }) ?? chat.first
+    }
 }
 
 enum BridgeError: Error, Equatable {
@@ -98,6 +123,7 @@ enum BridgeError: Error, Equatable {
     case ipcError(String)
     case decodeError(String)
     case rpcError(code: Int, message: String)
+    case timeout
 }
 
 struct ExecuteRequest: Codable, Equatable {
@@ -268,7 +294,28 @@ final class AgentBridge: ObservableObject {
         guard let client = ipcClient else {
             throw BridgeError.notConnected
         }
-        let result = try await client.call(method: "env.health_check")
+        let result: [String: Any]
+        do {
+            result = try await withThrowingTaskGroup(of: [String: Any].self) { group in
+                group.addTask {
+                    try await client.call(method: "env.health_check")
+                }
+                group.addTask {
+                    try await Task.sleep(nanoseconds: 8_000_000_000)
+                    throw BridgeError.timeout
+                }
+                guard let value = try await group.next() else {
+                    throw BridgeError.timeout
+                }
+                group.cancelAll()
+                return value
+            }
+        } catch BridgeError.timeout {
+            self.isConnected = false
+            self.lastError = .timeout
+            logger.error("fullHealthCheck: timeout after 8s (env.health_check did not respond)")
+            throw BridgeError.timeout
+        }
         self.isConnected = true
         return result
     }
@@ -747,9 +794,14 @@ final class AgentBridge: ObservableObject {
         defer { isInferring = false }
 
         let projectSettings = pm.activeProject?.settings ?? ProjectSettings()
+        var chatModel = projectSettings.defaultModel
+        if chatModel.isEmpty {
+            chatModel = MLXModelInfo.preferredDefault(in: models)?.name ?? ""
+            logger.info("sendProjectChat: default model empty, picked \(chatModel)")
+        }
         let response = try await inferStream(
             messages: messages,
-            model: projectSettings.defaultModel,
+            model: chatModel,
             temperature: projectSettings.temperature,
             maxTokens: projectSettings.maxTokens,
             onToken: { token in

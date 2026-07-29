@@ -207,6 +207,11 @@ struct FusionCodeView: View {
                         }
                     }
                 }
+                .onChange(of: agent.scrollToMessageId) { _, id in
+                    guard let id else { return }
+                    withAnimation(theme.springDefault) { proxy.scrollTo(id, anchor: .center) }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { agent.scrollToMessageId = nil }
+                }
             }
 
             Divider()
@@ -910,6 +915,9 @@ struct FusionGitPanel: View {
     var body: some View {
         VStack(spacing: 0) {
             branchHeader
+            if showNewBranch {
+                newBranchForm
+            }
             Divider()
 
             ScrollView {
@@ -1138,6 +1146,48 @@ struct FusionGitPanel: View {
         }
     }
 
+    private var newBranchForm: some View {
+        HStack(spacing: theme.spacingS) {
+            Image(systemName: "arrow.triangle.branch")
+                .font(.system(size: 11))
+                .foregroundStyle(theme.accent)
+            TextField("Branch name...", text: $newBranchName)
+                .textFieldStyle(.plain)
+                .font(.system(size: 11))
+                .onSubmit {
+                    if git.createBranch(name: newBranchName) {
+                        newBranchName = ""
+                        showNewBranch = false
+                    }
+                }
+            Button {
+                if git.createBranch(name: newBranchName) {
+                    newBranchName = ""
+                    showNewBranch = false
+                }
+            } label: {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 11))
+                    .foregroundStyle(theme.accent)
+            }
+            .buttonStyle(.borderless)
+            .controlSize(.small)
+            Button {
+                showNewBranch = false
+                newBranchName = ""
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 11))
+                    .foregroundStyle(theme.textTertiary)
+            }
+            .buttonStyle(.borderless)
+            .controlSize(.small)
+        }
+        .padding(.horizontal, theme.spacingM)
+        .padding(.vertical, theme.spacingS)
+        .background(theme.surfacePrimary)
+    }
+
     private var branchSwitcher: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
             Text("Branches")
@@ -1158,36 +1208,6 @@ struct FusionGitPanel: View {
                     }
                 }
                 .buttonStyle(.plain)
-            }
-
-            if showNewBranch {
-                HStack(spacing: theme.spacingS) {
-                    TextField("Branch name...", text: $newBranchName)
-                        .textFieldStyle(.plain)
-                        .font(.system(size: 10))
-                        .onSubmit {
-                            if git.createBranch(name: newBranchName) {
-                                newBranchName = ""
-                                showNewBranch = false
-                            }
-                        }
-                    Button {
-                        if git.createBranch(name: newBranchName) {
-                            newBranchName = ""
-                            showNewBranch = false
-                        }
-                    } label: {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 9))
-                    }
-                    .buttonStyle(.borderless)
-                    .controlSize(.mini)
-                }
-                .padding(theme.spacingS)
-                .background(
-                    RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                        .fill(theme.surfacePrimary)
-                )
             }
         }
     }

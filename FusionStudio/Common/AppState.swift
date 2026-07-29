@@ -109,6 +109,9 @@ enum Module: String, CaseIterable, Identifiable {
     case eduK12 = "教育"
     case verification = "验证"
     case tokenBudget = "预算"
+    case safety = "安全审批"
+    case tools = "工具"
+    case agentDashboard = "Agent监控"
 
     var id: String { rawValue }
 
@@ -153,6 +156,9 @@ enum Module: String, CaseIterable, Identifiable {
         case .eduK12:     return "graduationcap"
         case .verification: return "checkmark.shield"
         case .tokenBudget:  return "coins"
+        case .safety:       return "shield.lefthalf.filled"
+        case .tools:        return "wrench.and.screwdriver"
+        case .agentDashboard: return "chart.bar.doc.horizontal"
         }
     }
 
@@ -169,7 +175,7 @@ enum Module: String, CaseIterable, Identifiable {
              .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb,
              .operations:
             return .multiNode
-        case .rag, .memory, .planner, .verification, .tokenBudget:
+        case .rag, .memory, .planner, .verification, .tokenBudget, .safety, .tools, .agentDashboard:
             return .agentStudio
         case .deploy:
             return .code
@@ -186,6 +192,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
     case code = "Code"
     case customize = "Customize"
     case design = "Design"
+    case agent = "智能体"
 
     var id: String { rawValue }
 
@@ -197,6 +204,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .code:      return "chevron.left.forwardslash.chevron.right"
         case .customize: return "paintpalette"
         case .design:    return "pencil.and.outline"
+        case .agent:     return "person.2.fill"
         }
     }
 
@@ -208,6 +216,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .code:      return [.code, .design, .doc, .docgen, .cli]
         case .customize: return []
         case .design:    return [.design]
+        case .agent:     return [.agent, .agentDashboard, .tools, .safety, .memory, .rag, .planner, .verification, .tokenBudget, .security, .dataTools, .plugin]
         }
     }
 }

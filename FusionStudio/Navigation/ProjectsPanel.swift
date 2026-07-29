@@ -49,14 +49,17 @@ struct ProjectsPanel: View {
     }
 
     var body: some View {
-        HStack(spacing: 0) {
-            projectListView
-            Rectangle().fill(theme.separator).frame(width: 1)
+        GeometryReader { geo in
+            HStack(spacing: 0) {
+                projectListView
+                    .frame(width: max(200, geo.size.width * 0.2))
+                Rectangle().fill(theme.separator).frame(width: 1)
 
-            if let project = pm.activeProject, showDetail {
-                projectDetailView(project)
-            } else {
-                emptyDetailState
+                if let project = pm.activeProject, showDetail {
+                    projectDetailView(project)
+                } else {
+                    emptyDetailState
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -81,7 +84,6 @@ struct ProjectsPanel: View {
                 }
             }
         }
-        .frame(minWidth: 260, idealWidth: 300)
     }
 
     private var headerBar: some View {

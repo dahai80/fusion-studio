@@ -85,6 +85,12 @@ struct ModuleDetailView: View {
                 VerificationView()
             case .tokenBudget:
                 TokenBudgetView()
+            case .safety:
+                SafetyView()
+            case .tools:
+                ToolBrowserView()
+            case .agentDashboard:
+                AgentDashboardView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

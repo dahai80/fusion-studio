@@ -138,6 +138,8 @@ struct SectionContentView: View {
                 CustomizePanel()
             case .design:
                 DesignView()
+            case .agent:
+                ModuleDetailView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

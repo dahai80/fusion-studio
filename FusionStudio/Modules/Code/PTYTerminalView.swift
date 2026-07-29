@@ -106,7 +106,7 @@ class PTYSession: ObservableObject {
             return [data.map { String(format: "%02x", $0) }.joined()]
         }
         let cleaned = raw
-            .replacingOccurrences(of: "\u{1B}[\\[(][0-9;]*[A-Za-z]", with: "", options: .regularExpression)
+            .replacingOccurrences(of: "\u{1B}[\\[(][0-9;?]*[A-Za-z]", with: "", options: .regularExpression)
             .replacingOccurrences(of: "\u{1B}][^\u{07}]*\u{07}", with: "", options: .regularExpression)
             .replacingOccurrences(of: "\u{1B}[>=]", with: "", options: .regularExpression)
             .replacingOccurrences(of: "\r\n", with: "\n")
