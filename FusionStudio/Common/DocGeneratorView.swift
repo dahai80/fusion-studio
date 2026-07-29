@@ -300,6 +300,16 @@ class DocGenerator: ObservableObject {
             - Model Hub 模型管理
             - CLI 图形化面板
 
+            ## [0.1.3] - 2026-07-29
+
+            ### 新增
+            - Desk 模块全量 GUI 覆盖 + IPCClient/AgentBridge/Artifacts 增强
+            - UpstreamServiceManager 注册 fusion-desk / model-hub / security 上游服务
+            - 可复用 UpstreamServiceStatusBanner 组件（DeskView / ModelHubView / SecurityView）
+
+            ### 修复
+            - fusion-desk / model-hub / security 模块"无内容"问题：缺少上游服务时展示状态横幅与启动入口
+
             ## [0.1.2] - 2026-07-01
 
             ### 新增
