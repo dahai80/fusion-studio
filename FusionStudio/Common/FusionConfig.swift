@@ -65,6 +65,23 @@ class FusionConfig: ObservableObject {
     /// Fusion-RAG 服务地址
     var fusionRagURL: String { "http://\(fusionRagHost):\(fusionRagPort)" }
 
+    // MARK: - Upstream Services
+    // Callers: UpstreamServiceManager reads these to locate each upstream repo's start.sh.
+    // Affected API: @AppStorage upstream*Path fields + upstreamAutoStartCritical + expandedUpstreamPath(_:).
+    // Data schemas: @AppStorage (UserDefaults) string paths with ~ expansion.
+    // User instruction: "在所有依赖的上游模块根目录创建start.sh，在fusion-studio启动时需要检测上游服务是否启动，如果没有启动，尝试调用start.sh启动上游服务，如果启动不成功，fusion-studio要展示服务不存在，或者服务启动失败等等"
+    @AppStorage("upstreamAgentStudioPath") var upstreamAgentStudioPath = "~/fusion/fusion-agent-studio"
+    @AppStorage("upstreamMlxPath") var upstreamMlxPath = "~/claude-home/fusion-mlx"
+    @AppStorage("upstreamArtifactsPath") var upstreamArtifactsPath = "~/fusion/fusion-artifacts-engine"
+    @AppStorage("upstreamRagPath") var upstreamRagPath = "~/fusion/fusion-kb"
+    @AppStorage("upstreamMultiNodePath") var upstreamMultiNodePath = "~/fusion/fusion-multi-node"
+    @AppStorage("upstreamAutoStartCritical") var upstreamAutoStartCritical = true
+
+    /// 展开 ~/ 路径为绝对路径
+    func expandedUpstreamPath(_ raw: String) -> String {
+        (raw as NSString).expandingTildeInPath
+    }
+
     // MARK: - 便捷方法
 
     /// 是否处于离线模式
@@ -130,5 +147,12 @@ class FusionConfig: ObservableObject {
         fusionRagHost = "127.0.0.1"
         fusionRagPort = 11436
         fusionRagApiKey = ""
+
+        upstreamAgentStudioPath = "~/fusion/fusion-agent-studio"
+        upstreamMlxPath = "~/claude-home/fusion-mlx"
+        upstreamArtifactsPath = "~/fusion/fusion-artifacts-engine"
+        upstreamRagPath = "~/fusion/fusion-kb"
+        upstreamMultiNodePath = "~/fusion/fusion-multi-node"
+        upstreamAutoStartCritical = true
     }
 }

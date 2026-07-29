@@ -109,6 +109,11 @@ struct DashboardView: View {
                 }
 
                 ListGroup {
+                    UpstreamServiceStatusView()
+                        .padding(14)
+                }
+
+                ListGroup {
                     TaskQueueView()
                         .padding(14)
                 }
@@ -265,6 +270,14 @@ struct DesignView: View {
                     DesignLayersView(selectedNodeID: $selectedNodeID)
                 case .tokens:
                     DesignTokenPanel()
+                case .designSystems:
+                    DesignSystemListView()
+                case .lint:
+                    DesignLintPanel()
+                case .codegen:
+                    CodegenTargetPanel()
+                case .ecosystem:
+                    EcosystemSyncPanel()
                 }
             }
         }
@@ -387,11 +400,19 @@ enum InfoPanelTab: String, CaseIterable {
     case properties = "属性"
     case layers = "图层"
     case tokens = "Design System"
+    case designSystems = "系统"
+    case lint = "规范检查"
+    case codegen = "代码导出"
+    case ecosystem = "生态联动"
     var icon: String {
         switch self {
         case .properties: return "info.circle"
         case .layers: return "square.3.layers.3d"
         case .tokens: return "paintpalette"
+        case .designSystems: return "square.stack.3d.up"
+        case .lint: return "checkmark.shield"
+        case .codegen: return "chevron.left.forwardslash.chevron.right"
+        case .ecosystem: return "arrow.triangle.2.circlepath"
         }
     }
 }

@@ -19,6 +19,11 @@ struct FusionStudioApp: App {
     @StateObject private var chatStore = ChatSessionStore()
     // Callers: FusionStudioApp body; Affected API: deskBridge injected via .environmentObject, used by DeskView 8-tab IPC architecture; Data schemas: DeskBridge models; User instruction: "对功能和api进行全量分析检测，看是否都在fusion-studio都有对应的GUI，如果没有需要立即补充GUI"
     @StateObject private var deskBridge = DeskBridge()
+    // Callers: FusionStudioApp.onAppear (ensureCriticalRunning on launch), UpstreamServiceStatusView (@EnvironmentObject).
+    // Affected API: upstreamManager injected via .environmentObject; ensureCriticalRunning() called in onAppear.
+    // Data schemas: UpstreamServiceManager (ObservableObject) -> [UpstreamService].
+    // User instruction: "在所有依赖的上游模块根目录创建start.sh，在fusion-studio启动时需要检测上游服务是否启动，如果没有启动，尝试调用start.sh启动上游服务，如果启动不成功，fusion-studio要展示服务不存在，或者服务启动失败等等"
+    @StateObject private var upstreamManager = UpstreamServiceManager()
 
     init() {
         // Dock 图标延后到 onAppear 中设置，init 阶段 NSApp 尚未就绪
@@ -46,8 +51,12 @@ struct FusionStudioApp: App {
                 .environmentObject(streamingBridge)
                 .environmentObject(chatStore)
                 .environmentObject(deskBridge)
+                .environmentObject(upstreamManager)
                 .studioThemed()
                 .onAppear {
+                    // 启动时检测并按需自动启动上游关键服务（mlx -> agent-studio -> artifacts-engine）。
+                    // 非阻塞：IPCClient 会每 3s 自动重连，agent-studio 拉起 socket 后即可连上。
+                    Task { await upstreamManager.ensureCriticalRunning() }
                     agentBridge.setIPCClient(ipcClient)
                     // Callers: FusionStudioApp.onAppear; Affected API: designBridge.ingestDesignTokens (RAG);
                     // Data schemas: design token doc string → knowledge.ingest scope=design:tokens

@@ -147,6 +147,28 @@ swift build -c release
 ./Scripts/start.sh
 ```
 
+### 上游服务（自动启动）
+
+Fusion Studio 依赖上游生态服务。启动时逐个探测，关键服务通过上游仓库的
+`start.sh` 自动拉起（非阻塞--socket 就绪后 `IPCClient` 每 3s 自动重连）。
+
+| 服务 | start.sh | 端点 | 关键 |
+|------|----------|------|------|
+| fusion-mlx | `~/claude-home/fusion-mlx/start.sh` | `localhost:11434` | ✅ |
+| fusion-agent-studio | `~/fusion/fusion-agent-studio/start.sh` | `/tmp/fusion-studio.sock` (UDS) | ✅ |
+| fusion-artifacts-engine | `~/fusion/fusion-artifacts-engine/start.sh` | `127.0.0.1:8892` | ✅ |
+| fusion-kb (RAG) | `~/fusion/fusion-kb/start.sh` | `127.0.0.1:11436` | 可选 |
+| fusion-multi-node | `~/fusion/fusion-multi-node/start.sh` | `127.0.0.1:9753` | 可选 |
+| fusion-design | (CLI 工具，无 start.sh) | - | 不适用 |
+
+- 关键服务按顺序自动启动：mlx -> agent-studio -> artifacts-engine。
+- 可选服务仅探测状态，需在 UI 手动启动。
+- 每个 `start.sh` 支持 `start | stop | restart | status`（退出码 0 = 运行中）。
+- Dashboard 展示每个服务状态（运行中 / 未启动 / 服务不存在 / 启动失败），提供
+  启动 / 停止 / 重试；关键服务缺失或启动失败时顶部展示横幅。
+- 上游仓库路径与自动启动开关位于设置页（`FusionConfig.upstream*Path`、
+  `upstreamAutoStartCritical`，默认开启）。
+
 ### 构建分发包
 
 ```bash
