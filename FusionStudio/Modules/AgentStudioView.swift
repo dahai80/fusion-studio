@@ -1057,8 +1057,20 @@ struct ConfigureAgentSheet: View {
 
     @Environment(\.dismiss) var dismiss
     @Environment(\.studioTheme) var theme
+    @EnvironmentObject var bridge: AgentBridge
 
-    private let safetyLevels = ["L1", "L2", "L3", "L4"]
+    // Backend SafetyGateway defines a 3-level system (L1/L2/L3); L4 has no backend meaning.
+    private let safetyLevels = ["L1", "L2", "L3"]
+    private let safetyExplanations: [String: String] = [
+        "L1": "Autonomous - agent acts silently, no approval needed.",
+        "L2": "Preview - agent shows a diff/plan and waits for your confirm before executing.",
+        "L3": "Gateway - agent must get explicit approval before every action."
+    ]
+
+    private var availableModels: [MLXModelInfo] {
+        let chat = bridge.models.filter { $0.isTextChatModel }
+        return chat.isEmpty ? bridge.models : chat
+    }
 
     var body: some View {
         VStack(spacing: theme.spacingL) {
@@ -1076,15 +1088,27 @@ struct ConfigureAgentSheet: View {
                         Text("Model")
                             .font(.system(size: theme.footnoteSize, weight: .medium))
                             .foregroundStyle(theme.textSecondary)
-                        TextField("Model name", text: $model)
-                            .textFieldStyle(.plain)
-                            .padding(theme.spacingS)
-                            .background(theme.inputBg)
-                            .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
-                            .overlay {
-                                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                                    .stroke(theme.inputBorder, lineWidth: 1)
+                        if availableModels.isEmpty {
+                            TextField(agent.model, text: $model)
+                                .textFieldStyle(.plain)
+                                .padding(theme.spacingS)
+                                .background(theme.inputBg)
+                                .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                        .stroke(theme.inputBorder, lineWidth: 1)
+                                }
+                            Text("No models loaded from fusion-mlx. Start the MLX service or enter a model id manually.")
+                                .font(.system(size: theme.captionSize))
+                                .foregroundStyle(theme.textTertiary)
+                        } else {
+                            Picker("Model", selection: $model) {
+                                ForEach(availableModels) { m in
+                                    Text(m.name).tag(m.id)
+                                }
                             }
+                            .pickerStyle(.menu)
+                        }
                     }
 
                     VStack(alignment: .leading, spacing: theme.spacingXS) {
@@ -1119,6 +1143,10 @@ struct ConfigureAgentSheet: View {
                             }
                         }
                         .pickerStyle(.segmented)
+                        Text(safetyExplanations[safetyLevel] ?? "")
+                            .font(.system(size: theme.captionSize))
+                            .foregroundStyle(theme.textTertiary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
