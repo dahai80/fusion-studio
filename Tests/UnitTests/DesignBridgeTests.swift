@@ -196,9 +196,14 @@ extension DesignBridgeTests {
 
     func testInfoPanelTabAllCases() {
         let tabs = InfoPanelTab.allCases
-        XCTAssertEqual(tabs.count, 2)
+        XCTAssertEqual(tabs.count, 7)
         XCTAssertEqual(tabs[0].rawValue, "属性")
-        XCTAssertEqual(tabs[1].rawValue, "Design System")
+        XCTAssertEqual(tabs[1].rawValue, "图层")
+        XCTAssertEqual(tabs[2].rawValue, "Design System")
+        XCTAssertEqual(tabs[3].rawValue, "系统")
+        XCTAssertEqual(tabs[4].rawValue, "规范检查")
+        XCTAssertEqual(tabs[5].rawValue, "代码导出")
+        XCTAssertEqual(tabs[6].rawValue, "生态联动")
     }
 
     func testInfoPanelTabIcons() {

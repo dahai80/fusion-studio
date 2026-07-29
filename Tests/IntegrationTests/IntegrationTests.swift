@@ -125,9 +125,9 @@ final class ProfilerIntegrationTests: XCTestCase {
 
 /// RAG 集成测试
 final class RAGIntegrationTests: XCTestCase {
-    func testRAGEngine() {
-        let engine = RAGEngine.shared
-        XCTAssertTrue(engine.chunks.isEmpty)
+    func testRAGAPIClient() {
+        let client = RAGAPIClient.shared
+        XCTAssertTrue(client.knowledgeBases.isEmpty)
     }
 
     func testRAGResultModelBridgeRead() {
