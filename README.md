@@ -133,7 +133,7 @@ Fusion Studio integrates with [fusion-artifacts-engine](https://github.com/dahai
 └──────────────────────────────────────────────────────────────┘
 ```
 
-### UI Layout — Collapsible Sidebar + Workspace + Inspector
+### UI Layout - 3-Column: Icon Rail + Workspace + Inspector (sidebar collapsible)
 
 ```
 ┌──────────────────┬─────────────────────────────┬──────────────┐
@@ -159,12 +159,15 @@ Fusion Studio integrates with [fusion-artifacts-engine](https://github.com/dahai
       Material           Material                    Material
 ```
 
-- **Dark-first**: Window #1E1E20, Sidebar #2C2C2E, Content #1C1C1E
-- **Accent**: Hardcoded #007AFF (not NSColor.controlAccentColor)
-- **Vibrancy**: `.ultraThinMaterial` on sidebar/toolbar backgrounds
-- **Sidebar**: Collapsible (⌘\), ChatGPT-style grouped navigation with search
-- **Inspector**: Toggle with ⇧⌘I, context-aware (agent/DAG node/task/settings)
-- **Sections**: Chats, Projects, Artifacts, Code, Customize, Design
+- **Default 3-column**: Icon Rail (52pt, narrow nav) | Workspace | Inspector. FusionSidebar (260pt) is collapsed by default, expand with ⌘\.
+- **Dark-first (default on)**: Dark mode on launch; one-click ☀️/🌙 toggle in workspace toolbar; persisted via UserDefaults, overrides system via `preferredColorScheme` + `NSApp.appearance`.
+- **Surfaces**: Window #1E1E20, Sidebar #1F2937 (auxiliary dark gray), Content #1C1C1E.
+- **Accent**: #007AFF via `AccentColor` asset - unifies native `.accentColor`/`.tint` with `StudioTheme.accent`.
+- **Vibrancy**: `.ultraThinMaterial` on icon rail/toolbar/inspector backgrounds.
+- **Grid**: 8px rhythm (4px half-step), Apple HIG 4pt grid.
+- **Sidebar**: Collapsible (⌘\), ChatGPT-style grouped navigation with search.
+- **Inspector**: Toggle with ⇧⌘I, context-aware (agent/DAG node/task/settings); visible by default.
+- **Sections**: Chats, Projects, Artifacts, Code, Customize, Design.
 - **Bottom bar**: Get App & Extensions, Settings popup, User area
 
 ### Tech Stack

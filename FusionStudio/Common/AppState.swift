@@ -13,10 +13,13 @@ class AppState: ObservableObject {
     @Published var isHealthCheckPassed = false
     @Published var isMLXRunning = false
     @Published var healthStatus: HealthStatus = .checking
-    @Published var isInspectorVisible: Bool = false
+    @Published var isInspectorVisible: Bool = true
     @Published var inspectorContext: InspectorContext = .none
     @Published var isSidebarCollapsed: Bool = true
     @Published var sidebarWidth: CGFloat = 260
+    @Published var isDarkMode: Bool = UserDefaults.standard.object(forKey: "fusionStudio.isDarkMode") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(isDarkMode, forKey: "fusionStudio.isDarkMode") }
+    }
 
     enum HealthStatus {
         case checking

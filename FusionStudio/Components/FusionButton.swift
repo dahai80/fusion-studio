@@ -64,7 +64,7 @@ struct FusionButton: View {
         switch size { case .small: theme.spacingM; case .regular: theme.spacingL; case .large: theme.spacingXL }
     }
     private var vPad: CGFloat {
-        switch size { case .small: 5; case .regular: 7; case .large: 10 }
+        switch size { case .small: 4; case .regular: 8; case .large: 12 }
     }
     private var minWidth: CGFloat? {
         switch size { case .small: nil; case .regular: 80; case .large: 120 }

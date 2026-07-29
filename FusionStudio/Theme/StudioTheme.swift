@@ -38,6 +38,8 @@ struct StudioTheme: Sendable {
     let accentText: Color
     let accentSecondary: Color
     let accentDestructive: Color
+    let auxiliary: Color
+    let auxiliarySoft: Color
     let selBg: Color
     let hoverBg: Color
 
@@ -67,7 +69,8 @@ struct StudioTheme: Sendable {
     let codeBg: Color
     let codeText: Color
 
-    // MARK: - Spacing Tokens (Apple HIG 4pt grid)
+    // MARK: - Spacing Tokens (8px grid rhythm, 4px half-step - Apple HIG 4pt grid)
+    // Primary spine: 8/16/24/32; 4 = half-step; 12 = legacy 4pt sub-step (292 consumers, retained).
     let spacingXS: CGFloat = 4
     let spacingS: CGFloat = 8
     let spacingM: CGFloat = 12
@@ -159,6 +162,8 @@ extension StudioTheme {
         accentText: .white,
         accentSecondary: Color(red: 0.0, green: 122.0 / 255.0, blue: 1.0).opacity(0.6),
         accentDestructive: Color(red: 0.91, green: 0.30, blue: 0.24),
+        auxiliary: Color(red: 31.0/255.0, green: 41.0/255.0, blue: 55.0/255.0),
+        auxiliarySoft: Color(red: 31.0/255.0, green: 41.0/255.0, blue: 55.0/255.0).opacity(0.12),
         selBg: Color(red: 0.0, green: 122.0 / 255.0, blue: 1.0).opacity(0.10),
         hoverBg: Color(nsColor: .controlColor).opacity(0.06),
         controlBg: Color(nsColor: .controlBackgroundColor),
@@ -189,7 +194,7 @@ extension StudioTheme {
     static let dark = StudioTheme(
         isDark: true,
         windowBg: Color(red: 0.118, green: 0.118, blue: 0.125),
-        sidebarBg: Color(red: 0.173, green: 0.173, blue: 0.180),
+        sidebarBg: Color(red: 31.0/255.0, green: 41.0/255.0, blue: 55.0/255.0),
         sidebarBorder: Color(white: 1.0).opacity(0.08),
         contentBg: Color(red: 0.110, green: 0.110, blue: 0.118),
         toolbarBg: Color(red: 0.118, green: 0.118, blue: 0.125),
@@ -211,6 +216,8 @@ extension StudioTheme {
         accentText: .white,
         accentSecondary: Color(red: 0.0, green: 122.0 / 255.0, blue: 1.0).opacity(0.6),
         accentDestructive: Color(red: 1.0, green: 0.42, blue: 0.42),
+        auxiliary: Color(red: 31.0/255.0, green: 41.0/255.0, blue: 55.0/255.0),
+        auxiliarySoft: Color(red: 31.0/255.0, green: 41.0/255.0, blue: 55.0/255.0).opacity(0.16),
         selBg: Color(red: 0.0, green: 122.0 / 255.0, blue: 1.0).opacity(0.20),
         hoverBg: Color(white: 1.0).opacity(0.06),
         controlBg: Color(red: 0.173, green: 0.173, blue: 0.180),

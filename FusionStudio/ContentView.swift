@@ -4,6 +4,7 @@
 // User instruction: "最左侧菜单恢复到上次的形式，窄窄的icon rail，点击图标直接切换主页面，不展开侧边栏"
 
 import SwiftUI
+import AppKit
 import os.log
 
 private let contentViewLog = Logger(subsystem: "com.fusion.studio", category: "ContentView")
@@ -12,10 +13,9 @@ struct ContentView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var ipcClient: IPCClient
     @EnvironmentObject var taskManager: TaskManager
-    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        let theme = colorScheme == .dark ? StudioTheme.dark : StudioTheme.light
+        let theme = appState.isDarkMode ? StudioTheme.dark : StudioTheme.light
 
         HStack(spacing: 0) {
             IconRailView()
@@ -46,6 +46,7 @@ struct ContentView: View {
         .frame(minWidth: 1100, minHeight: 700)
         .background(theme.windowBg)
         .environment(\.studioTheme, theme)
+        .preferredColorScheme(appState.isDarkMode ? .dark : .light)
         .sheet(isPresented: $appState.showSettings) {
             SettingsView()
         }
@@ -53,8 +54,17 @@ struct ContentView: View {
             AboutView()
         }
         .onAppear {
-            contentViewLog.info("ContentView appeared — IconRail + sidebar layout active")
+            applyNativeAppearance(appState.isDarkMode)
+            contentViewLog.info("ContentView appeared - 3-column layout, darkMode=\(appState.isDarkMode)")
         }
+        .onChange(of: appState.isDarkMode) { _, newValue in
+            applyNativeAppearance(newValue)
+        }
+    }
+
+    private func applyNativeAppearance(_ dark: Bool) {
+        NSApp.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
+        contentViewLog.info("Native appearance applied: dark=\(dark)")
     }
 }
 
@@ -91,6 +101,18 @@ struct WorkspaceArea: View {
             }
 
             Spacer()
+
+            Button(action: {
+                withAnimation(theme.springSnappy) {
+                    appState.isDarkMode.toggle()
+                }
+            }) {
+                Image(systemName: appState.isDarkMode ? "sun.max" : "moon")
+                    .font(.system(size: theme.iconM))
+                    .foregroundStyle(theme.textTertiary)
+            }
+            .buttonStyle(.plain)
+            .help(appState.isDarkMode ? "切换到亮色模式" : "切换到暗色模式")
 
             Button(action: {
                 withAnimation(theme.springSnappy) {
