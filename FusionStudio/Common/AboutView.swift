@@ -18,7 +18,7 @@ struct AboutView: View {
                 .font(.largeTitle)
                 .bold()
 
-            Text("版本 0.1.3")
+            Text("版本 0.1.4")
                 .font(.title3)
                 .foregroundColor(.secondary)
 

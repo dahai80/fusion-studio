@@ -14,7 +14,7 @@ APP_BUNDLE="$BUILD_DIR/$APP_NAME.app"
 CONFIGURATION="${CONFIGURATION:-release}"
 
 # 版本信息
-VERSION="0.1.3"
+VERSION="0.1.4"
 BUILD_NUM=$(date +%Y%m%d%H%M)
 
 # 颜色

@@ -32,7 +32,7 @@ spctl -a -t exec -vv "$APP_PATH"
 
 # 3. 打包为 .dmg
 echo "创建 DMG..."
-DMG_PATH="$BUILD_DIR/FusionStudio-0.1.3-arm64.dmg"
+DMG_PATH="$BUILD_DIR/FusionStudio-0.1.4-arm64.dmg"
 hdiutil create -volname "Fusion Studio" \
     -srcfolder "$APP_PATH" \
     -ov -format UDZO \

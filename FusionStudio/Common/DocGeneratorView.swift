@@ -300,6 +300,16 @@ class DocGenerator: ObservableObject {
             - Model Hub 模型管理
             - CLI 图形化面板
 
+            ## [0.1.4] - 2026-07-29
+
+            ### 新增
+            - UI/UX Pro Max 审视优化：三栏布局对齐、暗色主题默认、8px 栅格系统、AccentColor 统一资源
+            - accent #007AFF 统一原生 .accentColor/.tint，组件级主题令牌（auxiliary #1F2937 等）
+
+            ### 修复
+            - AgentStudio ConfigureAgentSheet：模型字段改下拉选择 + L1-L3 安全等级说明（对齐后端 SafetyGateway 三级）
+            - 修复过期测试用例：RAGEngine -> RAGAPIClient、InfoPanelTab 断言 2 -> 7 cases
+
             ## [0.1.3] - 2026-07-29
 
             ### 新增
