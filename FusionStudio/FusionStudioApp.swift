@@ -4,6 +4,9 @@ import SwiftUI
 // User instruction: "落地外壳（SwiftUI）：负责 120fps 的极致交互、系统级感知（FSEvents, Accessibility）和沙箱管理。调用 frontend-design 来做好 UI 和 UX 交互设计"
 
 import SwiftUI
+import os.log
+
+private let appLog = Logger(subsystem: "com.fusion.studio", category: "FusionStudioApp")
 
 @main
 struct FusionStudioApp: App {
@@ -144,28 +147,43 @@ struct FusionStudioApp: App {
 
     private func performStartupHealthCheck() async {
         appState.healthStatus = .checking
-        do {
-            let result = try await agentBridge.fullHealthCheck()
-            let healthy = result["healthy"] as? Bool ?? false
-            let checks = result["checks"] as? [String: [String: Any]] ?? [:]
-
-            let mlxOk = checks["mlx_api"]?["ok"] as? Bool ?? false
-
-            await MainActor.run {
-                appState.isHealthCheckPassed = healthy
-                appState.isMLXRunning = mlxOk
-                appState.healthStatus = healthy ? .healthy : .issuesFound
+        // 启动竞态：ensureCriticalRunning 异步拉起 agent-studio 守护进程，IPCClient 首次调用
+        // 可能尚未连上 socket。重试最多 ~20s，避免 isMLXRunning 滞留 false 导致 Design 误报
+        // "MLX 服务未运行" (bug2)。
+        let maxAttempts = 10
+        var healthy = false
+        var mlxOk = false
+        var lastError: Error?
+        for attempt in 1...maxAttempts {
+            do {
+                let result = try await agentBridge.fullHealthCheck()
+                healthy = result["healthy"] as? Bool ?? false
+                let checks = result["checks"] as? [String: [String: Any]] ?? [:]
+                mlxOk = checks["mlx_api"]?["ok"] as? Bool ?? false
+                appLog.info("performStartupHealthCheck: attempt=\(attempt) healthy=\(healthy) mlxOk=\(mlxOk)")
+                lastError = nil
+                break
+            } catch {
+                lastError = error
+                appLog.warning("performStartupHealthCheck: attempt=\(attempt)/\(maxAttempts) failed: \(error)")
+                if attempt < maxAttempts {
+                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+                }
             }
+        }
 
-            if mlxOk {
-                try? await agentBridge.fetchModels()
-            }
-        } catch {
-            await MainActor.run {
-                appState.isHealthCheckPassed = false
-                appState.isMLXRunning = false
-                appState.healthStatus = .issuesFound
-            }
+        await MainActor.run {
+            appState.isHealthCheckPassed = healthy
+            appState.isMLXRunning = mlxOk
+            appState.healthStatus = healthy ? .healthy : .issuesFound
+        }
+
+        if mlxOk {
+            try? await agentBridge.fetchModels()
+        }
+
+        if lastError != nil && !mlxOk {
+            appLog.error("performStartupHealthCheck: gave up after \(maxAttempts) attempts: \(lastError!)")
         }
     }
 }

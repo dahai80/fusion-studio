@@ -415,8 +415,8 @@ struct AgentStudioView: View {
         .background(theme.windowBg)
         .toast(manager: toastManager)
         .sheet(isPresented: $showCreateAgent) {
-            CreateAgentSheet { name, type, model, systemPrompt, temperature, maxTokens, tools, capabilities, safetyLevel, tags in
-                createAgentViaBridge(name: name, type: type, model: model, systemPrompt: systemPrompt, temperature: temperature, maxTokens: maxTokens, tools: tools, capabilities: capabilities, safetyLevel: safetyLevel, tags: tags)
+            CreateAgentSheet { name, type, model, systemPrompt, temperature, maxTokens, tools, capabilities, safetyLevel, tags, soul, memory, agentsMd in
+                createAgentViaBridge(name: name, type: type, model: model, systemPrompt: systemPrompt, temperature: temperature, maxTokens: maxTokens, tools: tools, capabilities: capabilities, safetyLevel: safetyLevel, tags: tags, soul: soul, memory: memory, agentsMd: agentsMd)
             }
         }
         .onAppear {
@@ -469,7 +469,7 @@ struct AgentStudioView: View {
         }
     }
 
-    private func createAgentViaBridge(name: String, type: AgentType, model: String, systemPrompt: String, temperature: Double, maxTokens: Int, tools: [String], capabilities: [String], safetyLevel: String, tags: [String]) {
+    private func createAgentViaBridge(name: String, type: AgentType, model: String, systemPrompt: String, temperature: Double, maxTokens: Int, tools: [String], capabilities: [String], safetyLevel: String, tags: [String], soul: String, memory: String, agentsMd: String) {
         orchestrator.createAgent(name: name, type: type, model: model, systemPrompt: systemPrompt, temperature: temperature, maxTokens: maxTokens, tools: tools, capabilities: capabilities, safetyLevel: safetyLevel, tags: tags)
         toastManager.show(style: .success, title: "Agent Created", message: "\(name) is ready locally")
 
@@ -485,7 +485,9 @@ struct AgentStudioView: View {
                     capabilities: capabilities,
                     safetyLevel: safetyLevel,
                     tags: tags,
-                    soul: ""
+                    soul: soul,
+                    memory: memory,
+                    agentsMd: agentsMd
                 )
                 try await bridge.fetchAgents()
                 agentStudioLog.info("Created agent via bridge: \(name)")
@@ -511,18 +513,23 @@ struct AgentListView: View {
     @Environment(\.studioTheme) var theme
 
     var body: some View {
-        HSplitView {
-            agentListPanel
-                .frame(minWidth: 280)
+        GeometryReader { geo in
+            HSplitView {
+                agentListPanel
+                    .frame(minWidth: 200, idealWidth: max(200, geo.size.width * 0.2), maxWidth: 360)
 
-            if let backendAgent = selectedBackendAgent {
-                BackendAgentDetailView(agent: backendAgent, toastManager: toastManager)
-                    .onAppear { bridge.currentAgent = backendAgent }
-            } else if let agent = selectedAgent {
-                AgentDetailView(agent: agent, toastManager: toastManager)
-                    .onAppear { bridge.currentAgent = nil }
-            } else {
-                emptyDetailPlaceholder
+                Group {
+                    if let backendAgent = selectedBackendAgent {
+                        BackendAgentDetailView(agent: backendAgent, toastManager: toastManager)
+                            .onAppear { bridge.currentAgent = backendAgent }
+                    } else if let agent = selectedAgent {
+                        AgentDetailView(agent: agent, toastManager: toastManager)
+                            .onAppear { bridge.currentAgent = nil }
+                    } else {
+                        emptyDetailPlaceholder
+                    }
+                }
+                .frame(minWidth: 400, idealWidth: geo.size.width * 0.8)
             }
         }
         .toolbar {
@@ -533,13 +540,13 @@ struct AgentListView: View {
             }
         }
         .sheet(isPresented: $showCreateAgent) {
-            CreateAgentSheet { name, type, model, systemPrompt, temperature, maxTokens, tools, capabilities, safetyLevel, tags in
-                createAndSync(name: name, type: type, model: model, systemPrompt: systemPrompt, temperature: temperature, maxTokens: maxTokens, tools: tools, capabilities: capabilities, safetyLevel: safetyLevel, tags: tags)
+            CreateAgentSheet { name, type, model, systemPrompt, temperature, maxTokens, tools, capabilities, safetyLevel, tags, soul, memory, agentsMd in
+                createAndSync(name: name, type: type, model: model, systemPrompt: systemPrompt, temperature: temperature, maxTokens: maxTokens, tools: tools, capabilities: capabilities, safetyLevel: safetyLevel, tags: tags, soul: soul, memory: memory, agentsMd: agentsMd)
             }
         }
     }
 
-    private func createAndSync(name: String, type: AgentType, model: String, systemPrompt: String, temperature: Double, maxTokens: Int, tools: [String], capabilities: [String], safetyLevel: String, tags: [String]) {
+    private func createAndSync(name: String, type: AgentType, model: String, systemPrompt: String, temperature: Double, maxTokens: Int, tools: [String], capabilities: [String], safetyLevel: String, tags: [String], soul: String, memory: String, agentsMd: String) {
         orchestrator.createAgent(name: name, type: type, model: model, systemPrompt: systemPrompt, temperature: temperature, maxTokens: maxTokens, tools: tools, capabilities: capabilities, safetyLevel: safetyLevel, tags: tags)
         toastManager.show(style: .success, title: "Agent Created", message: "\(name) is ready")
         Task {
@@ -554,7 +561,9 @@ struct AgentListView: View {
                     capabilities: capabilities,
                     safetyLevel: safetyLevel,
                     tags: tags,
-                    soul: ""
+                    soul: soul,
+                    memory: memory,
+                    agentsMd: agentsMd
                 )
                 try await bridge.fetchAgents()
             } catch {
@@ -1246,6 +1255,7 @@ struct AgentDetailView: View {
 struct CreateAgentSheet: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.studioTheme) var theme
+    @EnvironmentObject var bridge: AgentBridge
     @State private var name = ""
     @State private var type: AgentType = .custom
     @State private var model = ""
@@ -1256,9 +1266,23 @@ struct CreateAgentSheet: View {
     @State private var toolsText: String = ""
     @State private var capabilitiesText: String = ""
     @State private var tagsText: String = ""
-    let onCreate: (String, AgentType, String, String, Double, Int, [String], [String], String, [String]) -> Void
+    @State private var soulMd: String = ""
+    @State private var memoryMd: String = ""
+    @State private var agentsMd: String = ""
+    let onCreate: (String, AgentType, String, String, Double, Int, [String], [String], String, [String], String, String, String) -> Void
 
-    private let safetyLevels = ["L1", "L2", "L3", "L4"]
+    // Backend SafetyGateway defines a 3-level system (L1/L2/L3); L4 has no backend meaning.
+    private let safetyLevels = ["L1", "L2", "L3"]
+    private let safetyExplanations: [String: String] = [
+        "L1": "Autonomous — agent acts silently, no approval needed.",
+        "L2": "Preview — agent shows a diff/plan and waits for your confirm before executing.",
+        "L3": "Gateway — agent must get explicit approval before every action."
+    ]
+
+    private var availableModels: [MLXModelInfo] {
+        let chat = bridge.models.filter { $0.isTextChatModel }
+        return chat.isEmpty ? bridge.models : chat
+    }
 
     var body: some View {
         ScrollView {
@@ -1297,18 +1321,31 @@ struct CreateAgentSheet: View {
                         }
 
                         VStack(alignment: .leading, spacing: theme.spacingXS) {
-                            Text("Model (leave empty for default)")
+                            Text("Model")
                                 .font(.system(size: theme.footnoteSize, weight: .medium))
                                 .foregroundStyle(theme.textSecondary)
-                            TextField(type.defaultModel, text: $model)
-                                .textFieldStyle(.plain)
-                                .padding(theme.spacingS)
-                                .background(theme.inputBg)
-                                .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                                        .stroke(theme.inputBorder, lineWidth: 1)
+                            if availableModels.isEmpty {
+                                TextField(type.defaultModel, text: $model)
+                                    .textFieldStyle(.plain)
+                                    .padding(theme.spacingS)
+                                    .background(theme.inputBg)
+                                    .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                            .stroke(theme.inputBorder, lineWidth: 1)
+                                    }
+                                Text("No models loaded from fusion-mlx. Start the MLX service or enter a model id manually.")
+                                    .font(.system(size: theme.captionSize))
+                                    .foregroundStyle(theme.textTertiary)
+                            } else {
+                                Picker("Model", selection: $model) {
+                                    Text("Default (\(type.defaultModel))").tag("")
+                                    ForEach(availableModels) { m in
+                                        Text(m.name).tag(m.id)
+                                    }
                                 }
+                                .pickerStyle(.menu)
+                            }
                         }
 
                         VStack(alignment: .leading, spacing: theme.spacingXS) {
@@ -1360,6 +1397,10 @@ struct CreateAgentSheet: View {
                                     }
                                 }
                                 .pickerStyle(.segmented)
+                                Text(safetyExplanations[safetyLevel] ?? "")
+                                    .font(.system(size: theme.captionSize))
+                                    .foregroundStyle(theme.textTertiary)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
                         }
 
@@ -1407,6 +1448,16 @@ struct CreateAgentSheet: View {
                                         .stroke(theme.inputBorder, lineWidth: 1)
                                 }
                         }
+
+                        markdownField("SOUL.md (personality & instructions)",
+                                      placeholder: "Define the agent's persona, tone, and core instructions...",
+                                      text: $soulMd)
+                        markdownField("MEMORY.md (persistent memory)",
+                                      placeholder: "Facts and context the agent should remember across sessions...",
+                                      text: $memoryMd)
+                        markdownField("AGENTS.md (metadata & conventions)",
+                                      placeholder: "Conventions, sub-agent definitions, and operational notes...",
+                                      text: $agentsMd)
                     }
                 }
 
@@ -1416,7 +1467,7 @@ struct CreateAgentSheet: View {
                         let tools = toolsText.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
                         let capabilities = capabilitiesText.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
                         let tags = tagsText.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
-                        onCreate(name, type, model, systemPrompt, temperature, maxTokens, tools, capabilities, safetyLevel, tags)
+                        onCreate(name, type, model, systemPrompt, temperature, maxTokens, tools, capabilities, safetyLevel, tags, soulMd, memoryMd, agentsMd)
                         dismiss()
                     }
                 }
@@ -1424,6 +1475,34 @@ struct CreateAgentSheet: View {
             .padding(theme.spacingXL)
             .frame(width: 440)
             .background(theme.windowBg)
+        }
+    }
+
+    private func markdownField(_ title: String, placeholder: String, text: Binding<String>) -> some View {
+        VStack(alignment: .leading, spacing: theme.spacingXS) {
+            Text(title)
+                .font(.system(size: theme.footnoteSize, weight: .medium))
+                .foregroundStyle(theme.textSecondary)
+            TextEditor(text: text)
+                .font(.system(size: theme.footnoteSize))
+                .scrollContentBackground(.hidden)
+                .padding(theme.spacingS)
+                .frame(minHeight: 80, idealHeight: 100)
+                .background(theme.inputBg)
+                .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                        .stroke(theme.inputBorder, lineWidth: 1)
+                }
+                .overlay(alignment: .topLeading) {
+                    if text.wrappedValue.isEmpty {
+                        Text(placeholder)
+                            .font(.system(size: theme.footnoteSize))
+                            .foregroundStyle(theme.textTertiary)
+                            .padding(theme.spacingS)
+                            .allowsHitTesting(false)
+                    }
+                }
         }
     }
 }
@@ -2112,11 +2191,14 @@ struct MarketplaceTabView: View {
     @Environment(\.studioTheme) var theme
 
     var body: some View {
-        HSplitView {
-            marketplaceSidebar
-                .frame(minWidth: 260)
+        GeometryReader { geo in
+            HSplitView {
+                marketplaceSidebar
+                    .frame(minWidth: 200, idealWidth: max(200, geo.size.width * 0.2), maxWidth: 360)
 
-            marketplaceDetail
+                marketplaceDetail
+                    .frame(minWidth: 400, idealWidth: geo.size.width * 0.8)
+            }
         }
         .onAppear {
             loadMarketplace()

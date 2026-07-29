@@ -320,6 +320,24 @@ final class AgentBridge: ObservableObject {
         return result
     }
 
+    // 复核 MLX 是否可达：读取 env.health_check 的 mlx_api.ok。
+    // 用于启动竞态后重试 / Design 等模块进入时复核，避免 isMLXRunning 滞留 false (bug2)。
+    func probeMLXRunningStatus() async -> Bool {
+        do {
+            let result = try await fullHealthCheck()
+            let checks = result["checks"] as? [String: [String: Any]] ?? [:]
+            let ok = checks["mlx_api"]?["ok"] as? Bool ?? false
+            logger.info("probeMLXRunningStatus: mlx_api.ok=\(ok)")
+            if ok {
+                try? await fetchModels()
+            }
+            return ok
+        } catch {
+            logger.error("probeMLXRunningStatus: health check failed: \(error)")
+            return false
+        }
+    }
+
     func repair(itemId: String) async throws -> [String: Any] {
         guard let client = ipcClient else {
             throw BridgeError.notConnected
@@ -1457,11 +1475,11 @@ final class AgentBridge: ObservableObject {
 
     // MARK: - Agent Operations
 
-    func agentCreate(name: String, model: String = "", systemPrompt: String = "", temperature: Double = 0.7, maxTokens: Int = 4096, tools: [String] = [], capabilities: [String] = [], safetyLevel: String = "L1", tags: [String] = [], description: String = "", soul: String = "") async throws -> AgentModel {
+    func agentCreate(name: String, model: String = "", systemPrompt: String = "", temperature: Double = 0.7, maxTokens: Int = 4096, tools: [String] = [], capabilities: [String] = [], safetyLevel: String = "L1", tags: [String] = [], description: String = "", soul: String = "", memory: String = "", agentsMd: String = "") async throws -> AgentModel {
         guard let client = ipcClient else { throw BridgeError.notConnected }
-        logger.info("agentCreate: name=\(name)")
+        logger.info("agentCreate: name=\(name), soul=\(soul.isEmpty ? "empty" : "set"), memory=\(memory.isEmpty ? "empty" : "set"), agentsMd=\(agentsMd.isEmpty ? "empty" : "set")")
         do {
-            let result = try await client.agentCreate(name: name, model: model, systemPrompt: systemPrompt, temperature: temperature, maxTokens: maxTokens, tools: tools, capabilities: capabilities, safetyLevel: safetyLevel, tags: tags, description: description, soul: soul)
+            let result = try await client.agentCreate(name: name, model: model, systemPrompt: systemPrompt, temperature: temperature, maxTokens: maxTokens, tools: tools, capabilities: capabilities, safetyLevel: safetyLevel, tags: tags, description: description, soul: soul, memory: memory, agentsMd: agentsMd)
             guard let agent = Self.parseAgentModel(from: result) else {
                 throw BridgeError.decodeError("Failed to parse agent.create response")
             }

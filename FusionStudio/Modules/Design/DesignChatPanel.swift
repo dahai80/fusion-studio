@@ -12,6 +12,7 @@ struct DesignChatPanel: View {
     @Environment(\.studioTheme) private var theme
     @EnvironmentObject var designBridge: DesignBridge
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var agentBridge: AgentBridge
 
     @State private var inputText: String = ""
     @State private var showQuickTemplates: Bool = false
@@ -60,6 +61,17 @@ struct DesignChatPanel: View {
         .onChange(of: designBridge.exportedCodegenCode) {
             if !designBridge.exportedCodegenCode.isEmpty && !showCodegenExport {
                 showCodegenExport = true
+            }
+        }
+        .onAppear {
+            // 进入 Design 时复核 MLX 状态：启动竞态可能让 isMLXRunning 滞留 false (bug2)。
+            if !appState.isMLXRunning {
+                Task {
+                    let ok = await agentBridge.probeMLXRunningStatus()
+                    await MainActor.run {
+                        appState.isMLXRunning = ok
+                    }
+                }
             }
         }
     }

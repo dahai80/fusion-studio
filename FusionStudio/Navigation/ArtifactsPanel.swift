@@ -104,6 +104,7 @@ struct ArtifactsPanel: View {
     @State private var liveKind: ArtifactKind = .app
     @State private var liveName = ""
     @State private var showLibrary = false
+    @State private var hoveredTemplateId: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -219,13 +220,23 @@ struct ArtifactsPanel: View {
             .buttonStyle(.plain)
             .help("Import Artifact")
 
-            Button(action: { showTemplatePicker = true }) {
-                Image(systemName: "plus")
-                    .font(.system(size: theme.iconS))
-                    .foregroundStyle(theme.textTertiary)
+            Button(action: { startNewArtifact() }) {
+                HStack(spacing: theme.spacingXS) {
+                    Image(systemName: "plus")
+                        .font(.system(size: theme.iconS, weight: .semibold))
+                    Text("New Artifacts")
+                        .font(.system(size: theme.footnoteSize, weight: .medium))
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, theme.spacingM)
+                .padding(.vertical, 4)
+                .background(
+                    RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                        .fill(theme.accent)
+                )
             }
             .buttonStyle(.plain)
-            .help("Create Artifact")
+            .help("Start a new artifact")
 
             Button(action: { loadArtifacts() }) {
                 Image(systemName: "arrow.clockwise")
@@ -299,7 +310,7 @@ struct ArtifactsPanel: View {
                 ScrollView {
                     LazyVStack(spacing: theme.spacingS) {
                         if chatMessages.isEmpty {
-                            chatEmptyHint
+                            emptyConversationState
                         }
                         ForEach(chatMessages) { msg in
                             chatBubble(msg).id(msg.id)
@@ -391,21 +402,95 @@ struct ArtifactsPanel: View {
         .padding(.vertical, theme.spacingS)
     }
 
-    private var chatEmptyHint: some View {
-        VStack(spacing: theme.spacingS) {
-            Image(systemName: "wand.and.stars")
-                .font(.system(size: 32))
-                .foregroundStyle(theme.textTertiary)
-            Text("Describe what you want to build")
-                .font(.system(size: theme.textSize, weight: .medium))
-                .foregroundStyle(theme.textSecondary)
-            Text("Apps, games, documents, tools - generated through conversation.")
-                .font(.system(size: theme.footnoteSize))
-                .foregroundStyle(theme.textTertiary)
-                .multilineTextAlignment(.center)
+    private var emptyConversationState: some View {
+        VStack(spacing: theme.spacingL) {
+            VStack(spacing: theme.spacingS) {
+                Image(systemName: "wand.and.stars")
+                    .font(.system(size: 32))
+                    .foregroundStyle(theme.textTertiary)
+                Text("What will you build?")
+                    .font(.system(size: theme.textSize, weight: .semibold))
+                    .foregroundStyle(theme.text)
+                Text("Pick a template to start, then describe what you want through conversation.")
+                    .font(.system(size: theme.footnoteSize))
+                    .foregroundStyle(theme.textTertiary)
+                    .multilineTextAlignment(.center)
+            }
+
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: theme.spacingM), count: 3),
+                spacing: theme.spacingM
+            ) {
+                ForEach(artifactTemplates) { template in
+                    emptyTemplateTile(template)
+                }
+            }
+            .padding(.horizontal, theme.spacingL)
         }
         .padding(.vertical, theme.spacingL)
         .frame(maxWidth: .infinity)
+    }
+
+    private func emptyTemplateTile(_ template: ArtifactTemplate) -> some View {
+        let isHovered = hoveredTemplateId == template.id
+        let color = template.kind.color
+        return VStack(alignment: .leading, spacing: theme.spacingXS) {
+            Image(systemName: template.icon)
+                .font(.system(size: theme.iconL))
+                .foregroundStyle(color)
+            Text(template.name)
+                .font(.system(size: theme.captionSize, weight: .semibold))
+                .foregroundStyle(theme.text)
+                .lineLimit(1)
+            Text(template.description)
+                .font(.system(size: 9))
+                .foregroundStyle(theme.textSecondary)
+                .lineLimit(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(theme.spacingM)
+        .frame(minHeight: 96)
+        .background(
+            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                .fill(isHovered ? theme.surfaceElevated : theme.groupBg)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                .stroke(isHovered ? color.opacity(0.5) : theme.groupBorder, lineWidth: 1)
+        )
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            hoveredTemplateId = hovering ? template.id : nil
+        }
+        .onTapGesture {
+            selectTemplate(template)
+        }
+        .animation(.easeInOut(duration: 0.2), value: isHovered)
+    }
+
+    private func selectTemplate(_ template: ArtifactTemplate) {
+        selectedTemplate = template
+        liveKind = template.kind
+        liveType = template.type
+        liveName = template.name
+        liveContent = ""
+        chatInput = ""
+        chatError = nil
+        chatMessages = [ArtifactChatMessage(
+            role: "system",
+            content: "You're building a \(template.kind.label) artifact (\(template.name)). Describe what you want and I'll generate it through conversation."
+        )]
+        artifactsLog.info("Template selected: \(template.id)")
+    }
+
+    private func startNewArtifact() {
+        chatMessages = []
+        liveContent = ""
+        chatInput = ""
+        selectedTemplate = nil
+        chatError = nil
+        hoveredTemplateId = nil
+        artifactsLog.info("New artifact session started")
     }
 
     private var chatInputBar: some View {

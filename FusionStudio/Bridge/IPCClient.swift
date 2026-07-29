@@ -454,9 +454,11 @@ class IPCClient: ObservableObject {
 
     // MARK: - Agent CRUD
 
-    func agentCreate(name: String, model: String = "", systemPrompt: String = "", temperature: Double = 0.7, maxTokens: Int = 4096, tools: [String] = [], capabilities: [String] = [], safetyLevel: String = "L1", tags: [String] = [], description: String = "", soul: String = "") async throws -> [String: Any] {
+    func agentCreate(name: String, model: String = "", systemPrompt: String = "", temperature: Double = 0.7, maxTokens: Int = 4096, tools: [String] = [], capabilities: [String] = [], safetyLevel: String = "L1", tags: [String] = [], description: String = "", soul: String = "", memory: String = "", agentsMd: String = "") async throws -> [String: Any] {
         var params: [String: Any] = ["name": name, "model": model, "system_prompt": systemPrompt, "temperature": temperature, "max_tokens": maxTokens, "tools": tools, "capabilities": capabilities, "safety_level": safetyLevel, "tags": tags, "description": description]
         if !soul.isEmpty { params["soul"] = soul }
+        if !memory.isEmpty { params["memory"] = memory }
+        if !agentsMd.isEmpty { params["agents_md"] = agentsMd }
         return try await call(method: "agent.create", params: params)
     }
 
