@@ -180,6 +180,8 @@ struct SecurityView: View {
             .pickerStyle(.segmented)
             .padding(8)
 
+            UpstreamServiceStatusBanner(serviceId: "fusion-security")
+
             switch selectedTab {
             case .dashboard: SecurityDashboard()
             case .scan:      SecurityScanView()

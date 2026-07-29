@@ -1,6 +1,70 @@
 import Foundation
 import Combine
 import os.log
+import SwiftUI
+
+// 上游服务状态横幅：在依赖上游服务的模块视图顶部展示服务状态 + 启动入口
+struct UpstreamServiceStatusBanner: View {
+    @EnvironmentObject var upstream: UpstreamServiceManager
+    @Environment(\.studioTheme) private var theme
+    let serviceId: String
+
+    var body: some View {
+        let svc = upstream.services.first { $0.id == serviceId }
+        HStack(spacing: 10) {
+            Image(systemName: svc?.icon ?? "bolt.horizontal")
+                .foregroundColor(.secondary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(svc?.displayName ?? serviceId)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(theme.text)
+                Text(message(for: svc))
+                    .font(.system(size: 11))
+                    .foregroundColor(theme.textSecondary)
+                    .lineLimit(2)
+            }
+            Spacer()
+            Circle()
+                .fill(statusColor(svc))
+                .frame(width: 8, height: 8)
+            Text(svc?.status.text ?? "未知")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(theme.textSecondary)
+            Button {
+                Task { await upstream.refreshAll() }
+            } label: {
+                Image(systemName: "arrow.clockwise")
+            }
+            .buttonStyle(.borderless)
+            .help("刷新状态")
+            Button("启动") {
+                Task { await upstream.startService(id: serviceId) }
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .help("调用 start.sh 启动服务")
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(theme.surfaceSecondary)
+    }
+
+    private func message(for svc: UpstreamService?) -> String {
+        guard let svc = svc else { return "未注册" }
+        return svc.message.isEmpty ? svc.status.text : svc.message
+    }
+
+    private func statusColor(_ svc: UpstreamService?) -> Color {
+        switch svc?.status {
+        case .running:      return theme.greenDot
+        case .failed:       return theme.redDot
+        case .notInstalled: return theme.redDot
+        case .stopped:      return theme.amberDot
+        case .starting:     return theme.amberDot
+        default:            return theme.textTertiary
+        }
+    }
+}
 
 // 上游服务生命周期管理器
 // Callers: FusionStudioApp.onAppear (ensureCriticalRunning on launch), UpstreamServiceStatusView (manual start/stop/refresh).
@@ -106,6 +170,24 @@ final class UpstreamServiceManager: ObservableObject {
                             repoPathRaw: "~/fusion/fusion-design",
                             healthKind: .httpGet, healthEndpoint: "",
                             status: .notApplicable, message: "CLI 工具-无需启动"),
+            UpstreamService(id: "fusion-desk",
+                            displayName: "Fusion-Desk 自动化",
+                            icon: "desktopcomputer",
+                            isCritical: false, startOrder: 5,
+                            repoPathRaw: "~/fusion/fusion-desk",
+                            healthKind: .httpGet, healthEndpoint: "http://localhost:9761"),
+            UpstreamService(id: "fusion-model-hub",
+                            displayName: "Fusion Model Hub",
+                            icon: "shippingbox",
+                            isCritical: false, startOrder: 6,
+                            repoPathRaw: "~/fusion/fusion-model-hub",
+                            healthKind: .httpGet, healthEndpoint: "http://localhost:8000/api/v1/system/info"),
+            UpstreamService(id: "fusion-security",
+                            displayName: "Fusion-Security 审计",
+                            icon: "shield.checkered",
+                            isCritical: false, startOrder: 7,
+                            repoPathRaw: "~/fusion/fusion-security",
+                            healthKind: .httpGet, healthEndpoint: "http://localhost:8000/api/v1/system/info"),
         ]
     }
 

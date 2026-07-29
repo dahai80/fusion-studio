@@ -67,6 +67,7 @@ struct ModelHubView: View {
         HSplitView {
             // 左侧：模型列表
             VStack(spacing: 0) {
+                UpstreamServiceStatusBanner(serviceId: "fusion-model-hub")
                 // 搜索栏
                 HStack {
                     Image(systemName: "magnifyingglass")

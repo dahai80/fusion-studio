@@ -82,22 +82,28 @@ struct DeskView: View {
     }
 
     private var disconnectedView: some View {
-        VStack(spacing: 16) {
-            Spacer()
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 40))
-                .foregroundColor(.orange)
-            Text("Fusion-Desk 服务未连接")
-                .font(.title3)
-                .foregroundColor(theme.text)
-            Text("请启动 fusion-desk 服务后重试")
-                .font(.subheadline)
-                .foregroundColor(theme.textSecondary)
-            Button("重新连接") {
-                Task { await bridge.loadAll() }
+        VStack(spacing: 0) {
+            UpstreamServiceStatusBanner(serviceId: "fusion-desk")
+            Divider()
+            VStack(spacing: 16) {
+                Spacer()
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.system(size: 40))
+                    .foregroundColor(.orange)
+                Text("Fusion-Desk 服务未连接")
+                    .font(.title3)
+                    .foregroundColor(theme.text)
+                Text("请启动 fusion-desk 服务后重试（需在 fusion-desk 根目录创建 start.sh）")
+                    .font(.subheadline)
+                    .foregroundColor(theme.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+                Button("重新连接") {
+                    Task { await bridge.loadAll() }
+                }
+                .buttonStyle(.borderedProminent)
+                Spacer()
             }
-            .buttonStyle(.borderedProminent)
-            Spacer()
         }
     }
 
