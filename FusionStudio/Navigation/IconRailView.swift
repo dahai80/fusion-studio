@@ -93,6 +93,9 @@ struct IconRailView: View {
                 case .design:
                     appState.selectedModule = .design
                     appState.selectedSheet = .code
+                case .agent:
+                    appState.selectedModule = .agent
+                    appState.selectedSheet = .agentStudio
                 }
             }
             railLog.info("Section selected: \(section.rawValue)")

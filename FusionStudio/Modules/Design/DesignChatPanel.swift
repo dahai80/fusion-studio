@@ -11,6 +11,7 @@ private let chatPanelLog = Logger(subsystem: "com.fusion.studio", category: "Des
 struct DesignChatPanel: View {
     @Environment(\.studioTheme) private var theme
     @EnvironmentObject var designBridge: DesignBridge
+    @EnvironmentObject var appState: AppState
 
     @State private var inputText: String = ""
     @State private var showQuickTemplates: Bool = false
@@ -645,6 +646,12 @@ struct DesignChatPanel: View {
         guard !inputText.isEmpty || designBridge.isGenerating else { return }
         if designBridge.isGenerating {
             chatPanelLog.info("DesignChatPanel: stop requested (not supported in current streaming)")
+            return
+        }
+
+        if !appState.isMLXRunning {
+            designBridge.errorMessage = "MLX 服务未运行，请先在 MLX 面板启动服务后再发送"
+            chatPanelLog.warning("DesignChatPanel: send blocked - MLX not running")
             return
         }
 

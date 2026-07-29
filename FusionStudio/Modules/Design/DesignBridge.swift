@@ -425,6 +425,43 @@ class DesignBridge: ObservableObject {
         designBridgeLog.info("DesignBridge: IPCClient injected")
     }
 
+    // MARK: - Panel Convenience Methods
+
+    func applyDesignTokensToCanvas(systemId: String) {
+        let cliPath = findFusionDesignCLI()
+        guard !cliPath.isEmpty else {
+            designBridgeLog.error("DesignBridge: fusion-design CLI not found")
+            return
+        }
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: cliPath)
+        process.arguments = ["token-css", "--design-system", systemId]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        do {
+            try process.run()
+            process.waitUntilExit()
+            if process.terminationStatus == 0 {
+                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                if let css = String(data: data, encoding: .utf8), !css.isEmpty {
+                    applyDesignTokensToCanvas(css)
+                    designBridgeLog.info("DesignBridge: applied tokens for system=\(systemId)")
+                }
+            }
+        } catch {
+            designBridgeLog.error("DesignBridge: token-css CLI failed: \(error)")
+        }
+    }
+
+    func loadDocumentJSON(_ json: String) {
+        renderDocumentToCanvas(json)
+        designBridgeLog.info("DesignBridge: loaded document JSON (\(json.count) chars)")
+    }
+
+    func mutateNode(nodeId: String, fill: String? = nil, stroke: String? = nil) {
+        mutateCanvasNode(nodeId, x: nil, y: nil, w: nil, h: nil, fill: fill, stroke: stroke)
+    }
+
     // MARK: - Send Design Chat
 
     func sendDesignChat(_ userMessage: String) async {

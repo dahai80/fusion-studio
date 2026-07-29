@@ -9,7 +9,7 @@ import os
 
 // MARK: - Data Models
 
-struct KBInfo: Identifiable, Codable {
+struct KBInfo: Identifiable, Codable, Hashable {
     let id: String
     let name: String
     let description: String

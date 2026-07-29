@@ -65,6 +65,12 @@ struct ArtifactVersionModel: Identifiable, Hashable {
     let createdAt: Date
 }
 
+struct ArtifactChatMessage: Identifiable {
+    let id = UUID()
+    let role: String
+    let content: String
+}
+
 // MARK: - ArtifactsPanel
 
 struct ArtifactsPanel: View {
@@ -88,26 +94,22 @@ struct ArtifactsPanel: View {
     @State private var showImportSheet = false
     @State private var showInjectSheet = false
     @State private var showSessionPicker = false
+    @EnvironmentObject var agentBridge: AgentBridge
+    @State private var chatMessages: [ArtifactChatMessage] = []
+    @State private var chatInput = ""
+    @State private var chatGenerating = false
+    @State private var chatError: String?
+    @State private var liveContent = ""
+    @State private var liveType = "html"
+    @State private var liveKind: ArtifactKind = .app
+    @State private var liveName = ""
+    @State private var showLibrary = false
 
     var body: some View {
         VStack(spacing: 0) {
             headerBar
             Rectangle().fill(theme.separator).frame(height: 1)
-
-            if isLoading {
-                Spacer()
-                ProgressView("Loading artifacts...")
-                    .foregroundStyle(theme.textSecondary)
-                Spacer()
-            } else if let error = errorMessage {
-                Spacer()
-                errorView(error)
-                Spacer()
-            } else if artifacts.isEmpty {
-                emptyState
-            } else {
-                artifactList
-            }
+            conversationView
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
@@ -116,10 +118,10 @@ struct ArtifactsPanel: View {
         .sheet(isPresented: $showTemplatePicker) {
             TemplatePickerSheet { template in
                 selectedTemplate = template
+                liveKind = template.kind
+                liveType = template.type
+                liveName = template.name
                 showTemplatePicker = false
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                    showCreateSheet = true
-                }
             }
         }
         .sheet(isPresented: $showCreateSheet) {
@@ -235,6 +237,339 @@ struct ArtifactsPanel: View {
         }
         .padding(.horizontal, theme.spacingL)
         .padding(.vertical, theme.spacingS)
+    }
+
+    // MARK: - Conversation (chat-first)
+
+    private var conversationView: some View {
+        HSplitView {
+            if showLibrary {
+                librarySidebar
+                    .frame(minWidth: 200, idealWidth: 240, maxWidth: 320)
+            }
+
+            chatColumn
+                .frame(minWidth: 320)
+
+            if !liveContent.isEmpty {
+                livePreviewPane
+                    .frame(minWidth: 280, idealWidth: 440)
+            }
+        }
+    }
+
+    private var librarySidebar: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: theme.spacingS) {
+                Text("Library")
+                    .font(.system(size: theme.footnoteSize, weight: .semibold))
+                    .foregroundStyle(theme.textSecondary)
+                Spacer()
+                if isLoading {
+                    ProgressView().scaleEffect(0.7)
+                }
+            }
+            .padding(.horizontal, theme.spacingM)
+            .padding(.vertical, theme.spacingXS)
+            Rectangle().fill(theme.separator).frame(height: 1)
+
+            List(filteredArtifacts, selection: $selectedArtifact) { artifact in
+                artifactRow(artifact).tag(artifact)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .onChange(of: selectedArtifact) { sel in
+                guard let sel = sel else { return }
+                liveType = sel.type
+                liveKind = sel.kind
+                liveName = sel.name
+                loadContent(for: sel)
+            }
+            .onChange(of: selectedContent) { c in
+                if let c = c { liveContent = c }
+            }
+        }
+    }
+
+    private var chatColumn: some View {
+        VStack(spacing: 0) {
+            chatCategoryBar
+            Rectangle().fill(theme.separator).frame(height: 1)
+
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: theme.spacingS) {
+                        if chatMessages.isEmpty {
+                            chatEmptyHint
+                        }
+                        ForEach(chatMessages) { msg in
+                            chatBubble(msg).id(msg.id)
+                        }
+                        if chatGenerating {
+                            HStack {
+                                Text("Generating…")
+                                    .font(.system(size: theme.footnoteSize))
+                                    .foregroundStyle(theme.textTertiary)
+                                Spacer()
+                            }
+                            .padding(.horizontal, theme.spacingL)
+                        }
+                    }
+                    .padding(theme.spacingL)
+                }
+                .onChange(of: chatMessages.count) { _ in
+                    if let last = chatMessages.last {
+                        withAnimation(.easeOut(duration: theme.animationFast)) {
+                            proxy.scrollTo(last.id, anchor: .bottom)
+                        }
+                    }
+                }
+            }
+
+            Rectangle().fill(theme.separator).frame(height: 1)
+            chatInputBar
+        }
+    }
+
+    private var chatCategoryBar: some View {
+        HStack(spacing: theme.spacingS) {
+            Menu {
+                ForEach(ArtifactKind.allCases, id: \.self) { kind in
+                    Button(action: {
+                        liveKind = kind
+                        liveType = defaultType(for: kind)
+                    }) {
+                        Label(kind.label, systemImage: kind.icon)
+                    }
+                }
+            } label: {
+                HStack(spacing: theme.spacingXS) {
+                    Image(systemName: liveKind.icon)
+                        .foregroundStyle(liveKind.color)
+                    Text(liveKind.label)
+                        .font(.system(size: theme.footnoteSize, weight: .medium))
+                        .foregroundStyle(theme.text)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 9))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .padding(.horizontal, theme.spacingS)
+                .padding(.vertical, 4)
+                .background(
+                    RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                        .fill(theme.groupBg)
+                )
+            }
+            .menuStyle(.borderlessButton)
+
+            Spacer()
+
+            if !liveContent.isEmpty {
+                Button(action: { saveLiveArtifact() }) {
+                    Label("Save", systemImage: "square.and.arrow.down")
+                        .font(.system(size: theme.footnoteSize, weight: .medium))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, theme.spacingM)
+                        .padding(.vertical, 4)
+                        .background(
+                            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                .fill(theme.accent)
+                        )
+                }
+                .buttonStyle(.plain)
+                .help("Save to library")
+            }
+
+            Button(action: { showLibrary.toggle() }) {
+                Image(systemName: "sidebar.left")
+                    .font(.system(size: theme.iconS))
+                    .foregroundStyle(showLibrary ? theme.accent : theme.textTertiary)
+            }
+            .buttonStyle(.plain)
+            .help("Toggle library")
+        }
+        .padding(.horizontal, theme.spacingL)
+        .padding(.vertical, theme.spacingS)
+    }
+
+    private var chatEmptyHint: some View {
+        VStack(spacing: theme.spacingS) {
+            Image(systemName: "wand.and.stars")
+                .font(.system(size: 32))
+                .foregroundStyle(theme.textTertiary)
+            Text("Describe what you want to build")
+                .font(.system(size: theme.textSize, weight: .medium))
+                .foregroundStyle(theme.textSecondary)
+            Text("Apps, games, documents, tools - generated through conversation.")
+                .font(.system(size: theme.footnoteSize))
+                .foregroundStyle(theme.textTertiary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.vertical, theme.spacingL)
+        .frame(maxWidth: .infinity)
+    }
+
+    private var chatInputBar: some View {
+        VStack(spacing: theme.spacingS) {
+            if let err = chatError {
+                Text(err)
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(.red)
+                    .padding(.horizontal, theme.spacingL)
+            }
+            HStack(alignment: .bottom, spacing: theme.spacingS) {
+                TextField("Describe the artifact you want to build…", text: $chatInput, axis: .vertical)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: theme.textSize))
+                    .lineLimit(1...5)
+                    .onSubmit { sendChat() }
+
+                Button(action: { sendChat() }) {
+                    Image(systemName: chatGenerating ? "stop.fill" : "arrow.up.circle.fill")
+                        .font(.system(size: theme.iconL))
+                        .foregroundStyle(chatGenerating ? theme.textTertiary : theme.accent)
+                }
+                .buttonStyle(.plain)
+                .disabled(chatInput.trimmingCharacters(in: .whitespaces).isEmpty && !chatGenerating)
+                .help(chatGenerating ? "Stop" : "Send")
+            }
+            .padding(.horizontal, theme.spacingL)
+            .padding(.vertical, theme.spacingS)
+            .background(theme.groupBg)
+        }
+    }
+
+    private func chatBubble(_ msg: ArtifactChatMessage) -> some View {
+        let isUser = msg.role == "user"
+        let isSystem = msg.role == "system"
+        return HStack {
+            if isUser { Spacer(minLength: 40) }
+            VStack(alignment: isUser ? .trailing : .leading, spacing: theme.spacingXS) {
+                Text(isUser ? "You" : (isSystem ? "System" : "Assistant"))
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(theme.textTertiary)
+                Text(msg.content)
+                    .font(.system(size: theme.footnoteSize))
+                    .foregroundStyle(theme.text)
+                    .textSelection(.enabled)
+                    .padding(theme.spacingM)
+                    .background(
+                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                            .fill(isUser ? theme.accent.opacity(0.15) : (isSystem ? theme.accent.opacity(0.08) : theme.groupBg))
+                    )
+            }
+            if !isUser && !isSystem { Spacer(minLength: 40) }
+        }
+    }
+
+    private var livePreviewPane: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Preview")
+                    .font(.system(size: theme.footnoteSize, weight: .medium))
+                    .foregroundStyle(theme.textSecondary)
+                Spacer()
+                if !liveName.isEmpty {
+                    Text(liveName)
+                        .font(.system(size: 9))
+                        .foregroundStyle(theme.textTertiary)
+                        .lineLimit(1)
+                }
+            }
+            .padding(.horizontal, theme.spacingM)
+            .padding(.vertical, theme.spacingXS)
+            Rectangle().fill(theme.separator).frame(height: 1)
+
+            if liveType == "html" {
+                HTMLPreviewView(htmlContent: liveContent)
+            } else {
+                ScrollView {
+                    Text(liveContent)
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(theme.text)
+                        .textSelection(.enabled)
+                        .padding(theme.spacingM)
+                }
+            }
+        }
+    }
+
+    private func defaultType(for kind: ArtifactKind) -> String {
+        switch kind {
+        case .document: return "markdown"
+        case .code: return "code"
+        default: return "html"
+        }
+    }
+
+    private func chatSystemPrompt() -> String {
+        return """
+        You are an artifact creator. When the user describes what they want, generate the complete artifact. \
+        Output format: \(liveType). \
+        Output ONLY the artifact content (a complete \(liveType) document), no explanations, no markdown fences.
+        """
+    }
+
+    private func extractArtifactContent(from response: String) -> String {
+        var content = response
+        if content.hasPrefix("```") {
+            if let firstNewline = content.firstIndex(of: "\n") {
+                content = String(content[firstNewline...]).trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            if content.hasSuffix("```") {
+                content = String(content.dropLast(3)).trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+        }
+        return content
+    }
+
+    private func sendChat() {
+        let prompt = chatInput.trimmingCharacters(in: .whitespaces)
+        guard !prompt.isEmpty else { return }
+        chatInput = ""
+        chatMessages.append(ArtifactChatMessage(role: "user", content: prompt))
+        chatGenerating = true
+        chatError = nil
+
+        var messages: [[String: String]] = [["role": "system", "content": chatSystemPrompt()]]
+        for msg in chatMessages where msg.role != "system" {
+            messages.append(["role": msg.role, "content": msg.content])
+        }
+
+        Task {
+            do {
+                let resp = try await agentBridge.infer(messages: messages, temperature: 0.7, maxTokens: 4096)
+                let content = extractArtifactContent(from: resp)
+                if !content.isEmpty { liveContent = content }
+                chatMessages.append(ArtifactChatMessage(role: "assistant", content: resp))
+                artifactsLog.info("Artifacts chat generated: \(content.count) chars")
+            } catch {
+                chatError = "Generation failed: \(error.localizedDescription)"
+                artifactsLog.error("sendChat: \(error)")
+            }
+            chatGenerating = false
+        }
+    }
+
+    private func saveLiveArtifact() {
+        guard !liveContent.isEmpty else { return }
+        Task {
+            do {
+                _ = try await ipcClient.artifactCreate(
+                    sessionId: sessionId,
+                    name: liveName.isEmpty ? "Artifact" : liveName,
+                    type: liveType,
+                    kind: liveKind.rawValue,
+                    content: liveContent,
+                    projectId: FusionProjectManager.shared.activeProject?.id.uuidString
+                )
+                artifactsLog.info("Saved live artifact: \(self.liveName)")
+                loadArtifacts()
+                chatMessages.append(ArtifactChatMessage(role: "system", content: "Artifact saved to library."))
+            } catch {
+                chatError = "Save failed: \(error.localizedDescription)"
+                artifactsLog.error("saveLiveArtifact: \(error)")
+            }
+        }
     }
 
     // MARK: - Artifact List

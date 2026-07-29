@@ -215,6 +215,31 @@ swift build -c release
 ./Scripts/start.sh
 ```
 
+### Upstream Services (Auto-Start)
+
+Fusion Studio depends on upstream ecosystem services. On launch it probes each
+one and, for critical services, auto-starts them through the upstream repo's
+`start.sh` (non-blocking - `IPCClient` auto-reconnects every 3s once the socket
+comes up).
+
+| Service | start.sh | Endpoint | Critical |
+|---------|----------|----------|----------|
+| fusion-mlx | `~/claude-home/fusion-mlx/start.sh` | `localhost:11434` | ✅ |
+| fusion-agent-studio | `~/fusion/fusion-agent-studio/start.sh` | `/tmp/fusion-studio.sock` (UDS) | ✅ |
+| fusion-artifacts-engine | `~/fusion/fusion-artifacts-engine/start.sh` | `127.0.0.1:8892` | ✅ |
+| fusion-kb (RAG) | `~/fusion/fusion-kb/start.sh` | `127.0.0.1:11436` | optional |
+| fusion-multi-node | `~/fusion/fusion-multi-node/start.sh` | `127.0.0.1:9753` | optional |
+| fusion-design | (CLI tool, no start.sh) | - | n/a |
+
+- Critical services auto-start in order: mlx -> agent-studio -> artifacts-engine.
+- Optional services are detected only; start them manually from the UI.
+- Each `start.sh` supports `start | stop | restart | status` (exit 0 = running).
+- The Dashboard shows each service's status (运行中 / 未启动 / 服务不存在 /
+  启动失败) with start / stop / retry controls. A banner appears when a critical
+  service is missing or failed to start.
+- Upstream repo paths and the auto-start toggle live in Settings
+  (`FusionConfig.upstream*Path`, `upstreamAutoStartCritical`, default on).
+
 ### Build Distribution
 
 ```bash

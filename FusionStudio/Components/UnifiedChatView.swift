@@ -37,7 +37,7 @@ struct UnifiedChatView: View {
             Rectangle().fill(theme.separator).frame(height: 1)
             inputArea
         }
-        .frame(minWidth: 320, idealWidth: 400, maxWidth: 480)
+        .frame(minWidth: 320, idealWidth: 400, maxWidth: .infinity)
         .task {
             await chatStore.loadSessions()
         }

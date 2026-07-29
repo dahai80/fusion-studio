@@ -148,6 +148,8 @@ struct FusionSidebarView: View {
             customizeContent
         case .design:
             designContent
+        case .agent:
+            agentModulesContent
         }
     }
 
@@ -380,6 +382,14 @@ struct FusionSidebarView: View {
     private var designContent: some View {
         VStack(spacing: 0) {
             ForEach(SidebarSection.design.modules) { module in
+                moduleRow(module)
+            }
+        }
+    }
+
+    private var agentModulesContent: some View {
+        VStack(spacing: 0) {
+            ForEach(SidebarSection.agent.modules) { module in
                 moduleRow(module)
             }
         }
