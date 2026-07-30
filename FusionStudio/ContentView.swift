@@ -1,7 +1,7 @@
 // Callers: FusionStudioApp body, preview.
-// Affected API: ContentView (IconRail + collapsible sidebar + workspace + inspector).
-// Data schemas: AppState.isSidebarCollapsed controls sidebar visibility.
-// User instruction: "最左侧菜单恢复到上次的形式，窄窄的icon rail，点击图标直接切换主页面，不展开侧边栏"
+// Affected API: ContentView .chats case — shows ChatsPanel (sidebar+detail) or UnifiedChatView (full-screen).
+// Data schemas: AppState.showChatsSidebar controls chats layout mode.
+// User instruction: "点击+号打开主对话框，Chats按钮右侧显示历史+对话两列"
 
 import SwiftUI
 import AppKit
@@ -149,7 +149,11 @@ struct SectionContentView: View {
         Group {
             switch appState.activeSection {
             case .chats:
-                ChatsPanel()
+                if appState.showChatsSidebar {
+                    ChatsPanel()
+                } else {
+                    UnifiedChatView()
+                }
             case .projects:
                 ProjectsPanel()
             case .artifacts:

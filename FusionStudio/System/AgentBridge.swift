@@ -125,6 +125,16 @@ enum BridgeError: Error, Equatable {
     case decodeError(String)
     case rpcError(code: Int, message: String)
     case timeout
+
+    var detail: String {
+        switch self {
+        case .notConnected: return "notConnected — IPC socket not connected"
+        case .ipcError(let msg): return "ipcError — \(msg)"
+        case .decodeError(let msg): return "decodeError — \(msg)"
+        case .rpcError(let code, let msg): return "rpcError(\(code)) — \(msg)"
+        case .timeout: return "timeout"
+        }
+    }
 }
 
 struct ExecuteRequest: Codable, Equatable {
@@ -901,9 +911,11 @@ final class AgentBridge: ObservableObject {
     }
 
     func inferStream(messages: [[String: String]], model: String = "", temperature: Double = 0.7, maxTokens: Int = 2048, effort: String = "medium", thinking: Bool = false, onToken: @escaping (String) -> Void) async throws -> String {
+        // Callers: ChatSessionStore.sendMessage, AgentBridge.sendProjectChat. Affected API: inferStream. Data: baseURL, model.
         let config = FusionConfig.shared
         let baseURL = config.mlxBaseURL
         let apiKey = config.mlxResolvedApiKey
+        print("[inferStream] baseURL=\(baseURL), model=\(model), apiKey=\(apiKey.isEmpty ? "empty" : "set")")
         guard let url = URL(string: "\(baseURL)/v1/chat/completions") else {
             throw BridgeError.ipcError("Invalid MLX URL: \(baseURL)")
         }

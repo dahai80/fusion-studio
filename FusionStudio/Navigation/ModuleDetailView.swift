@@ -93,6 +93,8 @@ struct ModuleDetailView: View {
                 AgentDashboardView()
             case .teamCollab:
                 TeamCollabView()
+            case .chat:
+                UnifiedChatView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
