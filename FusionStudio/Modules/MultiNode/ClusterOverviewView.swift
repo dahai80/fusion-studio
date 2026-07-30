@@ -14,6 +14,28 @@ struct ClusterOverviewView: View {
             VStack(alignment: .leading, spacing: 0) {
                 ScreenHeader(eyebrow: "Multi-Node", title: "集群总览", subtitle: "实时监控集群节点状态与资源")
 
+                UpstreamServiceStatusBanner(serviceId: "fusion-multinode")
+
+                if !engine.isConnected {
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                        Text("Multi-Node 服务未连接 — 请确认服务已启动 (port 9753)")
+                            .font(.system(size: theme.footnoteSize))
+                            .foregroundColor(.secondary)
+                        if let err = engine.lastError {
+                            Text(err)
+                                .font(.system(size: theme.captionSize))
+                                .foregroundColor(.red)
+                                .lineLimit(1)
+                        }
+                        Spacer()
+                    }
+                    .padding(.horizontal, theme.spacingL)
+                    .padding(.vertical, theme.spacingS)
+                    .background(Color.orange.opacity(0.08))
+                }
+
                 metricsStrip
                 actionBar
                 nodeListSection

@@ -27,6 +27,8 @@ struct FusionStudioApp: App {
     // Data schemas: UpstreamServiceManager (ObservableObject) -> [UpstreamService].
     // User instruction: "在所有依赖的上游模块根目录创建start.sh，在fusion-studio启动时需要检测上游服务是否启动，如果没有启动，尝试调用start.sh启动上游服务，如果启动不成功，fusion-studio要展示服务不存在，或者服务启动失败等等"
     @StateObject private var upstreamManager = UpstreamServiceManager()
+    // Callers: WelcomeView (@EnvironmentObject); Affected API: MlxHTTPClient HTTP admin client for fusion-mlx /admin/api/*; Data schemas: MlxModelDTO; User instruction: "你首先把这部分复用过来"
+    @StateObject private var mlxHTTP = MlxHTTPClient(config: FusionConfig.shared)
 
     init() {
         // Dock 图标延后到 onAppear 中设置，init 阶段 NSApp 尚未就绪
@@ -55,11 +57,16 @@ struct FusionStudioApp: App {
                 .environmentObject(chatStore)
                 .environmentObject(deskBridge)
                 .environmentObject(upstreamManager)
+                .environmentObject(mlxHTTP)
                 .studioThemed()
                 .onAppear {
                     // 启动时检测并按需自动启动上游关键服务（mlx -> agent-studio -> artifacts-engine）。
                     // 非阻塞：IPCClient 会每 3s 自动重连，agent-studio 拉起 socket 后即可连上。
                     Task { await upstreamManager.ensureCriticalRunning() }
+                    // 首次启动三档模型未配置时弹出引导（复用自 fusion-mac onboarding）
+                    if FusionConfig.shared.mlxModelSmall.isEmpty {
+                        appState.showWelcome = true
+                    }
                     agentBridge.setIPCClient(ipcClient)
                     // Callers: FusionStudioApp.onAppear; Affected API: designBridge.ingestDesignTokens (RAG);
                     // Data schemas: design token doc string → knowledge.ingest scope=design:tokens
@@ -78,6 +85,13 @@ struct FusionStudioApp: App {
                     }
                 }
                 .frame(minWidth: 1100, minHeight: 700)
+                .sheet(isPresented: $appState.showWelcome) {
+                    WelcomeView(onFinish: { appState.showWelcome = false })
+                        .environmentObject(mlxHTTP)
+                        .environmentObject(agentBridge)
+                        .environmentObject(upstreamManager)
+                        .environmentObject(ipcClient)
+                }
                 .onAppear {
                     setupDockIcon()
                     NSApp.setActivationPolicy(.regular)
@@ -147,43 +161,27 @@ struct FusionStudioApp: App {
 
     private func performStartupHealthCheck() async {
         appState.healthStatus = .checking
-        // 启动竞态：ensureCriticalRunning 异步拉起 agent-studio 守护进程，IPCClient 首次调用
-        // 可能尚未连上 socket。重试最多 ~20s，避免 isMLXRunning 滞留 false 导致 Design 误报
-        // "MLX 服务未运行" (bug2)。
-        let maxAttempts = 10
-        var healthy = false
+        // app 复用外部 mlx(11434)：直接 HTTP 探活，不依赖 env-daemon IPC。
+        // 重试 ~10s 覆盖启动竞态，最终必收敛到 healthy/issuesFound，不再滞留 .checking (bug3/bug8)。
+        let maxAttempts = 5
         var mlxOk = false
-        var lastError: Error?
         for attempt in 1...maxAttempts {
-            do {
-                let result = try await agentBridge.fullHealthCheck()
-                healthy = result["healthy"] as? Bool ?? false
-                let checks = result["checks"] as? [String: [String: Any]] ?? [:]
-                mlxOk = checks["mlx_api"]?["ok"] as? Bool ?? false
-                appLog.info("performStartupHealthCheck: attempt=\(attempt) healthy=\(healthy) mlxOk=\(mlxOk)")
-                lastError = nil
-                break
-            } catch {
-                lastError = error
-                appLog.warning("performStartupHealthCheck: attempt=\(attempt)/\(maxAttempts) failed: \(error)")
-                if attempt < maxAttempts {
-                    try? await Task.sleep(nanoseconds: 2_000_000_000)
-                }
+            mlxOk = await agentBridge.probeMLXRunningStatus()
+            appLog.info("performStartupHealthCheck: attempt=\(attempt) mlxOk=\(mlxOk)")
+            if mlxOk { break }
+            if attempt < maxAttempts {
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
             }
         }
 
         await MainActor.run {
-            appState.isHealthCheckPassed = healthy
+            appState.isHealthCheckPassed = mlxOk
             appState.isMLXRunning = mlxOk
-            appState.healthStatus = healthy ? .healthy : .issuesFound
+            appState.healthStatus = mlxOk ? .healthy : .issuesFound
         }
 
-        if mlxOk {
-            try? await agentBridge.fetchModels()
-        }
-
-        if lastError != nil && !mlxOk {
-            appLog.error("performStartupHealthCheck: gave up after \(maxAttempts) attempts: \(lastError!)")
+        if !mlxOk {
+            appLog.error("performStartupHealthCheck: mlx unreachable after \(maxAttempts) attempts")
         }
     }
 }

@@ -42,6 +42,8 @@ enum AgentType: String, CaseIterable, Identifiable {
         }
     }
     var defaultModel: String {
+        let cfg = FusionConfig.shared.defaultModel(for: .agent)
+        if !cfg.isEmpty { return cfg }
         switch self {
         case .code:     return "deepseek-coder-6.7b-4bit"
         case .research: return "qwen3.5-9b-4bit"
@@ -415,7 +417,7 @@ struct AgentStudioView: View {
         .background(theme.windowBg)
         .toast(manager: toastManager)
         .sheet(isPresented: $showCreateAgent) {
-            CreateAgentSheet { name, type, model, systemPrompt, temperature, maxTokens, tools, capabilities, safetyLevel, tags, soul, memory, agentsMd in
+            CreateAgentSheet { name, type, model, systemPrompt, temperature, maxTokens, tools, capabilities, safetyLevel, tags, soul, memory, agentsMd, graphId in
                 createAgentViaBridge(name: name, type: type, model: model, systemPrompt: systemPrompt, temperature: temperature, maxTokens: maxTokens, tools: tools, capabilities: capabilities, safetyLevel: safetyLevel, tags: tags, soul: soul, memory: memory, agentsMd: agentsMd)
             }
         }
@@ -540,7 +542,7 @@ struct AgentListView: View {
             }
         }
         .sheet(isPresented: $showCreateAgent) {
-            CreateAgentSheet { name, type, model, systemPrompt, temperature, maxTokens, tools, capabilities, safetyLevel, tags, soul, memory, agentsMd in
+            CreateAgentSheet { name, type, model, systemPrompt, temperature, maxTokens, tools, capabilities, safetyLevel, tags, soul, memory, agentsMd, graphId in
                 createAndSync(name: name, type: type, model: model, systemPrompt: systemPrompt, temperature: temperature, maxTokens: maxTokens, tools: tools, capabilities: capabilities, safetyLevel: safetyLevel, tags: tags, soul: soul, memory: memory, agentsMd: agentsMd)
             }
         }
@@ -1102,12 +1104,7 @@ struct ConfigureAgentSheet: View {
                                 .font(.system(size: theme.captionSize))
                                 .foregroundStyle(theme.textTertiary)
                         } else {
-                            Picker("Model", selection: $model) {
-                                ForEach(availableModels) { m in
-                                    Text(m.name).tag(m.id)
-                                }
-                            }
-                            .pickerStyle(.menu)
+                            FusionModelPicker(scene: .agent, selection: $model, models: bridge.models)
                         }
                     }
 
@@ -1285,6 +1282,8 @@ struct CreateAgentSheet: View {
     @Environment(\.studioTheme) var theme
     @EnvironmentObject var bridge: AgentBridge
     @State private var name = ""
+    @State private var availableGraphs: [AgentGraphModel] = []
+    @State private var selectedGraphId: UUID? = nil
     @State private var type: AgentType = .custom
     @State private var model = ""
     @State private var systemPrompt = ""
@@ -1297,7 +1296,7 @@ struct CreateAgentSheet: View {
     @State private var soulMd: String = ""
     @State private var memoryMd: String = ""
     @State private var agentsMd: String = ""
-    let onCreate: (String, AgentType, String, String, Double, Int, [String], [String], String, [String], String, String, String) -> Void
+    let onCreate: (String, AgentType, String, String, Double, Int, [String], [String], String, [String], String, String, String, UUID?) -> Void
 
     // Backend SafetyGateway defines a 3-level system (L1/L2/L3); L4 has no backend meaning.
     private let safetyLevels = ["L1", "L2", "L3"]
@@ -1346,6 +1345,7 @@ struct CreateAgentSheet: View {
                                 }
                             }
                             .pickerStyle(.menu)
+                            .labelsHidden()
                         }
 
                         VStack(alignment: .leading, spacing: theme.spacingXS) {
@@ -1366,13 +1366,7 @@ struct CreateAgentSheet: View {
                                     .font(.system(size: theme.captionSize))
                                     .foregroundStyle(theme.textTertiary)
                             } else {
-                                Picker("Model", selection: $model) {
-                                    Text("Default (\(type.defaultModel))").tag("")
-                                    ForEach(availableModels) { m in
-                                        Text(m.name).tag(m.id)
-                                    }
-                                }
-                                .pickerStyle(.menu)
+                                FusionModelPicker(scene: .agent, selection: $model, models: bridge.models, defaultTag: "")
                             }
                         }
 
@@ -1486,6 +1480,35 @@ struct CreateAgentSheet: View {
                         markdownField("AGENTS.md (metadata & conventions)",
                                       placeholder: "Conventions, sub-agent definitions, and operational notes...",
                                       text: $agentsMd)
+
+                        VStack(alignment: .leading, spacing: theme.spacingXS) {
+                            Text("Workflow / Graph")
+                                .font(.system(size: theme.footnoteSize, weight: .medium))
+                                .foregroundStyle(theme.textSecondary)
+                            if availableGraphs.isEmpty {
+                                HStack(spacing: 4) {
+                                    Text("No graphs available — create one in Workflow tab")
+                                        .font(.system(size: theme.captionSize))
+                                        .foregroundStyle(theme.textTertiary)
+                                    Button("Refresh") {
+                                        Task { try? await bridge.fetchGraphs() }
+                                    }
+                                    .font(.system(size: theme.captionSize))
+                                    .buttonStyle(.plain)
+                                    .foregroundStyle(Color.accentColor)
+                                }
+                            } else {
+                                Picker("Select Graph", selection: $selectedGraphId) {
+                                    Text("None").tag(UUID?.none)
+                                    ForEach(availableGraphs, id: \.id) { graph in
+                                        Text("\(graph.name) (\(graph.nodes.count) nodes)")
+                                            .tag(UUID?.some(graph.id))
+                                    }
+                                }
+                                .pickerStyle(.menu)
+                                .labelsHidden()
+                            }
+                        }
                     }
                 }
 
@@ -1495,7 +1518,7 @@ struct CreateAgentSheet: View {
                         let tools = toolsText.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
                         let capabilities = capabilitiesText.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
                         let tags = tagsText.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
-                        onCreate(name, type, model, systemPrompt, temperature, maxTokens, tools, capabilities, safetyLevel, tags, soulMd, memoryMd, agentsMd)
+                        onCreate(name, type, model, systemPrompt, temperature, maxTokens, tools, capabilities, safetyLevel, tags, soulMd, memoryMd, agentsMd, selectedGraphId)
                         dismiss()
                     }
                 }
@@ -1503,6 +1526,13 @@ struct CreateAgentSheet: View {
             .padding(theme.spacingXL)
             .frame(width: 440)
             .background(theme.windowBg)
+        }
+        .onAppear {
+            Task {
+                if let graphs = try? await bridge.fetchGraphs() {
+                    availableGraphs = graphs
+                }
+            }
         }
     }
 
@@ -2466,6 +2496,7 @@ struct ConversationView: View {
                 messageList
             }
             inputBar
+            Spacer()
         }
         .toolbar {
             ToolbarItem {
@@ -2527,8 +2558,10 @@ struct ConversationView: View {
 
     private var inputBar: some View {
         HStack(spacing: theme.spacingS) {
-            TextField("Send a message...", text: $inputText)
+            TextField("Send a message...", text: $inputText, axis: .vertical)
                 .textFieldStyle(.plain)
+                .font(.system(size: theme.textSize))
+                .lineLimit(1...6)
                 .padding(theme.spacingS)
                 .background(theme.inputBg)
                 .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))

@@ -1,11 +1,13 @@
 // Callers: ModuleDetailView routing.
-// Affected API: ModelHubView (replacing NSColor with StudioTheme tokens).
-// Data schemas: None changed.
-// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+// Affected API: MlxHTTPClient (listModels/listHFTasks/getHFRecommended/startHFDownload/searchHFModels).
+// Data schemas: ModelInfo, ModelDTO, HFTaskDTO, HFModelInfo.
+// User instruction: bug16 — connect ModelHubView to real fusion-mlx API, remove mock data.
 
 import SwiftUI
+import os.log
 
-/// 模型元数据
+private let hubLog = Logger(subsystem: "com.fusion.studio", category: "ModelHub")
+
 struct ModelInfo: Identifiable, Hashable, Codable {
     let id: String
     var name: String
@@ -19,6 +21,7 @@ struct ModelInfo: Identifiable, Hashable, Codable {
     var isActive: Bool
     var downloadProgress: Double
     var description: String
+    var hfRepoId: String
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
@@ -28,25 +31,110 @@ struct ModelInfo: Identifiable, Hashable, Codable {
         lhs.id == rhs.id
     }
 
+    static func from(dto: ModelDTO, activeModelId: String?) -> ModelInfo {
+        let sizeGB = Double(dto.estimatedSize ?? 0) / 1_073_741_824.0
+        let name = dto.displayName ?? dto.id
+        let family = extractFamily(from: name)
+        let params = extractParams(from: name)
+        let quant = extractQuant(from: name)
+        return ModelInfo(
+            id: dto.id,
+            name: name,
+            path: dto.modelPath ?? "",
+            sizeGB: sizeGB,
+            quantization: quant,
+            format: "mlx",
+            family: family,
+            parameters: params,
+            isDownloaded: true,
+            isActive: dto.id == activeModelId || dto.isDefault == true,
+            downloadProgress: 0,
+            description: "\(name) — \(dto.engineType ?? "text") model",
+            hfRepoId: dto.id
+        )
+    }
+
+    static func from(hf: HFModelInfo) -> ModelInfo {
+        let sizeGB = Double(hf.size ?? 0) / 1_073_741_824.0
+        let name = hf.name ?? hf.repoId
+        let family = extractFamily(from: name)
+        let params = hf.paramsFormatted ?? extractParams(from: name)
+        return ModelInfo(
+            id: hf.repoId,
+            name: name,
+            path: "",
+            sizeGB: sizeGB,
+            quantization: extractQuant(from: hf.repoId),
+            format: "mlx",
+            family: family,
+            parameters: params,
+            isDownloaded: false,
+            isActive: false,
+            downloadProgress: 0,
+            description: hf.sizeFormatted ?? "HuggingFace model",
+            hfRepoId: hf.repoId
+        )
+    }
+
     static let presets: [ModelInfo] = [
-        ModelInfo(id: "qwen3.5-9b-4bit", name: "Qwen3.5 9B", path: "~/.fusion-mlx/models/qwen3.5-9b-4bit", sizeGB: 5.2, quantization: "4bit", format: "mlx", family: "Qwen", parameters: "9B", isDownloaded: false, isActive: false, downloadProgress: 0, description: "通义千问 3.5，9B 参数，4bit 量化，适合通用对话和代码生成"),
-        ModelInfo(id: "llama3-8b-4bit", name: "Llama 3 8B", path: "~/.fusion-mlx/models/llama3-8b-4bit", sizeGB: 4.8, quantization: "4bit", format: "mlx", family: "Llama", parameters: "8B", isDownloaded: false, isActive: false, downloadProgress: 0, description: "Meta Llama 3，8B 参数，4bit 量化，高质量通用模型"),
-        ModelInfo(id: "deepseek-coder-6.7b-4bit", name: "DeepSeek Coder 6.7B", path: "~/.fusion-mlx/models/deepseek-coder-6.7b-4bit", sizeGB: 3.9, quantization: "4bit", format: "mlx", family: "DeepSeek", parameters: "6.7B", isDownloaded: false, isActive: false, downloadProgress: 0, description: "DeepSeek 代码专用模型，6.7B 参数，4bit 量化"),
-        ModelInfo(id: "qwen2-vl-7b-4bit", name: "Qwen2-VL 7B", path: "~/.fusion-mlx/models/qwen2-vl-7b-4bit", sizeGB: 4.2, quantization: "4bit", format: "mlx", family: "Qwen", parameters: "7B", isDownloaded: false, isActive: false, downloadProgress: 0, description: "Qwen2 视觉语言模型，支持图像理解"),
-        ModelInfo(id: "sd3.5-medium", name: "Stable Diffusion 3.5", path: "~/.fusion-mlx/models/sd3.5-medium", sizeGB: 6.5, quantization: "fp16", format: "mlx", family: "Stable Diffusion", parameters: "2.5B", isDownloaded: false, isActive: false, downloadProgress: 0, description: "文生图模型，支持 txt2img / img2img"),
+        ModelInfo(id: "qwen3.5-9b-4bit", name: "Qwen3.5 9B", path: "", sizeGB: 5.2, quantization: "4bit", format: "mlx", family: "Qwen", parameters: "9B", isDownloaded: false, isActive: false, downloadProgress: 0, description: "通义千问 3.5，9B 参数，4bit 量化", hfRepoId: "mlx-community/Qwen3.5-9B-4bit"),
+        ModelInfo(id: "llama3-8b-4bit", name: "Llama 3 8B", path: "", sizeGB: 4.8, quantization: "4bit", format: "mlx", family: "Llama", parameters: "8B", isDownloaded: false, isActive: false, downloadProgress: 0, description: "Meta Llama 3，8B 参数，4bit 量化", hfRepoId: "mlx-community/Meta-Llama-3-8B-Instruct-4bit"),
+        ModelInfo(id: "deepseek-coder-6.7b-4bit", name: "DeepSeek Coder 6.7B", path: "", sizeGB: 3.9, quantization: "4bit", format: "mlx", family: "DeepSeek", parameters: "6.7B", isDownloaded: false, isActive: false, downloadProgress: 0, description: "DeepSeek 代码专用模型", hfRepoId: "mlx-community/deepseek-coder-6.7b-instruct-4bit"),
+        ModelInfo(id: "qwen2-vl-7b-4bit", name: "Qwen2-VL 7B", path: "", sizeGB: 4.2, quantization: "4bit", format: "mlx", family: "Qwen", parameters: "7B", isDownloaded: false, isActive: false, downloadProgress: 0, description: "Qwen2 视觉语言模型", hfRepoId: "mlx-community/Qwen2-VL-7B-Instruct-4bit"),
     ]
+
+    private static func extractFamily(from name: String) -> String {
+        let n = name.lowercased()
+        if n.contains("qwen") { return "Qwen" }
+        if n.contains("llama") { return "Llama" }
+        if n.contains("deepseek") { return "DeepSeek" }
+        if n.contains("mistral") || n.contains("mixtral") { return "Mistral" }
+        if n.contains("phi") { return "Phi" }
+        if n.contains("gemma") { return "Gemma" }
+        if n.contains("stable-diffusion") || n.contains("sd3") { return "Stable Diffusion" }
+        if n.contains("flux") { return "Flux" }
+        return "Other"
+    }
+
+    private static func extractParams(from name: String) -> String {
+        let patterns = [#"(\d+\.?\d*[Bb])"#]
+        for p in patterns {
+            if let range = name.range(of: p, options: .regularExpression) {
+                return String(name[range]).uppercased()
+            }
+        }
+        return "?"
+    }
+
+    private static func extractQuant(from name: String) -> String {
+        let n = name.lowercased()
+        if n.contains("fp16") || n.contains("f16") { return "fp16" }
+        if n.contains("8bit") || n.contains("-8b") { return "8bit" }
+        if n.contains("4bit") || n.contains("-4b") { return "4bit" }
+        if n.contains("3bit") || n.contains("-3b") { return "3bit" }
+        if n.contains("2bit") || n.contains("-2b") { return "2bit" }
+        return "4bit"
+    }
 }
 
 // MARK: - 主视图
 
 struct ModelHubView: View {
     @Environment(\.studioTheme) private var theme
-    @State private var models: [ModelInfo] = ModelInfo.presets
+    @EnvironmentObject private var config: FusionConfig
+    @EnvironmentObject private var agentBridge: AgentBridge
+    @State private var models: [ModelInfo] = []
     @State private var selectedModel: ModelInfo?
     @State private var searchText = ""
     @State private var selectedFamily: String = "全部"
     @State private var showDownloadSheet = false
     @State private var isRefreshing = false
+    @State private var pollTimer: Timer?
+    @State private var lastError: String?
+
+    private var activeModelId: String? {
+        config.mlxModel.isEmpty ? nil : config.mlxModel
+    }
 
     var filteredModels: [ModelInfo] {
         var result = models
@@ -65,10 +153,8 @@ struct ModelHubView: View {
 
     var body: some View {
         HSplitView {
-            // 左侧：模型列表
             VStack(spacing: 0) {
                 UpstreamServiceStatusBanner(serviceId: "fusion-model-hub")
-                // 搜索栏
                 HStack {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.secondary)
@@ -80,7 +166,6 @@ struct ModelHubView: View {
 
                 Divider()
 
-                // 分类筛选
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
                         ForEach(families, id: \.self) { family in
@@ -98,17 +183,34 @@ struct ModelHubView: View {
 
                 Divider()
 
-                // 模型列表
-                List(filteredModels, selection: $selectedModel) { model in
-                    ModelRow(model: model)
-                        .tag(model)
-                        .onTapGesture { selectedModel = model }
+                if models.isEmpty && isRefreshing {
+                    VStack(spacing: 12) {
+                        ProgressView()
+                            .controlSize(.large)
+                        Text("Loading models...")
+                            .font(.system(size: theme.footnoteSize))
+                            .foregroundStyle(theme.textTertiary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    List(filteredModels, selection: $selectedModel) { model in
+                        ModelRow(model: model)
+                            .tag(model)
+                            .onTapGesture { selectedModel = model }
+                    }
+                    .listStyle(.plain)
                 }
-                .listStyle(.plain)
+
+                if let err = lastError {
+                    Text(err)
+                        .font(.system(size: theme.captionSize))
+                        .foregroundStyle(.red)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                }
             }
             .frame(minWidth: 280, maxWidth: 350)
 
-            // 右侧：详情面板
             if let model = selectedModel {
                 ModelDetailView(
                     model: Binding(
@@ -138,7 +240,6 @@ struct ModelHubView: View {
                 Button(action: { showDownloadSheet = true }) {
                     Label("下载模型", systemImage: "icloud.and.arrow.down")
                 }
-
                 Button(action: refreshModels) {
                     Label("刷新", systemImage: "arrow.clockwise")
                 }
@@ -146,16 +247,108 @@ struct ModelHubView: View {
             }
         }
         .sheet(isPresented: $showDownloadSheet) {
-            DownloadModelView { model in
-                models.append(model)
-            }
+            DownloadModelView(onDownload: { repoId in
+                startHFDownload(repoId: repoId)
+            })
+        }
+        .onAppear {
+            refreshModels()
+            startPolling()
+        }
+        .onDisappear {
+            stopPolling()
         }
     }
 
     private func refreshModels() {
         isRefreshing = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+        lastError = nil
+        Task { @MainActor in
+            do {
+                let client = MlxHTTPClient(config: config)
+                let resp = try await client.listModels()
+                var loaded: [ModelInfo] = []
+                for dto in resp.models {
+                    loaded.append(ModelInfo.from(dto: dto, activeModelId: activeModelId))
+                }
+                hubLog.info("Loaded \(loaded.count) models from fusion-mlx")
+
+                let hfResp = try await client.getHFRecommended(mlxOnly: true)
+                var recommended: [ModelInfo] = []
+                let loadedIds = Set(loaded.map(\.id))
+                for hf in hfResp.trending + hfResp.popular {
+                    guard !loadedIds.contains(hf.repoId) else { continue }
+                    recommended.append(ModelInfo.from(hf: hf))
+                }
+                hubLog.info("Loaded \(recommended.count) recommended HF models")
+
+                models = loaded + recommended
+                if selectedModel == nil { selectedModel = models.first }
+            } catch {
+                hubLog.warning("Failed to fetch from API: \(error.localizedDescription), using presets")
+                if models.isEmpty {
+                    models = ModelInfo.presets
+                }
+                lastError = "API unavailable — showing offline models"
+            }
             isRefreshing = false
+        }
+    }
+
+    private func startHFDownload(repoId: String) {
+        Task { @MainActor in
+            do {
+                let client = MlxHTTPClient(config: config)
+                let resp = try await client.startHFDownload(repoId: repoId)
+                if resp.success, let task = resp.task {
+                    hubLog.info("Started HF download: \(task.taskId) for \(repoId)")
+                    if let idx = models.firstIndex(where: { $0.hfRepoId == repoId }) {
+                        models[idx].downloadProgress = 0.01
+                    }
+                }
+            } catch {
+                hubLog.error("HF download failed: \(error.localizedDescription)")
+                lastError = "Download failed: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    private func startPolling() {
+        pollTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
+            Task { @MainActor in
+                await pollDownloadProgress()
+            }
+        }
+    }
+
+    private func stopPolling() {
+        pollTimer?.invalidate()
+        pollTimer = nil
+    }
+
+    private func pollDownloadProgress() async {
+        let downloading = models.filter { $0.downloadProgress > 0 && !$0.isDownloaded }
+        guard !downloading.isEmpty else { return }
+        do {
+            let client = MlxHTTPClient(config: config)
+            let resp = try await client.listHFTasks()
+            let taskMap = Dictionary(uniqueKeysWithValues: resp.tasks.map { ($0.repoId, $0) })
+            for i in models.indices {
+                guard models[i].downloadProgress > 0, !models[i].isDownloaded else { continue }
+                if let task = taskMap[models[i].hfRepoId] {
+                    models[i].downloadProgress = task.progress
+                    if task.statusEnum == .completed {
+                        models[i].isDownloaded = true
+                        models[i].downloadProgress = 0
+                        hubLog.info("Download completed: \(models[i].name)")
+                    } else if task.statusEnum == .failed {
+                        models[i].downloadProgress = 0
+                        lastError = "Download failed: \(models[i].name)"
+                    }
+                }
+            }
+        } catch {
+            hubLog.debug("Poll download progress failed: \(error.localizedDescription)")
         }
     }
 
@@ -170,6 +363,15 @@ struct ModelHubView: View {
         for idx in models.indices {
             models[idx].isActive = models[idx].id == model.id
         }
+        config.mlxModel = model.id
+        Task { @MainActor in
+            do {
+                _ = try await agentBridge.mlxSetModel(model: model.id)
+                hubLog.info("Activated model: \(model.id)")
+            } catch {
+                hubLog.error("Failed to set model via IPC: \(error.localizedDescription)")
+            }
+        }
     }
 }
 
@@ -180,7 +382,6 @@ struct ModelRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            // 状态指示
             VStack(spacing: 2) {
                 Circle()
                     .fill(model.isActive ? Color.green : (model.isDownloaded ? Color.blue : Color.gray))
@@ -204,11 +405,11 @@ struct ModelRow: View {
                     Text(model.parameters)
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    Text("\(model.quantization.uppercased())")
+                    Text(model.quantization.uppercased())
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                if model.isDownloaded {
+                if model.isDownloaded && model.sizeGB > 0 {
                     Text("\(String(format: "%.1f", model.sizeGB)) GB")
                         .font(.caption2)
                         .foregroundColor(.secondary)
@@ -233,7 +434,6 @@ struct ModelDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                // 头部
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Text(model.name)
@@ -245,7 +445,6 @@ struct ModelDetailView: View {
                                 .foregroundColor(.green)
                         }
                     }
-
                     HStack(spacing: 12) {
                         Label(model.family, systemImage: "cube")
                         Label(model.parameters, systemImage: "brain")
@@ -259,10 +458,9 @@ struct ModelDetailView: View {
 
                 Divider()
 
-                // 操作按钮
                 HStack(spacing: 12) {
-                    if !model.isDownloaded {
-                        Button(action: startDownload) {
+                    if !model.isDownloaded && model.downloadProgress == 0 {
+                        Button(action: { onDelete() }) {
                             Label("下载", systemImage: "icloud.and.arrow.down")
                         }
                         .buttonStyle(.borderedProminent)
@@ -275,15 +473,16 @@ struct ModelDetailView: View {
                         .buttonStyle(.borderedProminent)
                     }
 
-                    Button(action: onDelete) {
-                        Label("删除", systemImage: "trash")
-                            .foregroundColor(.red)
+                    if model.isDownloaded {
+                        Button(action: onDelete) {
+                            Label("删除", systemImage: "trash")
+                                .foregroundColor(.red)
+                        }
+                        .buttonStyle(.bordered)
                     }
-                    .buttonStyle(.bordered)
                 }
                 .padding(.horizontal)
 
-                // 下载进度
                 if model.downloadProgress > 0 && model.downloadProgress < 1 {
                     VStack(alignment: .leading, spacing: 4) {
                         ProgressView(value: model.downloadProgress)
@@ -294,64 +493,40 @@ struct ModelDetailView: View {
                     .padding(.horizontal)
                 }
 
-                // 基本信息
                 GroupBox("基本信息") {
                     VStack(alignment: .leading, spacing: 8) {
                         DetailRow("模型 ID", model.id)
-                        DetailRow("路径", model.path)
-                        DetailRow("大小", "\(String(format: "%.1f", model.sizeGB)) GB")
+                        if !model.path.isEmpty {
+                            DetailRow("路径", model.path)
+                        }
+                        if model.sizeGB > 0 {
+                            DetailRow("大小", "\(String(format: "%.1f", model.sizeGB)) GB")
+                        }
                         DetailRow("格式", model.format.uppercased())
                         DetailRow("量化", model.quantization)
                         DetailRow("家族", model.family)
                         DetailRow("参数", model.parameters)
+                        if !model.hfRepoId.isEmpty {
+                            DetailRow("HF Repo", model.hfRepoId)
+                        }
                     }
                     .padding(8)
                 }
                 .padding(.horizontal)
 
-                // 描述
-                GroupBox("描述") {
-                    Text(model.description)
-                        .font(.body)
-                        .padding(8)
-                }
-                .padding(.horizontal)
-
-                // 量化选项
-                GroupBox("量化选项") {
-                    VStack(spacing: 8) {
-                        QuantOptionRow("2bit", "极端压缩，适合 8GB 设备", "2.6 GB", model.quantization == "2bit")
-                        QuantOptionRow("3bit", "平衡压缩", "3.9 GB", model.quantization == "3bit")
-                        QuantOptionRow("4bit", "推荐，精度与性能最佳平衡", "5.2 GB", model.quantization == "4bit")
-                        QuantOptionRow("8bit", "高精度，需要 32GB+ 内存", "10.4 GB", model.quantization == "8bit")
-                        QuantOptionRow("fp16", "最高精度，需要 64GB+ 内存", "20.8 GB", model.quantization == "fp16")
+                if !model.description.isEmpty {
+                    GroupBox("描述") {
+                        Text(model.description)
+                            .font(.body)
+                            .padding(8)
                     }
-                    .padding(8)
+                    .padding(.horizontal)
                 }
-                .padding(.horizontal)
             }
             .padding(.vertical)
         }
     }
-
-    private func startDownload() {
-        model.downloadProgress = 0.01
-        // 模拟下载进度
-        let timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { timer in
-            if model.downloadProgress >= 1.0 {
-                model.isDownloaded = true
-                model.downloadProgress = 0
-                timer.invalidate()
-            } else {
-                model.downloadProgress += Double.random(in: 0.02...0.08)
-            }
-        }
-        // 保存 timer 引用（需在 struct 中添加 @State 持有）
-        _ = timer
-    }
 }
-
-
 
 struct QuantOptionRow: View {
     let name: String
@@ -391,18 +566,16 @@ struct QuantOptionRow: View {
 // MARK: - 下载模型对话框
 
 struct DownloadModelView: View {
+    @EnvironmentObject private var config: FusionConfig
     @Environment(\.dismiss) var dismiss
-    @State private var modelURL = ""
-    @State private var modelName = ""
-    @State private var selectedPreset = ""
-    let onDownload: (ModelInfo) -> Void
-
-    let presets = [
-        ("qwen3.5-9b-4bit", "Qwen3.5 9B (4bit) - 5.2 GB"),
-        ("llama3-8b-4bit", "Llama 3 8B (4bit) - 4.8 GB"),
-        ("deepseek-coder-6.7b-4bit", "DeepSeek Coder 6.7B (4bit) - 3.9 GB"),
-        ("qwen2-vl-7b-4bit", "Qwen2-VL 7B (4bit) - 4.2 GB"),
-    ]
+    @State private var repoId = ""
+    @State private var hfToken = ""
+    @State private var searchQuery = ""
+    @State private var searchResults: [HFModelInfo] = []
+    @State private var isSearching = false
+    @State private var recommended: [HFModelInfo] = []
+    @State private var isLoadingRecommended = false
+    let onDownload: (String) -> Void
 
     var body: some View {
         VStack(spacing: 16) {
@@ -410,51 +583,136 @@ struct DownloadModelView: View {
                 .font(.title2)
                 .bold()
 
-            Picker("预设模型", selection: $selectedPreset) {
-                Text("选择预设...").tag("")
-                ForEach(presets, id: \.0) { id, name in
-                    Text(name).tag(id)
-                }
+            HStack {
+                TextField("搜索 HuggingFace 模型...", text: $searchQuery)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit { searchHF() }
+                Button("搜索") { searchHF() }
+                    .buttonStyle(.bordered)
+                    .disabled(searchQuery.isEmpty || isSearching)
             }
-            .onChange(of: selectedPreset) { newValue in
-                if !newValue.isEmpty {
-                    modelName = newValue
+
+            if isSearching {
+                ProgressView()
+                    .controlSize(.small)
+            }
+
+            if !searchResults.isEmpty {
+                List(searchResults, id: \.repoId) { hf in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(hf.name ?? hf.repoId)
+                                .font(.system(size: 13, weight: .medium))
+                            HStack(spacing: 8) {
+                                if let sz = hf.sizeFormatted {
+                                    Text(sz).font(.caption).foregroundColor(.secondary)
+                                }
+                                if let dl = hf.downloads {
+                                    Text("\(dl) downloads").font(.caption).foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                        Spacer()
+                        Button("下载") {
+                            onDownload(hf.repoId)
+                            dismiss()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                    }
                 }
+                .frame(minHeight: 120, maxHeight: 200)
             }
 
             Divider()
-                .frame(width: 300)
 
-            TextField("或输入模型名称", text: $modelName)
+            if !recommended.isEmpty {
+                Text("推荐模型")
+                    .font(.system(size: 13, weight: .semibold))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                List(recommended.prefix(5), id: \.repoId) { hf in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(hf.name ?? hf.repoId)
+                                .font(.system(size: 13, weight: .medium))
+                            if let sz = hf.sizeFormatted {
+                                Text(sz).font(.caption).foregroundColor(.secondary)
+                            }
+                        }
+                        Spacer()
+                        Button("下载") {
+                            onDownload(hf.repoId)
+                            dismiss()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                    }
+                }
+                .frame(minHeight: 80, maxHeight: 160)
+            } else if isLoadingRecommended {
+                ProgressView()
+                    .controlSize(.small)
+            }
+
+            Divider()
+
+            TextField("或直接输入 HuggingFace repo ID", text: $repoId)
+                .textFieldStyle(.roundedBorder)
+                .font(.system(size: 12, design: .monospaced))
+
+            SecureField("HF Token (可选)", text: $hfToken)
                 .textFieldStyle(.roundedBorder)
 
             HStack {
                 Button("取消") { dismiss() }
                     .buttonStyle(.bordered)
                 Button("下载") {
-                    let model = ModelInfo(
-                        id: modelName.lowercased().replacingOccurrences(of: " ", with: "-"),
-                        name: modelName,
-                        path: "~/.fusion-mlx/models/\(modelName.lowercased())",
-                        sizeGB: 0,
-                        quantization: "4bit",
-                        format: "mlx",
-                        family: "Unknown",
-                        parameters: "?",
-                        isDownloaded: false,
-                        isActive: false,
-                        downloadProgress: 0.01,
-                        description: "正在下载..."
-                    )
-                    onDownload(model)
+                    onDownload(repoId)
                     dismiss()
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(modelName.isEmpty)
+                .disabled(repoId.isEmpty)
             }
         }
         .padding()
-        .frame(width: 360)
+        .frame(width: 420)
+        .onAppear {
+            loadRecommended()
+        }
+    }
+
+    private func searchHF() {
+        guard !searchQuery.isEmpty else { return }
+        isSearching = true
+        Task { @MainActor in
+            do {
+                let client = MlxHTTPClient(config: config)
+                let resp = try await client.searchHFModels(query: searchQuery, limit: 10)
+                searchResults = resp.models
+            } catch {
+                searchResults = []
+            }
+            isSearching = false
+        }
+    }
+
+    private func loadRecommended() {
+        isLoadingRecommended = true
+        Task { @MainActor in
+            do {
+                let client = MlxHTTPClient(config: config)
+                let resp = try await client.getHFRecommended(mlxOnly: true)
+                var seen = Set<String>()
+                var deduped: [HFModelInfo] = []
+                for hf in resp.trending + resp.popular {
+                    if seen.insert(hf.repoId).inserted { deduped.append(hf) }
+                }
+                recommended = Array(deduped.prefix(10))
+            } catch {
+                recommended = []
+            }
+            isLoadingRecommended = false
+        }
     }
 }
 

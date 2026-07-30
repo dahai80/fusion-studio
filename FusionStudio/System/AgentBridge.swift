@@ -95,9 +95,10 @@ struct MLXModelInfo: Codable, Equatable, Identifiable {
     var isTextChatModel: Bool {
         let n = name.lowercased()
         let nonText = ["flux", "stable-diffusion", "sdxl", "sd-turbo", "sd3",
-                       "mochi", "ltx-video", "ltxvideo", "wan2", "cogvideo", "cogview",
-                       "whisper", "parler", "bark", "xtts", "coqui", "openvoice",
-                       "clip", "siglip", "dinov2", "kandinsky", "shap-e", "audioldm"]
+                       "mochi", "ltx-video", "ltxvideo", "ltx", "wan2", "cogvideo", "cogview",
+                       "skyreels", "whisper", "parler", "bark", "xtts", "tts", "coqui", "openvoice",
+                       "clip", "siglip", "dinov2", "kandinsky", "shap-e", "audioldm",
+                       "oldt5", "dspark", "text_encoder", "transformer", "vae"]
         for token in nonText where n.contains(token) { return false }
         return true
     }
@@ -320,20 +321,15 @@ final class AgentBridge: ObservableObject {
         return result
     }
 
-    // 复核 MLX 是否可达：读取 env.health_check 的 mlx_api.ok。
-    // 用于启动竞态后重试 / Design 等模块进入时复核，避免 isMLXRunning 滞留 false (bug2)。
+    // 复核 MLX 是否可达：直接走 HTTP /v1/models（app 复用外部 mlx，env-daemon 不一定在线）。
+    // 用于启动竞态后重试 / Design 等模块进入时复核，避免 isMLXRunning 滞留 false (bug3/bug7/bug8)。
     func probeMLXRunningStatus() async -> Bool {
         do {
-            let result = try await fullHealthCheck()
-            let checks = result["checks"] as? [String: [String: Any]] ?? [:]
-            let ok = checks["mlx_api"]?["ok"] as? Bool ?? false
-            logger.info("probeMLXRunningStatus: mlx_api.ok=\(ok)")
-            if ok {
-                try? await fetchModels()
-            }
-            return ok
+            _ = try await fetchModels()
+            logger.info("probeMLXRunningStatus: mlx reachable (HTTP /v1/models)")
+            return true
         } catch {
-            logger.error("probeMLXRunningStatus: health check failed: \(error)")
+            logger.error("probeMLXRunningStatus: mlx unreachable: \(error)")
             return false
         }
     }

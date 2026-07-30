@@ -1,6 +1,40 @@
 import Foundation
 import SwiftUI
 
+/// 模型档位：小（日常对话）/ 代码 / 复杂事务
+enum ModelSlot: String, CaseIterable, Identifiable {
+    case small, code, heavy
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .small: return "小模型"
+        case .code: return "代码模型"
+        case .heavy: return "复杂模型"
+        }
+    }
+    var icon: String {
+        switch self {
+        case .small: return "hare"
+        case .code: return "chevron.left.forwardslash.chevron.right"
+        case .heavy: return "brain.head.profile"
+        }
+    }
+}
+
+/// 用模型场景：决定默认档位（对话->小、code->代码、agent/artifacts->复杂）
+enum ModelScene: String, CaseIterable, Identifiable {
+    case chat, code, agent, artifacts
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .chat: return "对话"
+        case .code: return "代码"
+        case .agent: return "Agent"
+        case .artifacts: return "Artifacts"
+        }
+    }
+}
+
 /// 统一全局配置模型
 /// 将所有 @AppStorage 集中管理，替代分散在各 View 中的存储属性
 class FusionConfig: ObservableObject {
@@ -39,6 +73,17 @@ class FusionConfig: ObservableObject {
     @AppStorage("mlxApiKey") var mlxApiKey = ""
     @AppStorage("mlxModel") var mlxModel = ""
     @AppStorage("mlxPath") var mlxPath = ""
+
+    // MARK: - 模型档位（小/代码/复杂）+ 场景默认映射
+    // Callers: FusionModelPicker/WelcomeView/SettingsView/CodeMainView/AgentStudioView/DesignBridge
+    // 场景映射：对话->小、code->代码、agent/artifacts->复杂；设置可改每场景默认档
+    @AppStorage("mlxModelSmall") var mlxModelSmall = ""
+    @AppStorage("mlxModelCode") var mlxModelCode = ""
+    @AppStorage("mlxModelHeavy") var mlxModelHeavy = ""
+    @AppStorage("defaultSlotChat") var defaultSlotChat = ModelSlot.small.rawValue
+    @AppStorage("defaultSlotCode") var defaultSlotCode = ModelSlot.code.rawValue
+    @AppStorage("defaultSlotAgent") var defaultSlotAgent = ModelSlot.heavy.rawValue
+    @AppStorage("defaultSlotArtifacts") var defaultSlotArtifacts = ModelSlot.heavy.rawValue
 
     // User instruction: "所有的项目要有一个配置文件，配置类的卸载配置文件里面，不能写死在代码里面"
     // Importers/callers: IPCClient.swift reads FusionConfig.shared.artifactsEngineURL; ArtifactsPanel reads via IPCClient
@@ -80,6 +125,38 @@ class FusionConfig: ObservableObject {
     /// 展开 ~/ 路径为绝对路径
     func expandedUpstreamPath(_ raw: String) -> String {
         (raw as NSString).expandingTildeInPath
+    }
+
+    // MARK: - 模型档位 helpers
+    /// 该档配置的 model id
+    func slotModel(_ slot: ModelSlot) -> String {
+        switch slot {
+        case .small: return mlxModelSmall
+        case .code: return mlxModelCode
+        case .heavy: return mlxModelHeavy
+        }
+    }
+    /// 设置某档模型
+    func setSlotModel(_ slot: ModelSlot, _ model: String) {
+        switch slot {
+        case .small: mlxModelSmall = model
+        case .code: mlxModelCode = model
+        case .heavy: mlxModelHeavy = model
+        }
+    }
+    /// 场景的默认档位
+    func defaultSlot(for scene: ModelScene) -> ModelSlot {
+        switch scene {
+        case .chat: return ModelSlot(rawValue: defaultSlotChat) ?? .small
+        case .code: return ModelSlot(rawValue: defaultSlotCode) ?? .code
+        case .agent: return ModelSlot(rawValue: defaultSlotAgent) ?? .heavy
+        case .artifacts: return ModelSlot(rawValue: defaultSlotArtifacts) ?? .heavy
+        }
+    }
+    /// 场景的默认 model id（档位空则回退 mlxModel）
+    func defaultModel(for scene: ModelScene) -> String {
+        let m = slotModel(defaultSlot(for: scene))
+        return m.isEmpty ? mlxModel : m
     }
 
     // MARK: - 便捷方法
@@ -139,6 +216,13 @@ class FusionConfig: ObservableObject {
         mlxHost = "localhost"
         mlxPort = 11434
         mlxModel = ""
+        mlxModelSmall = ""
+        mlxModelCode = ""
+        mlxModelHeavy = ""
+        defaultSlotChat = ModelSlot.small.rawValue
+        defaultSlotCode = ModelSlot.code.rawValue
+        defaultSlotAgent = ModelSlot.heavy.rawValue
+        defaultSlotArtifacts = ModelSlot.heavy.rawValue
         mlxPath = ""
 
         artifactsEngineHost = "127.0.0.1"

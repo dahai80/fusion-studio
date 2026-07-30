@@ -132,6 +132,7 @@ class ChatSessionStore: ObservableObject {
     @Published var errorMessage: String?
 
     private var ipc: IPCClient?
+    private let storeDir = NSHomeDirectory() + "/.fusion-studio/chats"
 
     init() {}
 
@@ -139,35 +140,105 @@ class ChatSessionStore: ObservableObject {
         self.ipc = client
     }
 
+    // MARK: - Local persistence
+
+    private func ensureStoreDir() {
+        try? FileManager.default.createDirectory(atPath: storeDir, withIntermediateDirectories: true)
+    }
+
+    private func sessionPath(_ id: String) -> String {
+        return storeDir + "/" + id + ".json"
+    }
+
+    private func saveSessionLocal(_ session: ChatSessionData) {
+        ensureStoreDir()
+        let dict = sessionToDict(session)
+        guard let data = try? JSONSerialization.data(withJSONObject: dict, options: .prettyPrinted) else { return }
+        try? data.write(to: URL(fileURLWithPath: sessionPath(session.id)), options: .atomic)
+    }
+
+    private func deleteSessionLocal(_ id: String) {
+        try? FileManager.default.removeItem(atPath: sessionPath(id))
+    }
+
+    private func loadSessionsLocal() -> [ChatSessionData] {
+        ensureStoreDir()
+        let fm = FileManager.default
+        guard let files = try? fm.contentsOfDirectory(atPath: storeDir) else { return [] }
+        return files.filter { $0.hasSuffix(".json") }.compactMap { file -> ChatSessionData? in
+            let path = storeDir + "/" + file
+            guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
+                  let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+            return parseSessionData(dict)
+        }.sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    private func sessionToDict(_ s: ChatSessionData) -> [String: Any] {
+        return [
+            "id": s.id,
+            "title": s.title,
+            "mode": s.mode,
+            "active_branch": s.activeBranch,
+            "graph_id": s.graphId,
+            "created_at": s.createdAt,
+            "updated_at": s.updatedAt,
+            "messages": s.messages.map { msg in
+                var m: [String: Any] = [
+                    "id": msg.id, "role": msg.role, "content": msg.content,
+                    "mode": msg.mode, "parent_id": msg.parentId,
+                    "created_at": msg.createdAt,
+                ]
+                if !msg.childrenIds.isEmpty { m["children_ids"] = msg.childrenIds }
+                return m
+            },
+        ]
+    }
+
+    // MARK: - CRUD
+
     func loadSessions() async {
         isLoading = true
         defer { isLoading = false }
         do {
-            let result = try await ipc!.call(method: "chat.list")
+            guard let ipc = ipc else {
+                sessions = loadSessionsLocal()
+                chatStoreLog.info("No IPC, loaded \(self.sessions.count) local sessions")
+                return
+            }
+            let result = try await ipc.call(method: "chat.list")
             if let list = result["sessions"] as? [[String: Any]] {
                 sessions = list.compactMap { parseSessionData($0) }
-                chatStoreLog.info("Loaded \(self.sessions.count) chat sessions")
+                chatStoreLog.info("Loaded \(self.sessions.count) chat sessions via IPC")
             }
         } catch {
-            errorMessage = error.localizedDescription
-            chatStoreLog.error("chat.list failed: \(error.localizedDescription)")
+            chatStoreLog.warning("chat.list IPC failed (\(error.localizedDescription)), falling back to local")
+            sessions = loadSessionsLocal()
         }
     }
 
     func createSession(mode: String = "simple", title: String = "", graphId: String = "") async {
-        do {
-            var params: [String: Any] = ["mode": mode]
-            if !title.isEmpty { params["title"] = title }
-            if !graphId.isEmpty { params["graph_id"] = graphId }
-            let result = try await ipc!.call(method: "chat.create", params: params)
-            if let session = parseSessionData(result) {
-                sessions.insert(session, at: 0)
-                activeSession = session
-                chatStoreLog.info("Created chat session: \(session.id)")
+        let session = ChatSessionData(title: title.isEmpty ? "New Chat" : title, mode: mode, graphId: graphId)
+        sessions.insert(session, at: 0)
+        activeSession = session
+        saveSessionLocal(session)
+        chatStoreLog.info("Created chat session: \(session.id)")
+
+        if let ipc = ipc {
+            do {
+                var params: [String: Any] = ["mode": mode]
+                if !title.isEmpty { params["title"] = title }
+                if !graphId.isEmpty { params["graph_id"] = graphId }
+                let result = try await ipc.call(method: "chat.create", params: params)
+                if let remote = parseSessionData(result) {
+                    deleteSessionLocal(session.id)
+                    sessions.remove(at: 0)
+                    sessions.insert(remote, at: 0)
+                    activeSession = remote
+                    saveSessionLocal(remote)
+                }
+            } catch {
+                chatStoreLog.warning("chat.create IPC failed, using local session")
             }
-        } catch {
-            errorMessage = error.localizedDescription
-            chatStoreLog.error("chat.create failed: \(error.localizedDescription)")
         }
     }
 
@@ -176,15 +247,18 @@ class ChatSessionStore: ObservableObject {
     }
 
     func deleteSession(_ sessionId: String) async {
-        do {
-            _ = try await ipc!.call(method: "chat.delete", params: ["session_id": sessionId])
-            sessions.removeAll { $0.id == sessionId }
-            if activeSession?.id == sessionId {
-                activeSession = sessions.first
+        deleteSessionLocal(sessionId)
+        sessions.removeAll { $0.id == sessionId }
+        if activeSession?.id == sessionId {
+            activeSession = sessions.first
+        }
+        chatStoreLog.info("Deleted chat session: \(sessionId)")
+        if let ipc = ipc {
+            do {
+                _ = try await ipc.call(method: "chat.delete", params: ["session_id": sessionId])
+            } catch {
+                chatStoreLog.warning("chat.delete IPC failed, local delete done")
             }
-            chatStoreLog.info("Deleted chat session: \(sessionId)")
-        } catch {
-            errorMessage = error.localizedDescription
         }
     }
 
@@ -194,14 +268,19 @@ class ChatSessionStore: ObservableObject {
         var updated = session
         updated.messages.append(userMsg)
         activeSession = updated
+        saveSessionLocal(updated)
 
         do {
+            guard let ipc = ipc else {
+                chatStoreLog.warning("No IPC, message saved locally only")
+                return
+            }
             var params: [String: Any] = [
                 "session_id": session.id,
                 "message": text,
             ]
             if !mode.isEmpty { params["mode"] = mode }
-            let result = try await ipc!.call(method: "chat.send", params: params)
+            let result = try await ipc.call(method: "chat.send", params: params)
 
             if let events = result["events"] as? [[String: Any]] {
                 var content = ""
@@ -230,9 +309,9 @@ class ChatSessionStore: ObservableObject {
                 if let idx = sessions.firstIndex(where: { $0.id == session.id }) {
                     sessions[idx] = updatedSession
                 }
+                saveSessionLocal(updatedSession)
             }
         } catch {
-            errorMessage = error.localizedDescription
             chatStoreLog.error("chat.send failed: \(error.localizedDescription)")
         }
     }

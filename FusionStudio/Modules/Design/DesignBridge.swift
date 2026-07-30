@@ -509,7 +509,7 @@ class DesignBridge: ObservableObject {
             "max_tokens": 4096,
             "stream": true,
         ]
-        let model = config.mlxModel
+        let model = config.defaultModel(for: .code)
         if !model.isEmpty {
             body["model"] = model
         }
@@ -1003,7 +1003,7 @@ class DesignBridge: ObservableObject {
         }
 
         let body: [String: Any] = [
-            "model": config.mlxModel,
+            "model": config.defaultModel(for: .code),
             "messages": [
                 ["role": "user", "content": request.prompt]
             ],
@@ -1272,7 +1272,7 @@ class DesignBridge: ObservableObject {
         }
 
         let body: [String: Any] = [
-            "model": config.mlxModel,
+            "model": config.defaultModel(for: .code),
             "messages": [message],
             "temperature": 0.3,
             "max_tokens": 4096,

@@ -14,7 +14,7 @@ APP_BUNDLE="$BUILD_DIR/$APP_NAME.app"
 CONFIGURATION="${CONFIGURATION:-release}"
 
 # 版本信息
-VERSION="0.1.4"
+VERSION="0.1.5"
 BUILD_NUM=$(date +%Y%m%d%H%M)
 
 # 颜色
@@ -100,13 +100,11 @@ package_app() {
 PLIST
     info "✅ 生成 Info.plist"
 
-    # 设置 App 图标（支持暗黑模式）
-    if [ -f "$PROJECT_DIR/FusionStudio/Resources/AppIconLight.png" ]; then
-        cp "$PROJECT_DIR/FusionStudio/Resources/AppIconLight.png" "$app_dir/Resources/AppIconLight.png"
-        cp "$PROJECT_DIR/FusionStudio/Resources/AppIconDark.png" "$app_dir/Resources/AppIconDark.png" 2>/dev/null || true
-        # 修改 Info.plist 添加图标支持
-        plutil -insert "CFBundleIconFile" -string "AppIconLight" "$app_dir/Info.plist" 2>/dev/null || true
-        info "✅ 设置 App 图标"
+    # 设置 App 图标（.icns 格式，macOS Dock 必需）
+    if [ -f "$PROJECT_DIR/FusionStudio/Resources/AppIcon.icns" ]; then
+        cp "$PROJECT_DIR/FusionStudio/Resources/AppIcon.icns" "$app_dir/Resources/AppIcon.icns"
+        plutil -insert "CFBundleIconFile" -string "AppIcon" "$app_dir/Info.plist" 2>/dev/null || true
+        info "✅ 设置 App 图标 (icns)"
     fi
 
     # 复制 Entitlements

@@ -43,38 +43,39 @@ struct KBChatView: View {
             .padding(8)
             Divider()
 
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 12) {
-                        ForEach(chatHistory) { msg in
-                            ChatBubbleView(message: msg).id(msg.id)
+            if chatHistory.isEmpty {
+                CenteredChatInput(
+                    text: $question,
+                    placeholder: "输入问题...",
+                    isCentered: true,
+                    onSend: submitQuestion
+                )
+            } else {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 12) {
+                            ForEach(chatHistory) { msg in
+                                ChatBubbleView(message: msg).id(msg.id)
+                            }
+                        }
+                        .padding(12)
+                    }
+                    .onChange(of: chatHistory.count) { _ in
+                        if let last = chatHistory.last {
+                            withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
                         }
                     }
-                    .padding(12)
                 }
-                .onChange(of: chatHistory.count) { _ in
-                    if let last = chatHistory.last {
-                        withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
-                    }
-                }
-            }
 
-            Divider()
+                Divider()
 
-            HStack(alignment: .bottom) {
-                TextField("输入问题...", text: $question, axis: .vertical)
-                    .textFieldStyle(.roundedBorder)
-                    .lineLimit(1...5)
-                    .onSubmit { submitQuestion() }
-                Button {
-                    submitQuestion()
-                } label: {
-                    Image(systemName: "paperplane")
-                }
-                .disabled(isAsking || question.isEmpty || selectedKBId.isEmpty)
-                .buttonStyle(.borderedProminent)
+                CenteredChatInput(
+                    text: $question,
+                    placeholder: "输入问题...",
+                    isCentered: false,
+                    onSend: submitQuestion
+                )
             }
-            .padding(12)
         }
         .task {
             await client.listBases()

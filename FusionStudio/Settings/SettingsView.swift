@@ -1,4 +1,5 @@
 import SwiftUI
+import os.log
 
 /// 全局设置面板
 struct SettingsView: View {
@@ -7,6 +8,7 @@ struct SettingsView: View {
 
     enum SettingsTab: String, CaseIterable {
         case general    = "通用"
+        case modelSlots = "模型档位"
         case hardware   = "硬件加速"
         case network    = "网络 & 离线"
         case quant      = "量化预设"
@@ -14,11 +16,12 @@ struct SettingsView: View {
 
         var icon: String {
             switch self {
-            case .general:   return "gearshape"
-            case .hardware:  return "cpu"
-            case .network:   return "antenna.radiowaves.left.and.right"
-            case .quant:     return "dial.medium"
-            case .workspace: return "folder"
+            case .general:    return "gearshape"
+            case .modelSlots: return "circle.grid.2x2.fill"
+            case .hardware:   return "cpu"
+            case .network:    return "antenna.radiowaves.left.and.right"
+            case .quant:      return "dial.medium"
+            case .workspace:  return "folder"
             }
         }
     }
@@ -28,6 +31,10 @@ struct SettingsView: View {
             GeneralSettingsView()
                 .tabItem { Label("通用", systemImage: "gearshape") }
                 .tag(SettingsTab.general)
+
+            ModelSlotsSettingsView()
+                .tabItem { Label("模型档位", systemImage: "circle.grid.2x2.fill") }
+                .tag(SettingsTab.modelSlots)
 
             HardwareSettingsView()
                 .tabItem { Label("硬件加速", systemImage: "cpu") }
@@ -57,6 +64,7 @@ struct SettingsView: View {
 // MARK: - 各设置子页面
 
 struct GeneralSettingsView: View {
+    @EnvironmentObject private var appState: AppState
     @AppStorage("launchAtLogin") private var launchAtLogin = false
     @AppStorage("autoStartMLX") private var autoStartMLX = true
     @AppStorage("minimizeToMenuBar") private var minimizeToMenuBar = false
@@ -67,6 +75,9 @@ struct GeneralSettingsView: View {
             Section("启动") {
                 Toggle("登录时启动 Fusion Studio", isOn: $launchAtLogin)
                 Toggle("自动启动 fusion-mlx 服务", isOn: $autoStartMLX)
+                Button("重新选择主模型") {
+                    appState.showWelcome = true
+                }
             }
             Section("窗口") {
                 Toggle("最小化到菜单栏", isOn: $minimizeToMenuBar)
@@ -207,5 +218,85 @@ struct WorkspaceSettingsView: View {
                 }
             }
         )
+    }
+}
+
+// MARK: - 模型档位设置
+
+struct ModelSlotsSettingsView: View {
+    @EnvironmentObject private var bridge: AgentBridge
+    @ObservedObject private var config = FusionConfig.shared
+    @Environment(\.studioTheme) var theme
+    private let log = Logger(subsystem: "com.fusion.studio", category: "Settings.ModelSlots")
+
+    private var chatModels: [MLXModelInfo] {
+        let chat = bridge.models.filter { $0.isTextChatModel }
+        return chat.isEmpty ? bridge.models : chat
+    }
+
+    private func slotBinding(_ slot: ModelSlot) -> Binding<String> {
+        Binding(
+            get: { config.slotModel(slot) },
+            set: { config.setSlotModel(slot, $0); log.info("slot=\(slot.rawValue) model=\($0)") }
+        )
+    }
+
+    private func sceneSlotBinding(_ scene: ModelScene) -> Binding<ModelSlot> {
+        Binding(
+            get: { config.defaultSlot(for: scene) },
+            set: { newVal in
+                switch scene {
+                case .chat: config.defaultSlotChat = newVal.rawValue
+                case .code: config.defaultSlotCode = newVal.rawValue
+                case .agent: config.defaultSlotAgent = newVal.rawValue
+                case .artifacts: config.defaultSlotArtifacts = newVal.rawValue
+                }
+                log.info("scene=\(scene.rawValue) defaultSlot=\(newVal.rawValue)")
+            }
+        )
+    }
+
+    var body: some View {
+        Form {
+            Section("档位模型（小 / 代码 / 复杂）") {
+                if chatModels.isEmpty {
+                    Text("未加载到本地模型，请先启动 fusion-mlx 服务")
+                        .font(.caption)
+                        .foregroundColor(theme.textTertiary)
+                }
+                ForEach(ModelSlot.allCases) { slot in
+                    Picker(selection: slotBinding(slot)) {
+                        Text("未设置").tag("")
+                        ForEach(chatModels) { m in
+                            Text(m.name).tag(m.id)
+                        }
+                    } label: {
+                        Label(slot.label, systemImage: slot.icon)
+                    }
+                    .pickerStyle(.menu)
+                }
+            }
+            Section("场景默认档位") {
+                ForEach(ModelScene.allCases) { scene in
+                    Picker(selection: sceneSlotBinding(scene)) {
+                        ForEach(ModelSlot.allCases) { s in
+                            Text(s.label).tag(s)
+                        }
+                    } label: {
+                        Label(scene.label, systemImage: "scope")
+                    }
+                    .pickerStyle(.menu)
+                }
+            }
+            Section("说明") {
+                Text("三档模型在所有选模型处顶部展示；More Models 子菜单列出其余本地模型。各场景（对话/代码/Agent/Artifacts）首次默认使用此处设定的档位。")
+                    .font(.caption)
+                    .foregroundColor(theme.textSecondary)
+            }
+        }
+        .padding()
+        .onAppear {
+            Task { try? await bridge.fetchModels() }
+        }
     }
 }

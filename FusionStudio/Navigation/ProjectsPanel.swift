@@ -52,7 +52,7 @@ struct ProjectsPanel: View {
         GeometryReader { geo in
             HStack(spacing: 0) {
                 projectListView
-                    .frame(width: max(200, geo.size.width * 0.2))
+                    .frame(width: max(280, geo.size.width * 0.4))
                 Rectangle().fill(theme.separator).frame(width: 1)
 
                 if let project = pm.activeProject, showDetail {

@@ -66,9 +66,15 @@ struct ArtifactVersionModel: Identifiable, Hashable {
 }
 
 struct ArtifactChatMessage: Identifiable {
-    let id = UUID()
+    let id: String
     let role: String
-    let content: String
+    var content: String
+
+    init(id: String = UUID().uuidString, role: String, content: String) {
+        self.id = id
+        self.role = role
+        self.content = content
+    }
 }
 
 // MARK: - ArtifactsPanel
@@ -338,6 +344,7 @@ struct ArtifactsPanel: View {
 
             Rectangle().fill(theme.separator).frame(height: 1)
             chatInputBar
+            Spacer()
         }
     }
 
@@ -620,16 +627,30 @@ struct ArtifactsPanel: View {
             messages.append(["role": msg.role, "content": msg.content])
         }
 
+        let assistantId = UUID().uuidString
+        chatMessages.append(ArtifactChatMessage(id: assistantId, role: "assistant", content: ""))
+
         Task {
             do {
-                let resp = try await agentBridge.infer(messages: messages, temperature: 0.7, maxTokens: 4096)
-                let content = extractArtifactContent(from: resp)
+                let artifactsModel = FusionConfig.shared.defaultModel(for: .artifacts)
+                artifactsLog.info("Artifacts stream model: \(artifactsModel.isEmpty ? "(mlx default)" : artifactsModel)")
+                let fullResp = try await agentBridge.inferStream(
+                    messages: messages,
+                    model: artifactsModel,
+                    temperature: 0.7,
+                    maxTokens: 4096,
+                    onToken: { token in
+                        if let idx = self.chatMessages.firstIndex(where: { $0.id == assistantId }) {
+                            self.chatMessages[idx].content += token
+                        }
+                    }
+                )
+                let content = extractArtifactContent(from: fullResp)
                 if !content.isEmpty { liveContent = content }
-                chatMessages.append(ArtifactChatMessage(role: "assistant", content: resp))
-                artifactsLog.info("Artifacts chat generated: \(content.count) chars")
+                artifactsLog.info("Artifacts stream done: \(content.count) chars")
             } catch {
                 chatError = "Generation failed: \(error.localizedDescription)"
-                artifactsLog.error("sendChat: \(error)")
+                artifactsLog.error("sendChat stream: \(error)")
             }
             chatGenerating = false
         }
@@ -1509,8 +1530,11 @@ struct ArtifactCreateChatSheet: View {
 
         Task {
             do {
+                let artifactsModel = FusionConfig.shared.defaultModel(for: .artifacts)
+                artifactsLog.info("Generate artifact model: \(artifactsModel.isEmpty ? "(mlx default)" : artifactsModel)")
                 let response = try await agentBridge.infer(
                     messages: messages,
+                    model: artifactsModel,
                     temperature: 0.7,
                     maxTokens: 4096
                 )

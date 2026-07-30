@@ -15,7 +15,7 @@ struct FusionSidebarView: View {
     @StateObject private var workspace = ProjectWorkspace.shared
     @StateObject private var agent = CodeAgent.shared
     @State private var searchText = ""
-    @State private var expandedSections: Set<SidebarSection> = [.code, .chats, .projects]
+    @State private var expandedSections: Set<SidebarSection> = [.code, .chats, .projects, .mlx, .multiNode]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -150,6 +150,10 @@ struct FusionSidebarView: View {
             designContent
         case .agent:
             agentModulesContent
+        case .mlx:
+            moduleListContent(.mlx)
+        case .multiNode:
+            moduleListContent(.multiNode)
         }
     }
 
@@ -390,6 +394,14 @@ struct FusionSidebarView: View {
     private var agentModulesContent: some View {
         VStack(spacing: 0) {
             ForEach(SidebarSection.agent.modules) { module in
+                moduleRow(module)
+            }
+        }
+    }
+
+    private func moduleListContent(_ section: SidebarSection) -> some View {
+        VStack(spacing: 0) {
+            ForEach(section.modules) { module in
                 moduleRow(module)
             }
         }

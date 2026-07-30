@@ -37,6 +37,21 @@ struct UpstreamServiceStatusView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
             }
 
+            // 系统就绪提示：关键服务全部正常 (bug8 - 缺少启动完成反馈)
+            if manager.startupCompleted && !manager.hasCriticalFailure {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.seal.fill")
+                        .foregroundStyle(theme.successText)
+                    Text("系统就绪：关键服务运行正常")
+                        .font(.system(size: theme.smallTextSize))
+                        .foregroundStyle(theme.successText)
+                    Spacer()
+                }
+                .padding(8)
+                .background(theme.successText.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            }
+
             ForEach(manager.services) { svc in
                 row(for: svc)
             }

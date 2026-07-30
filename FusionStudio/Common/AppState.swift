@@ -9,6 +9,7 @@ class AppState: ObservableObject {
     @Published var activeSection: SidebarSection = .code
     @Published var showAboutPanel = false
     @Published var showHelp = false
+    @Published var showWelcome = false
     @Published var showSettings = false
     @Published var isHealthCheckPassed = false
     @Published var isMLXRunning = false
@@ -115,6 +116,7 @@ enum Module: String, CaseIterable, Identifiable {
     case safety = "安全审批"
     case tools = "工具"
     case agentDashboard = "Agent监控"
+    case teamCollab = "团队协作"
 
     var id: String { rawValue }
 
@@ -162,6 +164,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .safety:       return "shield.lefthalf.filled"
         case .tools:        return "wrench.and.screwdriver"
         case .agentDashboard: return "chart.bar.doc.horizontal"
+        case .teamCollab:   return "person.3.fill"
         }
     }
 
@@ -178,7 +181,7 @@ enum Module: String, CaseIterable, Identifiable {
              .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb,
              .operations:
             return .multiNode
-        case .rag, .memory, .planner, .verification, .tokenBudget, .safety, .tools, .agentDashboard:
+        case .rag, .memory, .planner, .verification, .tokenBudget, .safety, .tools, .agentDashboard, .teamCollab:
             return .agentStudio
         case .deploy:
             return .code
@@ -196,6 +199,8 @@ enum SidebarSection: String, CaseIterable, Identifiable {
     case customize = "Customize"
     case design = "Design"
     case agent = "智能体"
+    case mlx = "Fusion-MLX"
+    case multiNode = "Multi-Node"
 
     var id: String { rawValue }
 
@@ -208,6 +213,8 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .customize: return "paintpalette"
         case .design:    return "pencil.and.outline"
         case .agent:     return "person.2.fill"
+        case .mlx:       return "chip"
+        case .multiNode: return "network"
         }
     }
 
@@ -219,7 +226,9 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .code:      return [.code, .design, .doc, .docgen, .cli]
         case .customize: return []
         case .design:    return [.design]
-        case .agent:     return [.agent, .agentDashboard, .tools, .safety, .memory, .rag, .planner, .verification, .tokenBudget, .security, .dataTools, .plugin]
+        case .agent:     return [.agent, .agentDashboard, .teamCollab, .tools, .safety, .memory, .rag, .planner, .verification, .tokenBudget, .security, .dataTools, .plugin, .kb, .desk]
+        case .mlx:       return [.dashboard, .modelHub, .tuning, .bench]
+        case .multiNode: return [.clusterOverview, .clusterTopology, .taskMonitor, .alertCenter, .nodeActions, .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb, .multimodal, .analytics, .collab, .external, .operations, .deploy]
         }
     }
 }

@@ -300,6 +300,13 @@ class DocGenerator: ObservableObject {
             - Model Hub 模型管理
             - CLI 图形化面板
 
+            ## [Unreleased]
+
+            ### 新增
+            - 侧边栏菜单入口全量补齐：新增 Fusion-MLX 段（控制台/模型/调优/测评）、Multi-Node 段（集群总览/拓扑图/任务监控/告警中心/节点管理/提交任务/任务详情/路由策略/KV缓存/服务面板/多模态/分析/协作/外部集成/运维/部署），Agent 段追加知识库/自动化
+            - 22 个原孤儿模块视图现可经侧边栏直达（排除训练/仿真/教育三个待补能力模块）
+            - SectionContentView 新增 .mlx/.multiNode 段路由至 ModuleDetailView，IconRailView/FusionSidebarView 同步接入
+
             ## [0.1.4] - 2026-07-29
 
             ### 新增

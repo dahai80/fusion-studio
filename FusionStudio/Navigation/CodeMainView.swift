@@ -47,12 +47,6 @@ struct QuickAction: Identifiable {
     let prompt: String
 }
 
-enum ModelPickerPage {
-    case main
-    case effort
-    case moreModels
-}
-
 struct CodeMainView: View {
     @Environment(\.studioTheme) private var theme
     @EnvironmentObject var appState: AppState
@@ -66,10 +60,8 @@ struct CodeMainView: View {
     @State private var holdToRecord = true
     @State private var isVoiceMode = false
     @State private var showMicSettings = false
-    @State private var showModelPicker = false
     @State private var selectedEffort: String = "Medium"
     @State private var thinkingEnabled = false
-    @State private var modelPickerPage: ModelPickerPage = .main
 
     private let quickActions: [QuickAction] = [
         QuickAction(icon: "pencil.line", title: "Write", prompt: "Help me write something"),
@@ -143,15 +135,27 @@ struct CodeMainView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
             agent.agentBridge = bridge
-            if selectedModel.isEmpty, let def = MLXModelInfo.preferredDefault(in: bridge.models) {
-                selectedModel = def.name
-                agent.selectedModel = selectedModel
+            if selectedModel.isEmpty {
+                let dm = FusionConfig.shared.defaultModel(for: .code)
+                if !dm.isEmpty {
+                    selectedModel = dm
+                    agent.selectedModel = selectedModel
+                } else if let def = MLXModelInfo.preferredDefault(in: bridge.models) {
+                    selectedModel = def.name
+                    agent.selectedModel = selectedModel
+                }
             }
             Task {
                 try? await bridge.fetchModels()
-                if selectedModel.isEmpty, let def = MLXModelInfo.preferredDefault(in: bridge.models) {
-                    selectedModel = def.name
-                    agent.selectedModel = def.name
+                if selectedModel.isEmpty {
+                    let dm = FusionConfig.shared.defaultModel(for: .code)
+                    if !dm.isEmpty {
+                        selectedModel = dm
+                        agent.selectedModel = dm
+                    } else if let def = MLXModelInfo.preferredDefault(in: bridge.models) {
+                        selectedModel = def.name
+                        agent.selectedModel = def.name
+                    }
                 }
             }
         }
@@ -219,10 +223,45 @@ struct CodeMainView: View {
     }
 
     private var modelSelector: some View {
-        Button(action: { showModelPicker.toggle() }) {
+        HStack(spacing: theme.spacingS) {
+            FusionModelPicker(
+                scene: .code,
+                selection: $selectedModel,
+                models: bridge.models,
+                onChange: { id in
+                    agent.selectedModel = id
+                    Task { try? await bridge.mlxSetModel(model: id) }
+                    codeMainLog.info("Model selected: \(id)")
+                }
+            )
+            effortMenu
+        }
+        .padding(.bottom, theme.spacingS)
+    }
+
+    private var effortMenu: some View {
+        Menu {
+            ForEach(["Low", "Medium", "High", "Extra", "Max"], id: \.self) { level in
+                Button {
+                    selectedEffort = level
+                    codeMainLog.info("Effort set to: \(level)")
+                } label: {
+                    if selectedEffort == level {
+                        Label(level, systemImage: "checkmark")
+                    } else {
+                        Text(level)
+                    }
+                }
+            }
+            Divider()
+            Toggle("Thinking", isOn: $thinkingEnabled)
+        } label: {
             HStack(spacing: 4) {
-                Text(selectedModel.isEmpty ? "Select model" : selectedModel)
+                Text("Effort")
                     .font(.system(size: theme.captionSize, weight: .medium))
+                Text(selectedEffort)
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(theme.textTertiary)
                 Image(systemName: "chevron.down")
                     .font(.system(size: 8))
             }
@@ -234,192 +273,7 @@ struct CodeMainView: View {
                     .fill(theme.separator.opacity(0.5))
             )
         }
-        .buttonStyle(.plain)
-        .padding(.bottom, theme.spacingS)
-        .popover(isPresented: $showModelPicker, arrowEdge: .bottom) {
-            HStack(spacing: 0) {
-                VStack(alignment: .leading, spacing: 2) {
-                    if bridge.models.isEmpty {
-                        Text("No models available")
-                            .font(.system(size: 12))
-                            .foregroundStyle(theme.textTertiary)
-                            .padding(.vertical, 4)
-                    } else {
-                        let displayModels = Array(bridge.models.filter { $0.isTextChatModel }.prefix(4))
-                        ForEach(displayModels) { model in
-                            Button(action: {
-                                selectedModel = model.name
-                                agent.selectedModel = model.name
-                                Task { try? await bridge.mlxSetModel(model: model.name) }
-                                codeMainLog.info("Model selected: \(model.name)")
-                                modelPickerPage = .main
-                                showModelPicker = false
-                            }) {
-                                HStack {
-                                    Text(model.name)
-                                        .font(.system(size: 12))
-                                        .foregroundStyle(theme.text)
-                                    Spacer()
-                                    if selectedModel == model.name {
-                                        Image(systemName: "checkmark")
-                                            .font(.system(size: 10))
-                                            .foregroundStyle(theme.accent)
-                                    }
-                                }
-                                .contentShape(Rectangle())
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                        .fill(selectedModel == model.name ? theme.accent.opacity(0.1) : Color.clear)
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
-
-                        Divider().padding(.vertical, 2)
-
-                        HStack {
-                            Text("Effort")
-                                .font(.system(size: 12))
-                                .foregroundStyle(theme.text)
-                            Spacer()
-                            Text(selectedEffort)
-                                .font(.system(size: 11))
-                                .foregroundStyle(theme.textTertiary)
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 9, weight: .semibold))
-                                .foregroundStyle(theme.textTertiary)
-                        }
-                        .contentShape(Rectangle())
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
-                        .background(
-                            RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                .fill(modelPickerPage == .effort ? theme.accent.opacity(0.08) : Color.clear)
-                        )
-                        .onHover { hovering in
-                            if hovering { modelPickerPage = .effort }
-                        }
-
-                        if bridge.models.filter { $0.isTextChatModel }.count > 4 {
-                            Divider().padding(.vertical, 2)
-
-                            HStack {
-                                Text("More Models")
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(theme.text)
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 9, weight: .semibold))
-                                    .foregroundStyle(theme.textTertiary)
-                            }
-                            .contentShape(Rectangle())
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 5)
-                            .background(
-                                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                    .fill(modelPickerPage == .moreModels ? theme.accent.opacity(0.08) : Color.clear)
-                            )
-                            .onHover { hovering in
-                                if hovering { modelPickerPage = .moreModels }
-                            }
-                        }
-                    }
-                }
-                .padding(.vertical, 6)
-                .frame(width: 200)
-
-                if modelPickerPage != .main {
-                    Divider().padding(.vertical, 6)
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        switch modelPickerPage {
-                        case .effort:
-                            ForEach(["Low", "Medium", "High", "Extra", "Max"], id: \.self) { level in
-                                Button(action: {
-                                    selectedEffort = level
-                                    codeMainLog.info("Effort set to: \(level)")
-                                    modelPickerPage = .main
-                                }) {
-                                    HStack {
-                                        Text(level)
-                                            .font(.system(size: 12))
-                                            .foregroundStyle(theme.text)
-                                        Spacer()
-                                        if selectedEffort == level {
-                                            Image(systemName: "checkmark")
-                                                .font(.system(size: 10))
-                                                .foregroundStyle(theme.accent)
-                                        }
-                                    }
-                                    .contentShape(Rectangle())
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                            .fill(selectedEffort == level ? theme.accent.opacity(0.1) : Color.clear)
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                            }
-
-                            Divider().padding(.vertical, 2)
-
-                            HStack {
-                                Text("Thinking")
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(theme.text)
-                                Spacer()
-                                Toggle("", isOn: $thinkingEnabled)
-                                    .toggleStyle(.switch)
-                                    .controlSize(.small)
-                            }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-
-                        case .moreModels:
-                            let moreModels = Array(bridge.models.filter { $0.isTextChatModel }.dropFirst(4))
-                            ForEach(moreModels) { model in
-                                Button(action: {
-                                    selectedModel = model.name
-                                    agent.selectedModel = model.name
-                                    Task { try? await bridge.mlxSetModel(model: model.name) }
-                                    codeMainLog.info("Model selected: \(model.name)")
-                                    showModelPicker = false
-                                }) {
-                                    HStack {
-                                        Text(model.name)
-                                            .font(.system(size: 12))
-                                            .foregroundStyle(theme.text)
-                                            .lineLimit(1)
-                                        Spacer()
-                                        if selectedModel == model.name {
-                                            Image(systemName: "checkmark")
-                                                .font(.system(size: 10))
-                                                .foregroundStyle(theme.accent)
-                                        }
-                                    }
-                                    .contentShape(Rectangle())
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                            .fill(selectedModel == model.name ? theme.accent.opacity(0.1) : Color.clear)
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                            }
-
-                        default:
-                            EmptyView()
-                        }
-                    }
-                    .padding(.vertical, 6)
-                    .frame(width: 180)
-                }
-            }
-        }
+        .menuStyle(.borderlessButton)
     }
 
     private var micButton: some View {

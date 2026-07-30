@@ -23,6 +23,11 @@ struct UnifiedChatView: View {
     @State private var branchPickerMsgId: String?
     @State private var branchSiblings: [ChatMessageData] = []
 
+    private var hasMessages: Bool {
+        guard let session = chatStore.activeSession else { return false }
+        return !session.linearBranch.isEmpty
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             chatHeader
@@ -33,9 +38,23 @@ struct UnifiedChatView: View {
                 Rectangle().fill(theme.separator).frame(height: 1)
             }
 
-            messageList
-            Rectangle().fill(theme.separator).frame(height: 1)
-            inputArea
+            if hasMessages || streamingBridge.isStreaming {
+                messageList
+                Rectangle().fill(theme.separator).frame(height: 1)
+                CenteredChatInput(
+                    text: $inputText,
+                    placeholder: "Message...",
+                    isCentered: false,
+                    onSend: sendCurrentMessage
+                )
+            } else {
+                CenteredChatInput(
+                    text: $inputText,
+                    placeholder: "Type a message...",
+                    isCentered: true,
+                    onSend: sendCurrentMessage
+                )
+            }
         }
         .frame(minWidth: 320, idealWidth: 400, maxWidth: .infinity)
         .task {

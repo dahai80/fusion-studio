@@ -162,6 +162,10 @@ struct SectionContentView: View {
                 DesignView()
             case .agent:
                 ModuleDetailView()
+            case .mlx:
+                ModuleDetailView()
+            case .multiNode:
+                ModuleDetailView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -19,10 +19,8 @@ struct FusionCodeView: View {
 
     @State private var inputText = ""
     @State private var selectedModel = ""
-    @State private var showModelPicker = false
     @State private var selectedEffort: String = "Medium"
     @State private var thinkingEnabled = false
-    @State private var modelPickerPage: ModelPickerPage = .main
     @State private var sidebarTab: CodeSidebarTab = .files
     @State private var rightPane: CodeRightPane = .editor
     @State private var showSidebar = true
@@ -35,6 +33,9 @@ struct FusionCodeView: View {
     @State private var showOpenProject = false
     @State private var detectedGitURL: String?
     @State private var isWebSearchEnabled = false
+    @State private var showMicSettings = false
+    @State private var micVolume: Double = 0.8
+    @State private var holdToRecord = false
 
     enum CodeSidebarTab: String, CaseIterable {
         case files = "Files"
@@ -75,15 +76,39 @@ struct FusionCodeView: View {
         }
         .onAppear {
             agent.agentBridge = bridge
-            if selectedModel.isEmpty && !bridge.models.isEmpty {
-                selectedModel = bridge.models.first?.name ?? ""
-                agent.selectedModel = selectedModel
+            if selectedModel.isEmpty {
+                let cfg = FusionConfig.shared.defaultModel(for: .code)
+                if !cfg.isEmpty {
+                    selectedModel = cfg
+                    agent.selectedModel = cfg
+                } else if let first = bridge.models.first?.name {
+                    selectedModel = first
+                    agent.selectedModel = first
+                }
             }
             Task {
                 _ = try? await bridge.fetchModels()
-                if selectedModel.isEmpty, let first = bridge.models.first?.name {
-                    selectedModel = first
-                    agent.selectedModel = first
+                // code 档位空（引导页未保存）且已有模型：补齐 code 档，避免回退小档/空 (bug1)
+                let cfg = FusionConfig.shared
+                if cfg.mlxModelCode.isEmpty, !bridge.models.isEmpty {
+                    let code = bridge.models.first { m in
+                        let n = (m.name.isEmpty ? m.id : m.name).lowercased()
+                        return n.contains("code") || n.contains("coder")
+                    } ?? bridge.models.first
+                    if let picked = code?.id {
+                        cfg.setSlotModel(.code, picked)
+                        fusionCodeLog.info("Code slot auto-filled: \(picked)")
+                    }
+                }
+                if selectedModel.isEmpty {
+                    let m = cfg.defaultModel(for: .code)
+                    if !m.isEmpty {
+                        selectedModel = m
+                        agent.selectedModel = m
+                    } else if let first = bridge.models.first?.name {
+                        selectedModel = first
+                        agent.selectedModel = first
+                    }
                 }
             }
         }
@@ -170,28 +195,33 @@ struct FusionCodeView: View {
 
     // MARK: - Chat Panel
 
+    private var hasChatMessages: Bool {
+        !agent.conversation.isEmpty || agent.isThinking
+    }
+
     private var chatPanel: some View {
         VStack(spacing: 0) {
             chatToolbar
             Divider()
 
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(spacing: theme.spacingM) {
-                        if agent.conversation.isEmpty && !workspace.hasProject {
-                            welcomeSection
-                        }
-                        ForEach(agent.conversation) { msg in
-                            CodeMessageBubble(message: msg, onApplyCode: applyCodeFromMessage)
-                                .id(msg.id)
-                        }
-                        if agent.isThinking {
-                            HStack(spacing: theme.spacingS) {
-                                ProgressView()
-                                    .controlSize(.small)
-                                Text("Thinking...")
-                                    .font(.system(size: theme.captionSize))
-                                    .foregroundStyle(theme.textTertiary)
+            if hasChatMessages {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(spacing: theme.spacingM) {
+                            if agent.conversation.isEmpty && !workspace.hasProject {
+                                welcomeSection
+                            }
+                            ForEach(agent.conversation) { msg in
+                                CodeMessageBubble(message: msg, onApplyCode: applyCodeFromMessage)
+                                    .id(msg.id)
+                            }
+                            if agent.isThinking {
+                                HStack(spacing: theme.spacingS) {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                    Text("Thinking...")
+                                        .font(.system(size: theme.captionSize))
+                                        .foregroundStyle(theme.textTertiary)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, theme.spacing2XL)
@@ -214,8 +244,65 @@ struct FusionCodeView: View {
                 }
             }
 
-            Divider()
-            chatInputBar
+                Divider()
+                CenteredChatInput(
+                    text: $inputText,
+                    placeholder: "Ask anything — code, explain, debug, refactor...",
+                    isCentered: false,
+                    onSend: sendMessage,
+                    maxLineLimit: 6,
+                    trailingContent: AnyView(
+                        HStack(spacing: theme.spacingXS) {
+                            Menu {
+                                Button(action: { workspace.openLocalFolder() }) {
+                                    Label("Add files", systemImage: "doc.badge.plus")
+                                }
+                                Button(action: { workspace.openSingleFile() }) {
+                                    Label("Add file", systemImage: "doc.text")
+                                }
+                                Toggle(isOn: $isWebSearchEnabled) {
+                                    Label("Web search", systemImage: "globe")
+                                }
+                            } label: {
+                                Image(systemName: "plus.circle")
+                                    .font(.system(size: 18))
+                                    .foregroundStyle(theme.textTertiary)
+                            }
+                            .menuStyle(.borderlessButton)
+                            .menuIndicator(.hidden)
+                        }
+                    )
+                )
+            } else {
+                CenteredChatInput(
+                    text: $inputText,
+                    placeholder: "Ask anything — code, explain, debug, refactor...",
+                    isCentered: true,
+                    onSend: sendMessage,
+                    maxLineLimit: 6,
+                    trailingContent: AnyView(
+                        HStack(spacing: theme.spacingXS) {
+                            Menu {
+                                Button(action: { workspace.openLocalFolder() }) {
+                                    Label("Add files", systemImage: "doc.badge.plus")
+                                }
+                                Button(action: { workspace.openSingleFile() }) {
+                                    Label("Add file", systemImage: "doc.text")
+                                }
+                                Toggle(isOn: $isWebSearchEnabled) {
+                                    Label("Web search", systemImage: "globe")
+                                }
+                            } label: {
+                                Image(systemName: "plus.circle")
+                                    .font(.system(size: 18))
+                                    .foregroundStyle(theme.textTertiary)
+                            }
+                            .menuStyle(.borderlessButton)
+                            .menuIndicator(.hidden)
+                        }
+                    )
+                )
+            }
         }
     }
 
@@ -239,42 +326,54 @@ struct FusionCodeView: View {
                 .buttonStyle(.plain)
             }
 
-            Button(action: { showModelPicker.toggle() }) {
-                HStack(spacing: 4) {
-                    Text(selectedModel.isEmpty ? "Model" : selectedModel)
-                        .font(.system(size: theme.captionSize, weight: .medium))
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 8))
-                }
-                .foregroundStyle(theme.textSecondary)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(theme.separator.opacity(0.5))
-                )
-            }
-            .buttonStyle(.plain)
-            .popover(isPresented: $showModelPicker, arrowEdge: .bottom) {
-                ModelPickerPopover(
-                    bridge: bridge,
-                    selectedModel: $selectedModel,
-                    selectedEffort: $selectedEffort,
-                    thinkingEnabled: $thinkingEnabled,
-                    modelPickerPage: $modelPickerPage,
-                    onSelect: { model in
-                        selectedModel = model
-                        agent.selectedModel = model
-                        Task { try? await bridge.mlxSetModel(model: model) }
-                        fusionCodeLog.info("Model selected: \(model)")
-                        showModelPicker = false
-                    }
-                )
-            }
+            FusionModelPicker(scene: .code, selection: $selectedModel, models: bridge.models, onChange: { id in
+                agent.selectedModel = id
+                Task { try? await bridge.mlxSetModel(model: id) }
+                fusionCodeLog.info("Model selected: \(id)")
+            })
+            effortMenu
+            thinkingToggle
         }
         .padding(.horizontal, theme.spacingM)
         .padding(.vertical, theme.spacingS)
         .background(theme.contentBg)
+    }
+
+    // Think 开关：左右横滑按钮形式，与 Effort 并列 (bug2)
+    private var thinkingToggle: some View {
+        HStack(spacing: 4) {
+            Text("Think").font(.system(size: theme.captionSize, weight: .medium))
+            Toggle("", isOn: $thinkingEnabled)
+                .toggleStyle(.switch)
+                .controlSize(.small)
+                .labelsHidden()
+        }
+        .foregroundStyle(theme.textSecondary)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(theme.separator.opacity(0.5)))
+        .onChange(of: thinkingEnabled) { _, v in
+            fusionCodeLog.info("Thinking toggled: \(v)")
+        }
+    }
+
+    private var effortMenu: some View {
+        Menu {
+            ForEach(["Low", "Medium", "High", "Extra", "Max"], id: \.self) { level in
+                Button { selectedEffort = level; fusionCodeLog.info("Effort set to: \(level)") } label: {
+                    if selectedEffort == level { Label(level, systemImage: "checkmark") } else { Text(level) }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text("Effort").font(.system(size: theme.captionSize, weight: .medium))
+                Text(selectedEffort).font(.system(size: theme.captionSize)).foregroundStyle(theme.textTertiary)
+                Image(systemName: "chevron.down").font(.system(size: 8))
+            }
+            .foregroundStyle(theme.textSecondary).padding(.horizontal, 8).padding(.vertical, 4)
+            .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(theme.separator.opacity(0.5)))
+        }
+        .menuStyle(.borderlessButton)
     }
 
     private var welcomeSection: some View {
@@ -323,10 +422,7 @@ struct FusionCodeView: View {
                     Button(action: { workspace.openSingleFile() }) {
                         Label("Add file", systemImage: "doc.text")
                     }
-                    Button(action: {
-                        isWebSearchEnabled.toggle()
-                        fusionCodeLog.info("Web search: \(isWebSearchEnabled)")
-                    }) {
+                    Toggle(isOn: $isWebSearchEnabled) {
                         Label("Web search", systemImage: "globe")
                     }
                 } label: {
@@ -353,6 +449,38 @@ struct FusionCodeView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(inputText.isEmpty || agent.isThinking)
+
+                Button(action: { showMicSettings.toggle() }) {
+                    Image(systemName: "mic")
+                        .font(.system(size: 16))
+                        .foregroundStyle(theme.textSecondary)
+                }
+                .buttonStyle(.plain)
+                .popover(isPresented: $showMicSettings, arrowEdge: .top) {
+                    VStack(spacing: theme.spacingM) {
+                        Text("Microphone")
+                            .font(.system(size: theme.captionSize, weight: .semibold))
+                        HStack(spacing: theme.spacingS) {
+                            Text("Volume")
+                                .font(.system(size: 11))
+                                .foregroundStyle(theme.textSecondary)
+                                .frame(width: 48, alignment: .leading)
+                            Slider(value: $micVolume, in: 0...1)
+                                .frame(width: 120)
+                        }
+                        HStack(spacing: theme.spacingS) {
+                            Text("Hold to Record")
+                                .font(.system(size: 11))
+                                .foregroundStyle(theme.textSecondary)
+                            Spacer()
+                            Toggle("", isOn: $holdToRecord)
+                                .toggleStyle(.switch)
+                                .controlSize(.small)
+                        }
+                        .frame(width: 188)
+                    }
+                    .padding(theme.spacingM)
+                }
             }
             .padding(.horizontal, theme.spacingM)
             .padding(.vertical, theme.spacingS)
@@ -538,189 +666,6 @@ struct FusionCodeView: View {
         if let file = workspace.selectedFile, newContent != file.content {
             workspace.selectedFile?.content = newContent
             workspace.selectedFile?.isModified = true
-        }
-    }
-}
-
-// MARK: - Model Picker Popover
-
-struct ModelPickerPopover: View {
-    @Environment(\.studioTheme) private var theme
-    @ObservedObject var bridge: AgentBridge
-    @Binding var selectedModel: String
-    @Binding var selectedEffort: String
-    @Binding var thinkingEnabled: Bool
-    @Binding var modelPickerPage: ModelPickerPage
-    let onSelect: (String) -> Void
-
-    var body: some View {
-        HStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 2) {
-                if bridge.models.isEmpty {
-                    Text("No models available")
-                        .font(.system(size: 12))
-                        .foregroundStyle(theme.textTertiary)
-                        .padding(.vertical, 4)
-                } else {
-                    let displayModels = Array(bridge.models.prefix(4))
-                    ForEach(displayModels) { model in
-                        Button(action: { onSelect(model.name) }) {
-                            HStack {
-                                Text(model.name)
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(theme.text)
-                                    .lineLimit(1)
-                                Spacer()
-                                if selectedModel == model.name {
-                                    Image(systemName: "checkmark")
-                                        .font(.system(size: 10))
-                                        .foregroundStyle(theme.accent)
-                                }
-                            }
-                            .contentShape(Rectangle())
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(
-                                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                    .fill(selectedModel == model.name ? theme.accent.opacity(0.1) : Color.clear)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-
-                    Divider().padding(.vertical, 2)
-
-                    HStack {
-                        Text("Effort")
-                            .font(.system(size: 12))
-                            .foregroundStyle(theme.text)
-                        Spacer()
-                        Text(selectedEffort)
-                            .font(.system(size: 11))
-                            .foregroundStyle(theme.textTertiary)
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundStyle(theme.textTertiary)
-                    }
-                    .contentShape(Rectangle())
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
-                    .background(
-                        RoundedRectangle(cornerRadius: 4, style: .continuous)
-                            .fill(modelPickerPage == .effort ? theme.accent.opacity(0.08) : Color.clear)
-                    )
-                    .onHover { hovering in
-                        if hovering { modelPickerPage = .effort }
-                    }
-
-                    if bridge.models.count > 4 {
-                        Divider().padding(.vertical, 2)
-                        HStack {
-                            Text("More Models")
-                                .font(.system(size: 12))
-                                .foregroundStyle(theme.text)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 9, weight: .semibold))
-                                .foregroundStyle(theme.textTertiary)
-                        }
-                        .contentShape(Rectangle())
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
-                        .background(
-                            RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                .fill(modelPickerPage == .moreModels ? theme.accent.opacity(0.08) : Color.clear)
-                        )
-                        .onHover { hovering in
-                            if hovering { modelPickerPage = .moreModels }
-                        }
-                    }
-                }
-            }
-            .padding(.vertical, 6)
-            .frame(width: 200)
-
-            if modelPickerPage != .main {
-                Divider().padding(.vertical, 6)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    switch modelPickerPage {
-                    case .effort:
-                        ForEach(["Low", "Medium", "High", "Extra", "Max"], id: \.self) { level in
-                            Button(action: {
-                                selectedEffort = level
-                                modelPickerPage = .main
-                            }) {
-                                HStack {
-                                    Text(level)
-                                        .font(.system(size: 12))
-                                        .foregroundStyle(theme.text)
-                                    Spacer()
-                                    if selectedEffort == level {
-                                        Image(systemName: "checkmark")
-                                            .font(.system(size: 10))
-                                            .foregroundStyle(theme.accent)
-                                    }
-                                }
-                                .contentShape(Rectangle())
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                        .fill(selectedEffort == level ? theme.accent.opacity(0.1) : Color.clear)
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
-
-                        Divider().padding(.vertical, 2)
-
-                        HStack {
-                            Text("Thinking")
-                                .font(.system(size: 12))
-                                .foregroundStyle(theme.text)
-                            Spacer()
-                            Toggle("", isOn: $thinkingEnabled)
-                                .toggleStyle(.switch)
-                                .controlSize(.small)
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-
-                    case .moreModels:
-                        let moreModels = Array(bridge.models.dropFirst(4))
-                        ForEach(moreModels) { model in
-                            Button(action: { onSelect(model.name) }) {
-                                HStack {
-                                    Text(model.name)
-                                        .font(.system(size: 12))
-                                        .foregroundStyle(theme.text)
-                                        .lineLimit(1)
-                                    Spacer()
-                                    if selectedModel == model.name {
-                                        Image(systemName: "checkmark")
-                                            .font(.system(size: 10))
-                                            .foregroundStyle(theme.accent)
-                                    }
-                                }
-                                .contentShape(Rectangle())
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                        .fill(selectedModel == model.name ? theme.accent.opacity(0.1) : Color.clear)
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
-
-                    default:
-                        EmptyView()
-                    }
-                }
-                .padding(.vertical, 6)
-                .frame(width: 180)
-            }
         }
     }
 }

@@ -1,5 +1,8 @@
 import Foundation
 import Combine
+import os.log
+
+private let ipcLog = Logger(subsystem: "com.fusion.studio", category: "IPCClient")
 
 /// IPC 通信客户端 — Unix Domain Socket + JSON-RPC 2.0
 class IPCClient: ObservableObject {
@@ -11,7 +14,8 @@ class IPCClient: ObservableObject {
     private var socketFd: Int32 = -1
     private let queue = DispatchQueue(label: "com.fusion-studio.ipc", qos: .userInitiated)
     private var reconnectTimer: Timer?
-    private var pendingRequests: [Int: (Data) -> Void] = [:]
+    // 续体直接存储：handleResponse / 超时 / 断连 三处 removeValue 取出并 resume，保证恰好一次
+    private var pendingRequests: [Int: CheckedContinuation<[String: Any], Error>] = [:]
     private let lock = NSLock()
 
     init(socketPath: String = "/tmp/fusion-studio.sock") {
@@ -136,28 +140,22 @@ class IPCClient: ObservableObject {
                     return
                 }
 
-                // 注册等待回调
+                // 注册续体
                 self.lock.lock()
-                self.pendingRequests[reqId] = { responseData in
-                    do {
-                        if let json = try JSONSerialization.jsonObject(with: responseData) as? [String: Any] {
-                            if let error = json["error"] as? [String: Any] {
-                                let code = error["code"] as? Int ?? -1
-                                let msg = error["message"] as? String ?? "未知错误"
-                                continuation.resume(throwing: IPCError.rpcError(code: code, message: msg))
-                            } else if let result = json["result"] {
-                                continuation.resume(returning: result as? [String: Any] ?? [:])
-                            } else {
-                                continuation.resume(returning: [:])
-                            }
-                        } else {
-                            continuation.resume(throwing: IPCError.invalidResponse)
-                        }
-                    } catch {
-                        continuation.resume(throwing: error)
+                self.pendingRequests[reqId] = continuation
+                self.lock.unlock()
+
+                // 超时保护：8s 无响应即失败，避免 daemon 不回包时续体泄露、调用永久挂起 (bug3/bug4)
+                self.queue.asyncAfter(deadline: .now() + 8) { [weak self] in
+                    guard let self = self else { return }
+                    self.lock.lock()
+                    let pending = self.pendingRequests.removeValue(forKey: reqId)
+                    self.lock.unlock()
+                    if let pending = pending {
+                        ipcLog.warning("IPC call timeout: method=\(method, privacy: .public) id=\(reqId)")
+                        pending.resume(throwing: IPCError.timeout)
                     }
                 }
-                self.lock.unlock()
 
                 // 发送数据
                 var writeBuf = data
@@ -187,6 +185,7 @@ class IPCClient: ObservableObject {
                         buffer.append(byte)
                     }
                 } else if n == 0 {
+                    self.drainPending()
                     DispatchQueue.main.async {
                         self.isConnected = false
                         self.scheduleReconnect()
@@ -195,6 +194,7 @@ class IPCClient: ObservableObject {
                 } else if errno == EAGAIN {
                     Thread.sleep(forTimeInterval: 0.01)
                 } else {
+                    self.drainPending()
                     DispatchQueue.main.async {
                         self.isConnected = false
                         self.scheduleReconnect()
@@ -210,10 +210,32 @@ class IPCClient: ObservableObject {
               let id = json["id"] as? Int else { return }
 
         lock.lock()
-        let handler = pendingRequests.removeValue(forKey: id)
+        let cont = pendingRequests.removeValue(forKey: id)
         lock.unlock()
+        guard let cont = cont else { return }
 
-        handler?(data)
+        if let error = json["error"] as? [String: Any] {
+            let code = error["code"] as? Int ?? -1
+            let msg = error["message"] as? String ?? "未知错误"
+            cont.resume(throwing: IPCError.rpcError(code: code, message: msg))
+        } else if let result = json["result"] {
+            cont.resume(returning: result as? [String: Any] ?? [:])
+        } else {
+            cont.resume(returning: [:])
+        }
+    }
+
+    /// 断连时排空所有挂起请求，resume 为 .disconnected，避免续体泄露 (bug3/bug4)
+    private func drainPending() {
+        lock.lock()
+        let pending = pendingRequests
+        pendingRequests.removeAll()
+        lock.unlock()
+        guard !pending.isEmpty else { return }
+        ipcLog.warning("IPC drain \(pending.count, privacy: .public) pending requests on disconnect")
+        for (_, cont) in pending {
+            cont.resume(throwing: IPCError.disconnected)
+        }
     }
 
     // MARK: - 便捷方法
@@ -1018,6 +1040,7 @@ class IPCClient: ObservableObject {
 
 enum IPCError: Error, LocalizedError {
     case disconnected
+    case timeout
     case invalidRequest
     case invalidResponse
     case rpcError(code: Int, message: String)
@@ -1025,6 +1048,7 @@ enum IPCError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .disconnected:      return "IPC 未连接"
+        case .timeout:           return "IPC 调用超时"
         case .invalidRequest:    return "无效的请求"
         case .invalidResponse:   return "无效的响应"
         case .rpcError(_, let m): return "RPC 错误: \(m)"

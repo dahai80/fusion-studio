@@ -199,7 +199,7 @@ final class TaskManagerTests: XCTestCase {
 
 final class ModelInfoTests: XCTestCase {
     func testPresetCount() {
-        XCTAssertEqual(ModelInfo.presets.count, 5)
+        XCTAssertEqual(ModelInfo.presets.count, 4)
     }
 
     func testModelFields() {

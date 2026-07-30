@@ -83,3 +83,9 @@ Design module needs screenshot-to-code, requiring image input in /v1/chat/comple
 2. fusion-artifacts-engine design metadata → https://github.com/dahai80/fusion-artifacts-engine/issues/10
 3. fusion-agent-studio tool_use streaming → https://github.com/dahai80/fusion-agent-studio/issues/4
 4. fusion-agent-studio multimodal input → https://github.com/dahai80/fusion-agent-studio/issues/5
+
+## Issue 提交记录 (2026-07-30, v0.1.5)
+
+5. fusion-mlx `mlx.set_model` JSON-RPC → https://github.com/dahai80/fusion-mlx/issues/277
+6. fusion-agent-studio graph/workflow list API → https://github.com/dahai80/fusion-agent-studio/issues/15
+7. fusion-agent-studio multi-node cluster API → https://github.com/dahai80/fusion-agent-studio/issues/16

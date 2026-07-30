@@ -9,7 +9,7 @@
   <img src="https://img.shields.io/badge/Swift-5.9-red" alt="Swift">
   <img src="https://img.shields.io/badge/Rust-2021-purple" alt="Rust">
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
-  <img src="https://img.shields.io/badge/status-V1.0-yellow" alt="V1.0">
+  <img src="https://img.shields.io/badge/status-V0.1.5-yellow" alt="V0.1.5">
   <img src="https://img.shields.io/badge/modules-25-success" alt="20 Modules">
 </div>
 
@@ -69,7 +69,7 @@ Design · Code · Simulation · MultiModal · Training · Data · Agent · KB ·
 | 2 | 🎨 **Design** | `pencil.and.outline` | ✅ Stable | AI-powered vector canvas, WKWebView, export to code |
 | 3 | 💻 **Code** | `chevron.left.forwardslash.chevron.right` | ✅ Stable | Code editor + integrated terminal, 9 languages |
 | 4 | 🤖 **Simulation** | `gearshape.2` | ✅ Stable | PyBullet physics, 3D viewport, scene editor |
-| 5 | 📦 **Model Hub** | `cpu` | ✅ Stable | Model download/activate/quantization management |
+| 5 | 📦 **Model Hub** | `cpu` | ✅ Stable | Real model list via fusion-mlx API, HF search/recommended, download progress polling, model activation |
 | 6 | 🖼️ **MultiModal** | `photo.on.rectangle` | ✅ Stable | Text-to-image, image-to-image, OCR, speech-to-text, TTS |
 | 7 | 🧠 **Training** | `brain` | ✅ Stable | LoRA/QLoRA fine-tuning, monitoring, checkpoints, model export |
 | 8 | ⌨️ **CLI** | `terminal` | ✅ Stable | GUI CLI panel, 18 preset commands, execution history |
@@ -89,7 +89,7 @@ Design · Code · Simulation · MultiModal · Training · Data · Agent · KB ·
 | 22 | 🏭 **Industry Templates** | `square.stack.3d.forward.dottedline` | ✅ Stable | 12 pre-built industry scenarios |
 | 23 | 🔧 **Operations** | `antenna.radiowaves.left.and.right` | ✅ Stable | Service management, alert rules, ops logs |
 | 24 | 🔑 **License** | `key.fill` | ✅ Stable | Commercial licensing, activation, tier comparison |
-| 25 | 🌐 **Multi-Node** | `network` | 🆕 New | Cluster overview, topology, task monitor, alerts, autoscaler |
+| 25 | 🌐 **Multi-Node** | `network` | 🆕 New | Cluster overview, topology, task monitor, alerts, KV cache, autoscaler, routing — real API on port 9753, offline status banner |
 
 ### 📦 Artifacts Integration
 
@@ -243,12 +243,96 @@ comes up).
 - Upstream repo paths and the auto-start toggle live in Settings
   (`FusionConfig.upstream*Path`, `upstreamAutoStartCritical`, default on).
 
+### First-Run Onboarding (三档模型引导)
+
+On first launch, if no small-model slot is set (`@AppStorage("mlxModelSmall")` empty),
+Fusion Studio shows a 6-step onboarding wizard reused from fusion-mac's
+`WelcomeWindow` and adapted to this app's architecture. It can be re-entered
+anytime via Settings → General → "重新选择主模型".
+
+| Step | Purpose |
+|------|---------|
+| intro | Welcome + privacy (100% offline) |
+| setup | fusion-mlx host/port + API key (reuses external mlx, no spawn) |
+| hardwareDetect | Chip / cores / RAM / bandwidth / disk auto-detect |
+| modelSource | HF source: huggingface / hf-mirror / modelscope |
+| recommend | Configure 3 model slots (small / code / heavy) from existing local models |
+| complete | Summary |
+
+Key design points (fusion-studio reuses the **external** fusion-mlx, it does
+**not** spawn its own):
+
+- **HTTP, not IPC, for model ops.** `MlxHTTPClient` talks to the external
+  fusion-mlx admin API (`/admin/api/*`, port 11434) with cookie-jar session +
+  401 auto-relogin. Endpoints: `login`, `models`, `hf/recommended`,
+  `hf/download`, `hf/tasks`, `hf/cancel`, `setup-api-key`.
+- **Local-first slot configuration.** The recommend step lists the external
+  mlx's already-downloaded models (via `listModels`) and lets the user assign
+  one to each of the three slots (small / code / heavy). The small slot is
+  also applied as the running model via `agentBridge.mlxSetModel`.
+- **Three-slot model system.** Three model slots - small (日常对话), code
+  (代码), heavy (复杂事务) - are persisted in `@AppStorage("mlxModelSmall" /
+  "mlxModelCode" / "mlxModelHeavy")` in `FusionConfig`. Every model selector
+  (`FusionModelPicker`) shows the three assigned slots at the top plus a
+  "More Models" submenu listing the remaining local chat models.
+- **Scene-based defaults.** Each scene (chat / code / agent / artifacts) maps
+  to a default slot (`@AppStorage("defaultSlotChat/Code/Agent/Artifacts")`).
+  `FusionConfig.defaultModel(for:)` resolves a scene to its slot's model, so
+  every model-consuming surface (chat, Code, Agent Studio, Artifacts, Design
+  code export) defaults to the user-configured model. Defaults are editable in
+  Settings -> 模型档位.
+- **Save-and-enter (non-blocking).** The recommend step's "保存并进入" button
+  persists the three slots + port + API key instantly and dismisses the wizard
+  to the main page immediately - it does **not** wait for services. Upstream
+  services are pulled up in the background by `FusionStudioApp.onAppear`'s
+  `ensureCriticalRunning()` (the app reuses the external mlx, no spawn);
+  `setupApiKey` and `mlxSetModel` run in a detached background `Task`, so the UI
+  never blocks on service readiness.
+
 ### Build Distribution
 
 ```bash
 ./Scripts/build.sh all    # Full build: services + app + package + sign + dmg
 ./Scripts/build.sh dmg    # DMG installer only
 ```
+
+---
+
+## 📋 Changelog
+
+### v0.1.5 (2026-07-30)
+
+Bug fixes (18 issues resolved):
+
+- **bug1-4**: Agent-mlx interop — default model selection, context preservation across turns, tool invocation, model switching (upstream PR #12)
+- **bug5**: Git tab + button now renders newBranchForm
+- **bug6**: Health check no longer stuck at "检测中" (8s @Sendable timeout)
+- **bug7**: Chat history entries clickable/re-enterable
+- **bug8**: Terminal CSI escape sequences stripped (`[?2004h`)
+- **bug9**: All dialog/chat inputs centered on page with multi-line support (`CenteredChatInput` component — `isCentered` mode for empty conversations, bottom bar for active ones)
+- **bug10**: Chats panel shows latest session data from `ChatSessionStore`
+- **bug11**: Projects panel 2:8 split ratio
+- **bug12**: Artifacts panel dialog-style (not navigation-style)
+- **bug13**: Design module pre-checks MLX running status + startup race retry
+- **bug14**: Agent Studio GUI + CreateAgentSheet graph selector
+- **bug15**: Multi-Node offline status banner when service not connected
+- **bug16**: ModelHubView real API integration (`MlxHTTPClient` — HF search/recommended/download/progress polling, replaces fake presets)
+- **bug17**: FusionCodeView mic/voice input button restored
+- **bug18**: Dock icon via `.icns` format (`AppIcon.appiconset` + `Contents.json` + `iconutil` generation)
+
+New components:
+
+- `CenteredChatInput` — reusable centered/bottom chat input with multi-line `TextEditor`
+- `MlxHTTPClient` — HTTP client for fusion-mlx `/admin/api/*` endpoints (cookie session + apiKey auth)
+- `MlxModelDTO` — DTO models for fusion-mlx API responses
+- `FusionModelPicker` — 3-slot model selector (small/code/heavy + More Models)
+- `AppIcon.appiconset` — proper macOS app icon asset catalog + `.icns`
+
+Upstream issues filed:
+
+- [fusion-mlx#277](https://github.com/dahai80/fusion-mlx/issues/277) — `mlx.set_model` JSON-RPC method
+- [fusion-agent-studio#15](https://github.com/dahai80/fusion-agent-studio/issues/15) — graph/workflow list API
+- [fusion-agent-studio#16](https://github.com/dahai80/fusion-agent-studio/issues/16) — multi-node cluster API
 
 ---
 

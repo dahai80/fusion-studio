@@ -23,6 +23,10 @@ struct DesignChatPanel: View {
     @State private var showCodegenExport: Bool = false
     @State private var showBatchExport: Bool = false
 
+    private var hasDesignMessages: Bool {
+        !designBridge.messages.isEmpty || designBridge.isGenerating
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             chatHeader
@@ -33,15 +37,47 @@ struct DesignChatPanel: View {
                 Rectangle().fill(theme.separator).frame(height: 1)
             }
 
-            messageList
+            if hasDesignMessages {
+                messageList
 
-            if designBridge.isPlanPreviewActive {
-                planPreviewBar
+                if designBridge.isPlanPreviewActive {
+                    planPreviewBar
+                    Rectangle().fill(theme.separator).frame(height: 1)
+                }
+
                 Rectangle().fill(theme.separator).frame(height: 1)
+                CenteredChatInput(
+                    text: $inputText,
+                    placeholder: "描述你想设计的界面...",
+                    isCentered: false,
+                    onSend: sendChat,
+                    trailingContent: AnyView(
+                        Button(action: { sendChat() }) {
+                            Image(systemName: designBridge.isGenerating ? "stop.circle" : "arrow.up.circle.fill")
+                                .font(.system(size: theme.iconL))
+                                .foregroundStyle(designBridge.isGenerating ? theme.textTertiary : theme.accent)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(inputText.isEmpty && !designBridge.isGenerating)
+                    )
+                )
+            } else {
+                CenteredChatInput(
+                    text: $inputText,
+                    placeholder: "描述你想设计的界面...",
+                    isCentered: true,
+                    onSend: sendChat,
+                    trailingContent: AnyView(
+                        Button(action: { sendChat() }) {
+                            Image(systemName: "arrow.up.circle.fill")
+                                .font(.system(size: 24))
+                                .foregroundStyle(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? theme.textQuaternary : theme.accent)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    )
+                )
             }
-
-            Rectangle().fill(theme.separator).frame(height: 1)
-            inputArea
         }
         .frame(minWidth: 280, idealWidth: 320, maxWidth: 400)
         .sheet(isPresented: $showSwiftUIExport) {

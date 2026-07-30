@@ -91,6 +91,8 @@ struct ModuleDetailView: View {
                 ToolBrowserView()
             case .agentDashboard:
                 AgentDashboardView()
+            case .teamCollab:
+                TeamCollabView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -179,10 +181,10 @@ struct DesignView: View {
             DesignChatPanel()
 
             canvasContent
-                .frame(minWidth: 400, idealWidth: 600)
+                .frame(minWidth: 340, idealWidth: 600)
 
             designInfoPanel
-                .frame(minWidth: 200, idealWidth: 260, maxWidth: 320)
+                .frame(minWidth: 150, idealWidth: 260, maxWidth: 320)
         }
         .background(theme.contentBg)
     }

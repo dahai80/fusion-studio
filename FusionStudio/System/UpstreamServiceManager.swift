@@ -384,7 +384,7 @@ final class UpstreamServiceManager: ObservableObject {
         }
     }
 
-    /// 同步执行 start.sh，返回退出码与合并输出
+    /// 同步执行 start.sh，返回退出码与合并输出。30s 强制终止，避免 waitUntilExit 永挂 (bug8)。
     private static func runStartSh(path: String, action: String) async -> (exitCode: Int32, output: String) {
         await withCheckedContinuation { (cont: CheckedContinuation<(Int32, String), Never>) in
             DispatchQueue.global(qos: .userInitiated).async {
@@ -396,13 +396,32 @@ final class UpstreamServiceManager: ObservableObject {
                 process.standardError = pipe
                 do {
                     try process.run()
-                    process.waitUntilExit()
-                    let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                    let output = String(data: data, encoding: .utf8) ?? ""
-                    cont.resume(returning: (process.terminationStatus, output))
                 } catch {
                     cont.resume(returning: (-1, error.localizedDescription))
+                    return
                 }
+                let timeoutLock = NSLock()
+                var didTimeout = false
+                let timer = DispatchSource.makeTimerSource(queue: .global(qos: .userInitiated))
+                timer.schedule(deadline: .now() + 30)
+                timer.setEventHandler {
+                    timeoutLock.lock()
+                    if process.isRunning {
+                        didTimeout = true
+                        process.terminate()
+                    }
+                    timeoutLock.unlock()
+                }
+                timer.resume()
+                process.waitUntilExit()
+                timer.cancel()
+                timeoutLock.lock()
+                let timeout = didTimeout
+                timeoutLock.unlock()
+                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                var output = String(data: data, encoding: .utf8) ?? ""
+                if timeout { output = "启动超时(30s)\n" + output }
+                cont.resume(returning: (timeout ? -1 : process.terminationStatus, output))
             }
         }
     }
