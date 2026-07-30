@@ -188,6 +188,12 @@ final class UpstreamServiceManager: ObservableObject {
                             isCritical: false, startOrder: 7,
                             repoPathRaw: "~/fusion/fusion-security",
                             healthKind: .httpGet, healthEndpoint: "http://localhost:8000/api/v1/system/info"),
+            UpstreamService(id: "fusion-code",
+                            displayName: "Fusion Code API",
+                            icon: "terminal",
+                            isCritical: false, startOrder: 8,
+                            repoPathRaw: cfg.upstreamFusionCodePath,
+                            healthKind: .httpGet, healthEndpoint: "\(cfg.fusionCodeURL)/api/project/context"),
         ]
     }
 

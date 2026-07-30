@@ -110,6 +110,9 @@ class FusionConfig: ObservableObject {
     /// Fusion-RAG 服务地址
     var fusionRagURL: String { "http://\(fusionRagHost):\(fusionRagPort)" }
 
+    /// Fusion-Code API 服务地址
+    var fusionCodeURL: String { "http://127.0.0.1:\(fusionCodePort)" }
+
     // MARK: - Upstream Services
     // Callers: UpstreamServiceManager reads these to locate each upstream repo's start.sh.
     // Affected API: @AppStorage upstream*Path fields + upstreamAutoStartCritical + expandedUpstreamPath(_:).
@@ -120,6 +123,8 @@ class FusionConfig: ObservableObject {
     @AppStorage("upstreamArtifactsPath") var upstreamArtifactsPath = "~/fusion/fusion-artifacts-engine"
     @AppStorage("upstreamRagPath") var upstreamRagPath = "~/fusion/fusion-kb"
     @AppStorage("upstreamMultiNodePath") var upstreamMultiNodePath = "~/fusion/fusion-multi-node"
+    @AppStorage("upstreamFusionCodePath") var upstreamFusionCodePath = "~/fusion/fusion-code"
+    @AppStorage("fusionCodePort") var fusionCodePort = 4827
     @AppStorage("upstreamAutoStartCritical") var upstreamAutoStartCritical = true
 
     /// 展开 ~/ 路径为绝对路径
@@ -237,6 +242,8 @@ class FusionConfig: ObservableObject {
         upstreamArtifactsPath = "~/fusion/fusion-artifacts-engine"
         upstreamRagPath = "~/fusion/fusion-kb"
         upstreamMultiNodePath = "~/fusion/fusion-multi-node"
+        upstreamFusionCodePath = "~/fusion/fusion-code"
+        fusionCodePort = 4827
         upstreamAutoStartCritical = true
     }
 }
