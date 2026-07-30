@@ -1,3 +1,8 @@
+// Callers: UnifiedChatView chatInputBox.
+// Affected API: SendableTextEditor — NSViewRepresentable wrapping NSTextView, Enter-to-send, auto-refocus.
+// Data schemas: @Binding text, onSend callback. User instruction: "bug29 输入框大模型回复后无法再次输入"
+// Fix: onSend 后 makeFirstResponder; updateNSView 清空 text 时保持焦点
+
 import SwiftUI
 import os.log
 
@@ -53,15 +58,21 @@ struct SendableTextEditor: NSViewRepresentable {
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         guard let textView = scrollView.documentView as? SendableTextView else { return }
         context.coordinator.parent = self
+        textView.onSend = onSend
+        textView.maxHeight = maxHeight
 
         if textView.string != text {
+            let wasFirstResponder = textView.window?.firstResponder == textView
             textView.string = text
             textView.invalidateIntrinsicContentSize()
+            if wasFirstResponder && text.isEmpty {
+                DispatchQueue.main.async {
+                    textView.window?.makeFirstResponder(textView)
+                }
+            }
         }
         textView.font = font
         textView.textColor = textColor
-        textView.onSend = onSend
-        textView.maxHeight = maxHeight
         context.coordinator.updatePlaceholder()
     }
 
@@ -135,6 +146,10 @@ class SendableTextView: NSTextView {
         }
         if isReturn {
             onSend?()
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.window?.makeFirstResponder(self)
+            }
             return
         }
         super.keyDown(with: event)
