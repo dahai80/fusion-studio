@@ -229,6 +229,50 @@ struct CircuitBar: View {
     }
 }
 
+struct RouterCard: View {
+    @Environment(\.studioTheme) private var theme
+    let router: IndependentRouter
+    let isActive: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: theme.spacingS) {
+                HStack {
+                    Image(systemName: router.icon)
+                        .font(.system(size: theme.iconL, weight: .semibold))
+                        .foregroundStyle(isActive ? theme.accentText : theme.accent)
+                    Spacer()
+                    if isActive {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: theme.iconM))
+                            .foregroundStyle(theme.accent)
+                    }
+                }
+                Text(router.label)
+                    .font(.system(size: theme.smallTextSize, weight: .semibold))
+                    .foregroundStyle(theme.text)
+                Text(router.desc)
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(theme.textTertiary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+            }
+            .padding(theme.spacingM)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
+                    .fill(isActive ? theme.accent : theme.surfaceElevated)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
+                    .strokeBorder(isActive ? theme.accent : theme.groupBorder, lineWidth: isActive ? 1.5 : 0.5)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 struct PatternCard: View {
     @Environment(\.studioTheme) private var theme
     let pattern: OrchestrationPattern
@@ -557,6 +601,29 @@ struct OrchestrationArea: View {
                         Text("对应实现: agent_runtime/orchestrator.py · \(store.activePattern.rawValue)()")
                             .font(.system(size: theme.captionSize, design: .monospaced))
                             .foregroundStyle(theme.textTertiary)
+                    }
+                    .padding(theme.spacingM)
+                }
+
+                ScreenHeader(eyebrow: "Independent Routers", title: "独立路由", subtitle: "SwarmRouter / Plaza / FMProtocol — 独立于 Orchestrator 的路由模式")
+
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: theme.spacingM), GridItem(.flexible(), spacing: theme.spacingM), GridItem(.flexible(), spacing: theme.spacingM)], spacing: theme.spacingM) {
+                    ForEach(IndependentRouter.allCases) { r in
+                        RouterCard(router: r, isActive: store.activeRouter == r) {
+                            withAnimation(theme.springSnappy) { store.activeRouter = r }
+                            teamViewLog.info("Router activated: \(r.rawValue)")
+                        }
+                    }
+                }
+
+                FusionCard(header: "路由说明", headerIcon: "info.circle") {
+                    VStack(alignment: .leading, spacing: theme.spacingS) {
+                        Text(store.activeRouter.label)
+                            .font(.system(size: theme.bodySize, weight: .semibold))
+                            .foregroundStyle(theme.text)
+                        Text(store.activeRouter.desc)
+                            .font(.system(size: theme.footnoteSize))
+                            .foregroundStyle(theme.textSecondary)
                     }
                     .padding(theme.spacingM)
                 }

@@ -180,7 +180,8 @@ GUI 用静态样例数据（`TeamCollabStore`）可视化 fusion-agent-studio �
 | `HandoffRecord` | `swarm_router.HandoffContext` |
 | `PlazaChannel` / `PlazaMessage` | `plaza.Plaza` channel/message |
 | `FMStats` | `fmp_router.FMProtocol` stats |
-| `OrchestrationPattern`(6) | `orchestrator.MultiAgentOrchestrator` 6 模式 |
+| `OrchestrationPattern`(6: sequential/parallel/masterWorker/handoff/broadcast/supervisor) | `orchestrator.MultiAgentOrchestrator` 6 模式 |
+| `IndependentRouter`(3: swarm/plaza/fmp) | `swarm_router` / `plaza` / `fmp_router` 独立路由 |
 | `SubGraphInfo` | `sub_graph.SubGraphRegistry` |
 | `CircuitBreakerState` | `fmp_router.AgentCircuitBreaker` |
 
