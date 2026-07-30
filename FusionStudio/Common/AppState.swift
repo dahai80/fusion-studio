@@ -4,9 +4,9 @@ import os.log
 private let appStateLog = Logger(subsystem: "com.fusion.studio", category: "AppState")
 
 class AppState: ObservableObject {
-    @Published var selectedModule: Module = .code
-    @Published var selectedSheet: ProductSheet = .code
-    @Published var activeSection: SidebarSection = .code
+    @Published var selectedModule: Module = .chat
+    @Published var selectedSheet: ProductSheet = .chat
+    @Published var activeSection: SidebarSection = .chats
     @Published var showAboutPanel = false
     @Published var showHelp = false
     @Published var showWelcome = false
@@ -14,10 +14,14 @@ class AppState: ObservableObject {
     @Published var isHealthCheckPassed = false
     @Published var isMLXRunning = false
     @Published var healthStatus: HealthStatus = .checking
-    @Published var isInspectorVisible: Bool = true
+    @Published var isInspectorVisible: Bool = false
     @Published var inspectorContext: InspectorContext = .none
+    // Callers: IconRailView (+ sets false, Chats sets true), SectionContentView (switches layout).
+    // Affected API: showChatsSidebar — controls whether chats section shows sidebar history list.
+    // Data schemas: Bool flag. User instruction: "点击+号打开主对话框，Chats按钮右侧显示历史+对话两列"
     @Published var isSidebarCollapsed: Bool = true
     @Published var sidebarWidth: CGFloat = 260
+    @Published var showChatsSidebar: Bool = false
     @Published var isDarkMode: Bool = UserDefaults.standard.object(forKey: "fusionStudio.isDarkMode") as? Bool ?? true {
         didSet { UserDefaults.standard.set(isDarkMode, forKey: "fusionStudio.isDarkMode") }
     }
@@ -46,6 +50,7 @@ enum ProductSheet: String, CaseIterable, Identifiable {
     case code = "Fusion-Code"
     case agentStudio = "Agent Studio"
     case multiNode = "Multi-Node"
+    case chat = "Chat"
 
     var id: String { rawValue }
 
@@ -55,6 +60,7 @@ enum ProductSheet: String, CaseIterable, Identifiable {
         case .code: "chevron.left.forwardslash.chevron.right"
         case .agentStudio: "person.2.fill"
         case .multiNode: "network"
+        case .chat: "bubble.left.and.bubble.right"
         }
     }
 
@@ -68,6 +74,8 @@ enum ProductSheet: String, CaseIterable, Identifiable {
             return [.agent, .plugin, .security, .kb, .dataTools, .rag, .memory, .planner]
         case .multiNode:
             return [.clusterOverview, .clusterTopology, .taskMonitor, .alertCenter, .nodeActions, .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb, .multimodal, .simulation, .analytics, .collab, .external, .operations]
+        case .chat:
+            return [.chat]
         }
     }
 }
@@ -117,6 +125,7 @@ enum Module: String, CaseIterable, Identifiable {
     case tools = "工具"
     case agentDashboard = "Agent监控"
     case teamCollab = "团队协作"
+    case chat = "对话"
 
     var id: String { rawValue }
 
@@ -165,6 +174,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .tools:        return "wrench.and.screwdriver"
         case .agentDashboard: return "chart.bar.doc.horizontal"
         case .teamCollab:   return "person.3.fill"
+        case .chat:         return "bubble.left.and.bubble.right"
         }
     }
 
@@ -172,6 +182,8 @@ enum Module: String, CaseIterable, Identifiable {
         switch self {
         case .dashboard, .modelHub, .training, .tuning, .bench:
             return .mlx
+        case .chat:
+            return .chat
         case .design, .code, .doc, .docgen, .cli:
             return .code
         case .agent, .plugin, .security, .kb, .dataTools:

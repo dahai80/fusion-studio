@@ -78,6 +78,7 @@ struct FusionStudioApp: App {
                     ipcClient.connect()
                     streamingBridge.connect()
                     chatStore.setIPCClient(ipcClient)
+                    chatStore.setAgentBridge(agentBridge)
                     deskBridge.setIPCClient(ipcClient)
                     ArtifactSidebarCache.shared.configure(ipcClient: ipcClient)
                     Task {

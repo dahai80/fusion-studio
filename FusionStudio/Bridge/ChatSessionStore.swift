@@ -130,14 +130,22 @@ class ChatSessionStore: ObservableObject {
     @Published var activeSession: ChatSessionData?
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var streamingContent: String = ""
+    @Published var isGenerating: Bool = false
+    @Published var selectedModel: String = ""
 
     private var ipc: IPCClient?
+    weak var agentBridge: AgentBridge?
     private let storeDir = NSHomeDirectory() + "/.fusion-studio/chats"
 
     init() {}
 
     func setIPCClient(_ client: IPCClient) {
         self.ipc = client
+    }
+
+    func setAgentBridge(_ bridge: AgentBridge) {
+        self.agentBridge = bridge
     }
 
     // MARK: - Local persistence
@@ -195,6 +203,15 @@ class ChatSessionStore: ObservableObject {
     }
 
     // MARK: - CRUD
+
+    func ensureActiveSession(mode: String = "simple") {
+        guard activeSession == nil else { return }
+        let session = ChatSessionData(title: "New Chat", mode: mode)
+        sessions.insert(session, at: 0)
+        activeSession = session
+        saveSessionLocal(session)
+        chatStoreLog.info("ensureActiveSession: created \(session.id)")
+    }
 
     func loadSessions() async {
         isLoading = true
@@ -263,57 +280,115 @@ class ChatSessionStore: ObservableObject {
     }
 
     func sendMessage(_ text: String, mode: String = "") async {
-        guard let session = activeSession else { return }
+        guard let session = activeSession else {
+            chatStoreLog.error("sendMessage: no active session, abort")
+            return
+        }
+        chatStoreLog.info("sendMessage: text='\(text.prefix(50))', session=\(session.id), msgs=\(session.messages.count)")
         let userMsg = ChatMessageData(role: "user", content: text)
         var updated = session
         updated.messages.append(userMsg)
+        updated.activeBranch = userMsg.id
+        if updated.title.isEmpty {
+            updated.title = String(text.prefix(60))
+        }
+        updated.updatedAt = Date().timeIntervalSince1970
         activeSession = updated
+        if let idx = sessions.firstIndex(where: { $0.id == session.id }) {
+            sessions[idx] = updated
+        }
         saveSessionLocal(updated)
 
+        isGenerating = true
+        streamingContent = ""
+
         do {
-            guard let ipc = ipc else {
-                chatStoreLog.warning("No IPC, message saved locally only")
+            guard let bridge = agentBridge else {
+                chatStoreLog.error("sendMessage: agentBridge is NIL, cannot infer")
+                let errMsg = ChatMessageData(
+                    role: "assistant",
+                    content: "⚠️ AI service not available. Please check your configuration.",
+                    mode: mode,
+                    parentId: userMsg.id
+                )
+                var errSession = activeSession ?? updated
+                errSession.messages.append(errMsg)
+                errSession.activeBranch = errMsg.id
+                errSession.updatedAt = Date().timeIntervalSince1970
+                activeSession = errSession
+                if let idx = sessions.firstIndex(where: { $0.id == session.id }) {
+                    sessions[idx] = errSession
+                }
+                saveSessionLocal(errSession)
+                isGenerating = false
+                streamingContent = ""
                 return
             }
-            var params: [String: Any] = [
-                "session_id": session.id,
-                "message": text,
-            ]
-            if !mode.isEmpty { params["mode"] = mode }
-            let result = try await ipc.call(method: "chat.send", params: params)
-
-            if let events = result["events"] as? [[String: Any]] {
-                var content = ""
-                var toolCalls: [[String: Any]] = []
-                for ev in events {
-                    if ev["type"] as? String == "token", let c = ev["content"] as? String {
-                        content += c
-                    }
-                    if ev["type"] as? String == "tool_call" {
-                        toolCalls.append(ev["args"] as? [String: Any] ?? [:])
-                    }
-                }
-                let assistantMsg = ChatMessageData(
-                    role: "assistant",
-                    content: content,
-                    mode: mode,
-                    parentId: userMsg.id,
-                    toolCalls: toolCalls
-                )
-                var updatedSession = activeSession ?? session
-                updatedSession.messages.append(assistantMsg)
-                if let newTitle = result["content"] as? String, updatedSession.title.isEmpty, !newTitle.isEmpty {
-                    updatedSession.title = String(newTitle.prefix(60))
-                }
-                activeSession = updatedSession
-                if let idx = sessions.firstIndex(where: { $0.id == session.id }) {
-                    sessions[idx] = updatedSession
-                }
-                saveSessionLocal(updatedSession)
+            let fallbackModel = FusionConfig.shared.mlxModelSmall.isEmpty ? "Qwen3.5-9B-4bit" : FusionConfig.shared.mlxModelSmall
+            let model = !selectedModel.isEmpty ? selectedModel : (bridge.models.first?.id ?? fallbackModel)
+            print("[ChatStore] sendMessage: resolved model='\(model)', selectedModel='\(selectedModel)', bridgeModels=\(bridge.models.map { $0.id }), configSmall='\(FusionConfig.shared.mlxModelSmall)'")
+            let messages: [[String: String]] = updated.messages.map { msg in
+                ["role": msg.role, "content": msg.content]
             }
+            chatStoreLog.info("sendMessage: starting stream infer, model=\(model)")
+            print("[ChatStore] sendMessage: inferStream start, model=\(model), msgs=\(messages.count), selectedModel=\(selectedModel), bridgeModels=\(bridge.models.map { $0.id })")
+            print("[ChatStore] sendMessage: calling bridge.inferStream now...")
+            let response = try await bridge.inferStream(
+                messages: messages,
+                model: model,
+                temperature: 0.7,
+                maxTokens: 2048,
+                onToken: { [weak self] token in
+                    Task { @MainActor in
+                        self?.streamingContent += token
+                    }
+                }
+            )
+            print("[ChatStore] sendMessage: inferStream returned successfully")
+            let assistantMsg = ChatMessageData(
+                role: "assistant",
+                content: response,
+                mode: mode,
+                parentId: userMsg.id
+            )
+            var updatedSession = activeSession ?? session
+            updatedSession.messages.append(assistantMsg)
+            updatedSession.activeBranch = assistantMsg.id
+            if updatedSession.title.isEmpty {
+                updatedSession.title = String(text.prefix(60))
+            }
+            updatedSession.updatedAt = Date().timeIntervalSince1970
+            activeSession = updatedSession
+            if let idx = sessions.firstIndex(where: { $0.id == session.id }) {
+                sessions[idx] = updatedSession
+            }
+            saveSessionLocal(updatedSession)
+            chatStoreLog.info("Chat stream response received, length=\(response.count)")
+            print("[ChatStore] sendMessage: inferStream OK, \(response.count) chars")
         } catch {
-            chatStoreLog.error("chat.send failed: \(error.localizedDescription)")
+            print("[ChatStore] sendMessage: inferStream FAILED: \(error), type=\(type(of: error))")
+            let errorDetail = (error as? BridgeError)?.detail ?? "\(type(of: error)): \(error.localizedDescription)"
+            print("[ChatStore] errorDetail: \(errorDetail)")
+            let errMsg = ChatMessageData(
+                role: "assistant",
+                content: "⚠️ AI inference failed: \(errorDetail)",
+                mode: mode,
+                parentId: userMsg.id
+            )
+            var updatedSession = activeSession ?? session
+            updatedSession.messages.append(errMsg)
+            updatedSession.activeBranch = errMsg.id
+            updatedSession.updatedAt = Date().timeIntervalSince1970
+            activeSession = updatedSession
+            if let idx = sessions.firstIndex(where: { $0.id == session.id }) {
+                sessions[idx] = updatedSession
+            }
+            saveSessionLocal(updatedSession)
+            chatStoreLog.error("Chat infer failed: \(error.localizedDescription)")
         }
+
+        isGenerating = false
+        streamingContent = ""
     }
 
     func sendMultimodal(session: ChatSessionData, content: [[String: Any]], mode: String = "") async {
@@ -433,31 +508,143 @@ class ChatSessionStore: ObservableObject {
 
     func editMessage(_ messageId: String, newContent: String) async {
         guard let session = activeSession else { return }
-        do {
-            let result = try await ipc!.call(method: "chat.edit", params: [
-                "session_id": session.id,
-                "message_id": messageId,
-                "content": newContent,
-            ])
-            let editedDict = result
-            if let editedId = editedDict["id"] as? String {
-                let editedMsg = ChatMessageData(
-                    id: editedId,
-                    role: "user",
-                    content: newContent,
-                    parentId: session.messages.first(where: { $0.id == messageId })?.parentId ?? ""
-                )
-                var updated = session
-                updated.messages.append(editedMsg)
-                updated.activeBranch = editedId
-                activeSession = updated
-                if let idx = sessions.firstIndex(where: { $0.id == session.id }) {
-                    sessions[idx] = updated
+        chatStoreLog.info("editMessage: msg=\(messageId), newContent='\(newContent.prefix(50))'")
+
+        let parentId = session.messages.first(where: { $0.id == messageId })?.parentId ?? ""
+        let editedMsg = ChatMessageData(
+            role: "user",
+            content: newContent,
+            parentId: parentId
+        )
+
+        if let ipcClient = ipc {
+            do {
+                let result = try await ipcClient.call(method: "chat.edit", params: [
+                    "session_id": session.id,
+                    "message_id": messageId,
+                    "content": newContent,
+                ])
+                if let editedId = result["id"] as? String {
+                    let remoteMsg = ChatMessageData(
+                        id: editedId,
+                        role: "user",
+                        content: newContent,
+                        parentId: parentId
+                    )
+                    var updated = session
+                    updated.messages.append(remoteMsg)
+                    updated.activeBranch = editedId
+                    activeSession = updated
+                    if let idx = sessions.firstIndex(where: { $0.id == session.id }) {
+                        sessions[idx] = updated
+                    }
+                    saveSessionLocal(updated)
+                    chatStoreLog.info("editMessage: IPC success, editedId=\(editedId)")
+                    await resendAfterEdit(editedMsgId: editedId)
+                    return
                 }
+            } catch {
+                chatStoreLog.warning("editMessage: IPC failed (\(error.localizedDescription)), falling back to local")
             }
-        } catch {
-            errorMessage = error.localizedDescription
         }
+
+        var updated = session
+        updated.messages.append(editedMsg)
+        updated.activeBranch = editedMsg.id
+        activeSession = updated
+        if let idx = sessions.firstIndex(where: { $0.id == session.id }) {
+            sessions[idx] = updated
+        }
+        saveSessionLocal(updated)
+        chatStoreLog.info("editMessage: local edit done, editedMsgId=\(editedMsg.id)")
+        await resendAfterEdit(editedMsgId: editedMsg.id)
+    }
+
+    private func resendAfterEdit(editedMsgId: String) async {
+        guard let session = activeSession else { return }
+        guard let bridge = agentBridge else {
+            chatStoreLog.warning("resendAfterEdit: no AgentBridge, showing error")
+            let errMsg = ChatMessageData(
+                role: "assistant",
+                content: "⚠️ AI service not available. Please check your configuration.",
+                parentId: editedMsgId
+            )
+            var updatedSession = session
+            updatedSession.messages.append(errMsg)
+            updatedSession.activeBranch = errMsg.id
+            updatedSession.updatedAt = Date().timeIntervalSince1970
+            activeSession = updatedSession
+            if let idx = sessions.firstIndex(where: { $0.id == session.id }) {
+                sessions[idx] = updatedSession
+            }
+            saveSessionLocal(updatedSession)
+            return
+        }
+        let fallbackModel = FusionConfig.shared.mlxModelSmall.isEmpty ? "Qwen3.5-9B-4bit" : FusionConfig.shared.mlxModelSmall
+        let model = !selectedModel.isEmpty ? selectedModel : (bridge.models.first?.id ?? fallbackModel)
+
+        let editedMsgIdx = session.messages.firstIndex(where: { $0.id == editedMsgId })
+        let messagesToResend: [[String: String]]
+        if let idx = editedMsgIdx {
+            messagesToResend = session.messages[0...idx].map { msg in
+                ["role": msg.role, "content": msg.content]
+            }
+        } else {
+            messagesToResend = session.messages.map { msg in
+                ["role": msg.role, "content": msg.content]
+            }
+        }
+
+        chatStoreLog.info("resendAfterEdit: starting stream infer, model=\(model), msgs=\(messagesToResend.count)")
+        isGenerating = true
+        streamingContent = ""
+
+        do {
+            let response = try await bridge.inferStream(
+                messages: messagesToResend,
+                model: model,
+                temperature: 0.7,
+                maxTokens: 2048,
+                onToken: { [weak self] token in
+                    Task { @MainActor in
+                        self?.streamingContent += token
+                    }
+                }
+            )
+            let assistantMsg = ChatMessageData(
+                role: "assistant",
+                content: response,
+                parentId: editedMsgId
+            )
+            var updatedSession = activeSession ?? session
+            updatedSession.messages.append(assistantMsg)
+            updatedSession.activeBranch = assistantMsg.id
+            updatedSession.updatedAt = Date().timeIntervalSince1970
+            activeSession = updatedSession
+            if let idx = sessions.firstIndex(where: { $0.id == session.id }) {
+                sessions[idx] = updatedSession
+            }
+            saveSessionLocal(updatedSession)
+            chatStoreLog.info("resendAfterEdit: response received, length=\(response.count)")
+        } catch {
+            let errMsg = ChatMessageData(
+                role: "assistant",
+                content: "⚠️ AI inference failed: \((error as? BridgeError)?.detail ?? error.localizedDescription)",
+                parentId: editedMsgId
+            )
+            var updatedSession = activeSession ?? session
+            updatedSession.messages.append(errMsg)
+            updatedSession.activeBranch = errMsg.id
+            activeSession = updatedSession
+            if let idx = sessions.firstIndex(where: { $0.id == session.id }) {
+                sessions[idx] = updatedSession
+            }
+            saveSessionLocal(updatedSession)
+            chatStoreLog.error("resendAfterEdit: infer failed: \(error.localizedDescription)")
+        }
+
+        isGenerating = false
+        streamingContent = ""
     }
 
     private func parseSessionData(_ dict: [String: Any]) -> ChatSessionData? {

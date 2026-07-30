@@ -1,7 +1,7 @@
 // Callers: ContentView (left icon rail column).
-// Affected API: IconRailView (rewritten to Claude-style narrow rail with SidebarSection icons).
-// Data schemas: SidebarSection enum (from AppState), AppState.activeSection.
-// User instruction: "最左侧菜单，窄窄的，从上到下：open sidebar，New Chat，Chats，Projects，Artifacts，Code，Customize，Design，最下面Get app and extensions和设置"
+// Affected API: IconRailView (+ → .chats showChatsSidebar=false; Chats icon → showChatsSidebar=true).
+// Data schemas: SidebarSection enum, AppState.activeSection, AppState.showChatsSidebar.
+// User instruction: "点击+号打开主对话框，Chats按钮右侧显示历史+对话两列"
 
 import SwiftUI
 import AppKit
@@ -55,10 +55,10 @@ struct IconRailView: View {
 
     private var newChatButton: some View {
         Button(action: {
-            CodeAgent.shared.clearConversation()
-            appState.activeSection = .code
-            appState.selectedSheet = .code
-            railLog.info("New chat started")
+            appState.activeSection = .chats
+            appState.showChatsSidebar = false
+            appState.selectedSheet = .chat
+            railLog.info("New chat started — full-screen chat view")
         }) {
             Image(systemName: "plus.circle")
                 .font(.system(size: theme.iconM, weight: .medium))
@@ -76,8 +76,9 @@ struct IconRailView: View {
                 appState.activeSection = section
                 switch section {
                 case .chats:
-                    appState.selectedModule = .code
-                    appState.selectedSheet = .code
+                    appState.selectedModule = .chat
+                    appState.selectedSheet = .chat
+                    appState.showChatsSidebar = true
                 case .projects:
                     appState.selectedModule = .code
                     appState.selectedSheet = .code
