@@ -186,7 +186,7 @@ class LogManager: ObservableObject {
             (.info, "mlx-daemon", "推理", "fusion-mlx 服务就绪，模型: qwen3.5-9b-4bit"),
             (.warning, "env-daemon", "环境", "PyBullet 未安装或编译失败，等待修复"),
             (.info, "FusionStudio", "IPC", "IPC 客户端连接成功"),
-            (.info, "FusionStudio", "UI", "Fusion Studio v0.1.4 启动完成"),
+            (.info, "FusionStudio", "UI", "Fusion Studio v0.1.7 启动完成"),
             (.debug, "env-daemon", "网络", "Socket 连接来自: (null)"),
             (.error, "mlx-daemon", "推理", "推理请求超时 (30s)，正在重试..."),
             (.info, "mlx-daemon", "推理", "推理重试成功，延迟: 1.2s"),
