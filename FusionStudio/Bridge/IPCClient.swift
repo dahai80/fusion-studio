@@ -1237,6 +1237,178 @@ class IPCClient: ObservableObject {
         }
     }
 
+    // MARK: - Agent Task Operations
+
+    func agentSubmitCodeTask(agentId: String, code: String, language: String = "swift") async throws -> [String: Any] {
+        return try await call(method: "agent.submit_code_task", params: ["agent_id": agentId, "code": code, "language": language])
+    }
+
+    func agentTaskStatus(taskId: String) async throws -> [String: Any] {
+        return try await call(method: "agent.task_status", params: ["task_id": taskId])
+    }
+
+    func agentTasks(agentId: String? = nil) async throws -> [String: Any] {
+        var params: [String: Any] = [:]
+        if let aid = agentId { params["agent_id"] = aid }
+        return try await call(method: "agent.tasks", params: params)
+    }
+
+    func agentCancelTask(taskId: String) async throws -> [String: Any] {
+        return try await call(method: "agent.cancel_task", params: ["task_id": taskId])
+    }
+
+    // MARK: - Chat Core
+
+    func chatCreate(agentId: String, title: String = "") async throws -> [String: Any] {
+        return try await call(method: "chat.create", params: ["agent_id": agentId, "title": title])
+    }
+
+    func chatList(agentId: String? = nil) async throws -> [String: Any] {
+        var params: [String: Any] = [:]
+        if let aid = agentId { params["agent_id"] = aid }
+        return try await call(method: "chat.list", params: params)
+    }
+
+    func chatDelete(chatId: String) async throws -> [String: Any] {
+        return try await call(method: "chat.delete", params: ["chat_id": chatId])
+    }
+
+    func chatSend(chatId: String, message: String) async throws -> [String: Any] {
+        return try await call(method: "chat.send", params: ["chat_id": chatId, "message": message])
+    }
+
+    func chatStream(chatId: String, message: String) async throws -> [String: Any] {
+        return try await call(method: "chat.stream", params: ["chat_id": chatId, "message": message])
+    }
+
+    func chatEdit(messageId: String, content: String) async throws -> [String: Any] {
+        return try await call(method: "chat.edit", params: ["message_id": messageId, "content": content])
+    }
+
+    func chatBranch(messageId: String) async throws -> [String: Any] {
+        return try await call(method: "chat.branch", params: ["message_id": messageId])
+    }
+
+    // MARK: - Team (Multi-Agent Collaboration)
+
+    func teamOrchestrate(task: String, agentIds: [String], mode: String = "sequential") async throws -> [String: Any] {
+        return try await call(method: "team.orchestrate", params: ["task": task, "agent_ids": agentIds, "mode": mode])
+    }
+
+    func teamSwarmRegister(agentId: String, role: String = "worker") async throws -> [String: Any] {
+        return try await call(method: "team.swarm_register", params: ["agent_id": agentId, "role": role])
+    }
+
+    func teamSwarmAgents() async throws -> [String: Any] {
+        return try await call(method: "team.swarm_agents")
+    }
+
+    func teamSwarmHandoff(fromAgent: String, toAgent: String, context: [String: Any] = [:]) async throws -> [String: Any] {
+        return try await call(method: "team.swarm_handoff", params: ["from": fromAgent, "to": toAgent, "context": context])
+    }
+
+    func teamSwarmDelegate(agentId: String, task: String) async throws -> [String: Any] {
+        return try await call(method: "team.swarm_delegate", params: ["agent_id": agentId, "task": task])
+    }
+
+    func teamSwarmEscalate(agentId: String, reason: String) async throws -> [String: Any] {
+        return try await call(method: "team.swarm_escalate", params: ["agent_id": agentId, "reason": reason])
+    }
+
+    func teamSwarmEvaluate(agentId: String) async throws -> [String: Any] {
+        return try await call(method: "team.swarm_evaluate", params: ["agent_id": agentId])
+    }
+
+    func teamSwarmStats() async throws -> [String: Any] {
+        return try await call(method: "team.swarm_stats")
+    }
+
+    func teamFmpRegister(channel: String, agentId: String) async throws -> [String: Any] {
+        return try await call(method: "team.fmp_register", params: ["channel": channel, "agent_id": agentId])
+    }
+
+    func teamFmpSend(channel: String, message: String) async throws -> [String: Any] {
+        return try await call(method: "team.fmp_send", params: ["channel": channel, "message": message])
+    }
+
+    func teamFmpStats() async throws -> [String: Any] {
+        return try await call(method: "team.fmp_stats")
+    }
+
+    func teamPlazaCreate(name: String, description: String = "") async throws -> [String: Any] {
+        return try await call(method: "team.plaza_create", params: ["name": name, "description": description])
+    }
+
+    func teamPlazaChannels() async throws -> [String: Any] {
+        return try await call(method: "team.plaza_channels")
+    }
+
+    func teamPlazaBroadcast(channelId: String, message: String) async throws -> [String: Any] {
+        return try await call(method: "team.plaza_broadcast", params: ["channel_id": channelId, "message": message])
+    }
+
+    func teamPlazaMessages(channelId: String) async throws -> [String: Any] {
+        return try await call(method: "team.plaza_messages", params: ["channel_id": channelId])
+    }
+
+    func teamPlazaBreakIn(channelId: String, message: String) async throws -> [String: Any] {
+        return try await call(method: "team.plaza_break_in", params: ["channel_id": channelId, "message": message])
+    }
+
+    func teamPlazaCircuit(channelId: String) async throws -> [String: Any] {
+        return try await call(method: "team.plaza_circuit", params: ["channel_id": channelId])
+    }
+
+    // MARK: - Cron
+
+    func cronRegister(name: String, schedule: String, agentId: String, input: String = "") async throws -> [String: Any] {
+        return try await call(method: "cron.register", params: ["name": name, "schedule": schedule, "agent_id": agentId, "input": input])
+    }
+
+    func cronUnregister(cronId: String) async throws -> [String: Any] {
+        return try await call(method: "cron.unregister", params: ["cron_id": cronId])
+    }
+
+    func cronList() async throws -> [String: Any] {
+        return try await call(method: "cron.list")
+    }
+
+    func cronListExecutions(cronId: String? = nil) async throws -> [String: Any] {
+        var params: [String: Any] = [:]
+        if let cid = cronId { params["cron_id"] = cid }
+        return try await call(method: "cron.list_executions", params: params)
+    }
+
+    // MARK: - Hooks
+
+    func hooksList() async throws -> [String: Any] {
+        return try await call(method: "hooks.list")
+    }
+
+    func hooksRegister(event: String, agentId: String, action: String) async throws -> [String: Any] {
+        return try await call(method: "hooks.register", params: ["event": event, "agent_id": agentId, "action": action])
+    }
+
+    func hooksTest(hookId: String) async throws -> [String: Any] {
+        return try await call(method: "hooks.test", params: ["hook_id": hookId])
+    }
+
+    // MARK: - Context
+
+    func contextCompact(sessionId: String) async throws -> [String: Any] {
+        return try await call(method: "context.compact", params: ["session_id": sessionId])
+    }
+
+    func contextUsage(sessionId: String) async throws -> [String: Any] {
+        return try await call(method: "context.usage", params: ["session_id": sessionId])
+    }
+
+    // MARK: - Marketplace Extended
+
+    func marketplaceUninstall(agentId: String) async throws -> [String: Any] {
+        return try await call(method: "marketplace.uninstall", params: ["agent_id": agentId])
+    }
+
     deinit {
         reconnectTimer?.invalidate()
         if socketFd >= 0 {

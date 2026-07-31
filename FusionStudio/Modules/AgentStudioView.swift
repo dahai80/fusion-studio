@@ -397,11 +397,14 @@ struct AgentStudioView: View {
                 FusionTabItem(title: "Tasks", icon: "checklist", badge: taskCount > 0 ? taskCount : nil),
                 FusionTabItem(title: "Workflows", icon: "arrow.triangle.branch", badge: nil),
                 FusionTabItem(title: "Dashboard", icon: "chart.bar", badge: nil),
+                FusionTabItem(title: "Team", icon: "person.3", badge: nil),
                 FusionTabItem(title: "Connectors", icon: "link", badge: nil),
                 FusionTabItem(title: "API Keys", icon: "key", badge: nil),
                 FusionTabItem(title: "Styles", icon: "paintbrush", badge: nil),
                 FusionTabItem(title: "Analytics", icon: "chart.xyaxis.line", badge: nil),
                 FusionTabItem(title: "Alerts", icon: "bell", badge: nil),
+                FusionTabItem(title: "Cron", icon: "clock.arrow.2.circlepath", badge: nil),
+                FusionTabItem(title: "Hooks", icon: "point.3.connected.trianglepath.dotted", badge: nil),
                 FusionTabItem(title: "Marketplace", icon: "bag", badge: nil),
                 FusionTabItem(title: "Chat", icon: "bubble.left.and.bubble.right", badge: unreadCount > 0 ? unreadCount : nil),
             ])
@@ -414,13 +417,16 @@ struct AgentStudioView: View {
                 case 1: AgentTaskListView(toastManager: toastManager)
                 case 2: WorkflowListView(toastManager: toastManager)
                 case 3: DashboardTabView(toastManager: toastManager)
-                case 4: ConnectorTabView(toastManager: toastManager)
-                case 5: ApikeyTabView(toastManager: toastManager)
-                case 6: StyleTabView(toastManager: toastManager)
-                case 7: AnalyticsTabView(toastManager: toastManager)
-                case 8: AlertTabView(toastManager: toastManager)
-                case 9: MarketplaceTabView(toastManager: toastManager)
-                case 10: ConversationView(toastManager: toastManager)
+                case 4: TeamTabView(toastManager: toastManager)
+                case 5: ConnectorTabView(toastManager: toastManager)
+                case 6: ApikeyTabView(toastManager: toastManager)
+                case 7: StyleTabView(toastManager: toastManager)
+                case 8: AnalyticsTabView(toastManager: toastManager)
+                case 9: AlertTabView(toastManager: toastManager)
+                case 10: CronTabView(toastManager: toastManager)
+                case 11: HooksTabView(toastManager: toastManager)
+                case 12: MarketplaceTabView(toastManager: toastManager)
+                case 13: ConversationView(toastManager: toastManager)
                 default: AgentListView(toastManager: toastManager)
                 }
             }
@@ -2296,6 +2302,358 @@ struct CreateWorkflowSheet: View {
         }
         .frame(width: 600, height: 600)
         .background(theme.windowBg)
+    }
+}
+
+// MARK: - TeamTabView
+
+struct TeamTabView: View {
+    let toastManager: FusionToastManager
+    @EnvironmentObject private var bridge: AgentBridge
+    @Environment(\.studioTheme) var theme
+    @State private var showOrchestrateSheet = false
+    @State private var orchestrateTask = ""
+    @State private var selectedAgentIds: Set<String> = []
+    @State private var orchestrateMode = "sequential"
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Multi-Agent Team")
+                    .font(.system(size: theme.titleSize, weight: .bold))
+                    .foregroundStyle(theme.text)
+                Spacer()
+                FusionButton("Orchestrate", icon: "play.circle") { showOrchestrateSheet = true }
+            }
+            .padding(theme.spacingM)
+
+            StudioSectionHeader(title: "Swarm Agents")
+            if bridge.swarmAgents.isEmpty {
+                Text("No swarm agents registered")
+                    .font(.system(size: theme.footnoteSize))
+                    .foregroundStyle(theme.textTertiary)
+                    .padding(.horizontal, theme.spacingL)
+                    .padding(.vertical, theme.spacingM)
+            } else {
+                ListGroup {
+                    ForEach(Array(bridge.swarmAgents.enumerated()), id: \.offset) { idx, agent in
+                        let name = agent["name"] as? String ?? agent["agent_id"] as? String ?? "Unknown"
+                        let role = agent["role"] as? String ?? "worker"
+                        let status = agent["status"] as? String ?? "idle"
+                        StudioRow(label: name, sublabel: role, isLast: idx == bridge.swarmAgents.count - 1) {
+                            FusionTag(status, color: status == "active" ? .green : .gray)
+                        }
+                    }
+                }
+            }
+
+            StudioSectionHeader(title: "Plaza Channels")
+            if bridge.plazaChannels.isEmpty {
+                Text("No plaza channels")
+                    .font(.system(size: theme.footnoteSize))
+                    .foregroundStyle(theme.textTertiary)
+                    .padding(.horizontal, theme.spacingL)
+                    .padding(.vertical, theme.spacingM)
+            } else {
+                ListGroup {
+                    ForEach(Array(bridge.plazaChannels.enumerated()), id: \.offset) { idx, ch in
+                        let name = ch["name"] as? String ?? "Unknown"
+                        let desc = ch["description"] as? String ?? ""
+                        StudioRow(label: name, sublabel: desc, isLast: idx == bridge.plazaChannels.count - 1) {
+                            FusionTag("channel", color: .purple)
+                        }
+                    }
+                }
+            }
+            Spacer()
+        }
+        .onAppear {
+            Task {
+                await bridge.fetchSwarmAgents()
+                await bridge.fetchPlazaChannels()
+            }
+        }
+        .sheet(isPresented: $showOrchestrateSheet) {
+            orchestrateSheet
+        }
+    }
+
+    private var orchestrateSheet: some View {
+        VStack(spacing: theme.spacingM) {
+            Text("Orchestrate Task")
+                .font(.system(size: theme.titleSize, weight: .bold))
+            TextField("Task description", text: $orchestrateTask, axis: .vertical)
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(3...6)
+            Picker("Mode", selection: $orchestrateMode) {
+                Text("Sequential").tag("sequential")
+                Text("Parallel").tag("parallel")
+                Text("Swarm").tag("swarm")
+            }
+            .pickerStyle(.segmented)
+            Text("Select agents:")
+                .font(.system(size: theme.captionSize))
+                .frame(maxWidth: .infinity, alignment: .leading)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(bridge.agents) { agent in
+                        HStack {
+                            Image(systemName: selectedAgentIds.contains(agent.id) ? "checkmark.circle.fill" : "circle")
+                                .foregroundStyle(theme.accent)
+                            Text(agent.name)
+                                .font(.system(size: theme.textSize))
+                            Spacer()
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            if selectedAgentIds.contains(agent.id) {
+                                selectedAgentIds.remove(agent.id)
+                            } else {
+                                selectedAgentIds.insert(agent.id)
+                            }
+                        }
+                    }
+                }
+            }
+            .frame(maxHeight: 200)
+            HStack {
+                FusionButton("Cancel") { showOrchestrateSheet = false }
+                Spacer()
+                FusionButton("Run", icon: "play") {
+                    Task { await runOrchestration() }
+                }
+            }
+        }
+        .padding(theme.spacingL)
+        .frame(width: 450, height: 500)
+    }
+
+    private func runOrchestration() async {
+        guard !orchestrateTask.isEmpty, !selectedAgentIds.isEmpty else { return }
+        do {
+            let result = try await bridge.teamOrchestrate(task: orchestrateTask, agentIds: Array(selectedAgentIds), mode: orchestrateMode)
+            let status = result["status"] as? String ?? "started"
+            toastManager.show(style: .success, title: "Orchestration \(status)", message: orchestrateTask)
+            showOrchestrateSheet = false
+            orchestrateTask = ""
+            selectedAgentIds.removeAll()
+        } catch {
+            toastManager.show(style: .error, title: "Failed", message: error.localizedDescription)
+        }
+    }
+}
+
+// MARK: - CronTabView
+
+struct CronTabView: View {
+    let toastManager: FusionToastManager
+    @EnvironmentObject private var bridge: AgentBridge
+    @Environment(\.studioTheme) var theme
+    @State private var showCreateSheet = false
+    @State private var newName = ""
+    @State private var newSchedule = "0 * * * *"
+    @State private var newAgentId = ""
+    @State private var newInput = ""
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Scheduled Tasks")
+                    .font(.system(size: theme.titleSize, weight: .bold))
+                    .foregroundStyle(theme.text)
+                Spacer()
+                FusionButton("Add Cron", icon: "plus") { showCreateSheet = true }
+            }
+            .padding(theme.spacingM)
+
+            if bridge.cronJobs.isEmpty {
+                Spacer()
+                Text("No scheduled tasks")
+                    .font(.system(size: theme.textSize))
+                    .foregroundStyle(theme.textTertiary)
+                Spacer()
+            } else {
+                ListGroup {
+                    ForEach(Array(bridge.cronJobs.enumerated()), id: \.offset) { idx, job in
+                        let name = job["name"] as? String ?? "Unknown"
+                        let schedule = job["schedule"] as? String ?? ""
+                        let agentId = job["agent_id"] as? String ?? ""
+                        let cronId = job["cron_id"] as? String ?? job["id"] as? String ?? ""
+                        let enabled = job["enabled"] as? Bool ?? true
+                        StudioRow(label: name, sublabel: "\(schedule) → \(agentId)", isLast: idx == bridge.cronJobs.count - 1) {
+                            FusionTag(enabled ? "active" : "paused", color: enabled ? .green : .gray)
+                        }
+                        .contentShape(Rectangle())
+                        .contextMenu {
+                            Button("Unregister", role: .destructive) {
+                                Task { await unregisterCron(cronId, name: name) }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .onAppear { Task { await bridge.fetchCronJobs() } }
+        .sheet(isPresented: $showCreateSheet) {
+            createCronSheet
+        }
+    }
+
+    private var createCronSheet: some View {
+        VStack(spacing: theme.spacingM) {
+            Text("New Scheduled Task")
+                .font(.system(size: theme.titleSize, weight: .bold))
+            TextField("Name", text: $newName)
+                .textFieldStyle(.roundedBorder)
+            TextField("Schedule (cron)", text: $newSchedule)
+                .textFieldStyle(.roundedBorder)
+            Picker("Agent", selection: $newAgentId) {
+                Text("Select agent").tag("")
+                ForEach(bridge.agents) { a in
+                    Text(a.name).tag(a.id)
+                }
+            }
+            .pickerStyle(.menu)
+            TextField("Input (optional)", text: $newInput, axis: .vertical)
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(2...4)
+            HStack {
+                FusionButton("Cancel") { showCreateSheet = false }
+                Spacer()
+                FusionButton("Create", icon: "plus") {
+                    Task { await createCron() }
+                }
+            }
+        }
+        .padding(theme.spacingL)
+        .frame(width: 400)
+    }
+
+    private func createCron() async {
+        guard !newName.isEmpty, !newAgentId.isEmpty else { return }
+        do {
+            _ = try await bridge.cronRegister(name: newName, schedule: newSchedule, agentId: newAgentId, input: newInput)
+            toastManager.show(style: .success, title: "Created", message: newName)
+            showCreateSheet = false
+            newName = ""; newInput = ""
+        } catch {
+            toastManager.show(style: .error, title: "Create Failed", message: error.localizedDescription)
+        }
+    }
+
+    private func unregisterCron(_ id: String, name: String) async {
+        do {
+            _ = try await bridge.cronUnregister(cronId: id)
+            toastManager.show(style: .info, title: "Removed", message: name)
+        } catch {
+            toastManager.show(style: .error, title: "Failed", message: error.localizedDescription)
+        }
+    }
+}
+
+// MARK: - HooksTabView
+
+struct HooksTabView: View {
+    let toastManager: FusionToastManager
+    @EnvironmentObject private var bridge: AgentBridge
+    @Environment(\.studioTheme) var theme
+    @State private var showCreateSheet = false
+    @State private var newEvent = "agent.execute"
+    @State private var newAgentId = ""
+    @State private var newAction = ""
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Hooks")
+                    .font(.system(size: theme.titleSize, weight: .bold))
+                    .foregroundStyle(theme.text)
+                Spacer()
+                FusionButton("Add Hook", icon: "plus") { showCreateSheet = true }
+            }
+            .padding(theme.spacingM)
+
+            if bridge.hooks.isEmpty {
+                Spacer()
+                Text("No hooks registered")
+                    .font(.system(size: theme.textSize))
+                    .foregroundStyle(theme.textTertiary)
+                Spacer()
+            } else {
+                ListGroup {
+                    ForEach(Array(bridge.hooks.enumerated()), id: \.offset) { idx, hook in
+                        let event = hook["event"] as? String ?? "Unknown"
+                        let agentId = hook["agent_id"] as? String ?? ""
+                        let action = hook["action"] as? String ?? ""
+                        let hookId = hook["hook_id"] as? String ?? hook["id"] as? String ?? ""
+                        StudioRow(label: event, sublabel: "\(agentId) → \(action)", isLast: idx == bridge.hooks.count - 1) {
+                            FusionTag("hook", color: .blue)
+                        }
+                        .contentShape(Rectangle())
+                        .contextMenu {
+                            Button {
+                                Task { await testHook(hookId) }
+                            } label: {
+                                Label("Test", systemImage: "bolt")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .onAppear { Task { await bridge.fetchHooks() } }
+        .sheet(isPresented: $showCreateSheet) {
+            createHookSheet
+        }
+    }
+
+    private var createHookSheet: some View {
+        VStack(spacing: theme.spacingM) {
+            Text("New Hook")
+                .font(.system(size: theme.titleSize, weight: .bold))
+            TextField("Event (e.g. agent.execute)", text: $newEvent)
+                .textFieldStyle(.roundedBorder)
+            Picker("Agent", selection: $newAgentId) {
+                Text("Select agent").tag("")
+                ForEach(bridge.agents) { a in
+                    Text(a.name).tag(a.id)
+                }
+            }
+            .pickerStyle(.menu)
+            TextField("Action", text: $newAction)
+                .textFieldStyle(.roundedBorder)
+            HStack {
+                FusionButton("Cancel") { showCreateSheet = false }
+                Spacer()
+                FusionButton("Create", icon: "plus") {
+                    Task { await createHook() }
+                }
+            }
+        }
+        .padding(theme.spacingL)
+        .frame(width: 400)
+    }
+
+    private func createHook() async {
+        guard !newEvent.isEmpty, !newAgentId.isEmpty, !newAction.isEmpty else { return }
+        do {
+            _ = try await bridge.hooksRegister(event: newEvent, agentId: newAgentId, action: newAction)
+            toastManager.show(style: .success, title: "Hook Created", message: newEvent)
+            showCreateSheet = false
+            newAction = ""
+        } catch {
+            toastManager.show(style: .error, title: "Create Failed", message: error.localizedDescription)
+        }
+    }
+
+    private func testHook(_ id: String) async {
+        do {
+            let result = try await bridge.hooksTest(hookId: id)
+            let success = result["success"] as? Bool ?? false
+            toastManager.show(style: success ? .success : .error, title: success ? "Hook OK" : "Hook Failed", message: "")
+        } catch {
+            toastManager.show(style: .error, title: "Test Failed", message: error.localizedDescription)
+        }
     }
 }
 
