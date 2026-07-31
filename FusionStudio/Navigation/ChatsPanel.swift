@@ -288,7 +288,7 @@ struct ChatsPanel: View {
         var seen = Set<String>()
         var result: [(id: String, name: String)] = []
         for proj in projects {
-            let idStr = proj.id.uuidString
+            let idStr = proj.id
             if !seen.contains(idStr) {
                 seen.insert(idStr)
                 result.append((id: idStr, name: proj.name))

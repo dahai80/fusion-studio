@@ -579,8 +579,7 @@ class ChatSessionStore: ObservableObject {
                 chatStoreLog.info("Injected skill '\(skill.name)'")
             }
             if let pid = updated.projectId,
-               let uuid = UUID(uuidString: pid),
-               let project = FusionProjectManager.shared.projects.first(where: { $0.id == uuid }) {
+               let project = FusionProjectManager.shared.projects.first(where: { $0.id == pid }) {
                 if project.hasInstructions {
                     systemParts.append("[Project: \(project.name)] \(project.customInstructions)")
                 }
@@ -1070,8 +1069,7 @@ class ChatSessionStore: ObservableObject {
             systemParts.append("[Skill: \(skill.name)] \(skill.systemPrompt)")
         }
         if let pid = session.projectId,
-           let uuid = UUID(uuidString: pid),
-           let project = FusionProjectManager.shared.projects.first(where: { $0.id == uuid }) {
+           let project = FusionProjectManager.shared.projects.first(where: { $0.id == pid }) {
             if project.hasInstructions {
                 systemParts.append("[Project: \(project.name)] \(project.customInstructions)")
             }

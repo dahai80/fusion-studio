@@ -734,7 +734,7 @@ class DesignBridge: ObservableObject {
         }
 
         do {
-            let projectId = FusionProjectManager.shared.activeProject?.id.uuidString
+            let projectId = FusionProjectManager.shared.activeProject?.id
             let designMetadata: [String: Any] = [
                 "component_name": currentArtifactTitle,
                 "framework": currentArtifactType,

@@ -445,12 +445,12 @@ struct ProjectsPanel: View {
                     .font(.system(size: theme.textSize, weight: .semibold))
                     .foregroundStyle(theme.text)
                 Spacer()
-                Text("\(project.sessions.count) sessions")
+                Text("\(project.chats.count) sessions")
                     .font(.system(size: theme.captionSize, design: .monospaced))
                     .foregroundStyle(theme.textTertiary)
             }
 
-            if project.sessions.isEmpty {
+            if project.chats.isEmpty {
                 VStack(spacing: theme.spacingS) {
                     Image(systemName: "bubble.left.and.bubble.right")
                         .font(.system(size: 32))
@@ -462,7 +462,7 @@ struct ProjectsPanel: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, theme.spacingXL)
             } else {
-                ForEach(project.sessions) { session in
+                ForEach(project.chats) { session in
                     sessionRow(session, project: project)
                 }
             }
@@ -482,7 +482,7 @@ struct ProjectsPanel: View {
                     .foregroundStyle(theme.text)
                     .lineLimit(1)
                 HStack(spacing: theme.spacingXS) {
-                    Text("\(session.messages.count) msgs")
+                    Text("\(session.messageCount) msgs")
                     Text("·")
                     Text("\(session.tokenUsage) tokens")
                 }
@@ -579,7 +579,7 @@ struct ProjectsPanel: View {
         pm.scanKnowledgeFiles(projectId: project.id)
     }
 
-    private func removeKnowledgeFile(_ id: UUID) {
+    private func removeKnowledgeFile(_ id: String) {
         guard let project = pm.activeProject else { return }
         pm.removeKnowledgeFile(id: id, projectId: project.id)
     }

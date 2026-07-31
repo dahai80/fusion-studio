@@ -1804,6 +1804,300 @@ class IPCClient: ObservableObject {
         return try await projectCall(method: "project.artifact.remove", params: ["artifact_id": artifactId])
     }
 
+    func projectArtifactExport(projectId: String, artifactIds: [String]? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["project_id": projectId]
+        if let ids = artifactIds { p["artifact_ids"] = ids }
+        return try await projectCall(method: "project.artifact.export", params: p)
+    }
+
+    func projectDuplicate(projectId: String, name: String? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["project_id": projectId]
+        if let n = name { p["name"] = n }
+        return try await projectCall(method: "project.duplicate", params: p)
+    }
+
+    func projectExport(projectId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.export", params: ["project_id": projectId])
+    }
+
+    // MARK: - Project Chat
+
+    func projectChatList(projectId: String, onlyStarred: Bool = false) async throws -> [String: Any] {
+        var p: [String: Any] = ["project_id": projectId]
+        if onlyStarred { p["only_starred"] = true }
+        return try await projectCall(method: "project.chat.list", params: p)
+    }
+
+    func projectChatCreate(projectId: String, title: String = "New Chat", model: String? = nil, agentId: String? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["project_id": projectId, "title": title]
+        if let m = model { p["model"] = m }
+        if let a = agentId { p["agent_id"] = a }
+        return try await projectCall(method: "project.chat.create", params: p)
+    }
+
+    func projectChatGet(chatId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.chat.get", params: ["chat_id": chatId])
+    }
+
+    func projectChatUpdate(chatId: String, fields: [String: Any]) async throws -> [String: Any] {
+        return try await projectCall(method: "project.chat.update", params: ["chat_id": chatId, "fields": fields])
+    }
+
+    func projectChatStar(chatId: String, starred: Bool = true) async throws -> [String: Any] {
+        return try await projectCall(method: "project.chat.star", params: ["chat_id": chatId, "starred": starred])
+    }
+
+    func projectChatDelete(chatId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.chat.delete", params: ["chat_id": chatId])
+    }
+
+    func projectChatFork(chatId: String, label: String? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["chat_id": chatId]
+        if let l = label { p["label"] = l }
+        return try await projectCall(method: "project.chat.fork", params: p)
+    }
+
+    func projectChatMove(chatId: String, targetProjectId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.chat.move", params: ["chat_id": chatId, "target_project_id": targetProjectId])
+    }
+
+    func projectChatDetach(chatId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.chat.detach", params: ["chat_id": chatId])
+    }
+
+    // MARK: - Project Chat Snapshot
+
+    func projectChatSnapshotCreate(chatId: String, label: String? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["chat_id": chatId]
+        if let l = label { p["label"] = l }
+        return try await projectCall(method: "project.chat.snapshot.create", params: p)
+    }
+
+    func projectChatSnapshotList(chatId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.chat.snapshot.list", params: ["chat_id": chatId])
+    }
+
+    func projectChatSnapshotRestore(snapshotId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.chat.snapshot.restore", params: ["snapshot_id": snapshotId])
+    }
+
+    func projectChatSnapshotDelete(snapshotId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.chat.snapshot.delete", params: ["snapshot_id": snapshotId])
+    }
+
+    // MARK: - Project Chat Messages
+
+    func projectMessageList(chatId: String, limit: Int = 100, offset: Int = 0) async throws -> [String: Any] {
+        return try await projectCall(method: "project.chat.message.list", params: ["chat_id": chatId, "limit": limit, "offset": offset])
+    }
+
+    func projectMessageAdd(chatId: String, content: String, ragMode: String? = nil, ragScope: [String]? = nil, tempFileIds: [String]? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["chat_id": chatId, "content": content]
+        if let r = ragMode { p["rag_mode"] = r }
+        if let s = ragScope { p["rag_scope"] = s }
+        if let t = tempFileIds { p["temp_file_ids"] = t }
+        return try await projectCall(method: "project.chat.message.add", params: p)
+    }
+
+    func projectMessageDelete(messageId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.chat.message.delete", params: ["message_id": messageId])
+    }
+
+    // MARK: - Project Temp Attachments
+
+    func projectTempAttachmentAdd(chatId: String, filePath: String, originalName: String, fileSize: Int = 0, mimeType: String? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["chat_id": chatId, "file_path": filePath, "original_name": originalName, "file_size": fileSize]
+        if let m = mimeType { p["mime_type"] = m }
+        return try await projectCall(method: "project.chat.temp_attachment.add", params: p)
+    }
+
+    func projectTempAttachmentList(chatId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.chat.temp_attachment.list", params: ["chat_id": chatId])
+    }
+
+    func projectTempAttachmentDelete(attachmentId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.chat.temp_attachment.delete", params: ["attachment_id": attachmentId])
+    }
+
+    // MARK: - Project Knowledge Folders
+
+    func projectFolderList(projectId: String, parentId: String? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["project_id": projectId]
+        if let pid = parentId { p["parent_id"] = pid }
+        return try await projectCall(method: "project.knowledge.folder.list", params: p)
+    }
+
+    func projectFolderCreate(projectId: String, name: String, parentId: String? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["project_id": projectId, "name": name]
+        if let pid = parentId { p["parent_id"] = pid }
+        return try await projectCall(method: "project.knowledge.folder.create", params: p)
+    }
+
+    func projectFolderUpdate(folderId: String, name: String? = nil, parentId: String? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["folder_id": folderId]
+        if let n = name { p["name"] = n }
+        if let pid = parentId { p["parent_id"] = pid }
+        return try await projectCall(method: "project.knowledge.folder.update", params: p)
+    }
+
+    func projectFolderDelete(folderId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.knowledge.folder.delete", params: ["folder_id": folderId])
+    }
+
+    // MARK: - Project Knowledge Files
+
+    func projectKnowledgeFileList(projectId: String, folderId: String? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["project_id": projectId]
+        if let fid = folderId { p["folder_id"] = fid }
+        return try await projectCall(method: "project.knowledge.file.list", params: p)
+    }
+
+    func projectKnowledgeFileGet(fileId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.knowledge.file.get", params: ["file_id": fileId])
+    }
+
+    func projectKnowledgeFileDelete(fileId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.knowledge.file.delete", params: ["file_id": fileId])
+    }
+
+    func projectKnowledgeFileUpload(projectId: String, sourcePath: String, originalName: String, folderId: String? = nil, mimeType: String? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["project_id": projectId, "source_path": sourcePath, "original_name": originalName]
+        if let fid = folderId { p["folder_id"] = fid }
+        if let m = mimeType { p["mime_type"] = m }
+        return try await projectCall(method: "project.knowledge.file.upload", params: p)
+    }
+
+    func projectKnowledgeFileReplace(fileId: String, sourcePath: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.knowledge.file.replace", params: ["file_id": fileId, "source_path": sourcePath])
+    }
+
+    func projectKnowledgeFileRename(fileId: String, name: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.knowledge.file.rename", params: ["file_id": fileId, "name": name])
+    }
+
+    func projectKnowledgeFileMove(fileId: String, folderId: String?) async throws -> [String: Any] {
+        var p: [String: Any] = ["file_id": fileId]
+        if let fid = folderId { p["folder_id"] = fid }
+        return try await projectCall(method: "project.knowledge.file.move", params: p)
+    }
+
+    func projectKnowledgeFileStatuses(projectId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.knowledge.file.statuses", params: ["project_id": projectId])
+    }
+
+    // MARK: - Project Agent Binding
+
+    func projectAgentGet(projectId: String, chatId: String? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["project_id": projectId]
+        if let cid = chatId { p["chat_id"] = cid }
+        return try await projectCall(method: "project.agent.get", params: p)
+    }
+
+    func projectAgentSet(projectId: String, agentId: String? = nil, mergeMode: String? = nil, chatId: String? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["project_id": projectId]
+        if let a = agentId { p["agent_id"] = a }
+        if let m = mergeMode { p["merge_mode"] = m }
+        if let c = chatId { p["chat_id"] = c }
+        return try await projectCall(method: "project.agent.set", params: p)
+    }
+
+    func projectAgentRemove(projectId: String, chatId: String? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["project_id": projectId]
+        if let c = chatId { p["chat_id"] = c }
+        return try await projectCall(method: "project.agent.remove", params: p)
+    }
+
+    func projectAgentList() async throws -> [String: Any] {
+        return try await projectCall(method: "project.agent.list", params: [:])
+    }
+
+    func projectAgentPreview(agentId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.agent.preview", params: ["agent_id": agentId])
+    }
+
+    func projectAgentSystemPrompt(projectId: String, agentPrompt: String? = nil, chatId: String? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["project_id": projectId]
+        if let ap = agentPrompt { p["agent_prompt"] = ap }
+        if let c = chatId { p["chat_id"] = c }
+        return try await projectCall(method: "project.agent.system_prompt", params: p)
+    }
+
+    // MARK: - Project RAG
+
+    func projectRagIndexFile(projectId: String, fileId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.rag.index_file", params: ["project_id": projectId, "file_id": fileId])
+    }
+
+    func projectRagIndexFolder(projectId: String, folderId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.rag.index_folder", params: ["project_id": projectId, "folder_id": folderId])
+    }
+
+    func projectRagQuery(projectId: String, query: String, mode: String? = nil, folderIds: [String]? = nil, topK: Int? = nil, threshold: Double? = nil, chatId: String? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["project_id": projectId, "query": query]
+        if let m = mode { p["mode"] = m }
+        if let f = folderIds { p["folder_ids"] = f }
+        if let k = topK { p["top_k"] = k }
+        if let t = threshold { p["threshold"] = t }
+        if let c = chatId { p["chat_id"] = c }
+        return try await projectCall(method: "project.rag.query", params: p)
+    }
+
+    func projectRagRemoveIndex(projectId: String, fileId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.rag.remove_index", params: ["project_id": projectId, "file_id": fileId])
+    }
+
+    func projectRagStatus(projectId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.rag.status", params: ["project_id": projectId])
+    }
+
+    func projectRagConfigGet(projectId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.rag.config.get", params: ["project_id": projectId])
+    }
+
+    func projectRagConfigSet(projectId: String, ragMode: String? = nil, ragTopK: Int? = nil, ragThreshold: Double? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["project_id": projectId]
+        if let m = ragMode { p["rag_mode"] = m }
+        if let k = ragTopK { p["rag_top_k"] = k }
+        if let t = ragThreshold { p["rag_threshold"] = t }
+        return try await projectCall(method: "project.rag.config.set", params: p)
+    }
+
+    // MARK: - Project Upstream
+
+    func projectUpstreamHealth() async throws -> [String: Any] {
+        return try await projectCall(method: "project.upstream.health", params: [:])
+    }
+
+    func projectUpstreamCircuits() async throws -> [String: Any] {
+        return try await projectCall(method: "project.upstream.circuits", params: [:])
+    }
+
+    // MARK: - Project Audit
+
+    func projectAuditList(projectId: String, limit: Int = 100, offset: Int = 0) async throws -> [String: Any] {
+        return try await projectCall(method: "project.audit.list", params: ["project_id": projectId, "limit": limit, "offset": offset])
+    }
+
+    func projectAuditLog(projectId: String, action: String, chatId: String? = nil, agentId: String? = nil, details: String? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["project_id": projectId, "action": action]
+        if let c = chatId { p["chat_id"] = c }
+        if let a = agentId { p["agent_id"] = a }
+        if let d = details { p["details"] = d }
+        return try await projectCall(method: "project.audit.log", params: p)
+    }
+
+    // MARK: - Project Cowork
+
+    func projectCoworkTrigger(projectId: String, action: String, payload: [String: Any]? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["project_id": projectId, "action": action]
+        if let pl = payload { p.merge(pl) { _, new in new } }
+        return try await projectCall(method: "cowork.trigger", params: p)
+    }
+
+    func projectCoworkStatus(taskId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "cowork.status", params: ["task_id": taskId])
+    }
+
     // MARK: - CoWork Space (UDS /tmp/fusion-cowork.sock desk.space.*, Issue #38)
 
     // Callers: SpaceListView / SpaceMainView 等 CoWork GUI. Affected API: spaceCall + 11 desk.space.* methods.

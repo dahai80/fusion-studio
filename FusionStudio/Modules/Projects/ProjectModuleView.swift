@@ -3,56 +3,114 @@ import os.log
 
 private let projLog = Logger(subsystem: "com.fusion.studio", category: "ProjectModule")
 
+// MARK: - GUI-2: Project List Page (Main Module View)
+
 struct ProjectModuleView: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
 
-    @State private var projects: [[String: Any]] = []
+    @State private var projects: [FusionProject] = []
+    @State private var archivedProjects: [FusionProject] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var showCreateDialog = false
     @State private var selectedProjectId: String?
+    @State private var searchText = ""
+    @State private var sortOption: ProjectModuleSort = .lastUpdated
+    @State private var showUpstreamWarning = false
+
+    private var activeProjects: [FusionProject] {
+        projects.filter { !$0.isArchived }
+    }
+
+    private var filteredActive: [FusionProject] {
+        var result = activeProjects
+        if !searchText.isEmpty {
+            result = result.filter {
+                $0.name.localizedCaseInsensitiveContains(searchText) ||
+                $0.description.localizedCaseInsensitiveContains(searchText)
+            }
+        }
+        return sortOption.sort(result)
+    }
 
     var body: some View {
         HStack(spacing: 0) {
             projectListView
             Rectangle().fill(theme.separator).frame(width: 1)
-            if let pid = selectedProjectId {
-                ProjectDetailView(projectId: pid)
+            if let pid = selectedProjectId,
+               let project = projects.first(where: { $0.id == pid }) ?? archivedProjects.first(where: { $0.id == pid }) {
+                ProjectDetailView(project: project)
             } else {
                 emptyStateView
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onAppear { loadProjects() }
+        .onAppear {
+            loadProjects()
+            Task { await checkUpstream() }
+        }
     }
+
+    // MARK: GUI-2 Left: Project List
 
     private var projectListView: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ScreenHeader(eyebrow: "Fusion Studio", title: "Projects", subtitle: "管理你的 AI 项目、指令和知识库")
+            ScreenHeader(eyebrow: "Fusion Studio", title: "Projects",
+                         subtitle: "管理你的 AI 项目、指令和知识库")
                 .padding(.bottom, theme.spacingS)
 
-            HStack {
+            // Search + Sort + New
+            HStack(spacing: theme.spacingS) {
+                HStack(spacing: theme.spacingXS) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: theme.iconXS))
+                        .foregroundStyle(theme.textTertiary)
+                    TextField("搜索项目", text: $searchText)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: theme.footnoteSize))
+                }
+                .padding(.horizontal, theme.spacingS)
+                .padding(.vertical, 4)
+                .background(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                    .fill(theme.textTertiary.opacity(0.08)))
+
+                Menu {
+                    ForEach(ProjectModuleSort.allCases, id: \.self) { opt in
+                        Button(action: { sortOption = opt }) {
+                            HStack {
+                                Text(opt.rawValue)
+                                if sortOption == opt { Image(systemName: "checkmark") }
+                            }
+                        }
+                    }
+                } label: {
+                    Image(systemName: "arrow.up.arrow.down")
+                        .font(.system(size: theme.iconXS))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .menuStyle(.borderlessButton)
+
                 Button(action: { showCreateDialog = true }) {
                     Image(systemName: "plus.circle.fill")
                         .font(.system(size: theme.iconM))
+                        .foregroundStyle(theme.accent)
                 }
                 .buttonStyle(.plain)
                 .help("新建项目")
-                Spacer()
-                Button(action: { loadProjects() }) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: theme.iconS))
-                        .foregroundStyle(theme.textTertiary)
-                }
-                .buttonStyle(.plain)
             }
             .padding(.horizontal, theme.spacingM)
             .padding(.bottom, theme.spacingS)
 
+            // Upstream warning banner
+            if showUpstreamWarning {
+                upstreamBanner
+            }
+
             if isLoading {
+                Spacer()
                 ProgressView()
-                    .padding()
+                Spacer()
             } else if let err = errorMessage {
                 Text(err)
                     .font(.system(size: theme.footnoteSize))
@@ -61,60 +119,153 @@ struct ProjectModuleView: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: theme.spacingXS) {
-                        ForEach(projects.indices, id: \.self) { idx in
-                            projectRow(projects[idx], index: idx)
+                        // Active projects
+                        ForEach(filteredActive) { project in
+                            projectCard(project)
+                        }
+
+                        // Archived section
+                        if !archivedProjects.isEmpty {
+                            HStack {
+                                Rectangle().fill(theme.textTertiary.opacity(0.2))
+                                    .frame(height: 1)
+                                Text("Archived (\(archivedProjects.count))")
+                                    .font(.system(size: theme.captionSize))
+                                    .foregroundStyle(theme.textTertiary)
+                                Rectangle().fill(theme.textTertiary.opacity(0.2))
+                                    .frame(height: 1)
+                            }
+                            .padding(.vertical, theme.spacingS)
+                            .padding(.horizontal, theme.spacingM)
+
+                            ForEach(archivedProjects) { project in
+                                archivedProjectCard(project)
+                            }
                         }
                     }
                     .padding(.horizontal, theme.spacingS)
                 }
             }
         }
-        .frame(minWidth: 260, maxWidth: 320)
+        .frame(minWidth: 280, maxWidth: 340)
         .sheet(isPresented: $showCreateDialog) {
+            // GUI-3: Create Project Dialog
             ProjectCreateDialog(onCreated: { _ in loadProjects() })
         }
     }
 
-    private func projectRow(_ p: [String: Any], index: Int) -> some View {
-        let pid = p["id"] as? String ?? ""
-        let name = p["name"] as? String ?? "Untitled"
-        let desc = p["description"] as? String ?? ""
-        let isStarred = p["is_starred"] as? Bool ?? false
-        let isActive = selectedProjectId == pid
-        return Button(action: { selectedProjectId = pid }) {
+    // MARK: GUI-2 Card: Project Card
+
+    private func projectCard(_ project: FusionProject) -> some View {
+        let isActive = selectedProjectId == project.id
+        return Button(action: { selectedProjectId = project.id }) {
             HStack(spacing: theme.spacingS) {
-                Image(systemName: isStarred ? "star.fill" : "folder")
+                Image(systemName: project.isStarred ? "star.fill" : "folder.fill")
                     .font(.system(size: theme.iconS))
-                    .foregroundStyle(isStarred ? .yellow : theme.textTertiary)
+                    .foregroundStyle(project.isStarred ? .yellow : theme.accent)
                     .frame(width: 20)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(name)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(project.name)
                         .font(.system(size: theme.textSize, weight: .medium))
                         .foregroundStyle(isActive ? theme.accent : theme.text)
                         .lineLimit(1)
-                    if !desc.isEmpty {
-                        Text(desc)
+
+                    if !project.description.isEmpty {
+                        Text(project.description)
                             .font(.system(size: theme.captionSize))
                             .foregroundStyle(theme.textSecondary)
                             .lineLimit(1)
                     }
+
+                    HStack(spacing: theme.spacingS) {
+                        Label("\(project.fileCount) 文件", systemImage: "doc")
+                        Label("\(project.chatCount) 会话", systemImage: "bubble.left")
+                        if let agent = project.agentName {
+                            Label(agent, systemImage: "robot")
+                        }
+                    }
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundStyle(theme.textTertiary)
                 }
+
                 Spacer()
-                if isActive {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 8, weight: .semibold))
-                        .foregroundStyle(theme.accent)
+
+                VStack(alignment: .trailing, spacing: 4) {
+                    // GUI-5: Three-dot menu
+                    ProjectCardMenu(project: project, onAction: handleCardAction)
+                    Text(relativeTime(project.updatedAt))
+                        .font(.system(size: 8))
+                        .foregroundStyle(theme.textQuaternary)
                 }
             }
             .padding(.horizontal, theme.spacingM)
-            .padding(.vertical, 8)
+            .padding(.vertical, 10)
             .background(
                 RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                    .fill(isActive ? theme.accent.opacity(0.12) : .clear)
+                    .fill(isActive ? theme.accent.opacity(0.12) : theme.textTertiary.opacity(0.04))
             )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    private func archivedProjectCard(_ project: FusionProject) -> some View {
+        HStack(spacing: theme.spacingS) {
+            Image(systemName: "archivebox")
+                .font(.system(size: theme.iconS))
+                .foregroundStyle(theme.textTertiary)
+                .frame(width: 20)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(project.name + "（归档）")
+                    .font(.system(size: theme.textSize, weight: .medium))
+                    .foregroundStyle(theme.textSecondary)
+                    .lineLimit(1)
+                HStack(spacing: theme.spacingS) {
+                    Label("\(project.fileCount) 文件", systemImage: "doc")
+                    Label("\(project.chatCount) 会话", systemImage: "bubble.left")
+                }
+                .font(.system(size: 9, design: .monospaced))
+                .foregroundStyle(theme.textQuaternary)
+            }
+            Spacer()
+            Button("取消归档") {
+                Task { await unarchiveProject(project.id) }
+            }
+            .font(.system(size: theme.captionSize))
+            .buttonStyle(.plain)
+            .foregroundStyle(theme.accent)
+
+            ProjectCardMenu(project: project, onAction: handleCardAction)
+        }
+        .padding(.horizontal, theme.spacingM)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                .fill(theme.textTertiary.opacity(0.03))
+        )
+    }
+
+    // MARK: GUI-21: Upstream Degraded Banner
+
+    private var upstreamBanner: some View {
+        Button(action: { showUpstreamWarning.toggle() }) {
+            HStack(spacing: theme.spacingXS) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                Text("部分服务不可用")
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(.orange)
+            }
+            .padding(.horizontal, theme.spacingS)
+            .padding(.vertical, 4)
+            .background(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                .fill(Color.orange.opacity(0.1)))
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, theme.spacingM)
+        .padding(.bottom, theme.spacingXS)
     }
 
     private var emptyStateView: some View {
@@ -129,17 +280,45 @@ struct ProjectModuleView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    // MARK: Actions
+
+    private func handleCardAction(_ action: ProjectCardAction, project: FusionProject) {
+        switch action {
+        case .star:
+            Task { await starProject(project.id, starred: !project.isStarred) }
+        case .rename:
+            break
+        case .duplicate:
+            break
+        case .export:
+            Task { await exportProject(project.id) }
+        case .archive:
+            Task { await archiveProject(project.id) }
+        case .unarchive:
+            Task { await unarchiveProject(project.id) }
+        case .delete:
+            break
+        case .settings:
+            selectedProjectId = project.id
+        }
+    }
+
     private func loadProjects() {
         isLoading = true
         errorMessage = nil
         Task {
             do {
-                let result = try await ipc.projectCall(method: "project.list", params: [:])
-                projLog.info("project.list loaded: \(result.count) keys")
+                let result = try await ipc.projectList(includeArchived: true)
                 if let items = result["items"] as? [[String: Any]] {
-                    await MainActor.run { projects = items; isLoading = false }
+                    let all = items.map { FusionProject.fromDict($0) }
+                    await MainActor.run {
+                        self.projects = all.filter { !$0.isArchived }
+                        self.archivedProjects = all.filter { $0.isArchived }
+                        self.isLoading = false
+                    }
+                    projLog.info("Loaded \(all.count) projects")
                 } else {
-                    await MainActor.run { projects = [result]; isLoading = false }
+                    await MainActor.run { self.isLoading = false }
                 }
             } catch {
                 projLog.error("project.list failed: \(error.localizedDescription)")
@@ -150,7 +329,181 @@ struct ProjectModuleView: View {
             }
         }
     }
+
+    private func starProject(_ pid: String, starred: Bool) async {
+        do {
+            _ = try await ipc.projectStar(projectId: pid, starred: starred)
+            loadProjects()
+        } catch {
+            projLog.error("starProject failed: \(error.localizedDescription)")
+        }
+    }
+
+    private func archiveProject(_ pid: String) async {
+        do {
+            _ = try await ipc.projectArchive(projectId: pid)
+            loadProjects()
+        } catch {
+            projLog.error("archiveProject failed: \(error.localizedDescription)")
+        }
+    }
+
+    private func unarchiveProject(_ pid: String) async {
+        do {
+            _ = try await ipc.projectUnarchive(projectId: pid)
+            loadProjects()
+        } catch {
+            projLog.error("unarchiveProject failed: \(error.localizedDescription)")
+        }
+    }
+
+    private func exportProject(_ pid: String) async {
+        do {
+            _ = try await ipc.projectExport(projectId: pid)
+            projLog.info("Project exported: \(pid)")
+        } catch {
+            projLog.error("exportProject failed: \(error.localizedDescription)")
+        }
+    }
+
+    private func checkUpstream() async {
+        do {
+            let result = try await ipc.projectUpstreamHealth()
+            let degraded = (result["rag"] as? String == "down") || (result["mlx"] as? String == "down")
+            await MainActor.run { showUpstreamWarning = degraded }
+        } catch {
+            await MainActor.run { showUpstreamWarning = true }
+        }
+    }
+
+    private func relativeTime(_ date: Date) -> String {
+        let interval = Date().timeIntervalSince(date)
+        if interval < 3600 { return "\(Int(interval / 60))分钟前" }
+        if interval < 86400 { return "\(Int(interval / 3600))小时前" }
+        if interval < 604800 { return "\(Int(interval / 3600))天前" }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        return formatter.string(from: date)
+    }
 }
+
+// MARK: - Sort Option
+
+private enum ProjectModuleSort: String, CaseIterable {
+    case lastUpdated = "最近更新"
+    case dateCreated = "创建时间"
+    case alphabetical = "名称排序"
+
+    func sort(_ projects: [FusionProject]) -> [FusionProject] {
+        switch self {
+        case .lastUpdated: return projects.sorted { $0.updatedAt > $1.updatedAt }
+        case .dateCreated: return projects.sorted { $0.createdAt > $1.createdAt }
+        case .alphabetical: return projects.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        }
+    }
+}
+
+// MARK: - GUI-5: Card Three-dot Menu
+
+private enum ProjectCardAction {
+    case star, rename, duplicate, export, archive, unarchive, delete, settings
+}
+
+private struct ProjectCardMenu: View {
+    let project: FusionProject
+    let onAction: (ProjectCardAction, FusionProject) -> Void
+
+    @EnvironmentObject var ipc: IPCClient
+    @Environment(\.studioTheme) private var theme
+    @State private var showDeleteConfirm = false
+    @State private var showDuplicateDialog = false
+    @State private var showRenameDialog = false
+    @State private var renameText = ""
+
+    var body: some View {
+        Menu {
+            Button(action: { onAction(.star, project) }) {
+                Label(project.isStarred ? "取消收藏" : "收藏项目",
+                      systemImage: project.isStarred ? "star.slash" : "star")
+            }
+            Button(action: { renameText = project.name; showRenameDialog = true }) {
+                Label("重命名", systemImage: "pencil")
+            }
+            Button(action: { showDuplicateDialog = true }) {
+                Label("复制项目", systemImage: "doc.on.doc")
+            }
+            Button(action: { onAction(.export, project) }) {
+                Label("导出项目", systemImage: "square.and.arrow.up")
+            }
+            Divider()
+            if project.isArchived {
+                Button(action: { onAction(.unarchive, project) }) {
+                    Label("取消归档", systemImage: "archivebox")
+                }
+            } else {
+                Button(action: { onAction(.archive, project) }) {
+                    Label("归档项目", systemImage: "archivebox")
+                }
+            }
+            Button(role: .destructive, action: { showDeleteConfirm = true }) {
+                Label("删除项目", systemImage: "trash")
+            }
+            Divider()
+            Button(action: { onAction(.settings, project) }) {
+                Label("项目设置", systemImage: "gearshape")
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: theme.iconXS, weight: .medium))
+                .foregroundStyle(theme.textTertiary)
+                .frame(width: 20, height: 20)
+                .contentShape(Rectangle())
+        }
+        .menuStyle(.borderlessButton)
+        .alert("⚠️ 删除项目", isPresented: $showDeleteConfirm) {
+            Button("取消", role: .cancel) {}
+            Button("确认删除", role: .destructive) {
+                onAction(.delete, project)
+            }
+        } message: {
+            Text("确定要永久删除项目「\(project.name)」？此操作不可恢复。")
+        }
+        .sheet(isPresented: $showDuplicateDialog) {
+            // GUI-6: Duplicate Dialog
+            ProjectDuplicateDialog(project: project)
+        }
+        .sheet(isPresented: $showRenameDialog) {
+            VStack(spacing: theme.spacingM) {
+                Text("重命名项目")
+                    .font(.system(size: theme.headlineSize, weight: .bold))
+                TextField("项目名称", text: $renameText)
+                    .textFieldStyle(.roundedBorder)
+                HStack {
+                    Button("取消") { showRenameDialog = false }
+                    Spacer()
+                    Button("保存") {
+                        Task { await renameProject() }
+                        showRenameDialog = false
+                    }
+                    .disabled(renameText.isEmpty)
+                }
+            }
+            .padding(theme.spacingL)
+            .frame(width: 360)
+        }
+    }
+
+    private func renameProject() async {
+        do {
+            _ = try await ipc.projectUpdate(projectId: project.id, fields: ["name": renameText])
+            projLog.info("Project renamed: \(renameText)")
+        } catch {
+            projLog.error("renameProject failed: \(error.localizedDescription)")
+        }
+    }
+}
+
+// MARK: - GUI-3: Create Project Dialog
 
 struct ProjectCreateDialog: View {
     @EnvironmentObject var ipc: IPCClient
@@ -159,49 +512,169 @@ struct ProjectCreateDialog: View {
 
     @State private var name = ""
     @State private var description = ""
-    @State private var ragMode = "AUTO"
+    @State private var instructions = ""
+    @State private var ragMode = RAGMode.AUTO
+    @State private var promptMergeMode = PromptMergeMode.AGENT_FIRST
+    @State private var selectedAgentId: String?
+    @State private var availableAgents: [AgentMeta] = []
     @State private var isCreating = false
+    @State private var editMode: InstructionEditMode = .markdown
+
+    private let maxChars = 10000
 
     let onCreated: ([String: Any]) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            Text("新建项目")
+            Text("Create New Project")
                 .font(.system(size: theme.headlineSize, weight: .bold))
 
-            TextField("项目名称", text: $name)
-                .textFieldStyle(.roundedBorder)
-
-            TextField("描述（可选）", text: $description)
-                .textFieldStyle(.roundedBorder)
-
-            Picker("RAG 模式", selection: $ragMode) {
-                Text("AUTO").tag("AUTO")
-                Text("MANUAL").tag("MANUAL")
-                Text("OFF").tag("OFF")
+            // Name
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Project name *")
+                    .font(.system(size: theme.captionSize, weight: .medium))
+                    .foregroundStyle(theme.textSecondary)
+                TextField("项目名称", text: $name)
+                    .textFieldStyle(.roundedBorder)
             }
 
+            // Description
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Description")
+                    .font(.system(size: theme.captionSize, weight: .medium))
+                    .foregroundStyle(theme.textSecondary)
+                TextField("描述（可选）", text: $description)
+                    .textFieldStyle(.roundedBorder)
+            }
+
+            // Instructions
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("项目指令")
+                        .font(.system(size: theme.captionSize, weight: .medium))
+                        .foregroundStyle(theme.textSecondary)
+                    Spacer()
+                    ForEach(InstructionEditMode.allCases, id: \.self) { mode in
+                        Button(action: { editMode = mode }) {
+                            Text(mode.rawValue)
+                                .font(.system(size: 9, weight: editMode == mode ? .bold : .regular))
+                                .foregroundStyle(editMode == mode ? theme.accent : theme.textTertiary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    Text("字数：\(instructions.count)/\(maxChars)")
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundStyle(instructions.count > maxChars ? .red : theme.textTertiary)
+                }
+                TextEditor(text: $instructions)
+                    .font(.system(size: theme.footnoteSize, design: .monospaced))
+                    .frame(height: 80)
+                    .padding(4)
+                    .background(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                        .stroke(theme.textTertiary.opacity(0.2)))
+                Text("在这里定义角色、输出规范、业务约束，所有对话自动继承")
+                    .font(.system(size: 9))
+                    .foregroundStyle(theme.textQuaternary)
+            }
+
+            // Default Agent
+            VStack(alignment: .leading, spacing: 4) {
+                Text("默认智能体")
+                    .font(.system(size: theme.captionSize, weight: .medium))
+                    .foregroundStyle(theme.textSecondary)
+                Menu {
+                    Button("不绑定（纯模型对话）") { selectedAgentId = nil }
+                    Divider()
+                    ForEach(availableAgents) { agent in
+                        Button(agent.name) { selectedAgentId = agent.id }
+                    }
+                    Divider()
+                    Button("前往 Agent Studio 创建新智能体") { }
+                } label: {
+                    HStack {
+                        Image(systemName: "robot")
+                        Text(selectedAgentId.flatMap { id in availableAgents.first(where: { $0.id == id })?.name } ?? "不绑定")
+                        Spacer()
+                        Image(systemName: "chevron.down")
+                    }
+                    .font(.system(size: theme.footnoteSize))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                        .stroke(theme.textTertiary.opacity(0.2)))
+                }
+                .menuStyle(.borderlessButton)
+            }
+
+            // Prompt merge mode
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Prompt 合并策略")
+                    .font(.system(size: theme.captionSize, weight: .medium))
+                    .foregroundStyle(theme.textSecondary)
+                Picker("", selection: $promptMergeMode) {
+                    Text("Agent Prompt 优先（推荐）").tag(PromptMergeMode.AGENT_FIRST)
+                    Text("仅使用项目 Instructions").tag(PromptMergeMode.PROJECT_ONLY)
+                }
+                .pickerStyle(.radioGroup)
+                .font(.system(size: theme.captionSize))
+            }
+
+            // RAG Mode
+            VStack(alignment: .leading, spacing: 4) {
+                Text("RAG 检索模式")
+                    .font(.system(size: theme.captionSize, weight: .medium))
+                    .foregroundStyle(theme.textSecondary)
+                Picker("", selection: $ragMode) {
+                    Text("AUTO（智能检索）").tag(RAGMode.AUTO)
+                    Text("MANUAL（手动指定）").tag(RAGMode.MANUAL)
+                    Text("OFF（关闭）").tag(RAGMode.OFF)
+                }
+                .pickerStyle(.radioGroup)
+                .font(.system(size: theme.captionSize))
+            }
+
+            Spacer(minLength: 0)
+
             HStack {
-                Button("取消") { dismiss() }
+                Button("Cancel") { dismiss() }
                     .keyboardShortcut(.cancelAction)
                 Spacer()
-                Button("创建") { createProject() }
+                Button("Create Project") { createProject() }
                     .keyboardShortcut(.defaultAction)
                     .disabled(name.isEmpty || isCreating)
             }
         }
         .padding(theme.spacingL)
-        .frame(width: 400)
+        .frame(width: 520, height: 600)
+        .onAppear { loadAgents() }
+    }
+
+    private func loadAgents() {
+        Task {
+            do {
+                let result = try await ipc.projectAgentList()
+                if let items = result["agents"] as? [[String: Any]] ?? result["items"] as? [[String: Any]] {
+                    await MainActor.run {
+                        availableAgents = items.compactMap { AgentMeta.fromDict($0) }
+                    }
+                }
+            } catch {
+                projLog.error("loadAgents failed: \(error.localizedDescription)")
+            }
+        }
     }
 
     private func createProject() {
         isCreating = true
         Task {
             do {
-                var params: [String: Any] = ["name": name, "rag_mode": ragMode]
-                if !description.isEmpty { params["description"] = description }
-                let result = try await ipc.projectCall(method: "project.create", params: params)
-                projLog.info("project.created: \(result)")
+                let result = try await ipc.projectCreate(
+                    name: name, description: description,
+                    defaultAgentId: selectedAgentId,
+                    ragMode: ragMode.rawValue,
+                    promptMergeMode: promptMergeMode.rawValue
+                )
+                projLog.info("Project created: \(name)")
                 await MainActor.run { onCreated(result); dismiss() }
             } catch {
                 projLog.error("project.create failed: \(error.localizedDescription)")
@@ -211,16 +684,93 @@ struct ProjectCreateDialog: View {
     }
 }
 
+private enum InstructionEditMode: String, CaseIterable {
+    case markdown = "Markdown"
+    case richText = "富文本"
+}
+
+// MARK: - GUI-6: Duplicate Dialog
+
+private struct ProjectDuplicateDialog: View {
+    let project: FusionProject
+    @Environment(\.studioTheme) private var theme
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var ipc: IPCClient
+
+    @State private var newName: String
+    @State private var includeSessions = false
+    @State private var isDuplicating = false
+
+    init(project: FusionProject) {
+        self.project = project
+        _newName = State(initialValue: project.name + " (副本)")
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: theme.spacingM) {
+            Text("Duplicate Project")
+                .font(.system(size: theme.headlineSize, weight: .bold))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("New project name")
+                    .font(.system(size: theme.captionSize, weight: .medium))
+                    .foregroundStyle(theme.textSecondary)
+                TextField("项目名称", text: $newName)
+                    .textFieldStyle(.roundedBorder)
+            }
+
+            Text("复制范围")
+                .font(.system(size: theme.captionSize, weight: .medium))
+                .foregroundStyle(theme.textSecondary)
+
+            Picker("", selection: $includeSessions) {
+                Text("仅复制项目指令 + 知识库文件（推荐）").tag(false)
+                Text("复制指令 + 知识库 + 全部会话快照").tag(true)
+            }
+            .pickerStyle(.radioGroup)
+            .font(.system(size: theme.captionSize))
+
+            Spacer(minLength: 0)
+
+            HStack {
+                Button("Cancel") { dismiss() }
+                Spacer()
+                Button("Duplicate") { duplicateProject() }
+                    .disabled(newName.isEmpty || isDuplicating)
+            }
+        }
+        .padding(theme.spacingL)
+        .frame(width: 440, height: 280)
+    }
+
+    private func duplicateProject() {
+        isDuplicating = true
+        Task {
+            do {
+                _ = try await ipc.projectDuplicate(projectId: project.id, name: newName)
+                projLog.info("Project duplicated: \(newName)")
+                await MainActor.run { dismiss() }
+            } catch {
+                projLog.error("duplicateProject failed: \(error.localizedDescription)")
+                await MainActor.run { isDuplicating = false }
+            }
+        }
+    }
+}
+
+// MARK: - GUI-4: Project Detail View (Core Page)
+
 struct ProjectDetailView: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
 
-    let projectId: String
-    @State private var project: [String: Any]?
-    @State private var isLoading = false
-    @State private var activeTab = ProjectTab.instructions
+    let project: FusionProject
+    @State private var activeTab: ProjectDetailTab = .instructions
+    @State private var showSettings = false
+    @State private var showCoWorkDialog = false
+    @State private var showAgentPreview = false
 
-    private enum ProjectTab: Int, CaseIterable {
+    private enum ProjectDetailTab: Int, CaseIterable {
         case instructions = 0
         case knowledge = 1
         case chats = 2
@@ -236,73 +786,204 @@ struct ProjectDetailView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if isLoading {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let p = project {
-                projectHeader(p)
-                FusionTabBar(
-                    selected: Binding(
-                        get: { activeTab.rawValue },
-                        set: { if let t = ProjectTab(rawValue: $0) { activeTab = t } }
-                    ),
-                    tabs: ProjectTab.allCases.map { $0.item }
-                )
-                .padding(.horizontal, theme.spacingM)
+            // GUI-4 Header bar
+            projectHeaderBar
+
+            // Tab bar
+            FusionTabBar(
+                selected: Binding(
+                    get: { activeTab.rawValue },
+                    set: { if let t = ProjectDetailTab(rawValue: $0) { activeTab = t } }
+                ),
+                tabs: ProjectDetailTab.allCases.map { $0.item }
+            )
+            .padding(.horizontal, theme.spacingM)
+
+            // Tab content
+            Group {
                 switch activeTab {
                 case .instructions:
-                    ProjectInstructionsPanel(projectId: projectId)
+                    ProjectInstructionsPanel(projectId: project.id)
                 case .knowledge:
-                    KnowledgeBaseTreeView(projectId: projectId)
+                    KnowledgeBaseTreeView(projectId: project.id)
                 case .chats:
-                    ProjectChatsPanel(projectId: projectId)
+                    ProjectChatsPanel(projectId: project.id)
                 }
-            } else {
-                Text("加载中…")
-                    .foregroundStyle(theme.textSecondary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onAppear { loadProject() }
+        .sheet(isPresented: $showSettings) {
+            ProjectSettingsPanel(project: project)
+        }
+        .sheet(isPresented: $showCoWorkDialog) {
+            CoWorkImportDialog(project: project)
+        }
+        .sheet(isPresented: $showAgentPreview) {
+            ProjectAgentPreview(project: project)
+        }
     }
 
-    private func projectHeader(_ p: [String: Any]) -> some View {
-        HStack(spacing: theme.spacingM) {
-            let isStarred = p["is_starred"] as? Bool ?? false
-            Image(systemName: isStarred ? "star.fill" : "folder.fill")
-                .font(.system(size: theme.iconL))
-                .foregroundStyle(isStarred ? .yellow : theme.accent)
+    // GUI-4: Header — back / name / star / menu / agent / CoWork
+
+    private var projectHeaderBar: some View {
+        HStack(spacing: theme.spacingS) {
+            Image(systemName: project.isStarred ? "star.fill" : "folder.fill")
+                .font(.system(size: theme.iconM))
+                .foregroundStyle(project.isStarred ? .yellow : theme.accent)
+
             VStack(alignment: .leading, spacing: 2) {
-                Text(p["name"] as? String ?? "Untitled")
+                Text(project.name)
                     .font(.system(size: theme.headlineSize, weight: .bold))
                     .foregroundStyle(theme.text)
-                if let desc = p["description"] as? String, !desc.isEmpty {
-                    Text(desc)
-                        .font(.system(size: theme.footnoteSize))
-                        .foregroundStyle(theme.textSecondary)
+                    .lineLimit(1)
+                if project.isArchived {
+                    Text("已归档")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(.orange)
                 }
             }
+
+            // Star toggle
+            Button(action: { toggleStar() }) {
+                Image(systemName: project.isStarred ? "star.fill" : "star")
+                    .foregroundStyle(project.isStarred ? .yellow : theme.textTertiary)
+            }
+            .buttonStyle(.plain)
+
+            // GUI-5: Global 3-dot menu
+            ProjectGlobalMenu(project: project)
+
             Spacer()
+
+            // Agent selector
+            if let agentName = project.agentName {
+                Button(action: { showAgentPreview = true }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "robot")
+                            .font(.system(size: theme.iconXS))
+                        Text(agentName)
+                            .font(.system(size: theme.footnoteSize))
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 8))
+                    }
+                    .foregroundStyle(theme.accent)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                        .stroke(theme.accent.opacity(0.3)))
+                }
+                .buttonStyle(.plain)
+            }
+
+            // CoWork import
+            Button(action: { showCoWorkDialog = true }) {
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.system(size: theme.iconXS))
+                    Text("导入CoWork")
+                        .font(.system(size: theme.footnoteSize))
+                }
+                .foregroundStyle(theme.textSecondary)
+            }
+            .buttonStyle(.plain)
+            .disabled(project.isArchived)
+
+            // Settings
+            Button(action: { showSettings = true }) {
+                Image(systemName: "gearshape")
+                    .foregroundStyle(theme.textTertiary)
+            }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, theme.spacingL)
-        .padding(.vertical, theme.spacingM)
+        .padding(.vertical, theme.spacingS)
+        .background(theme.surfaceSecondary)
     }
 
-    private func loadProject() {
-        isLoading = true
+    private func toggleStar() {
         Task {
             do {
-                let result = try await ipc.projectCall(method: "project.get", params: ["project_id": projectId])
-                projLog.info("project.get loaded: \(projectId)")
-                await MainActor.run { project = result; isLoading = false }
+                _ = try await ipc.projectStar(projectId: project.id, starred: !project.isStarred)
             } catch {
-                projLog.error("project.get failed: \(error.localizedDescription)")
-                await MainActor.run { isLoading = false }
+                projLog.error("toggleStar failed: \(error.localizedDescription)")
             }
         }
     }
 }
+
+// MARK: - GUI-5: Global Three-dot Menu (in detail header)
+
+private struct ProjectGlobalMenu: View {
+    let project: FusionProject
+    @Environment(\.studioTheme) private var theme
+    @EnvironmentObject var ipc: IPCClient
+    @State private var showDeleteConfirm = false
+    @State private var showDuplicateDialog = false
+
+    var body: some View {
+        Menu {
+            Button(action: { toggleStar() }) {
+                Label(project.isStarred ? "取消收藏" : "收藏项目",
+                      systemImage: project.isStarred ? "star.slash" : "star")
+            }
+            Button(action: { }) {
+                Label("重命名", systemImage: "pencil")
+            }
+            Button(action: { showDuplicateDialog = true }) {
+                Label("复制项目", systemImage: "doc.on.doc")
+            }
+            Button(action: { exportProject() }) {
+                Label("导出项目", systemImage: "square.and.arrow.up")
+            }
+            if project.isArchived {
+                Button(action: { unarchiveProject() }) {
+                    Label("取消归档", systemImage: "archivebox")
+                }
+            } else {
+                Button(action: { archiveProject() }) {
+                    Label("归档项目", systemImage: "archivebox")
+                }
+            }
+            Divider()
+            Button(role: .destructive, action: { showDeleteConfirm = true }) {
+                Label("删除项目", systemImage: "trash")
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle")
+                .font(.system(size: theme.iconS))
+                .foregroundStyle(theme.textTertiary)
+        }
+        .menuStyle(.borderlessButton)
+        // GUI-20: Delete confirmation
+        .alert("⚠️ 删除项目", isPresented: $showDeleteConfirm) {
+            Button("取消", role: .cancel) {}
+            Button("确认删除", role: .destructive) { deleteProject() }
+        } message: {
+            Text("确定要永久删除项目「\(project.name)」？\n· 项目指令及所有版本快照\n· 知识库全部文件（\(project.fileCount) 个文件）\n· 项目内所有会话（\(project.chatCount) 个会话）\n此操作不可恢复。")
+        }
+        .sheet(isPresented: $showDuplicateDialog) {
+            ProjectDuplicateDialog(project: project)
+        }
+    }
+
+    private func toggleStar() {
+        Task { _ = try await ipc.projectStar(projectId: project.id, starred: !project.isStarred) }
+    }
+    private func archiveProject() {
+        Task { _ = try await ipc.projectArchive(projectId: project.id) }
+    }
+    private func unarchiveProject() {
+        Task { _ = try await ipc.projectUnarchive(projectId: project.id) }
+    }
+    private func exportProject() {
+        Task { _ = try await ipc.projectExport(projectId: project.id) }
+    }
+    private func deleteProject() {
+        Task { try await ipc.projectDelete(projectId: project.id) }
+    }
+}
+
+// MARK: - GUI-4 Left Panel: Instructions (Collapsible Section)
 
 struct ProjectInstructionsPanel: View {
     @EnvironmentObject var ipc: IPCClient
@@ -313,377 +994,1529 @@ struct ProjectInstructionsPanel: View {
     @State private var isEditing = false
     @State private var editedText: String = ""
     @State private var editMode: InstructionEditMode = .markdown
-    @State private var charCount: Int = 0
     @State private var showVersionHistory = false
-    @State private var snapshots: [[String: Any]] = []
+    @State private var snapshots: [InstructionSnapshot] = []
+    @State private var isSaving = false
 
     private let maxChars = 10000
-
-    private enum InstructionEditMode: String, CaseIterable {
-        case markdown = "Markdown"
-        case richText = "富文本"
-
-        var icon: String {
-            switch self {
-            case .markdown: return "text.alignleft"
-            case .richText: return "text.append"
-            }
-        }
-    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: theme.spacingM) {
+                // Section header
                 HStack {
+                    Image(systemName: "text.alignleft")
+                        .foregroundStyle(theme.accent)
                     Text("项目指令")
-                        .font(.system(size: theme.footnoteSize, weight: .semibold))
+                        .font(.system(size: theme.textSize, weight: .semibold))
                     Spacer()
                     if isEditing {
-                        ForEach(InstructionEditMode.allCases, id: \.self) { mode in
-                            Button(action: { editMode = mode }) {
-                                HStack(spacing: 2) {
-                                    Image(systemName: mode.icon)
-                                        .font(.system(size: 10))
-                                    Text(mode.rawValue)
-                                        .font(.system(size: theme.captionSize, weight: .medium))
-                                }
-                                .foregroundStyle(editMode == mode ? theme.accentText : theme.textSecondary)
-                                .padding(.horizontal, theme.spacingS)
-                                .padding(.vertical, theme.spacingXS)
-                                .background(
-                                    RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                                        .fill(editMode == mode ? theme.accent : Color.clear)
-                                )
-                            }
-                            .buttonStyle(.plain)
+                        Button("保存") {
+                            saveInstructions()
                         }
-                        Text("\(charCount)/\(maxChars)")
-                            .font(.system(size: theme.captionSize))
-                            .foregroundStyle(charCount > maxChars ? .red : theme.textTertiary)
-                        Button("保存") { saveInstructions() }
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.small)
+                        .buttonStyle(.plain)
+                        .foregroundStyle(theme.accent)
+                        .disabled(isSaving)
                         Button("取消") {
                             isEditing = false
                             editedText = instructions
                         }
-                        .controlSize(.small)
+                        .buttonStyle(.plain)
+                        .foregroundStyle(theme.textTertiary)
                     } else {
-                        Button(action: { editedText = instructions; isEditing = true }) {
+                        Button(action: { isEditing = true; editedText = instructions }) {
                             Image(systemName: "pencil")
+                                .foregroundStyle(theme.textTertiary)
                         }
                         .buttonStyle(.plain)
-                        .help("编辑指令")
-                        Button(action: { showVersionHistory = true }) {
+                        // GUI-15: Version history button
+                        Button(action: { loadSnapshots(); showVersionHistory = true }) {
                             Image(systemName: "clock.arrow.circlepath")
+                                .foregroundStyle(theme.textTertiary)
                         }
                         .buttonStyle(.plain)
-                        .help("版本历史")
                     }
                 }
 
+                // Edit mode toggle
+                if isEditing {
+                    HStack {
+                        ForEach(InstructionEditMode.allCases, id: \.self) { mode in
+                            Button(action: { editMode = mode }) {
+                                Text(mode.rawValue)
+                                    .font(.system(size: 9, weight: editMode == mode ? .bold : .regular))
+                                    .foregroundStyle(editMode == mode ? theme.accent : theme.textTertiary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        Spacer()
+                        Text("字数：\(editedText.count)/\(maxChars)")
+                            .font(.system(size: 9, design: .monospaced))
+                            .foregroundStyle(editedText.count > maxChars ? .red : theme.textTertiary)
+                    }
+                }
+
+                // Content
                 if isEditing {
                     TextEditor(text: $editedText)
-                        .font(.system(size: theme.textSize, design: editMode == .markdown ? .monospaced : .default))
-                        .frame(minHeight: 300)
-                        .padding(theme.spacingS)
-                        .background(
-                            RoundedRectangle(cornerRadius: theme.cornerRadius)
-                                .fill(theme.inputBg)
-                        )
-                        .onChange(of: editedText) { _, newText in
-                            charCount = newText.count
-                        }
+                        .font(.system(size: theme.footnoteSize, design: .monospaced))
+                        .frame(minHeight: 120)
+                        .padding(4)
+                        .background(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                            .stroke(theme.textTertiary.opacity(0.2)))
                 } else {
-                    Text(instructions.isEmpty ? "暂无指令，点击编辑添加" : instructions)
-                        .font(.system(size: theme.textSize))
-                        .foregroundStyle(instructions.isEmpty ? theme.textTertiary : theme.text)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(theme.spacingS)
+                    if instructions.isEmpty {
+                        VStack(spacing: theme.spacingXS) {
+                            Image(systemName: "text.alignleft")
+                                .font(.system(size: 20))
+                                .foregroundStyle(theme.textQuaternary)
+                            Text("暂无项目指令")
+                                .font(.system(size: theme.footnoteSize))
+                                .foregroundStyle(theme.textTertiary)
+                            Text("点击编辑按钮添加指令，所有对话将自动继承")
+                                .font(.system(size: 9))
+                                .foregroundStyle(theme.textQuaternary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(theme.spacingL)
+                    } else {
+                        Text(instructions)
+                            .font(.system(size: theme.footnoteSize, design: editMode == .markdown ? .monospaced : .default))
+                            .foregroundStyle(theme.text)
+                            .textSelection(.enabled)
+                    }
                 }
             }
             .padding(theme.spacingL)
         }
-        .onAppear { loadInstructions() }
         .sheet(isPresented: $showVersionHistory) {
-            InstructionVersionSheet(projectId: projectId, snapshots: snapshots, onRestore: { text in
-                instructions = text
-                editedText = text
-            })
+            // GUI-15: Instruction Version History
+            InstructionVersionHistory(projectId: projectId, snapshots: snapshots)
         }
+        .onAppear { loadInstructions() }
     }
 
     private func loadInstructions() {
         Task {
             do {
-                let result = try await ipc.projectCall(method: "project.instruction_get", params: ["project_id": projectId])
-                if let text = result["instruction"] as? String {
-                    await MainActor.run {
-                        instructions = text
-                        editedText = text
-                        charCount = text.count
-                    }
-                }
-                let snapResult = try await ipc.projectCall(method: "project.instruction_snapshots", params: ["project_id": projectId])
-                if let items = snapResult["snapshots"] as? [[String: Any]] {
-                    await MainActor.run { snapshots = items }
+                let result = try await ipc.projectInstructionGet(projectId: projectId)
+                if let content = result["content"] as? String {
+                    await MainActor.run { self.instructions = content }
                 }
             } catch {
-                projLog.error("instruction_get failed: \(error.localizedDescription)")
+                projLog.error("loadInstructions failed: \(error.localizedDescription)")
             }
         }
     }
 
     private func saveInstructions() {
-        guard charCount <= maxChars else { return }
+        isSaving = true
         Task {
             do {
-                _ = try await ipc.projectCall(method: "project.instruction_save", params: [
-                    "project_id": projectId,
-                    "instruction": editedText,
-                ])
-                await MainActor.run { instructions = editedText; isEditing = false }
-                projLog.info("instruction saved for \(projectId)")
+                _ = try await ipc.projectInstructionSave(projectId: projectId, content: editedText)
+                await MainActor.run {
+                    self.instructions = editedText
+                    self.isEditing = false
+                    self.isSaving = false
+                }
+                projLog.info("Instructions saved for project \(projectId)")
             } catch {
-                projLog.error("instruction_save failed: \(error.localizedDescription)")
+                projLog.error("saveInstructions failed: \(error.localizedDescription)")
+                await MainActor.run { isSaving = false }
+            }
+        }
+    }
+
+    private func loadSnapshots() {
+        Task {
+            do {
+                let result = try await ipc.projectInstructionSnapshots(projectId: projectId)
+                if let items = result["items"] as? [[String: Any]] ?? result["snapshots"] as? [[String: Any]] {
+                    await MainActor.run {
+                        self.snapshots = items.compactMap { snap in
+                            guard let id = snap["id"] as? String,
+                                  let content = snap["content"] as? String else { return nil }
+                            return InstructionSnapshot(
+                                id: id,
+                                label: snap["label"] as? String ?? "V1",
+                                content: content,
+                                createdAt: ISO8601DateFormatter().date(from: snap["created_at"] as? String ?? "") ?? Date()
+                            )
+                        }
+                    }
+                }
+            } catch {
+                projLog.error("loadSnapshots failed: \(error.localizedDescription)")
             }
         }
     }
 }
 
-struct InstructionVersionSheet: View {
-    @EnvironmentObject var ipc: IPCClient
+// MARK: - GUI-15: Instruction Version History
+
+private struct InstructionVersionHistory: View {
+    let projectId: String
+    let snapshots: [InstructionSnapshot]
     @Environment(\.studioTheme) private var theme
     @Environment(\.dismiss) private var dismiss
-
-    let projectId: String
-    let snapshots: [[String: Any]]
-    let onRestore: (String) -> Void
-
-    @State private var showRestoreConfirm = false
-    @State private var restoreText = ""
+    @EnvironmentObject var ipc: IPCClient
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: theme.spacingM) {
             HStack {
-                Text("指令版本历史")
-                    .font(.system(size: theme.textSize, weight: .bold))
+                Text("📋 Instructions 版本历史")
+                    .font(.system(size: theme.headlineSize, weight: .bold))
                 Spacer()
-                Button("关闭") { dismiss() }
-                    .keyboardShortcut(.cancelAction)
+                Button(action: { dismiss() }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .buttonStyle(.plain)
             }
-            .padding(theme.spacingM)
 
             if snapshots.isEmpty {
-                VStack(spacing: theme.spacingS) {
-                    Image(systemName: "clock")
-                        .font(.system(size: 24))
-                        .foregroundStyle(theme.textTertiary)
-                    Text("暂无版本记录")
-                        .foregroundStyle(theme.textSecondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                Text("暂无版本记录")
+                    .foregroundStyle(theme.textTertiary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 2) {
-                        ForEach(snapshots.indices, id: \.self) { idx in
-                            let snap = snapshots[idx]
-                            let label = snap["label"] as? String ?? "auto"
-                            let ts = snap["created_at"] as? String ?? ""
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(label)
-                                        .font(.system(size: theme.textSize, weight: .medium))
-                                    Text(ts)
-                                        .font(.system(size: theme.captionSize))
+                    LazyVStack(spacing: theme.spacingS) {
+                        ForEach(Array(snapshots.enumerated()), id: \.element.id) { idx, snap in
+                            HStack(alignment: .top, spacing: theme.spacingS) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack {
+                                        Text(idx == 0 ? "●" : "○")
+                                            .foregroundStyle(idx == 0 ? theme.accent : theme.textTertiary)
+                                        Text("V\(snapshots.count - idx)")
+                                            .font(.system(size: theme.footnoteSize, weight: .medium))
+                                        Text("— \(relativeTime(snap.createdAt))")
+                                            .font(.system(size: theme.captionSize))
+                                            .foregroundStyle(theme.textTertiary)
+                                        if idx == 0 {
+                                            Text("（当前版本）")
+                                                .font(.system(size: 9))
+                                                .foregroundStyle(theme.accent)
+                                        }
+                                    }
+                                    Text(String(snap.content.prefix(80)))
+                                        .font(.system(size: theme.captionSize, design: .monospaced))
                                         .foregroundStyle(theme.textSecondary)
+                                        .lineLimit(2)
                                 }
                                 Spacer()
-                                Button("恢复") {
-                                    if let text = snap["instruction"] as? String {
-                                        restoreText = text
-                                        showRestoreConfirm = true
+                                if idx != 0 {
+                                    Button("恢复") {
+                                        restoreSnapshot(snap)
                                     }
+                                    .font(.system(size: theme.captionSize))
+                                    .buttonStyle(.plain)
+                                    .foregroundStyle(theme.accent)
                                 }
-                                .buttonStyle(.plain)
                             }
-                            .padding(.horizontal, theme.spacingM)
-                            .padding(.vertical, theme.spacingXS)
+                            .padding(theme.spacingS)
+                            .background(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                .fill(theme.textTertiary.opacity(0.04)))
                         }
                     }
                 }
             }
-        }
-        .frame(width: 500, height: 400)
-        .alert("恢复此版本？", isPresented: $showRestoreConfirm) {
-            Button("恢复") {
-                onRestore(restoreText)
-                dismiss()
+
+            HStack {
+                Spacer()
+                Button("Close") { dismiss() }
             }
-            Button("取消", role: .cancel) { }
+        }
+        .padding(theme.spacingL)
+        .frame(width: 500, height: 400)
+    }
+
+    private func restoreSnapshot(_ snap: InstructionSnapshot) {
+        Task {
+            do {
+                _ = try await ipc.projectInstructionSave(projectId: projectId, content: snap.content)
+                projLog.info("Instruction restored to snapshot \(snap.id)")
+                dismiss()
+            } catch {
+                projLog.error("restoreSnapshot failed: \(error.localizedDescription)")
+            }
         }
     }
+
+    private func relativeTime(_ date: Date) -> String {
+        let interval = Date().timeIntervalSince(date)
+        if interval < 3600 { return "\(Int(interval / 60))分钟前" }
+        if interval < 86400 { return "\(Int(interval / 3600))小时前" }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        return formatter.string(from: date)
+    }
 }
+
+// MARK: - GUI-4 + GUI-18: Knowledge Base Tree View
 
 struct KnowledgeBaseTreeView: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
 
     let projectId: String
-    @State private var artifacts: [[String: Any]] = []
-    @State private var isLoading = false
-    @State private var showAddFile = false
-    @State private var addFilePath = ""
+    @State private var folders: [KnowledgeFolder] = []
+    @State private var files: [KnowledgeFile] = []
+    @State private var expandedFolders: Set<String> = []
+    @State private var showAddFilePicker = false
+    @State private var showAddFolderDialog = false
+    @State private var newFolderName = ""
+    @State private var selectedFileId: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Text("知识库文件")
-                    .font(.system(size: theme.footnoteSize, weight: .semibold))
-                Spacer()
-                Button(action: { showAddFile = true }) {
-                    Image(systemName: "plus")
-                        .font(.system(size: theme.iconS))
-                }
-                .buttonStyle(.plain)
-                .help("添加文件到知识库")
-                Button(action: { loadArtifacts() }) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: theme.iconS))
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal, theme.spacingL)
-            .padding(.top, theme.spacingM)
+        ScrollView {
+            VStack(alignment: .leading, spacing: theme.spacingS) {
+                // Header
+                HStack {
+                    Image(systemName: "folder.badge.gearshape")
+                        .foregroundStyle(theme.accent)
+                    Text("知识库")
+                        .font(.system(size: theme.textSize, weight: .semibold))
+                    Text("\(files.count) 文件")
+                        .font(.system(size: theme.captionSize, design: .monospaced))
+                        .foregroundStyle(theme.textTertiary)
+                    Spacer()
 
-            if isLoading {
-                ProgressView().padding()
-            } else if artifacts.isEmpty {
-                Text("暂无知识库文件")
-                    .foregroundStyle(theme.textTertiary)
-                    .padding(theme.spacingL)
-            } else {
-                ScrollView {
-                    LazyVStack(spacing: 2) {
-                        ForEach(artifacts.indices, id: \.self) { idx in
-                            kbFileRow(artifacts[idx])
+                    Button(action: { showAddFolderDialog = true }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "folder.badge.plus")
+                            Text("文件夹")
                         }
+                        .font(.system(size: theme.captionSize))
                     }
-                    .padding(.horizontal, theme.spacingM)
+                    .buttonStyle(.plain)
+                    .foregroundStyle(theme.accent)
+
+                    Button(action: { showAddFilePicker = true }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "plus.circle")
+                            Text("添加文件")
+                        }
+                        .font(.system(size: theme.captionSize))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(theme.accent)
+                }
+
+                // Tree
+                if files.isEmpty && folders.isEmpty {
+                    emptyKnowledgeState
+                } else {
+                    // Root-level files (no folder)
+                    let rootFiles = files.filter { f in f.folderId == nil }
+                    ForEach(rootFiles) { file in
+                        knowledgeFileRow(file)
+                    }
+
+                    // Folders with their files
+                    ForEach(folders) { folder in
+                        folderSection(folder)
+                    }
                 }
             }
+            .padding(theme.spacingL)
         }
-        .onAppear { loadArtifacts() }
-        .alert("添加知识库文件", isPresented: $showAddFile) {
-            TextField("文件路径", text: $addFilePath)
-            Button("添加") { addFileToKb() }
-            Button("取消", role: .cancel) { addFilePath = "" }
+        .fileImporter(isPresented: $showAddFilePicker,
+                      allowedContentTypes: [.item],
+                      allowsMultipleSelection: true) { result in
+            handleFileImport(result)
+        }
+        .alert("新建文件夹", isPresented: $showAddFolderDialog) {
+            TextField("文件夹名称", text: $newFolderName)
+            Button("取消", role: .cancel) { newFolderName = "" }
+            Button("创建") {
+                createFolder()
+                newFolderName = ""
+            }
+            .disabled(newFolderName.isEmpty)
+        }
+        .onAppear {
+            loadKnowledge()
         }
     }
 
-    private func kbFileRow(_ a: [String: Any]) -> some View {
-        let name = a["name"] as? String ?? a["file_name"] as? String ?? a["artifact_id"] as? String ?? "?"
-        let aType = a["artifact_type"] as? String ?? a["file_type"] as? String ?? "document"
-        let fileId = a["id"] as? String ?? a["file_id"] as? String ?? ""
-        return HStack(spacing: theme.spacingS) {
-            Image(systemName: iconForType(aType))
-                .font(.system(size: theme.iconS))
+    private var emptyKnowledgeState: some View {
+        VStack(spacing: theme.spacingS) {
+            Image(systemName: "doc.text.magnifyingglass")
+                .font(.system(size: 24))
+                .foregroundStyle(theme.textQuaternary)
+            Text("暂无知识库文件")
                 .foregroundStyle(theme.textTertiary)
-                .frame(width: 20)
-            Text(name)
-                .font(.system(size: theme.textSize))
-                .foregroundStyle(theme.text)
-                .lineLimit(1)
-            Spacer()
-            Button(action: { removeFileFromKb(fileId) }) {
-                Image(systemName: "trash")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.red.opacity(0.6))
+            Text("上传文档帮助 AI 更好理解你的项目")
+                .font(.system(size: 9))
+                .foregroundStyle(theme.textQuaternary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(theme.spacingXL)
+    }
+
+    private func folderSection(_ folder: KnowledgeFolder) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            // Folder header
+            Button(action: {
+                if expandedFolders.contains(folder.id) {
+                    expandedFolders.remove(folder.id)
+                } else {
+                    expandedFolders.insert(folder.id)
+                }
+            }) {
+                HStack(spacing: theme.spacingXS) {
+                    Image(systemName: expandedFolders.contains(folder.id) ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 8, weight: .semibold))
+                        .frame(width: 10)
+                    Image(systemName: "folder.fill")
+                        .foregroundStyle(theme.accent)
+                        .font(.system(size: theme.iconXS))
+                    Text(folder.name)
+                        .font(.system(size: theme.footnoteSize, weight: .medium))
+                        .foregroundStyle(theme.text)
+                    Text("\(folder.fileCount)")
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundStyle(theme.textTertiary)
+                    Spacer()
+                }
+                .padding(.vertical, 4)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help("从知识库移除")
+
+            // Files in folder
+            if expandedFolders.contains(folder.id) {
+                let folderFiles = files.filter { $0.folderId == folder.id }
+                ForEach(folderFiles) { file in
+                    HStack(spacing: theme.spacingXS) {
+                        Text("    ")
+                        knowledgeFileRow(file)
+                    }
+                }
+            }
         }
-        .padding(.horizontal, theme.spacingM)
-        .padding(.vertical, 4)
     }
 
-    private func iconForType(_ t: String) -> String {
-        switch t {
-        case "code": return "chevron.left.forwardslash.chevron.right"
-        case "app": return "app.badge"
-        case "image": return "photo"
-        case "document": return "doc.text"
+    // GUI-18: File row with index status
+    private func knowledgeFileRow(_ file: KnowledgeFile) -> some View {
+        HStack(spacing: theme.spacingXS) {
+            Image(systemName: fileIcon(for: file.fileName))
+                .font(.system(size: theme.iconXS))
+                .foregroundStyle(theme.textTertiary)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(file.fileName)
+                    .font(.system(size: theme.footnoteSize))
+                    .foregroundStyle(theme.text)
+                    .lineLimit(1)
+                HStack(spacing: 4) {
+                    // GUI-18: Index status
+                    statusIcon(file.indexStatus)
+                    if file.tokenCount > 0 {
+                        Text("(\(file.tokenCount) tokens)")
+                            .foregroundStyle(theme.textQuaternary)
+                    }
+                }
+                .font(.system(size: 8, design: .monospaced))
+            }
+
+            Spacer()
+
+            // GUI-8: File context menu
+            KnowledgeFileMenu(file: file, projectId: projectId)
+        }
+        .padding(.vertical, 3)
+        .padding(.horizontal, theme.spacingS)
+        .background(
+            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                .fill(selectedFileId == file.id ? theme.accent.opacity(0.08) : .clear)
+        )
+    }
+
+    @ViewBuilder
+    private func statusIcon(_ status: String) -> some View {
+        switch status {
+        case "ready", "indexed":
+            HStack(spacing: 2) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                Text("已索引")
+                    .foregroundStyle(.green)
+            }
+        case "indexing":
+            HStack(spacing: 2) {
+                ProgressView()
+                    .scaleEffect(0.5)
+                Text("索引中")
+                    .foregroundStyle(.orange)
+            }
+        case "failed":
+            HStack(spacing: 2) {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(.red)
+                Text("解析失败")
+                    .foregroundStyle(.red)
+            }
+        default:
+            HStack(spacing: 2) {
+                Image(systemName: "clock")
+                    .foregroundStyle(theme.textQuaternary)
+                Text("待索引")
+                    .foregroundStyle(theme.textQuaternary)
+            }
+        }
+    }
+
+    private func fileIcon(for name: String) -> String {
+        let ext = (name as NSString).pathExtension.lowercased()
+        switch ext {
+        case "pdf": return "doc.richtext"
+        case "md", "txt": return "doc.text"
+        case "csv": return "tablecells"
+        case "png", "jpg", "jpeg", "webp": return "photo"
         default: return "doc"
         }
     }
 
-    private func loadArtifacts() {
-        isLoading = true
+    private func loadKnowledge() {
         Task {
             do {
-                let result = try await ipc.projectCall(method: "project.kb.list", params: ["project_id": projectId])
-                if let items = result["files"] as? [[String: Any]] {
-                    await MainActor.run { artifacts = items; isLoading = false }
-                } else {
-                    await MainActor.run { artifacts = []; isLoading = false }
+                async let foldersResult = ipc.projectFolderList(projectId: projectId)
+                async let filesResult = ipc.projectKnowledgeFileList(projectId: projectId)
+                let f = try await foldersResult
+                let fl = try await filesResult
+                await MainActor.run {
+                    if let items = f["items"] as? [[String: Any]] ?? f["folders"] as? [[String: Any]] {
+                        self.folders = items.compactMap { KnowledgeFolder.fromDict($0) }
+                    }
+                    if let items = fl["items"] as? [[String: Any]] ?? fl["files"] as? [[String: Any]] {
+                        self.files = items.compactMap { KnowledgeFile.fromDict($0) }
+                    }
                 }
             } catch {
-                projLog.error("project.kb.list failed: \(error.localizedDescription)")
-                await MainActor.run { isLoading = false }
+                projLog.error("loadKnowledge failed: \(error.localizedDescription)")
             }
         }
     }
 
-    private func addFileToKb() {
-        guard !addFilePath.isEmpty else { return }
+    private func createFolder() {
         Task {
             do {
-                _ = try await ipc.projectCall(method: "project.kb.add", params: [
-                    "project_id": projectId,
-                    "file_path": addFilePath,
-                ])
-                await MainActor.run { addFilePath = "" }
-                projLog.info("kb file added: \(addFilePath)")
-                loadArtifacts()
+                _ = try await ipc.projectFolderCreate(projectId: projectId, name: newFolderName)
+                loadKnowledge()
             } catch {
-                projLog.error("project.kb.add failed: \(error.localizedDescription)")
+                projLog.error("createFolder failed: \(error.localizedDescription)")
             }
         }
     }
 
-    private func removeFileFromKb(_ fileId: String) {
+    private func handleFileImport(_ result: Result<[URL], Error>) {
+        switch result {
+        case .success(let urls):
+            for url in urls {
+                guard url.startAccessingSecurityScopedResource() else { continue }
+                defer { url.stopAccessingSecurityScopedResource() }
+                Task {
+                    do {
+                        _ = try await ipc.projectKnowledgeFileUpload(
+                            projectId: projectId,
+                            sourcePath: url.path,
+                            originalName: url.lastPathComponent
+                        )
+                        loadKnowledge()
+                    } catch {
+                        projLog.error("file upload failed: \(error.localizedDescription)")
+                    }
+                }
+            }
+        case .failure(let error):
+            projLog.error("file import failed: \(error.localizedDescription)")
+        }
+    }
+}
+
+// MARK: - GUI-8: Knowledge File Context Menu
+
+private struct KnowledgeFileMenu: View {
+    let file: KnowledgeFile
+    let projectId: String
+    @EnvironmentObject var ipc: IPCClient
+    @Environment(\.studioTheme) private var theme
+
+    var body: some View {
+        Menu {
+            Button(action: { previewFile() }) {
+                Label("Preview", systemImage: "eye")
+            }
+            Button(action: {}) {
+                Label("Rename", systemImage: "pencil")
+            }
+            Button(action: {}) {
+                Label("Replace file", systemImage: "arrow.2.circlepath")
+            }
+            Button(action: {}) {
+                Label("Move to folder...", systemImage: "folder")
+            }
+            Divider()
+            Button(role: .destructive, action: { removeFile() }) {
+                Label("Remove from knowledge", systemImage: "trash")
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 9))
+                .foregroundStyle(theme.textTertiary)
+        }
+        .menuStyle(.borderlessButton)
+    }
+
+    private func previewFile() {
+        projLog.info("Preview file: \(file.fileName)")
+    }
+
+    private func removeFile() {
         Task {
             do {
-                _ = try await ipc.projectCall(method: "project.kb.remove", params: [
-                    "project_id": projectId,
-                    "file_id": fileId,
-                ])
-                projLog.info("kb file removed: \(fileId)")
-                loadArtifacts()
+                try await ipc.projectKnowledgeFileDelete(fileId: file.id)
             } catch {
-                projLog.error("project.kb.remove failed: \(error.localizedDescription)")
+                projLog.error("removeFile failed: \(error.localizedDescription)")
             }
         }
     }
 }
 
+// MARK: - GUI-4 + GUI-7: Chats Panel
+
 struct ProjectChatsPanel: View {
+    @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
 
     let projectId: String
+    @State private var chats: [ProjectChat] = []
+    @State private var activeChatId: String?
+    @State private var messages: [ChatMessage] = []
+    @State private var inputText = ""
+    @State private var ragMode: RAGMode = .AUTO
+    @State private var showRAGScopeSelector = false
+    @State private var showSnapshots = false
+    @State private var snapshots: [ChatSnapshot] = []
+    @State private var selectedChatForMenu: ProjectChat?
 
     var body: some View {
-        VStack(spacing: theme.spacingM) {
-            Image(systemName: "bubble.left.and.bubble.right")
-                .font(.system(size: 30))
-                .foregroundStyle(theme.textTertiary)
-            Text("项目会话")
-                .font(.system(size: theme.textSize, weight: .medium))
-                .foregroundStyle(theme.textSecondary)
-            Text("此项目的对话历史将显示在这里")
-                .font(.system(size: theme.footnoteSize))
+        HStack(spacing: 0) {
+            // Left: Chat list
+            VStack(alignment: .leading, spacing: 0) {
+                // Chat list header
+                HStack {
+                    Image(systemName: "bubble.left.and.bubble.right")
+                        .foregroundStyle(theme.accent)
+                    Text("会话")
+                        .font(.system(size: theme.textSize, weight: .semibold))
+                    Text("\(chats.count)")
+                        .font(.system(size: theme.captionSize, design: .monospaced))
+                        .foregroundStyle(theme.textTertiary)
+                    Spacer()
+                    Button(action: { createNewChat() }) {
+                        Image(systemName: "plus.circle")
+                            .foregroundStyle(theme.accent)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, theme.spacingM)
+                .padding(.vertical, theme.spacingS)
+
+                ScrollView {
+                    LazyVStack(spacing: 2) {
+                        ForEach(chats) { chat in
+                            chatRow(chat)
+                        }
+                    }
+                    .padding(.horizontal, theme.spacingS)
+                }
+
+                // Snapshots section
+                if !snapshots.isEmpty {
+                    Divider()
+                    HStack {
+                        Image(systemName: "camera")
+                            .font(.system(size: theme.iconXS))
+                        Text("Snapshots")
+                            .font(.system(size: theme.captionSize, weight: .medium))
+                        Spacer()
+                    }
+                    .padding(.horizontal, theme.spacingM)
+                    .padding(.top, theme.spacingXS)
+
+                    ForEach(snapshots) { snap in
+                        HStack {
+                            Image(systemName: "photo")
+                                .font(.system(size: 9))
+                                .foregroundStyle(theme.textTertiary)
+                            Text(snap.label)
+                                .font(.system(size: theme.footnoteSize))
+                                .foregroundStyle(theme.textSecondary)
+                            Spacer()
+                            Text("\(snap.messageCount)条消息")
+                                .font(.system(size: 8))
+                                .foregroundStyle(theme.textQuaternary)
+                        }
+                        .padding(.horizontal, theme.spacingL)
+                        .padding(.vertical, 3)
+                    }
+                }
+            }
+            .frame(width: 200)
+
+            Rectangle().fill(theme.separator).frame(width: 1)
+
+            // Right: Chat canvas
+            VStack(spacing: 0) {
+                if let chatId = activeChatId {
+                    chatCanvas(chatId: chatId)
+                } else {
+                    Spacer()
+                    VStack(spacing: theme.spacingS) {
+                        Image(systemName: "bubble.left.and.text.bubble.right")
+                            .font(.system(size: 32))
+                            .foregroundStyle(theme.textQuaternary)
+                        Text("选择或创建一个会话")
+                            .foregroundStyle(theme.textTertiary)
+                    }
+                    Spacer()
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .onAppear {
+            loadChats()
+            loadSnapshots()
+        }
+    }
+
+    private func chatRow(_ chat: ProjectChat) -> some View {
+        HStack(spacing: theme.spacingXS) {
+            Image(systemName: chat.isStarred ? "star.fill" : "bubble.left.fill")
+                .font(.system(size: 9))
+                .foregroundStyle(chat.isStarred ? .yellow : theme.textTertiary)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(chat.title)
+                    .font(.system(size: theme.footnoteSize, weight: activeChatId == chat.id ? .semibold : .regular))
+                    .foregroundStyle(activeChatId == chat.id ? theme.accent : theme.text)
+                    .lineLimit(1)
+                Text("\(chat.messageCount) msgs · \(chat.tokenUsage) tokens")
+                    .font(.system(size: 8, design: .monospaced))
+                    .foregroundStyle(theme.textQuaternary)
+            }
+
+            Spacer()
+
+            // GUI-7: Chat three-dot menu
+            ChatContextMenu(chat: chat, projectId: projectId)
+        }
+        .padding(.horizontal, theme.spacingS)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                .fill(activeChatId == chat.id ? theme.accent.opacity(0.12) : .clear)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            activeChatId = chat.id
+            loadMessages(chatId: chat.id)
+        }
+    }
+
+    // MARK: GUI-4: Chat Canvas
+
+    private func chatCanvas(chatId: String) -> some View {
+        VStack(spacing: 0) {
+            // Messages
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: theme.spacingS) {
+                        ForEach(messages) { msg in
+                            messageBubble(msg)
+                                .id(msg.id)
+                        }
+                    }
+                    .padding(theme.spacingM)
+                }
+                .onChange(of: messages.count) { _ in
+                    if let last = messages.last {
+                        withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                    }
+                }
+            }
+
+            // GUI-4: Bottom input bar — Agent / RAG / Attachments / Send
+            chatInputBar(chatId: chatId)
+        }
+    }
+
+    // GUI-22: RAG source annotation in messages
+    private func messageBubble(_ msg: ChatMessage) -> some View {
+        HStack(alignment: .top, spacing: theme.spacingS) {
+            Image(systemName: msg.role == "user" ? "person.fill" : "robot")
+                .font(.system(size: theme.iconS))
+                .foregroundStyle(msg.role == "user" ? theme.textSecondary : theme.accent)
+                .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(msg.content)
+                    .font(.system(size: theme.footnoteSize))
+                    .foregroundStyle(theme.text)
+                    .textSelection(.enabled)
+
+                // GUI-22: RAG sources
+                if let sources = msg.ragSources, !sources.isEmpty {
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "paperclip")
+                                .font(.system(size: 8))
+                            Text("参考来源：")
+                        }
+                        .font(.system(size: 8))
+                        .foregroundStyle(theme.textTertiary)
+
+                        ForEach(sources, id: \.self) { source in
+                            Text("📄 \(source)")
+                                .font(.system(size: 8))
+                                .foregroundStyle(theme.textTertiary)
+                        }
+
+                        HStack(spacing: 4) {
+                            Text("检索模式: \(ragMode.rawValue)")
+                            if ragMode == .MANUAL {
+                                Button("切换为 AUTO") { ragMode = .AUTO }
+                                    .font(.system(size: 8))
+                            } else if ragMode == .AUTO {
+                                Button("切换为 MANUAL") { ragMode = .MANUAL }
+                                    .font(.system(size: 8))
+                            }
+                        }
+                        .font(.system(size: 8))
+                        .foregroundStyle(theme.textQuaternary)
+                    }
+                    .padding(theme.spacingXS)
+                    .background(RoundedRectangle(cornerRadius: 4, style: .continuous)
+                        .fill(theme.accent.opacity(0.06)))
+                }
+            }
+            Spacer()
+        }
+        .padding(.horizontal, theme.spacingM)
+    }
+
+    // GUI-4: Bottom bar with Agent / RAG / Send
+    private func chatInputBar(chatId: String) -> some View {
+        VStack(spacing: 0) {
+            Divider()
+            HStack(spacing: theme.spacingS) {
+                // Agent selector (GUI-10)
+                Menu {
+                    Button("使用项目默认智能体") { }
+                    Button("通用对话（不绑定Agent）") { }
+                    Divider()
+                    Button("预览当前Agent") { }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "robot")
+                            .font(.system(size: theme.iconXS))
+                        Text("Agent")
+                            .font(.system(size: theme.captionSize))
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 7))
+                    }
+                    .foregroundStyle(theme.accent)
+                }
+                .menuStyle(.borderlessButton)
+
+                // RAG mode (GUI-17)
+                Menu {
+                    Button("AUTO（智能检索）") { ragMode = .AUTO }
+                    Button("MANUAL（手动指定）") { ragMode = .MANUAL; showRAGScopeSelector = true }
+                    Button("OFF（关闭检索）") { ragMode = .OFF }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: theme.iconXS))
+                        Text("RAG: \(ragMode.rawValue)")
+                            .font(.system(size: theme.captionSize))
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 7))
+                    }
+                    .foregroundStyle(ragMode == .OFF ? theme.textTertiary : theme.accent)
+                }
+                .menuStyle(.borderlessButton)
+
+                // Attachments dropdown
+                Menu {
+                    Button("临时附件") { }
+                    Button("截图") { }
+                    Button("WebSearch") { }
+                    Button("技能工具") { }
+                } label: {
+                    Image(systemName: "plus.circle")
+                        .font(.system(size: theme.iconS))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .menuStyle(.borderlessButton)
+
+                // Input field
+                TextField("输入消息…", text: $inputText)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: theme.footnoteSize))
+                    .onSubmit { sendMessage(chatId: chatId) }
+
+                // Send
+                Button(action: { sendMessage(chatId: chatId) }) {
+                    Image(systemName: "paperplane.fill")
+                        .font(.system(size: theme.iconS))
+                        .foregroundStyle(inputText.isEmpty ? theme.textTertiary : theme.accent)
+                }
+                .buttonStyle(.plain)
+                .disabled(inputText.isEmpty)
+            }
+            .padding(.horizontal, theme.spacingL)
+            .padding(.vertical, theme.spacingS)
+        }
+        .sheet(isPresented: $showRAGScopeSelector) {
+            RAGScopeSelector(projectId: projectId, ragMode: $ragMode)
+        }
+    }
+
+    // MARK: Actions
+
+    private func loadChats() {
+        Task {
+            do {
+                let result = try await ipc.projectChatList(projectId: projectId)
+                if let items = result["items"] as? [[String: Any]] ?? result["chats"] as? [[String: Any]] {
+                    await MainActor.run {
+                        self.chats = items.compactMap { ProjectChat.fromDict($0) }
+                    }
+                }
+            } catch {
+                projLog.error("loadChats failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func loadSnapshots() {
+        Task {
+            do {
+                let result = try await ipc.projectChatSnapshotList(chatId: activeChatId ?? "")
+                if let items = result["items"] as? [[String: Any]] ?? result["snapshots"] as? [[String: Any]] {
+                    await MainActor.run {
+                        self.snapshots = items.compactMap { d in
+                            ChatSnapshot(
+                                id: d["id"] as? String ?? "",
+                                chatId: d["chat_id"] as? String ?? "",
+                                label: d["label"] as? String ?? "Snapshot",
+                                messageCount: d["message_count"] as? Int ?? 0,
+                                createdAt: ISO8601DateFormatter().date(from: d["created_at"] as? String ?? "") ?? Date()
+                            )
+                        }
+                    }
+                }
+            } catch {
+                projLog.error("loadSnapshots failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func createNewChat() {
+        Task {
+            do {
+                let result = try await ipc.projectChatCreate(projectId: projectId, title: "New Chat")
+                let chat = ProjectChat.fromDict(result)
+                await MainActor.run {
+                    self.chats.insert(chat, at: 0)
+                    self.activeChatId = chat.id
+                }
+                projLog.info("Chat created in project \(projectId)")
+            } catch {
+                projLog.error("createNewChat failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func loadMessages(chatId: String) {
+        Task {
+            do {
+                let result = try await ipc.projectMessageList(chatId: chatId)
+                if let items = result["items"] as? [[String: Any]] ?? result["messages"] as? [[String: Any]] {
+                    await MainActor.run {
+                        self.messages = items.compactMap { ChatMessage.fromDict($0) }
+                    }
+                }
+            } catch {
+                projLog.error("loadMessages failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func sendMessage(chatId: String) {
+        let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        inputText = ""
+        Task {
+            do {
+                let result = try await ipc.projectMessageAdd(
+                    chatId: chatId, content: text,
+                    ragMode: ragMode == .OFF ? nil : ragMode.rawValue
+                )
+                let msg = ChatMessage.fromDict(result)
+                await MainActor.run { self.messages.append(msg) }
+            } catch {
+                projLog.error("sendMessage failed: \(error.localizedDescription)")
+            }
+        }
+    }
+}
+
+// MARK: - GUI-7: Chat Context Menu
+
+private struct ChatContextMenu: View {
+    let chat: ProjectChat
+    let projectId: String
+    @EnvironmentObject var ipc: IPCClient
+    @Environment(\.studioTheme) private var theme
+    @State private var showDeleteConfirm = false
+
+    var body: some View {
+        Menu {
+            Button(action: { toggleStar() }) {
+                Label(chat.isStarred ? "取消收藏" : "收藏会话",
+                      systemImage: chat.isStarred ? "star.slash" : "star")
+            }
+            Button(action: {}) {
+                Label("Rename chat", systemImage: "pencil")
+            }
+            Divider()
+            // GUI-7: Fork & Snapshot (Fusion unique)
+            Button(action: { forkChat() }) {
+                Label("Fork chat", systemImage: "arrow.triangle.branch")
+            }
+            Button(action: { createSnapshot() }) {
+                Label("Create snapshot", systemImage: "camera")
+            }
+            Divider()
+            Button(action: {}) {
+                Label("Move to another project", systemImage: "arrow.right.doc")
+            }
+            Button(action: {}) {
+                Label("Remove from project", systemImage: "doc.text.magnifyingglass")
+            }
+            Divider()
+            Button(role: .destructive, action: { showDeleteConfirm = true }) {
+                Label("Delete chat", systemImage: "trash")
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 8))
                 .foregroundStyle(theme.textTertiary)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .menuStyle(.borderlessButton)
+        .alert("删除会话？", isPresented: $showDeleteConfirm) {
+            Button("取消", role: .cancel) {}
+            Button("删除", role: .destructive) { deleteChat() }
+        }
+    }
+
+    private func toggleStar() {
+        Task {
+            _ = try await ipc.projectChatStar(chatId: chat.id, starred: !chat.isStarred)
+        }
+    }
+
+    private func forkChat() {
+        Task {
+            _ = try await ipc.projectChatFork(chatId: chat.id, label: nil)
+            projLog.info("Chat forked: \(chat.id)")
+        }
+    }
+
+    private func createSnapshot() {
+        Task {
+            _ = try await ipc.projectChatSnapshotCreate(chatId: chat.id, label: nil)
+            projLog.info("Snapshot created for chat: \(chat.id)")
+        }
+    }
+
+    private func deleteChat() {
+        Task {
+            try await ipc.projectChatDelete(chatId: chat.id)
+        }
+    }
+}
+
+// MARK: - GUI-9: Project Settings Panel
+
+struct ProjectSettingsPanel: View {
+    let project: FusionProject
+    @EnvironmentObject var ipc: IPCClient
+    @Environment(\.studioTheme) private var theme
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var name: String
+    @State private var desc: String
+    @State private var selectedAgentId: String?
+    @State private var promptMergeMode: PromptMergeMode
+    @State private var ragMode: RAGMode
+    @State private var ragTopK: Int
+    @State private var ragThreshold: Double
+    @State private var availableAgents: [AgentMeta] = []
+    @State private var isSaving = false
+
+    init(project: FusionProject) {
+        self.project = project
+        _name = State(initialValue: project.name)
+        _desc = State(initialValue: project.description)
+        _selectedAgentId = State(initialValue: project.defaultAgentId)
+        _promptMergeMode = State(initialValue: project.promptMergeMode)
+        _ragMode = State(initialValue: project.ragMode)
+        _ragTopK = State(initialValue: project.ragTopK)
+        _ragThreshold = State(initialValue: project.ragThreshold)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: theme.spacingL) {
+            Text("⚙️ Project Settings — \(project.name)")
+                .font(.system(size: theme.headlineSize, weight: .bold))
+
+            // Basic info
+            VStack(alignment: .leading, spacing: theme.spacingS) {
+                Text("项目信息")
+                    .font(.system(size: theme.textSize, weight: .semibold))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("项目名称")
+                        .font(.system(size: theme.captionSize))
+                        .foregroundStyle(theme.textSecondary)
+                    TextField("项目名称", text: $name)
+                        .textFieldStyle(.roundedBorder)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("描述")
+                        .font(.system(size: theme.captionSize))
+                        .foregroundStyle(theme.textSecondary)
+                    TextField("描述", text: $desc)
+                        .textFieldStyle(.roundedBorder)
+                }
+            }
+
+            Divider()
+
+            // Agent config
+            VStack(alignment: .leading, spacing: theme.spacingS) {
+                Text("智能体配置")
+                    .font(.system(size: theme.textSize, weight: .semibold))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("默认智能体")
+                        .font(.system(size: theme.captionSize))
+                        .foregroundStyle(theme.textSecondary)
+                    Menu {
+                        Button("不绑定（纯模型对话）") { selectedAgentId = nil }
+                        Divider()
+                        ForEach(availableAgents) { agent in
+                            Button(agent.name) { selectedAgentId = agent.id }
+                        }
+                    } label: {
+                        HStack {
+                            Text(agentDisplayName)
+                            Spacer()
+                            Image(systemName: "chevron.down")
+                        }
+                        .font(.system(size: theme.footnoteSize))
+                        .padding(6)
+                        .background(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                            .stroke(theme.textTertiary.opacity(0.2)))
+                    }
+                    .menuStyle(.borderlessButton)
+                }
+
+                Text("Prompt 合并策略")
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(theme.textSecondary)
+                Picker("", selection: $promptMergeMode) {
+                    Text("Agent Prompt 优先（推荐）\nAgent 人设 + 项目业务规则组合注入").tag(PromptMergeMode.AGENT_FIRST)
+                    Text("仅使用项目 Instructions\n忽略 Agent 内置 Prompt，完全项目自定义").tag(PromptMergeMode.PROJECT_ONLY)
+                }
+                .pickerStyle(.radioGroup)
+                .font(.system(size: theme.captionSize))
+            }
+
+            Divider()
+
+            // RAG config
+            VStack(alignment: .leading, spacing: theme.spacingS) {
+                Text("RAG 配置")
+                    .font(.system(size: theme.textSize, weight: .semibold))
+
+                Picker("检索模式", selection: $ragMode) {
+                    Text("AUTO（智能检索 — 对标 Claude Projects）").tag(RAGMode.AUTO)
+                    Text("MANUAL（手动指定文件夹/文件检索）").tag(RAGMode.MANUAL)
+                    Text("OFF").tag(RAGMode.OFF)
+                }
+                .pickerStyle(.radioGroup)
+                .font(.system(size: theme.captionSize))
+
+                HStack(spacing: theme.spacingM) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("TopK")
+                        Picker("", selection: $ragTopK) {
+                            ForEach(1...20, id: \.self) { k in
+                                Text("\(k)").tag(k)
+                            }
+                        }
+                        .frame(width: 80)
+                    }
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("相似度阈值")
+                        Picker("", selection: $ragThreshold) {
+                            ForEach(Array(stride(from: 0.1, through: 0.99, by: 0.05)), id: \.self) { v in
+                                Text(String(format: "%.2f", v)).tag(v)
+                            }
+                        }
+                        .frame(width: 80)
+                    }
+                }
+                .font(.system(size: theme.captionSize))
+            }
+
+            Spacer(minLength: 0)
+
+            HStack {
+                Spacer()
+                Button("取消") { dismiss() }
+                Button("保存设置") { saveSettings() }
+                    .disabled(isSaving)
+            }
+        }
+        .padding(theme.spacingL)
+        .frame(width: 560, height: 620)
+        .onAppear { loadAgents() }
+    }
+
+    private var agentDisplayName: String {
+        selectedAgentId.flatMap { id in availableAgents.first(where: { $0.id == id })?.name } ?? "不绑定"
+    }
+
+    private func loadAgents() {
+        Task {
+            do {
+                let result = try await ipc.projectAgentList()
+                if let items = result["agents"] as? [[String: Any]] ?? result["items"] as? [[String: Any]] {
+                    await MainActor.run {
+                        availableAgents = items.compactMap { AgentMeta.fromDict($0) }
+                    }
+                }
+            } catch {
+                projLog.error("loadAgents failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func saveSettings() {
+        isSaving = true
+        Task {
+            do {
+                _ = try await ipc.projectUpdate(projectId: project.id, fields: ["name": name, "description": desc])
+                _ = try await ipc.projectAgentSet(projectId: project.id, agentId: selectedAgentId,
+                                                    mergeMode: promptMergeMode.rawValue)
+                _ = try await ipc.projectRagConfigSet(projectId: project.id, ragMode: ragMode.rawValue,
+                                                        ragTopK: ragTopK, ragThreshold: ragThreshold)
+                projLog.info("Settings saved for project \(project.id)")
+                await MainActor.run { dismiss() }
+            } catch {
+                projLog.error("saveSettings failed: \(error.localizedDescription)")
+                await MainActor.run { isSaving = false }
+            }
+        }
+    }
+}
+
+// MARK: - GUI-11: Agent Preview Card
+
+private struct ProjectAgentPreview: View {
+    let project: FusionProject
+    @Environment(\.studioTheme) private var theme
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: theme.spacingM) {
+            HStack {
+                Image(systemName: "robot")
+                    .font(.system(size: theme.iconL))
+                    .foregroundStyle(theme.accent)
+                Text(project.agentName ?? "未绑定")
+                    .font(.system(size: theme.headlineSize, weight: .bold))
+                Spacer()
+                Button(action: { dismiss() }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .buttonStyle(.plain)
+            }
+
+            if let binding = project.agentBinding {
+                VStack(alignment: .leading, spacing: theme.spacingS) {
+                    if let prompt = binding.agentPrompt {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("角色简介")
+                                .font(.system(size: theme.captionSize, weight: .medium))
+                                .foregroundStyle(theme.textSecondary)
+                            Text(String(prompt.prefix(200)))
+                                .font(.system(size: theme.footnoteSize))
+                                .foregroundStyle(theme.text)
+                        }
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("当前生效配置")
+                            .font(.system(size: theme.captionSize, weight: .medium))
+                            .foregroundStyle(theme.textSecondary)
+                        Text("· Prompt策略：\(binding.mergeMode == .AGENT_FIRST ? "Agent优先" : "仅项目Instructions")")
+                        Text("· RAG模式：\(project.ragMode.rawValue) (TopK=\(project.ragTopK), 阈值=\(project.ragThreshold))")
+                        Text("· 允许访问本项目知识库")
+                    }
+                    .font(.system(size: theme.footnoteSize))
+                    .foregroundStyle(theme.textSecondary)
+                }
+            } else {
+                Text("未绑定智能体，将使用纯模型对话")
+                    .foregroundStyle(theme.textTertiary)
+            }
+
+            Spacer(minLength: 0)
+
+            HStack {
+                Button("前往 Agent Studio 修改") { }
+                    .font(.system(size: theme.footnoteSize))
+                Spacer()
+                Button("关闭") { dismiss() }
+            }
+        }
+        .padding(theme.spacingL)
+        .frame(width: 400, height: 320)
+    }
+}
+
+// MARK: - GUI-13: CoWork Import Dialog
+
+private struct CoWorkImportDialog: View {
+    let project: FusionProject
+    @Environment(\.studioTheme) private var theme
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var ipc: IPCClient
+
+    @State private var selectedSpaceId: String?
+    @State private var includeKnowledge = true
+    @State private var includeSnapshots = false
+    @State private var isImporting = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: theme.spacingM) {
+            HStack {
+                Text("导入到 CoWork 空间")
+                    .font(.system(size: theme.headlineSize, weight: .bold))
+                Spacer()
+                Button(action: { dismiss() }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .buttonStyle(.plain)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("目标 CoWork 空间")
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(theme.textSecondary)
+                Text("（CoWork 空间列表）")
+                    .font(.system(size: theme.footnoteSize))
+                    .foregroundStyle(theme.textTertiary)
+            }
+
+            Text("同步内容")
+                .font(.system(size: theme.captionSize, weight: .medium))
+                .foregroundStyle(theme.textSecondary)
+
+            Toggle("知识库全部文件", isOn: $includeKnowledge)
+            Toggle("选中会话快照", isOn: $includeSnapshots)
+
+            HStack {
+                Image(systemName: "exclamationmark.triangle")
+                    .foregroundStyle(.orange)
+                Text("知识库文件将复制到 CoWork 空间，后续变更不会自动同步")
+                    .font(.system(size: 9))
+                    .foregroundStyle(.orange)
+            }
+
+            Spacer(minLength: 0)
+
+            HStack {
+                Spacer()
+                Button("Cancel") { dismiss() }
+                Button("确认导入") { importToCoWork() }
+                    .disabled(isImporting)
+            }
+        }
+        .padding(theme.spacingL)
+        .frame(width: 440, height: 340)
+    }
+
+    private func importToCoWork() {
+        isImporting = true
+        Task {
+            do {
+                _ = try await ipc.projectCoworkTrigger(
+                    projectId: project.id,
+                    action: "import",
+                    payload: [
+                        "include_knowledge": includeKnowledge,
+                        "include_snapshots": includeSnapshots
+                    ]
+                )
+                projLog.info("Imported to CoWork from project \(project.id)")
+                await MainActor.run { dismiss() }
+            } catch {
+                projLog.error("importToCoWork failed: \(error.localizedDescription)")
+                await MainActor.run { isImporting = false }
+            }
+        }
+    }
+}
+
+// MARK: - GUI-17: RAG Scope Selector (MANUAL mode)
+
+private struct RAGScopeSelector: View {
+    let projectId: String
+    @Binding var ragMode: RAGMode
+    @Environment(\.studioTheme) private var theme
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var ipc: IPCClient
+
+    @State private var folders: [KnowledgeFolder] = []
+    @State private var files: [KnowledgeFile] = []
+    @State private var selectedFolderIds: Set<String> = []
+    @State private var selectedFileIds: Set<String> = []
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: theme.spacingM) {
+            HStack {
+                Text("🔍 检索范围设置")
+                    .font(.system(size: theme.headlineSize, weight: .bold))
+                Spacer()
+                Button(action: { dismiss() }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .buttonStyle(.plain)
+            }
+
+            Picker("检索模式", selection: $ragMode) {
+                Text("AUTO（智能全局检索）").tag(RAGMode.AUTO)
+                Text("MANUAL（手动指定范围）").tag(RAGMode.MANUAL)
+            }
+            .pickerStyle(.radioGroup)
+            .font(.system(size: theme.captionSize))
+
+            if ragMode == .MANUAL {
+                Text("指定检索范围")
+                    .font(.system(size: theme.captionSize, weight: .medium))
+                    .foregroundStyle(theme.textSecondary)
+
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: theme.spacingXS) {
+                        ForEach(folders) { folder in
+                            HStack {
+                                Toggle(folder.name, isOn: Binding(
+                                    get: { selectedFolderIds.contains(folder.id) },
+                                    set: { v in
+                                        if v { selectedFolderIds.insert(folder.id) } else { selectedFolderIds.remove(folder.id) }
+                                    }
+                                ))
+                                .font(.system(size: theme.footnoteSize))
+                            }
+
+                            let folderFiles = files.filter { $0.folderId == folder.id }
+                            ForEach(folderFiles) { file in
+                                HStack {
+                                    Text("    ")
+                                    Toggle(file.fileName, isOn: Binding(
+                                        get: { selectedFileIds.contains(file.id) },
+                                        set: { v in
+                                            if v { selectedFileIds.insert(file.id) } else { selectedFileIds.remove(file.id) }
+                                        }
+                                    ))
+                                    .font(.system(size: theme.captionSize))
+                                }
+                            }
+                        }
+
+                        let rootFiles = files.filter { $0.folderId == nil }
+                        ForEach(rootFiles) { file in
+                            Toggle(file.fileName, isOn: Binding(
+                                get: { selectedFileIds.contains(file.id) },
+                                set: { v in
+                                    if v { selectedFileIds.insert(file.id) } else { selectedFileIds.remove(file.id) }
+                                }
+                            ))
+                            .font(.system(size: theme.footnoteSize))
+                        }
+                    }
+                }
+                .frame(maxHeight: 200)
+            }
+
+            Spacer(minLength: 0)
+
+            HStack {
+                Spacer()
+                Button("取消") { dismiss() }
+                Button("确认") {
+                    saveRAGConfig()
+                    dismiss()
+                }
+            }
+        }
+        .padding(theme.spacingL)
+        .frame(width: 440, height: 460)
+        .onAppear { loadKnowledge() }
+    }
+
+    private func loadKnowledge() {
+        Task {
+            do {
+                async let f = ipc.projectFolderList(projectId: projectId)
+                async let fl = ipc.projectKnowledgeFileList(projectId: projectId)
+                let foldersResult = try await f
+                let filesResult = try await fl
+                await MainActor.run {
+                    if let items = foldersResult["items"] as? [[String: Any]] ?? foldersResult["folders"] as? [[String: Any]] {
+                        self.folders = items.compactMap { KnowledgeFolder.fromDict($0) }
+                    }
+                    if let items = filesResult["items"] as? [[String: Any]] ?? filesResult["files"] as? [[String: Any]] {
+                        self.files = items.compactMap { KnowledgeFile.fromDict($0) }
+                    }
+                }
+            } catch {
+                projLog.error("loadKnowledge failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func saveRAGConfig() {
+        Task {
+            do {
+                _ = try await ipc.projectRagConfigSet(
+                    projectId: projectId,
+                    ragMode: ragMode.rawValue
+                )
+            } catch {
+                projLog.error("saveRAGConfig failed: \(error.localizedDescription)")
+            }
+        }
     }
 }

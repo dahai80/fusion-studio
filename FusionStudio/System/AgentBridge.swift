@@ -944,7 +944,7 @@ final class AgentBridge: ObservableObject {
     }
 
     func loadSessionMessages(_ session: ProjectSession) {
-        chatMessages = session.messages
+        chatMessages = []
     }
 
     func infer(messages: [[String: Any]], model: String = "", temperature: Double = 0.7, maxTokens: Int = 2048, effort: String = "medium", thinking: Bool = false, webSearch: Bool = false) async throws -> String {

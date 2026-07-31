@@ -119,7 +119,7 @@ struct CodeDesignPreviewPanel: View {
             }
 
             Button(action: {
-                let projectId = FusionProjectManager.shared.activeProject?.id.uuidString
+                let projectId = FusionProjectManager.shared.activeProject?.id
                 DesignCodeLink.shared.pushDesignToFile(
                     designBridge: designBridge,
                     projectId: projectId

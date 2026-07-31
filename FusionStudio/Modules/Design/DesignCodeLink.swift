@@ -147,7 +147,7 @@ class DesignCodeLink: ObservableObject {
 
     private func resolveRootPath(projectId: String?) -> String? {
         if let pid = projectId,
-           let project = FusionProjectManager.shared.projects.first(where: { $0.id.uuidString == pid }) {
+           let project = FusionProjectManager.shared.projects.first(where: { $0.id == pid }) {
             return project.rootPath
         }
         return FusionProjectManager.shared.activeProject?.rootPath

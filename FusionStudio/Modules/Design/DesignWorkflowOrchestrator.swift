@@ -136,7 +136,7 @@ class DesignWorkflowOrchestrator: ObservableObject {
 
         switch step {
         case .exportToCode:
-            let projectId = FusionProjectManager.shared.activeProject?.id.uuidString
+            let projectId = FusionProjectManager.shared.activeProject?.id
             DesignCodeLink.shared.pushDesignToFile(designBridge: designBridge, projectId: projectId)
             advanceStep(designBridge: designBridge)
 
@@ -145,7 +145,7 @@ class DesignWorkflowOrchestrator: ObservableObject {
             advanceStep(designBridge: designBridge)
 
         case .syncBack:
-            let projectId = FusionProjectManager.shared.activeProject?.id.uuidString
+            let projectId = FusionProjectManager.shared.activeProject?.id
             DesignCodeLink.shared.pushDesignToFile(designBridge: designBridge, projectId: projectId)
             advanceStep(designBridge: designBridge)
 

@@ -273,7 +273,7 @@ struct UnifiedChatView: View {
                     Divider()
                     ForEach(FusionProjectManager.shared.projects, id: \.id) { project in
                         Button(project.name) {
-                            chatStore.activeSession?.projectId = project.id.uuidString
+                            chatStore.activeSession?.projectId = project.id
                         }
                     }
                 } label: {
@@ -326,7 +326,7 @@ struct UnifiedChatView: View {
 
             // Project indicator
             if let projectId = chatStore.activeSession?.projectId,
-               let project = FusionProjectManager.shared.projects.first(where: { $0.id.uuidString == projectId }) {
+               let project = FusionProjectManager.shared.projects.first(where: { $0.id == projectId }) {
                 HStack(spacing: 4) {
                     Image(systemName: "folder")
                         .font(.system(size: 11))
