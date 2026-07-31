@@ -524,6 +524,10 @@ class ChatSessionStore: ObservableObject {
 
         isGenerating = true
         streamingContent = ""
+        defer {
+            isGenerating = false
+            streamingContent = ""
+        }
 
         do {
             guard let bridge = agentBridge else {
@@ -543,8 +547,6 @@ class ChatSessionStore: ObservableObject {
                     sessions[idx] = errSession
                 }
                 saveSessionLocal(errSession)
-                isGenerating = false
-                streamingContent = ""
                 return
             }
             let fallbackModel = FusionConfig.shared.mlxModelSmall.isEmpty ? "Qwen3.5-9B-4bit" : FusionConfig.shared.mlxModelSmall
@@ -634,9 +636,6 @@ class ChatSessionStore: ObservableObject {
             saveSessionLocal(updatedSession)
             chatStoreLog.error("Chat infer failed: \(error.localizedDescription)")
         }
-
-        isGenerating = false
-        streamingContent = ""
     }
 
     func sendMultimodal(session: ChatSessionData, content: [[String: Any]], mode: String = "") async {
@@ -862,6 +861,10 @@ class ChatSessionStore: ObservableObject {
         chatStoreLog.info("resendAfterEdit: starting stream infer, model=\(model), msgs=\(messagesToResend.count)")
         isGenerating = true
         streamingContent = ""
+        defer {
+            isGenerating = false
+            streamingContent = ""
+        }
 
         do {
             let response = try await bridge.inferStream(
@@ -907,8 +910,6 @@ class ChatSessionStore: ObservableObject {
             chatStoreLog.error("resendAfterEdit: infer failed: \(error.localizedDescription)")
         }
 
-        isGenerating = false
-        streamingContent = ""
     }
 
     private func parseSessionData(_ dict: [String: Any]) -> ChatSessionData? {
