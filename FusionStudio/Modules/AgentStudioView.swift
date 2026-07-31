@@ -408,6 +408,9 @@ struct AgentStudioView: View {
                 FusionTabItem(title: "Alerts", icon: "bell", badge: nil),
                 FusionTabItem(title: "Cron", icon: "clock.arrow.2.circlepath", badge: nil),
                 FusionTabItem(title: "Hooks", icon: "point.3.connected.trianglepath.dotted", badge: nil),
+                FusionTabItem(title: "RAG", icon: "doc.text.magnifyingglass", badge: nil),
+                FusionTabItem(title: "Tools", icon: "wrench.and.screwdriver", badge: nil),
+                FusionTabItem(title: "Skills", icon: "wand.and.stars", badge: nil),
                 FusionTabItem(title: "Marketplace", icon: "bag", badge: nil),
                 FusionTabItem(title: "Chat", icon: "bubble.left.and.bubble.right", badge: unreadCount > 0 ? unreadCount : nil),
             ])
@@ -431,8 +434,11 @@ struct AgentStudioView: View {
                 case 12: AlertTabView(toastManager: toastManager)
                 case 13: CronTabView(toastManager: toastManager)
                 case 14: HooksTabView(toastManager: toastManager)
-                case 15: MarketplaceTabView(toastManager: toastManager)
-                case 16: ConversationView(toastManager: toastManager)
+                case 15: RagTabView(toastManager: toastManager)
+                case 16: ToolsTabView(toastManager: toastManager)
+                case 17: SkillsTabView(toastManager: toastManager)
+                case 18: MarketplaceTabView(toastManager: toastManager)
+                case 19: ConversationView(toastManager: toastManager)
                 default: AgentListView(toastManager: toastManager)
                 }
             }
@@ -3409,6 +3415,360 @@ struct PlannerTabView: View {
         case "running", "executing": return theme.infoText
         case "failed", "error": return theme.errorText
         default: return theme.textTertiary
+        }
+    }
+}
+
+// MARK: - RagTabView
+
+struct RagTabView: View {
+    let toastManager: FusionToastManager
+    @EnvironmentObject private var bridge: AgentBridge
+    @Environment(\.studioTheme) var theme
+    @State private var query = ""
+    @State private var limit: Double = 10
+    @State private var threshold: Double = 0.5
+    @State private var mode = "query"
+    @State private var answer = ""
+    @State private var sources: [String] = []
+    @State private var isLoading = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("RAG Retrieval")
+                    .font(.system(size: theme.titleSize, weight: .bold))
+                    .foregroundStyle(theme.text)
+                Spacer()
+            }
+            .padding(theme.spacingM)
+
+            VStack(spacing: theme.spacingS) {
+                Picker("Mode", selection: $mode) {
+                    Text("Query (answer)").tag("query")
+                    Text("Retrieve (docs)").tag("retrieve")
+                    Text("Vector Search").tag("vector")
+                }
+                .pickerStyle(.segmented)
+                HStack(spacing: theme.spacingS) {
+                    TextField("Query...", text: $query, axis: .vertical)
+                        .textFieldStyle(.roundedBorder)
+                        .lineLimit(2...4)
+                    FusionButton("Run", icon: "magnifyingglass", isDisabled: query.isEmpty || isLoading) {
+                        Task { await runRag() }
+                    }
+                }
+                if mode == "vector" {
+                    HStack {
+                        Text("Limit: \(Int(limit))")
+                            .font(.system(size: theme.captionSize))
+                        Slider(value: $limit, in: 1...50, step: 1)
+                        Text("Threshold: \(String(format: "%.2f", threshold))")
+                            .font(.system(size: theme.captionSize))
+                        Slider(value: $threshold, in: 0...1, step: 0.05)
+                    }
+                }
+            }
+            .padding(.horizontal, theme.spacingL)
+            .padding(.bottom, theme.spacingS)
+
+            if isLoading {
+                ProgressView().padding(theme.spacingM)
+            }
+            if !answer.isEmpty {
+                StudioSectionHeader(title: "Answer")
+                ScrollView {
+                    Text(answer)
+                        .font(.system(size: theme.footnoteSize))
+                        .foregroundStyle(theme.text)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                        .padding(.horizontal, theme.spacingL)
+                }
+            }
+            if !sources.isEmpty {
+                StudioSectionHeader(title: "Sources")
+                ListGroup {
+                    ForEach(Array(sources.enumerated()), id: \.offset) { idx, src in
+                        StudioRow(label: src, sublabel: nil, isLast: idx == sources.count - 1) {
+                            FusionTag("\(idx + 1)", color: .blue)
+                        }
+                    }
+                }
+            }
+            Spacer()
+        }
+    }
+
+    private func runRag() async {
+        guard !query.isEmpty else { return }
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            switch mode {
+            case "retrieve":
+                let docs = try await bridge.ragRetrieve(query: query)
+                sources = docs
+                answer = ""
+                toastManager.show(style: .success, title: "Retrieve", message: "\(docs.count) documents")
+            case "vector":
+                let docs = try await bridge.ragVectorSearch(query: query, limit: Int(limit), threshold: threshold)
+                sources = docs
+                answer = ""
+                toastManager.show(style: .success, title: "Vector Search", message: "\(docs.count) results")
+            default:
+                let result = try await bridge.ragQuery(query: query)
+                answer = result.answer
+                sources = result.sources
+                toastManager.show(style: .success, title: "Query", message: "\(result.sources.count) sources")
+            }
+        } catch {
+            toastManager.show(style: .error, title: "Failed", message: error.localizedDescription)
+        }
+    }
+}
+
+// MARK: - ToolsTabView
+
+struct ToolsTabView: View {
+    let toastManager: FusionToastManager
+    @EnvironmentObject private var bridge: AgentBridge
+    @Environment(\.studioTheme) var theme
+    @State private var showRegisterSheet = false
+    @State private var newName = ""
+    @State private var newDesc = ""
+    @State private var newParams = ""
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Tools")
+                    .font(.system(size: theme.titleSize, weight: .bold))
+                    .foregroundStyle(theme.text)
+                Spacer()
+                FusionButton("Register", icon: "plus") { showRegisterSheet = true }
+            }
+            .padding(theme.spacingM)
+
+            if bridge.tools.isEmpty {
+                Spacer()
+                Text("No tools available")
+                    .font(.system(size: theme.textSize))
+                    .foregroundStyle(theme.textTertiary)
+                Spacer()
+            } else {
+                ScrollView {
+                    ListGroup {
+                        ForEach(Array(bridge.tools.enumerated()), id: \.offset) { idx, tool in
+                            let name = tool["name"] as? String ?? "unknown"
+                            let desc = tool["description"] as? String ?? ""
+                            let isDynamic = (tool["dynamic"] as? Bool ?? false) || (tool["source"] as? String == "dynamic")
+                            StudioRow(label: name, sublabel: desc, isLast: idx == bridge.tools.count - 1) {
+                                HStack(spacing: 6) {
+                                    if isDynamic {
+                                        FusionTag("dynamic", color: .orange)
+                                        FusionButton("Remove", icon: "trash", style: .destructive, size: .small) {
+                                            Task { await unregisterTool(name) }
+                                        }
+                                    } else {
+                                        FusionTag("builtin", color: .gray)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                Spacer()
+            }
+        }
+        .onAppear {
+            Task {
+                do { try await bridge.fetchTools() } catch { agentStudioLog.warning("fetchTools failed: \(error)") }
+            }
+        }
+        .sheet(isPresented: $showRegisterSheet) {
+            registerSheet
+        }
+    }
+
+    private var registerSheet: some View {
+        VStack(spacing: theme.spacingM) {
+            Text("Register Dynamic Tool")
+                .font(.system(size: theme.titleSize, weight: .bold))
+            TextField("Name", text: $newName)
+                .textFieldStyle(.roundedBorder)
+            TextField("Description", text: $newDesc, axis: .vertical)
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(2...4)
+            TextField("Parameters (JSON)", text: $newParams, axis: .vertical)
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(3...8)
+                .font(.system(size: theme.footnoteSize, design: .monospaced))
+            HStack {
+                FusionButton("Cancel") { showRegisterSheet = false }
+                Spacer()
+                FusionButton("Register", icon: "plus", isDisabled: newName.isEmpty) {
+                    Task { await registerTool() }
+                }
+            }
+        }
+        .padding(theme.spacingL)
+        .frame(width: 450, height: 420)
+    }
+
+    private func registerTool() async {
+        let params = parseParams(newParams)
+        do {
+            _ = try await bridge.toolDynamicRegister(name: newName, description: newDesc, parameters: params)
+            toastManager.show(style: .success, title: "Registered", message: "Tool \(newName) added")
+            showRegisterSheet = false
+            newName = ""
+            newDesc = ""
+            newParams = ""
+        } catch {
+            toastManager.show(style: .error, title: "Failed", message: error.localizedDescription)
+        }
+    }
+
+    private func unregisterTool(_ name: String) async {
+        do {
+            _ = try await bridge.toolDynamicUnregister(name: name)
+            toastManager.show(style: .success, title: "Removed", message: "Tool \(name) unregistered")
+        } catch {
+            toastManager.show(style: .error, title: "Failed", message: error.localizedDescription)
+        }
+    }
+
+    private func parseParams(_ json: String) -> [String: Any] {
+        guard let data = json.data(using: .utf8),
+              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return [:]
+        }
+        return obj
+    }
+}
+
+// MARK: - SkillsTabView
+
+struct SkillsTabView: View {
+    let toastManager: FusionToastManager
+    @EnvironmentObject private var bridge: AgentBridge
+    @Environment(\.studioTheme) var theme
+    @State private var mode = "skill"
+    @State private var selectedAgentId = ""
+    @State private var skillName = ""
+    @State private var input = ""
+    @State private var question = ""
+    @State private var maxSteps: Double = 10
+    @State private var webSearch = true
+    @State private var result = ""
+    @State private var isLoading = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Skills & Research")
+                    .font(.system(size: theme.titleSize, weight: .bold))
+                    .foregroundStyle(theme.text)
+                Spacer()
+            }
+            .padding(theme.spacingM)
+
+            Picker("Mode", selection: $mode) {
+                Text("Skill Execute").tag("skill")
+                Text("Adaptive Research").tag("research")
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, theme.spacingL)
+            .padding(.bottom, theme.spacingS)
+
+            if mode == "skill" {
+                skillForm
+            } else {
+                researchForm
+            }
+
+            if isLoading {
+                ProgressView().padding(theme.spacingM)
+            }
+            if !result.isEmpty {
+                StudioSectionHeader(title: "Result")
+                ScrollView {
+                    Text(result)
+                        .font(.system(size: theme.footnoteSize, design: .monospaced))
+                        .foregroundStyle(theme.text)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                        .padding(.horizontal, theme.spacingL)
+                }
+            }
+            Spacer()
+        }
+    }
+
+    private var skillForm: some View {
+        VStack(spacing: theme.spacingS) {
+            Picker("Agent", selection: $selectedAgentId) {
+                Text("Select agent...").tag("")
+                ForEach(bridge.agents) { agent in
+                    Text(agent.name).tag(agent.id)
+                }
+            }
+            .textFieldStyle(.roundedBorder)
+            TextField("Skill name", text: $skillName)
+                .textFieldStyle(.roundedBorder)
+            TextField("Input", text: $input, axis: .vertical)
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(2...5)
+            FusionButton("Execute Skill", icon: "wand.and.stars", isDisabled: selectedAgentId.isEmpty || skillName.isEmpty || isLoading) {
+                Task { await runSkill() }
+            }
+        }
+        .padding(.horizontal, theme.spacingL)
+    }
+
+    private var researchForm: some View {
+        VStack(spacing: theme.spacingS) {
+            TextField("Research question", text: $question, axis: .vertical)
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(2...5)
+            HStack {
+                Text("Max steps: \(Int(maxSteps))")
+                    .font(.system(size: theme.captionSize))
+                Slider(value: $maxSteps, in: 1...30, step: 1)
+            }
+            Toggle("Web search", isOn: $webSearch)
+                .font(.system(size: theme.captionSize))
+            FusionButton("Run Research", icon: "magnifyingglass.circle", isDisabled: question.isEmpty || isLoading) {
+                Task { await runResearch() }
+            }
+        }
+        .padding(.horizontal, theme.spacingL)
+    }
+
+    private func runSkill() async {
+        guard !selectedAgentId.isEmpty, !skillName.isEmpty else { return }
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            let output = try await bridge.skillExecute(agentId: selectedAgentId, skillName: skillName, input: input)
+            result = output.isEmpty ? "(no output)" : output
+            toastManager.show(style: .success, title: "Skill Done", message: skillName)
+        } catch {
+            toastManager.show(style: .error, title: "Failed", message: error.localizedDescription)
+        }
+    }
+
+    private func runResearch() async {
+        guard !question.isEmpty else { return }
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            let summary = try await bridge.researchAdaptive(question: question, maxSteps: Int(maxSteps), webSearch: webSearch)
+            result = summary.isEmpty ? "(no summary)" : summary
+            toastManager.show(style: .success, title: "Research Done", message: "Adaptive research completed")
+        } catch {
+            toastManager.show(style: .error, title: "Failed", message: error.localizedDescription)
         }
     }
 }
