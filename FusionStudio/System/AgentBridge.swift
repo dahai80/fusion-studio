@@ -2064,6 +2064,133 @@ final class AgentBridge: ObservableObject {
         }
     }
 
+    // MARK: - Team Operations
+
+    @Published var swarmAgents: [[String: Any]] = []
+    @Published var plazaChannels: [[String: Any]] = []
+    @Published var cronJobs: [[String: Any]] = []
+    @Published var hooks: [[String: Any]] = []
+
+    func teamOrchestrate(task: String, agentIds: [String], mode: String = "sequential") async throws -> [String: Any] {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        return try await client.teamOrchestrate(task: task, agentIds: agentIds, mode: mode)
+    }
+
+    func fetchSwarmAgents() async {
+        guard let client = ipcClient else { return }
+        do {
+            let result = try await client.teamSwarmAgents()
+            self.swarmAgents = result["agents"] as? [[String: Any]] ?? []
+            logger.info("Fetched \(self.swarmAgents.count) swarm agents")
+        } catch {
+            logger.debug("fetchSwarmAgents failed: \(error.localizedDescription)")
+        }
+    }
+
+    func teamSwarmRegister(agentId: String, role: String = "worker") async throws -> [String: Any] {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        let result = try await client.teamSwarmRegister(agentId: agentId, role: role)
+        await fetchSwarmAgents()
+        return result
+    }
+
+    func teamSwarmDelegate(agentId: String, task: String) async throws -> [String: Any] {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        return try await client.teamSwarmDelegate(agentId: agentId, task: task)
+    }
+
+    func teamSwarmStats() async throws -> [String: Any] {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        return try await client.teamSwarmStats()
+    }
+
+    func fetchPlazaChannels() async {
+        guard let client = ipcClient else { return }
+        do {
+            let result = try await client.teamPlazaChannels()
+            self.plazaChannels = result["channels"] as? [[String: Any]] ?? []
+            logger.info("Fetched \(self.plazaChannels.count) plaza channels")
+        } catch {
+            logger.debug("fetchPlazaChannels failed: \(error.localizedDescription)")
+        }
+    }
+
+    func teamPlazaCreate(name: String, description: String = "") async throws -> [String: Any] {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        let result = try await client.teamPlazaCreate(name: name, description: description)
+        await fetchPlazaChannels()
+        return result
+    }
+
+    func teamPlazaBroadcast(channelId: String, message: String) async throws -> [String: Any] {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        return try await client.teamPlazaBroadcast(channelId: channelId, message: message)
+    }
+
+    // MARK: - Cron Operations
+
+    func fetchCronJobs() async {
+        guard let client = ipcClient else { return }
+        do {
+            let result = try await client.cronList()
+            self.cronJobs = result["jobs"] as? [[String: Any]] ?? result["crons"] as? [[String: Any]] ?? []
+            logger.info("Fetched \(self.cronJobs.count) cron jobs")
+        } catch {
+            logger.debug("fetchCronJobs failed: \(error.localizedDescription)")
+        }
+    }
+
+    func cronRegister(name: String, schedule: String, agentId: String, input: String = "") async throws -> [String: Any] {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        let result = try await client.cronRegister(name: name, schedule: schedule, agentId: agentId, input: input)
+        await fetchCronJobs()
+        return result
+    }
+
+    func cronUnregister(cronId: String) async throws -> [String: Any] {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        let result = try await client.cronUnregister(cronId: cronId)
+        await fetchCronJobs()
+        return result
+    }
+
+    // MARK: - Hooks Operations
+
+    func fetchHooks() async {
+        guard let client = ipcClient else { return }
+        do {
+            let result = try await client.hooksList()
+            self.hooks = result["hooks"] as? [[String: Any]] ?? []
+            logger.info("Fetched \(self.hooks.count) hooks")
+        } catch {
+            logger.debug("fetchHooks failed: \(error.localizedDescription)")
+        }
+    }
+
+    func hooksRegister(event: String, agentId: String, action: String) async throws -> [String: Any] {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        let result = try await client.hooksRegister(event: event, agentId: agentId, action: action)
+        await fetchHooks()
+        return result
+    }
+
+    func hooksTest(hookId: String) async throws -> [String: Any] {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        return try await client.hooksTest(hookId: hookId)
+    }
+
+    // MARK: - Context Operations
+
+    func contextCompact(sessionId: String) async throws -> [String: Any] {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        return try await client.contextCompact(sessionId: sessionId)
+    }
+
+    func contextUsage(sessionId: String) async throws -> [String: Any] {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        return try await client.contextUsage(sessionId: sessionId)
+    }
+
     // MARK: - Parsing Helpers
 
     private static func parseGraphModel(from dict: [String: Any]) -> AgentGraphModel? {
