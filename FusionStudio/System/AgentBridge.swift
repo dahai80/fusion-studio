@@ -312,6 +312,10 @@ final class AgentBridge: ObservableObject {
     @Published var safetyPendingActions: [SafetyActionModel] = []
     @Published var templates: [TemplateModel] = []
     @Published var deployFormats: [DeployFormatModel] = []
+    @Published var tools: [[String: Any]] = []
+    @Published var ragSources: [String] = []
+    @Published var lastSkillResult: String = ""
+    @Published var lastResearchResult: String = ""
 
     // MARK: - Agent & Marketplace Published Properties
 
@@ -599,11 +603,41 @@ final class AgentBridge: ObservableObject {
         logger.info("fetchTools")
         do {
             let result = try await client.call(method: "tool.list", params: [:])
-            return result["tools"] as? [[String: Any]] ?? []
+            let tools = result["tools"] as? [[String: Any]] ?? []
+            self.tools = tools
+            return tools
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
             self.lastError = bridgeErr
             logger.error("fetchTools: \(error)")
+            throw bridgeErr
+        }
+    }
+
+    func toolDynamicRegister(name: String, description: String, parameters: [String: Any], code: String = "") async throws -> [String: Any] {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        logger.info("toolDynamicRegister: \(name)")
+        do {
+            let result = try await client.toolDynamicRegister(name: name, description: description, parameters: parameters, code: code)
+            try await fetchTools()
+            return result
+        } catch let error as IPCError {
+            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
+            self.lastError = bridgeErr
+            throw bridgeErr
+        }
+    }
+
+    func toolDynamicUnregister(name: String) async throws -> Bool {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        logger.info("toolDynamicUnregister: \(name)")
+        do {
+            _ = try await client.toolDynamicUnregister(name: name)
+            try await fetchTools()
+            return true
+        } catch let error as IPCError {
+            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
+            self.lastError = bridgeErr
             throw bridgeErr
         }
     }
@@ -1225,6 +1259,51 @@ final class AgentBridge: ObservableObject {
         do {
             let result = try await client.ragRetrieve(query: query, config: config)
             return result["documents"] as? [String] ?? []
+        } catch let error as IPCError {
+            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
+            self.lastError = bridgeErr
+            throw bridgeErr
+        }
+    }
+
+    func ragVectorSearch(query: String, limit: Int = 10, threshold: Double = 0.5) async throws -> [String] {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        logger.info("ragVectorSearch: query=\(query) limit=\(limit)")
+        do {
+            let result = try await client.ragVectorSearch(query: query, limit: limit, threshold: threshold)
+            let docs = result["documents"] as? [String] ?? result["results"] as? [String] ?? []
+            self.ragSources = docs
+            return docs
+        } catch let error as IPCError {
+            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
+            self.lastError = bridgeErr
+            throw bridgeErr
+        }
+    }
+
+    func skillExecute(agentId: String, skillName: String, input: String, tools: [String] = []) async throws -> String {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        logger.info("skillExecute: agent=\(agentId) skill=\(skillName)")
+        do {
+            let result = try await client.skillExecute(agentId: agentId, skillName: skillName, input: input, tools: tools)
+            let output = result["result"] as? String ?? result["output"] as? String ?? ""
+            self.lastSkillResult = output
+            return output
+        } catch let error as IPCError {
+            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
+            self.lastError = bridgeErr
+            throw bridgeErr
+        }
+    }
+
+    func researchAdaptive(question: String, maxSteps: Int = 10, webSearch: Bool = true) async throws -> String {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        logger.info("researchAdaptive: question=\(question) maxSteps=\(maxSteps)")
+        do {
+            let result = try await client.researchAdaptive(question: question, maxSteps: maxSteps, webSearch: webSearch)
+            let summary = result["summary"] as? String ?? result["result"] as? String ?? ""
+            self.lastResearchResult = summary
+            return summary
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
             self.lastError = bridgeErr
