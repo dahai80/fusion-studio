@@ -85,21 +85,27 @@
 
 ## 三、🟡 部分对接详细审计
 
-### 1. AgentStudioView — agent/graph已接，缺12项
+### 1. AgentStudioView - 20 tabs 全量 RPC 对接（Issue #17/#18 已落地，PR #19 合并）
 
 **已接**: agent CRUD, graph CRUD, skill/soul管理, 市场搜索/安装, 执行/取消
 
-**未接的上游能力**:
+**#17/#18 新增 tabs（覆盖主要 RPC 命名空间）**:
+- Team / Memory / Safety / Planner - team.* / memory.* / safety.* / planner.*
+- Connectors / API Keys / Styles - connector.* / 鉴权配置 / 风格
+- Analytics / Alerts - 指标 / 告警
+- Cron / Hooks - cron.* / hooks.*（原「Webhook/Cron触发器」）
+- RAG / Tools / Skills / Marketplace - rag.* / tool.* / skill.* + research.adaptive / marketplace.*
+- Chat 内 context compact/usage（原「记忆自动压缩」）
+- 19 个内置工具查看/动态注册（Tools tab，原「19个内置工具的查看/配置」）
+- 3 级 HITL 治理（Safety tab 的 approve/reject，原「3级HITL治理」）
+
+**仍未接的上游能力**:
 - 步进调试器 (step debugger)
 - 检查点/恢复 (checkpoint/resume)
-- 19个内置工具的查看/配置
-- Webhook/Cron触发器
 - FMP router v2 / swarm router
-- 3级HITL治理
 - 代码沙箱(sandbox-exec)
 - 知识引擎(knowledge.*)
 - LLM网关
-- 记忆自动压缩
 
 ### 2. MLXOptimizerView / DashboardView — mlx基础已接，缺3项
 
@@ -256,7 +262,7 @@
 
 | 优先级 | 任务 | 工作量 | 收益 |
 |--------|------|--------|------|
-| **P0** | 接入9个已开发未路由视图(RAG/Safety/Memory/Planner/MLXOpt/Deploy/Operations/License/Industry) | 1-2天 | 零成本激活已有代码，4个有后端连接的视图立即可用 |
+| **P0** | ✅ 部分完成（#18）：RAG/Safety/Memory/Planner 已作为 AgentStudioView tabs 落地；MLXOpt/Deploy/Operations/License/Industry 仍待独立路由 | - | 4 个后端能力已激活 |
 | **P1** | ArtifactsPanel补全(增加create/update/inject/safety/export) | 2天 | 产物管理闭环 |
 | **P1** | ModelHubView接入fusion-model-hub REST API | 3天 | 模型管理从假数据变真实 |
 | **P1** | KBView接入fusion-kb HTTP API | 2天 | 知识库从假数据变真实 |
