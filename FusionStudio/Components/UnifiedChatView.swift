@@ -23,11 +23,16 @@ struct UnifiedChatView: View {
     @State private var autoScroll: Bool = true
     @State private var branchPickerMsgId: String?
     @State private var branchSiblings: [ChatMessageData] = []
-    @State private var isWebSearchEnabled: Bool = false
     @State private var showMicSettings: Bool = false
     @State private var micVolume: Double = 0.8
     @State private var holdToRecord: Bool = false
     @State private var isVoiceMode: Bool = false
+    @State private var refocusTrigger: Int = 0
+    @State private var showClearConfirm: Bool = false
+    @State private var hoveredSessionId: String?
+    @State private var renamingSessionId: String?
+    @State private var renameText: String = ""
+    @State private var pendingAttachments: [AttachmentData] = []
 
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
@@ -44,6 +49,23 @@ struct UnifiedChatView: View {
         return !session.linearBranch.isEmpty
     }
 
+    private var activePreset: ChatPreset? {
+        guard let raw = chatStore.activeSession?.preset else { return nil }
+        return ChatPreset(rawValue: raw)
+    }
+
+    private var currentPlaceholder: String {
+        if let preset = activePreset {
+            return preset.placeholder
+        }
+        return hasMessages ? "Ask anything — chat, explain, brainstorm..." : "How can I help you today?"
+    }
+
+    private var activeOutputStyle: OutputStyle? {
+        guard let raw = chatStore.activeSession?.outputStyle else { return nil }
+        return OutputStyle(rawValue: raw)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             chatToolbar
@@ -58,6 +80,14 @@ struct UnifiedChatView: View {
         .task {
             await chatStore.loadSessions()
             initDefaultModel()
+        }
+        .onChange(of: chatStore.isGenerating) { oldValue, newValue in
+            if oldValue && !newValue {
+                refocusTrigger += 1
+            }
+        }
+        .onChange(of: chatStore.activeSession?.id) { _, _ in
+            refocusTrigger += 1
         }
     }
 
@@ -77,6 +107,25 @@ struct UnifiedChatView: View {
             .buttonStyle(.plain)
 
             Spacer()
+
+            if !chatStore.sessions.isEmpty {
+                Button {
+                    showClearConfirm = true
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.system(size: 14))
+                        .foregroundStyle(theme.textSecondary)
+                }
+                .buttonStyle(.plain)
+                .alert("Clear All Chats", isPresented: $showClearConfirm) {
+                    Button("Cancel", role: .cancel) {}
+                    Button("Clear All", role: .destructive) {
+                        Task { await chatStore.clearAllSessions() }
+                    }
+                } message: {
+                    Text("Delete all \(chatStore.sessions.count) chat sessions? This cannot be undone.")
+                }
+            }
 
             Button {
                 Task { await newChat() }
@@ -122,8 +171,35 @@ struct UnifiedChatView: View {
         HStack(spacing: theme.spacingS) {
             // + button
             Menu {
-                Toggle(isOn: $isWebSearchEnabled) {
+                Button {
+                    pickFiles()
+                } label: {
+                    Label("Add files or photos", systemImage: "paperclip")
+                }
+                .keyboardShortcut("u", modifiers: .command)
+                Button {
+                    takeScreenshot()
+                } label: {
+                    Label("Take a screenshot", systemImage: "camera")
+                }
+                Divider()
+                Toggle(isOn: $chatStore.isWebSearchEnabled) {
                     Label("Web search", systemImage: "globe")
+                }
+                Divider()
+                // Project picker — link session to a project
+                Menu {
+                    Button("无关联") {
+                        chatStore.activeSession?.projectId = nil
+                    }
+                    Divider()
+                    ForEach(FusionProjectManager.shared.projects, id: \.id) { project in
+                        Button(project.name) {
+                            chatStore.activeSession?.projectId = project.id.uuidString
+                        }
+                    }
+                } label: {
+                    Label("Project", systemImage: "folder")
                 }
             } label: {
                 Image(systemName: "plus.circle")
@@ -138,6 +214,70 @@ struct UnifiedChatView: View {
 
             // Effort menu
             effortMenu
+
+            // Preset indicator — shows active ChatPreset with output style
+            if let preset = activePreset {
+                HStack(spacing: 4) {
+                    Image(systemName: preset.icon)
+                        .font(.system(size: 11))
+                    Text(preset.label)
+                        .font(.system(size: 11, weight: .medium))
+                }
+                .foregroundStyle(theme.accent)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(theme.accent.opacity(0.12))
+                .clipShape(Capsule())
+                .onTapGesture {
+                    chatStore.activeSession?.preset = nil
+                    chatStore.activeSession?.outputStyle = nil
+                }
+                .help("当前模式：\(preset.label)，点击清除")
+
+                // Output style picker
+                Menu {
+                    ForEach(OutputStyle.allCases, id: \.rawValue) { style in
+                        Button {
+                            chatStore.activeSession?.outputStyle = style.rawValue
+                        } label: {
+                            Label(style.label, systemImage: style.icon)
+                        }
+                    }
+                    if chatStore.activeSession?.outputStyle != nil {
+                        Divider()
+                        Button("清除风格") {
+                            chatStore.activeSession?.outputStyle = nil
+                        }
+                    }
+                } label: {
+                    Image(systemName: activeOutputStyle?.icon ?? "text.badge.star")
+                        .font(.system(size: 14))
+                        .foregroundStyle(activeOutputStyle != nil ? theme.accent : theme.textTertiary)
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+            }
+
+            // Project indicator
+            if let projectId = chatStore.activeSession?.projectId,
+               let project = FusionProjectManager.shared.projects.first(where: { $0.id.uuidString == projectId }) {
+                HStack(spacing: 4) {
+                    Image(systemName: "folder")
+                        .font(.system(size: 11))
+                    Text(project.name)
+                        .font(.system(size: 11, weight: .medium))
+                        .lineLimit(1)
+                }
+                .foregroundStyle(Color.orange)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(Color.orange.opacity(0.12))
+                .clipShape(Capsule())
+                .onTapGesture {
+                    chatStore.activeSession?.projectId = nil
+                }
+                .help("关联项目：\(project.name)，点击解除")
+            }
 
             Spacer()
 
@@ -253,15 +393,46 @@ struct UnifiedChatView: View {
 
     private var chatInputBox: some View {
         VStack(spacing: 0) {
+            // Attachment bar — shows pending attachments above input
+            if !pendingAttachments.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: theme.spacingS) {
+                        ForEach(pendingAttachments) { att in
+                            HStack(spacing: 4) {
+                                Image(systemName: att.isImage ? "photo" : "doc")
+                                    .font(.system(size: 11))
+                                Text(att.name)
+                                    .font(.system(size: 11))
+                                    .lineLimit(1)
+                                Button {
+                                    pendingAttachments.removeAll { $0.id == att.id }
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.system(size: 12))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            .foregroundStyle(theme.textSecondary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(theme.surfaceSecondary)
+                            .clipShape(Capsule())
+                        }
+                    }
+                    .padding(.horizontal, theme.spacingL)
+                    .padding(.top, theme.spacingS)
+                }
+            }
             VStack(spacing: 0) {
                 SendableTextEditor(
                     text: $inputText,
-                    placeholder: hasMessages ? "Ask anything — chat, explain, brainstorm..." : "How can I help you today?",
+                    placeholder: currentPlaceholder,
                     font: .systemFont(ofSize: CGFloat(theme.textSize)),
                     textColor: NSColor(theme.text),
                     placeholderColor: NSColor(theme.textTertiary),
                     maxHeight: 88,
-                    onSend: sendCurrentMessage
+                    onSend: sendCurrentMessage,
+                    refocusTrigger: $refocusTrigger
                 )
                 .frame(minHeight: 36, idealHeight: 44, maxHeight: 88)
                 .padding(.horizontal, theme.spacingL)
@@ -279,14 +450,17 @@ struct UnifiedChatView: View {
                     .stroke(theme.inputBorder, lineWidth: 1)
             )
 
-            // Quick action cards — visible only in empty state, below input box
+            // Quick action cards — visible only in empty state, driven by ChatPreset
             if !hasMessages && !chatStore.isGenerating {
                 HStack(spacing: theme.spacingS) {
-                    quickCard(icon: "pencil", title: "Write") { inputText = "Help me write something" }
-                    quickCard(icon: "book", title: "Learn") { inputText = "Explain a concept to me" }
-                    quickCard(icon: "chevron.left.forwardslash.chevron.right", title: "Code") { inputText = "Help me write code" }
-                    quickCard(icon: "heart", title: "Life") { inputText = "Give me life advice" }
-                    quickCard(icon: "hand.tap", title: "Choice") { inputText = "Help me decide between options" }
+                    ForEach(ChatPreset.allCases, id: \.rawValue) { preset in
+                        quickCard(icon: preset.icon, title: preset.label) {
+                            if chatStore.activeSession != nil {
+                                chatStore.activeSession?.preset = preset.rawValue
+                                inputText = preset.placeholder
+                            }
+                        }
+                    }
                 }
                 .padding(.top, theme.spacingS)
                 .frame(maxWidth: 680)
@@ -312,18 +486,74 @@ struct UnifiedChatView: View {
     }
 
     private func sessionRow(_ session: ChatSessionData) -> some View {
-        HStack {
+        let isActive = session.id == chatStore.activeSession?.id
+        let isHovered = hoveredSessionId == session.id
+        let isRenaming = renamingSessionId == session.id
+        return HStack {
+            if session.isPinned {
+                Image(systemName: "pin.fill")
+                    .font(.system(size: 8))
+                    .foregroundStyle(theme.accent)
+            }
+
             VStack(alignment: .leading, spacing: 2) {
-                Text(session.title.isEmpty ? "Untitled" : session.title)
+                if isRenaming {
+                    TextField(session.title, text: $renameText, onCommit: {
+                        chatStore.renameSession(session.id, newTitle: renameText)
+                        renamingSessionId = nil
+                    })
                     .font(.system(size: theme.textSize, weight: .medium))
                     .foregroundStyle(theme.text)
-                    .lineLimit(1)
+                    .textFieldStyle(.plain)
+                    .onExitCommand { renamingSessionId = nil }
+                } else {
+                    Text(session.title.isEmpty ? "Untitled" : session.title)
+                        .font(.system(size: theme.textSize, weight: .medium))
+                        .foregroundStyle(theme.text)
+                        .lineLimit(1)
+                }
                 Text(modeLabel(session.mode) + " · " + relativeDate(session.updatedAt))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textTertiary)
             }
+
             Spacer()
-            if session.id == chatStore.activeSession?.id {
+
+            if isHovered && !isRenaming {
+                Menu {
+                    Button {
+                        chatStore.pinSession(session.id)
+                    } label: {
+                        Label(session.isPinned ? "Unpin" : "Pin to Top", systemImage: session.isPinned ? "pin.slash" : "pin")
+                    }
+                    Button {
+                        chatStore.shareSession(session.id)
+                    } label: {
+                        Label("Share", systemImage: "square.and.arrow.up")
+                    }
+                    Button {
+                        renameText = session.title.isEmpty ? "Untitled" : session.title
+                        renamingSessionId = session.id
+                    } label: {
+                        Label("Rename", systemImage: "pencil")
+                    }
+                    Divider()
+                    Button(role: .destructive) {
+                        Task { await chatStore.deleteSession(session.id) }
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(theme.textSecondary)
+                        .frame(width: 24, height: 24)
+                        .contentShape(Rectangle())
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .transition(.opacity)
+            } else if isActive && !isRenaming {
                 Circle()
                     .fill(theme.accent)
                     .frame(width: 6, height: 6)
@@ -331,15 +561,18 @@ struct UnifiedChatView: View {
         }
         .padding(.horizontal, theme.spacingL)
         .padding(.vertical, theme.spacingS)
+        .background(
+            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                .fill(isActive ? theme.accent.opacity(0.10) : (isHovered ? theme.separator.opacity(0.3) : .clear))
+        )
         .contentShape(Rectangle())
         .onTapGesture {
+            if isRenaming { return }
             chatStore.selectSession(session)
             withAnimation { showSessionList = false }
         }
-        .contextMenu {
-            Button("Delete", role: .destructive) {
-                Task { await chatStore.deleteSession(session.id) }
-            }
+        .onHover { hovering in
+            hoveredSessionId = hovering ? session.id : nil
         }
     }
 
@@ -431,6 +664,37 @@ struct UnifiedChatView: View {
             if msg.isUser { Spacer(minLength: 60) }
 
             VStack(alignment: msg.isUser ? .trailing : .leading, spacing: 4) {
+                // Attachment thumbnails
+                if !msg.attachments.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: theme.spacingS) {
+                            ForEach(msg.attachments) { att in
+                                Group {
+                                    if att.isImage, let imgData = Data(base64Encoded: att.dataBase64),
+                                       let nsImage = NSImage(data: imgData) {
+                                        Image(nsImage: nsImage)
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fit)
+                                            .frame(maxWidth: 200, maxHeight: 120)
+                                            .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadius * 0.5, style: .continuous))
+                                    } else {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "doc")
+                                                .font(.system(size: 11))
+                                            Text(att.name)
+                                                .font(.system(size: 11))
+                                                .lineLimit(1)
+                                        }
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(theme.surfaceSecondary)
+                                        .clipShape(Capsule())
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 if editingMessageId == msg.id {
                     editField(msg)
                 } else {
@@ -547,17 +811,66 @@ struct UnifiedChatView: View {
 
     private func sendCurrentMessage() {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
-        print("[ChatView] sendCurrentMessage: '\(text.prefix(50))'")
+        guard !text.isEmpty || !pendingAttachments.isEmpty else { return }
+        chatViewLog.info("sendCurrentMessage: text='\(text.prefix(50))', attachments=\(pendingAttachments.count)")
 
-        // Synchronously ensure session exists so SwiftUI sees the state change immediately
         chatStore.ensureActiveSession(mode: selectedMode.rawValue)
         inputText = ""
 
+        let attachments = pendingAttachments
+        pendingAttachments = []
+
         Task {
-            print("[ChatView] sendMessage Task starting, activeSession=\(chatStore.activeSession?.id ?? "nil")")
-            await chatStore.sendMessage(text, mode: selectedMode.rawValue)
-            print("[ChatView] sendMessage Task done, msgs=\(chatStore.activeSession?.messages.count ?? -1)")
+            await chatStore.sendMessage(text, mode: selectedMode.rawValue, attachments: attachments)
+        }
+    }
+
+    private func takeScreenshot() {
+        let task = Process()
+        task.launchPath = "/usr/sbin/screencapture"
+        task.arguments = ["-i", "-c"]
+        task.launch()
+        chatViewLog.info("Screenshot initiated, reading pasteboard in 1s...")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            if let img = NSPasteboard.general.data(forType: .tiff) ?? NSPasteboard.general.data(forType: .png) {
+                let b64 = img.base64EncodedString()
+                let att = AttachmentData(name: "screenshot.png", type: "image", mimeType: "image/png", dataBase64: b64)
+                pendingAttachments.append(att)
+                chatViewLog.info("Screenshot attached, size=\(b64.count) chars base64")
+            } else {
+                chatViewLog.warning("Screenshot: no image found on pasteboard")
+            }
+        }
+    }
+
+    private func pickFiles() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.begin { response in
+            guard response == .OK else { return }
+            for url in panel.urls {
+                guard let data = try? Data(contentsOf: url) else {
+                    chatViewLog.warning("Cannot read file: \(url.path)")
+                    continue
+                }
+                let ext = url.pathExtension.lowercased()
+                let mime: String
+                let type: String
+                switch ext {
+                case "png", "jpg", "jpeg", "gif", "bmp", "webp", "tiff":
+                    type = "image"
+                    mime = "image/\(ext == "jpg" ? "jpeg" : ext)"
+                default:
+                    type = "file"
+                    mime = "application/octet-stream"
+                }
+                let b64 = data.base64EncodedString()
+                let att = AttachmentData(name: url.lastPathComponent, type: type, mimeType: mime, dataBase64: b64)
+                pendingAttachments.append(att)
+                chatViewLog.info("File attached: \(url.lastPathComponent), type=\(type), size=\(b64.count) chars base64")
+            }
         }
     }
 
