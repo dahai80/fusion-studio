@@ -397,6 +397,9 @@ struct AgentStudioView: View {
                 FusionTabItem(title: "Tasks", icon: "checklist", badge: taskCount > 0 ? taskCount : nil),
                 FusionTabItem(title: "Workflows", icon: "arrow.triangle.branch", badge: nil),
                 FusionTabItem(title: "Dashboard", icon: "chart.bar", badge: nil),
+                FusionTabItem(title: "Connectors", icon: "link", badge: nil),
+                FusionTabItem(title: "API Keys", icon: "key", badge: nil),
+                FusionTabItem(title: "Styles", icon: "paintbrush", badge: nil),
                 FusionTabItem(title: "Marketplace", icon: "bag", badge: nil),
                 FusionTabItem(title: "Chat", icon: "bubble.left.and.bubble.right", badge: unreadCount > 0 ? unreadCount : nil),
             ])
@@ -409,8 +412,11 @@ struct AgentStudioView: View {
                 case 1: AgentTaskListView(toastManager: toastManager)
                 case 2: WorkflowListView(toastManager: toastManager)
                 case 3: DashboardTabView(toastManager: toastManager)
-                case 4: MarketplaceTabView(toastManager: toastManager)
-                case 5: ConversationView(toastManager: toastManager)
+                case 4: ConnectorTabView(toastManager: toastManager)
+                case 5: ApikeyTabView(toastManager: toastManager)
+                case 6: StyleTabView(toastManager: toastManager)
+                case 7: MarketplaceTabView(toastManager: toastManager)
+                case 8: ConversationView(toastManager: toastManager)
                 default: AgentListView(toastManager: toastManager)
                 }
             }
@@ -2286,6 +2292,360 @@ struct CreateWorkflowSheet: View {
         }
         .frame(width: 600, height: 600)
         .background(theme.windowBg)
+    }
+}
+
+// MARK: - ConnectorTabView
+
+struct ConnectorTabView: View {
+    let toastManager: FusionToastManager
+    @EnvironmentObject private var bridge: AgentBridge
+    @Environment(\.studioTheme) var theme
+    @State private var showCreateSheet = false
+    @State private var newName = ""
+    @State private var newType = "http"
+    @State private var newConfig = ""
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Connectors")
+                    .font(.system(size: theme.titleSize, weight: .bold))
+                    .foregroundStyle(theme.text)
+                Spacer()
+                FusionButton("Add Connector", icon: "plus") { showCreateSheet = true }
+            }
+            .padding(theme.spacingM)
+
+            if bridge.connectors.isEmpty {
+                Spacer()
+                Text("No connectors configured")
+                    .font(.system(size: theme.textSize))
+                    .foregroundStyle(theme.textTertiary)
+                Spacer()
+            } else {
+                ListGroup {
+                    ForEach(Array(bridge.connectors.enumerated()), id: \.offset) { idx, conn in
+                        let name = conn["name"] as? String ?? "Unknown"
+                        let type = conn["type"] as? String ?? ""
+                        let status = conn["status"] as? String ?? "unknown"
+                        let cid = conn["connector_id"] as? String ?? conn["id"] as? String ?? ""
+                        StudioRow(label: name, sublabel: type, isLast: idx == bridge.connectors.count - 1) {
+                            FusionTag(status, color: status == "connected" ? .green : status == "disconnected" ? .gray : .orange)
+                        }
+                        .contentShape(Rectangle())
+                        .contextMenu {
+                            Button { Task { await testConnector(cid, name: name) } } label: {
+                                Label("Test", systemImage: "bolt")
+                            }
+                            if status != "connected" {
+                                Button { Task { await connectConnector(cid, name: name) } } label: {
+                                    Label("Connect", systemImage: "link")
+                                }
+                            }
+                            if status == "connected" {
+                                Button { Task { await disconnectConnector(cid, name: name) } } label: {
+                                    Label("Disconnect", systemImage: "link.badge.plus")
+                                }
+                            }
+                            Divider()
+                            Button("Delete", role: .destructive) {
+                                Task { await deleteConnector(cid, name: name) }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .onAppear { Task { await bridge.fetchConnectors() } }
+        .sheet(isPresented: $showCreateSheet) {
+            createConnectorSheet
+        }
+    }
+
+    private var createConnectorSheet: some View {
+        VStack(spacing: theme.spacingM) {
+            Text("New Connector")
+                .font(.system(size: theme.titleSize, weight: .bold))
+            TextField("Name", text: $newName)
+                .textFieldStyle(.roundedBorder)
+            TextField("Type (http, database, api...)", text: $newType)
+                .textFieldStyle(.roundedBorder)
+            TextField("Config (JSON)", text: $newConfig, axis: .vertical)
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(3...6)
+            HStack {
+                FusionButton("Cancel") { showCreateSheet = false }
+                Spacer()
+                FusionButton("Create", icon: "plus") {
+                    Task { await createConnector() }
+                }
+            }
+        }
+        .padding(theme.spacingL)
+        .frame(width: 400)
+    }
+
+    private func createConnector() async {
+        guard !newName.isEmpty else { return }
+        var config: [String: Any] = [:]
+        if let data = newConfig.data(using: .utf8),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            config = json
+        }
+        do {
+            _ = try await bridge.connectorCreate(name: newName, type: newType, config: config)
+            toastManager.show(style: .success, title: "Created", message: "\(newName)")
+            showCreateSheet = false
+            newName = ""; newConfig = ""
+        } catch {
+            toastManager.show(style: .error, title: "Create Failed", message: error.localizedDescription)
+        }
+    }
+
+    private func testConnector(_ id: String, name: String) async {
+        do {
+            let result = try await bridge.connectorTest(connectorId: id)
+            let success = result["success"] as? Bool ?? false
+            toastManager.show(style: success ? .success : .error, title: success ? "OK" : "Failed", message: "\(name)")
+        } catch {
+            toastManager.show(style: .error, title: "Test Failed", message: error.localizedDescription)
+        }
+    }
+
+    private func connectConnector(_ id: String, name: String) async {
+        do {
+            _ = try await bridge.connectorConnect(connectorId: id)
+            toastManager.show(style: .success, title: "Connected", message: name)
+            await bridge.fetchConnectors()
+        } catch {
+            toastManager.show(style: .error, title: "Connect Failed", message: error.localizedDescription)
+        }
+    }
+
+    private func disconnectConnector(_ id: String, name: String) async {
+        do {
+            _ = try await bridge.connectorDisconnect(connectorId: id)
+            toastManager.show(style: .info, title: "Disconnected", message: name)
+            await bridge.fetchConnectors()
+        } catch {
+            toastManager.show(style: .error, title: "Disconnect Failed", message: error.localizedDescription)
+        }
+    }
+
+    private func deleteConnector(_ id: String, name: String) async {
+        do {
+            _ = try await bridge.connectorDelete(connectorId: id)
+            toastManager.show(style: .info, title: "Deleted", message: name)
+        } catch {
+            toastManager.show(style: .error, title: "Delete Failed", message: error.localizedDescription)
+        }
+    }
+}
+
+// MARK: - ApikeyTabView
+
+struct ApikeyTabView: View {
+    let toastManager: FusionToastManager
+    @EnvironmentObject private var bridge: AgentBridge
+    @Environment(\.studioTheme) var theme
+    @State private var showCreateSheet = false
+    @State private var newName = ""
+    @State private var newPermissions = "read,execute"
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("API Keys")
+                    .font(.system(size: theme.titleSize, weight: .bold))
+                    .foregroundStyle(theme.text)
+                Spacer()
+                FusionButton("Create Key", icon: "plus") { showCreateSheet = true }
+            }
+            .padding(theme.spacingM)
+
+            if bridge.apikeys.isEmpty {
+                Spacer()
+                Text("No API keys")
+                    .font(.system(size: theme.textSize))
+                    .foregroundStyle(theme.textTertiary)
+                Spacer()
+            } else {
+                ListGroup {
+                    ForEach(Array(bridge.apikeys.enumerated()), id: \.offset) { idx, key in
+                        let name = key["name"] as? String ?? "Unknown"
+                        let kid = key["key_id"] as? String ?? key["id"] as? String ?? ""
+                        let prefix = key["key_prefix"] as? String ?? ""
+                        let perms = key["permissions"] as? [String] ?? []
+                        StudioRow(label: name, sublabel: prefix.isEmpty ? kid : prefix, isLast: idx == bridge.apikeys.count - 1) {
+                            if perms.contains("admin") {
+                                FusionTag("admin", color: .red)
+                            } else if perms.contains("execute") {
+                                FusionTag("execute", color: .green)
+                            } else {
+                                FusionTag("read", color: .blue)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                        .contextMenu {
+                            Button("Revoke", role: .destructive) {
+                                Task { await revokeKey(kid, name: name) }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .onAppear { Task { await bridge.fetchApikeys() } }
+        .sheet(isPresented: $showCreateSheet) {
+            createApikeySheet
+        }
+    }
+
+    private var createApikeySheet: some View {
+        VStack(spacing: theme.spacingM) {
+            Text("New API Key")
+                .font(.system(size: theme.titleSize, weight: .bold))
+            TextField("Name", text: $newName)
+                .textFieldStyle(.roundedBorder)
+            TextField("Permissions (comma-separated)", text: $newPermissions)
+                .textFieldStyle(.roundedBorder)
+            HStack {
+                FusionButton("Cancel") { showCreateSheet = false }
+                Spacer()
+                FusionButton("Create", icon: "plus") {
+                    Task { await createKey() }
+                }
+            }
+        }
+        .padding(theme.spacingL)
+        .frame(width: 400)
+    }
+
+    private func createKey() async {
+        guard !newName.isEmpty else { return }
+        let perms = newPermissions.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+        do {
+            let result = try await bridge.apikeyCreate(name: newName, permissions: perms)
+            let keyVal = result["key"] as? String ?? ""
+            toastManager.show(style: .success, title: "Key Created", message: keyVal.isEmpty ? newName : "Copy key: \(keyVal.prefix(12))...")
+            showCreateSheet = false
+            newName = ""; newPermissions = "read,execute"
+        } catch {
+            toastManager.show(style: .error, title: "Create Failed", message: error.localizedDescription)
+        }
+    }
+
+    private func revokeKey(_ id: String, name: String) async {
+        do {
+            _ = try await bridge.apikeyRevoke(keyId: id)
+            toastManager.show(style: .info, title: "Revoked", message: name)
+        } catch {
+            toastManager.show(style: .error, title: "Revoke Failed", message: error.localizedDescription)
+        }
+    }
+}
+
+// MARK: - StyleTabView
+
+struct StyleTabView: View {
+    let toastManager: FusionToastManager
+    @EnvironmentObject private var bridge: AgentBridge
+    @Environment(\.studioTheme) var theme
+    @State private var showCreateSheet = false
+    @State private var newName = ""
+    @State private var newTemplate = "default"
+    @State private var newRules = ""
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Styles")
+                    .font(.system(size: theme.titleSize, weight: .bold))
+                    .foregroundStyle(theme.text)
+                Spacer()
+                FusionButton("Add Style", icon: "plus") { showCreateSheet = true }
+            }
+            .padding(theme.spacingM)
+
+            if bridge.styles.isEmpty {
+                Spacer()
+                Text("No custom styles")
+                    .font(.system(size: theme.textSize))
+                    .foregroundStyle(theme.textTertiary)
+                Spacer()
+            } else {
+                ListGroup {
+                    ForEach(Array(bridge.styles.enumerated()), id: \.offset) { idx, style in
+                        let name = style["name"] as? String ?? "Unknown"
+                        let template = style["template"] as? String ?? ""
+                        let sid = style["style_id"] as? String ?? style["id"] as? String ?? ""
+                        StudioRow(label: name, sublabel: template, isLast: idx == bridge.styles.count - 1) {
+                            FusionTag("style", color: .purple)
+                        }
+                        .contentShape(Rectangle())
+                        .contextMenu {
+                            Button("Delete", role: .destructive) {
+                                Task { await deleteStyle(sid, name: name) }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .onAppear { Task { await bridge.fetchStyles() } }
+        .sheet(isPresented: $showCreateSheet) {
+            createStyleSheet
+        }
+    }
+
+    private var createStyleSheet: some View {
+        VStack(spacing: theme.spacingM) {
+            Text("New Style")
+                .font(.system(size: theme.titleSize, weight: .bold))
+            TextField("Name", text: $newName)
+                .textFieldStyle(.roundedBorder)
+            TextField("Template (default, formal, casual...)", text: $newTemplate)
+                .textFieldStyle(.roundedBorder)
+            TextField("Rules (JSON)", text: $newRules, axis: .vertical)
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(3...6)
+            HStack {
+                FusionButton("Cancel") { showCreateSheet = false }
+                Spacer()
+                FusionButton("Create", icon: "plus") {
+                    Task { await createStyle() }
+                }
+            }
+        }
+        .padding(theme.spacingL)
+        .frame(width: 400)
+    }
+
+    private func createStyle() async {
+        guard !newName.isEmpty else { return }
+        var rules: [String: Any] = [:]
+        if let data = newRules.data(using: .utf8),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            rules = json
+        }
+        do {
+            _ = try await bridge.styleCreate(name: newName, template: newTemplate, rules: rules)
+            toastManager.show(style: .success, title: "Created", message: newName)
+            showCreateSheet = false
+            newName = ""; newRules = ""
+        } catch {
+            toastManager.show(style: .error, title: "Create Failed", message: error.localizedDescription)
+        }
+    }
+
+    private func deleteStyle(_ id: String, name: String) async {
+        do {
+            _ = try await bridge.styleDelete(styleId: id)
+            toastManager.show(style: .info, title: "Deleted", message: name)
+        } catch {
+            toastManager.show(style: .error, title: "Delete Failed", message: error.localizedDescription)
+        }
     }
 }
 
