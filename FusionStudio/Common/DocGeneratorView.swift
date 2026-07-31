@@ -308,6 +308,14 @@ class DocGenerator: ObservableObject {
             - 22 个原孤儿模块视图现可经侧边栏直达（排除训练/仿真/教育三个待补能力模块）
             - SectionContentView 新增 .mlx/.multiNode 段路由至 ModuleDetailView，IconRailView/FusionSidebarView 同步接入
 
+            ## [0.1.9] - 2026-07-31
+
+            ### 新增
+            - FusionCodeProject 模型 + FusionCodeAPIClient.fetchProjects() 调用 GET /api/projects
+            - ChatSessionStore 注入 FusionCodeAPIClient + fetchProjects() 包装方法
+            - FusionStudioApp 启动时创建 FusionCodeAPIClient 实例并注入 ChatSessionStore
+            - 上游 fusion-code API 集成验证通过 (/api/projects, /api/projects/:id/context, /api/sessions)
+
             ## [0.1.8] - 2026-07-31
 
             ### 新增
