@@ -13,11 +13,14 @@ class VoiceInputManager: ObservableObject {
     @Published var isRecording: Bool = false
     @Published var liveTranscript: String = ""
     @Published var isAvailable: Bool = false
+    @Published var audioLevel: Float = 0.0
+    @Published var inputVolume: Float = 1.0
 
     private var audioEngine: AVAudioEngine?
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
     private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "zh-CN"))
+    private var levelTimer: Timer?
     private let log = Logger(subsystem: "com.fusion.studio", category: "VoiceInput")
 
     init() {
@@ -57,8 +60,21 @@ class VoiceInputManager: ObservableObject {
         request.requiresOnDeviceRecognition = true
         recognitionRequest = request
 
-        node.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
+        node.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
             request.append(buffer)
+            let channelData = buffer.floatChannelData?[0]
+            let frameLength = Int(buffer.frameLength)
+            guard frameLength > 0, let data = channelData else { return }
+            var sum: Float = 0
+            for i in 0..<frameLength {
+                sum += data[i] * data[i]
+            }
+            let rms = sqrt(sum / Float(frameLength))
+            let db = 20 * log10(max(rms, 0.00001))
+            let normalized = max(0, min(1, (db + 60) / 60))
+            Task { @MainActor in
+                self?.audioLevel = normalized
+            }
         }
 
         engine.prepare()
@@ -68,6 +84,8 @@ class VoiceInputManager: ObservableObject {
             log.error("Audio engine start failed: \(error.localizedDescription)")
             return
         }
+
+        node.volume = inputVolume
 
         recognitionTask = recognizer.recognitionTask(with: request) { [weak self] result, error in
             Task { @MainActor in
@@ -94,11 +112,20 @@ class VoiceInputManager: ObservableObject {
         recognitionRequest?.endAudio()
         recognitionTask?.cancel()
 
+        levelTimer?.invalidate()
+        levelTimer = nil
         audioEngine = nil
         recognitionRequest = nil
         recognitionTask = nil
         isRecording = false
+        audioLevel = 0
         log.info("Recording stopped, transcript='\(transcript.prefix(100))'")
         return transcript
+    }
+
+    func setInputVolume(_ volume: Float) {
+        inputVolume = volume
+        audioEngine?.inputNode.volume = volume
+        log.info("Input volume set to \(volume)")
     }
 }

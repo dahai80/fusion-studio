@@ -330,6 +330,33 @@ struct UnifiedChatView: View {
             .buttonStyle(.plain)
             .help(voiceInput.isRecording ? "Stop recording" : "Start voice input")
 
+            // Volume slider (visible when recording)
+            if voiceInput.isRecording {
+                HStack(spacing: 4) {
+                    Image(systemName: "speaker.wave.1")
+                        .font(.system(size: 10))
+                        .foregroundStyle(theme.textSecondary)
+                    Slider(value: Binding(
+                        get: { voiceInput.inputVolume },
+                        set: { voiceInput.setInputVolume($0) }
+                    ), in: 0...2)
+                    .frame(width: 80)
+                    .tint(theme.accent)
+                    Image(systemName: "speaker.wave.3")
+                        .font(.system(size: 10))
+                        .foregroundStyle(theme.textSecondary)
+                }
+                .transition(.opacity)
+            }
+
+            // Audio level indicator
+            if voiceInput.isRecording {
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(theme.accent)
+                    .frame(width: max(2, CGFloat(voiceInput.audioLevel) * 16), height: 4)
+                    .animation(.easeInOut(duration: 0.1), value: voiceInput.audioLevel)
+            }
+
             // Live transcript indicator
             if voiceInput.isRecording && !voiceInput.liveTranscript.isEmpty {
                 Text(voiceInput.liveTranscript)
@@ -745,16 +772,30 @@ struct UnifiedChatView: View {
                 if editingMessageId == msg.id {
                     editField(msg)
                 } else {
-                    Text(msg.content)
-                        .font(.system(size: theme.textSize))
-                        .foregroundStyle(theme.text)
-                        .textSelection(.enabled)
-                        .padding(.horizontal, theme.spacingM)
-                        .padding(.vertical, theme.spacingS)
-                        .background(
-                            RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
-                                .fill(msg.isUser ? theme.accent.opacity(0.12) : theme.surfaceSecondary)
-                        )
+                    if msg.isUser {
+                        Text(msg.content)
+                            .font(.system(size: theme.textSize))
+                            .foregroundStyle(theme.text)
+                            .textSelection(.enabled)
+                            .padding(.horizontal, theme.spacingM)
+                            .padding(.vertical, theme.spacingS)
+                            .background(
+                                RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
+                                    .fill(theme.accent.opacity(0.12))
+                            )
+                    } else {
+                        Text(try! AttributedString(markdown: msg.content, options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)))
+                            .font(.system(size: theme.textSize))
+                            .foregroundStyle(theme.text)
+                            .textSelection(.enabled)
+                            .tint(theme.accent)
+                            .padding(.horizontal, theme.spacingM)
+                            .padding(.vertical, theme.spacingS)
+                            .background(
+                                RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
+                                    .fill(theme.surfaceSecondary)
+                            )
+                    }
                 }
 
                 Text(Date(timeIntervalSince1970: msg.createdAt), style: .time)
@@ -880,7 +921,7 @@ struct UnifiedChatView: View {
     }
 
     private func takeScreenshot() {
-        Task {
+        DispatchQueue.global(qos: .userInitiated).async {
             let task = Process()
             task.launchPath = "/usr/sbin/screencapture"
             task.arguments = ["-i", "-c"]
@@ -891,14 +932,38 @@ struct UnifiedChatView: View {
                 chatViewLog.warning("Screenshot cancelled or failed")
                 return
             }
-            await MainActor.run {
-                if let img = NSPasteboard.general.data(forType: .tiff) ?? NSPasteboard.general.data(forType: .png) {
-                    let b64 = img.base64EncodedString()
+            DispatchQueue.main.async {
+                let pb = NSPasteboard.general
+                let imgData = pb.data(forType: .tiff)
+                    ?? pb.data(forType: .png)
+                    ?? pb.data(forType: .fileURL).flatMap { data -> Data? in
+                        guard let path = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .controlCharacters),
+                              let url = URL(string: path) else { return nil }
+                        let cleanPath = url.path.isEmpty ? path : url.path
+                        return try? Data(contentsOf: URL(fileURLWithPath: cleanPath))
+                    }
+                if let imgData = imgData {
+                    let b64 = imgData.base64EncodedString()
                     let att = AttachmentData(name: "screenshot.png", type: "image", mimeType: "image/png", dataBase64: b64)
                     pendingAttachments.append(att)
                     chatViewLog.info("Screenshot attached, size=\(b64.count) chars base64")
                 } else {
-                    chatViewLog.warning("Screenshot: no image found on pasteboard")
+                    if let img = NSImage(pasteboard: pb) {
+                        guard let tiffData = img.tiffRepresentation else {
+                            chatViewLog.warning("Screenshot: cannot get tiffRepresentation")
+                            return
+                        }
+                        let bitmap = NSBitmapImageRep(data: tiffData)
+                        let pngData = bitmap?.representation(using: .png, properties: [:])
+                        if let pngData = pngData {
+                            let b64 = pngData.base64EncodedString()
+                            let att = AttachmentData(name: "screenshot.png", type: "image", mimeType: "image/png", dataBase64: b64)
+                            pendingAttachments.append(att)
+                            chatViewLog.info("Screenshot attached via NSImage, size=\(b64.count) chars base64")
+                        }
+                    } else {
+                        chatViewLog.warning("Screenshot: no image found on pasteboard (types: \(pb.types.map { $0.rawValue }))")
+                    }
                 }
             }
         }
