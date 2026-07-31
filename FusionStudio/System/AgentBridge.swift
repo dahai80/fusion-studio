@@ -1917,6 +1917,40 @@ final class AgentBridge: ObservableObject {
         return result
     }
 
+    // MARK: - Analytics & Alert Operations
+
+    @Published var analyticsData: [String: Any] = [:]
+    @Published var alerts: [[String: Any]] = []
+
+    func fetchAnalytics(agentId: String? = nil, range: String = "week") async {
+        guard let client = ipcClient else { return }
+        do {
+            let result = try await client.analyticsAgentUsage(agentId: agentId, range: range)
+            self.analyticsData = result
+            logger.info("Analytics fetched")
+        } catch {
+            logger.debug("fetchAnalytics failed: \(error.localizedDescription)")
+        }
+    }
+
+    func fetchAlerts() async {
+        guard let client = ipcClient else { return }
+        do {
+            let result = try await client.alertList()
+            self.alerts = result["alerts"] as? [[String: Any]] ?? []
+            logger.info("Fetched \(self.alerts.count) alerts")
+        } catch {
+            logger.debug("fetchAlerts failed: \(error.localizedDescription)")
+        }
+    }
+
+    func alertAcknowledge(alertId: String) async throws -> [String: Any] {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        let result = try await client.alertAcknowledge(alertId: alertId)
+        await fetchAlerts()
+        return result
+    }
+
     // MARK: - Marketplace Operations
 
     func marketplaceSearch(query: String = "", category: String = "", tags: [String] = []) async throws -> [MarketplaceEntryModel] {
