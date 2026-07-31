@@ -83,8 +83,8 @@ struct IconRailView: View {
                     appState.selectedModule = .code
                     appState.selectedSheet = .code
                 case .artifacts:
-                    appState.selectedModule = .code
-                    appState.selectedSheet = .code
+                    appState.selectedModule = .artifactsRepo
+                    appState.selectedSheet = .artifactsSheet
                 case .code:
                     appState.selectedModule = .code
                     appState.selectedSheet = .code
@@ -104,6 +104,15 @@ struct IconRailView: View {
                 case .multiNode:
                     appState.selectedModule = .clusterOverview
                     appState.selectedSheet = .multiNode
+                case .fusionProjects:
+                    appState.selectedModule = .fusionProjects
+                    appState.selectedSheet = .fusionProjectsSheet
+                case .cowork:
+                    appState.selectedModule = .cowork
+                    appState.selectedSheet = .coworkSheet
+                case .fsb:
+                    appState.selectedModule = .fsb
+                    appState.selectedSheet = .fsbSheet
                 }
             }
             railLog.info("Section selected: \(section.rawValue)")

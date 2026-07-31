@@ -95,6 +95,14 @@ struct ModuleDetailView: View {
                 TeamCollabView()
             case .chat:
                 UnifiedChatView()
+            case .fusionProjects:
+                ProjectModuleView()
+            case .cowork:
+                SpaceListView()
+            case .artifactsRepo:
+                ArtifactsRepositoryView()
+            case .fsb:
+                FSBWorkspaceView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

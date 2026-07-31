@@ -154,6 +154,12 @@ struct FusionSidebarView: View {
             moduleListContent(.mlx)
         case .multiNode:
             moduleListContent(.multiNode)
+        case .fusionProjects:
+            fusionProjectsSidebarContent
+        case .cowork:
+            coworkSidebarContent
+        case .fsb:
+            fsbSidebarContent
         }
     }
 
@@ -407,6 +413,52 @@ struct FusionSidebarView: View {
         }
     }
 
+    private var fusionProjectsSidebarContent: some View {
+        VStack(spacing: 0) {
+            Button(action: {
+                withAnimation(theme.springSnappy) {
+                    appState.selectedModule = .fusionProjects
+                }
+            }) {
+                HStack(spacing: theme.spacingS) {
+                    Image(systemName: "plus.circle")
+                        .font(.system(size: theme.iconS))
+                        .foregroundStyle(theme.accent)
+                    Text("新建项目")
+                        .font(.system(size: theme.textSize))
+                        .foregroundStyle(theme.text)
+                    Spacer()
+                }
+                .padding(.horizontal, theme.spacingM)
+                .padding(.vertical, 5)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var coworkSidebarContent: some View {
+        VStack(spacing: 0) {
+            Button(action: {
+                withAnimation(theme.springSnappy) {
+                    appState.selectedModule = .cowork
+                }
+            }) {
+                HStack(spacing: theme.spacingS) {
+                    Image(systemName: "plus.circle")
+                        .font(.system(size: theme.iconS))
+                        .foregroundStyle(theme.accent)
+                    Text("新建协作空间")
+                        .font(.system(size: theme.textSize))
+                        .foregroundStyle(theme.text)
+                    Spacer()
+                }
+                .padding(.horizontal, theme.spacingM)
+                .padding(.vertical, 5)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
     private func moduleRow(_ module: Module) -> some View {
         let isActive = appState.selectedModule == module
         return Button(action: {
@@ -536,6 +588,29 @@ struct FusionSidebarView: View {
             } else {
                 expandedSections.insert(section)
             }
+        }
+    }
+
+    private var fsbSidebarContent: some View {
+        VStack(spacing: 0) {
+            Button(action: {
+                withAnimation(theme.springSnappy) {
+                    appState.selectedModule = .fsb
+                }
+            }) {
+                HStack(spacing: theme.spacingS) {
+                    Image(systemName: "plus.circle")
+                        .font(.system(size: theme.iconS))
+                        .foregroundStyle(theme.accent)
+                    Text("新建工作台")
+                        .font(.system(size: theme.textSize))
+                        .foregroundStyle(theme.text)
+                    Spacer()
+                }
+                .padding(.horizontal, theme.spacingM)
+                .padding(.vertical, 5)
+            }
+            .buttonStyle(.plain)
         }
     }
 

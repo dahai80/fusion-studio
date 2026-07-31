@@ -51,6 +51,10 @@ enum ProductSheet: String, CaseIterable, Identifiable {
     case agentStudio = "Agent Studio"
     case multiNode = "Multi-Node"
     case chat = "Chat"
+    case fusionProjectsSheet = "Fusion Projects"
+    case coworkSheet = "CoWork"
+    case artifactsSheet = "Artifacts"
+    case fsbSheet = "FSB"
 
     var id: String { rawValue }
 
@@ -61,6 +65,10 @@ enum ProductSheet: String, CaseIterable, Identifiable {
         case .agentStudio: "person.2.fill"
         case .multiNode: "network"
         case .chat: "bubble.left.and.bubble.right"
+        case .fusionProjectsSheet: "folder.badge.gearshape"
+        case .coworkSheet: "person.2.square.stack"
+        case .artifactsSheet: "cube.box"
+        case .fsbSheet:       "storefront"
         }
     }
 
@@ -76,6 +84,14 @@ enum ProductSheet: String, CaseIterable, Identifiable {
             return [.clusterOverview, .clusterTopology, .taskMonitor, .alertCenter, .nodeActions, .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb, .multimodal, .simulation, .analytics, .collab, .external, .operations]
         case .chat:
             return [.chat]
+        case .fusionProjectsSheet:
+            return [.fusionProjects]
+        case .coworkSheet:
+            return [.cowork]
+        case .artifactsSheet:
+            return [.artifactsRepo]
+        case .fsbSheet:
+            return [.fsb]
         }
     }
 }
@@ -126,6 +142,10 @@ enum Module: String, CaseIterable, Identifiable {
     case agentDashboard = "Agent监控"
     case teamCollab = "团队协作"
     case chat = "对话"
+    case fusionProjects = "项目管理"
+    case cowork = "协作空间"
+    case artifactsRepo = "Artifacts仓库"
+    case fsb = "FSB"
 
     var id: String { rawValue }
 
@@ -175,6 +195,10 @@ enum Module: String, CaseIterable, Identifiable {
         case .agentDashboard: return "chart.bar.doc.horizontal"
         case .teamCollab:   return "person.3.fill"
         case .chat:         return "bubble.left.and.bubble.right"
+        case .fusionProjects: return "folder.badge.gearshape"
+        case .cowork:       return "person.2.square.stack"
+        case .artifactsRepo: return "cube.box"
+        case .fsb:          return "storefront"
         }
     }
 
@@ -199,6 +223,14 @@ enum Module: String, CaseIterable, Identifiable {
             return .code
         case .eduK12:
             return .mlx
+        case .fusionProjects:
+            return .fusionProjectsSheet
+        case .cowork:
+            return .coworkSheet
+        case .artifactsRepo:
+            return .artifactsSheet
+        case .fsb:
+            return .fsbSheet
         }
     }
 }
@@ -213,6 +245,9 @@ enum SidebarSection: String, CaseIterable, Identifiable {
     case agent = "智能体"
     case mlx = "Fusion-MLX"
     case multiNode = "Multi-Node"
+    case fusionProjects = "Projects+"
+    case cowork = "CoWork"
+    case fsb = "FSB"
 
     var id: String { rawValue }
 
@@ -227,6 +262,9 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .agent:     return "person.2.fill"
         case .mlx:       return "chip"
         case .multiNode: return "network"
+        case .fusionProjects: return "folder.badge.gearshape"
+        case .cowork:    return "person.2.square.stack"
+        case .fsb:       return "storefront"
         }
     }
 
@@ -234,13 +272,16 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         switch self {
         case .chats:     return [.code]
         case .projects:  return []
-        case .artifacts: return []
+        case .artifacts: return [.artifactsRepo]
         case .code:      return [.code, .design, .doc, .docgen, .cli]
         case .customize: return []
         case .design:    return [.design]
         case .agent:     return [.agent, .agentDashboard, .teamCollab, .tools, .safety, .memory, .rag, .planner, .verification, .tokenBudget, .security, .dataTools, .plugin, .kb, .desk]
         case .mlx:       return [.dashboard, .modelHub, .tuning, .bench]
         case .multiNode: return [.clusterOverview, .clusterTopology, .taskMonitor, .alertCenter, .nodeActions, .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb, .multimodal, .analytics, .collab, .external, .operations, .deploy]
+        case .fusionProjects: return [.fusionProjects]
+        case .cowork: return [.cowork]
+        case .fsb: return [.fsb]
         }
     }
 }

@@ -170,6 +170,12 @@ struct SectionContentView: View {
                 ModuleDetailView()
             case .multiNode:
                 ModuleDetailView()
+            case .fusionProjects:
+                ProjectModuleView()
+            case .cowork:
+                SpaceListView()
+            case .fsb:
+                FSBWorkspaceView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
