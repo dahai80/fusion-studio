@@ -1792,6 +1792,14 @@ class IPCClient: ObservableObject {
         return try await projectCall(method: "project.instruction.snapshots", params: ["project_id": projectId])
     }
 
+    func projectInstructionSnapshotRestore(snapshotId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.instruction.snapshot.restore", params: ["snapshot_id": snapshotId])
+    }
+
+    func projectInstructionSnapshotDelete(snapshotId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.instruction.snapshot.delete", params: ["snapshot_id": snapshotId])
+    }
+
     func projectArtifactMigrate(projectId: String, artifactId: String) async throws -> [String: Any] {
         return try await projectCall(method: "project.artifact.migrate", params: ["project_id": projectId, "artifact_id": artifactId])
     }

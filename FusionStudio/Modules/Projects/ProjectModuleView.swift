@@ -1212,6 +1212,15 @@ private struct InstructionVersionHistory: View {
                                     .buttonStyle(.plain)
                                     .foregroundStyle(theme.accent)
                                 }
+                                if snapshots.count > 1 {
+                                    Button(role: .destructive) {
+                                        deleteSnapshot(snap)
+                                    } label: {
+                                        Image(systemName: "trash")
+                                            .font(.system(size: theme.captionSize))
+                                    }
+                                    .buttonStyle(.plain)
+                                }
                             }
                             .padding(theme.spacingS)
                             .background(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
@@ -1233,11 +1242,22 @@ private struct InstructionVersionHistory: View {
     private func restoreSnapshot(_ snap: InstructionSnapshot) {
         Task {
             do {
-                _ = try await ipc.projectInstructionSave(projectId: projectId, content: snap.content)
+                _ = try await ipc.projectInstructionSnapshotRestore(snapshotId: snap.id)
                 projLog.info("Instruction restored to snapshot \(snap.id)")
                 dismiss()
             } catch {
                 projLog.error("restoreSnapshot failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func deleteSnapshot(_ snap: InstructionSnapshot) {
+        Task {
+            do {
+                _ = try await ipc.projectInstructionSnapshotDelete(snapshotId: snap.id)
+                projLog.info("Instruction snapshot deleted \(snap.id)")
+            } catch {
+                projLog.error("deleteSnapshot failed: \(error.localizedDescription)")
             }
         }
     }
