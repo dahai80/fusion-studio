@@ -25,6 +25,7 @@ struct UnifiedChatView: View {
     @State private var branchSiblings: [ChatMessageData] = []
     @StateObject private var voiceInput = VoiceInputManager()
     @State private var isVoiceMode: Bool = false
+    @State private var showVolumeSlider: Bool = false
     @State private var refocusTrigger: Int = 0
     @State private var showClearConfirm: Bool = false
     @State private var hoveredSessionId: String?
@@ -349,6 +350,8 @@ struct UnifiedChatView: View {
             // Mic button — click to toggle recording
             Button {
                 toggleRecording()
+                showVolumeSlider = true
+                chatViewLog.info("Mic button: showVolumeSlider=true, isRecording=\(voiceInput.isRecording)")
             } label: {
                 Image(systemName: voiceInput.isRecording ? "mic.fill" : "mic")
                     .font(.system(size: 16))
@@ -357,8 +360,8 @@ struct UnifiedChatView: View {
             .buttonStyle(.plain)
             .help(voiceInput.isRecording ? "Stop recording" : "Start voice input")
 
-            // Volume slider (visible when recording)
-            if voiceInput.isRecording {
+            // Volume slider - shown on mouseup, decoupled from recording state
+            if showVolumeSlider {
                 HStack(spacing: 4) {
                     Image(systemName: "speaker.wave.1")
                         .font(.system(size: 10))
@@ -372,6 +375,15 @@ struct UnifiedChatView: View {
                     Image(systemName: "speaker.wave.3")
                         .font(.system(size: 10))
                         .foregroundStyle(theme.textSecondary)
+                    Button {
+                        showVolumeSlider = false
+                        chatViewLog.info("Volume slider closed")
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 11))
+                            .foregroundStyle(theme.textTertiary)
+                    }
+                    .buttonStyle(.plain)
                 }
                 .transition(.opacity)
             }
@@ -770,30 +782,10 @@ struct UnifiedChatView: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: theme.spacingS) {
                             ForEach(msg.attachments) { att in
-                                Group {
-                                    if att.isImage, let imgData = Data(base64Encoded: att.dataBase64),
-                                       let nsImage = NSImage(data: imgData) {
-                                        Image(nsImage: nsImage)
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fit)
-                                            .frame(maxWidth: 200, maxHeight: 120)
-                                            .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadius * 0.5, style: .continuous))
-                                    } else {
-                                        HStack(spacing: 4) {
-                                            Image(systemName: "doc")
-                                                .font(.system(size: 11))
-                                            Text(att.name)
-                                                .font(.system(size: 11))
-                                                .lineLimit(1)
-                                        }
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(theme.surfaceSecondary)
-                                        .clipShape(Capsule())
-                                    }
-                                }
+                                AttachmentThumbnail(attachment: att)
                             }
                         }
+                        .frame(maxWidth: .infinity, alignment: msg.isUser ? .trailing : .leading)
                     }
                 }
                 if editingMessageId == msg.id {
@@ -824,10 +816,6 @@ struct UnifiedChatView: View {
                             )
                     }
                 }
-
-                Text(Date(timeIntervalSince1970: msg.createdAt), style: .time)
-                    .font(.system(size: theme.captionSize))
-                    .foregroundStyle(theme.textQuaternary)
 
                 if msg.isUser {
                     HStack(spacing: 8) {
@@ -874,7 +862,12 @@ struct UnifiedChatView: View {
                         }
                         .buttonStyle(.plain)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
+
+                Text(Date(timeIntervalSince1970: msg.createdAt), style: .time)
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(theme.textQuaternary)
             }
 
             if msg.isAssistant { Spacer(minLength: 60) }
@@ -1145,6 +1138,60 @@ struct UnifiedChatView: View {
             }
         } else {
             voiceInput.startRecording()
+        }
+    }
+}
+
+private struct AttachmentThumbnail: View {
+    let attachment: AttachmentData
+    @Environment(\.studioTheme) private var theme
+    @State private var nsImage: NSImage?
+
+    var body: some View {
+        Group {
+            if let nsImage = nsImage {
+                Image(nsImage: nsImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: 200, maxHeight: 120)
+                    .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadius * 0.5, style: .continuous))
+            } else if attachment.isImage {
+                RoundedRectangle(cornerRadius: theme.cornerRadius * 0.5, style: .continuous)
+                    .fill(theme.surfaceSecondary)
+                    .frame(width: 120, height: 80)
+                    .overlay(
+                        Image(systemName: "photo")
+                            .font(.system(size: 20))
+                            .foregroundStyle(theme.textTertiary)
+                    )
+            } else {
+                HStack(spacing: 4) {
+                    Image(systemName: "doc")
+                        .font(.system(size: 11))
+                    Text(attachment.name)
+                        .font(.system(size: 11))
+                        .lineLimit(1)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(theme.surfaceSecondary)
+                .clipShape(Capsule())
+            }
+        }
+        .task(id: attachment.id) {
+            guard nsImage == nil, attachment.isImage else { return }
+            let b64 = attachment.dataBase64
+            let name = attachment.name
+            let decoded = await Task.detached(priority: .userInitiated) { () -> NSImage? in
+                guard let data = Data(base64Encoded: b64) else { return nil }
+                return NSImage(data: data)
+            }.value
+            if let decoded = decoded {
+                chatViewLog.info("AttachmentThumbnail: decoded '\(name)', size=\(decoded.size.width)x\(decoded.size.height)")
+                nsImage = decoded
+            } else {
+                chatViewLog.warning("AttachmentThumbnail: decode failed for '\(name)'")
+            }
         }
     }
 }
