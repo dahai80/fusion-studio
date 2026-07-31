@@ -31,6 +31,7 @@ struct UnifiedChatView: View {
     @State private var renamingSessionId: String?
     @State private var renameText: String = ""
     @State private var pendingAttachments: [AttachmentData] = []
+    @State private var isDragTarget: Bool = false
 
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
@@ -491,6 +492,30 @@ struct UnifiedChatView: View {
         .padding(.horizontal, theme.spacingL)
         .padding(.vertical, theme.spacingM)
         .background(theme.contentBg)
+        .onDrop(of: [.fileURL], isTargeted: $isDragTarget) { providers in
+            handleDrop(providers: providers)
+        }
+        .overlay(
+            Group {
+                if isDragTarget {
+                    RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
+                        .stroke(theme.accent, lineWidth: 2)
+                        .background(theme.accent.opacity(0.08))
+                        .overlay(
+                            HStack(spacing: 6) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 14))
+                                Text("释放以添加附件")
+                                    .font(.system(size: theme.captionSize, weight: .medium))
+                            }
+                            .foregroundStyle(theme.accent)
+                        )
+                        .padding(.horizontal, theme.spacingL)
+                        .padding(.vertical, theme.spacingM)
+                        .allowsHitTesting(false)
+                }
+            }
+        )
     }
 
     // MARK: - Session List
@@ -908,6 +933,43 @@ struct UnifiedChatView: View {
                 chatViewLog.info("File attached: \(url.lastPathComponent), type=\(type), size=\(b64.count) chars base64")
             }
         }
+    }
+
+    private func handleDrop(providers: [NSItemProvider]) -> Bool {
+        var handled = false
+        for provider in providers {
+            guard provider.hasItemConformingToTypeIdentifier("public.file-url") else { continue }
+            provider.loadItem(forTypeIdentifier: "public.file-url", options: nil) { item, error in
+                guard let data = item as? Data,
+                      let url = URL(dataRepresentation: data, relativeTo: nil) else {
+                    chatViewLog.warning("Drop: cannot resolve file URL")
+                    return
+                }
+                DispatchQueue.main.async {
+                    guard let fileData = try? Data(contentsOf: url) else {
+                        chatViewLog.warning("Drop: cannot read file: \(url.path)")
+                        return
+                    }
+                    let ext = url.pathExtension.lowercased()
+                    let mime: String
+                    let type: String
+                    switch ext {
+                    case "png", "jpg", "jpeg", "gif", "bmp", "webp", "tiff":
+                        type = "image"
+                        mime = "image/\(ext == "jpg" ? "jpeg" : ext)"
+                    default:
+                        type = "file"
+                        mime = "application/octet-stream"
+                    }
+                    let b64 = fileData.base64EncodedString()
+                    let att = AttachmentData(name: url.lastPathComponent, type: type, mimeType: mime, dataBase64: b64)
+                    self.pendingAttachments.append(att)
+                    chatViewLog.info("Drop: attached \(url.lastPathComponent), type=\(type), size=\(b64.count) chars base64")
+                }
+            }
+            handled = true
+        }
+        return handled
     }
 
     private func newChat() async {

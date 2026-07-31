@@ -277,6 +277,8 @@ class ChatSessionStore: ObservableObject {
     weak var agentBridge: AgentBridge?
     private let storeDir = NSHomeDirectory() + "/.fusion-studio/chats"
     private var fusionCodeClient: FusionCodeAPIClient?
+    private var activeRAGWatchId: String?
+    private var activeRAGWatchKbId: String?
 
     init() {}
 
@@ -478,6 +480,7 @@ class ChatSessionStore: ObservableObject {
         sessions.removeAll { $0.id == sessionId }
         if activeSession?.id == sessionId {
             activeSession = sessions.first
+            await stopRAGWatch()
         }
         chatStoreLog.info("Deleted chat session: \(sessionId)")
         if let ipc = ipc {
@@ -608,6 +611,23 @@ class ChatSessionStore: ObservableObject {
                                 "type": "image_url",
                                 "image_url": ["url": "data:\(att.mimeType);base64,\(att.dataBase64)"]
                             ])
+                            // OCR: extract text from image if OCR model available
+                            if let ipc = self.ipc {
+                                do {
+                                    let ocrModels = try await ipc.listOCRModels()
+                                    if let ocrModel = ocrModels.first {
+                                        let dataURI = "data:\(att.mimeType);base64,\(att.dataBase64)"
+                                        let ocrText = try await ipc.ocr(image: dataURI, model: ocrModel)
+                                        if !ocrText.isEmpty {
+                                            let truncated = String(ocrText.prefix(8000))
+                                            fileTextParts.append("[OCR: \(att.name)]\n\(truncated)")
+                                            chatStoreLog.info("OCR: extracted \(ocrText.count) chars from \(att.name)")
+                                        }
+                                    }
+                                } catch {
+                                    chatStoreLog.debug("OCR skipped for \(att.name): \(error.localizedDescription)")
+                                }
+                            }
                         } else {
                             if let decoded = Data(base64Encoded: att.dataBase64),
                                let textContent = String(data: decoded, encoding: .utf8) {
@@ -628,7 +648,25 @@ class ChatSessionStore: ObservableObject {
             chatStoreLog.info("sendMessage: starting stream infer, model=\(model), webSearch=\(self.isWebSearchEnabled), mode=\(mode)")
 
             if mode == ChatMode.research.rawValue {
-                let response = try await runResearch(messages: messages, model: model)
+                var response: String
+                if let ipcClient = self.ipc {
+                    do {
+                        let result = try await ipcClient.researchAdaptive(question: text, maxSteps: 10, webSearch: isWebSearchEnabled)
+                        if let answer = result["answer"] as? String, !answer.isEmpty {
+                            response = answer
+                            let steps = result["steps_taken"] as? Int ?? 0
+                            let sufficient = result["sufficient"] as? Bool ?? true
+                            chatStoreLog.info("research.adaptive: \(steps) steps, sufficient=\(sufficient)")
+                        } else {
+                            response = try await runResearch(messages: messages, model: model)
+                        }
+                    } catch {
+                        chatStoreLog.warning("research.adaptive failed, falling back to local: \(error.localizedDescription)")
+                        response = try await runResearch(messages: messages, model: model)
+                    }
+                } else {
+                    response = try await runResearch(messages: messages, model: model)
+                }
                 let assistantMsg = ChatMessageData(role: "assistant", content: response, mode: mode, parentId: userMsg.id)
                 var updatedSession = activeSession ?? session
                 updatedSession.messages.append(assistantMsg)
@@ -673,7 +711,21 @@ class ChatSessionStore: ObservableObject {
             }
             saveSessionLocal(updatedSession)
             chatStoreLog.info("Chat stream response received, length=\(response.count)")
-            print("[ChatStore] sendMessage: inferStream OK, \(response.count) chars")
+            // Auto-render artifact from assistant response
+            if let ipcClient = self.ipc, response.count >= 1500 {
+                do {
+                    let renderResult = try await ipcClient.artifactRender(
+                        content: response,
+                        sessionId: session.id,
+                        langHint: ""
+                    )
+                    if let created = renderResult["created"] as? Bool, created {
+                        chatStoreLog.info("Auto-rendered artifact from response")
+                    }
+                } catch {
+                    chatStoreLog.debug("Artifact render skipped: \(error.localizedDescription)")
+                }
+            }
         } catch {
             print("[ChatStore] sendMessage: inferStream FAILED: \(error), type=\(type(of: error))")
             let errorDetail = (error as? BridgeError)?.detail ?? "\(type(of: error)): \(error.localizedDescription)"
@@ -927,6 +979,37 @@ class ChatSessionStore: ObservableObject {
         let model = !selectedModel.isEmpty ? selectedModel : defaultModel
 
         let editedMsgIdx = session.messages.firstIndex(where: { $0.id == editedMsgId })
+
+        // Pre-compute OCR for image attachments (async, before synchronous map)
+        var ocrCache: [String: String] = [:] // att.id -> ocr text
+        if let ipc = self.ipc {
+            do {
+                let ocrModels = try await ipc.listOCRModels()
+                if let ocrModel = ocrModels.first {
+                    if let idx = editedMsgIdx {
+                        for msg in session.messages[0...idx] {
+                            for att in msg.attachments where att.isImage {
+                                if ocrCache[att.id] == nil {
+                                    do {
+                                        let dataURI = "data:\(att.mimeType);base64,\(att.dataBase64)"
+                                        let ocrText = try await ipc.ocr(image: dataURI, model: ocrModel)
+                                        if !ocrText.isEmpty {
+                                            ocrCache[att.id] = String(ocrText.prefix(8000))
+                                            chatStoreLog.info("OCR: extracted \(ocrText.count) chars from \(att.name)")
+                                        }
+                                    } catch {
+                                        chatStoreLog.debug("OCR skipped for \(att.name): \(error.localizedDescription)")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch {
+                chatStoreLog.debug("OCR model discovery failed: \(error.localizedDescription)")
+            }
+        }
+
         let messagesToResend: [[String: Any]]
         if let idx = editedMsgIdx {
             messagesToResend = session.messages[0...idx].map { msg in
@@ -938,6 +1021,9 @@ class ChatSessionStore: ObservableObject {
                     for att in msg.attachments {
                         if att.isImage {
                             parts.append(["type": "image_url", "image_url": ["url": "data:\(att.mimeType);base64,\(att.dataBase64)"]])
+                            if let ocrText = ocrCache[att.id] {
+                                fileTextParts.append("[OCR: \(att.name)]\n\(ocrText)")
+                            }
                         } else {
                             if let decoded = Data(base64Encoded: att.dataBase64),
                                let textContent = String(data: decoded, encoding: .utf8) {
@@ -1120,5 +1206,38 @@ class ChatSessionStore: ObservableObject {
             createdAt: dict["created_at"] as? Double ?? 0,
             attachments: attachments
         )
+    }
+
+    // MARK: - RAG Watch
+
+    func startRAGWatch(kbId: String, filePaths: [String], pollInterval: Int = 30) async {
+        await stopRAGWatch()
+        guard let ipcClient = ipc, !filePaths.isEmpty else { return }
+        do {
+            let result = try await ipcClient.ragWatch(kbId: kbId, filePaths: filePaths, pollInterval: pollInterval)
+            if let wid = result["watch_id"] as? String {
+                activeRAGWatchId = wid
+                activeRAGWatchKbId = kbId
+                chatStoreLog.info("RAG watch started: kb=%s watch=%s files=%d", kbId, wid, filePaths.count)
+            }
+        } catch {
+            chatStoreLog.debug("RAG watch start failed: \(error.localizedDescription)")
+        }
+    }
+
+    func stopRAGWatch() async {
+        guard let wid = activeRAGWatchId, let kbId = activeRAGWatchKbId, let ipcClient = ipc else {
+            activeRAGWatchId = nil
+            activeRAGWatchKbId = nil
+            return
+        }
+        do {
+            _ = try await ipcClient.ragUnwatch(kbId: kbId, watchId: wid)
+            chatStoreLog.info("RAG watch stopped: kb=%s watch=%s", kbId, wid)
+        } catch {
+            chatStoreLog.debug("RAG watch stop failed: \(error.localizedDescription)")
+        }
+        activeRAGWatchId = nil
+        activeRAGWatchKbId = nil
     }
 }

@@ -753,6 +753,37 @@ class IPCClient: ObservableObject {
         return json
     }
 
+    func artifactRender(content: String, sessionId: String, langHint: String = "", projectId: String? = nil) async throws -> [String: Any] {
+        var params: [String: Any] = [
+            "content": content,
+            "session_id": sessionId,
+            "lang_hint": langHint,
+        ]
+        if let pid = projectId { params["project_id"] = pid }
+        return try await artifactsCall(method: "artifact.render", params: params)
+    }
+
+    // MARK: - Agent Studio: Skill Execute + Research Adaptive
+
+    func skillExecute(agentId: String, skillName: String, input: String, tools: [String] = []) async throws -> [String: Any] {
+        var params: [String: Any] = [
+            "agent_id": agentId,
+            "skill_name": skillName,
+            "input": input,
+        ]
+        if !tools.isEmpty { params["tools"] = tools }
+        return try await call(method: "skill.execute", params: params)
+    }
+
+    func researchAdaptive(question: String, maxSteps: Int = 10, webSearch: Bool = true) async throws -> [String: Any] {
+        let params: [String: Any] = [
+            "question": question,
+            "max_steps": maxSteps,
+            "web_search": webSearch,
+        ]
+        return try await call(method: "research.adaptive", params: params)
+    }
+
     // Callers: UnifiedChatView, ChatSessionStore, RAGPipelineView, ToolBrowserView, MemoryView, SafetyView, VerificationView, TokenBudgetView. Affected APIs: chat.get/switch_branch/branches/message_tree, rag.vector_search, verify.verify, budget.set/status, safety.approve/reject, tool.list/get/dynamic_register/dynamic_unregister, memory.recall_relevant/auto_forget, session.list, graph.update. Data schemas: all return [String: Any] JSON-RPC results matching daemon_server.py handler signatures. User instruction: "审视是否所有需要功能和api所有需要的GUI都在~/fusion/fusion-studio都已经有对应GUI了，所有有问题的都要在fusion-studio补齐GUI"
 
     // MARK: - Chat Extended
@@ -777,6 +808,48 @@ class IPCClient: ObservableObject {
 
     func ragVectorSearch(query: String, limit: Int = 10, threshold: Double = 0.5) async throws -> [String: Any] {
         return try await call(method: "rag.vector_search", params: ["query": query, "limit": limit, "threshold": threshold])
+    }
+
+    private static let ragHTTPBase = "http://127.0.0.1:8901"
+
+    func ragWatch(kbId: String, filePaths: [String], pollInterval: Int = 30) async throws -> [String: Any] {
+        let body: [String: Any] = ["file_paths": filePaths, "poll_interval": pollInterval]
+        let data = try JSONSerialization.data(withJSONObject: body)
+        var request = URLRequest(url: URL(string: "\(IPCClient.ragHTTPBase)/kb/bases/\(kbId)/watch")!)
+        request.httpMethod = "POST"
+        request.httpBody = data
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let (responseData, _) = try await URLSession.shared.data(for: request)
+        guard let json = try JSONSerialization.jsonObject(with: responseData) as? [String: Any] else {
+            throw IPCError.invalidResponse
+        }
+        ipcLog.info("ragWatch: kb=%s files=%d", kbId, filePaths.count)
+        return json
+    }
+
+    func ragUnwatch(kbId: String, watchId: String) async throws -> [String: Any] {
+        let body: [String: Any] = ["watch_id": watchId]
+        let data = try JSONSerialization.data(withJSONObject: body)
+        var request = URLRequest(url: URL(string: "\(IPCClient.ragHTTPBase)/kb/bases/\(kbId)/unwatch")!)
+        request.httpMethod = "POST"
+        request.httpBody = data
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let (responseData, _) = try await URLSession.shared.data(for: request)
+        guard let json = try JSONSerialization.jsonObject(with: responseData) as? [String: Any] else {
+            throw IPCError.invalidResponse
+        }
+        ipcLog.info("ragUnwatch: kb=%s watch=%s", kbId, watchId)
+        return json
+    }
+
+    func ragWatchStatus(kbId: String) async throws -> [String: Any] {
+        var request = URLRequest(url: URL(string: "\(IPCClient.ragHTTPBase)/kb/bases/\(kbId)/watch/status")!)
+        request.httpMethod = "GET"
+        let (responseData, _) = try await URLSession.shared.data(for: request)
+        guard let json = try JSONSerialization.jsonObject(with: responseData) as? [String: Any] else {
+            throw IPCError.invalidResponse
+        }
+        return json
     }
 
     // MARK: - Verify
@@ -1053,5 +1126,54 @@ enum IPCError: Error, LocalizedError {
         case .invalidResponse:   return "无效的响应"
         case .rpcError(_, let m): return "RPC 错误: \(m)"
         }
+    }
+}
+
+// MARK: - MLX HTTP API (REST, not JSON-RPC)
+extension IPCClient {
+    private static let mlxHTTPBase = "http://127.0.0.1:11435"
+
+    func ocr(image: String, model: String, outputFormat: String = "markdown") async throws -> String {
+        let url = URL(string: "\(IPCClient.mlxHTTPBase)/v1/ocr")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body: [String: Any] = [
+            "model": model,
+            "image": image,
+            "output_format": outputFormat
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (data, resp) = try await URLSession.shared.data(for: request)
+        guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else {
+            let code = (resp as? HTTPURLResponse)?.statusCode ?? -1
+            ipcLog.error("OCR API failed: status=\(code)")
+            throw IPCError.rpcError(code: code, message: "OCR API failed")
+        }
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let results = json["results"] as? [[String: Any]],
+              let text = results.first?["text"] as? String else {
+            ipcLog.error("OCR API: unexpected response format")
+            throw IPCError.invalidResponse
+        }
+        ipcLog.info("OCR: extracted \(text.count) chars from image")
+        return text
+    }
+
+    func listOCRModels() async throws -> [String] {
+        let url = URL(string: "\(IPCClient.mlxHTTPBase)/v1/ocr/models")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        let (data, resp) = try await URLSession.shared.data(for: request)
+        guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else {
+            throw IPCError.invalidResponse
+        }
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let models = json["models"] as? [[String: Any]] else {
+            return []
+        }
+        let ids = models.compactMap { $0["id"] as? String }
+        ipcLog.info("OCR models found: \(ids)")
+        return ids
     }
 }
