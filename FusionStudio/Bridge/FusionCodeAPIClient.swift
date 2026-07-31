@@ -53,6 +53,21 @@ struct MemoryFile: Codable {
     let content: String?
 }
 
+// Callers: UnifiedChatView project picker. Affected API: fetchProjects→GET /api/projects. Data: FusionCodeProject (id/name/path/created_at/updated_at).
+struct FusionCodeProject: Codable, Identifiable {
+    let id: String
+    let name: String
+    let path: String?
+    let createdAt: Double?
+    let updatedAt: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, path
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+}
+
 struct WriteResult: Codable {
     let ok: Bool
     let path: String?
@@ -80,6 +95,19 @@ actor FusionCodeAPIClient {
             req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
         return req
+    }
+
+    func fetchProjects() async throws -> [FusionCodeProject] {
+        let req = makeRequest(path: "/api/projects")
+        let (data, resp) = try await URLSession.shared.data(for: req)
+        guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else {
+            logger.error("fetchProjects failed: \((resp as? HTTPURLResponse)?.statusCode ?? -1)")
+            throw FusionCodeAPIError.httpError(statusCode: (resp as? HTTPURLResponse)?.statusCode ?? -1)
+        }
+        struct ProjectsResponse: Codable { let projects: [FusionCodeProject] }
+        let result = try JSONDecoder().decode(ProjectsResponse.self, from: data)
+        logger.info("fetchProjects: got \(result.projects.count) projects")
+        return result.projects
     }
 
     func getProjectContext(cwd: String) async throws -> ProjectContext {

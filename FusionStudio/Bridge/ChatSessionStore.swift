@@ -270,6 +270,7 @@ class ChatSessionStore: ObservableObject {
     private var ipc: IPCClient?
     weak var agentBridge: AgentBridge?
     private let storeDir = NSHomeDirectory() + "/.fusion-studio/chats"
+    private var fusionCodeClient: FusionCodeAPIClient?
 
     init() {}
 
@@ -279,6 +280,24 @@ class ChatSessionStore: ObservableObject {
 
     func setAgentBridge(_ bridge: AgentBridge) {
         self.agentBridge = bridge
+    }
+
+    func setFusionCodeClient(_ client: FusionCodeAPIClient) {
+        self.fusionCodeClient = client
+        chatStoreLog.info("FusionCodeAPIClient set on ChatSessionStore")
+    }
+
+    func fetchProjects() async -> [FusionCodeProject] {
+        guard let client = fusionCodeClient else {
+            chatStoreLog.warning("fetchProjects: no FusionCodeAPIClient, returning empty")
+            return []
+        }
+        do {
+            return try await client.fetchProjects()
+        } catch {
+            chatStoreLog.error("fetchProjects failed: \(error.localizedDescription)")
+            return []
+        }
     }
 
     // MARK: - Local persistence
