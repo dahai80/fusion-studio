@@ -1,10 +1,8 @@
-// Callers: TeamCollabView + 8 area views (TeamCollabAreas.swift) read these models and TeamCollabStore.
-// Affected API: TeamCollabStore (ObservableObject), SwarmAgent, TaskDelegation, HandoffRecord,
-//   PlazaChannel, PlazaMessage, FMStats, OrchestrationPattern, SubGraphInfo, CircuitBreakerState.
-// Data schemas: mirrors fusion-agent-studio agent_runtime/swarm_router.py (SwarmAgent, TaskDelegation,
-//   HandoffContext), plaza.py (Plaza channel/message), fmp_router.py (FMProtocol stats, circuit breaker),
-//   orchestrator.py (6 patterns), sub_graph registry. Sample data is static for GUI prototyping.
-// User instruction: "帮我用 UI/UX Pro Max 为 fusion-agent-studio的团队协作管理相关能力 设计一套完整的 macOS 原生风格GUI…输出高保真原型 + 组件规范 + 配色/字体/间距系统"
+// Callers: TeamCollabView + area views (TeamCollabAreas.swift) read these models and TeamCollabStore.
+// Affected API: OrchestrationPattern(6 cases aligned with MultiAgentOrchestrator), IndependentRouter(3 types),
+//   TeamCollabStore.activePattern/activeRouter.
+// Data schemas: mirrors fusion-agent-studio orchestrator.py(6 patterns), swarm_router.py, plaza.py, fmp_router.py.
+// User instruction: "Issue #8 team-collab 映射修正：区分 MultiAgentOrchestrator 6 模式与 SwarmRouter/Plaza/FMProtocol 独立 router"
 
 import SwiftUI
 import os.log
@@ -151,46 +149,85 @@ struct FMStats: Hashable {
     var maxRounds: Int
 }
 
+// MARK: - OrchestrationPattern (6 cases aligned with MultiAgentOrchestrator)
+// Backend: team.orchestrate(pattern=..., agents=[...])
+// Issue #8: add sequential/parallel, remove swarm/plaza (they are independent routers)
+
 enum OrchestrationPattern: String, CaseIterable, Identifiable {
+    case sequential = "sequential"
+    case parallel = "parallel"
     case masterWorker = "master_worker"
     case handoff = "handoff"
     case broadcast = "broadcast"
     case supervisor = "supervisor"
-    case swarm = "swarm"
-    case plaza = "plaza"
 
     var id: String { rawValue }
 
     var label: String {
         switch self {
+        case .sequential: return "顺序执行"
+        case .parallel: return "并行执行"
         case .masterWorker: return "主从分解"
         case .handoff: return "链式交接"
         case .broadcast: return "广播汇聚"
         case .supervisor: return "监督路由"
-        case .swarm: return "蜂群委派"
-        case .plaza: return "广场协商"
         }
     }
 
     var icon: String {
         switch self {
+        case .sequential: return "list.number"
+        case .parallel: return "square.split.2x2"
         case .masterWorker: return "rectangle.split.3x1"
         case .handoff: return "arrow.right.arrow.left"
         case .broadcast: return "antenna.radiowaves.left.and.right"
         case .supervisor: return "shield.lefthalf.filled"
-        case .swarm: return "circle.hexagonpath"
-        case .plaza: return "bubble.left.and.bubble.right"
         }
     }
 
     var desc: String {
         switch self {
+        case .sequential: return "按顺序依次执行,前一步输出作为后一步输入"
+        case .parallel: return "所有 Agent 并行执行,结果合并"
         case .masterWorker: return "Master 分解任务 -> Workers 并行 -> 汇总"
         case .handoff: return "Agent 链式传递,携带累积上下文"
         case .broadcast: return "全员并行处理,合并策略(concat/best/json)"
         case .supervisor: return "Supervisor 逐轮路由,JSON 决策 done/__end__"
-        case .swarm: return "按能力/handoff_targets 委派,跳数受控"
-        case .plaza: return "频道广播 + @mention 路由 + 熔断"
+        }
+    }
+}
+
+// MARK: - IndependentRouter (SwarmRouter / Plaza / FMProtocol)
+// Issue #8: separate from OrchestrationPattern — these are independent routers with their own endpoints
+
+enum IndependentRouter: String, CaseIterable, Identifiable {
+    case swarm = "swarm"
+    case plaza = "plaza"
+    case fmp = "fmp"
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .swarm: return "蜂群委派"
+        case .plaza: return "广场协商"
+        case .fmp: return "FM 协议"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .swarm: return "circle.hexagonpath"
+        case .plaza: return "bubble.left.and.bubble.right"
+        case .fmp: return "antenna.radiowaves.left.and.right"
+        }
+    }
+
+    var desc: String {
+        switch self {
+        case .swarm: return "按能力/handoff_targets 委派,跳数受控 (team.swarm_*)"
+        case .plaza: return "频道广播 + @mention 路由 + 熔断 (team.plaza_*)"
+        case .fmp: return "FMProtocol send/receive/route/mention/circuit breaker (team.fmp_*)"
         }
     }
 }
@@ -215,7 +252,8 @@ final class TeamCollabStore: ObservableObject {
     @Published var channels: [PlazaChannel]
     @Published var fmStats: FMStats
     @Published var subGraphs: [SubGraphInfo]
-    @Published var activePattern: OrchestrationPattern = .swarm
+    @Published var activePattern: OrchestrationPattern = .sequential
+    @Published var activeRouter: IndependentRouter = .swarm
 
     init() {
         let cb = CircuitBreakerState(threshold: 3, failures: 3, isOpen: true, resetInSeconds: 30)

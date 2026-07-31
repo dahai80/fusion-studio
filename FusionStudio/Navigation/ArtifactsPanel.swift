@@ -622,7 +622,8 @@ struct ArtifactsPanel: View {
         chatGenerating = true
         chatError = nil
 
-        var messages: [[String: String]] = [["role": "system", "content": chatSystemPrompt()]]
+        // Callers: ArtifactsPanel.sendChat → agentBridge.inferStream. Affected API: inferStream [[String:Any]]. Data: chatMessages.
+        var messages: [[String: Any]] = [["role": "system", "content": chatSystemPrompt()]]
         for msg in chatMessages where msg.role != "system" {
             messages.append(["role": msg.role, "content": msg.content])
         }
@@ -1521,7 +1522,8 @@ struct ArtifactCreateChatSheet: View {
         errorMessage = nil
 
         let systemPrompt = buildSystemPrompt()
-        var messages: [[String: String]] = [
+        // Callers: ArtifactsPanel.generateArtifact → agentBridge.infer. Affected API: infer [[String:Any]].
+        var messages: [[String: Any]] = [
             ["role": "system", "content": systemPrompt]
         ]
         for msg in chatMessages where msg.role != "system" {

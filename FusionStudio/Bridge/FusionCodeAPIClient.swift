@@ -20,14 +20,27 @@ struct ProjectContext: Codable {
 }
 
 struct SessionSummary: Codable {
-    let id: String
-    let createdAt: String?
-    let messageCount: Int?
-    let preview: String?
+    let sessionId: String
+    let summary: String?
+    let firstPrompt: String?
+    let lastModified: Double?
+    let createdAt: Double?
+    let gitBranch: String?
+    let cwd: String?
+    let fileSize: Int?
+
+    var id: String { sessionId }
+    var preview: String { firstPrompt ?? summary ?? "" }
 }
 
 struct SessionDetail: Codable {
-    let id: String
+    let sessionId: String
+    let summary: String?
+    let firstPrompt: String?
+    let lastModified: Double?
+    let createdAt: Double?
+    let gitBranch: String?
+    let cwd: String?
     let messages: [SessionMessage]?
     struct SessionMessage: Codable {
         let role: String?
@@ -90,8 +103,8 @@ actor FusionCodeAPIClient {
         return result.sessions
     }
 
-    func getSession(id: String, cwd: String) async throws -> SessionDetail {
-        let req = makeRequest(path: "/api/sessions/\(id)", query: ["cwd": cwd])
+    func getSession(sessionId: String, cwd: String) async throws -> SessionDetail {
+        let req = makeRequest(path: "/api/sessions/\(sessionId)", query: ["cwd": cwd])
         let (data, resp) = try await URLSession.shared.data(for: req)
         guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else {
             throw FusionCodeAPIError.httpError(statusCode: (resp as? HTTPURLResponse)?.statusCode ?? -1)

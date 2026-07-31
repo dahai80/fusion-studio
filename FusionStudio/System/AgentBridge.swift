@@ -119,12 +119,15 @@ struct MLXModelInfo: Codable, Equatable, Identifiable {
     }
 }
 
+// Callers: ChatSessionStore, DesignBridge, CodeEditorView. Affected API: BridgeError.userMessage. Data: error classification for user-facing messages.
 enum BridgeError: Error, Equatable {
     case notConnected
     case ipcError(String)
     case decodeError(String)
     case rpcError(code: Int, message: String)
     case timeout
+    case serviceUnavailable(String)
+    case authFailed(String)
 
     var detail: String {
         switch self {
@@ -133,6 +136,42 @@ enum BridgeError: Error, Equatable {
         case .decodeError(let msg): return "decodeError — \(msg)"
         case .rpcError(let code, let msg): return "rpcError(\(code)) — \(msg)"
         case .timeout: return "timeout"
+        case .serviceUnavailable(let msg): return "serviceUnavailable — \(msg)"
+        case .authFailed(let msg): return "authFailed — \(msg)"
+        }
+    }
+
+    var userMessage: String {
+        switch self {
+        case .notConnected:
+            return "未连接到后端服务，请检查服务是否正常运行。"
+        case .serviceUnavailable:
+            return "AI 推理服务未启动，请先启动 fusion-mlx 服务后重试。"
+        case .authFailed:
+            return "AI 服务认证失败，请检查 API Key 配置是否正确。"
+        case .timeout:
+            return "请求超时，AI 服务响应时间过长，请稍后重试。"
+        case .ipcError(let msg):
+            if msg.contains("connection refused") || msg.contains("Could not connect") || msg.contains("网络不可达") || msg.contains("No route to host") {
+                return "AI 推理服务未启动，请先启动 fusion-mlx 服务后重试。"
+            }
+            if msg.contains("timed out") || msg.contains("超时") {
+                return "请求超时，AI 服务响应时间过长，请稍后重试。"
+            }
+            if msg.contains("non-200") || msg.contains("HTTP 4") || msg.contains("HTTP 5") {
+                return "AI 服务返回异常，请检查服务状态或稍后重试。"
+            }
+            return "AI 服务暂时不可用，请稍后重试。"
+        case .decodeError:
+            return "AI 服务返回数据异常，请检查服务版本是否匹配。"
+        case .rpcError(let code, _):
+            if code == 401 || code == 403 {
+                return "AI 服务认证失败，请检查 API Key 配置是否正确。"
+            }
+            if code == 404 {
+                return "AI 推理服务未启动，请先启动 fusion-mlx 服务后重试。"
+            }
+            return "AI 服务暂时不可用（错误码：\(code)），请稍后重试。"
         }
     }
 }
@@ -714,12 +753,16 @@ final class AgentBridge: ObservableObject {
             }
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let httpResp = response as? HTTPURLResponse else {
-                throw BridgeError.ipcError("Non-HTTP response from MLX")
+                throw BridgeError.serviceUnavailable("MLX non-HTTP response")
             }
             guard httpResp.statusCode == 200 else {
                 let body = String(data: data, encoding: .utf8) ?? ""
                 logger.error("fetchModels: HTTP \(httpResp.statusCode) — \(body)")
-                throw BridgeError.ipcError("MLX returned HTTP \(httpResp.statusCode)")
+                let code = httpResp.statusCode
+                if code == 401 || code == 403 {
+                    throw BridgeError.authFailed("MLX returned HTTP \(code)")
+                }
+                throw BridgeError.serviceUnavailable("MLX returned HTTP \(code)")
             }
             guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                   let modelList = json["data"] as? [[String: Any]] else {
@@ -809,7 +852,7 @@ final class AgentBridge: ObservableObject {
         }
 
         let systemPrompt = await ContextAssembler.shared.assembleWithRAG(project: pm.activeProject, query: userMessage)
-        var messages: [[String: String]] = [["role": "system", "content": systemPrompt]]
+        var messages: [[String: Any]] = [["role": "system", "content": systemPrompt]]
         for msg in chatMessages {
             messages.append(["role": msg.role, "content": msg.content])
         }
@@ -855,7 +898,7 @@ final class AgentBridge: ObservableObject {
         chatMessages = session.messages
     }
 
-    func infer(messages: [[String: String]], model: String = "", temperature: Double = 0.7, maxTokens: Int = 2048, effort: String = "medium", thinking: Bool = false) async throws -> String {
+    func infer(messages: [[String: Any]], model: String = "", temperature: Double = 0.7, maxTokens: Int = 2048, effort: String = "medium", thinking: Bool = false, webSearch: Bool = false) async throws -> String {
         let config = FusionConfig.shared
         let baseURL = config.mlxBaseURL
         let apiKey = config.mlxResolvedApiKey
@@ -876,6 +919,9 @@ final class AgentBridge: ObservableObject {
         if thinking {
             body["chat_template_kwargs"] = ["enable_thinking": true]
         }
+        if webSearch {
+            body["web_search"] = true
+        }
         guard let requestData = try? JSONSerialization.data(withJSONObject: body) else {
             throw BridgeError.ipcError("Failed to encode request")
         }
@@ -889,12 +935,16 @@ final class AgentBridge: ObservableObject {
         }
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResp = response as? HTTPURLResponse else {
-            throw BridgeError.ipcError("Non-HTTP response from MLX")
+            throw BridgeError.serviceUnavailable("MLX non-HTTP response")
         }
         guard httpResp.statusCode == 200 else {
             let responseBody = String(data: data, encoding: .utf8) ?? ""
             logger.error("infer: HTTP \(httpResp.statusCode) — \(responseBody)")
-            throw BridgeError.ipcError("MLX inference returned HTTP \(httpResp.statusCode)")
+            let code = httpResp.statusCode
+            if code == 401 || code == 403 {
+                throw BridgeError.authFailed("MLX inference returned HTTP \(code)")
+            }
+            throw BridgeError.serviceUnavailable("MLX inference returned HTTP \(code)")
         }
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let choices = json["choices"] as? [[String: Any]],
@@ -910,12 +960,12 @@ final class AgentBridge: ObservableObject {
         return content
     }
 
-    func inferStream(messages: [[String: String]], model: String = "", temperature: Double = 0.7, maxTokens: Int = 2048, effort: String = "medium", thinking: Bool = false, onToken: @escaping (String) -> Void) async throws -> String {
+    func inferStream(messages: [[String: Any]], model: String = "", temperature: Double = 0.7, maxTokens: Int = 2048, effort: String = "medium", thinking: Bool = false, webSearch: Bool = false, onToken: @escaping (String) -> Void) async throws -> String {
         // Callers: ChatSessionStore.sendMessage, AgentBridge.sendProjectChat. Affected API: inferStream. Data: baseURL, model.
         let config = FusionConfig.shared
         let baseURL = config.mlxBaseURL
         let apiKey = config.mlxResolvedApiKey
-        print("[inferStream] baseURL=\(baseURL), model=\(model), apiKey=\(apiKey.isEmpty ? "empty" : "set")")
+        print("[inferStream] baseURL=\(baseURL), model=\(model), apiKey=\(apiKey.isEmpty ? "empty" : "set"), webSearch=\(webSearch)")
         guard let url = URL(string: "\(baseURL)/v1/chat/completions") else {
             throw BridgeError.ipcError("Invalid MLX URL: \(baseURL)")
         }
@@ -925,6 +975,9 @@ final class AgentBridge: ObservableObject {
             "max_tokens": maxTokens,
             "stream": true,
         ]
+        if webSearch {
+            body["web_search"] = true
+        }
         if !model.isEmpty {
             body["model"] = model
         }
@@ -948,8 +1001,14 @@ final class AgentBridge: ObservableObject {
         }
 
         let (bytes, response) = try await URLSession.shared.bytes(for: request)
-        guard let httpResp = response as? HTTPURLResponse, httpResp.statusCode == 200 else {
-            throw BridgeError.ipcError("MLX streaming returned non-200")
+        guard let httpResp = response as? HTTPURLResponse else {
+            throw BridgeError.serviceUnavailable("MLX non-HTTP response")
+        }
+        if httpResp.statusCode == 401 || httpResp.statusCode == 403 {
+            throw BridgeError.authFailed("MLX returned HTTP \(httpResp.statusCode)")
+        }
+        guard httpResp.statusCode == 200 else {
+            throw BridgeError.serviceUnavailable("MLX streaming returned HTTP \(httpResp.statusCode)")
         }
 
         var fullContent = ""

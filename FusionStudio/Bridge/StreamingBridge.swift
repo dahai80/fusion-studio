@@ -1,7 +1,8 @@
 // Callers: UnifiedChatView, AgentStudioView — real-time streaming event bridge
 // Affected API: StreamingBridge (streamEvents auto-trim at 500, trimStreamEvents, memoryCheckMB)
+//   + connectWebSocket / streamChatWS for fusion-code /ws/chat endpoint
 // Data schemas: StreamChatEvent (type/sessionId/event), published as @Published streamEvents
-// User instruction: "按照P1~P6顺序实施所有未完成的任务" — Task #37 P6-3 内存泄漏检测+长时间运行稳定性
+// User instruction: "Issue #11 StreamingBridge 添加 WebSocket 模式，对接 fusion-code /ws/chat"
 
 import Combine
 import Foundation
@@ -45,6 +46,7 @@ class StreamingBridge: ObservableObject {
 
     private static let maxStreamEvents = 500
 
+    // TCP+NDJSON mode (mlx-daemon)
     private var connection: NWConnection?
     private let queue = DispatchQueue(label: "com.fusion-studio.ws", qos: .userInitiated)
     private let wsHost: String
@@ -53,10 +55,23 @@ class StreamingBridge: ObservableObject {
     private var activeSessionId: String = ""
     private var accumulatedContent: String = ""
 
+    // WebSocket mode (fusion-code /ws/chat)
+    private var webSocketTask: URLSessionWebSocketTask?
+    private var webSocketURL: URL?
+    private var wsReconnectTimer: Timer?
+    private let wsSession: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 30
+        config.timeoutIntervalForResource = 300
+        return URLSession(configuration: config)
+    }()
+
     init(host: String = "127.0.0.1", port: UInt16 = 11435) {
         self.wsHost = host
         self.wsPort = port
     }
+
+    // MARK: - TCP+NDJSON mode (mlx-daemon)
 
     func connect() {
         let endpoint = NWEndpoint.hostPort(host: NWEndpoint.Host(wsHost), port: NWEndpoint.Port(rawValue: wsPort)!)
@@ -178,6 +193,165 @@ class StreamingBridge: ObservableObject {
             }
         }
     }
+
+    // MARK: - WebSocket mode (fusion-code /ws/chat)
+
+    func connectWebSocket(url: String) {
+        guard let wsURL = URL(string: url) else {
+            bridgeLog.error("StreamingBridge: invalid WebSocket URL: \(url)")
+            return
+        }
+        self.webSocketURL = wsURL
+        let task = wsSession.webSocketTask(with: wsURL)
+        self.webSocketTask = task
+        task.resume()
+
+        bridgeLog.info("StreamingBridge: WebSocket connecting to \(url)")
+        isConnected = true
+        receiveWebSocketLoop()
+    }
+
+    func disconnectWebSocket() {
+        webSocketTask?.cancel(with: .goingAway, reason: nil)
+        webSocketTask = nil
+        isConnected = false
+        wsReconnectTimer?.invalidate()
+        wsReconnectTimer = nil
+        bridgeLog.info("StreamingBridge: WebSocket disconnected")
+    }
+
+    func streamChatWS(sessionId: String, message: String, model: String = "") {
+        guard let task = webSocketTask else {
+            bridgeLog.error("StreamingBridge: WebSocket not connected, cannot stream")
+            return
+        }
+
+        activeSessionId = sessionId
+        accumulatedContent = ""
+        isStreaming = true
+        streamEvents = []
+
+        var msg: [String: Any] = [
+            "session_id": sessionId,
+            "message": message,
+        ]
+        if !model.isEmpty {
+            msg["model"] = model
+        }
+
+        guard let data = try? JSONSerialization.data(withJSONObject: msg),
+              let str = String(data: data, encoding: .utf8) else { return }
+
+        let wsMsg = URLSessionWebSocketTask.Message.string(str)
+        task.send(wsMsg) { [weak self] error in
+            if let error = error {
+                bridgeLog.error("StreamingBridge: WebSocket send failed: \(error.localizedDescription)")
+                Task { @MainActor in
+                    self?.isStreaming = false
+                }
+            } else {
+                bridgeLog.info("StreamingBridge: WebSocket message sent for session \(sessionId)")
+            }
+        }
+    }
+
+    private func receiveWebSocketLoop() {
+        guard let task = webSocketTask else { return }
+        task.receive { [weak self] result in
+            guard let self = self else { return }
+            switch result {
+            case .success(let message):
+                switch message {
+                case .string(let text):
+                    self.processWebSocketMessage(text)
+                case .data(let data):
+                    if let text = String(data: data, encoding: .utf8) {
+                        self.processWebSocketMessage(text)
+                    }
+                @unknown default:
+                    break
+                }
+                self.receiveWebSocketLoop()
+            case .failure(let error):
+                bridgeLog.error("StreamingBridge: WebSocket receive error: \(error.localizedDescription)")
+                Task { @MainActor in
+                    self.isConnected = false
+                    self.scheduleWSReconnect()
+                }
+            }
+        }
+    }
+
+    private func processWebSocketMessage(_ text: String) {
+        guard let data = text.data(using: .utf8),
+              let msg = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            bridgeLog.warning("StreamingBridge: WebSocket received non-JSON: \(text.prefix(100))")
+            return
+        }
+
+        let type = msg["type"] as? String ?? ""
+
+        if type == "chat_event", let eventDict = msg["event"] as? [String: Any] {
+            let sessionId = msg["session_id"] as? String ?? activeSessionId
+            let eventType = eventDict["type"] as? String ?? ""
+            let content = eventDict["content"] as? String ?? ""
+            let name = eventDict["name"] as? String ?? ""
+            let args = eventDict["args"] as? [String: Any] ?? [:]
+            let timestamp = eventDict["timestamp"] as? Double ?? 0
+
+            let event = StreamChatEvent(
+                sessionId: sessionId,
+                eventType: eventType,
+                content: content,
+                name: name,
+                args: args,
+                timestamp: timestamp
+            )
+
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                self.streamEvents.append(event)
+                self.trimStreamEvents()
+                if event.isToken {
+                    self.accumulatedContent += event.content
+                }
+            }
+        } else if type == "chat_done" {
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                self.isStreaming = false
+                bridgeLog.info("StreamingBridge: WebSocket stream done, content length: \(self.accumulatedContent.count)")
+            }
+        } else if type == "error" {
+            let errorMsg = msg["message"] as? String ?? "unknown error"
+            let event = StreamChatEvent(
+                sessionId: activeSessionId,
+                eventType: "error",
+                content: errorMsg,
+                timestamp: Date().timeIntervalSince1970
+            )
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                self.streamEvents.append(event)
+                self.isStreaming = false
+                bridgeLog.error("StreamingBridge: WebSocket error: \(errorMsg)")
+            }
+        } else {
+            bridgeLog.debug("StreamingBridge: WebSocket unhandled type: \(type)")
+        }
+    }
+
+    private func scheduleWSReconnect() {
+        wsReconnectTimer?.invalidate()
+        DispatchQueue.main.async { [weak self] in
+            self?.wsReconnectTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { _ in
+                guard let self = self, let url = self.webSocketURL?.absoluteString else { return }
+                self.connectWebSocket(url: url)
+            }
+        }
+    }
+
+    // MARK: - Shared utilities
 
     private func trimStreamEvents() {
         if streamEvents.count > Self.maxStreamEvents {

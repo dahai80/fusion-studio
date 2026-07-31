@@ -559,7 +559,8 @@ class CodeAgent: ObservableObject {
                 guard let bridge = self.agentBridge else {
                     throw NSError(domain: "CodeAgent", code: 1, userInfo: [NSLocalizedDescriptionKey: "AgentBridge not connected"])
                 }
-                let messages: [[String: String]] = [
+                // Callers: CodeEditorView → agentBridge.infer. Affected API: infer [[String:Any]].
+                let messages: [[String: Any]] = [
                     ["role": "user", "content": fullPrompt]
                 ]
                 let response = try await bridge.infer(
@@ -578,7 +579,7 @@ class CodeAgent: ObservableObject {
                 }
             } catch {
                 await MainActor.run {
-                    let err = "⚠️ AI inference failed: \(error.localizedDescription)\n\nEnsure fusion-mlx is running on port 11434 and the daemon is connected."
+                    let err = "⚠️ \((error as? BridgeError)?.userMessage ?? "AI 服务暂时不可用，请稍后重试。")"
                     self.conversation.append(CodeMessage(role: "assistant", content: err, timestamp: Date(), codeBlocks: []))
                     self.isThinking = false
                     self.objectWillChange.send()

@@ -2,11 +2,40 @@
 // Affected API: ChatSessionStore @MainActor ObservableObject (CRUD + send via IPC)
 // Data schemas: ChatMessageData (id/role/content/parentId/childrenIds/toolCalls), ChatSessionData (id/title/mode/messages/activeBranch)
 
+import AppKit
 import Combine
 import Foundation
 import os.log
 
 private let chatStoreLog = Logger(subsystem: "com.fusion.studio", category: "ChatSessionStore")
+
+struct AttachmentData: Identifiable, Equatable, Codable {
+    let id: String
+    let name: String
+    let type: String       // "image" | "file"
+    let mimeType: String   // e.g. "image/png", "text/plain"
+    let dataBase64: String // base64-encoded content
+
+    init(
+        id: String = UUID().uuidString,
+        name: String,
+        type: String,
+        mimeType: String,
+        dataBase64: String
+    ) {
+        self.id = id
+        self.name = name
+        self.type = type
+        self.mimeType = mimeType
+        self.dataBase64 = dataBase64
+    }
+
+    var isImage: Bool { type == "image" }
+
+    static func == (lhs: AttachmentData, rhs: AttachmentData) -> Bool {
+        lhs.id == rhs.id
+    }
+}
 
 struct ChatMessageData: Identifiable, Equatable {
     let id: String
@@ -18,6 +47,7 @@ struct ChatMessageData: Identifiable, Equatable {
     let toolCalls: [[String: Any]]
     let metadata: [String: Any]
     let createdAt: Double
+    var attachments: [AttachmentData]
 
     init(
         id: String = UUID().uuidString,
@@ -28,7 +58,8 @@ struct ChatMessageData: Identifiable, Equatable {
         childrenIds: [String] = [],
         toolCalls: [[String: Any]] = [],
         metadata: [String: Any] = [:],
-        createdAt: Double = Date().timeIntervalSince1970
+        createdAt: Double = Date().timeIntervalSince1970,
+        attachments: [AttachmentData] = []
     ) {
         self.id = id
         self.role = role
@@ -39,6 +70,7 @@ struct ChatMessageData: Identifiable, Equatable {
         self.toolCalls = toolCalls
         self.metadata = metadata
         self.createdAt = createdAt
+        self.attachments = attachments
     }
 
     static func == (lhs: ChatMessageData, rhs: ChatMessageData) -> Bool {
@@ -56,6 +88,10 @@ struct ChatSessionData: Identifiable {
     var messages: [ChatMessageData]
     var activeBranch: String
     var graphId: String
+    var isPinned: Bool
+    var preset: String?
+    var outputStyle: String?
+    var projectId: String?
     var createdAt: Double
     var updatedAt: Double
 
@@ -66,6 +102,10 @@ struct ChatSessionData: Identifiable {
         messages: [ChatMessageData] = [],
         activeBranch: String = "",
         graphId: String = "",
+        isPinned: Bool = false,
+        preset: String? = nil,
+        outputStyle: String? = nil,
+        projectId: String? = nil,
         createdAt: Double = Date().timeIntervalSince1970,
         updatedAt: Double = Date().timeIntervalSince1970
     ) {
@@ -75,6 +115,10 @@ struct ChatSessionData: Identifiable {
         self.messages = messages
         self.activeBranch = activeBranch
         self.graphId = graphId
+        self.isPinned = isPinned
+        self.preset = preset
+        self.outputStyle = outputStyle
+        self.projectId = projectId
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -124,6 +168,94 @@ enum ChatMode: String, CaseIterable {
     }
 }
 
+// Callers: UnifiedChatView quickCard. Affected API: ChatPreset.systemPrompt. Data: preset→system prompt injection per PRD L1.
+enum ChatPreset: String, CaseIterable {
+    case code = "code"
+    case write = "write"
+    case create = "create"
+    case learn = "learn"
+    case life = "life"
+
+    var label: String {
+        switch self {
+        case .code: return "Code"
+        case .write: return "Write"
+        case .create: return "Create"
+        case .learn: return "Learn"
+        case .life: return "Life"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .code: return "chevron.left.forwardslash.chevron.right"
+        case .write: return "pencil"
+        case .create: return "sparkles"
+        case .learn: return "book"
+        case .life: return "heart"
+        }
+    }
+
+    var systemPrompt: String {
+        switch self {
+        case .code:
+            return "You are an expert coding assistant. Prioritize code blocks, diffs, step-by-step debugging, and concise technical explanations. Minimize verbose natural language."
+        case .write:
+            return "You are a professional writing assistant. Focus on logical structure, consistent tone, clear paragraph organization, and polished formal output. Prefer structured headings and logical argumentation."
+        case .create:
+            return "You are a creative brainstorming assistant. Encourage divergent thinking, provide multiple alternative proposals, and generate imaginative concepts. Embrace bold ideas."
+        case .learn:
+            return "You are a patient learning tutor. Explain concepts from simple to deep, use analogies and examples, actively confirm understanding of key points, and create structured study outlines."
+        case .life:
+            return "You are a helpful daily life assistant. Give concise, practical advice for travel planning, to-do lists, decision-making, and everyday questions. Keep responses light and actionable."
+        }
+    }
+
+    var placeholder: String {
+        switch self {
+        case .code: return "Ask me to write, debug, or refactor code..."
+        case .write: return "Ask me to help write a document, email, or report..."
+        case .create: return "Ask me to brainstorm ideas, stories, or concepts..."
+        case .learn: return "Ask me to explain a concept or create a study plan..."
+        case .life: return "Ask me to plan a trip, make a list, or help decide..."
+        }
+    }
+}
+
+enum OutputStyle: String, CaseIterable {
+    case formal = "formal"
+    case concise = "concise"
+    case technical = "technical"
+    case academic = "academic"
+
+    var label: String {
+        switch self {
+        case .formal: return "正式"
+        case .concise: return "极简"
+        case .technical: return "技术文档"
+        case .academic: return "学术"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .formal: return "text.badge.star"
+        case .concise: return "text.badge.minus"
+        case .technical: return "text.badge.checkmark"
+        case .academic: return "text.badge.plus"
+        }
+    }
+
+    var stylePrompt: String {
+        switch self {
+        case .formal: return "Use a formal, professional tone with complete sentences and polished language."
+        case .concise: return "Be extremely concise. Use bullet points and short phrases. Avoid filler words."
+        case .technical: return "Format output as technical documentation with headers, code examples, parameter tables, and versioned sections."
+        case .academic: return "Use academic style: citations, abstract, methodology, structured argumentation, and formal terminology."
+        }
+    }
+}
+
 @MainActor
 class ChatSessionStore: ObservableObject {
     @Published var sessions: [ChatSessionData] = []
@@ -133,6 +265,7 @@ class ChatSessionStore: ObservableObject {
     @Published var streamingContent: String = ""
     @Published var isGenerating: Bool = false
     @Published var selectedModel: String = ""
+    @Published var isWebSearchEnabled: Bool = false
 
     private var ipc: IPCClient?
     weak var agentBridge: AgentBridge?
@@ -188,6 +321,10 @@ class ChatSessionStore: ObservableObject {
             "mode": s.mode,
             "active_branch": s.activeBranch,
             "graph_id": s.graphId,
+            "is_pinned": s.isPinned,
+            "preset": s.preset as Any,
+            "output_style": s.outputStyle as Any,
+            "project_id": s.projectId as Any,
             "created_at": s.createdAt,
             "updated_at": s.updatedAt,
             "messages": s.messages.map { msg in
@@ -197,6 +334,11 @@ class ChatSessionStore: ObservableObject {
                     "created_at": msg.createdAt,
                 ]
                 if !msg.childrenIds.isEmpty { m["children_ids"] = msg.childrenIds }
+                if !msg.attachments.isEmpty {
+                    m["attachments"] = msg.attachments.map { a in
+                        ["id": a.id, "name": a.name, "type": a.type, "mime_type": a.mimeType, "data_base64": a.dataBase64]
+                    }
+                }
                 return m
             },
         ]
@@ -263,6 +405,48 @@ class ChatSessionStore: ObservableObject {
         activeSession = session
     }
 
+    func pinSession(_ sessionId: String) {
+        guard let idx = sessions.firstIndex(where: { $0.id == sessionId }) else { return }
+        sessions[idx].isPinned.toggle()
+        let pinned = sessions[idx].isPinned
+        chatStoreLog.info("Pin session \(sessionId): \(pinned)")
+        if activeSession?.id == sessionId {
+            activeSession = sessions[idx]
+        }
+        saveSessionLocal(sessions[idx])
+        sortSessions()
+    }
+
+    func renameSession(_ sessionId: String, newTitle: String) {
+        guard let idx = sessions.firstIndex(where: { $0.id == sessionId }) else { return }
+        let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        sessions[idx].title = trimmed
+        chatStoreLog.info("Rename session \(sessionId): '\(trimmed)'")
+        if activeSession?.id == sessionId {
+            activeSession = sessions[idx]
+        }
+        saveSessionLocal(sessions[idx])
+    }
+
+    func shareSession(_ sessionId: String) {
+        guard let session = sessions.first(where: { $0.id == sessionId }) else { return }
+        let text = session.messages.map { msg in
+            "[\(msg.role)] \(msg.content)"
+        }.joined(separator: "\n\n")
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
+        chatStoreLog.info("Share session \(sessionId): copied \(session.messages.count) messages to pasteboard")
+    }
+
+    private func sortSessions() {
+        sessions.sort { a, b in
+            if a.isPinned != b.isPinned { return a.isPinned && !b.isPinned }
+            return a.updatedAt > b.updatedAt
+        }
+    }
+
     func deleteSession(_ sessionId: String) async {
         deleteSessionLocal(sessionId)
         sessions.removeAll { $0.id == sessionId }
@@ -279,13 +463,33 @@ class ChatSessionStore: ObservableObject {
         }
     }
 
-    func sendMessage(_ text: String, mode: String = "") async {
+    func clearAllSessions() async {
+        let ids = sessions.map { $0.id }
+        let count = ids.count
+        for id in ids {
+            deleteSessionLocal(id)
+        }
+        sessions.removeAll()
+        activeSession = nil
+        chatStoreLog.info("Cleared all \(count) chat sessions")
+        if let ipc = ipc {
+            for id in ids {
+                do {
+                    _ = try await ipc.call(method: "chat.delete", params: ["session_id": id])
+                } catch {
+                    chatStoreLog.warning("chat.delete IPC failed for \(id)")
+                }
+            }
+        }
+    }
+
+    func sendMessage(_ text: String, mode: String = "", attachments: [AttachmentData] = []) async {
         guard let session = activeSession else {
             chatStoreLog.error("sendMessage: no active session, abort")
             return
         }
-        chatStoreLog.info("sendMessage: text='\(text.prefix(50))', session=\(session.id), msgs=\(session.messages.count)")
-        let userMsg = ChatMessageData(role: "user", content: text)
+        chatStoreLog.info("sendMessage: text='\(text.prefix(50))', session=\(session.id), msgs=\(session.messages.count), attachments=\(attachments.count)")
+        let userMsg = ChatMessageData(role: "user", content: text, attachments: attachments)
         var updated = session
         updated.messages.append(userMsg)
         updated.activeBranch = userMsg.id
@@ -327,17 +531,41 @@ class ChatSessionStore: ObservableObject {
             let fallbackModel = FusionConfig.shared.mlxModelSmall.isEmpty ? "Qwen3.5-9B-4bit" : FusionConfig.shared.mlxModelSmall
             let model = !selectedModel.isEmpty ? selectedModel : (bridge.models.first?.id ?? fallbackModel)
             print("[ChatStore] sendMessage: resolved model='\(model)', selectedModel='\(selectedModel)', bridgeModels=\(bridge.models.map { $0.id }), configSmall='\(FusionConfig.shared.mlxModelSmall)'")
-            let messages: [[String: String]] = updated.messages.map { msg in
-                ["role": msg.role, "content": msg.content]
+            // caller: ChatSessionStore.sendMessage → builds message array with optional system prompt + multimodal
+            var messages: [[String: Any]] = []
+            var systemParts: [String] = []
+            if let presetRaw = updated.preset, let preset = ChatPreset(rawValue: presetRaw) {
+                systemParts.append(preset.systemPrompt)
             }
-            chatStoreLog.info("sendMessage: starting stream infer, model=\(model)")
-            print("[ChatStore] sendMessage: inferStream start, model=\(model), msgs=\(messages.count), selectedModel=\(selectedModel), bridgeModels=\(bridge.models.map { $0.id })")
-            print("[ChatStore] sendMessage: calling bridge.inferStream now...")
+            if let styleRaw = updated.outputStyle, let style = OutputStyle(rawValue: styleRaw) {
+                systemParts.append(style.stylePrompt)
+            }
+            if !systemParts.isEmpty {
+                messages.append(["role": "system", "content": systemParts.joined(separator: " ")])
+            }
+            for msg in updated.messages {
+                if msg.attachments.isEmpty {
+                    messages.append(["role": msg.role, "content": msg.content])
+                } else {
+                    var contentParts: [[String: Any]] = [["type": "text", "text": msg.content]]
+                    for att in msg.attachments {
+                        if att.isImage {
+                            contentParts.append([
+                                "type": "image_url",
+                                "image_url": ["url": "data:\(att.mimeType);base64,\(att.dataBase64)"]
+                            ])
+                        }
+                    }
+                    messages.append(["role": msg.role, "content": contentParts])
+                }
+            }
+            chatStoreLog.info("sendMessage: starting stream infer, model=\(model), webSearch=\(self.isWebSearchEnabled)")
             let response = try await bridge.inferStream(
                 messages: messages,
                 model: model,
                 temperature: 0.7,
                 maxTokens: 2048,
+                webSearch: self.isWebSearchEnabled,
                 onToken: { [weak self] token in
                     Task { @MainActor in
                         self?.streamingContent += token
@@ -368,10 +596,11 @@ class ChatSessionStore: ObservableObject {
         } catch {
             print("[ChatStore] sendMessage: inferStream FAILED: \(error), type=\(type(of: error))")
             let errorDetail = (error as? BridgeError)?.detail ?? "\(type(of: error)): \(error.localizedDescription)"
+            let friendlyMsg = (error as? BridgeError)?.userMessage ?? "AI 服务暂时不可用，请稍后重试。"
             print("[ChatStore] errorDetail: \(errorDetail)")
             let errMsg = ChatMessageData(
                 role: "assistant",
-                content: "⚠️ AI inference failed: \(errorDetail)",
+                content: "⚠️ \(friendlyMsg)",
                 mode: mode,
                 parentId: userMsg.id
             )
@@ -584,14 +813,30 @@ class ChatSessionStore: ObservableObject {
         let model = !selectedModel.isEmpty ? selectedModel : (bridge.models.first?.id ?? fallbackModel)
 
         let editedMsgIdx = session.messages.firstIndex(where: { $0.id == editedMsgId })
-        let messagesToResend: [[String: String]]
+        let messagesToResend: [[String: Any]]
         if let idx = editedMsgIdx {
             messagesToResend = session.messages[0...idx].map { msg in
-                ["role": msg.role, "content": msg.content]
+                if msg.attachments.isEmpty {
+                    return ["role": msg.role, "content": msg.content]
+                } else {
+                    var parts: [[String: Any]] = [["type": "text", "text": msg.content]]
+                    for att in msg.attachments where att.isImage {
+                        parts.append(["type": "image_url", "image_url": ["url": "data:\(att.mimeType);base64,\(att.dataBase64)"]])
+                    }
+                    return ["role": msg.role, "content": parts]
+                }
             }
         } else {
             messagesToResend = session.messages.map { msg in
-                ["role": msg.role, "content": msg.content]
+                if msg.attachments.isEmpty {
+                    return ["role": msg.role, "content": msg.content]
+                } else {
+                    var parts: [[String: Any]] = [["type": "text", "text": msg.content]]
+                    for att in msg.attachments where att.isImage {
+                        parts.append(["type": "image_url", "image_url": ["url": "data:\(att.mimeType);base64,\(att.dataBase64)"]])
+                    }
+                    return ["role": msg.role, "content": parts]
+                }
             }
         }
 
@@ -629,7 +874,7 @@ class ChatSessionStore: ObservableObject {
         } catch {
             let errMsg = ChatMessageData(
                 role: "assistant",
-                content: "⚠️ AI inference failed: \((error as? BridgeError)?.detail ?? error.localizedDescription)",
+                content: "⚠️ \((error as? BridgeError)?.userMessage ?? "AI 服务暂时不可用，请稍后重试。")",
                 parentId: editedMsgId
             )
             var updatedSession = activeSession ?? session
@@ -655,6 +900,10 @@ class ChatSessionStore: ObservableObject {
         let graphId = dict["graph_id"] as? String ?? ""
         let createdAt = dict["created_at"] as? Double ?? 0
         let updatedAt = dict["updated_at"] as? Double ?? 0
+        let isPinned = dict["is_pinned"] as? Bool ?? false
+        let preset = dict["preset"] as? String
+        let outputStyle = dict["output_style"] as? String
+        let projectId = dict["project_id"] as? String
 
         var messages: [ChatMessageData] = []
         if let msgs = dict["messages"] as? [[String: Any]] {
@@ -668,6 +917,10 @@ class ChatSessionStore: ObservableObject {
             messages: messages,
             activeBranch: activeBranch,
             graphId: graphId,
+            isPinned: isPinned,
+            preset: preset,
+            outputStyle: outputStyle,
+            projectId: projectId,
             createdAt: createdAt,
             updatedAt: updatedAt
         )
@@ -676,6 +929,17 @@ class ChatSessionStore: ObservableObject {
     private func parseMessageData(_ dict: [String: Any]) -> ChatMessageData? {
         guard let id = dict["id"] as? String,
               let role = dict["role"] as? String else { return nil }
+        var attachments: [AttachmentData] = []
+        if let attList = dict["attachments"] as? [[String: Any]] {
+            attachments = attList.compactMap { a in
+                guard let aid = a["id"] as? String,
+                      let name = a["name"] as? String,
+                      let type = a["type"] as? String,
+                      let mime = a["mime_type"] as? String,
+                      let b64 = a["data_base64"] as? String else { return nil }
+                return AttachmentData(id: aid, name: name, type: type, mimeType: mime, dataBase64: b64)
+            }
+        }
         return ChatMessageData(
             id: id,
             role: role,
@@ -685,7 +949,8 @@ class ChatSessionStore: ObservableObject {
             childrenIds: dict["children_ids"] as? [String] ?? [],
             toolCalls: dict["tool_calls"] as? [[String: Any]] ?? [],
             metadata: dict["metadata"] as? [String: Any] ?? [:],
-            createdAt: dict["created_at"] as? Double ?? 0
+            createdAt: dict["created_at"] as? Double ?? 0,
+            attachments: attachments
         )
     }
 }

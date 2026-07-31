@@ -307,6 +307,17 @@ class DocGenerator: ObservableObject {
             - 22 个原孤儿模块视图现可经侧边栏直达（排除训练/仿真/教育三个待补能力模块）
             - SectionContentView 新增 .mlx/.multiNode 段路由至 ModuleDetailView，IconRailView/FusionSidebarView 同步接入
 
+            ## [0.1.7] - 2026-07-30
+
+            ### 新增
+            - Issue #8: OrchestrationPattern 映射修正 — 6 模式 (sequential/parallel/masterWorker/handoff/broadcast/supervisor) 与 IndependentRouter (swarm/plaza/fmp) 分离
+            - Issue #11: StreamingBridge WebSocket 模式 — connectWebSocket/streamChatWS/disconnectWebSocket，对接 fusion-code /ws/chat
+            - RouterCard 视图 + IndependentRouter 网格加入 OrchestrationArea
+
+            ### 修复
+            - FusionCodeAPIClient SessionSummary/SessionDetail 字段对齐上游 (sessionId/summary/firstPrompt/lastModified/createdAt/gitBranch/cwd/fileSize)
+            - 测试修复: AppState default module .code -> .chat
+
             ## [0.1.4] - 2026-07-29
 
             ### 新增
