@@ -1,18 +1,18 @@
 # Upstream HTTP Endpoints — Fusion Studio Integration Reference
 
-> Generated: 2026-07-28
+> Generated: 2026-07-31
 > Repos: fusion-agent-studio, fusion-artifacts-engine, fusion-design
 > Callers: IPCClient, DesignBridge, AgentBridge
-> Affected API: IPCClient artifact.* / knowledge.*, fusion-agent-studio /v1/*, fusion-artifacts-engine JSON-RPC
+> Affected API: IPCClient artifact.* / knowledge.*, fusion-agent-studio /v1/*, fusion-artifacts-engine JSON-RPC + REST + SSE
 
 ---
 
-## 1. fusion-artifacts-engine (JSON-RPC 2.0)
+## 1. fusion-artifacts-engine (JSON-RPC 2.0 + REST + SSE)
 
 Base URL: configured via FusionConfig.shared.artifactsEngineURL
-Transport: HTTP POST, JSON-RPC 2.0
+Transport: HTTP POST (JSON-RPC 2.0), HTTP GET (REST), SSE (text/event-stream)
 
-### IPCClient Methods (implemented)
+### IPCClient Methods — Core CRUD
 
 | Method | IPCClient Method | Status |
 |--------|------------------|--------|
@@ -21,7 +21,7 @@ Transport: HTTP POST, JSON-RPC 2.0
 | artifact.get_content | artifactGetContent(artifactId:version:) | done |
 | artifact.list | artifactList(sessionId:includeDeleted:) | done |
 | artifact.delete | artifactDelete(artifactId:hard:) | done |
-| artifact.update | artifactUpdate(artifactId:content:changeLog:) | done |
+| artifact.update | artifactUpdate(artifactId:content:changeLog:projectId:metadata:expectedContentHash:) | done |
 | artifact.version_list | artifactVersionList(artifactId:) | done |
 | artifact.version_rollback | artifactVersionRollback(artifactId:targetVersion:) | done |
 | artifact.inject | artifactInject(messages:outputBudget:) | done |
@@ -31,29 +31,119 @@ Transport: HTTP POST, JSON-RPC 2.0
 | artifact.import | artifactImport(data:) | done |
 | ping | artifactPing() | done |
 
-### IPCClient Methods (NEW - added 2026-07-28)
+### IPCClient Methods — Extended (Issue #26-A)
 
 | Method | IPCClient Method | Status |
 |--------|------------------|--------|
-| artifact.sync | artifactSync(artifactId:filePath:direction:) | NEW |
-| artifact.watch | artifactWatch(artifactId:action:) | NEW |
-| artifact.export_code | artifactExportCode(artifactId:language:) | NEW |
-| artifact.import_code | artifactImportCode(code:language:name:sessionId:) | NEW |
+| artifact.rename | artifactRename(artifactId:newName:) | done |
+| artifact.star | artifactStar(artifactId:starred:) | done |
+| artifact.pin | artifactPin(artifactId:chatId:pinned:) | done |
+| artifact.duplicate | artifactDuplicate(artifactId:newName:) | done |
+| artifact.create_snapshot | artifactCreateSnapshot(artifactId:label:author:) | done |
+| artifact.list_snapshots | artifactListSnapshots(artifactId:) | done |
+| artifact.list_all | artifactListAll(filters:sort:page:pageSize:) | done |
+| artifact.create_share | artifactCreateShare(artifactId:createdBy:expiresAt:) | done |
+| artifact.get_shared | artifactGetShared(shareId:) | done |
+| artifact.revoke_share | artifactRevokeShare(shareId:) | done |
+| artifact.list_recycle | artifactListRecycle(page:pageSize:) | done |
+| artifact.restore | artifactRestore(artifactId:) | done |
+| artifact.purge_expired | artifactPurgeExpired() | done |
+| artifact.move_to_project_kb | artifactMoveToProjectKb(artifactId:projectId:) | done |
+| artifact.create_folder | artifactCreateFolder(name:parentId:) | done |
+| artifact.list_folders | artifactListFolders(parentId:) | done |
+| artifact.rename_folder | artifactRenameFolder(folderId:newName:) | done |
+| artifact.delete_folder | artifactDeleteFolder(folderId:) | done |
+| artifact.move_to_folder | artifactMoveToFolder(artifactId:folderId:) | done |
+| artifact.add_tag | artifactAddTag(artifactId:tag:) | done |
+| artifact.remove_tag | artifactRemoveTag(artifactId:tag:) | done |
+| artifact.list_tags | artifactListTags(artifactId:) | done |
+| artifact.list_events | artifactListEvents(artifactId:limit:offset:) | done |
+| artifact.interact | artifactInteract(artifactId:action:payload:sessionId:) | done |
+| artifact.render | artifactRender(content:sessionId:langHint:projectId:) | done |
+| artifact.sync | artifactSync(artifactId:filePath:direction:) | done |
+| artifact.watch | artifactWatch(artifactId:action:) | done |
+| artifact.export_code | artifactExportCode(artifactId:language:) | done |
+| artifact.import_code | artifactImportCode(code:language:name:sessionId:) | done |
 
-### artifact.sync Parameters
+### artifact.update — Optimistic Locking
+
+The `expected_content_hash` parameter enables optimistic concurrency:
+- Client sends the SHA-256 hash of the content it last read
+- Server rejects update if the current content hash differs (conflict)
+- Returns error code `-32603` with message `"content_hash_mismatch"` on conflict
+- Client should re-read content, merge changes, and retry
+
+### artifact.list_events Parameters
+
 - artifact_id (string): Artifact ID
-- file_path (string): Local file path to sync with
-- direction (string): "artifact_to_file" | "file_to_artifact" | "bidirectional"
-- Returns: { "synced": bool, "content": string?, "version": int? }
+- limit (int): Max events to return (default 50)
+- offset (int): Skip offset events (default 0)
+- Returns: `{ "events": [{ "id": string, "type": string, "timestamp": float, "data": object }] }`
 
-### artifact.watch Parameters
-- artifact_id (string): Artifact ID
-- action (string): "register" | "unregister" | "poll"
-- Returns: { "watching": bool, "changed": bool, "latest_version": int? }
+### REST Endpoints (Issue #26-B)
 
-### Upstream Issues to File
-1. project_id scope — artifact CRUD needs project_id parameter for multi-project isolation
-2. Design metadata — artifact metadata needs structured design fields (tokens, component_name, framework)
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/v1/share/{share_id} | None | Public share access (read-only render) |
+| POST | /api/token-count | None | Count tokens for text |
+
+#### GET /api/v1/share/{share_id}
+
+No authentication required. Returns the shared artifact's read-only render data.
+
+Response (200):
+```json
+{
+    "share_id": "shr_abc123",
+    "artifact": {
+        "id": "art_xyz",
+        "name": "Example Artifact",
+        "type": "code",
+        "content": "...",
+        "rendered_html": "..."
+    },
+    "expires_at": "2026-08-01T00:00:00Z"
+}
+```
+
+Error (404): `{ "error": "share not found or expired" }`
+
+IPCClient method: `shareGet(shareId:)`
+
+### SSE Event Streams (Issue #26-C)
+
+| Path | Description | IPCClient Method |
+|------|-------------|------------------|
+| /api/v1/artifacts/{id}/events | Single artifact event stream | artifactEventStream(artifactId:lastEventId:) |
+| /api/v1/sessions/{sid}/events | Session event stream | sessionEventStream(sessionId:lastEventId:) |
+
+#### SSE Contract
+
+Transport: HTTP GET, `Accept: text/event-stream`
+Reconnect: Send `Last-Event-ID` header to resume from last received event
+
+Stream format:
+```
+id: evt_001
+data: {"type": "artifact.updated", "artifact_id": "art_xyz", "version": 5}
+
+id: evt_002
+data: {"type": "artifact.starred", "artifact_id": "art_xyz", "starred": true}
+```
+
+Each parsed event is delivered as `[String: Any]` via `AsyncStream<[String: Any]>`.
+The `_sse_event_id` key is injected for reconnect tracking.
+
+Event types (artifact):
+- `artifact.updated` — content or metadata changed
+- `artifact.starred` / `artifact.unstarred`
+- `artifact.version_created` — new version saved
+- `artifact.deleted`
+
+Event types (session):
+- `artifact.created` — new artifact in session
+- `artifact.updated` — artifact content changed
+- `artifact.deleted` — artifact removed
 
 ---
 
@@ -139,5 +229,7 @@ Complete API at /api/v1 and /api/v2 including:
 | DesignBridge | fusion-artifacts-engine | artifact.* (JSON-RPC) |
 | DesignBridge (RAG) | fusion-artifacts-engine | artifact.* for ingest/search via agent-studio |
 | AgentBridge | fusion-agent-studio | /v1/chat/completions, sessions, memory |
-| IPCClient | fusion-artifacts-engine | Full artifact CRUD + sync + watch |
+| IPCClient | fusion-artifacts-engine | Full artifact CRUD + sync + watch + REST share + SSE |
 | IPCClient | fusion-agent-studio | Knowledge bases, MCP, providers |
+| ArtifactShareDialog | fusion-artifacts-engine | REST /api/v1/share/{share_id} |
+| ArtifactsPanel | fusion-artifacts-engine | SSE /api/v1/artifacts/{id}/events |

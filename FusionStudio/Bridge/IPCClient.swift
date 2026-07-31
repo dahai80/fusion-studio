@@ -763,11 +763,12 @@ class IPCClient: ObservableObject {
         return try await artifactsCall(method: "artifact.delete", params: ["artifact_id": artifactId, "hard": hard])
     }
 
-    func artifactUpdate(artifactId: String, content: String, changeLog: String? = nil, projectId: String? = nil, metadata: [String: Any]? = nil) async throws -> [String: Any] {
+    func artifactUpdate(artifactId: String, content: String, changeLog: String? = nil, projectId: String? = nil, metadata: [String: Any]? = nil, expectedContentHash: String? = nil) async throws -> [String: Any] {
         var params: [String: Any] = ["artifact_id": artifactId, "content": content]
         if let cl = changeLog { params["change_log"] = cl }
         if let p = projectId { params["project_id"] = p }
         if let m = metadata { params["metadata"] = m }
+        if let h = expectedContentHash { params["expected_content_hash"] = h }
         return try await artifactsCall(method: "artifact.update", params: params)
     }
 
@@ -951,6 +952,11 @@ class IPCClient: ObservableObject {
         return try await artifactsCall(method: "artifact.move_to_project_kb", params: ["artifact_id": artifactId, "project_id": projectId])
     }
 
+    // Callers: ArtifactsPanel event timeline. Affected API: artifact.list_events (new).
+    func artifactListEvents(artifactId: String, limit: Int = 50, offset: Int = 0) async throws -> [String: Any] {
+        return try await artifactsCall(method: "artifact.list_events", params: ["artifact_id": artifactId, "limit": limit, "offset": offset])
+    }
+
     func artifactInteract(artifactId: String, action: String = "state_change", payload: [String: Any] = [:], sessionId: String = "") async throws -> [String: Any] {
         var p: [String: Any] = ["artifact_id": artifactId, "action": action, "payload": payload]
         if !sessionId.isEmpty { p["session_id"] = sessionId }
@@ -993,6 +999,106 @@ class IPCClient: ObservableObject {
 
     func artifactListTags(artifactId: String) async throws -> [String: Any] {
         return try await artifactsCall(method: "artifact.list_tags", params: ["artifact_id": artifactId])
+    }
+
+    // MARK: - REST /api/v1 (Issue #26-B: public share direct access)
+
+    // Callers: ArtifactShareDialog / share link resolver. Affected API: GET /api/v1/share/{share_id}.
+    // No auth required; returns read-only artifact render data.
+    func shareGet(shareId: String) async throws -> [String: Any] {
+        let baseURL = artifactsEngineURL
+        guard let url = URL(string: "\(baseURL)/api/v1/share/\(shareId)") else {
+            throw IPCError.invalidRequest
+        }
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = "GET"
+        urlRequest.timeoutInterval = 15
+        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw IPCError.invalidResponse
+        }
+        guard httpResponse.statusCode == 200 else {
+            ipcLog.warning("shareGet HTTP \(httpResponse.statusCode) share_id=\(shareId, privacy: .public)")
+            throw IPCError.rpcError(code: httpResponse.statusCode, message: "shareGet HTTP \(httpResponse.statusCode)")
+        }
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw IPCError.invalidResponse
+        }
+        ipcLog.info("shareGet: share_id=\(shareId, privacy: .public) ok")
+        return json
+    }
+
+    // MARK: - SSE Subscriptions (Issue #26-C: artifact + session event streams)
+
+    // SSE event delivered via AsyncStream. Each element is [String: Any] parsed from data: line.
+    // Reconnect uses Last-Event-ID header.
+
+    func artifactEventStream(artifactId: String, lastEventId: String? = nil) -> AsyncStream<[String: Any]> {
+        let baseURL = artifactsEngineURL
+        return sseStream(urlString: "\(baseURL)/api/v1/artifacts/\(artifactId)/events", lastEventId: lastEventId)
+    }
+
+    func sessionEventStream(sessionId: String, lastEventId: String? = nil) -> AsyncStream<[String: Any]> {
+        let baseURL = artifactsEngineURL
+        return sseStream(urlString: "\(baseURL)/api/v1/sessions/\(sessionId)/events", lastEventId: lastEventId)
+    }
+
+    private func sseStream(urlString: String, lastEventId: String? = nil) -> AsyncStream<[String: Any]> {
+        AsyncStream { continuation in
+            guard let url = URL(string: urlString) else {
+                continuation.finish()
+                return
+            }
+            var request = URLRequest(url: url)
+            request.httpMethod = "GET"
+            request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+            if let eid = lastEventId {
+                request.setValue(eid, forHTTPHeaderField: "Last-Event-ID")
+            }
+            request.timeoutInterval = 300
+
+            let task = URLSession.shared.dataTask(with: request) { data, response, error in
+                if let error = error {
+                    ipcLog.warning("SSE stream error: \(error.localizedDescription, privacy: .public)")
+                    continuation.finish()
+                    return
+                }
+                guard let data = data else {
+                    continuation.finish()
+                    return
+                }
+                guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                    let code = (response as? HTTPURLResponse)?.statusCode ?? -1
+                    ipcLog.warning("SSE HTTP \(code) url=\(urlString, privacy: .public)")
+                    continuation.finish()
+                    return
+                }
+                let text = String(data: data, encoding: .utf8) ?? ""
+                var currentEventId: String?
+                for line in text.components(separatedBy: "\n") {
+                    if line.hasPrefix("id:") {
+                        currentEventId = String(line.dropFirst(3)).trimmingCharacters(in: .whitespaces)
+                    } else if line.hasPrefix("data:") {
+                        let jsonStr = String(line.dropFirst(5)).trimmingCharacters(in: .whitespaces)
+                        if let jsonData = jsonStr.data(using: .utf8),
+                           let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
+                            if let eid = currentEventId {
+                                var mutated = json
+                                mutated["_sse_event_id"] = eid
+                                continuation.yield(mutated)
+                            } else {
+                                continuation.yield(json)
+                            }
+                        }
+                    }
+                }
+                continuation.finish()
+            }
+            task.resume()
+            continuation.onTermination = { _ in
+                task.cancel()
+            }
+        }
     }
 
     // MARK: - Agent Studio: Skill Execute + Research Adaptive
