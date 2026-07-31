@@ -400,6 +400,8 @@ struct AgentStudioView: View {
                 FusionTabItem(title: "Connectors", icon: "link", badge: nil),
                 FusionTabItem(title: "API Keys", icon: "key", badge: nil),
                 FusionTabItem(title: "Styles", icon: "paintbrush", badge: nil),
+                FusionTabItem(title: "Analytics", icon: "chart.xyaxis.line", badge: nil),
+                FusionTabItem(title: "Alerts", icon: "bell", badge: nil),
                 FusionTabItem(title: "Marketplace", icon: "bag", badge: nil),
                 FusionTabItem(title: "Chat", icon: "bubble.left.and.bubble.right", badge: unreadCount > 0 ? unreadCount : nil),
             ])
@@ -415,8 +417,10 @@ struct AgentStudioView: View {
                 case 4: ConnectorTabView(toastManager: toastManager)
                 case 5: ApikeyTabView(toastManager: toastManager)
                 case 6: StyleTabView(toastManager: toastManager)
-                case 7: MarketplaceTabView(toastManager: toastManager)
-                case 8: ConversationView(toastManager: toastManager)
+                case 7: AnalyticsTabView(toastManager: toastManager)
+                case 8: AlertTabView(toastManager: toastManager)
+                case 9: MarketplaceTabView(toastManager: toastManager)
+                case 10: ConversationView(toastManager: toastManager)
                 default: AgentListView(toastManager: toastManager)
                 }
             }
@@ -2292,6 +2296,198 @@ struct CreateWorkflowSheet: View {
         }
         .frame(width: 600, height: 600)
         .background(theme.windowBg)
+    }
+}
+
+// MARK: - AnalyticsTabView
+
+struct AnalyticsTabView: View {
+    let toastManager: FusionToastManager
+    @EnvironmentObject private var bridge: AgentBridge
+    @Environment(\.studioTheme) var theme
+    @State private var selectedRange = "week"
+
+    private let ranges = ["day", "week", "month"]
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: theme.spacingL) {
+                HStack {
+                    Text("Analytics")
+                        .font(.system(size: theme.titleSize, weight: .bold))
+                        .foregroundStyle(theme.text)
+                    Spacer()
+                    Picker("Range", selection: $selectedRange) {
+                        ForEach(ranges, id: \.self) { r in
+                            Text(r.capitalized).tag(r)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 200)
+                    .onChange(of: selectedRange) { _, newRange in
+                        Task { await bridge.fetchAnalytics(range: newRange) }
+                    }
+                }
+                .padding(theme.spacingM)
+
+                analyticsCards
+                agentUsageList
+                Spacer()
+            }
+        }
+        .onAppear { Task { await bridge.fetchAnalytics(range: selectedRange) } }
+    }
+
+    private var analyticsCards: some View {
+        let d = bridge.analyticsData
+        let totalRequests = d["total_requests"] as? Int ?? 0
+        let totalTokens = d["total_tokens"] as? Int ?? 0
+        let avgLatency = d["avg_latency_ms"] as? Double ?? 0
+        let errorRate = d["error_rate"] as? Double ?? 0
+        let cards: [(String, String, String, TagColor)] = [
+            ("Total Requests", "\(totalRequests)", "text.bubble", .blue),
+            ("Total Tokens", "\(totalTokens)", "number", .blue),
+            ("Avg Latency", String(format: "%.0fms", avgLatency), "clock", .purple),
+            ("Error Rate", String(format: "%.1f%%", errorRate), "exclamationmark.triangle", errorRate > 5 ? .red : .green),
+        ]
+        return LazyVGrid(columns: [
+            GridItem(.flexible(), spacing: theme.spacingM),
+            GridItem(.flexible(), spacing: theme.spacingM),
+        ], spacing: theme.spacingM) {
+            ForEach(cards, id: \.0) { card in
+                VStack(alignment: .leading, spacing: theme.spacingS) {
+                    HStack {
+                        Image(systemName: card.2)
+                            .foregroundStyle(theme.accent)
+                        Spacer()
+                        Text(card.0)
+                            .font(.system(size: theme.captionSize))
+                            .foregroundStyle(theme.textTertiary)
+                    }
+                    Text(card.1)
+                        .font(.system(size: theme.titleSize, weight: .bold, design: .rounded))
+                        .foregroundStyle(theme.text)
+                }
+                .padding(theme.spacingM)
+                .background(
+                    RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
+                        .fill(theme.surfaceSecondary)
+                )
+            }
+        }
+        .padding(.horizontal, theme.spacingM)
+    }
+
+    private var agentUsageList: some View {
+        let perAgent = bridge.analyticsData["per_agent"] as? [[String: Any]] ?? []
+        return VStack(alignment: .leading, spacing: 0) {
+            if perAgent.isEmpty {
+                Text("No per-agent analytics data")
+                    .font(.system(size: theme.footnoteSize))
+                    .foregroundStyle(theme.textTertiary)
+                    .padding(theme.spacingL)
+            } else {
+                ForEach(Array(perAgent.enumerated()), id: \.offset) { idx, entry in
+                    let name = entry["name"] as? String ?? entry["agent_id"] as? String ?? "Unknown"
+                    let reqs = entry["requests"] as? Int ?? 0
+                    let tokens = entry["tokens"] as? Int ?? 0
+                    HStack {
+                        Text(name)
+                            .font(.system(size: theme.textSize))
+                            .foregroundStyle(theme.text)
+                        Spacer()
+                        Text("\(reqs) reqs")
+                            .font(.system(size: theme.captionSize))
+                            .foregroundStyle(theme.textSecondary)
+                        Text("\(tokens) tok")
+                            .font(.system(size: theme.captionSize, weight: .medium, design: .rounded))
+                            .foregroundStyle(theme.text)
+                    }
+                    .padding(.horizontal, theme.spacingL)
+                    .padding(.vertical, theme.spacingS)
+                    .background(idx % 2 == 0 ? theme.surfaceSecondary : theme.surfacePrimary)
+                }
+            }
+        }
+        .padding(.horizontal, theme.spacingM)
+    }
+}
+
+// MARK: - AlertTabView
+
+struct AlertTabView: View {
+    let toastManager: FusionToastManager
+    @EnvironmentObject private var bridge: AgentBridge
+    @Environment(\.studioTheme) var theme
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Alerts")
+                    .font(.system(size: theme.titleSize, weight: .bold))
+                    .foregroundStyle(theme.text)
+                Spacer()
+                FusionButton("Refresh", icon: "arrow.clockwise") {
+                    Task { await bridge.fetchAlerts() }
+                }
+            }
+            .padding(theme.spacingM)
+
+            if bridge.alerts.isEmpty {
+                Spacer()
+                VStack(spacing: theme.spacingS) {
+                    Image(systemName: "checkmark.seal")
+                        .font(.system(size: 40))
+                        .foregroundStyle(theme.successText)
+                    Text("No active alerts")
+                        .font(.system(size: theme.textSize))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                Spacer()
+            } else {
+                ListGroup {
+                    ForEach(Array(bridge.alerts.enumerated()), id: \.offset) { idx, alert in
+                        let level = alert["level"] as? String ?? "info"
+                        let message = alert["message"] as? String ?? "No message"
+                        let source = alert["source"] as? String ?? ""
+                        let aid = alert["alert_id"] as? String ?? alert["id"] as? String ?? ""
+                        let acknowledged = alert["acknowledged"] as? Bool ?? false
+                        StudioRow(label: message, sublabel: source, isLast: idx == bridge.alerts.count - 1) {
+                            FusionTag(level, color: alertColor(for: level))
+                        }
+                        .contentShape(Rectangle())
+                        .contextMenu {
+                            if !acknowledged {
+                                Button {
+                                    Task { await ackAlert(aid) }
+                                } label: {
+                                    Label("Acknowledge", systemImage: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .onAppear { Task { await bridge.fetchAlerts() } }
+    }
+
+    private func alertColor(for level: String) -> TagColor {
+        switch level {
+        case "critical", "error": return .red
+        case "warning", "warn": return .orange
+        case "info": return .blue
+        default: return .gray
+        }
+    }
+
+    private func ackAlert(_ id: String) async {
+        do {
+            _ = try await bridge.alertAcknowledge(alertId: id)
+            toastManager.show(style: .success, title: "Acknowledged", message: "Alert dismissed")
+        } catch {
+            toastManager.show(style: .error, title: "Failed", message: error.localizedDescription)
+        }
     }
 }
 
