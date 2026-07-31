@@ -135,8 +135,8 @@ start_project_svc() {
     # 已在运行则跳过（UDS connect 成功即存活）
     if "$python" -c "import socket,sys
 try:
-    s=socket.socket(socket.AF_UNIX);s.settimeout(2);s.connect('$sock');s.close();sys.exit(0)
-except Exception: sys.exit(1)" 2>/dev/null; then
+    s=socket.socket(socket.AF_UNIX);s.settimeout(2);s.connect(sys.argv[1]);s.close();sys.exit(0)
+except Exception: sys.exit(1)" "$sock" 2>/dev/null; then
         info "project-svc 已在运行，跳过启动"
         return 0
     fi
@@ -149,8 +149,8 @@ except Exception: sys.exit(1)" 2>/dev/null; then
         sleep 1
         if "$python" -c "import socket,sys
 try:
-    s=socket.socket(socket.AF_UNIX);s.settimeout(2);s.connect('$sock');s.close();sys.exit(0)
-except Exception: sys.exit(1)" 2>/dev/null; then
+    s=socket.socket(socket.AF_UNIX);s.settimeout(2);s.connect(sys.argv[1]);s.close();sys.exit(0)
+except Exception: sys.exit(1)" "$sock" 2>/dev/null; then
             info "project-svc 就绪"
             return 0
         fi
@@ -178,8 +178,8 @@ start_cowork_desk_rpc() {
 
     if "$python" -c "import socket,sys
 try:
-    s=socket.socket(socket.AF_UNIX);s.settimeout(2);s.connect('$sock');s.close();sys.exit(0)
-except Exception: sys.exit(1)" 2>/dev/null; then
+    s=socket.socket(socket.AF_UNIX);s.settimeout(2);s.connect(sys.argv[1]);s.close();sys.exit(0)
+except Exception: sys.exit(1)" "$sock" 2>/dev/null; then
         info "cowork-desk 已在运行，跳过启动"
         return 0
     fi
@@ -192,8 +192,8 @@ except Exception: sys.exit(1)" 2>/dev/null; then
         sleep 1
         if "$python" -c "import socket,sys
 try:
-    s=socket.socket(socket.AF_UNIX);s.settimeout(2);s.connect('$sock');s.close();sys.exit(0)
-except Exception: sys.exit(1)" 2>/dev/null; then
+    s=socket.socket(socket.AF_UNIX);s.settimeout(2);s.connect(sys.argv[1]);s.close();sys.exit(0)
+except Exception: sys.exit(1)" "$sock" 2>/dev/null; then
             info "cowork-desk 就绪"
             return 0
         fi
