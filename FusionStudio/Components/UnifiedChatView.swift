@@ -32,6 +32,8 @@ struct UnifiedChatView: View {
     @State private var renameText: String = ""
     @State private var pendingAttachments: [AttachmentData] = []
     @State private var isDragTarget: Bool = false
+    @State private var contextInfoText: String = ""
+    @State private var showContextInfo: Bool = false
 
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
@@ -88,6 +90,11 @@ struct UnifiedChatView: View {
         .onChange(of: chatStore.activeSession?.id) { _, _ in
             refocusTrigger += 1
         }
+        .alert("Context", isPresented: $showContextInfo) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(contextInfoText)
+        }
     }
 
     // MARK: - Top Toolbar
@@ -123,6 +130,26 @@ struct UnifiedChatView: View {
                     }
                 } message: {
                     Text("Delete all \(chatStore.sessions.count) chat sessions? This cannot be undone.")
+                }
+
+                if chatStore.activeSession != nil {
+                    Menu {
+                        Button {
+                            Task { await compactContext() }
+                        } label: {
+                            Label("Compact Context", systemImage: "rectangle.compress.vertical")
+                        }
+                        Button {
+                            Task { await showContextUsage() }
+                        } label: {
+                            Label("Context Usage", systemImage: "gauge.with.dots.needle.bottom.50percent")
+                        }
+                    } label: {
+                        Image(systemName: "rectangle.compress.vertical")
+                            .font(.system(size: 14))
+                            .foregroundStyle(theme.textSecondary)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
 
@@ -1052,6 +1079,43 @@ struct UnifiedChatView: View {
                 chatStore.selectedModel = pref.id
             }
             chatViewLog.info("Chat default model: \(chatStore.selectedModel)")
+        }
+    }
+
+    private func compactContext() async {
+        guard let sessionId = chatStore.activeSession?.id else { return }
+        do {
+            let result = try await bridge.contextCompact(sessionId: sessionId)
+            let tokens = result["tokens_saved"] as? Int ?? result["compacted"] as? Int
+            chatViewLog.info("Context compacted: session=\(sessionId) result=\(result)")
+            contextInfoText = tokens != nil
+                ? "Context compacted. \(tokens!) tokens saved."
+                : "Context compacted successfully."
+            showContextInfo = true
+        } catch {
+            chatViewLog.warning("Context compact failed: \(error)")
+            contextInfoText = "Compact failed: \(error.localizedDescription)"
+            showContextInfo = true
+        }
+    }
+
+    private func showContextUsage() async {
+        guard let sessionId = chatStore.activeSession?.id else { return }
+        do {
+            let result = try await bridge.contextUsage(sessionId: sessionId)
+            chatViewLog.info("Context usage: session=\(sessionId) result=\(result)")
+            let used = result["tokens_used"] as? Int ?? result["used"] as? Int ?? 0
+            let limit = result["token_limit"] as? Int ?? result["limit"] as? Int ?? 0
+            let pct = result["percent"] as? Double ?? (limit > 0 ? Double(used) / Double(limit) * 100 : 0)
+            let percent = result["percent"] as? Int
+            contextInfoText = percent != nil
+                ? "Context usage: \(percent!)% (\(used) / \(limit) tokens)"
+                : String(format: "Context usage: %.0f%% (%d / %d tokens)", pct, used, limit)
+            showContextInfo = true
+        } catch {
+            chatViewLog.warning("Context usage failed: \(error)")
+            contextInfoText = "Usage query failed: \(error.localizedDescription)"
+            showContextInfo = true
         }
     }
 
