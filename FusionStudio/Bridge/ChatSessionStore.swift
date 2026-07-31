@@ -92,6 +92,7 @@ struct ChatSessionData: Identifiable {
     var preset: String?
     var outputStyle: String?
     var projectId: String?
+    var activeSkill: String?
     var createdAt: Double
     var updatedAt: Double
 
@@ -106,6 +107,7 @@ struct ChatSessionData: Identifiable {
         preset: String? = nil,
         outputStyle: String? = nil,
         projectId: String? = nil,
+        activeSkill: String? = nil,
         createdAt: Double = Date().timeIntervalSince1970,
         updatedAt: Double = Date().timeIntervalSince1970
     ) {
@@ -119,6 +121,7 @@ struct ChatSessionData: Identifiable {
         self.preset = preset
         self.outputStyle = outputStyle
         self.projectId = projectId
+        self.activeSkill = activeSkill
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -146,6 +149,7 @@ enum ChatMode: String, CaseIterable {
     case code = "code"
     case design = "design"
     case rag = "rag"
+    case research = "research"
 
     var label: String {
         switch self {
@@ -154,6 +158,7 @@ enum ChatMode: String, CaseIterable {
         case .code: return "Code"
         case .design: return "Design"
         case .rag: return "RAG"
+        case .research: return "Research"
         }
     }
 
@@ -164,6 +169,7 @@ enum ChatMode: String, CaseIterable {
         case .code: return "chevron.left.forwardslash.chevron.right"
         case .design: return "paintbrush"
         case .rag: return "doc.text.magnifyingglass"
+        case .research: return "magnifyingglass"
         }
     }
 }
@@ -344,6 +350,7 @@ class ChatSessionStore: ObservableObject {
             "preset": s.preset as Any,
             "output_style": s.outputStyle as Any,
             "project_id": s.projectId as Any,
+            "active_skill": s.activeSkill as Any,
             "created_at": s.createdAt,
             "updated_at": s.updatedAt,
             "messages": s.messages.map { msg in
@@ -550,7 +557,8 @@ class ChatSessionStore: ObservableObject {
                 return
             }
             let fallbackModel = FusionConfig.shared.mlxModelSmall.isEmpty ? "Qwen3.5-9B-4bit" : FusionConfig.shared.mlxModelSmall
-            let model = !selectedModel.isEmpty ? selectedModel : (bridge.models.first?.id ?? fallbackModel)
+            let defaultModel = MLXModelInfo.preferredDefault(in: bridge.models)?.id ?? fallbackModel
+            let model = !selectedModel.isEmpty ? selectedModel : defaultModel
             print("[ChatStore] sendMessage: resolved model='\(model)', selectedModel='\(selectedModel)', bridgeModels=\(bridge.models.map { $0.id }), configSmall='\(FusionConfig.shared.mlxModelSmall)'")
             // caller: ChatSessionStore.sendMessage → builds message array with optional system prompt + multimodal
             var messages: [[String: Any]] = []
@@ -561,6 +569,30 @@ class ChatSessionStore: ObservableObject {
             if let styleRaw = updated.outputStyle, let style = OutputStyle(rawValue: styleRaw) {
                 systemParts.append(style.stylePrompt)
             }
+            if let skillId = updated.activeSkill,
+               let uuid = UUID(uuidString: skillId),
+               let skill = FusionSkillManager.shared.skills.first(where: { $0.id == uuid }) {
+                systemParts.append("[Skill: \(skill.name)] \(skill.systemPrompt)")
+                chatStoreLog.info("Injected skill '\(skill.name)'")
+            }
+            if let pid = updated.projectId,
+               let uuid = UUID(uuidString: pid),
+               let project = FusionProjectManager.shared.projects.first(where: { $0.id == uuid }) {
+                if project.hasInstructions {
+                    systemParts.append("[Project: \(project.name)] \(project.customInstructions)")
+                }
+                if project.hasKnowledge {
+                    var knowledgeParts = ["[Project Knowledge Files for \(project.name)]"]
+                    for kf in project.knowledgeFiles {
+                        if let content = try? String(contentsOfFile: kf.filePath, encoding: .utf8) {
+                            let truncated = String(content.prefix(8000))
+                            knowledgeParts.append("[\(kf.fileName)]\n\(truncated)")
+                        }
+                    }
+                    systemParts.append(knowledgeParts.joined(separator: "\n\n"))
+                }
+                chatStoreLog.info("Injected project '\(project.name)': instructions=\(project.hasInstructions), knowledge=\(project.knowledgeFiles.count) files")
+            }
             if !systemParts.isEmpty {
                 messages.append(["role": "system", "content": systemParts.joined(separator: " ")])
             }
@@ -569,18 +601,46 @@ class ChatSessionStore: ObservableObject {
                     messages.append(["role": msg.role, "content": msg.content])
                 } else {
                     var contentParts: [[String: Any]] = [["type": "text", "text": msg.content]]
+                    var fileTextParts: [String] = []
                     for att in msg.attachments {
                         if att.isImage {
                             contentParts.append([
                                 "type": "image_url",
                                 "image_url": ["url": "data:\(att.mimeType);base64,\(att.dataBase64)"]
                             ])
+                        } else {
+                            if let decoded = Data(base64Encoded: att.dataBase64),
+                               let textContent = String(data: decoded, encoding: .utf8) {
+                                let truncated = String(textContent.prefix(8000))
+                                fileTextParts.append("[File: \(att.name)]\n\(truncated)")
+                            } else {
+                                fileTextParts.append("[File: \(att.name)] (binary, \(att.dataBase64.count) bytes base64)")
+                            }
                         }
+                    }
+                    if !fileTextParts.isEmpty {
+                        let combinedText = (msg.content.isEmpty ? "" : msg.content + "\n\n") + fileTextParts.joined(separator: "\n\n")
+                        contentParts[0] = ["type": "text", "text": combinedText]
                     }
                     messages.append(["role": msg.role, "content": contentParts])
                 }
             }
-            chatStoreLog.info("sendMessage: starting stream infer, model=\(model), webSearch=\(self.isWebSearchEnabled)")
+            chatStoreLog.info("sendMessage: starting stream infer, model=\(model), webSearch=\(self.isWebSearchEnabled), mode=\(mode)")
+
+            if mode == ChatMode.research.rawValue {
+                let response = try await runResearch(messages: messages, model: model)
+                let assistantMsg = ChatMessageData(role: "assistant", content: response, mode: mode, parentId: userMsg.id)
+                var updatedSession = activeSession ?? session
+                updatedSession.messages.append(assistantMsg)
+                updatedSession.activeBranch = assistantMsg.id
+                if updatedSession.title.isEmpty { updatedSession.title = String(text.prefix(60)) }
+                updatedSession.updatedAt = Date().timeIntervalSince1970
+                activeSession = updatedSession
+                if let idx = sessions.firstIndex(where: { $0.id == session.id }) { sessions[idx] = updatedSession }
+                saveSessionLocal(updatedSession)
+                return
+            }
+
             let response = try await bridge.inferStream(
                 messages: messages,
                 model: model,
@@ -807,6 +867,41 @@ class ChatSessionStore: ObservableObject {
         await resendAfterEdit(editedMsgId: editedMsg.id)
     }
 
+    private func runResearch(messages: [[String: Any]], model: String) async throws -> String {
+        let researchSteps = [
+            "Break down the user's question into 2-3 key sub-questions that need independent research. List them concisely.",
+            "For each sub-question, provide your best answer using web search results. Cite sources where possible.",
+            "Synthesize all findings into a comprehensive, well-structured response with citations and cross-references."
+        ]
+        var researchMessages = messages
+        var allFindings = ""
+        for (idx, step) in researchSteps.enumerated() {
+            chatStoreLog.info("Research step \(idx + 1)/\(researchSteps.count)")
+            streamingContent = "🔍 Research step \(idx + 1)/\(researchSteps.count)...\n"
+            var stepMessages = researchMessages
+            if idx > 0 {
+                stepMessages.append(["role": "assistant", "content": allFindings])
+                stepMessages.append(["role": "user", "content": step])
+            } else {
+                stepMessages.append(["role": "user", "content": "Research mode: \(step)"])
+            }
+            let result = try await agentBridge!.inferStream(
+                messages: stepMessages,
+                model: model,
+                temperature: 0.3,
+                maxTokens: 4096,
+                webSearch: true,
+                onToken: { [weak self] token in
+                    Task { @MainActor in
+                        self?.streamingContent += token
+                    }
+                }
+            )
+            allFindings += "\n\n--- Step \(idx + 1) ---\n\(result)"
+        }
+        return allFindings
+    }
+
     private func resendAfterEdit(editedMsgId: String) async {
         guard let session = activeSession else { return }
         guard let bridge = agentBridge else {
@@ -828,7 +923,8 @@ class ChatSessionStore: ObservableObject {
             return
         }
         let fallbackModel = FusionConfig.shared.mlxModelSmall.isEmpty ? "Qwen3.5-9B-4bit" : FusionConfig.shared.mlxModelSmall
-        let model = !selectedModel.isEmpty ? selectedModel : (bridge.models.first?.id ?? fallbackModel)
+        let defaultModel = MLXModelInfo.preferredDefault(in: bridge.models)?.id ?? fallbackModel
+        let model = !selectedModel.isEmpty ? selectedModel : defaultModel
 
         let editedMsgIdx = session.messages.firstIndex(where: { $0.id == editedMsgId })
         let messagesToResend: [[String: Any]]
@@ -838,8 +934,23 @@ class ChatSessionStore: ObservableObject {
                     return ["role": msg.role, "content": msg.content]
                 } else {
                     var parts: [[String: Any]] = [["type": "text", "text": msg.content]]
-                    for att in msg.attachments where att.isImage {
-                        parts.append(["type": "image_url", "image_url": ["url": "data:\(att.mimeType);base64,\(att.dataBase64)"]])
+                    var fileTextParts: [String] = []
+                    for att in msg.attachments {
+                        if att.isImage {
+                            parts.append(["type": "image_url", "image_url": ["url": "data:\(att.mimeType);base64,\(att.dataBase64)"]])
+                        } else {
+                            if let decoded = Data(base64Encoded: att.dataBase64),
+                               let textContent = String(data: decoded, encoding: .utf8) {
+                                let truncated = String(textContent.prefix(8000))
+                                fileTextParts.append("[File: \(att.name)]\n\(truncated)")
+                            } else {
+                                fileTextParts.append("[File: \(att.name)] (binary, \(att.dataBase64.count) bytes base64)")
+                            }
+                        }
+                    }
+                    if !fileTextParts.isEmpty {
+                        let combinedText = (msg.content.isEmpty ? "" : msg.content + "\n\n") + fileTextParts.joined(separator: "\n\n")
+                        parts[0] = ["type": "text", "text": combinedText]
                     }
                     return ["role": msg.role, "content": parts]
                 }
@@ -859,6 +970,41 @@ class ChatSessionStore: ObservableObject {
         }
 
         chatStoreLog.info("resendAfterEdit: starting stream infer, model=\(model), msgs=\(messagesToResend.count)")
+
+        var systemParts: [String] = []
+        if let presetRaw = session.preset, let preset = ChatPreset(rawValue: presetRaw) {
+            systemParts.append(preset.systemPrompt)
+        }
+        if let styleRaw = session.outputStyle, let style = OutputStyle(rawValue: styleRaw) {
+            systemParts.append(style.stylePrompt)
+        }
+        if let skillId = session.activeSkill,
+           let uuid = UUID(uuidString: skillId),
+           let skill = FusionSkillManager.shared.skills.first(where: { $0.id == uuid }) {
+            systemParts.append("[Skill: \(skill.name)] \(skill.systemPrompt)")
+        }
+        if let pid = session.projectId,
+           let uuid = UUID(uuidString: pid),
+           let project = FusionProjectManager.shared.projects.first(where: { $0.id == uuid }) {
+            if project.hasInstructions {
+                systemParts.append("[Project: \(project.name)] \(project.customInstructions)")
+            }
+            if project.hasKnowledge {
+                var knowledgeParts = ["[Project Knowledge Files for \(project.name)]"]
+                for kf in project.knowledgeFiles {
+                    if let content = try? String(contentsOfFile: kf.filePath, encoding: .utf8) {
+                        let truncated = String(content.prefix(8000))
+                        knowledgeParts.append("[\(kf.fileName)]\n\(truncated)")
+                    }
+                }
+                systemParts.append(knowledgeParts.joined(separator: "\n\n"))
+            }
+        }
+        var finalMessages: [[String: Any]] = []
+        if !systemParts.isEmpty {
+            finalMessages.append(["role": "system", "content": systemParts.joined(separator: " ")])
+        }
+        finalMessages.append(contentsOf: messagesToResend)
         isGenerating = true
         streamingContent = ""
         defer {
@@ -868,7 +1014,7 @@ class ChatSessionStore: ObservableObject {
 
         do {
             let response = try await bridge.inferStream(
-                messages: messagesToResend,
+                messages: finalMessages,
                 model: model,
                 temperature: 0.7,
                 maxTokens: 2048,
@@ -924,6 +1070,7 @@ class ChatSessionStore: ObservableObject {
         let preset = dict["preset"] as? String
         let outputStyle = dict["output_style"] as? String
         let projectId = dict["project_id"] as? String
+        let activeSkill = dict["active_skill"] as? String
 
         var messages: [ChatMessageData] = []
         if let msgs = dict["messages"] as? [[String: Any]] {
@@ -941,6 +1088,7 @@ class ChatSessionStore: ObservableObject {
             preset: preset,
             outputStyle: outputStyle,
             projectId: projectId,
+            activeSkill: activeSkill,
             createdAt: createdAt,
             updatedAt: updatedAt
         )

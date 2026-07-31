@@ -23,9 +23,7 @@ struct UnifiedChatView: View {
     @State private var autoScroll: Bool = true
     @State private var branchPickerMsgId: String?
     @State private var branchSiblings: [ChatMessageData] = []
-    @State private var showMicSettings: Bool = false
-    @State private var micVolume: Double = 0.8
-    @State private var holdToRecord: Bool = false
+    @StateObject private var voiceInput = VoiceInputManager()
     @State private var isVoiceMode: Bool = false
     @State private var refocusTrigger: Int = 0
     @State private var showClearConfirm: Bool = false
@@ -187,6 +185,57 @@ struct UnifiedChatView: View {
                     Label("Web search", systemImage: "globe")
                 }
                 Divider()
+                // Research toggle
+                Toggle(isOn: Binding(
+                    get: { chatStore.activeSession?.mode == ChatMode.research.rawValue },
+                    set: { on in
+                        if on {
+                            chatStore.activeSession?.mode = ChatMode.research.rawValue
+                        } else {
+                            chatStore.activeSession?.mode = ChatMode.simple.rawValue
+                        }
+                    }
+                )) {
+                    Label("Research", systemImage: "magnifyingglass")
+                }
+                // Use style — output style picker
+                Menu {
+                    ForEach(OutputStyle.allCases, id: \.rawValue) { style in
+                        Button {
+                            chatStore.activeSession?.outputStyle = style.rawValue
+                        } label: {
+                            Label(style.label, systemImage: style.icon)
+                        }
+                    }
+                    if chatStore.activeSession?.outputStyle != nil {
+                        Divider()
+                        Button("清除风格") {
+                            chatStore.activeSession?.outputStyle = nil
+                        }
+                    }
+                } label: {
+                    Label("Use style", systemImage: "text.badge.star")
+                }
+                // Skills submenu
+                Menu {
+                    ForEach(FusionSkillManager.shared.skills) { skill in
+                        Button {
+                            chatStore.activeSession?.activeSkill = skill.id.uuidString
+                            chatViewLog.info("Skill activated: \(skill.name)")
+                        } label: {
+                            Label(skill.name, systemImage: skill.icon)
+                        }
+                    }
+                    if chatStore.activeSession?.activeSkill != nil {
+                        Divider()
+                        Button("清除技能") {
+                            chatStore.activeSession?.activeSkill = nil
+                        }
+                    }
+                } label: {
+                    Label("Skills", systemImage: "wand.and.stars")
+                }
+                Divider()
                 // Project picker — link session to a project
                 Menu {
                     Button("无关联") {
@@ -234,28 +283,16 @@ struct UnifiedChatView: View {
                 }
                 .help("当前模式：\(preset.label)，点击清除")
 
-                // Output style picker
-                Menu {
-                    ForEach(OutputStyle.allCases, id: \.rawValue) { style in
-                        Button {
-                            chatStore.activeSession?.outputStyle = style.rawValue
-                        } label: {
-                            Label(style.label, systemImage: style.icon)
-                        }
-                    }
-                    if chatStore.activeSession?.outputStyle != nil {
-                        Divider()
-                        Button("清除风格") {
-                            chatStore.activeSession?.outputStyle = nil
-                        }
-                    }
-                } label: {
+                // Output style indicator (tap to clear)
+                if activeOutputStyle != nil {
                     Image(systemName: activeOutputStyle?.icon ?? "text.badge.star")
                         .font(.system(size: 14))
-                        .foregroundStyle(activeOutputStyle != nil ? theme.accent : theme.textTertiary)
+                        .foregroundStyle(theme.accent)
+                        .onTapGesture {
+                            chatStore.activeSession?.outputStyle = nil
+                        }
+                        .help("当前风格：\(activeOutputStyle?.label ?? "")，点击清除")
                 }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
             }
 
             // Project indicator
@@ -281,39 +318,24 @@ struct UnifiedChatView: View {
 
             Spacer()
 
-            // Mic button
+            // Mic button — click to toggle recording
             Button {
-                showMicSettings.toggle()
+                toggleRecording()
             } label: {
-                Image(systemName: "mic")
+                Image(systemName: voiceInput.isRecording ? "mic.fill" : "mic")
                     .font(.system(size: 16))
-                    .foregroundStyle(theme.textSecondary)
+                    .foregroundStyle(voiceInput.isRecording ? theme.accent : theme.textSecondary)
             }
             .buttonStyle(.plain)
-            .popover(isPresented: $showMicSettings, arrowEdge: .top) {
-                VStack(spacing: theme.spacingM) {
-                    Text("Microphone")
-                        .font(.system(size: theme.captionSize, weight: .semibold))
-                    HStack(spacing: theme.spacingS) {
-                        Text("Volume")
-                            .font(.system(size: 11))
-                            .foregroundStyle(theme.textSecondary)
-                            .frame(width: 48, alignment: .leading)
-                        Slider(value: $micVolume, in: 0...1)
-                            .frame(width: 120)
-                    }
-                    HStack(spacing: theme.spacingS) {
-                        Text("Hold to Record")
-                            .font(.system(size: 11))
-                            .foregroundStyle(theme.textSecondary)
-                        Spacer()
-                        Toggle("", isOn: $holdToRecord)
-                            .toggleStyle(.switch)
-                            .controlSize(.small)
-                    }
-                    .frame(width: 188)
-                }
-                .padding(theme.spacingM)
+            .help(voiceInput.isRecording ? "Stop recording" : "Start voice input")
+
+            // Live transcript indicator
+            if voiceInput.isRecording && !voiceInput.liveTranscript.isEmpty {
+                Text(voiceInput.liveTranscript)
+                    .font(.system(size: 11))
+                    .foregroundStyle(theme.textSecondary)
+                    .lineLimit(1)
+                    .frame(maxWidth: 120, alignment: .leading)
             }
 
             // Voice mode toggle
@@ -331,10 +353,10 @@ struct UnifiedChatView: View {
             Button(action: sendCurrentMessage) {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.system(size: 22))
-                    .foregroundStyle(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? theme.textQuaternary : theme.accent)
+                    .foregroundStyle(voiceInput.isRecording || !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? theme.accent : theme.textQuaternary)
             }
             .buttonStyle(.plain)
-            .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !voiceInput.isRecording)
         }
         .padding(.horizontal, theme.spacingM)
         .padding(.vertical, theme.spacingS)
@@ -810,6 +832,13 @@ struct UnifiedChatView: View {
     // MARK: - Actions
 
     private func sendCurrentMessage() {
+        if voiceInput.isRecording {
+            let transcript = voiceInput.stopRecording()
+            let trimmed = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty {
+                inputText += (inputText.isEmpty ? "" : " ") + trimmed
+            }
+        }
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty || !pendingAttachments.isEmpty else { return }
         chatViewLog.info("sendCurrentMessage: text='\(text.prefix(50))', attachments=\(pendingAttachments.count)")
@@ -826,19 +855,26 @@ struct UnifiedChatView: View {
     }
 
     private func takeScreenshot() {
-        let task = Process()
-        task.launchPath = "/usr/sbin/screencapture"
-        task.arguments = ["-i", "-c"]
-        task.launch()
-        chatViewLog.info("Screenshot initiated, reading pasteboard in 1s...")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            if let img = NSPasteboard.general.data(forType: .tiff) ?? NSPasteboard.general.data(forType: .png) {
-                let b64 = img.base64EncodedString()
-                let att = AttachmentData(name: "screenshot.png", type: "image", mimeType: "image/png", dataBase64: b64)
-                pendingAttachments.append(att)
-                chatViewLog.info("Screenshot attached, size=\(b64.count) chars base64")
-            } else {
-                chatViewLog.warning("Screenshot: no image found on pasteboard")
+        Task {
+            let task = Process()
+            task.launchPath = "/usr/sbin/screencapture"
+            task.arguments = ["-i", "-c"]
+            task.launch()
+            task.waitUntilExit()
+            chatViewLog.info("Screenshot process exited with code \(task.terminationStatus)")
+            guard task.terminationStatus == 0 else {
+                chatViewLog.warning("Screenshot cancelled or failed")
+                return
+            }
+            await MainActor.run {
+                if let img = NSPasteboard.general.data(forType: .tiff) ?? NSPasteboard.general.data(forType: .png) {
+                    let b64 = img.base64EncodedString()
+                    let att = AttachmentData(name: "screenshot.png", type: "image", mimeType: "image/png", dataBase64: b64)
+                    pendingAttachments.append(att)
+                    chatViewLog.info("Screenshot attached, size=\(b64.count) chars base64")
+                } else {
+                    chatViewLog.warning("Screenshot: no image found on pasteboard")
+                }
             }
         }
     }
@@ -884,8 +920,8 @@ struct UnifiedChatView: View {
             let model = cfg.defaultModel(for: .chat)
             if !model.isEmpty {
                 chatStore.selectedModel = model
-            } else if let first = bridge.models.first?.id {
-                chatStore.selectedModel = first
+            } else if let pref = MLXModelInfo.preferredDefault(in: bridge.models) {
+                chatStore.selectedModel = pref.id
             }
             chatViewLog.info("Chat default model: \(chatStore.selectedModel)")
         }
@@ -902,5 +938,21 @@ struct UnifiedChatView: View {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
         return formatter.localizedString(for: date, relativeTo: Date())
+    }
+
+    private func toggleRecording() {
+        if voiceInput.isRecording {
+            let transcript = voiceInput.stopRecording()
+            let trimmed = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return }
+            if isVoiceMode {
+                inputText = trimmed
+                sendCurrentMessage()
+            } else {
+                inputText += (inputText.isEmpty ? "" : " ") + trimmed
+            }
+        } else {
+            voiceInput.startRecording()
+        }
     }
 }

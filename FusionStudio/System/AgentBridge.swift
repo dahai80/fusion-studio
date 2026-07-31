@@ -98,7 +98,8 @@ struct MLXModelInfo: Codable, Equatable, Identifiable {
                        "mochi", "ltx-video", "ltxvideo", "ltx", "wan2", "cogvideo", "cogview",
                        "skyreels", "whisper", "parler", "bark", "xtts", "tts", "coqui", "openvoice",
                        "clip", "siglip", "dinov2", "kandinsky", "shap-e", "audioldm",
-                       "oldt5", "dspark", "text_encoder", "transformer", "vae"]
+                       "oldt5", "dspark", "diffusiongemma",
+                       "text_encoder", "transformer", "vae"]
         for token in nonText where n.contains(token) { return false }
         return true
     }
