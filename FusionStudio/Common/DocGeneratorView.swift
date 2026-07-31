@@ -302,11 +302,19 @@ class DocGenerator: ObservableObject {
 
             ## [Unreleased]
 
-            // Callers: DocGeneratorView changelog. Affected API: none. Data: version changelog. User: "发布补丁版本"
+            ## [0.1.10] - 2026-07-31
+
             ### 新增
             - 侧边栏菜单入口全量补齐：新增 Fusion-MLX 段（控制台/模型/调优/测评）、Multi-Node 段（集群总览/拓扑图/任务监控/告警中心/节点管理/提交任务/任务详情/路由策略/KV缓存/服务面板/多模态/分析/协作/外部集成/运维/部署），Agent 段追加知识库/自动化
             - 22 个原孤儿模块视图现可经侧边栏直达（排除训练/仿真/教育三个待补能力模块）
             - SectionContentView 新增 .mlx/.multiNode 段路由至 ModuleDetailView，IconRailView/FusionSidebarView 同步接入
+            - CoWork space GUI：connector/apikey/style/analytics/alert tabs（Issue #17 P1/P2）+ 38 RPC + Team/Cron/Hooks/memory/safety/planner/context compact/usage/rag/tools/skills/research tabs（Issue #18）
+            - 截图粘贴 + OCR + artifact 渲染 + skill/research/RAG watch（Issue #16）
+            - 项目过滤器 + agent lifecycle + dashboard tab（Issue #15 + #17 P0）
+
+            ### 修复
+            - bug41: 消息对齐（用户右对齐/AI 左对齐）+ 编辑/重发按钮贴边 + 附件缩略图异步解码
+            - bug35/37/38: 截图粘贴板、麦克风音量滑块、图片处理
 
             ## [0.1.9] - 2026-07-31
 
