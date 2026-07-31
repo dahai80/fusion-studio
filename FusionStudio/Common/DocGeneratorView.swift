@@ -302,6 +302,26 @@ class DocGenerator: ObservableObject {
 
             ## [Unreleased]
 
+            ## [0.1.11] - 2026-07-31
+
+            ### 新增
+            - IPCClient REST 直连：GET /api/v1/share/{share_id} 公开分享只读渲染（Issue #26-B）
+            - IPCClient SSE 事件流订阅：artifactEventStream / sessionEventStream + Last-Event-ID 断线重连（Issue #26-C）
+            - IPCClient artifact.list_events 事件时间线 + artifact.update 乐观锁 expected_content_hash（Issue #26-A）
+            - Artifacts GUI：ArtifactShareDialog 分享弹窗、ArtifactVersionHistory 版本历史
+            - CoWork GUI：SessionSnapshotView 快照/Fork 交互
+            - FSB 模块：FSBWorkspaceView 工作台 + FSBWorkflowEditorView DAG 编辑器
+            - Projects GUI：ProjectInstructionsPanel Markdown/富文本双模 + 版本历史、KnowledgeBaseTreeView kb.list/add/remove
+            - Foundation IPC 层：projectCall(UDS) / spaceCall(UDS) / artifactCall(HTTP) 路由
+            - desk.* 47 方法全量路由至 /tmp/fusion-cowork.sock
+
+            ### 修复
+            - desk.* 方法从 env-daemon 转发修正为直连 desk_rpc socket（#38）
+            - start.sh readiness check socket path 不再拼接（安全修复）
+
+            ### 文档
+            - docs/upstream-http-endpoints.md 全量更新：29 artifact.* 方法表 + REST 路由 + SSE 契约
+
             ## [0.1.10] - 2026-07-31
 
             ### 新增

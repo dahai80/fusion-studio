@@ -19,7 +19,7 @@ struct AboutView: View {
                 .bold()
 
             // Callers: AboutView. Affected API: none. Data: version string. User: "发布补丁版本"
-            Text("版本 0.1.10")
+            Text("版本 0.1.11")
                 .font(.title3)
                 .foregroundColor(.secondary)
 
