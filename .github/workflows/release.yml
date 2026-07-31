@@ -42,14 +42,19 @@ jobs:
           ./Scripts/build.sh dmg 2>&1
 
       - name: List artifacts
+        id: artifacts
         run: |
-          ls -lh .build/*.dmg .build/*.app 2>/dev/null || echo "No artifacts found"
+          DMG=$(ls .build/FusionStudio-*-arm64.dmg 2>/dev/null | head -1)
+          APP=$(ls -d ".build/Fusion Studio.app" 2>/dev/null | head -1)
+          echo "dmg=$DMG" >> "$GITHUB_OUTPUT"
+          echo "app=$APP" >> "$GITHUB_OUTPUT"
+          ls -lh .build/ 2>/dev/null
 
       - name: Upload DMG
         uses: actions/upload-artifact@v4
         with:
           name: FusionStudio-${{ github.ref_name }}-arm64
-          path: .build/*.dmg
+          path: ${{ steps.artifacts.outputs.dmg }}
           if-no-files-found: error
 
   create-release:
