@@ -1815,6 +1815,108 @@ final class AgentBridge: ObservableObject {
         }
     }
 
+    // MARK: - Connector Operations
+
+    @Published var connectors: [[String: Any]] = []
+
+    func fetchConnectors() async {
+        guard let client = ipcClient else { return }
+        do {
+            let result = try await client.connectorList()
+            self.connectors = result["connectors"] as? [[String: Any]] ?? []
+            logger.info("Fetched \(self.connectors.count) connectors")
+        } catch {
+            logger.debug("fetchConnectors failed: \(error.localizedDescription)")
+        }
+    }
+
+    func connectorCreate(name: String, type: String, config: [String: Any]) async throws -> [String: Any] {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        let result = try await client.connectorCreate(name: name, type: type, config: config)
+        await fetchConnectors()
+        return result
+    }
+
+    func connectorDelete(connectorId: String) async throws -> [String: Any] {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        let result = try await client.connectorDelete(connectorId: connectorId)
+        await fetchConnectors()
+        return result
+    }
+
+    func connectorConnect(connectorId: String) async throws -> [String: Any] {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        return try await client.connectorConnect(connectorId: connectorId)
+    }
+
+    func connectorDisconnect(connectorId: String) async throws -> [String: Any] {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        return try await client.connectorDisconnect(connectorId: connectorId)
+    }
+
+    func connectorTest(connectorId: String) async throws -> [String: Any] {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        return try await client.connectorTest(connectorId: connectorId)
+    }
+
+    // MARK: - API Key Operations
+
+    @Published var apikeys: [[String: Any]] = []
+
+    func fetchApikeys() async {
+        guard let client = ipcClient else { return }
+        do {
+            let result = try await client.apikeyList()
+            self.apikeys = result["keys"] as? [[String: Any]] ?? []
+            logger.info("Fetched \(self.apikeys.count) API keys")
+        } catch {
+            logger.debug("fetchApikeys failed: \(error.localizedDescription)")
+        }
+    }
+
+    func apikeyCreate(name: String, permissions: [String] = [], agentIds: [String] = []) async throws -> [String: Any] {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        let result = try await client.apikeyCreate(name: name, permissions: permissions, agentIds: agentIds)
+        await fetchApikeys()
+        return result
+    }
+
+    func apikeyRevoke(keyId: String) async throws -> [String: Any] {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        let result = try await client.apikeyRevoke(keyId: keyId)
+        await fetchApikeys()
+        return result
+    }
+
+    // MARK: - Style Operations
+
+    @Published var styles: [[String: Any]] = []
+
+    func fetchStyles() async {
+        guard let client = ipcClient else { return }
+        do {
+            let result = try await client.styleList()
+            self.styles = result["styles"] as? [[String: Any]] ?? []
+            logger.info("Fetched \(self.styles.count) styles")
+        } catch {
+            logger.debug("fetchStyles failed: \(error.localizedDescription)")
+        }
+    }
+
+    func styleCreate(name: String, template: String, rules: [String: Any] = [:]) async throws -> [String: Any] {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        let result = try await client.styleCreate(name: name, template: template, rules: rules)
+        await fetchStyles()
+        return result
+    }
+
+    func styleDelete(styleId: String) async throws -> [String: Any] {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        let result = try await client.styleDelete(styleId: styleId)
+        await fetchStyles()
+        return result
+    }
+
     // MARK: - Marketplace Operations
 
     func marketplaceSearch(query: String = "", category: String = "", tags: [String] = []) async throws -> [MarketplaceEntryModel] {

@@ -974,6 +974,10 @@ class IPCClient: ObservableObject {
         return try await call(method: "style.apply", params: ["agent_id": agentId, "style_id": styleId])
     }
 
+    func styleDelete(styleId: String) async throws -> [String: Any] {
+        return try await call(method: "style.delete", params: ["style_id": styleId])
+    }
+
     // MARK: - Analytics
 
     func analyticsAgentUsage(agentId: String? = nil, range: String = "week") async throws -> [String: Any] {
