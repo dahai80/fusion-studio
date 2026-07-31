@@ -259,6 +259,19 @@ struct AgentModel: Codable, Equatable, Identifiable {
     var created_at: String
     var skills: [String]
     var has_soul: Bool
+    var status: String?
+    var version_int: Int?
+    var published_at: String?
+    var knowledge_base_ids: [String]?
+    var visibility: String?
+    var rag_strategy: String?
+    var web_search_enabled: Bool?
+    var deep_research_enabled: Bool?
+    var connector_ids: [String]?
+    var style: String?
+    var top_p: Double?
+    var context_window: Int?
+    var rate_limit_qps: Int?
 }
 
 struct MarketplaceEntryModel: Codable, Equatable, Identifiable {
@@ -286,6 +299,7 @@ final class AgentBridge: ObservableObject {
     @Published var models: [MLXModelInfo] = []
     @Published var chatMessages: [ChatMessageRecord] = []
     @Published var isInferring: Bool = false
+    @Published var dashboardData: [String: Any] = [:]
 
     // MARK: - Module Published Properties
 
@@ -1638,6 +1652,56 @@ final class AgentBridge: ObservableObject {
         }
     }
 
+    // MARK: - Agent Lifecycle
+
+    func agentPublish(agentId: String) async throws -> AgentModel {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        logger.info("agentPublish: id=\(agentId)")
+        let result = try await client.agentPublish(agentId: agentId)
+        guard let updated = Self.parseAgentModel(from: result) else {
+            throw BridgeError.ipcError("Invalid publish response")
+        }
+        if let idx = agents.firstIndex(where: { $0.id == agentId }) {
+            agents[idx] = updated
+        }
+        return updated
+    }
+
+    func agentArchive(agentId: String) async throws -> AgentModel {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        logger.info("agentArchive: id=\(agentId)")
+        let result = try await client.agentArchive(agentId: agentId)
+        guard let updated = Self.parseAgentModel(from: result) else {
+            throw BridgeError.ipcError("Invalid archive response")
+        }
+        if let idx = agents.firstIndex(where: { $0.id == agentId }) {
+            agents[idx] = updated
+        }
+        return updated
+    }
+
+    func agentClone(agentId: String) async throws -> AgentModel {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        logger.info("agentClone: id=\(agentId)")
+        let result = try await client.agentClone(agentId: agentId)
+        guard let cloned = Self.parseAgentModel(from: result) else {
+            throw BridgeError.ipcError("Invalid clone response")
+        }
+        agents.append(cloned)
+        return cloned
+    }
+
+    func fetchDashboard() async {
+        guard let client = ipcClient else { return }
+        do {
+            let result = try await client.dashboardOverview()
+            self.dashboardData = result
+            logger.info("Dashboard fetched: \(result.keys.joined(separator: ","))")
+        } catch {
+            logger.debug("Dashboard fetch failed: \(error.localizedDescription)")
+        }
+    }
+
     func agentConfigure(agentId: String, config: [String: Any]) async throws -> AgentModel {
         guard let client = ipcClient else { throw BridgeError.notConnected }
         logger.info("agentConfigure: id=\(agentId)")
@@ -2062,7 +2126,20 @@ final class AgentBridge: ObservableObject {
             version: manifest["version"] as? String ?? dict["version"] as? String ?? "1.0.0",
             created_at: manifest["created_at"] as? String ?? dict["created_at"] as? String ?? "",
             skills: dict["skills"] as? [String] ?? [],
-            has_soul: dict["has_soul"] as? Bool ?? false
+            has_soul: dict["has_soul"] as? Bool ?? false,
+            status: dict["status"] as? String,
+            version_int: dict["version_int"] as? Int,
+            published_at: dict["published_at"] as? String,
+            knowledge_base_ids: dict["knowledge_base_ids"] as? [String],
+            visibility: dict["visibility"] as? String,
+            rag_strategy: dict["rag_strategy"] as? String,
+            web_search_enabled: dict["web_search_enabled"] as? Bool,
+            deep_research_enabled: dict["deep_research_enabled"] as? Bool,
+            connector_ids: dict["connector_ids"] as? [String],
+            style: dict["style"] as? String,
+            top_p: dict["top_p"] as? Double,
+            context_window: dict["context_window"] as? Int,
+            rate_limit_qps: dict["rate_limit_qps"] as? Int
         )
     }
 

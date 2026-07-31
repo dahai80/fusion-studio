@@ -15,9 +15,14 @@ struct ChatsPanel: View {
     @State private var hoveredSessionId: String?
     @State private var renamingSessionId: String?
     @State private var renameText: String = ""
+    @State private var selectedProjectFilter: String? = nil
+    @State private var availableProjects: [(id: String, name: String)] = []
 
     private var filteredSessions: [ChatSessionData] {
-        let sessions = chatStore.sessions
+        var sessions = chatStore.sessions
+        if let pid = selectedProjectFilter {
+            sessions = sessions.filter { $0.projectId == pid }
+        }
         guard !searchText.isEmpty else { return sessions }
         return sessions.filter {
             $0.title.localizedCaseInsensitiveContains(searchText) ||
@@ -36,6 +41,7 @@ struct ChatsPanel: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task {
             await chatStore.loadSessions()
+            loadAvailableProjects()
         }
     }
 
@@ -86,16 +92,53 @@ struct ChatsPanel: View {
     }
 
     private var searchBar: some View {
-        HStack(spacing: theme.spacingS) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: theme.iconS))
-                .foregroundStyle(theme.textTertiary)
-            TextField("Search chats", text: $searchText)
-                .font(.system(size: theme.footnoteSize))
-                .textFieldStyle(.plain)
+        VStack(spacing: 0) {
+            HStack(spacing: theme.spacingS) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: theme.iconS))
+                    .foregroundStyle(theme.textTertiary)
+                TextField("Search chats", text: $searchText)
+                    .font(.system(size: theme.footnoteSize))
+                    .textFieldStyle(.plain)
+            }
+            .padding(.horizontal, theme.spacingL)
+            .padding(.vertical, theme.spacingS)
+
+            if !availableProjects.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: theme.spacingXS) {
+                        filterChip(label: "All", isSelected: selectedProjectFilter == nil) {
+                            selectedProjectFilter = nil
+                        }
+                        filterChip(label: "未关联", isSelected: selectedProjectFilter == "") {
+                            selectedProjectFilter = ""
+                        }
+                        ForEach(availableProjects, id: \.id) { proj in
+                            filterChip(label: proj.name, isSelected: selectedProjectFilter == proj.id) {
+                                selectedProjectFilter = proj.id
+                            }
+                        }
+                    }
+                    .padding(.horizontal, theme.spacingL)
+                }
+                .padding(.vertical, theme.spacingXS)
+            }
         }
-        .padding(.horizontal, theme.spacingL)
-        .padding(.vertical, theme.spacingS)
+    }
+
+    private func filterChip(label: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label)
+                .font(.system(size: theme.captionSize, weight: isSelected ? .semibold : .regular))
+                .foregroundStyle(isSelected ? theme.accent : theme.textSecondary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(isSelected ? theme.accent.opacity(0.15) : theme.surfaceSecondary)
+                )
+        }
+        .buttonStyle(.plain)
     }
 
     private func sessionRow(_ session: ChatSessionData) -> some View {
@@ -238,5 +281,26 @@ struct ChatsPanel: View {
     private func startNewChat() async {
         await chatStore.createSession(mode: "simple")
         chatsLog.info("New chat created from ChatsPanel")
+    }
+
+    private func loadAvailableProjects() {
+        let projects = FusionProjectManager.shared.projects
+        var seen = Set<String>()
+        var result: [(id: String, name: String)] = []
+        for proj in projects {
+            let idStr = proj.id.uuidString
+            if !seen.contains(idStr) {
+                seen.insert(idStr)
+                result.append((id: idStr, name: proj.name))
+            }
+        }
+        for session in chatStore.sessions {
+            if let pid = session.projectId, !pid.isEmpty, !seen.contains(pid) {
+                seen.insert(pid)
+                result.append((id: pid, name: pid.prefix(8) + "…"))
+            }
+        }
+        availableProjects = result
+        chatsLog.info("Loaded \(result.count) projects for filter")
     }
 }

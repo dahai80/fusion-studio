@@ -542,6 +542,30 @@ class IPCClient: ObservableObject {
         return try await call(method: "agent.update_soul", params: ["agent_id": agentId, "soul": soul])
     }
 
+    // MARK: - Agent Lifecycle
+
+    func agentPublish(agentId: String) async throws -> [String: Any] {
+        return try await call(method: "agent.publish", params: ["agent_id": agentId])
+    }
+
+    func agentArchive(agentId: String) async throws -> [String: Any] {
+        return try await call(method: "agent.archive", params: ["agent_id": agentId])
+    }
+
+    func agentClone(agentId: String) async throws -> [String: Any] {
+        return try await call(method: "agent.clone", params: ["agent_id": agentId])
+    }
+
+    func agentGetApiEndpoint(agentId: String) async throws -> [String: Any] {
+        return try await call(method: "agent.get_api_endpoint", params: ["agent_id": agentId])
+    }
+
+    func agentExecuteStream(agentId: String, input: String, context: [String: Any] = [:]) async throws -> [String: Any] {
+        var params: [String: Any] = ["agent_id": agentId, "input": input]
+        if !context.isEmpty { params["context"] = context }
+        return try await call(method: "agent.execute_stream", params: params)
+    }
+
     // MARK: - Marketplace
 
     func marketplaceSearch(query: String = "", category: String = "", tags: [String]? = nil, sortBy: String = "name", limit: Int = 50) async throws -> [String: Any] {
@@ -823,7 +847,7 @@ class IPCClient: ObservableObject {
         guard let json = try JSONSerialization.jsonObject(with: responseData) as? [String: Any] else {
             throw IPCError.invalidResponse
         }
-        ipcLog.info("ragWatch: kb=%s files=%d", kbId, filePaths.count)
+        ipcLog.info("ragWatch: kb=\(kbId) files=\(filePaths.count)")
         return json
     }
 
@@ -838,7 +862,7 @@ class IPCClient: ObservableObject {
         guard let json = try JSONSerialization.jsonObject(with: responseData) as? [String: Any] else {
             throw IPCError.invalidResponse
         }
-        ipcLog.info("ragUnwatch: kb=%s watch=%s", kbId, watchId)
+        ipcLog.info("ragUnwatch: kb=\(kbId) watch=\(watchId)")
         return json
     }
 
@@ -858,6 +882,114 @@ class IPCClient: ObservableObject {
         var params: [String: Any] = ["content": content, "auto_fix": autoFix]
         if !criteria.isEmpty { params["criteria"] = criteria }
         return try await call(method: "verify.verify", params: params)
+    }
+
+    // MARK: - Dashboard
+
+    func dashboardOverview() async throws -> [String: Any] {
+        return try await call(method: "dashboard.overview")
+    }
+
+    // MARK: - Connector
+
+    func connectorList() async throws -> [String: Any] {
+        return try await call(method: "connector.list")
+    }
+
+    func connectorCreate(name: String, type: String, config: [String: Any]) async throws -> [String: Any] {
+        return try await call(method: "connector.create", params: ["name": name, "type": type, "config": config])
+    }
+
+    func connectorGet(connectorId: String) async throws -> [String: Any] {
+        return try await call(method: "connector.get", params: ["connector_id": connectorId])
+    }
+
+    func connectorUpdate(connectorId: String, config: [String: Any]) async throws -> [String: Any] {
+        var params: [String: Any] = ["connector_id": connectorId]
+        params.merge(config) { _, new in new }
+        return try await call(method: "connector.update", params: params)
+    }
+
+    func connectorDelete(connectorId: String) async throws -> [String: Any] {
+        return try await call(method: "connector.delete", params: ["connector_id": connectorId])
+    }
+
+    func connectorConnect(connectorId: String) async throws -> [String: Any] {
+        return try await call(method: "connector.connect", params: ["connector_id": connectorId])
+    }
+
+    func connectorDisconnect(connectorId: String) async throws -> [String: Any] {
+        return try await call(method: "connector.disconnect", params: ["connector_id": connectorId])
+    }
+
+    func connectorTest(connectorId: String) async throws -> [String: Any] {
+        return try await call(method: "connector.test", params: ["connector_id": connectorId])
+    }
+
+    // MARK: - API Key
+
+    func apikeyCreate(name: String, permissions: [String] = [], agentIds: [String] = [], ipWhitelist: [String] = [], expiresInDays: Int? = nil) async throws -> [String: Any] {
+        var params: [String: Any] = ["name": name, "permissions": permissions, "agent_ids": agentIds, "ip_whitelist": ipWhitelist]
+        if let days = expiresInDays { params["expires_in_days"] = days }
+        return try await call(method: "apikey.create", params: params)
+    }
+
+    func apikeyList() async throws -> [String: Any] {
+        return try await call(method: "apikey.list")
+    }
+
+    func apikeyRevoke(keyId: String) async throws -> [String: Any] {
+        return try await call(method: "apikey.revoke", params: ["key_id": keyId])
+    }
+
+    func apikeyRotate(keyId: String) async throws -> [String: Any] {
+        return try await call(method: "apikey.rotate", params: ["key_id": keyId])
+    }
+
+    func apikeyUpdate(keyId: String, permissions: [String]? = nil, agentIds: [String]? = nil, ipWhitelist: [String]? = nil) async throws -> [String: Any] {
+        var params: [String: Any] = ["key_id": keyId]
+        if let p = permissions { params["permissions"] = p }
+        if let a = agentIds { params["agent_ids"] = a }
+        if let i = ipWhitelist { params["ip_whitelist"] = i }
+        return try await call(method: "apikey.update", params: params)
+    }
+
+    // MARK: - Style
+
+    func styleList() async throws -> [String: Any] {
+        return try await call(method: "style.list")
+    }
+
+    func styleGet(styleId: String) async throws -> [String: Any] {
+        return try await call(method: "style.get", params: ["style_id": styleId])
+    }
+
+    func styleCreate(name: String, template: String, rules: [String: Any] = [:]) async throws -> [String: Any] {
+        var params: [String: Any] = ["name": name, "template": template]
+        if !rules.isEmpty { params["rules"] = rules }
+        return try await call(method: "style.create", params: params)
+    }
+
+    func styleApply(agentId: String, styleId: String) async throws -> [String: Any] {
+        return try await call(method: "style.apply", params: ["agent_id": agentId, "style_id": styleId])
+    }
+
+    // MARK: - Analytics
+
+    func analyticsAgentUsage(agentId: String? = nil, range: String = "week") async throws -> [String: Any] {
+        var params: [String: Any] = ["range": range]
+        if let aid = agentId { params["agent_id"] = aid }
+        return try await call(method: "analytics.agent_usage", params: params)
+    }
+
+    // MARK: - Alert
+
+    func alertList() async throws -> [String: Any] {
+        return try await call(method: "alert.list")
+    }
+
+    func alertAcknowledge(alertId: String) async throws -> [String: Any] {
+        return try await call(method: "alert.acknowledge", params: ["alert_id": alertId])
     }
 
     // MARK: - Budget

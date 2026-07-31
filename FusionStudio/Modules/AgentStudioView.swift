@@ -396,6 +396,7 @@ struct AgentStudioView: View {
                 FusionTabItem(title: "Agents", icon: "person.2", badge: nil),
                 FusionTabItem(title: "Tasks", icon: "checklist", badge: taskCount > 0 ? taskCount : nil),
                 FusionTabItem(title: "Workflows", icon: "arrow.triangle.branch", badge: nil),
+                FusionTabItem(title: "Dashboard", icon: "chart.bar", badge: nil),
                 FusionTabItem(title: "Marketplace", icon: "bag", badge: nil),
                 FusionTabItem(title: "Chat", icon: "bubble.left.and.bubble.right", badge: unreadCount > 0 ? unreadCount : nil),
             ])
@@ -407,8 +408,9 @@ struct AgentStudioView: View {
                 case 0: AgentListView(toastManager: toastManager)
                 case 1: AgentTaskListView(toastManager: toastManager)
                 case 2: WorkflowListView(toastManager: toastManager)
-                case 3: MarketplaceTabView(toastManager: toastManager)
-                case 4: ConversationView(toastManager: toastManager)
+                case 3: DashboardTabView(toastManager: toastManager)
+                case 4: MarketplaceTabView(toastManager: toastManager)
+                case 5: ConversationView(toastManager: toastManager)
                 default: AgentListView(toastManager: toastManager)
                 }
             }
@@ -589,6 +591,9 @@ struct AgentListView: View {
                         ForEach(Array(bridge.agents.enumerated()), id: \.element.id) { index, agent in
                             StudioRow(label: agent.name, sublabel: agent.model, isLast: index == bridge.agents.count - 1) {
                                 HStack(spacing: theme.spacingS) {
+                                    if let status = agent.status {
+                                        FusionTag(status, color: statusColor(for: status))
+                                    }
                                     FusionTag(agent.safety_level, color: .blue)
                                     if agent.has_soul {
                                         Image(systemName: "sparkles")
@@ -604,6 +609,26 @@ struct AgentListView: View {
                                 agentStudioLog.info("Selected backend agent: \(agent.name)")
                             }
                             .contextMenu {
+                                if agent.status != "published" {
+                                    Button {
+                                        Task { await publishBackendAgent(agent) }
+                                    } label: {
+                                        Label("Publish", systemImage: "arrow.up.circle")
+                                    }
+                                }
+                                if agent.status == "published" {
+                                    Button {
+                                        Task { await archiveBackendAgent(agent) }
+                                    } label: {
+                                        Label("Archive", systemImage: "archivebox")
+                                    }
+                                }
+                                Button {
+                                    Task { await cloneBackendAgent(agent) }
+                                } label: {
+                                    Label("Clone", systemImage: "doc.on.doc")
+                                }
+                                Divider()
                                 Button("Delete", role: .destructive) {
                                     deleteBackendAgent(agent)
                                 }
@@ -672,6 +697,42 @@ struct AgentListView: View {
             } catch {
                 toastManager.show(style: .error, title: "Delete Failed", message: error.localizedDescription)
             }
+        }
+    }
+
+    private func publishBackendAgent(_ agent: AgentModel) async {
+        do {
+            let updated = try await bridge.agentPublish(agentId: agent.id)
+            toastManager.show(style: .success, title: "Published", message: "\(updated.name) is now live")
+        } catch {
+            toastManager.show(style: .error, title: "Publish Failed", message: error.localizedDescription)
+        }
+    }
+
+    private func archiveBackendAgent(_ agent: AgentModel) async {
+        do {
+            let updated = try await bridge.agentArchive(agentId: agent.id)
+            toastManager.show(style: .info, title: "Archived", message: "\(updated.name) archived")
+        } catch {
+            toastManager.show(style: .error, title: "Archive Failed", message: error.localizedDescription)
+        }
+    }
+
+    private func cloneBackendAgent(_ agent: AgentModel) async {
+        do {
+            let cloned = try await bridge.agentClone(agentId: agent.id)
+            toastManager.show(style: .success, title: "Cloned", message: "\(cloned.name) created")
+        } catch {
+            toastManager.show(style: .error, title: "Clone Failed", message: error.localizedDescription)
+        }
+    }
+
+    private func statusColor(for status: String) -> TagColor {
+        switch status {
+        case "draft": return .gray
+        case "published": return .green
+        case "archived": return .orange
+        default: return .gray
         }
     }
 
@@ -2225,6 +2286,98 @@ struct CreateWorkflowSheet: View {
         }
         .frame(width: 600, height: 600)
         .background(theme.windowBg)
+    }
+}
+
+// MARK: - DashboardTabView
+
+struct DashboardTabView: View {
+    let toastManager: FusionToastManager
+    @EnvironmentObject private var bridge: AgentBridge
+    @Environment(\.studioTheme) var theme
+    private let dashboardLog = Logger(subsystem: "com.fusion.studio", category: "Dashboard")
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: theme.spacingL) {
+                StudioSectionHeader(title: "Overview")
+                dashboardCards
+                StudioSectionHeader(title: "Agent Status Breakdown")
+                agentStatusList
+                Spacer()
+            }
+            .padding(theme.spacingL)
+        }
+        .onAppear {
+            Task { await bridge.fetchDashboard() }
+        }
+    }
+
+    private var dashboardCards: some View {
+        let d = bridge.dashboardData
+        let cards: [(String, String, String, Color)] = [
+            ("Total Agents", "\(d["total_agents"] as? Int ?? bridge.agents.count)", "person.2", .blue),
+            ("Published", "\(d["published_agents"] as? Int ?? bridge.agents.filter { $0.status == "published" }.count)", "arrow.up.circle", .green),
+            ("Active", "\(d["active_agents"] as? Int ?? 0)", "bolt", .orange),
+            ("Today Requests", "\(d["today_requests"] as? Int ?? 0)", "text.bubble", .purple),
+            ("Total Tokens", "\(d["total_tokens"] as? Int ?? 0)", "number", .cyan),
+            ("Errors", "\(d["error_count"] as? Int ?? 0)", "exclamationmark.triangle", .red),
+        ]
+        return LazyVGrid(columns: [
+            GridItem(.flexible(), spacing: theme.spacingM),
+            GridItem(.flexible(), spacing: theme.spacingM),
+            GridItem(.flexible(), spacing: theme.spacingM),
+        ], spacing: theme.spacingM) {
+            ForEach(cards, id: \.0) { card in
+                VStack(alignment: .leading, spacing: theme.spacingS) {
+                    HStack {
+                        Image(systemName: card.2)
+                            .foregroundStyle(card.3)
+                        Spacer()
+                        Text(card.0)
+                            .font(.system(size: theme.captionSize))
+                            .foregroundStyle(theme.textTertiary)
+                    }
+                    Text(card.1)
+                        .font(.system(size: theme.titleSize, weight: .bold, design: .rounded))
+                        .foregroundStyle(theme.text)
+                }
+                .padding(theme.spacingM)
+                .background(
+                    RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
+                        .fill(theme.surfaceSecondary)
+                )
+            }
+        }
+    }
+
+    private var agentStatusList: some View {
+        VStack(spacing: 0) {
+            let draft = bridge.agents.filter { $0.status == "draft" || $0.status == nil }
+            let published = bridge.agents.filter { $0.status == "published" }
+            let archived = bridge.agents.filter { $0.status == "archived" }
+            statusRow(label: "Draft", count: draft.count, color: .gray)
+            statusRow(label: "Published", count: published.count, color: .green)
+            statusRow(label: "Archived", count: archived.count, color: .orange)
+        }
+    }
+
+    private func statusRow(label: String, count: Int, color: Color) -> some View {
+        HStack {
+            Circle()
+                .fill(color)
+                .frame(width: 8, height: 8)
+            Text(label)
+                .font(.system(size: theme.textSize))
+                .foregroundStyle(theme.text)
+            Spacer()
+            Text("\(count)")
+                .font(.system(size: theme.textSize, weight: .semibold, design: .rounded))
+                .foregroundStyle(theme.text)
+        }
+        .padding(.horizontal, theme.spacingL)
+        .padding(.vertical, theme.spacingM)
+        .background(theme.surfaceSecondary)
     }
 }
 

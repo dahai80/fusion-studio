@@ -962,7 +962,8 @@ struct UnifiedChatView: View {
                             chatViewLog.info("Screenshot attached via NSImage, size=\(b64.count) chars base64")
                         }
                     } else {
-                        chatViewLog.warning("Screenshot: no image found on pasteboard (types: \(pb.types.map { $0.rawValue }))")
+                        let count = pb.types?.count ?? 0
+                        chatViewLog.warning("Screenshot: no image on pasteboard, \(count) types found")
                     }
                 }
             }

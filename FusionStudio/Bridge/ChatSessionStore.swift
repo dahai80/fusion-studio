@@ -1218,7 +1218,7 @@ class ChatSessionStore: ObservableObject {
             if let wid = result["watch_id"] as? String {
                 activeRAGWatchId = wid
                 activeRAGWatchKbId = kbId
-                chatStoreLog.info("RAG watch started: kb=%s watch=%s files=%d", kbId, wid, filePaths.count)
+                chatStoreLog.info("RAG watch started: kb=\(kbId) watch=\(wid) files=\(filePaths.count)")
             }
         } catch {
             chatStoreLog.debug("RAG watch start failed: \(error.localizedDescription)")
@@ -1233,7 +1233,7 @@ class ChatSessionStore: ObservableObject {
         }
         do {
             _ = try await ipcClient.ragUnwatch(kbId: kbId, watchId: wid)
-            chatStoreLog.info("RAG watch stopped: kb=%s watch=%s", kbId, wid)
+            chatStoreLog.info("RAG watch stopped: kb=\(kbId) watch=\(wid)")
         } catch {
             chatStoreLog.debug("RAG watch stop failed: \(error.localizedDescription)")
         }
