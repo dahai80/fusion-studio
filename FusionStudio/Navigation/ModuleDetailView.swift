@@ -140,6 +140,16 @@ struct DashboardView: View {
                     HardwareMonitorView()
                         .padding(14)
                 }
+
+                ListGroup {
+                    ProfilerDashboard()
+                        .padding(14)
+                }
+
+                ListGroup {
+                    ProfilerAlertsView()
+                        .padding(14)
+                }
             }
             .padding(.bottom, 20)
         }
