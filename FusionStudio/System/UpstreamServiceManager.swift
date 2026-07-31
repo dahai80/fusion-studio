@@ -343,7 +343,8 @@ final class UpstreamServiceManager: ObservableObject {
         addr.sun_family = sa_family_t(AF_UNIX)
         let pathCString = path.utf8CString
         let pathLen = min(pathCString.count, MemoryLayout.size(ofValue: addr.sun_path))
-        _ = pathCString.withUnsafeBufferPointer { src in
+        // Callers: UpstreamServiceManager.probeSocket. Affected API: none. Data: fix _ = on Void-returning closure causing release build fatalError. User: "修复 Release workflow"
+        pathCString.withUnsafeBufferPointer { src in
             withUnsafeMutableBytes(of: &addr.sun_path) { dst in
                 dst.copyMemory(from: UnsafeRawBufferPointer(
                     start: UnsafeRawPointer(src.baseAddress!),

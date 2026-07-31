@@ -9,18 +9,15 @@ permissions:
   contents: write
 
 jobs:
-  # ─── 构建 Release ─────────────────────────────────────
+  # Callers: triggered by v* tag push. Affected API: swift build -c release, cargo build, build.sh package/dmg. Data: DMG artifact. User: "修复 Release workflow"
   build-release:
     name: Build Release ${{ github.ref_name }}
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 60
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 
       - name: Show versions
         run: |
@@ -31,18 +28,18 @@ jobs:
       - name: Build Rust services
         run: |
           cd Services/env-daemon
-          cargo build --release 2>&1 | tail -5
+          cargo build --release 2>&1
 
-      - name: Build SwiftUI app
-        run: swift build -c release 2>&1 | tail -5
+      - name: Build SwiftUI app (release)
+        run: swift build -c release 2>&1
 
       - name: Package .app
         run: |
-          CONFIGURATION=release ./Scripts/build.sh package 2>&1 | tail -10
+          CONFIGURATION=release ./Scripts/build.sh package 2>&1
 
       - name: Create DMG
         run: |
-          ./Scripts/build.sh dmg 2>&1 | tail -5
+          ./Scripts/build.sh dmg 2>&1
 
       - name: List artifacts
         run: |
@@ -55,7 +52,6 @@ jobs:
           path: .build/*.dmg
           if-no-files-found: error
 
-  # ─── 创建 GitHub Release ─────────────────────────────
   create-release:
     name: Create GitHub Release
     needs: [build-release]
@@ -72,54 +68,45 @@ jobs:
           name: FusionStudio-${{ github.ref_name }}-arm64
           path: .artifacts
 
-      - name: Generate Release Notes
-        id: notes
+      - name: Extract changelog
+        id: changelog
         run: |
-          cat > .release-notes.md << 'EOF'
-          # Fusion Studio ${{ github.ref_name }}
-
-          ## 下载
-
-          - [FusionStudio-${{ github.ref_name }}-arm64.dmg](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/FusionStudio-${{ github.ref_name }}-arm64.dmg)
-
-          ## 系统要求
-
-          - macOS 14+ (Sonoma 或更高)
-          - Apple Silicon (M1–M5)
-
-          ## 安装
-
-          1. 下载 DMG 文件
-          2. 双击打开
-          3. 将 Fusion Studio 拖入 Applications 文件夹
-          4. 首次启动时，运行环境自检以安装所有依赖
-
-          ## 更新日志
-
-          ### 新增
-
-          - 全部 10 个模块入口已完善
-          - 局域网协作功能
-          - 插件系统支持
-          - 高级渲染/仿真参数调节
-
-          ### 修复
-
-          - 多项性能优化和内存泄漏修复
-
-          ### 注意
-
-          - 首次启动可能需要几分钟完成环境自检
-          - 需要 fusion-mlx 服务运行以使用 AI 功能
-          EOF
-          echo "done"
+          VERSION="${GITHUB_REF_NAME#v}"
+          CHANGELOG=$(sed -n "/## \[${VERSION}\]/,/## \[/p" FusionStudio/Common/DocGeneratorView.swift | head -20 | grep -v "## \[" | sed 's/^            //' | sed '/^$/d')
+          {
+            echo "version=$VERSION"
+            echo "changelog<<EOF"
+            echo "$CHANGELOG"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: Fusion Studio ${{ github.ref_name }}
-          body_path: .release-notes.md
+          body: |
+            # Fusion Studio ${{ github.ref_name }}
+
+            ## 下载
+
+            - [FusionStudio-${{ github.ref_name }}-arm64.dmg](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/FusionStudio-${{ github.ref_name }}-arm64.dmg)
+
+            ## 系统要求
+
+            - macOS 14+ (Sonoma 或更高)
+            - Apple Silicon (M1–M5)
+
+            ## 安装
+
+            1. 下载 DMG 文件
+            2. 双击打开
+            3. 将 Fusion Studio 拖入 Applications 文件夹
+            4. 首次启动时，运行环境自检以安装所有依赖
+
+            ## 更新日志
+
+            ${{ steps.changelog.outputs.changelog }}
           files: |
             .artifacts/*.dmg
           draft: false
