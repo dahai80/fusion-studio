@@ -1279,161 +1279,161 @@ class IPCClient: ObservableObject {
     // MARK: - Desk (Fusion-Desk 自动化平台)
 
     func deskHealth() async throws -> [String: Any] {
-        return try await call(method: "desk.health")
+        return try await spaceCall(method: "desk.health")
     }
 
     func deskNodesList() async throws -> [String: Any] {
-        return try await call(method: "desk.nodes.list")
+        return try await spaceCall(method: "desk.nodes.list")
     }
 
     func deskNodesInfo(name: String) async throws -> [String: Any] {
-        return try await call(method: "desk.nodes.info", params: ["name": name])
+        return try await spaceCall(method: "desk.nodes.info", params: ["name": name])
     }
 
     func deskNodesExecute(name: String, params: [String: Any] = [:]) async throws -> [String: Any] {
         var p: [String: Any] = ["name": name]
         if !params.isEmpty { p["params"] = params }
-        return try await call(method: "desk.nodes.execute", params: p)
+        return try await spaceCall(method: "desk.nodes.execute", params: p)
     }
 
     func deskNodesCategories() async throws -> [String: Any] {
-        return try await call(method: "desk.nodes.categories")
+        return try await spaceCall(method: "desk.nodes.categories")
     }
 
     func deskWorkflowList() async throws -> [String: Any] {
-        return try await call(method: "desk.workflow.list")
+        return try await spaceCall(method: "desk.workflow.list")
     }
 
     func deskWorkflowCreate(prompt: String) async throws -> [String: Any] {
-        return try await call(method: "desk.workflow.create", params: ["prompt": prompt])
+        return try await spaceCall(method: "desk.workflow.create", params: ["prompt": prompt])
     }
 
     func deskWorkflowRun(workflow: [String: Any]) async throws -> [String: Any] {
-        return try await call(method: "desk.workflow.run", params: ["workflow": workflow])
+        return try await spaceCall(method: "desk.workflow.run", params: ["workflow": workflow])
     }
 
     func deskWorkflowStatus() async throws -> [String: Any] {
-        return try await call(method: "desk.workflow.status")
+        return try await spaceCall(method: "desk.workflow.status")
     }
 
     func deskWorkflowCancel(executionId: String) async throws -> [String: Any] {
-        return try await call(method: "desk.workflow.cancel", params: ["execution_id": executionId])
+        return try await spaceCall(method: "desk.workflow.cancel", params: ["execution_id": executionId])
     }
 
     func deskAgentList() async throws -> [String: Any] {
-        return try await call(method: "desk.agent.list")
+        return try await spaceCall(method: "desk.agent.list")
     }
 
     func deskAgentSubmit(task: String) async throws -> [String: Any] {
-        return try await call(method: "desk.agent.submit", params: ["task": task])
+        return try await spaceCall(method: "desk.agent.submit", params: ["task": task])
     }
 
     func deskAgentStatus(taskId: String) async throws -> [String: Any] {
-        return try await call(method: "desk.agent.status", params: ["task_id": taskId])
+        return try await spaceCall(method: "desk.agent.status", params: ["task_id": taskId])
     }
 
     func deskAgentCancel(taskId: String) async throws -> [String: Any] {
-        return try await call(method: "desk.agent.cancel", params: ["task_id": taskId])
+        return try await spaceCall(method: "desk.agent.cancel", params: ["task_id": taskId])
     }
 
     func deskMlxStatus() async throws -> [String: Any] {
-        return try await call(method: "desk.mlx.status")
+        return try await spaceCall(method: "desk.mlx.status")
     }
 
     func deskMlxStart(model: String = "") async throws -> [String: Any] {
         var params: [String: Any] = [:]
         if !model.isEmpty { params["model"] = model }
-        return try await call(method: "desk.mlx.start", params: params)
+        return try await spaceCall(method: "desk.mlx.start", params: params)
     }
 
     func deskMlxStop() async throws -> [String: Any] {
-        return try await call(method: "desk.mlx.stop")
+        return try await spaceCall(method: "desk.mlx.stop")
     }
 
     func deskMlxModels() async throws -> [String: Any] {
-        return try await call(method: "desk.mlx.models")
+        return try await spaceCall(method: "desk.mlx.models")
     }
 
     func deskSystemInfo() async throws -> [String: Any] {
-        return try await call(method: "desk.system.info")
+        return try await spaceCall(method: "desk.system.info")
     }
 
     func deskEventsSubscribe() async throws -> [String: Any] {
-        return try await call(method: "desk.events.subscribe")
+        return try await spaceCall(method: "desk.events.subscribe")
     }
 
     func deskEventsRecent(since: Double = 0.0) async throws -> [String: Any] {
-        return try await call(method: "desk.events.recent", params: ["since": since])
+        return try await spaceCall(method: "desk.events.recent", params: ["since": since])
     }
 
     func deskEventsPoll(subId: String) async throws -> [String: Any] {
-        return try await call(method: "desk.events.poll", params: ["sub_id": subId])
+        return try await spaceCall(method: "desk.events.poll", params: ["sub_id": subId])
     }
 
     func deskSessionList(status: String = "", limit: Int = 20) async throws -> [String: Any] {
         var params: [String: Any] = ["limit": limit]
         if !status.isEmpty { params["status"] = status }
-        return try await call(method: "desk.session.list", params: params)
+        return try await spaceCall(method: "desk.session.list", params: params)
     }
 
     func deskSessionGet(sessionId: String) async throws -> [String: Any] {
-        return try await call(method: "desk.session.get", params: ["session_id": sessionId])
+        return try await spaceCall(method: "desk.session.get", params: ["session_id": sessionId])
     }
 
     func deskSessionFork(sessionId: String, fromStep: Int = 0) async throws -> [String: Any] {
-        return try await call(method: "desk.session.fork", params: ["session_id": sessionId, "from_step": fromStep])
+        return try await spaceCall(method: "desk.session.fork", params: ["session_id": sessionId, "from_step": fromStep])
     }
 
     func deskSessionCreate(name: String, description: String = "") async throws -> [String: Any] {
         var params: [String: Any] = ["name": name]
         if !description.isEmpty { params["description"] = description }
-        return try await call(method: "desk.session.create", params: params)
+        return try await spaceCall(method: "desk.session.create", params: params)
     }
 
     func deskSessionUpdate(sessionId: String, updates: [String: Any]) async throws -> [String: Any] {
-        return try await call(method: "desk.session.update", params: ["session_id": sessionId, "updates": updates])
+        return try await spaceCall(method: "desk.session.update", params: ["session_id": sessionId, "updates": updates])
     }
 
     func deskSessionDelete(sessionId: String) async throws -> [String: Any] {
-        return try await call(method: "desk.session.delete", params: ["session_id": sessionId])
+        return try await spaceCall(method: "desk.session.delete", params: ["session_id": sessionId])
     }
 
     func deskPermissionCheck(toolName: String, params: [String: Any] = [:]) async throws -> [String: Any] {
         var p: [String: Any] = ["tool_name": toolName]
         if !params.isEmpty { p["params"] = params }
-        return try await call(method: "desk.permission.check", params: p)
+        return try await spaceCall(method: "desk.permission.check", params: p)
     }
 
     func deskPermissionApprove(toolName: String, scope: String = "*") async throws -> [String: Any] {
-        return try await call(method: "desk.permission.approve", params: ["tool_name": toolName, "scope": scope])
+        return try await spaceCall(method: "desk.permission.approve", params: ["tool_name": toolName, "scope": scope])
     }
 
     func deskPermissionDeny(toolName: String, scope: String = "*") async throws -> [String: Any] {
-        return try await call(method: "desk.permission.deny", params: ["tool_name": toolName, "scope": scope])
+        return try await spaceCall(method: "desk.permission.deny", params: ["tool_name": toolName, "scope": scope])
     }
 
     func deskPermissionList() async throws -> [String: Any] {
-        return try await call(method: "desk.permission.list")
+        return try await spaceCall(method: "desk.permission.list")
     }
 
     func deskPermissionReset() async throws -> [String: Any] {
-        return try await call(method: "desk.permission.reset")
+        return try await spaceCall(method: "desk.permission.reset")
     }
 
     func deskTemplateList(category: String = "") async throws -> [String: Any] {
         var params: [String: Any] = [:]
         if !category.isEmpty { params["category"] = category }
-        return try await call(method: "desk.template.list", params: params)
+        return try await spaceCall(method: "desk.template.list", params: params)
     }
 
     func deskTemplateGet(templateId: String) async throws -> [String: Any] {
-        return try await call(method: "desk.template.get", params: ["template_id": templateId])
+        return try await spaceCall(method: "desk.template.get", params: ["template_id": templateId])
     }
 
     func deskTemplateRun(templateId: String, variables: [String: String]? = nil) async throws -> [String: Any] {
         var params: [String: Any] = ["template_id": templateId]
         if let v = variables { params["variables"] = v }
-        return try await call(method: "desk.template.run", params: params)
+        return try await spaceCall(method: "desk.template.run", params: params)
     }
 
     // MARK: - 辅助方法
