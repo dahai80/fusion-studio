@@ -12,6 +12,9 @@ struct ChatsPanel: View {
     @Environment(\.studioTheme) private var theme
     @EnvironmentObject var chatStore: ChatSessionStore
     @State private var searchText = ""
+    @State private var hoveredSessionId: String?
+    @State private var renamingSessionId: String?
+    @State private var renameText: String = ""
 
     private var filteredSessions: [ChatSessionData] {
         let sessions = chatStore.sessions
@@ -97,42 +100,94 @@ struct ChatsPanel: View {
 
     private func sessionRow(_ session: ChatSessionData) -> some View {
         let isActive = chatStore.activeSession?.id == session.id
+        let isHovered = hoveredSessionId == session.id
+        let isRenaming = renamingSessionId == session.id
         let preview = session.messages.last?.content ?? "No messages yet"
-        return Button(action: {
-            chatStore.selectSession(session)
-            chatsLog.info("Selected chat session: \(session.id)")
-        }) {
-            HStack(spacing: theme.spacingM) {
-                VStack(alignment: .leading, spacing: 4) {
+        return HStack(spacing: theme.spacingM) {
+            if session.isPinned {
+                Image(systemName: "pin.fill")
+                    .font(.system(size: 8))
+                    .foregroundStyle(theme.accent)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                if isRenaming {
+                    TextField(session.title, text: $renameText, onCommit: {
+                        chatStore.renameSession(session.id, newTitle: renameText)
+                        renamingSessionId = nil
+                    })
+                    .font(.system(size: theme.textSize, weight: .medium))
+                    .foregroundStyle(theme.text)
+                    .textFieldStyle(.plain)
+                    .onExitCommand { renamingSessionId = nil }
+                } else {
                     Text(session.title.isEmpty ? "New Chat" : session.title)
                         .font(.system(size: theme.textSize, weight: .medium))
                         .foregroundStyle(theme.text)
                         .lineLimit(1)
-                    Text(preview)
-                        .font(.system(size: theme.footnoteSize))
-                        .foregroundStyle(theme.textSecondary)
-                        .lineLimit(1)
                 }
-                Spacer()
+                Text(preview)
+                    .font(.system(size: theme.footnoteSize))
+                    .foregroundStyle(theme.textSecondary)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            if isHovered && !isRenaming {
+                Menu {
+                    Button {
+                        chatStore.pinSession(session.id)
+                    } label: {
+                        Label(session.isPinned ? "Unpin" : "Pin to Top", systemImage: session.isPinned ? "pin.slash" : "pin")
+                    }
+                    Button {
+                        chatStore.shareSession(session.id)
+                    } label: {
+                        Label("Share", systemImage: "square.and.arrow.up")
+                    }
+                    Button {
+                        renameText = session.title.isEmpty ? "New Chat" : session.title
+                        renamingSessionId = session.id
+                    } label: {
+                        Label("Rename", systemImage: "pencil")
+                    }
+                    Divider()
+                    Button(role: .destructive) {
+                        Task { await chatStore.deleteSession(session.id) }
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(theme.textSecondary)
+                        .frame(width: 24, height: 24)
+                        .contentShape(Rectangle())
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .transition(.opacity)
+            } else if !isRenaming {
                 Text(Date(timeIntervalSince1970: session.updatedAt), style: .time)
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textTertiary)
             }
-            .padding(.horizontal, theme.spacingL)
-            .padding(.vertical, theme.spacingM)
-            .background(
-                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                    .fill(isActive ? theme.accent.opacity(0.10) : .clear)
-            )
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .contextMenu {
-            Button(role: .destructive) {
-                Task { await chatStore.deleteSession(session.id) }
-            } label: {
-                Label("Delete", systemImage: "trash")
-            }
+        .padding(.horizontal, theme.spacingL)
+        .padding(.vertical, theme.spacingM)
+        .background(
+            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                .fill(isActive ? theme.accent.opacity(0.10) : (isHovered ? theme.separator.opacity(0.3) : .clear))
+        )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if isRenaming { return }
+            chatStore.selectSession(session)
+            chatsLog.info("Selected chat session: \(session.id)")
+        }
+        .onHover { hovering in
+            hoveredSessionId = hovering ? session.id : nil
         }
     }
 

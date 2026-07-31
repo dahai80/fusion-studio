@@ -302,10 +302,22 @@ class DocGenerator: ObservableObject {
 
             ## [Unreleased]
 
+            // Callers: DocGeneratorView changelog. Affected API: none. Data: version changelog. User: "发布补丁版本"
             ### 新增
             - 侧边栏菜单入口全量补齐：新增 Fusion-MLX 段（控制台/模型/调优/测评）、Multi-Node 段（集群总览/拓扑图/任务监控/告警中心/节点管理/提交任务/任务详情/路由策略/KV缓存/服务面板/多模态/分析/协作/外部集成/运维/部署），Agent 段追加知识库/自动化
             - 22 个原孤儿模块视图现可经侧边栏直达（排除训练/仿真/教育三个待补能力模块）
             - SectionContentView 新增 .mlx/.multiNode 段路由至 ModuleDetailView，IconRailView/FusionSidebarView 同步接入
+
+            ## [0.1.8] - 2026-07-31
+
+            ### 新增
+            - ChatPreset 枚举 (Code/Write/Create/Learn/Life) + systemPrompt 注入，快捷按钮对齐 Claude.ai L1
+            - OutputStyle 枚举 (正式/极简/技术文档/学术) + stylePrompt 注入，+ 菜单 Use style 选择器
+            - AttachmentData 附件模型 + 截图/文件附件 UI + 输入框附件条 + 消息气泡缩略图
+            - AgentBridge.inferStream/infer messages 扩展 [[String:Any]] 支持多模态 + webSearch 参数
+            - ChatSessionData.projectId 字段 + Project 选择器 + 关联指示器
+            - BridgeError.userMessage 用户友好中文错误封装 (authFailed/serviceUnavailable/ipcError 分类)
+            - + 菜单完整化：Add files (⌘U) / Take screenshot / Web search / Project
 
             ## [0.1.7] - 2026-07-30
 

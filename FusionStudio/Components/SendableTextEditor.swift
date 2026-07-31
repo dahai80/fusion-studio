@@ -16,6 +16,7 @@ struct SendableTextEditor: NSViewRepresentable {
     var placeholderColor: NSColor = .tertiaryLabelColor
     var maxHeight: CGFloat = 88
     var onSend: (() -> Void)?
+    @Binding var refocusTrigger: Int
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -71,6 +72,14 @@ struct SendableTextEditor: NSViewRepresentable {
                 }
             }
         }
+
+        if context.coordinator.lastRefocusTrigger != refocusTrigger {
+            context.coordinator.lastRefocusTrigger = refocusTrigger
+            DispatchQueue.main.async {
+                textView.window?.makeFirstResponder(textView)
+            }
+        }
+
         textView.font = font
         textView.textColor = textColor
         context.coordinator.updatePlaceholder()
@@ -80,6 +89,7 @@ struct SendableTextEditor: NSViewRepresentable {
         var parent: SendableTextEditor
         weak var textView: SendableTextView?
         private var placeholderTextView: NSTextView?
+        var lastRefocusTrigger: Int = 0
 
         init(_ parent: SendableTextEditor) {
             self.parent = parent
