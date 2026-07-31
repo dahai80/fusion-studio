@@ -194,6 +194,18 @@ final class UpstreamServiceManager: ObservableObject {
                             isCritical: false, startOrder: 8,
                             repoPathRaw: cfg.upstreamFusionCodePath,
                             healthKind: .httpGet, healthEndpoint: "\(cfg.fusionCodeURL)/api/project/context"),
+            UpstreamService(id: "project-svc",
+                            displayName: "Fusion Projects 服务",
+                            icon: "folder.badge.gearshape",
+                            isCritical: false, startOrder: 9,
+                            repoPathRaw: "~/fusion/fusion-projects",
+                            healthKind: .socket, healthEndpoint: "/tmp/fusion-project-svc.sock"),
+            UpstreamService(id: "cowork-desk",
+                            displayName: "CoWork Desk RPC",
+                            icon: "person.2.square.stack",
+                            isCritical: false, startOrder: 10,
+                            repoPathRaw: "~/fusion/fusion-cowork",
+                            healthKind: .socket, healthEndpoint: "/tmp/fusion-cowork.sock"),
         ]
     }
 
@@ -294,6 +306,23 @@ final class UpstreamServiceManager: ObservableObject {
         var updated: [UpstreamService] = []
         for var svc in snapshot {
             if svc.status == .notApplicable {
+                updated.append(svc)
+                continue
+            }
+            // .socket 健康探测自足：UDS connect 成功即存活，不依赖 start.sh
+            // （fusion-cowork 无 start.sh，但 desk_rpc 由 fusion-studio start.sh 拉起）
+            if svc.healthKind == .socket {
+                let healthy = await probeHealth(svc)
+                if healthy {
+                    svc.status = .running
+                    svc.message = "运行中"
+                } else if FileManager.default.isExecutableFile(atPath: startShPath(for: svc)) {
+                    svc.status = .stopped
+                    svc.message = "未启动"
+                } else {
+                    svc.status = .notInstalled
+                    svc.message = "服务不存在：未找到 start.sh"
+                }
                 updated.append(svc)
                 continue
             }

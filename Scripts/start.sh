@@ -28,6 +28,12 @@ cleanup() {
     if [ -n "${ARTIFACTS_ENGINE_PID:-}" ]; then
         kill "$ARTIFACTS_ENGINE_PID" 2>/dev/null || true
     fi
+    if [ -n "${PROJECT_SVC_PID:-}" ]; then
+        kill "$PROJECT_SVC_PID" 2>/dev/null || true
+    fi
+    if [ -n "${COWORK_DESK_PID:-}" ]; then
+        kill "$COWORK_DESK_PID" 2>/dev/null || true
+    fi
     exit 0
 }
 
@@ -108,6 +114,93 @@ start_artifacts_engine() {
     warn "artifacts-engine 启动超时，继续后续流程"
 }
 
+# ─── 启动 Fusion Projects 服务 (project-svc) ────────────────────
+
+start_project_svc() {
+    info "启动 Fusion Projects 服务 (project-svc)..."
+    local proj_dir="$HOME/fusion/fusion-projects"
+    local sock="${FUSION_PROJECT_SOCK:-/tmp/fusion-project-svc.sock}"
+
+    if [ ! -d "$proj_dir" ]; then
+        warn "fusion-projects 未找到: $proj_dir，跳过"
+        return 0
+    fi
+
+    local python="python3"
+    if [ -f "$proj_dir/.venv/bin/activate" ]; then
+        source "$proj_dir/.venv/bin/activate"
+        python="python"
+    fi
+
+    # 已在运行则跳过（UDS connect 成功即存活）
+    if "$python" -c "import socket,sys
+try:
+    s=socket.socket(socket.AF_UNIX);s.settimeout(2);s.connect('$sock');s.close();sys.exit(0)
+except Exception: sys.exit(1)" 2>/dev/null; then
+        info "project-svc 已在运行，跳过启动"
+        return 0
+    fi
+
+    (cd "$proj_dir" && FUSION_PROJECT_SOCK="$sock" $python -m project_service.daemon_server) &
+    PROJECT_SVC_PID=$!
+    info "project-svc 已启动 (PID: $PROJECT_SVC_PID)"
+
+    for i in $(seq 1 10); do
+        sleep 1
+        if "$python" -c "import socket,sys
+try:
+    s=socket.socket(socket.AF_UNIX);s.settimeout(2);s.connect('$sock');s.close();sys.exit(0)
+except Exception: sys.exit(1)" 2>/dev/null; then
+            info "project-svc 就绪"
+            return 0
+        fi
+    done
+    warn "project-svc 启动超时，继续后续流程"
+}
+
+# ─── 启动 CoWork Desk RPC ──────────────────────────────────────
+
+start_cowork_desk_rpc() {
+    info "启动 CoWork Desk RPC (fusion-cowork)..."
+    local cowork_dir="$HOME/fusion/fusion-cowork"
+    local sock="${FUSION_COWORK_SOCK:-/tmp/fusion-cowork.sock}"
+
+    if [ ! -d "$cowork_dir" ]; then
+        warn "fusion-cowork 未找到: $cowork_dir，跳过"
+        return 0
+    fi
+
+    local python="python3"
+    if [ -f "$cowork_dir/.venv/bin/activate" ]; then
+        source "$cowork_dir/.venv/bin/activate"
+        python="python"
+    fi
+
+    if "$python" -c "import socket,sys
+try:
+    s=socket.socket(socket.AF_UNIX);s.settimeout(2);s.connect('$sock');s.close();sys.exit(0)
+except Exception: sys.exit(1)" 2>/dev/null; then
+        info "cowork-desk 已在运行，跳过启动"
+        return 0
+    fi
+
+    (cd "$cowork_dir" && $python -m fusion_cowork desk rpc --sock "$sock") &
+    COWORK_DESK_PID=$!
+    info "cowork-desk 已启动 (PID: $COWORK_DESK_PID)"
+
+    for i in $(seq 1 10); do
+        sleep 1
+        if "$python" -c "import socket,sys
+try:
+    s=socket.socket(socket.AF_UNIX);s.settimeout(2);s.connect('$sock');s.close();sys.exit(0)
+except Exception: sys.exit(1)" 2>/dev/null; then
+            info "cowork-desk 就绪"
+            return 0
+        fi
+    done
+    warn "cowork-desk 启动超时，继续后续流程"
+}
+
 # ─── 启动 SwiftUI App ────────────────────────────────────────
 
 start_app() {
@@ -134,6 +227,8 @@ main() {
     start_env_daemon
     start_mlx_daemon
     start_artifacts_engine
+    start_project_svc
+    start_cowork_desk_rpc
     start_app
 
     info "所有服务已启动"

@@ -167,6 +167,94 @@ class IPCClient: ObservableObject {
         }
     }
 
+    // MARK: - 通用 UDS 调用 (非主 socket 上游: project-svc / cowork desk_rpc)
+
+    // Callers: projectCall / spaceCall. Affected API: udsCall(socketPath:method:params:) -> [String:Any].
+    // 每次新建短连接, 换行分隔 JSON-RPC 2.0; 结果归一化: dict 原样 / array 包成 ["items":...] / 标量包成 ["_result":...]
+    @discardableResult
+    func udsCall(socketPath: String, method: String, params: [String: Any] = [:]) async throws -> [String: Any] {
+        try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                let sock = socket(AF_UNIX, SOCK_STREAM, 0)
+                guard sock >= 0 else {
+                    continuation.resume(throwing: IPCError.invalidRequest)
+                    return
+                }
+                defer { close(sock) }
+                var tv = timeval(tv_sec: 8, tv_usec: 0)
+                _ = setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
+                var addr = sockaddr_un()
+                addr.sun_family = sa_family_t(AF_UNIX)
+                let pathC = socketPath.utf8CString
+                let pathLen = min(pathC.count, MemoryLayout.size(ofValue: addr.sun_path))
+                _ = pathC.withUnsafeBufferPointer { src in
+                    withUnsafeMutableBytes(of: &addr.sun_path) { dst in
+                        dst.copyMemory(from: UnsafeRawBufferPointer(
+                            start: UnsafeRawPointer(src.baseAddress!),
+                            count: pathLen
+                        ))
+                    }
+                }
+                let conn = Darwin.connect(sock, withUnsafePointer(to: &addr) {
+                    $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { $0 }
+                }, socklen_t(MemoryLayout<sockaddr_un>.size))
+                guard conn >= 0 else {
+                    ipcLog.warning("udsCall connect failed path=\(socketPath, privacy: .public) method=\(method, privacy: .public)")
+                    continuation.resume(throwing: IPCError.disconnected)
+                    return
+                }
+                var request: [String: Any] = [
+                    "jsonrpc": "2.0",
+                    "id": Int(Date().timeIntervalSince1970 * 1000),
+                    "method": method,
+                ]
+                if !params.isEmpty { request["params"] = params }
+                guard let data = try? JSONSerialization.data(withJSONObject: request) else {
+                    continuation.resume(throwing: IPCError.invalidRequest)
+                    return
+                }
+                var writeBuf = data
+                writeBuf.append(0x0A)
+                writeBuf.withUnsafeBytes { ptr in
+                    _ = Darwin.write(sock, ptr.baseAddress, writeBuf.count)
+                }
+                var respData = Data()
+                var buf = [UInt8](repeating: 0, count: 8192)
+                while true {
+                    let n = buf.withUnsafeMutableBufferPointer { Darwin.read(sock, $0.baseAddress!, $0.count) }
+                    if n > 0 {
+                        respData.append(contentsOf: buf[0..<n])
+                        if respData.last == 0x0A { break }
+                    } else {
+                        break
+                    }
+                }
+                guard !respData.isEmpty,
+                      let nlIdx = respData.firstIndex(of: 0x0A),
+                      let json = try? JSONSerialization.jsonObject(with: respData.subdata(in: 0..<nlIdx)) as? [String: Any] else {
+                    ipcLog.warning("udsCall invalid response method=\(method, privacy: .public) path=\(socketPath, privacy: .public)")
+                    continuation.resume(throwing: IPCError.invalidResponse)
+                    return
+                }
+                if let error = json["error"] as? [String: Any] {
+                    let code = error["code"] as? Int ?? -1
+                    let msg = error["message"] as? String ?? "Unknown error"
+                    continuation.resume(throwing: IPCError.rpcError(code: code, message: msg))
+                    return
+                }
+                if let result = json["result"] as? [String: Any] {
+                    continuation.resume(returning: result)
+                } else if let arr = json["result"] as? [Any] {
+                    continuation.resume(returning: ["items": arr])
+                } else if json["result"] != nil {
+                    continuation.resume(returning: ["_result": json["result"]!])
+                } else {
+                    continuation.resume(returning: [:])
+                }
+            }
+        }
+    }
+
     // MARK: - 读取循环
 
     private func startReading() {
@@ -785,6 +873,126 @@ class IPCClient: ObservableObject {
         ]
         if let pid = projectId { params["project_id"] = pid }
         return try await artifactsCall(method: "artifact.render", params: params)
+    }
+
+    // MARK: - Artifacts Engine 扩展方法 (Issue #26: rename/star/pin/duplicate/snapshot/share/recycle/folder/tag/interact)
+
+    // Callers: ArtifactsPanel / ArtifactCanvasView / 版本历史面板 / 分享弹窗. Affected API: 新增 artifact.* 方法, 复用 artifactsCall (HTTP).
+    @discardableResult
+    func artifactCall(method: String, params: [String: Any] = [:]) async throws -> [String: Any] {
+        return try await artifactsCall(method: method, params: params)
+    }
+
+    func artifactRename(artifactId: String, newName: String) async throws -> [String: Any] {
+        return try await artifactsCall(method: "artifact.rename", params: ["artifact_id": artifactId, "new_name": newName])
+    }
+
+    func artifactStar(artifactId: String, starred: Bool = true) async throws -> [String: Any] {
+        return try await artifactsCall(method: "artifact.star", params: ["artifact_id": artifactId, "starred": starred])
+    }
+
+    func artifactPin(artifactId: String, chatId: String? = nil, pinned: Bool = true) async throws -> [String: Any] {
+        var p: [String: Any] = ["artifact_id": artifactId, "pinned": pinned]
+        if let c = chatId { p["chat_id"] = c }
+        return try await artifactsCall(method: "artifact.pin", params: p)
+    }
+
+    func artifactDuplicate(artifactId: String, newName: String? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["artifact_id": artifactId]
+        if let n = newName { p["new_name"] = n }
+        return try await artifactsCall(method: "artifact.duplicate", params: p)
+    }
+
+    func artifactListAll(filters: [String: Any]? = nil, sort: String = "updated_at", page: Int = 1, pageSize: Int = 20) async throws -> [String: Any] {
+        var p: [String: Any] = ["sort": sort, "page": page, "page_size": pageSize]
+        if let f = filters { p["filters"] = f }
+        return try await artifactsCall(method: "artifact.list_all", params: p)
+    }
+
+    func artifactListRecycle(page: Int = 1, pageSize: Int = 20) async throws -> [String: Any] {
+        return try await artifactsCall(method: "artifact.list_recycle", params: ["page": page, "page_size": pageSize])
+    }
+
+    func artifactRestore(artifactId: String) async throws -> [String: Any] {
+        return try await artifactsCall(method: "artifact.restore", params: ["artifact_id": artifactId])
+    }
+
+    func artifactPurgeExpired() async throws -> [String: Any] {
+        return try await artifactsCall(method: "artifact.purge_expired", params: [:])
+    }
+
+    func artifactCreateSnapshot(artifactId: String, label: String? = nil, author: String? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["artifact_id": artifactId]
+        if let l = label { p["label"] = l }
+        if let a = author { p["author"] = a }
+        return try await artifactsCall(method: "artifact.create_snapshot", params: p)
+    }
+
+    func artifactListSnapshots(artifactId: String) async throws -> [String: Any] {
+        return try await artifactsCall(method: "artifact.list_snapshots", params: ["artifact_id": artifactId])
+    }
+
+    func artifactCreateShare(artifactId: String, createdBy: String? = nil, expiresAt: String? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["artifact_id": artifactId]
+        if let c = createdBy { p["created_by"] = c }
+        if let e = expiresAt { p["expires_at"] = e }
+        return try await artifactsCall(method: "artifact.create_share", params: p)
+    }
+
+    func artifactGetShared(shareId: String) async throws -> [String: Any] {
+        return try await artifactsCall(method: "artifact.get_shared", params: ["share_id": shareId])
+    }
+
+    func artifactRevokeShare(shareId: String) async throws -> [String: Any] {
+        return try await artifactsCall(method: "artifact.revoke_share", params: ["share_id": shareId])
+    }
+
+    func artifactMoveToProjectKb(artifactId: String, projectId: String) async throws -> [String: Any] {
+        return try await artifactsCall(method: "artifact.move_to_project_kb", params: ["artifact_id": artifactId, "project_id": projectId])
+    }
+
+    func artifactInteract(artifactId: String, action: String = "state_change", payload: [String: Any] = [:], sessionId: String = "") async throws -> [String: Any] {
+        var p: [String: Any] = ["artifact_id": artifactId, "action": action, "payload": payload]
+        if !sessionId.isEmpty { p["session_id"] = sessionId }
+        return try await artifactsCall(method: "artifact.interact", params: p)
+    }
+
+    func artifactCreateFolder(name: String, parentId: String? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["name": name]
+        if let pid = parentId { p["parent_id"] = pid }
+        return try await artifactsCall(method: "artifact.create_folder", params: p)
+    }
+
+    func artifactListFolders(parentId: String? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = [:]
+        if let pid = parentId { p["parent_id"] = pid }
+        return try await artifactsCall(method: "artifact.list_folders", params: p)
+    }
+
+    func artifactRenameFolder(folderId: String, newName: String) async throws -> [String: Any] {
+        return try await artifactsCall(method: "artifact.rename_folder", params: ["folder_id": folderId, "new_name": newName])
+    }
+
+    func artifactDeleteFolder(folderId: String) async throws -> [String: Any] {
+        return try await artifactsCall(method: "artifact.delete_folder", params: ["folder_id": folderId])
+    }
+
+    func artifactMoveToFolder(artifactId: String, folderId: String?) async throws -> [String: Any] {
+        var p: [String: Any] = ["artifact_id": artifactId]
+        if let f = folderId { p["folder_id"] = f }
+        return try await artifactsCall(method: "artifact.move_to_folder", params: p)
+    }
+
+    func artifactAddTag(artifactId: String, tag: String) async throws -> [String: Any] {
+        return try await artifactsCall(method: "artifact.add_tag", params: ["artifact_id": artifactId, "tag": tag])
+    }
+
+    func artifactRemoveTag(artifactId: String, tag: String) async throws -> [String: Any] {
+        return try await artifactsCall(method: "artifact.remove_tag", params: ["artifact_id": artifactId, "tag": tag])
+    }
+
+    func artifactListTags(artifactId: String) async throws -> [String: Any] {
+        return try await artifactsCall(method: "artifact.list_tags", params: ["artifact_id": artifactId])
     }
 
     // MARK: - Agent Studio: Skill Execute + Research Adaptive
@@ -1407,6 +1615,155 @@ class IPCClient: ObservableObject {
 
     func marketplaceUninstall(agentId: String) async throws -> [String: Any] {
         return try await call(method: "marketplace.uninstall", params: ["agent_id": agentId])
+    }
+
+    // MARK: - Project Service (UDS /tmp/fusion-project-svc.sock, Issue #40)
+
+    // Callers: ProjectModuleView / ProjectsPanel (fusion-project-svc backed). Affected API: projectCall + 15 project.* methods.
+    private static let projectSvcSock = "/tmp/fusion-project-svc.sock"
+
+    @discardableResult
+    func projectCall(method: String, params: [String: Any] = [:]) async throws -> [String: Any] {
+        return try await udsCall(socketPath: Self.projectSvcSock, method: method, params: params)
+    }
+
+    func projectList(includeArchived: Bool = false, onlyStarred: Bool = false) async throws -> [String: Any] {
+        var p: [String: Any] = [:]
+        if includeArchived { p["include_archived"] = true }
+        if onlyStarred { p["only_starred"] = true }
+        return try await projectCall(method: "project.list", params: p)
+    }
+
+    func projectCreate(name: String, description: String = "", defaultAgentId: String? = nil, ragMode: String? = nil, ragTopK: Int? = nil, ragThreshold: Double? = nil, kbId: String? = nil, promptMergeMode: String? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["name": name]
+        if !description.isEmpty { p["description"] = description }
+        if let v = defaultAgentId { p["default_agent_id"] = v }
+        if let v = ragMode { p["rag_mode"] = v }
+        if let v = ragTopK { p["rag_top_k"] = v }
+        if let v = ragThreshold { p["rag_threshold"] = v }
+        if let v = kbId { p["kb_id"] = v }
+        if let v = promptMergeMode { p["prompt_merge_mode"] = v }
+        return try await projectCall(method: "project.create", params: p)
+    }
+
+    func projectGet(projectId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.get", params: ["project_id": projectId])
+    }
+
+    func projectUpdate(projectId: String, fields: [String: Any]) async throws -> [String: Any] {
+        return try await projectCall(method: "project.update", params: ["project_id": projectId, "fields": fields])
+    }
+
+    func projectArchive(projectId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.archive", params: ["project_id": projectId])
+    }
+
+    func projectUnarchive(projectId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.unarchive", params: ["project_id": projectId])
+    }
+
+    func projectStar(projectId: String, starred: Bool = true) async throws -> [String: Any] {
+        return try await projectCall(method: "project.star", params: ["project_id": projectId, "starred": starred])
+    }
+
+    func projectDelete(projectId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.delete", params: ["project_id": projectId])
+    }
+
+    func projectInstructionGet(projectId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.instruction.get", params: ["project_id": projectId])
+    }
+
+    func projectInstructionSave(projectId: String, content: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.instruction.save", params: ["project_id": projectId, "content": content])
+    }
+
+    func projectInstructionClear(projectId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.instruction.clear", params: ["project_id": projectId])
+    }
+
+    func projectInstructionSnapshots(projectId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.instruction.snapshots", params: ["project_id": projectId])
+    }
+
+    func projectArtifactMigrate(projectId: String, artifactId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.artifact.migrate", params: ["project_id": projectId, "artifact_id": artifactId])
+    }
+
+    func projectArtifactList(projectId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.artifact.list", params: ["project_id": projectId])
+    }
+
+    func projectArtifactRemove(artifactId: String) async throws -> [String: Any] {
+        return try await projectCall(method: "project.artifact.remove", params: ["artifact_id": artifactId])
+    }
+
+    // MARK: - CoWork Space (UDS /tmp/fusion-cowork.sock desk.space.*, Issue #38)
+
+    // Callers: SpaceListView / SpaceMainView 等 CoWork GUI. Affected API: spaceCall + 11 desk.space.* methods.
+    // 注意: desk_rpc 监听 /tmp/fusion-cowork.sock, 非 /tmp/fusion-studio.sock (env-daemon 不转发 desk.*)
+    private static let coworkDeskSock = "/tmp/fusion-cowork.sock"
+
+    @discardableResult
+    func spaceCall(method: String, params: [String: Any] = [:]) async throws -> [String: Any] {
+        return try await udsCall(socketPath: Self.coworkDeskSock, method: method, params: params)
+    }
+
+    func spaceCreate(name: String, ownerId: String = "local_user", description: String = "", collabMode: String = "local") async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.create", params: [
+            "name": name, "owner_id": ownerId, "description": description, "collab_mode": collabMode,
+        ])
+    }
+
+    func spaceList(status: String? = nil, ownerId: String? = nil, limit: Int = 20) async throws -> [String: Any] {
+        var p: [String: Any] = ["limit": limit]
+        if let s = status { p["status"] = s }
+        if let o = ownerId { p["owner_id"] = o }
+        return try await spaceCall(method: "desk.space.list", params: p)
+    }
+
+    func spaceGet(spaceId: String) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.get", params: ["space_id": spaceId])
+    }
+
+    func spaceUpdate(spaceId: String, updates: [String: Any]) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.update", params: ["space_id": spaceId, "updates": updates])
+    }
+
+    func spaceArchive(spaceId: String) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.archive", params: ["space_id": spaceId])
+    }
+
+    func spaceDelete(spaceId: String) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.delete", params: ["space_id": spaceId])
+    }
+
+    func spaceMemberInvite(spaceId: String, inviterId: String = "local_user", role: String = "member", maxUses: Int = 0, expiresHours: Int = 0) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.member.invite", params: [
+            "space_id": spaceId, "inviter_id": inviterId, "role": role, "max_uses": maxUses, "expires_hours": expiresHours,
+        ])
+    }
+
+    func spaceMemberJoin(inviteCode: String, userId: String, displayName: String = "") async throws -> [String: Any] {
+        var p: [String: Any] = ["invite_code": inviteCode, "user_id": userId]
+        if !displayName.isEmpty { p["display_name"] = displayName }
+        return try await spaceCall(method: "desk.space.member.join", params: p)
+    }
+
+    func spaceMemberList(spaceId: String) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.member.list", params: ["space_id": spaceId])
+    }
+
+    func spaceMemberRemove(spaceId: String, userId: String, operatorId: String = "local_user") async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.member.remove", params: [
+            "space_id": spaceId, "user_id": userId, "operator_id": operatorId,
+        ])
+    }
+
+    func spaceMemberUpdateRole(spaceId: String, userId: String, newRole: String, operatorId: String = "local_user") async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.member.update_role", params: [
+            "space_id": spaceId, "user_id": userId, "new_role": newRole, "operator_id": operatorId,
+        ])
     }
 
     deinit {
