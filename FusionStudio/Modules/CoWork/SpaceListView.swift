@@ -401,6 +401,12 @@ struct SpaceAgentView: View {
     let spaceId: String
     @State private var agents: [[String: Any]] = []
     @State private var isLoading = false
+    @State private var selectedAgentIdx: Int?
+    @State private var showEditor = false
+    @State private var editPrompt = ""
+    @State private var editName = ""
+    @State private var editPerm = "all_member"
+    @State private var isSaving = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -408,6 +414,11 @@ struct SpaceAgentView: View {
                 Text("共享 Agent")
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
                 Spacer()
+                Button(action: { showEditor = true; editName = ""; editPrompt = ""; editPerm = "all_member"; selectedAgentIdx = nil }) {
+                    Image(systemName: "plus")
+                        .font(.system(size: theme.iconS))
+                }
+                .buttonStyle(.plain)
                 Button(action: { loadAgents() }) {
                     Image(systemName: "arrow.clockwise")
                         .font(.system(size: theme.iconS))
@@ -424,7 +435,7 @@ struct SpaceAgentView: View {
                 ScrollView {
                     LazyVStack(spacing: theme.spacingXS) {
                         ForEach(agents.indices, id: \.self) { idx in
-                            agentRow(agents[idx])
+                            agentRow(agents[idx], idx: idx)
                         }
                     }
                     .padding(.horizontal, theme.spacingM)
@@ -432,6 +443,9 @@ struct SpaceAgentView: View {
             }
         }
         .onAppear { loadAgents() }
+        .sheet(isPresented: $showEditor) {
+            agentEditorSheet
+        }
     }
 
     private var emptyAgentView: some View {
@@ -442,28 +456,155 @@ struct SpaceAgentView: View {
             Text("暂无共享 Agent")
                 .font(.system(size: theme.footnoteSize))
                 .foregroundStyle(theme.textSecondary)
+            Button("添加 Agent") { showEditor = true; editName = ""; editPrompt = ""; selectedAgentIdx = nil }
+                .font(.system(size: theme.footnoteSize))
+                .foregroundStyle(theme.accent)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private func agentRow(_ a: [String: Any]) -> some View {
+    private func agentRow(_ a: [String: Any], idx: Int) -> some View {
         let name = a["agent_name"] as? String ?? a["name"] as? String ?? "?"
         let perm = a["permission"] as? String ?? "all_member"
         return HStack(spacing: theme.spacingS) {
             Image(systemName: "brain.head.profile")
                 .font(.system(size: theme.iconM))
-                .foregroundStyle(theme.textTertiary)
+                .foregroundStyle(theme.accent)
             VStack(alignment: .leading, spacing: 2) {
                 Text(name)
                     .font(.system(size: theme.textSize, weight: .medium))
-                Text(perm)
-                    .font(.system(size: theme.captionSize))
-                    .foregroundStyle(theme.textSecondary)
+                HStack(spacing: theme.spacingS) {
+                    Text(permLabel(perm))
+                        .font(.system(size: theme.captionSize))
+                        .foregroundStyle(theme.textSecondary)
+                    if let model = a["model"] as? String {
+                        Text(model)
+                            .font(.system(size: 9, design: .monospaced))
+                            .foregroundStyle(theme.textTertiary)
+                    }
+                }
             }
             Spacer()
+            Menu {
+                Button("编辑") {
+                    editName = name
+                    editPrompt = a["system_prompt"] as? String ?? ""
+                    editPerm = perm
+                    selectedAgentIdx = idx
+                    showEditor = true
+                }
+                Button("复制到项目") { }
+                Divider()
+                Button("移除", role: .destructive) { removeAgent(a) }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: theme.iconXS))
+                    .foregroundStyle(theme.textTertiary)
+            }
+            .menuStyle(.borderlessButton)
         }
         .padding(.horizontal, theme.spacingM)
         .padding(.vertical, 6)
+    }
+
+    private var agentEditorSheet: some View {
+        VStack(alignment: .leading, spacing: theme.spacingM) {
+            Text(selectedAgentIdx == nil ? "添加 Agent" : "编辑 Agent")
+                .font(.system(size: theme.headlineSize, weight: .bold))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("名称")
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(theme.textSecondary)
+                TextField("Agent 名称", text: $editName)
+                    .textFieldStyle(.roundedBorder)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("权限")
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(theme.textSecondary)
+                Picker("", selection: $editPerm) {
+                    Text("全部成员可用").tag("all_member")
+                    Text("仅管理员").tag("admin_only")
+                    Text("指定成员").tag("custom")
+                }
+                .pickerStyle(.radioGroup)
+                .font(.system(size: theme.captionSize))
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("System Prompt")
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(theme.textSecondary)
+                TextEditor(text: $editPrompt)
+                    .font(.system(size: theme.footnoteSize, design: .monospaced))
+                    .frame(height: 120)
+                    .padding(4)
+                    .background(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                        .stroke(theme.textTertiary.opacity(0.2)))
+            }
+
+            Spacer(minLength: 0)
+
+            HStack {
+                Button("取消") { showEditor = false }
+                Spacer()
+                Button("保存") { saveAgent() }
+                    .disabled(editName.isEmpty || isSaving)
+            }
+        }
+        .padding(theme.spacingL)
+        .frame(width: 440, height: 420)
+    }
+
+    private func permLabel(_ perm: String) -> String {
+        switch perm {
+        case "all_member": return "全部成员"
+        case "admin_only": return "仅管理员"
+        case "custom": return "自定义"
+        default: return perm
+        }
+    }
+
+    private func saveAgent() {
+        isSaving = true
+        Task {
+            do {
+                var params: [String: Any] = [
+                    "space_id": spaceId,
+                    "agent_name": editName,
+                    "system_prompt": editPrompt,
+                    "permission": editPerm
+                ]
+                if let idx = selectedAgentIdx, let aid = agents[idx]["agent_id"] as? String ?? agents[idx]["id"] as? String {
+                    params["agent_id"] = aid
+                    _ = try await ipc.spaceCall(method: "desk.space.agent.update", params: params)
+                } else {
+                    _ = try await ipc.spaceCall(method: "desk.space.agent.add", params: params)
+                }
+                spaceLog.info("Agent saved: \(editName)")
+                await MainActor.run { showEditor = false; isSaving = false }
+                loadAgents()
+            } catch {
+                spaceLog.error("saveAgent failed: \(error.localizedDescription)")
+                await MainActor.run { isSaving = false }
+            }
+        }
+    }
+
+    private func removeAgent(_ a: [String: Any]) {
+        let aid = a["agent_id"] as? String ?? a["id"] as? String ?? ""
+        Task {
+            do {
+                _ = try await ipc.spaceCall(method: "desk.space.agent.remove", params: [
+                    "space_id": spaceId, "agent_id": aid
+                ])
+                loadAgents()
+            } catch {
+                spaceLog.error("removeAgent failed: \(error.localizedDescription)")
+            }
+        }
     }
 
     private func loadAgents() {
@@ -489,6 +630,9 @@ struct SpaceSnapshotView: View {
     @State private var isLoading = false
     @State private var showCreate = false
     @State private var snapName = ""
+    @State private var showForkDialog = false
+    @State private var forkSnapId = ""
+    @State private var forkName = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -530,6 +674,11 @@ struct SpaceSnapshotView: View {
             Button("创建") { createSnapshot() }
             Button("取消", role: .cancel) { }
         }
+        .alert("Fork 快照", isPresented: $showForkDialog) {
+            TextField("新空间名称", text: $forkName)
+            Button("Fork") { forkSnapshot() }
+            Button("取消", role: .cancel) { }
+        }
     }
 
     private var emptySnapView: some View {
@@ -547,18 +696,41 @@ struct SpaceSnapshotView: View {
     private func snapRow(_ s: [String: Any]) -> some View {
         let name = s["name"] as? String ?? "unnamed"
         let ts = s["created_at"] as? String ?? ""
+        let snapId = s["snapshot_id"] as? String ?? s["id"] as? String ?? ""
         return HStack(spacing: theme.spacingS) {
             Image(systemName: "camera")
                 .font(.system(size: theme.iconM))
-                .foregroundStyle(theme.textTertiary)
+                .foregroundStyle(theme.accent)
             VStack(alignment: .leading, spacing: 2) {
                 Text(name)
                     .font(.system(size: theme.textSize, weight: .medium))
-                Text(ts)
-                    .font(.system(size: theme.captionSize))
-                    .foregroundStyle(theme.textSecondary)
+                HStack(spacing: theme.spacingS) {
+                    Text(ts)
+                        .font(.system(size: theme.captionSize))
+                        .foregroundStyle(theme.textSecondary)
+                    if let memberCount = s["member_count"] as? Int {
+                        Text("\(memberCount) 成员")
+                            .font(.system(size: 9))
+                            .foregroundStyle(theme.textTertiary)
+                    }
+                }
             }
             Spacer()
+            Menu {
+                Button("恢复此快照") { restoreSnapshot(snapId) }
+                Button("Fork 为新空间") {
+                    forkSnapId = snapId
+                    forkName = name + " (Fork)"
+                    showForkDialog = true
+                }
+                Divider()
+                Button("删除", role: .destructive) { deleteSnapshot(snapId) }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: theme.iconXS))
+                    .foregroundStyle(theme.textTertiary)
+            }
+            .menuStyle(.borderlessButton)
         }
         .padding(.horizontal, theme.spacingM)
         .padding(.vertical, 6)
@@ -588,6 +760,48 @@ struct SpaceSnapshotView: View {
                 loadSnapshots()
             } catch {
                 spaceLog.error("snapshot.create failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func restoreSnapshot(_ snapId: String) {
+        Task {
+            do {
+                _ = try await ipc.spaceCall(method: "desk.space.snapshot.restore", params: [
+                    "space_id": spaceId, "snapshot_id": snapId
+                ])
+                spaceLog.info("Snapshot restored: \(snapId)")
+                loadSnapshots()
+            } catch {
+                spaceLog.error("snapshot.restore failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func forkSnapshot() {
+        Task {
+            do {
+                _ = try await ipc.spaceCall(method: "desk.space.snapshot.fork", params: [
+                    "space_id": spaceId, "snapshot_id": forkSnapId, "new_name": forkName
+                ])
+                spaceLog.info("Snapshot forked: \(forkSnapId) → \(forkName)")
+                forkName = ""
+                loadSnapshots()
+            } catch {
+                spaceLog.error("snapshot.fork failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func deleteSnapshot(_ snapId: String) {
+        Task {
+            do {
+                _ = try await ipc.spaceCall(method: "desk.space.snapshot.delete", params: [
+                    "space_id": spaceId, "snapshot_id": snapId
+                ])
+                loadSnapshots()
+            } catch {
+                spaceLog.error("snapshot.delete failed: \(error.localizedDescription)")
             }
         }
     }
