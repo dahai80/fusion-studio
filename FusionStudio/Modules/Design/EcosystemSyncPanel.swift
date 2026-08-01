@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView.designInfoPanel ecosystem tab.
+// Affected API: EcosystemSyncPanel.syncToCode now uses DesignBridge.runFusionDesign unified bridge.
+// Data schemas: TemplateInfo, MutateCommand, EcosystemTab.
+// User instruction: "按照GUI草图实现fusion design，和~/fusion/fusion-design配合，端到端完成fusion设计"
+
 import SwiftUI
 import os.log
 
@@ -426,59 +431,26 @@ struct EcosystemSyncPanel: View {
     private func syncToCode() {
         isSyncing = true
         errorMessage = nil
-        let cliPath = findFusionDesignCLI()
 
         DispatchQueue.global(qos: .userInitiated).async {
-            let tempDir = FileManager.default.temporaryDirectory
-            let inputFile = tempDir.appendingPathComponent("fusion-eco-sync-\(UUID().uuidString).json")
-            do {
-                try (designBridge.lastRenderedDocumentJSON ?? "").write(to: inputFile, atomically: true, encoding: .utf8)
-            } catch {
-                DispatchQueue.main.async {
-                    self.errorMessage = "写入临时文件失败: \(error.localizedDescription)"
-                    self.isSyncing = false
-                }
-                return
-            }
-
-            let ipcBase = tempDir.appendingPathComponent("fusion-ipc").path
-            let args = ["export", "--input", inputFile.path, "--format", "html", "--out", ipcBase, "--ipc-base", ipcBase]
-
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: cliPath)
-            let pipe = Pipe()
-            let errPipe = Pipe()
-            process.standardOutput = pipe
-            process.standardError = errPipe
-            process.arguments = args
-
-            do {
-                try process.run()
-                process.waitUntilExit()
-
-                if process.terminationStatus == 0 {
-                    let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                    let output = String(data: data, encoding: .utf8) ?? ""
-                    DispatchQueue.main.async {
-                        self.syncResult = output.trimmingCharacters(in: .whitespacesAndNewlines)
-                        self.successMessage = "代码同步完成"
-                        ecoLog.info("Sync to code completed")
-                    }
+            let ipcBase = self.ecosystemBaseDir().path
+            let docJSON = designBridge.lastRenderedDocumentJSON ?? ""
+            let tmpPath = NSTemporaryDirectory() + "fd_eco_export_input.json"
+            try? docJSON.write(toFile: tmpPath, atomically: true, encoding: .utf8)
+            let result = designBridge.runFusionDesign(
+                ["export", "--input", tmpPath, "--format", "html", "--out", ipcBase, "--ipc-base", ipcBase]
+            )
+            try? FileManager.default.removeItem(atPath: tmpPath)
+            DispatchQueue.main.async {
+                if result.exitCode == 0 {
+                    self.syncResult = result.output.trimmingCharacters(in: .whitespacesAndNewlines)
+                    self.successMessage = "代码同步完成"
+                    ecoLog.info("Sync to code completed via unified bridge")
                 } else {
-                    let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
-                    let errMsg = String(data: errData, encoding: .utf8) ?? "unknown"
-                    DispatchQueue.main.async {
-                        self.errorMessage = "同步失败: \(errMsg.prefix(200))"
-                    }
+                    self.errorMessage = "同步失败: \(result.error.prefix(200))"
                 }
-            } catch {
-                DispatchQueue.main.async {
-                    self.errorMessage = "同步命令失败: \(error.localizedDescription)"
-                }
+                self.isSyncing = false
             }
-
-            try? FileManager.default.removeItem(at: inputFile)
-            DispatchQueue.main.async { self.isSyncing = false }
         }
     }
 
@@ -618,10 +590,4 @@ struct EcosystemSyncPanel: View {
             .appendingPathComponent("ipc")
     }
 
-    private func findFusionDesignCLI() -> String {
-        let devPath = NSHomeDirectory() + "/fusion/fusion-design/target/debug/fusion-design"
-        if FileManager.default.fileExists(atPath: devPath) { return devPath }
-        if let bundlePath = Bundle.main.path(forResource: "fusion-design", ofType: nil) { return bundlePath }
-        return "/usr/local/bin/fusion-design"
-    }
 }

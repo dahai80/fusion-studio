@@ -108,36 +108,19 @@ struct DesignTokenPanel: View {
         .padding(.vertical, theme.spacingS)
     }
 
+    // Callers: ModuleDetailView.designInfoPanel tokens tab.
+    // Affected API: applyPreset now uses DesignBridge.runFusionDesign instead of raw Process().
+    // Data schemas: DesignSystemPreset.cliName → CLI --design-system param.
+    // User instruction: "跟fusion-design做集成测试，基于prd文档，和claude洞察文档，测试到菜单，子菜单，数据要素，流程和user case，从GUI到业务逻辑，要进行全面深入的集成测试"
+
     private func applyPreset(_ preset: DesignSystemPreset) {
-        let cliPath = findFusionDesignCLI()
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: cliPath)
-        process.arguments = ["token-css", "--design-system", preset.cliName]
-
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = FileHandle.nullDevice
-
-        do {
-            try process.run()
-            process.waitUntilExit()
-            if process.terminationStatus == 0 {
-                let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                if let css = String(data: data, encoding: .utf8), !css.isEmpty {
-                    designBridge.applyDesignTokensToCanvas(css)
-                    tokenLog.info("DesignTokenPanel: applied preset \(preset.rawValue), css length=\(css.count)")
-                }
-            }
-        } catch {
-            tokenLog.error("DesignTokenPanel: failed to run token-css: \(error.localizedDescription)")
+        let result = designBridge.runFusionDesign(["token-css", "--design-system", preset.cliName])
+        if result.exitCode == 0, !result.output.isEmpty {
+            designBridge.applyDesignTokensToCanvas(result.output)
+            tokenLog.info("DesignTokenPanel: applied preset \(preset.rawValue), css length=\(result.output.count)")
+        } else {
+            tokenLog.error("DesignTokenPanel: token-css failed: \(result.error)")
         }
-    }
-
-    private func findFusionDesignCLI() -> String {
-        let devPath = NSHomeDirectory() + "/fusion/fusion-design/target/debug/fusion-design"
-        if FileManager.default.fileExists(atPath: devPath) { return devPath }
-        if let bundlePath = Bundle.main.path(forResource: "fusion-design", ofType: nil) { return bundlePath }
-        return "/usr/local/bin/fusion-design"
     }
 
     private var categoryTabs: some View {

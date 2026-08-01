@@ -43,6 +43,97 @@ struct DesignPage: Identifiable {
     }
 }
 
+struct DesignLintIssue: Identifiable {
+    let id = UUID()
+    let rule: String
+    let severity: String
+    let message: String
+    let nodeID: String?
+    let suggestion: String?
+}
+
+struct DesignDiffEntry: Identifiable {
+    let id = UUID()
+    let kind: String
+    let path: String
+    let oldValue: String?
+    let newValue: String?
+}
+
+struct VariantPage: Identifiable {
+    let id: String
+    let title: String
+    let documentJSON: String
+}
+
+enum DesignSkill: String, CaseIterable, Identifiable {
+    case textToUI = "text_to_ui"
+    case imageToUI = "image_to_ui"
+    case partialEdit = "partial_edit"
+    case localEdit = "local_edit"
+    case simPanel = "sim_panel"
+    case multiVariants = "multi_variants"
+    case specDoc = "spec_doc"
+    case pageFlow = "page_flow"
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .textToUI: return "文生 UI"
+        case .imageToUI: return "图生 UI"
+        case .partialEdit: return "局部编辑"
+        case .localEdit: return "精准修改"
+        case .simPanel: return "相似面板"
+        case .multiVariants: return "多方案"
+        case .specDoc: return "规范文档"
+        case .pageFlow: return "页面流"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .textToUI: return "text.bubble"
+        case .imageToUI: return "photo.on.rectangle"
+        case .partialEdit: return "pencil.circle"
+        case .localEdit: return "scope"
+        case .simPanel: return "square.on.square"
+        case .multiVariants: return "square.grid.3x3"
+        case .specDoc: return "doc.text.magnifyingglass"
+        case .pageFlow: return "arrow.triangle.branch"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .textToUI: return "自然语言描述 → 完整页面"
+        case .imageToUI: return "上传草图/参考图 → 生成 UI"
+        case .partialEdit: return "描述修改意图 → AI 局部修改"
+        case .localEdit: return "选中节点 → 精准属性修改"
+        case .simPanel: return "生成相似风格面板组件"
+        case .multiVariants: return "一次生成多种风格方案"
+        case .specDoc: return "设计规范 → 结构化文档"
+        case .pageFlow: return "描述多页面流程 → 串联页面"
+        }
+    }
+}
+
+enum DesignTemplateGroup: String, CaseIterable, Identifiable {
+    case pages = "页面"
+    case components = "组件"
+    case skills = "AI 技能"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .pages: return "doc.richtext"
+        case .components: return "square.on.square.dashed"
+        case .skills: return "wand.and.stars"
+        }
+    }
+}
+
 private enum ArtifactParseState {
     case idle
     case inOpenTag
@@ -133,7 +224,9 @@ class DesignBridge: ObservableObject {
     }
 
     func setNodeLocked(_ nodeID: String, locked: Bool) {
-        sendCanvasCommand(.mutateNode(nodeID, nil, nil, nil, nil, locked ? 0.3 : 1.0))
+        sendCanvasCommand(.mutateNode(nodeID: nodeID, x: nil, y: nil, w: nil, h: nil,
+                                       fill: nil, stroke: nil, strokeWidth: nil, radius: nil,
+                                       fontSize: nil, fontFamily: nil, opacity: locked ? 0.3 : 1.0))
         designBridgeLog.info("DesignBridge: set node \(nodeID) locked=\(locked)")
     }
 
@@ -162,25 +255,53 @@ class DesignBridge: ObservableObject {
             designBridgeLog.warning("DesignBridge: applyLocalEdit with no marquee selection")
             return
         }
-        let cliPath = findFusionDesignCLI()
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: cliPath)
-        process.arguments = ["generate", "--skill", "local-edit", "--input", "\(nodesJSON)|||\(instruction)"]
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        do {
-            try process.run()
-            process.waitUntilExit()
-            guard process.terminationStatus == 0 else {
-                designBridgeLog.error("DesignBridge: local-edit CLI failed with status \(process.terminationStatus)")
-                return
+        Task { @MainActor in
+            let effectiveNodesJSON: String
+            if nodesJSON.isEmpty || nodesJSON == "[]" {
+                effectiveNodesJSON = extractSelectedNodesJSON()
+            } else {
+                effectiveNodesJSON = nodesJSON
             }
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            let output = String(data: data, encoding: .utf8) ?? ""
-            applyPartialEditResult(output)
-        } catch {
-            designBridgeLog.error("DesignBridge: local-edit CLI error: \(error)")
+            let contextMsg = "选中节点的当前状态:\n\(effectiveNodesJSON)\n\n请修改以上节点，使其满足: \(instruction)\n\n只输出修改后节点的 JSON 数组，不要输出其他内容。格式: [{\"id\":\"...\", ...修改的属性}]"
+            let result = runFusionDesign(
+                ["generate", "--prompt", contextMsg, "--page", "LocalEdit"],
+                stdin: effectiveNodesJSON
+            )
+            if result.exitCode == 0, !result.output.isEmpty {
+                if let data = result.output.data(using: .utf8),
+                   let _ = try? JSONSerialization.jsonObject(with: data) {
+                    applyPartialEditResult(result.output)
+                } else {
+                    await sendDesignChat(instruction)
+                }
+            } else {
+                designBridgeLog.info("DesignBridge: local-edit CLI unavailable, falling back to MLX chat")
+                await sendDesignChat(instruction)
+            }
         }
+    }
+
+    private func extractSelectedNodesJSON() -> String {
+        guard let docJSON = lastRenderedDocumentJSON,
+              !docJSON.isEmpty,
+              !marqueeSelectedNodeIDs.isEmpty else { return "[]" }
+        guard let data = docJSON.data(using: .utf8),
+              let doc = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let pages = doc["pages"] as? [[String: Any]] else { return "[]" }
+        var selected: [[String: Any]] = []
+        let ids = Set(marqueeSelectedNodeIDs)
+        for page in pages {
+            guard let nodes = page["nodes"] as? [[String: Any]] else { continue }
+            for node in nodes {
+                if let id = node["id"] as? String, ids.contains(id) {
+                    selected.append(node)
+                }
+            }
+        }
+        if let data = try? JSONSerialization.data(withJSONObject: selected, options: .prettyPrinted) {
+            return String(data: data, encoding: .utf8) ?? "[]"
+        }
+        return "[]"
     }
 
     private func applyPartialEditResult(_ resultJSON: String) {
@@ -345,64 +466,22 @@ class DesignBridge: ObservableObject {
 
     /// 调用 fusion-design parse-html CLI 将 HTML 转为 PenDocument JSON。
     private func parseHtmlViaCLI(_ html: String) -> String? {
-        let cliPath = findFusionDesignCLI()
-        guard !cliPath.isEmpty else {
-            designBridgeLog.warning("DesignBridge: fusion-design CLI not found")
+        let result = runFusionDesign(
+            ["parse-html", "--page", currentArtifactTitle.isEmpty ? "Page" : currentArtifactTitle],
+            stdin: html
+        )
+        guard result.exitCode == 0 else {
+            designBridgeLog.warning("DesignBridge: parse-html failed: \(result.error)")
             return nil
         }
-        let process = Process()
-        let pipe = Pipe()
-        let inputPipe = Pipe()
-
-        process.executableURL = URL(fileURLWithPath: cliPath)
-        process.arguments = ["parse-html", "--page", currentArtifactTitle.isEmpty ? "Page" : currentArtifactTitle]
-        process.standardOutput = pipe
-        process.standardError = FileHandle.nullDevice
-        process.standardInput = inputPipe
-
-        do {
-            try process.run()
-            // Write HTML to stdin
-            guard let htmlData = html.data(using: .utf8) else { return nil }
-            inputPipe.fileHandleForWriting.write(htmlData)
-            try? inputPipe.fileHandleForWriting.close()
-
-            process.waitUntilExit()
-            guard process.terminationStatus == 0 else {
-                designBridgeLog.warning("DesignBridge: parse-html exited with \(process.terminationStatus)")
-                return nil
-            }
-            let outputData = pipe.fileHandleForReading.readDataToEndOfFile()
-            return String(data: outputData, encoding: .utf8)
-        } catch {
-            designBridgeLog.error("DesignBridge: parse-html failed: \(error.localizedDescription)")
-            return nil
-        }
+        return result.output.isEmpty ? nil : result.output
     }
 
     /// 调用 fusion-design token-css CLI 获取当前设计规范的 CSS Custom Properties。
     private func fetchTokenCSSViaCLI() -> String? {
-        let cliPath = findFusionDesignCLI()
-        guard !cliPath.isEmpty else { return nil }
-
-        let process = Process()
-        let pipe = Pipe()
-
-        process.executableURL = URL(fileURLWithPath: cliPath)
-        process.arguments = ["token-css", "--design-system", "apple-hig"] // matches fd-design-system id "apple-hig"
-        process.standardOutput = pipe
-        process.standardError = FileHandle.nullDevice
-
-        do {
-            try process.run()
-            process.waitUntilExit()
-            guard process.terminationStatus == 0 else { return nil }
-            let outputData = pipe.fileHandleForReading.readDataToEndOfFile()
-            return String(data: outputData, encoding: .utf8)
-        } catch {
-            designBridgeLog.error("DesignBridge: token-css failed: \(error.localizedDescription)")
-            return nil
-        }
+        let result = runFusionDesign(["token-css", "--design-system", "apple-hig"])
+        guard result.exitCode == 0, !result.output.isEmpty else { return nil }
+        return result.output
     }
 
     /// 查找 fusion-design CLI 二进制路径。
@@ -435,6 +514,313 @@ class DesignBridge: ObservableObject {
         return ""
     }
 
+    // MARK: - Unified CLI Bridge
+
+    private var cachedCLIPath: String?
+
+    private func resolveCLIPath() -> String {
+        if let cached = cachedCLIPath, !cached.isEmpty, FileManager.default.fileExists(atPath: cached) {
+            return cached
+        }
+        let path = findFusionDesignCLI()
+        cachedCLIPath = path
+        return path
+    }
+
+    func runFusionDesign(_ args: [String], stdin: String? = nil) -> (output: String, error: String, exitCode: Int32) {
+        let cliPath = resolveCLIPath()
+        guard !cliPath.isEmpty else {
+            designBridgeLog.error("DesignBridge: fusion-design CLI not found")
+            return ("", "CLI not found", 1)
+        }
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: cliPath)
+        process.arguments = args
+        let outPipe = Pipe()
+        let errPipe = Pipe()
+        process.standardOutput = outPipe
+        process.standardError = errPipe
+        if let stdinStr = stdin {
+            let inPipe = Pipe()
+            process.standardInput = inPipe
+            do {
+                try process.run()
+                if let data = stdinStr.data(using: .utf8) {
+                    inPipe.fileHandleForWriting.write(data)
+                    try? inPipe.fileHandleForWriting.close()
+                }
+            } catch {
+                designBridgeLog.error("DesignBridge: CLI run failed: \(error)")
+                return ("", error.localizedDescription, 1)
+            }
+        } else {
+            do { try process.run() } catch {
+                designBridgeLog.error("DesignBridge: CLI run failed: \(error)")
+                return ("", error.localizedDescription, 1)
+            }
+        }
+        process.waitUntilExit()
+        let outData = outPipe.fileHandleForReading.readDataToEndOfFile()
+        let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
+        let output = String(data: outData, encoding: .utf8) ?? ""
+        let errorStr = String(data: errData, encoding: .utf8) ?? ""
+        designBridgeLog.info("DesignBridge: CLI \(args.first ?? "") exit=\(process.terminationStatus)")
+        return (output, errorStr, process.terminationStatus)
+    }
+
+    func runFusionDesignJSON(_ args: [String], stdin: String? = nil) -> Any? {
+        let result = runFusionDesign(args, stdin: stdin)
+        guard result.exitCode == 0, !result.output.isEmpty else { return nil }
+        guard let data = result.output.data(using: .utf8) else { return nil }
+        return try? JSONSerialization.jsonObject(with: data)
+    }
+
+    func runFusionDesignStream(_ args: [String], onToken: @escaping (String) -> Void, onDone: @escaping (String) -> Void) {
+        let cliPath = resolveCLIPath()
+        guard !cliPath.isEmpty else {
+            designBridgeLog.error("DesignBridge: fusion-design CLI not found for stream")
+            onDone("")
+            return
+        }
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard self != nil else { return }
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: cliPath)
+            process.arguments = args
+            let outPipe = Pipe()
+            let errPipe = Pipe()
+            process.standardOutput = outPipe
+            process.standardError = errPipe
+            var fullOutput = ""
+            outPipe.fileHandleForReading.readabilityHandler = { handle in
+                let data = handle.availableData
+                guard !data.isEmpty else { return }
+                if let chunk = String(data: data, encoding: .utf8) {
+                    fullOutput += chunk
+                    for line in chunk.components(separatedBy: "\n") {
+                        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard trimmed.hasPrefix("data: ") else { continue }
+                        let payload = String(trimmed.dropFirst(6))
+                        if payload == "[DONE]" { continue }
+                        if let payloadData = payload.data(using: .utf8),
+                           let json = try? JSONSerialization.jsonObject(with: payloadData) as? [String: Any],
+                           let choices = json["choices"] as? [[String: Any]],
+                           let delta = choices.first?["delta"] as? [String: Any],
+                           let token = delta["content"] as? String {
+                            DispatchQueue.main.async { onToken(token) }
+                        }
+                    }
+                }
+            }
+            do { try process.run() } catch {
+                designBridgeLog.error("DesignBridge: CLI stream run failed: \(error)")
+                DispatchQueue.main.async { onDone("") }
+                return
+            }
+            process.waitUntilExit()
+            outPipe.fileHandleForReading.readabilityHandler = nil
+            let remaining = outPipe.fileHandleForReading.readDataToEndOfFile()
+            if let tail = String(data: remaining, encoding: .utf8) { fullOutput += tail }
+            designBridgeLog.info("DesignBridge: CLI stream \(args.first ?? "") exit=\(process.terminationStatus) len=\(fullOutput.count)")
+            DispatchQueue.main.async { onDone(fullOutput) }
+        }
+    }
+
+    // MARK: - Design Skills (CLI Bridge)
+
+    @Published var lastSkillOutput: String = ""
+    @Published var isSkillRunning: Bool = false
+
+    func skillTextToUI(prompt: String, pageName: String = "Home") {
+        isSkillRunning = true
+        let config = FusionConfig.shared
+        let args = [
+            "generate",
+            "--prompt", prompt,
+            "--page", pageName,
+            "--model", config.defaultModel(for: .artifacts),
+            "--endpoint", config.mlxBaseURL
+        ]
+        let result = runFusionDesign(args)
+        if result.exitCode == 0 {
+            lastSkillOutput = result.output
+            if let penDocJSON = result.output.data(using: String.Encoding.utf8),
+               let penDoc = try? JSONSerialization.jsonObject(with: penDocJSON) as? [String: Any],
+               let pages = penDoc["pages"] as? [[String: Any]] {
+                renderDocumentToCanvas(result.output)
+                designBridgeLog.info("DesignBridge: text_to_ui rendered, \(result.output.count) chars")
+            } else {
+                designBridgeLog.warning("DesignBridge: text_to_ui output not valid PenDocument, falling back to parse-html")
+                if let html = try? parseHtmlFromPenOutput(result.output) {
+                    if let docJSON = parseHtmlViaCLI(html) {
+                        renderDocumentToCanvas(docJSON)
+                    }
+                }
+            }
+        } else {
+            designBridgeLog.error("DesignBridge: text_to_ui failed: \(result.error)")
+        }
+        isSkillRunning = false
+    }
+
+    func skillImageToUI(imagePath: String, hint: String, pageName: String = "Home") {
+        isSkillRunning = true
+        let prompt = "参考图片路径: \(imagePath)\n补充说明: \(hint)\n生成页面「\(pageName)」对应的 UI 布局"
+        let config = FusionConfig.shared
+        let args = [
+            "generate",
+            "--prompt", prompt,
+            "--page", pageName,
+            "--model", config.defaultModel(for: .artifacts),
+            "--endpoint", config.mlxBaseURL
+        ]
+        let result = runFusionDesign(args)
+        if result.exitCode == 0 {
+            lastSkillOutput = result.output
+            renderDocumentToCanvas(result.output)
+            designBridgeLog.info("DesignBridge: image_to_ui rendered")
+        } else {
+            designBridgeLog.error("DesignBridge: image_to_ui failed: \(result.error)")
+        }
+        isSkillRunning = false
+    }
+
+    func skillMultiVariants(prompt: String, styles: [String] = ["简约", "现代", "极简"], pageName: String = "Home") {
+        isSkillRunning = true
+        variantPages.removeAll()
+        for (idx, style) in styles.enumerated() {
+            let styledPrompt = "\(prompt)（风格：\(style)）"
+            let config = FusionConfig.shared
+            let args = [
+                "generate",
+                "--prompt", styledPrompt,
+                "--page", "\(pageName)-\(style)",
+                "--model", config.defaultModel(for: .artifacts),
+                "--endpoint", config.mlxBaseURL
+            ]
+            let result = runFusionDesign(args)
+            if result.exitCode == 0 {
+                variantPages.append(VariantPage(
+                    id: "variant-\(idx)",
+                    title: style,
+                    documentJSON: result.output
+                ))
+                designBridgeLog.info("DesignBridge: multi_variants[\(idx)] style=\(style) done")
+            }
+        }
+        isSkillRunning = false
+    }
+
+    func skillLint(documentJSON: String? = nil, designSystem: String = "apple-hig", fix: Bool = false, dryRun: Bool = false) -> [DesignLintIssue] {
+        let docJSON = documentJSON ?? lastRenderedDocumentJSON ?? ""
+        guard !docJSON.isEmpty else { return [] }
+        let tmpPath = NSTemporaryDirectory() + "fd_lint_input.json"
+        try? docJSON.write(toFile: tmpPath, atomically: true, encoding: .utf8)
+        var args = ["lint", "--input", tmpPath, "--design-system", designSystem]
+        if fix { args.append("--fix") }
+        if dryRun { args.append("--dry-run") }
+        let result = runFusionDesign(args)
+        try? FileManager.default.removeItem(atPath: tmpPath)
+        guard result.exitCode == 0, !result.output.isEmpty else {
+            designBridgeLog.error("DesignBridge: lint failed: \(result.error)")
+            return []
+        }
+        if let data = result.output.data(using: .utf8),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let violations = json["violations"] as? [[String: Any]] {
+            let parsed = violations.compactMap { issue -> DesignLintIssue? in
+                guard let rule = issue["rule"] as? String,
+                      let severity = issue["severity"] as? String,
+                      let message = issue["message"] as? String else { return nil }
+                return DesignLintIssue(
+                    rule: rule,
+                    severity: severity,
+                    message: message,
+                    nodeID: issue["node_id"] as? String,
+                    suggestion: issue["suggestion"] as? String
+                )
+            }
+            designBridgeLog.info("DesignBridge: lint found \(parsed.count) issues")
+            return parsed
+        }
+        return []
+    }
+
+    func skillDiff(oldJSON: String, newJSON: String) -> [DesignDiffEntry] {
+        let tmpDir = NSTemporaryDirectory()
+        let oldPath = tmpDir + "fd_diff_old.json"
+        let newPath = tmpDir + "fd_diff_new.json"
+        try? oldJSON.write(toFile: oldPath, atomically: true, encoding: .utf8)
+        try? newJSON.write(toFile: newPath, atomically: true, encoding: .utf8)
+        let result = runFusionDesign(["diff", "--old", oldPath, "--new", newPath])
+        try? FileManager.default.removeItem(atPath: oldPath)
+        try? FileManager.default.removeItem(atPath: newPath)
+        guard result.exitCode == 0 else {
+            designBridgeLog.error("DesignBridge: diff failed: \(result.error)")
+            return []
+        }
+        if let data = result.output.data(using: .utf8) {
+            let diffArr: [[String: Any]]
+            if let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let entries = obj["entries"] as? [[String: Any]] {
+                diffArr = entries
+            } else if let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+                diffArr = arr
+            } else {
+                return []
+            }
+            let entries = diffArr.compactMap { entry -> DesignDiffEntry? in
+                let kind = entry["change_type"] as? String ?? entry["kind"] as? String ?? ""
+                let path = entry["node_id"] as? String ?? entry["path"] as? String ?? ""
+                guard !kind.isEmpty, !path.isEmpty else { return nil }
+                let oldVal: String
+                if let o = entry["old_value"] { oldVal = String(describing: o) }
+                else if let o = entry["old"] as? String { oldVal = o }
+                else { oldVal = "" }
+                let newVal: String
+                if let n = entry["new_value"] { newVal = String(describing: n) }
+                else if let n = entry["new"] as? String { newVal = n }
+                else { newVal = "" }
+                return DesignDiffEntry(kind: kind, path: path, oldValue: oldVal, newValue: newVal)
+            }
+            designBridgeLog.info("DesignBridge: diff found \(entries.count) changes")
+            return entries
+        }
+        return []
+    }
+
+    func skillHealthCheck(endpoint: String = "http://127.0.0.1:8000") -> [String: Any]? {
+        let result = runFusionDesign(["health", "--endpoint", endpoint])
+        guard result.exitCode == 0 else { return nil }
+        if let data = result.output.data(using: .utf8),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            return json
+        }
+        return nil
+    }
+
+    func skillTheme(designSystem: String = "apple-hig", mode: String = "dark") -> String? {
+        let result = runFusionDesign(["theme", "--design-system", designSystem, "--mode", mode])
+        guard result.exitCode == 0, !result.output.isEmpty else { return nil }
+        return result.output
+    }
+
+    private func parseHtmlFromPenOutput(_ output: String) -> String? {
+        if output.contains("<html") || output.contains("<!DOCTYPE") {
+            return output
+        }
+        if output.contains("<antArtifact") {
+            let pattern = try? NSRegularExpression(pattern: "<antArtifact[^>]*>([\\s\\S]*?)</antArtifact>")
+            if let match = pattern?.firstMatch(in: output, range: NSRange(output.startIndex..., in: output)),
+               let range = Range(match.range(at: 1), in: output) {
+                return String(output[range])
+            }
+        }
+        return nil
+    }
+
+    @Published var variantPages: [VariantPage] = []
+
     func setIPCClient(_ client: IPCClient) {
         self.ipcClient = client
         designBridgeLog.info("DesignBridge: IPCClient injected")
@@ -443,28 +829,12 @@ class DesignBridge: ObservableObject {
     // MARK: - Panel Convenience Methods
 
     func applyDesignTokensToCanvas(systemId: String) {
-        let cliPath = findFusionDesignCLI()
-        guard !cliPath.isEmpty else {
-            designBridgeLog.error("DesignBridge: fusion-design CLI not found")
-            return
-        }
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: cliPath)
-        process.arguments = ["token-css", "--design-system", systemId]
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        do {
-            try process.run()
-            process.waitUntilExit()
-            if process.terminationStatus == 0 {
-                let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                if let css = String(data: data, encoding: .utf8), !css.isEmpty {
-                    applyDesignTokensToCanvas(css)
-                    designBridgeLog.info("DesignBridge: applied tokens for system=\(systemId)")
-                }
-            }
-        } catch {
-            designBridgeLog.error("DesignBridge: token-css CLI failed: \(error)")
+        let result = runFusionDesign(["token-css", "--design-system", systemId])
+        if result.exitCode == 0, !result.output.isEmpty {
+            applyDesignTokensToCanvas(result.output)
+            designBridgeLog.info("DesignBridge: applied tokens for system=\(systemId)")
+        } else {
+            designBridgeLog.error("DesignBridge: token-css CLI failed: \(result.error)")
         }
     }
 
@@ -930,6 +1300,41 @@ class DesignBridge: ObservableObject {
         }
     }
 
+    @Published var versionDiffEntries: [DesignDiffEntry] = []
+    @Published var isDiffing: Bool = false
+
+    func diffVersions(oldJSON: String, newJSON: String) {
+        isDiffing = true
+        versionDiffEntries = skillDiff(oldJSON: oldJSON, newJSON: newJSON)
+        isDiffing = false
+        designBridgeLog.info("DesignBridge: version diff completed, \(versionDiffEntries.count) changes")
+    }
+
+    @Published var activeTheme: String = "dark"
+    @Published var activeDesignSystem: String = "apple-hig"
+
+    func switchTheme(_ mode: String) {
+        activeTheme = mode
+        if let css = skillTheme(designSystem: activeDesignSystem, mode: mode) {
+            applyDesignTokensToCanvas(css)
+            designBridgeLog.info("DesignBridge: switched theme to \(mode)")
+        }
+    }
+
+    func switchDesignSystem(_ systemId: String) {
+        activeDesignSystem = systemId
+        applyDesignTokensToCanvas(systemId: systemId)
+        designBridgeLog.info("DesignBridge: switched design system to \(systemId)")
+    }
+
+    func listDesignSystems() -> [String] {
+        let result = runFusionDesign(["list-design-systems"])
+        if result.exitCode == 0, !result.output.isEmpty {
+            return result.output.components(separatedBy: "\n").filter { !$0.isEmpty }
+        }
+        return ["apple-hig"]
+    }
+
     func copyCurrentCode() {
         guard !currentArtifactCode.isEmpty else { return }
         NSPasteboard.general.clearContents()
@@ -1061,43 +1466,14 @@ class DesignBridge: ObservableObject {
             errorMessage = "No document to export"
             return
         }
-
         isExportingCodegen = true
-        let cliPath = findFusionDesignCLI()
-        guard !cliPath.isEmpty else {
-            errorMessage = "fusion-design CLI not found"
-            isExportingCodegen = false
-            return
-        }
-
-        let process = Process()
-        let outputPipe = Pipe()
-        let inputPipe = Pipe()
-
-        process.executableURL = URL(fileURLWithPath: cliPath)
-        process.arguments = ["codegen", "--target", target, "--component", componentName]
-        process.standardOutput = outputPipe
-        process.standardError = FileHandle.nullDevice
-        process.standardInput = inputPipe
-
-        do {
-            try process.run()
-            if let data = documentJSON.data(using: .utf8) {
-                inputPipe.fileHandleForWriting.write(data)
-                try? inputPipe.fileHandleForWriting.close()
-            }
-            process.waitUntilExit()
-            guard process.terminationStatus == 0 else {
-                errorMessage = "codegen exited with status \(process.terminationStatus)"
-                isExportingCodegen = false
-                return
-            }
-            let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
-            exportedCodegenCode = String(data: outputData, encoding: .utf8) ?? ""
-            designBridgeLog.info("DesignBridge: codegen export done, target=\(target), \(self.exportedCodegenCode.count) chars")
-        } catch {
-            errorMessage = "Codegen export failed: \(error.localizedDescription)"
-            designBridgeLog.error("DesignBridge exportAsCodegen: \(error)")
+        let result = runFusionDesign(["codegen", "--target", target, "--component", componentName], stdin: documentJSON)
+        if result.exitCode == 0 {
+            exportedCodegenCode = result.output
+            designBridgeLog.info("DesignBridge: codegen export done, target=\(target), \(result.output.count) chars")
+        } else {
+            errorMessage = "codegen failed: \(result.error)"
+            designBridgeLog.error("DesignBridge exportAsCodegen: \(result.error)")
         }
         isExportingCodegen = false
     }
@@ -1119,44 +1495,18 @@ class DesignBridge: ObservableObject {
             errorMessage = "No document to export"
             return
         }
-
         isBatchExporting = true
         batchExportResult = ""
-        let cliPath = findFusionDesignCLI()
-        guard !cliPath.isEmpty else {
-            errorMessage = "fusion-design CLI not found"
-            isBatchExporting = false
-            return
-        }
-
-        let process = Process()
-        let outputPipe = Pipe()
-        let inputPipe = Pipe()
-
-        process.executableURL = URL(fileURLWithPath: cliPath)
-        process.arguments = ["export", "--format", format, "--out", outputDir]
-        process.standardOutput = outputPipe
-        process.standardError = FileHandle.nullDevice
-        process.standardInput = inputPipe
-
-        do {
-            try process.run()
-            if let data = documentJSON.data(using: .utf8) {
-                inputPipe.fileHandleForWriting.write(data)
-                try? inputPipe.fileHandleForWriting.close()
-            }
-            process.waitUntilExit()
-            guard process.terminationStatus == 0 else {
-                errorMessage = "export exited with status \(process.terminationStatus)"
-                isBatchExporting = false
-                return
-            }
-            let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
-            batchExportResult = String(data: outputData, encoding: .utf8) ?? ""
-            designBridgeLog.info("DesignBridge: batch export done, format=\(format), result=\(self.batchExportResult)")
-        } catch {
-            errorMessage = "Batch export failed: \(error.localizedDescription)"
-            designBridgeLog.error("DesignBridge batchExportPages: \(error)")
+        let tmpPath = NSTemporaryDirectory() + "fd_export_input.json"
+        try? documentJSON.write(toFile: tmpPath, atomically: true, encoding: .utf8)
+        let result = runFusionDesign(["export", "--input", tmpPath, "--format", format, "--out", outputDir])
+        try? FileManager.default.removeItem(atPath: tmpPath)
+        if result.exitCode == 0 {
+            batchExportResult = result.output
+            designBridgeLog.info("DesignBridge: batch export done, format=\(format), result=\(result.output)")
+        } else {
+            errorMessage = "export failed: \(result.error)"
+            designBridgeLog.error("DesignBridge batchExportPages: \(result.error)")
         }
         isBatchExporting = false
     }
