@@ -21,14 +21,22 @@ struct AIAgentDebugView: View {
     @State private var isExecuting = false
     @State private var activeTab: DebugTab = .chat
     @State private var skillList: [[String: Any]] = []
+    @State private var codeTaskInput = ""
+    @State private var codeTaskLang = "python"
+    @State private var codeTasks: [[String: Any]] = []
+    @State private var codeTaskLoading = false
+    @State private var historyEntries: [HistoryEntry] = []
+    @State private var historyLoading = false
 
     enum DebugTab: String, CaseIterable {
         case chat = "对话测试"
         case logs = "执行日志"
+        case tasks = "代码任务"
         var icon: String {
             switch self {
             case .chat: return "bubble.left.and.bubble.right"
             case .logs: return "list.bullet.rectangle"
+            case .tasks: return "terminal"
             }
         }
     }
@@ -49,6 +57,19 @@ struct AIAgentDebugView: View {
         let timestamp: Date
     }
 
+    struct HistoryEntry: Identifiable {
+        let id = UUID()
+        let runId: String
+        let trigger: String
+        let inputSummary: String
+        let outputSummary: String
+        let tokensUsed: Int
+        let durationMs: Int
+        let status: String
+        let startedAt: Double
+        let completedAt: Double
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             headerBar
@@ -57,8 +78,10 @@ struct AIAgentDebugView: View {
             Rectangle().fill(theme.separator).frame(height: 1)
             if activeTab == .chat {
                 chatPanel
-            } else {
+            } else if activeTab == .logs {
                 logsPanel
+            } else {
+                tasksPanel
             }
         }
         .background(theme.surfaceElevated)
@@ -226,7 +249,37 @@ struct AIAgentDebugView: View {
 
     private var logsPanel: some View {
         VStack(spacing: 0) {
-            if executionLogs.isEmpty {
+            HStack {
+                Text("当前会话日志")
+                    .font(.system(size: theme.footnoteSize, weight: .semibold))
+                    .foregroundStyle(theme.text)
+                Spacer()
+                Button(action: loadHistory) {
+                    HStack(spacing: 4) {
+                        if historyLoading { ProgressView().controlSize(.small) }
+                        Image(systemName: "clock.arrow.circlepath")
+                        Text("加载历史")
+                    }
+                    .font(.system(size: theme.captionSize))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(theme.accent)
+            }
+            .padding(.horizontal, theme.spacingL)
+            .padding(.vertical, theme.spacingS)
+
+            if !historyEntries.isEmpty {
+                Rectangle().fill(theme.separator).frame(height: 1)
+                ScrollView {
+                    LazyVStack(spacing: theme.spacingXS) {
+                        ForEach(historyEntries) { entry in
+                            historyRow(entry)
+                        }
+                    }
+                    .padding(theme.spacingM)
+                }
+                .frame(maxHeight: .infinity)
+            } else if executionLogs.isEmpty {
                 emptyLogsPlaceholder
             } else {
                 logList
@@ -260,6 +313,91 @@ struct AIAgentDebugView: View {
         }
     }
 
+    private func historyRow(_ entry: HistoryEntry) -> some View {
+        let statusColor: Color = {
+            switch entry.status {
+            case "completed": return theme.accent
+            case "error": return theme.accentDestructive
+            case "running": return theme.auxiliary
+            default: return theme.textTertiary
+            }
+        }()
+        let startedDate = Date(timeIntervalSince1970: entry.startedAt)
+        let durationStr = entry.durationMs > 0 ? "\(entry.durationMs)ms" : "-"
+        return VStack(alignment: .leading, spacing: theme.spacingXS) {
+            HStack {
+                Text(entry.runId.prefix(8))
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(theme.textTertiary)
+                Text(entry.trigger)
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(theme.auxiliary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(RoundedRectangle(cornerRadius: 4, style: .continuous).fill(theme.auxiliarySoft))
+                Spacer()
+                Text(entry.status)
+                    .font(.system(size: theme.captionSize, weight: .medium))
+                    .foregroundStyle(statusColor)
+                Text(durationStr)
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(theme.textTertiary)
+                Text("\(entry.tokensUsed) tok")
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(theme.textTertiary)
+            }
+            if !entry.inputSummary.isEmpty {
+                Text("→ \(entry.inputSummary)")
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(theme.text)
+                    .lineLimit(1)
+            }
+            if !entry.outputSummary.isEmpty {
+                Text("← \(entry.outputSummary)")
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(theme.textSecondary)
+                    .lineLimit(2)
+            }
+        }
+        .padding(theme.spacingS)
+        .background(
+            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                .fill(theme.surfaceElevated)
+        )
+    }
+
+    private func loadHistory() {
+        historyLoading = true
+        Task {
+            do {
+                let result = try await ipc.agentHistory(agentId: agentId, limit: 20)
+                let rawList = result["history"] as? [[String: Any]] ?? []
+                let entries = rawList.compactMap { dict -> HistoryEntry? in
+                    guard let runId = dict["run_id"] as? String, !runId.isEmpty else { return nil }
+                    return HistoryEntry(
+                        runId: runId,
+                        trigger: dict["trigger"] as? String ?? "manual",
+                        inputSummary: dict["input_summary"] as? String ?? "",
+                        outputSummary: dict["output_summary"] as? String ?? "",
+                        tokensUsed: dict["tokens_used"] as? Int ?? 0,
+                        durationMs: dict["duration_ms"] as? Int ?? 0,
+                        status: dict["status"] as? String ?? "completed",
+                        startedAt: dict["started_at"] as? Double ?? 0,
+                        completedAt: dict["completed_at"] as? Double ?? 0
+                    )
+                }
+                await MainActor.run {
+                    historyEntries = entries
+                    historyLoading = false
+                }
+                debugLog.info("Loaded \(entries.count) history entries for agent \(agentId)")
+            } catch {
+                debugLog.error("Load history failed: \(error.localizedDescription)")
+                await MainActor.run { historyLoading = false }
+            }
+        }
+    }
+
     private func logRow(_ log: ExecutionLog) -> some View {
         HStack(spacing: theme.spacingS) {
             Text(log.timestamp, style: .time)
@@ -290,6 +428,132 @@ struct AIAgentDebugView: View {
         )
     }
 
+    // MARK: - Code Tasks Panel
+
+    private var tasksPanel: some View {
+        VStack(spacing: 0) {
+            taskSubmitBar
+            Rectangle().fill(theme.separator).frame(height: 1)
+            if codeTasks.isEmpty {
+                VStack(spacing: theme.spacingM) {
+                    Image(systemName: "terminal")
+                        .font(.system(size: 40))
+                        .foregroundStyle(theme.textTertiary)
+                    Text("暂无代码任务")
+                        .font(.system(size: theme.footnoteSize))
+                        .foregroundStyle(theme.textTertiary)
+                    Text("提交代码让 Agent 执行并查看结果")
+                        .font(.system(size: theme.captionSize))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: theme.spacingXS) {
+                        ForEach(Array(codeTasks.enumerated()), id: \.offset) { _, task in
+                            taskRow(task)
+                        }
+                    }
+                    .padding(theme.spacingM)
+                }
+            }
+        }
+    }
+
+    private var taskSubmitBar: some View {
+        VStack(spacing: theme.spacingS) {
+            HStack(spacing: theme.spacingS) {
+                Picker("语言", selection: $codeTaskLang) {
+                    Text("Python").tag("python")
+                    Text("Swift").tag("swift")
+                    Text("JavaScript").tag("javascript")
+                    Text("Shell").tag("shell")
+                }
+                .frame(width: 120)
+                .font(.system(size: theme.captionSize))
+                Spacer()
+                Button(action: submitCodeTask) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "play.fill")
+                        Text("提交")
+                    }
+                    .font(.system(size: theme.footnoteSize, weight: .medium))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(theme.accent)
+                .disabled(codeTaskInput.isEmpty || codeTaskLoading)
+            }
+            TextEditor(text: $codeTaskInput)
+                .font(.system(size: theme.footnoteSize, design: .monospaced))
+                .frame(height: 80)
+                .padding(theme.spacingXS)
+                .background(
+                    RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                        .fill(theme.surfaceElevated)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                        .strokeBorder(theme.separator, lineWidth: 1)
+                )
+        }
+        .padding(theme.spacingS)
+    }
+
+    private func taskRow(_ task: [String: Any]) -> some View {
+        let taskId = task["task_id"] as? String ?? task["id"] as? String ?? ""
+        let status = task["status"] as? String ?? "pending"
+        let code = task["code"] as? String ?? ""
+        let output = task["output"] as? String ?? ""
+        let lang = task["language"] as? String ?? ""
+        let statusColor: Color = {
+            switch status {
+            case "completed": return theme.accent
+            case "running": return theme.auxiliary
+            case "failed", "error": return theme.accentDestructive
+            default: return theme.textTertiary
+            }
+        }()
+        return VStack(alignment: .leading, spacing: theme.spacingXS) {
+            HStack {
+                Text(taskId.prefix(8))
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(theme.textTertiary)
+                Text(lang)
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(theme.auxiliary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(RoundedRectangle(cornerRadius: 4, style: .continuous).fill(theme.auxiliarySoft))
+                Spacer()
+                Text(status)
+                    .font(.system(size: theme.captionSize, weight: .medium))
+                    .foregroundStyle(statusColor)
+                if status == "running" {
+                    Button(action: { cancelTask(taskId: taskId) }) {
+                        Image(systemName: "stop.circle")
+                            .foregroundStyle(theme.accentDestructive)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            Text(code.prefix(100))
+                .font(.system(size: theme.captionSize, design: .monospaced))
+                .foregroundStyle(theme.text)
+                .lineLimit(2)
+            if !output.isEmpty {
+                Text(output.prefix(200))
+                    .font(.system(size: theme.captionSize, design: .monospaced))
+                    .foregroundStyle(theme.textSecondary)
+                    .lineLimit(3)
+            }
+        }
+        .padding(theme.spacingS)
+        .background(
+            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                .fill(theme.surfaceElevated)
+        )
+    }
+
     // MARK: - Actions
 
     private func loadAgent() {
@@ -301,6 +565,49 @@ struct AIAgentDebugView: View {
                 await MainActor.run { skillList = skills }
             } catch {
                 debugLog.error("List skills failed: \(error.localizedDescription)")
+            }
+            await loadCodeTasks()
+        }
+    }
+
+    private func loadCodeTasks() async {
+        do {
+            let result = try await ipc.agentTasks(agentId: agentId)
+            let tasks = result["tasks"] as? [[String: Any]] ?? (result["data"] as? [[String: Any]] ?? [])
+            await MainActor.run { codeTasks = tasks }
+        } catch {
+            debugLog.error("Load code tasks failed: \(error.localizedDescription)")
+        }
+    }
+
+    private func submitCodeTask() {
+        let code = codeTaskInput.trimmingCharacters(in: .whitespaces)
+        guard !code.isEmpty else { return }
+        codeTaskLoading = true
+        Task {
+            do {
+                let result = try await ipc.agentSubmitCodeTask(agentId: agentId, code: code, language: codeTaskLang)
+                debugLog.info("Code task submitted: \(result)")
+                await loadCodeTasks()
+                await MainActor.run {
+                    codeTaskInput = ""
+                    codeTaskLoading = false
+                }
+            } catch {
+                debugLog.error("Submit code task failed: \(error.localizedDescription)")
+                await MainActor.run { codeTaskLoading = false }
+            }
+        }
+    }
+
+    private func cancelTask(taskId: String) {
+        Task {
+            do {
+                let _ = try await ipc.agentCancelTask(taskId: taskId)
+                debugLog.info("Task \(taskId) cancelled")
+                await loadCodeTasks()
+            } catch {
+                debugLog.error("Cancel task failed: \(error.localizedDescription)")
             }
         }
     }

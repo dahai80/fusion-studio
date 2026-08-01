@@ -24,6 +24,9 @@ struct AIAgentChatView: View {
     @State private var deepResearchEnabled = false
     @State private var codeExecutionEnabled = false
     @State private var knowledgeQueryEnabled = false
+    @State private var showRuntimeConfig = false
+    @State private var rtTemperature: Double = 0.7
+    @State private var rtMaxTokens: Int = 4096
 
     struct ChatMessage: Identifiable {
         let id = UUID()
@@ -109,6 +112,14 @@ struct AIAgentChatView: View {
                         .foregroundStyle(theme.textTertiary)
                 }
                 .buttonStyle(.plain)
+
+                Button(action: { showRuntimeConfig.toggle() }) {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: theme.iconM))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .buttonStyle(.plain)
+                .popover(isPresented: $showRuntimeConfig) { runtimeConfigPopover }
             }
         }
         .padding(.horizontal, theme.spacingL)
@@ -544,5 +555,61 @@ struct AIAgentChatView: View {
     private func clearChat() {
         messages.removeAll()
         chatLog.info("Chat cleared")
+    }
+
+    private var runtimeConfigPopover: some View {
+        VStack(alignment: .leading, spacing: theme.spacingM) {
+            Text("运行时配置")
+                .font(.system(size: theme.footnoteSize, weight: .bold))
+                .foregroundStyle(theme.text)
+
+            VStack(alignment: .leading, spacing: theme.spacingXS) {
+                HStack {
+                    Text("Temperature")
+                        .font(.system(size: theme.captionSize))
+                        .foregroundStyle(theme.textSecondary)
+                    Spacer()
+                    Text(String(format: "%.2f", rtTemperature))
+                        .font(.system(size: theme.captionSize, design: .monospaced))
+                        .foregroundStyle(theme.text)
+                }
+                Slider(value: $rtTemperature, in: 0...2, step: 0.05)
+            }
+
+            VStack(alignment: .leading, spacing: theme.spacingXS) {
+                Text("最大 Token")
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(theme.textSecondary)
+                TextField("4096", value: $rtMaxTokens, format: .number)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: theme.footnoteSize, design: .monospaced))
+                    .frame(width: 80)
+                    .padding(theme.spacingXS)
+                    .background(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous).fill(theme.surfaceElevated))
+                    .overlay(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous).strokeBorder(theme.separator, lineWidth: 1))
+            }
+
+            Button("应用到当前会话") { applyRuntimeConfig() }
+                .font(.system(size: theme.captionSize, weight: .medium))
+                .foregroundStyle(theme.accent)
+                .buttonStyle(.plain)
+        }
+        .padding(theme.spacingM)
+        .frame(width: 240)
+    }
+
+    private func applyRuntimeConfig() {
+        guard !selectedAgentId.isEmpty else { return }
+        Task {
+            do {
+                let _ = try await ipc.agentConfigure(agentId: selectedAgentId, config: [
+                    "temperature": rtTemperature,
+                    "max_tokens": rtMaxTokens,
+                ])
+                chatLog.info("Runtime config applied: temp=\(rtTemperature), maxTokens=\(rtMaxTokens)")
+            } catch {
+                chatLog.error("Apply runtime config failed: \(error.localizedDescription)")
+            }
+        }
     }
 }

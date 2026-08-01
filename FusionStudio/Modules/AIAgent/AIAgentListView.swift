@@ -231,6 +231,7 @@ struct AIAgentListView: View {
                 actionButton("调试", icon: "ladybug") { selectedAgentId = agent.id; showDebugSheet = true }
                 actionButton("编辑", icon: "pencil") { selectedAgentId = agent.id; showEditSheet = true }
                 actionButton("复制", icon: "doc.on.doc") { cloneAgent(agent) }
+                actionButton("归档", icon: "archivebox") { archiveAgent(agent) }
                 actionButton("删除", icon: "trash", color: theme.accentDestructive) {
                     agentToDelete = agent
                     showDeleteConfirm = true
@@ -319,6 +320,18 @@ struct AIAgentListView: View {
                 try await bridge.fetchAgents()
             } catch {
                 listLog.error("Clone agent failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func archiveAgent(_ agent: AgentModel) {
+        Task {
+            do {
+                let _ = try await ipc.agentArchive(agentId: agent.id)
+                listLog.info("Agent archived: \(agent.id)")
+                try await bridge.fetchAgents()
+            } catch {
+                listLog.error("Archive agent failed: \(error.localizedDescription)")
             }
         }
     }

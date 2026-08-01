@@ -18,6 +18,7 @@ enum AgentConfigMode {
 enum AgentConfigTab: String, CaseIterable {
     case basic = "基础信息"
     case instructions = "系统指令"
+    case soul = "人格 Soul"
     case knowledge = "知识库"
     case tools = "工具配置"
     case advanced = "高级参数"
@@ -27,6 +28,7 @@ enum AgentConfigTab: String, CaseIterable {
         switch self {
         case .basic: return "info.circle"
         case .instructions: return "text.alignleft"
+        case .soul: return "person.crop.circle.badge.sparkles"
         case .knowledge: return "books.vertical"
         case .tools: return "wrench.and.screwdriver"
         case .advanced: return "slider.horizontal.3"
@@ -69,6 +71,12 @@ struct AIAgentConfigView: View {
     @State private var availableStyles: [[String: Any]] = []
     @State private var availableModels: [String] = []
     @State private var instructionSnapshots: [[String: Any]] = []
+    @State private var agentSkills: [String] = []
+    @State private var newSkillName = ""
+    @State private var newSkillDesc = ""
+    @State private var showAddSkill = false
+    @State private var soulContent = ""
+    @State private var soulLoaded = false
 
     private var editingAgentId: String? {
         if case .edit(let agent) = mode { return agent.id }
@@ -88,6 +96,37 @@ struct AIAgentConfigView: View {
         .frame(minWidth: 680, minHeight: 520)
         .background(theme.surfaceElevated)
         .onAppear { loadInitialData() }
+        .sheet(isPresented: $showAddSkill) {
+            VStack(spacing: theme.spacingL) {
+                Text("添加技能")
+                    .font(.system(size: theme.headlineSize, weight: .bold))
+                    .foregroundStyle(theme.text)
+                TextField("技能名称", text: $newSkillName)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: theme.footnoteSize))
+                    .padding(theme.spacingS)
+                    .background(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous).fill(theme.surfaceElevated))
+                    .overlay(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous).strokeBorder(theme.separator, lineWidth: 1))
+                TextField("技能描述（可选）", text: $newSkillDesc)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: theme.footnoteSize))
+                    .padding(theme.spacingS)
+                    .background(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous).fill(theme.surfaceElevated))
+                    .overlay(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous).strokeBorder(theme.separator, lineWidth: 1))
+                HStack(spacing: theme.spacingM) {
+                    Button("取消") { showAddSkill = false }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(theme.textSecondary)
+                    Button("添加") { addSkill() }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(theme.accent)
+                        .disabled(newSkillName.isEmpty)
+                }
+            }
+            .padding(theme.spacingL)
+            .frame(width: 320)
+            .background(theme.surfaceElevated)
+        }
     }
 
     private var headerBar: some View {
@@ -143,6 +182,7 @@ struct AIAgentConfigView: View {
         switch selectedTab {
         case .basic: basicInfoTab
         case .instructions: instructionsTab
+        case .soul: soulTab
         case .knowledge: knowledgeTab
         case .tools: toolsTab
         case .advanced: advancedTab
@@ -257,7 +297,54 @@ struct AIAgentConfigView: View {
         }
     }
 
-    // MARK: - Tab 3: Knowledge Base
+    // MARK: - Tab 3: Soul
+
+    private var soulTab: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: theme.spacingM) {
+                    Text("定义 Agent 的人格特质、说话风格、情感偏好")
+                        .font(.system(size: theme.footnoteSize))
+                        .foregroundStyle(theme.textSecondary)
+
+                    if editingAgentId != nil {
+                        TextEditor(text: $soulContent)
+                            .font(.system(size: theme.textSize, design: .monospaced))
+                            .scrollContentBackground(.hidden)
+                            .frame(minHeight: 280)
+                            .padding(theme.spacingS)
+                            .background(
+                                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                    .fill(theme.surfaceElevated)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                    .strokeBorder(theme.separator, lineWidth: 1)
+                            )
+
+                        HStack {
+                            Text("\(soulContent.count) 字符")
+                                .font(.system(size: theme.captionSize))
+                                .foregroundStyle(theme.textTertiary)
+                            Spacer()
+                            Button("保存 Soul") { saveSoul() }
+                                .font(.system(size: theme.captionSize))
+                                .foregroundStyle(theme.accent)
+                                .buttonStyle(.plain)
+                        }
+                    } else {
+                        Text("创建 Agent 后可编辑 Soul")
+                            .font(.system(size: theme.captionSize))
+                            .foregroundStyle(theme.textTertiary)
+                    }
+                }
+                .padding(theme.spacingL)
+            }
+        }
+        .onAppear { loadSoulIfNeeded() }
+    }
+
+    // MARK: - Tab 4: Knowledge Base
 
     private var knowledgeTab: some View {
         ScrollView {
@@ -321,6 +408,59 @@ struct AIAgentConfigView: View {
                     VStack(alignment: .leading, spacing: theme.spacingS) {
                         toolToggle("Web Search 网页搜索", isOn: $webSearchEnabled, icon: "globe")
                         toolToggle("Deep Research 深度调研模式", isOn: $deepResearchEnabled, icon: "magnifyingglass")
+                    }
+                }
+
+                formGroup("技能 Skills") {
+                    VStack(alignment: .leading, spacing: theme.spacingS) {
+                        if editingAgentId != nil {
+                            HStack {
+                                Text("已添加 \(agentSkills.count) 个技能")
+                                    .font(.system(size: theme.footnoteSize))
+                                    .foregroundStyle(theme.textSecondary)
+                                Spacer()
+                                Button(action: { showAddSkill = true }) {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "plus")
+                                        Text("添加技能")
+                                    }
+                                    .font(.system(size: theme.footnoteSize, weight: .medium))
+                                }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(theme.accent)
+                            }
+                            if agentSkills.isEmpty {
+                                Text("暂无技能，点击「添加技能」为 Agent 增加能力")
+                                    .font(.system(size: theme.captionSize))
+                                    .foregroundStyle(theme.textTertiary)
+                            } else {
+                                ForEach(Array(agentSkills.enumerated()), id: \.offset) { idx, skill in
+                                    HStack {
+                                        Image(systemName: "star.fill")
+                                            .font(.system(size: 10))
+                                            .foregroundStyle(theme.auxiliary)
+                                        Text(skill)
+                                            .font(.system(size: theme.footnoteSize))
+                                            .foregroundStyle(theme.text)
+                                        Spacer()
+                                        Button(action: { deleteSkill(name: skill) }) {
+                                            Image(systemName: "minus.circle.fill")
+                                                .foregroundStyle(theme.accentDestructive)
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                    .padding(theme.spacingXS)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                            .fill(theme.surfaceElevated)
+                                    )
+                                }
+                            }
+                        } else {
+                            Text("创建 Agent 后可管理技能")
+                                .font(.system(size: theme.captionSize))
+                                .foregroundStyle(theme.textTertiary)
+                        }
                     }
                 }
 
@@ -744,6 +884,74 @@ struct AIAgentConfigView: View {
                 let styles = result["styles"] as? [[String: Any]] ?? (result["data"] as? [[String: Any]] ?? [])
                 await MainActor.run { availableStyles = styles }
             } catch { configLog.error("Fetch styles failed: \(error.localizedDescription)") }
+            if let aid = editingAgentId {
+                do {
+                    let result = try await ipc.agentListSkills(agentId: aid)
+                    let skills = result["skills"] as? [String] ?? (result["data"] as? [String] ?? [])
+                    await MainActor.run { agentSkills = skills }
+                } catch { configLog.error("Fetch skills failed: \(error.localizedDescription)") }
+            }
+        }
+    }
+
+    private func addSkill() {
+        guard let aid = editingAgentId, !newSkillName.isEmpty else { return }
+        Task {
+            do {
+                var def: [String: Any] = [:]
+                if !newSkillDesc.isEmpty { def["description"] = newSkillDesc }
+                let _ = try await ipc.agentAddSkill(agentId: aid, skillName: newSkillName, skillDef: def)
+                await MainActor.run {
+                    agentSkills.append(newSkillName)
+                    newSkillName = ""
+                    newSkillDesc = ""
+                    showAddSkill = false
+                }
+                configLog.info("Added skill \(newSkillName) to agent \(aid)")
+            } catch {
+                configLog.error("Add skill failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func deleteSkill(name: String) {
+        guard let aid = editingAgentId else { return }
+        Task {
+            do {
+                let _ = try await ipc.agentDeleteSkill(agentId: aid, skillName: name)
+                await MainActor.run { agentSkills.removeAll { $0 == name } }
+                configLog.info("Deleted skill \(name) from agent \(aid)")
+            } catch {
+                configLog.error("Delete skill failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func loadSoulIfNeeded() {
+        guard let aid = editingAgentId, !soulLoaded else { return }
+        Task {
+            do {
+                let result = try await ipc.agentGetSoul(agentId: aid)
+                let content = result["soul"] as? String ?? (result["content"] as? String ?? "")
+                await MainActor.run {
+                    soulContent = content
+                    soulLoaded = true
+                }
+            } catch {
+                configLog.error("Load soul failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func saveSoul() {
+        guard let aid = editingAgentId else { return }
+        Task {
+            do {
+                let _ = try await ipc.agentUpdateSoul(agentId: aid, soul: soulContent)
+                configLog.info("Soul saved for agent \(aid)")
+            } catch {
+                configLog.error("Save soul failed: \(error.localizedDescription)")
+            }
         }
     }
 

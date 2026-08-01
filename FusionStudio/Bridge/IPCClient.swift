@@ -659,6 +659,34 @@ class IPCClient: ObservableObject {
         return try await call(method: "agent.archive", params: ["agent_id": agentId])
     }
 
+    func agentHistory(agentId: String, limit: Int = 20) async throws -> [String: Any] {
+        return try await call(method: "agent.history", params: ["agent_id": agentId, "limit": limit])
+    }
+
+    func agentCoworkList(spaceId: String) async throws -> [String: Any] {
+        return try await call(method: "agent.cowork.list", params: ["space_id": spaceId])
+    }
+
+    func agentCoworkAdd(spaceId: String, agentId: String, role: String = "member", permission: String = "all_member") async throws -> [String: Any] {
+        return try await call(method: "agent.cowork.add", params: [
+            "space_id": spaceId, "agent_id": agentId, "role": role, "permission": permission,
+        ])
+    }
+
+    func agentCoworkRemove(spaceId: String, agentId: String) async throws -> [String: Any] {
+        return try await call(method: "agent.cowork.remove", params: ["space_id": spaceId, "agent_id": agentId])
+    }
+
+    func agentCoworkCall(spaceId: String, agentId: String, callerId: String = "", message: String) async throws -> [String: Any] {
+        var params: [String: Any] = ["space_id": spaceId, "agent_id": agentId, "message": message]
+        if !callerId.isEmpty { params["caller_id"] = callerId }
+        return try await call(method: "agent.cowork.call", params: params)
+    }
+
+    func agentCoworkStatus(spaceId: String, agentId: String) async throws -> [String: Any] {
+        return try await call(method: "agent.cowork.status", params: ["space_id": spaceId, "agent_id": agentId])
+    }
+
     func agentClone(agentId: String) async throws -> [String: Any] {
         return try await call(method: "agent.clone", params: ["agent_id": agentId])
     }
