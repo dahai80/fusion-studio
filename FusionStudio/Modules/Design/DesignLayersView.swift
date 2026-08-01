@@ -15,6 +15,7 @@ struct LayerNode: Identifiable {
     let depth: Int
     let hasChildren: Bool
     var visible: Bool = true
+    var locked: Bool = false
 }
 
 struct DesignLayersView: View {
@@ -25,6 +26,7 @@ struct DesignLayersView: View {
     @State private var expandedNodes: Set<String> = []
     @State private var flatNodes: [LayerNode] = []
     @State private var hiddenNodeIDs: Set<String> = []
+    @State private var lockedNodeIDs: Set<String> = []
     @State private var dragSourceIndex: Int?
 
     var body: some View {
@@ -153,6 +155,15 @@ struct DesignLayersView: View {
             }
             .buttonStyle(.plain)
 
+            Button(action: {
+                toggleLocked(node.id)
+            }) {
+                Image(systemName: lockedNodeIDs.contains(node.id) ? "lock.fill" : "lock.open")
+                    .font(.system(size: 10))
+                    .foregroundColor(lockedNodeIDs.contains(node.id) ? theme.accent : theme.textTertiary)
+            }
+            .buttonStyle(.plain)
+
             Text(node.id)
                 .font(.system(size: 9, design: .monospaced))
                 .foregroundColor(theme.textTertiary)
@@ -182,6 +193,17 @@ struct DesignLayersView: View {
             designBridge.setNodeVisibility(nodeID, visible: false)
         }
         layersLog.info("DesignLayers: toggle visibility node \(nodeID)")
+    }
+
+    private func toggleLocked(_ nodeID: String) {
+        if lockedNodeIDs.contains(nodeID) {
+            lockedNodeIDs.remove(nodeID)
+            designBridge.setNodeLocked(nodeID, locked: false)
+        } else {
+            lockedNodeIDs.insert(nodeID)
+            designBridge.setNodeLocked(nodeID, locked: true)
+        }
+        layersLog.info("DesignLayers: toggle locked node \(nodeID)")
     }
 
     private func kindIcon(_ kind: String) -> String {

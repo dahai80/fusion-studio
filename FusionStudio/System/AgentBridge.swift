@@ -1780,6 +1780,40 @@ final class AgentBridge: ObservableObject {
         return cloned
     }
 
+    @Published var agentVersionHistory: [String: [[String: Any]]] = [:]
+
+    func agentSnapshot(agentId: String) async throws -> [String: Any] {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        logger.info("agentSnapshot: id=\(agentId)")
+        let result = try await client.call(method: "agent_studio.agent.snapshot", params: ["agent_id": agentId])
+        try await fetchAgents()
+        return result
+    }
+
+    func agentVersions(agentId: String) async throws -> [[String: Any]] {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        logger.info("agentVersions: id=\(agentId)")
+        let result = try await client.call(method: "agent_studio.agent.versions", params: ["agent_id": agentId])
+        guard let versions = result as? [[String: Any]] else {
+            let items = result["versions"] as? [[String: Any]] ?? []
+            agentVersionHistory[agentId] = items
+            return items
+        }
+        agentVersionHistory[agentId] = versions
+        return versions
+    }
+
+    func agentRestoreVersion(agentId: String, versionId: String) async throws -> AgentModel {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        logger.info("agentRestoreVersion: id=\(agentId) version=\(versionId)")
+        let result = try await client.call(method: "agent_studio.agent.restore_version", params: ["agent_id": agentId, "version_id": versionId])
+        guard let restored = Self.parseAgentModel(from: result) else {
+            throw BridgeError.ipcError("Invalid restore response")
+        }
+        try await fetchAgents()
+        return restored
+    }
+
     func fetchDashboard() async {
         guard let client = ipcClient else { return }
         do {
@@ -1788,6 +1822,77 @@ final class AgentBridge: ObservableObject {
             logger.info("Dashboard fetched: \(result.keys.joined(separator: ","))")
         } catch {
             logger.debug("Dashboard fetch failed: \(error.localizedDescription)")
+        }
+    }
+
+    @Published var auditTrail: [[String: Any]] = []
+    @Published var sessionLogs: [[String: Any]] = []
+
+    func fetchAuditTrail(agentId: String? = nil, startDate: String? = nil, endDate: String? = nil) async {
+        guard let client = ipcClient else { return }
+        do {
+            var params: [String: Any] = [:]
+            if let aid = agentId { params["agent_id"] = aid }
+            if let s = startDate { params["start_date"] = s }
+            if let e = endDate { params["end_date"] = e }
+            let result = try await client.call(method: "agent_studio.audit.trail", params: params)
+            let items = result["entries"] as? [[String: Any]] ?? (result as? [[String: Any]] ?? [])
+            auditTrail = items
+            logger.info("Audit trail fetched: \(items.count) entries")
+        } catch {
+            logger.debug("Audit trail fetch failed: \(error.localizedDescription)")
+        }
+    }
+
+    func fetchSessionLogs(agentId: String? = nil, startDate: String? = nil, endDate: String? = nil) async {
+        guard let client = ipcClient else { return }
+        do {
+            var params: [String: Any] = [:]
+            if let aid = agentId { params["agent_id"] = aid }
+            if let s = startDate { params["start_date"] = s }
+            if let e = endDate { params["end_date"] = e }
+            let result = try await client.call(method: "agent_studio.session.logs", params: params)
+            let items = result["sessions"] as? [[String: Any]] ?? (result as? [[String: Any]] ?? [])
+            sessionLogs = items
+            logger.info("Session logs fetched: \(items.count) entries")
+        } catch {
+            logger.debug("Session logs fetch failed: \(error.localizedDescription)")
+        }
+    }
+
+    @Published var activeSessionId: String = ""
+    @Published var streamingContent: String = ""
+    @Published var isAgentStreaming: Bool = false
+    @Published var lastToolCalls: [[String: Any]] = []
+
+    func chatStream(agentId: String, message: String, sessionId: String? = nil, onToken: @escaping (String) -> Void) async throws -> String {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        logger.info("chatStream: agent=\(agentId)")
+        var params: [String: Any] = [
+            "agent_id": agentId,
+            "message": message,
+        ]
+        if let sid = sessionId { params["session_id"] = sid }
+
+        activeSessionId = sessionId ?? ""
+        isAgentStreaming = true
+        streamingContent = ""
+        lastToolCalls = []
+        defer { isAgentStreaming = false }
+
+        do {
+            let result = try await client.call(method: "agent_studio.agent.chat", params: params)
+            let content = result["content"] as? String ?? ""
+            let toolCalls = result["tool_calls"] as? [[String: Any]] ?? []
+            let sid = result["session_id"] as? String ?? activeSessionId
+            activeSessionId = sid
+            lastToolCalls = toolCalls
+            streamingContent = content
+            onToken(content)
+            return content
+        } catch {
+            isAgentStreaming = false
+            throw error
         }
     }
 
@@ -1974,6 +2079,14 @@ final class AgentBridge: ObservableObject {
         guard let client = ipcClient else { throw BridgeError.notConnected }
         let result = try await client.apikeyRevoke(keyId: keyId)
         await fetchApikeys()
+        return result
+    }
+
+    func apikeyRotate(keyId: String) async throws -> [String: Any] {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        let result = try await client.call(method: "agent_studio.apikey.rotate", params: ["key_id": keyId])
+        await fetchApikeys()
+        logger.info("Rotated API key: \(keyId)")
         return result
     }
 

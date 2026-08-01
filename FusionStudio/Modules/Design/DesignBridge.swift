@@ -132,6 +132,21 @@ class DesignBridge: ObservableObject {
         designBridgeLog.info("DesignBridge: mutateCanvasNode id=\(nodeID) w=\(w?.description ?? "nil") h=\(h?.description ?? "nil")")
     }
 
+    func setNodeLocked(_ nodeID: String, locked: Bool) {
+        sendCanvasCommand(.mutateNode(nodeID, nil, nil, nil, nil, locked ? 0.3 : 1.0))
+        designBridgeLog.info("DesignBridge: set node \(nodeID) locked=\(locked)")
+    }
+
+    func undo() {
+        sendCanvasCommand(.undoAction)
+        designBridgeLog.info("DesignBridge: undo")
+    }
+
+    func redo() {
+        sendCanvasCommand(.redoAction)
+        designBridgeLog.info("DesignBridge: redo")
+    }
+
     func setNodeVisibility(_ nodeID: String, visible: Bool) {
         sendCanvasCommand(.setNodeVisibility(nodeID: nodeID, visible: visible))
         designBridgeLog.info("DesignBridge: setNodeVisibility id=\(nodeID) visible=\(visible)")
@@ -1312,6 +1327,49 @@ class DesignBridge: ObservableObject {
         }
 
         isImportingScreenshot = false
+    }
+
+    @Published var designHealth: [String: Any] = [:]
+    @Published var isDesignHealthy: Bool = false
+
+    func designHealthCheck() async {
+        guard let ipc = ipcClient else {
+            designBridgeLog.warning("DesignBridge: no IPCClient for health check")
+            return
+        }
+        do {
+            let result = try await ipc.call(method: "design.health_check")
+            designHealth = result
+            let ok = result["status"] as? String == "ok" || result["healthy"] as? Bool == true
+            isDesignHealthy = ok
+            designBridgeLog.info("DesignBridge health: \(ok ? "healthy" : "unhealthy") — \(result)")
+        } catch {
+            isDesignHealthy = false
+            designBridgeLog.warning("DesignBridge health check failed: \(error)")
+        }
+    }
+
+    func sendMultimodalMessage(prompt: String, imageData: Data, imageType: String = "image/png") async throws -> String {
+        guard let ipc = ipcClient else {
+            throw BridgeError.notConnected
+        }
+        let b64 = imageData.base64EncodedString()
+        designBridgeLog.info("DesignBridge: sending multimodal message, image size=\(imageData.count)")
+        let result = try await ipc.call(method: "design.generate", params: [
+            "prompt": prompt,
+            "image": [
+                "data": b64,
+                "mime_type": imageType,
+            ],
+        ])
+        let code = result["code"] as? String ?? result["artifact"] as? String ?? result["content"] as? String ?? ""
+        if !code.isEmpty {
+            currentArtifactCode = code
+            currentArtifactType = result["type"] as? String ?? "html"
+            currentArtifactTitle = result["title"] as? String ?? "Multimodal Design"
+            artifactSaved = false
+        }
+        return code
     }
 
 }
