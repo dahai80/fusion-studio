@@ -371,11 +371,19 @@ struct DesignChatPanel: View {
         .padding(.horizontal, theme.spacingS)
     }
 
+    // Callers: DesignChatPanel skill template buttons.
+    // Affected API: handleSkillTemplate adds image_to_ui route to skillImageToUI.
+    // Data schemas: SKILL: prefix routing, DesignQuickTemplate.prompt.
+    // User instruction: "跟fusion-design做集成测试，基于prd文档，测试到菜单，子菜单，数据要素，流程和user case"
+
     private func handleSkillTemplate(_ tmpl: DesignQuickTemplate) {
         let skillID = tmpl.prompt.replacingOccurrences(of: "SKILL:", with: "")
         switch skillID {
         case "text_to_ui":
             designBridge.skillTextToUI(prompt: inputText.isEmpty ? "设计一个现代深色主题页面" : inputText)
+        case "image_to_ui":
+            let hint = inputText.isEmpty ? "参考图片生成UI布局" : inputText
+            designBridge.skillImageToUI(imagePath: "", hint: hint)
         case "multi_variants":
             let prompt = inputText.isEmpty ? "设计一个数据卡片组件" : inputText
             designBridge.skillMultiVariants(prompt: prompt)
