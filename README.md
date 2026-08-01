@@ -67,7 +67,7 @@ Design · Code · Simulation · MultiModal · Training · Data · Agent · KB ·
 |---|--------|------|--------|-------------|
 | 1 | 🏠 **Dashboard** | `square.grid.2x2` | ✅ Stable | Command center, health check, task queue, hardware monitor |
 | 2 | 🎨 **Design** | `pencil.and.outline` | ✅ Stable | AI-powered vector canvas, WKWebView, export to code |
-| 3 | 💻 **Code** | `chevron.left.forwardslash.chevron.right` | ✅ Stable | Code editor + integrated terminal, 9 languages |
+| 3 | 💻 **Code** | `chevron.left.forwardslash.chevron.right` | 🆕 New | 5-panel layout: FileTree · Chat · Editor/Diff/Terminal + InputBar with /slash commands + 3 execution modes (Ask/Auto/Plan), KB query, memory, templates, permission tiers — surpassing Claude Code |
 | 4 | 🤖 **Simulation** | `gearshape.2` | ✅ Stable | PyBullet physics, 3D viewport, scene editor |
 | 5 | 📦 **Model Hub** | `cpu` | ✅ Stable | Real model list via fusion-mlx API, HF search/recommended, download progress polling, model activation |
 | 6 | 🖼️ **MultiModal** | `photo.on.rectangle` | ✅ Stable | Text-to-image, image-to-image, OCR, speech-to-text, TTS |
@@ -204,6 +204,66 @@ Fusion Studio integrates with [fusion-smallbusiness](https://github.com/dahai80/
 **Communication**: HTTP REST to `127.0.0.1:8000/api/v1/fsb` (separate from JSON-RPC UDS channel), via `IPCClient.fsbRequest()`/`fsbRequestArray()`.
 
 **E2E Test Status**: 54/54 IPC methods verified passing against backend (2026-08-01). 9 upstream issues filed and closed.
+
+### 💻 Fusion Code — Local AI Coding Assistant
+
+Fusion Studio integrates with [fusion-code](https://github.com/dahai80/fusion-code) for a Claude Code–competitive AI coding experience with **5 key differentiators**: MLX local offline inference, project KB (build/query/status), cross-session memory, workflow templates, and 3 execution modes.
+
+**5-Panel Layout** (surpassing Claude Code's 4-panel):
+
+```
+┌──────────┬────────────────────────┬───────────────┐
+│ FileTree │        Chat            │ Editor/Diff/   │
+│  240pt   │   (streaming AI)       │ Terminal 480pt │
+│          │                        │               │
+│ Project  │  Tool call cards       │ Monaco Editor  │
+│ Context  │  Permission approve/   │ Diff View      │
+│ KB status│  deny buttons          │ PTY Terminal   │
+│ Memory   │  Code apply buttons    │               │
+│          │                        │               │
+├──────────┴────────────────────────┴───────────────┤
+│  InputBar: [Mode▼] [+] [Text field] [Send/Stop]  │
+│  Mode: Ask Permissions / Auto Accept / Plan Only  │
+│  /slash commands: /help /clear /kb /memory etc.   │
+└──────────────────────────────────────────────────┘
+```
+
+**3 Execution Modes**:
+
+| Mode | Behavior |
+|------|----------|
+| **Ask Permissions** | Default. Tier1 auto-approve (Read/Glob/Grep/Ls), Tier2 require approval (Edit/Write/Bash) |
+| **Auto Accept** | Auto-approve all file edits. Bash still requires approval. |
+| **Plan Only** | Read-only analysis. No edits or commands executed. |
+
+**14 Slash Commands**: `/help` `/clear` `/compact` `/model` `/kb` `/memory` `/template` `/init` `/review` `/test` `/deploy` `/explain` `/refactor` `/debug`
+
+**Backend API Coverage** (14 REST + WebSocket via `FusionCodeBridge`):
+
+| Category | Methods |
+|----------|---------|
+| Project | `projectContext(cwd:)`, `projectContext(id:)`, `listProjects()` |
+| Session | `listSessions()`, `getSession(id:)` |
+| Code | `generateCode()`, `lspOperation()` |
+| Memory | `getMemory()`, `writeMemory()` |
+| Model | `modelStatus()` |
+| KB | `buildKB()`, `queryKB()`, `kbStatus()` |
+| Template | `listTemplates()` |
+| Chat | `chatStream()` (WebSocket), `chatCancel()` |
+
+**Communication**: HTTP REST + WebSocket to `127.0.0.1:4827` via `FusionCodeBridge` (singleton, `@StateObject` in FusionCodeView).
+
+**Competitive Differentiators vs Claude Code**:
+
+| Feature | Claude Code | Fusion Code |
+|---------|------------|-------------|
+| Inference | Cloud API | **MLX local offline** |
+| Knowledge Base | None | **Project KB with RAG** (`/kb` command) |
+| Memory | Session-only | **Cross-session memory** (`/memory` command) |
+| Workflow | None | **Templates** (`/template` command) |
+| Permission | Single mode | **3 execution modes** (Ask/Auto/Plan) |
+| File diff | Side-by-side | **Monaco Diff View** with undo checkpoint |
+| Git integration | CLI only | **Visual Git Panel** + URL detection bar |
 
 ---
 

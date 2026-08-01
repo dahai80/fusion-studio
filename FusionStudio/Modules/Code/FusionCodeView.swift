@@ -2,155 +2,278 @@ import SwiftUI
 import AppKit
 import os.log
 
-private let fusionCodeLog = Logger(subsystem: "com.fusion.studio", category: "FusionCodeView")
+private let fcLog = Logger(subsystem: "com.fusion.studio", category: "FusionCodeView")
 
-enum CodeRightPane: String, CaseIterable {
-    case editor = "Editor"
-    case diff = "Diff"
-    case terminal = "Terminal"
+// MARK: - Execution Modes
+
+enum FCExecutionMode: String, CaseIterable {
+    case askPermissions = "Ask"
+    case autoAccept = "Auto"
+    case planOnly = "Plan"
+
+    var icon: String {
+        switch self {
+        case .askPermissions: return "lock.shield"
+        case .autoAccept: return "bolt.fill"
+        case .planOnly: return "eye"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .askPermissions: return "Approve edits & commands"
+        case .autoAccept: return "Auto-approve file edits"
+        case .planOnly: return "Read-only analysis"
+        }
+    }
 }
+
+// MARK: - Chat Message Model
+
+struct FCChatMessage: Identifiable {
+    let id = UUID()
+    let role: String
+    let content: String
+    let toolCalls: [FCToolCall]
+    let timestamp: Date
+    var isStreaming = false
+}
+
+struct FCToolCall: Identifiable {
+    let id = UUID()
+    let name: String
+    let args: [String: Any]
+    let status: FCToolStatus
+    let output: String?
+}
+
+enum FCToolStatus {
+    case pending
+    case running
+    case approved
+    case denied
+    case completed
+    case failed
+}
+
+// MARK: - Permission Tier
+
+enum FCPermissionTier {
+    case tier1
+    case tier2
+}
+
+struct FCPermissionRequest: Identifiable {
+    let id = UUID()
+    let tool: String
+    let args: [String: Any]
+    let tier: FCPermissionTier
+    let description: String
+}
+
+// MARK: - Slash Commands
+
+struct FCSlashCommand: Identifiable {
+    let id = UUID()
+    let name: String
+    let shortcut: String
+    let description: String
+    let icon: String
+}
+
+let FC_SLASH_COMMANDS: [FCSlashCommand] = [
+    FCSlashCommand(name: "help", shortcut: "/help", description: "Show available commands", icon: "questionmark.circle"),
+    FCSlashCommand(name: "clear", shortcut: "/clear", description: "Clear conversation", icon: "trash"),
+    FCSlashCommand(name: "compact", shortcut: "/compact", description: "Compact conversation context", icon: "compress"),
+    FCSlashCommand(name: "model", shortcut: "/model", description: "Switch model", icon: "cpu"),
+    FCSlashCommand(name: "kb", shortcut: "/kb", description: "Query knowledge base", icon: "books.vertical"),
+    FCSlashCommand(name: "memory", shortcut: "/memory", description: "Manage project memory", icon: "brain"),
+    FCSlashCommand(name: "template", shortcut: "/template", description: "Apply workflow template", icon: "square.grid.3x3"),
+    FCSlashCommand(name: "init", shortcut: "/init", description: "Initialize project context", icon: "arrow.triangle.2.circlepath"),
+    FCSlashCommand(name: "review", shortcut: "/review", description: "Code review current changes", icon: "magnifyingglass"),
+    FCSlashCommand(name: "test", shortcut: "/test", description: "Generate and run tests", icon: "checkmark.shield"),
+    FCSlashCommand(name: "deploy", shortcut: "/deploy", description: "Deploy project", icon: "cloud.upload"),
+    FCSlashCommand(name: "explain", shortcut: "/explain", description: "Explain code", icon: "text.bubble"),
+    FCSlashCommand(name: "refactor", shortcut: "/refactor", description: "Refactor code", icon: "hammer"),
+    FCSlashCommand(name: "debug", shortcut: "/debug", description: "Debug issue", icon: "ladybug"),
+]
+
+// MARK: - Main View
 
 struct FusionCodeView: View {
     @Environment(\.studioTheme) private var theme
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var bridge: AgentBridge
-    @StateObject private var agent = CodeAgent.shared
+    @StateObject private var fcBridge = FusionCodeBridge.shared
     @StateObject private var workspace = ProjectWorkspace.shared
 
     @State private var inputText = ""
+    @State private var messages: [FCChatMessage] = []
+    @State private var executionMode: FCExecutionMode = .askPermissions
     @State private var selectedModel = ""
-    @State private var selectedEffort: String = "Medium"
-    @State private var thinkingEnabled = false
-    @State private var sidebarTab: CodeSidebarTab = .files
-    @State private var rightPane: CodeRightPane = .editor
-    @State private var showSidebar = true
-    @State private var showRightPanel = false
+    @State private var showFileTree = true
+    @State private var showRightPanel = true
+    @State private var rightPaneTab: FCRightPane = .editor
     @State private var editorContent = ""
     @State private var editorLanguage = "plaintext"
     @State private var diffOriginal = ""
     @State private var diffModified = ""
     @State private var diffLanguage = "plaintext"
+    @State private var showSlashMenu = false
+    @State private var slashFilter = ""
     @State private var showOpenProject = false
-    @State private var detectedGitURL: String?
+    @State private var pendingPermissions: [FCPermissionRequest] = []
+    @State private var sessions: [FCSession] = []
+    @State private var currentSessionId: String?
+    @State private var kbStatusText = ""
     @State private var isWebSearchEnabled = false
-    @State private var showMicSettings = false
-    @State private var micVolume: Double = 0.8
-    @State private var holdToRecord = false
+    @State private var detectedGitURL: String?
+    @State private var showSessionPicker = false
+    @State private var showContextPanel = false
+    @State private var showTemplatePicker = false
+    @State private var showMemoryPanel = false
 
-    enum CodeSidebarTab: String, CaseIterable {
-        case files = "Files"
-        case chat = "Chat"
-        case git = "Git"
-    }
-
-    private var greeting: String {
-        let hour = Calendar.current.component(.hour, from: Date())
-        switch hour {
-        case 0..<12: return "Good morning"
-        case 12..<17: return "Good afternoon"
-        case 17..<21: return "Good evening"
-        default: return "Good night"
-        }
+    enum FCRightPane: String, CaseIterable {
+        case editor = "Editor"
+        case diff = "Diff"
+        case terminal = "Terminal"
     }
 
     var body: some View {
-        HStack(spacing: 0) {
-            if showSidebar {
-                sidebarPanel
-                    .frame(width: 240)
-                    .background(theme.surfaceSecondary)
-            }
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                if showFileTree {
+                    fcFileTreePanel
+                        .frame(width: 240)
+                        .background(theme.sidebarBg)
+                }
 
-            chatPanel
-                .frame(maxWidth: .infinity)
+                fcChatPanel
+                    .frame(maxWidth: .infinity)
 
-            if showRightPanel {
-                rightPanel
-                    .frame(width: 480)
-                    .background(theme.contentBg)
+                if showRightPanel {
+                    fcRightPanel
+                        .frame(width: 480)
+                        .background(theme.contentBg)
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            fcInputBar
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .sheet(isPresented: $showOpenProject) {
             OpenProjectSheet(workspace: workspace)
         }
         .onAppear {
-            agent.agentBridge = bridge
-            if selectedModel.isEmpty {
-                let cfg = FusionConfig.shared.defaultModel(for: .code)
-                if !cfg.isEmpty {
-                    selectedModel = cfg
-                    agent.selectedModel = cfg
-                } else if let first = bridge.models.first?.name {
-                    selectedModel = first
-                    agent.selectedModel = first
-                }
-            }
-            Task {
-                _ = try? await bridge.fetchModels()
-                // code 档位空（引导页未保存）且已有模型：补齐 code 档，避免回退小档/空 (bug1)
-                let cfg = FusionConfig.shared
-                if cfg.mlxModelCode.isEmpty, !bridge.models.isEmpty {
-                    let code = bridge.models.first { m in
-                        let n = (m.name.isEmpty ? m.id : m.name).lowercased()
-                        return n.contains("code") || n.contains("coder")
-                    } ?? bridge.models.first
-                    if let picked = code?.id {
-                        cfg.setSlotModel(.code, picked)
-                        fusionCodeLog.info("Code slot auto-filled: \(picked)")
-                    }
-                }
-                if selectedModel.isEmpty {
-                    let m = cfg.defaultModel(for: .code)
-                    if !m.isEmpty {
-                        selectedModel = m
-                        agent.selectedModel = m
-                    } else if let first = bridge.models.first?.name {
-                        selectedModel = first
-                        agent.selectedModel = first
-                    }
-                }
+            loadInitialState()
+        }
+        .onChange(of: fcBridge.chatEvents.count) { _, _ in
+            processIncomingEvents()
+        }
+        .onChange(of: fcBridge.isStreaming) { _, streaming in
+            if !streaming, let lastIdx = messages.indices.last {
+                messages[lastIdx].isStreaming = false
             }
         }
     }
 
-    // MARK: - Sidebar
+    private func loadInitialState() {
+        if selectedModel.isEmpty {
+            let cfg = FusionConfig.shared.defaultModel(for: .code)
+            if !cfg.isEmpty {
+                selectedModel = cfg
+            }
+        }
+        fcBridge.checkConnection()
+        if workspace.hasProject {
+            loadSessions()
+            loadKBStatus()
+        }
+        fcLog.info("FusionCodeView initialized, connected=\(fcBridge.isConnected)")
+    }
 
-    private var sidebarPanel: some View {
+    private func loadSessions() {
+        Task {
+            do {
+                let list = try await fcBridge.listSessions(cwd: workspace.projectRoot?.path)
+                await MainActor.run { sessions = list }
+            } catch {
+                fcLog.warning("Failed to load sessions: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func loadKBStatus() {
+        Task {
+            guard let cwd = workspace.projectRoot?.path else { return }
+            do {
+                let status = try await fcBridge.kbStatus(cwd: cwd)
+                let built = status["built"] as? Bool ?? false
+                let chunks = status["total_chunks"] as? Int ?? 0
+                await MainActor.run {
+                    kbStatusText = built ? "KB: \(chunks) chunks" : "KB: not built"
+                }
+            } catch {
+                await MainActor.run { kbStatusText = "KB: unavailable" }
+            }
+        }
+    }
+
+    // MARK: - File Tree Panel
+
+    private var fcFileTreePanel: some View {
         VStack(spacing: 0) {
-            sidebarHeader
+            fcFileTreeHeader
             Divider()
 
             HStack(spacing: 0) {
-                ForEach(CodeSidebarTab.allCases, id: \.self) { tab in
-                    Button(action: { sidebarTab = tab }) {
-                        VStack(spacing: 2) {
-                            Image(systemName: sidebarTabIcon(tab))
-                                .font(.system(size: 12))
-                            Text(tab.rawValue)
-                                .font(.system(size: 9))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 6)
-                        .background(sidebarTab == tab ? theme.accent.opacity(0.15) : Color.clear)
-                        .foregroundStyle(sidebarTab == tab ? theme.accent : theme.textSecondary)
-                        .contentShape(Rectangle())
+                Button(action: { withAnimation { showFileTree = false } }) {
+                    Image(systemName: "sidebar.left")
+                        .font(.system(size: 11))
+                        .foregroundStyle(theme.textSecondary)
+                }
+                .buttonStyle(.plain)
+                .padding(.leading, theme.spacingS)
+
+                Spacer()
+
+                if workspace.hasProject {
+                    Button(action: { showContextPanel = true }) {
+                        Image(systemName: "info.circle")
+                            .font(.system(size: 11))
+                            .foregroundStyle(theme.textSecondary)
                     }
                     .buttonStyle(.plain)
+                    .popover(isPresented: $showContextPanel, arrowEdge: .trailing) {
+                        fcContextPanel
+                    }
                 }
+
+                Button(action: { workspace.openLocalFolder() }) {
+                    Image(systemName: "folder.badge.plus")
+                        .font(.system(size: 11))
+                        .foregroundStyle(theme.textSecondary)
+                }
+                .buttonStyle(.plain)
+                .padding(.trailing, theme.spacingS)
             }
-            .background(theme.surfaceSecondary)
+            .padding(.vertical, theme.spacingXS)
+            .background(theme.toolbarBg)
             Divider()
 
-            switch sidebarTab {
-            case .files: FileTreeView()
-            case .chat:  ChatHistoryView()
-            case .git:   FusionGitPanel()
+            if workspace.hasProject {
+                FileTreeView()
+            } else {
+                noProjectView
             }
+
+            Divider()
+
+            fcFileTreeFooter
         }
     }
 
-    private var sidebarHeader: some View {
+    private var fcFileTreeHeader: some View {
         HStack(spacing: theme.spacingS) {
             if workspace.hasProject {
                 VStack(alignment: .leading, spacing: 2) {
@@ -169,241 +292,255 @@ struct FusionCodeView: View {
                     }
                 }
             } else {
+                Image(systemName: "chevron.left.forwardslash.chevron.right")
+                    .font(.system(size: 14))
+                    .foregroundStyle(theme.accent)
                 Text("Fusion Code")
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
                     .foregroundStyle(theme.text)
             }
             Spacer()
-            Button(action: { showOpenProject = true }) {
-                Image(systemName: "folder.badge.plus")
-                    .font(.system(size: 12))
-                    .foregroundStyle(theme.textSecondary)
-            }
-            .buttonStyle(.plain)
         }
         .padding(.horizontal, theme.spacingM)
         .padding(.vertical, theme.spacingS)
+        .background(theme.toolbarBg)
     }
 
-    private func sidebarTabIcon(_ tab: CodeSidebarTab) -> String {
-        switch tab {
-        case .files: return workspace.hasProject ? "folder.fill" : "folder"
-        case .chat:  return "message"
-        case .git:   return "arrow.triangle.branch"
+    private var fcFileTreeFooter: some View {
+        HStack(spacing: theme.spacingS) {
+            if !kbStatusText.isEmpty {
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(kbStatusText.contains("not") ? theme.amberDot : theme.greenDot)
+                        .frame(width: 6, height: 6)
+                    Text(kbStatusText)
+                        .font(.system(size: 9))
+                        .foregroundStyle(theme.textTertiary)
+                }
+            }
+            Spacer()
+            if workspace.hasProject {
+                Button(action: { buildKB() }) {
+                    Image(systemName: "books.vertical")
+                        .font(.system(size: 10))
+                        .foregroundStyle(theme.textSecondary)
+                }
+                .buttonStyle(.plain)
+                Button(action: { showMemoryPanel = true }) {
+                    Image(systemName: "brain")
+                        .font(.system(size: 10))
+                        .foregroundStyle(theme.textSecondary)
+                }
+                .buttonStyle(.plain)
+                .popover(isPresented: $showMemoryPanel, arrowEdge: .top) {
+                    fcMemoryPanel
+                }
+            }
         }
+        .padding(.horizontal, theme.spacingM)
+        .padding(.vertical, theme.spacingXS + 2)
+        .background(theme.toolbarBg)
+    }
+
+    private var noProjectView: some View {
+        VStack(spacing: theme.spacingL) {
+            Spacer()
+            Image(systemName: "folder.badge.plus")
+                .font(.system(size: 32))
+                .foregroundStyle(theme.textTertiary)
+            Text("Open a project folder")
+                .font(.system(size: theme.footnoteSize))
+                .foregroundStyle(theme.textTertiary)
+            Button("Open Folder") {
+                workspace.openLocalFolder()
+            }
+            .buttonStyle(.plain)
+            .font(.system(size: theme.footnoteSize, weight: .medium))
+            .foregroundStyle(theme.accent)
+            .padding(.horizontal, theme.spacingL)
+            .padding(.vertical, theme.spacingXS + 2)
+            .background(
+                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                    .fill(theme.accent.opacity(0.1))
+            )
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Chat Panel
 
-    private var hasChatMessages: Bool {
-        !agent.conversation.isEmpty || agent.isThinking
-    }
-
-    private var chatPanel: some View {
+    private var fcChatPanel: some View {
         VStack(spacing: 0) {
-            chatToolbar
+            fcChatToolbar
             Divider()
 
-            if hasChatMessages {
+            if messages.isEmpty {
+                fcWelcomeView
+            } else {
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(spacing: theme.spacingM) {
-                            if agent.conversation.isEmpty && !workspace.hasProject {
-                                welcomeSection
-                            }
-                            ForEach(agent.conversation) { msg in
-                                CodeMessageBubble(message: msg, onApplyCode: applyCodeFromMessage)
+                            ForEach(messages) { msg in
+                                FCMessageBubble(message: msg, onApplyCode: applyCodeFromMessage, onApprove: approvePermission, onDeny: denyPermission)
                                     .id(msg.id)
                             }
-                            if agent.isThinking {
+                            if fcBridge.isStreaming {
                                 HStack(spacing: theme.spacingS) {
                                     ProgressView()
                                         .controlSize(.small)
                                     Text("Thinking...")
                                         .font(.system(size: theme.captionSize))
                                         .foregroundStyle(theme.textTertiary)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, theme.spacing2XL)
                             }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, theme.spacing2XL)
+                        }
+                        .padding(.horizontal, theme.spacing2XL)
+                        .padding(.vertical, theme.spacingL)
+                    }
+                    .onChange(of: messages.count) {
+                        if let last = messages.last {
+                            withAnimation(theme.springDefault) {
+                                proxy.scrollTo(last.id, anchor: .bottom)
+                            }
                         }
                     }
-                    .padding(.horizontal, theme.spacing2XL)
-                    .padding(.vertical, theme.spacingL)
                 }
-                .onChange(of: agent.conversation.count) {
-                    if let last = agent.conversation.last {
-                        withAnimation(theme.springDefault) {
-                            proxy.scrollTo(last.id, anchor: .bottom)
-                        }
-                    }
-                }
-                .onChange(of: agent.scrollToMessageId) { _, id in
-                    guard let id else { return }
-                    withAnimation(theme.springDefault) { proxy.scrollTo(id, anchor: .center) }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { agent.scrollToMessageId = nil }
-                }
-            }
-
-                Divider()
-                CenteredChatInput(
-                    text: $inputText,
-                    placeholder: "Ask anything — code, explain, debug, refactor...",
-                    isCentered: false,
-                    onSend: sendMessage,
-                    maxLineLimit: 6,
-                    trailingContent: AnyView(
-                        HStack(spacing: theme.spacingXS) {
-                            Menu {
-                                Button(action: { workspace.openLocalFolder() }) {
-                                    Label("Add files", systemImage: "doc.badge.plus")
-                                }
-                                Button(action: { workspace.openSingleFile() }) {
-                                    Label("Add file", systemImage: "doc.text")
-                                }
-                                Toggle(isOn: $isWebSearchEnabled) {
-                                    Label("Web search", systemImage: "globe")
-                                }
-                            } label: {
-                                Image(systemName: "plus.circle")
-                                    .font(.system(size: 18))
-                                    .foregroundStyle(theme.textTertiary)
-                            }
-                            .menuStyle(.borderlessButton)
-                            .menuIndicator(.hidden)
-                        }
-                    )
-                )
-            } else {
-                CenteredChatInput(
-                    text: $inputText,
-                    placeholder: "Ask anything — code, explain, debug, refactor...",
-                    isCentered: true,
-                    onSend: sendMessage,
-                    maxLineLimit: 6,
-                    trailingContent: AnyView(
-                        HStack(spacing: theme.spacingXS) {
-                            Menu {
-                                Button(action: { workspace.openLocalFolder() }) {
-                                    Label("Add files", systemImage: "doc.badge.plus")
-                                }
-                                Button(action: { workspace.openSingleFile() }) {
-                                    Label("Add file", systemImage: "doc.text")
-                                }
-                                Toggle(isOn: $isWebSearchEnabled) {
-                                    Label("Web search", systemImage: "globe")
-                                }
-                            } label: {
-                                Image(systemName: "plus.circle")
-                                    .font(.system(size: 18))
-                                    .foregroundStyle(theme.textTertiary)
-                            }
-                            .menuStyle(.borderlessButton)
-                            .menuIndicator(.hidden)
-                        }
-                    )
-                )
             }
         }
     }
 
-    private var chatToolbar: some View {
+    private var fcChatToolbar: some View {
         HStack(spacing: theme.spacingS) {
-            Button(action: { withAnimation { showSidebar.toggle() } }) {
-                Image(systemName: "sidebar.left")
-                    .font(.system(size: 14))
-                    .foregroundStyle(theme.textSecondary)
-            }
-            .buttonStyle(.plain)
-
-            Spacer()
-
-            if workspace.hasProject {
-                Button(action: { withAnimation { showRightPanel.toggle() } }) {
-                    Image(systemName: showRightPanel ? "rectangle.split.1x2" : "rectangle.split.2x1")
+            if !showFileTree {
+                Button(action: { withAnimation { showFileTree = true } }) {
+                    Image(systemName: "sidebar.left")
                         .font(.system(size: 14))
                         .foregroundStyle(theme.textSecondary)
                 }
                 .buttonStyle(.plain)
             }
 
+            if let sid = currentSessionId {
+                Button(action: { showSessionPicker = true }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "message")
+                            .font(.system(size: 10))
+                        Text(sid.prefix(8))
+                            .font(.system(size: 10, design: .monospaced))
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 8))
+                    }
+                    .foregroundStyle(theme.textSecondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(theme.separator.opacity(0.5)))
+                }
+                .buttonStyle(.plain)
+                .popover(isPresented: $showSessionPicker, arrowEdge: .bottom) {
+                    fcSessionPicker
+                }
+            }
+
+            Spacer()
+
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(fcBridge.isConnected ? theme.greenDot : theme.redDot)
+                    .frame(width: 6, height: 6)
+                Text(fcBridge.isConnected ? "Connected" : "Offline")
+                    .font(.system(size: 10))
+                    .foregroundStyle(theme.textTertiary)
+            }
+
             FusionModelPicker(scene: .code, selection: $selectedModel, models: bridge.models, onChange: { id in
-                agent.selectedModel = id
-                Task { try? await bridge.mlxSetModel(model: id) }
-                fusionCodeLog.info("Model selected: \(id)")
+                selectedModel = id
+                fcLog.info("Model switched: \(id)")
             })
-            effortMenu
-            thinkingToggle
+
+            if workspace.hasProject {
+                Button(action: { inputText = "/kb " }) {
+                    Image(systemName: "books.vertical")
+                        .font(.system(size: 12))
+                        .foregroundStyle(theme.textSecondary)
+                }
+                .buttonStyle(.plain)
+            }
+
+            Button(action: { withAnimation { showRightPanel.toggle() } }) {
+                Image(systemName: showRightPanel ? "rectangle.split.1x2" : "rectangle.split.2x1")
+                    .font(.system(size: 14))
+                    .foregroundStyle(theme.textSecondary)
+            }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, theme.spacingM)
         .padding(.vertical, theme.spacingS)
-        .background(theme.contentBg)
+        .background(theme.toolbarBg)
     }
 
-    // Think 开关：左右横滑按钮形式，与 Effort 并列 (bug2)
-    private var thinkingToggle: some View {
-        HStack(spacing: 4) {
-            Text("Think").font(.system(size: theme.captionSize, weight: .medium))
-            Toggle("", isOn: $thinkingEnabled)
-                .toggleStyle(.switch)
-                .controlSize(.small)
-                .labelsHidden()
-        }
-        .foregroundStyle(theme.textSecondary)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(theme.separator.opacity(0.5)))
-        .onChange(of: thinkingEnabled) { _, v in
-            fusionCodeLog.info("Thinking toggled: \(v)")
-        }
-    }
-
-    private var effortMenu: some View {
-        Menu {
-            ForEach(["Low", "Medium", "High", "Extra", "Max"], id: \.self) { level in
-                Button { selectedEffort = level; fusionCodeLog.info("Effort set to: \(level)") } label: {
-                    if selectedEffort == level { Label(level, systemImage: "checkmark") } else { Text(level) }
-                }
-            }
-        } label: {
-            HStack(spacing: 4) {
-                Text("Effort").font(.system(size: theme.captionSize, weight: .medium))
-                Text(selectedEffort).font(.system(size: theme.captionSize)).foregroundStyle(theme.textTertiary)
-                Image(systemName: "chevron.down").font(.system(size: 8))
-            }
-            .foregroundStyle(theme.textSecondary).padding(.horizontal, 8).padding(.vertical, 4)
-            .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(theme.separator.opacity(0.5)))
-        }
-        .menuStyle(.borderlessButton)
-    }
-
-    private var welcomeSection: some View {
+    private var fcWelcomeView: some View {
         VStack(spacing: theme.spacingL) {
             Spacer(minLength: 0)
 
-            Text("\(greeting), \(NSUserName())")
+            Text(greeting)
                 .font(.system(size: 28, weight: .bold))
                 .foregroundStyle(theme.text)
 
+            Text("Fusion Code — Local AI Coding Assistant")
+                .font(.system(size: theme.textSize))
+                .foregroundStyle(theme.textSecondary)
+
             HStack(spacing: theme.spacingS) {
-                WelcomeCardView(icon: "folder.badge.plus", title: "Open Project", subtitle: "Start with a local folder") {
+                FCWelcomeCard(icon: "folder.badge.plus", title: "Open Project", subtitle: "Start with a local folder") {
                     showOpenProject = true
                 }
-                WelcomeCardView(icon: "doc.text", title: "Explain", subtitle: "Understand code patterns") {
-                    inputText = "Explain this code"
+                FCWelcomeCard(icon: "chevron.left.forwardslash.chevron.right", title: "Code", subtitle: "Generate & edit code") {
+                    inputText = "Write a "
                 }
-                WelcomeCardView(icon: "ladybug", title: "Debug", subtitle: "Find and fix issues") {
+                FCWelcomeCard(icon: "ladybug", title: "Debug", subtitle: "Find and fix issues") {
                     inputText = "Help me debug this"
                 }
-                WelcomeCardView(icon: "hammer", title: "Refactor", subtitle: "Improve code quality") {
-                    inputText = "Refactor this code"
+                FCWelcomeCard(icon: "books.vertical", title: "KB Query", subtitle: "Ask your codebase") {
+                    inputText = "/kb "
+                }
+            }
+
+            HStack(spacing: theme.spacingS) {
+                FCWelcomeCard(icon: "brain", title: "Memory", subtitle: "Manage context") {
+                    inputText = "/memory"
+                }
+                FCWelcomeCard(icon: "square.grid.3x3", title: "Template", subtitle: "Workflow templates") {
+                    inputText = "/template"
+                }
+                FCWelcomeCard(icon: "magnifyingglass", title: "Review", subtitle: "Code review") {
+                    inputText = "/review"
+                }
+                FCWelcomeCard(icon: "checkmark.shield", title: "Test", subtitle: "Generate tests") {
+                    inputText = "/test"
                 }
             }
 
             Spacer(minLength: 0)
         }
+        .padding(.horizontal, theme.spacing2XL)
     }
 
-    private var chatInputBar: some View {
+    private var greeting: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 0..<12: return "Good morning"
+        case 12..<17: return "Good afternoon"
+        case 17..<21: return "Good evening"
+        default: return "Good night"
+        }
+    }
+
+    // MARK: - Input Bar
+
+    private var fcInputBar: some View {
         VStack(spacing: 0) {
             if let gitURL = detectedGitURL {
                 GitURLDetectionBar(url: gitURL) {
@@ -416,12 +553,50 @@ struct FusionCodeView: View {
 
             HStack(alignment: .bottom, spacing: theme.spacingS) {
                 Menu {
+                    ForEach(FCExecutionMode.allCases, id: \.self) { mode in
+                        Button {
+                            executionMode = mode
+                            fcLog.info("Mode switched: \(mode.rawValue)")
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: mode.icon)
+                                Text(mode.rawValue)
+                                Spacer()
+                                if executionMode == mode {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: executionMode.icon)
+                            .font(.system(size: 11))
+                        Text(executionMode.rawValue)
+                            .font(.system(size: theme.captionSize, weight: .medium))
+                    }
+                    .foregroundStyle(modeColor)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(modeBg))
+                }
+                .menuStyle(.borderlessButton)
+
+                Menu {
                     Button(action: { workspace.openLocalFolder() }) {
-                        Label("Add files", systemImage: "doc.badge.plus")
+                        Label("Add folder", systemImage: "folder.badge.plus")
                     }
                     Button(action: { workspace.openSingleFile() }) {
                         Label("Add file", systemImage: "doc.text")
                     }
+                    Divider()
+                    Button(action: { inputText = "/kb " }) {
+                        Label("Query KB", systemImage: "books.vertical")
+                    }
+                    Button(action: { showTemplatePicker = true }) {
+                        Label("Templates", systemImage: "square.grid.3x3")
+                    }
+                    Divider()
                     Toggle(isOn: $isWebSearchEnabled) {
                         Label("Web search", systemImage: "globe")
                     }
@@ -432,70 +607,77 @@ struct FusionCodeView: View {
                 }
                 .menuStyle(.borderlessButton)
                 .menuIndicator(.hidden)
+                .popover(isPresented: $showTemplatePicker, arrowEdge: .top) {
+                    fcTemplatePicker
+                }
 
-                TextField("Ask anything — code, explain, debug, refactor...", text: $inputText, axis: .vertical)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: theme.textSize))
-                    .lineLimit(1...6)
-                    .onSubmit { sendMessage() }
-                    .onChange(of: inputText) { _, newValue in
-                        detectGitURL(newValue)
+                ZStack(alignment: .topLeading) {
+                    if inputText.isEmpty {
+                        Text("Ask anything — / for commands...")
+                            .font(.system(size: theme.textSize))
+                            .foregroundStyle(theme.textTertiary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 8)
                     }
 
-                Button(action: sendMessage) {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.system(size: 22))
-                        .foregroundStyle(inputText.isEmpty ? theme.textTertiary : theme.accent)
+                    TextField("", text: $inputText, axis: .vertical)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: theme.textSize))
+                        .lineLimit(1...6)
+                        .onSubmit { sendMessage() }
+                        .onChange(of: inputText) { _, newValue in
+                            detectSlashCommand(newValue)
+                            detectGitURL(newValue)
+                        }
                 }
-                .buttonStyle(.plain)
-                .disabled(inputText.isEmpty || agent.isThinking)
 
-                Button(action: { showMicSettings.toggle() }) {
-                    Image(systemName: "mic")
-                        .font(.system(size: 16))
-                        .foregroundStyle(theme.textSecondary)
-                }
-                .buttonStyle(.plain)
-                .popover(isPresented: $showMicSettings, arrowEdge: .top) {
-                    VStack(spacing: theme.spacingM) {
-                        Text("Microphone")
-                            .font(.system(size: theme.captionSize, weight: .semibold))
-                        HStack(spacing: theme.spacingS) {
-                            Text("Volume")
-                                .font(.system(size: 11))
-                                .foregroundStyle(theme.textSecondary)
-                                .frame(width: 48, alignment: .leading)
-                            Slider(value: $micVolume, in: 0...1)
-                                .frame(width: 120)
-                        }
-                        HStack(spacing: theme.spacingS) {
-                            Text("Hold to Record")
-                                .font(.system(size: 11))
-                                .foregroundStyle(theme.textSecondary)
-                            Spacer()
-                            Toggle("", isOn: $holdToRecord)
-                                .toggleStyle(.switch)
-                                .controlSize(.small)
-                        }
-                        .frame(width: 188)
+                if fcBridge.isStreaming {
+                    Button(action: { fcBridge.chatCancel() }) {
+                        Image(systemName: "stop.circle.fill")
+                            .font(.system(size: 22))
+                            .foregroundStyle(theme.accentDestructive)
                     }
-                    .padding(theme.spacingM)
+                    .buttonStyle(.plain)
+                } else {
+                    Button(action: sendMessage) {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.system(size: 22))
+                            .foregroundStyle(inputText.isEmpty ? theme.textTertiary : theme.accent)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(inputText.isEmpty)
                 }
             }
             .padding(.horizontal, theme.spacingM)
             .padding(.vertical, theme.spacingS)
-            .background(theme.surfaceSecondary)
+            .background(theme.toolbarBg)
         }
     }
 
-    // MARK: - Right Panel (Editor/Diff/Terminal)
+    private var modeColor: Color {
+        switch executionMode {
+        case .askPermissions: return theme.accent
+        case .autoAccept: return theme.greenDot
+        case .planOnly: return theme.auxiliary
+        }
+    }
 
-    private var rightPanel: some View {
+    private var modeBg: Color {
+        switch executionMode {
+        case .askPermissions: return theme.accent.opacity(0.1)
+        case .autoAccept: return theme.successBg
+        case .planOnly: return theme.auxiliarySoft
+        }
+    }
+
+    // MARK: - Right Panel
+
+    private var fcRightPanel: some View {
         VStack(spacing: 0) {
-            rightPanelTabBar
+            fcRightPanelTabBar
             Divider()
 
-            switch rightPane {
+            switch rightPaneTab {
             case .editor:
                 if workspace.selectedFile != nil {
                     MonacoEditorView(
@@ -531,16 +713,16 @@ struct FusionCodeView: View {
                 ))
             }
 
-            if workspace.selectedFile != nil && rightPane == .editor {
-                editorStatusBar
+            if workspace.selectedFile != nil && rightPaneTab == .editor {
+                fcEditorStatusBar
             }
         }
     }
 
-    private var rightPanelTabBar: some View {
+    private var fcRightPanelTabBar: some View {
         HStack(spacing: 0) {
-            ForEach(CodeRightPane.allCases, id: \.self) { pane in
-                Button(action: { rightPane = pane }) {
+            ForEach(FCRightPane.allCases, id: \.self) { pane in
+                Button(action: { rightPaneTab = pane }) {
                     HStack(spacing: 4) {
                         Image(systemName: rightPaneIcon(pane))
                             .font(.system(size: 11))
@@ -549,10 +731,8 @@ struct FusionCodeView: View {
                     }
                     .padding(.horizontal, theme.spacingM)
                     .padding(.vertical, theme.spacingXS + 2)
-                    .background(
-                        rightPane == pane ? theme.accent.opacity(0.1) : Color.clear
-                    )
-                    .foregroundStyle(rightPane == pane ? theme.accent : theme.textSecondary)
+                    .background(rightPaneTab == pane ? theme.accent.opacity(0.1) : Color.clear)
+                    .foregroundStyle(rightPaneTab == pane ? theme.accent : theme.textSecondary)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -569,10 +749,10 @@ struct FusionCodeView: View {
         }
         .padding(.horizontal, theme.spacingS)
         .padding(.vertical, theme.spacingXS)
-        .background(theme.surfaceSecondary)
+        .background(theme.toolbarBg)
     }
 
-    private func rightPaneIcon(_ pane: CodeRightPane) -> String {
+    private func rightPaneIcon(_ pane: FCRightPane) -> String {
         switch pane {
         case .editor:   return "chevron.left.forwardslash.chevron.right"
         case .diff:     return "arrow.triangle.swap"
@@ -580,36 +760,32 @@ struct FusionCodeView: View {
         }
     }
 
-    private var editorStatusBar: some View {
+    private var fcEditorStatusBar: some View {
         HStack(spacing: theme.spacingM) {
             if let file = workspace.selectedFile {
                 Text(file.language)
                     .font(.system(size: 10))
                     .foregroundStyle(theme.textTertiary)
-
                 Text("UTF-8")
                     .font(.system(size: 10))
                     .foregroundStyle(theme.textTertiary)
             }
-
             Spacer()
-
             if let file = workspace.selectedFile, workspace.hasCheckpoint(file) {
                 Button("Undo") {
                     if workspace.undoLastWrite(file) {
                         editorContent = file.content
-                        fusionCodeLog.info("Undo checkpoint restored")
+                        fcLog.info("Undo checkpoint restored")
                     }
                 }
                 .buttonStyle(.plain)
                 .font(.system(size: 10))
                 .foregroundStyle(theme.accent)
             }
-
             Button("Save") {
                 if let file = workspace.selectedFile {
                     workspace.write(file: file, content: editorContent)
-                    fusionCodeLog.info("File saved: \(file.name)")
+                    fcLog.info("File saved: \(file.name)")
                 }
             }
             .buttonStyle(.plain)
@@ -618,7 +794,175 @@ struct FusionCodeView: View {
         }
         .padding(.horizontal, theme.spacingM)
         .padding(.vertical, theme.spacingXS)
-        .background(theme.surfaceSecondary)
+        .background(theme.toolbarBg)
+    }
+
+    // MARK: - Context Panel
+
+    private var fcContextPanel: some View {
+        VStack(alignment: .leading, spacing: theme.spacingM) {
+            Text("Project Context")
+                .font(.system(size: theme.footnoteSize, weight: .semibold))
+                .foregroundStyle(theme.text)
+
+            if workspace.hasProject {
+                VStack(alignment: .leading, spacing: theme.spacingS) {
+                    contextRow("Project", value: workspace.projectName)
+                    if !workspace.gitBranch.isEmpty {
+                        contextRow("Branch", value: workspace.gitBranch)
+                    }
+                    contextRow("Files", value: "\(workspace.files.count)")
+                    contextRow("Model", value: selectedModel.isEmpty ? "Not selected" : selectedModel)
+                    contextRow("Mode", value: executionMode.rawValue)
+                    contextRow("KB", value: kbStatusText)
+                }
+            } else {
+                Text("No project open")
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(theme.textTertiary)
+            }
+        }
+        .padding(theme.spacingM)
+        .frame(width: 240)
+    }
+
+    private func contextRow(_ label: String, value: String) -> some View {
+        HStack {
+            Text(label)
+                .font(.system(size: theme.captionSize))
+                .foregroundStyle(theme.textSecondary)
+            Spacer()
+            Text(value)
+                .font(.system(size: theme.captionSize))
+                .foregroundStyle(theme.text)
+                .lineLimit(1)
+        }
+    }
+
+    // MARK: - Memory Panel
+
+    private var fcMemoryPanel: some View {
+        VStack(alignment: .leading, spacing: theme.spacingM) {
+            Text("Project Memory")
+                .font(.system(size: theme.footnoteSize, weight: .semibold))
+
+            Button("Load Memory Files") {
+                loadMemoryFiles()
+            }
+            .buttonStyle(.plain)
+            .font(.system(size: theme.captionSize, weight: .medium))
+            .foregroundStyle(theme.accent)
+
+            Button("Write Memory") {
+                inputText = "/memory "
+                showMemoryPanel = false
+            }
+            .buttonStyle(.plain)
+            .font(.system(size: theme.captionSize))
+            .foregroundStyle(theme.textSecondary)
+        }
+        .padding(theme.spacingM)
+        .frame(width: 220)
+    }
+
+    // MARK: - Session Picker
+
+    private var fcSessionPicker: some View {
+        VStack(alignment: .leading, spacing: theme.spacingS) {
+            Text("Sessions")
+                .font(.system(size: theme.footnoteSize, weight: .semibold))
+                .foregroundStyle(theme.text)
+
+            if sessions.isEmpty {
+                Text("No sessions")
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(theme.textTertiary)
+            } else {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: theme.spacingXS) {
+                        ForEach(sessions) { session in
+                            Button {
+                                currentSessionId = session.id
+                                showSessionPicker = false
+                                fcLog.info("Session selected: \(session.id)")
+                            } label: {
+                                HStack(spacing: theme.spacingS) {
+                                    Image(systemName: "message")
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(theme.textTertiary)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(session.title)
+                                            .font(.system(size: theme.captionSize))
+                                            .foregroundStyle(theme.text)
+                                            .lineLimit(1)
+                                        Text("\(session.messageCount) messages")
+                                            .font(.system(size: 10))
+                                            .foregroundStyle(theme.textTertiary)
+                                    }
+                                    Spacer()
+                                    if session.id == currentSessionId {
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 10))
+                                            .foregroundStyle(theme.accent)
+                                    }
+                                }
+                                .padding(.horizontal, theme.spacingS)
+                                .padding(.vertical, theme.spacingXS)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                .frame(maxHeight: 200)
+            }
+        }
+        .padding(theme.spacingM)
+        .frame(width: 260)
+    }
+
+    // MARK: - Template Picker
+
+    private var fcTemplatePicker: some View {
+        VStack(alignment: .leading, spacing: theme.spacingM) {
+            Text("Workflow Templates")
+                .font(.system(size: theme.footnoteSize, weight: .semibold))
+
+            let builtinTemplates = [
+                ("Code Review", "magnifyingglass", "/review"),
+                ("Generate Tests", "checkmark.shield", "/test"),
+                ("Debug Issue", "ladybug", "/debug"),
+                ("Refactor", "hammer", "/refactor"),
+                ("Explain Code", "text.bubble", "/explain"),
+                ("Deploy", "cloud.upload", "/deploy"),
+            ]
+
+            ForEach(builtinTemplates, id: \.0) { tpl in
+                Button {
+                    inputText = tpl.2 + " "
+                    showTemplatePicker = false
+                } label: {
+                    HStack(spacing: theme.spacingS) {
+                        Image(systemName: tpl.1)
+                            .font(.system(size: 12))
+                            .foregroundStyle(theme.accent)
+                            .frame(width: 20)
+                        Text(tpl.0)
+                            .font(.system(size: theme.footnoteSize))
+                            .foregroundStyle(theme.text)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 10))
+                            .foregroundStyle(theme.textTertiary)
+                    }
+                    .padding(.vertical, theme.spacingXS)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(theme.spacingM)
+        .frame(width: 260)
     }
 
     // MARK: - Actions
@@ -626,12 +970,240 @@ struct FusionCodeView: View {
     private func sendMessage() {
         let text = inputText.trimmingCharacters(in: .whitespaces)
         guard !text.isEmpty else { return }
-        let effort = selectedEffort.lowercased()
-        let context = agent.buildContextString()
-        agent.askAI(prompt: text, context: context, effort: effort, thinking: thinkingEnabled)
+
+        if text.hasPrefix("/") {
+            handleSlashCommand(text)
+            inputText = ""
+            return
+        }
+
+        let userMsg = FCChatMessage(role: "user", content: text, toolCalls: [], timestamp: Date())
+        messages.append(userMsg)
+
+        let assistantMsg = FCChatMessage(role: "assistant", content: "", toolCalls: [], timestamp: Date(), isStreaming: true)
+        messages.append(assistantMsg)
+
+        fcBridge.chatStream(
+            sessionId: currentSessionId,
+            message: text,
+            cwd: workspace.projectRoot?.path,
+            model: selectedModel.isEmpty ? nil : selectedModel
+        )
+
         inputText = ""
         detectedGitURL = nil
-        fusionCodeLog.info("Message sent: \(text.prefix(50)) effort=\(effort)")
+        fcLog.info("Message sent: \(text.prefix(50)) mode=\(executionMode.rawValue)")
+    }
+
+    private func processIncomingEvents() {
+        let newEvents = fcBridge.chatEvents
+        guard !newEvents.isEmpty, !messages.isEmpty else { return }
+
+        let lastIdx = messages.indices.last!
+        guard messages[lastIdx].role == "assistant" else { return }
+
+        var toolCalls: [FCToolCall] = []
+
+        for event in newEvents {
+            switch event.type {
+            case "tool_use", "tool_call":
+                let tier = permissionTier(for: event.toolName)
+                let tc = FCToolCall(
+                    name: event.toolName,
+                    args: event.toolArgs,
+                    status: tier == .tier1 || executionMode == .autoAccept ? .approved : .pending,
+                    output: nil
+                )
+                toolCalls.append(tc)
+                if tc.status == .pending {
+                    let req = FCPermissionRequest(
+                        tool: event.toolName,
+                        args: event.toolArgs,
+                        tier: tier,
+                        description: describeToolCall(event.toolName, args: event.toolArgs)
+                    )
+                    pendingPermissions.append(req)
+                }
+            case "tool_result", "tool_output":
+                if !toolCalls.isEmpty {
+                    let lastToolIdx = toolCalls.indices.last!
+                    toolCalls[lastToolIdx] = FCToolCall(
+                        name: toolCalls[lastToolIdx].name,
+                        args: toolCalls[lastToolIdx].args,
+                        status: .completed,
+                        output: event.content
+                    )
+                }
+            default:
+                break
+            }
+        }
+
+        messages[lastIdx] = FCChatMessage(
+            role: "assistant",
+            content: fcBridge.currentStreamContent,
+            toolCalls: toolCalls,
+            timestamp: messages[lastIdx].timestamp,
+            isStreaming: fcBridge.isStreaming
+        )
+    }
+
+    private func permissionTier(for tool: String) -> FCPermissionTier {
+        let tier1Tools = ["Read", "Glob", "Grep", "Ls", "WebFetch", "GitRead", "git_read", "read", "glob", "grep", "ls", "web_fetch"]
+        return tier1Tools.contains(tool) ? .tier1 : .tier2
+    }
+
+    private func describeToolCall(_ tool: String, args: [String: Any]) -> String {
+        switch tool {
+        case "Edit", "edit":
+            let path = args["file_path"] as? String ?? args["path"] as? String ?? "unknown"
+            return "Edit file: \(path)"
+        case "Write", "write":
+            let path = args["file_path"] as? String ?? args["path"] as? String ?? "unknown"
+            return "Write file: \(path)"
+        case "Bash", "bash":
+            let cmd = args["command"] as? String ?? "unknown"
+            return "Run: \(cmd.prefix(60))"
+        case "MultiEdit", "multi_edit":
+            return "Edit multiple files"
+        default:
+            return "\(tool): \(args.values.first.map { "\($0)" } ?? "")"
+        }
+    }
+
+    private func handleSlashCommand(_ text: String) {
+        let parts = text.split(separator: " ", maxSplits: 1)
+        let cmd = String(parts[0]).lowercased()
+        let arg = parts.count > 1 ? String(parts[1]) : ""
+
+        switch cmd {
+        case "/clear":
+            messages.removeAll()
+            fcBridge.chatEvents.removeAll()
+            fcBridge.currentStreamContent = ""
+            fcLog.info("Conversation cleared")
+        case "/help":
+            let helpText = FC_SLASH_COMMANDS.map { "\($0.shortcut) — \($0.description)" }.joined(separator: "\n")
+            messages.append(FCChatMessage(role: "assistant", content: helpText, toolCalls: [], timestamp: Date()))
+        case "/kb":
+            handleKBQuery(arg)
+        case "/memory":
+            handleMemoryCommand(arg)
+        case "/template":
+            showTemplatePicker = true
+        case "/model":
+            if !arg.isEmpty {
+                selectedModel = arg
+                messages.append(FCChatMessage(role: "assistant", content: "Model switched to: \(arg)", toolCalls: [], timestamp: Date()))
+            } else {
+                messages.append(FCChatMessage(role: "assistant", content: "Current model: \(selectedModel.isEmpty ? "none" : selectedModel)", toolCalls: [], timestamp: Date()))
+            }
+        case "/compact":
+            messages.append(FCChatMessage(role: "system", content: "Context compacted", toolCalls: [], timestamp: Date()))
+        case "/review", "/test", "/debug", "/refactor", "/explain", "/deploy", "/init":
+            let userMsg = FCChatMessage(role: "user", content: text, toolCalls: [], timestamp: Date())
+            messages.append(userMsg)
+            let assistantMsg = FCChatMessage(role: "assistant", content: "", toolCalls: [], timestamp: Date(), isStreaming: true)
+            messages.append(assistantMsg)
+            fcBridge.chatStream(sessionId: currentSessionId, message: text, cwd: workspace.projectRoot?.path, model: selectedModel.isEmpty ? nil : selectedModel)
+        default:
+            messages.append(FCChatMessage(role: "assistant", content: "Unknown command: \(cmd). Type /help for available commands.", toolCalls: [], timestamp: Date()))
+        }
+    }
+
+    private func handleKBQuery(_ query: String) {
+        guard !query.isEmpty else {
+            messages.append(FCChatMessage(role: "assistant", content: "Usage: /kb <query>", toolCalls: [], timestamp: Date()))
+            return
+        }
+        guard let cwd = workspace.projectRoot?.path else {
+            messages.append(FCChatMessage(role: "assistant", content: "No project open. Open a folder first.", toolCalls: [], timestamp: Date()))
+            return
+        }
+        Task {
+            do {
+                let result = try await fcBridge.queryKB(cwd: cwd, query: query)
+                let results = result["results"] as? [[String: Any]] ?? []
+                if results.isEmpty {
+                    await MainActor.run {
+                        messages.append(FCChatMessage(role: "assistant", content: "No results found for: \(query)", toolCalls: [], timestamp: Date()))
+                    }
+                } else {
+                    let formatted = results.enumerated().map { (i, r) in
+                        let content = r["content"] as? String ?? ""
+                        let source = r["source"] as? String ?? "unknown"
+                        return "[\(i + 1)] \(source)\n\(content.prefix(200))..."
+                    }.joined(separator: "\n\n")
+                    await MainActor.run {
+                        messages.append(FCChatMessage(role: "assistant", content: "KB Results:\n\n\(formatted)", toolCalls: [], timestamp: Date()))
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    messages.append(FCChatMessage(role: "assistant", content: "KB query failed: \(error.localizedDescription)", toolCalls: [], timestamp: Date()))
+                }
+            }
+        }
+    }
+
+    private func handleMemoryCommand(_ arg: String) {
+        guard let cwd = workspace.projectRoot?.path else {
+            messages.append(FCChatMessage(role: "assistant", content: "No project open.", toolCalls: [], timestamp: Date()))
+            return
+        }
+        Task {
+            do {
+                let result = try await fcBridge.getMemory(cwd: cwd)
+                let files = result["files"] as? [[String: Any]] ?? []
+                if files.isEmpty {
+                    await MainActor.run {
+                        messages.append(FCChatMessage(role: "assistant", content: "No memory files found.", toolCalls: [], timestamp: Date()))
+                    }
+                } else {
+                    let list = files.map { f in
+                        let name = f["filename"] as? String ?? "unknown"
+                        let size = f["size"] as? Int ?? 0
+                        return "- \(name) (\(size) bytes)"
+                    }.joined(separator: "\n")
+                    await MainActor.run {
+                        messages.append(FCChatMessage(role: "assistant", content: "Memory files:\n\(list)", toolCalls: [], timestamp: Date()))
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    messages.append(FCChatMessage(role: "assistant", content: "Memory load failed: \(error.localizedDescription)", toolCalls: [], timestamp: Date()))
+                }
+            }
+        }
+    }
+
+    private func buildKB() {
+        guard let cwd = workspace.projectRoot?.path else { return }
+        Task {
+            await MainActor.run { kbStatusText = "KB: building..." }
+            do {
+                _ = try await fcBridge.buildKB(cwd: cwd)
+                loadKBStatus()
+                fcLog.info("KB build triggered")
+            } catch {
+                await MainActor.run { kbStatusText = "KB: build failed" }
+                fcLog.error("KB build failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func loadMemoryFiles() {
+        showMemoryPanel = false
+        inputText = "/memory"
+        sendMessage()
+    }
+
+    private func detectSlashCommand(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        showSlashMenu = trimmed.hasPrefix("/") && trimmed.count <= 30 && !trimmed.contains(" ")
+        if showSlashMenu {
+            slashFilter = String(trimmed.dropFirst())
+        }
     }
 
     private func detectGitURL(_ text: String) {
@@ -650,15 +1222,15 @@ struct FusionCodeView: View {
             diffOriginal = file.content
             diffModified = code
             diffLanguage = language
-            rightPane = .diff
+            rightPaneTab = .diff
             showRightPanel = true
-            fusionCodeLog.info("Apply code: showing diff for \(file.name)")
+            fcLog.info("Apply code: showing diff for \(file.name)")
         } else {
             editorContent = code
             editorLanguage = language
-            rightPane = .editor
+            rightPaneTab = .editor
             showRightPanel = true
-            fusionCodeLog.info("Apply code: opened in new editor")
+            fcLog.info("Apply code: opened in new editor")
         }
     }
 
@@ -668,13 +1240,41 @@ struct FusionCodeView: View {
             workspace.selectedFile?.isModified = true
         }
     }
+
+    private func approvePermission(_ id: UUID) {
+        pendingPermissions.removeAll { $0.id == id }
+        if let lastIdx = messages.indices.last {
+            let msg = messages[lastIdx]
+            var updatedCalls = msg.toolCalls
+            if let tcIdx = updatedCalls.firstIndex(where: { $0.status == .pending }) {
+                updatedCalls[tcIdx] = FCToolCall(name: updatedCalls[tcIdx].name, args: updatedCalls[tcIdx].args, status: .approved, output: nil)
+            }
+            messages[lastIdx] = FCChatMessage(role: msg.role, content: msg.content, toolCalls: updatedCalls, timestamp: msg.timestamp, isStreaming: msg.isStreaming)
+        }
+        fcLog.info("Permission approved")
+    }
+
+    private func denyPermission(_ id: UUID) {
+        pendingPermissions.removeAll { $0.id == id }
+        if let lastIdx = messages.indices.last {
+            let msg = messages[lastIdx]
+            var updatedCalls = msg.toolCalls
+            if let tcIdx = updatedCalls.firstIndex(where: { $0.status == .pending }) {
+                updatedCalls[tcIdx] = FCToolCall(name: updatedCalls[tcIdx].name, args: updatedCalls[tcIdx].args, status: .denied, output: "Denied by user")
+            }
+            messages[lastIdx] = FCChatMessage(role: msg.role, content: msg.content, toolCalls: updatedCalls, timestamp: msg.timestamp, isStreaming: msg.isStreaming)
+        }
+        fcLog.info("Permission denied")
+    }
 }
 
-// MARK: - Code Message Bubble with Apply
+// MARK: - Message Bubble
 
-struct CodeMessageBubble: View {
-    let message: CodeAgent.CodeMessage
+struct FCMessageBubble: View {
+    let message: FCChatMessage
     let onApplyCode: (String, String) -> Void
+    let onApprove: (UUID) -> Void
+    let onDeny: (UUID) -> Void
     @Environment(\.studioTheme) private var theme
 
     var body: some View {
@@ -684,18 +1284,28 @@ struct CodeMessageBubble: View {
             }
 
             VStack(alignment: message.role == "user" ? .trailing : .leading, spacing: 4) {
-                Text(message.content)
-                    .font(.system(size: theme.textSize))
-                    .foregroundStyle(theme.text)
-                    .padding(.horizontal, theme.spacingM)
-                    .padding(.vertical, theme.spacingS)
-                    .background(
-                        RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
-                            .fill(message.role == "user" ? theme.accent.opacity(0.12) : theme.surfaceSecondary)
-                    )
+                if message.role == "system" {
+                    Text(message.content)
+                        .font(.system(size: theme.captionSize))
+                        .foregroundStyle(theme.textTertiary)
+                        .padding(.horizontal, theme.spacingM)
+                        .padding(.vertical, theme.spacingXS)
+                        .background(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous).fill(theme.separator.opacity(0.3)))
+                } else {
+                    Text(message.content)
+                        .font(.system(size: theme.textSize))
+                        .foregroundStyle(theme.text)
+                        .padding(.horizontal, theme.spacingM)
+                        .padding(.vertical, theme.spacingS)
+                        .background(
+                            RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
+                                .fill(message.role == "user" ? theme.accent.opacity(0.12) : theme.surfaceElevated)
+                        )
 
-                if message.role == "assistant" && !message.codeBlocks.isEmpty {
-                    codeApplyButtons
+                    if message.role == "assistant" {
+                        toolCallsView
+                        codeApplyButtons
+                    }
                 }
 
                 Text(message.timestamp, style: .time)
@@ -709,22 +1319,65 @@ struct CodeMessageBubble: View {
         }
     }
 
+    private var toolCallsView: some View {
+        VStack(alignment: .leading, spacing: theme.spacingXS) {
+            ForEach(message.toolCalls) { tc in
+                HStack(spacing: theme.spacingS) {
+                    Image(systemName: toolIcon(tc.name))
+                        .font(.system(size: 10))
+                        .foregroundStyle(toolStatusColor(tc.status))
+
+                    Text(tc.name)
+                        .font(.system(size: theme.captionSize, weight: .medium))
+                        .foregroundStyle(theme.text)
+
+                    Text(toolDescription(tc))
+                        .font(.system(size: theme.captionSize))
+                        .foregroundStyle(theme.textSecondary)
+                        .lineLimit(1)
+
+                    Spacer()
+
+                    toolStatusBadge(tc.status)
+
+                    if tc.status == .pending {
+                        Button("Approve") { onApprove(tc.id) }
+                            .buttonStyle(.plain)
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(theme.greenDot)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(RoundedRectangle(cornerRadius: 4, style: .continuous).fill(theme.successBg))
+
+                        Button("Deny") { onDeny(tc.id) }
+                            .buttonStyle(.plain)
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(theme.redDot)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(RoundedRectangle(cornerRadius: 4, style: .continuous).fill(theme.errorBg))
+                    }
+                }
+                .padding(.horizontal, theme.spacingM)
+                .padding(.vertical, theme.spacingXS)
+                .background(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous).fill(theme.codeBg))
+            }
+        }
+    }
+
     private var codeApplyButtons: some View {
-        HStack(spacing: theme.spacingS) {
-            ForEach(Array(message.codeBlocks.enumerated()), id: \.offset) { index, block in
-                Button(action: {
+        let codeBlocks = extractCodeBlocks(message.content)
+        return HStack(spacing: theme.spacingS) {
+            ForEach(Array(codeBlocks.enumerated()), id: \.offset) { index, block in
+                Button {
                     let lang = detectLanguageFromCode(block)
                     onApplyCode(block, lang)
-                }) {
+                } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left.forwardslash.chevron.right")
                             .font(.system(size: 10))
-                        Text("Apply Code \(message.codeBlocks.count > 1 ? "#\(index + 1)" : "")")
+                        Text("Apply Code\(codeBlocks.count > 1 ? " #\(index + 1)" : "")")
                             .font(.system(size: theme.captionSize, weight: .medium))
-                        let stats = computeDiffStats(block)
-                        if stats.added > 0 || stats.removed > 0 {
-                            diffIndicatorBadge(added: stats.added, removed: stats.removed)
-                        }
                     }
                     .foregroundStyle(theme.accent)
                     .padding(.horizontal, theme.spacingM)
@@ -743,43 +1396,74 @@ struct CodeMessageBubble: View {
         }
     }
 
-    private func diffIndicatorBadge(added: Int, removed: Int) -> some View {
-        HStack(spacing: 2) {
-            if added > 0 {
-                Text("+\(added)")
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.green)
-            }
-            if removed > 0 {
-                Text("-\(removed)")
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.red)
-            }
+    private func toolIcon(_ name: String) -> String {
+        switch name {
+        case "Edit", "edit", "Write", "write", "MultiEdit": return "pencil"
+        case "Bash", "bash": return "terminal"
+        case "Read", "read": return "doc.text"
+        case "Glob", "glob": return "folder"
+        case "Grep", "grep": return "magnifyingglass"
+        default: return "wrench"
         }
-        .padding(.horizontal, 4)
-        .padding(.vertical, 1)
-        .background(
-            RoundedRectangle(cornerRadius: 3, style: .continuous)
-                .fill(Color.black.opacity(0.3))
-        )
     }
 
-    private func computeDiffStats(_ code: String) -> (added: Int, removed: Int) {
-        var added = 0
-        var removed = 0
-        let lines = code.components(separatedBy: "\n")
-        for line in lines {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            if trimmed.hasPrefix("+") && !trimmed.hasPrefix("++") {
-                added += 1
-            } else if trimmed.hasPrefix("-") && !trimmed.hasPrefix("--") {
-                removed += 1
+    private func toolStatusColor(_ status: FCToolStatus) -> Color {
+        switch status {
+        case .pending: return theme.amberDot
+        case .running: return theme.blueDot
+        case .approved: return theme.greenDot
+        case .denied: return theme.redDot
+        case .completed: return theme.greenDot
+        case .failed: return theme.redDot
+        }
+    }
+
+    private func toolStatusBadge(_ status: FCToolStatus) -> some View {
+        Text(statusLabel(status))
+            .font(.system(size: 9, weight: .medium))
+            .foregroundStyle(toolStatusColor(status))
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(RoundedRectangle(cornerRadius: 4, style: .continuous).fill(toolStatusColor(status).opacity(0.1)))
+    }
+
+    private func statusLabel(_ status: FCToolStatus) -> String {
+        switch status {
+        case .pending: return "Pending"
+        case .running: return "Running"
+        case .approved: return "Approved"
+        case .denied: return "Denied"
+        case .completed: return "Done"
+        case .failed: return "Failed"
+        }
+    }
+
+    private func toolDescription(_ tc: FCToolCall) -> String {
+        switch tc.name {
+        case "Edit", "edit":
+            return tc.args["file_path"] as? String ?? tc.args["path"] as? String ?? ""
+        case "Bash", "bash":
+            let cmd = tc.args["command"] as? String ?? ""
+            return String(cmd.prefix(40))
+        default:
+            return tc.args.values.first.map { String("\($0)".prefix(30)) } ?? ""
+        }
+    }
+
+    private func extractCodeBlocks(_ content: String) -> [String] {
+        var blocks: [String] = []
+        let pattern = "```[\\w]*\\n([\\s\\S]*?)```"
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return blocks }
+        let range = NSRange(content.startIndex..., in: content)
+        for match in regex.matches(in: content, range: range) {
+            if let blockRange = Range(match.range(at: 1), in: content) {
+                blocks.append(String(content[blockRange]))
             }
         }
-        if added == 0 && removed == 0 {
-            added = lines.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }.count
+        if blocks.isEmpty && (content.contains("func ") || content.contains("class ") || content.contains("import ")) {
+            blocks.append(content)
         }
-        return (added, removed)
+        return blocks
     }
 
     private func detectLanguageFromCode(_ code: String) -> String {
@@ -792,20 +1476,19 @@ struct CodeMessageBubble: View {
             if trimmed.contains("bash") || trimmed.contains("zsh") { return "shell" }
         }
         if trimmed.hasPrefix("import ") {
-            if trimmed.contains("from tkinter") || trimmed.contains("import os") { return "python" }
             if trimmed.contains("SwiftUI") { return "swift" }
             if trimmed.contains("react") { return "javascript" }
         }
-        if trimmed.hasPrefix("func ") || trimmed.hasPrefix("class ") || trimmed.hasPrefix("struct ") { return "swift" }
+        if trimmed.hasPrefix("func ") || trimmed.hasPrefix("struct ") { return "swift" }
         if trimmed.hasPrefix("fn ") || trimmed.hasPrefix("impl ") { return "rust" }
-        if trimmed.hasPrefix("def ") || trimmed.hasPrefix("class ") && trimmed.contains(":") { return "python" }
+        if trimmed.hasPrefix("def ") { return "python" }
         return "plaintext"
     }
 }
 
-// MARK: - Welcome Card View
+// MARK: - Welcome Card
 
-struct WelcomeCardView: View {
+struct FCWelcomeCard: View {
     let icon: String
     let title: String
     let subtitle: String
@@ -819,11 +1502,9 @@ struct WelcomeCardView: View {
                 Image(systemName: icon)
                     .font(.system(size: 20))
                     .foregroundStyle(theme.accent)
-
                 Text(title)
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
                     .foregroundStyle(theme.text)
-
                 Text(subtitle)
                     .font(.system(size: 10))
                     .foregroundStyle(theme.textSecondary)
@@ -842,329 +1523,5 @@ struct WelcomeCardView: View {
         }
         .buttonStyle(.plain)
         .onHover { hovering in isHovered = hovering }
-    }
-}
-
-// MARK: - Git Panel
-
-struct FusionGitPanel: View {
-    @Environment(\.studioTheme) private var theme
-    @StateObject private var git = GitManager.shared
-    @StateObject private var workspace = ProjectWorkspace.shared
-    @State private var commitMessage = ""
-    @State private var newBranchName = ""
-    @State private var showNewBranch = false
-    @State private var selectedDiffFile: String?
-    @State private var diffContent: String?
-
-    var body: some View {
-        VStack(spacing: 0) {
-            branchHeader
-            if showNewBranch {
-                newBranchForm
-            }
-            Divider()
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: theme.spacingM) {
-                    changesSection
-                    if !git.stashList.isEmpty {
-                        stashSection
-                    }
-                    logSection
-                }
-                .padding(theme.spacingM)
-            }
-        }
-        .background(theme.surfaceSecondary)
-        .onAppear {
-            git.setProjectRoot(workspace.projectRoot)
-        }
-        .onChange(of: workspace.projectRoot) { _, _ in
-            git.setProjectRoot(workspace.projectRoot)
-        }
-    }
-
-    private var branchHeader: some View {
-        HStack(spacing: theme.spacingS) {
-            Image(systemName: "arrow.triangle.branch")
-                .font(.system(size: 11))
-                .foregroundStyle(theme.accent)
-            Text(git.branch.isEmpty ? "No branch" : git.branch)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(theme.text)
-
-            Spacer()
-
-            Button { git.pull() } label: {
-                Image(systemName: "arrow.down.circle")
-                    .font(.system(size: 11))
-            }
-            .buttonStyle(.borderless)
-            .controlSize(.small)
-
-            Button { git.push() } label: {
-                Image(systemName: "arrow.up.circle")
-                    .font(.system(size: 11))
-            }
-            .buttonStyle(.borderless)
-            .controlSize(.small)
-
-            Button { showNewBranch = true } label: {
-                Image(systemName: "plus.circle")
-                    .font(.system(size: 11))
-            }
-            .buttonStyle(.borderless)
-            .controlSize(.small)
-
-            Button { git.refresh() } label: {
-                Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 11))
-            }
-            .buttonStyle(.borderless)
-            .controlSize(.small)
-        }
-        .padding(.horizontal, theme.spacingM)
-        .padding(.vertical, theme.spacingS)
-        .background(theme.surfacePrimary)
-    }
-
-    private var changesSection: some View {
-        VStack(alignment: .leading, spacing: theme.spacingS) {
-            Text("Changes")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(theme.textSecondary)
-
-            if git.changes.isEmpty {
-                HStack(spacing: 4) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.green)
-                    Text("No changes")
-                        .font(.system(size: 10))
-                        .foregroundStyle(theme.textTertiary)
-                }
-            } else {
-                ForEach(git.changes) { change in
-                    HStack(spacing: theme.spacingS) {
-                        Text(change.status)
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .foregroundStyle(colorForGitStatus(change.statusColor))
-                            .frame(width: 16)
-
-                        Text(change.file)
-                            .font(.system(size: 10))
-                            .foregroundStyle(theme.text)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-
-                        Spacer()
-
-                        Button {
-                            diffContent = git.diff(file: change.file)
-                            selectedDiffFile = change.file
-                        } label: {
-                            Image(systemName: "doc.text.magnifyingglass")
-                                .font(.system(size: 9))
-                        }
-                        .buttonStyle(.borderless)
-                        .controlSize(.mini)
-
-                        Button {
-                            _ = git.discardChanges(file: change.file)
-                        } label: {
-                            Image(systemName: "arrow.uturn.backward")
-                                .font(.system(size: 9))
-                        }
-                        .buttonStyle(.borderless)
-                        .controlSize(.mini)
-                    }
-                    .padding(.vertical, 2)
-                }
-
-                commitSection
-            }
-        }
-    }
-
-    private var commitSection: some View {
-        VStack(spacing: theme.spacingS) {
-            TextField("Commit message...", text: $commitMessage)
-                .textFieldStyle(.plain)
-                .font(.system(size: 11))
-                .padding(theme.spacingS)
-                .background(
-                    RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                        .fill(theme.surfacePrimary)
-                )
-
-            HStack(spacing: theme.spacingS) {
-                Button {
-                    if git.commit(message: commitMessage) {
-                        commitMessage = ""
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "checkmark.circle")
-                            .font(.system(size: 10))
-                        Text("Commit All")
-                            .font(.system(size: 10, weight: .medium))
-                    }
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, theme.spacingM)
-                    .padding(.vertical, theme.spacingXS + 2)
-                    .background(
-                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                            .fill(theme.accent)
-                    )
-                }
-                .buttonStyle(.plain)
-                .disabled(commitMessage.isEmpty)
-
-                Button {
-                    _ = git.stash()
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "arrow.down.doc")
-                            .font(.system(size: 10))
-                        Text("Stash")
-                            .font(.system(size: 10))
-                    }
-                    .foregroundStyle(theme.textSecondary)
-                }
-                .buttonStyle(.borderless)
-                .controlSize(.small)
-            }
-        }
-    }
-
-    private var stashSection: some View {
-        VStack(alignment: .leading, spacing: theme.spacingS) {
-            Text("Stash")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(theme.textSecondary)
-
-            ForEach(git.stashList.indices, id: \.self) { index in
-                Text(git.stashList[index])
-                    .font(.system(size: 10))
-                    .foregroundStyle(theme.textTertiary)
-                    .lineLimit(1)
-            }
-
-            Button {
-                _ = git.stashPop()
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "arrow.up.doc")
-                        .font(.system(size: 10))
-                    Text("Pop Stash")
-                        .font(.system(size: 10))
-                }
-                .foregroundStyle(theme.accent)
-            }
-            .buttonStyle(.borderless)
-            .controlSize(.small)
-        }
-    }
-
-    private var logSection: some View {
-        VStack(alignment: .leading, spacing: theme.spacingS) {
-            Text("Recent Commits")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(theme.textSecondary)
-
-            ForEach(git.log) { entry in
-                HStack(spacing: theme.spacingS) {
-                    Text(entry.hash)
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        .foregroundStyle(theme.accent)
-                    Text(entry.message)
-                        .font(.system(size: 10))
-                        .foregroundStyle(theme.text)
-                        .lineLimit(1)
-                }
-            }
-
-            if !git.branches.isEmpty && git.branches.count > 1 {
-                branchSwitcher
-            }
-        }
-    }
-
-    private var newBranchForm: some View {
-        HStack(spacing: theme.spacingS) {
-            Image(systemName: "arrow.triangle.branch")
-                .font(.system(size: 11))
-                .foregroundStyle(theme.accent)
-            TextField("Branch name...", text: $newBranchName)
-                .textFieldStyle(.plain)
-                .font(.system(size: 11))
-                .onSubmit {
-                    if git.createBranch(name: newBranchName) {
-                        newBranchName = ""
-                        showNewBranch = false
-                    }
-                }
-            Button {
-                if git.createBranch(name: newBranchName) {
-                    newBranchName = ""
-                    showNewBranch = false
-                }
-            } label: {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 11))
-                    .foregroundStyle(theme.accent)
-            }
-            .buttonStyle(.borderless)
-            .controlSize(.small)
-            Button {
-                showNewBranch = false
-                newBranchName = ""
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 11))
-                    .foregroundStyle(theme.textTertiary)
-            }
-            .buttonStyle(.borderless)
-            .controlSize(.small)
-        }
-        .padding(.horizontal, theme.spacingM)
-        .padding(.vertical, theme.spacingS)
-        .background(theme.surfacePrimary)
-    }
-
-    private var branchSwitcher: some View {
-        VStack(alignment: .leading, spacing: theme.spacingS) {
-            Text("Branches")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(theme.textSecondary)
-
-            ForEach(git.branches, id: \.self) { name in
-                Button {
-                    git.checkout(branch: name)
-                } label: {
-                    HStack(spacing: theme.spacingS) {
-                        Image(systemName: name == git.branch ? "smallcircle.filled.circle" : "circle")
-                            .font(.system(size: 9))
-                            .foregroundStyle(name == git.branch ? theme.accent : theme.textTertiary)
-                        Text(name)
-                            .font(.system(size: 10))
-                            .foregroundStyle(name == git.branch ? theme.text : theme.textSecondary)
-                    }
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-
-    private func colorForGitStatus(_ name: String) -> Color {
-        switch name {
-        case "orange": return .orange
-        case "green": return .green
-        case "red": return .red
-        case "blue": return .blue
-        case "purple": return .purple
-        default: return .gray
-        }
     }
 }
