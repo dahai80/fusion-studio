@@ -6,11 +6,13 @@ private let dashLog = Logger(subsystem: "com.fusion.studio", category: "AIAgent.
 struct AIAgentDashboardView: View {
     @EnvironmentObject var ipc: IPCClient
     @EnvironmentObject var bridge: AgentBridge
+    @EnvironmentObject var appState: AppState
     @Environment(\.studioTheme) private var theme
 
     @State private var overview: [String: Any]?
     @State private var isLoading = true
     @State private var recentAgents: [AgentModel] = []
+    @State private var showCreateAgent = false
 
     var body: some View {
         ScrollView {
@@ -40,6 +42,9 @@ struct AIAgentDashboardView: View {
         }
         .background(theme.contentBg)
         .onAppear { loadDashboard() }
+        .sheet(isPresented: $showCreateAgent) {
+            AIAgentConfigView(mode: .create)
+        }
     }
 
     private var statCardsRow: some View {
@@ -88,13 +93,13 @@ struct AIAgentDashboardView: View {
                     title: "新建知识库",
                     icon: "books.vertical.fill",
                     color: theme.auxiliary
-                ) { dashLog.info("navigate to knowledge base") }
+                ) { appState.selectedModule = .aiAgentList }
 
                 QuickActionCard(
                     title: "管理连接器",
                     icon: "link.circle.fill",
                     color: theme.accentSecondary
-                ) { dashLog.info("navigate to connectors") }
+                ) { appState.selectedModule = .aiAgentObserver }
 
                 QuickActionCard(
                     title: "API 文档",
@@ -113,7 +118,7 @@ struct AIAgentDashboardView: View {
                     .foregroundStyle(theme.textSecondary)
                 Spacer()
                 Button("查看全部") {
-                    dashLog.info("navigate to agent list")
+                    appState.selectedModule = .aiAgentList
                 }
                 .font(.system(size: theme.captionSize))
                 .foregroundStyle(theme.accent)
@@ -215,6 +220,7 @@ struct AIAgentDashboardView: View {
 
     private func createNewAgent() {
         dashLog.info("Create new agent triggered")
+        showCreateAgent = true
     }
 }
 

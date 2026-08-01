@@ -567,6 +567,16 @@ struct AIAgentConfigView: View {
             if let agentId = editingAgentId {
                 Button("删除 Agent") {
                     configLog.info("Delete agent: \(agentId)")
+                    Task {
+                        do {
+                            _ = try await ipc.agentDelete(agentId: agentId)
+                            configLog.info("Agent deleted: \(agentId)")
+                            try await bridge.fetchAgents()
+                            dismiss()
+                        } catch {
+                            configLog.error("Delete agent failed: \(error.localizedDescription)")
+                        }
+                    }
                 }
                 .font(.system(size: theme.footnoteSize))
                 .foregroundStyle(theme.accentDestructive)
@@ -753,7 +763,17 @@ struct AIAgentConfigView: View {
                         tools: buildToolsList(),
                         capabilities: [],
                         safetyLevel: "standard",
-                        tags: []
+                        tags: [],
+                        description: agentDesc,
+                        visibility: agentVisibility,
+                        ragStrategy: ragStrategy,
+                        webSearchEnabled: webSearchEnabled,
+                        deepResearchEnabled: deepResearchEnabled,
+                        connectorIds: connectorIds,
+                        style: styleId,
+                        topP: topP,
+                        contextWindow: contextWindow,
+                        rateLimitQps: rateLimitQps
                     )
                     configLog.info("Agent updated: \(agentId)")
                 } else {
@@ -763,7 +783,17 @@ struct AIAgentConfigView: View {
                         systemPrompt: systemInstructions,
                         temperature: temperature,
                         maxTokens: maxTokens,
-                        tools: buildToolsList()
+                        tools: buildToolsList(),
+                        description: agentDesc,
+                        visibility: agentVisibility,
+                        ragStrategy: ragStrategy,
+                        webSearchEnabled: webSearchEnabled,
+                        deepResearchEnabled: deepResearchEnabled,
+                        connectorIds: connectorIds,
+                        style: styleId,
+                        topP: topP,
+                        contextWindow: contextWindow,
+                        rateLimitQps: rateLimitQps
                     )
                     configLog.info("Agent created")
                 }

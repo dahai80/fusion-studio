@@ -113,6 +113,8 @@ struct ModuleDetailView: View {
                 AIAgentChatView()
             case .aiAgentObserver:
                 AIAgentObserverView()
+            case .aiAgentKnowledgeBase:
+                AIAgentKnowledgeBaseView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

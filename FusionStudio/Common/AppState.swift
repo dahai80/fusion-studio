@@ -95,7 +95,7 @@ enum ProductSheet: String, CaseIterable, Identifiable {
         case .fsbSheet:
             return [.fsb]
         case .aiAgentSheet:
-            return [.aiAgentDashboard, .aiAgentList, .aiAgentChat, .aiAgentObserver]
+            return [.aiAgentDashboard, .aiAgentList, .aiAgentChat, .aiAgentObserver, .aiAgentKnowledgeBase]
         }
     }
 }
@@ -156,6 +156,7 @@ enum Module: String, CaseIterable, Identifiable {
     case aiAgentList = "Agent列表"
     case aiAgentChat = "AI对话"
     case aiAgentObserver = "AI监控"
+    case aiAgentKnowledgeBase = "AI知识库"
 
     var id: String { rawValue }
 
@@ -213,6 +214,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .aiAgentList:     return "list.bullet"
         case .aiAgentChat:     return "bubble.left.and.bubble.right.fill"
         case .aiAgentObserver: return "eye"
+        case .aiAgentKnowledgeBase: return "books.vertical"
         }
     }
 
@@ -245,7 +247,7 @@ enum Module: String, CaseIterable, Identifiable {
             return .artifactsSheet
         case .fsb:
             return .fsbSheet
-        case .aiAgentDashboard, .aiAgentList, .aiAgentChat, .aiAgentObserver:
+        case .aiAgentDashboard, .aiAgentList, .aiAgentChat, .aiAgentObserver, .aiAgentKnowledgeBase:
             return .aiAgentSheet
         }
     }
@@ -300,7 +302,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .fusionProjects: return [.fusionProjects]
         case .cowork: return [.cowork]
         case .fsb: return [.fsb]
-        case .aiAgent: return [.aiAgentDashboard, .aiAgentList, .aiAgentChat, .aiAgentObserver]
+        case .aiAgent: return [.aiAgentDashboard, .aiAgentList, .aiAgentChat, .aiAgentObserver, .aiAgentKnowledgeBase]
         }
     }
 }

@@ -35,6 +35,8 @@ struct AIAgentListView: View {
     @State private var showCreateSheet = false
     @State private var showDeleteConfirm = false
     @State private var agentToDelete: AgentModel?
+    @State private var showDebugSheet = false
+    @State private var showEditSheet = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -46,6 +48,16 @@ struct AIAgentListView: View {
         .onAppear { loadAgents() }
         .sheet(isPresented: $showCreateSheet) {
             AIAgentConfigView(mode: .create)
+        }
+        .sheet(isPresented: $showDebugSheet) {
+            if let aid = selectedAgentId {
+                AIAgentDebugView(agentId: aid)
+            }
+        }
+        .sheet(isPresented: $showEditSheet) {
+            if let agent = bridge.agents.first(where: { $0.id == selectedAgentId }) {
+                AIAgentConfigView(mode: .edit(agent))
+            }
         }
         .alert("确认删除", isPresented: $showDeleteConfirm) {
             Button("取消", role: .cancel) {}
@@ -216,8 +228,8 @@ struct AIAgentListView: View {
                 .frame(width: 120, alignment: .leading)
 
             HStack(spacing: theme.spacingS) {
-                actionButton("调试", icon: "ladybug") { selectedAgentId = agent.id }
-                actionButton("编辑", icon: "pencil") { selectedAgentId = agent.id }
+                actionButton("调试", icon: "ladybug") { selectedAgentId = agent.id; showDebugSheet = true }
+                actionButton("编辑", icon: "pencil") { selectedAgentId = agent.id; showEditSheet = true }
                 actionButton("复制", icon: "doc.on.doc") { cloneAgent(agent) }
                 actionButton("删除", icon: "trash", color: theme.accentDestructive) {
                     agentToDelete = agent

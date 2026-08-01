@@ -478,8 +478,7 @@ struct AIAgentChatView: View {
             do {
                 let result = try await ipc.agentExecuteStream(
                     agentId: selectedAgentId,
-                    input: text,
-                    context: [:]
+                    input: text
                 )
 
                 let fullContent = result["response"] as? String
