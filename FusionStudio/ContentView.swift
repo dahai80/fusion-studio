@@ -126,15 +126,11 @@ struct WorkspaceArea: View {
             .buttonStyle(.plain)
             .help("Toggle Inspector")
 
+// Replacing MLX bolt button with OfflineModeIndicator for #52
+// Affected API: OfflineModeIndicator (wraps offline check + MLX status)
             HealthStatusBadge(status: appState.healthStatus)
 
-            Button(action: {}) {
-                Image(systemName: appState.isMLXRunning ? "bolt.fill" : "bolt.slash")
-                    .foregroundStyle(appState.isMLXRunning ? theme.greenDot : theme.redDot)
-                    .font(.system(size: theme.iconS))
-            }
-            .buttonStyle(.plain)
-            .help(appState.isMLXRunning ? "MLX Running" : "MLX Offline")
+            OfflineModeIndicator()
         }
         .padding(.horizontal, theme.spacingL)
         .padding(.vertical, theme.spacingS)

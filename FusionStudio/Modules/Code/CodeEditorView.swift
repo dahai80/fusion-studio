@@ -1326,6 +1326,8 @@ struct FileTreeRow: View {
     @Environment(\.studioTheme) var theme
     @StateObject private var workspace = ProjectWorkspace.shared
     @StateObject private var agent = CodeAgent.shared
+    @EnvironmentObject var ipc: IPCClient
+    @State private var kbBuilding = false
     @State private var isHovered = false
 
     var body: some View {
@@ -1379,6 +1381,10 @@ struct FileTreeRow: View {
                 selectFile()
             }
         }
+// #49 Adding KB context menu items: 添加到知识库, 索引到 RAG
+// Affected API: IPCClient.kbBuild(), kbStatus(), kbQuery()
+// Data schemas: POST /api/kb/build {path, scope}, GET /api/kb/status, POST /api/kb/query
+// User instruction: #49 文件树右键「加入知识库」菜单
         .contextMenu {
             if !file.isDirectory {
                 Button("在 Finder 中显示") {
@@ -1394,11 +1400,15 @@ struct FileTreeRow: View {
                 } else {
                     Button("添加到上下文") { agent.addFileContext(file) }
                 }
+                Divider()
+                Button("添加到知识库") { addToKnowledgeBase(file) }
+                Button("索引到 RAG") { indexToRAG(file) }
             }
             if file.isDirectory {
                 Button("在 Finder 中显示") {
                     NSWorkspace.shared.selectFile(file.path, inFileViewerRootedAtPath: "")
                 }
+                Button("添加目录到知识库") { addToKnowledgeBase(file) }
             }
         }
     }
@@ -1437,6 +1447,33 @@ struct FileTreeRow: View {
         agent.currentFile = file
         agent.addFileContext(file)
         codeLog.info("Selected file: \(file.name)")
+    }
+
+    private func addToKnowledgeBase(_ f: CodeFile) {
+        kbBuilding = true
+        Task {
+            do {
+                _ = try await ipc.kbBuild(path: f.path)
+                codeLog.info("Added to KB: \(f.path)")
+            } catch {
+                codeLog.error("KB add failed: \(error.localizedDescription)")
+            }
+            await MainActor.run { kbBuilding = false }
+        }
+    }
+
+    private func indexToRAG(_ f: CodeFile) {
+        kbBuilding = true
+        Task {
+            do {
+                let content = try String(contentsOfFile: f.path, encoding: .utf8)
+                _ = try await ipc.knowledgeIngest(content: content, scope: "code", metadata: ["path": f.path])
+                codeLog.info("Indexed to RAG: \(f.path)")
+            } catch {
+                codeLog.error("RAG index failed: \(error.localizedDescription)")
+            }
+            await MainActor.run { kbBuilding = false }
+        }
     }
 }
 

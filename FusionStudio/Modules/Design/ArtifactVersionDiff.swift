@@ -42,6 +42,7 @@ struct ArtifactVersionDiffView: View {
     @State private var diffResult: DiffResult?
     @State private var isLoading = true
     @State private var errorMessage: String?
+    @State private var showDiffExport = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -72,6 +73,11 @@ struct ArtifactVersionDiffView: View {
         .onAppear { loadAndDiff() }
     }
 
+// #48 Adding export review.md button to diff header
+// Callers: SectionContentView routes artifact diff to this view.
+// Affected API: DiffReviewExportView.exportToMarkdown()
+// Data schemas: DiffEntry {file, severity, hunks[]}
+// User instruction: #48 Diff 批注导出为 review.md
     private var diffHeader: some View {
         HStack(spacing: theme.spacingM) {
             VStack(alignment: .leading, spacing: 2) {
@@ -83,6 +89,12 @@ struct ArtifactVersionDiffView: View {
                     .foregroundStyle(theme.textSecondary)
             }
             Spacer()
+            Button(action: exportDiffReview) {
+                Label("导出审查", systemImage: "square.and.arrow.down")
+                    .font(.system(size: theme.smallTextSize))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(theme.accent)
         }
         .padding(theme.spacingL)
         .background(theme.surfaceElevated)
@@ -207,6 +219,20 @@ struct ArtifactVersionDiffView: View {
             return content
         }
         return ""
+    }
+
+    private func exportDiffReview() {
+        guard let diff = diffResult else { return }
+        var md = "# Code Review — \(artifactName)\n\n"
+        md += "| 类型 | 行数 |\n|------|------|\n| 新增 | \(diff.additions) |\n| 删除 | \(diff.deletions) |\n\n"
+        md += "```diff\n"
+        for line in diff.lines {
+            let prefix = line.type == .added ? "+" : line.type == .deleted ? "-" : " "
+            md += "\(prefix) \(line.content)\n"
+        }
+        md += "```\n"
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(md, forType: .string)
     }
 
     private func computeDiff(oldText: String, newText: String) -> DiffResult {

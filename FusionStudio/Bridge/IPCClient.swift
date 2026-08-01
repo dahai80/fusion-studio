@@ -700,6 +700,68 @@ class IPCClient: ObservableObject {
         return try await call(method: "agent.execute_stream", params: params)
     }
 
+    // MARK: - Model Load Status (#46)
+
+    func modelLoadStatus() async throws -> [String: Any] {
+        return try await call(method: "model.status", params: [:])
+    }
+
+    // MARK: - Knowledge Base Build (#49)
+
+    func kbBuild(path: String, scope: String = "default") async throws -> [String: Any] {
+        return try await call(method: "kb.build", params: ["path": path, "scope": scope])
+    }
+
+    func kbStatus(kbId: String = "") async throws -> [String: Any] {
+        var params: [String: Any] = [:]
+        if !kbId.isEmpty { params["kb_id"] = kbId }
+        return try await call(method: "kb.status", params: params)
+    }
+
+    func kbQuery(query: String, kbId: String = "", limit: Int = 5) async throws -> [String: Any] {
+        var params: [String: Any] = ["query": query, "limit": limit]
+        if !kbId.isEmpty { params["kb_id"] = kbId }
+        return try await call(method: "kb.query", params: params)
+    }
+
+    // MARK: - Audit Log (#51)
+
+    func auditList(tool: String = "", targetType: String = "", since: String = "", limit: Int = 100) async throws -> [String: Any] {
+        var params: [String: Any] = ["limit": limit]
+        if !tool.isEmpty { params["tool"] = tool }
+        if !targetType.isEmpty { params["target_type"] = targetType }
+        if !since.isEmpty { params["since"] = since }
+        return try await call(method: "audit.list", params: params)
+    }
+
+    // MARK: - Offline Mode (#52)
+
+    func offlineCheck() async throws -> [String: Any] {
+        return try await call(method: "system.offline_status", params: [:])
+    }
+
+    func offlineSet(enabled: Bool) async throws -> [String: Any] {
+        return try await call(method: "system.set_offline", params: ["enabled": enabled])
+    }
+
+    // MARK: - Diff Review Export (#48)
+
+    func diffReviewExport(agentId: String, format: String = "markdown") async throws -> [String: Any] {
+        return try await call(method: "agent.diff_review", params: ["agent_id": agentId, "format": format])
+    }
+
+    // MARK: - Permission Tags (#47)
+
+    func permissionList(agentId: String = "") async throws -> [String: Any] {
+        var params: [String: Any] = [:]
+        if !agentId.isEmpty { params["agent_id"] = agentId }
+        return try await call(method: "permission.list", params: params)
+    }
+
+    func permissionUpdate(agentId: String, tool: String, level: String) async throws -> [String: Any] {
+        return try await call(method: "permission.update", params: ["agent_id": agentId, "tool": tool, "level": level])
+    }
+
     // MARK: - Marketplace
 
     func marketplaceSearch(query: String = "", category: String = "", tags: [String]? = nil, sortBy: String = "name", limit: Int = 50) async throws -> [String: Any] {

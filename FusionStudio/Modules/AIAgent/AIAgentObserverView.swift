@@ -10,11 +10,15 @@ import os.log
 
 private let observerLog = Logger(subsystem: "com.fusion.studio", category: "AIAgent.Observer")
 
+// Adding ObserverTab cases .permissions and .audit for #47 and #51
+// Affected API: PermissionTagView, AuditLogPanelView
 enum ObserverTab: String, CaseIterable {
     case usage = "用量统计"
     case logs = "执行日志"
     case apikeys = "API 密钥"
     case connectors = "连接器"
+    case permissions = "权限标签"
+    case audit = "审计日志"
 
     var icon: String {
         switch self {
@@ -22,6 +26,8 @@ enum ObserverTab: String, CaseIterable {
         case .logs: return "list.bullet.rectangle"
         case .apikeys: return "key"
         case .connectors: return "link"
+        case .permissions: return "lock.shield"
+        case .audit: return "list.bullet.clipboard"
         }
     }
 }
@@ -116,6 +122,8 @@ struct AIAgentObserverView: View {
         case .logs: logsTab
         case .apikeys: apiKeysTab
         case .connectors: connectorsTab
+        case .permissions: PermissionTagView()
+        case .audit: AuditLogPanelView()
         }
     }
 

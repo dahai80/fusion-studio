@@ -13,8 +13,11 @@ struct DAGNode: Identifiable, Equatable {
     var position: CGPoint
     var state: NodeState
 
+// #45 LangGraph node types added: retriever, router, memory, humanInLoop
+// Affected API: DAGViewModel, DAGNodeCard template selection
+// User instruction: #45 LangGraph 可视化工作流画布面板
     enum NodeType: String, CaseIterable {
-        case start, llm, tool, condition, loop, end, errorHandler
+        case start, llm, tool, condition, loop, end, errorHandler, retriever, router, memory, humanInLoop
 
         var icon: String {
             switch self {
@@ -25,6 +28,10 @@ struct DAGNode: Identifiable, Equatable {
             case .loop: "arrow.clockwise"
             case .end: "stop.circle.fill"
             case .errorHandler: "exclamationmark.triangle"
+            case .retriever: "magnifyingglass"
+            case .router: "arrow.triangle.swap"
+            case .memory: "internaldrive"
+            case .humanInLoop: "person.crop.circle.badge.questionmark"
             }
         }
     }
@@ -274,7 +281,10 @@ class DAGViewModel: ObservableObject {
 struct DAGCanvasView: View {
     @StateObject private var viewModel = DAGViewModel()
     @EnvironmentObject var bridge: AgentBridge
+    @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) var theme
+    @State private var showTemplateSelector = false
+    @State private var templates: [[String: Any]] = []
 
     var body: some View {
         TimelineView(.animation) { _ in
@@ -377,10 +387,106 @@ struct DAGCanvasView: View {
                 FusionButton("Reload", icon: "arrow.clockwise", style: .secondary, size: .small) {
                     Task { await viewModel.loadFromBridge(bridge) }
                 }
+                FusionButton("模板", icon: "square.grid.3x3", style: .secondary, size: .small) {
+                    showTemplateSelector = true
+                }
             }
         }
         .onAppear {
             Task { await viewModel.loadFromBridge(bridge) }
+        }
+        .sheet(isPresented: $showTemplateSelector) {
+            templateSelectorSheet
+        }
+    }
+
+    private var templateSelectorSheet: some View {
+        VStack(spacing: theme.spacingM) {
+            HStack {
+                Text("LangGraph 模板")
+                    .font(.system(size: theme.headlineSize, weight: .semibold))
+                    .foregroundStyle(theme.text)
+                Spacer()
+                Button("关闭") { showTemplateSelector = false }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(theme.textTertiary)
+            }
+            if templates.isEmpty {
+                Text("加载模板...")
+                    .foregroundStyle(theme.textTertiary)
+            } else {
+                ScrollView {
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: theme.spacingS) {
+                        ForEach(Array(templates.enumerated()), id: \.offset) { idx, tpl in
+                            templateCard(tpl)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(theme.spacingL)
+        .frame(width: 500, height: 400)
+        .onAppear { loadTemplates() }
+    }
+
+    private func templateCard(_ tpl: [String: Any]) -> some View {
+        let name = tpl["name"] as? String ?? "Template"
+        let desc = tpl["description"] as? String ?? ""
+        let category = tpl["category"] as? String ?? ""
+        return VStack(alignment: .leading, spacing: theme.spacingXS) {
+            HStack {
+                Image(systemName: "square.grid.3x3")
+                    .foregroundStyle(theme.accent)
+                Text(name)
+                    .font(.system(size: theme.textSize, weight: .medium))
+                    .foregroundStyle(theme.text)
+            }
+            if !desc.isEmpty {
+                Text(desc)
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(theme.textSecondary)
+                    .lineLimit(2)
+            }
+            if !category.isEmpty {
+                Text(category)
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(theme.accentText)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(theme.accentSoft.opacity(0.2))
+                    .cornerRadius(4)
+            }
+            Button("使用模板") { instantiateTemplate(tpl) }
+                .buttonStyle(.plain)
+                .font(.system(size: theme.smallTextSize))
+                .foregroundStyle(theme.accent)
+        }
+        .padding(theme.spacingS)
+        .background(theme.surfaceElevated)
+        .cornerRadius(theme.cornerRadiusSmall)
+    }
+
+    private func loadTemplates() {
+        Task {
+            do {
+                let result = try await ipc.templateList(category: "langgraph")
+                await MainActor.run {
+                    templates = result["templates"] as? [[String: Any]] ?? []
+                }
+            } catch {
+                await MainActor.run { templates = [] }
+            }
+        }
+    }
+
+    private func instantiateTemplate(_ tpl: [String: Any]) {
+        let tplId = tpl["id"] as? String ?? ""
+        Task {
+            do {
+                _ = try await ipc.templateInstantiate(templateId: tplId)
+                await viewModel.loadFromBridge(bridge)
+                showTemplateSelector = false
+            } catch { }
         }
     }
 }

@@ -12,9 +12,11 @@ struct UnifiedChatView: View {
     @EnvironmentObject var chatStore: ChatSessionStore
     @EnvironmentObject var streamingBridge: StreamingBridge
     @EnvironmentObject var bridge: AgentBridge
+    @EnvironmentObject var ipc: IPCClient
 
     @State private var inputText: String = ""
     @State private var selectedMode: ChatMode = .simple
+    @State private var sessionTemplates: [[String: Any]] = []
     @State private var selectedEffort: String = "Medium"
     @State private var thinkingEnabled: Bool = false
     @State private var showSessionList: Bool = false
@@ -82,6 +84,7 @@ struct UnifiedChatView: View {
         .task {
             await chatStore.loadSessions()
             initDefaultModel()
+            loadSessionTemplates()
         }
         .onChange(of: chatStore.isGenerating) { oldValue, newValue in
             if oldValue && !newValue {
@@ -154,14 +157,30 @@ struct UnifiedChatView: View {
                 }
             }
 
-            Button {
-                Task { await newChat() }
+// #50 Adding session template dropdown to new chat button
+// Affected API: IPCClient.templateList(), ChatSessionStore.createSession
+// Data schemas: GET /api/templates {templates: [{id, name, description, category}]}
+// User instruction: #50 新建会话模板选择下拉框
+            Menu {
+                Button("空白会话") {
+                    Task { await newChat() }
+                }
+                Divider()
+                ForEach(Array(sessionTemplates.enumerated()), id: \.offset) { idx, tpl in
+                    let name = tpl["name"] as? String ?? "Template"
+                    Button(name) {
+                        Task { await newChatFromTemplate(tpl) }
+                    }
+                }
+                if sessionTemplates.isEmpty {
+                    Text("加载模板中...").font(.caption)
+                }
             } label: {
                 Image(systemName: "plus")
                     .font(.system(size: 14))
                     .foregroundStyle(theme.accent)
             }
-            .buttonStyle(.plain)
+            .menuStyle(.borderlessButton)
         }
         .padding(.horizontal, theme.spacingL)
         .padding(.vertical, theme.spacingS)
@@ -1062,6 +1081,12 @@ struct UnifiedChatView: View {
         await chatStore.createSession(mode: selectedMode.rawValue)
     }
 
+    private func newChatFromTemplate(_ tpl: [String: Any]) async {
+        let tplId = tpl["id"] as? String ?? ""
+        await chatStore.createSession(mode: selectedMode.rawValue)
+        chatViewLog.info("Created session from template: \(tplId)")
+    }
+
     private func initDefaultModel() {
         if chatStore.selectedModel.isEmpty {
             let cfg = FusionConfig.shared
@@ -1072,6 +1097,20 @@ struct UnifiedChatView: View {
                 chatStore.selectedModel = pref.id
             }
             chatViewLog.info("Chat default model: \(chatStore.selectedModel)")
+        }
+    }
+
+    private func loadSessionTemplates() {
+        Task {
+            do {
+                let result = try await ipc.templateList(category: "session")
+                await MainActor.run {
+                    sessionTemplates = result["templates"] as? [[String: Any]] ?? []
+                    chatViewLog.info("Session templates loaded: \(self.sessionTemplates.count)")
+                }
+            } catch {
+                chatViewLog.error("Template load failed: \(error.localizedDescription)")
+            }
         }
     }
 

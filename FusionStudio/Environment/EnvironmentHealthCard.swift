@@ -87,8 +87,11 @@ struct EnvironmentHealthCard: View {
                     .padding(.vertical, 6)
                     .background(item.status == .failed ? theme.warningBg.opacity(0.3) : Color.clear)
                     .cornerRadius(theme.rowRadius)
+// #46 Adding ModelLoadMonitorView below health checks
+// Affected API: ModelLoadMonitorView (model load status dashboard)
                 }
             }
+            ModelLoadMonitorView()
         }
     }
 
