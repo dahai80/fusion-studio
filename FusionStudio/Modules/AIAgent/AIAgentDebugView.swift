@@ -36,8 +36,9 @@ struct AIAgentDebugView: View {
     struct DebugMessage: Identifiable {
         let id = UUID()
         let role: String
-        let content: String
+        var content: String
         let timestamp: Date
+        var isStreaming: Bool = false
     }
 
     struct ExecutionLog: Identifiable {
@@ -316,24 +317,28 @@ struct AIAgentDebugView: View {
         let startTime = Date()
         addLog(step: "receive", detail: "收到用户消息：\(text.prefix(50))", duration: "0ms")
 
+        var streamMsg = DebugMessage(role: "assistant", content: "", timestamp: Date(), isStreaming: true)
+        messages.append(streamMsg)
+        let streamIdx = messages.count - 1
+
         Task {
             do {
-                let result = try await ipc.agentExecute(
+                let result = try await ipc.agentExecuteStream(
                     agentId: agentId,
                     input: text
                 )
-
-                let elapsed = String(format: "%.0fms", Date().timeIntervalSince(startTime) * 1000)
-                addLog(step: "execute", detail: "Agent 执行完成", duration: elapsed)
 
                 let responseContent = result["response"] as? String
                     ?? result["output"] as? String
                     ?? result["content"] as? String
                     ?? "（无响应内容）"
 
-                let assistantMsg = DebugMessage(role: "assistant", content: responseContent, timestamp: Date())
+                let elapsed = String(format: "%.0fms", Date().timeIntervalSince(startTime) * 1000)
+                addLog(step: "execute", detail: "Agent 执行完成", duration: elapsed)
+
                 await MainActor.run {
-                    messages.append(assistantMsg)
+                    messages[streamIdx].content = responseContent
+                    messages[streamIdx].isStreaming = false
                     isExecuting = false
                 }
 
@@ -344,14 +349,33 @@ struct AIAgentDebugView: View {
                     }
                 }
             } catch {
-                debugLog.error("Execute failed: \(error.localizedDescription)")
-                let elapsed = String(format: "%.0fms", Date().timeIntervalSince(startTime) * 1000)
-                addLog(step: "error", detail: "执行失败：\(error.localizedDescription)", duration: elapsed)
+                debugLog.error("Stream failed, fallback to sync: \(error.localizedDescription)")
+                do {
+                    let fallback = try await ipc.agentExecute(
+                        agentId: agentId,
+                        input: text
+                    )
+                    let content = fallback["response"] as? String
+                        ?? fallback["output"] as? String
+                        ?? fallback["content"] as? String
+                        ?? "（无响应内容）"
 
-                let errorMsg = DebugMessage(role: "assistant", content: "执行失败：\(error.localizedDescription)", timestamp: Date())
-                await MainActor.run {
-                    messages.append(errorMsg)
-                    isExecuting = false
+                    let elapsed = String(format: "%.0fms", Date().timeIntervalSince(startTime) * 1000)
+                    addLog(step: "execute", detail: "Agent 执行完成(fallback)", duration: elapsed)
+
+                    await MainActor.run {
+                        messages[streamIdx].content = content
+                        messages[streamIdx].isStreaming = false
+                        isExecuting = false
+                    }
+                } catch {
+                    let elapsed = String(format: "%.0fms", Date().timeIntervalSince(startTime) * 1000)
+                    addLog(step: "error", detail: "执行失败：\(error.localizedDescription)", duration: elapsed)
+                    await MainActor.run {
+                        messages[streamIdx].content = "执行失败：\(error.localizedDescription)"
+                        messages[streamIdx].isStreaming = false
+                        isExecuting = false
+                    }
                 }
             }
         }

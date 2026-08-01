@@ -20,6 +20,10 @@ struct AIAgentChatView: View {
     @State private var showAgentPicker = false
     @State private var showToolbox = false
     @State private var showQuickActions = false
+    @State private var webSearchEnabled = false
+    @State private var deepResearchEnabled = false
+    @State private var codeExecutionEnabled = false
+    @State private var knowledgeQueryEnabled = false
 
     struct ChatMessage: Identifiable {
         let id = UUID()
@@ -310,9 +314,17 @@ struct AIAgentChatView: View {
     private var chatInputBar: some View {
         HStack(alignment: .bottom, spacing: theme.spacingS) {
             Button(action: { showToolbox = true }) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: theme.iconL))
-                    .foregroundStyle(theme.accent)
+                ZStack {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: theme.iconL))
+                        .foregroundStyle(theme.accent)
+                    if webSearchEnabled || deepResearchEnabled || codeExecutionEnabled || knowledgeQueryEnabled {
+                        Circle()
+                            .fill(theme.accentDestructive)
+                            .frame(width: 8, height: 8)
+                            .offset(x: 8, y: -8)
+                    }
+                }
             }
             .buttonStyle(.plain)
 
@@ -353,29 +365,31 @@ struct AIAgentChatView: View {
                 .foregroundStyle(theme.text)
                 .padding(.bottom, theme.spacingXS)
 
-            toolboxItem("上传文件", icon: "doc.badge.plus")
-            toolboxItem("网页搜索", icon: "globe")
-            toolboxItem("深度调研", icon: "magnifyingglass")
-            toolboxItem("代码执行", icon: "terminal")
-            toolboxItem("知识库查询", icon: "books.vertical")
+            toolboxToggle("网页搜索", icon: "globe", isOn: $webSearchEnabled)
+            toolboxToggle("深度调研", icon: "magnifyingglass", isOn: $deepResearchEnabled)
+            toolboxToggle("代码执行", icon: "terminal", isOn: $codeExecutionEnabled)
+            toolboxToggle("知识库查询", icon: "books.vertical", isOn: $knowledgeQueryEnabled)
         }
         .padding(theme.spacingM)
         .frame(width: 200)
     }
 
-    private func toolboxItem(_ label: String, icon: String) -> some View {
-        Button(action: {
-            chatInput += " [" + label + "] "
-            showToolbox = false
-        }) {
+    private func toolboxToggle(_ label: String, icon: String, isOn: Binding<Bool>) -> some View {
+        Button(action: { isOn.wrappedValue.toggle() }) {
             HStack(spacing: theme.spacingS) {
                 Image(systemName: icon)
                     .font(.system(size: theme.iconS))
-                    .foregroundStyle(theme.auxiliary)
+                    .foregroundStyle(isOn.wrappedValue ? theme.accent : theme.auxiliary)
                     .frame(width: 20)
                 Text(label)
                     .font(.system(size: theme.footnoteSize))
                     .foregroundStyle(theme.text)
+                Spacer()
+                if isOn.wrappedValue {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: theme.iconS))
+                        .foregroundStyle(theme.accent)
+                }
             }
             .padding(.vertical, theme.spacingXS)
         }
@@ -463,6 +477,12 @@ struct AIAgentChatView: View {
         let text = chatInput.trimmingCharacters(in: .whitespaces)
         guard !text.isEmpty, !selectedAgentId.isEmpty else { return }
 
+        var finalInput = text
+        if webSearchEnabled { finalInput = "[网页搜索] " + finalInput }
+        if deepResearchEnabled { finalInput = "[深度调研] " + finalInput }
+        if codeExecutionEnabled { finalInput = "[代码执行] " + finalInput }
+        if knowledgeQueryEnabled { finalInput = "[知识库查询] " + finalInput }
+
         let userMsg = ChatMessage(role: "user", content: text, timestamp: Date())
         messages.append(userMsg)
         chatInput = ""
@@ -478,7 +498,7 @@ struct AIAgentChatView: View {
             do {
                 let result = try await ipc.agentExecuteStream(
                     agentId: selectedAgentId,
-                    input: text
+                    input: finalInput
                 )
 
                 let fullContent = result["response"] as? String
@@ -497,7 +517,7 @@ struct AIAgentChatView: View {
                 do {
                     let fallback = try await ipc.agentExecute(
                         agentId: selectedAgentId,
-                        input: text
+                        input: finalInput
                     )
                     let content = fallback["response"] as? String
                         ?? fallback["output"] as? String
