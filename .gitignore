@@ -32,3 +32,6 @@ __pycache__/
 
 # Logs
 *.log
+
+# Local-only docs
+ARCHITECTURE.md
