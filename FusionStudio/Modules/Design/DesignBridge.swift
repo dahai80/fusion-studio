@@ -465,7 +465,7 @@ class DesignBridge: ObservableObject {
     }
 
     /// 调用 fusion-design parse-html CLI 将 HTML 转为 PenDocument JSON。
-    private func parseHtmlViaCLI(_ html: String) -> String? {
+    func parseHtmlViaCLI(_ html: String) -> String? {
         let result = runFusionDesign(
             ["parse-html", "--page", currentArtifactTitle.isEmpty ? "Page" : currentArtifactTitle],
             stdin: html
@@ -681,6 +681,126 @@ class DesignBridge: ObservableObject {
             designBridgeLog.info("DesignBridge: image_to_ui rendered")
         } else {
             designBridgeLog.error("DesignBridge: image_to_ui failed: \(result.error)")
+        }
+        isSkillRunning = false
+    }
+
+    // Callers: DesignChatPanel.handleSkillTemplate (partial_edit/sim_panel/spec_doc/page_flow).
+    // Affected API: 4 new skill methods bridging to generate CLI with structured prompts.
+    // Data schemas: generate --prompt/--page/--model/--endpoint, PenDocument output → renderDocumentToCanvas.
+    // User instruction: "Phase 6 功能增强,立即实施"
+
+    func skillPartialEdit(nodesJSON: String, instruction: String) {
+        isSkillRunning = true
+        let effectiveNodes: String
+        if nodesJSON.isEmpty || nodesJSON == "[]" {
+            effectiveNodes = extractSelectedNodesJSON()
+        } else {
+            effectiveNodes = nodesJSON
+        }
+        let prompt = "对以下节点进行局部修改:\n\(effectiveNodes)\n\n修改要求: \(instruction)\n\n只输出修改后节点的完整 JSON，保持 id 不变。格式: [{\"id\":\"...\", ...所有属性}]"
+        let config = FusionConfig.shared
+        let args = [
+            "generate",
+            "--prompt", prompt,
+            "--page", "PartialEdit",
+            "--model", config.defaultModel(for: .artifacts),
+            "--endpoint", config.mlxBaseURL
+        ]
+        let result = runFusionDesign(args, stdin: effectiveNodes)
+        if result.exitCode == 0, !result.output.isEmpty {
+            lastSkillOutput = result.output
+            if let data = result.output.data(using: .utf8),
+               let _ = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+                applyPartialEditResult(result.output)
+                designBridgeLog.info("DesignBridge: partial_edit applied, \(result.output.count) chars")
+            } else {
+                renderDocumentToCanvas(result.output)
+                designBridgeLog.info("DesignBridge: partial_edit rendered as document")
+            }
+        } else {
+            designBridgeLog.error("DesignBridge: partial_edit failed: \(result.error)")
+        }
+        isSkillRunning = false
+    }
+
+    func skillSimPanel(prompt: String, pageName: String = "Home") {
+        isSkillRunning = true
+        let simPrompt = "生成与当前设计相似但风格不同的面板变体。要求: \(prompt)\n\n保持功能相同，但调整配色、间距、圆角等视觉属性，产出3个变体方案。"
+        let config = FusionConfig.shared
+        let args = [
+            "generate",
+            "--prompt", simPrompt,
+            "--page", pageName,
+            "--model", config.defaultModel(for: .artifacts),
+            "--endpoint", config.mlxBaseURL
+        ]
+        let result = runFusionDesign(args)
+        if result.exitCode == 0 {
+            lastSkillOutput = result.output
+            renderDocumentToCanvas(result.output)
+            designBridgeLog.info("DesignBridge: sim_panel rendered")
+        } else {
+            designBridgeLog.error("DesignBridge: sim_panel failed: \(result.error)")
+        }
+        isSkillRunning = false
+    }
+
+    func skillSpecDoc(prompt: String) {
+        isSkillRunning = true
+        let specPrompt = "根据当前设计，生成设计规范文档，包含:\n1. 设计 Token（颜色、字体、间距、圆角）\n2. 组件规范（按钮、卡片、输入框等）\n3. 布局规则\n4. 交互状态规范\n\n补充要求: \(prompt)"
+        let config = FusionConfig.shared
+        let args = [
+            "generate",
+            "--prompt", specPrompt,
+            "--page", "SpecDoc",
+            "--model", config.defaultModel(for: .artifacts),
+            "--endpoint", config.mlxBaseURL
+        ]
+        let result = runFusionDesign(args)
+        if result.exitCode == 0 {
+            lastSkillOutput = result.output
+            if let html = try? parseHtmlFromPenOutput(result.output) {
+                renderDocumentToCanvas(html)
+            } else {
+                renderDocumentToCanvas(result.output)
+            }
+            designBridgeLog.info("DesignBridge: spec_doc generated")
+        } else {
+            designBridgeLog.error("DesignBridge: spec_doc failed: \(result.error)")
+        }
+        isSkillRunning = false
+    }
+
+    func skillPageFlow(prompt: String, pageNames: [String] = ["首页", "列表", "详情"]) {
+        isSkillRunning = true
+        variantPages.removeAll()
+        let flowDesc = pageNames.enumerated().map { idx, name in
+            "页面\(idx+1)「\(name)」: \(prompt)"
+        }.joined(separator: "\n")
+        let flowPrompt = "设计一个多页面流程，包含以下页面之间的导航关系:\n\(flowDesc)\n\n每页需包含导航元素（按钮/链接）指向下一页。"
+        let config = FusionConfig.shared
+        for (idx, pageName) in pageNames.enumerated() {
+            let pagePrompt = "\(flowPrompt)\n\n当前生成: 页面\(idx+1)「\(pageName)」"
+            let args = [
+                "generate",
+                "--prompt", pagePrompt,
+                "--page", pageName,
+                "--model", config.defaultModel(for: .artifacts),
+                "--endpoint", config.mlxBaseURL
+            ]
+            let result = runFusionDesign(args)
+            if result.exitCode == 0 {
+                variantPages.append(VariantPage(
+                    id: "pageflow-\(idx)",
+                    title: pageName,
+                    documentJSON: result.output
+                ))
+                designBridgeLog.info("DesignBridge: page_flow[\(idx)] page=\(pageName) done")
+            }
+        }
+        if let first = variantPages.first {
+            renderDocumentToCanvas(first.documentJSON)
         }
         isSkillRunning = false
     }
