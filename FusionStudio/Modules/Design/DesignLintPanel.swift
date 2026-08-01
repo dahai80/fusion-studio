@@ -1,7 +1,7 @@
-// Callers: ModuleDetailView.designInfoPanel lint tab.
-// Affected API: DesignLintPanel.runLint now uses DesignBridge.skillLint unified bridge.
-// Data schemas: LintViolation, LintResult, LintStats, DesignLintIssue.
-// User instruction: "按照GUI草图实现fusion design，和~/fusion/fusion-design配合，端到端完成fusion设计"
+// Callers: ModuleDetailView.designInfoPanel lint tab, DesignLintRuleLockSheet.
+// Affected API: DesignLintPanel.runLint, DesignLintRuleLockSheet for rule lock/unlock.
+// Data schemas: LintViolation, LintResult, LintStats, DesignLintIssue, lockedRules Set<String>.
+// User instruction: "继续实施Phase 6"
 
 import SwiftUI
 import os.log
@@ -28,29 +28,29 @@ enum LintRuleOption: String, CaseIterable, Identifiable {
     var label: String {
         switch self {
         case .contrastCheck: return "对比度检查"
-        case .unlabeledInput: return "无标签输入框"
-        case .textEffects: return "文本特效"
+        case .unlabeledInput: return "无标签输入"
+        case .textEffects: return "文字特效"
         case .abnormalRotation: return "异常旋转"
         case .emptyEffects: return "空特效"
         case .tokenInconsistency: return "Token 不一致"
         case .unnamedNode: return "未命名节点"
-        case .textOverflow: return "文本溢出"
+        case .textOverflow: return "文字溢出"
         case .overlappingNodes: return "节点重叠"
         case .hardcodedSpacing: return "硬编码间距"
         case .hardcodedFontSize: return "硬编码字号"
-        case .missingInteractionState: return "缺失交互状态"
+        case .missingInteractionState: return "缺少交互状态"
         case .layoutInconsistency: return "布局不一致"
         }
     }
 
     var icon: String {
         switch self {
-        case .contrastCheck: return "circle.lefthalf.filled"
-        case .unlabeledInput: return "text.rectangle"
-        case .textEffects: return "sparkles"
+        case .contrastCheck: return "eye"
+        case .unlabeledInput: return "textformat"
+        case .textEffects: return "text.badge.star"
         case .abnormalRotation: return "rotate.3d"
-        case .emptyEffects: return "eye.trianglebadge.exclamationmark"
-        case .tokenInconsistency: return "paintpalette"
+        case .emptyEffects: return "sparkles"
+        case .tokenInconsistency: return "paintbrush"
         case .unnamedNode: return "questionmark.square"
         case .textOverflow: return "text.append"
         case .overlappingNodes: return "square.on.square"
@@ -62,27 +62,38 @@ enum LintRuleOption: String, CaseIterable, Identifiable {
     }
 }
 
-enum LintSeverity: String, Decodable {
+enum LintSeverity: String {
     case error
     case warning
     case info
+
+    var color: Color {
+        switch self {
+        case .error: return .red
+        case .warning: return .orange
+        case .info: return .blue
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .error: return "xmark.circle.fill"
+        case .warning: return "exclamationmark.triangle.fill"
+        case .info: return "info.circle.fill"
+        }
+    }
 }
 
-struct LintViolation: Identifiable, Decodable {
+struct LintViolation: Identifiable {
     let id: String
     let rule: String
     let node_id: String
     let message: String
-    let suggestion: String?
+    let suggestion: String
     let severity: LintSeverity
 }
 
-struct LintResult: Decodable {
-    let violations: [LintViolation]
-    let stats: LintStats
-}
-
-struct LintStats: Decodable {
+struct LintStats {
     let total_nodes: Int
     let total_violations: Int
     let errors: Int
@@ -90,252 +101,189 @@ struct LintStats: Decodable {
     let infos: Int
 }
 
-struct DesignLintPanel: View {
-    @Environment(\.studioTheme) var theme
-    @EnvironmentObject var designBridge: DesignBridge
+// MARK: - Locked Rules Store
 
-    @State private var enabledRules: Set<LintRuleOption> = Set(LintRuleOption.allCases)
+class DesignLintRuleStore: ObservableObject {
+    static let shared = DesignLintRuleStore()
+    @Published var lockedRules: Set<String> = []
+
+    private let lockFilePath: String = {
+        let dir = NSSearchPathForDirectoriesInDomains(.applicationSupportDirectory, .userDomainMask, true).first ?? "/tmp"
+        return (dir as NSString).appendingPathComponent("fusion-studio/lint-locked-rules.json")
+    }()
+
+    private init() {
+        loadLockedRules()
+    }
+
+    func toggleLock(_ rule: String) {
+        if self.lockedRules.contains(rule) {
+            self.lockedRules.remove(rule)
+        } else {
+            self.lockedRules.insert(rule)
+        }
+        self.saveLockedRules()
+        lintLog.info("LintRuleStore: toggled lock for \(rule), now \(self.lockedRules.contains(rule) ? "locked" : "unlocked")")
+    }
+
+    func isLocked(_ rule: String) -> Bool {
+        lockedRules.contains(rule)
+    }
+
+    private func loadLockedRules() {
+        guard let data = try? Data(contentsOf: URL(fileURLWithPath: self.lockFilePath)),
+              let arr = try? JSONSerialization.jsonObject(with: data) as? [String] else { return }
+        self.lockedRules = Set(arr)
+        lintLog.info("LintRuleStore: loaded \(self.lockedRules.count) locked rules")
+    }
+
+    func saveLockedRules() {
+        let arr = Array(self.lockedRules)
+        guard let data = try? JSONSerialization.data(withJSONObject: arr, options: .prettyPrinted) else { return }
+        let dir = (lockFilePath as NSString).deletingLastPathComponent
+        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        try? data.write(to: URL(fileURLWithPath: lockFilePath))
+    }
+}
+
+// MARK: - DesignLintPanel
+
+struct DesignLintPanel: View {
+    @EnvironmentObject var designBridge: DesignBridge
+    @Environment(\.studioTheme) var theme
     @State private var violations: [LintViolation] = []
     @State private var stats: LintStats?
     @State private var isRunning = false
     @State private var errorMessage: String?
+    @State private var showRuleLockSheet = false
+    @ObservedObject var ruleStore = DesignLintRuleStore.shared
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            ruleSelector
-            Rectangle().fill(theme.separator).frame(height: 1)
-            actionBar
-            Rectangle().fill(theme.separator).frame(height: 1)
-            if let err = errorMessage {
-                errorBanner(err)
-            }
-            resultContent
-        }
-    }
-
-    private var ruleSelector: some View {
-        VStack(alignment: .leading, spacing: theme.spacingXS) {
+        VStack(spacing: 0) {
             HStack {
-                Text("规则选择")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(theme.textTertiary)
-                    .textCase(.uppercase)
+                Text("规范检查")
+                    .font(.system(size: theme.titleSize, weight: .bold))
+                    .foregroundStyle(theme.text)
                 Spacer()
-                Button(action: toggleAllRules) {
-                    Text(enabledRules.count == LintRuleOption.allCases.count ? "全不选" : "全选")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(theme.accent)
+                FusionButton("规则锁定", icon: "lock.shield", style: .ghost, size: .small) {
+                    showRuleLockSheet = true
                 }
-                .buttonStyle(.plain)
+                FusionButton("运行 Lint", icon: "play.fill", style: .primary, size: .small) {
+                    runLint()
+                }
+                .disabled(isRunning)
             }
-            .padding(.horizontal, theme.spacingM)
+            .padding(theme.spacingM)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 4) {
-                    ForEach(LintRuleOption.allCases) { rule in
-                        Button(action: { toggleRule(rule) }) {
-                            HStack(spacing: 3) {
-                                Image(systemName: rule.icon)
-                                    .font(.system(size: 9))
-                                Text(rule.label)
-                                    .font(.system(size: 9, weight: .medium))
-                            }
-                            .foregroundStyle(enabledRules.contains(rule) ? theme.accentText : theme.textTertiary)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(
-                                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                                    .fill(enabledRules.contains(rule) ? theme.accent : theme.groupBg)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
+            if isRunning {
+                ProgressView()
+                    .padding(theme.spacingL)
+            } else if let error = errorMessage {
+                VStack(spacing: theme.spacingS) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 24))
+                        .foregroundStyle(.orange)
+                    Text(error)
+                        .font(.system(size: theme.footnoteSize))
+                        .foregroundStyle(theme.textSecondary)
                 }
-                .padding(.horizontal, theme.spacingM)
+                .padding(theme.spacingL)
+            } else if violations.isEmpty {
+                VStack(spacing: theme.spacingS) {
+                    Image(systemName: "checkmark.shield")
+                        .font(.system(size: 32))
+                        .foregroundStyle(.green)
+                    Text("无违规")
+                        .font(.system(size: theme.textSize))
+                        .foregroundStyle(theme.textSecondary)
+                }
+                .padding(theme.spacingL)
+            } else {
+                lintStatsBar
+                violationList
             }
         }
-        .padding(.vertical, theme.spacingS)
+        .sheet(isPresented: $showRuleLockSheet) {
+            DesignLintRuleLockSheet()
+        }
     }
 
-    private var actionBar: some View {
-        HStack(spacing: theme.spacingS) {
-            Button(action: runLint) {
-                HStack(spacing: 4) {
-                    if isRunning {
-                        ProgressView()
-                            .scaleEffect(0.6)
-                            .frame(width: 12, height: 12)
-                    } else {
-                        Image(systemName: "checkmark.shield")
-                            .font(.system(size: 11))
-                    }
-                    Text(isRunning ? "检查中..." : "运行检查")
-                        .font(.system(size: theme.footnoteSize, weight: .medium))
-                }
-                .foregroundStyle(theme.accentText)
-                .padding(.horizontal, theme.spacingM)
-                .padding(.vertical, theme.spacingXS)
-                .background(
-                    RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                        .fill(theme.accent)
-                )
-            }
-            .buttonStyle(.plain)
-            .disabled(isRunning || (designBridge.lastRenderedDocumentJSON ?? "").isEmpty)
-
-            Spacer()
-
+    private var lintStatsBar: some View {
+        HStack(spacing: theme.spacingM) {
             if let s = stats {
-                HStack(spacing: theme.spacingS) {
-                    statBadge(count: s.errors, label: "错误", color: theme.accentDestructive)
-                    statBadge(count: s.warnings, label: "警告", color: theme.amberDot)
-                    statBadge(count: s.infos, label: "信息", color: theme.blueDot)
-                    Text("\(s.total_nodes) 节点")
-                        .font(.system(size: theme.captionSize))
-                        .foregroundStyle(theme.textTertiary)
+                HStack(spacing: theme.spacingXS) {
+                    Circle().fill(.red).frame(width: 8, height: 8)
+                    Text("\(s.errors) 错误").font(.system(size: theme.captionSize)).foregroundStyle(theme.textSecondary)
+                }
+                HStack(spacing: theme.spacingXS) {
+                    Circle().fill(.orange).frame(width: 8, height: 8)
+                    Text("\(s.warnings) 警告").font(.system(size: theme.captionSize)).foregroundStyle(theme.textSecondary)
+                }
+                HStack(spacing: theme.spacingXS) {
+                    Circle().fill(.blue).frame(width: 8, height: 8)
+                    Text("\(s.infos) 提示").font(.system(size: theme.captionSize)).foregroundStyle(theme.textSecondary)
                 }
             }
+            Spacer()
+            Text("\(violations.count) 条违规")
+                .font(.system(size: theme.captionSize, weight: .medium))
+                .foregroundStyle(theme.textTertiary)
         }
         .padding(.horizontal, theme.spacingM)
         .padding(.vertical, theme.spacingS)
+        .background(theme.surfaceSecondary)
     }
 
-    private func statBadge(count: Int, label: String, color: Color) -> some View {
-        HStack(spacing: 2) {
-            Circle().fill(color).frame(width: 6, height: 6)
-            Text("\(count) \(label)")
-                .font(.system(size: theme.captionSize, weight: .medium))
-                .foregroundStyle(theme.textSecondary)
-        }
-    }
-
-    private func errorBanner(_ msg: String) -> some View {
-        HStack(spacing: theme.spacingXS) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(theme.amberDot)
-            Text(msg)
-                .font(.system(size: theme.captionSize))
-                .foregroundStyle(theme.textSecondary)
-                .lineLimit(2)
-            Spacer()
-            Button(action: { errorMessage = nil }) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 8))
-                    .foregroundStyle(theme.textTertiary)
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(theme.spacingS)
-        .background(theme.warningBg)
-    }
-
-    private var resultContent: some View {
-        Group {
-            if violations.isEmpty && stats == nil {
-                VStack(spacing: theme.spacingS) {
-                    Image(systemName: "checkmark.shield")
-                        .font(.system(size: theme.iconL))
-                        .foregroundStyle(theme.textTertiary)
-                    Text("点击运行检查\n扫描设计规范问题")
-                        .font(.system(size: theme.footnoteSize))
-                        .foregroundStyle(theme.textSecondary)
-                        .multilineTextAlignment(.center)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if violations.isEmpty {
-                VStack(spacing: theme.spacingS) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: theme.iconXL))
-                        .foregroundStyle(theme.greenDot)
-                    Text("全部通过，无规范问题")
-                        .font(.system(size: theme.footnoteSize, weight: .medium))
-                        .foregroundStyle(theme.textSecondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: theme.spacingXS) {
-                        ForEach(violations) { v in
-                            violationRow(v)
-                        }
-                    }
-                    .padding(theme.spacingS)
+    private var violationList: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: theme.spacingXS) {
+                ForEach(violations) { v in
+                    violationRow(v)
                 }
             }
+            .padding(theme.spacingM)
         }
     }
 
     private func violationRow(_ v: LintViolation) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: theme.spacingXS) {
-                Image(systemName: severityIcon(v.severity))
-                    .font(.system(size: 10))
-                    .foregroundStyle(severityColor(v.severity))
-                Text(v.rule)
-                    .font(.system(size: theme.captionSize, weight: .semibold))
+        HStack(alignment: .top, spacing: theme.spacingS) {
+            Image(systemName: v.severity.icon)
+                .foregroundStyle(v.severity.color)
+                .frame(width: 20)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(v.message)
+                    .font(.system(size: theme.footnoteSize, weight: .medium))
                     .foregroundStyle(theme.text)
-                Spacer()
-                Text(v.node_id)
-                    .font(.system(size: 9, design: .monospaced))
-                    .foregroundStyle(theme.textTertiary)
-            }
-            Text(v.message)
-                .font(.system(size: theme.captionSize))
-                .foregroundStyle(theme.textSecondary)
-                .lineLimit(2)
-            if let suggestion = v.suggestion, !suggestion.isEmpty {
-                HStack(spacing: 4) {
-                    Image(systemName: "lightbulb.fill")
-                        .font(.system(size: 9))
-                        .foregroundStyle(theme.amberDot)
-                    Text(suggestion)
-                        .font(.system(size: 10))
-                        .foregroundStyle(theme.textTertiary)
-                        .lineLimit(2)
+                if !v.suggestion.isEmpty {
+                    Text(v.suggestion)
+                        .font(.system(size: theme.captionSize))
+                        .foregroundStyle(theme.textSecondary)
                 }
+                if !v.node_id.isEmpty {
+                    Text("节点: \(v.node_id)")
+                        .font(.system(size: theme.captionSize))
+                        .foregroundStyle(theme.textTertiary)
+                }
+            }
+            Spacer()
+            if ruleStore.isLocked(v.rule) {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 10))
+                    .foregroundStyle(theme.textTertiary)
             }
         }
         .padding(theme.spacingS)
         .background(
             RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                .fill(theme.groupBg)
+                .fill(ruleStore.isLocked(v.rule) ? theme.surfaceSecondary.opacity(0.5) : theme.surfaceSecondary)
         )
     }
 
-    private func severityIcon(_ s: LintSeverity) -> String {
-        switch s {
-        case .error: return "xmark.circle.fill"
-        case .warning: return "exclamationmark.triangle.fill"
-        case .info: return "info.circle.fill"
-        }
-    }
-
-    private func severityColor(_ s: LintSeverity) -> Color {
-        switch s {
-        case .error: return theme.accentDestructive
-        case .warning: return theme.amberDot
-        case .info: return theme.blueDot
-        }
-    }
-
-    private func toggleRule(_ rule: LintRuleOption) {
-        if enabledRules.contains(rule) {
-            enabledRules.remove(rule)
-        } else {
-            enabledRules.insert(rule)
-        }
-    }
-
-    private func toggleAllRules() {
-        if enabledRules.count == LintRuleOption.allCases.count {
-            enabledRules.removeAll()
-        } else {
-            enabledRules = Set(LintRuleOption.allCases)
-        }
-    }
-
     private func runLint() {
-        guard let docJSON = designBridge.lastRenderedDocumentJSON, !docJSON.isEmpty else { return }
+        guard let docJSON = designBridge.lastRenderedDocumentJSON, !docJSON.isEmpty else {
+            errorMessage = "请先生成设计文档"
+            return
+        }
         isRunning = true
         errorMessage = nil
         violations = []
@@ -351,13 +299,14 @@ struct DesignLintPanel: View {
                 if issues.isEmpty && (designBridge.lastRenderedDocumentJSON ?? "").isEmpty {
                     self.errorMessage = "Lint 未返回结果"
                 } else {
-                    let mapped = issues.map { issue -> LintViolation in
+                    let filtered = issues.filter { !ruleStore.isLocked($0.rule) }
+                    let mapped = filtered.map { issue -> LintViolation in
                         LintViolation(
                             id: issue.id.uuidString,
                             rule: issue.rule,
                             node_id: issue.nodeID ?? "",
                             message: issue.message,
-                            suggestion: issue.suggestion,
+                            suggestion: issue.suggestion ?? "",
                             severity: LintSeverity(rawValue: issue.severity) ?? .info
                         )
                     }
@@ -369,11 +318,75 @@ struct DesignLintPanel: View {
                         warnings: mapped.filter { $0.severity == .warning }.count,
                         infos: mapped.filter { $0.severity == .info }.count
                     )
-                    lintLog.info("Lint completed: \(mapped.count) violations via unified bridge")
+                    lintLog.info("Lint completed: \(mapped.count) violations (\(issues.count - filtered.count) locked/hidden)")
                 }
                 self.isRunning = false
             }
         }
     }
+}
 
+// MARK: - Rule Lock Sheet
+
+struct DesignLintRuleLockSheet: View {
+    @Environment(\.studioTheme) var theme
+    @Environment(\.dismiss) var dismiss
+    @ObservedObject var ruleStore = DesignLintRuleStore.shared
+
+    var body: some View {
+        VStack(spacing: theme.spacingM) {
+            HStack {
+                Text("设计规则锁定")
+                    .font(.system(size: theme.titleSize, weight: .bold))
+                    .foregroundStyle(theme.text)
+                Spacer()
+                FusionButton("完成", style: .ghost) { dismiss() }
+            }
+
+            Text("锁定的规则在 Lint 时将被忽略，违规不会显示")
+                .font(.system(size: theme.footnoteSize))
+                .foregroundStyle(theme.textSecondary)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: theme.spacingXS) {
+                    ForEach(LintRuleOption.allCases) { rule in
+                        HStack(spacing: theme.spacingS) {
+                            Image(systemName: rule.icon)
+                                .foregroundStyle(theme.accent)
+                                .frame(width: 20)
+                            Text(rule.label)
+                                .font(.system(size: theme.textSize))
+                                .foregroundStyle(theme.text)
+                            Spacer()
+                            Image(systemName: ruleStore.isLocked(rule.rawValue) ? "lock.fill" : "lock.open")
+                                .foregroundStyle(ruleStore.isLocked(rule.rawValue) ? .orange : theme.textTertiary)
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture { ruleStore.toggleLock(rule.rawValue) }
+                        .padding(theme.spacingS)
+                        .background(
+                            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                .fill(ruleStore.isLocked(rule.rawValue) ? theme.surfaceElevated : theme.surfaceSecondary)
+                        )
+                    }
+                }
+            }
+
+            HStack {
+                Text("\(ruleStore.lockedRules.count) 条规则已锁定")
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(theme.textTertiary)
+                Spacer()
+                if !ruleStore.lockedRules.isEmpty {
+                    FusionButton("全部解锁", style: .ghost, size: .small) {
+                        ruleStore.lockedRules.removeAll()
+                        ruleStore.saveLockedRules()
+                    }
+                }
+            }
+        }
+        .padding(theme.spacingL)
+        .frame(width: 360, height: 480)
+        .background(theme.surfacePrimary)
+    }
 }

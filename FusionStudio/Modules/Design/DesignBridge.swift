@@ -250,6 +250,104 @@ class DesignBridge: ObservableObject {
         designBridgeLog.info("DesignBridge: reorderNode id=\(nodeID) newIndex=\(newIndex)")
     }
 
+    func deleteNode(_ nodeID: String) {
+        guard let docJSON = lastRenderedDocumentJSON, !docJSON.isEmpty else { return }
+        guard let data = docJSON.data(using: .utf8),
+              var doc = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              var pages = doc["pages"] as? [[String: Any]] else { return }
+        for i in pages.indices {
+            guard var nodes = pages[i]["nodes"] as? [[String: Any]] else { continue }
+            let before = nodes.count
+            nodes.removeAll { ($0["id"] as? String) == nodeID }
+            if nodes.count < before {
+                pages[i]["nodes"] = nodes
+                doc["pages"] = pages
+                if let updated = try? JSONSerialization.data(withJSONObject: doc, options: .prettyPrinted),
+                   let str = String(data: updated, encoding: .utf8) {
+                    renderDocumentToCanvas(str)
+                    selectedNodeID = nil
+                    designBridgeLog.info("DesignBridge: deleted node \(nodeID)")
+                }
+                return
+            }
+        }
+        designBridgeLog.warning("DesignBridge: deleteNode — node \(nodeID) not found")
+    }
+
+    func duplicateNode(_ nodeID: String) {
+        guard let docJSON = lastRenderedDocumentJSON, !docJSON.isEmpty else { return }
+        guard let data = docJSON.data(using: .utf8),
+              var doc = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              var pages = doc["pages"] as? [[String: Any]] else { return }
+        for i in pages.indices {
+            guard var nodes = pages[i]["nodes"] as? [[String: Any]] else { continue }
+            if let idx = nodes.firstIndex(where: { ($0["id"] as? String) == nodeID }),
+               var copy = nodes[idx] as? [String: Any] {
+                let newID = nodeID + "_copy_\(Int.random(in: 1000...9999))"
+                copy["id"] = newID
+                if var style = copy["style"] as? [String: Any] {
+                    style["x"] = ((style["x"] as? Double) ?? 0) + 20
+                    style["y"] = ((style["y"] as? Double) ?? 0) + 20
+                    copy["style"] = style
+                }
+                nodes.insert(copy, at: idx + 1)
+                pages[i]["nodes"] = nodes
+                doc["pages"] = pages
+                if let updated = try? JSONSerialization.data(withJSONObject: doc, options: .prettyPrinted),
+                   let str = String(data: updated, encoding: .utf8) {
+                    renderDocumentToCanvas(str)
+                    selectedNodeID = newID
+                    designBridgeLog.info("DesignBridge: duplicated node \(nodeID) → \(newID)")
+                }
+                return
+            }
+        }
+    }
+
+    func bringToFront(_ nodeID: String) {
+        guard let docJSON = lastRenderedDocumentJSON, !docJSON.isEmpty else { return }
+        guard let data = docJSON.data(using: .utf8),
+              var doc = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              var pages = doc["pages"] as? [[String: Any]] else { return }
+        for i in pages.indices {
+            guard var nodes = pages[i]["nodes"] as? [[String: Any]] else { continue }
+            if let idx = nodes.firstIndex(where: { ($0["id"] as? String) == nodeID }) {
+                let node = nodes.remove(at: idx)
+                nodes.append(node)
+                pages[i]["nodes"] = nodes
+                doc["pages"] = pages
+                if let updated = try? JSONSerialization.data(withJSONObject: doc, options: .prettyPrinted),
+                   let str = String(data: updated, encoding: .utf8) {
+                    renderDocumentToCanvas(str)
+                    designBridgeLog.info("DesignBridge: bringToFront node \(nodeID)")
+                }
+                return
+            }
+        }
+    }
+
+    func sendToBack(_ nodeID: String) {
+        guard let docJSON = lastRenderedDocumentJSON, !docJSON.isEmpty else { return }
+        guard let data = docJSON.data(using: .utf8),
+              var doc = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              var pages = doc["pages"] as? [[String: Any]] else { return }
+        for i in pages.indices {
+            guard var nodes = pages[i]["nodes"] as? [[String: Any]] else { continue }
+            if let idx = nodes.firstIndex(where: { ($0["id"] as? String) == nodeID }) {
+                let node = nodes.remove(at: idx)
+                nodes.insert(node, at: 0)
+                pages[i]["nodes"] = nodes
+                doc["pages"] = pages
+                if let updated = try? JSONSerialization.data(withJSONObject: doc, options: .prettyPrinted),
+                   let str = String(data: updated, encoding: .utf8) {
+                    renderDocumentToCanvas(str)
+                    designBridgeLog.info("DesignBridge: sendToBack node \(nodeID)")
+                }
+                return
+            }
+        }
+    }
+
     func applyLocalEdit(nodesJSON: String, instruction: String) {
         guard !marqueeSelectedNodeIDs.isEmpty else {
             designBridgeLog.warning("DesignBridge: applyLocalEdit with no marquee selection")

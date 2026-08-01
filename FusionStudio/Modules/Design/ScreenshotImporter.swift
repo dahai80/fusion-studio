@@ -1,9 +1,10 @@
 // Callers: DesignChatPanel (screenshot import button), DesignBridge (importScreenshot)
-// Affected API: DesignBridge.importScreenshot(_:), fusion-mlx /v1/chat/completions (multimodal image_url)
-// Data schemas: ScreenshotImportResult (extractedHTML/designTokens/detectedComponents/confidence), NSImage→base64 PNG
-// Status: fully functional — uses fusion-mlx VLM multimodal (image_url) for screenshot-to-code
+// Affected API: DesignBridge.importScreenshot(_:), ScreenshotImporter.openPanel/batchImport/extractDominantColors
+// Data schemas: ScreenshotImportResult (extractedHTML/designTokens/detectedComponents/confidence/dominantColors), NSImage→base64 PNG
+// User instruction: "继续实施Phase 6"
 
 import AppKit
+import UniformTypeIdentifiers
 import os.log
 
 private let screenshotLog = Logger(subsystem: "com.fusion.studio", category: "ScreenshotImporter")
@@ -13,6 +14,7 @@ struct ScreenshotImportResult {
     var designTokens: [String: String]
     var detectedComponents: [String]
     var confidence: Double
+    var dominantColors: [String] = []
 }
 
 struct ScreenshotImporter {
@@ -111,12 +113,87 @@ struct ScreenshotImporter {
             confidence = 0.4
         }
 
-        screenshotLog.info("ScreenshotImporter: parsed — \(html.count) chars HTML, \(tokens.count) tokens, \(components.count) components, confidence=\(confidence)")
+        let colors = extractDominantColors(from: llmOutput)
+        screenshotLog.info("ScreenshotImporter: parsed — \(html.count) chars HTML, \(tokens.count) tokens, \(components.count) components, \(colors.count) colors, confidence=\(confidence)")
         return ScreenshotImportResult(
             extractedHTML: html,
             designTokens: tokens,
             detectedComponents: components,
-            confidence: confidence
+            confidence: confidence,
+            dominantColors: colors
         )
+    }
+
+    static func openPanel() -> [NSImage] {
+        let panel = NSOpenPanel()
+        panel.title = "选择截图文件"
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.allowsMultipleSelection = true
+        panel.allowedContentTypes = [.png, .jpeg, .tiff, .bmp, .gif, .webP]
+        guard panel.runModal() == .OK else { return [] }
+        var images: [NSImage] = []
+        for url in panel.urls {
+            if let img = NSImage(contentsOf: url) {
+                images.append(img)
+            }
+        }
+        screenshotLog.info("ScreenshotImporter: openPanel selected \(images.count) images")
+        return images
+    }
+
+    static func batchImport(images: [NSImage], additionalContext: String = "") -> [ScreenshotImportResult] {
+        images.compactMap { img in
+            guard let req = buildImportRequest(image: img, additionalContext: additionalContext) else { return nil }
+            return ScreenshotImportResult(
+                extractedHTML: "",
+                designTokens: [:],
+                detectedComponents: [],
+                confidence: 0,
+                dominantColors: extractDominantColors(fromImage: img)
+            )
+        }
+    }
+
+    static func extractDominantColors(from llmOutput: String) -> [String] {
+        var colors: [String] = []
+        let hexPattern = try? NSRegularExpression(pattern: "#[0-9a-fA-F]{6}")
+        if let regex = hexPattern {
+            let range = NSRange(llmOutput.startIndex..., in: llmOutput)
+            for match in regex.matches(in: llmOutput, range: range) {
+                if let r = Range(match.range, in: llmOutput) {
+                    let hex = String(llmOutput[r])
+                    if !colors.contains(hex) { colors.append(hex) }
+                }
+            }
+        }
+        return Array(colors.prefix(8))
+    }
+
+    static func extractDominantColors(fromImage image: NSImage) -> [String] {
+        guard let tiffData = image.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiffData) else { return [] }
+        var colorCounts: [String: Int] = [:]
+        let w = bitmap.pixelsWide
+        let h = bitmap.pixelsHigh
+        let step = max(1, min(w, h) / 20)
+        for x in stride(from: 0, to: w, by: step) {
+            for y in stride(from: 0, to: h, by: step) {
+                if let color = bitmap.colorAt(x: x, y: y) {
+                    let r = Int(color.redComponent * 255)
+                    let g = Int(color.greenComponent * 255)
+                    let b = Int(color.blueComponent * 255)
+                    let qr = (r / 32) * 32
+                    let qg = (g / 32) * 32
+                    let qb = (b / 32) * 32
+                    let hex = String(format: "#%02X%02X%02X", qr, qg, qb)
+                    colorCounts[hex, default: 0] += 1
+                }
+            }
+        }
+        let sorted = colorCounts.sorted { $0.value > $1.value }
+        let results = sorted.prefix(8).map { $0.key }
+        screenshotLog.info("ScreenshotImporter: extracted \(results.count) dominant colors from image")
+        return results
     }
 }

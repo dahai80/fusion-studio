@@ -1,9 +1,9 @@
-// Callers: DesignWorkflowOrchestrator, DesignChatPanel (Export to Code button), DesignBridge (auto-export).
-// Affected API: DesignArtifactExporter.exportPage/exportAllPages/importFromFile.
-// Data schemas: ExportResult (success: Bool, path: String, error: String?), .fusion-design/ directory convention.
-// User instruction: "启动 Phase 4" — Task #45 DesignArtifactExporter
+// Callers: DesignWorkflowOrchestrator, DesignChatPanel, DesignBridge (auto-export), MultiFormatExportSheet
+// Affected API: DesignArtifactExporter.exportPage/exportAllPages/multiFormatExport, MultiFormatExportSheet
+// Data schemas: ExportResult, ExportFormatOption (html/react/vue/swiftui/svg)
+// User instruction: "继续实施Phase 6"
 
-import Foundation
+import SwiftUI
 import os.log
 
 private let exporterLog = Logger(subsystem: "com.fusion.studio", category: "DesignArtifactExporter")
@@ -198,4 +198,133 @@ class DesignArtifactExporter {
 
 extension Notification.Name {
     static let designArtifactDidExport = Notification.Name("designArtifactDidExport")
+}
+
+// MARK: - Multi-Format Export
+
+enum ExportFormatOption: String, CaseIterable {
+    case html = "HTML"
+    case react = "React"
+    case vue = "Vue"
+    case swiftui = "SwiftUI"
+    case svg = "SVG"
+
+    var icon: String {
+        switch self {
+        case .html: return "globe"
+        case .react: return "atom"
+        case .vue: return "leaf"
+        case .swiftui: return "swift"
+        case .svg: return "square.dashed"
+        }
+    }
+}
+
+extension DesignArtifactExporter {
+    func multiFormatExport(title: String, code: String, formats: [ExportFormatOption], projectId: String? = nil) -> [ExportResult] {
+        var results: [ExportResult] = []
+        for fmt in formats {
+            let result = exportPage(title: title, code: code, type: fmt.rawValue.lowercased(), projectId: projectId)
+            results.append(result)
+        }
+        exporterLog.info("DesignArtifactExporter: multi-format export \(formats.count) formats, \(results.filter(\.success).count) succeeded")
+        return results
+    }
+}
+
+struct MultiFormatExportSheet: View {
+    @Environment(\.studioTheme) var theme
+    @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var designBridge: DesignBridge
+    @State private var selectedFormats: Set<ExportFormatOption> = [.html]
+    @State private var exportResults: [ExportResult] = []
+    @State private var isExporting = false
+
+    let pageTitle: String
+    let pageCode: String
+
+    var body: some View {
+        VStack(spacing: theme.spacingM) {
+            Text("多格式导出")
+                .font(.system(size: theme.titleSize, weight: .bold))
+                .foregroundStyle(theme.text)
+
+            Text(pageTitle)
+                .font(.system(size: theme.footnoteSize))
+                .foregroundStyle(theme.textSecondary)
+
+            VStack(alignment: .leading, spacing: theme.spacingS) {
+                ForEach(ExportFormatOption.allCases, id: \.self) { fmt in
+                    HStack(spacing: theme.spacingS) {
+                        Image(systemName: fmt.icon)
+                            .foregroundStyle(theme.accent)
+                            .frame(width: 20)
+                        Text(fmt.rawValue)
+                            .font(.system(size: theme.textSize))
+                            .foregroundStyle(theme.text)
+                        Spacer()
+                        if selectedFormats.contains(fmt) {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(theme.accent)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        if selectedFormats.contains(fmt) {
+                            selectedFormats.remove(fmt)
+                        } else {
+                            selectedFormats.insert(fmt)
+                        }
+                    }
+                    .padding(theme.spacingS)
+                    .background(
+                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                            .fill(selectedFormats.contains(fmt) ? theme.surfaceElevated : theme.surfaceSecondary)
+                    )
+                }
+            }
+            .padding(theme.spacingM)
+
+            if !exportResults.isEmpty {
+                VStack(alignment: .leading, spacing: theme.spacingXS) {
+                    ForEach(Array(exportResults.enumerated()), id: \.offset) { idx, result in
+                        HStack {
+                            Image(systemName: result.success ? "checkmark.circle" : "xmark.circle")
+                                .foregroundStyle(result.success ? .green : .red)
+                            Text(result.path)
+                                .font(.system(size: theme.captionSize))
+                                .foregroundStyle(theme.textSecondary)
+                                .lineLimit(1)
+                        }
+                    }
+                }
+                .padding(theme.spacingS)
+            }
+
+            HStack(spacing: theme.spacingM) {
+                FusionButton("取消", style: .ghost) { dismiss() }
+                FusionButton("导出 \(selectedFormats.count) 格式", icon: "square.and.arrow.up", style: .primary) {
+                    exportAll()
+                }
+                .disabled(selectedFormats.isEmpty || isExporting)
+            }
+        }
+        .padding(theme.spacingL)
+        .frame(width: 360)
+        .background(theme.surfacePrimary)
+    }
+
+    private func exportAll() {
+        isExporting = true
+        let results = DesignArtifactExporter.shared.multiFormatExport(
+            title: pageTitle,
+            code: pageCode,
+            formats: Array(selectedFormats)
+        )
+        exportResults = results
+        isExporting = false
+        if results.allSatisfy(\.success) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { dismiss() }
+        }
+    }
 }

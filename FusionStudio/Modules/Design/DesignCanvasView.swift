@@ -1,10 +1,10 @@
 // Callers: DesignView (replaces DesignPreviewView with wasm canvas in HSplitView).
 // Affected API: DesignCanvasView NSViewRepresentable, BridgeCommand/BridgeEvent JSON protocol,
-//   DesignBridge (ai.chat routing), selectedNodeID Binding.
+//   DesignBridge (ai.chat routing, deleteNode/duplicateNode/bringToFront/sendToBack), selectedNodeID Binding.
 // Data schemas: BridgeCommand (PageRender/ApplyTokens/SelectNode/ClearCanvas/PlanPreview/PlanApply/PlanReject),
 //   BridgeEvent (NodeClick/NodeDrag/NodeSelect/CanvasClick/AiChat),
 //   wasm load from Bundle.main "wasm/fd_host_web.wasm".
-// User instruction: "现在开始实施" — Task #15 P3-4 Plan 机制
+// User instruction: "继续实施Phase 6"
 
 import SwiftUI
 import WebKit
@@ -193,6 +193,10 @@ struct DesignCanvasView: NSViewRepresentable {
         webView.setValue(true, forKey: "drawsTransparentBackground")
         context.coordinator.webView = webView
 
+        let canvasMenu = NSMenu()
+        canvasMenu.delegate = context.coordinator
+        webView.menu = canvasMenu
+
         canvasLog.info("DesignCanvasView: WKWebView created, loading wasm HTML")
 
         loadWasmHTML(into: webView)
@@ -332,7 +336,7 @@ struct DesignCanvasView: NSViewRepresentable {
 
     // MARK: - Coordinator
 
-    class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
+    class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler, NSMenuDelegate {
         var parent: DesignCanvasView
         weak var webView: WKWebView?
         var pendingCommands: [BridgeCommand] = []
@@ -535,6 +539,112 @@ struct DesignCanvasView: NSViewRepresentable {
 
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
             canvasLog.error("DesignCanvasView: provisional navigation failed: \(error)")
+        }
+
+        // MARK: NSMenuDelegate (context menu)
+
+        func menuNeedsUpdate(_ menu: NSMenu) {
+            menu.removeAllItems()
+            let bridge = parent.designBridge
+            let nodeID = bridge.selectedNodeID
+
+            if let nid = nodeID, !nid.isEmpty {
+                menu.addItem(withTitle: "复制节点", action: #selector(duplicateNodeAction), keyEquivalent: "d")
+                menu.addItem(withTitle: "删除节点", action: #selector(deleteNodeAction), keyEquivalent: "\\")
+                menu.addItem(NSMenuItem.separator())
+                menu.addItem(withTitle: "锁定/解锁", action: #selector(toggleLockAction), keyEquivalent: "l")
+                menu.addItem(withTitle: "隐藏/显示", action: #selector(toggleVisibilityAction), keyEquivalent: "h")
+                menu.addItem(NSMenuItem.separator())
+                menu.addItem(withTitle: "局部重绘", action: #selector(partialRepaintAction), keyEquivalent: "")
+                menu.addItem(NSMenuItem.separator())
+                menu.addItem(withTitle: "置顶", action: #selector(bringToFrontAction), keyEquivalent: "")
+                menu.addItem(withTitle: "置底", action: #selector(sendToBackAction), keyEquivalent: "")
+            } else {
+                menu.addItem(withTitle: "全选", action: #selector(selectAllAction), keyEquivalent: "a")
+                menu.addItem(withTitle: "缩放适配", action: #selector(fitZoomAction), keyEquivalent: "0")
+                menu.addItem(withTitle: "粘贴", action: #selector(pasteAction), keyEquivalent: "v")
+            }
+        }
+
+        @objc private func duplicateNodeAction() {
+            guard let nid = parent.designBridge.selectedNodeID else { return }
+            parent.designBridge.duplicateNode(nid)
+        }
+
+        @objc private func deleteNodeAction() {
+            guard let nid = parent.designBridge.selectedNodeID else { return }
+            parent.designBridge.deleteNode(nid)
+        }
+
+        @objc private func toggleLockAction() {
+            guard let nid = parent.designBridge.selectedNodeID else { return }
+            let isLocked = isNodeLocked(nid)
+            parent.designBridge.setNodeLocked(nid, locked: !isLocked)
+        }
+
+        @objc private func toggleVisibilityAction() {
+            guard let nid = parent.designBridge.selectedNodeID else { return }
+            let isVisible = isNodeVisible(nid)
+            parent.designBridge.setNodeVisibility(nid, visible: !isVisible)
+        }
+
+        @objc private func partialRepaintAction() {
+            guard let nid = parent.designBridge.selectedNodeID else { return }
+            parent.designBridge.marqueeSelectedNodeIDs = [nid]
+            parent.designBridge.skillPartialEdit(nodesJSON: "[]", instruction: "重新设计选中元素的视觉样式")
+        }
+
+        @objc private func bringToFrontAction() {
+            guard let nid = parent.designBridge.selectedNodeID else { return }
+            parent.designBridge.bringToFront(nid)
+        }
+
+        @objc private func sendToBackAction() {
+            guard let nid = parent.designBridge.selectedNodeID else { return }
+            parent.designBridge.sendToBack(nid)
+        }
+
+        @objc private func selectAllAction() {
+            canvasLog.info("DesignCanvasView: selectAll context menu")
+        }
+
+        @objc private func fitZoomAction() {
+            canvasLog.info("DesignCanvasView: fitZoom context menu")
+        }
+
+        @objc private func pasteAction() {
+            canvasLog.info("DesignCanvasView: paste context menu")
+        }
+
+        private func isNodeLocked(_ nodeID: String) -> Bool {
+            guard let docJSON = parent.designBridge.lastRenderedDocumentJSON,
+                  let data = docJSON.data(using: .utf8),
+                  let doc = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let pages = doc["pages"] as? [[String: Any]] else { return false }
+            for page in pages {
+                guard let nodes = page["nodes"] as? [[String: Any]] else { continue }
+                if let node = nodes.first(where: { ($0["id"] as? String) == nodeID }),
+                   let style = node["style"] as? [String: Any],
+                   let opacity = style["opacity"] as? Double, opacity < 0.5 {
+                    return true
+                }
+            }
+            return false
+        }
+
+        private func isNodeVisible(_ nodeID: String) -> Bool {
+            guard let docJSON = parent.designBridge.lastRenderedDocumentJSON,
+                  let data = docJSON.data(using: .utf8),
+                  let doc = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let pages = doc["pages"] as? [[String: Any]] else { return true }
+            for page in pages {
+                guard let nodes = page["nodes"] as? [[String: Any]] else { continue }
+                if let node = nodes.first(where: { ($0["id"] as? String) == nodeID }),
+                   let vis = node["visible"] as? Bool {
+                    return vis
+                }
+            }
+            return true
         }
     }
 }
