@@ -28,6 +28,8 @@ enum BridgeCommand {
     case planPreview(documentJSON: String)
     case planApply
     case planReject
+    case undoAction
+    case redoAction
 
     func toJSON() -> String {
         switch self {
@@ -98,6 +100,14 @@ enum BridgeCommand {
         case .planReject:
             return """
             {"PlanReject":null}
+            """
+        case .undoAction:
+            return """
+            {"Undo":null}
+            """
+        case .redoAction:
+            return """
+            {"Redo":null}
             """
         }
     }

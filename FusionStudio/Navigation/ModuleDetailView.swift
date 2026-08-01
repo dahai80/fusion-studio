@@ -259,6 +259,22 @@ struct DesignView: View {
                 .buttonStyle(.plain)
             }
             Spacer()
+            if canvasMode == .canvas {
+                Button(action: { designBridge.undo() }) {
+                    Image(systemName: "arrow.uturn.backward")
+                        .font(.system(size: 12))
+                        .foregroundStyle(theme.textSecondary)
+                }
+                .buttonStyle(.plain)
+                .help("Undo")
+                Button(action: { designBridge.redo() }) {
+                    Image(systemName: "arrow.uturn.forward")
+                        .font(.system(size: 12))
+                        .foregroundStyle(theme.textSecondary)
+                }
+                .buttonStyle(.plain)
+                .help("Redo")
+            }
             if canvasMode == .canvas, let nodeID = selectedNodeID {
                 Text("Node: \(nodeID)")
                     .font(.system(size: theme.captionSize))

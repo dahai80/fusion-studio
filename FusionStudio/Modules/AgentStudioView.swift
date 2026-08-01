@@ -654,7 +654,7 @@ struct AgentListView: View {
                                 Button {
                                     Task { await cloneBackendAgent(agent) }
                                 } label: {
-                                    Label("Clone", systemImage: "doc.on.doc")
+                                    Label("Duplicate", systemImage: "doc.on.doc")
                                 }
                                 Divider()
                                 Button("Delete", role: .destructive) {
@@ -806,6 +806,8 @@ struct BackendAgentDetailView: View {
     @State private var newSkillName = ""
     @State private var showSoulEditor = false
     @State private var editSoulContent = ""
+    @State private var versions: [[String: Any]] = []
+    @State private var isLoadingVersions = false
 
     @Environment(\.studioTheme) var theme
 
@@ -829,6 +831,8 @@ struct BackendAgentDetailView: View {
                 skillsSection
 
                 soulSection
+
+                versionHistorySection
 
                 FusionCard(style: .inset, header: "System Prompt", headerIcon: "text.bubble") {
                     Text(agent.system_prompt)
@@ -873,6 +877,12 @@ struct BackendAgentDetailView: View {
                 }
 
                 HStack(spacing: theme.spacingM) {
+                    FusionButton("Snapshot", icon: "camera", style: .secondary, size: .small) {
+                        takeSnapshot()
+                    }
+                    FusionButton("Duplicate", icon: "doc.on.doc", style: .secondary, size: .small) {
+                        duplicateAgent()
+                    }
                     FusionButton("Configure", icon: "slider.horizontal.3", style: .secondary, size: .small) {
                         editTemperature = agent.temperature
                         editMaxTokens = agent.max_tokens
@@ -976,6 +986,50 @@ struct BackendAgentDetailView: View {
                 FusionButton("Edit Soul", icon: "pencil", style: .secondary, size: .small) {
                     editSoulContent = bridge.agentSoul
                     showSoulEditor = true
+                }
+            }
+        }
+    }
+
+    private var versionHistorySection: some View {
+        FusionCard(style: .inset, header: "Version History", headerIcon: "clock.arrow.circlepath") {
+            VStack(alignment: .leading, spacing: theme.spacingS) {
+                if isLoadingVersions {
+                    HStack {
+                        Spacer()
+                        ProgressView()
+                        Spacer()
+                    }
+                } else if versions.isEmpty {
+                    Text("No snapshots yet. Click Snapshot to create one.")
+                        .font(.system(size: theme.footnoteSize))
+                        .foregroundStyle(theme.textTertiary)
+                } else {
+                    ForEach(Array(versions.prefix(10).enumerated()), id: \.offset) { idx, ver in
+                        let verId = ver["version_id"] as? String ?? ver["id"] as? String ?? ""
+                        let createdAt = ver["created_at"] as? String ?? "Unknown"
+                        let label = ver["label"] as? String ?? "v\(versions.count - idx)"
+                        HStack {
+                            Image(systemName: "clock")
+                                .foregroundStyle(theme.textTertiary)
+                            Text(label)
+                                .font(.system(size: theme.footnoteSize, weight: .medium))
+                                .foregroundStyle(theme.text)
+                            Text(createdAt)
+                                .font(.system(size: theme.captionSize))
+                                .foregroundStyle(theme.textTertiary)
+                            Spacer()
+                            FusionButton("Restore", icon: "arrow.uturn.backward", style: .secondary, size: .small) {
+                                restoreVersion(verId)
+                            }
+                        }
+                        .padding(theme.spacingS)
+                        .background(idx % 2 == 0 ? theme.surfaceSecondary : theme.surfacePrimary)
+                        .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
+                    }
+                }
+                FusionButton("Refresh", icon: "arrow.clockwise", style: .secondary, size: .small) {
+                    loadVersions()
                 }
             }
         }
@@ -1116,6 +1170,54 @@ struct BackendAgentDetailView: View {
         }
     }
 
+    private func duplicateAgent() {
+        Task {
+            do {
+                let cloned = try await bridge.agentClone(agentId: agent.id)
+                toastManager.show(style: .success, title: "Duplicated", message: "\(cloned.name) created from \(agent.name)")
+                try await bridge.fetchAgents()
+            } catch {
+                toastManager.show(style: .error, title: "Duplicate Failed", message: error.localizedDescription)
+            }
+        }
+    }
+
+    private func takeSnapshot() {
+        Task {
+            do {
+                _ = try await bridge.agentSnapshot(agentId: agent.id)
+                toastManager.show(style: .success, title: "Snapshot Created", message: "\(agent.name) version saved")
+                loadVersions()
+            } catch {
+                toastManager.show(style: .error, title: "Snapshot Failed", message: error.localizedDescription)
+            }
+        }
+    }
+
+    private func loadVersions() {
+        isLoadingVersions = true
+        Task {
+            do {
+                versions = try await bridge.agentVersions(agentId: agent.id)
+            } catch {
+                agentStudioLog.warning("Failed to load versions: \(error)")
+            }
+            isLoadingVersions = false
+        }
+    }
+
+    private func restoreVersion(_ versionId: String) {
+        Task {
+            do {
+                _ = try await bridge.agentRestoreVersion(agentId: agent.id, versionId: versionId)
+                toastManager.show(style: .success, title: "Restored", message: "\(agent.name) restored to selected version")
+                try await bridge.fetchAgents()
+            } catch {
+                toastManager.show(style: .error, title: "Restore Failed", message: error.localizedDescription)
+            }
+        }
+    }
+
     private func saveConfig() {
         Task {
             do {
@@ -1149,8 +1251,8 @@ struct ConfigureAgentSheet: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.studioTheme) var theme
     @EnvironmentObject var bridge: AgentBridge
+    @State private var selectedConfigTab: Int = 0
 
-    // Backend SafetyGateway defines a 3-level system (L1/L2/L3); L4 has no backend meaning.
     private let safetyLevels = ["L1", "L2", "L3"]
     private let safetyExplanations: [String: String] = [
         "L1": "Autonomous - agent acts silently, no approval needed.",
@@ -1165,77 +1267,37 @@ struct ConfigureAgentSheet: View {
 
     var body: some View {
         VStack(spacing: theme.spacingL) {
-            Text("Configure Agent")
-                .font(.system(size: theme.headlineSize, weight: .bold, design: .rounded))
-                .foregroundStyle(theme.text)
+            HStack {
+                Text("Configure Agent")
+                    .font(.system(size: theme.headlineSize, weight: .bold, design: .rounded))
+                    .foregroundStyle(theme.text)
+                Text(agent.name)
+                    .font(.system(size: theme.textSize, weight: .medium))
+                    .foregroundStyle(theme.textSecondary)
+                Spacer()
+            }
 
-            Text(agent.name)
-                .font(.system(size: theme.textSize, weight: .medium))
-                .foregroundStyle(theme.textSecondary)
+            FusionTabBar(selected: $selectedConfigTab, tabs: [
+                FusionTabItem(title: "Basic", icon: "info.circle", badge: nil),
+                FusionTabItem(title: "Model", icon: "cpu", badge: nil),
+                FusionTabItem(title: "Tools", icon: "wrench", badge: nil),
+                FusionTabItem(title: "KB", icon: "doc.text.magnifyingglass", badge: nil),
+                FusionTabItem(title: "Connectors", icon: "link", badge: nil),
+                FusionTabItem(title: "Style", icon: "paintbrush", badge: nil),
+            ])
 
-            FusionCard(style: .bordered) {
-                VStack(spacing: theme.spacingM) {
-                    VStack(alignment: .leading, spacing: theme.spacingXS) {
-                        Text("Model")
-                            .font(.system(size: theme.footnoteSize, weight: .medium))
-                            .foregroundStyle(theme.textSecondary)
-                        if availableModels.isEmpty {
-                            TextField(agent.model, text: $model)
-                                .textFieldStyle(.plain)
-                                .padding(theme.spacingS)
-                                .background(theme.inputBg)
-                                .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                                        .stroke(theme.inputBorder, lineWidth: 1)
-                                }
-                            Text("No models loaded from fusion-mlx. Start the MLX service or enter a model id manually.")
-                                .font(.system(size: theme.captionSize))
-                                .foregroundStyle(theme.textTertiary)
-                        } else {
-                            FusionModelPicker(scene: .agent, selection: $model, models: bridge.models)
-                        }
-                    }
-
-                    VStack(alignment: .leading, spacing: theme.spacingXS) {
-                        Text("Temperature: \(String(format: "%.1f", temperature))")
-                            .font(.system(size: theme.footnoteSize, weight: .medium))
-                            .foregroundStyle(theme.textSecondary)
-                        Slider(value: $temperature, in: 0...2, step: 0.1)
-                    }
-
-                    VStack(alignment: .leading, spacing: theme.spacingXS) {
-                        Text("Max Tokens")
-                            .font(.system(size: theme.footnoteSize, weight: .medium))
-                            .foregroundStyle(theme.textSecondary)
-                        TextField("Max tokens", value: $maxTokens, format: .number)
-                            .textFieldStyle(.plain)
-                            .padding(theme.spacingS)
-                            .background(theme.inputBg)
-                            .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
-                            .overlay {
-                                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                                    .stroke(theme.inputBorder, lineWidth: 1)
-                            }
-                    }
-
-                    VStack(alignment: .leading, spacing: theme.spacingXS) {
-                        Text("Safety Level")
-                            .font(.system(size: theme.footnoteSize, weight: .medium))
-                            .foregroundStyle(theme.textSecondary)
-                        Picker("Safety Level", selection: $safetyLevel) {
-                            ForEach(safetyLevels, id: \.self) { level in
-                                Text(level).tag(level)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-                        Text(safetyExplanations[safetyLevel] ?? "")
-                            .font(.system(size: theme.captionSize))
-                            .foregroundStyle(theme.textTertiary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+            Group {
+                switch selectedConfigTab {
+                case 0: configBasicTab
+                case 1: configModelTab
+                case 2: configToolsTab
+                case 3: configKBTab
+                case 4: configConnectorsTab
+                case 5: configStyleTab
+                default: configBasicTab
                 }
             }
+            .frame(maxHeight: .infinity)
 
             HStack(spacing: theme.spacingM) {
                 FusionButton("Cancel", style: .secondary, size: .regular) { dismiss() }
@@ -1245,8 +1307,275 @@ struct ConfigureAgentSheet: View {
             }
         }
         .padding(theme.spacingXL)
-        .frame(width: 400)
+        .frame(width: 520, height: 560)
         .background(theme.windowBg)
+    }
+
+    private var configBasicTab: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: theme.spacingM) {
+                VStack(alignment: .leading, spacing: theme.spacingXS) {
+                    Text("Name")
+                        .font(.system(size: theme.footnoteSize, weight: .medium))
+                        .foregroundStyle(theme.textSecondary)
+                    Text(agent.name)
+                        .font(.system(size: theme.textSize, weight: .medium))
+                        .foregroundStyle(theme.text)
+                }
+                VStack(alignment: .leading, spacing: theme.spacingXS) {
+                    Text("Description")
+                        .font(.system(size: theme.footnoteSize, weight: .medium))
+                        .foregroundStyle(theme.textSecondary)
+                    Text(agent.system_prompt.prefix(200))
+                        .font(.system(size: theme.footnoteSize, design: .monospaced))
+                        .foregroundStyle(theme.textSecondary)
+                        .lineLimit(3)
+                }
+                VStack(alignment: .leading, spacing: theme.spacingXS) {
+                    Text("Tags")
+                        .font(.system(size: theme.footnoteSize, weight: .medium))
+                        .foregroundStyle(theme.textSecondary)
+                    FlowLayout(spacing: theme.spacingXS) {
+                        ForEach(agent.tags, id: \.self) { tag in
+                            FusionTag(tag, color: .blue)
+                        }
+                        if agent.tags.isEmpty {
+                            Text("No tags")
+                                .font(.system(size: theme.captionSize))
+                                .foregroundStyle(theme.textTertiary)
+                        }
+                    }
+                }
+                VStack(alignment: .leading, spacing: theme.spacingXS) {
+                    Text("Visibility")
+                        .font(.system(size: theme.footnoteSize, weight: .medium))
+                        .foregroundStyle(theme.textSecondary)
+                    Text(agent.status ?? "draft")
+                        .font(.system(size: theme.textSize))
+                        .foregroundStyle(theme.text)
+                }
+            }
+            .padding(theme.spacingM)
+        }
+    }
+
+    private var configModelTab: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: theme.spacingM) {
+                VStack(alignment: .leading, spacing: theme.spacingXS) {
+                    Text("Model")
+                        .font(.system(size: theme.footnoteSize, weight: .medium))
+                        .foregroundStyle(theme.textSecondary)
+                    if availableModels.isEmpty {
+                        TextField(agent.model, text: $model)
+                            .textFieldStyle(.plain)
+                            .padding(theme.spacingS)
+                            .background(theme.inputBg)
+                            .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                    .stroke(theme.inputBorder, lineWidth: 1)
+                            }
+                        Text("No models loaded from fusion-mlx. Start the MLX service or enter a model id manually.")
+                            .font(.system(size: theme.captionSize))
+                            .foregroundStyle(theme.textTertiary)
+                    } else {
+                        FusionModelPicker(scene: .agent, selection: $model, models: bridge.models)
+                    }
+                }
+                VStack(alignment: .leading, spacing: theme.spacingXS) {
+                    Text("Temperature: \(String(format: "%.1f", temperature))")
+                        .font(.system(size: theme.footnoteSize, weight: .medium))
+                        .foregroundStyle(theme.textSecondary)
+                    Slider(value: $temperature, in: 0...2, step: 0.1)
+                }
+                VStack(alignment: .leading, spacing: theme.spacingXS) {
+                    Text("Max Tokens")
+                        .font(.system(size: theme.footnoteSize, weight: .medium))
+                        .foregroundStyle(theme.textSecondary)
+                    TextField("Max tokens", value: $maxTokens, format: .number)
+                        .textFieldStyle(.plain)
+                        .padding(theme.spacingS)
+                        .background(theme.inputBg)
+                        .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                .stroke(theme.inputBorder, lineWidth: 1)
+                        }
+                }
+                VStack(alignment: .leading, spacing: theme.spacingXS) {
+                    Text("Safety Level")
+                        .font(.system(size: theme.footnoteSize, weight: .medium))
+                        .foregroundStyle(theme.textSecondary)
+                    Picker("Safety Level", selection: $safetyLevel) {
+                        ForEach(safetyLevels, id: \.self) { level in
+                            Text(level).tag(level)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    Text(safetyExplanations[safetyLevel] ?? "")
+                        .font(.system(size: theme.captionSize))
+                        .foregroundStyle(theme.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(theme.spacingM)
+        }
+    }
+
+    private var configToolsTab: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: theme.spacingM) {
+                Text("Enabled Tools (\(agent.tools.count))")
+                    .font(.system(size: theme.footnoteSize, weight: .medium))
+                    .foregroundStyle(theme.textSecondary)
+                if agent.tools.isEmpty {
+                    Text("No tools enabled")
+                        .font(.system(size: theme.footnoteSize))
+                        .foregroundStyle(theme.textTertiary)
+                } else {
+                    FlowLayout(spacing: theme.spacingXS) {
+                        ForEach(agent.tools, id: \.self) { tool in
+                            FusionTag(tool, color: .green)
+                        }
+                    }
+                }
+                Text("Capabilities (\(agent.capabilities.count))")
+                    .font(.system(size: theme.footnoteSize, weight: .medium))
+                    .foregroundStyle(theme.textSecondary)
+                if agent.capabilities.isEmpty {
+                    Text("No capabilities defined")
+                        .font(.system(size: theme.footnoteSize))
+                        .foregroundStyle(theme.textTertiary)
+                } else {
+                    FlowLayout(spacing: theme.spacingXS) {
+                        ForEach(agent.capabilities, id: \.self) { cap in
+                            FusionTag(cap, color: .purple)
+                        }
+                    }
+                }
+            }
+            .padding(theme.spacingM)
+        }
+    }
+
+    private var configKBTab: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: theme.spacingM) {
+                Text("Knowledge Base")
+                    .font(.system(size: theme.footnoteSize, weight: .medium))
+                    .foregroundStyle(theme.textSecondary)
+                if let kbIds = agent.knowledge_base_ids, !kbIds.isEmpty {
+                    ForEach(kbIds, id: \.self) { kbId in
+                        HStack {
+                            Image(systemName: "doc.text.magnifyingglass")
+                                .foregroundStyle(theme.accent)
+                            Text(kbId)
+                                .font(.system(size: theme.footnoteSize, design: .monospaced))
+                                .foregroundStyle(theme.text)
+                            Spacer()
+                            FusionTag("Bound", color: .green)
+                        }
+                        .padding(theme.spacingS)
+                        .background(theme.surfaceSecondary)
+                        .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
+                    }
+                } else {
+                    Text("No knowledge base bound")
+                        .font(.system(size: theme.footnoteSize))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                Text("RAG Strategy")
+                    .font(.system(size: theme.footnoteSize, weight: .medium))
+                    .foregroundStyle(theme.textSecondary)
+                Text(agent.rag_strategy ?? "default")
+                    .font(.system(size: theme.footnoteSize))
+                    .foregroundStyle(theme.text)
+                HStack {
+                    Text("Web Search")
+                        .font(.system(size: theme.footnoteSize))
+                        .foregroundStyle(theme.textSecondary)
+                    Spacer()
+                    Text(agent.web_search_enabled == true ? "On" : "Off")
+                        .foregroundStyle(agent.web_search_enabled == true ? .green : .gray)
+                }
+                HStack {
+                    Text("Deep Research")
+                        .font(.system(size: theme.footnoteSize))
+                        .foregroundStyle(theme.textSecondary)
+                    Spacer()
+                    Text(agent.deep_research_enabled == true ? "On" : "Off")
+                        .foregroundStyle(agent.deep_research_enabled == true ? .green : .gray)
+                }
+            }
+            .padding(theme.spacingM)
+        }
+    }
+
+    private var configConnectorsTab: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: theme.spacingM) {
+                Text("Connectors")
+                    .font(.system(size: theme.footnoteSize, weight: .medium))
+                    .foregroundStyle(theme.textSecondary)
+                if bridge.connectors.isEmpty {
+                    Text("No connectors configured")
+                        .font(.system(size: theme.footnoteSize))
+                        .foregroundStyle(theme.textTertiary)
+                } else {
+                    ForEach(Array(bridge.connectors.enumerated()), id: \.offset) { idx, conn in
+                        let name = conn["name"] as? String ?? "Unknown"
+                        let type = conn["type"] as? String ?? ""
+                        let status = conn["status"] as? String ?? "unknown"
+                        HStack {
+                            Image(systemName: "link")
+                                .foregroundStyle(theme.accent)
+                            Text(name)
+                                .font(.system(size: theme.textSize))
+                                .foregroundStyle(theme.text)
+                            Spacer()
+                            FusionTag(type, color: .blue)
+                            FusionTag(status, color: status == "connected" ? .green : .gray)
+                        }
+                        .padding(theme.spacingS)
+                        .background(idx % 2 == 0 ? theme.surfaceSecondary : theme.surfacePrimary)
+                        .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
+                    }
+                }
+            }
+            .padding(theme.spacingM)
+        }
+    }
+
+    private var configStyleTab: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: theme.spacingM) {
+                Text("Output Style")
+                    .font(.system(size: theme.footnoteSize, weight: .medium))
+                    .foregroundStyle(theme.textSecondary)
+                if bridge.styles.isEmpty {
+                    Text("No styles available")
+                        .font(.system(size: theme.footnoteSize))
+                        .foregroundStyle(theme.textTertiary)
+                } else {
+                    ForEach(Array(bridge.styles.prefix(10).enumerated()), id: \.offset) { idx, style in
+                        let name = style["name"] as? String ?? "Style"
+                        HStack {
+                            Image(systemName: "paintbrush")
+                                .foregroundStyle(theme.accent)
+                            Text(name)
+                                .font(.system(size: theme.textSize))
+                                .foregroundStyle(theme.text)
+                            Spacer()
+                        }
+                        .padding(theme.spacingS)
+                        .background(idx % 2 == 0 ? theme.surfaceSecondary : theme.surfacePrimary)
+                        .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
+                    }
+                }
+            }
+            .padding(theme.spacingM)
+        }
     }
 }
 
@@ -3966,6 +4295,12 @@ struct ApikeyTabView: View {
                         }
                         .contentShape(Rectangle())
                         .contextMenu {
+                            Button {
+                                Task { await rotateKey(kid, name: name) }
+                            } label: {
+                                Label("Rotate Key", systemImage: "arrow.triangle.2.circlepath")
+                            }
+                            Divider()
                             Button("Revoke", role: .destructive) {
                                 Task { await revokeKey(kid, name: name) }
                             }
@@ -3988,6 +4323,21 @@ struct ApikeyTabView: View {
                 .textFieldStyle(.roundedBorder)
             TextField("Permissions (comma-separated)", text: $newPermissions)
                 .textFieldStyle(.roundedBorder)
+            VStack(alignment: .leading, spacing: theme.spacingXS) {
+                Text("Agent Restrictions")
+                    .font(.system(size: theme.footnoteSize, weight: .medium))
+                    .foregroundStyle(theme.textSecondary)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: theme.spacingXS) {
+                        ForEach(bridge.agents.prefix(10), id: \.id) { agent in
+                            FusionTag(agent.name, color: .blue)
+                        }
+                    }
+                }
+                Text("Leave empty to allow all agents")
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(theme.textTertiary)
+            }
             HStack {
                 FusionButton("Cancel") { showCreateSheet = false }
                 Spacer()
@@ -4020,6 +4370,16 @@ struct ApikeyTabView: View {
             toastManager.show(style: .info, title: "Revoked", message: name)
         } catch {
             toastManager.show(style: .error, title: "Revoke Failed", message: error.localizedDescription)
+        }
+    }
+
+    private func rotateKey(_ id: String, name: String) async {
+        do {
+            let result = try await bridge.apikeyRotate(keyId: id)
+            let newKey = result["key"] as? String ?? ""
+            toastManager.show(style: .success, title: "Key Rotated", message: newKey.isEmpty ? name : "New key: \(newKey.prefix(12))...")
+        } catch {
+            toastManager.show(style: .error, title: "Rotate Failed", message: error.localizedDescription)
         }
     }
 }
@@ -4134,6 +4494,8 @@ struct DashboardTabView: View {
     @EnvironmentObject private var bridge: AgentBridge
     @Environment(\.studioTheme) var theme
     private let dashboardLog = Logger(subsystem: "com.fusion.studio", category: "Dashboard")
+    @State private var filterStartDate = Date().addingTimeInterval(-86400 * 7)
+    @State private var filterEndDate = Date()
 
     var body: some View {
         ScrollView {
@@ -4142,13 +4504,161 @@ struct DashboardTabView: View {
                 dashboardCards
                 StudioSectionHeader(title: "Agent Status Breakdown")
                 agentStatusList
+                StudioSectionHeader(title: "Recent Errors")
+                recentErrorsSection
+                StudioSectionHeader(title: "Recent Agents")
+                recentAgentsSection
+                StudioSectionHeader(title: "Audit Trail")
+                datePickerBar
+                auditTrailSection
+                StudioSectionHeader(title: "Session Logs")
+                sessionLogsSection
                 Spacer()
             }
             .padding(theme.spacingL)
         }
         .onAppear {
-            Task { await bridge.fetchDashboard() }
+            Task {
+                await bridge.fetchDashboard()
+                await bridge.fetchAuditTrail(startDate: isoDate(filterStartDate), endDate: isoDate(filterEndDate))
+                await bridge.fetchSessionLogs(startDate: isoDate(filterStartDate), endDate: isoDate(filterEndDate))
+            }
         }
+    }
+
+    private func isoDate(_ date: Date) -> String {
+        let fmt = ISO8601DateFormatter()
+        fmt.formatOptions = [.withFullDate]
+        return fmt.string(from: date)
+    }
+
+    private var datePickerBar: some View {
+        HStack(spacing: theme.spacingM) {
+            DatePicker("From", selection: $filterStartDate, displayedComponents: .date)
+                .labelsHidden()
+            Text("—")
+                .foregroundStyle(theme.textTertiary)
+            DatePicker("To", selection: $filterEndDate, displayedComponents: .date)
+                .labelsHidden()
+            FusionButton("Filter", icon: "line.3.decrease.circle", style: .secondary, size: .small) {
+                Task {
+                    await bridge.fetchAuditTrail(startDate: isoDate(filterStartDate), endDate: isoDate(filterEndDate))
+                    await bridge.fetchSessionLogs(startDate: isoDate(filterStartDate), endDate: isoDate(filterEndDate))
+                }
+            }
+            Spacer()
+        }
+        .padding(theme.spacingS)
+        .background(theme.surfaceSecondary)
+        .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
+    }
+
+    private var auditTrailSection: some View {
+        let trail = bridge.auditTrail
+        if trail.isEmpty {
+            return AnyView(
+                HStack {
+                    Image(systemName: "checkmark.shield")
+                        .foregroundStyle(theme.textTertiary)
+                    Text("No audit events in selected range")
+                        .font(.system(size: theme.footnoteSize))
+                        .foregroundStyle(theme.textTertiary)
+                    Spacer()
+                }
+                .padding(theme.spacingM)
+                .background(theme.surfaceSecondary)
+                .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous))
+            )
+        }
+        return AnyView(
+            VStack(spacing: 0) {
+                ForEach(Array(trail.prefix(20).enumerated()), id: \.offset) { idx, entry in
+                    let action = entry["action"] as? String ?? entry["event"] as? String ?? "unknown"
+                    let agent = entry["agent_name"] as? String ?? entry["agent_id"] as? String ?? ""
+                    let time = entry["timestamp"] as? String ?? entry["time"] as? String ?? ""
+                    HStack {
+                        Image(systemName: "shield")
+                            .foregroundStyle(.blue)
+                            .font(.system(size: theme.iconXS))
+                        Text(action)
+                            .font(.system(size: theme.footnoteSize, weight: .medium))
+                            .foregroundStyle(theme.text)
+                        if !agent.isEmpty {
+                            Text(agent)
+                                .font(.system(size: theme.captionSize, design: .monospaced))
+                                .foregroundStyle(theme.textTertiary)
+                        }
+                        Spacer()
+                        if !time.isEmpty {
+                            Text(time)
+                                .font(.system(size: theme.captionSize))
+                                .foregroundStyle(theme.textTertiary)
+                        }
+                    }
+                    .padding(.horizontal, theme.spacingL)
+                    .padding(.vertical, theme.spacingS)
+                    .background(idx % 2 == 0 ? theme.surfaceSecondary : theme.surfacePrimary)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous))
+        )
+    }
+
+    private var sessionLogsSection: some View {
+        let logs = bridge.sessionLogs
+        if logs.isEmpty {
+            return AnyView(
+                HStack {
+                    Image(systemName: "list.bullet.clipboard")
+                        .foregroundStyle(theme.textTertiary)
+                    Text("No session logs in selected range")
+                        .font(.system(size: theme.footnoteSize))
+                        .foregroundStyle(theme.textTertiary)
+                    Spacer()
+                }
+                .padding(theme.spacingM)
+                .background(theme.surfaceSecondary)
+                .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous))
+            )
+        }
+        return AnyView(
+            VStack(spacing: 0) {
+                ForEach(Array(logs.prefix(20).enumerated()), id: \.offset) { idx, log in
+                    let sessionId = log["session_id"] as? String ?? log["id"] as? String ?? ""
+                    let agent = log["agent_name"] as? String ?? log["agent_id"] as? String ?? ""
+                    let tokens = log["total_tokens"] as? Int ?? 0
+                    let time = log["started_at"] as? String ?? log["timestamp"] as? String ?? ""
+                    HStack {
+                        Image(systemName: "timer")
+                            .foregroundStyle(.purple)
+                            .font(.system(size: theme.iconXS))
+                        Text(sessionId.prefix(8))
+                            .font(.system(size: theme.footnoteSize, design: .monospaced))
+                            .foregroundStyle(theme.text)
+                        if !agent.isEmpty {
+                            Text(agent)
+                                .font(.system(size: theme.captionSize))
+                                .foregroundStyle(theme.textSecondary)
+                        }
+                        Spacer()
+                        if tokens > 0 {
+                            Text("\(tokens) tok")
+                                .font(.system(size: theme.captionSize, design: .monospaced))
+                                .foregroundStyle(theme.textTertiary)
+                        }
+                        if !time.isEmpty {
+                            Text(time)
+                                .font(.system(size: theme.captionSize))
+                                .foregroundStyle(theme.textTertiary)
+                        }
+                    }
+                    .padding(.horizontal, theme.spacingL)
+                    .padding(.vertical, theme.spacingS)
+                    .background(idx % 2 == 0 ? theme.surfaceSecondary : theme.surfacePrimary)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous))
+        )
     }
 
     private var dashboardCards: some View {
@@ -4216,6 +4726,93 @@ struct DashboardTabView: View {
         .padding(.horizontal, theme.spacingL)
         .padding(.vertical, theme.spacingM)
         .background(theme.surfaceSecondary)
+    }
+
+    private var recentErrorsSection: some View {
+        let errors = bridge.dashboardData["recent_errors"] as? [[String: Any]] ?? []
+        if errors.isEmpty {
+            return AnyView(
+                HStack {
+                    Image(systemName: "checkmark.circle")
+                        .foregroundStyle(.green)
+                    Text("No recent errors")
+                        .font(.system(size: theme.footnoteSize))
+                        .foregroundStyle(theme.textTertiary)
+                    Spacer()
+                }
+                .padding(theme.spacingM)
+                .background(theme.surfaceSecondary)
+                .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous))
+            )
+        }
+        return AnyView(
+            VStack(spacing: 0) {
+                ForEach(Array(errors.prefix(5).enumerated()), id: \.offset) { idx, err in
+                    let msg = err["message"] as? String ?? err["error"] as? String ?? "Unknown error"
+                    let time = err["timestamp"] as? String ?? err["time"] as? String ?? ""
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.red)
+                            .font(.system(size: theme.iconXS))
+                        Text(msg)
+                            .font(.system(size: theme.footnoteSize, design: .monospaced))
+                            .foregroundStyle(theme.text)
+                            .lineLimit(1)
+                        Spacer()
+                        if !time.isEmpty {
+                            Text(time)
+                                .font(.system(size: theme.captionSize))
+                                .foregroundStyle(theme.textTertiary)
+                        }
+                    }
+                    .padding(.horizontal, theme.spacingL)
+                    .padding(.vertical, theme.spacingS)
+                    .background(idx % 2 == 0 ? theme.surfaceSecondary : theme.surfacePrimary)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous))
+        )
+    }
+
+    private var recentAgentsSection: some View {
+        let recent = bridge.agents.prefix(5)
+        if recent.isEmpty {
+            return AnyView(
+                HStack {
+                    Image(systemName: "person.2")
+                        .foregroundStyle(theme.textTertiary)
+                    Text("No agents yet")
+                        .font(.system(size: theme.footnoteSize))
+                        .foregroundStyle(theme.textTertiary)
+                    Spacer()
+                }
+                .padding(theme.spacingM)
+                .background(theme.surfaceSecondary)
+                .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous))
+            )
+        }
+        return AnyView(
+            VStack(spacing: 0) {
+                ForEach(Array(recent.enumerated()), id: \.element.id) { idx, agent in
+                    HStack {
+                        Image(systemName: "brain")
+                            .foregroundStyle(theme.accent)
+                            .font(.system(size: theme.iconXS))
+                        Text(agent.name)
+                            .font(.system(size: theme.textSize))
+                            .foregroundStyle(theme.text)
+                        Spacer()
+                        if let status = agent.status {
+                            FusionTag(status, color: statusColor(for: status))
+                        }
+                    }
+                    .padding(.horizontal, theme.spacingL)
+                    .padding(.vertical, theme.spacingS)
+                    .background(idx % 2 == 0 ? theme.surfaceSecondary : theme.surfacePrimary)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous))
+        )
     }
 }
 
@@ -4302,11 +4899,15 @@ struct MarketplaceTabView: View {
                     }
                     .padding(.vertical, theme.spacing2XL)
                 } else {
-                    ListGroup {
-                        ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
-                            MarketplaceEntryRow(entry: entry, isLast: index == entries.count - 1)
+                    LazyVGrid(columns: [
+                        GridItem(.flexible(), spacing: theme.spacingS),
+                        GridItem(.flexible(), spacing: theme.spacingS),
+                    ], spacing: theme.spacingS) {
+                        ForEach(entries) { entry in
+                            MarketplaceCard(entry: entry)
                         }
                     }
+                    .padding(.horizontal, theme.spacingM)
                 }
 
                 HStack {
@@ -4470,21 +5071,110 @@ struct MarketplaceEntryRow: View {
     }
 }
 
+struct MarketplaceCard: View {
+    let entry: MarketplaceEntryModel
+    @EnvironmentObject private var bridge: AgentBridge
+    @Environment(\.studioTheme) var theme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: theme.spacingS) {
+            HStack {
+                Image(systemName: "cube.box")
+                    .font(.system(size: 20))
+                    .foregroundStyle(theme.accent)
+                Spacer()
+                if !entry.category.isEmpty {
+                    FusionTag(entry.category, color: .blue)
+                }
+            }
+            Text(entry.name)
+                .font(.system(size: theme.smallTextSize, weight: .semibold))
+                .foregroundStyle(theme.text)
+                .lineLimit(1)
+            Text(entry.author)
+                .font(.system(size: theme.captionSize))
+                .foregroundStyle(theme.textTertiary)
+            Text(entry.description)
+                .font(.system(size: theme.footnoteSize))
+                .foregroundStyle(theme.textSecondary)
+                .lineLimit(2)
+            if !entry.tags.isEmpty {
+                FlowLayout(spacing: theme.spacingXS) {
+                    ForEach(entry.tags.prefix(3), id: \.self) { tag in
+                        FusionTag(tag, color: .gray)
+                    }
+                }
+            }
+            HStack {
+                Text("v\(entry.version)")
+                    .font(.system(size: theme.captionSize, design: .monospaced))
+                    .foregroundStyle(theme.textTertiary)
+                Spacer()
+                FusionButton("Install", icon: "arrow.down.circle", style: .secondary, size: .small) {
+                    installEntry()
+                }
+            }
+        }
+        .padding(theme.spacingM)
+        .background(theme.surfacePrimary)
+        .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusMedium, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: theme.cornerRadiusMedium, style: .continuous)
+                .stroke(theme.inputBorder, lineWidth: 1)
+        }
+    }
+
+    private func installEntry() {
+        Task {
+            do {
+                _ = try await bridge.marketplaceInstall(entryId: entry.id)
+            } catch {
+            }
+        }
+    }
+}
+
 // MARK: - ConversationView
 
 struct ConversationView: View {
     @StateObject private var orchestrator = AgentOrchestrator.shared
     @State private var inputText = ""
     let toastManager: FusionToastManager
+    @EnvironmentObject private var bridge: AgentBridge
 
     @Environment(\.studioTheme) var theme
 
     var body: some View {
         VStack(spacing: 0) {
+            if !bridge.activeSessionId.isEmpty {
+                HStack {
+                    Image(systemName: "link")
+                        .foregroundStyle(theme.textTertiary)
+                    Text("Session: \(bridge.activeSessionId.prefix(12))...")
+                        .font(.system(size: theme.captionSize, design: .monospaced))
+                        .foregroundStyle(theme.textTertiary)
+                    Spacer()
+                    if bridge.isAgentStreaming {
+                        HStack(spacing: theme.spacingXS) {
+                            ProgressView()
+                                .scaleEffect(0.6)
+                            Text("Streaming...")
+                                .font(.system(size: theme.captionSize))
+                                .foregroundStyle(theme.accent)
+                        }
+                    }
+                }
+                .padding(.horizontal, theme.spacingM)
+                .padding(.vertical, theme.spacingXS)
+                .background(theme.surfaceSecondary)
+            }
             if orchestrator.conversationLog.isEmpty {
                 emptyChatPlaceholder
             } else {
                 messageList
+            }
+            if !bridge.lastToolCalls.isEmpty {
+                toolCallsBar
             }
             inputBar
             Spacer()
@@ -4493,10 +5183,29 @@ struct ConversationView: View {
             ToolbarItem {
                 FusionButton("Clear", icon: "trash", style: .ghost, size: .small) {
                     orchestrator.clearConversation()
+                    bridge.activeSessionId = ""
+                    bridge.lastToolCalls = []
+                    bridge.streamingContent = ""
                     toastManager.show(style: .info, title: "Chat Cleared", message: "Conversation history removed")
                 }
             }
         }
+    }
+
+    private var toolCallsBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: theme.spacingXS) {
+                Image(systemName: "wrench")
+                    .foregroundStyle(theme.textTertiary)
+                ForEach(Array(bridge.lastToolCalls.enumerated()), id: \.offset) { idx, tc in
+                    let name = tc["name"] as? String ?? tc["function"] as? String ?? "tool"
+                    FusionTag(name, color: .purple)
+                }
+            }
+        }
+        .padding(.horizontal, theme.spacingM)
+        .padding(.vertical, theme.spacingXS)
+        .background(theme.surfaceSecondary)
     }
 
     private var messageList: some View {
