@@ -160,6 +160,10 @@ struct FusionSidebarView: View {
             coworkSidebarContent
         case .fsb:
             fsbSidebarContent
+        // Callers: FusionSidebarView section content. Affected API: moduleListContent(.aiAgent).
+        // Data schemas: SidebarSection.aiAgent. User instruction: "按照GUI草图实现fusion-ai-agent"
+        case .aiAgent:
+            moduleListContent(.aiAgent)
         }
     }
 

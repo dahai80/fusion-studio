@@ -272,6 +272,16 @@ struct AgentModel: Codable, Equatable, Identifiable {
     var top_p: Double?
     var context_window: Int?
     var rate_limit_qps: Int?
+
+    var statusLabel: String {
+        switch status ?? "draft" {
+        case "published": return "已发布"
+        case "draft": return "草稿"
+        case "active": return "运行中"
+        case "archived": return "已归档"
+        default: return status ?? "草稿"
+        }
+    }
 }
 
 struct MarketplaceEntryModel: Codable, Equatable, Identifiable {

@@ -103,6 +103,16 @@ struct ModuleDetailView: View {
                 ArtifactsRepositoryView()
             case .fsb:
                 FSBWorkspaceView()
+            // Callers: SectionContentView routes via selectedModule. Affected API: ipc.agent*, AgentBridge.
+            // Data schemas: AgentModel. User instruction: "按照GUI草图实现fusion-ai-agent"
+            case .aiAgentDashboard:
+                AIAgentDashboardView()
+            case .aiAgentList:
+                AIAgentListView()
+            case .aiAgentChat:
+                AIAgentChatView()
+            case .aiAgentObserver:
+                AIAgentObserverView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

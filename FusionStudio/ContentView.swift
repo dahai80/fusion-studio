@@ -176,6 +176,10 @@ struct SectionContentView: View {
                 SpaceListView()
             case .fsb:
                 FSBWorkspaceView()
+            // Callers: SectionContentView routes activeSection. Affected API: ModuleDetailView.
+            // Data schemas: SidebarSection.aiAgent. User instruction: "按照GUI草图实现fusion-ai-agent"
+            case .aiAgent:
+                ModuleDetailView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

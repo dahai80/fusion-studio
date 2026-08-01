@@ -113,6 +113,11 @@ struct IconRailView: View {
                 case .fsb:
                     appState.selectedModule = .fsb
                     appState.selectedSheet = .fsbSheet
+                // Callers: IconRailView section selection. Affected API: appState.selectedModule/Sheet.
+                // Data schemas: SidebarSection.aiAgent. User instruction: "按照GUI草图实现fusion-ai-agent"
+                case .aiAgent:
+                    appState.selectedModule = .aiAgentDashboard
+                    appState.selectedSheet = .aiAgentSheet
                 }
             }
             railLog.info("Section selected: \(section.rawValue)")

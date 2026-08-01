@@ -55,6 +55,7 @@ enum ProductSheet: String, CaseIterable, Identifiable {
     case coworkSheet = "CoWork"
     case artifactsSheet = "Artifacts"
     case fsbSheet = "FSB"
+    case aiAgentSheet = "AI Agent"
 
     var id: String { rawValue }
 
@@ -69,6 +70,7 @@ enum ProductSheet: String, CaseIterable, Identifiable {
         case .coworkSheet: "person.2.square.stack"
         case .artifactsSheet: "cube.box"
         case .fsbSheet:       "storefront"
+        case .aiAgentSheet:   "brain"
         }
     }
 
@@ -92,6 +94,8 @@ enum ProductSheet: String, CaseIterable, Identifiable {
             return [.artifactsRepo]
         case .fsbSheet:
             return [.fsb]
+        case .aiAgentSheet:
+            return [.aiAgentDashboard, .aiAgentList, .aiAgentChat, .aiAgentObserver]
         }
     }
 }
@@ -146,6 +150,12 @@ enum Module: String, CaseIterable, Identifiable {
     case cowork = "协作空间"
     case artifactsRepo = "Artifacts仓库"
     case fsb = "FSB"
+    // Callers: ModuleDetailView, FusionSidebarView. Affected API: AgentBridge.agents, ipc.agent*.
+    // Data schemas: AgentModel. User instruction: "按照GUI草图实现fusion-ai-agent"
+    case aiAgentDashboard = "AI总览"
+    case aiAgentList = "Agent列表"
+    case aiAgentChat = "AI对话"
+    case aiAgentObserver = "AI监控"
 
     var id: String { rawValue }
 
@@ -199,6 +209,10 @@ enum Module: String, CaseIterable, Identifiable {
         case .cowork:       return "person.2.square.stack"
         case .artifactsRepo: return "cube.box"
         case .fsb:          return "storefront"
+        case .aiAgentDashboard: return "chart.bar.doc.horizontal"
+        case .aiAgentList:     return "list.bullet"
+        case .aiAgentChat:     return "bubble.left.and.bubble.right.fill"
+        case .aiAgentObserver: return "eye"
         }
     }
 
@@ -231,6 +245,8 @@ enum Module: String, CaseIterable, Identifiable {
             return .artifactsSheet
         case .fsb:
             return .fsbSheet
+        case .aiAgentDashboard, .aiAgentList, .aiAgentChat, .aiAgentObserver:
+            return .aiAgentSheet
         }
     }
 }
@@ -248,6 +264,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
     case fusionProjects = "Projects+"
     case cowork = "CoWork"
     case fsb = "FSB"
+    case aiAgent = "AI Agent"
 
     var id: String { rawValue }
 
@@ -265,6 +282,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .fusionProjects: return "folder.badge.gearshape"
         case .cowork:    return "person.2.square.stack"
         case .fsb:       return "storefront"
+        case .aiAgent:   return "brain"
         }
     }
 
@@ -282,6 +300,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .fusionProjects: return [.fusionProjects]
         case .cowork: return [.cowork]
         case .fsb: return [.fsb]
+        case .aiAgent: return [.aiAgentDashboard, .aiAgentList, .aiAgentChat, .aiAgentObserver]
         }
     }
 }
