@@ -3,15 +3,27 @@ import os.log
 
 private let spaceLog = Logger(subsystem: "com.fusion.studio", category: "CoWork.Space")
 
+// MARK: - Page 1: CoWork首页
+
 struct SpaceListView: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
 
-    @State private var spaces: [[String: Any]] = []
+    @State private var spaces: [CoworkSpace] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var showCreateDialog = false
     @State private var selectedSpaceId: String?
+    @State private var searchText = ""
+    @State private var filterStatus: SpaceFilterStatus = .all
+    @State private var showOnboarding = true
+
+    private enum SpaceFilterStatus: String, CaseIterable {
+        case all = "全部"
+        case created = "我创建的"
+        case joined = "我加入的"
+        case archived = "已归档"
+    }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -32,20 +44,46 @@ struct SpaceListView: View {
             ScreenHeader(eyebrow: "Fusion Studio", title: "CoWork", subtitle: "协作空间 — 团队对话、共享 Agent、工作流协同")
                 .padding(.bottom, theme.spacingS)
 
-            HStack {
+            HStack(spacing: theme.spacingS) {
+                HStack(spacing: theme.spacingS) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: theme.iconS))
+                        .foregroundStyle(theme.textTertiary)
+                    TextField("搜索空间...", text: $searchText)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: theme.textSize))
+                }
+                .padding(.horizontal, theme.spacingM)
+                .padding(.vertical, theme.spacingXS)
+                .background(theme.inputBg)
+                .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall))
+                .overlay(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall).stroke(theme.inputBorder, lineWidth: 1))
                 Button(action: { showCreateDialog = true }) {
                     Image(systemName: "plus.circle.fill")
                         .font(.system(size: theme.iconM))
+                        .foregroundStyle(theme.accent)
                 }
                 .buttonStyle(.plain)
                 .help("新建协作空间")
-                Spacer()
-                Button(action: { loadSpaces() }) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: theme.iconS))
-                        .foregroundStyle(theme.textTertiary)
+            }
+            .padding(.horizontal, theme.spacingM)
+            .padding(.bottom, theme.spacingS)
+
+            HStack(spacing: 0) {
+                ForEach(SpaceFilterStatus.allCases, id: \.self) { status in
+                    Button(action: { filterStatus = status }) {
+                        Text(status.rawValue)
+                            .font(.system(size: theme.footnoteSize, weight: filterStatus == status ? .semibold : .regular))
+                            .foregroundStyle(filterStatus == status ? theme.accent : theme.textSecondary)
+                            .padding(.horizontal, theme.spacingM)
+                            .padding(.vertical, theme.spacingXS)
+                            .background(
+                                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                    .fill(filterStatus == status ? theme.accent.opacity(0.12) : Color.clear)
+                            )
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
             .padding(.horizontal, theme.spacingM)
             .padding(.bottom, theme.spacingS)
@@ -60,43 +98,123 @@ struct SpaceListView: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: theme.spacingXS) {
-                        ForEach(spaces.indices, id: \.self) { idx in
-                            spaceCard(spaces[idx], index: idx)
+                        if showOnboarding && spaces.isEmpty {
+                            onboardingCard
+                        }
+                        ForEach(filteredSpaces) { space in
+                            spaceCard(space)
                         }
                     }
                     .padding(.horizontal, theme.spacingS)
                 }
             }
         }
-        .frame(minWidth: 280, maxWidth: 340)
+        .frame(minWidth: 300, maxWidth: 360)
         .sheet(isPresented: $showCreateDialog) {
             SpaceCreateDialog(onCreated: { _ in loadSpaces() })
         }
     }
 
-    private func spaceCard(_ s: [String: Any], index: Int) -> some View {
-        let sid = s["space_id"] as? String ?? s["id"] as? String ?? ""
-        let name = s["name"] as? String ?? "Untitled Space"
-        let desc = s["description"] as? String ?? ""
-        let isActive = selectedSpaceId == sid
-        return HStack(spacing: theme.spacingS) {
-            Image(systemName: "person.2.square.stack")
-                .font(.system(size: theme.iconM))
-                .foregroundStyle(isActive ? theme.accent : theme.textTertiary)
-                .frame(width: 28, height: 28)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(name)
-                    .font(.system(size: theme.textSize, weight: .medium))
-                    .foregroundStyle(isActive ? theme.accent : theme.text)
-                    .lineLimit(1)
-                if !desc.isEmpty {
-                    Text(desc)
-                        .font(.system(size: theme.captionSize))
-                        .foregroundStyle(theme.textSecondary)
-                        .lineLimit(2)
+    private var onboardingCard: some View {
+        VStack(alignment: .leading, spacing: theme.spacingS) {
+            HStack(spacing: theme.spacingS) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: theme.iconM))
+                    .foregroundStyle(theme.accent)
+                Text("开始你的第一个协作空间")
+                    .font(.system(size: theme.textSize, weight: .semibold))
+                    .foregroundStyle(theme.text)
+            }
+            Text("CoWork 让团队实时对话、共享 Agent、协同工作流。支持离线空间、深度研究、桌面共享等差异化能力。")
+                .font(.system(size: theme.footnoteSize))
+                .foregroundStyle(theme.textSecondary)
+            Button(action: { showCreateDialog = true }) {
+                Label("创建协作空间", systemImage: "plus.circle.fill")
+                    .font(.system(size: theme.footnoteSize, weight: .medium))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(theme.accent)
+        }
+        .padding(theme.spacingL)
+        .background(
+            RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
+                .fill(theme.accent.opacity(0.06))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
+                .stroke(theme.accent.opacity(0.2), lineWidth: 1)
+        )
+    }
+
+    private var filteredSpaces: [CoworkSpace] {
+        var result = spaces
+        if !searchText.isEmpty {
+            result = result.filter {
+                $0.name.localizedCaseInsensitiveContains(searchText) ||
+                $0.description.localizedCaseInsensitiveContains(searchText)
+            }
+        }
+        switch filterStatus {
+        case .all: break
+        case .created: result = result.filter { $0.isOwner }
+        case .joined: result = result.filter { !$0.isOwner }
+        case .archived: result = result.filter { $0.isArchived }
+        }
+        return result
+    }
+
+    private func spaceCard(_ space: CoworkSpace) -> some View {
+        let isActive = selectedSpaceId == space.id
+        return VStack(alignment: .leading, spacing: theme.spacingXS) {
+            HStack(spacing: theme.spacingS) {
+                Image(systemName: collabModeIcon(space.collabMode))
+                    .font(.system(size: theme.iconM))
+                    .foregroundStyle(isActive ? theme.accent : theme.textTertiary)
+                    .frame(width: 28, height: 28)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: theme.spacingXS) {
+                        Text(space.name)
+                            .font(.system(size: theme.textSize, weight: .medium))
+                            .foregroundStyle(isActive ? theme.accent : theme.text)
+                            .lineLimit(1)
+                        if space.isArchived {
+                            Text("已归档")
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundStyle(theme.accentDestructive)
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 1)
+                                .background(theme.accentDestructive.opacity(0.15))
+                                .clipShape(RoundedRectangle(cornerRadius: 3))
+                        }
+                    }
+                    if !space.description.isEmpty {
+                        Text(space.description)
+                            .font(.system(size: theme.captionSize))
+                            .foregroundStyle(theme.textSecondary)
+                            .lineLimit(2)
+                    }
+                }
+                Spacer()
+            }
+            HStack(spacing: theme.spacingM) {
+                Label("\(space.memberCount)", systemImage: "person.2")
+                Label("\(space.agentCount)", systemImage: "brain.head.profile")
+                Label("\(space.artifactCount)", systemImage: "shippingbox")
+                if space.config.enableDeepResearch {
+                    Image(systemName: "telescope")
+                }
+                if space.config.enableComputerUse {
+                    Image(systemName: "desktopcomputer")
+                }
+                Spacer()
+                if let last = space.lastActivityAt {
+                    Text(last, style: .relative)
+                        .font(.system(size: 9))
+                        .foregroundStyle(theme.textTertiary)
                 }
             }
-            Spacer()
+            .font(.system(size: 9))
+            .foregroundStyle(theme.textTertiary)
         }
         .padding(theme.spacingM)
         .background(
@@ -108,7 +226,15 @@ struct SpaceListView: View {
                 .stroke(isActive ? theme.accent.opacity(0.3) : theme.separator, lineWidth: 1)
         )
         .contentShape(Rectangle())
-        .onTapGesture { selectedSpaceId = sid }
+        .onTapGesture { selectedSpaceId = space.id }
+    }
+
+    private func collabModeIcon(_ mode: CollabMode) -> String {
+        switch mode {
+        case .local: return "person.2.square.stack"
+        case .p2p: return "antenna.radiowaves.left.and.right"
+        case .gateway: return "globe"
+        }
     }
 
     private var emptyStateView: some View {
@@ -119,6 +245,9 @@ struct SpaceListView: View {
             Text("选择一个协作空间")
                 .font(.system(size: theme.textSize))
                 .foregroundStyle(theme.textSecondary)
+            Text("或创建新空间开始协作")
+                .font(.system(size: theme.footnoteSize))
+                .foregroundStyle(theme.textTertiary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -128,12 +257,13 @@ struct SpaceListView: View {
         errorMessage = nil
         Task {
             do {
-                let result = try await ipc.spaceCall(method: "desk.space.list", params: [:])
-                spaceLog.info("space.list loaded: \(result.count) keys")
+                let result = try await ipc.spaceList()
                 if let items = result["items"] as? [[String: Any]] {
-                    await MainActor.run { spaces = items; isLoading = false }
+                    let loaded = items.map { CoworkSpace.fromDict($0) }
+                    await MainActor.run { spaces = loaded; isLoading = false }
                 } else if let single = result["spaces"] as? [[String: Any]] {
-                    await MainActor.run { spaces = single; isLoading = false }
+                    let loaded = single.map { CoworkSpace.fromDict($0) }
+                    await MainActor.run { spaces = loaded; isLoading = false }
                 } else {
                     await MainActor.run { spaces = []; isLoading = false }
                 }
@@ -148,6 +278,8 @@ struct SpaceListView: View {
     }
 }
 
+// MARK: - Page 2: 新建协作空间
+
 struct SpaceCreateDialog: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
@@ -155,39 +287,161 @@ struct SpaceCreateDialog: View {
 
     @State private var name = ""
     @State private var description = ""
-    @State private var collabMode = "open"
+    @State private var collabMode = CollabMode.local
+    @State private var config = SpaceConfig()
     @State private var isCreating = false
+    @State private var kbPath = ""
+    @State private var preAddAgentSearch = ""
 
     let onCreated: ([String: Any]) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: theme.spacingM) {
-            Text("新建协作空间")
-                .font(.system(size: theme.headlineSize, weight: .bold))
+        ScrollView {
+            VStack(alignment: .leading, spacing: theme.spacingL) {
+                Text("新建协作空间")
+                    .font(.system(size: theme.headlineSize, weight: .bold))
 
-            TextField("空间名称", text: $name)
-                .textFieldStyle(.roundedBorder)
+                VStack(alignment: .leading, spacing: theme.spacingS) {
+                    Text("基本信息")
+                        .font(.system(size: theme.footnoteSize, weight: .semibold))
+                        .foregroundStyle(theme.textSecondary)
+                    TextField("空间名称", text: $name)
+                        .textFieldStyle(.roundedBorder)
+                    TextField("描述（可选）", text: $description)
+                        .textFieldStyle(.roundedBorder)
+                }
 
-            TextField("描述（可选）", text: $description)
-                .textFieldStyle(.roundedBorder)
+                VStack(alignment: .leading, spacing: theme.spacingS) {
+                    Text("协作模式")
+                        .font(.system(size: theme.footnoteSize, weight: .semibold))
+                        .foregroundStyle(theme.textSecondary)
+                    HStack(spacing: theme.spacingM) {
+                        ForEach(CollabMode.allCases, id: \.self) { mode in
+                            Button(action: { collabMode = mode }) {
+                                VStack(spacing: theme.spacingXS) {
+                                    Image(systemName: collabModeIcon(mode))
+                                        .font(.system(size: theme.iconL))
+                                        .foregroundStyle(collabMode == mode ? theme.accent : theme.textTertiary)
+                                    Text(collabModeLabel(mode))
+                                        .font(.system(size: theme.captionSize, weight: collabMode == mode ? .semibold : .regular))
+                                        .foregroundStyle(collabMode == mode ? theme.accent : theme.textSecondary)
+                                    Text(collabModeDesc(mode))
+                                        .font(.system(size: 9))
+                                        .foregroundStyle(theme.textTertiary)
+                                        .multilineTextAlignment(.center)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(theme.spacingM)
+                                .background(
+                                    RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
+                                        .fill(collabMode == mode ? theme.accent.opacity(0.1) : theme.surfaceSecondary)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
+                                        .stroke(collabMode == mode ? theme.accent.opacity(0.4) : theme.separator, lineWidth: 1)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
 
-            Picker("协作模式", selection: $collabMode) {
-                Text("开放").tag("open")
-                Text("邀请").tag("invite")
-                Text("私有").tag("private")
+                VStack(alignment: .leading, spacing: theme.spacingS) {
+                    Text("知识库绑定")
+                        .font(.system(size: theme.footnoteSize, weight: .semibold))
+                        .foregroundStyle(theme.textSecondary)
+                    TextField("KB 路径（可选，如项目目录）", text: $kbPath)
+                        .textFieldStyle(.roundedBorder)
+                }
+
+                VStack(alignment: .leading, spacing: theme.spacingS) {
+                    Text("空间能力")
+                        .font(.system(size: theme.footnoteSize, weight: .semibold))
+                        .foregroundStyle(theme.textSecondary)
+
+                    VStack(spacing: theme.spacingXS) {
+                        toolToggle("联网搜索", icon: "globe", isOn: $config.enableWebSearch)
+                        toolToggle("深度研究", icon: "telescope", isOn: $config.enableDeepResearch)
+                        toolToggle("桌面操控", icon: "desktopcomputer", isOn: $config.enableComputerUse)
+                        toolToggle("成员上传", icon: "arrow.up.doc", isOn: $config.allowMemberUpload)
+                        toolToggle("成员自建Agent", icon: "brain.head.profile", isOn: $config.allowMemberAgent)
+                        toolToggle("成员运行工作流", icon: "arrow.triangle.branch", isOn: $config.allowMemberWorkflow)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: theme.spacingS) {
+                    Text("高级设置")
+                        .font(.system(size: theme.footnoteSize, weight: .semibold))
+                        .foregroundStyle(theme.textSecondary)
+                    HStack {
+                        Text("最大成员数")
+                            .font(.system(size: theme.captionSize))
+                        Spacer()
+                        Stepper(value: $config.maxMembers, in: 2...50) {
+                            Text("\(config.maxMembers)")
+                                .font(.system(size: theme.captionSize, design: .monospaced))
+                                .frame(width: 30)
+                        }
+                    }
+                }
+
+                HStack {
+                    Button("取消") { dismiss() }
+                        .keyboardShortcut(.cancelAction)
+                    Spacer()
+                    Button("创建") { createSpace() }
+                        .keyboardShortcut(.defaultAction)
+                        .disabled(name.isEmpty || isCreating)
+                }
             }
-
-            HStack {
-                Button("取消") { dismiss() }
-                    .keyboardShortcut(.cancelAction)
-                Spacer()
-                Button("创建") { createSpace() }
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(name.isEmpty || isCreating)
-            }
+            .padding(theme.spacingL)
         }
-        .padding(theme.spacingL)
-        .frame(width: 400)
+        .frame(width: 520, height: 620)
+    }
+
+    private func toolToggle(_ label: String, icon: String, isOn: Binding<Bool>) -> some View {
+        HStack(spacing: theme.spacingS) {
+            Image(systemName: icon)
+                .font(.system(size: theme.iconS))
+                .foregroundStyle(isOn.wrappedValue ? theme.accent : theme.textTertiary)
+                .frame(width: 20)
+            Text(label)
+                .font(.system(size: theme.captionSize))
+            Spacer()
+            Toggle("", isOn: isOn)
+                .toggleStyle(.switch)
+                .controlSize(.small)
+        }
+        .padding(.horizontal, theme.spacingM)
+        .padding(.vertical, theme.spacingXS)
+        .background(
+            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                .fill(isOn.wrappedValue ? theme.accent.opacity(0.06) : Color.clear)
+        )
+    }
+
+    private func collabModeIcon(_ mode: CollabMode) -> String {
+        switch mode {
+        case .local: return "person.2.square.stack"
+        case .p2p: return "antenna.radiowaves.left.and.right"
+        case .gateway: return "globe"
+        }
+    }
+
+    private func collabModeLabel(_ mode: CollabMode) -> String {
+        switch mode {
+        case .local: return "本机"
+        case .p2p: return "局域网"
+        case .gateway: return "远程"
+        }
+    }
+
+    private func collabModeDesc(_ mode: CollabMode) -> String {
+        switch mode {
+        case .local: return "单机离线协作"
+        case .p2p: return "Bonjour 局域网发现"
+        case .gateway: return "通过 Fusion Gateway"
+        }
     }
 
     private func createSpace() {
@@ -197,11 +451,13 @@ struct SpaceCreateDialog: View {
                 var params: [String: Any] = [
                     "name": name,
                     "owner_id": "local_user",
-                    "collab_mode": collabMode,
+                    "collab_mode": collabMode.rawValue,
+                    "config": config.toDict(),
                 ]
                 if !description.isEmpty { params["description"] = description }
+                if !kbPath.isEmpty { params["kb_path"] = kbPath }
                 let result = try await ipc.spaceCall(method: "desk.space.create", params: params)
-                spaceLog.info("space.created: \(result)")
+                spaceLog.info("space.created: \(name)")
                 await MainActor.run { onCreated(result); dismiss() }
             } catch {
                 spaceLog.error("space.create failed: \(error.localizedDescription)")
@@ -211,33 +467,34 @@ struct SpaceCreateDialog: View {
     }
 }
 
+// MARK: - Page 3: 协作空间主界面 (3-column layout)
+
 struct SpaceMainView: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
 
     let spaceId: String
-    @State private var space: [String: Any]?
+    @State private var space: CoworkSpace?
     @State private var isLoading = false
-    @State private var activeTab = SpaceTab.members
+    @State private var activeSidebarSection: SpaceSidebarSection = .members
+    @State private var selectedArtifact: SpaceArtifact?
 
-    private enum SpaceTab: Int, CaseIterable {
-        case members = 0
-        case chat = 1
-        case agents = 2
-        case snapshots = 3
-        case artifacts = 4
-        case workflow = 5
-        case desktop = 6
+    private enum SpaceSidebarSection: String, CaseIterable {
+        case members = "成员"
+        case files = "文件"
+        case agents = "Agent"
+        case artifacts = "产物"
+        case desktop = "桌面"
+        case settings = "设置"
 
-        var item: FusionTabItem {
+        var icon: String {
             switch self {
-            case .members:   return FusionTabItem(title: "成员", icon: "person.2")
-            case .chat:      return FusionTabItem(title: "对话", icon: "bubble.left.and.bubble.right")
-            case .agents:    return FusionTabItem(title: "Agent", icon: "brain.head.profile")
-            case .snapshots: return FusionTabItem(title: "快照", icon: "camera.on.rectangle")
-            case .artifacts: return FusionTabItem(title: "产物", icon: "shippingbox")
-            case .workflow:  return FusionTabItem(title: "工作流", icon: "arrow.triangle.branch")
-            case .desktop:   return FusionTabItem(title: "桌面", icon: "desktopcomputer")
+            case .members: return "person.2"
+            case .files: return "folder"
+            case .agents: return "brain.head.profile"
+            case .artifacts: return "shippingbox"
+            case .desktop: return "desktopcomputer"
+            case .settings: return "gearshape"
             }
         }
     }
@@ -248,32 +505,20 @@ struct SpaceMainView: View {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let s = space {
                 spaceHeader(s)
-                FusionTabBar(
-                    selected: Binding(
-                        get: { activeTab.rawValue },
-                        set: { if let t = SpaceTab(rawValue: $0) { activeTab = t } }
-                    ),
-                    tabs: SpaceTab.allCases.map { $0.item }
-                )
-                .padding(.horizontal, theme.spacingM)
-                switch activeTab {
-                case .members:
-                    SpaceMemberView(spaceId: spaceId)
-                case .chat:
-                    SpaceChatPlaceholder(spaceId: spaceId)
-                case .agents:
-                    SpaceAgentView(spaceId: spaceId)
-                case .snapshots:
-                    SpaceSnapshotView(spaceId: spaceId)
-                case .artifacts:
-                    SpaceArtifactView(spaceId: spaceId)
-                case .workflow:
-                    SpaceWorkflowView(spaceId: spaceId)
-                case .desktop:
-                    SpaceDesktopView(spaceId: spaceId)
+                if s.isArchived {
+                    archivedBanner
+                }
+                HStack(spacing: 0) {
+                    leftSidebar
+                    Rectangle().fill(theme.separator).frame(width: 1)
+                    SpaceSharedChat(spaceId: spaceId, space: s)
+                    if let art = selectedArtifact {
+                        Rectangle().fill(theme.separator).frame(width: 1)
+                        ArtifactPreviewView(artifact: art, onClose: { selectedArtifact = nil })
+                    }
                 }
             } else {
-                Text("加载中…")
+                Text("加载中...")
                     .foregroundStyle(theme.textSecondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -282,34 +527,172 @@ struct SpaceMainView: View {
         .onAppear { loadSpace() }
     }
 
-    private func spaceHeader(_ s: [String: Any]) -> some View {
+    private func spaceHeader(_ s: CoworkSpace) -> some View {
         HStack(spacing: theme.spacingM) {
-            Image(systemName: "person.2.square.stack")
+            Image(systemName: collabModeIcon(s.collabMode))
                 .font(.system(size: theme.iconL))
                 .foregroundStyle(theme.accent)
             VStack(alignment: .leading, spacing: 2) {
-                Text(s["name"] as? String ?? "Untitled")
+                Text(s.name)
                     .font(.system(size: theme.headlineSize, weight: .bold))
                     .foregroundStyle(theme.text)
-                if let desc = s["description"] as? String, !desc.isEmpty {
-                    Text(desc)
+                HStack(spacing: theme.spacingS) {
+                    Text(s.description)
                         .font(.system(size: theme.footnoteSize))
                         .foregroundStyle(theme.textSecondary)
+                        .lineLimit(1)
+                    if s.config.enableDeepResearch {
+                        Label("深度研究", systemImage: "telescope")
+                            .font(.system(size: 9))
+                            .foregroundStyle(theme.accent)
+                    }
+                    if s.config.enableComputerUse {
+                        Label("桌面操控", systemImage: "desktopcomputer")
+                            .font(.system(size: 9))
+                            .foregroundStyle(theme.accent)
+                    }
                 }
             }
             Spacer()
+            Menu {
+                Button("创建快照") { createSnapshot() }
+                if s.isOwner || s.ownerId == "local_user" {
+                    Divider()
+                    Button("归档空间", role: .destructive) { archiveSpace() }
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .font(.system(size: theme.iconM))
+                    .foregroundStyle(theme.textTertiary)
+            }
+            .menuStyle(.borderlessButton)
         }
         .padding(.horizontal, theme.spacingL)
         .padding(.vertical, theme.spacingM)
+    }
+
+    private var archivedBanner: some View {
+        HStack(spacing: theme.spacingS) {
+            Image(systemName: "lock.fill")
+                .foregroundStyle(theme.accentDestructive)
+            Text("此空间已归档 — 只读模式")
+                .font(.system(size: theme.footnoteSize, weight: .medium))
+                .foregroundStyle(theme.accentDestructive)
+            Spacer()
+        }
+        .padding(.horizontal, theme.spacingL)
+        .padding(.vertical, theme.spacingXS)
+        .background(theme.accentDestructive.opacity(0.08))
+    }
+
+    private var leftSidebar: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(SpaceSidebarSection.allCases, id: \.self) { section in
+                Button(action: { activeSidebarSection = section }) {
+                    HStack(spacing: theme.spacingS) {
+                        Image(systemName: section.icon)
+                            .font(.system(size: theme.iconS))
+                            .foregroundStyle(activeSidebarSection == section ? theme.accent : theme.textTertiary)
+                            .frame(width: 20)
+                        Text(section.rawValue)
+                            .font(.system(size: theme.footnoteSize, weight: activeSidebarSection == section ? .semibold : .regular))
+                            .foregroundStyle(activeSidebarSection == section ? theme.accent : theme.textSecondary)
+                        Spacer()
+                        sectionBadge(section)
+                    }
+                    .padding(.horizontal, theme.spacingM)
+                    .padding(.vertical, theme.spacingS)
+                    .background(
+                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                            .fill(activeSidebarSection == section ? theme.accent.opacity(0.1) : Color.clear)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+            Divider().padding(.vertical, theme.spacingXS)
+
+            switch activeSidebarSection {
+            case .members:
+                SpaceMemberPanel(spaceId: spaceId)
+            case .files:
+                SpaceFilesPanel(spaceId: spaceId)
+            case .agents:
+                SpaceAgentPanel(spaceId: spaceId)
+            case .artifacts:
+                SpaceArtifactPanel(spaceId: spaceId, selectedArtifact: $selectedArtifact)
+            case .desktop:
+                SpaceDesktopPanel(spaceId: spaceId)
+            case .settings:
+                SpaceSettingsPanel(spaceId: spaceId, space: space)
+            }
+        }
+        .frame(minWidth: 200, maxWidth: 260)
+    }
+
+    @ViewBuilder
+    private func sectionBadge(_ section: SpaceSidebarSection) -> some View {
+        switch section {
+        case .members:
+            if let s = space, s.memberCount > 0 {
+                Text("\(s.memberCount)")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(theme.textTertiary)
+            }
+        case .agents:
+            if let s = space, s.agentCount > 0 {
+                Text("\(s.agentCount)")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(theme.textTertiary)
+            }
+        case .artifacts:
+            if let s = space, s.artifactCount > 0 {
+                Text("\(s.artifactCount)")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(theme.textTertiary)
+            }
+        default:
+            EmptyView()
+        }
+    }
+
+    private func collabModeIcon(_ mode: CollabMode) -> String {
+        switch mode {
+        case .local: return "person.2.square.stack"
+        case .p2p: return "antenna.radiowaves.left.and.right"
+        case .gateway: return "globe"
+        }
+    }
+
+    private func createSnapshot() {
+        Task {
+            do {
+                _ = try await ipc.spaceSnapshotCreate(spaceId: spaceId, name: "Auto Snapshot")
+                spaceLog.info("Snapshot created for \(spaceId)")
+            } catch {
+                spaceLog.error("snapshot.create failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func archiveSpace() {
+        Task {
+            do {
+                _ = try await ipc.spaceArchive(spaceId: spaceId)
+                spaceLog.info("Space archived: \(spaceId)")
+                loadSpace()
+            } catch {
+                spaceLog.error("archive failed: \(error.localizedDescription)")
+            }
+        }
     }
 
     private func loadSpace() {
         isLoading = true
         Task {
             do {
-                let result = try await ipc.spaceCall(method: "desk.space.get", params: ["space_id": spaceId])
-                spaceLog.info("space.get loaded: \(spaceId)")
-                await MainActor.run { space = result; isLoading = false }
+                let result = try await ipc.spaceGet(spaceId: spaceId)
+                let s = CoworkSpace.fromDict(result)
+                await MainActor.run { space = s; isLoading = false }
             } catch {
                 spaceLog.error("space.get failed: \(error.localizedDescription)")
                 await MainActor.run { isLoading = false }
@@ -318,75 +701,784 @@ struct SpaceMainView: View {
     }
 }
 
-struct SpaceMemberView: View {
+// MARK: - Page 3 Center: 共享对话
+
+struct SpaceSharedChat: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
 
     let spaceId: String
-    @State private var members: [[String: Any]] = []
+    let space: CoworkSpace
+
+    @State private var messages: [SpaceMessage] = []
+    @State private var inputText = ""
+    @State private var isLoading = false
+    @State private var selectedAgentId: String?
+    @State private var availableAgents: [SpaceAgent] = []
+    @State private var showCommentMessageId: String?
+    @State private var showPlusMenu = false
+    @State private var showDeepResearch = false
+    @State private var researchQuery = ""
+    @State private var streamingContent: String = ""
+    @State private var isStreaming = false
+    @State private var streamingAgentName: String = ""
+    @State private var hoveredMsgId: String?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if isLoading && messages.isEmpty {
+                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if messages.isEmpty && !isStreaming {
+                chatEmptyState
+            } else {
+                messageList
+            }
+            chatInputBar
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onAppear { loadMessages(); loadAgents() }
+        .sheet(item: Binding(
+            get: { showCommentMessageId.map { IdentifiableString(id: $0) } },
+            set: { showCommentMessageId = $0?.id }
+        )) { item in
+            SpaceCommentThread(spaceId: spaceId, messageId: item.id)
+        }
+        .sheet(isPresented: $showDeepResearch) {
+            SpaceDeepResearchView(spaceId: spaceId)
+        }
+    }
+
+    private var chatEmptyState: some View {
+        VStack(spacing: theme.spacingM) {
+            Image(systemName: "bubble.left.and.bubble.right")
+                .font(.system(size: 30))
+                .foregroundStyle(theme.textTertiary)
+            Text("空间对话")
+                .font(.system(size: theme.textSize, weight: .medium))
+                .foregroundStyle(theme.textSecondary)
+            Text("发送第一条消息，或 @Agent 开始协作")
+                .font(.system(size: theme.footnoteSize))
+                .foregroundStyle(theme.textTertiary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var messageList: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: theme.spacingS) {
+                    ForEach(messages) { msg in
+                        messageBubble(msg)
+                            .id(msg.id)
+                    }
+                    if isStreaming {
+                        streamingBubble
+                            .id("streaming-bubble")
+                    }
+                }
+                .padding(.horizontal, theme.spacingM)
+                .padding(.vertical, theme.spacingS)
+            }
+            .onChange(of: messages.count) { _ in
+                if let last = messages.last {
+                    withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                }
+            }
+            .onChange(of: streamingContent) { _ in
+                if isStreaming {
+                    withAnimation(.easeOut(duration: 0.15)) {
+                        proxy.scrollTo("streaming-bubble", anchor: .bottom)
+                    }
+                }
+            }
+        }
+    }
+
+    private var streamingBubble: some View {
+        VStack(alignment: .leading, spacing: theme.spacingXS) {
+            HStack(spacing: theme.spacingXS) {
+                Image(systemName: "brain.head.profile")
+                    .font(.system(size: theme.iconXS))
+                    .foregroundStyle(theme.accent)
+                Text(streamingAgentName.isEmpty ? "Agent" : streamingAgentName)
+                    .font(.system(size: theme.captionSize, weight: .semibold))
+                    .foregroundStyle(theme.accent)
+                Text("Agent")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(theme.accent)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 1)
+                    .background(theme.accent.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 3))
+                Spacer()
+                if streamingContent.isEmpty {
+                    HStack(spacing: 4) {
+                        ProgressView()
+                            .controlSize(.mini)
+                        Text("思考中...")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(theme.textTertiary)
+                    }
+                }
+            }
+            if !streamingContent.isEmpty {
+                MarkdownContentView(content: streamingContent)
+            }
+        }
+        .padding(theme.spacingM)
+        .background(
+            RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
+                .fill(theme.accent.opacity(0.04))
+        )
+    }
+
+    private func messageBubble(_ msg: SpaceMessage) -> some View {
+        VStack(alignment: .leading, spacing: theme.spacingXS) {
+            HStack(spacing: theme.spacingXS) {
+                Image(systemName: msg.isFromAgent ? "brain.head.profile" : "person.circle")
+                    .font(.system(size: theme.iconXS))
+                    .foregroundStyle(msg.isFromAgent ? theme.accent : theme.textSecondary)
+                Text(msg.senderName.isEmpty ? msg.senderId : msg.senderName)
+                    .font(.system(size: theme.captionSize, weight: .semibold))
+                    .foregroundStyle(msg.isFromAgent ? theme.accent : theme.text)
+                if msg.isFromAgent {
+                    Text("Agent")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(theme.accent)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(theme.accent.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                }
+                Spacer()
+                Text(msg.createdAt, style: .time)
+                    .font(.system(size: 9))
+                    .foregroundStyle(theme.textTertiary)
+            }
+            MarkdownContentView(content: msg.content)
+
+            if !msg.mentionedAgents.isEmpty {
+                HStack(spacing: theme.spacingXS) {
+                    ForEach(msg.mentionedAgents, id: \.self) { aid in
+                        Text("@\(aid)")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(theme.accent)
+                    }
+                }
+            }
+
+            if msg.hasAttachments {
+                HStack(spacing: theme.spacingXS) {
+                    ForEach(msg.attachments) { att in
+                        HStack(spacing: 4) {
+                            Image(systemName: attachmentIcon(att.fileType))
+                                .font(.system(size: 9))
+                            Text(att.fileName)
+                                .font(.system(size: 9))
+                                .lineLimit(1)
+                        }
+                        .padding(.horizontal, theme.spacingXS)
+                        .padding(.vertical, 3)
+                        .background(theme.surfaceSecondary)
+                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                    }
+                }
+            }
+
+            HStack(spacing: theme.spacingM) {
+                Button(action: { copyMessageContent(msg) }) {
+                    HStack(spacing: 3) {
+                        Image(systemName: "doc.on.doc")
+                            .font(.system(size: 9))
+                        Text("复制")
+                            .font(.system(size: 9))
+                    }
+                    .foregroundStyle(theme.textTertiary)
+                }
+                .buttonStyle(.plain)
+                if msg.isFromAgent {
+                    Button(action: { retryAgentMessage(msg) }) {
+                        HStack(spacing: 3) {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 9))
+                            Text("重试")
+                                .font(.system(size: 9))
+                        }
+                        .foregroundStyle(theme.textTertiary)
+                    }
+                    .buttonStyle(.plain)
+                }
+                Button(action: { showCommentMessageId = msg.id }) {
+                    HStack(spacing: 3) {
+                        Image(systemName: "text.bubble")
+                            .font(.system(size: 9))
+                        if msg.commentCount > 0 {
+                            Text("\(msg.commentCount)")
+                        }
+                    }
+                    .font(.system(size: 9))
+                    .foregroundStyle(theme.textTertiary)
+                }
+                .buttonStyle(.plain)
+                Spacer()
+            }
+        }
+        .padding(theme.spacingM)
+        .background(
+            RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
+                .fill(msg.isFromAgent ? theme.accent.opacity(0.04) : theme.surfaceSecondary)
+        )
+        .onHover { hovering in
+            hoveredMsgId = hovering ? msg.id : nil
+        }
+    }
+
+    private func copyMessageContent(_ msg: SpaceMessage) {
+        let pb = NSPasteboard.general
+        pb.clearContents()
+        pb.setString(msg.content, forType: .string)
+        spaceLog.info("Message content copied id=\(msg.id)")
+    }
+
+    private func retryAgentMessage(_ msg: SpaceMessage) {
+        guard !isStreaming else { return }
+        let prevUserMsg = messages.last(where: { !$0.isFromAgent && $0.createdAt < msg.createdAt })
+        let retryContent = prevUserMsg?.content ?? msg.content
+        startStreaming(content: retryContent)
+    }
+
+    private func attachmentIcon(_ type: String) -> String {
+        switch type {
+        case "image": return "photo"
+        case "code": return "chevron.left.forwardslash.chevron.right"
+        case "file": return "doc"
+        default: return "paperclip"
+        }
+    }
+
+    private var chatInputBar: some View {
+        VStack(spacing: 0) {
+            Divider()
+            HStack(alignment: .bottom, spacing: theme.spacingS) {
+                Menu {
+                    Button(action: { }) {
+                        Label("附件", systemImage: "paperclip")
+                    }
+                    if space.config.enableDeepResearch {
+                        Button(action: { showDeepResearch = true }) {
+                            Label("深度研究", systemImage: "telescope")
+                        }
+                    }
+                    if space.config.enableWebSearch {
+                        Button(action: { inputText += " /web " }) {
+                            Label("联网搜索", systemImage: "globe")
+                        }
+                    }
+                    Button(action: { }) {
+                        Label("截图", systemImage: "camera")
+                    }
+                } label: {
+                    Image(systemName: "plus.circle")
+                        .font(.system(size: theme.iconM))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+
+                if !availableAgents.isEmpty {
+                    Menu {
+                        Button("无 (直接发送)") { selectedAgentId = nil }
+                        Divider()
+                        ForEach(availableAgents) { agent in
+                            Button(action: { selectedAgentId = agent.id }) {
+                                HStack {
+                                    Text(agent.name)
+                                    if agent.id == selectedAgentId {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 2) {
+                            Image(systemName: "brain.head.profile")
+                                .font(.system(size: theme.iconXS))
+                            if let aid = selectedAgentId,
+                               let agent = availableAgents.first(where: { $0.id == aid }) {
+                                Text(agent.name)
+                                    .font(.system(size: 9, weight: .medium))
+                                    .lineLimit(1)
+                            }
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(theme.accent.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                        .foregroundStyle(theme.accent)
+                    }
+                    .menuStyle(.borderlessButton)
+                }
+
+                TextField("输入消息，@Agent 协作...", text: $inputText, axis: .vertical)
+                    .lineLimit(1...5)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: theme.textSize))
+                    .onSubmit { sendMessage() }
+
+                Button(action: sendMessage) {
+                    Image(systemName: isStreaming ? "stop.circle.fill" : "arrow.up.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(isStreaming ? theme.accentDestructive : (inputText.trimmingCharacters(in: .whitespaces).isEmpty ? theme.textQuaternary : theme.accent))
+                }
+                .buttonStyle(.plain)
+                .disabled(inputText.trimmingCharacters(in: .whitespaces).isEmpty && !isStreaming)
+            }
+            .padding(.horizontal, theme.spacingL)
+            .padding(.vertical, theme.spacingS)
+            .background(theme.toolbarBg)
+        }
+    }
+
+    private func sendMessage() {
+        if isStreaming { return }
+        let text = inputText.trimmingCharacters(in: .whitespaces)
+        guard !text.isEmpty else { return }
+        inputText = ""
+        let userMsg = SpaceMessage(
+            spaceId: spaceId, senderId: "local_user",
+            senderName: "", senderType: "user", content: text
+        )
+        messages.append(userMsg)
+        startStreaming(content: text)
+    }
+
+    private func startStreaming(content: String) {
+        let mentionedAgents = extractMentionedAgents(from: content)
+        streamingContent = ""
+        isStreaming = true
+        streamingAgentName = ""
+        if let aid = selectedAgentId,
+           let agent = availableAgents.first(where: { $0.id == aid }) {
+            streamingAgentName = agent.name
+        }
+        Task {
+            do {
+                let stream = ipc.spaceChatStreamEvents(
+                    spaceId: spaceId, content: content,
+                    senderId: "local_user", mentionedAgents: mentionedAgents
+                )
+                for try await event in stream {
+                    await MainActor.run {
+                        if event.isToken {
+                            streamingContent += event.content
+                        } else if event.isDone {
+                            finalizeStreaming()
+                        } else if event.isError {
+                            spaceLog.error("stream error: \(event.content)")
+                            if streamingContent.isEmpty {
+                                streamingContent = "错误: \(event.content)"
+                            }
+                            finalizeStreaming()
+                        } else if event.isThinking {
+                            if streamingAgentName.isEmpty && !event.name.isEmpty {
+                                streamingAgentName = event.name
+                            }
+                        }
+                    }
+                }
+                if isStreaming {
+                    await MainActor.run { finalizeStreaming() }
+                }
+            } catch {
+                spaceLog.error("spaceChatStreamEvents failed: \(error.localizedDescription)")
+                await MainActor.run {
+                    streamingContent = "发送失败: \(error.localizedDescription)"
+                    finalizeStreaming()
+                }
+            }
+        }
+    }
+
+    private func finalizeStreaming() {
+        if !streamingContent.isEmpty {
+            let agentMsg = SpaceMessage(
+                spaceId: spaceId,
+                senderId: selectedAgentId ?? "agent",
+                senderName: streamingAgentName.isEmpty ? "Agent" : streamingAgentName,
+                senderType: "agent",
+                content: streamingContent
+            )
+            messages.append(agentMsg)
+        }
+        streamingContent = ""
+        isStreaming = false
+        streamingAgentName = ""
+    }
+
+    private func extractMentionedAgents(from text: String) -> [String] {
+        var agents: [String] = []
+        let pattern = "@(\\w+)"
+        if let regex = try? NSRegularExpression(pattern: pattern) {
+            let matches = regex.matches(in: text, range: NSRange(text.startIndex..., in: text))
+            for match in matches {
+                if let range = Range(match.range(at: 1), in: text) {
+                    agents.append(String(text[range]))
+                }
+            }
+        }
+        if let aid = selectedAgentId { agents.append(aid) }
+        return agents
+    }
+
+    private func loadMessages() {
+        isLoading = true
+        Task {
+            do {
+                let result = try await ipc.spaceChatHistory(spaceId: spaceId)
+                let items = result["messages"] as? [[String: Any]] ?? []
+                let msgs = items.map { SpaceMessage.fromDict($0) }
+                await MainActor.run { messages = msgs; isLoading = false }
+            } catch {
+                spaceLog.error("chat.history failed: \(error.localizedDescription)")
+                await MainActor.run { isLoading = false }
+            }
+        }
+    }
+
+    private func loadAgents() {
+        Task {
+            do {
+                let result = try await ipc.spaceAgentList(spaceId: spaceId)
+                let items = result["agents"] as? [[String: Any]] ?? []
+                await MainActor.run { availableAgents = items.map { SpaceAgent.fromDict($0) } }
+            } catch {
+                spaceLog.error("agent.list for chat failed: \(error.localizedDescription)")
+            }
+        }
+    }
+}
+
+private struct IdentifiableString: Identifiable {
+    let id: String
+}
+
+// MARK: - Page 8: 批注子线程
+
+struct SpaceCommentThread: View {
+    @EnvironmentObject var ipc: IPCClient
+    @Environment(\.studioTheme) private var theme
+    @Environment(\.dismiss) private var dismiss
+
+    let spaceId: String
+    let messageId: String
+
+    @State private var comments: [SpaceComment] = []
+    @State private var newComment = ""
     @State private var isLoading = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("空间成员")
-                    .font(.system(size: theme.footnoteSize, weight: .semibold))
+                Text("批注")
+                    .font(.system(size: theme.headlineSize, weight: .bold))
                 Spacer()
+                Button(action: { dismiss() }) {
+                    Image(systemName: "xmark.circle")
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(theme.spacingL)
+
+            if isLoading {
+                ProgressView().padding()
+            } else {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: theme.spacingS) {
+                        ForEach(comments) { comment in
+                            commentRow(comment)
+                        }
+                    }
+                    .padding(.horizontal, theme.spacingL)
+                }
+            }
+
+            Divider()
+            HStack(spacing: theme.spacingS) {
+                TextField("添加批注...", text: $newComment)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit { addComment() }
+                Button("发送") { addComment() }
+                    .disabled(newComment.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            .padding(theme.spacingL)
+        }
+        .frame(width: 400, height: 400)
+        .onAppear { loadComments() }
+    }
+
+    private func commentRow(_ comment: SpaceComment) -> some View {
+        HStack(alignment: .top, spacing: theme.spacingS) {
+            Image(systemName: "person.circle")
+                .font(.system(size: theme.iconS))
+                .foregroundStyle(theme.textTertiary)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: theme.spacingXS) {
+                    Text(comment.authorName.isEmpty ? comment.authorId : comment.authorName)
+                        .font(.system(size: theme.captionSize, weight: .semibold))
+                    Text(comment.createdAt, style: .time)
+                        .font(.system(size: 9))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                Text(comment.content)
+                    .font(.system(size: theme.footnoteSize))
+                    .foregroundStyle(theme.text)
+            }
+        }
+        .padding(theme.spacingS)
+    }
+
+    private func addComment() {
+        let text = newComment.trimmingCharacters(in: .whitespaces)
+        guard !text.isEmpty else { return }
+        newComment = ""
+        Task {
+            do {
+                _ = try await ipc.spaceCommentCreate(
+                    spaceId: spaceId, messageId: messageId,
+                    authorId: "local_user", content: text
+                )
+                loadComments()
+            } catch {
+                spaceLog.error("comment.create failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func loadComments() {
+        isLoading = true
+        Task {
+            do {
+                let result = try await ipc.spaceCommentList(spaceId: spaceId, messageId: messageId)
+                let items = result["comments"] as? [[String: Any]] ?? []
+                await MainActor.run { comments = items.map { SpaceComment.fromDict($0) }; isLoading = false }
+            } catch {
+                spaceLog.error("comment.list failed: \(error.localizedDescription)")
+                await MainActor.run { isLoading = false }
+            }
+        }
+    }
+}
+
+// MARK: - Page 4: 成员管理面板
+
+struct SpaceMemberPanel: View {
+    @EnvironmentObject var ipc: IPCClient
+    @Environment(\.studioTheme) private var theme
+
+    let spaceId: String
+    @State private var members: [SpaceMember] = []
+    @State private var isLoading = false
+    @State private var showInviteDialog = false
+    @State private var inviteRole = SpaceRole.member
+    @State private var inviteCode = ""
+    @State private var inviteMaxUses = 0
+    @State private var inviteExpiresHours = 0
+    @State private var discoveredPeers: [SpaceDiscoveryPeer] = []
+    @State private var isScanning = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("成员")
+                    .font(.system(size: theme.footnoteSize, weight: .semibold))
+                    .foregroundStyle(theme.textSecondary)
+                Spacer()
+                Button(action: { showInviteDialog = true }) {
+                    Image(systemName: "person.badge.plus")
+                        .font(.system(size: theme.iconS))
+                }
+                .buttonStyle(.plain)
                 Button(action: { loadMembers() }) {
                     Image(systemName: "arrow.clockwise")
                         .font(.system(size: theme.iconS))
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.horizontal, theme.spacingL)
-            .padding(.top, theme.spacingM)
+            .padding(.horizontal, theme.spacingM)
+            .padding(.top, theme.spacingS)
+            .padding(.bottom, theme.spacingXS)
 
             if isLoading {
                 ProgressView().padding()
             } else {
                 ScrollView {
                     LazyVStack(spacing: theme.spacingXS) {
-                        ForEach(members.indices, id: \.self) { idx in
-                            memberRow(members[idx])
+                        ForEach(members) { member in
+                            memberRow(member)
                         }
                     }
+                    .padding(.horizontal, theme.spacingS)
+                }
+            }
+
+            Divider().padding(.vertical, theme.spacingXS)
+
+            HStack {
+                Text("局域网发现")
+                    .font(.system(size: theme.footnoteSize, weight: .semibold))
+                    .foregroundStyle(theme.textSecondary)
+                Spacer()
+                Button(action: { scanPeers() }) {
+                    HStack(spacing: 2) {
+                        Image(systemName: "antenna.radiowaves.left.and.right")
+                            .font(.system(size: 9))
+                        Text(isScanning ? "扫描中..." : "扫描")
+                            .font(.system(size: 9))
+                    }
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(theme.accent)
+            }
+            .padding(.horizontal, theme.spacingM)
+
+            if !discoveredPeers.isEmpty {
+                ForEach(discoveredPeers) { peer in
+                    HStack(spacing: theme.spacingS) {
+                        Image(systemName: "desktopcomputer")
+                            .font(.system(size: theme.iconS))
+                            .foregroundStyle(theme.accent)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(peer.name)
+                                .font(.system(size: theme.captionSize))
+                            Text("\(peer.host):\(peer.port)")
+                                .font(.system(size: 9, design: .monospaced))
+                                .foregroundStyle(theme.textTertiary)
+                        }
+                        Spacer()
+                    }
                     .padding(.horizontal, theme.spacingM)
+                    .padding(.vertical, 3)
                 }
             }
         }
         .onAppear { loadMembers() }
+        .alert("邀请成员", isPresented: $showInviteDialog) {
+            Picker("角色", selection: $inviteRole) {
+                ForEach(SpaceRole.allCases, id: \.self) { role in
+                    Text(role.rawValue).tag(role)
+                }
+            }
+            Stepper("最大使用次数: \(inviteMaxUses)", value: $inviteMaxUses, in: 0...100)
+            Stepper("过期时间(小时): \(inviteExpiresHours)", value: $inviteExpiresHours, in: 0...168)
+            Button("生成邀请链接") { generateInvite() }
+            Button("取消", role: .cancel) { }
+        } message: {
+            if !inviteCode.isEmpty {
+                Text("邀请码: \(inviteCode)")
+            }
+        }
     }
 
-    private func memberRow(_ m: [String: Any]) -> some View {
-        let name = m["display_name"] as? String ?? m["user_id"] as? String ?? "?"
-        let role = m["role"] as? String ?? "member"
-        return HStack(spacing: theme.spacingS) {
+    private func memberRow(_ member: SpaceMember) -> some View {
+        HStack(spacing: theme.spacingS) {
+            Circle()
+                .fill(member.isOnline ? Color.green : theme.textTertiary)
+                .frame(width: 6, height: 6)
             Image(systemName: "person.circle")
-                .font(.system(size: theme.iconM))
+                .font(.system(size: theme.iconS))
                 .foregroundStyle(theme.textTertiary)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(name)
-                    .font(.system(size: theme.textSize, weight: .medium))
-                Text(role)
-                    .font(.system(size: theme.captionSize))
-                    .foregroundStyle(theme.textSecondary)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(member.displayLabel)
+                    .font(.system(size: theme.captionSize, weight: .medium))
+                    .lineLimit(1)
+                Text(member.role.rawValue)
+                    .font(.system(size: 9))
+                    .foregroundStyle(theme.textTertiary)
             }
             Spacer()
+            if member.role != .owner {
+                Menu {
+                    ForEach(SpaceRole.allCases, id: \.self) { role in
+                        Button(role.rawValue) { updateRole(member, newRole: role) }
+                    }
+                    Divider()
+                    Button("移除", role: .destructive) { removeMember(member) }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 8))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .menuStyle(.borderlessButton)
+            }
         }
         .padding(.horizontal, theme.spacingM)
-        .padding(.vertical, 6)
+        .padding(.vertical, 4)
+    }
+
+    private func generateInvite() {
+        Task {
+            do {
+                let result = try await ipc.spaceMemberInvite(
+                    spaceId: spaceId, role: inviteRole.rawValue,
+                    maxUses: inviteMaxUses, expiresHours: inviteExpiresHours
+                )
+                if let code = result["invite_code"] as? String {
+                    await MainActor.run { inviteCode = code }
+                    spaceLog.info("Invite generated: \(code)")
+                }
+            } catch {
+                spaceLog.error("invite failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func updateRole(_ member: SpaceMember, newRole: SpaceRole) {
+        Task {
+            do {
+                _ = try await ipc.spaceMemberUpdateRole(spaceId: spaceId, userId: member.userId, newRole: newRole.rawValue)
+                loadMembers()
+            } catch {
+                spaceLog.error("updateRole failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func removeMember(_ member: SpaceMember) {
+        Task {
+            do {
+                _ = try await ipc.spaceMemberRemove(spaceId: spaceId, userId: member.userId)
+                loadMembers()
+            } catch {
+                spaceLog.error("removeMember failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func scanPeers() {
+        isScanning = true
+        Task {
+            do {
+                let result = try await ipc.spaceDiscoveryScan()
+                let items = result["peers"] as? [[String: Any]] ?? []
+                await MainActor.run {
+                    discoveredPeers = items.map { SpaceDiscoveryPeer.fromDict($0) }
+                    isScanning = false
+                }
+            } catch {
+                spaceLog.error("discovery.scan failed: \(error.localizedDescription)")
+                await MainActor.run { isScanning = false }
+            }
+        }
     }
 
     private func loadMembers() {
         isLoading = true
         Task {
             do {
-                let result = try await ipc.spaceCall(method: "desk.space.member.list", params: ["space_id": spaceId])
-                if let items = result["members"] as? [[String: Any]] {
-                    await MainActor.run { members = items; isLoading = false }
-                } else {
-                    await MainActor.run { members = []; isLoading = false }
-                }
+                let result = try await ipc.spaceMemberList(spaceId: spaceId)
+                let items = result["members"] as? [[String: Any]] ?? []
+                await MainActor.run { members = items.map { SpaceMember.fromDict($0) }; isLoading = false }
             } catch {
                 spaceLog.error("member.list failed: \(error.localizedDescription)")
                 await MainActor.run { isLoading = false }
@@ -395,26 +1487,115 @@ struct SpaceMemberView: View {
     }
 }
 
-struct SpaceAgentView: View {
+// MARK: - Files Panel
+
+struct SpaceFilesPanel: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+
     let spaceId: String
-    @State private var agents: [[String: Any]] = []
+    @State private var files: [SpaceAttachment] = []
     @State private var isLoading = false
-    @State private var selectedAgentIdx: Int?
-    @State private var showEditor = false
-    @State private var editPrompt = ""
-    @State private var editName = ""
-    @State private var editPerm = "all_member"
-    @State private var isSaving = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("共享 Agent")
+                Text("文件")
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
+                    .foregroundStyle(theme.textSecondary)
                 Spacer()
-                Button(action: { showEditor = true; editName = ""; editPrompt = ""; editPerm = "all_member"; selectedAgentIdx = nil }) {
+                Button(action: { loadFiles() }) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: theme.iconS))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, theme.spacingM)
+            .padding(.top, theme.spacingS)
+
+            if isLoading {
+                ProgressView().padding()
+            } else if files.isEmpty {
+                VStack(spacing: theme.spacingXS) {
+                    Image(systemName: "folder")
+                        .font(.system(size: 20))
+                        .foregroundStyle(theme.textTertiary)
+                    Text("暂无文件")
+                        .font(.system(size: 9))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, theme.spacingL)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: theme.spacingXS) {
+                        ForEach(files) { file in
+                            HStack(spacing: theme.spacingS) {
+                                Image(systemName: "doc")
+                                    .font(.system(size: theme.iconS))
+                                    .foregroundStyle(theme.textTertiary)
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(file.fileName)
+                                        .font(.system(size: theme.captionSize))
+                                        .lineLimit(1)
+                                    Text(ByteCountFormatter.string(fromByteCount: file.fileSize, countStyle: .file))
+                                        .font(.system(size: 9, design: .monospaced))
+                                        .foregroundStyle(theme.textTertiary)
+                                }
+                                Spacer()
+                            }
+                            .padding(.horizontal, theme.spacingM)
+                            .padding(.vertical, 3)
+                        }
+                    }
+                }
+            }
+        }
+        .onAppear { loadFiles() }
+    }
+
+    private func loadFiles() {
+        isLoading = true
+        Task {
+            do {
+                let result = try await ipc.spaceArtifactList(spaceId: spaceId)
+                let items = result["artifacts"] as? [[String: Any]] ?? []
+                await MainActor.run { files = items.map { SpaceAttachment.fromDict($0) }; isLoading = false }
+            } catch {
+                spaceLog.error("file.list failed: \(error.localizedDescription)")
+                await MainActor.run { isLoading = false }
+            }
+        }
+    }
+}
+
+// MARK: - Page 5: Agent管理面板
+
+struct SpaceAgentPanel: View {
+    @EnvironmentObject var ipc: IPCClient
+    @Environment(\.studioTheme) private var theme
+
+    let spaceId: String
+    @State private var agents: [SpaceAgent] = []
+    @State private var isLoading = false
+    @State private var showEditor = false
+    @State private var editAgentId: String?
+    @State private var editName = ""
+    @State private var editPrompt = ""
+    @State private var editPerm = "all_member"
+    @State private var editModel = ""
+    @State private var isSaving = false
+    @State private var searchPublished = ""
+    @State private var publishedAgents: [SpaceAgent] = []
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("Agent")
+                    .font(.system(size: theme.footnoteSize, weight: .semibold))
+                    .foregroundStyle(theme.textSecondary)
+                Spacer()
+                Button(action: { showEditor = true; editAgentId = nil; editName = ""; editPrompt = ""; editPerm = "all_member"; editModel = "" }) {
                     Image(systemName: "plus")
                         .font(.system(size: theme.iconS))
                 }
@@ -425,20 +1606,35 @@ struct SpaceAgentView: View {
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.horizontal, theme.spacingL)
-            .padding(.top, theme.spacingM)
+            .padding(.horizontal, theme.spacingM)
+            .padding(.top, theme.spacingS)
+
             if isLoading {
                 ProgressView().padding()
             } else if agents.isEmpty {
-                emptyAgentView
+                VStack(spacing: theme.spacingXS) {
+                    Image(systemName: "brain.head.profile")
+                        .font(.system(size: 20))
+                        .foregroundStyle(theme.textTertiary)
+                    Text("暂无共享 Agent")
+                        .font(.system(size: 9))
+                        .foregroundStyle(theme.textTertiary)
+                    Button("添加 Agent") {
+                        showEditor = true; editAgentId = nil; editName = ""; editPrompt = ""
+                    }
+                    .font(.system(size: 9))
+                    .foregroundStyle(theme.accent)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, theme.spacingL)
             } else {
                 ScrollView {
                     LazyVStack(spacing: theme.spacingXS) {
-                        ForEach(agents.indices, id: \.self) { idx in
-                            agentRow(agents[idx], idx: idx)
+                        ForEach(agents) { agent in
+                            agentRow(agent)
                         }
                     }
-                    .padding(.horizontal, theme.spacingM)
+                    .padding(.horizontal, theme.spacingS)
                 }
             }
         }
@@ -448,82 +1644,72 @@ struct SpaceAgentView: View {
         }
     }
 
-    private var emptyAgentView: some View {
-        VStack(spacing: theme.spacingS) {
+    private func agentRow(_ agent: SpaceAgent) -> some View {
+        HStack(spacing: theme.spacingS) {
             Image(systemName: "brain.head.profile")
-                .font(.system(size: 24))
-                .foregroundStyle(theme.textTertiary)
-            Text("暂无共享 Agent")
-                .font(.system(size: theme.footnoteSize))
-                .foregroundStyle(theme.textSecondary)
-            Button("添加 Agent") { showEditor = true; editName = ""; editPrompt = ""; selectedAgentIdx = nil }
-                .font(.system(size: theme.footnoteSize))
+                .font(.system(size: theme.iconS))
                 .foregroundStyle(theme.accent)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private func agentRow(_ a: [String: Any], idx: Int) -> some View {
-        let name = a["agent_name"] as? String ?? a["name"] as? String ?? "?"
-        let perm = a["permission"] as? String ?? "all_member"
-        return HStack(spacing: theme.spacingS) {
-            Image(systemName: "brain.head.profile")
-                .font(.system(size: theme.iconM))
-                .foregroundStyle(theme.accent)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(name)
-                    .font(.system(size: theme.textSize, weight: .medium))
-                HStack(spacing: theme.spacingS) {
-                    Text(permLabel(perm))
-                        .font(.system(size: theme.captionSize))
-                        .foregroundStyle(theme.textSecondary)
-                    if let model = a["model"] as? String {
-                        Text(model)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(agent.name)
+                    .font(.system(size: theme.captionSize, weight: .medium))
+                    .lineLimit(1)
+                HStack(spacing: theme.spacingXS) {
+                    Text(permLabel(agent.permission))
+                        .font(.system(size: 9))
+                    if !agent.model.isEmpty {
+                        Text(agent.model)
                             .font(.system(size: 9, design: .monospaced))
                             .foregroundStyle(theme.textTertiary)
                     }
+                    Text(agent.source)
+                        .font(.system(size: 9))
+                        .foregroundStyle(theme.textTertiary)
                 }
+                .foregroundStyle(theme.textSecondary)
             }
             Spacer()
             Menu {
                 Button("编辑") {
-                    editName = name
-                    editPrompt = a["system_prompt"] as? String ?? ""
-                    editPerm = perm
-                    selectedAgentIdx = idx
+                    editAgentId = agent.id
+                    editName = agent.name
+                    editPrompt = agent.systemPrompt
+                    editPerm = agent.permission
+                    editModel = agent.model
                     showEditor = true
                 }
                 Button("复制到项目") { }
                 Divider()
-                Button("移除", role: .destructive) { removeAgent(a) }
+                Button("移除", role: .destructive) { removeAgent(agent) }
             } label: {
                 Image(systemName: "ellipsis")
-                    .font(.system(size: theme.iconXS))
+                    .font(.system(size: 8))
                     .foregroundStyle(theme.textTertiary)
             }
             .menuStyle(.borderlessButton)
         }
         .padding(.horizontal, theme.spacingM)
-        .padding(.vertical, 6)
+        .padding(.vertical, 4)
     }
 
     private var agentEditorSheet: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            Text(selectedAgentIdx == nil ? "添加 Agent" : "编辑 Agent")
+            Text(editAgentId == nil ? "添加 Agent" : "编辑 Agent")
                 .font(.system(size: theme.headlineSize, weight: .bold))
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("名称")
-                    .font(.system(size: theme.captionSize))
-                    .foregroundStyle(theme.textSecondary)
+                Text("名称").font(.system(size: theme.captionSize)).foregroundStyle(theme.textSecondary)
                 TextField("Agent 名称", text: $editName)
                     .textFieldStyle(.roundedBorder)
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("权限")
-                    .font(.system(size: theme.captionSize))
-                    .foregroundStyle(theme.textSecondary)
+                Text("模型").font(.system(size: theme.captionSize)).foregroundStyle(theme.textSecondary)
+                TextField("模型（留空使用默认）", text: $editModel)
+                    .textFieldStyle(.roundedBorder)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("权限").font(.system(size: theme.captionSize)).foregroundStyle(theme.textSecondary)
                 Picker("", selection: $editPerm) {
                     Text("全部成员可用").tag("all_member")
                     Text("仅管理员").tag("admin_only")
@@ -534,9 +1720,7 @@ struct SpaceAgentView: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("System Prompt")
-                    .font(.system(size: theme.captionSize))
-                    .foregroundStyle(theme.textSecondary)
+                Text("System Prompt").font(.system(size: theme.captionSize)).foregroundStyle(theme.textSecondary)
                 TextEditor(text: $editPrompt)
                     .font(.system(size: theme.footnoteSize, design: .monospaced))
                     .frame(height: 120)
@@ -546,7 +1730,6 @@ struct SpaceAgentView: View {
             }
 
             Spacer(minLength: 0)
-
             HStack {
                 Button("取消") { showEditor = false }
                 Spacer()
@@ -555,7 +1738,7 @@ struct SpaceAgentView: View {
             }
         }
         .padding(theme.spacingL)
-        .frame(width: 440, height: 420)
+        .frame(width: 440, height: 440)
     }
 
     private func permLabel(_ perm: String) -> String {
@@ -571,17 +1754,17 @@ struct SpaceAgentView: View {
         isSaving = true
         Task {
             do {
-                var params: [String: Any] = [
-                    "space_id": spaceId,
-                    "agent_name": editName,
-                    "system_prompt": editPrompt,
-                    "permission": editPerm
-                ]
-                if let idx = selectedAgentIdx, let aid = agents[idx]["agent_id"] as? String ?? agents[idx]["id"] as? String {
-                    params["agent_id"] = aid
-                    _ = try await ipc.spaceCall(method: "desk.space.agent.update", params: params)
+                if let aid = editAgentId {
+                    _ = try await ipc.spaceCall(method: "desk.space.agent.update", params: [
+                        "space_id": spaceId, "agent_id": aid,
+                        "agent_name": editName, "system_prompt": editPrompt,
+                        "permission": editPerm, "model": editModel,
+                    ])
                 } else {
-                    _ = try await ipc.spaceCall(method: "desk.space.agent.add", params: params)
+                    _ = try await ipc.spaceAgentAdd(
+                        spaceId: spaceId, agentName: editName,
+                        systemPrompt: editPrompt, permission: editPerm, model: editModel
+                    )
                 }
                 spaceLog.info("Agent saved: \(editName)")
                 await MainActor.run { showEditor = false; isSaving = false }
@@ -593,13 +1776,10 @@ struct SpaceAgentView: View {
         }
     }
 
-    private func removeAgent(_ a: [String: Any]) {
-        let aid = a["agent_id"] as? String ?? a["id"] as? String ?? ""
+    private func removeAgent(_ agent: SpaceAgent) {
         Task {
             do {
-                _ = try await ipc.spaceCall(method: "desk.space.agent.remove", params: [
-                    "space_id": spaceId, "agent_id": aid
-                ])
+                _ = try await ipc.spaceAgentRemove(spaceId: spaceId, agentId: agent.id)
                 loadAgents()
             } catch {
                 spaceLog.error("removeAgent failed: \(error.localizedDescription)")
@@ -611,9 +1791,9 @@ struct SpaceAgentView: View {
         isLoading = true
         Task {
             do {
-                let r = try await ipc.spaceCall(method: "desk.space.agent.list", params: ["space_id": spaceId])
-                let items = r["agents"] as? [[String: Any]] ?? []
-                await MainActor.run { agents = items; isLoading = false }
+                let result = try await ipc.spaceAgentList(spaceId: spaceId)
+                let items = result["agents"] as? [[String: Any]] ?? []
+                await MainActor.run { agents = items.map { SpaceAgent.fromDict($0) }; isLoading = false }
             } catch {
                 spaceLog.error("agent.list failed: \(error.localizedDescription)")
                 await MainActor.run { isLoading = false }
@@ -622,11 +1802,14 @@ struct SpaceAgentView: View {
     }
 }
 
-struct SpaceSnapshotView: View {
+// MARK: - Page 6: 快照管理
+
+struct SpaceSnapshotPanel: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+
     let spaceId: String
-    @State private var snapshots: [[String: Any]] = []
+    @State private var snapshots: [SpaceSnapshot] = []
     @State private var isLoading = false
     @State private var showCreate = false
     @State private var snapName = ""
@@ -637,8 +1820,9 @@ struct SpaceSnapshotView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("空间快照")
+                Text("快照")
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
+                    .foregroundStyle(theme.textSecondary)
                 Spacer()
                 Button(action: { showCreate = true }) {
                     Image(systemName: "plus")
@@ -651,20 +1835,30 @@ struct SpaceSnapshotView: View {
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.horizontal, theme.spacingL)
-            .padding(.top, theme.spacingM)
+            .padding(.horizontal, theme.spacingM)
+            .padding(.top, theme.spacingS)
+
             if isLoading {
                 ProgressView().padding()
             } else if snapshots.isEmpty {
-                emptySnapView
+                VStack(spacing: theme.spacingXS) {
+                    Image(systemName: "camera")
+                        .font(.system(size: 20))
+                        .foregroundStyle(theme.textTertiary)
+                    Text("暂无快照")
+                        .font(.system(size: 9))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, theme.spacingL)
             } else {
                 ScrollView {
                     LazyVStack(spacing: theme.spacingXS) {
-                        ForEach(snapshots.indices, id: \.self) { idx in
-                            snapRow(snapshots[idx])
+                        ForEach(snapshots) { snap in
+                            snapRow(snap)
                         }
                     }
-                    .padding(.horizontal, theme.spacingM)
+                    .padding(.horizontal, theme.spacingS)
                 }
             }
         }
@@ -681,81 +1875,47 @@ struct SpaceSnapshotView: View {
         }
     }
 
-    private var emptySnapView: some View {
-        VStack(spacing: theme.spacingS) {
-            Image(systemName: "camera.on.rectangle")
-                .font(.system(size: 24))
-                .foregroundStyle(theme.textTertiary)
-            Text("暂无快照")
-                .font(.system(size: theme.footnoteSize))
-                .foregroundStyle(theme.textSecondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private func snapRow(_ s: [String: Any]) -> some View {
-        let name = s["name"] as? String ?? "unnamed"
-        let ts = s["created_at"] as? String ?? ""
-        let snapId = s["snapshot_id"] as? String ?? s["id"] as? String ?? ""
-        return HStack(spacing: theme.spacingS) {
+    private func snapRow(_ snap: SpaceSnapshot) -> some View {
+        HStack(spacing: theme.spacingS) {
             Image(systemName: "camera")
-                .font(.system(size: theme.iconM))
+                .font(.system(size: theme.iconS))
                 .foregroundStyle(theme.accent)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(name)
-                    .font(.system(size: theme.textSize, weight: .medium))
-                HStack(spacing: theme.spacingS) {
-                    Text(ts)
-                        .font(.system(size: theme.captionSize))
-                        .foregroundStyle(theme.textSecondary)
-                    if let memberCount = s["member_count"] as? Int {
-                        Text("\(memberCount) 成员")
-                            .font(.system(size: 9))
-                            .foregroundStyle(theme.textTertiary)
-                    }
+            VStack(alignment: .leading, spacing: 1) {
+                Text(snap.name)
+                    .font(.system(size: theme.captionSize, weight: .medium))
+                HStack(spacing: theme.spacingXS) {
+                    Label("\(snap.messageCount)", systemImage: "bubble.left")
+                    Label("\(snap.agentCount)", systemImage: "brain.head.profile")
+                    Label("\(snap.artifactCount)", systemImage: "shippingbox")
                 }
+                .font(.system(size: 8))
+                .foregroundStyle(theme.textTertiary)
             }
             Spacer()
             Menu {
-                Button("恢复此快照") { restoreSnapshot(snapId) }
+                Button("恢复此快照") { restoreSnapshot(snap.id) }
                 Button("Fork 为新空间") {
-                    forkSnapId = snapId
-                    forkName = name + " (Fork)"
+                    forkSnapId = snap.id
+                    forkName = snap.name + " (Fork)"
                     showForkDialog = true
                 }
                 Divider()
-                Button("删除", role: .destructive) { deleteSnapshot(snapId) }
+                Button("删除", role: .destructive) { deleteSnapshot(snap.id) }
             } label: {
                 Image(systemName: "ellipsis")
-                    .font(.system(size: theme.iconXS))
+                    .font(.system(size: 8))
                     .foregroundStyle(theme.textTertiary)
             }
             .menuStyle(.borderlessButton)
         }
         .padding(.horizontal, theme.spacingM)
-        .padding(.vertical, 6)
-    }
-
-    private func loadSnapshots() {
-        isLoading = true
-        Task {
-            do {
-                let r = try await ipc.spaceCall(method: "desk.space.snapshot.list", params: ["space_id": spaceId])
-                let items = r["snapshots"] as? [[String: Any]] ?? []
-                await MainActor.run { snapshots = items; isLoading = false }
-            } catch {
-                spaceLog.error("snapshot.list failed: \(error.localizedDescription)")
-                await MainActor.run { isLoading = false }
-            }
-        }
+        .padding(.vertical, 4)
     }
 
     private func createSnapshot() {
         Task {
             do {
-                _ = try await ipc.spaceCall(method: "desk.space.snapshot.create", params: [
-                    "space_id": spaceId, "name": snapName.isEmpty ? "snapshot" : snapName
-                ])
+                _ = try await ipc.spaceSnapshotCreate(spaceId: spaceId, name: snapName.isEmpty ? "snapshot" : snapName)
                 snapName = ""
                 loadSnapshots()
             } catch {
@@ -768,7 +1928,7 @@ struct SpaceSnapshotView: View {
         Task {
             do {
                 _ = try await ipc.spaceCall(method: "desk.space.snapshot.restore", params: [
-                    "space_id": spaceId, "snapshot_id": snapId
+                    "space_id": spaceId, "snapshot_id": snapId,
                 ])
                 spaceLog.info("Snapshot restored: \(snapId)")
                 loadSnapshots()
@@ -781,10 +1941,8 @@ struct SpaceSnapshotView: View {
     private func forkSnapshot() {
         Task {
             do {
-                _ = try await ipc.spaceCall(method: "desk.space.snapshot.fork", params: [
-                    "space_id": spaceId, "snapshot_id": forkSnapId, "new_name": forkName
-                ])
-                spaceLog.info("Snapshot forked: \(forkSnapId) → \(forkName)")
+                _ = try await ipc.spaceSnapshotClone(spaceId: spaceId, snapshotId: forkSnapId, newName: forkName)
+                spaceLog.info("Snapshot forked: \(forkSnapId)")
                 forkName = ""
                 loadSnapshots()
             } catch {
@@ -797,7 +1955,7 @@ struct SpaceSnapshotView: View {
         Task {
             do {
                 _ = try await ipc.spaceCall(method: "desk.space.snapshot.delete", params: [
-                    "space_id": spaceId, "snapshot_id": snapId
+                    "space_id": spaceId, "snapshot_id": snapId,
                 ])
                 loadSnapshots()
             } catch {
@@ -805,81 +1963,127 @@ struct SpaceSnapshotView: View {
             }
         }
     }
+
+    private func loadSnapshots() {
+        isLoading = true
+        Task {
+            do {
+                let result = try await ipc.spaceSnapshotList(spaceId: spaceId)
+                let items = result["snapshots"] as? [[String: Any]] ?? []
+                await MainActor.run { snapshots = items.map { SpaceSnapshot.fromDict($0) }; isLoading = false }
+            } catch {
+                spaceLog.error("snapshot.list failed: \(error.localizedDescription)")
+                await MainActor.run { isLoading = false }
+            }
+        }
+    }
 }
 
-struct SpaceArtifactView: View {
+// MARK: - Page 7.6: 产物管理
+
+struct SpaceArtifactPanel: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+
     let spaceId: String
-    @State private var artifacts: [[String: Any]] = []
+    @Binding var selectedArtifact: SpaceArtifact?
+    @State private var artifacts: [SpaceArtifact] = []
     @State private var isLoading = false
+    @State private var kindFilter: String = "all"
+    @State private var showCreateDialog = false
+    @State private var newArtName = ""
+    @State private var newArtKind = "code"
+    @State private var newArtDesc = ""
+
+    private let kinds = ["all", "code", "doc", "visualization", "data"]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("空间产物")
+                Text("产物")
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
+                    .foregroundStyle(theme.textSecondary)
                 Spacer()
+                Button(action: { showCreateDialog = true }) {
+                    Image(systemName: "plus")
+                        .font(.system(size: theme.iconS))
+                }
+                .buttonStyle(.plain)
                 Button(action: { loadArtifacts() }) {
                     Image(systemName: "arrow.clockwise")
                         .font(.system(size: theme.iconS))
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.horizontal, theme.spacingL)
-            .padding(.top, theme.spacingM)
+            .padding(.horizontal, theme.spacingM)
+            .padding(.top, theme.spacingS)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: theme.spacingXS) {
+                    ForEach(kinds, id: \.self) { kind in
+                        Button(action: { kindFilter = kind }) {
+                            Text(kindLabel(kind))
+                                .font(.system(size: 9, weight: kindFilter == kind ? .semibold : .regular))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                                        .fill(kindFilter == kind ? theme.accent.opacity(0.15) : Color.clear)
+                                )
+                                .foregroundStyle(kindFilter == kind ? theme.accent : theme.textSecondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, theme.spacingM)
+            }
+
             if isLoading {
                 ProgressView().padding()
-            } else if artifacts.isEmpty {
-                emptyArtView
             } else {
                 ScrollView {
                     LazyVStack(spacing: theme.spacingXS) {
-                        ForEach(artifacts.indices, id: \.self) { idx in
-                            artRow(artifacts[idx])
+                        ForEach(filteredArtifacts) { art in
+                            artifactRow(art)
                         }
                     }
-                    .padding(.horizontal, theme.spacingM)
+                    .padding(.horizontal, theme.spacingS)
                 }
             }
         }
         .onAppear { loadArtifacts() }
-    }
-
-    private var emptyArtView: some View {
-        VStack(spacing: theme.spacingS) {
-            Image(systemName: "shippingbox")
-                .font(.system(size: 24))
-                .foregroundStyle(theme.textTertiary)
-            Text("暂无产物")
-                .font(.system(size: theme.footnoteSize))
-                .foregroundStyle(theme.textSecondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private func artRow(_ a: [String: Any]) -> some View {
-        let name = a["name"] as? String ?? "?"
-        let type = a["type"] as? String ?? "unknown"
-        return HStack(spacing: theme.spacingS) {
-            Image(systemName: artifactIcon(type))
-                .font(.system(size: theme.iconM))
-                .foregroundStyle(theme.textTertiary)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(name)
-                    .font(.system(size: theme.textSize, weight: .medium))
-                Text(type)
-                    .font(.system(size: theme.captionSize))
-                    .foregroundStyle(theme.textSecondary)
+        .alert("创建产物", isPresented: $showCreateDialog) {
+            TextField("名称", text: $newArtName)
+            Picker("类型", selection: $newArtKind) {
+                Text("代码").tag("code")
+                Text("文档").tag("doc")
+                Text("可视化").tag("visualization")
+                Text("数据").tag("data")
             }
-            Spacer()
+            TextField("描述（可选）", text: $newArtDesc)
+            Button("创建") { createArtifact() }
+            Button("取消", role: .cancel) { }
         }
-        .padding(.horizontal, theme.spacingM)
-        .padding(.vertical, 6)
     }
 
-    private func artifactIcon(_ type: String) -> String {
-        switch type {
+    private var filteredArtifacts: [SpaceArtifact] {
+        if kindFilter == "all" { return artifacts }
+        return artifacts.filter { $0.kind == kindFilter }
+    }
+
+    private func kindLabel(_ kind: String) -> String {
+        switch kind {
+        case "all": return "全部"
+        case "code": return "代码"
+        case "doc": return "文档"
+        case "visualization": return "可视化"
+        case "data": return "数据"
+        default: return kind
+        }
+    }
+
+    private func artifactIcon(_ kind: String) -> String {
+        switch kind {
         case "code": return "chevron.left.forwardslash.chevron.right"
         case "doc": return "doc.text"
         case "visualization": return "chart.bar"
@@ -888,13 +2092,58 @@ struct SpaceArtifactView: View {
         }
     }
 
+    private func artifactRow(_ art: SpaceArtifact) -> some View {
+        Button(action: { selectedArtifact = art }) {
+            HStack(spacing: theme.spacingS) {
+                Image(systemName: artifactIcon(art.kind))
+                    .font(.system(size: theme.iconS))
+                    .foregroundStyle(selectedArtifact?.id == art.id ? theme.accent : theme.textTertiary)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(art.name)
+                        .font(.system(size: theme.captionSize, weight: .medium))
+                        .lineLimit(1)
+                    Text(art.kind)
+                        .font(.system(size: 9))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                Spacer()
+                if selectedArtifact?.id == art.id {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 8))
+                        .foregroundStyle(theme.accent)
+                }
+            }
+            .padding(.horizontal, theme.spacingM)
+            .padding(.vertical, 4)
+            .background(
+                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                    .fill(selectedArtifact?.id == art.id ? theme.accent.opacity(0.08) : Color.clear)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func createArtifact() {
+        Task {
+            do {
+                _ = try await ipc.spaceArtifactCreate(
+                    spaceId: spaceId, name: newArtName, kind: newArtKind, description: newArtDesc
+                )
+                newArtName = ""; newArtDesc = ""
+                loadArtifacts()
+            } catch {
+                spaceLog.error("artifact.create failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
     private func loadArtifacts() {
         isLoading = true
         Task {
             do {
-                let r = try await ipc.spaceCall(method: "desk.space.artifact.list", params: ["space_id": spaceId])
-                let items = r["artifacts"] as? [[String: Any]] ?? []
-                await MainActor.run { artifacts = items; isLoading = false }
+                let result = try await ipc.spaceArtifactList(spaceId: spaceId, kind: kindFilter == "all" ? nil : kindFilter)
+                let items = result["artifacts"] as? [[String: Any]] ?? []
+                await MainActor.run { artifacts = items.map { SpaceArtifact.fromDict($0) }; isLoading = false }
             } catch {
                 spaceLog.error("artifact.list failed: \(error.localizedDescription)")
                 await MainActor.run { isLoading = false }
@@ -903,35 +2152,22 @@ struct SpaceArtifactView: View {
     }
 }
 
-struct SpaceChatPlaceholder: View {
-    @Environment(\.studioTheme) private var theme
-    let spaceId: String
+// MARK: - Page 7.4: 工作流协作
 
-    var body: some View {
-        VStack(spacing: theme.spacingM) {
-            Image(systemName: "bubble.left.and.bubble.right")
-                .font(.system(size: 30))
-                .foregroundStyle(theme.textTertiary)
-            Text("空间对话")
-                .font(.system(size: theme.textSize, weight: .medium))
-                .foregroundStyle(theme.textSecondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
-
-struct SpaceWorkflowView: View {
+struct SpaceWorkflowPanel: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+
     let spaceId: String
-    @State private var workflows: [[String: Any]] = []
+    @State private var workflows: [SpaceWorkflow] = []
     @State private var isLoading = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("工作流协作")
+                Text("工作流")
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
+                    .foregroundStyle(theme.textSecondary)
                 Spacer()
                 Button(action: { loadWorkflows() }) {
                     Image(systemName: "arrow.clockwise")
@@ -939,65 +2175,122 @@ struct SpaceWorkflowView: View {
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.horizontal, theme.spacingL)
-            .padding(.top, theme.spacingM)
+            .padding(.horizontal, theme.spacingM)
+            .padding(.top, theme.spacingS)
+
             if isLoading {
                 ProgressView().padding()
             } else if workflows.isEmpty {
-                emptyWorkflowView
+                VStack(spacing: theme.spacingXS) {
+                    Image(systemName: "arrow.triangle.branch")
+                        .font(.system(size: 20))
+                        .foregroundStyle(theme.textTertiary)
+                    Text("暂无工作流")
+                        .font(.system(size: 9))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, theme.spacingL)
             } else {
                 ScrollView {
                     LazyVStack(spacing: theme.spacingXS) {
-                        ForEach(workflows.indices, id: \.self) { idx in
-                            workflowRow(workflows[idx])
+                        ForEach(workflows) { wf in
+                            workflowRow(wf)
                         }
                     }
-                    .padding(.horizontal, theme.spacingM)
+                    .padding(.horizontal, theme.spacingS)
                 }
             }
+
+            Spacer()
+            VStack(alignment: .leading, spacing: theme.spacingXS) {
+                Text("DAG 预览")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(theme.textTertiary)
+                workflowDagPlaceholder
+                    .frame(height: 120)
+            }
+            .padding(.horizontal, theme.spacingM)
+            .padding(.bottom, theme.spacingM)
         }
         .onAppear { loadWorkflows() }
     }
 
-    private var emptyWorkflowView: some View {
-        VStack(spacing: theme.spacingS) {
+    private func workflowRow(_ wf: SpaceWorkflow) -> some View {
+        HStack(spacing: theme.spacingS) {
             Image(systemName: "arrow.triangle.branch")
-                .font(.system(size: 24))
+                .font(.system(size: theme.iconS))
                 .foregroundStyle(theme.textTertiary)
-            Text("暂无工作流")
-                .font(.system(size: theme.footnoteSize))
-                .foregroundStyle(theme.textSecondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private func workflowRow(_ w: [String: Any]) -> some View {
-        let name = w["name"] as? String ?? "unnamed"
-        let status = w["status"] as? String ?? "idle"
-        return HStack(spacing: theme.spacingS) {
-            Image(systemName: "arrow.triangle.branch")
-                .font(.system(size: theme.iconM))
-                .foregroundStyle(theme.textTertiary)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(name)
-                    .font(.system(size: theme.textSize, weight: .medium))
-                Text(status)
-                    .font(.system(size: theme.captionSize))
-                    .foregroundStyle(theme.textSecondary)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(wf.name)
+                    .font(.system(size: theme.captionSize, weight: .medium))
+                HStack(spacing: theme.spacingXS) {
+                    Text(wf.status)
+                        .font(.system(size: 9))
+                        .foregroundStyle(wf.status == "running" ? Color.green : theme.textTertiary)
+                    Text("\(wf.nodeCount) 节点")
+                        .font(.system(size: 9))
+                        .foregroundStyle(theme.textTertiary)
+                }
             }
             Spacer()
+            Button(action: { runWorkflow(wf.id) }) {
+                Image(systemName: "play.fill")
+                    .font(.system(size: 9))
+                    .foregroundStyle(theme.accent)
+            }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, theme.spacingM)
-        .padding(.vertical, 6)
+        .padding(.vertical, 4)
+    }
+
+    private var workflowDagPlaceholder: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall)
+                .fill(theme.surfaceSecondary)
+            HStack(spacing: theme.spacingM) {
+                VStack(spacing: 4) {
+                    Circle().fill(theme.accent.opacity(0.3)).frame(width: 20, height: 20)
+                    Text("输入").font(.system(size: 8)).foregroundStyle(theme.textTertiary)
+                }
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 9))
+                    .foregroundStyle(theme.textTertiary)
+                VStack(spacing: 4) {
+                    RoundedRectangle(cornerRadius: 4).fill(theme.accent.opacity(0.4)).frame(width: 40, height: 20)
+                    Text("Agent").font(.system(size: 8)).foregroundStyle(theme.textTertiary)
+                }
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 9))
+                    .foregroundStyle(theme.textTertiary)
+                VStack(spacing: 4) {
+                    Circle().fill(Color.green.opacity(0.4)).frame(width: 20, height: 20)
+                    Text("输出").font(.system(size: 8)).foregroundStyle(theme.textTertiary)
+                }
+            }
+        }
+    }
+
+    private func runWorkflow(_ workflowId: String) {
+        Task {
+            do {
+                _ = try await ipc.spaceWorkflowRun(spaceId: spaceId, workflowId: workflowId)
+                spaceLog.info("Workflow started: \(workflowId)")
+                loadWorkflows()
+            } catch {
+                spaceLog.error("workflow.run failed: \(error.localizedDescription)")
+            }
+        }
     }
 
     private func loadWorkflows() {
         isLoading = true
         Task {
             do {
-                let r = try await ipc.spaceCall(method: "desk.space.workflow.list", params: ["space_id": spaceId])
-                let items = r["workflows"] as? [[String: Any]] ?? []
-                await MainActor.run { workflows = items; isLoading = false }
+                let result = try await ipc.spaceWorkflowList(spaceId: spaceId)
+                let items = result["workflows"] as? [[String: Any]] ?? []
+                await MainActor.run { workflows = items.map { SpaceWorkflow.fromDict($0) }; isLoading = false }
             } catch {
                 spaceLog.error("workflow.list failed: \(error.localizedDescription)")
                 await MainActor.run { isLoading = false }
@@ -1006,88 +2299,126 @@ struct SpaceWorkflowView: View {
     }
 }
 
-struct SpaceDesktopView: View {
+// MARK: - Page 7.7: 桌面共享
+
+struct SpaceDesktopPanel: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+
     let spaceId: String
     @State private var isSharing = false
     @State private var role = "observer"
     @State private var auditLog: [[String: Any]] = []
+    @State private var controlRequests: [[String: Any]] = []
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("桌面共享")
+                Text("桌面")
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
+                    .foregroundStyle(theme.textSecondary)
                 Spacer()
                 Picker("角色", selection: $role) {
                     Text("观察者").tag("observer")
                     Text("控制者").tag("controller")
                     Text("审批者").tag("approver")
                 }
-                .frame(width: 120)
+                .frame(width: 100)
+                .font(.system(size: 9))
                 Button(action: { toggleShare() }) {
                     Image(systemName: isSharing ? "stop.fill" : "play.fill")
                         .font(.system(size: theme.iconS))
+                        .foregroundStyle(isSharing ? Color.red : Color.green)
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.horizontal, theme.spacingL)
-            .padding(.top, theme.spacingM)
+            .padding(.horizontal, theme.spacingM)
+            .padding(.top, theme.spacingS)
 
             if isSharing {
                 sharedDesktopView
             } else {
-                idleDesktopView
+                VStack(spacing: theme.spacingXS) {
+                    Image(systemName: "desktopcomputer")
+                        .font(.system(size: 20))
+                        .foregroundStyle(theme.textTertiary)
+                    Text("桌面共享未开启")
+                        .font(.system(size: 9))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, theme.spacingL)
+            }
+
+            if !controlRequests.isEmpty {
+                Divider().padding(.vertical, theme.spacingXS)
+                Text("控制请求")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(theme.textSecondary)
+                    .padding(.horizontal, theme.spacingM)
+                ForEach(controlRequests.indices, id: \.self) { idx in
+                    HStack {
+                        Text(controlRequests[idx]["user_id"] as? String ?? "")
+                            .font(.system(size: 9))
+                        Spacer()
+                        Button("批准") { }
+                            .font(.system(size: 9))
+                            .foregroundStyle(Color.green)
+                        Button("拒绝") { }
+                            .font(.system(size: 9))
+                            .foregroundStyle(Color.red)
+                    }
+                    .padding(.horizontal, theme.spacingM)
+                    .padding(.vertical, 2)
+                }
+            }
+
+            if !auditLog.isEmpty {
+                Divider().padding(.vertical, theme.spacingXS)
+                Text("操作记录")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(theme.textSecondary)
+                    .padding(.horizontal, theme.spacingM)
+                ScrollView {
+                    ForEach(auditLog.indices, id: \.self) { idx in
+                        let a = auditLog[idx]
+                        HStack {
+                            Text(a["operation"] as? String ?? "")
+                                .font(.system(size: 8))
+                            Spacer()
+                            Text(a["timestamp"] as? String ?? "")
+                                .font(.system(size: 8, design: .monospaced))
+                                .foregroundStyle(theme.textTertiary)
+                        }
+                        .padding(.horizontal, theme.spacingM)
+                    }
+                }
+                .frame(maxHeight: 80)
             }
         }
-    }
-
-    private var idleDesktopView: some View {
-        VStack(spacing: theme.spacingS) {
-            Image(systemName: "desktopcomputer")
-                .font(.system(size: 24))
-                .foregroundStyle(theme.textTertiary)
-            Text("桌面共享未开启")
-                .font(.system(size: theme.footnoteSize))
-                .foregroundStyle(theme.textSecondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var sharedDesktopView: some View {
-        VStack(spacing: theme.spacingS) {
-            RoundedRectangle(cornerRadius: theme.cornerRadius)
-                .fill(theme.surfaceSecondary)
-                .overlay(
-                    Image(systemName: "desktopcomputer")
-                        .font(.system(size: 40))
-                        .foregroundStyle(theme.textTertiary)
-                )
-                .frame(maxWidth: .infinity)
-                .frame(height: 300)
-            if !auditLog.isEmpty {
-                ScrollView {
-                    LazyVStack(spacing: 2) {
-                        ForEach(auditLog.indices, id: \.self) { idx in
-                            auditRow(auditLog[idx])
-                        }
-                    }
-                    .padding(.horizontal, theme.spacingM)
-                }
+        VStack(spacing: theme.spacingXS) {
+            ZStack {
+                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall)
+                    .fill(theme.surfaceSecondary)
+                    .frame(height: 100)
+                Image(systemName: "desktopcomputer")
+                    .font(.system(size: 24))
+                    .foregroundStyle(theme.textTertiary)
+            }
+            HStack(spacing: theme.spacingXS) {
+                Label("共享中", systemImage: "circle.fill")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(Color.green)
+                Text(role)
+                    .font(.system(size: 9))
+                    .foregroundStyle(theme.textTertiary)
             }
         }
-        .padding(theme.spacingM)
-    }
-
-    private func auditRow(_ a: [String: Any]) -> some View {
-        let op = a["operation"] as? String ?? "?"
-        let ts = a["timestamp"] as? String ?? ""
-        return HStack {
-            Text(op).font(.system(size: theme.captionSize))
-            Spacer()
-            Text(ts).font(.system(size: theme.captionSize)).foregroundStyle(theme.textSecondary)
-        }
+        .padding(.horizontal, theme.spacingM)
+        .padding(.top, theme.spacingS)
     }
 
     private func toggleShare() {
@@ -1096,7 +2427,7 @@ struct SpaceDesktopView: View {
         Task {
             do {
                 _ = try await ipc.spaceCall(method: method, params: [
-                    "space_id": spaceId, "action": isSharing ? "start" : "stop"
+                    "space_id": spaceId, "action": isSharing ? "start" : "stop",
                 ])
             } catch {
                 spaceLog.error("desktop share failed: \(error.localizedDescription)")
@@ -1104,3 +2435,446 @@ struct SpaceDesktopView: View {
         }
     }
 }
+
+// MARK: - Space Settings Panel
+
+struct SpaceSettingsPanel: View {
+    @EnvironmentObject var ipc: IPCClient
+    @Environment(\.studioTheme) private var theme
+
+    let spaceId: String
+    let space: CoworkSpace?
+
+    @State private var config = SpaceConfig()
+    @State private var isSaving = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("设置")
+                    .font(.system(size: theme.footnoteSize, weight: .semibold))
+                    .foregroundStyle(theme.textSecondary)
+                Spacer()
+                Button("保存") { saveConfig() }
+                    .font(.system(size: theme.footnoteSize, weight: .medium))
+                    .foregroundStyle(theme.accent)
+                    .disabled(isSaving)
+            }
+            .padding(.horizontal, theme.spacingM)
+            .padding(.top, theme.spacingS)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: theme.spacingS) {
+                    toolToggle("联网搜索", icon: "globe", isOn: $config.enableWebSearch)
+                    toolToggle("深度研究", icon: "telescope", isOn: $config.enableDeepResearch)
+                    toolToggle("桌面操控", icon: "desktopcomputer", isOn: $config.enableComputerUse)
+                    toolToggle("成员上传", icon: "arrow.up.doc", isOn: $config.allowMemberUpload)
+                    toolToggle("成员自建Agent", icon: "brain.head.profile", isOn: $config.allowMemberAgent)
+                    toolToggle("成员运行工作流", icon: "arrow.triangle.branch", isOn: $config.allowMemberWorkflow)
+
+                    HStack {
+                        Text("最大成员数")
+                            .font(.system(size: theme.captionSize))
+                        Spacer()
+                        Stepper(value: $config.maxMembers, in: 2...50) {
+                            Text("\(config.maxMembers)")
+                                .font(.system(size: theme.captionSize, design: .monospaced))
+                                .frame(width: 30)
+                        }
+                    }
+                    .padding(.horizontal, theme.spacingM)
+
+                    HStack {
+                        Text("流式响应")
+                            .font(.system(size: theme.captionSize))
+                        Spacer()
+                        Toggle("", isOn: $config.streamResponse)
+                            .toggleStyle(.switch)
+                            .controlSize(.small)
+                    }
+                    .padding(.horizontal, theme.spacingM)
+                }
+                .padding(.vertical, theme.spacingS)
+            }
+        }
+        .onAppear {
+            if let s = space { config = s.config }
+        }
+    }
+
+    private func toolToggle(_ label: String, icon: String, isOn: Binding<Bool>) -> some View {
+        HStack(spacing: theme.spacingS) {
+            Image(systemName: icon)
+                .font(.system(size: theme.iconXS))
+                .foregroundStyle(isOn.wrappedValue ? theme.accent : theme.textTertiary)
+                .frame(width: 16)
+            Text(label)
+                .font(.system(size: theme.captionSize))
+            Spacer()
+            Toggle("", isOn: isOn)
+                .toggleStyle(.switch)
+                .controlSize(.small)
+        }
+        .padding(.horizontal, theme.spacingM)
+        .padding(.vertical, 2)
+    }
+
+    private func saveConfig() {
+        isSaving = true
+        Task {
+            do {
+                _ = try await ipc.spaceUpdate(spaceId: spaceId, updates: ["config": config.toDict()])
+                spaceLog.info("Space config saved: \(spaceId)")
+                await MainActor.run { isSaving = false }
+            } catch {
+                spaceLog.error("config save failed: \(error.localizedDescription)")
+                await MainActor.run { isSaving = false }
+            }
+        }
+    }
+}
+
+// MARK: - Page 7.5: 深度研究
+
+struct SpaceDeepResearchView: View {
+    @EnvironmentObject var ipc: IPCClient
+    @Environment(\.studioTheme) private var theme
+    @Environment(\.dismiss) private var dismiss
+
+    let spaceId: String
+
+    @State private var query = ""
+    @State private var depth = 2
+    @State private var isRunning = false
+    @State private var result: [String: Any]?
+    @State private var resultText = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: theme.spacingM) {
+            HStack {
+                Text("深度研究")
+                    .font(.system(size: theme.headlineSize, weight: .bold))
+                Spacer()
+                Button(action: { dismiss() }) {
+                    Image(systemName: "xmark.circle")
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .buttonStyle(.plain)
+            }
+
+            HStack(spacing: theme.spacingS) {
+                TextField("输入研究问题...", text: $query)
+                    .textFieldStyle(.roundedBorder)
+                Picker("深度", selection: $depth) {
+                    Text("浅").tag(1)
+                    Text("中").tag(2)
+                    Text("深").tag(3)
+                }
+                .frame(width: 80)
+                Button("开始研究") { startResearch() }
+                    .disabled(query.isEmpty || isRunning)
+            }
+
+            if isRunning {
+                VStack(spacing: theme.spacingS) {
+                    ProgressView()
+                    Text("深度研究进行中...")
+                        .font(.system(size: theme.footnoteSize))
+                        .foregroundStyle(theme.textSecondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if !resultText.isEmpty {
+                ScrollView {
+                    Text(resultText)
+                        .font(.system(size: theme.textSize))
+                        .foregroundStyle(theme.text)
+                        .textSelection(.enabled)
+                        .padding(theme.spacingM)
+                }
+            } else {
+                VStack(spacing: theme.spacingS) {
+                    Image(systemName: "telescope")
+                        .font(.system(size: 30))
+                        .foregroundStyle(theme.textTertiary)
+                    Text("深度研究利用多轮搜索+推理，自动完成复杂调研")
+                        .font(.system(size: theme.footnoteSize))
+                        .foregroundStyle(theme.textSecondary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .padding(theme.spacingL)
+        .frame(width: 560, height: 480)
+    }
+
+    private func startResearch() {
+        isRunning = true
+        resultText = ""
+        Task {
+            do {
+                let r = try await ipc.spaceDeepResearch(spaceId: spaceId, query: query, depth: depth)
+                await MainActor.run {
+                    result = r
+                    resultText = r["summary"] as? String ?? r["content"] as? String ?? "研究完成，无结果文本"
+                    isRunning = false
+                }
+            } catch {
+                spaceLog.error("deep.research failed: \(error.localizedDescription)")
+                await MainActor.run {
+                    resultText = "研究失败: \(error.localizedDescription)"
+                    isRunning = false
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Markdown Content View
+
+struct MarkdownContentView: View {
+    @Environment(\.studioTheme) private var theme
+
+    let content: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: theme.spacingXS) {
+            ForEach(parsedBlocks, id: \.id) { block in
+                switch block.type {
+                case .code:
+                    codeBlock(block)
+                case .text:
+                    inlineText(block.content)
+                }
+            }
+        }
+    }
+
+    private enum BlockType { case code, text }
+    private struct ContentBlock: Identifiable {
+        let id: Int
+        let type: BlockType
+        let content: String
+        let language: String
+    }
+
+    private var parsedBlocks: [ContentBlock] {
+        var blocks: [ContentBlock] = []
+        var idx = 0
+        let lines = content.components(separatedBy: "\n")
+        var i = 0
+        while i < lines.count {
+            let line = lines[i]
+            if line.hasPrefix("```") {
+                let lang = String(line.dropFirst(3)).trimmingCharacters(in: .whitespaces)
+                var codeLines: [String] = []
+                i += 1
+                while i < lines.count && !lines[i].hasPrefix("```") {
+                    codeLines.append(lines[i])
+                    i += 1
+                }
+                blocks.append(ContentBlock(id: idx, type: .code, content: codeLines.joined(separator: "\n"), language: lang))
+                idx += 1
+                i += 1
+            } else {
+                var textLines: [String] = [line]
+                i += 1
+                while i < lines.count && !lines[i].hasPrefix("```") {
+                    textLines.append(lines[i])
+                    i += 1
+                }
+                let text = textLines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+                if !text.isEmpty {
+                    blocks.append(ContentBlock(id: idx, type: .text, content: text, language: ""))
+                    idx += 1
+                }
+            }
+        }
+        return blocks
+    }
+
+    private func inlineText(_ text: String) -> some View {
+        if let attr = try? AttributedString(
+            markdown: text,
+            options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        ) {
+            return Text(attr)
+                .font(.system(size: theme.textSize))
+                .foregroundStyle(theme.text)
+                .textSelection(.enabled)
+        }
+        return Text(text)
+            .font(.system(size: theme.textSize))
+            .foregroundStyle(theme.text)
+            .textSelection(.enabled)
+    }
+
+    private func codeBlock(_ block: ContentBlock) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                if !block.language.isEmpty {
+                    Text(block.language)
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                Spacer()
+                Button(action: {
+                    let pb = NSPasteboard.general
+                    pb.clearContents()
+                    pb.setString(block.content, forType: .string)
+                }) {
+                    Image(systemName: "doc.on.doc")
+                        .font(.system(size: 9))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, theme.spacingS)
+            .padding(.vertical, theme.spacingXS)
+            .background(theme.surfaceSecondary.opacity(0.6))
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                Text(block.content)
+                    .font(.system(size: theme.footnoteSize, design: .monospaced))
+                    .foregroundStyle(theme.text)
+                    .textSelection(.enabled)
+                    .padding(theme.spacingS)
+            }
+        }
+        .background(theme.surfaceSecondary.opacity(0.3))
+        .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                .stroke(theme.separator, lineWidth: 0.5)
+        )
+    }
+}
+
+// MARK: - Artifact Preview View
+
+struct ArtifactPreviewView: View {
+    @Environment(\.studioTheme) private var theme
+
+    let artifact: SpaceArtifact
+    let onClose: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: theme.spacingS) {
+                Image(systemName: kindIcon(artifact.kind))
+                    .font(.system(size: theme.iconS))
+                    .foregroundStyle(theme.accent)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(artifact.name)
+                        .font(.system(size: theme.footnoteSize, weight: .semibold))
+                        .foregroundStyle(theme.text)
+                        .lineLimit(1)
+                    Text(kindLabel(artifact.kind))
+                        .font(.system(size: 9))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                Spacer()
+                Button(action: onClose) {
+                    Image(systemName: "xmark.circle")
+                        .font(.system(size: theme.iconS))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, theme.spacingM)
+            .padding(.vertical, theme.spacingS)
+
+            Divider()
+
+            if artifact.content.isEmpty && artifact.filePath.isEmpty {
+                VStack(spacing: theme.spacingS) {
+                    Image(systemName: "shippingbox")
+                        .font(.system(size: 30))
+                        .foregroundStyle(theme.textTertiary)
+                    Text("暂无预览内容")
+                        .font(.system(size: theme.footnoteSize))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if artifact.kind == "code" || artifact.kind == "visualization" {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        MarkdownContentView(content: "```\(languageTag)\n\(artifact.content)\n```")
+                    }
+                    .padding(theme.spacingM)
+                }
+            } else {
+                ScrollView {
+                    MarkdownContentView(content: artifact.content)
+                        .padding(theme.spacingM)
+                }
+            }
+
+            if !artifact.filePath.isEmpty {
+                Divider()
+                HStack(spacing: theme.spacingXS) {
+                    Image(systemName: "doc.text")
+                        .font(.system(size: 9))
+                        .foregroundStyle(theme.textTertiary)
+                    Text(artifact.filePath)
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundStyle(theme.textTertiary)
+                        .lineLimit(1)
+                    Spacer()
+                    Button(action: {
+                        let pb = NSPasteboard.general
+                        pb.clearContents()
+                        pb.setString(artifact.filePath, forType: .string)
+                    }) {
+                        Image(systemName: "doc.on.doc")
+                            .font(.system(size: 9))
+                            .foregroundStyle(theme.textTertiary)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, theme.spacingM)
+                .padding(.vertical, theme.spacingXS)
+                .background(theme.surfaceSecondary.opacity(0.3))
+            }
+        }
+        .frame(minWidth: 280, maxWidth: 400)
+        .background(theme.surfacePrimary)
+    }
+
+    private var languageTag: String {
+        switch artifact.kind {
+        case "code": return ""
+        default: return ""
+        }
+    }
+
+    private func kindIcon(_ kind: String) -> String {
+        switch kind {
+        case "code": return "chevron.left.forwardslash.chevron.right"
+        case "doc": return "doc.text"
+        case "visualization": return "chart.bar"
+        case "data": return "tablecells"
+        default: return "shippingbox"
+        }
+    }
+
+    private func kindLabel(_ kind: String) -> String {
+        switch kind {
+        case "code": return "代码"
+        case "doc": return "文档"
+        case "visualization": return "可视化"
+        case "data": return "数据"
+        default: return kind
+        }
+    }
+}
+
+// MARK: - Legacy compatibility aliases
+
+typealias SpaceMemberView = SpaceMemberPanel
+typealias SpaceAgentView = SpaceAgentPanel
+typealias SpaceSnapshotView = SpaceSnapshotPanel
+typealias SpaceArtifactView = SpaceArtifactPanel
+typealias SpaceWorkflowView = SpaceWorkflowPanel
+typealias SpaceDesktopView = SpaceDesktopPanel
+typealias SpaceChatPlaceholder = SpaceSharedChat

@@ -111,6 +111,37 @@ Fusion Studio integrates with [fusion-artifacts-engine](https://github.com/dahai
 
 **Communication**: HTTP JSON-RPC 2.0 to `127.0.0.1:8892` (separate from UDS channel).
 
+### 🤝 CoWork — Collaborative AI Spaces
+
+Fusion Studio's CoWork module provides **real-time collaborative AI spaces** that surpass Claude CoWork with 8 differentiators: offline-first (D1), workflow co-execution (D2), local agent sharing (D3), KB-as-space (D4), computer use co-control (D5), local artifacts (D6), deep research (D7), workflow marketplace (D8).
+
+| Feature | UI Location | Backend API |
+|---------|------------|-------------|
+| Space list with search & filters | `SpaceListView` | `desk.space.list` |
+| Create space (mode/config/KB/agents) | `SpaceCreateDialog` | `desk.space.create` |
+| 3-column main view (sidebar + chat + artifact preview) | `SpaceMainView` | `desk.space.get` |
+| Shared chat with streaming replies + @agent mentions | `SpaceSharedChat` | `desk.space.chat.send/history/stream` |
+| Markdown + code block rendering with copy | `MarkdownContentView` | — |
+| Artifact dual-pane preview (code/doc/viz) | `ArtifactPreviewView` | `desk.space.artifact.list/get` |
+| Comment threads on messages | `SpaceCommentThread` | `desk.space.comment.create/list` |
+| Member management + invite links | `SpaceMemberPanel` | `desk.space.member.list/invite/remove/update_role` |
+| Agent management (add/edit/permission) | `SpaceAgentPanel` | `desk.space.agent.list/add/remove/update` |
+| Artifact management (kind filtering) | `SpaceArtifactPanel` | `desk.space.artifact.list/create` |
+| Snapshot create/restore/fork | `SpaceSnapshotPanel` | `desk.space.snapshot.create/list/clone/restore` |
+| Workflow collaboration + DAG | `SpaceWorkflowPanel` | `desk.space.workflow.list/run` |
+| Desktop sharing + control requests | `SpaceDesktopPanel` | `desk.space.desktop.share/control` |
+| Deep research (multi-round) | `SpaceDeepResearchView` | `desk.space.research.start` |
+| LAN peer discovery | Member panel → scan | `desk.space.discovery.scan` |
+| Space settings (config toggles) | `SpaceSettingsPanel` | `desk.space.update` |
+
+**3 Collab Modes**: `local` (single machine), `p2p` (Bonjour LAN discovery), `gateway` (remote via fusion-gateway).
+
+**4-Level Permissions**: Owner → Admin → Member → Viewer with fine-grained config toggles (web search, deep research, computer use, member upload/agent/workflow).
+
+**Model Layer**: All types in `CoworkSpace.swift` use `fromDict()` pattern for parsing backend `[String: Any]` responses — CoworkSpace, SpaceMember, SpaceMessage, SpaceAttachment, SpaceComment, SpaceSnapshot, SpaceAgent, SpaceInviteLink, SpaceWorkflow, SpaceArtifact, SpaceDiscoveryPeer, SpaceConfig.
+
+**Communication**: JSON-RPC 2.0 over Unix Domain Socket `/tmp/fusion-cowork.sock` via `IPCClient.spaceCall()`. Streaming replies use `IPCClient.spaceChatStreamEvents()` with NDJSON long-connection parsing for real-time token-by-token output.
+
 ---
 
 ## 🏗️ Architecture

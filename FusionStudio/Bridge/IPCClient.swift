@@ -2174,6 +2174,241 @@ class IPCClient: ObservableObject {
         ])
     }
 
+    // MARK: - CoWork Chat (desk.space.chat.*)
+
+    func spaceChatSend(spaceId: String, content: String, senderId: String = "local_user",
+                        senderName: String = "", mentionedAgents: [String] = []) async throws -> [String: Any] {
+        var p: [String: Any] = [
+            "space_id": spaceId, "content": content,
+            "sender_id": senderId, "sender_name": senderName,
+        ]
+        if !mentionedAgents.isEmpty { p["mentioned_agents"] = mentionedAgents }
+        return try await spaceCall(method: "desk.space.chat.send", params: p)
+    }
+
+    func spaceChatHistory(spaceId: String, limit: Int = 50, before: String? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["space_id": spaceId, "limit": limit]
+        if let b = before { p["before"] = b }
+        return try await spaceCall(method: "desk.space.chat.history", params: p)
+    }
+
+    func spaceChatStream(spaceId: String, content: String, senderId: String = "local_user") async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.chat.stream", params: [
+            "space_id": spaceId, "content": content, "sender_id": senderId,
+        ])
+    }
+
+    func spaceChatStreamEvents(spaceId: String, content: String, senderId: String = "local_user",
+                                mentionedAgents: [String] = []) -> AsyncThrowingStream<StreamChatEvent, Error> {
+        var p: [String: Any] = [
+            "space_id": spaceId, "content": content,
+            "sender_id": senderId, "stream": true,
+        ]
+        if !mentionedAgents.isEmpty { p["mentioned_agents"] = mentionedAgents }
+
+        return AsyncThrowingStream { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                let sock = socket(AF_UNIX, SOCK_STREAM, 0)
+                guard sock >= 0 else {
+                    continuation.finish(throwing: IPCError.invalidRequest)
+                    return
+                }
+                var tv = timeval(tv_sec: 120, tv_usec: 0)
+                _ = setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
+                var addr = sockaddr_un()
+                addr.sun_family = sa_family_t(AF_UNIX)
+                let pathC = Self.coworkDeskSock.utf8CString
+                let pathLen = min(pathC.count, MemoryLayout.size(ofValue: addr.sun_path))
+                _ = pathC.withUnsafeBufferPointer { src in
+                    withUnsafeMutableBytes(of: &addr.sun_path) { dst in
+                        dst.copyMemory(from: UnsafeRawBufferPointer(
+                            start: UnsafeRawPointer(src.baseAddress!),
+                            count: pathLen
+                        ))
+                    }
+                }
+                let conn = Darwin.connect(sock, withUnsafePointer(to: &addr) {
+                    $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { $0 }
+                }, socklen_t(MemoryLayout<sockaddr_un>.size))
+                guard conn >= 0 else {
+                    close(sock)
+                    ipcLog.warning("spaceChatStreamEvents connect failed")
+                    continuation.finish(throwing: IPCError.disconnected)
+                    return
+                }
+                var request: [String: Any] = [
+                    "jsonrpc": "2.0",
+                    "id": Int(Date().timeIntervalSince1970 * 1000),
+                    "method": "desk.space.chat.stream",
+                    "params": p,
+                ]
+                guard let data = try? JSONSerialization.data(withJSONObject: request) else {
+                    close(sock)
+                    continuation.finish(throwing: IPCError.invalidRequest)
+                    return
+                }
+                var writeBuf = data
+                writeBuf.append(0x0A)
+                writeBuf.withUnsafeBytes { ptr in
+                    _ = Darwin.write(sock, ptr.baseAddress, writeBuf.count)
+                }
+                ipcLog.info("spaceChatStreamEvents request sent space=\(spaceId)")
+                var lineBuf = Data()
+                var readBuf = [UInt8](repeating: 0, count: 16384)
+                var done = false
+                while !done {
+                    let n = readBuf.withUnsafeMutableBufferPointer { Darwin.read(sock, $0.baseAddress!, $0.count) }
+                    if n > 0 {
+                        lineBuf.append(contentsOf: readBuf[0..<n])
+                        while let nlIdx = lineBuf.firstIndex(of: 0x0A) {
+                            let lineData = lineBuf.subdata(in: 0..<nlIdx)
+                            lineBuf.removeSubrange(0...nlIdx)
+                            guard !lineData.isEmpty,
+                                  let json = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any] else { continue }
+                            if let error = json["error"] as? [String: Any] {
+                                let msg = error["message"] as? String ?? "stream error"
+                                let ev = StreamChatEvent(sessionId: spaceId, eventType: "error", content: msg, timestamp: Date().timeIntervalSince1970)
+                                continuation.yield(ev)
+                                done = true
+                                break
+                            }
+                            let type = json["type"] as? String ?? ""
+                            if type == "chat_event", let eventDict = json["event"] as? [String: Any] {
+                                let ev = StreamChatEvent(
+                                    sessionId: json["session_id"] as? String ?? spaceId,
+                                    eventType: eventDict["type"] as? String ?? "",
+                                    content: eventDict["content"] as? String ?? "",
+                                    name: eventDict["name"] as? String ?? "",
+                                    args: eventDict["args"] as? [String: Any] ?? [:],
+                                    timestamp: eventDict["timestamp"] as? Double ?? 0
+                                )
+                                continuation.yield(ev)
+                                if ev.isDone { done = true; break }
+                            } else if type == "chat_done" || type == "done" {
+                                done = true; break
+                            } else if type == "result" {
+                                if let resultDict = json["result"] as? [String: Any] {
+                                    let content = resultDict["content"] as? String ?? ""
+                                    if !content.isEmpty {
+                                        let ev = StreamChatEvent(sessionId: spaceId, eventType: "token", content: content, timestamp: Date().timeIntervalSince1970)
+                                        continuation.yield(ev)
+                                    }
+                                    let status = resultDict["status"] as? String ?? ""
+                                    if status == "done" || status == "complete" { done = true; break }
+                                }
+                            }
+                        }
+                    } else {
+                        break
+                    }
+                }
+                close(sock)
+                ipcLog.info("spaceChatStreamEvents finished space=\(spaceId)")
+                continuation.finish()
+            }
+        }
+    }
+
+    // MARK: - CoWork Comments (desk.space.comment.*)
+
+    func spaceCommentCreate(spaceId: String, messageId: String, authorId: String = "local_user",
+                             authorName: String = "", content: String) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.comment.create", params: [
+            "space_id": spaceId, "message_id": messageId,
+            "author_id": authorId, "author_name": authorName, "content": content,
+        ])
+    }
+
+    func spaceCommentList(spaceId: String, messageId: String) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.comment.list", params: [
+            "space_id": spaceId, "message_id": messageId,
+        ])
+    }
+
+    // MARK: - CoWork Snapshots (desk.space.snapshot.*)
+
+    func spaceSnapshotCreate(spaceId: String, name: String) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.snapshot.create", params: [
+            "space_id": spaceId, "name": name,
+        ])
+    }
+
+    func spaceSnapshotList(spaceId: String) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.snapshot.list", params: ["space_id": spaceId])
+    }
+
+    func spaceSnapshotClone(spaceId: String, snapshotId: String, newName: String) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.snapshot.fork", params: [
+            "space_id": spaceId, "snapshot_id": snapshotId, "new_name": newName,
+        ])
+    }
+
+    // MARK: - CoWork Agents (desk.space.agent.*)
+
+    func spaceAgentList(spaceId: String) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.agent.list", params: ["space_id": spaceId])
+    }
+
+    func spaceAgentAdd(spaceId: String, agentName: String, systemPrompt: String = "",
+                        permission: String = "all_member", model: String = "") async throws -> [String: Any] {
+        var p: [String: Any] = [
+            "space_id": spaceId, "agent_name": agentName,
+            "system_prompt": systemPrompt, "permission": permission,
+        ]
+        if !model.isEmpty { p["model"] = model }
+        return try await spaceCall(method: "desk.space.agent.add", params: p)
+    }
+
+    func spaceAgentRemove(spaceId: String, agentId: String) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.agent.remove", params: [
+            "space_id": spaceId, "agent_id": agentId,
+        ])
+    }
+
+    // MARK: - CoWork Discovery (desk.space.discovery.*)
+
+    func spaceDiscoveryScan() async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.discovery.scan", params: [:])
+    }
+
+    // MARK: - CoWork Workflows (desk.space.workflow.*)
+
+    func spaceWorkflowList(spaceId: String) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.workflow.list", params: ["space_id": spaceId])
+    }
+
+    func spaceWorkflowRun(spaceId: String, workflowId: String) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.workflow.run", params: [
+            "space_id": spaceId, "workflow_id": workflowId,
+        ])
+    }
+
+    // MARK: - CoWork Artifacts (desk.space.artifact.*)
+
+    func spaceArtifactList(spaceId: String, kind: String? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["space_id": spaceId]
+        if let k = kind { p["kind"] = k }
+        return try await spaceCall(method: "desk.space.artifact.list", params: p)
+    }
+
+    func spaceArtifactCreate(spaceId: String, name: String, kind: String,
+                              description: String = "", filePath: String = "") async throws -> [String: Any] {
+        var p: [String: Any] = [
+            "space_id": spaceId, "name": name, "kind": kind,
+        ]
+        if !description.isEmpty { p["description"] = description }
+        if !filePath.isEmpty { p["file_path"] = filePath }
+        return try await spaceCall(method: "desk.space.artifact.create", params: p)
+    }
+
+    // MARK: - CoWork Deep Research (desk.space.research.*)
+
+    func spaceDeepResearch(spaceId: String, query: String, depth: Int = 2) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.research.start", params: [
+            "space_id": spaceId, "query": query, "depth": depth,
+        ])
+    }
+
     deinit {
         reconnectTimer?.invalidate()
         if socketFd >= 0 {
