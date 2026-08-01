@@ -393,6 +393,18 @@ struct DesignChatPanel: View {
             } else {
                 inputText = "请选中画布上的元素后使用精准修改技能"
             }
+        case "partial_edit":
+            let instruction = inputText.isEmpty ? "优化选中节点的视觉样式" : inputText
+            designBridge.skillPartialEdit(nodesJSON: "[]", instruction: instruction)
+        case "sim_panel":
+            let prompt = inputText.isEmpty ? "生成风格变体" : inputText
+            designBridge.skillSimPanel(prompt: prompt)
+        case "spec_doc":
+            let prompt = inputText.isEmpty ? "输出完整设计规范" : inputText
+            designBridge.skillSpecDoc(prompt: prompt)
+        case "page_flow":
+            let prompt = inputText.isEmpty ? "首页→列表→详情的导航流程" : inputText
+            designBridge.skillPageFlow(prompt: prompt)
         default:
             inputText = "使用\(tmpl.name)技能: \(inputText)"
             sendChat()
