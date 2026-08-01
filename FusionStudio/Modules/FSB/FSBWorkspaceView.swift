@@ -10,127 +10,431 @@ struct FSBWorkspaceView: View {
 
     @State private var workspaces: [[String: Any]] = []
     @State private var isLoading = false
-    @State private var showCreateDialog = false
-    @State private var newWsName = ""
-    @State private var newWsDesc = ""
+    @State private var searchText = ""
+    @State private var isGridView = true
     @State private var selectedWsId: String? = nil
+    @State private var showCreateDialog = false
+    @State private var showRenameDialog = false
+    @State private var renameWsId = ""
+    @State private var renameWsName = ""
+    @State private var showExportSheet = false
+    @State private var exportData: String = ""
+    @State private var fsbAvailable = false
+    @State private var showOnboarding = false
 
     var body: some View {
         HStack(spacing: 0) {
-            workspaceList
+            workspaceListPanel
             if let wsId = selectedWsId {
                 FSBWorkbenchView(workspaceId: wsId, onBack: { selectedWsId = nil })
             } else {
-                emptyState
+                emptyStatePanel
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onAppear { loadWorkspaces() }
-        .alert("新建工作台", isPresented: $showCreateDialog) {
-            TextField("名称", text: $newWsName)
-            TextField("描述（可选）", text: $newWsDesc)
-            Button("创建") { createWorkspace() }
-            Button("取消", role: .cancel) { newWsName = ""; newWsDesc = "" }
+        .onAppear {
+            checkFSBHealth()
+            loadWorkspaces()
+        }
+        .sheet(isPresented: $showCreateDialog) {
+            FSBCreateWorkspaceDialog(
+                ipc: ipc,
+                onCreate: { title, desc, projectId in
+                    createWorkspace(title: title, desc: desc, projectId: projectId)
+                }
+            )
+        }
+        .alert("重命名工作台", isPresented: $showRenameDialog) {
+            TextField("名称", text: $renameWsName)
+            Button("确认") { renameWorkspace() }
+            Button("取消", role: .cancel) {}
+        }
+        .sheet(isPresented: $showExportSheet) {
+            VStack(spacing: theme.spacingM) {
+                Text("导出工作台")
+                    .font(.system(size: theme.headlineSize, weight: .bold))
+                TextEditor(text: .constant(exportData))
+                    .font(.system(size: theme.captionSize, design: .monospaced))
+                    .frame(minWidth: 500, minHeight: 300)
+                HStack {
+                    Button("复制到剪贴板") {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(exportData, forType: .string)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    Button("关闭") { showExportSheet = false }
+                }
+            }
+            .padding(theme.spacingL)
+            .frame(minWidth: 560, minHeight: 400)
+        }
+        .sheet(isPresented: $showOnboarding) {
+            FSBOnboardingDialog()
         }
     }
 
-    private var workspaceList: some View {
+    private var workspaceListPanel: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Text("FSB 工作台")
-                    .font(.system(size: theme.textSize, weight: .bold))
-                Spacer()
-                Button(action: { showCreateDialog = true }) {
-                    Image(systemName: "plus")
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(theme.spacingM)
-
+            headerBar
+            searchBar
             if isLoading {
                 Spacer()
                 ProgressView()
                 Spacer()
-            } else {
-                List {
-                    ForEach(workspaces.indices, id: \.self) { idx in
-                        let ws = workspaces[idx]
-                        let wsId = ws["id"] as? String ?? ""
-                        let name = ws["name"] as? String ?? "未命名"
-                        let desc = ws["description"] as? String ?? ""
-                        let status = ws["status"] as? String ?? "active"
-
-                        HStack(spacing: theme.spacingS) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(name)
-                                    .font(.system(size: theme.textSize, weight: .medium))
-                                    .foregroundStyle(selectedWsId == wsId ? theme.accent : theme.text)
-                                if !desc.isEmpty {
-                                    Text(desc)
-                                        .font(.system(size: theme.captionSize))
-                                        .foregroundStyle(theme.textSecondary)
-                                        .lineLimit(1)
-                                }
+            } else if filteredWorkspaces.isEmpty {
+                Spacer()
+                VStack(spacing: theme.spacingS) {
+                    Image(systemName: "storefront")
+                        .font(.system(size: 32))
+                        .foregroundStyle(theme.textTertiary)
+                    Text(searchText.isEmpty ? "暂无工作台" : "没有匹配的工作台")
+                        .foregroundStyle(theme.textSecondary)
+                        .font(.system(size: theme.textSize))
+                    if searchText.isEmpty {
+                        Button(action: { showCreateDialog = true }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "plus")
+                                Text("创建工作台")
                             }
-                            Spacer()
-                            Circle()
-                                .fill(status == "active" ? Color.green : Color.orange)
-                                .frame(width: 8, height: 8)
                         }
-                        .padding(.vertical, theme.spacingXS)
-                        .contentShape(Rectangle())
-                        .onTapGesture { selectedWsId = wsId }
-                        .contextMenu {
-                            Button("删除") { deleteWorkspace(wsId) }
-                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
                     }
                 }
-                .listStyle(.sidebar)
+                Spacer()
+            } else {
+                if isGridView {
+                    gridView
+                } else {
+                    listView
+                }
             }
         }
-        .frame(width: 260)
-        .background(theme.surfaceSecondary)
+        .frame(width: 300)
+        .background(theme.contentBg)
     }
 
-    private var emptyState: some View {
-        VStack(spacing: theme.spacingS) {
+    private var headerBar: some View {
+        HStack(spacing: theme.spacingS) {
             Image(systemName: "storefront")
-                .font(.system(size: 40))
+                .foregroundStyle(theme.accent)
+            Text("FSB 工作台")
+                .font(.system(size: theme.textSize, weight: .bold))
+                .foregroundStyle(theme.text)
+            Spacer()
+            Button(action: { showCreateDialog = true }) {
+                Image(systemName: "plus")
+                    .foregroundStyle(theme.accent)
+            }
+            .buttonStyle(.plain)
+            .help("新建工作台")
+            Button(action: { isGridView.toggle() }) {
+                Image(systemName: isGridView ? "list.bullet" : "square.grid.2x2")
+                    .foregroundStyle(theme.textSecondary)
+            }
+            .buttonStyle(.plain)
+            .help(isGridView ? "列表视图" : "网格视图")
+        }
+        .padding(.horizontal, theme.spacingM)
+        .padding(.vertical, theme.spacingS)
+    }
+
+    private var searchBar: some View {
+        HStack(spacing: theme.spacingS) {
+            Image(systemName: "magnifyingglass")
                 .foregroundStyle(theme.textTertiary)
-            Text("选择或创建一个工作台")
-                .foregroundStyle(theme.textSecondary)
+            TextField("搜索工作台...", text: $searchText)
+                .textFieldStyle(.plain)
+                .font(.system(size: theme.footnoteSize))
+            if !searchText.isEmpty {
+                Button(action: { searchText = "" }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(theme.spacingS)
+        .background(
+            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                .fill(theme.surfaceElevated)
+        )
+        .padding(.horizontal, theme.spacingM)
+        .padding(.bottom, theme.spacingS)
+    }
+
+    private var gridView: some View {
+        ScrollView {
+            LazyVGrid(columns: [
+                GridItem(.flexible(), spacing: theme.spacingS),
+                GridItem(.flexible(), spacing: theme.spacingS)
+            ], spacing: theme.spacingS) {
+                ForEach(filteredWorkspaces.indices, id: \.self) { idx in
+                    let ws = filteredWorkspaces[idx]
+                    workspaceGridCard(ws: ws)
+                }
+            }
+            .padding(theme.spacingM)
+        }
+    }
+
+    private var listView: some View {
+        List {
+            ForEach(filteredWorkspaces.indices, id: \.self) { idx in
+                let ws = filteredWorkspaces[idx]
+                workspaceListRow(ws: ws)
+            }
+        }
+        .listStyle(.sidebar)
+    }
+
+    @ViewBuilder
+    private func workspaceGridCard(ws: [String: Any]) -> some View {
+        let wsId = ws["wsId"] as? String ?? ws["id"] as? String ?? ""
+        let title = ws["title"] as? String ?? ws["name"] as? String ?? "未命名"
+        let desc = ws["description"] as? String ?? ""
+        let connectorCount = (ws["connectorIds"] as? [String])?.count ?? 0
+        let skillCount = (ws["skillIds"] as? [String])?.count ?? 0
+        let wfCount = (ws["workflowIds"] as? [String])?.count ?? 0
+
+        VStack(alignment: .leading, spacing: theme.spacingS) {
+            HStack {
+                Image(systemName: "storefront")
+                    .foregroundStyle(theme.accent)
+                    .font(.system(size: 16))
+                Text(title)
+                    .font(.system(size: theme.footnoteSize, weight: .semibold))
+                    .foregroundStyle(theme.text)
+                    .lineLimit(1)
+                Spacer()
+                wsContextMenu(wsId: wsId, ws: ws)
+            }
+            if !desc.isEmpty {
+                Text(desc)
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(theme.textSecondary)
+                    .lineLimit(2)
+            }
+            HStack(spacing: theme.spacingM) {
+                Label("\(connectorCount)", systemImage: "plug")
+                Label("\(skillCount)", systemImage: "star")
+                Label("\(wfCount)", systemImage: "flowchart")
+            }
+            .font(.system(size: theme.captionSize))
+            .foregroundStyle(theme.textTertiary)
+        }
+        .padding(theme.spacingM)
+        .background(
+            RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
+                .fill(selectedWsId == wsId ? theme.accentSoft : theme.surfaceElevated)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
+                .stroke(selectedWsId == wsId ? theme.accent : Color.clear, lineWidth: 1.5)
+        )
+        .onTapGesture { selectedWsId = wsId }
+    }
+
+    @ViewBuilder
+    private func workspaceListRow(ws: [String: Any]) -> some View {
+        let wsId = ws["wsId"] as? String ?? ws["id"] as? String ?? ""
+        let title = ws["title"] as? String ?? ws["name"] as? String ?? "未命名"
+        let desc = ws["description"] as? String ?? ""
+        let connectorCount = (ws["connectorIds"] as? [String])?.count ?? 0
+        let wfCount = (ws["workflowIds"] as? [String])?.count ?? 0
+
+        HStack(spacing: theme.spacingS) {
+            Image(systemName: "storefront")
+                .foregroundStyle(selectedWsId == wsId ? theme.accent : theme.textTertiary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: theme.footnoteSize, weight: .medium))
+                    .foregroundStyle(selectedWsId == wsId ? theme.accent : theme.text)
+                    .lineLimit(1)
+                HStack(spacing: theme.spacingS) {
+                    if !desc.isEmpty {
+                        Text(desc)
+                            .font(.system(size: theme.captionSize))
+                            .foregroundStyle(theme.textSecondary)
+                            .lineLimit(1)
+                    }
+                    Text("\(connectorCount)连·\(wfCount)流")
+                        .font(.system(size: theme.captionSize))
+                        .foregroundStyle(theme.textTertiary)
+                }
+            }
+            Spacer()
+            wsContextMenu(wsId: wsId, ws: ws)
+        }
+        .padding(.vertical, theme.spacingXS)
+        .contentShape(Rectangle())
+        .onTapGesture { selectedWsId = wsId }
+    }
+
+    @ViewBuilder
+    private func wsContextMenu(wsId: String, ws: [String: Any]) -> some View {
+        Menu {
+            Button(action: { selectedWsId = wsId }) {
+                Label("打开", systemImage: "arrow.right.circle")
+            }
+            Button(action: {
+                renameWsId = wsId
+                renameWsName = ws["title"] as? String ?? ws["name"] as? String ?? ""
+                showRenameDialog = true
+            }) {
+                Label("重命名", systemImage: "pencil")
+            }
+            Button(action: { duplicateWorkspace(wsId) }) {
+                Label("复制", systemImage: "doc.on.doc")
+            }
+            Divider()
+            Button(action: { exportWorkspace(wsId) }) {
+                Label("导出", systemImage: "square.and.arrow.up")
+            }
+            Divider()
+            Button(role: .destructive, action: { deleteWorkspace(wsId) }) {
+                Label("删除", systemImage: "trash")
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .foregroundStyle(theme.textTertiary)
+                .font(.system(size: 12))
+        }
+        .menuStyle(.borderlessButton)
+        .frame(width: 20, height: 20)
+    }
+
+    private var emptyStatePanel: some View {
+        VStack(spacing: theme.spacingL) {
+            Image(systemName: "storefront")
+                .font(.system(size: 56))
+                .foregroundStyle(theme.textTertiary)
+            VStack(spacing: theme.spacingXS) {
+                Text("Fusion Small Business")
+                    .font(.system(size: theme.headlineSize, weight: .bold))
+                    .foregroundStyle(theme.text)
+                Text("跨 SaaS 智能业务工作台")
+                    .font(.system(size: theme.textSize))
+                    .foregroundStyle(theme.textSecondary)
+            }
+            if !fsbAvailable {
+                Label("FSB 服务未启动", systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(.orange)
+                    .font(.system(size: theme.footnoteSize))
+            }
+            HStack(spacing: theme.spacingM) {
+                Button(action: { showCreateDialog = true }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus")
+                        Text("创建工作台")
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                Button(action: { showOnboarding = true }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "book")
+                        Text("使用指南")
+                    }
+                }
+                .buttonStyle(.bordered)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(theme.contentBg)
+    }
+
+    private var filteredWorkspaces: [[String: Any]] {
+        if searchText.isEmpty { return workspaces }
+        return workspaces.filter { ws in
+            let title = (ws["title"] as? String ?? ws["name"] as? String ?? "").lowercased()
+            let desc = (ws["description"] as? String ?? "").lowercased()
+            let q = searchText.lowercased()
+            return title.contains(q) || desc.contains(q)
+        }
+    }
+
+    private func checkFSBHealth() {
+        Task {
+            do {
+                _ = try await ipc.fsbHealth()
+                await MainActor.run { fsbAvailable = true }
+                fsbLog.info("FSB service is available")
+            } catch {
+                await MainActor.run { fsbAvailable = false }
+                fsbLog.warning("FSB service unavailable: \(error.localizedDescription)")
+            }
+        }
     }
 
     private func loadWorkspaces() {
         isLoading = true
         Task {
             do {
-                let result = try await ipc.call(method: "fsb.workspace_list", params: [:])
-                if let items = result["workspaces"] as? [[String: Any]] {
-                    await MainActor.run { workspaces = items }
-                }
+                let items = try await ipc.fsbListWorkspaces(search: searchText)
+                await MainActor.run { workspaces = items }
             } catch {
-                fsbLog.error("workspace_list failed: \(error.localizedDescription)")
+                fsbLog.error("workspace list failed: \(error.localizedDescription)")
             }
             await MainActor.run { isLoading = false }
         }
     }
 
-    private func createWorkspace() {
-        guard !newWsName.isEmpty else { return }
+    private func createWorkspace(title: String, desc: String, projectId: String?) {
         Task {
             do {
-                _ = try await ipc.call(method: "fsb.workspace_create", params: [
-                    "name": newWsName,
-                    "description": newWsDesc,
-                ])
-                await MainActor.run { newWsName = ""; newWsDesc = "" }
-                fsbLog.info("workspace created")
+                _ = try await ipc.fsbCreateWorkspace(
+                    title: title,
+                    description: desc,
+                    projectId: projectId?.isEmpty == true ? nil : projectId
+                )
+                fsbLog.info("workspace created: \(title)")
                 loadWorkspaces()
             } catch {
-                fsbLog.error("workspace_create failed: \(error.localizedDescription)")
+                fsbLog.error("workspace create failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func renameWorkspace() {
+        guard !renameWsName.isEmpty else { return }
+        Task {
+            do {
+                _ = try await ipc.fsbUpdateWorkspace(wsId: renameWsId, title: renameWsName)
+                fsbLog.info("workspace renamed: \(renameWsId)")
+                loadWorkspaces()
+            } catch {
+                fsbLog.error("workspace rename failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func duplicateWorkspace(_ wsId: String) {
+        Task {
+            do {
+                _ = try await ipc.fsbDuplicateWorkspace(wsId: wsId)
+                fsbLog.info("workspace duplicated: \(wsId)")
+                loadWorkspaces()
+            } catch {
+                fsbLog.error("workspace duplicate failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func exportWorkspace(_ wsId: String) {
+        Task {
+            do {
+                let result = try await ipc.fsbExportWorkspace(wsId: wsId)
+                let jsonData = try JSONSerialization.data(
+                    withJSONObject: result,
+                    options: [.prettyPrinted, .sortedKeys]
+                )
+                let jsonString = String(data: jsonData, encoding: .utf8) ?? "{}"
+                await MainActor.run {
+                    exportData = jsonString
+                    showExportSheet = true
+                }
+            } catch {
+                fsbLog.error("workspace export failed: \(error.localizedDescription)")
             }
         }
     }
@@ -138,322 +442,203 @@ struct FSBWorkspaceView: View {
     private func deleteWorkspace(_ wsId: String) {
         Task {
             do {
-                _ = try await ipc.call(method: "fsb.workspace_delete", params: ["workspace_id": wsId])
-                fsbLog.info("workspace \(wsId) deleted")
+                _ = try await ipc.fsbDeleteWorkspace(wsId: wsId)
+                fsbLog.info("workspace deleted: \(wsId)")
                 if selectedWsId == wsId { selectedWsId = nil }
                 loadWorkspaces()
             } catch {
-                fsbLog.error("workspace_delete failed: \(error.localizedDescription)")
+                fsbLog.error("workspace delete failed: \(error.localizedDescription)")
             }
         }
     }
 }
 
-struct FSBWorkbenchView: View {
-    @EnvironmentObject var ipc: IPCClient
-    @Environment(\.studioTheme) private var theme
-
-    let workspaceId: String
-    let onBack: () -> Void
-
-    @State private var workflows: [[String: Any]] = []
-    @State private var selectedWfId: String? = nil
-    @State private var showWorkflowEditor = false
-
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Button(action: onBack) {
-                    Image(systemName: "chevron.left")
-                }
-                .buttonStyle(.plain)
-                Text("工作台")
-                    .font(.system(size: theme.textSize, weight: .semibold))
-                Spacer()
-                Button(action: { showWorkflowEditor = true }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "plus")
-                        Text("新建工作流")
-                    }
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
-            }
-            .padding(theme.spacingM)
-
-            if workflows.isEmpty {
-                Spacer()
-                VStack(spacing: theme.spacingS) {
-                    Image(systemName: "flowchart")
-                        .font(.system(size: 32))
-                        .foregroundStyle(theme.textTertiary)
-                    Text("暂无工作流")
-                        .foregroundStyle(theme.textSecondary)
-                }
-                Spacer()
-            } else {
-                List {
-                    ForEach(workflows.indices, id: \.self) { idx in
-                        let wf = workflows[idx]
-                        let wfId = wf["id"] as? String ?? ""
-                        let name = wf["name"] as? String ?? "未命名"
-                        let status = wf["status"] as? String ?? "draft"
-
-                        HStack {
-                            Image(systemName: "flowchart")
-                                .foregroundStyle(theme.accent)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(name)
-                                    .font(.system(size: theme.textSize, weight: .medium))
-                                Text(status)
-                                    .font(.system(size: theme.captionSize))
-                                    .foregroundStyle(theme.textSecondary)
-                            }
-                            Spacer()
-                            Button(action: { selectedWfId = wfId; showWorkflowEditor = true }) {
-                                Image(systemName: "pencil")
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .padding(.vertical, theme.spacingXS)
-                    }
-                }
-                .listStyle(.sidebar)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onAppear { loadWorkflows() }
-        .sheet(isPresented: $showWorkflowEditor) {
-            if let wfId = selectedWfId {
-                FSBWorkflowEditorView(workspaceId: workspaceId, workflowId: wfId)
-            } else {
-                FSBWorkflowEditorView(workspaceId: workspaceId, workflowId: nil)
-            }
-        }
-    }
-
-    private func loadWorkflows() {
-        Task {
-            do {
-                let result = try await ipc.call(method: "fsb.workflow_list", params: ["workspace_id": workspaceId])
-                if let items = result["workflows"] as? [[String: Any]] {
-                    await MainActor.run { workflows = items }
-                }
-            } catch {
-                fsbLog.error("workflow_list failed: \(error.localizedDescription)")
-            }
-        }
-    }
-}
-
-struct FSBWorkflowEditorView: View {
-    @EnvironmentObject var ipc: IPCClient
+struct FSBCreateWorkspaceDialog: View {
     @Environment(\.studioTheme) private var theme
     @Environment(\.dismiss) private var dismiss
 
-    let workspaceId: String
-    let workflowId: String?
+    let ipc: IPCClient
+    let onCreate: (String, String, String?) -> Void
 
-    @State private var nodes: [[String: Any]] = []
-    @State private var edges: [[String: Any]] = []
-    @State private var selectedNodeId: String? = nil
-    @State private var isSaving = false
-
-    private let nodeTypes = [
-        ("connector", "连接器", "plug"),
-        ("skill", "技能", "star"),
-        ("condition", "条件", "arrow.triangle.branch"),
-        ("approval", "审批", "checkmark.shield"),
-        ("output", "输出", "arrow.up.doc"),
-    ]
+    @State private var title = ""
+    @State private var description = ""
+    @State private var projectId = ""
+    @State private var bindAgentId = ""
+    @State private var showTemplateImport = false
 
     var body: some View {
-        HStack(spacing: 0) {
-            nodePalette
-            canvasArea
-            if let nodeId = selectedNodeId {
-                nodePropertyPanel(nodeId: nodeId)
-            }
-        }
-        .frame(minWidth: 800, minHeight: 500)
-        .onAppear { loadWorkflow() }
-    }
+        VStack(alignment: .leading, spacing: theme.spacingM) {
+            Text("新建工作台")
+                .font(.system(size: theme.headlineSize, weight: .bold))
+                .foregroundStyle(theme.text)
 
-    private var nodePalette: some View {
-        VStack(alignment: .leading, spacing: theme.spacingS) {
-            Text("节点")
-                .font(.system(size: theme.footnoteSize, weight: .semibold))
-            ForEach(nodeTypes, id: \.0) { type in
-                HStack(spacing: theme.spacingS) {
-                    Image(systemName: type.2)
-                        .frame(width: 16)
-                    Text(type.1)
-                        .font(.system(size: theme.footnoteSize))
-                }
-                .padding(.horizontal, theme.spacingS)
-                .padding(.vertical, theme.spacingXS)
-                .background(
-                    RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                        .fill(theme.surfaceSecondary)
-                )
-                .onTapGesture { addNode(type: type.0, name: type.1) }
+            VStack(alignment: .leading, spacing: theme.spacingS) {
+                Text("名称")
+                    .font(.system(size: theme.captionSize, weight: .medium))
+                    .foregroundStyle(theme.textSecondary)
+                TextField("例如：客户管理系统", text: $title)
+                    .textFieldStyle(.roundedBorder)
             }
-            Spacer()
-        }
-        .padding(theme.spacingM)
-        .frame(width: 160)
-        .background(theme.inputBg)
-    }
 
-    private var canvasArea: some View {
-        VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: theme.spacingS) {
+                Text("描述（可选）")
+                    .font(.system(size: theme.captionSize, weight: .medium))
+                    .foregroundStyle(theme.textSecondary)
+                TextField("工作台用途说明", text: $description)
+                    .textFieldStyle(.roundedBorder)
+            }
+
+            VStack(alignment: .leading, spacing: theme.spacingS) {
+                Text("绑定项目（可选）")
+                    .font(.system(size: theme.captionSize, weight: .medium))
+                    .foregroundStyle(theme.textSecondary)
+                TextField("项目 ID", text: $projectId)
+                    .textFieldStyle(.roundedBorder)
+            }
+
+            VStack(alignment: .leading, spacing: theme.spacingS) {
+                Text("绑定 Agent（可选）")
+                    .font(.system(size: theme.captionSize, weight: .medium))
+                    .foregroundStyle(theme.textSecondary)
+                TextField("Agent ID", text: $bindAgentId)
+                    .textFieldStyle(.roundedBorder)
+            }
+
             HStack {
-                Text(workflowId == nil ? "新建工作流" : "编辑工作流")
-                    .font(.system(size: theme.textSize, weight: .semibold))
-                Spacer()
-                Button(action: validateAndSave) {
+                Button(action: { showTemplateImport = true }) {
                     HStack(spacing: 4) {
-                        if isSaving { ProgressView().controlSize(.small) }
-                        Text("保存")
+                        Image(systemName: "doc.badge.plus")
+                        Text("从模板导入")
                     }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                Spacer()
+                Button("取消") { dismiss() }
+                    .controlSize(.small)
+                Button("创建") {
+                    onCreate(title, description, projectId.isEmpty ? nil : projectId)
+                    dismiss()
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
-                .disabled(isSaving)
-                .help("保存并校验（DAG 环检测）")
-                Button("关闭") { dismiss() }
-                    .controlSize(.small)
+                .disabled(title.isEmpty)
             }
-            .padding(theme.spacingS)
 
-            ScrollView([.horizontal, .vertical]) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: theme.cornerRadius)
-                        .fill(theme.surfaceSecondary)
-                        .frame(minWidth: 600, minHeight: 400)
-                    ForEach(nodes.indices, id: \.self) { idx in
-                        let node = nodes[idx]
-                        let nodeId = node["id"] as? String ?? ""
-                        let name = node["name"] as? String ?? ""
-                        let x = node["x"] as? Double ?? 0
-                        let y = node["y"] as? Double ?? 0
+            if showTemplateImport {
+                Divider()
+                Text("内置模板")
+                    .font(.system(size: theme.captionSize, weight: .medium))
+                    .foregroundStyle(theme.textSecondary)
+                FSBTemplateGallery { templateName in
+                    title = templateName
+                    showTemplateImport = false
+                }
+            }
+        }
+        .padding(theme.spacingL)
+        .frame(width: 420)
+    }
+}
 
-                        workflowNodeCard(id: nodeId, name: name, x: x, y: y)
+struct FSBTemplateGallery: View {
+    @Environment(\.studioTheme) private var theme
+
+    let onSelect: (String) -> Void
+
+    private let templates = [
+        ("客户关系管理", "CRM", "管理客户信息、跟进记录、销售漏斗", "person.2"),
+        ("库存管理", "库存", "商品库存跟踪、补货提醒、出入库记录", "archivebox"),
+        ("财务记账", "财务", "收支记录、发票管理、财务报表生成", "chart.bar"),
+        ("邮件营销", "营销", "邮件模板、受众分组、发送排期、效果分析", "envelope"),
+        ("社交媒体管理", "社媒", "多平台发布、排期、互动监控、数据分析", "shareplay"),
+        ("工单系统", "工单", "客户工单、分配、SLA 跟踪、满意度调查", "ticket"),
+    ]
+
+    var body: some View {
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: theme.spacingS) {
+            ForEach(templates, id: \.0) { tpl in
+                Button(action: { onSelect(tpl.0) }) {
+                    VStack(alignment: .leading, spacing: theme.spacingXS) {
+                        HStack {
+                            Image(systemName: tpl.3)
+                                .foregroundStyle(theme.accent)
+                            Text(tpl.1)
+                                .font(.system(size: theme.captionSize, weight: .semibold))
+                                .foregroundStyle(theme.text)
+                        }
+                        Text(tpl.2)
+                            .font(.system(size: 11))
+                            .foregroundStyle(theme.textTertiary)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                    }
+                    .padding(theme.spacingS)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                            .fill(theme.surfaceElevated)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+}
+
+struct FSBOnboardingDialog: View {
+    @Environment(\.studioTheme) private var theme
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var step = 0
+
+    private let steps = [
+        ("欢迎使用 FSB", "Fusion Small Business 是一个跨 SaaS 的智能业务自动化工作台。\n无需编程，通过可视化工作流连接你的业务工具。", "storefront"),
+        ("连接器", "连接你已有的 SaaS 工具：\nGoogle Workspace、Shopify、QuickBooks、Stripe 等。\n读操作自动执行，写操作需审批。", "plug"),
+        ("技能", "内置 15+ 智能技能：\n邮件摘要、数据提取、报表生成、翻译等。\n可自定义 Prompt 技能和 API 调用技能。", "star"),
+        ("工作流", "可视化编排工作流：\n拖拽节点构建 DAG，条件分支，审批关卡。\n支持定时触发、事件触发、外部 API 触发。", "flowchart"),
+        ("开始使用", "创建一个工作台，选择模板或从零开始。\n所有数据本地运行，隐私安全。", "rocket"),
+    ]
+
+    var body: some View {
+        VStack(spacing: theme.spacingL) {
+            Spacer()
+            Image(systemName: steps[step].2)
+                .font(.system(size: 48))
+                .foregroundStyle(theme.accent)
+            Text(steps[step].0)
+                .font(.system(size: theme.headlineSize, weight: .bold))
+                .foregroundStyle(theme.text)
+            Text(steps[step].1)
+                .font(.system(size: theme.textSize))
+                .foregroundStyle(theme.textSecondary)
+                .multilineTextAlignment(.center)
+                .lineSpacing(4)
+            Spacer()
+            HStack {
+                if step > 0 {
+                    Button("上一步") { step -= 1 }
+                        .buttonStyle(.bordered)
+                }
+                Spacer()
+                HStack(spacing: 6) {
+                    ForEach(0..<steps.count, id: \.self) { i in
+                        Circle()
+                            .fill(i == step ? theme.accent : theme.separator)
+                            .frame(width: 8, height: 8)
                     }
                 }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func workflowNodeCard(id: String, name: String, x: Double, y: Double) -> some View {
-        VStack(spacing: theme.spacingXS) {
-            Text(name)
-                .font(.system(size: theme.footnoteSize, weight: .medium))
-                .foregroundStyle(selectedNodeId == id ? theme.accentText : theme.text)
-        }
-        .padding(theme.spacingS)
-        .background(
-            RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
-                .fill(selectedNodeId == id ? theme.accent : theme.inputBg)
-                .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
-        )
-        .offset(x: x, y: y)
-        .onTapGesture { selectedNodeId = id }
-    }
-
-    private func nodePropertyPanel(nodeId: String) -> some View {
-        let node = nodes.first { ($0["id"] as? String) == nodeId } ?? [:]
-        let name = node["name"] as? String ?? ""
-        let type = node["type"] as? String ?? ""
-
-        return VStack(alignment: .leading, spacing: theme.spacingM) {
-            Text("节点属性")
-                .font(.system(size: theme.footnoteSize, weight: .semibold))
-            HStack {
-                Text("名称:")
-                    .font(.system(size: theme.captionSize))
-                    .foregroundStyle(theme.textSecondary)
-                Text(name)
-                    .font(.system(size: theme.footnoteSize))
-            }
-            HStack {
-                Text("类型:")
-                    .font(.system(size: theme.captionSize))
-                    .foregroundStyle(theme.textSecondary)
-                Text(type)
-                    .font(.system(size: theme.footnoteSize))
-            }
-            Spacer()
-            Button("删除节点") {
-                nodes.removeAll { ($0["id"] as? String) == nodeId }
-                selectedNodeId = nil
-            }
-            .foregroundStyle(.red)
-            .buttonStyle(.plain)
-        }
-        .padding(theme.spacingM)
-        .frame(width: 200)
-        .background(theme.inputBg)
-    }
-
-    private func loadWorkflow() {
-        guard let wfId = workflowId else { return }
-        Task {
-            do {
-                let result = try await ipc.call(method: "fsb.workflow_get", params: [
-                    "workspace_id": workspaceId,
-                    "workflow_id": wfId,
-                ])
-                if let n = result["nodes"] as? [[String: Any]] {
-                    await MainActor.run { nodes = n }
-                }
-                if let e = result["edges"] as? [[String: Any]] {
-                    await MainActor.run { edges = e }
-                }
-            } catch {
-                fsbLog.error("workflow_get failed: \(error.localizedDescription)")
-            }
-        }
-    }
-
-    private func addNode(type: String, name: String) {
-        let id = "node_\(UUID().uuidString.prefix(8))"
-        let offsetX = Double(nodes.count) * 120 + 50
-        let newNode: [String: Any] = [
-            "id": id,
-            "type": type,
-            "name": name,
-            "x": offsetX,
-            "y": 100,
-        ]
-        nodes.append(newNode)
-        fsbLog.info("added node \(id) type=\(type)")
-    }
-
-    private func validateAndSave() {
-        isSaving = true
-        Task {
-            do {
-                var params: [String: Any] = [
-                    "workspace_id": workspaceId,
-                    "nodes": nodes,
-                    "edges": edges,
-                ]
-                if let wfId = workflowId {
-                    params["workflow_id"] = wfId
-                }
-                let result = try await ipc.call(method: "fsb.workflow_save", params: params)
-                if let errors = result["validation_errors"] as? [[String: Any]], !errors.isEmpty {
-                    fsbLog.warning("workflow validation errors: \(errors.count)")
+                Spacer()
+                if step < steps.count - 1 {
+                    Button("下一步") { step += 1 }
+                        .buttonStyle(.borderedProminent)
                 } else {
-                    fsbLog.info("workflow saved successfully")
-                    await MainActor.run { dismiss() }
+                    Button("开始使用") { dismiss() }
+                        .buttonStyle(.borderedProminent)
                 }
-            } catch {
-                fsbLog.error("workflow_save failed: \(error.localizedDescription)")
             }
-            await MainActor.run { isSaving = false }
         }
+        .padding(theme.spacingL)
+        .frame(width: 500, height: 420)
     }
 }
