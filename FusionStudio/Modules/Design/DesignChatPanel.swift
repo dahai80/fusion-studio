@@ -1,6 +1,7 @@
 // Callers: DesignView — left panel of 3-column layout for design chat interaction
-// Affected API: DesignChatPanel View, DesignBridge.exportAsCodegen/copyExportedCodegen/batchExportPages
-// Data schemas: DesignMessage, DesignPage, CodegenTargetArg, ExportFormatArg (html/svg/json)
+// Affected API: DesignChatPanel View, DesignBridge skill methods (skillTextToUI/skillMultiVariants/applyLocalEdit), DesignPrompts.groupedQuickTemplates
+// Data schemas: DesignMessage, DesignPage, DesignQuickTemplate (group field), DesignTemplateGroup
+// User instruction: "按照GUI草图实现fusion design，和~/fusion/fusion-design配合，端到端完成fusion设计"
 // User instruction: "现在开始实施" — Task #16 P3-5 fd-export PNG/SVG/HTML 批量导出
 
 import SwiftUI
@@ -227,7 +228,17 @@ struct DesignChatPanel: View {
                         .foregroundStyle(theme.textTertiary)
                 }
                 .buttonStyle(.plain)
-                .help("复制代码")
+                .keyboardShortcut("c", modifiers: [.command, .shift])
+                .help("复制代码 (⇧⌘C)")
+
+                Button(action: { showCodegenExport = true }) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: theme.iconS))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .buttonStyle(.plain)
+                .keyboardShortcut("e", modifiers: [.command, .shift])
+                .help("导出代码 (⇧⌘E)")
             }
 
             Button(action: { designBridge.clearConversation() }) {
@@ -304,39 +315,80 @@ struct DesignChatPanel: View {
     }
 
     private var quickTemplateGrid: some View {
-        LazyVGrid(
-            columns: Array(repeating: GridItem(.flexible(), spacing: theme.spacingXS), count: 2),
-            spacing: theme.spacingXS
-        ) {
-            ForEach(DesignPrompts.quickTemplates) { tmpl in
-                Button(action: {
-                    inputText = tmpl.prompt
-                    sendChat()
-                }) {
-                    HStack(spacing: theme.spacingXS) {
-                        Image(systemName: tmpl.icon)
-                            .font(.system(size: 10))
-                            .foregroundStyle(theme.accent)
-                        Text(tmpl.name)
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(theme.text)
-                            .lineLimit(1)
+        VStack(spacing: theme.spacingS) {
+            ForEach(DesignTemplateGroup.allCases) { group in
+                let templates = DesignPrompts.groupedQuickTemplates.filter { $0.group == group }
+                if !templates.isEmpty {
+                    VStack(alignment: .leading, spacing: theme.spacingXS) {
+                        HStack(spacing: 4) {
+                            Image(systemName: group.icon)
+                                .font(.system(size: 9))
+                                .foregroundStyle(theme.textTertiary)
+                            Text(group.rawValue)
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(theme.textTertiary)
+                        }
+                        LazyVGrid(
+                            columns: Array(repeating: GridItem(.flexible(), spacing: theme.spacingXS), count: 2),
+                            spacing: theme.spacingXS
+                        ) {
+                            ForEach(templates) { tmpl in
+                                Button(action: {
+                                    if tmpl.prompt.hasPrefix("SKILL:") {
+                                        handleSkillTemplate(tmpl)
+                                    } else {
+                                        inputText = tmpl.prompt
+                                        sendChat()
+                                    }
+                                }) {
+                                    HStack(spacing: theme.spacingXS) {
+                                        Image(systemName: tmpl.icon)
+                                            .font(.system(size: 10))
+                                            .foregroundStyle(group == .skills ? theme.accent : theme.textSecondary)
+                                        Text(tmpl.name)
+                                            .font(.system(size: 10, weight: .medium))
+                                            .foregroundStyle(theme.text)
+                                            .lineLimit(1)
+                                    }
+                                    .padding(.horizontal, theme.spacingS)
+                                    .padding(.vertical, theme.spacingXS)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                            .fill(group == .skills ? theme.accent.opacity(0.1) : theme.groupBg)
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                            .stroke(group == .skills ? theme.accent.opacity(0.3) : theme.groupBorder, lineWidth: 0.5)
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
                     }
-                    .padding(.horizontal, theme.spacingS)
-                    .padding(.vertical, theme.spacingXS)
-                    .background(
-                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                            .fill(theme.groupBg)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                            .stroke(theme.groupBorder, lineWidth: 0.5)
-                    )
                 }
-                .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, theme.spacingS)
+    }
+
+    private func handleSkillTemplate(_ tmpl: DesignQuickTemplate) {
+        let skillID = tmpl.prompt.replacingOccurrences(of: "SKILL:", with: "")
+        switch skillID {
+        case "text_to_ui":
+            designBridge.skillTextToUI(prompt: inputText.isEmpty ? "设计一个现代深色主题页面" : inputText)
+        case "multi_variants":
+            let prompt = inputText.isEmpty ? "设计一个数据卡片组件" : inputText
+            designBridge.skillMultiVariants(prompt: prompt)
+        case "local_edit":
+            if !designBridge.marqueeSelectedNodeIDs.isEmpty {
+                designBridge.applyLocalEdit(nodesJSON: "[]", instruction: inputText.isEmpty ? "修改选中元素" : inputText)
+            } else {
+                inputText = "请选中画布上的元素后使用精准修改技能"
+            }
+        default:
+            inputText = "使用\(tmpl.name)技能: \(inputText)"
+            sendChat()
+        }
     }
 
     private func messageBubble(_ msg: DesignMessage) -> some View {

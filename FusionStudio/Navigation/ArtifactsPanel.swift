@@ -483,11 +483,12 @@ struct ArtifactsPanel: View {
         liveContent = ""
         chatInput = ""
         chatError = nil
-        chatMessages = [ArtifactChatMessage(
-            role: "system",
-            content: "You're building a \(template.kind.label) artifact (\(template.name)). Describe what you want and I'll generate it through conversation."
-        )]
-        artifactsLog.info("Template selected: \(template.id)")
+        if !template.defaultContent.isEmpty {
+            liveContent = template.defaultContent
+        }
+        var sysMsg = "You're building a \(template.kind.label) artifact (\(template.name)). Describe what you want and I'll generate it through conversation."
+        chatMessages = [ArtifactChatMessage(role: "system", content: sysMsg)]
+        artifactsLog.info("Template selected: \(template.id), engineOnline=\(engineOnline)")
     }
 
     private func startNewArtifact() {
@@ -621,6 +622,16 @@ struct ArtifactsPanel: View {
         chatMessages.append(ArtifactChatMessage(role: "user", content: prompt))
         chatGenerating = true
         chatError = nil
+
+        // Pre-check MLX availability before streaming
+        let config = FusionConfig.shared
+        let baseURL = config.mlxBaseURL
+        if baseURL.isEmpty {
+            chatError = "MLX not configured. Please set up MLX in Settings first."
+            chatGenerating = false
+            artifactsLog.error("sendChat: MLX baseURL empty")
+            return
+        }
 
         // Callers: ArtifactsPanel.sendChat → agentBridge.inferStream. Affected API: inferStream [[String:Any]]. Data: chatMessages.
         var messages: [[String: Any]] = [["role": "system", "content": chatSystemPrompt()]]

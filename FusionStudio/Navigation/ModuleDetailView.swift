@@ -257,6 +257,7 @@ struct DesignView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .keyboardShortcut(mode == .preview ? "1" : "2", modifiers: .command)
             }
             Spacer()
             if canvasMode == .canvas {
@@ -266,14 +267,16 @@ struct DesignView: View {
                         .foregroundStyle(theme.textSecondary)
                 }
                 .buttonStyle(.plain)
-                .help("Undo")
+                .keyboardShortcut("z", modifiers: .command)
+                .help("Undo (⌘Z)")
                 Button(action: { designBridge.redo() }) {
                     Image(systemName: "arrow.uturn.forward")
                         .font(.system(size: 12))
                         .foregroundStyle(theme.textSecondary)
                 }
                 .buttonStyle(.plain)
-                .help("Redo")
+                .keyboardShortcut("z", modifiers: [.command, .shift])
+                .help("Redo (⇧⌘Z)")
             }
             if canvasMode == .canvas, let nodeID = selectedNodeID {
                 Text("Node: \(nodeID)")
@@ -358,6 +361,7 @@ struct DesignView: View {
                 } else {
                     artifactInfoSection
                     deviceModeSection
+                    designThemeSection
                     codeStatsSection
                 }
             }
@@ -445,6 +449,35 @@ struct DesignView: View {
                 Text("\(code.count)")
                     .font(.system(size: theme.footnoteSize, weight: .medium))
                     .foregroundStyle(theme.text)
+            }
+        }
+    }
+
+    private var designThemeSection: some View {
+        VStack(alignment: .leading, spacing: theme.spacingS) {
+            Text("设计主题")
+                .font(.system(size: theme.footnoteSize, weight: .semibold))
+                .foregroundStyle(theme.textSecondary)
+
+            HStack(spacing: theme.spacingS) {
+                ForEach(["dark", "light"], id: \.self) { mode in
+                    Button(action: { designBridge.switchTheme(mode) }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: mode == "dark" ? "moon.fill" : "sun.max.fill")
+                                .font(.system(size: 10))
+                            Text(mode == "dark" ? "深色" : "浅色")
+                                .font(.system(size: theme.captionSize, weight: .medium))
+                        }
+                        .foregroundStyle(designBridge.activeTheme == mode ? theme.accentText : theme.textSecondary)
+                        .padding(.horizontal, theme.spacingS)
+                        .padding(.vertical, theme.spacingXS)
+                        .background(
+                            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                .fill(designBridge.activeTheme == mode ? theme.accent : theme.groupBg)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
     }

@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView.designInfoPanel lint tab.
+// Affected API: DesignLintPanel.runLint now uses DesignBridge.skillLint unified bridge.
+// Data schemas: LintViolation, LintResult, LintStats, DesignLintIssue.
+// User instruction: "按照GUI草图实现fusion design，和~/fusion/fusion-design配合，端到端完成fusion设计"
+
 import SwiftUI
 import os.log
 
@@ -336,70 +341,39 @@ struct DesignLintPanel: View {
         violations = []
         stats = nil
 
-        let cliPath = findFusionDesignCLI()
-
         DispatchQueue.global(qos: .userInitiated).async {
-            let tempDir = FileManager.default.temporaryDirectory
-            let inputFile = tempDir.appendingPathComponent("fusion-lint-input-\(UUID().uuidString).json")
-            do {
-                try docJSON.write(to: inputFile, atomically: true, encoding: .utf8)
-            } catch {
-                DispatchQueue.main.async {
-                    errorMessage = "写入临时文件失败: \(error.localizedDescription)"
-                    isRunning = false
-                }
-                return
-            }
-
-            var args = ["lint", "--input", inputFile.path]
-            for rule in enabledRules {
-                args += ["--rule", rule.rawValue]
-            }
-
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: cliPath)
-            let pipe = Pipe()
-            let errPipe = Pipe()
-            process.standardOutput = pipe
-            process.standardError = errPipe
-            process.arguments = args
-
-            do {
-                try process.run()
-                process.waitUntilExit()
-
-                if process.terminationStatus == 0 {
-                    let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                    if let output = String(data: data, encoding: .utf8), !output.isEmpty {
-                        let result = try JSONDecoder().decode(LintResult.self, from: Data(output.utf8))
-                        DispatchQueue.main.async {
-                            self.violations = result.violations
-                            self.stats = result.stats
-                            lintLog.info("Lint completed: \(result.violations.count) violations")
-                        }
-                    }
+            let issues = designBridge.skillLint(
+                documentJSON: docJSON,
+                designSystem: "apple-hig",
+                fix: false
+            )
+            DispatchQueue.main.async {
+                if issues.isEmpty && (designBridge.lastRenderedDocumentJSON ?? "").isEmpty {
+                    self.errorMessage = "Lint 未返回结果"
                 } else {
-                    let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
-                    let errMsg = String(data: errData, encoding: .utf8) ?? "unknown error"
-                    DispatchQueue.main.async {
-                        self.errorMessage = "Lint 失败 (exit \(process.terminationStatus)): \(errMsg.prefix(200))"
+                    let mapped = issues.map { issue -> LintViolation in
+                        LintViolation(
+                            id: issue.id.uuidString,
+                            rule: issue.rule,
+                            node_id: issue.nodeID ?? "",
+                            message: issue.message,
+                            suggestion: issue.suggestion,
+                            severity: LintSeverity(rawValue: issue.severity) ?? .info
+                        )
                     }
+                    self.violations = mapped
+                    self.stats = LintStats(
+                        total_nodes: 0,
+                        total_violations: mapped.count,
+                        errors: mapped.filter { $0.severity == .error }.count,
+                        warnings: mapped.filter { $0.severity == .warning }.count,
+                        infos: mapped.filter { $0.severity == .info }.count
+                    )
+                    lintLog.info("Lint completed: \(mapped.count) violations via unified bridge")
                 }
-            } catch {
-                DispatchQueue.main.async {
-                    self.errorMessage = "执行 lint 命令失败: \(error.localizedDescription)"
-                }
+                self.isRunning = false
             }
-
-            try? FileManager.default.removeItem(at: inputFile)
-            DispatchQueue.main.async { self.isRunning = false }
         }
     }
 
-    private func findFusionDesignCLI() -> String {
-        let devPath = NSHomeDirectory() + "/fusion/fusion-design/target/debug/fusion-design"
-        if FileManager.default.fileExists(atPath: devPath) { return devPath }
-        if let bundlePath = Bundle.main.path(forResource: "fusion-design", ofType: nil) { return bundlePath }
-        return "/usr/local/bin/fusion-design"
-    }
 }

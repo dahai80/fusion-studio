@@ -4803,7 +4803,7 @@ struct DashboardTabView: View {
                             .foregroundStyle(theme.text)
                         Spacer()
                         if let status = agent.status {
-                            FusionTag(status, color: statusColor(for: status))
+                            FusionTag(status, color: status == "published" ? .green : status == "archived" ? .orange : .gray)
                         }
                     }
                     .padding(.horizontal, theme.spacingL)
@@ -5117,9 +5117,9 @@ struct MarketplaceCard: View {
         }
         .padding(theme.spacingM)
         .background(theme.surfacePrimary)
-        .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusMedium, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: theme.cornerRadiusMedium, style: .continuous)
+            RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
                 .stroke(theme.inputBorder, lineWidth: 1)
         }
     }

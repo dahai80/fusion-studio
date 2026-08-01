@@ -66,7 +66,7 @@ Design · Code · Simulation · MultiModal · Training · Data · Agent · KB ·
 | # | Module | Icon | Status | Description |
 |---|--------|------|--------|-------------|
 | 1 | 🏠 **Dashboard** | `square.grid.2x2` | ✅ Stable | Command center, health check, task queue, hardware monitor |
-| 2 | 🎨 **Design** | `pencil.and.outline` | ✅ Stable | AI-powered vector canvas, WKWebView, export to code |
+| 2 | 🎨 **Design** | `pencil.and.outline` | ✅ Stable | AI-powered canvas (preview + interactive node editing), 8 design skills, 7 info tabs (props/layers/tokens/design-systems/lint/codegen/ecosystem), 20 grouped quick templates, version diff, 3 workflow recipes, theme switching, design system picker, SwiftUI/React/Vue export — surpassing Claude Design |
 | 3 | 💻 **Code** | `chevron.left.forwardslash.chevron.right` | 🆕 New | 5-panel layout: FileTree · Chat · Editor/Diff/Terminal + InputBar with /slash commands + 3 execution modes (Ask/Auto/Plan), KB query, memory, templates, permission tiers — surpassing Claude Code |
 | 4 | 🤖 **Simulation** | `gearshape.2` | ✅ Stable | PyBullet physics, 3D viewport, scene editor |
 | 5 | 📦 **Model Hub** | `cpu` | ✅ Stable | Real model list via fusion-mlx API, HF search/recommended, download progress polling, model activation |
@@ -517,7 +517,7 @@ fusion-studio/
 │   ├── TaskManager/              # Task queue + hardware monitor
 │   ├── Bridge/                   # IPC client (JSON-RPC)
 │   ├── Modules/                  # Module containers (20+ modules)
-│   │   ├── Design/               # WKWebView canvas
+│   │   ├── Design/               # AI canvas + 8 skills + 7 info tabs + version diff + workflows + theme
 │   │   ├── Code/                 # Code editor + terminal
 │   │   ├── Simulation/           # 3D physics simulation
 │   │   ├── ModelHub/             # Model management

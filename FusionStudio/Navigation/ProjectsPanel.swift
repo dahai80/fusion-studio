@@ -231,6 +231,18 @@ struct ProjectsPanel: View {
         }
         .buttonStyle(.plain)
         .background(pm.activeProject?.id == project.id ? theme.accent.opacity(0.05) : Color.clear)
+        .contextMenu {
+            Button(action: { pm.openProject(project); showDetail = true; instructionText = project.customInstructions }) {
+                Label("Open", systemImage: "folder")
+            }
+            Button(action: { duplicateProject(project) }) {
+                Label("Duplicate", systemImage: "doc.on.doc")
+            }
+            Divider()
+            Button(role: .destructive, action: { deleteProject(project) }) {
+                Label("Delete", systemImage: "trash")
+            }
+        }
     }
 
     // MARK: - Project Detail
@@ -445,6 +457,18 @@ struct ProjectsPanel: View {
                     .font(.system(size: theme.textSize, weight: .semibold))
                     .foregroundStyle(theme.text)
                 Spacer()
+                Button(action: { createNewChat(project) }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus")
+                        Text("New Chat")
+                    }
+                    .font(.system(size: theme.footnoteSize, weight: .medium))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, theme.spacingM)
+                    .padding(.vertical, 4)
+                    .background(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous).fill(theme.accent))
+                }
+                .buttonStyle(.plain)
                 Text("\(project.chats.count) sessions")
                     .font(.system(size: theme.captionSize, design: .monospaced))
                     .foregroundStyle(theme.textTertiary)
@@ -458,6 +482,15 @@ struct ProjectsPanel: View {
                     Text("No chat sessions yet")
                         .font(.system(size: theme.footnoteSize))
                         .foregroundStyle(theme.textSecondary)
+                    Button(action: { createNewChat(project) }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "plus.circle")
+                            Text("Start a Conversation")
+                        }
+                        .font(.system(size: theme.footnoteSize, weight: .medium))
+                        .foregroundStyle(theme.accent)
+                    }
+                    .buttonStyle(.plain)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, theme.spacingXL)
@@ -468,6 +501,20 @@ struct ProjectsPanel: View {
             }
         }
         .padding(theme.spacingL)
+    }
+
+    @State private var newChatTitle = ""
+
+    private func createNewChat(_ project: FusionProject) {
+        Task {
+            do {
+                let model = project.settings.defaultModel.isEmpty ? nil : project.settings.defaultModel
+                _ = try await pm.createChat(projectId: project.id, title: "New Chat", model: model)
+                projectsLog.info("New chat created in project: \(project.name)")
+            } catch {
+                projectsLog.error("Create chat failed: \(error.localizedDescription)")
+            }
+        }
     }
 
     private func sessionRow(_ session: ProjectSession, project: FusionProject) -> some View {
@@ -595,6 +642,26 @@ struct ProjectsPanel: View {
         pm.deleteSession(session, projectId: project.id)
     }
 
+    private func deleteProject(_ project: FusionProject) {
+        if pm.activeProject?.id == project.id {
+            pm.closeProject()
+            showDetail = false
+        }
+        pm.deleteProject(project)
+        projectsLog.info("Project deleted via context menu: \(project.name)")
+    }
+
+    private func duplicateProject(_ project: FusionProject) {
+        Task {
+            do {
+                _ = try await pm.duplicateProjectBackend(project.id, name: "\(project.name) Copy")
+                projectsLog.info("Project duplicated: \(project.name)")
+            } catch {
+                projectsLog.error("Duplicate failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
     // MARK: - Helpers
 
     private func relativeTime(_ date: Date) -> String {
@@ -623,6 +690,7 @@ private struct SettingsTabContent: View {
     let project: FusionProject
     let theme: StudioTheme
 
+    @EnvironmentObject var agentBridge: AgentBridge
     @State private var defaultModel: String
     @State private var temperature: Double
     @State private var maxTokens: Int
@@ -649,9 +717,20 @@ private struct SettingsTabContent: View {
                 Text("Default Model")
                     .font(.system(size: theme.footnoteSize))
                     .foregroundStyle(theme.textSecondary)
+                if agentBridge.models.isEmpty {
                 TextField("e.g. qwen3-9b", text: $defaultModel)
                     .textFieldStyle(.roundedBorder)
                     .font(.system(size: theme.footnoteSize))
+                } else {
+                Picker("Default Model", selection: $defaultModel) {
+                    Text("Default").tag("")
+                    ForEach(agentBridge.models, id: \.id) { m in
+                        Text(m.id).tag(m.id)
+                    }
+                }
+                .pickerStyle(.menu)
+                .font(.system(size: theme.footnoteSize))
+                }
             }
 
             VStack(alignment: .leading, spacing: theme.spacingS) {

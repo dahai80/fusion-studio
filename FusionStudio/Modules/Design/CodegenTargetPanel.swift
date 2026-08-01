@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView.designInfoPanel codegen tab.
+// Affected API: CodegenTargetPanel.runCodegen now uses DesignBridge.runFusionDesign unified bridge.
+// Data schemas: CodegenTarget enum.
+// User instruction: "按照GUI草图实现fusion design，和~/fusion/fusion-design配合，端到端完成fusion设计"
+
 import SwiftUI
 import os.log
 
@@ -243,58 +248,20 @@ struct CodegenTargetPanel: View {
         isGenerating = true
         errorMessage = nil
 
-        let cliPath = findFusionDesignCLI()
-
         DispatchQueue.global(qos: .userInitiated).async {
-            let tempDir = FileManager.default.temporaryDirectory
-            let inputFile = tempDir.appendingPathComponent("fusion-codegen-input-\(UUID().uuidString).json")
-            do {
-                try docJSON.write(to: inputFile, atomically: true, encoding: .utf8)
-            } catch {
-                DispatchQueue.main.async {
-                    self.errorMessage = "写入临时文件失败: \(error.localizedDescription)"
-                    self.isGenerating = false
-                }
-                return
-            }
-
-            let args = ["codegen", "--input", inputFile.path, "--target", selectedTarget.rawValue, "--component", componentName]
-
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: cliPath)
-            let pipe = Pipe()
-            let errPipe = Pipe()
-            process.standardOutput = pipe
-            process.standardError = errPipe
-            process.arguments = args
-
-            do {
-                try process.run()
-                process.waitUntilExit()
-
-                if process.terminationStatus == 0 {
-                    let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                    if let output = String(data: data, encoding: .utf8) {
-                        DispatchQueue.main.async {
-                            self.generatedCode = output
-                            codegenLog.info("Codegen completed: \(output.count) chars, target=\(self.selectedTarget.rawValue)")
-                        }
-                    }
+            let result = designBridge.runFusionDesign(
+                ["codegen", "--target", selectedTarget.rawValue, "--component", componentName],
+                stdin: docJSON
+            )
+            DispatchQueue.main.async {
+                if result.exitCode == 0 {
+                    self.generatedCode = result.output
+                    codegenLog.info("Codegen completed: \(result.output.count) chars, target=\(self.selectedTarget.rawValue)")
                 } else {
-                    let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
-                    let errMsg = String(data: errData, encoding: .utf8) ?? "unknown error"
-                    DispatchQueue.main.async {
-                        self.errorMessage = "代码生成失败 (exit \(process.terminationStatus)): \(errMsg.prefix(200))"
-                    }
+                    self.errorMessage = "代码生成失败: \(result.error.prefix(200))"
                 }
-            } catch {
-                DispatchQueue.main.async {
-                    self.errorMessage = "执行 codegen 命令失败: \(error.localizedDescription)"
-                }
+                self.isGenerating = false
             }
-
-            try? FileManager.default.removeItem(at: inputFile)
-            DispatchQueue.main.async { self.isGenerating = false }
         }
     }
 
@@ -309,10 +276,4 @@ struct CodegenTargetPanel: View {
         }
     }
 
-    private func findFusionDesignCLI() -> String {
-        let devPath = NSHomeDirectory() + "/fusion/fusion-design/target/debug/fusion-design"
-        if FileManager.default.fileExists(atPath: devPath) { return devPath }
-        if let bundlePath = Bundle.main.path(forResource: "fusion-design", ofType: nil) { return bundlePath }
-        return "/usr/local/bin/fusion-design"
-    }
 }

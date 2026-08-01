@@ -1,3 +1,8 @@
+// Callers: ModuleDetailView.designInfoPanel (designSystems tab).
+// Affected API: activateSystem (refactored to use DesignBridge.runFusionDesign), refreshSystems (refactored), findFusionDesignCLI removed.
+// Data schemas: DesignSystemInfo unchanged.
+// User instruction: Phase 4 — refactor raw Process() to unified CLI bridge
+
 import SwiftUI
 import os.log
 
@@ -183,39 +188,13 @@ struct DesignSystemListView: View {
     }
 
     private func activateSystem(_ sys: DesignSystemInfo) {
-        let cliPath = findFusionDesignCLI()
-
-        DispatchQueue.global(qos: .userInitiated).async {
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: cliPath)
-            process.arguments = ["activate", sys.cliId]
-
-            let pipe = Pipe()
-            let errPipe = Pipe()
-            process.standardOutput = pipe
-            process.standardError = errPipe
-
-            do {
-                try process.run()
-                process.waitUntilExit()
-
-                if process.terminationStatus == 0 {
-                    DispatchQueue.main.async {
-                        self.activeSystemId = sys.cliId
-                        dsListLog.info("Activated design system: \(sys.cliId)")
-                    }
-                } else {
-                    let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
-                    let errMsg = String(data: errData, encoding: .utf8) ?? "unknown error"
-                    DispatchQueue.main.async {
-                        self.errorMessage = "激活失败: \(errMsg.prefix(200))"
-                    }
-                }
-            } catch {
-                DispatchQueue.main.async {
-                    self.errorMessage = "执行激活命令失败: \(error.localizedDescription)"
-                }
-            }
+        let result = designBridge.runFusionDesign(["activate", sys.cliId])
+        if result.exitCode == 0 {
+            activeSystemId = sys.cliId
+            dsListLog.info("Activated design system: \(sys.cliId)")
+        } else {
+            errorMessage = "激活失败: \(result.error.prefix(200))"
+            dsListLog.error("Activate failed: \(result.error)")
         }
     }
 
@@ -223,56 +202,26 @@ struct DesignSystemListView: View {
         isRefreshing = true
         errorMessage = nil
 
-        let cliPath = findFusionDesignCLI()
-
-        DispatchQueue.global(qos: .userInitiated).async {
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: cliPath)
-            process.arguments = ["list-design-systems"]
-
-            let pipe = Pipe()
-            process.standardOutput = pipe
-
-            do {
-                try process.run()
-                process.waitUntilExit()
-
-                if process.terminationStatus == 0 {
-                    let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                    if let output = String(data: data, encoding: .utf8) {
-                        let ids = output.split(separator: "\n").map(String.init).filter { !$0.isEmpty }
-                        DispatchQueue.main.async {
-                            var systems = [DesignSystemInfo]()
-                            for id in ids {
-                                if let builtin = DesignSystemInfo.builtIn.first(where: { $0.cliId == id }) {
-                                    systems.append(builtin)
-                                } else {
-                                    systems.append(DesignSystemInfo(id: id, name: id, description: "自定义设计系统", icon: "paintpalette", cliId: id, tokenCount: 0))
-                                }
-                            }
-                            self.availableSystems = systems
-                            dsListLog.info("Refreshed design systems: \(ids)")
-                        }
-                    }
-                }
-            } catch {
-                DispatchQueue.main.async {
-                    self.errorMessage = "获取设计系统列表失败: \(error.localizedDescription)"
+        let result = designBridge.runFusionDesign(["list-design-systems"])
+        if result.exitCode == 0 {
+            let ids = result.output.split(separator: "\n").map(String.init).filter { !$0.isEmpty }
+            var systems = [DesignSystemInfo]()
+            for id in ids {
+                if let builtin = DesignSystemInfo.builtIn.first(where: { $0.cliId == id }) {
+                    systems.append(builtin)
+                } else {
+                    systems.append(DesignSystemInfo(id: id, name: id, description: "自定义设计系统", icon: "paintpalette", cliId: id, tokenCount: 0))
                 }
             }
-
-            DispatchQueue.main.async { self.isRefreshing = false }
+            availableSystems = systems
+            dsListLog.info("Refreshed design systems: \(ids)")
+        } else {
+            errorMessage = "获取设计系统列表失败: \(result.error.prefix(200))"
         }
+        isRefreshing = false
     }
 
     private func applyActiveSystem() {
         designBridge.applyDesignTokensToCanvas(systemId: activeSystemId)
-    }
-
-    private func findFusionDesignCLI() -> String {
-        let devPath = NSHomeDirectory() + "/fusion/fusion-design/target/debug/fusion-design"
-        if FileManager.default.fileExists(atPath: devPath) { return devPath }
-        if let bundlePath = Bundle.main.path(forResource: "fusion-design", ofType: nil) { return bundlePath }
-        return "/usr/local/bin/fusion-design"
     }
 }
