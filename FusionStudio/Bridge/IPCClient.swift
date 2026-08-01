@@ -2932,8 +2932,16 @@ extension IPCClient {
         try await fsbRequestArray("GET", path: "/workspace/\(wsId)/template")
     }
 
-    func fsbCreateTemplate(wsId: String, name: String, data: [String: Any] = [:]) async throws -> [String: Any] {
-        try await fsbRequest("POST", path: "/workspace/\(wsId)/template", body: ["name": name, "data": data])
+    func fsbCreateTemplate(wsId: String, name: String, data: [String: Any] = [:], category: String? = nil, description: String? = nil, graphDefinition: [String: Any]? = nil) async throws -> [String: Any] {
+        var body: [String: Any] = ["name": name, "data": data]
+        if let v = category { body["category"] = v }
+        if let v = description { body["description"] = v }
+        if let v = graphDefinition { body["graphDefinition"] = v }
+        return try await fsbRequest("POST", path: "/workspace/\(wsId)/template", body: body)
+    }
+
+    func fsbDeleteTemplate(wsId: String, templateId: String) async throws -> [String: Any] {
+        try await fsbRequest("DELETE", path: "/workspace/\(wsId)/template/\(templateId)")
     }
 
     // MARK: Integration
