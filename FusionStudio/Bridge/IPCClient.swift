@@ -2427,6 +2427,7 @@ class IPCClient: ObservableObject {
         ])
     }
 
+
     deinit {
         reconnectTimer?.invalidate()
         if socketFd >= 0 {
