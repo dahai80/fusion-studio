@@ -2473,6 +2473,37 @@ class IPCClient: ObservableObject {
         ])
     }
 
+    func spaceAgentUpdate(spaceId: String, agentId: String, agentName: String? = nil,
+                           systemPrompt: String? = nil, permission: String? = nil,
+                           model: String? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["space_id": spaceId, "agent_id": agentId]
+        if let n = agentName { p["agent_name"] = n }
+        if let s = systemPrompt { p["system_prompt"] = s }
+        if let pr = permission { p["permission"] = pr }
+        if let m = model { p["model"] = m }
+        return try await spaceCall(method: "desk.space.agent.update", params: p)
+    }
+
+    func spaceAgentCall(spaceId: String, agentId: String, userId: String = "local_user",
+                         message: String, model: String? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = [
+            "space_id": spaceId, "agent_id": agentId,
+            "user_id": userId, "message": message,
+        ]
+        if let m = model { p["model"] = m }
+        return try await spaceCall(method: "desk.space.agent.call", params: p)
+    }
+
+    func spaceAgentRelay(spaceId: String, agentIds: [String], userId: String = "local_user",
+                          message: String, model: String? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = [
+            "space_id": spaceId, "agent_ids": agentIds,
+            "user_id": userId, "message": message,
+        ]
+        if let m = model { p["model"] = m }
+        return try await spaceCall(method: "desk.space.agent.relay", params: p)
+    }
+
     // MARK: - CoWork Discovery (desk.space.discovery.*)
 
     func spaceDiscoveryScan() async throws -> [String: Any] {
@@ -2488,6 +2519,12 @@ class IPCClient: ObservableObject {
     func spaceWorkflowRun(spaceId: String, workflowId: String) async throws -> [String: Any] {
         return try await spaceCall(method: "desk.space.workflow.run", params: [
             "space_id": spaceId, "workflow_id": workflowId,
+        ])
+    }
+
+    func spaceWorkflowCreate(spaceId: String, name: String, description: String = "") async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.workflow.create", params: [
+            "space_id": spaceId, "name": name, "description": description,
         ])
     }
 
@@ -2507,6 +2544,139 @@ class IPCClient: ObservableObject {
         if !description.isEmpty { p["description"] = description }
         if !filePath.isEmpty { p["file_path"] = filePath }
         return try await spaceCall(method: "desk.space.artifact.create", params: p)
+    }
+
+    func spaceArtifactGet(spaceId: String, artifactId: String) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.artifact.get", params: [
+            "space_id": spaceId, "artifact_id": artifactId,
+        ])
+    }
+
+    func spaceArtifactDelete(spaceId: String, artifactId: String) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.artifact.delete", params: [
+            "space_id": spaceId, "artifact_id": artifactId,
+        ])
+    }
+
+    func spaceArtifactUpdate(spaceId: String, artifactId: String, name: String? = nil,
+                              content: String? = nil, metadata: [String: Any]? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["space_id": spaceId, "artifact_id": artifactId]
+        if let n = name { p["name"] = n }
+        if let c = content { p["content"] = c }
+        if let md = metadata { p["metadata"] = md }
+        return try await spaceCall(method: "desk.space.artifact.update", params: p)
+    }
+
+    func spaceArtifactShare(spaceId: String, artifactId: String) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.artifact.share", params: [
+            "space_id": spaceId, "artifact_id": artifactId,
+        ])
+    }
+
+    func spaceArtifactTransfer(spaceId: String, artifactId: String,
+                                fromUserId: String, toUserId: String) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.artifact.transfer", params: [
+            "space_id": spaceId, "artifact_id": artifactId,
+            "from_user_id": fromUserId, "to_user_id": toUserId,
+        ])
+    }
+
+    // MARK: - CoWork Snapshots (desk.space.snapshot.* - extended)
+
+    func spaceSnapshotRestore(spaceId: String, snapshotId: String) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.snapshot.restore", params: [
+            "space_id": spaceId, "snapshot_id": snapshotId,
+        ])
+    }
+
+    func spaceSnapshotDelete(spaceId: String, snapshotId: String) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.snapshot.delete", params: [
+            "space_id": spaceId, "snapshot_id": snapshotId,
+        ])
+    }
+
+    // MARK: - CoWork Desktop (desk.space.desktop.*)
+
+    func spaceDesktopShare(spaceId: String, action: String) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.desktop.share", params: [
+            "space_id": spaceId, "action": action,
+        ])
+    }
+
+    func spaceDesktopControl(spaceId: String, action: String) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.desktop.control", params: [
+            "space_id": spaceId, "action": action,
+        ])
+    }
+
+    // MARK: - CoWork Knowledge (desk.space.knowledge.*)
+
+    func spaceKnowledgeBind(spaceId: String, kbId: String? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["space_id": spaceId]
+        if let k = kbId { p["kb_id"] = k }
+        return try await spaceCall(method: "desk.space.knowledge.bind", params: p)
+    }
+
+    func spaceKnowledgeStatus(spaceId: String) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.knowledge.status", params: [
+            "space_id": spaceId,
+        ])
+    }
+
+    func spaceKnowledgeUpload(spaceId: String, filePath: String) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.knowledge.upload", params: [
+            "space_id": spaceId, "file_path": filePath,
+        ])
+    }
+
+    func spaceKnowledgeSearch(spaceId: String, query: String, topK: Int = 5) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.knowledge.search", params: [
+            "space_id": spaceId, "query": query, "top_k": topK,
+        ])
+    }
+
+    func spaceKnowledgeQuery(spaceId: String, question: String, topK: Int = 5) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.knowledge.query", params: [
+            "space_id": spaceId, "question": question, "top_k": topK,
+        ])
+    }
+
+    func spaceKnowledgeUnbind(spaceId: String) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.space.knowledge.unbind", params: [
+            "space_id": spaceId,
+        ])
+    }
+
+    // MARK: - CoWork Chat Context (desk.space.chat.context)
+
+    func spaceChatContext(spaceId: String, limit: Int? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["space_id": spaceId]
+        if let l = limit { p["limit"] = l }
+        return try await spaceCall(method: "desk.space.chat.context", params: p)
+    }
+
+    // MARK: - CoWork Notifications (desk.notification.*)
+
+    func spaceNotificationPush(spaceId: String, userId: String, title: String,
+                                type: String = "info", content: String = "") async throws -> [String: Any] {
+        var p: [String: Any] = [
+            "space_id": spaceId, "user_id": userId,
+            "title": title, "type": type,
+        ]
+        if !content.isEmpty { p["content"] = content }
+        return try await spaceCall(method: "desk.notification.push", params: p)
+    }
+
+    func spaceNotificationList(userId: String, unreadOnly: Bool = false) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.notification.list", params: [
+            "user_id": userId, "unread_only": unreadOnly,
+        ])
+    }
+
+    func spaceNotificationMarkRead(notificationId: String) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.notification.markRead", params: [
+            "id": notificationId,
+        ])
     }
 
     // MARK: - CoWork Deep Research (desk.space.research.*)

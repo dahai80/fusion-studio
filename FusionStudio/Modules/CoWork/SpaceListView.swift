@@ -17,6 +17,7 @@ struct SpaceListView: View {
     @State private var searchText = ""
     @State private var filterStatus: SpaceFilterStatus = .all
     @State private var showOnboarding = true
+    @State private var showMarketplace = false
 
     private enum SpaceFilterStatus: String, CaseIterable {
         case all = "全部"
@@ -65,6 +66,13 @@ struct SpaceListView: View {
                 }
                 .buttonStyle(.plain)
                 .help("新建协作空间")
+                Button(action: { showMarketplace = true }) {
+                    Image(systemName: "bag")
+                        .font(.system(size: theme.iconM))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .buttonStyle(.plain)
+                .help("工作流/模板市场")
             }
             .padding(.horizontal, theme.spacingM)
             .padding(.bottom, theme.spacingS)
@@ -112,6 +120,9 @@ struct SpaceListView: View {
         .frame(minWidth: 300, maxWidth: 360)
         .sheet(isPresented: $showCreateDialog) {
             SpaceCreateDialog(onCreated: { _ in loadSpaces() })
+        }
+        .sheet(isPresented: $showMarketplace) {
+            SpaceMarketplaceView()
         }
     }
 
@@ -478,12 +489,17 @@ struct SpaceMainView: View {
     @State private var isLoading = false
     @State private var activeSidebarSection: SpaceSidebarSection = .members
     @State private var selectedArtifact: SpaceArtifact?
+    @State private var showNotifications = false
+    private let spaceManager = CoworkSpaceManager.shared
 
     private enum SpaceSidebarSection: String, CaseIterable {
         case members = "成员"
         case files = "文件"
+        case knowledge = "知识库"
         case agents = "Agent"
         case artifacts = "产物"
+        case workflows = "工作流"
+        case snapshots = "快照"
         case desktop = "桌面"
         case settings = "设置"
 
@@ -491,8 +507,11 @@ struct SpaceMainView: View {
             switch self {
             case .members: return "person.2"
             case .files: return "folder"
+            case .knowledge: return "books.vertical"
             case .agents: return "brain.head.profile"
             case .artifacts: return "shippingbox"
+            case .workflows: return "arrow.triangle.branch"
+            case .snapshots: return "camera.on.rectangle"
             case .desktop: return "desktopcomputer"
             case .settings: return "gearshape"
             }
@@ -554,6 +573,27 @@ struct SpaceMainView: View {
                 }
             }
             Spacer()
+            Button(action: { showNotifications.toggle() }) {
+                ZStack(alignment: .topTrailing) {
+                    Image(systemName: "bell")
+                        .font(.system(size: theme.iconM))
+                        .foregroundStyle(theme.textTertiary)
+                    let unread = spaceManager.unreadNotificationCount()
+                    if unread > 0 {
+                        Text("\(min(unread, 99))")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(2)
+                            .background(Color.red)
+                            .clipShape(Circle())
+                            .offset(x: 6, y: -4)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+            .popover(isPresented: $showNotifications) {
+                SpaceNotificationPopover()
+            }
             Menu {
                 Button("创建快照") { createSnapshot() }
                 if s.isOwner || s.ownerId == "local_user" {
@@ -616,10 +656,16 @@ struct SpaceMainView: View {
                 SpaceMemberPanel(spaceId: spaceId)
             case .files:
                 SpaceFilesPanel(spaceId: spaceId)
+            case .knowledge:
+                SpaceKnowledgePanel(spaceId: spaceId)
             case .agents:
                 SpaceAgentPanel(spaceId: spaceId)
             case .artifacts:
                 SpaceArtifactPanel(spaceId: spaceId, selectedArtifact: $selectedArtifact)
+            case .workflows:
+                SpaceWorkflowPanel(spaceId: spaceId)
+            case .snapshots:
+                SpaceSnapshotPanel(spaceId: spaceId)
             case .desktop:
                 SpaceDesktopPanel(spaceId: spaceId)
             case .settings:
@@ -647,6 +693,16 @@ struct SpaceMainView: View {
         case .artifacts:
             if let s = space, s.artifactCount > 0 {
                 Text("\(s.artifactCount)")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(theme.textTertiary)
+            }
+        case .knowledge:
+            if let kb = spaceManager.activeKnowledge, kb.isBound {
+                Circle().fill(Color.green).frame(width: 6, height: 6)
+            }
+        case .snapshots:
+            if let s = space, s.messageCount > 0 {
+                Text("\(spaceManager.activeSnapshots.count)")
                     .font(.system(size: 9, weight: .medium))
                     .foregroundStyle(theme.textTertiary)
             }
@@ -688,11 +744,14 @@ struct SpaceMainView: View {
 
     private func loadSpace() {
         isLoading = true
+        spaceManager.setIPCClient(ipc)
         Task {
             do {
                 let result = try await ipc.spaceGet(spaceId: spaceId)
                 let s = CoworkSpace.fromDict(result)
                 await MainActor.run { space = s; isLoading = false }
+                await spaceManager.loadKnowledgeStatus(spaceId: spaceId)
+                await spaceManager.loadNotifications()
             } catch {
                 spaceLog.error("space.get failed: \(error.localizedDescription)")
                 await MainActor.run { isLoading = false }
@@ -723,6 +782,9 @@ struct SpaceSharedChat: View {
     @State private var isStreaming = false
     @State private var streamingAgentName: String = ""
     @State private var hoveredMsgId: String?
+    @State private var showRelayPicker = false
+    @State private var relayAgentIds: [String] = []
+    @State private var isRelaying = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -1019,6 +1081,28 @@ struct SpaceSharedChat: View {
                     .menuStyle(.borderlessButton)
                 }
 
+                if availableAgents.count >= 2 {
+                    Button(action: { showRelayPicker = true }) {
+                        HStack(spacing: 2) {
+                            Image(systemName: "arrow.triangle.branch")
+                                .font(.system(size: theme.iconXS))
+                            if !relayAgentIds.isEmpty {
+                                Text("\(relayAgentIds.count)")
+                                    .font(.system(size: 9, weight: .medium))
+                            }
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(isRelaying ? theme.accentDestructive.opacity(0.15) : theme.accent.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                        .foregroundStyle(isRelaying ? theme.accentDestructive : theme.accent)
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showRelayPicker) {
+                        relayPickerView
+                    }
+                }
+
                 TextField("输入消息，@Agent 协作...", text: $inputText, axis: .vertical)
                     .lineLimit(1...5)
                     .textFieldStyle(.plain)
@@ -1040,10 +1124,14 @@ struct SpaceSharedChat: View {
     }
 
     private func sendMessage() {
-        if isStreaming { return }
+        if isStreaming || isRelaying { return }
         let text = inputText.trimmingCharacters(in: .whitespaces)
         guard !text.isEmpty else { return }
         inputText = ""
+        if !relayAgentIds.isEmpty {
+            sendRelayMessage(content: text)
+            return
+        }
         let userMsg = SpaceMessage(
             spaceId: spaceId, senderId: "local_user",
             senderName: "", senderType: "user", content: text
@@ -1153,6 +1241,94 @@ struct SpaceSharedChat: View {
                 await MainActor.run { availableAgents = items.map { SpaceAgent.fromDict($0) } }
             } catch {
                 spaceLog.error("agent.list for chat failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private var relayPickerView: some View {
+        VStack(alignment: .leading, spacing: theme.spacingS) {
+            Text("Agent 接力")
+                .font(.system(size: theme.footnoteSize, weight: .semibold))
+            Text("选择多个 Agent 依次处理消息")
+                .font(.system(size: 9))
+                .foregroundStyle(theme.textTertiary)
+            ForEach(availableAgents) { agent in
+                Button(action: {
+                    if relayAgentIds.contains(agent.id) {
+                        relayAgentIds.removeAll { $0 == agent.id }
+                    } else {
+                        relayAgentIds.append(agent.id)
+                    }
+                }) {
+                    HStack(spacing: theme.spacingS) {
+                        Image(systemName: relayAgentIds.contains(agent.id) ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: theme.iconS))
+                            .foregroundStyle(relayAgentIds.contains(agent.id) ? theme.accent : theme.textTertiary)
+                        Image(systemName: agent.typeIcon)
+                            .font(.system(size: theme.iconS))
+                            .foregroundStyle(theme.accent)
+                        Text(agent.name)
+                            .font(.system(size: theme.captionSize))
+                        Spacer()
+                        if let idx = relayAgentIds.firstIndex(of: agent.id) {
+                            Text("#\(idx + 1)")
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundStyle(theme.accent)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+            if !relayAgentIds.isEmpty {
+                HStack {
+                    Button("清除") { relayAgentIds = [] }
+                        .buttonStyle(.plain)
+                        .font(.system(size: 9))
+                    Spacer()
+                    Button("完成") { showRelayPicker = false }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                }
+            }
+        }
+        .padding(theme.spacingM)
+        .frame(width: 280)
+    }
+
+    private func sendRelayMessage(content: String) {
+        guard !relayAgentIds.isEmpty else { return }
+        isRelaying = true
+        let userMsg = SpaceMessage(
+            spaceId: spaceId, senderId: "local_user",
+            senderName: "", senderType: "user", content: content
+        )
+        messages.append(userMsg)
+        Task {
+            do {
+                let result = try await ipc.spaceAgentRelay(
+                    spaceId: spaceId, agentIds: relayAgentIds,
+                    message: content
+                )
+                let relayMessages = result["messages"] as? [[String: Any]] ?? []
+                await MainActor.run {
+                    for rm in relayMessages {
+                        let msg = SpaceMessage.fromDict(rm)
+                        messages.append(msg)
+                    }
+                    isRelaying = false
+                }
+                spaceLog.info("Agent relay completed with \(relayAgentIds.count) agents")
+            } catch {
+                spaceLog.error("Agent relay failed: \(error.localizedDescription)")
+                await MainActor.run {
+                    let errMsg = SpaceMessage(
+                        spaceId: spaceId, senderId: "system",
+                        senderName: "系统", senderType: "system",
+                        content: "接力失败: \(error.localizedDescription)"
+                    )
+                    messages.append(errMsg)
+                    isRelaying = false
+                }
             }
         }
     }
@@ -2161,6 +2337,10 @@ struct SpaceWorkflowPanel: View {
     let spaceId: String
     @State private var workflows: [SpaceWorkflow] = []
     @State private var isLoading = false
+    @State private var selectedWorkflow: SpaceWorkflow?
+    @State private var showCreateDialog = false
+    @State private var newWorkflowName = ""
+    @State private var newWorkflowDesc = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -2169,6 +2349,11 @@ struct SpaceWorkflowPanel: View {
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
                     .foregroundStyle(theme.textSecondary)
                 Spacer()
+                Button(action: { showCreateDialog = true }) {
+                    Image(systemName: "plus")
+                        .font(.system(size: theme.iconS))
+                }
+                .buttonStyle(.plain)
                 Button(action: { loadWorkflows() }) {
                     Image(systemName: "arrow.clockwise")
                         .font(.system(size: theme.iconS))
@@ -2188,6 +2373,10 @@ struct SpaceWorkflowPanel: View {
                     Text("暂无工作流")
                         .font(.system(size: 9))
                         .foregroundStyle(theme.textTertiary)
+                    Button("创建工作流") { showCreateDialog = true }
+                        .font(.system(size: 9))
+                        .buttonStyle(.plain)
+                        .foregroundStyle(theme.accent)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.top, theme.spacingL)
@@ -2203,17 +2392,45 @@ struct SpaceWorkflowPanel: View {
             }
 
             Spacer()
-            VStack(alignment: .leading, spacing: theme.spacingXS) {
-                Text("DAG 预览")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(theme.textTertiary)
-                workflowDagPlaceholder
-                    .frame(height: 120)
+            if let wf = selectedWorkflow {
+                VStack(alignment: .leading, spacing: theme.spacingXS) {
+                    Text("DAG: \(wf.name)")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(theme.textTertiary)
+                    WorkflowDagCanvas(nodeCount: wf.nodeCount, status: wf.status)
+                        .frame(height: 140)
+                }
+                .padding(.horizontal, theme.spacingM)
+                .padding(.bottom, theme.spacingM)
             }
-            .padding(.horizontal, theme.spacingM)
-            .padding(.bottom, theme.spacingM)
         }
         .onAppear { loadWorkflows() }
+        .sheet(isPresented: $showCreateDialog) {
+            workflowCreateSheet
+        }
+    }
+
+    private var workflowCreateSheet: some View {
+        VStack(spacing: theme.spacingM) {
+            Text("创建工作流")
+                .font(.system(size: theme.bodySize, weight: .semibold))
+            TextField("工作流名称", text: $newWorkflowName)
+                .textFieldStyle(.roundedBorder)
+            TextField("描述 (可选)", text: $newWorkflowDesc)
+                .textFieldStyle(.roundedBorder)
+            HStack {
+                Button("取消") { showCreateDialog = false }
+                    .buttonStyle(.bordered)
+                Button("创建") {
+                    createWorkflow()
+                    showCreateDialog = false
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(newWorkflowName.isEmpty)
+            }
+        }
+        .padding(theme.spacingL)
+        .frame(width: 360)
     }
 
     private func workflowRow(_ wf: SpaceWorkflow) -> some View {
@@ -2225,15 +2442,19 @@ struct SpaceWorkflowPanel: View {
                 Text(wf.name)
                     .font(.system(size: theme.captionSize, weight: .medium))
                 HStack(spacing: theme.spacingXS) {
-                    Text(wf.status)
-                        .font(.system(size: 9))
-                        .foregroundStyle(wf.status == "running" ? Color.green : theme.textTertiary)
+                    workflowStatusBadge(wf.status)
                     Text("\(wf.nodeCount) 节点")
                         .font(.system(size: 9))
                         .foregroundStyle(theme.textTertiary)
                 }
             }
             Spacer()
+            Button(action: { selectedWorkflow = wf }) {
+                Image(systemName: "eye")
+                    .font(.system(size: 9))
+                    .foregroundStyle(theme.textTertiary)
+            }
+            .buttonStyle(.plain)
             Button(action: { runWorkflow(wf.id) }) {
                 Image(systemName: "play.fill")
                     .font(.system(size: 9))
@@ -2243,31 +2464,40 @@ struct SpaceWorkflowPanel: View {
         }
         .padding(.horizontal, theme.spacingM)
         .padding(.vertical, 4)
+        .background(
+            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                .fill(selectedWorkflow?.id == wf.id ? theme.accent.opacity(0.06) : Color.clear)
+        )
     }
 
-    private var workflowDagPlaceholder: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall)
-                .fill(theme.surfaceSecondary)
-            HStack(spacing: theme.spacingM) {
-                VStack(spacing: 4) {
-                    Circle().fill(theme.accent.opacity(0.3)).frame(width: 20, height: 20)
-                    Text("输入").font(.system(size: 8)).foregroundStyle(theme.textTertiary)
-                }
-                Image(systemName: "arrow.right")
-                    .font(.system(size: 9))
-                    .foregroundStyle(theme.textTertiary)
-                VStack(spacing: 4) {
-                    RoundedRectangle(cornerRadius: 4).fill(theme.accent.opacity(0.4)).frame(width: 40, height: 20)
-                    Text("Agent").font(.system(size: 8)).foregroundStyle(theme.textTertiary)
-                }
-                Image(systemName: "arrow.right")
-                    .font(.system(size: 9))
-                    .foregroundStyle(theme.textTertiary)
-                VStack(spacing: 4) {
-                    Circle().fill(Color.green.opacity(0.4)).frame(width: 20, height: 20)
-                    Text("输出").font(.system(size: 8)).foregroundStyle(theme.textTertiary)
-                }
+    @ViewBuilder
+    private func workflowStatusBadge(_ status: String) -> some View {
+        let color: Color = switch status {
+        case "running": .green
+        case "completed": .blue
+        case "failed": .red
+        case "idle": Color(theme.textTertiary)
+        default: Color(theme.textTertiary)
+        }
+        HStack(spacing: 2) {
+            Circle().fill(color).frame(width: 5, height: 5)
+            Text(status)
+                .font(.system(size: 9))
+                .foregroundStyle(color)
+        }
+    }
+
+    private func createWorkflow() {
+        guard !newWorkflowName.isEmpty else { return }
+        Task {
+            do {
+                _ = try await ipc.spaceWorkflowCreate(spaceId: spaceId, name: newWorkflowName)
+                spaceLog.info("Workflow created: \(newWorkflowName)")
+                newWorkflowName = ""
+                newWorkflowDesc = ""
+                loadWorkflows()
+            } catch {
+                spaceLog.error("workflow.create failed: \(error.localizedDescription)")
             }
         }
     }
@@ -2296,6 +2526,115 @@ struct SpaceWorkflowPanel: View {
                 await MainActor.run { isLoading = false }
             }
         }
+    }
+}
+
+// MARK: - Workflow DAG Canvas (D2 可视化)
+
+struct WorkflowDagCanvas: View {
+    @Environment(\.studioTheme) private var theme
+    let nodeCount: Int
+    let status: String
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall)
+                .fill(theme.surfaceSecondary)
+
+            let nodes = generateDagNodes()
+            let edges = generateDagEdges(nodes: nodes)
+
+            Canvas { context, size in
+                for edge in edges {
+                    var path = Path()
+                    path.move(to: edge.from)
+                    let ctrl1 = CGPoint(
+                        x: edge.from.x + (edge.to.x - edge.from.x) * 0.4,
+                        y: edge.from.y
+                    )
+                    let ctrl2 = CGPoint(
+                        x: edge.from.x + (edge.to.x - edge.from.x) * 0.6,
+                        y: edge.to.y
+                    )
+                    path.addCurve(to: edge.to, control1: ctrl1, control2: ctrl2)
+                    context.stroke(
+                        path,
+                        with: .color(status == "running" ? theme.accent.opacity(0.5) : theme.textTertiary.opacity(0.3)),
+                        style: StrokeStyle(lineWidth: 1.5, dash: status == "running" ? [] : [4, 3])
+                    )
+                }
+
+                for node in nodes {
+                    let rect = CGRect(
+                        x: node.pos.x - node.size.width / 2,
+                        y: node.pos.y - node.size.height / 2,
+                        width: node.size.width,
+                        height: node.size.height
+                    )
+                    let shape = RoundedRectangle(cornerRadius: 4, style: .continuous)
+                    context.fill(
+                        shape.path(in: rect),
+                        with: .color(node.color.opacity(0.7))
+                    )
+                    context.stroke(
+                        shape.path(in: rect),
+                        with: .color(node.color),
+                        lineWidth: 1
+                    )
+                    let text = Text(node.label)
+                        .font(.system(size: 8, weight: .medium))
+                        .foregroundStyle(.white)
+                    context.draw(text, at: node.pos)
+                }
+            }
+        }
+    }
+
+    private struct DagNode {
+        let pos: CGPoint
+        let size: CGSize
+        let label: String
+        let color: Color
+    }
+
+    private struct DagEdge {
+        let from: CGPoint
+        let to: CGPoint
+    }
+
+    private func generateDagNodes() -> [DagNode] {
+        let count = max(nodeCount, 3)
+        let labels = ["输入"] + (1...(count - 2)).map { "Step \($0)" } + ["输出"]
+        let colors: [Color] = [.blue] + (1...(count - 2)).map { _ in theme.accent } + [.green]
+        let w: CGFloat = 260
+        let h: CGFloat = 120
+        let padX: CGFloat = 40
+        let padY: CGFloat = 20
+        let usableW = w - padX * 2
+        let usableH = h - padY * 2
+
+        return (0..<count).map { i in
+            let x = count == 1 ? w / 2 : padX + usableW * CGFloat(i) / CGFloat(count - 1)
+            let y = h / 2 + sin(Double(i) * 0.8) * usableH * 0.3
+            return DagNode(
+                pos: CGPoint(x: x, y: y),
+                size: CGSize(width: 44, height: 22),
+                label: labels[i],
+                color: colors[i]
+            )
+        }
+    }
+
+    private func generateDagEdges(nodes: [DagNode]) -> [DagEdge] {
+        guard nodes.count >= 2 else { return [] }
+        var edges: [DagEdge] = []
+        for i in 0..<(nodes.count - 1) {
+            edges.append(DagEdge(from: nodes[i].pos, to: nodes[i + 1].pos))
+        }
+        if nodes.count > 3 {
+            edges.append(DagEdge(from: nodes[0].pos, to: nodes[2].pos))
+        }
+        return edges
     }
 }
 
@@ -2361,12 +2700,14 @@ struct SpaceDesktopPanel: View {
                         Text(controlRequests[idx]["user_id"] as? String ?? "")
                             .font(.system(size: 9))
                         Spacer()
-                        Button("批准") { }
+                        Button("批准") { approveControl(controlRequests[idx]) }
                             .font(.system(size: 9))
                             .foregroundStyle(Color.green)
-                        Button("拒绝") { }
+                            .buttonStyle(.plain)
+                        Button("拒绝") { rejectControl(controlRequests[idx]) }
                             .font(.system(size: 9))
                             .foregroundStyle(Color.red)
+                            .buttonStyle(.plain)
                     }
                     .padding(.horizontal, theme.spacingM)
                     .padding(.vertical, 2)
@@ -2422,15 +2763,43 @@ struct SpaceDesktopPanel: View {
     }
 
     private func toggleShare() {
+        let action = isSharing ? "stop" : "start"
         isSharing.toggle()
-        let method = isSharing ? "desk.space.desktop.share" : "desk.space.desktop.control"
         Task {
             do {
-                _ = try await ipc.spaceCall(method: method, params: [
-                    "space_id": spaceId, "action": isSharing ? "start" : "stop",
-                ])
+                _ = try await ipc.spaceDesktopShare(spaceId: spaceId, action: action)
+                if isSharing {
+                    spaceLog.info("Desktop sharing started")
+                } else {
+                    spaceLog.info("Desktop sharing stopped")
+                }
             } catch {
                 spaceLog.error("desktop share failed: \(error.localizedDescription)")
+                await MainActor.run { isSharing.toggle() }
+            }
+        }
+    }
+
+    private func approveControl(_ request: [String: Any]) {
+        guard let reqId = request["id"] as? String ?? request["request_id"] as? String else { return }
+        Task {
+            do {
+                _ = try await ipc.spaceDesktopControl(spaceId: spaceId, action: "approve_\(reqId)")
+                spaceLog.info("Control request approved: \(reqId)")
+            } catch {
+                spaceLog.error("Control approve failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func rejectControl(_ request: [String: Any]) {
+        guard let reqId = request["id"] as? String ?? request["request_id"] as? String else { return }
+        Task {
+            do {
+                _ = try await ipc.spaceDesktopControl(spaceId: spaceId, action: "reject_\(reqId)")
+                spaceLog.info("Control request rejected: \(reqId)")
+            } catch {
+                spaceLog.error("Control reject failed: \(error.localizedDescription)")
             }
         }
     }
@@ -2548,6 +2917,10 @@ struct SpaceDeepResearchView: View {
     @State private var isRunning = false
     @State private var result: [String: Any]?
     @State private var resultText = ""
+    @State private var agentTracks: [ResearchAgentTrack] = []
+    @State private var useMultiAgent = true
+    @State private var availableAgents: [SpaceAgent] = []
+    @State private var selectedAgentIds: [String] = []
 
     var body: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
@@ -2555,6 +2928,14 @@ struct SpaceDeepResearchView: View {
                 Text("深度研究")
                     .font(.system(size: theme.headlineSize, weight: .bold))
                 Spacer()
+                if isRunning {
+                    HStack(spacing: 4) {
+                        ProgressView().controlSize(.small)
+                        Text("进行中...")
+                            .font(.system(size: 9))
+                            .foregroundStyle(theme.accent)
+                    }
+                }
                 Button(action: { dismiss() }) {
                     Image(systemName: "xmark.circle")
                         .foregroundStyle(theme.textTertiary)
@@ -2575,7 +2956,57 @@ struct SpaceDeepResearchView: View {
                     .disabled(query.isEmpty || isRunning)
             }
 
-            if isRunning {
+            HStack(spacing: theme.spacingM) {
+                Toggle(isOn: $useMultiAgent) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "cpu")
+                            .font(.system(size: theme.iconXS))
+                        Text("多Agent并行")
+                            .font(.system(size: theme.captionSize))
+                    }
+                }
+                .toggleStyle(.checkbox)
+                if useMultiAgent && !availableAgents.isEmpty {
+                    Menu {
+                        ForEach(availableAgents) { agent in
+                            Button(action: {
+                                if selectedAgentIds.contains(agent.id) {
+                                    selectedAgentIds.removeAll { $0 == agent.id }
+                                } else {
+                                    selectedAgentIds.append(agent.id)
+                                }
+                            }) {
+                                HStack {
+                                    Text(agent.name)
+                                    if selectedAgentIds.contains(agent.id) {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 2) {
+                            Image(systemName: "brain.head.profile")
+                                .font(.system(size: 9))
+                            Text(selectedAgentIds.isEmpty ? "自动选择" : "\(selectedAgentIds.count) Agents")
+                                .font(.system(size: 9))
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(theme.accent.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                        .foregroundStyle(theme.accent)
+                    }
+                }
+                Spacer()
+                Text("零Token成本 · 本地推理")
+                    .font(.system(size: 9))
+                    .foregroundStyle(theme.textTertiary)
+            }
+
+            if isRunning && !agentTracks.isEmpty {
+                multiAgentProgressView
+            } else if isRunning {
                 VStack(spacing: theme.spacingS) {
                     ProgressView()
                     Text("深度研究进行中...")
@@ -2585,32 +3016,109 @@ struct SpaceDeepResearchView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if !resultText.isEmpty {
                 ScrollView {
-                    Text(resultText)
-                        .font(.system(size: theme.textSize))
-                        .foregroundStyle(theme.text)
-                        .textSelection(.enabled)
-                        .padding(theme.spacingM)
+                    VStack(alignment: .leading, spacing: theme.spacingM) {
+                        if !agentTracks.filter({ !$0.result.isEmpty }).isEmpty {
+                            researchTrackSummary
+                            Divider()
+                        }
+                        MarkdownContentView(content: resultText)
+                    }
+                    .padding(theme.spacingM)
                 }
             } else {
                 VStack(spacing: theme.spacingS) {
                     Image(systemName: "telescope")
                         .font(.system(size: 30))
                         .foregroundStyle(theme.textTertiary)
-                    Text("深度研究利用多轮搜索+推理，自动完成复杂调研")
+                    Text("深度研究利用多Agent并行推理，自动完成复杂调研")
                         .font(.system(size: theme.footnoteSize))
                         .foregroundStyle(theme.textSecondary)
+                        .multilineTextAlignment(.center)
+                    Text("相比 Claude CoWork：零 Token 成本 · 本地模型推理 · 可选多Agent并行")
+                        .font(.system(size: 9))
+                        .foregroundStyle(theme.accent)
                         .multilineTextAlignment(.center)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .padding(theme.spacingL)
-        .frame(width: 560, height: 480)
+        .frame(width: 640, height: 560)
+        .onAppear { loadAgents() }
+    }
+
+    private var researchTrackSummary: some View {
+        VStack(alignment: .leading, spacing: theme.spacingXS) {
+            Text("研究路径")
+                .font(.system(size: theme.footnoteSize, weight: .semibold))
+                .foregroundStyle(theme.textSecondary)
+            ForEach(agentTracks.filter { !$0.result.isEmpty }) { track in
+                HStack(spacing: theme.spacingS) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: theme.iconS))
+                        .foregroundStyle(.green)
+                    Text(track.agentName)
+                        .font(.system(size: theme.captionSize, weight: .medium))
+                    Text(track.result.prefix(80) + (track.result.count > 80 ? "..." : ""))
+                        .font(.system(size: 9))
+                        .foregroundStyle(theme.textTertiary)
+                        .lineLimit(2)
+                }
+            }
+        }
+    }
+
+    private var multiAgentProgressView: some View {
+        VStack(alignment: .leading, spacing: theme.spacingS) {
+            Text("Agent 研究进度")
+                .font(.system(size: theme.footnoteSize, weight: .semibold))
+                .foregroundStyle(theme.textSecondary)
+            ForEach(agentTracks) { track in
+                HStack(spacing: theme.spacingS) {
+                    if track.isComplete {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: theme.iconS))
+                            .foregroundStyle(.green)
+                    } else {
+                        ProgressView().controlSize(.small)
+                    }
+                    Text(track.agentName)
+                        .font(.system(size: theme.captionSize, weight: .medium))
+                    Text(track.status)
+                        .font(.system(size: 9))
+                        .foregroundStyle(track.isComplete ? .green : theme.textTertiary)
+                    Spacer()
+                }
+            }
+        }
+        .padding(theme.spacingM)
+    }
+
+    private func loadAgents() {
+        Task {
+            do {
+                let result = try await ipc.spaceAgentList(spaceId: spaceId)
+                let items = result["agents"] as? [[String: Any]] ?? []
+                await MainActor.run { availableAgents = items.map { SpaceAgent.fromDict($0) } }
+            } catch {
+                spaceLog.error("agent.list for research failed: \(error.localizedDescription)")
+            }
+        }
     }
 
     private func startResearch() {
         isRunning = true
         resultText = ""
+        agentTracks = []
+
+        if useMultiAgent && (selectedAgentIds.count >= 2 || (selectedAgentIds.isEmpty && availableAgents.count >= 2)) {
+            startMultiAgentResearch()
+        } else {
+            startSingleResearch()
+        }
+    }
+
+    private func startSingleResearch() {
         Task {
             do {
                 let r = try await ipc.spaceDeepResearch(spaceId: spaceId, query: query, depth: depth)
@@ -2628,6 +3136,51 @@ struct SpaceDeepResearchView: View {
             }
         }
     }
+
+    private func startMultiAgentResearch() {
+        let agents = selectedAgentIds.isEmpty
+            ? Array(availableAgents.prefix(3))
+            : availableAgents.filter { selectedAgentIds.contains($0.id) }
+
+        agentTracks = agents.map { ResearchAgentTrack(agentId: $0.id, agentName: $0.name) }
+
+        Task {
+            var responses: [[String: Any]?] = []
+            for agent in agents {
+                let resp = try? await ipc.spaceAgentCall(
+                    spaceId: spaceId, agentId: agent.id,
+                    message: "深度研究任务 [深度\(depth)]: \(query)"
+                )
+                responses.append(resp)
+                await MainActor.run {
+                    if let idx = agentTracks.firstIndex(where: { $0.agentId == agent.id }) {
+                        let content = resp?["content"] as? String ?? resp?["response"] as? String ?? ""
+                        agentTracks[idx].result = content
+                        agentTracks[idx].isComplete = true
+                        agentTracks[idx].status = "完成"
+                    }
+                }
+            }
+            await MainActor.run {
+                var combinedText = ""
+                for track in agentTracks where !track.result.isEmpty {
+                    combinedText += "### \(track.agentName)\n\n\(track.result)\n\n---\n\n"
+                }
+                resultText = combinedText
+                isRunning = false
+            }
+            spaceLog.info("Multi-agent deep research completed with \(agents.count) agents")
+        }
+    }
+}
+
+private struct ResearchAgentTrack: Identifiable {
+    let id = UUID().uuidString
+    let agentId: String
+    let agentName: String
+    var status: String = "研究中..."
+    var result: String = ""
+    var isComplete: Bool = false
 }
 
 // MARK: - Markdown Content View
@@ -2873,6 +3426,486 @@ struct ArtifactPreviewView: View {
 
 typealias SpaceMemberView = SpaceMemberPanel
 typealias SpaceAgentView = SpaceAgentPanel
+// MARK: - Notification Popover
+
+struct SpaceNotificationPopover: View {
+    @Environment(\.studioTheme) private var theme
+    @Environment(\.dismiss) private var dismiss
+    private let spaceManager = CoworkSpaceManager.shared
+    @State private var notifications: [SpaceNotification] = []
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("通知")
+                    .font(.system(size: theme.footnoteSize, weight: .semibold))
+                let unread = notifications.filter { !$0.isRead }.count
+                if unread > 0 {
+                    Text("\(unread)")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(Color.red)
+                        .clipShape(Capsule())
+                }
+                Spacer()
+                Button("全部已读") { markAllRead() }
+                    .font(.system(size: 9))
+                    .buttonStyle(.plain)
+                    .foregroundStyle(theme.accent)
+            }
+            .padding(.horizontal, theme.spacingM)
+            .padding(.vertical, theme.spacingS)
+
+            Divider()
+
+            if notifications.isEmpty {
+                VStack(spacing: theme.spacingXS) {
+                    Image(systemName: "bell.slash")
+                        .font(.system(size: 16))
+                        .foregroundStyle(theme.textTertiary)
+                    Text("暂无通知")
+                        .font(.system(size: 9))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding()
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(notifications) { notif in
+                            notificationRow(notif)
+                        }
+                    }
+                }
+            }
+        }
+        .frame(width: 320, height: 360)
+        .onAppear { loadNotifications() }
+    }
+
+    private func notificationRow(_ notif: SpaceNotification) -> some View {
+        HStack(alignment: .top, spacing: theme.spacingS) {
+            Image(systemName: notif.typeIcon)
+                .font(.system(size: theme.iconS))
+                .foregroundStyle(notif.isRead ? theme.textTertiary : theme.accent)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(notif.title)
+                    .font(.system(size: theme.captionSize, weight: notif.isRead ? .regular : .semibold))
+                    .foregroundStyle(notif.isRead ? theme.textSecondary : theme.text)
+                if !notif.content.isEmpty {
+                    Text(notif.content)
+                        .font(.system(size: 9))
+                        .foregroundStyle(theme.textTertiary)
+                        .lineLimit(2)
+                }
+                Text(notif.createdAt, style: .relative)
+                    .font(.system(size: 8))
+                    .foregroundStyle(theme.textQuaternary)
+            }
+            Spacer()
+            if !notif.isRead {
+                Button(action: { markRead(notif.id) }) {
+                    Image(systemName: "checkmark.circle")
+                        .font(.system(size: theme.iconXS))
+                        .foregroundStyle(theme.accent)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, theme.spacingM)
+        .padding(.vertical, theme.spacingS)
+        .background(notif.isRead ? Color.clear : theme.accent.opacity(0.04))
+    }
+
+    private func loadNotifications() {
+        Task {
+            await spaceManager.loadNotifications()
+            await MainActor.run { notifications = spaceManager.activeNotifications }
+        }
+    }
+
+    private func markRead(_ id: String) {
+        Task {
+            await spaceManager.markNotificationRead(notificationId: id)
+            await MainActor.run {
+                notifications = notifications.map { n in
+                    var m = n; if n.id == id { m.isRead = true }; return m
+                }
+            }
+        }
+    }
+
+    private func markAllRead() {
+        for notif in notifications.filter({ !$0.isRead }) {
+            Task { await spaceManager.markNotificationRead(notificationId: notif.id) }
+        }
+        notifications = notifications.map { n in
+            var m = n; m.isRead = true; return m
+        }
+    }
+}
+
+// MARK: - Knowledge Base Panel (D4 知识库)
+
+struct SpaceKnowledgePanel: View {
+    @EnvironmentObject var ipc: IPCClient
+    @Environment(\.studioTheme) private var theme
+
+    let spaceId: String
+    @State private var knowledgeStatus: SpaceKnowledgeStatus?
+    @State private var searchQuery = ""
+    @State private var searchResults: [[String: Any]] = []
+    @State private var answerResult: [String: Any]?
+    @State private var isSearching = false
+    @State private var isUploading = false
+    @State private var showUploadDialog = false
+    @State private var uploadPath = ""
+    private let spaceManager = CoworkSpaceManager.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("知识库")
+                    .font(.system(size: theme.footnoteSize, weight: .semibold))
+                    .foregroundStyle(theme.textSecondary)
+                Spacer()
+                if let ks = knowledgeStatus, ks.isBound {
+                    Circle().fill(Color.green).frame(width: 6, height: 6)
+                }
+                Button(action: { loadStatus() }) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: theme.iconS))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, theme.spacingM)
+            .padding(.top, theme.spacingS)
+
+            if knowledgeStatus == nil {
+                unboundView
+            } else if let ks = knowledgeStatus, !ks.isBound {
+                unboundView
+            } else {
+                boundView
+            }
+        }
+        .onAppear { loadStatus() }
+    }
+
+    private var unboundView: some View {
+        VStack(spacing: theme.spacingM) {
+            Image(systemName: "books.vertical")
+                .font(.system(size: 28))
+                .foregroundStyle(theme.textTertiary)
+            Text("知识库未绑定")
+                .font(.system(size: theme.captionSize, weight: .medium))
+                .foregroundStyle(theme.textSecondary)
+            Text("绑定知识库后，Agent 对话将自动检索相关文档")
+                .font(.system(size: 9))
+                .foregroundStyle(theme.textTertiary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, theme.spacingL)
+            Button(action: { bindKB() }) {
+                Label("绑定知识库", systemImage: "link")
+                    .font(.system(size: theme.captionSize, weight: .medium))
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, theme.spacingXL)
+    }
+
+    private var boundView: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: theme.spacingM) {
+                if let ks = knowledgeStatus {
+                    HStack(spacing: theme.spacingS) {
+                        Image(systemName: "doc.text")
+                            .font(.system(size: theme.iconS))
+                            .foregroundStyle(theme.textTertiary)
+                        Text("\(ks.documentCount) 文档, \(ks.chunkCount) 分块")
+                            .font(.system(size: 9, design: .monospaced))
+                            .foregroundStyle(theme.textTertiary)
+                        Spacer()
+                        Button(action: { unbindKB() }) {
+                            Image(systemName: "xmark.circle")
+                                .font(.system(size: theme.iconS))
+                                .foregroundStyle(theme.accentDestructive)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, theme.spacingM)
+                }
+
+                Divider().padding(.horizontal, theme.spacingM)
+
+                HStack(spacing: theme.spacingS) {
+                    TextField("搜索知识库...", text: $searchQuery)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.system(size: theme.captionSize))
+                        .onSubmit { searchKB() }
+                    Button(action: { searchKB() }) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: theme.iconS))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(searchQuery.isEmpty || isSearching)
+                }
+                .padding(.horizontal, theme.spacingM)
+
+                if isSearching {
+                    ProgressView()
+                        .padding(.horizontal, theme.spacingM)
+                }
+
+                if !searchResults.isEmpty {
+                    VStack(alignment: .leading, spacing: theme.spacingXS) {
+                        Text("搜索结果")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(theme.textTertiary)
+                            .padding(.horizontal, theme.spacingM)
+                        ForEach(Array(searchResults.enumerated()), id: \.offset) { idx, result in
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(result["title"] as? String ?? "文档 \(idx + 1)")
+                                    .font(.system(size: theme.captionSize, weight: .medium))
+                                    .lineLimit(1)
+                                Text(result["content"] as? String ?? "")
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(theme.textTertiary)
+                                    .lineLimit(3)
+                            }
+                            .padding(.horizontal, theme.spacingM)
+                            .padding(.vertical, theme.spacingXS)
+                        }
+                    }
+                }
+
+                if let answer = answerResult {
+                    VStack(alignment: .leading, spacing: theme.spacingXS) {
+                        Text("RAG 回答")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(theme.textTertiary)
+                            .padding(.horizontal, theme.spacingM)
+                        Text(answer["answer"] as? String ?? "")
+                            .font(.system(size: theme.captionSize))
+                            .foregroundStyle(theme.text)
+                            .padding(.horizontal, theme.spacingM)
+                    }
+                }
+
+                Divider().padding(.horizontal, theme.spacingM)
+
+                Button(action: { showUploadDialog = true }) {
+                    Label("上传文档", systemImage: "plus.circle")
+                        .font(.system(size: theme.captionSize))
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, theme.spacingM)
+            }
+            .padding(.top, theme.spacingS)
+        }
+        .sheet(isPresented: $showUploadDialog) {
+            uploadSheet
+        }
+    }
+
+    private var uploadSheet: some View {
+        VStack(spacing: theme.spacingM) {
+            Text("上传文档到知识库")
+                .font(.system(size: theme.bodySize, weight: .semibold))
+            TextField("文件路径", text: $uploadPath)
+                .textFieldStyle(.roundedBorder)
+            HStack {
+                Button("取消") { showUploadDialog = false }
+                    .buttonStyle(.bordered)
+                Button("上传") {
+                    uploadDocument()
+                    showUploadDialog = false
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(uploadPath.isEmpty)
+            }
+        }
+        .padding(theme.spacingL)
+        .frame(width: 360)
+    }
+
+    private func loadStatus() {
+        Task {
+            await spaceManager.loadKnowledgeStatus(spaceId: spaceId)
+            await MainActor.run { knowledgeStatus = spaceManager.activeKnowledge }
+        }
+    }
+
+    private func bindKB() {
+        Task {
+            await spaceManager.bindKnowledge(spaceId: spaceId)
+            await MainActor.run { knowledgeStatus = spaceManager.activeKnowledge }
+        }
+    }
+
+    private func unbindKB() {
+        Task {
+            await spaceManager.unbindKnowledge(spaceId: spaceId)
+            await MainActor.run { knowledgeStatus = nil }
+        }
+    }
+
+    private func searchKB() {
+        guard !searchQuery.isEmpty else { return }
+        isSearching = true
+        searchResults = []
+        answerResult = nil
+        Task {
+            do {
+                let results = try await spaceManager.searchKnowledge(spaceId: spaceId, query: searchQuery)
+                let answer = try await spaceManager.queryKnowledge(spaceId: spaceId, question: searchQuery)
+                await MainActor.run {
+                    searchResults = results
+                    answerResult = answer
+                    isSearching = false
+                }
+            } catch {
+                spaceLog.error("Knowledge search failed: \(error.localizedDescription)")
+                await MainActor.run { isSearching = false }
+            }
+        }
+    }
+
+    private func uploadDocument() {
+        guard !uploadPath.isEmpty else { return }
+        isUploading = true
+        Task {
+            do {
+                _ = try await spaceManager.uploadKnowledge(spaceId: spaceId, filePath: uploadPath)
+                await MainActor.run {
+                    isUploading = false
+                    uploadPath = ""
+                    loadStatus()
+                }
+            } catch {
+                spaceLog.error("Knowledge upload failed: \(error.localizedDescription)")
+                await MainActor.run { isUploading = false }
+            }
+        }
+    }
+}
+
+// MARK: - Workflow & Artifact Marketplace (D8)
+
+struct SpaceMarketplaceView: View {
+    @Environment(\.studioTheme) private var theme
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var selectedTab = 0
+    @State private var workflows: [MarketplaceItem] = []
+    @State private var artifacts: [MarketplaceItem] = []
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("市场")
+                    .font(.system(size: theme.headlineSize, weight: .bold))
+                    .foregroundStyle(theme.text)
+                Spacer()
+                Button(action: { dismiss() }) {
+                    Image(systemName: "xmark.circle")
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(theme.spacingM)
+
+            Picker("类型", selection: $selectedTab) {
+                Text("工作流").tag(0)
+                Text("产物模板").tag(1)
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, theme.spacingM)
+
+            ScrollView {
+                LazyVGrid(columns: [
+                    GridItem(.flexible(), spacing: theme.spacingS),
+                    GridItem(.flexible(), spacing: theme.spacingS)
+                ], spacing: theme.spacingS) {
+                    ForEach(selectedTab == 0 ? workflows : artifacts) { item in
+                        marketplaceCard(item)
+                    }
+                }
+                .padding(theme.spacingM)
+            }
+        }
+        .frame(width: 560, height: 480)
+        .onAppear { loadSampleData() }
+    }
+
+    private func marketplaceCard(_ item: MarketplaceItem) -> some View {
+        VStack(alignment: .leading, spacing: theme.spacingS) {
+            HStack {
+                Image(systemName: item.icon)
+                    .font(.system(size: theme.iconM))
+                    .foregroundStyle(theme.accent)
+                Spacer()
+                Text(item.category)
+                    .font(.system(size: 9))
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 1)
+                    .background(theme.accent.opacity(0.1))
+                    .clipShape(Capsule())
+                    .foregroundStyle(theme.accent)
+            }
+            Text(item.name)
+                .font(.system(size: theme.captionSize, weight: .semibold))
+                .foregroundStyle(theme.text)
+            Text(item.description)
+                .font(.system(size: 9))
+                .foregroundStyle(theme.textTertiary)
+                .lineLimit(2)
+            HStack {
+                Label("\(item.useCount)", systemImage: "arrow.down.doc")
+                    .font(.system(size: 9))
+                    .foregroundStyle(theme.textTertiary)
+                Spacer()
+                Button("安装") { }
+                    .font(.system(size: 9, weight: .medium))
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+            }
+        }
+        .padding(theme.spacingM)
+        .background(
+            RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
+                .fill(theme.surfaceSecondary)
+        )
+    }
+
+    private func loadSampleData() {
+        workflows = [
+            MarketplaceItem(name: "代码审查流水线", description: "自动代码审查：语法检查 → 安全扫描 → Agent 评审", icon: "arrow.triangle.branch", category: "开发", useCount: 128),
+            MarketplaceItem(name: "文档生成器", description: "根据代码自动生成文档和 API 说明", icon: "doc.text", category: "文档", useCount: 95),
+            MarketplaceItem(name: "数据分析流程", description: "CSV导入 → 清洗 → 可视化 → 报告生成", icon: "chart.bar", category: "数据", useCount: 73),
+            MarketplaceItem(name: "多轮翻译", description: "原文 → 机器翻译 → 人工校对 → 术语统一", icon: "globe", category: "翻译", useCount: 61),
+        ]
+        artifacts = [
+            MarketplaceItem(name: "React Dashboard", description: "现代 React 仪表盘模板，含图表和表格", icon: "shippingbox", category: "前端", useCount: 256),
+            MarketplaceItem(name: "API 文档模板", description: "OpenAPI 规范的文档模板", icon: "doc.text", category: "文档", useCount: 189),
+            MarketplaceItem(name: "数据可视化套件", description: "D3.js/ECharts 可复用图表组件", icon: "chart.bar", category: "可视化", useCount: 142),
+            MarketplaceItem(name: "CLI 脚手架", description: "CLI 工具生成器模板", icon: "terminal", category: "工具", useCount: 98),
+        ]
+    }
+}
+
+private struct MarketplaceItem: Identifiable {
+    let id = UUID().uuidString
+    let name: String
+    let description: String
+    let icon: String
+    let category: String
+    let useCount: Int
+}
+
 typealias SpaceSnapshotView = SpaceSnapshotPanel
 typealias SpaceArtifactView = SpaceArtifactPanel
 typealias SpaceWorkflowView = SpaceWorkflowPanel

@@ -154,24 +154,36 @@ Fusion Studio's CoWork module provides **real-time collaborative AI spaces** tha
 | Agent management (add/edit/permission) | `SpaceAgentPanel` | `desk.space.agent.list/add/remove/update` |
 | Artifact management (kind filtering) | `SpaceArtifactPanel` | `desk.space.artifact.list/create` |
 | Snapshot create/restore/fork | `SpaceSnapshotPanel` | `desk.space.snapshot.create/list/clone/restore` |
-| Workflow collaboration + DAG | `SpaceWorkflowPanel` | `desk.space.workflow.list/run` |
+| Workflow collaboration + DAG canvas | `SpaceWorkflowPanel` + `WorkflowDagCanvas` | `desk.space.workflow.list/run/create` |
 | Desktop sharing + control requests | `SpaceDesktopPanel` | `desk.space.desktop.share/control` |
-| Deep research (multi-round) | `SpaceDeepResearchView` | `desk.space.research.start` |
+| Deep research (multi-agent parallel, zero token) | `SpaceDeepResearchView` | `desk.space.research.start` + `spaceAgentCall/Relay` |
 | LAN peer discovery | Member panel → scan | `desk.space.discovery.scan` |
 | Space settings (config toggles) | `SpaceSettingsPanel` | `desk.space.update` |
+| Knowledge Base bind/unbind/search/query/upload | `SpaceKnowledgePanel` | `spaceKnowledgeStatus/Bind/Unbind/Search/Query/Upload` |
+| Notification bell + unread badge + popover | `SpaceNotificationPopover` | `spaceNotificationPush/List/MarkRead` |
+| Multi-Agent relay chat (sequential handoff) | `SpaceSharedChat` relay button | `spaceAgentRelay` |
+| Workflow/Artifact marketplace (D8) | `SpaceMarketplaceView` | `desk.space.artifact.list/share` |
 
 **3 Collab Modes**: `local` (single machine), `p2p` (Bonjour LAN discovery), `gateway` (remote via fusion-gateway).
 
 **4-Level Permissions**: Owner → Admin → Member → Viewer with fine-grained config toggles (web search, deep research, computer use, member upload/agent/workflow).
 
-**Model Layer**: All types in `CoworkSpace.swift` use `fromDict()` pattern for parsing backend `[String: Any]` responses — CoworkSpace, SpaceMember, SpaceMessage, SpaceAttachment, SpaceComment, SpaceSnapshot, SpaceAgent, SpaceInviteLink, SpaceWorkflow, SpaceArtifact, SpaceDiscoveryPeer, SpaceConfig.
+**V2.0 Differentiators vs Claude CoWork**:
+
+| # | Differentiator | What It Does |
+|---|---------------|--------------|
+| D1 | Offline CoWork | Full collab works without internet — all inference local via MLX |
+| D2 | Workflow CoWork | DAG-based workflow co-execution with `WorkflowDagCanvas` visual editor |
+| D3 | Local Agent Orchestration | Share & compose agents (chat/code/research/workflow/custom) across space members |
+| D4 | Knowledge Base as Space | Bind RAG KB to space; search/query/upload with `SpaceKnowledgePanel` |
+| D5 | Computer Use Collaboration | Desktop share + approve/reject control handoff in `SpaceDesktopPanel` |
+| D6 | Artifacts Local Engine | All artifact rendering runs locally — code, doc, viz previews |
+| D7 | Deep Research Local | Multi-agent parallel research at zero token cost via `ResearchAgentTrack` |
+| D8 | Workflow Marketplace | Browse & share workflow/artifact templates in `SpaceMarketplaceView` |
+
+**Model Layer**: All types in `CoworkSpace.swift` use `fromDict()` pattern for parsing backend `[String: Any]` responses — CoworkSpace, SpaceMember, SpaceMessage, SpaceAttachment, SpaceComment, SpaceSnapshot, SpaceAgent (with `SpaceAgentType` enum: chat/code/research/workflow/custom), SpaceInviteLink, SpaceWorkflow, SpaceArtifact (with ownerId/version/shareCode/metadata/kindIcon), SpaceDiscoveryPeer, SpaceConfig, SpaceKnowledgeStatus, SpaceNotification (with typeIcon/typeColor). `CoworkSpaceManager` singleton manages activeKnowledge, activeNotifications, and 15+ IPC methods for KB/notification/agent/artifact operations.
 
 **Communication**: JSON-RPC 2.0 over Unix Domain Socket `/tmp/fusion-cowork.sock` via `IPCClient.spaceCall()`. Streaming replies use `IPCClient.spaceChatStreamEvents()` with NDJSON long-connection parsing for real-time token-by-token output.
-
-<!-- Callers: README readers, project docs. -->
-<!-- Affected API: README.md (adding FSB module section). -->
-<!-- Data schemas: None. -->
-<!-- User instruction: "每次更新代码如果需要更新README.md, 需要完成代码后及时更新" -->
 
 ### 🏢 FSB — AI Workflow Automation for Small Business
 

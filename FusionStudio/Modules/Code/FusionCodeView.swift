@@ -31,20 +31,37 @@ enum FCExecutionMode: String, CaseIterable {
 // MARK: - Chat Message Model
 
 struct FCChatMessage: Identifiable {
-    let id = UUID()
+    let id: UUID
     let role: String
     let content: String
     let toolCalls: [FCToolCall]
     let timestamp: Date
     var isStreaming = false
+
+    init(id: UUID = UUID(), role: String, content: String, toolCalls: [FCToolCall] = [], timestamp: Date = Date(), isStreaming: Bool = false) {
+        self.id = id
+        self.role = role
+        self.content = content
+        self.toolCalls = toolCalls
+        self.timestamp = timestamp
+        self.isStreaming = isStreaming
+    }
 }
 
 struct FCToolCall: Identifiable {
-    let id = UUID()
+    let id: UUID
     let name: String
     let args: [String: Any]
     let status: FCToolStatus
     let output: String?
+
+    init(id: UUID = UUID(), name: String, args: [String: Any] = [:], status: FCToolStatus, output: String? = nil) {
+        self.id = id
+        self.name = name
+        self.args = args
+        self.status = status
+        self.output = output
+    }
 }
 
 enum FCToolStatus {
@@ -109,6 +126,7 @@ struct FusionCodeView: View {
 
     @State private var inputText = ""
     @State private var messages: [FCChatMessage] = []
+    @State private var lastProcessedEventIdx = 0
     @State private var executionMode: FCExecutionMode = .askPermissions
     @State private var selectedModel = ""
     @State private var showFileTree = true
@@ -173,6 +191,12 @@ struct FusionCodeView: View {
         .onChange(of: fcBridge.isStreaming) { _, streaming in
             if !streaming, let lastIdx = messages.indices.last {
                 messages[lastIdx].isStreaming = false
+            }
+        }
+        .onChange(of: workspace.selectedFile) { _, newFile in
+            if let f = newFile {
+                editorContent = f.content
+                editorLanguage = f.language
             }
         }
     }
@@ -456,7 +480,6 @@ struct FusionCodeView: View {
             }
 
             FusionModelPicker(scene: .code, selection: $selectedModel, models: bridge.models, onChange: { id in
-                selectedModel = id
                 fcLog.info("Model switched: \(id)")
             })
 
@@ -629,6 +652,12 @@ struct FusionCodeView: View {
                             detectSlashCommand(newValue)
                             detectGitURL(newValue)
                         }
+                        .popover(isPresented: $showSlashMenu, arrowEdge: .top) {
+                            FCSlashCommandMenu(filter: slashFilter, onSelect: { cmd in
+                                inputText = "/\(cmd.name) "
+                                showSlashMenu = false
+                            })
+                        }
                 }
 
                 if fcBridge.isStreaming {
@@ -651,6 +680,17 @@ struct FusionCodeView: View {
             .padding(.horizontal, theme.spacingM)
             .padding(.vertical, theme.spacingS)
             .background(theme.toolbarBg)
+        }
+        .overlay(alignment: .topTrailing) {
+            if !pendingPermissions.isEmpty {
+                FCPermissionDetailPanel(
+                    request: pendingPermissions[0],
+                    onApprove: { approvePermission(pendingPermissions[0].id) },
+                    onDeny: { denyPermission(pendingPermissions[0].id) }
+                )
+                .padding(theme.spacingM)
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+            }
         }
     }
 
@@ -774,7 +814,7 @@ struct FusionCodeView: View {
             if let file = workspace.selectedFile, workspace.hasCheckpoint(file) {
                 Button("Undo") {
                     if workspace.undoLastWrite(file) {
-                        editorContent = file.content
+                        editorContent = workspace.selectedFile?.content ?? file.content
                         fcLog.info("Undo checkpoint restored")
                     }
                 }
@@ -987,7 +1027,9 @@ struct FusionCodeView: View {
             sessionId: currentSessionId,
             message: text,
             cwd: workspace.projectRoot?.path,
-            model: selectedModel.isEmpty ? nil : selectedModel
+            model: selectedModel.isEmpty ? nil : selectedModel,
+            executionMode: executionMode.rawValue,
+            webSearch: isWebSearchEnabled
         )
 
         inputText = ""
@@ -996,13 +1038,14 @@ struct FusionCodeView: View {
     }
 
     private func processIncomingEvents() {
-        let newEvents = fcBridge.chatEvents
-        guard !newEvents.isEmpty, !messages.isEmpty else { return }
+        let allEvents = fcBridge.chatEvents
+        guard lastProcessedEventIdx < allEvents.count, !messages.isEmpty else { return }
 
         let lastIdx = messages.indices.last!
         guard messages[lastIdx].role == "assistant" else { return }
 
-        var toolCalls: [FCToolCall] = []
+        let newEvents = Array(allEvents.dropFirst(lastProcessedEventIdx))
+        var toolCalls = messages[lastIdx].toolCalls
 
         for event in newEvents {
             switch event.type {
@@ -1025,11 +1068,11 @@ struct FusionCodeView: View {
                     pendingPermissions.append(req)
                 }
             case "tool_result", "tool_output":
-                if !toolCalls.isEmpty {
-                    let lastToolIdx = toolCalls.indices.last!
-                    toolCalls[lastToolIdx] = FCToolCall(
-                        name: toolCalls[lastToolIdx].name,
-                        args: toolCalls[lastToolIdx].args,
+                if let pendingIdx = toolCalls.lastIndex(where: { $0.status == .approved || $0.status == .running }) {
+                    toolCalls[pendingIdx] = FCToolCall(
+                        id: toolCalls[pendingIdx].id,
+                        name: toolCalls[pendingIdx].name,
+                        args: toolCalls[pendingIdx].args,
                         status: .completed,
                         output: event.content
                     )
@@ -1039,7 +1082,10 @@ struct FusionCodeView: View {
             }
         }
 
+        lastProcessedEventIdx = allEvents.count
+
         messages[lastIdx] = FCChatMessage(
+            id: messages[lastIdx].id,
             role: "assistant",
             content: fcBridge.currentStreamContent,
             toolCalls: toolCalls,
@@ -1105,7 +1151,7 @@ struct FusionCodeView: View {
             messages.append(userMsg)
             let assistantMsg = FCChatMessage(role: "assistant", content: "", toolCalls: [], timestamp: Date(), isStreaming: true)
             messages.append(assistantMsg)
-            fcBridge.chatStream(sessionId: currentSessionId, message: text, cwd: workspace.projectRoot?.path, model: selectedModel.isEmpty ? nil : selectedModel)
+            fcBridge.chatStream(sessionId: currentSessionId, message: text, cwd: workspace.projectRoot?.path, model: selectedModel.isEmpty ? nil : selectedModel, executionMode: executionMode.rawValue, webSearch: isWebSearchEnabled)
         default:
             messages.append(FCChatMessage(role: "assistant", content: "Unknown command: \(cmd). Type /help for available commands.", toolCalls: [], timestamp: Date()))
         }
@@ -1242,27 +1288,33 @@ struct FusionCodeView: View {
     }
 
     private func approvePermission(_ id: UUID) {
+        if let req = pendingPermissions.first(where: { $0.id == id }) {
+            fcBridge.sendPermissionResponse(toolCallId: req.id.uuidString, approved: true)
+        }
         pendingPermissions.removeAll { $0.id == id }
         if let lastIdx = messages.indices.last {
             let msg = messages[lastIdx]
             var updatedCalls = msg.toolCalls
             if let tcIdx = updatedCalls.firstIndex(where: { $0.status == .pending }) {
-                updatedCalls[tcIdx] = FCToolCall(name: updatedCalls[tcIdx].name, args: updatedCalls[tcIdx].args, status: .approved, output: nil)
+                updatedCalls[tcIdx] = FCToolCall(id: updatedCalls[tcIdx].id, name: updatedCalls[tcIdx].name, args: updatedCalls[tcIdx].args, status: .approved, output: nil)
             }
-            messages[lastIdx] = FCChatMessage(role: msg.role, content: msg.content, toolCalls: updatedCalls, timestamp: msg.timestamp, isStreaming: msg.isStreaming)
+            messages[lastIdx] = FCChatMessage(id: msg.id, role: msg.role, content: msg.content, toolCalls: updatedCalls, timestamp: msg.timestamp, isStreaming: msg.isStreaming)
         }
         fcLog.info("Permission approved")
     }
 
     private func denyPermission(_ id: UUID) {
+        if let req = pendingPermissions.first(where: { $0.id == id }) {
+            fcBridge.sendPermissionResponse(toolCallId: req.id.uuidString, approved: false)
+        }
         pendingPermissions.removeAll { $0.id == id }
         if let lastIdx = messages.indices.last {
             let msg = messages[lastIdx]
             var updatedCalls = msg.toolCalls
             if let tcIdx = updatedCalls.firstIndex(where: { $0.status == .pending }) {
-                updatedCalls[tcIdx] = FCToolCall(name: updatedCalls[tcIdx].name, args: updatedCalls[tcIdx].args, status: .denied, output: "Denied by user")
+                updatedCalls[tcIdx] = FCToolCall(id: updatedCalls[tcIdx].id, name: updatedCalls[tcIdx].name, args: updatedCalls[tcIdx].args, status: .denied, output: "Denied by user")
             }
-            messages[lastIdx] = FCChatMessage(role: msg.role, content: msg.content, toolCalls: updatedCalls, timestamp: msg.timestamp, isStreaming: msg.isStreaming)
+            messages[lastIdx] = FCChatMessage(id: msg.id, role: msg.role, content: msg.content, toolCalls: updatedCalls, timestamp: msg.timestamp, isStreaming: msg.isStreaming)
         }
         fcLog.info("Permission denied")
     }

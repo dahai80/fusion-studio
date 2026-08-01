@@ -198,7 +198,7 @@ class FusionCodeBridge: ObservableObject {
     // MARK: - Knowledge Base
 
     func buildKB(cwd: String) async throws -> [String: Any] {
-        try await httpPost("/api/kb/build", query: ["cwd": cwd])
+        try await httpPost("/api/kb/build", body: [:], query: ["cwd": cwd])
     }
 
     func queryKB(cwd: String, query: String, topK: Int = 5) async throws -> [String: Any] {
@@ -217,7 +217,7 @@ class FusionCodeBridge: ObservableObject {
 
     // MARK: - WebSocket Chat Streaming
 
-    func chatStream(sessionId: String? = nil, message: String, cwd: String? = nil, model: String? = nil) {
+    func chatStream(sessionId: String? = nil, message: String, cwd: String? = nil, model: String? = nil, executionMode: String? = nil, webSearch: Bool = false) {
         guard !isStreaming else { return }
 
         let wsURL = URL(string: serverURL.replacingOccurrences(of: "http", with: "ws") + "/ws/chat")!
@@ -232,6 +232,8 @@ class FusionCodeBridge: ObservableObject {
         if let sid = sessionId { sendDict["session_id"] = sid }
         if let c = cwd { sendDict["cwd"] = c }
         if let m = model { sendDict["model"] = m }
+        if let mode = executionMode { sendDict["execution_mode"] = mode }
+        if webSearch { sendDict["web_search"] = true }
 
         if let sendData = try? JSONSerialization.data(withJSONObject: sendDict),
            let sendStr = String(data: sendData, encoding: .utf8) {
@@ -252,6 +254,20 @@ class FusionCodeBridge: ObservableObject {
             webSocketTask?.send(.string(str)) { _ in }
         }
         stopStreaming()
+    }
+
+    func sendPermissionResponse(toolCallId: String, approved: Bool) {
+        let action = approved ? "tool.approve" : "tool.deny"
+        let dict: [String: Any] = ["action": action, "tool_call_id": toolCallId]
+        if let data = try? JSONSerialization.data(withJSONObject: dict),
+           let str = String(data: data, encoding: .utf8) {
+            webSocketTask?.send(.string(str)) { error in
+                if let error = error {
+                    fcBridgeLog.error("WS permission send error: \(error.localizedDescription)")
+                }
+            }
+            fcBridgeLog.info("WS permission \(action) for \(toolCallId)")
+        }
     }
 
     private func receiveWebSocketMessages() {

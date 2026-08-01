@@ -402,6 +402,14 @@ struct SpaceSnapshot: Identifiable, Codable, Equatable {
     }
 }
 
+enum SpaceAgentType: String, Codable, CaseIterable {
+    case chat
+    case code
+    case research
+    case workflow
+    case custom
+}
+
 struct SpaceAgent: Identifiable, Codable, Equatable {
     let id: String
     var name: String
@@ -410,6 +418,8 @@ struct SpaceAgent: Identifiable, Codable, Equatable {
     var permission: String
     var source: String
     var capabilities: [String]
+    var agentType: SpaceAgentType
+    var enableRag: Bool
     var createdAt: Date
 
     init(id: String = UUID().uuidString,
@@ -418,7 +428,9 @@ struct SpaceAgent: Identifiable, Codable, Equatable {
          model: String = "",
          permission: String = "all_member",
          source: String = "local",
-         capabilities: [String] = []) {
+         capabilities: [String] = [],
+         agentType: SpaceAgentType = .chat,
+         enableRag: Bool = false) {
         self.id = id
         self.name = name
         self.systemPrompt = systemPrompt
@@ -426,12 +438,25 @@ struct SpaceAgent: Identifiable, Codable, Equatable {
         self.permission = permission
         self.source = source
         self.capabilities = capabilities
+        self.agentType = agentType
+        self.enableRag = enableRag
         self.createdAt = Date()
+    }
+
+    var typeIcon: String {
+        switch agentType {
+        case .chat: return "bubble.left.and.bubble.right"
+        case .code: return "chevron.left.forwardslash.chevron.right"
+        case .research: return "magnifyingglass"
+        case .workflow: return "arrow.triangle.branch"
+        case .custom: return "star"
+        }
     }
 
     static func fromDict(_ d: [String: Any]) -> SpaceAgent {
         let dateFormatter = ISO8601DateFormatter()
         let id = d["agent_id"] as? String ?? d["id"] as? String ?? UUID().uuidString
+        let typeStr = d["agent_type"] as? String ?? d["type"] as? String ?? "chat"
         var agent = SpaceAgent(
             id: id,
             name: d["agent_name"] as? String ?? d["name"] as? String ?? "",
@@ -439,7 +464,9 @@ struct SpaceAgent: Identifiable, Codable, Equatable {
             model: d["model"] as? String ?? "",
             permission: d["permission"] as? String ?? "all_member",
             source: d["source"] as? String ?? "local",
-            capabilities: d["capabilities"] as? [String] ?? []
+            capabilities: d["capabilities"] as? [String] ?? [],
+            agentType: SpaceAgentType(rawValue: typeStr) ?? .chat,
+            enableRag: d["enable_rag"] as? Bool ?? false
         )
         agent.createdAt = dateFormatter.date(from: d["created_at"] as? String ?? "") ?? Date()
         return agent
@@ -540,7 +567,12 @@ struct SpaceArtifact: Identifiable, Codable, Equatable {
     var fileSize: Int64
     var content: String
     var filePath: String
+    var ownerId: String
+    var version: Int
+    var shareCode: String?
+    var metadata: [String: String]
     var createdAt: Date
+    var updatedAt: Date?
 
     init(id: String = UUID().uuidString,
          name: String = "",
@@ -548,7 +580,11 @@ struct SpaceArtifact: Identifiable, Codable, Equatable {
          description: String = "",
          fileSize: Int64 = 0,
          content: String = "",
-         filePath: String = "") {
+         filePath: String = "",
+         ownerId: String = "local_user",
+         version: Int = 1,
+         shareCode: String? = nil,
+         metadata: [String: String] = [:]) {
         self.id = id
         self.name = name
         self.kind = kind
@@ -556,12 +592,32 @@ struct SpaceArtifact: Identifiable, Codable, Equatable {
         self.fileSize = fileSize
         self.content = content
         self.filePath = filePath
+        self.ownerId = ownerId
+        self.version = version
+        self.shareCode = shareCode
+        self.metadata = metadata
         self.createdAt = Date()
+    }
+
+    var isShared: Bool { shareCode != nil }
+
+    var kindIcon: String {
+        switch kind {
+        case "code": return "chevron.left.forwardslash.chevron.right"
+        case "document": return "doc.text"
+        case "image": return "photo"
+        case "chart": return "chart.bar"
+        case "html": return "globe"
+        case "svg": return "square.on.circle"
+        default: return "doc"
+        }
     }
 
     static func fromDict(_ d: [String: Any]) -> SpaceArtifact {
         let dateFormatter = ISO8601DateFormatter()
         let id = d["artifact_id"] as? String ?? d["id"] as? String ?? UUID().uuidString
+        let metaRaw = d["metadata"] as? [String: Any] ?? [:]
+        let metadata = metaRaw.mapValues { String(describing: $0) }
         var art = SpaceArtifact(
             id: id,
             name: d["name"] as? String ?? "",
@@ -569,10 +625,129 @@ struct SpaceArtifact: Identifiable, Codable, Equatable {
             description: d["description"] as? String ?? "",
             fileSize: d["file_size"] as? Int64 ?? 0,
             content: d["content"] as? String ?? "",
-            filePath: d["file_path"] as? String ?? ""
+            filePath: d["file_path"] as? String ?? "",
+            ownerId: d["owner_id"] as? String ?? "local_user",
+            version: d["version"] as? Int ?? 1,
+            shareCode: d["share_code"] as? String,
+            metadata: metadata
         )
         art.createdAt = dateFormatter.date(from: d["created_at"] as? String ?? "") ?? Date()
+        art.updatedAt = dateFormatter.date(from: d["updated_at"] as? String ?? "")
         return art
+    }
+}
+
+struct SpaceKnowledgeStatus: Identifiable, Codable, Equatable {
+    let id: String
+    var spaceId: String
+    var kbId: String?
+    var kbName: String?
+    var documentCount: Int
+    var chunkCount: Int
+    var isBound: Bool
+    var lastIndexedAt: Date?
+
+    init(id: String = UUID().uuidString,
+         spaceId: String = "",
+         kbId: String? = nil,
+         kbName: String? = nil,
+         documentCount: Int = 0,
+         chunkCount: Int = 0,
+         isBound: Bool = false,
+         lastIndexedAt: Date? = nil) {
+        self.id = id
+        self.spaceId = spaceId
+        self.kbId = kbId
+        self.kbName = kbName
+        self.documentCount = documentCount
+        self.chunkCount = chunkCount
+        self.isBound = isBound
+        self.lastIndexedAt = lastIndexedAt
+    }
+
+    var statusText: String {
+        isBound ? "\(documentCount) docs, \(chunkCount) chunks" : "Not bound"
+    }
+
+    static func fromDict(_ d: [String: Any]) -> SpaceKnowledgeStatus {
+        let dateFormatter = ISO8601DateFormatter()
+        return SpaceKnowledgeStatus(
+            id: d["id"] as? String ?? UUID().uuidString,
+            spaceId: d["space_id"] as? String ?? "",
+            kbId: d["kb_id"] as? String,
+            kbName: d["kb_name"] as? String,
+            documentCount: d["document_count"] as? Int ?? 0,
+            chunkCount: d["chunk_count"] as? Int ?? 0,
+            isBound: d["is_bound"] as? Bool ?? (d["kb_id"] as? String != nil),
+            lastIndexedAt: dateFormatter.date(from: d["last_indexed_at"] as? String ?? "")
+        )
+    }
+}
+
+struct SpaceNotification: Identifiable, Codable, Equatable {
+    let id: String
+    var userId: String
+    var spaceId: String
+    var title: String
+    var type: String
+    var content: String
+    var isRead: Bool
+    var createdAt: Date
+
+    init(id: String = UUID().uuidString,
+         userId: String = "",
+         spaceId: String = "",
+         title: String = "",
+         type: String = "info",
+         content: String = "",
+         isRead: Bool = false) {
+        self.id = id
+        self.userId = userId
+        self.spaceId = spaceId
+        self.title = title
+        self.type = type
+        self.content = content
+        self.isRead = isRead
+        self.createdAt = Date()
+    }
+
+    var typeIcon: String {
+        switch type {
+        case "info": return "info.circle"
+        case "success": return "checkmark.circle"
+        case "warning": return "exclamationmark.triangle"
+        case "error": return "xmark.circle"
+        case "mention": return "at"
+        case "agent": return "cpu"
+        default: return "bell"
+        }
+    }
+
+    var typeColor: String {
+        switch type {
+        case "info": return "blue"
+        case "success": return "green"
+        case "warning": return "orange"
+        case "error": return "red"
+        case "mention": return "purple"
+        case "agent": return "cyan"
+        default: return "gray"
+        }
+    }
+
+    static func fromDict(_ d: [String: Any]) -> SpaceNotification {
+        let dateFormatter = ISO8601DateFormatter()
+        var notif = SpaceNotification(
+            id: d["id"] as? String ?? d["notification_id"] as? String ?? UUID().uuidString,
+            userId: d["user_id"] as? String ?? "",
+            spaceId: d["space_id"] as? String ?? "",
+            title: d["title"] as? String ?? "",
+            type: d["type"] as? String ?? "info",
+            content: d["content"] as? String ?? "",
+            isRead: d["is_read"] as? Bool ?? false
+        )
+        notif.createdAt = dateFormatter.date(from: d["created_at"] as? String ?? "") ?? Date()
+        return notif
     }
 }
 
@@ -621,6 +796,8 @@ class CoworkSpaceManager: ObservableObject {
     @Published var activeArtifacts: [SpaceArtifact] = []
     @Published var activeWorkflows: [SpaceWorkflow] = []
     @Published var activeSnapshots: [SpaceSnapshot] = []
+    @Published var activeKnowledge: SpaceKnowledgeStatus?
+    @Published var activeNotifications: [SpaceNotification] = []
     @Published var isLoading: Bool = false
 
     private(set) var ipcClient: IPCClient?
@@ -756,5 +933,247 @@ class CoworkSpaceManager: ObservableObject {
         } catch {
             coworkLog.error("loadSnapshots failed: \(error.localizedDescription)")
         }
+    }
+
+    // MARK: - Knowledge (D4)
+
+    func loadKnowledgeStatus(spaceId: String) async {
+        guard let ipc = ipcClient else { return }
+        do {
+            let result = try await ipc.spaceKnowledgeStatus(spaceId: spaceId)
+            let status = SpaceKnowledgeStatus.fromDict(result)
+            await MainActor.run { self.activeKnowledge = status }
+            coworkLog.info("Knowledge status loaded for space \(spaceId)")
+        } catch {
+            coworkLog.error("loadKnowledgeStatus failed: \(error.localizedDescription)")
+        }
+    }
+
+    func bindKnowledge(spaceId: String, kbId: String? = nil) async {
+        guard let ipc = ipcClient else { return }
+        do {
+            let _ = try await ipc.spaceKnowledgeBind(spaceId: spaceId, kbId: kbId)
+            await loadKnowledgeStatus(spaceId: spaceId)
+            coworkLog.info("Knowledge bound for space \(spaceId)")
+        } catch {
+            coworkLog.error("bindKnowledge failed: \(error.localizedDescription)")
+        }
+    }
+
+    func unbindKnowledge(spaceId: String) async {
+        guard let ipc = ipcClient else { return }
+        do {
+            let _ = try await ipc.spaceKnowledgeUnbind(spaceId: spaceId)
+            await MainActor.run { self.activeKnowledge = nil }
+            coworkLog.info("Knowledge unbound for space \(spaceId)")
+        } catch {
+            coworkLog.error("unbindKnowledge failed: \(error.localizedDescription)")
+        }
+    }
+
+    func searchKnowledge(spaceId: String, query: String, topK: Int = 5) async throws -> [[String: Any]] {
+        guard let ipc = ipcClient else {
+            throw NSError(domain: "CoworkSpace", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "IPCClient not set"])
+        }
+        let result = try await ipc.spaceKnowledgeSearch(spaceId: spaceId, query: query, topK: topK)
+        coworkLog.info("Knowledge search '\(query)' in space \(spaceId)")
+        return result["results"] as? [[String: Any]] ?? []
+    }
+
+    func queryKnowledge(spaceId: String, question: String, topK: Int = 5) async throws -> [String: Any] {
+        guard let ipc = ipcClient else {
+            throw NSError(domain: "CoworkSpace", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "IPCClient not set"])
+        }
+        let result = try await ipc.spaceKnowledgeQuery(spaceId: spaceId, question: question, topK: topK)
+        coworkLog.info("Knowledge query '\(question)' in space \(spaceId)")
+        return result
+    }
+
+    func uploadKnowledge(spaceId: String, filePath: String) async throws -> [String: Any] {
+        guard let ipc = ipcClient else {
+            throw NSError(domain: "CoworkSpace", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "IPCClient not set"])
+        }
+        let result = try await ipc.spaceKnowledgeUpload(spaceId: spaceId, filePath: filePath)
+        await loadKnowledgeStatus(spaceId: spaceId)
+        coworkLog.info("Knowledge uploaded \(filePath) to space \(spaceId)")
+        return result
+    }
+
+    // MARK: - Notifications
+
+    func loadNotifications(userId: String = "local_user", unreadOnly: Bool = false) async {
+        guard let ipc = ipcClient else { return }
+        do {
+            let result = try await ipc.spaceNotificationList(userId: userId, unreadOnly: unreadOnly)
+            let items = result["notifications"] as? [[String: Any]] ?? []
+            let notifs = items.map { SpaceNotification.fromDict($0) }
+            await MainActor.run { self.activeNotifications = notifs }
+        } catch {
+            coworkLog.error("loadNotifications failed: \(error.localizedDescription)")
+        }
+    }
+
+    func markNotificationRead(notificationId: String) async {
+        guard let ipc = ipcClient else { return }
+        do {
+            let _ = try await ipc.spaceNotificationMarkRead(notificationId: notificationId)
+            await MainActor.run {
+                self.activeNotifications = self.activeNotifications.map { n in
+                    var m = n; if n.id == notificationId { m.isRead = true }; return m
+                }
+            }
+        } catch {
+            coworkLog.error("markNotificationRead failed: \(error.localizedDescription)")
+        }
+    }
+
+    func unreadNotificationCount() -> Int {
+        activeNotifications.filter { !$0.isRead }.count
+    }
+
+    // MARK: - Agent V2
+
+    func updateAgent(spaceId: String, agentId: String, agentName: String? = nil,
+                     systemPrompt: String? = nil, permission: String? = nil,
+                     model: String? = nil) async throws -> SpaceAgent {
+        guard let ipc = ipcClient else {
+            throw NSError(domain: "CoworkSpace", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "IPCClient not set"])
+        }
+        let result = try await ipc.spaceAgentUpdate(spaceId: spaceId, agentId: agentId,
+                                                      agentName: agentName, systemPrompt: systemPrompt,
+                                                      permission: permission, model: model)
+        let agent = SpaceAgent.fromDict(result)
+        await loadAgents(spaceId: spaceId)
+        coworkLog.info("Agent updated: \(agentId)")
+        return agent
+    }
+
+    func callAgent(spaceId: String, agentId: String, message: String,
+                   model: String? = nil) async throws -> [String: Any] {
+        guard let ipc = ipcClient else {
+            throw NSError(domain: "CoworkSpace", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "IPCClient not set"])
+        }
+        let result = try await ipc.spaceAgentCall(spaceId: spaceId, agentId: agentId,
+                                                    message: message, model: model)
+        coworkLog.info("Agent called: \(agentId)")
+        return result
+    }
+
+    func relayAgents(spaceId: String, agentIds: [String], message: String,
+                     model: String? = nil) async throws -> [String: Any] {
+        guard let ipc = ipcClient else {
+            throw NSError(domain: "CoworkSpace", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "IPCClient not set"])
+        }
+        let result = try await ipc.spaceAgentRelay(spaceId: spaceId, agentIds: agentIds,
+                                                     message: message, model: model)
+        coworkLog.info("Agent relay: \(agentIds.count) agents")
+        return result
+    }
+
+    // MARK: - Artifact V2
+
+    func getArtifact(spaceId: String, artifactId: String) async throws -> SpaceArtifact {
+        guard let ipc = ipcClient else {
+            throw NSError(domain: "CoworkSpace", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "IPCClient not set"])
+        }
+        let result = try await ipc.spaceArtifactGet(spaceId: spaceId, artifactId: artifactId)
+        return SpaceArtifact.fromDict(result)
+    }
+
+    func deleteArtifact(spaceId: String, artifactId: String) async throws {
+        guard let ipc = ipcClient else {
+            throw NSError(domain: "CoworkSpace", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "IPCClient not set"])
+        }
+        let _ = try await ipc.spaceArtifactDelete(spaceId: spaceId, artifactId: artifactId)
+        await loadArtifacts(spaceId: spaceId)
+        coworkLog.info("Artifact deleted: \(artifactId)")
+    }
+
+    func updateArtifact(spaceId: String, artifactId: String, name: String? = nil,
+                        content: String? = nil, metadata: [String: Any]? = nil) async throws -> SpaceArtifact {
+        guard let ipc = ipcClient else {
+            throw NSError(domain: "CoworkSpace", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "IPCClient not set"])
+        }
+        let result = try await ipc.spaceArtifactUpdate(spaceId: spaceId, artifactId: artifactId,
+                                                         name: name, content: content, metadata: metadata)
+        let art = SpaceArtifact.fromDict(result)
+        await loadArtifacts(spaceId: spaceId)
+        coworkLog.info("Artifact updated: \(artifactId)")
+        return art
+    }
+
+    func shareArtifact(spaceId: String, artifactId: String) async throws -> String {
+        guard let ipc = ipcClient else {
+            throw NSError(domain: "CoworkSpace", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "IPCClient not set"])
+        }
+        let result = try await ipc.spaceArtifactShare(spaceId: spaceId, artifactId: artifactId)
+        await loadArtifacts(spaceId: spaceId)
+        coworkLog.info("Artifact shared: \(artifactId)")
+        return result["share_code"] as? String ?? ""
+    }
+
+    // MARK: - Desktop V2
+
+    func shareDesktop(spaceId: String, action: String) async throws -> [String: Any] {
+        guard let ipc = ipcClient else {
+            throw NSError(domain: "CoworkSpace", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "IPCClient not set"])
+        }
+        let result = try await ipc.spaceDesktopShare(spaceId: spaceId, action: action)
+        coworkLog.info("Desktop share: \(action)")
+        return result
+    }
+
+    func controlDesktop(spaceId: String, action: String) async throws -> [String: Any] {
+        guard let ipc = ipcClient else {
+            throw NSError(domain: "CoworkSpace", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "IPCClient not set"])
+        }
+        let result = try await ipc.spaceDesktopControl(spaceId: spaceId, action: action)
+        coworkLog.info("Desktop control: \(action)")
+        return result
+    }
+
+    // MARK: - Snapshot V2
+
+    func restoreSnapshot(spaceId: String, snapshotId: String) async throws -> [String: Any] {
+        guard let ipc = ipcClient else {
+            throw NSError(domain: "CoworkSpace", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "IPCClient not set"])
+        }
+        let result = try await ipc.spaceSnapshotRestore(spaceId: spaceId, snapshotId: snapshotId)
+        await loadSpace(spaceId: spaceId)
+        coworkLog.info("Snapshot restored: \(snapshotId)")
+        return result
+    }
+
+    func deleteSnapshot(spaceId: String, snapshotId: String) async throws {
+        guard let ipc = ipcClient else {
+            throw NSError(domain: "CoworkSpace", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "IPCClient not set"])
+        }
+        let _ = try await ipc.spaceSnapshotDelete(spaceId: spaceId, snapshotId: snapshotId)
+        await loadSnapshots(spaceId: spaceId)
+        coworkLog.info("Snapshot deleted: \(snapshotId)")
+    }
+
+    // MARK: - Chat Context
+
+    func loadChatContext(spaceId: String, limit: Int? = nil) async throws -> [String: Any] {
+        guard let ipc = ipcClient else {
+            throw NSError(domain: "CoworkSpace", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "IPCClient not set"])
+        }
+        return try await ipc.spaceChatContext(spaceId: spaceId, limit: limit)
     }
 }
