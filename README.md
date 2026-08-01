@@ -93,21 +93,46 @@ Design · Code · Simulation · MultiModal · Training · Data · Agent · KB ·
 
 ### 📦 Artifacts Integration
 
-Fusion Studio integrates with [fusion-artifacts-engine](https://github.com/dahai80/fusion-artifacts-engine) for persistent artifact management. The Artifacts panel and sidebar provide full CRUD, version control, and context injection:
+Fusion Studio integrates with [fusion-artifacts-engine](https://github.com/dahai80/fusion-artifacts-engine) for persistent artifact management — surpassing Claude Artifacts with explicit version snapshots, sandbox rendering, folder/tag organization, and project KB migration.
 
-| Feature | UI Location | Backend API |
-|---------|------------|-------------|
-| Create artifact (name/type/content/summary) | `+` button → Create Sheet | `artifact.create` |
-| Browse artifacts with search | Main panel list + sidebar | `artifact.list` |
-| View content (text + HTML preview) | Detail pane (WKWebView for HTML) | `artifact.get_content` |
-| Edit content / new version | Pencil button → Edit Sheet | `artifact.update` |
-| Version history with rollback | Clock button → Version Sheet | `artifact.version_list`, `artifact.version_rollback` |
-| Export to JSON | Upload button → Export Sheet | `artifact.export` |
-| Import from JSON | Download button → Import Sheet | `artifact.import` |
-| Inject artifacts into context | `text.append` button → Inject Sheet | `artifact.inject` |
-| Safety check (token budget) | Inject Sheet → Safety tab | `artifact.check_safety` |
-| Session switching | Session badge popover | `artifact.list` (per session) |
-| Sidebar live list | Artifacts section in sidebar | Auto-refresh via `ArtifactSidebarCache` |
+**5 GUI Views** (matching PRD wireframes):
+
+| View | File | Key Features |
+|------|------|-------------|
+| Global Repository | `ArtifactsRepositoryView` | List/grid toggle, sort, scope filter (all/mine/starred/pinned), folder sidebar, pagination, recycle bin |
+| Preview Card | `ArtifactPreviewCard` | Mini sandbox preview (HTML/SVG), render-type icon + color, tag chips, folder badge, version badge |
+| Full-Screen Canvas | `ArtifactCanvasView` | Preview/Code tabs, sandbox rendering (HTML/CSS/JS/SVG/Mermaid/Markdown), unsaved banner, snapshot, rename, duplicate |
+| Version History | `ArtifactVersionHistoryPanel` | Snapshot creation, version diff, rollback with named snapshot preservation |
+| Share Dialog | `ArtifactShareDialog` | Permission + expiry, share link generation, existing share list, revoke |
+| Tag/Folder Manager | `ArtifactTagFolderPopover` | Add/remove tags, move to folder, from canvas toolbar |
+
+**Competitive Differentiators vs Claude Artifacts**:
+
+| Feature | Claude Artifacts | Fusion Artifacts |
+|---------|-----------------|------------------|
+| Version management | Implicit auto-save | **Explicit version snapshots + rollback + diff** |
+| Code editing | View-only | **Direct edit + Save with unsaved tracking** |
+| Organization | Flat list | **Folders + tags + scope filters + sort** |
+| Project integration | None | **Move to Project KB** (`artifact.move_to_project_kb`) |
+| Ownership | None | **Star/Pin/Ownership scope filter** |
+| Deletion | Permanent | **Recycle bin with restore + auto-purge** |
+| Sharing | None | **Permission levels + expiry + revoke** |
+| Preview | HTML only | **HTML/SVG/Mermaid/Markdown sandbox rendering** |
+
+**Backend API Coverage** (40+ methods via `IPCClient`):
+
+| Category | Methods |
+|----------|---------|
+| Core CRUD | `artifact.create/get/get_content/list/delete/update/rename` |
+| Version | `artifact.version_list/version_rollback/create_snapshot/list_snapshots` |
+| Extended | `artifact.star/pin/duplicate/list_all` |
+| Share | `artifact.create_share/get_shared/revoke_share` |
+| Folder | `artifact.create_folder/list_folders/rename_folder/delete_folder/move_to_folder` |
+| Tag | `artifact.add_tag/remove_tag/list_tags` |
+| Recycle | `artifact.list_recycle/restore/purge_expired` |
+| Project KB | `artifact.move_to_project_kb` |
+| Safety | `artifact.inject/check_safety` |
+| Import/Export | `artifact.export/import/export_code/import_code` |
 
 **Communication**: HTTP JSON-RPC 2.0 to `127.0.0.1:8892` (separate from UDS channel).
 

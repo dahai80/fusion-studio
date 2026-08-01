@@ -1,4 +1,5 @@
 import SwiftUI
+import WebKit
 import os.log
 
 private let canvasLog = Logger(subsystem: "com.fusion.studio", category: "Artifacts.Canvas")
@@ -32,11 +33,24 @@ struct ArtifactCanvasView: View {
     @State private var showVersionHistory = false
     @State private var showShareDialog = false
     @State private var isSaving = false
+    @State private var artifactType: String = "html"
+    @State private var currentVersion: Int = 1
+    @State private var hasUnsavedChanges = false
+    @State private var showSnapshotSheet = false
+    @State private var snapshotLabel = ""
+    @State private var showRenameAlert = false
+    @State private var renameText = ""
+    @State private var showDeleteConfirm = false
+    @State private var previewKey = UUID()
+    @State private var showTagFolder = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             toolbar
             Rectangle().fill(theme.separator).frame(height: 1)
+            if hasUnsavedChanges {
+                unsavedBanner
+            }
             FusionTabBar(
                 selected: Binding(
                     get: { activeTab.rawValue },
@@ -54,6 +68,56 @@ struct ArtifactCanvasView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear { loadArtifact() }
+        .sheet(isPresented: $showVersionHistory) {
+            ArtifactVersionHistoryPanel(artifactId: artifactId)
+                .frame(minWidth: 420, minHeight: 500)
+        }
+        .sheet(isPresented: $showShareDialog) {
+            ArtifactShareDialog(
+                artifactId: artifactId,
+                artifactName: artifact?["name"] as? String ?? "Untitled"
+            )
+        }
+        .sheet(isPresented: $showSnapshotSheet) {
+            snapshotSheet
+        }
+        .alert("重命名", isPresented: $showRenameAlert) {
+            TextField("新名称", text: $renameText)
+            Button("确认") { performRename() }
+            Button("取消", role: .cancel) { }
+        }
+        .alert("确认删除？", isPresented: $showDeleteConfirm) {
+            Button("删除", role: .destructive) { performDelete() }
+            Button("取消", role: .cancel) { }
+        } message: {
+            Text("此操作将移入回收站，可恢复")
+        }
+    }
+
+    private var unsavedBanner: some View {
+        HStack(spacing: theme.spacingS) {
+            Image(systemName: "exclamationmark.circle")
+                .font(.system(size: theme.iconS))
+                .foregroundStyle(.orange)
+            Text("有未保存的更改")
+                .font(.system(size: theme.captionSize))
+                .foregroundStyle(theme.textSecondary)
+            Spacer()
+            Button("放弃") {
+                codeContent = content
+                hasUnsavedChanges = false
+            }
+            .font(.system(size: theme.captionSize))
+            .buttonStyle(.plain)
+            .foregroundStyle(theme.textTertiary)
+            Button("保存") { saveContent() }
+                .font(.system(size: theme.captionSize, weight: .medium))
+                .buttonStyle(.plain)
+                .foregroundStyle(theme.accent)
+        }
+        .padding(.horizontal, theme.spacingL)
+        .padding(.vertical, theme.spacingXS)
+        .background(theme.accentSoft.opacity(0.3))
     }
 
     private var toolbar: some View {
@@ -71,7 +135,23 @@ struct ArtifactCanvasView: View {
                     .foregroundStyle(theme.text)
             }
 
+            if currentVersion > 0 {
+                Text("v\(currentVersion)")
+                    .font(.system(size: theme.captionSize, weight: .medium))
+                    .foregroundStyle(theme.accentText)
+                    .padding(.horizontal, theme.spacingXS)
+                    .padding(.vertical, 2)
+                    .background(RoundedRectangle(cornerRadius: 3, style: .continuous).fill(theme.accent.opacity(0.15)))
+            }
+
             Spacer()
+
+            Button(action: { showRenameAlert = true; renameText = artifact?["name"] as? String ?? "" }) {
+                Image(systemName: "pencil")
+                    .font(.system(size: theme.iconS))
+                    .foregroundStyle(theme.textTertiary)
+            }
+            .buttonStyle(.plain)
 
             Button(action: { toggleStar() }) {
                 Image(systemName: starred ? "star.fill" : "star")
@@ -87,8 +167,8 @@ struct ArtifactCanvasView: View {
             }
             .buttonStyle(.plain)
 
-            Button(action: { showShareDialog = true }) {
-                Image(systemName: "square.and.arrow.up")
+            Button(action: { showSnapshotSheet = true }) {
+                Image(systemName: "bookmark")
                     .font(.system(size: theme.iconS))
                     .foregroundStyle(theme.textTertiary)
             }
@@ -98,6 +178,37 @@ struct ArtifactCanvasView: View {
                 Image(systemName: "clock.arrow.circlepath")
                     .font(.system(size: theme.iconS))
                     .foregroundStyle(theme.textTertiary)
+            }
+            .buttonStyle(.plain)
+
+            Button(action: { showTagFolder = true }) {
+                Image(systemName: "tag")
+                    .font(.system(size: theme.iconS))
+                    .foregroundStyle(theme.textTertiary)
+            }
+            .buttonStyle(.plain)
+            .popover(isPresented: $showTagFolder) {
+                ArtifactTagFolderPopover(artifactId: artifactId)
+            }
+
+            Button(action: { showShareDialog = true }) {
+                Image(systemName: "square.and.arrow.up")
+                    .font(.system(size: theme.iconS))
+                    .foregroundStyle(theme.textTertiary)
+            }
+            .buttonStyle(.plain)
+
+            Button(action: { duplicateArtifact() }) {
+                Image(systemName: "doc.on.doc")
+                    .font(.system(size: theme.iconS))
+                    .foregroundStyle(theme.textTertiary)
+            }
+            .buttonStyle(.plain)
+
+            Button(action: { showDeleteConfirm = true }) {
+                Image(systemName: "trash")
+                    .font(.system(size: theme.iconS))
+                    .foregroundStyle(theme.accentDestructive)
             }
             .buttonStyle(.plain)
         }
@@ -111,33 +222,89 @@ struct ArtifactCanvasView: View {
             if isLoading {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if content.isEmpty {
-                Text("无预览内容")
-                    .foregroundStyle(theme.textSecondary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(content)
-                            .font(.system(size: theme.textSize, design: .monospaced))
-                            .foregroundStyle(theme.text)
-                            .textSelection(.enabled)
-                            .padding(theme.spacingL)
-                    }
+                VStack(spacing: theme.spacingM) {
+                    Image(systemName: "eye.slash")
+                        .font(.system(size: 30))
+                        .foregroundStyle(theme.textTertiary)
+                    Text("无预览内容")
+                        .foregroundStyle(theme.textSecondary)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                renderPreview
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var renderPreview: some View {
+        let lowerType = artifactType.lowercased()
+        switch lowerType {
+        case "html", "react", "app":
+            ArtifactSandboxView(htmlContent: content)
+                .id(previewKey)
+        case "svg":
+            ArtifactSandboxView(htmlContent: svgWrapper(content))
+                .id(previewKey)
+        case "mermaid":
+            ArtifactSandboxView(htmlContent: mermaidWrapper(content))
+                .id(previewKey)
+        case "markdown", "doc", "document":
+            ArtifactSandboxView(htmlContent: markdownWrapper(content))
+                .id(previewKey)
+        default:
+            ScrollView {
+                Text(content)
+                    .font(.system(size: theme.textSize, design: .monospaced))
+                    .foregroundStyle(theme.text)
+                    .textSelection(.enabled)
+                    .padding(theme.spacingL)
             }
         }
     }
 
     private var codePanel: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ScrollView {
-                TextEditor(text: $codeContent)
-                    .font(.system(size: theme.footnoteSize, design: .monospaced))
-                    .foregroundStyle(theme.text)
-                    .scrollDisabled(true)
-                    .padding(theme.spacingM)
+            HStack(spacing: theme.spacingS) {
+                Text(artifactType.uppercased())
+                    .font(.system(size: theme.captionSize, weight: .medium))
+                    .foregroundStyle(theme.accentText)
+                    .padding(.horizontal, theme.spacingS)
+                    .padding(.vertical, theme.spacingXS)
+                    .background(RoundedRectangle(cornerRadius: 3, style: .continuous).fill(theme.accent.opacity(0.1)))
+                Text("\(codeContent.count) 字符")
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(theme.textTertiary)
+                Spacer()
             }
-            HStack {
+            .padding(.horizontal, theme.spacingM)
+            .padding(.vertical, theme.spacingXS)
+            .background(theme.surfaceElevated)
+
+            ScrollView {
+                TextEditor(text: Binding(
+                    get: { codeContent },
+                    set: { newValue in
+                        codeContent = newValue
+                        hasUnsavedChanges = newValue != content
+                    }
+                ))
+                .font(.system(size: theme.footnoteSize, design: .monospaced))
+                .foregroundStyle(theme.text)
+                .scrollDisabled(true)
+                .padding(theme.spacingM)
+            }
+
+            HStack(spacing: theme.spacingM) {
+                if hasUnsavedChanges {
+                    Button("放弃更改") {
+                        codeContent = content
+                        hasUnsavedChanges = false
+                    }
+                    .font(.system(size: theme.footnoteSize))
+                    .buttonStyle(.plain)
+                    .foregroundStyle(theme.textTertiary)
+                }
                 Spacer()
                 if isSaving {
                     ProgressView()
@@ -145,12 +312,55 @@ struct ArtifactCanvasView: View {
                 }
                 Button("保存") { saveContent() }
                     .font(.system(size: theme.footnoteSize, weight: .medium))
-                    .disabled(isSaving || codeContent.isEmpty)
+                    .buttonStyle(.plain)
+                    .disabled(isSaving || !hasUnsavedChanges)
+                    .foregroundStyle(hasUnsavedChanges ? theme.accent : theme.textTertiary)
             }
             .padding(.horizontal, theme.spacingL)
             .padding(.vertical, theme.spacingS)
             .background(theme.surfaceElevated)
         }
+    }
+
+    private var snapshotSheet: some View {
+        VStack(spacing: theme.spacingM) {
+            Text("创建版本快照")
+                .font(.system(size: theme.textSize, weight: .semibold))
+                .foregroundStyle(theme.text)
+
+            TextField("快照标签（可选）", text: $snapshotLabel)
+                .textFieldStyle(.roundedBorder)
+                .font(.system(size: theme.textSize))
+
+            HStack {
+                Button("取消") { showSnapshotSheet = false }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(theme.textSecondary)
+                Spacer()
+                Button("创建") { createSnapshot() }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, theme.spacingL)
+                    .padding(.vertical, theme.spacingS)
+                    .background(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous).fill(theme.accent))
+            }
+        }
+        .padding(theme.spacingL)
+        .frame(width: 360)
+    }
+
+    private func svgWrapper(_ svg: String) -> String {
+        "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><style>body{margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:transparent;}svg{max-width:100%;max-height:100vh;}</style></head><body>\(svg)</body></html>"
+    }
+
+    private func mermaidWrapper(_ code: String) -> String {
+        let escaped = code.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "`", with: "\\`").replacingOccurrences(of: "$", with: "\\$")
+        return "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><script src=\"https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js\"></script><style>body{margin:20px;background:transparent;font-family:sans-serif;}.mermaid{display:flex;justify-content:center;}</style><script>mermaid.initialize({startOnLoad:true,theme:'dark'});</script></head><body><pre class=\"mermaid\">\(escaped)</pre></body></html>"
+    }
+
+    private func markdownWrapper(_ md: String) -> String {
+        let escaped = md.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "`", with: "\\`").replacingOccurrences(of: "$", with: "\\$").replacingOccurrences(of: "\n", with: "\\n").replacingOccurrences(of: "\"", with: "\\\"")
+        return "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><script src=\"https://cdn.jsdelivr.net/npm/marked/marked.min.js\"></script><style>body{margin:20px;background:transparent;color:#e0e0e0;font-family:-apple-system,sans-serif;line-height:1.6;}h1,h2,h3{color:#fff;}a{color:#007AFF;}code{background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:3px;font-size:0.9em;}pre{background:rgba(255,255,255,0.05);padding:12px;border-radius:8px;overflow-x:auto;}pre code{background:transparent;padding:0;}blockquote{border-left:3px solid #007AFF;padding-left:12px;color:#aaa;}table{border-collapse:collapse;width:100%;}th,td{border:1px solid #333;padding:8px;text-align:left;}th{background:rgba(255,255,255,0.05);}</style></head><body><div id=\"content\"></div><script>document.getElementById('content').innerHTML=marked.parse(\"\(escaped)\");</script></body></html>"
     }
 
     private func loadArtifact() {
@@ -166,9 +376,13 @@ struct ArtifactCanvasView: View {
                     codeContent = content
                     starred = a["starred"] as? Bool ?? false
                     pinned = a["pinned"] as? Bool ?? false
+                    artifactType = a["type"] as? String ?? "html"
+                    currentVersion = a["current_version"] as? Int ?? 1
                     versions = v["versions"] as? [[String: Any]] ?? []
+                    previewKey = UUID()
                     isLoading = false
                 }
+                canvasLog.info("canvas loaded: \(artifactId) type=\(self.artifactType) v\(self.currentVersion)")
             } catch {
                 canvasLog.error("load artifact failed: \(error.localizedDescription)")
                 await MainActor.run { isLoading = false }
@@ -185,6 +399,9 @@ struct ArtifactCanvasView: View {
                 await MainActor.run {
                     content = codeContent
                     isSaving = false
+                    hasUnsavedChanges = false
+                    previewKey = UUID()
+                    currentVersion += 1
                 }
             } catch {
                 canvasLog.error("save failed: \(error.localizedDescription)")
@@ -204,6 +421,94 @@ struct ArtifactCanvasView: View {
         Task {
             _ = try await ipc.artifactPin(artifactId: artifactId, pinned: !pinned)
             await MainActor.run { pinned.toggle() }
+        }
+    }
+
+    private func createSnapshot() {
+        Task {
+            do {
+                _ = try await ipc.artifactCreateSnapshot(artifactId: artifactId, label: snapshotLabel.isEmpty ? nil : snapshotLabel)
+                canvasLog.info("snapshot created: \(artifactId)")
+                await MainActor.run {
+                    showSnapshotSheet = false
+                    snapshotLabel = ""
+                }
+            } catch {
+                canvasLog.error("snapshot failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func duplicateArtifact() {
+        Task {
+            do {
+                let name = artifact?["name"] as? String ?? "Untitled"
+                _ = try await ipc.artifactDuplicate(artifactId: artifactId, newName: name + " (副本)")
+                canvasLog.info("artifact duplicated: \(artifactId)")
+            } catch {
+                canvasLog.error("duplicate failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func performRename() {
+        guard !renameText.isEmpty else { return }
+        Task {
+            do {
+                _ = try await ipc.artifactRename(artifactId: artifactId, newName: renameText)
+                canvasLog.info("artifact renamed: \(artifactId)")
+                await MainActor.run { artifact?["name"] = renameText }
+            } catch {
+                canvasLog.error("rename failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func performDelete() {
+        Task {
+            do {
+                _ = try await ipc.artifactDelete(artifactId: artifactId)
+                canvasLog.info("artifact deleted: \(artifactId)")
+                await MainActor.run { dismiss() }
+            } catch {
+                canvasLog.error("delete failed: \(error.localizedDescription)")
+            }
+        }
+    }
+}
+
+struct ArtifactSandboxView: NSViewRepresentable {
+    let htmlContent: String
+
+    func makeNSView(context: Context) -> WKWebView {
+        let config = WKWebViewConfiguration()
+        config.userContentController = WKUserContentController()
+        config.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
+        let webView = WKWebView(frame: .zero, configuration: config)
+        webView.navigationDelegate = context.coordinator
+        webView.setValue(true, forKey: "drawsTransparentBackground")
+        return webView
+    }
+
+    func updateNSView(_ webView: WKWebView, context: Context) {
+        webView.loadHTMLString(htmlContent, baseURL: nil)
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    class Coordinator: NSObject, WKNavigationDelegate {
+        func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
+                     decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+            if navigationAction.navigationType == .linkActivated, let url = navigationAction.request.url {
+                if url.scheme == "data" || url.scheme == "about" {
+                    decisionHandler(.allow)
+                } else {
+                    NSWorkspace.shared.open(url)
+                    decisionHandler(.cancel)
+                }
+            } else {
+                decisionHandler(.allow)
+            }
         }
     }
 }
