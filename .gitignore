@@ -33,5 +33,8 @@ __pycache__/
 # Logs
 *.log
 
+# Fusion runtime
+.fusion/
+
 # Local-only docs
 ARCHITECTURE.md
