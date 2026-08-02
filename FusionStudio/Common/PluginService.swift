@@ -1,57 +1,197 @@
-// Callers: ModuleDetailView routing.
-// Affected API: PluginService (replacing NSColor with StudioTheme tokens).
-// Data schemas: None changed.
-// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+// Callers: ModuleDetailView.swift:38 → PluginView().
+// Affected API: PluginManager (IPC plugin.list), IPCClient.shared.call.
+// Data schemas: PluginManifest (aligned with fusion-plugins-ecosystem registry.py PluginManifest.to_dict()),
+//   PluginCategory, PluginCapability, PluginParam, PluginState (aligned with lifecycle.py), SandboxMode (schema.py).
+// Issue: #77 — align PluginService.swift with fusion-plugins-ecosystem schema.
 
 import Foundation
 import SwiftUI
 import Combine
+import os.log
 
-// MARK: - 插件清单
+private let pluginLog = Logger(subsystem: "com.fusion.studio", category: "PluginService")
+
+// MARK: - Plugin Category (upstream: PluginCategory)
+
+enum PluginCategory: String, Codable, CaseIterable {
+    case codingPlan       = "coding_plan"
+    case contextCompress  = "context_compress"
+    case mlxInference     = "mlx_inference"
+    case terminalProxy    = "terminal_proxy"
+    case fileIndex        = "file_index"
+    case quantization     = "quantization"
+    case visualBackend    = "visual_backend"
+    case custom           = "custom"
+
+    var label: String {
+        switch self {
+        case .codingPlan:      return "代码规划"
+        case .contextCompress: return "上下文压缩"
+        case .mlxInference:    return "MLX 推理"
+        case .terminalProxy:   return "终端代理"
+        case .fileIndex:       return "文件检索"
+        case .quantization:    return "量化工具"
+        case .visualBackend:   return "视觉后端"
+        case .custom:          return "自定义"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .codingPlan:      return "chevron.left.forwardslash.chevron.right"
+        case .contextCompress: return "compress"
+        case .mlxInference:    return "cpu"
+        case .terminalProxy:   return "terminal"
+        case .fileIndex:       return "doc.text.magnifyingglass"
+        case .quantization:    return "arrow.triangle.2.circlepath"
+        case .visualBackend:   return "photo"
+        case .custom:          return "puzzlepiece.extension"
+        }
+    }
+}
+
+// MARK: - Plugin Capability (upstream: PluginCapability)
+
+enum PluginCapability: String, Codable, CaseIterable {
+    case mcpTool      = "mcp_tool"
+    case claudeSkill  = "claude_skill"
+    case subagent     = "subagent"
+    case fileAccess   = "file_access"
+    case vramConsumer = "vram_consumer"
+    case longTask     = "long_task"
+
+    var label: String {
+        switch self {
+        case .mcpTool:      return "MCP Tool"
+        case .claudeSkill:  return "Claude Skill"
+        case .subagent:     return "子代理"
+        case .fileAccess:   return "文件读写"
+        case .vramConsumer: return "显存占用"
+        case .longTask:     return "长任务"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .mcpTool:      return "wrench.and.screwdriver"
+        case .claudeSkill:  return "sparkles"
+        case .subagent:     return "person.2"
+        case .fileAccess:   return "folder"
+        case .vramConsumer: return "memorychip"
+        case .longTask:     return "clock"
+        }
+    }
+}
+
+// MARK: - Sandbox Mode (upstream: SandboxMode)
+
+enum SandboxMode: String, Codable, CaseIterable {
+    case inline  = "inline"
+    case process = "process"
+
+    var label: String {
+        switch self {
+        case .inline:  return "进程内"
+        case .process: return "独立进程"
+        }
+    }
+}
+
+// MARK: - Plugin Param (upstream: PluginParam)
+
+struct PluginParam: Codable, Identifiable {
+    let name: String
+    let type: String
+    let description: String
+    var required: Bool
+    var default_value: String?
+    var enum_values: [String]?
+
+    var id: String { name }
+}
+
+// MARK: - Plugin Manifest (aligned with upstream PluginManifest.to_dict())
 
 struct PluginManifest: Codable {
     let id: String
     let name: String
     let version: String
-    let author: String
+    let category: PluginCategory
     let description: String
-    let minAppVersion: String
-    let entryPoint: String
-    let permissions: [PluginPermission]
-    let categories: [String]
-    let icon: String
-    let homepage: String?
+    var capabilities: [PluginCapability]
+    var params: [PluginParam]
+    var entryPoint: String?
+    var defaultMounted: Bool
+    var timeoutSeconds: Int?
+    var vramMb: Int
+    var dependsOn: [String]
+    var sandboxMode: SandboxMode
 
-    enum PluginPermission: String, Codable, CaseIterable {
-        case files    = "文件访问"
-        case network  = "网络访问"
-        case mlx      = "MLX 推理"
-        case shell    = "Shell 执行"
-        case ui       = "UI 扩展"
-        case storage  = "本地存储"
+    // Legacy fields kept for local-dir scan backward compat
+    var author: String?
+    var minAppVersion: String?
+    var icon: String?
+    var homepage: String?
 
-        var description: String {
-            switch self {
-            case .files:   return "读取和写入文件系统"
-            case .network: return "发起网络请求"
-            case .mlx:     return "调用 fusion-mlx 推理接口"
-            case .shell:   return "执行 Shell 命令"
-            case .ui:      return "在 Fusion Studio 中添加 UI 面板"
-            case .storage: return "读写本地存储"
-            }
+    var displayIcon: String { icon ?? category.icon }
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, version, category, description, capabilities, params
+        case entryPoint = "entry_point"
+        case defaultMounted = "default_mounted"
+        case timeoutSeconds = "timeout_seconds"
+        case vramMb = "vram_mb"
+        case dependsOn = "depends_on"
+        case sandboxMode = "sandbox_mode"
+        case author, minAppVersion, icon, homepage
+    }
+}
+
+// MARK: - Plugin State (aligned with upstream PluginState)
+
+enum PluginState: String, Equatable {
+    case registered = "registered"
+    case loaded     = "loaded"
+    case enabled    = "enabled"
+    case disabled   = "disabled"
+    case crashed    = "crashed"
+    case timeout    = "timeout"
+
+    var label: String {
+        switch self {
+        case .registered: return "已注册"
+        case .loaded:     return "已加载"
+        case .enabled:    return "运行中"
+        case .disabled:   return "已停用"
+        case .crashed:    return "崩溃"
+        case .timeout:    return "超时"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .registered: return .gray
+        case .loaded:     return .blue
+        case .enabled:    return .green
+        case .disabled:   return .gray
+        case .crashed:    return .red
+        case .timeout:    return .orange
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .registered: return "circle"
+        case .loaded:     return "arrow.down.circle"
+        case .enabled:    return "checkmark.circle.fill"
+        case .disabled:   return "pause.circle"
+        case .crashed:    return "xmark.circle.fill"
+        case .timeout:    return "exclamationmark.triangle.fill"
         }
     }
 }
 
-// MARK: - 插件状态
-
-enum PluginState: Equatable {
-    case inactive
-    case active
-    case error(String)
-}
-
-// MARK: - 插件
+// MARK: - Plugin Instance
 
 struct Plugin: Identifiable, Hashable {
     let id: String
@@ -65,16 +205,7 @@ struct Plugin: Identifiable, Hashable {
     static func == (lhs: Plugin, rhs: Plugin) -> Bool { lhs.id == rhs.id }
 }
 
-// MARK: - 插件指令
-
-struct PluginCommand: Identifiable {
-    let id: String
-    let pluginId: String
-    let name: String
-    let action: () -> Void
-}
-
-// MARK: - 插件管理器
+// MARK: - Plugin Manager
 
 class PluginManager: ObservableObject {
     static let shared = PluginManager()
@@ -92,42 +223,62 @@ class PluginManager: ObservableObject {
         return dir
     }
 
-    var activePluginCount: Int { plugins.filter { $0.state == .active }.count }
-    var errorPluginCount: Int { plugins.filter { if case .error = $0.state { return true }; return false }.count }
+    var enabledPluginCount: Int { plugins.filter { $0.state == .enabled }.count }
+    var crashedPluginCount: Int { plugins.filter { $0.state == .crashed || $0.state == .timeout }.count }
 
     init() {
         loadBuiltinPlugins()
         scanInstalledPlugins()
     }
 
-    // MARK: - 内置插件
+    // MARK: - Built-in Plugins
 
     private func loadBuiltinPlugins() {
         let builtins: [(PluginManifest, PluginState)] = [
             (PluginManifest(
                 id: "builtin-terminal", name: "高级终端", version: "1.0.0",
-                author: "Fusion Studio", description: "增强终端功能，支持多标签页和主题",
-                minAppVersion: "1.0.0", entryPoint: "terminal", permissions: [.shell, .ui],
-                categories: ["工具", "终端"], icon: "terminal", homepage: nil
-            ), .active),
+                category: .terminalProxy,
+                description: "增强终端功能，支持多标签页和主题",
+                capabilities: [.longTask], params: [],
+                entryPoint: "terminal", defaultMounted: true,
+                timeoutSeconds: nil, vramMb: 0, dependsOn: [],
+                sandboxMode: .inline,
+                author: "Fusion Studio", minAppVersion: "1.0.0",
+                icon: "terminal", homepage: nil
+            ), .enabled),
             (PluginManifest(
                 id: "builtin-git", name: "Git 可视化", version: "1.0.0",
-                author: "Fusion Studio", description: "图形化 Git 操作：提交、分支、合并",
-                minAppVersion: "1.0.0", entryPoint: "git", permissions: [.shell, .ui],
-                categories: ["开发", "版本控制"], icon: "arrow.triangle.branch", homepage: nil
-            ), .active),
+                category: .codingPlan,
+                description: "图形化 Git 操作：提交、分支、合并",
+                capabilities: [.fileAccess], params: [],
+                entryPoint: "git", defaultMounted: true,
+                timeoutSeconds: nil, vramMb: 0, dependsOn: [],
+                sandboxMode: .inline,
+                author: "Fusion Studio", minAppVersion: "1.0.0",
+                icon: "arrow.triangle.branch", homepage: nil
+            ), .enabled),
             (PluginManifest(
                 id: "builtin-export", name: "批量导出", version: "1.0.0",
-                author: "Fusion Studio", description: "批量导出设计稿、代码、仿真结果",
-                minAppVersion: "1.0.0", entryPoint: "export", permissions: [.files, .ui],
-                categories: ["工具", "导出"], icon: "square.and.arrow.up", homepage: nil
-            ), .active),
+                category: .visualBackend,
+                description: "批量导出设计稿、代码、仿真结果",
+                capabilities: [.fileAccess, .longTask], params: [],
+                entryPoint: "export", defaultMounted: false,
+                timeoutSeconds: 300, vramMb: 0, dependsOn: [],
+                sandboxMode: .inline,
+                author: "Fusion Studio", minAppVersion: "1.0.0",
+                icon: "square.and.arrow.up", homepage: nil
+            ), .enabled),
             (PluginManifest(
                 id: "builtin-markdown", name: "Markdown 预览", version: "1.0.0",
-                author: "Fusion Studio", description: "实时 Markdown 渲染与预览",
-                minAppVersion: "1.0.0", entryPoint: "markdown", permissions: [.ui],
-                categories: ["文档", "预览"], icon: "doc.text.magnifyingglass", homepage: nil
-            ), .active),
+                category: .custom,
+                description: "实时 Markdown 渲染与预览",
+                capabilities: [.mcpTool], params: [],
+                entryPoint: "markdown", defaultMounted: false,
+                timeoutSeconds: nil, vramMb: 0, dependsOn: [],
+                sandboxMode: .inline,
+                author: "Fusion Studio", minAppVersion: "1.0.0",
+                icon: "doc.text.magnifyingglass", homepage: nil
+            ), .enabled),
         ]
 
         for (manifest, state) in builtins {
@@ -141,9 +292,10 @@ class PluginManager: ObservableObject {
             )
             plugins.append(plugin)
         }
+        pluginLog.info("Loaded \(builtins.count) built-in plugins")
     }
 
-    // MARK: - 插件扫描
+    // MARK: - Scan Installed Plugins
 
     func scanInstalledPlugins() {
         guard let contents = try? fileManager.contentsOfDirectory(
@@ -165,7 +317,7 @@ class PluginManager: ObservableObject {
             let plugin = Plugin(
                 id: manifest.id,
                 manifest: manifest,
-                state: .inactive,
+                state: .registered,
                 installDate: date,
                 installPath: dir.path,
                 config: [:]
@@ -173,7 +325,6 @@ class PluginManager: ObservableObject {
             newPlugins.append(plugin)
         }
 
-        // 合并已安装插件
         for plugin in newPlugins {
             if !plugins.contains(where: { $0.id == plugin.id }) {
                 plugins.append(plugin)
@@ -182,9 +333,48 @@ class PluginManager: ObservableObject {
 
         lastScanDate = Date()
         objectWillChange.send()
+        pluginLog.info("Scanned \(newPlugins.count) installed plugins")
     }
 
-    // MARK: - 插件操作
+    // MARK: - IPC Registry Fetch
+
+    func fetchRegistryPlugins() async {
+        // IPCClient is injected via @EnvironmentObject at view layer;
+        // fetch is triggered from InstalledPluginsView.task with explicit client.
+        // This method is a fallback using a short-lived client.
+        let client = IPCClient()
+        guard client.isConnected else {
+            pluginLog.warning("Registry fetch skipped: IPC not connected")
+            return
+        }
+        do {
+            let response = try await client.call(method: "plugin.list", params: [:])
+            guard let items = response["result"] as? [[String: Any]] else { return }
+
+            for item in items {
+                guard let id = item["id"] as? String else { continue }
+                if plugins.contains(where: { $0.id == id }) { continue }
+
+                guard let data = try? JSONSerialization.data(withJSONObject: item),
+                      let manifest = try? JSONDecoder().decode(PluginManifest.self, from: data) else { continue }
+
+                let plugin = Plugin(
+                    id: manifest.id,
+                    manifest: manifest,
+                    state: .registered,
+                    installDate: Date(),
+                    installPath: "registry",
+                    config: [:]
+                )
+                plugins.append(plugin)
+            }
+            pluginLog.info("Fetched \(items.count) plugins from registry")
+        } catch {
+            pluginLog.warning("Registry fetch failed: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Plugin Operations
 
     func installPlugin(at url: URL) -> Bool {
         let fileName = url.lastPathComponent
@@ -196,23 +386,26 @@ class PluginManager: ObservableObject {
             }
             try fileManager.copyItem(at: url, to: dest)
             scanInstalledPlugins()
+            pluginLog.info("Plugin installed: \(fileName)")
             return true
         } catch {
-            print("插件安装失败: \(error)")
+            pluginLog.error("Install failed: \(error.localizedDescription)")
             return false
         }
     }
 
-    func activatePlugin(_ id: String) {
+    func enablePlugin(_ id: String) {
         guard let idx = plugins.firstIndex(where: { $0.id == id }) else { return }
-        plugins[idx].state = .active
+        plugins[idx].state = .enabled
         objectWillChange.send()
+        pluginLog.info("Enabled: \(id)")
     }
 
-    func deactivatePlugin(_ id: String) {
+    func disablePlugin(_ id: String) {
         guard let idx = plugins.firstIndex(where: { $0.id == id }) else { return }
-        plugins[idx].state = .inactive
+        plugins[idx].state = .disabled
         objectWillChange.send()
+        pluginLog.info("Disabled: \(id)")
     }
 
     func uninstallPlugin(_ id: String) {
@@ -222,6 +415,7 @@ class PluginManager: ObservableObject {
         try? fileManager.removeItem(atPath: plugin.installPath)
         plugins.removeAll { $0.id == id }
         objectWillChange.send()
+        pluginLog.info("Uninstalled: \(id)")
     }
 
     func openPluginFolder() {
@@ -237,12 +431,18 @@ class PluginManager: ObservableObject {
             id: "custom-\(pluginName)",
             name: name,
             version: "0.1.0",
-            author: author,
+            category: .custom,
             description: "Fusion Studio 插件",
-            minAppVersion: "1.0.0",
+            capabilities: [.mcpTool],
+            params: [],
             entryPoint: "main.py",
-            permissions: [.ui, .storage],
-            categories: ["自定义"],
+            defaultMounted: false,
+            timeoutSeconds: nil,
+            vramMb: 0,
+            dependsOn: [],
+            sandboxMode: .inline,
+            author: author,
+            minAppVersion: "1.0.0",
             icon: "puzzlepiece.extension",
             homepage: nil
         )
@@ -252,39 +452,35 @@ class PluginManager: ObservableObject {
             try? data.write(to: manifestPath)
         }
 
-        // 创建入口文件
         let mainCode = """
-        # Fusion Studio Plugin: \(name)
-        # \(author)
+# Fusion Studio Plugin: \(name)
+# \(author)
 
-        def on_load():
-            \"\"\"插件加载时调用\"\"\"
-            pass
+def on_load():
+    pass
 
-        def on_unload():
-            \"\"\"插件卸载时调用\"\"\"
-            pass
+def on_unload():
+    pass
 
-        def on_register_commands():
-            \"\"\"注册命令\"\"\"
-            return []
+def on_register_commands():
+    return []
 
-        def on_render_panel():
-            \"\"\"渲染 UI 面板（返回 HTML）\"\"\"
-            return f\"\"\"<div>
-                <h3>\(name)</h3>
-                <p>插件已加载</p>
-            </div>\"\"\"
-        """
+def on_render_panel():
+    return \"\"\"<div>
+        <h3>\(name)</h3>
+        <p>Plugin loaded</p>
+    </div>\"\"\"
+"""
         let mainPath = pluginDir.appendingPathComponent("main.py")
         try? mainCode.write(to: mainPath, atomically: true, encoding: .utf8)
 
         scanInstalledPlugins()
+        pluginLog.info("Template created: \(pluginName)")
         return pluginDir
     }
 }
 
-// MARK: - 插件市场模型
+// MARK: - Plugin Market Item
 
 struct PluginMarketItem: Identifiable {
     let id: String
@@ -299,10 +495,11 @@ struct PluginMarketItem: Identifiable {
     let hasUpdate: Bool
 }
 
-// MARK: - 插件面板
+// MARK: - Plugin View (Tab Container)
 
 struct PluginView: View {
     @StateObject private var pluginManager = PluginManager.shared
+    @Environment(\.studioTheme) private var theme
     @State private var selectedTab: PluginTab = .installed
     @State private var showFilePicker = false
     @State private var showCreateTemplate = false
@@ -353,7 +550,7 @@ struct PluginView: View {
             allowsMultipleSelection: false
         ) { result in
             if case .success(let urls) = result, let url = urls.first {
-                pluginManager.installPlugin(at: url)
+                _ = pluginManager.installPlugin(at: url)
             }
         }
         .sheet(isPresented: $showCreateTemplate) {
@@ -401,52 +598,62 @@ struct PluginView: View {
     }
 }
 
-// MARK: - 已安装插件
+// MARK: - Installed Plugins
 
 struct InstalledPluginsView: View {
     @StateObject private var pluginManager = PluginManager.shared
+    @Environment(\.studioTheme) private var theme
     @State private var selectedPlugin: Plugin?
     @State private var showUninstallAlert = false
+    @State private var selectedCategory: PluginCategory?
+
+    private var filteredPlugins: [Plugin] {
+        if let cat = selectedCategory {
+            return pluginManager.plugins.filter { $0.manifest.category == cat }
+        }
+        return pluginManager.plugins
+    }
 
     var body: some View {
         HSplitView {
-            // 列表
-            List(selection: $selectedPlugin) {
-                Section("内置插件") {
-                    ForEach(pluginManager.plugins.filter { $0.installPath == "builtin" }) { plugin in
-                        PluginRow(plugin: plugin)
-                            .tag(plugin)
+            VStack(spacing: 0) {
+                categoryFilter
+                List(selection: $selectedPlugin) {
+                    Section("内置插件") {
+                        ForEach(filteredPlugins.filter { $0.installPath == "builtin" }) { plugin in
+                            PluginRow(plugin: plugin)
+                                .tag(plugin)
+                        }
                     }
-                }
-                Section("用户插件") {
-                    let userPlugins = pluginManager.plugins.filter { $0.installPath != "builtin" }
-                    if userPlugins.isEmpty {
-                        Text("暂无用户插件")
-                            .foregroundColor(.secondary)
-                    }
-                    ForEach(userPlugins) { plugin in
-                        PluginRow(plugin: plugin)
-                            .tag(plugin)
-                            .contextMenu {
-                                Button(plugin.state == .active ? "停用" : "启用") {
-                                    if plugin.state == .active {
-                                        pluginManager.deactivatePlugin(plugin.id)
-                                    } else {
-                                        pluginManager.activatePlugin(plugin.id)
+                    Section("用户插件") {
+                        let userPlugins = filteredPlugins.filter { $0.installPath != "builtin" }
+                        if userPlugins.isEmpty {
+                            Text("暂无用户插件")
+                                .foregroundColor(.secondary)
+                        }
+                        ForEach(userPlugins) { plugin in
+                            PluginRow(plugin: plugin)
+                                .tag(plugin)
+                                .contextMenu {
+                                    Button(plugin.state == .enabled ? "停用" : "启用") {
+                                        if plugin.state == .enabled {
+                                            pluginManager.disablePlugin(plugin.id)
+                                        } else {
+                                            pluginManager.enablePlugin(plugin.id)
+                                        }
+                                    }
+                                    Button("卸载", role: .destructive) {
+                                        selectedPlugin = plugin
+                                        showUninstallAlert = true
                                     }
                                 }
-                                Button("卸载", role: .destructive) {
-                                    selectedPlugin = plugin
-                                    showUninstallAlert = true
-                                }
-                            }
+                        }
                     }
                 }
+                .listStyle(.sidebar)
             }
-            .listStyle(.sidebar)
-            .frame(minWidth: 280)
+            .frame(minWidth: 300)
 
-            // 详情
             if let plugin = selectedPlugin {
                 PluginDetailView(plugin: plugin)
             } else {
@@ -473,34 +680,58 @@ struct InstalledPluginsView: View {
             Text("确定要卸载此插件吗？此操作不可撤销。")
         }
     }
+
+    private var categoryFilter: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                Button("全部") { selectedCategory = nil }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .tint(selectedCategory == nil ? Color.accentColor : nil)
+                ForEach(PluginCategory.allCases, id: \.self) { cat in
+                    Button(cat.label) { selectedCategory = cat }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .tint(selectedCategory == cat ? Color.accentColor : nil)
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+        }
+        .background(Color(nsColor: .controlBackgroundColor))
+    }
 }
 
 struct PluginRow: View {
     let plugin: Plugin
+    @Environment(\.studioTheme) private var theme
 
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: plugin.manifest.icon)
-                .foregroundColor(.accentColor)
-                .frame(width: 20)
+            Image(systemName: plugin.state.icon)
+                .foregroundColor(plugin.state.color)
+                .frame(width: 16)
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack {
                     Text(plugin.manifest.name)
                         .font(.headline)
                     Spacer()
-                    Circle()
-                        .fill(stateColor)
-                        .frame(width: 6, height: 6)
+                    HubTagBadge(text: plugin.manifest.category.label, color: .accentColor)
                 }
                 Text(plugin.manifest.description)
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
-                HStack {
+                HStack(spacing: 8) {
                     Text("v\(plugin.manifest.version)")
                         .font(.caption2)
                         .foregroundColor(.secondary)
+                    if plugin.manifest.vramMb > 0 {
+                        Label("\(plugin.manifest.vramMb) MB", systemImage: "memorychip")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                     if plugin.installPath != "builtin" {
                         Text(plugin.installDate, style: .date)
                             .font(.caption2)
@@ -511,27 +742,20 @@ struct PluginRow: View {
         }
         .padding(.vertical, 4)
     }
-
-    private var stateColor: Color {
-        switch plugin.state {
-        case .active:   return .green
-        case .inactive: return .gray
-        case .error:    return .red
-        }
-    }
 }
 
-// MARK: - 插件详情
+// MARK: - Plugin Detail View
 
 struct PluginDetailView: View {
     let plugin: Plugin
     @StateObject private var pluginManager = PluginManager.shared
+    @Environment(\.studioTheme) private var theme
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Image(systemName: plugin.manifest.icon)
+                    Image(systemName: plugin.manifest.displayIcon)
                         .font(.title)
                         .foregroundColor(.accentColor)
                     Text(plugin.manifest.name)
@@ -548,10 +772,15 @@ struct PluginDetailView: View {
                     VStack(alignment: .leading, spacing: 6) {
                         PluginDetailRow("ID", plugin.manifest.id)
                         PluginDetailRow("版本", plugin.manifest.version)
-                        PluginDetailRow("作者", plugin.manifest.author)
+                        PluginDetailRow("分类", plugin.manifest.category.label)
                         PluginDetailRow("描述", plugin.manifest.description)
-                        PluginDetailRow("最低版本", "Fusion Studio \(plugin.manifest.minAppVersion)")
-                        PluginDetailRow("入口", plugin.manifest.entryPoint)
+                        if let author = plugin.manifest.author {
+                            PluginDetailRow("作者", author)
+                        }
+                        if let minVer = plugin.manifest.minAppVersion {
+                            PluginDetailRow("最低版本", "Fusion Studio \(minVer)")
+                        }
+                        PluginDetailRow("入口", plugin.manifest.entryPoint ?? "-")
                         PluginDetailRow("安装路径", plugin.installPath)
                         if plugin.installPath != "builtin" {
                             PluginDetailRow("安装时间", plugin.installDate.formatted(date: .numeric, time: .shortened))
@@ -561,34 +790,71 @@ struct PluginDetailView: View {
                 }
                 .padding(.horizontal)
 
-                GroupBox("权限") {
-                    ForEach(plugin.manifest.permissions, id: \.rawValue) { perm in
-                        HStack {
-                            Image(systemName: permissionIcon(perm))
-                                .foregroundColor(.accentColor)
-                                .frame(width: 16)
-                            Text(perm.rawValue)
-                                .font(.subheadline)
-                            Spacer()
-                            Text(perm.description)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                GroupBox("能力声明") {
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(plugin.manifest.capabilities, id: \.rawValue) { cap in
+                            HStack {
+                                Image(systemName: cap.icon)
+                                    .foregroundColor(.accentColor)
+                                    .frame(width: 16)
+                                Text(cap.label)
+                                    .font(.subheadline)
+                                Spacer()
+                            }
+                            .padding(.vertical, 2)
                         }
-                        .padding(.vertical, 2)
+                        if plugin.manifest.capabilities.isEmpty {
+                            Text("无能力声明")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     .padding(8)
                 }
                 .padding(.horizontal)
 
-                GroupBox("分类") {
-                    HStack {
-                        ForEach(plugin.manifest.categories, id: \.self) { cat in
-                            Text(cat)
-                                .font(.caption)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.accentColor.opacity(0.1))
-                                .cornerRadius(3)
+                if !plugin.manifest.params.isEmpty {
+                    GroupBox("参数配置") {
+                        VStack(alignment: .leading, spacing: 6) {
+                            ForEach(plugin.manifest.params) { param in
+                                HStack(alignment: .top) {
+                                    Text(param.name)
+                                        .font(.system(.caption, design: .monospaced))
+                                        .frame(width: 100, alignment: .leading)
+                                    Text(param.type)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .frame(width: 50, alignment: .leading)
+                                    if param.required {
+                                        Text("必填")
+                                            .font(.caption2)
+                                            .padding(.horizontal, 4)
+                                            .padding(.vertical, 1)
+                                            .background(Color.red.opacity(0.1))
+                                            .clipShape(Capsule())
+                                    }
+                                    Spacer()
+                                    Text(param.description)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                        .padding(8)
+                    }
+                    .padding(.horizontal)
+                }
+
+                GroupBox("运行配置") {
+                    VStack(alignment: .leading, spacing: 6) {
+                        PluginDetailRow("沙箱模式", plugin.manifest.sandboxMode.label)
+                        PluginDetailRow("VRAM 预算", plugin.manifest.vramMb > 0 ? "\(plugin.manifest.vramMb) MB" : "不占用")
+                        PluginDetailRow("默认挂载", plugin.manifest.defaultMounted ? "是" : "否")
+                        if let timeout = plugin.manifest.timeoutSeconds {
+                            PluginDetailRow("超时", "\(timeout) 秒")
+                        }
+                        if !plugin.manifest.dependsOn.isEmpty {
+                            PluginDetailRow("依赖", plugin.manifest.dependsOn.joined(separator: ", "))
                         }
                     }
                     .padding(8)
@@ -597,15 +863,14 @@ struct PluginDetailView: View {
 
                 Spacer()
 
-                // 操作按钮
                 HStack {
                     Spacer()
                     if plugin.installPath != "builtin" {
-                        if plugin.state == .active {
-                            Button("停用") { pluginManager.deactivatePlugin(plugin.id) }
+                        if plugin.state == .enabled {
+                            Button("停用") { pluginManager.disablePlugin(plugin.id) }
                                 .buttonStyle(.bordered)
                         } else {
-                            Button("启用") { pluginManager.activatePlugin(plugin.id) }
+                            Button("启用") { pluginManager.enablePlugin(plugin.id) }
                                 .buttonStyle(.borderedProminent)
                         }
                         Button("卸载", role: .destructive) { pluginManager.uninstallPlugin(plugin.id) }
@@ -618,17 +883,6 @@ struct PluginDetailView: View {
             .padding(.vertical)
         }
     }
-
-    private func permissionIcon(_ perm: PluginManifest.PluginPermission) -> String {
-        switch perm {
-        case .files:   return "folder"
-        case .network: return "antenna.radiowaves.left.and.right"
-        case .mlx:     return "cpu"
-        case .shell:   return "terminal"
-        case .ui:      return "rectangle.3.group"
-        case .storage: return "externaldrive"
-        }
-    }
 }
 
 struct PluginStateBadge: View {
@@ -636,32 +890,16 @@ struct PluginStateBadge: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            Circle()
-                .fill(color)
-                .frame(width: 8, height: 8)
-            Text(text)
+            Image(systemName: state.icon)
+                .font(.caption2)
+            Text(state.label)
                 .font(.caption)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .background(color.opacity(0.1))
+        .background(state.color.opacity(0.1))
+        .foregroundStyle(state.color)
         .cornerRadius(6)
-    }
-
-    private var color: Color {
-        switch state {
-        case .active:   return .green
-        case .inactive: return .gray
-        case .error:    return .red
-        }
-    }
-
-    private var text: String {
-        switch state {
-        case .active:   return "运行中"
-        case .inactive: return "已停用"
-        case .error(let e): return "错误: \(e)"
-        }
     }
 }
 
@@ -686,9 +924,10 @@ struct PluginDetailRow: View {
     }
 }
 
-// MARK: - 插件市场
+// MARK: - Plugin Market
 
 struct PluginMarketView: View {
+    @Environment(\.studioTheme) private var theme
     let marketItems: [PluginMarketItem] = [
         PluginMarketItem(id: "theme-dark", name: "深色主题增强", author: "Fusion Labs", description: "更多深色主题变体，护眼模式", version: "1.2.0", downloads: 1280, rating: 4.5, iconName: "paintpalette", isInstalled: false, hasUpdate: false),
         PluginMarketItem(id: "code-lint", name: "代码检查器", author: "DevTools", description: "集成 ESLint、SwiftLint 等 linter", version: "0.8.0", downloads: 856, rating: 4.2, iconName: "checkmark.shield", isInstalled: true, hasUpdate: true),
@@ -747,7 +986,7 @@ struct MarketCard: View {
                     .foregroundColor(.yellow)
                 Text("\(item.rating, specifier: "%.1f")")
                     .font(.caption2)
-                Text("· \(item.downloads)")
+                Text("\u{00b7} \(item.downloads)")
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
@@ -769,11 +1008,11 @@ struct MarketCard: View {
     }
 }
 
-// MARK: - 插件开发
+// MARK: - Plugin Developer
 
 struct PluginDeveloperView: View {
     @StateObject private var pluginManager = PluginManager.shared
-    @State private var showCreateTemplate = false
+    @Environment(\.studioTheme) private var theme
     @State private var templateName = ""
     @State private var templateAuthor = ""
 
@@ -827,29 +1066,31 @@ struct PluginDeveloperView: View {
                 GroupBox("插件结构") {
                     VStack(alignment: .leading, spacing: 4) {
                         CodeLine("my-plugin.plugin/")
-                        CodeLine("├── manifest.json    # 插件清单")
-                        CodeLine("├── main.py          # 入口脚本")
-                        CodeLine("├── assets/          # 资源文件")
-                        CodeLine("└── README.md        # 说明文档")
+                        CodeLine("\u{251c}\u{2500}\u{2500} manifest.json    # \u{63d2}\u{4ef6}\u{6e05}\u{5355}")
+                        CodeLine("\u{251c}\u{2500}\u{2500} main.py          # \u{5165}\u{53e3}\u{811a}\u{672c}")
+                        CodeLine("\u{251c}\u{2500}\u{2500} assets/          # \u{8d44}\u{6e90}\u{6587}\u{4ef6}")
+                        CodeLine("\u{2514}\u{2500}\u{2500} README.md        # \u{8bf4}\u{660e}\u{6587}\u{6863}")
                     }
                     .padding(8)
                     .font(.system(.body, design: .monospaced))
                 }
                 .padding(.horizontal)
 
-                GroupBox("manifest.json 示例") {
+                GroupBox("manifest.json 示例 (aligned with plugins-ecosystem)") {
                     Text("""
                     {
                       "id": "my-plugin",
-                      "name": "我的插件",
+                      "name": "\u{6211}\u{7684}\u{63d2}\u{4ef6}",
                       "version": "0.1.0",
-                      "author": "Your Name",
-                      "description": "插件描述",
-                      "minAppVersion": "1.0.0",
-                      "entryPoint": "main.py",
-                      "permissions": ["ui", "storage"],
-                      "categories": ["自定义"],
-                      "icon": "puzzlepiece.extension"
+                      "category": "custom",
+                      "description": "\u{63d2}\u{4ef6}\u{63cf}\u{8ff0}",
+                      "capabilities": ["mcp_tool"],
+                      "params": [],
+                      "entry_point": "main.py",
+                      "default_mounted": false,
+                      "vram_mb": 0,
+                      "depends_on": [],
+                      "sandbox_mode": "inline"
                     }
                     """)
                     .font(.system(.caption, design: .monospaced))
