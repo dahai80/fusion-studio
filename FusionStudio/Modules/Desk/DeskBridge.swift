@@ -348,26 +348,6 @@ final class DeskBridge: ObservableObject {
         }
     }
 
-    func startMLX(model: String = "") async {
-        guard let ipc = ipc else { return }
-        do {
-            _ = try await ipc.deskMlxStart(model: model)
-            await loadMLXStatus()
-        } catch {
-            lastError = error.localizedDescription
-        }
-    }
-
-    func stopMLX() async {
-        guard let ipc = ipc else { return }
-        do {
-            _ = try await ipc.deskMlxStop()
-            await loadMLXStatus()
-        } catch {
-            lastError = error.localizedDescription
-        }
-    }
-
     func loadSystemInfo() async {
         guard let ipc = ipc else { return }
         do {

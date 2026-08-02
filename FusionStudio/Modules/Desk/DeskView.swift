@@ -936,8 +936,6 @@ struct DeskPermissionTab: View {
 struct DeskMLXTab: View {
     @EnvironmentObject var bridge: DeskBridge
     @Environment(\.studioTheme) private var theme
-    @State private var startModel = ""
-    @State private var showModelPicker = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -963,13 +961,11 @@ struct DeskMLXTab: View {
                 HStack(spacing: 8) {
                     Menu {
                         ForEach(bridge.mlxModels) { model in
-                            Button(action: { startModel = model.name }) {
-                                HStack {
-                                    Text(model.name)
-                                    if !model.size.isEmpty {
-                                        Text("(\(model.size))")
-                                            .foregroundColor(theme.textTertiary)
-                                    }
+                            HStack {
+                                Text(model.name)
+                                if !model.size.isEmpty {
+                                    Text("(\(model.size))")
+                                        .foregroundColor(theme.textTertiary)
                                 }
                             }
                         }
@@ -985,24 +981,6 @@ struct DeskMLXTab: View {
                     }
                     .menuStyle(.borderlessButton)
                     .controlSize(.small)
-
-                    TextField("模型名称", text: $startModel)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 160)
-                        .controlSize(.small)
-
-                    Button("启动") {
-                        Task { await bridge.startMLX(model: startModel) }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
-
-                    Button("停止") {
-                        Task { await bridge.stopMLX() }
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .foregroundColor(theme.accentDestructive)
 
                     Button(action: {
                         Task {
@@ -1039,7 +1017,7 @@ struct DeskMLXTab: View {
                     Text("Fusion-MLX 未启动")
                         .font(.title3)
                         .foregroundColor(theme.textSecondary)
-                    Text("从模型列表选择或输入名称，点击「启动」")
+                    Text("请通过 UpstreamServiceManager 管理 MLX 生命周期")
                         .font(.subheadline)
                         .foregroundColor(theme.textTertiary)
                 }
