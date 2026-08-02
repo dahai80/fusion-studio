@@ -1851,7 +1851,7 @@ struct TerminalView: View {
         case "help": return "Commands: help, clear, status, mlx, python, swift"
         case "clear": output = []; return ""
         case "status": return "Fusion Studio v1.0 | MLX: running | fusion-coder: ready"
-        case "mlx": return "fusion-mlx: localhost:8000 | model: qwen3.5-9b-4bit"
+        case "mlx": return "fusion-mlx: localhost:\(FusionConfig.shared.mlxPort) | model: qwen3.5-9b-4bit"
         default: return "Unknown: \(cmd). Type 'help'"
         }
     }

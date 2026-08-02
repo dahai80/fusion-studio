@@ -36,7 +36,7 @@ class FusionCodeBridge: ObservableObject {
     @Published var isStreaming = false
     @Published var currentStreamContent = ""
 
-    let serverURL = "http://127.0.0.1:4827"
+    let serverURL = "http://127.0.0.1:\(FusionConfig.shared.fusionCodePort)"
     private var webSocketTask: URLSessionWebSocketTask?
     private let urlSession = URLSession(configuration: .default)
 

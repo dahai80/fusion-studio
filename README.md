@@ -91,6 +91,7 @@ Design · Code · Simulation · MultiModal · Training · Data · Agent · KB ·
 | 24 | 🔑 **License** | `key.fill` | ✅ Stable | Commercial licensing, activation, tier comparison |
 | 25 | 🌐 **Multi-Node** | `network` | 🆕 New | Cluster overview, topology, task monitor, alerts, KV cache, autoscaler, routing — real API on port 9753, offline status banner |
 | 26 | 🏢 **FSB** | `building.2.crop.circle` | 🆕 New | AI workflow automation for small business — Connectors, Skills, Workflows, Approval gates — 57 IPC methods, 4 GUI views, HTTP REST backend |
+| 27 | 🔍 **RAG** | `magnifyingglass.circle` | 🆕 New | Full-featured RAG management — Dashboard, Files, Search Config, Permissions, Vector Ops, Call Log, Bench Eval, Search — 8 sidebar sections, 35+ upstream API endpoints, real HTTP REST integration |
 
 ### 📦 Artifacts Integration
 
@@ -135,7 +136,7 @@ Fusion Studio integrates with [fusion-artifacts-engine](https://github.com/dahai
 | Safety | `artifact.inject/check_safety` |
 | Import/Export | `artifact.export/import/export_code/import_code` |
 
-**Communication**: HTTP JSON-RPC 2.0 to `127.0.0.1:8892` (separate from UDS channel).
+**Communication**: HTTP JSON-RPC 2.0 to `127.0.0.1:11451` (separate from UDS channel).
 
 ### 🤝 CoWork — Collaborative AI Spaces
 
@@ -213,7 +214,7 @@ Fusion Studio integrates with [fusion-smallbusiness](https://github.com/dahai80/
 | Integration | `fsbCreateArtifact/fsbSendToCanvas/fsbSyncToProject` |
 | Health | `fsbHealth` |
 
-**Communication**: HTTP REST to `127.0.0.1:8000/api/v1/fsb` (separate from JSON-RPC UDS channel), via `IPCClient.fsbRequest()`/`fsbRequestArray()`.
+**Communication**: HTTP REST to `127.0.0.1:11434/api/v1/fsb` (separate from JSON-RPC UDS channel), via `IPCClient.fsbRequest()`/`fsbRequestArray()`.
 
 **E2E Test Status**: 54/54 IPC methods verified passing against backend (2026-08-01). 9 upstream issues filed and closed.
 
@@ -263,7 +264,7 @@ Fusion Studio integrates with [fusion-code](https://github.com/dahai80/fusion-co
 | Template | `listTemplates()` |
 | Chat | `chatStream()` (WebSocket), `chatCancel()` |
 
-**Communication**: HTTP REST + WebSocket to `127.0.0.1:4827` via `FusionCodeBridge` (singleton, `@StateObject` in FusionCodeView).
+**Communication**: HTTP REST + WebSocket to `127.0.0.1:11441` via `FusionCodeBridge` (singleton, `@StateObject` in FusionCodeView).
 
 **Competitive Differentiators vs Claude Code**:
 
@@ -395,7 +396,7 @@ comes up).
 |---------|----------|----------|----------|
 | fusion-mlx | `~/claude-home/fusion-mlx/start.sh` | `localhost:11434` | ✅ |
 | fusion-agent-studio | `~/fusion/fusion-agent-studio/start.sh` | `/tmp/fusion-studio.sock` (UDS) | ✅ |
-| fusion-artifacts-engine | `~/fusion/fusion-artifacts-engine/start.sh` | `127.0.0.1:8892` | ✅ |
+| fusion-artifacts-engine | `~/fusion/fusion-artifacts-engine/start.sh` | `127.0.0.1:11451` | ✅ |
 | fusion-kb (RAG) | `~/fusion/fusion-kb/start.sh` | `127.0.0.1:11436` | optional |
 | fusion-multi-node | `~/fusion/fusion-multi-node/start.sh` | `127.0.0.1:9753` | optional |
 | fusion-design | (CLI tool, no start.sh) | - | n/a |

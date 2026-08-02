@@ -77,7 +77,7 @@ class MLXOptimizer: ObservableObject {
         Task { [weak self] in
             guard let self = self else { return }
             do {
-                let url = URL(string: "http://localhost:8000/v1/benchmarks")!
+                let url = URL(string: "\(FusionConfig.shared.mlxBaseURL)/v1/benchmarks")!
                 var request = URLRequest(url: url)
                 request.httpMethod = "POST"
                 request.setValue("application/json", forHTTPHeaderField: "Content-Type")

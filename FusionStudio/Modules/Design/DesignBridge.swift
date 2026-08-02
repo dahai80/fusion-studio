@@ -1007,7 +1007,7 @@ class DesignBridge: ObservableObject {
         return []
     }
 
-    func skillHealthCheck(endpoint: String = "http://127.0.0.1:8000") -> [String: Any]? {
+    func skillHealthCheck(endpoint: String = FusionConfig.shared.mlxBaseURL) -> [String: Any]? {
         let result = runFusionDesign(["health", "--endpoint", endpoint])
         guard result.exitCode == 0 else { return nil }
         if let data = result.output.data(using: .utf8),
@@ -1525,7 +1525,7 @@ class DesignBridge: ObservableObject {
         isDiffing = true
         versionDiffEntries = skillDiff(oldJSON: oldJSON, newJSON: newJSON)
         isDiffing = false
-        designBridgeLog.info("DesignBridge: version diff completed, \(versionDiffEntries.count) changes")
+        designBridgeLog.info("DesignBridge: version diff completed, \(self.versionDiffEntries.count) changes")
     }
 
     @Published var activeTheme: String = "dark"

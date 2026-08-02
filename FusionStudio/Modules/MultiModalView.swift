@@ -273,7 +273,7 @@ struct MultiModalView: View {
                 // 通过 fusion-mlx HTTP API 调用
                 switch taskType {
                 case .textToImage, .imageToImage:
-                    let url = URL(string: "http://localhost:8000/v1/images/generations")!
+                    let url = URL(string: "http://localhost:11434/v1/images/generations")!
                     var request = URLRequest(url: url)
                     request.httpMethod = "POST"
                     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -297,7 +297,7 @@ struct MultiModalView: View {
                     }
                 case .speechToText:
                     // 调用 fusion-mlx 语音识别 API
-                    let url = URL(string: "http://localhost:8000/v1/audio/transcriptions")!
+                    let url = URL(string: "http://localhost:11434/v1/audio/transcriptions")!
                     var request = URLRequest(url: url)
                     request.httpMethod = "POST"
                     request.timeoutInterval = 120
@@ -305,7 +305,7 @@ struct MultiModalView: View {
                     let result = String(data: data, encoding: .utf8) ?? ""
                     await MainActor.run { self.generatedText = result }
                 case .textToSpeech:
-                    let url = URL(string: "http://localhost:8000/v1/audio/speech")!
+                    let url = URL(string: "http://localhost:11434/v1/audio/speech")!
                     var request = URLRequest(url: url)
                     request.httpMethod = "POST"
                     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -316,7 +316,7 @@ struct MultiModalView: View {
                     await MainActor.run { self.generatedText = "音频已生成 (\(data.count) bytes)" }
                 case .ocr, .imageDescribe:
                     // 调用 fusion-mlx 视觉模型 API
-                    let url = URL(string: "http://localhost:8000/v1/chat/completions")!
+                    let url = URL(string: "http://localhost:11434/v1/chat/completions")!
                     var request = URLRequest(url: url)
                     request.httpMethod = "POST"
                     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -342,7 +342,7 @@ struct MultiModalView: View {
                 }
             } catch {
                 await MainActor.run {
-                    self.generatedText = "⚠️ 调用 fusion-mlx 失败: \(error.localizedDescription)\n\n请确保 fusion-mlx 服务正在运行 (localhost:8000)。"
+                    self.generatedText = "⚠️ 调用 fusion-mlx 失败: \(error.localizedDescription)\n\n请确保 fusion-mlx 服务正在运行 (localhost:11434)。"
                     self.progress = 1.0
                     self.isGenerating = false
                 }
