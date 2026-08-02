@@ -16,6 +16,8 @@ struct ClusterOverviewView: View {
 
                 UpstreamServiceStatusBanner(serviceId: "fusion-multinode")
 
+                clusterSyncBanner
+
                 if !engine.isConnected {
                     HStack(spacing: 8) {
                         Image(systemName: "exclamationmark.triangle.fill")
@@ -97,7 +99,7 @@ struct ClusterOverviewView: View {
         ListGroup {
             StudioSectionHeader(title: "节点列表 (\(filteredNodes.count))")
             ForEach(filteredNodes) { node in
-                NodeRow(node: node, isSelected: selectedNodeId == node.id) {
+                NodeRow(node: node, nodeLoad: engine.nodeLoads[node.id], isSelected: selectedNodeId == node.id) {
                     appState.inspectorContext = .node(id: node.id)
                     appState.isInspectorVisible = true
                 }
@@ -119,5 +121,31 @@ struct ClusterOverviewView: View {
     private var selectedNodeId: String? {
         if case .node(let id) = appState.inspectorContext { return id }
         return nil
+    }
+
+    private var clusterSyncBanner: some View {
+        Group {
+            if let status = engine.clusterSyncStatus {
+                HStack(spacing: 8) {
+                    Image(systemName: status.isDegraded ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                        .foregroundColor(status.isDegraded ? .orange : .green)
+                    Text(status.isDegraded
+                         ? "集群处于降级状态 — 分区: \(status.partitionState)"
+                         : "集群同步正常 — 分区: \(status.partitionState)")
+                        .font(.system(size: theme.footnoteSize))
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    NavigationLink(value: Module.clusterSync) {
+                        Text("详情")
+                            .font(.system(size: theme.captionSize, weight: .medium))
+                            .foregroundStyle(theme.accent)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, theme.spacingL)
+                .padding(.vertical, theme.spacingS)
+                .background(status.isDegraded ? Color.orange.opacity(0.08) : Color.green.opacity(0.06))
+            }
+        }
     }
 }

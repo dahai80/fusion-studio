@@ -13,6 +13,9 @@ class MultiNodeEngine: ObservableObject {
     @Published var autoscalerConfig: AutoscalerConfig = .default
     @Published var nodeMetrics: [String: LoadMetrics] = [:]
     @Published var nodeMetricsRaw: [String: NodeMetricsResponse] = [:]
+    @Published var clusterSyncStatus: ClusterSyncStatus?
+    @Published var nodeLoads: [String: NodeLoadReport] = [:]
+    @Published var modelManifests: [String: ModelManifest] = [:]
     @Published var isConnected: Bool = false
     @Published var lastError: String?
 
@@ -38,6 +41,10 @@ class MultiNodeEngine: ObservableObject {
         }
         schedulePoll(interval: 3.0) { [weak self] in
             self?.fetchTasks()
+            self?.fetchClusterSyncStatus()
+        }
+        schedulePoll(interval: 5.0) { [weak self] in
+            self?.fetchAllNodeLoads()
         }
         schedulePoll(interval: 10.0) { [weak self] in
             self?.fetchSuggestions()
@@ -269,6 +276,74 @@ class MultiNodeEngine: ObservableObject {
         var body: [String: Any] = ["ip_address": ipAddress, "port": port]
         if let t = token { body["token"] = t }
         return try await post("/api/join", body: body)
+    }
+
+    // MARK: - Cluster Sync (#74)
+
+    func fetchClusterSyncStatus() {
+        get("/api/cluster/status") { [weak self] (result: Result<ClusterSyncStatus, Error>) in
+            switch result {
+            case .success(let status):
+                DispatchQueue.main.async { self?.clusterSyncStatus = status }
+            case .failure:
+                engineLog.debug("Cluster sync status not available")
+            }
+        }
+    }
+
+    func fetchModelManifest(modelName: String, completion: @escaping (Result<ModelManifest, Error>) -> Void) {
+        get("/api/models/\(modelName)/manifest") { [weak self] (result: Result<ModelManifest, Error>) in
+            switch result {
+            case .success(let manifest):
+                DispatchQueue.main.async { self?.modelManifests[modelName] = manifest }
+                completion(.success(manifest))
+            case .failure(let err):
+                completion(.failure(err))
+            }
+        }
+    }
+
+    func triggerIncrementalSync(modelName: String, sourceHost: String, sourcePort: Int = 11452, completion: @escaping (Result<[String: Any], Error>) -> Void) {
+        guard let url = URL(string: "\(baseURL)/api/sync/incremental") else {
+            completion(.failure(EngineError.invalidURL)); return
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body: [String: Any] = [
+            "model_name": modelName,
+            "source_host": sourceHost,
+            "source_port": sourcePort,
+        ]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        session.dataTask(with: request) { data, _, error in
+            if let err = error { completion(.failure(err)); return }
+            guard let data = data else { completion(.failure(EngineError.noData)); return }
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                engineLog.info("Incremental sync triggered for \(modelName)")
+                completion(.success(json))
+            } else {
+                completion(.failure(EngineError.noData))
+            }
+        }.resume()
+    }
+
+    func fetchNodeLoad(nodeId: String, completion: @escaping (Result<NodeLoadReport, Error>) -> Void) {
+        get("/api/nodes/\(nodeId)/load") { [weak self] (result: Result<NodeLoadReport, Error>) in
+            switch result {
+            case .success(let report):
+                DispatchQueue.main.async { self?.nodeLoads[nodeId] = report }
+                completion(.success(report))
+            case .failure(let err):
+                completion(.failure(err))
+            }
+        }
+    }
+
+    func fetchAllNodeLoads() {
+        for node in nodes where node.status == .online || node.status == .busy {
+            fetchNodeLoad(nodeId: node.id) { _ in }
+        }
     }
 
     // MARK: - Routing

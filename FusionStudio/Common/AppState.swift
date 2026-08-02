@@ -85,7 +85,7 @@ enum ProductSheet: String, CaseIterable, Identifiable {
         case .agentStudio:
             return [.agent, .plugin, .security, .kb, .dataTools, .rag, .memory, .planner]
         case .multiNode:
-            return [.clusterOverview, .clusterTopology, .taskMonitor, .alertCenter, .nodeActions, .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb, .multimodal, .simulation, .analytics, .collab, .external, .operations]
+            return [.clusterOverview, .clusterTopology, .clusterSync, .taskMonitor, .alertCenter, .nodeActions, .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb, .multimodal, .simulation, .analytics, .collab, .external, .operations]
         case .chat:
             return [.chat]
         case .fusionProjectsSheet:
@@ -128,6 +128,7 @@ enum Module: String, CaseIterable, Identifiable {
     case docgen    = "文档生成"
     case clusterOverview = "集群总览"
     case clusterTopology = "拓扑图"
+    case clusterSync = "集群同步"
     case taskMonitor = "任务监控"
     case alertCenter = "告警中心"
     case nodeActions = "节点管理"
@@ -189,6 +190,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .docgen:     return "doc.badge.gearshape"
         case .clusterOverview: return "square.grid.2x2"
         case .clusterTopology: return "point.3.connected.trianglepath.dotted"
+        case .clusterSync: return "arrow.triangle.2.circlepath"
         case .taskMonitor: return "list.bullet.clipboard"
         case .alertCenter: return "exclamationmark.triangle"
         case .nodeActions: return "slider.horizontal.3"
@@ -233,7 +235,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .agent, .plugin, .security, .dataTools:
             return .agentStudio
         case .multimodal, .simulation, .analytics, .collab, .external, .desk,
-             .clusterOverview, .clusterTopology, .taskMonitor, .alertCenter, .nodeActions,
+             .clusterOverview, .clusterTopology, .clusterSync, .taskMonitor, .alertCenter, .nodeActions,
              .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb,
              .operations:
             return .multiNode
