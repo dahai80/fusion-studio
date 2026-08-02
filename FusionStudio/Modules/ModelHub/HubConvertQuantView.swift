@@ -231,26 +231,51 @@ private struct QuantTaskRow: View {
     @Environment(\.studioTheme) private var theme
 
     var body: some View {
-        HStack(spacing: theme.spacingS) {
-            Image(systemName: task.isComplete ? "checkmark.circle.fill" : (task.isFailed ? "xmark.circle.fill" : "arrow.triangle.2.circlepath"))
-                .foregroundStyle(task.isComplete ? .green : (task.isFailed ? .red : .orange))
+        VStack(alignment: .leading, spacing: theme.spacingS) {
+            HStack(spacing: theme.spacingS) {
+                Image(systemName: task.isComplete ? "checkmark.circle.fill" : (task.isFailed ? "xmark.circle.fill" : "arrow.triangle.2.circlepath"))
+                    .foregroundStyle(task.isComplete ? .green : (task.isFailed ? .red : .orange))
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(task.modelId ?? task.id)
-                    .font(.system(size: theme.textSize, weight: .medium))
-                HStack(spacing: 8) {
-                    if let fmt = task.targetFormat { Text(fmt.uppercased()).font(.caption) }
-                    if let bits = task.bits { Text("\(bits)-bit").font(.caption) }
-                    Text(task.status ?? "running").font(.caption).foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(task.modelId ?? task.id)
+                        .font(.system(size: theme.textSize, weight: .medium))
+                    HStack(spacing: 8) {
+                        if let fmt = task.targetFormat { Text(fmt.uppercased()).font(.caption) }
+                        if let bits = task.bits { Text("\(bits)-bit").font(.caption) }
+                        Text(task.status ?? "running").font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                Spacer()
+                if !task.isComplete && !task.isFailed {
+                    VStack(alignment: .trailing) {
+                        ProgressView(value: task.progress ?? 0)
+                            .frame(width: 80)
+                        Text("\(task.progressPct)%").font(.caption2).foregroundStyle(.secondary)
+                    }
                 }
             }
-            Spacer()
-            if !task.isComplete && !task.isFailed {
-                VStack(alignment: .trailing) {
-                    ProgressView(value: task.progress ?? 0)
-                        .frame(width: 80)
-                    Text("\(task.progressPct)%").font(.caption2).foregroundStyle(.secondary)
+
+            if let bench = task.benchmarkResult, task.isComplete {
+                HStack(spacing: theme.spacingM) {
+                    Image(systemName: "gauge.with.dots.needle.bottom.50percent")
+                        .font(.caption).foregroundStyle(.blue)
+                    Text("评测结果:").font(.caption).foregroundStyle(.secondary)
+                    if let acc = bench.accuracy {
+                        Text(String(format: "准确率 %.1f%%", acc * 100))
+                            .font(.caption)
+                            .foregroundStyle(acc > 0.9 ? .green : (acc > 0.7 ? .orange : .red))
+                    }
+                    if let tps = bench.tokensPerSecond {
+                        Text(String(format: "%.1f tok/s", tps)).font(.caption).foregroundStyle(.blue)
+                    }
+                    if let ttft = bench.timeToFirstToken {
+                        Text(String(format: "首Token %.2fs", ttft)).font(.caption).foregroundStyle(.secondary)
+                    }
+                    if let mem = bench.memoryPeak {
+                        Text(String(format: "内存 %.1f GB", mem)).font(.caption).foregroundStyle(.orange)
+                    }
                 }
+                .padding(.leading, 24)
             }
         }
         .padding(.vertical, 4)

@@ -1,6 +1,7 @@
 // Callers: ModelHubMainView contentArea switch on .benchmark.
 // Affected API: ModelHubAPIClient triggerBenchmark/getBenchmarkCompare.
 // Data schemas: HubBenchmarkEntry, HubBenchmarkCompareResponse.
+// PRD: Benchmark + auto-trigger rule after quantize/version update
 // User instruction: "按照prd文档和fusion-model-hub配合打造有竞争力的领先的产品"
 
 import SwiftUI
@@ -20,6 +21,12 @@ struct HubBenchmarkView: View {
     @State private var isLoading = false
     @State private var lastError: String?
     @State private var successMsg: String?
+    @State private var quantizeTasks: [HubQuantizeTask] = []
+
+    // Auto-trigger rules (PRD)
+    @AppStorage("hubAutoBenchAfterQuantize") private var autoBenchAfterQuantize = true
+    @AppStorage("hubAutoBenchAfterVersionUpdate") private var autoBenchAfterVersionUpdate = false
+    @AppStorage("hubAutoBenchTemplate") private var autoBenchTemplate = "general"
 
     private let templates = ["general", "code", "reasoning", "multilingual", "vision"]
 
@@ -28,6 +35,8 @@ struct HubBenchmarkView: View {
             VStack(spacing: theme.spacingL) {
                 headerSection
                 modelPickerSection
+                quantizeBenchmarkSection
+                autoTriggerSection
                 benchmarkResults
             }
             .padding(theme.spacingL)
@@ -88,7 +97,7 @@ struct HubBenchmarkView: View {
                 if models.isEmpty {
                     Text("加载中...").foregroundStyle(theme.textTertiary)
                 } else {
-                    ForEach(models.filter { $0.isDownloaded == true }) { model in
+                    ForEach(Array(models.filter { $0.isDownloaded == true }), id: \.id) { model in
                         let selected = selectedModelIds.contains(model.id)
                         Button(action: {
                             if selected { selectedModelIds.remove(model.id) }
@@ -96,7 +105,7 @@ struct HubBenchmarkView: View {
                         }) {
                             HStack(spacing: theme.spacingS) {
                                 Image(systemName: selected ? "checkmark.circle.fill" : "circle")
-                                    .foregroundStyle(selected ? .accentColor : .secondary)
+                                    .foregroundStyle(selected ? Color.accentColor : .secondary)
                                 Text(model.displayTitle)
                                     .font(.system(size: theme.textSize))
                                     .foregroundStyle(theme.text)
@@ -108,6 +117,123 @@ struct HubBenchmarkView: View {
                         }
                         .buttonStyle(.plain)
                     }
+                }
+            }
+            .padding(8)
+        }
+    }
+
+    // issue #63 sub-feature 3: linked quantize benchmark results
+    private var quantizeBenchmarkSection: some View {
+        GroupBox {
+            VStack(alignment: .leading, spacing: theme.spacingM) {
+                Text("量化关联评测")
+                    .font(.system(size: theme.headlineSize, weight: .semibold))
+                    .foregroundStyle(theme.text)
+                Text("量化任务完成后的自动评测结果")
+                    .font(.caption)
+                    .foregroundStyle(theme.textTertiary)
+
+                let completedWithBench = quantizeTasks.filter { $0.isComplete && $0.benchmarkResult != nil }
+                if completedWithBench.isEmpty {
+                    Text("暂无量化关联评测数据")
+                        .foregroundStyle(theme.textTertiary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding()
+                } else {
+                    ForEach(completedWithBench) { task in
+                        if let bench = task.benchmarkResult {
+                            HStack(spacing: theme.spacingM) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(task.modelId ?? task.id)
+                                        .font(.system(size: theme.textSize, weight: .medium))
+                                        .foregroundStyle(theme.text)
+                                    HStack(spacing: theme.spacingS) {
+                                        if let bits = task.bits { Text("\(bits)-bit").font(.caption).foregroundStyle(.secondary) }
+                                        if let fmt = task.targetFormat { Text(fmt).font(.caption).foregroundStyle(.secondary) }
+                                    }
+                                }
+                                Spacer()
+                                if let acc = bench.accuracy {
+                                    VStack(spacing: 2) {
+                                        Text(String(format: "%.1f%%", acc * 100))
+                                            .font(.system(size: theme.textSize, weight: .semibold))
+                                            .foregroundStyle(acc > 0.9 ? .green : (acc > 0.7 ? .orange : .red))
+                                        Text("准确率").font(.caption2).foregroundStyle(.secondary)
+                                    }
+                                }
+                                if let tps = bench.tokensPerSecond {
+                                    VStack(spacing: 2) {
+                                        Text(String(format: "%.1f", tps))
+                                            .font(.system(size: theme.textSize, weight: .semibold))
+                                            .foregroundStyle(.blue)
+                                        Text("Tokens/s").font(.caption2).foregroundStyle(.secondary)
+                                    }
+                                }
+                                if let ttft = bench.timeToFirstToken {
+                                    VStack(spacing: 2) {
+                                        Text(String(format: "%.2fs", ttft))
+                                            .font(.system(size: theme.textSize, weight: .medium))
+                                            .foregroundStyle(.secondary)
+                                        Text("首Token").font(.caption2).foregroundStyle(.secondary)
+                                    }
+                                }
+                                if let mem = bench.memoryPeak {
+                                    VStack(spacing: 2) {
+                                        Text(String(format: "%.1f GB", mem))
+                                            .font(.system(size: theme.textSize, weight: .medium))
+                                            .foregroundStyle(.orange)
+                                        Text("内存").font(.caption2).foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 4)
+                            Divider()
+                        }
+                    }
+                }
+            }
+            .padding(8)
+        }
+    }
+
+    // PRD: auto-trigger rule after quantize / version update
+    private var autoTriggerSection: some View {
+        GroupBox {
+            VStack(alignment: .leading, spacing: theme.spacingM) {
+                Text("自动评测规则")
+                    .font(.system(size: theme.headlineSize, weight: .semibold))
+                    .foregroundStyle(theme.text)
+
+                Toggle(isOn: $autoBenchAfterQuantize) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("量化完成后自动评测")
+                            .foregroundStyle(theme.text)
+                        Text("模型量化转换成功后，自动运行性能评测")
+                            .font(.caption)
+                            .foregroundStyle(theme.textTertiary)
+                    }
+                }
+
+                Toggle(isOn: $autoBenchAfterVersionUpdate) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("版本更新后自动评测")
+                            .foregroundStyle(theme.text)
+                        Text("模型新版本加载后，自动运行性能评测对比")
+                            .font(.caption)
+                            .foregroundStyle(theme.textTertiary)
+                    }
+                }
+
+                HStack(spacing: theme.spacingS) {
+                    Text("自动评测模板:")
+                        .font(.caption)
+                        .foregroundStyle(theme.textSecondary)
+                    Picker("", selection: $autoBenchTemplate) {
+                        ForEach(templates, id: \.self) { t in Text(templateLabel(t)).tag(t) }
+                    }
+                    .pickerStyle(.menu)
+                    .controlSize(.small)
                 }
             }
             .padding(8)
@@ -137,11 +263,12 @@ struct HubBenchmarkView: View {
     private var benchmarkTable: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
-                Text("模型").frame(width: 200, alignment: .leading)
-                Text("Tokens/s").frame(width: 100)
-                Text("首Token延迟").frame(width: 100)
-                Text("峰值内存").frame(width: 100)
-                Text("评分").frame(width: 80)
+                Text("模型").frame(width: 180, alignment: .leading)
+                Text("Tokens/s").frame(width: 90)
+                Text("首Token延迟").frame(width: 90)
+                Text("峰值内存").frame(width: 90)
+                Text("准确率").frame(width: 80)
+                Text("评分").frame(width: 70)
             }
             .font(.caption).foregroundStyle(theme.textTertiary)
             .padding(.horizontal, 8).padding(.vertical, 4)
@@ -151,20 +278,24 @@ struct HubBenchmarkView: View {
             ForEach(benchmarks) { entry in
                 HStack(spacing: 0) {
                     Text(entry.modelName ?? entry.modelId ?? entry.id)
-                        .frame(width: 200, alignment: .leading)
+                        .frame(width: 180, alignment: .leading)
                     if let tps = entry.tokensPerSecond {
-                        Text(String(format: "%.1f", tps)).frame(width: 100)
-                    } else { Text("-").frame(width: 100) }
+                        Text(String(format: "%.1f", tps)).frame(width: 90)
+                    } else { Text("-").frame(width: 90) }
                     if let ttft = entry.timeToFirstToken {
-                        Text(String(format: "%.2fs", ttft)).frame(width: 100)
-                    } else { Text("-").frame(width: 100) }
+                        Text(String(format: "%.2fs", ttft)).frame(width: 90)
+                    } else { Text("-").frame(width: 90) }
                     if let mem = entry.memoryPeak {
-                        Text(String(format: "%.1f GB", mem)).frame(width: 100)
-                    } else { Text("-").frame(width: 100) }
-                    if let score = entry.score {
-                        Text(String(format: "%.1f", score)).frame(width: 80)
-                            .foregroundStyle(score > 80 ? .green : (score > 50 ? .orange : .red))
+                        Text(String(format: "%.1f GB", mem)).frame(width: 90)
+                    } else { Text("-").frame(width: 90) }
+                    if let acc = entry.accuracy {
+                        Text(String(format: "%.1f%%", acc * 100)).frame(width: 80)
+                            .foregroundStyle(acc > 0.9 ? .green : (acc > 0.7 ? .orange : .red))
                     } else { Text("-").frame(width: 80) }
+                    if let score = entry.score {
+                        Text(String(format: "%.1f", score)).frame(width: 70)
+                            .foregroundStyle(score > 80 ? .green : (score > 50 ? .orange : .red))
+                    } else { Text("-").frame(width: 70) }
                 }
                 .font(.system(size: theme.footnoteSize))
                 .foregroundStyle(theme.text)
@@ -178,9 +309,13 @@ struct HubBenchmarkView: View {
     private func loadModels() async {
         isLoading = true
         do {
-            let resp = try await client.listModels()
-            models = resp.models
-            benchLog.info("Loaded \(models.count) models for benchmark")
+            async let modelsResp = client.listModels()
+            async let tasksResp = client.listRunningQuantize()
+            let m = try await modelsResp
+            let t = try await tasksResp
+            models = m.models
+            quantizeTasks = t.tasks
+            benchLog.info("Loaded \(models.count) models, \(quantizeTasks.count) quantize tasks for benchmark")
         } catch {
             lastError = error.localizedDescription
         }

@@ -1,7 +1,7 @@
 // Callers: ModelHubMainView, DashboardView, MarketView, LocalStorageView, ConvertQuantView, etc.
 // Affected API: fusion-model-hub REST API on port 11444, prefix /api/v1, 20+ endpoints.
 // Data schemas: Codable DTOs from ModelHubModels.swift.
-// User instruction: "按照prd文档和fusion-model-hub配合打造有竞争力的领先的产品"
+// User instruction: issue #63 — market search, modules, benchmarks, scheduling, QPS
 
 import Foundation
 import os.log
@@ -63,7 +63,7 @@ final class ModelHubAPIClient: ObservableObject {
     }
 
     func setModelModules(modelId: String, modules: [String]) async throws -> HubSimpleResponse {
-        try await put("/api/v1/models/\(modelId)/modules", json: ["allowed_modules": modules])
+        try await patch("/api/v1/models/\(modelId)/modules", json: ["allowed_modules": modules])
     }
 
     func pinModel(modelId: String, pin: Bool) async throws -> HubSimpleResponse {
@@ -121,7 +121,25 @@ final class ModelHubAPIClient: ObservableObject {
         ])
     }
 
-    // MARK: - Cluster
+    // MARK: - Benchmarks (issue #63 sub-feature 3)
+
+    func triggerBenchmark(modelId: String, template: String = "general") async throws -> HubSimpleResponse {
+        try await post("/api/v1/benchmarks/trigger", json: ["model_id": modelId, "template": template])
+    }
+
+    func getBenchmarkCompare(modelIds: [String]) async throws -> HubBenchmarkCompareResponse {
+        try await get("/api/v1/benchmarks/compare", query: [
+            URLQueryItem(name: "model_ids", value: modelIds.joined(separator: ",")),
+        ])
+    }
+
+    func getBenchmarkResults(modelId: String) async throws -> HubBenchmarkCompareResponse {
+        try await get("/api/v1/benchmarks/results", query: [
+            URLQueryItem(name: "model_id", value: modelId),
+        ])
+    }
+
+    // MARK: - Cluster / Smart Scheduling (issue #63 sub-feature 4)
 
     func listClusterNodes() async throws -> HubClusterNodeListResponse {
         try await get("/api/v1/cluster/nodes")
@@ -131,28 +149,44 @@ final class ModelHubAPIClient: ObservableObject {
         try await post("/api/v1/cluster/sync-model", json: ["model_id": modelId])
     }
 
+    func routeInference(modelId: String, messages: [[String: String]], mode: String = "auto") async throws -> HubInferenceResponse {
+        try await post("/api/v1/cluster/route-inference", json: [
+            "model_id": modelId,
+            "messages": messages,
+            "mode": mode,
+        ])
+    }
+
+    func getClusterTopology() async throws -> HubClusterTopologyResponse {
+        try await get("/api/v1/cluster/topology")
+    }
+
     // MARK: - Monitor
 
     func getRealtimeMonitor() async throws -> HubMonitorResponse {
         try await get("/api/v1/monitor/realtime")
     }
 
-    // MARK: - Auth / API Keys
+    // MARK: - Auth / API Keys (issue #63 sub-feature 5)
 
     func listAPIKeys() async throws -> HubAPIKeyListResponse {
         try await get("/api/v1/auth/keys")
     }
 
-    func createAPIKey(name: String, allowedModels: [String]? = nil, allowedModules: [String]? = nil, rateLimit: Int? = nil) async throws -> HubAPIKeyResponse {
+    func createAPIKey(name: String, allowedModels: [String]? = nil, allowedModules: [String]? = nil, qpsLimit: Int? = nil) async throws -> HubAPIKeyResponse {
         var json: [String: Any] = ["name": name]
         if let allowedModels { json["allowed_models"] = allowedModels }
         if let allowedModules { json["allowed_modules"] = allowedModules }
-        if let rateLimit { json["rate_limit_qpm"] = rateLimit }
+        if let qpsLimit { json["qps_limit"] = qpsLimit }
         return try await post("/api/v1/auth/keys", json: json)
     }
 
     func deactivateAPIKey(keyId: String) async throws -> HubSimpleResponse {
         try await post("/api/v1/auth/keys/\(keyId)/deactivate", json: [:])
+    }
+
+    func getAPIKeyUsage(keyId: String) async throws -> HubAPIKeyUsageResponse {
+        try await get("/api/v1/auth/keys/\(keyId)/usage")
     }
 
     // MARK: - System
@@ -181,18 +215,6 @@ final class ModelHubAPIClient: ObservableObject {
 
     func getHardware() async throws -> HubHardwareResponse {
         try await get("/api/v1/hardware")
-    }
-
-    // MARK: - Benchmarks
-
-    func triggerBenchmark(modelId: String, template: String = "general") async throws -> HubSimpleResponse {
-        try await post("/api/v1/benchmarks/compare", json: ["model_id": modelId, "template": template])
-    }
-
-    func getBenchmarkCompare(modelIds: [String]) async throws -> HubBenchmarkCompareResponse {
-        try await get("/api/v1/benchmarks/compare", query: [
-            URLQueryItem(name: "model_ids", value: modelIds.joined(separator: ",")),
-        ])
     }
 
     // MARK: - Inference proxy
@@ -250,6 +272,16 @@ final class ModelHubAPIClient: ObservableObject {
         let url = URL(string: "\(baseURL)\(path)")!
         var request = URLRequest(url: url)
         request.httpMethod = "PUT"
+        addAuth(&request)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: json)
+        return try await execute(request)
+    }
+
+    private func patch<T: Decodable>(_ path: String, json: [String: Any] = [:]) async throws -> T {
+        let url = URL(string: "\(baseURL)\(path)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
         addAuth(&request)
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: json)
