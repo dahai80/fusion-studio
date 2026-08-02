@@ -176,6 +176,8 @@ struct SectionContentView: View {
                 ScienceWorkbenchView()
                     .environmentObject(ScienceBridge())
                     .environmentObject(ScienceSSEClient())
+            case .finance:
+                FinanceWorkbenchView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

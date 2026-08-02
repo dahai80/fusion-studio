@@ -116,6 +116,9 @@ struct IconRailView: View {
                 case .science:
                     appState.selectedModule = .science
                     appState.selectedSheet = .scienceSheet
+                case .finance:
+                    appState.selectedModule = .finance
+                    appState.selectedSheet = .financeSheet
                 }
             }
             railLog.info("Section selected: \(section.rawValue)")
