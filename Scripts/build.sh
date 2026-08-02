@@ -15,7 +15,7 @@ CONFIGURATION="${CONFIGURATION:-release}"
 
 # Callers: build.sh package/dmg/sign. Affected API: VERSION variable → DMG filename + Info.plist CFBundleShortVersionString. Data: version string. User: "修复 Release workflow"
 # 版本信息
-VERSION="0.1.9"
+VERSION="0.1.10"
 BUILD_NUM=$(date +%Y%m%d%H%M)
 
 # 颜色
