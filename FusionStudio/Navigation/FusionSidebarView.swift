@@ -15,7 +15,7 @@ struct FusionSidebarView: View {
     @StateObject private var workspace = ProjectWorkspace.shared
     @StateObject private var agent = CodeAgent.shared
     @State private var searchText = ""
-    @State private var expandedSections: Set<SidebarSection> = [.code, .chats, .projects, .mlx, .multiNode]
+    @State private var expandedSections: Set<SidebarSection> = [.code, .chats, .projects, .agent, .mlx, .rag]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -139,31 +139,27 @@ struct FusionSidebarView: View {
         case .chats:
             chatsContent
         case .projects:
-            projectsContent
+            projectsSidebarContent
         case .artifacts:
             artifactsContent
         case .code:
             codeModulesContent
-        case .customize:
-            customizeContent
         case .design:
             designContent
+        case .rag:
+            ragSidebarContent
         case .agent:
             agentModulesContent
+        case .aiAgent:
+            moduleListContent(.aiAgent)
+        case .cowork:
+            coworkSidebarContent
         case .mlx:
             moduleListContent(.mlx)
         case .multiNode:
             moduleListContent(.multiNode)
-        case .fusionProjects:
-            fusionProjectsSidebarContent
-        case .cowork:
-            coworkSidebarContent
         case .fsb:
             fsbSidebarContent
-        // Callers: FusionSidebarView section content. Affected API: moduleListContent(.aiAgent).
-        // Data schemas: SidebarSection.aiAgent. User instruction: "按照GUI草图实现fusion-ai-agent"
-        case .aiAgent:
-            moduleListContent(.aiAgent)
         }
     }
 
@@ -215,16 +211,28 @@ struct FusionSidebarView: View {
         .buttonStyle(.plain)
     }
 
-    private var projectsContent: some View {
+    private var projectsSidebarContent: some View {
         VStack(spacing: 0) {
-            if workspace.recentProjects.isEmpty {
-                Text("No projects yet")
-                    .font(.system(size: theme.footnoteSize))
-                    .foregroundStyle(theme.textTertiary)
-                    .padding(.vertical, theme.spacingS)
-                    .padding(.leading, theme.spacing2XL)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
+            Button(action: {
+                withAnimation(theme.springSnappy) {
+                    appState.selectedModule = .fusionProjects
+                }
+            }) {
+                HStack(spacing: theme.spacingS) {
+                    Image(systemName: "plus.circle")
+                        .font(.system(size: theme.iconS))
+                        .foregroundStyle(theme.accent)
+                    Text("新建项目")
+                        .font(.system(size: theme.textSize))
+                        .foregroundStyle(theme.text)
+                    Spacer()
+                }
+                .padding(.horizontal, theme.spacingM)
+                .padding(.vertical, 5)
+            }
+            .buttonStyle(.plain)
+
+            if !workspace.recentProjects.isEmpty {
                 ForEach(workspace.recentProjects.prefix(5)) { project in
                     projectRow(project)
                 }
@@ -232,9 +240,9 @@ struct FusionSidebarView: View {
 
             Button(action: { workspace.openLocalFolder() }) {
                 HStack(spacing: theme.spacingXS) {
-                    Image(systemName: "plus")
+                    Image(systemName: "folder.badge.plus")
                         .font(.system(size: theme.iconXS))
-                    Text("Open Project")
+                    Text("Open Local Folder")
                         .font(.system(size: theme.footnoteSize))
                 }
                 .foregroundStyle(theme.accent)
@@ -378,21 +386,6 @@ struct FusionSidebarView: View {
         }
     }
 
-    private var customizeContent: some View {
-        HStack(spacing: theme.spacingS) {
-            Image(systemName: "paintpalette")
-                .font(.system(size: theme.iconXS))
-                .foregroundStyle(theme.textTertiary)
-                .frame(width: 20)
-            Text("Coming Soon")
-                .font(.system(size: theme.footnoteSize))
-                .foregroundStyle(theme.textTertiary)
-            Spacer()
-        }
-        .padding(.horizontal, theme.spacingM)
-        .padding(.vertical, theme.spacingS)
-    }
-
     private var designContent: some View {
         VStack(spacing: 0) {
             ForEach(SidebarSection.design.modules) { module in
@@ -414,29 +407,6 @@ struct FusionSidebarView: View {
             ForEach(section.modules) { module in
                 moduleRow(module)
             }
-        }
-    }
-
-    private var fusionProjectsSidebarContent: some View {
-        VStack(spacing: 0) {
-            Button(action: {
-                withAnimation(theme.springSnappy) {
-                    appState.selectedModule = .fusionProjects
-                }
-            }) {
-                HStack(spacing: theme.spacingS) {
-                    Image(systemName: "plus.circle")
-                        .font(.system(size: theme.iconS))
-                        .foregroundStyle(theme.accent)
-                    Text("新建项目")
-                        .font(.system(size: theme.textSize))
-                        .foregroundStyle(theme.text)
-                    Spacer()
-                }
-                .padding(.horizontal, theme.spacingM)
-                .padding(.vertical, 5)
-            }
-            .buttonStyle(.plain)
         }
     }
 
@@ -582,6 +552,14 @@ struct FusionSidebarView: View {
             }
             .padding(.horizontal, theme.spacingM)
             .padding(.vertical, theme.spacingS)
+        }
+    }
+
+    private var ragSidebarContent: some View {
+        VStack(spacing: 0) {
+            ForEach(SidebarSection.rag.modules) { module in
+                moduleRow(module)
+            }
         }
     }
 

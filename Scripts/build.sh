@@ -96,6 +96,12 @@ package_app() {
     <true/>
     <key>NSSupportsSuddenTermination</key>
     <true/>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>Fusion Studio needs speech recognition for voice input in chat.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Fusion Studio needs microphone access for voice input in chat.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Fusion Studio needs camera access for multimodal input.</string>
 </dict>
 </plist>
 PLIST

@@ -88,7 +88,7 @@ struct WorkspaceArea: View {
                 .font(.system(size: theme.titleSize, weight: .semibold))
                 .foregroundStyle(theme.text)
 
-            if appState.activeSection != .code && appState.activeSection != .customize && appState.activeSection != .design {
+            if appState.activeSection != .code && appState.activeSection != .design {
                 Text(appState.selectedSheet.rawValue)
                     .font(.system(size: theme.footnoteSize))
                     .foregroundStyle(theme.textTertiary)
@@ -151,31 +151,27 @@ struct SectionContentView: View {
                     UnifiedChatView()
                 }
             case .projects:
-                ProjectsPanel()
+                ProjectModuleView()
             case .artifacts:
                 ArtifactsPanel()
             case .code:
                 FusionCodeView()
-            case .customize:
-                CustomizePanel()
             case .design:
                 DesignView()
+            case .rag:
+                RAGMainView()
             case .agent:
                 ModuleDetailView()
+            case .aiAgent:
+                ModuleDetailView()
+            case .cowork:
+                SpaceListView()
             case .mlx:
                 ModuleDetailView()
             case .multiNode:
                 ModuleDetailView()
-            case .fusionProjects:
-                ProjectModuleView()
-            case .cowork:
-                SpaceListView()
             case .fsb:
                 FSBWorkspaceView()
-            // Callers: SectionContentView routes activeSection. Affected API: ModuleDetailView.
-            // Data schemas: SidebarSection.aiAgent. User instruction: "按照GUI草图实现fusion-ai-agent"
-            case .aiAgent:
-                ModuleDetailView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
