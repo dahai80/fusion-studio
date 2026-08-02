@@ -124,6 +124,7 @@ final class DeskBridge: ObservableObject {
     @Published var isConnected = false
     @Published var isLoading = false
     @Published var lastError: String?
+    @Published var unavailableMethods: Set<String> = []
 
     @Published var nodes: [DeskNodeInfo] = []
     @Published var nodeCategories: [String: Int] = [:]
@@ -144,6 +145,11 @@ final class DeskBridge: ObservableObject {
     @Published var permissionCheckResult: [String: Any]?
 
     private var ipc: IPCClient?
+    private let rpcAvail = RPCMethodAvailability.shared
+
+    func isMethodAvailable(_ method: String) -> Bool {
+        rpcAvail.isMethodAvailable(method)
+    }
 
     func setIPCClient(_ client: IPCClient) {
         ipc = client
@@ -157,10 +163,17 @@ final class DeskBridge: ObservableObject {
             let status = result["status"] as? String ?? "unknown"
             isConnected = (status == "ok")
             lastError = nil
+            rpcAvail.markAvailable("desk.health")
             deskLog.info("DeskBridge: health = \(status)")
         } catch {
-            isConnected = false
-            lastError = error.localizedDescription
+            if rpcAvail.handleRPCError(error, method: "desk.health") {
+                isConnected = false
+                lastError = "服务未就绪"
+                unavailableMethods = rpcAvail.unavailableMethods
+            } else {
+                isConnected = false
+                lastError = error.localizedDescription
+            }
             deskLog.error("DeskBridge: health check failed: \(error.localizedDescription)")
         }
     }
@@ -181,7 +194,11 @@ final class DeskBridge: ObservableObject {
                 )
             }
             deskLog.info("DeskBridge: loaded \(self.nodes.count) nodes")
+            rpcAvail.markAvailable("desk.nodes.list")
         } catch {
+            if rpcAvail.handleRPCError(error, method: "desk.nodes.list") {
+                unavailableMethods = rpcAvail.unavailableMethods
+            }
             lastError = error.localizedDescription
             deskLog.error("DeskBridge: loadNodes failed: \(error.localizedDescription)")
         }
@@ -225,7 +242,11 @@ final class DeskBridge: ObservableObject {
                 )
             }
             deskLog.info("DeskBridge: loaded \(self.workflows.count) workflows")
+            rpcAvail.markAvailable("desk.workflow.list")
         } catch {
+            if rpcAvail.handleRPCError(error, method: "desk.workflow.list") {
+                unavailableMethods = rpcAvail.unavailableMethods
+            }
             lastError = error.localizedDescription
         }
     }
@@ -273,7 +294,11 @@ final class DeskBridge: ObservableObject {
                 )
             }
             deskLog.info("DeskBridge: loaded \(self.templates.count) templates")
+            rpcAvail.markAvailable("desk.template.list")
         } catch {
+            if rpcAvail.handleRPCError(error, method: "desk.template.list") {
+                unavailableMethods = rpcAvail.unavailableMethods
+            }
             lastError = error.localizedDescription
         }
     }
@@ -301,7 +326,11 @@ final class DeskBridge: ObservableObject {
                 )
             }
             deskLog.info("DeskBridge: loaded \(self.agents.count) agents")
+            rpcAvail.markAvailable("desk.agent.list")
         } catch {
+            if rpcAvail.handleRPCError(error, method: "desk.agent.list") {
+                unavailableMethods = rpcAvail.unavailableMethods
+            }
             lastError = error.localizedDescription
         }
     }
@@ -342,7 +371,11 @@ final class DeskBridge: ObservableObject {
             let result = try await ipc.deskMlxStatus()
             let status = result["status"] as? String ?? "unknown"
             mlxStatus = DeskMLXStatus(status: status)
+            rpcAvail.markAvailable("desk.mlx.status")
         } catch {
+            if rpcAvail.handleRPCError(error, method: "desk.mlx.status") {
+                unavailableMethods = rpcAvail.unavailableMethods
+            }
             mlxStatus = DeskMLXStatus(status: "error")
             lastError = error.localizedDescription
         }
@@ -360,7 +393,11 @@ final class DeskBridge: ObservableObject {
                 memoryUsedPct: result["memory_used_pct"] as? Double ?? 0,
                 diskFreeGB: result["disk_free_gb"] as? Double ?? 0
             )
+            rpcAvail.markAvailable("desk.system.info")
         } catch {
+            if rpcAvail.handleRPCError(error, method: "desk.system.info") {
+                unavailableMethods = rpcAvail.unavailableMethods
+            }
             lastError = error.localizedDescription
         }
     }
@@ -378,7 +415,11 @@ final class DeskBridge: ObservableObject {
                     timestamp: e["timestamp"] as? Double ?? 0
                 )
             }
+            rpcAvail.markAvailable("desk.events.recent")
         } catch {
+            if rpcAvail.handleRPCError(error, method: "desk.events.recent") {
+                unavailableMethods = rpcAvail.unavailableMethods
+            }
             lastError = error.localizedDescription
         }
     }
@@ -398,7 +439,11 @@ final class DeskBridge: ObservableObject {
                     updatedAt: s["updated_at"] as? String
                 )
             }
+            rpcAvail.markAvailable("desk.session.list")
         } catch {
+            if rpcAvail.handleRPCError(error, method: "desk.session.list") {
+                unavailableMethods = rpcAvail.unavailableMethods
+            }
             lastError = error.localizedDescription
         }
     }
@@ -449,7 +494,11 @@ final class DeskBridge: ObservableObject {
             } else {
                 permissions = []
             }
+            rpcAvail.markAvailable("desk.permission.list")
         } catch {
+            if rpcAvail.handleRPCError(error, method: "desk.permission.list") {
+                unavailableMethods = rpcAvail.unavailableMethods
+            }
             lastError = error.localizedDescription
         }
     }
