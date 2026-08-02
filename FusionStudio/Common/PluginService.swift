@@ -478,6 +478,111 @@ def on_render_panel():
         pluginLog.info("Template created: \(pluginName)")
         return pluginDir
     }
+
+    // MARK: - IPC Methods (fusion-plugins-ecosystem)
+
+    @Published var ecosystemConfig: [String: Any] = [:]
+    @Published var pluginStates: [[String: Any]] = []
+    @Published var tokenRecords: [[String: Any]] = []
+    @Published var vramUsage: [String: Any] = [:]
+    @Published var logEntries: [PluginLogEntry] = []
+    @Published var mcpSessions: [[String: Any]] = []
+
+    struct PluginLogEntry: Identifiable {
+        let id = UUID()
+        var pluginId: String
+        var level: String
+        var message: String
+        var timestamp: String
+    }
+
+    func ipcCall(_ method: String, params: [String: Any] = [:]) async -> [String: Any]? {
+        let client = IPCClient()
+        guard client.isConnected else {
+            pluginLog.warning("IPC not connected for \(method)")
+            return nil
+        }
+        do {
+            let resp = try await client.call(method: method, params: params)
+            return resp["result"] as? [String: Any]
+        } catch {
+            pluginLog.error("IPC \(method) failed: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    func ipcCallArray(_ method: String, params: [String: Any] = [:]) async -> [[String: Any]] {
+        let client = IPCClient()
+        guard client.isConnected else { return [] }
+        do {
+            let resp = try await client.call(method: method, params: params)
+            return resp["result"] as? [[String: Any]] ?? []
+        } catch {
+            pluginLog.error("IPC \(method) failed: \(error.localizedDescription)")
+            return []
+        }
+    }
+
+    func fetchEcosystemConfig() async {
+        if let result = await ipcCall("plugins/config.get") {
+            DispatchQueue.main.async { self.ecosystemConfig = result }
+        }
+    }
+
+    func setEcosystemConfig(_ key: String, value: Any) async {
+        _ = await ipcCall("plugins/config.set", params: [key: value])
+        await fetchEcosystemConfig()
+    }
+
+    func fetchPluginStates() async {
+        let result = await ipcCallArray("plugins/states")
+        DispatchQueue.main.async { self.pluginStates = result }
+    }
+
+    func fetchTokenRecords(pluginId: String? = nil) async {
+        var params: [String: Any] = [:]
+        if let pid = pluginId { params["plugin_id"] = pid }
+        let result = await ipcCallArray("plugins/token.records", params: params)
+        DispatchQueue.main.async { self.tokenRecords = result }
+    }
+
+    func pruneTokenRecords(maxAge: Int = 3600) async {
+        _ = await ipcCall("plugins/token.prune", params: ["max_age_seconds": maxAge])
+        await fetchTokenRecords()
+    }
+
+    func fetchVramUsage() async {
+        if let result = await ipcCall("plugins/vram.usage") {
+            DispatchQueue.main.async { self.vramUsage = result }
+        }
+    }
+
+    func fetchLogs(pluginId: String? = nil, level: String? = nil) async {
+        var params: [String: Any] = [:]
+        if let pid = pluginId { params["plugin_id"] = pid }
+        if let lvl = level { params["level"] = lvl }
+        let result = await ipcCallArray("plugins/logs.stream", params: params)
+        DispatchQueue.main.async {
+            self.logEntries = result.map { item in
+                PluginLogEntry(
+                    pluginId: item["plugin_id"] as? String ?? "",
+                    level: item["level"] as? String ?? "INFO",
+                    message: item["message"] as? String ?? "",
+                    timestamp: item["timestamp"] as? String ?? ""
+                )
+            }
+        }
+    }
+
+    func fetchMcpSessions() async {
+        let result = await ipcCallArray("plugins/mcp.sessions")
+        DispatchQueue.main.async { self.mcpSessions = result }
+    }
+
+    func pruneMcpSessions(maxAge: Int = 3600) async {
+        _ = await ipcCall("plugins/mcp.sessions.prune", params: ["max_age_seconds": maxAge])
+        await fetchMcpSessions()
+    }
 }
 
 // MARK: - Plugin Market Item
@@ -508,7 +613,13 @@ struct PluginView: View {
 
     enum PluginTab: String, CaseIterable {
         case installed = "已安装"
-        case market    = "插件市场"
+        case market    = "市场"
+        case config    = "配置"
+        case status    = "状态"
+        case tokens    = "Token"
+        case vram      = "显存"
+        case logs      = "日志"
+        case mcp       = "MCP"
         case develop   = "开发"
     }
 
@@ -527,6 +638,18 @@ struct PluginView: View {
                 InstalledPluginsView()
             case .market:
                 PluginMarketView()
+            case .config:
+                PluginConfigView()
+            case .status:
+                PluginStatusView()
+            case .tokens:
+                PluginTokenDashboard()
+            case .vram:
+                PluginVramView()
+            case .logs:
+                PluginLogViewer()
+            case .mcp:
+                PluginMcpView()
             case .develop:
                 PluginDeveloperView()
             }
@@ -593,6 +716,12 @@ struct PluginView: View {
         switch tab {
         case .installed: return "square.grid.3x2"
         case .market:    return "bag"
+        case .config:    return "gearshape"
+        case .status:    return "heartbeat"
+        case .tokens:    return "chart.bar.xaxis"
+        case .vram:      return "memorychip"
+        case .logs:      return "text.justify.leading"
+        case .mcp:       return "network"
         case .develop:   return "hammer"
         }
     }
@@ -1113,5 +1242,621 @@ struct CodeLine: View {
     var body: some View {
         Text(text)
             .font(.system(.caption, design: .monospaced))
+    }
+}
+
+// MARK: - Plugin Config View (#79)
+
+struct PluginConfigView: View {
+    @StateObject private var pm = PluginManager.shared
+    @Environment(\.studioTheme) private var theme
+    @State private var editingKey: String?
+    @State private var editingValue: String = ""
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("Ecosystem 配置")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Button(action: { Task { await pm.fetchEcosystemConfig() } }) {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .help("刷新配置")
+                }
+
+                if pm.ecosystemConfig.isEmpty {
+                    VStack(spacing: 8) {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 32))
+                            .foregroundColor(.secondary)
+                        Text("连接 fusion-plugins-ecosystem 后显示配置")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 32)
+                } else {
+                    ForEach(Array(pm.ecosystemConfig.keys.sorted()), id: \.self) { key in
+                        configRow(key: key, value: pm.ecosystemConfig[key])
+                    }
+                }
+            }
+            .padding(16)
+        }
+        .background(theme.surfacePrimary)
+        .onAppear { Task { await pm.fetchEcosystemConfig() } }
+    }
+
+    private func configRow(key: String, value: Any?) -> some View {
+        HStack {
+            Text(key)
+                .font(.system(.caption, design: .monospaced))
+                .foregroundColor(theme.accent)
+                .frame(width: 200, alignment: .leading)
+            Spacer()
+            if editingKey == key {
+                TextField("值", text: $editingValue)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(.caption, design: .monospaced))
+                    .frame(width: 200)
+                Button("保存") {
+                    let val: Any = editingValue.lowercased() == "true" ? true :
+                                  editingValue.lowercased() == "false" ? false :
+                                  (Int(editingValue) as Any?) ?? editingValue
+                    Task { await pm.setEcosystemConfig(key, value: val) }
+                    editingKey = nil
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+                Button("取消") { editingKey = nil }
+                    .controlSize(.small)
+            } else {
+                Text(String(describing: value ?? ""))
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundColor(.primary)
+                Button("编辑") {
+                    editingKey = key
+                    editingValue = String(describing: value ?? "")
+                }
+                .controlSize(.small)
+            }
+        }
+        .padding(8)
+        .background(theme.surfaceSecondary)
+        .cornerRadius(6)
+    }
+}
+
+// MARK: - Plugin Status View (#80)
+
+struct PluginStatusView: View {
+    @StateObject private var pm = PluginManager.shared
+    @Environment(\.studioTheme) private var theme
+    @State private var filterState: String = "all"
+
+    var body: some View {
+        VStack(spacing: 0) {
+            statusToolbar
+            Divider()
+            if pm.pluginStates.isEmpty {
+                emptyStatus
+            } else {
+                statusList
+            }
+        }
+        .background(theme.surfacePrimary)
+        .onAppear { Task { await pm.fetchPluginStates() } }
+    }
+
+    private var statusToolbar: some View {
+        HStack {
+            Text("插件状态监控")
+                .font(.headline)
+                .foregroundColor(.primary)
+            Spacer()
+            HStack(spacing: 4) {
+                statusFilterChip("全部", value: "all")
+                statusFilterChip("运行", value: "enabled")
+                statusFilterChip("崩溃", value: "crashed")
+                statusFilterChip("超时", value: "timeout")
+            }
+            Button(action: { Task { await pm.fetchPluginStates() } }) {
+                Image(systemName: "arrow.clockwise")
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(theme.surfaceSecondary)
+    }
+
+    private func statusFilterChip(_ label: String, value: String) -> some View {
+        Button(action: { filterState = value }) {
+            Text(label)
+                .font(.caption2)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(filterState == value ? theme.accentSoft : theme.surfacePrimary)
+                .foregroundColor(filterState == value ? theme.accent : theme.textSecondary)
+                .cornerRadius(8)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var emptyStatus: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "heartbeat")
+                .font(.system(size: 32))
+                .foregroundColor(.secondary)
+            Text("连接后显示插件状态")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var statusList: some View {
+        List {
+            let filtered = filterState == "all" ? pm.pluginStates :
+                pm.pluginStates.filter { $0["state"] as? String == filterState }
+            ForEach(Array(filtered.enumerated()), id: \.offset) { _, item in
+                HStack {
+                    let state = item["state"] as? String ?? "unknown"
+                    Circle()
+                        .fill(stateColor(state))
+                        .frame(width: 8, height: 8)
+                    Text(item["plugin_id"] as? String ?? "")
+                        .font(.subheadline)
+                    Spacer()
+                    Text(state)
+                        .font(.caption)
+                        .foregroundColor(stateColor(state))
+                    if let count = item["restart_count"] as? Int, count > 0 {
+                        Text("重启\(count)次")
+                            .font(.caption2)
+                            .foregroundColor(.orange)
+                    }
+                }
+            }
+        }
+        .listStyle(.plain)
+    }
+
+    private func stateColor(_ state: String) -> Color {
+        switch state {
+        case "enabled", "loaded": return .green
+        case "crashed": return .red
+        case "timeout": return .orange
+        case "disabled": return .gray
+        default: return .secondary
+        }
+    }
+}
+
+// MARK: - Plugin Token Dashboard (#81)
+
+struct PluginTokenDashboard: View {
+    @StateObject private var pm = PluginManager.shared
+    @Environment(\.studioTheme) private var theme
+
+    var body: some View {
+        VStack(spacing: 0) {
+            tokenToolbar
+            Divider()
+            if pm.tokenRecords.isEmpty {
+                emptyToken
+            } else {
+                tokenContent
+            }
+        }
+        .background(theme.surfacePrimary)
+        .onAppear { Task { await pm.fetchTokenRecords() } }
+    }
+
+    private var tokenToolbar: some View {
+        HStack {
+            Text("Token 用量仪表盘")
+                .font(.headline)
+                .foregroundColor(.primary)
+            Spacer()
+            Button(action: { Task { await pm.fetchTokenRecords() } }) {
+                Image(systemName: "arrow.clockwise")
+            }
+            Button(action: { Task { await pm.pruneTokenRecords() } }) {
+                Image(systemName: "trash")
+            }
+            .help("清理过期记录")
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(theme.surfaceSecondary)
+    }
+
+    private var emptyToken: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "chart.bar.xaxis")
+                .font(.system(size: 32))
+                .foregroundColor(.secondary)
+            Text("暂无 Token 用量记录")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var tokenContent: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                let byPlugin = Dictionary(grouping: pm.tokenRecords) { $0["plugin_id"] as? String ?? "unknown" }
+                ForEach(Array(byPlugin.keys.sorted()), id: \.self) { pluginId in
+                    let records = byPlugin[pluginId] ?? []
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(pluginId)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(.primary)
+                        let totalTokens = records.compactMap { $0["total_tokens"] as? Int }.reduce(0, +)
+                        let wallSecs = records.compactMap { $0["wall_seconds"] as? Double }.reduce(0, +)
+                        HStack(spacing: 12) {
+                            Label("\(totalTokens) tokens", systemImage: "number")
+                                .font(.caption)
+                                .foregroundColor(theme.textSecondary)
+                            Label(String(format: "%.1fs", wallSecs), systemImage: "clock")
+                                .font(.caption)
+                                .foregroundColor(theme.textSecondary)
+                        }
+
+                        let byKind = Dictionary(grouping: records) { $0["kind"] as? String ?? "unknown" }
+                        HStack(spacing: 4) {
+                            ForEach(Array(byKind.keys.sorted()), id: \.self) { kind in
+                                let count = byKind[kind]?.count ?? 0
+                                Text(kind)
+                                    .font(.caption2)
+                                    .padding(.horizontal, 4)
+                                    .padding(.vertical, 1)
+                                    .background(kindColor(kind).opacity(0.2))
+                                    .foregroundColor(kindColor(kind))
+                                    .cornerRadius(3)
+                                Text("\(count)")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                    .padding(10)
+                    .background(theme.surfaceSecondary)
+                    .cornerRadius(8)
+                }
+            }
+            .padding(16)
+        }
+    }
+
+    private func kindColor(_ kind: String) -> Color {
+        switch kind {
+        case "PLUGIN_LOCAL": return .blue
+        case "PLUGIN_REMOTE": return .purple
+        case "CLAUDE_LOCAL": return .green
+        case "CLAUDE_REMOTE": return .orange
+        default: return .gray
+        }
+    }
+}
+
+// MARK: - Plugin vRAM View (#82)
+
+struct PluginVramView: View {
+    @StateObject private var pm = PluginManager.shared
+    @Environment(\.studioTheme) private var theme
+
+    var body: some View {
+        VStack(spacing: 0) {
+            vramToolbar
+            Divider()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    vramOverview
+                    vramBreakdown
+                }
+                .padding(16)
+            }
+        }
+        .background(theme.surfacePrimary)
+        .onAppear { Task { await pm.fetchVramUsage() } }
+    }
+
+    private var vramToolbar: some View {
+        HStack {
+            Text("显存分配")
+                .font(.headline)
+                .foregroundColor(.primary)
+            Spacer()
+            Button(action: { Task { await pm.fetchVramUsage() } }) {
+                Image(systemName: "arrow.clockwise")
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(theme.surfaceSecondary)
+    }
+
+    private var vramOverview: some View {
+        let total = pm.vramUsage["total_mb"] as? Double ?? 0
+        let used = pm.vramUsage["used_mb"] as? Double ?? 0
+        let free = total - used
+        let ratio = total > 0 ? used / total : 0
+
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("总览")
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(.primary)
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(theme.surfaceSecondary)
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(theme.accent)
+                        .frame(width: geo.size.width * CGFloat(ratio))
+                }
+            }
+            .frame(height: 20)
+            HStack {
+                Label(String(format: "已用 %.0f MB", used), systemImage: "memorychip")
+                    .font(.caption)
+                    .foregroundColor(theme.accent)
+                Spacer()
+                Label(String(format: "剩余 %.0f MB", free), systemImage: "memorychip")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Label(String(format: "总计 %.0f MB", total), systemImage: "memorychip")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(12)
+        .background(theme.surfaceSecondary)
+        .cornerRadius(8)
+    }
+
+    private var vramBreakdown: some View {
+        let byPlugin = pm.vramUsage["by_plugin"] as? [[String: Any]] ?? []
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("按插件分配")
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(.primary)
+            if byPlugin.isEmpty {
+                Text("暂无显存分配数据")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            } else {
+                ForEach(Array(byPlugin.enumerated()), id: \.offset) { _, item in
+                    HStack {
+                        Text(item["plugin_id"] as? String ?? "")
+                            .font(.caption)
+                        Spacer()
+                        Text(String(format: "%.0f MB", item["vram_mb"] as? Double ?? 0))
+                            .font(.caption)
+                            .foregroundColor(theme.accent)
+                    }
+                    .padding(6)
+                    .background(theme.surfaceSecondary)
+                    .cornerRadius(4)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Plugin Log Viewer (#83)
+
+struct PluginLogViewer: View {
+    @StateObject private var pm = PluginManager.shared
+    @Environment(\.studioTheme) private var theme
+    @State private var selectedPlugin: String = "all"
+    @State private var levelFilter: String = "all"
+    @State private var searchQuery = ""
+
+    var body: some View {
+        VStack(spacing: 0) {
+            logToolbar
+            Divider()
+            logList
+        }
+        .background(theme.surfacePrimary)
+        .onAppear { Task { await pm.fetchLogs() } }
+    }
+
+    private var logToolbar: some View {
+        HStack {
+            Text("插件日志")
+                .font(.headline)
+                .foregroundColor(.primary)
+            Spacer()
+            HStack(spacing: 4) {
+                logFilterChip("全部", value: "all")
+                logFilterChip("INFO", value: "INFO")
+                logFilterChip("WARN", value: "WARNING")
+                logFilterChip("ERROR", value: "ERROR")
+            }
+            TextField("搜索...", text: $searchQuery)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 100)
+                .font(.caption)
+            Button(action: { Task { await pm.fetchLogs() } }) {
+                Image(systemName: "arrow.clockwise")
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(theme.surfaceSecondary)
+    }
+
+    private func logFilterChip(_ label: String, value: String) -> some View {
+        Button(action: { levelFilter = value }) {
+            Text(label)
+                .font(.caption2)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(levelFilter == value ? theme.accentSoft : theme.surfacePrimary)
+                .foregroundColor(levelFilter == value ? theme.accent : theme.textSecondary)
+                .cornerRadius(6)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var logList: some View {
+        let filtered = pm.logEntries.filter { entry in
+            if levelFilter != "all" && entry.level != levelFilter { return false }
+            if !searchQuery.isEmpty && !entry.message.localizedCaseInsensitiveContains(searchQuery) { return false }
+            return true
+        }
+
+        return List {
+            if filtered.isEmpty {
+                VStack(spacing: 8) {
+                    Image(systemName: "text.justify.leading")
+                        .font(.system(size: 32))
+                        .foregroundColor(.secondary)
+                    Text("暂无日志")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
+            } else {
+                ForEach(filtered) { entry in
+                    HStack(alignment: .top, spacing: 6) {
+                        Text(entry.timestamp)
+                            .font(.system(.caption2, design: .monospaced))
+                            .foregroundColor(.secondary)
+                            .frame(width: 70, alignment: .leading)
+                        Text(entry.level)
+                            .font(.system(.caption2, design: .monospaced))
+                            .foregroundColor(levelColor(entry.level))
+                            .frame(width: 40, alignment: .leading)
+                        Text(entry.pluginId)
+                            .font(.system(.caption2, design: .monospaced))
+                            .foregroundColor(theme.accent)
+                            .frame(width: 80, alignment: .leading)
+                        Text(entry.message)
+                            .font(.system(.caption2, design: .monospaced))
+                            .foregroundColor(.primary)
+                            .lineLimit(3)
+                    }
+                    .padding(.vertical, 1)
+                }
+            }
+        }
+        .listStyle(.plain)
+    }
+
+    private func levelColor(_ level: String) -> Color {
+        switch level {
+        case "ERROR": return .red
+        case "WARNING": return .orange
+        case "INFO": return .green
+        default: return .secondary
+        }
+    }
+}
+
+// MARK: - Plugin MCP View (#84)
+
+struct PluginMcpView: View {
+    @StateObject private var pm = PluginManager.shared
+    @Environment(\.studioTheme) private var theme
+    @State private var selectedSession: [String: Any]?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            mcpToolbar
+            Divider()
+            if pm.mcpSessions.isEmpty {
+                emptyMcp
+            } else {
+                mcpContent
+            }
+        }
+        .background(theme.surfacePrimary)
+        .onAppear { Task { await pm.fetchMcpSessions() } }
+    }
+
+    private var mcpToolbar: some View {
+        HStack {
+            Text("MCP 连接管理")
+                .font(.headline)
+                .foregroundColor(.primary)
+            Spacer()
+            Text("\(pm.mcpSessions.count) 会话")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Button(action: { Task { await pm.fetchMcpSessions() } }) {
+                Image(systemName: "arrow.clockwise")
+            }
+            Button(action: { Task { await pm.pruneMcpSessions() } }) {
+                Image(systemName: "trash")
+            }
+            .help("清理过期会话")
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(theme.surfaceSecondary)
+    }
+
+    private var emptyMcp: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "network")
+                .font(.system(size: 32))
+                .foregroundColor(.secondary)
+            Text("暂无 MCP 会话")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var mcpContent: some View {
+        List {
+            ForEach(Array(pm.mcpSessions.enumerated()), id: \.offset) { _, session in
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Image(systemName: "circle.fill")
+                            .foregroundColor(.green)
+                            .font(.caption)
+                        Text(session["session_id"] as? String ?? "")
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundColor(.primary)
+                        Spacer()
+                        Text(session["transport"] as? String ?? "stdio")
+                            .font(.caption2)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
+                            .background(theme.accentSoft)
+                            .cornerRadius(3)
+                    }
+                    if let calls = session["call_count"] as? Int {
+                        Text("调用次数: \(calls)")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                    if let rateLimit = session["rate_limit_remaining"] as? Int {
+                        HStack(spacing: 4) {
+                            Text("速率限制:")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                            Text("\(rateLimit) 剩余")
+                                .font(.caption2)
+                                .foregroundColor(rateLimit < 10 ? .red : .green)
+                        }
+                    }
+                }
+                .padding(8)
+                .background(theme.surfaceSecondary)
+                .cornerRadius(6)
+            }
+        }
+        .listStyle(.plain)
     }
 }
