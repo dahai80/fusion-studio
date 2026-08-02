@@ -83,17 +83,17 @@ struct DeskView: View {
 
     private var disconnectedView: some View {
         VStack(spacing: 0) {
-            UpstreamServiceStatusBanner(serviceId: "fusion-desk")
+            UpstreamServiceStatusBanner(serviceId: "cowork-desk")
             Divider()
             VStack(spacing: 16) {
                 Spacer()
                 Image(systemName: "exclamationmark.triangle")
                     .font(.system(size: 40))
                     .foregroundColor(.orange)
-                Text("Fusion-Desk 服务未连接")
+                Text("Fusion-CoWork 服务未连接")
                     .font(.title3)
                     .foregroundColor(theme.text)
-                Text("请启动 fusion-desk 服务后重试（需在 fusion-desk 根目录创建 start.sh）")
+                Text("请启动 fusion-cowork 服务后重试（需在 fusion-cowork 根目录创建 start.sh）")
                     .font(.subheadline)
                     .foregroundColor(theme.textSecondary)
                     .multilineTextAlignment(.center)
