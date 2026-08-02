@@ -799,8 +799,14 @@ class CoworkSpaceManager: ObservableObject {
     @Published var activeKnowledge: SpaceKnowledgeStatus?
     @Published var activeNotifications: [SpaceNotification] = []
     @Published var isLoading: Bool = false
+    @Published var unavailableMethods: Set<String> = []
 
     private(set) var ipcClient: IPCClient?
+    private let rpcAvail = RPCMethodAvailability.shared
+
+    func isMethodAvailable(_ method: String) -> Bool {
+        rpcAvail.isMethodAvailable(method)
+    }
 
     func setIPCClient(_ client: IPCClient) {
         ipcClient = client
@@ -817,8 +823,12 @@ class CoworkSpaceManager: ObservableObject {
                 self.spaces = loaded
                 self.isLoading = false
             }
+            rpcAvail.markAvailable("desk.space.list")
             coworkLog.info("Loaded \(loaded.count) spaces")
         } catch {
+            if rpcAvail.handleRPCError(error, method: "desk.space.list") {
+                await MainActor.run { self.unavailableMethods = rpcAvail.unavailableMethods }
+            }
             coworkLog.error("loadSpaces failed: \(error.localizedDescription)")
             await MainActor.run { self.isLoading = false }
         }
@@ -830,7 +840,11 @@ class CoworkSpaceManager: ObservableObject {
             let result = try await ipc.spaceGet(spaceId: spaceId)
             let space = CoworkSpace.fromDict(result)
             await MainActor.run { self.activeSpace = space }
+            rpcAvail.markAvailable("desk.space.get")
         } catch {
+            if rpcAvail.handleRPCError(error, method: "desk.space.get") {
+                await MainActor.run { self.unavailableMethods = rpcAvail.unavailableMethods }
+            }
             coworkLog.error("loadSpace failed: \(error.localizedDescription)")
         }
     }
@@ -856,7 +870,11 @@ class CoworkSpaceManager: ObservableObject {
             let items = result["members"] as? [[String: Any]] ?? []
             let members = items.map { SpaceMember.fromDict($0) }
             await MainActor.run { self.activeMembers = members }
+            rpcAvail.markAvailable("desk.space.member.list")
         } catch {
+            if rpcAvail.handleRPCError(error, method: "desk.space.member.list") {
+                await MainActor.run { self.unavailableMethods = rpcAvail.unavailableMethods }
+            }
             coworkLog.error("loadMembers failed: \(error.localizedDescription)")
         }
     }
@@ -868,7 +886,11 @@ class CoworkSpaceManager: ObservableObject {
             let items = result["messages"] as? [[String: Any]] ?? []
             let messages = items.map { SpaceMessage.fromDict($0) }
             await MainActor.run { self.activeMessages = messages }
+            rpcAvail.markAvailable("desk.space.chat.history")
         } catch {
+            if rpcAvail.handleRPCError(error, method: "desk.space.chat.history") {
+                await MainActor.run { self.unavailableMethods = rpcAvail.unavailableMethods }
+            }
             coworkLog.error("loadMessages failed: \(error.localizedDescription)")
         }
     }
@@ -894,7 +916,11 @@ class CoworkSpaceManager: ObservableObject {
             let items = result["agents"] as? [[String: Any]] ?? []
             let agents = items.map { SpaceAgent.fromDict($0) }
             await MainActor.run { self.activeAgents = agents }
+            rpcAvail.markAvailable("desk.space.agent.list")
         } catch {
+            if rpcAvail.handleRPCError(error, method: "desk.space.agent.list") {
+                await MainActor.run { self.unavailableMethods = rpcAvail.unavailableMethods }
+            }
             coworkLog.error("loadAgents failed: \(error.localizedDescription)")
         }
     }
@@ -906,7 +932,11 @@ class CoworkSpaceManager: ObservableObject {
             let items = result["artifacts"] as? [[String: Any]] ?? []
             let artifacts = items.map { SpaceArtifact.fromDict($0) }
             await MainActor.run { self.activeArtifacts = artifacts }
+            rpcAvail.markAvailable("desk.space.artifact.list")
         } catch {
+            if rpcAvail.handleRPCError(error, method: "desk.space.artifact.list") {
+                await MainActor.run { self.unavailableMethods = rpcAvail.unavailableMethods }
+            }
             coworkLog.error("loadArtifacts failed: \(error.localizedDescription)")
         }
     }
@@ -918,7 +948,11 @@ class CoworkSpaceManager: ObservableObject {
             let items = result["workflows"] as? [[String: Any]] ?? []
             let workflows = items.map { SpaceWorkflow.fromDict($0) }
             await MainActor.run { self.activeWorkflows = workflows }
+            rpcAvail.markAvailable("desk.space.workflow.list")
         } catch {
+            if rpcAvail.handleRPCError(error, method: "desk.space.workflow.list") {
+                await MainActor.run { self.unavailableMethods = rpcAvail.unavailableMethods }
+            }
             coworkLog.error("loadWorkflows failed: \(error.localizedDescription)")
         }
     }
@@ -930,7 +964,11 @@ class CoworkSpaceManager: ObservableObject {
             let items = result["snapshots"] as? [[String: Any]] ?? []
             let snapshots = items.map { SpaceSnapshot.fromDict($0) }
             await MainActor.run { self.activeSnapshots = snapshots }
+            rpcAvail.markAvailable("desk.space.snapshot.list")
         } catch {
+            if rpcAvail.handleRPCError(error, method: "desk.space.snapshot.list") {
+                await MainActor.run { self.unavailableMethods = rpcAvail.unavailableMethods }
+            }
             coworkLog.error("loadSnapshots failed: \(error.localizedDescription)")
         }
     }
@@ -943,8 +981,12 @@ class CoworkSpaceManager: ObservableObject {
             let result = try await ipc.spaceKnowledgeStatus(spaceId: spaceId)
             let status = SpaceKnowledgeStatus.fromDict(result)
             await MainActor.run { self.activeKnowledge = status }
+            rpcAvail.markAvailable("desk.space.knowledge.status")
             coworkLog.info("Knowledge status loaded for space \(spaceId)")
         } catch {
+            if rpcAvail.handleRPCError(error, method: "desk.space.knowledge.status") {
+                await MainActor.run { self.unavailableMethods = rpcAvail.unavailableMethods }
+            }
             coworkLog.error("loadKnowledgeStatus failed: \(error.localizedDescription)")
         }
     }
@@ -1011,7 +1053,11 @@ class CoworkSpaceManager: ObservableObject {
             let items = result["notifications"] as? [[String: Any]] ?? []
             let notifs = items.map { SpaceNotification.fromDict($0) }
             await MainActor.run { self.activeNotifications = notifs }
+            rpcAvail.markAvailable("desk.notification.list")
         } catch {
+            if rpcAvail.handleRPCError(error, method: "desk.notification.list") {
+                await MainActor.run { self.unavailableMethods = rpcAvail.unavailableMethods }
+            }
             coworkLog.error("loadNotifications failed: \(error.localizedDescription)")
         }
     }
