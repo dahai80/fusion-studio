@@ -69,7 +69,7 @@ Design · Code · Simulation · MultiModal · Training · Data · Agent · KB ·
 | 2 | 🎨 **Design** | `pencil.and.outline` | ✅ Stable | AI-powered canvas (preview + interactive node editing), 8 design skills, 7 info tabs (props/layers/tokens/design-systems/lint/codegen/ecosystem), 20 grouped quick templates, version diff, 3 workflow recipes, theme switching, design system picker, SwiftUI/React/Vue export — surpassing Claude Design |
 | 3 | 💻 **Code** | `chevron.left.forwardslash.chevron.right` | 🆕 New | 5-panel layout: FileTree · Chat · Editor/Diff/Terminal + InputBar with /slash commands + 3 execution modes (Ask/Auto/Plan), KB query, memory, templates, permission tiers — surpassing Claude Code |
 | 4 | 🤖 **Simulation** | `gearshape.2` | ✅ Stable | PyBullet physics, 3D viewport, scene editor |
-| 5 | 📦 **Model Hub** | `cpu` | ✅ Stable | Real model list via fusion-mlx API, HF search/recommended, download progress polling, model activation |
+| 5 | 📦 **Model Hub** | `cpu` | ✅ Stable | 9-section PRD GUI: Dashboard, Market (HF+ModelScope+private, RAG默认, param-size/MLX filter), Local Storage (batch ops, version mgmt), Convert/Quant, Schedule (下载+算力调度策略), Cluster (topology, routing), Permission (API keys+role ACL), Monitor (CPU/GPU/Disk+audit CSV export), Benchmark (auto-trigger rules) |
 | 6 | 🖼️ **MultiModal** | `photo.on.rectangle` | ✅ Stable | Text-to-image, image-to-image, OCR, speech-to-text, TTS |
 | 7 | 🧠 **Training** | `brain` | ✅ Stable | LoRA/QLoRA fine-tuning, monitoring, checkpoints, model export |
 | 8 | ⌨️ **CLI** | `terminal` | ✅ Stable | GUI CLI panel, 18 preset commands, execution history |
