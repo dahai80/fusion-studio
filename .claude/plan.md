@@ -1,70 +1,141 @@
-// Callers: ModuleDetailView, HubClusterView, HubLocalStorageView, IPCClient, AppState
-// Affected API: fusion-multi-node REST API (34 endpoints on port 11452), fusion-model-hub cluster proxy (4 endpoints on port 11444)
-// Data schemas: HubClusterNode, HubClusterTopologyResponse, MultiNodeTask, MultiNodeNode DTOs
-// User instruction: "#74 multi-node 集群同步上游已完成，#61 的 6 项整改马上进行"
+# Fusion-Code Modernization GUI Plan
 
-# 计划：#74 Multi-Node 集群 API 适配 + #61 架构整改
+## Context
 
-## 任务 A：#74 Multi-Node 集群同步 API 适配
+PRD: `/Users/dahai/fusion/architecture/coding-modenization-enhance.md`
+Upstream: `fusion-code-modenization` (Python library, NO REST server)
+Current GUI: `FusionStudio/Modules/Code/` (8 files, 5087 lines)
 
-### 问题
-- `IPCClient.multiNodeCall` 用 JSON-RPC 格式调 HTTP，但上游 `fusion-multi-node` 用 **REST API** (`/api/...`)
-- `HubLocalStorageView.syncToCluster()` 是空桩 TODO
-- 上游有 **34 个 REST 端点**，当前 IPCClient 只映射了 4 个
+## Key Problem
 
-### 方案
-1. **重写 IPCClient Multi-Node 区段** — 从 JSON-RPC 改为 REST，端口 11452
-   - 新增全部 34 个端点映射：节点/集群/同步/路由/任务/KV/监控/自动伸缩/可观测
-2. **HubLocalStorageView.syncToCluster()** — 接入 `ipc.triggerIncrementalSync()`
-3. **HubClusterView** — 补充节点注册、任务提交、路由策略等面板
-4. **ModelHubModels.swift** — 新增 MultiNode 相关 DTO
+Upstream has rich Python classes (SessionEngine, SnapshotManager, WorkflowExecutor, MemoryTierManager, SandboxPolicy, SandboxAudit) but **no REST API server**. Existing FusionCodeBridge connects to port 11441 which doesn't expose these new APIs.
 
-## 任务 B：#61 架构合规整改
+**Strategy**: Build GUI with local file-based bridge for snapshot/memory/sandbox (filesystem ops), and REST calls for session/workflow/chat (need server). File upstream issue for REST API.
 
-### B1: 巨型文件拆分 — AgentStudioView (5397行 → 8个文件)
+## PRD Gap Analysis (Current vs Target)
 
-| 新文件 | 内容 | 估算行数 |
-|--------|------|----------|
-| `AgentModels.swift` | AgentType/Agent/AgentTask/AgentWorkflow | ~170 |
-| `AgentOrchestrator.swift` | AgentOrchestrator class | ~170 |
-| `AgentStudioView.swift` | AgentStudioView 主视图 (保留) | ~180 |
-| `AgentListViews.swift` | AgentListView + BackendAgentDetailView | ~700 |
-| `AgentConfigViews.swift` | ConfigureAgentSheet + AgentDetailView + CreateAgentSheet | ~750 |
-| `AgentTaskViews.swift` | TaskList/Create + WorkflowList/Detail/Create | ~660 |
-| `AgentConfigTabs.swift` | 14 个 Config Tab (Team/Cron/Hooks/.../Style) | ~1840 |
-| `AgentDashboardViews.swift` | DashboardTab + MarketplaceTab + ConversationView + SoulEditor | ~900 |
+| PRD Feature | Current State | Gap | Approach |
+|-------------|---------------|-----|----------|
+| A: Session sidebar (parallel N sessions) | Simple picker popover | **Missing** | New `FCSessionSidebar` |
+| B: File explorer (sandbox/ignore/context) | Basic FileTreeView | **Partial** | Enhance + sandbox overlay |
+| C: Diff (line-by-line accept/reject, side-by-side, patch) | Basic diff tab | **Missing** | New `FCDiffReviewView` |
+| Web Preview tab | Missing | **Missing** | New `FCWebPreview` |
+| Session state machine (7 states) | N/A | **Missing** | New `FCSessionState` |
+| Snapshot/rewind | Basic undo | **Missing** | New `FCSnapshotManager` |
+| FUSION.md 3-tier memory | /memory command | **Missing** | New `FCMemoryEditor` |
+| Dynamic Workflow | N/A | **Missing** | New `FCWorkflowViews` |
+| 3-mode Sandbox + audit | 2-tier permission | **Missing** | New `FCSandboxViews` |
+| Cluster node assignment | N/A | **Missing** | Reuse IPCMultiNodeMethods |
+| Slash commands /rewind /sandbox /audit /plan | 14 basic commands | **Partial** | Extend list |
+| Layout mode toggle | 3 fixed panels | **Missing** | 4-col/3-col/2-col/chat-only |
 
-### B2: 巨型文件拆分 — IPCClient (3204行 → 7个文件)
+## File Plan
 
-| 新文件 | 内容 | 估算行数 |
-|--------|------|----------|
-| `IPCClient.swift` | class 定义 + 连接/JSON-RPC/UDS/读取/便捷方法 + 小 namespace | ~930 |
-| `IPCAgentMethods.swift` | Agent CRUD/Lifecycle + Marketplace | ~380 |
-| `IPCProjectMethods.swift` | project.* 15+ 方法 | ~380 |
-| `IPCSpaceMethods.swift` | desk.space.* 11+ 方法 | ~470 |
-| `IPCMultiNodeMethods.swift` | multi-node REST (重写扩展) | ~300 |
-| `IPCFSBMethods.swift` | FSB REST 端点 | ~330 |
-| `IPCArtifactsMethods.swift` | Artifacts Engine | ~410 |
+### New Files (FusionStudio/Modules/Code/)
 
-### B3: 空壳目录清理
-- 删除 `Services/supervisor/` 和 `Services/file-daemon/`
+1. **FCSessionModels.swift** (~200 lines)
+   - `FCSessionState` enum: idle/running/waitingApproval/paused/completed/failed/clusterRunning
+   - `FCSessionConfig` struct: workingDir, model, temperature, securityMode, allowedDirs
+   - `FCSessionDetail` struct: id, name, state, config, messageCount, createdAt, clusterNode
+   - `FCSnapshotInfo` struct: id, label, createdAt, deltaCount
 
-### B4: 模块重叠消除
-- `Agent/` (仅 AgentDropdown.swift) → 合入 `AIAgent/`
-- `KB/` (仅 KBView.swift) → 合入 `KnowledgeBase/`
-- `teamCollab` Module case → 重定向到 `cowork`
-- `agent` Module case → 重定向到 `aiAgentDashboard`
+2. **FCSessionSidebar.swift** (~600 lines)
+   - Full sidebar with session list, status indicators, right-click context menu
+   - New session sheet (name, workingDir, model, securityMode)
+   - Grouping toggle: by project / by state / flat
+   - Context menu: clone, snapshot, rewind, archive, assign cluster node
 
-### B5: 硬编码 L5 模块
-- `eduK12` case 标注 `// TODO: migrate to dynamic plugin`
-- 暂不改动态插件架构
+3. **FCSnapshotManager.swift** (~350 lines)
+   - Read `.fusion/snapshots/` JSON files directly (no REST needed)
+   - createSnapshot, restoreSnapshot, rewind, listSnapshots
+   - Snapshot diff viewer (before/after)
 
-## 执行顺序
+4. **FCMemoryEditor.swift** (~500 lines)
+   - 3-tier tab: Global (~/.fusion/FUSION.md) | Project (./FUSION.md) | Directory (subdir/FUSION.md)
+   - Markdown editor with template generation
+   - /init one-click project initialization
+   - Directory memory scanner
 
-1. **Phase 1**: #74 IPCClient multi-node REST 重写 + HubLocalStorageView TODO 修复
-2. **Phase 2**: AgentStudioView 拆分 (8 文件)
-3. **Phase 3**: IPCClient 拆分 (7 文件)
-4. **Phase 4**: 空壳清理 + 模块重叠消除
-5. **Phase 5**: 构建/测试验证 + 提交
+5. **FCSandboxViews.swift** (~400 lines)
+   - `FCSandboxConfigSheet`: mode selector (readonly/manual/auto), allowed dirs, denied files/commands
+   - `FCAuditLogView`: audit table, filter allowed/blocked, export CSV
+   - `.fusionignore` editor
 
-每个 Phase 完成后立即 `swift build` 验证。
+6. **FCWorkflowViews.swift** (~500 lines)
+   - `FCWorkflowPlanView`: decomposed subtasks as DAG
+   - `FCWorkflowProgressView`: live subtask execution progress
+   - Template picker (generic/legacy_migration/security_scan/batch_api)
+   - REST calls when server available, stub otherwise
+
+7. **FCDiffReviewView.swift** (~400 lines)
+   - Side-by-side and unified diff toggle
+   - Per-line accept/reject
+   - Accept all / Reject all / Export patch
+   - Three-color markup (added/deleted/modified)
+
+8. **FCWebPreview.swift** (~150 lines)
+   - WKWebView wrapper for local dev server
+   - URL bar + refresh + back/forward
+
+### Modified Files
+
+9. **FusionCodeBridge.swift** — Add methods:
+   - Session CRUD: create/pause/resume/clone/delete (REST)
+   - Snapshot: list/create/restore/rewind (local file)
+   - Memory: load/save/init tiers (local file)
+   - Sandbox: load/save policy, query audit (local file)
+   - Workflow: decompose/execute/status (REST)
+   - Cluster: assign node (REST via IPCMultiNodeMethods)
+
+10. **FusionCodeView.swift** — Layout restructure:
+    - 4-column: SessionSidebar | FileTree | Chat | RightPanel
+    - Layout mode toggle buttons
+    - New @State for sessions, snapshots, sandbox, workflow
+    - Enhanced slash commands: /rewind, /sandbox, /audit, /plan
+
+11. **FusionCodeDialogs.swift** — Add new dialogs:
+    - Session settings sheet
+    - Snapshot creation/restore sheet
+    - Cluster node picker
+
+## Implementation Phases
+
+### Phase 1: Session Engine + Sidebar (core differentiator)
+- FCSessionModels.swift
+- FCSessionSidebar.swift
+- FusionCodeBridge session methods
+- FusionCodeView 4-column layout restructure
+- Build verify
+
+### Phase 2: Snapshot/Rewind + Diff Enhancement
+- FCSnapshotManager.swift
+- FCDiffReviewView.swift
+- Snapshot context menu in sidebar
+- Enhanced diff panel
+- Build verify
+
+### Phase 3: Memory 3-Tier + Sandbox
+- FCMemoryEditor.swift
+- FCSandboxViews.swift
+- FusionCodeBridge memory/sandbox/audit methods
+- Build verify
+
+### Phase 4: Dynamic Workflow
+- FCWorkflowViews.swift
+- FusionCodeBridge workflow methods
+- Template picker
+- Build verify
+
+### Phase 5: Web Preview + Cluster + Polish
+- FCWebPreview.swift
+- Cluster node assignment
+- Layout mode toggle
+- Final build verify + commit
+
+## Upstream Issue
+
+File issue on fusion-code-modenization for REST API server (FastAPI + uvicorn) on port 11441, exposing:
+- Session CRUD + state transitions
+- Workflow decompose/execute/merge
+- Chat streaming (WebSocket)
+- Audit log query/export

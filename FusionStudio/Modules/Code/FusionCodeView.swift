@@ -141,7 +141,6 @@ struct FusionCodeView: View {
     @State private var slashFilter = ""
     @State private var showOpenProject = false
     @State private var pendingPermissions: [FCPermissionRequest] = []
-    @State private var sessions: [FCSession] = []
     @State private var currentSessionId: String?
     @State private var kbStatusText = ""
     @State private var isWebSearchEnabled = false
@@ -152,26 +151,41 @@ struct FusionCodeView: View {
     @State private var showMemoryPanel = false
     @State private var refocusTrigger = 0
     @State private var isMLXFallback = false
+    @State private var layoutMode: FCLayoutMode = .fourColumn
+    @State private var showSessionSidebar = true
+    @State private var previewHtmlContent = ""
 
     enum FCRightPane: String, CaseIterable {
         case editor = "Editor"
         case diff = "Diff"
+        case preview = "Preview"
         case terminal = "Terminal"
+        case snapshot = "Snapshot"
     }
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
-                if showFileTree {
+                if showSessionSidebar && layoutMode == .fourColumn {
+                    FCSessionSidebar(
+                        bridge: fcBridge,
+                        selectedSessionId: $currentSessionId,
+                        layoutMode: $layoutMode
+                    )
+                    Divider()
+                }
+
+                if showFileTree && layoutMode != .chatOnly {
                     fcFileTreePanel
                         .frame(width: 240)
                         .background(theme.sidebarBg)
+                    Divider()
                 }
 
                 fcChatPanel
                     .frame(maxWidth: .infinity)
 
-                if showRightPanel {
+                if showRightPanel && layoutMode != .chatOnly && layoutMode != .twoColumn {
                     fcRightPanel
                         .frame(width: 480)
                         .background(theme.contentBg)
@@ -211,22 +225,12 @@ struct FusionCodeView: View {
             }
         }
         fcBridge.checkConnection()
+        fcBridge.refreshModels()
         if workspace.hasProject {
-            loadSessions()
+            fcBridge.refreshSessions()
             loadKBStatus()
         }
         fcLog.info("FusionCodeView initialized, connected=\(fcBridge.isConnected)")
-    }
-
-    private func loadSessions() {
-        Task {
-            do {
-                let list = try await fcBridge.listSessions(cwd: workspace.projectRoot?.path)
-                await MainActor.run { sessions = list }
-            } catch {
-                fcLog.warning("Failed to load sessions: \(error.localizedDescription)")
-            }
-        }
     }
 
     private func loadKBStatus() {
@@ -359,7 +363,7 @@ struct FusionCodeView: View {
                 }
                 .buttonStyle(.plain)
                 .popover(isPresented: $showMemoryPanel, arrowEdge: .top) {
-                    fcMemoryPanel
+                    FCMemoryPanel()
                 }
             }
         }
@@ -454,9 +458,18 @@ struct FusionCodeView: View {
 
     private var fcChatToolbar: some View {
         HStack(spacing: theme.spacingS) {
+            if !showSessionSidebar {
+                Button(action: { withAnimation { showSessionSidebar = true } }) {
+                    Image(systemName: "sidebar.left")
+                        .font(.system(size: 14))
+                        .foregroundStyle(theme.textSecondary)
+                }
+                .buttonStyle(.plain)
+            }
+
             if !showFileTree {
                 Button(action: { withAnimation { showFileTree = true } }) {
-                    Image(systemName: "sidebar.left")
+                    Image(systemName: "folder.sidebar")
                         .font(.system(size: 14))
                         .foregroundStyle(theme.textSecondary)
                 }
@@ -510,6 +523,23 @@ struct FusionCodeView: View {
 
             Button(action: { withAnimation { showRightPanel.toggle() } }) {
                 Image(systemName: showRightPanel ? "rectangle.split.1x2" : "rectangle.split.2x1")
+                    .font(.system(size: 14))
+                    .foregroundStyle(theme.textSecondary)
+            }
+            .buttonStyle(.plain)
+
+            Menu {
+                ForEach(FCLayoutMode.allCases, id: \.self) { mode in
+                    Button(action: { withAnimation { layoutMode = mode } }) {
+                        Label(mode.rawValue, systemImage: mode.icon)
+                    }
+                }
+                Divider()
+                Button(action: { withAnimation { showSessionSidebar.toggle() } }) {
+                    Label(showSessionSidebar ? "隐藏会话栏" : "显示会话栏", systemImage: "sidebar.left")
+                }
+            } label: {
+                Image(systemName: layoutMode.icon)
                     .font(.system(size: 14))
                     .foregroundStyle(theme.textSecondary)
             }
@@ -754,17 +784,36 @@ struct FusionCodeView: View {
                 }
 
             case .diff:
-                MonacoDiffView(
-                    originalContent: diffOriginal,
-                    modifiedContent: diffModified,
-                    language: diffLanguage
+                FCDiffReviewView(
+                    original: diffOriginal,
+                    modified: diffModified,
+                    language: diffLanguage,
+                    fileName: workspace.selectedFile?.relativePath ?? "untitled"
                 )
+
+            case .preview:
+                FCWebPreviewPanel(htmlContent: $previewHtmlContent)
 
             case .terminal:
                 PTYTerminalView(workingDirectory: Binding(
                     get: { workspace.projectRoot?.path },
                     set: { _ in }
                 ))
+
+            case .snapshot:
+                if let sid = currentSessionId {
+                    FCSnapshotPanel(sessionId: sid)
+                } else {
+                    VStack(spacing: theme.spacingM) {
+                        Image(systemName: "camera")
+                            .font(.system(size: 24))
+                            .foregroundStyle(theme.textTertiary)
+                        Text("Select a session to view snapshots")
+                            .font(.system(size: theme.captionSize))
+                            .foregroundStyle(theme.textTertiary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             }
 
             if workspace.selectedFile != nil && rightPaneTab == .editor {
@@ -810,7 +859,9 @@ struct FusionCodeView: View {
         switch pane {
         case .editor:   return "chevron.left.forwardslash.chevron.right"
         case .diff:     return "arrow.triangle.swap"
+        case .preview:  return "safari"
         case .terminal: return "terminal"
+        case .snapshot: return "camera"
         }
     }
 
@@ -927,25 +978,25 @@ struct FusionCodeView: View {
                 .font(.system(size: theme.footnoteSize, weight: .semibold))
                 .foregroundStyle(theme.text)
 
-            if sessions.isEmpty {
+            if fcBridge.sessions.isEmpty {
                 Text("No sessions")
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textTertiary)
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: theme.spacingXS) {
-                        ForEach(sessions) { session in
+                        ForEach(fcBridge.sessions) { session in
                             Button {
                                 currentSessionId = session.id
                                 showSessionPicker = false
                                 fcLog.info("Session selected: \(session.id)")
                             } label: {
                                 HStack(spacing: theme.spacingS) {
-                                    Image(systemName: "message")
+                                    Image(systemName: session.state.icon)
                                         .font(.system(size: 10))
-                                        .foregroundStyle(theme.textTertiary)
+                                        .foregroundColor(colorForSessionState(session.state))
                                     VStack(alignment: .leading, spacing: 2) {
-                                        Text(session.title)
+                                        Text(session.displayTitle)
                                             .font(.system(size: theme.captionSize))
                                             .foregroundStyle(theme.text)
                                             .lineLimit(1)
@@ -973,6 +1024,17 @@ struct FusionCodeView: View {
         }
         .padding(theme.spacingM)
         .frame(width: 260)
+    }
+
+    private func colorForSessionState(_ state: FCSessionState) -> Color {
+        switch state {
+        case .running, .clusterRunning: return .green
+        case .waitingApproval: return .yellow
+        case .paused: return .orange
+        case .completed: return .blue
+        case .failed: return .red
+        default: return .gray
+        }
     }
 
     // MARK: - Template Picker

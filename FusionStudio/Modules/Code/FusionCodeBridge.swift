@@ -35,6 +35,8 @@ class FusionCodeBridge: ObservableObject {
     @Published var chatEvents: [FCChatEvent] = []
     @Published var isStreaming = false
     @Published var currentStreamContent = ""
+    @Published var sessions: [FCSessionDetail] = []
+    @Published var availableModels: [String] = []
 
     let serverURL = "http://127.0.0.1:\(FusionConfig.shared.fusionCodePort)"
     private var webSocketTask: URLSessionWebSocketTask?
@@ -152,6 +154,125 @@ class FusionCodeBridge: ObservableObject {
 
     func getSession(id: String) async throws -> [String: Any] {
         try await httpGet("/api/sessions/\(id)")
+    }
+
+    // MARK: - Session Management
+
+    @discardableResult
+    func createSession(config: FCSessionConfig) -> String {
+        let newId = config.sessionId.isEmpty ? UUID().uuidString.prefix(12).lowercased() : config.sessionId
+        let cfg = config
+        let detail = FCSessionDetail(
+            id: String(newId),
+            name: cfg.name,
+            state: .idle,
+            config: cfg,
+            messageCount: 0
+        )
+        sessions.insert(detail, at: 0)
+        fcBridgeLog.info("session created: \(newId)")
+        return detail.id
+    }
+
+    func pauseSession(id: String) {
+        guard let idx = sessions.firstIndex(where: { $0.id == id }) else { return }
+        if sessions[idx].canPause {
+            sessions[idx].state = .paused
+            fcBridgeLog.info("session paused: \(id)")
+        }
+    }
+
+    func resumeSession(id: String) {
+        guard let idx = sessions.firstIndex(where: { $0.id == id }) else { return }
+        if sessions[idx].canResume {
+            sessions[idx].state = .running
+            fcBridgeLog.info("session resumed: \(id)")
+        }
+    }
+
+    func deleteSession(id: String) {
+        sessions.removeAll { $0.id == id }
+        fcBridgeLog.info("session deleted: \(id)")
+    }
+
+    func cloneSession(id: String) {
+        guard let original = sessions.first(where: { $0.id == id }) else { return }
+        let cloned = FCSessionDetail(
+            id: UUID().uuidString.prefix(12).lowercased(),
+            name: "\(original.name) (副本)",
+            state: .idle,
+            config: original.config,
+            messageCount: 0
+        )
+        sessions.insert(cloned, at: 0)
+        fcBridgeLog.info("session cloned from \(id) -> \(cloned.id)")
+    }
+
+    func renameSession(id: String, name: String) {
+        guard let idx = sessions.firstIndex(where: { $0.id == id }) else { return }
+        sessions[idx].name = name
+        fcBridgeLog.info("session renamed: \(id) -> \(name)")
+    }
+
+    func refreshSessions() {
+        Task {
+            do {
+                let result = try await httpGet("/api/sessions", query: ["limit": "100"])
+                let raw = (result["sessions"] as? [[String: Any]]) ?? []
+                await MainActor.run {
+                    self.sessions = raw.compactMap { parseSessionDetail($0) }
+                    fcBridgeLog.info("refreshed \(self.sessions.count) sessions from server")
+                }
+            } catch {
+                fcBridgeLog.info("session refresh fallback to local: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    func refreshModels() {
+        Task {
+            do {
+                let status = try await modelStatus()
+                await MainActor.run {
+                    self.availableModels = status.loaded
+                    if self.availableModels.isEmpty {
+                        self.availableModels = ["qwen3.5-9b", "qwen3-30b", "deepseek-coder-6.7b"]
+                    }
+                    fcBridgeLog.info("available models: \(self.availableModels)")
+                }
+            } catch {
+                await MainActor.run {
+                    self.availableModels = ["qwen3.5-9b", "qwen3-30b", "deepseek-coder-6.7b"]
+                }
+            }
+        }
+    }
+
+    private func parseSessionDetail(_ s: [String: Any]) -> FCSessionDetail? {
+        guard let id = s["id"] as? String else { return nil }
+        let stateStr = s["state"] as? String ?? "idle"
+        let state = FCSessionState(rawValue: stateStr) ?? .idle
+        let config = FCSessionConfig(
+            sessionId: id,
+            name: (s["name"] as? String) ?? "",
+            workingDir: (s["working_dir"] as? String) ?? (s["cwd"] as? String) ?? "",
+            model: (s["model"] as? String) ?? "qwen3.5-9b",
+            temperature: (s["temperature"] as? Double) ?? 0.1,
+            maxTokens: (s["max_tokens"] as? Int) ?? 4096,
+            securityMode: (s["security_mode"] as? String) ?? "manual",
+            allowedDirs: (s["allowed_dirs"] as? [String]) ?? []
+        )
+        return FCSessionDetail(
+            id: id,
+            name: (s["name"] as? String) ?? "",
+            state: state,
+            config: config,
+            messageCount: (s["message_count"] as? Int) ?? 0,
+            createdAt: (s["created_at"] as? Double) ?? Date().timeIntervalSince1970,
+            updatedAt: (s["updated_at"] as? Double) ?? Date().timeIntervalSince1970,
+            error: s["error"] as? String ?? "",
+            clusterNode: s["cluster_node"] as? String ?? ""
+        )
     }
 
     // MARK: - Code Generation
