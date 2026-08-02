@@ -538,8 +538,12 @@ final class DeskBridge: ObservableObject {
                     size: m["size"] as? String ?? ""
                 )
             }
+            rpcAvail.markAvailable("desk.mlx.models")
             deskLog.info("DeskBridge: loaded \(self.mlxModels.count) MLX models")
         } catch {
+            if rpcAvail.handleRPCError(error, method: "desk.mlx.models") {
+                unavailableMethods = rpcAvail.unavailableMethods
+            }
             lastError = error.localizedDescription
         }
     }

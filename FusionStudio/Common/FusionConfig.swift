@@ -130,7 +130,9 @@ class FusionConfig: ObservableObject {
     // MARK: - Upstream Service Ports
     @AppStorage("coworkSyncPort") var coworkSyncPort = 11437
     @AppStorage("coworkMcpPort") var coworkMcpPort = 11438
+    @AppStorage("modelHubHost") var modelHubHost = "127.0.0.1"
     @AppStorage("modelHubPort") var modelHubPort = 11444
+    @AppStorage("modelHubApiKey") var modelHubApiKey = ""
     @AppStorage("securityPort") var securityPort = 11442
     @AppStorage("fusionDeskPort") var fusionDeskPort = 9761
     @AppStorage("fusionDocPort") var fusionDocPort = 11449
@@ -258,7 +260,9 @@ class FusionConfig: ObservableObject {
 
         coworkSyncPort = 11437
         coworkMcpPort = 11438
+        modelHubHost = "127.0.0.1"
         modelHubPort = 11444
+        modelHubApiKey = ""
         securityPort = 11442
         fusionDeskPort = 9761
         fusionDocPort = 11449
