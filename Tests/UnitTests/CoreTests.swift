@@ -354,7 +354,7 @@ final class PluginManagerTests: XCTestCase {
 
     func testActivePluginCount() {
         let manager = PluginManager.shared
-        XCTAssertGreaterThanOrEqual(manager.activePluginCount, 4)
+        XCTAssertGreaterThanOrEqual(manager.enabledPluginCount, 4)
     }
 }
 
