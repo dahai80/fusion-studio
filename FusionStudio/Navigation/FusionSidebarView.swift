@@ -160,6 +160,8 @@ struct FusionSidebarView: View {
             moduleListContent(.multiNode)
         case .fsb:
             fsbSidebarContent
+        case .science:
+            moduleListContent(.science)
         }
     }
 

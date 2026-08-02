@@ -57,6 +57,7 @@ enum ProductSheet: String, CaseIterable, Identifiable {
     case fsbSheet = "FSB"
     case aiAgentSheet = "AI Agent"
     case ragSheet = "RAG"
+    case scienceSheet = "Science"
 
     var id: String { rawValue }
 
@@ -73,6 +74,7 @@ enum ProductSheet: String, CaseIterable, Identifiable {
         case .fsbSheet:       "storefront"
         case .aiAgentSheet:   "brain"
         case .ragSheet:       "books.vertical"
+        case .scienceSheet:   "flask"
         }
     }
 
@@ -100,6 +102,8 @@ enum ProductSheet: String, CaseIterable, Identifiable {
             return [.aiAgentDashboard, .aiAgentList, .aiAgentChat, .aiAgentObserver, .aiAgentKnowledgeBase]
         case .ragSheet:
             return [.kb, .rag]
+        case .scienceSheet:
+            return [.science]
         }
     }
 }
@@ -162,6 +166,7 @@ enum Module: String, CaseIterable, Identifiable {
     case aiAgentChat = "AI对话"
     case aiAgentObserver = "AI监控"
     case aiAgentKnowledgeBase = "AI知识库"
+    case science = "科研"
 
     var id: String { rawValue }
 
@@ -221,6 +226,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .aiAgentChat:     return "bubble.left.and.bubble.right.fill"
         case .aiAgentObserver: return "eye"
         case .aiAgentKnowledgeBase: return "books.vertical"
+        case .science: return "flask"
         }
     }
 
@@ -257,6 +263,8 @@ enum Module: String, CaseIterable, Identifiable {
             return .fsbSheet
         case .aiAgentDashboard, .aiAgentList, .aiAgentChat, .aiAgentObserver, .aiAgentKnowledgeBase:
             return .aiAgentSheet
+        case .science:
+            return .scienceSheet
         }
     }
 }
@@ -274,6 +282,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
     case fsb = "FSB"
     case mlx = "Fusion-MLX"
     case multiNode = "Multi-Node"
+    case science = "Science"
 
     var id: String { rawValue }
 
@@ -291,6 +300,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .mlx:       return "chip"
         case .multiNode: return "network"
         case .fsb:       return "storefront"
+        case .science:   return "flask"
         }
     }
 
@@ -308,6 +318,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .mlx:       return [.dashboard, .modelHub, .tuning, .bench]
         case .multiNode: return [.clusterOverview, .clusterTopology, .taskMonitor, .alertCenter, .nodeActions, .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb, .multimodal, .analytics, .collab, .external, .operations, .deploy]
         case .fsb:       return [.fsb]
+        case .science:   return [.science]
         }
     }
 }

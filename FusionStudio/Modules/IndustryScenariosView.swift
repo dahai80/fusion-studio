@@ -59,8 +59,8 @@ class IndustryScenarioManager: ObservableObject {
             IndustryScenario(id: "scene-ai-code-review", name: "自动化代码审查", description: "多智能体协作的代码审查流水线：风格检查、安全扫描、性能分析", industry: "AI 工具", icon: "chevron.left.forwardslash.chevron.right", color: .blue, modules: ["Agent", "Code", "Security"], difficulty: "中级", estimatedTime: "2 小时", isBuiltin: true, isInstalled: false),
             IndustryScenario(id: "scene-design-app", name: "移动 App 设计", description: "从需求到原型的一站式移动 App 设计流程，含设计系统和代码导出", industry: "设计", icon: "apps.iphone", color: .pink, modules: ["Design", "Code", "MultiModal"], difficulty: "中级", estimatedTime: "3-5 小时", isBuiltin: true, isInstalled: false),
             IndustryScenario(id: "scene-design-dashboard", name: "数据仪表盘设计", description: "企业数据仪表盘设计模板，包含实时图表、指标卡片和交互原型", industry: "设计", icon: "square.grid.3x3.fill", color: .orange, modules: ["Design", "DataTools", "Analytics"], difficulty: "初级", estimatedTime: "1-2 小时", isBuiltin: true, isInstalled: false),
-            IndustryScenario(id: "scene-science-lab", name: "科研实验管理", description: "科研实验数据管理、分析、报告生成工作流", industry: "科研", icon: "flask.fill", color: .teal, modules: ["DataTools", "Doc", "Analytics"], difficulty: "中级", estimatedTime: "2-3 小时", isBuiltin: true, isInstalled: false),
-            IndustryScenario(id: "scene-science-paper", name: "论文写作助手", description: "AI 辅助学术论文写作：文献检索、大纲生成、内容撰写、格式校对", industry: "科研", icon: "doc.text.magnifyingglass", color: .mint, modules: ["KB", "Code", "Agent"], difficulty: "高级", estimatedTime: "4-6 小时", isBuiltin: true, isInstalled: false),
+            IndustryScenario(id: "scene-science-lab", name: "科研实验管理", description: "科研实验数据管理、分析、报告生成工作流", industry: "科研", icon: "flask.fill", color: .teal, modules: ["Science"], difficulty: "中级", estimatedTime: "2-3 小时", isBuiltin: true, isInstalled: false),
+            IndustryScenario(id: "scene-science-paper", name: "论文写作助手", description: "AI 辅助学术论文写作：文献检索、大纲生成、内容撰写、格式校对", industry: "科研", icon: "doc.text.magnifyingglass", color: .mint, modules: ["Science"], difficulty: "高级", estimatedTime: "4-6 小时", isBuiltin: true, isInstalled: false),
         ]
     }
 

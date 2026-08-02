@@ -258,7 +258,7 @@ final class ModelHubAPIClient: ObservableObject {
         return try await execute(request)
     }
 
-    private func post<T: Decodable>(_ path: String, json: [String: Any] = [:]) async throws -> T {
+    func post<T: Decodable>(_ path: String, json: [String: Any] = [:]) async throws -> T {
         let url = URL(string: "\(baseURL)\(path)")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
