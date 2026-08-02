@@ -172,6 +172,10 @@ struct SectionContentView: View {
                 ModuleDetailView()
             case .fsb:
                 FSBWorkspaceView()
+            case .science:
+                ScienceWorkbenchView()
+                    .environmentObject(ScienceBridge())
+                    .environmentObject(ScienceSSEClient())
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
