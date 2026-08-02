@@ -56,6 +56,7 @@ enum ProductSheet: String, CaseIterable, Identifiable {
     case artifactsSheet = "Artifacts"
     case fsbSheet = "FSB"
     case aiAgentSheet = "AI Agent"
+    case ragSheet = "RAG"
 
     var id: String { rawValue }
 
@@ -71,6 +72,7 @@ enum ProductSheet: String, CaseIterable, Identifiable {
         case .artifactsSheet: "cube.box"
         case .fsbSheet:       "storefront"
         case .aiAgentSheet:   "brain"
+        case .ragSheet:       "books.vertical"
         }
     }
 
@@ -96,6 +98,8 @@ enum ProductSheet: String, CaseIterable, Identifiable {
             return [.fsb]
         case .aiAgentSheet:
             return [.aiAgentDashboard, .aiAgentList, .aiAgentChat, .aiAgentObserver, .aiAgentKnowledgeBase]
+        case .ragSheet:
+            return [.kb, .rag]
         }
     }
 }
@@ -226,14 +230,16 @@ enum Module: String, CaseIterable, Identifiable {
             return .chat
         case .design, .code, .doc, .docgen, .cli:
             return .code
-        case .agent, .plugin, .security, .kb, .dataTools:
+        case .agent, .plugin, .security, .dataTools:
             return .agentStudio
         case .multimodal, .simulation, .analytics, .collab, .external, .desk,
              .clusterOverview, .clusterTopology, .taskMonitor, .alertCenter, .nodeActions,
              .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb,
              .operations:
             return .multiNode
-        case .rag, .memory, .planner, .verification, .tokenBudget, .safety, .tools, .agentDashboard, .teamCollab:
+        case .kb, .rag:
+            return .ragSheet
+        case .memory, .planner, .verification, .tokenBudget, .safety, .tools, .agentDashboard, .teamCollab:
             return .agentStudio
         case .deploy:
             return .code
@@ -258,51 +264,48 @@ enum SidebarSection: String, CaseIterable, Identifiable {
     case projects = "Projects"
     case artifacts = "Artifacts"
     case code = "Code"
-    case customize = "Customize"
     case design = "Design"
-    case agent = "智能体"
-    case mlx = "Fusion-MLX"
-    case multiNode = "Multi-Node"
-    case fusionProjects = "Projects+"
+    case rag = "RAG"
+    case agent = "Agent"
+    case aiAgent = "AI Agent"
     case cowork = "CoWork"
     case fsb = "FSB"
-    case aiAgent = "AI Agent"
+    case mlx = "Fusion-MLX"
+    case multiNode = "Multi-Node"
 
     var id: String { rawValue }
 
     var icon: String {
         switch self {
         case .chats:     return "message"
-        case .projects:  return "folder"
+        case .projects:  return "folder.badge.gearshape"
         case .artifacts: return "cube.box"
         case .code:      return "chevron.left.forwardslash.chevron.right"
-        case .customize: return "paintpalette"
         case .design:    return "pencil.and.outline"
+        case .rag:       return "books.vertical"
         case .agent:     return "person.2.fill"
+        case .aiAgent:   return "brain"
+        case .cowork:    return "person.2.square.stack"
         case .mlx:       return "chip"
         case .multiNode: return "network"
-        case .fusionProjects: return "folder.badge.gearshape"
-        case .cowork:    return "person.2.square.stack"
         case .fsb:       return "storefront"
-        case .aiAgent:   return "brain"
         }
     }
 
     var modules: [Module] {
         switch self {
         case .chats:     return [.code]
-        case .projects:  return []
+        case .projects:  return [.fusionProjects]
         case .artifacts: return [.artifactsRepo]
         case .code:      return [.code, .design, .doc, .docgen, .cli]
-        case .customize: return []
         case .design:    return [.design]
-        case .agent:     return [.agent, .agentDashboard, .teamCollab, .tools, .safety, .memory, .rag, .planner, .verification, .tokenBudget, .security, .dataTools, .plugin, .kb, .desk]
+        case .rag:       return [.kb, .rag]
+        case .agent:     return [.agent, .agentDashboard, .teamCollab, .tools, .safety, .memory, .planner, .verification, .tokenBudget, .security, .dataTools, .plugin, .desk]
+        case .aiAgent:   return [.aiAgentDashboard, .aiAgentList, .aiAgentChat, .aiAgentObserver, .aiAgentKnowledgeBase]
+        case .cowork:    return [.cowork]
         case .mlx:       return [.dashboard, .modelHub, .tuning, .bench]
         case .multiNode: return [.clusterOverview, .clusterTopology, .taskMonitor, .alertCenter, .nodeActions, .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb, .multimodal, .analytics, .collab, .external, .operations, .deploy]
-        case .fusionProjects: return [.fusionProjects]
-        case .cowork: return [.cowork]
-        case .fsb: return [.fsb]
-        case .aiAgent: return [.aiAgentDashboard, .aiAgentList, .aiAgentChat, .aiAgentObserver, .aiAgentKnowledgeBase]
+        case .fsb:       return [.fsb]
         }
     }
 }

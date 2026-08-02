@@ -80,44 +80,39 @@ struct IconRailView: View {
                     appState.selectedSheet = .chat
                     appState.showChatsSidebar = true
                 case .projects:
-                    appState.selectedModule = .code
-                    appState.selectedSheet = .code
+                    appState.selectedModule = .fusionProjects
+                    appState.selectedSheet = .fusionProjectsSheet
                 case .artifacts:
                     appState.selectedModule = .artifactsRepo
                     appState.selectedSheet = .artifactsSheet
                 case .code:
                     appState.selectedModule = .code
                     appState.selectedSheet = .code
-                case .customize:
-                    appState.selectedModule = .code
-                    appState.selectedSheet = .code
                 case .design:
                     appState.selectedModule = .design
                     appState.selectedSheet = .code
                     appState.isInspectorVisible = false
+                case .rag:
+                    appState.selectedModule = .kb
+                    appState.selectedSheet = .ragSheet
                 case .agent:
                     appState.selectedModule = .agent
                     appState.selectedSheet = .agentStudio
+                case .aiAgent:
+                    appState.selectedModule = .aiAgentDashboard
+                    appState.selectedSheet = .aiAgentSheet
+                case .cowork:
+                    appState.selectedModule = .cowork
+                    appState.selectedSheet = .coworkSheet
                 case .mlx:
                     appState.selectedModule = .dashboard
                     appState.selectedSheet = .mlx
                 case .multiNode:
                     appState.selectedModule = .clusterOverview
                     appState.selectedSheet = .multiNode
-                case .fusionProjects:
-                    appState.selectedModule = .fusionProjects
-                    appState.selectedSheet = .fusionProjectsSheet
-                case .cowork:
-                    appState.selectedModule = .cowork
-                    appState.selectedSheet = .coworkSheet
                 case .fsb:
                     appState.selectedModule = .fsb
                     appState.selectedSheet = .fsbSheet
-                // Callers: IconRailView section selection. Affected API: appState.selectedModule/Sheet.
-                // Data schemas: SidebarSection.aiAgent. User instruction: "按照GUI草图实现fusion-ai-agent"
-                case .aiAgent:
-                    appState.selectedModule = .aiAgentDashboard
-                    appState.selectedSheet = .aiAgentSheet
                 }
             }
             railLog.info("Section selected: \(section.rawValue)")
