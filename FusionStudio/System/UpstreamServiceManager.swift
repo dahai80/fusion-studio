@@ -175,7 +175,7 @@ final class UpstreamServiceManager: ObservableObject {
                             icon: "desktopcomputer",
                             isCritical: false, startOrder: 5,
                             repoPathRaw: "~/fusion/fusion-cowork",
-                            healthKind: .udsSocket, healthEndpoint: "/tmp/fusion-cowork.sock"),
+                            healthKind: .socket, healthEndpoint: "/tmp/fusion-cowork.sock"),
             UpstreamService(id: "fusion-model-hub",
                             displayName: "Fusion Model Hub",
                             icon: "shippingbox",
