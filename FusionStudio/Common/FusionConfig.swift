@@ -92,7 +92,7 @@ class FusionConfig: ObservableObject {
 
     // MARK: - Artifacts Engine
     @AppStorage("artifactsEngineHost") var artifactsEngineHost = "127.0.0.1"
-    @AppStorage("artifactsEnginePort") var artifactsEnginePort = 8892
+    @AppStorage("artifactsEnginePort") var artifactsEnginePort = 11451
 
     /// Artifacts Engine 服务地址
     var artifactsEngineURL: String { "http://\(artifactsEngineHost):\(artifactsEnginePort)" }
@@ -124,8 +124,18 @@ class FusionConfig: ObservableObject {
     @AppStorage("upstreamRagPath") var upstreamRagPath = "~/fusion/fusion-kb"
     @AppStorage("upstreamMultiNodePath") var upstreamMultiNodePath = "~/fusion/fusion-multi-node"
     @AppStorage("upstreamFusionCodePath") var upstreamFusionCodePath = "~/fusion/fusion-code"
-    @AppStorage("fusionCodePort") var fusionCodePort = 4827
+    @AppStorage("fusionCodePort") var fusionCodePort = 11441
     @AppStorage("upstreamAutoStartCritical") var upstreamAutoStartCritical = true
+
+    // MARK: - Upstream Service Ports
+    @AppStorage("coworkSyncPort") var coworkSyncPort = 11437
+    @AppStorage("coworkMcpPort") var coworkMcpPort = 11438
+    @AppStorage("modelHubPort") var modelHubPort = 11444
+    @AppStorage("securityPort") var securityPort = 11442
+    @AppStorage("fusionDeskPort") var fusionDeskPort = 9761
+    @AppStorage("fusionDocPort") var fusionDocPort = 11449
+    @AppStorage("fusionBenchPort") var fusionBenchPort = 11450
+    @AppStorage("agentStudioHttpPort") var agentStudioHttpPort = 11453
 
     /// 展开 ~/ 路径为绝对路径
     func expandedUpstreamPath(_ raw: String) -> String {
@@ -231,7 +241,7 @@ class FusionConfig: ObservableObject {
         mlxPath = ""
 
         artifactsEngineHost = "127.0.0.1"
-        artifactsEnginePort = 8892
+        artifactsEnginePort = 11451
 
         fusionRagHost = "127.0.0.1"
         fusionRagPort = 11436
@@ -243,7 +253,16 @@ class FusionConfig: ObservableObject {
         upstreamRagPath = "~/fusion/fusion-kb"
         upstreamMultiNodePath = "~/fusion/fusion-multi-node"
         upstreamFusionCodePath = "~/fusion/fusion-code"
-        fusionCodePort = 4827
+        fusionCodePort = 11441
         upstreamAutoStartCritical = true
+
+        coworkSyncPort = 11437
+        coworkMcpPort = 11438
+        modelHubPort = 11444
+        securityPort = 11442
+        fusionDeskPort = 9761
+        fusionDocPort = 11449
+        fusionBenchPort = 11450
+        agentStudioHttpPort = 11453
     }
 }

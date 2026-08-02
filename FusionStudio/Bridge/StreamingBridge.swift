@@ -66,7 +66,7 @@ class StreamingBridge: ObservableObject {
         return URLSession(configuration: config)
     }()
 
-    init(host: String = "127.0.0.1", port: UInt16 = 11435) {
+    init(host: String = "127.0.0.1", port: UInt16 = 11434) {
         self.wsHost = host
         self.wsPort = port
     }

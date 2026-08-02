@@ -64,7 +64,7 @@ final class FusionConfigTests: XCTestCase {
         let config = FusionConfig.shared
         config.mlxHost = "localhost"
         config.mlxPort = 8000
-        XCTAssertEqual(config.mlxBaseURL, "http://localhost:8000")
+        XCTAssertEqual(config.mlxBaseURL, "http://localhost:11434")
     }
 
     func testResetToDefaults() {

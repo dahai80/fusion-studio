@@ -1256,12 +1256,12 @@ class IPCClient: ObservableObject {
         return try await call(method: "rag.vector_search", params: ["query": query, "limit": limit, "threshold": threshold])
     }
 
-    private static let ragHTTPBase = "http://127.0.0.1:8901"
+    private var ragHTTPBase: String { "http://\(FusionConfig.shared.fusionRagHost):\(FusionConfig.shared.fusionRagPort)" }
 
     func ragWatch(kbId: String, filePaths: [String], pollInterval: Int = 30) async throws -> [String: Any] {
         let body: [String: Any] = ["file_paths": filePaths, "poll_interval": pollInterval]
         let data = try JSONSerialization.data(withJSONObject: body)
-        var request = URLRequest(url: URL(string: "\(IPCClient.ragHTTPBase)/kb/bases/\(kbId)/watch")!)
+        var request = URLRequest(url: URL(string: "\(ragHTTPBase)/kb/bases/\(kbId)/watch")!)
         request.httpMethod = "POST"
         request.httpBody = data
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -1276,7 +1276,7 @@ class IPCClient: ObservableObject {
     func ragUnwatch(kbId: String, watchId: String) async throws -> [String: Any] {
         let body: [String: Any] = ["watch_id": watchId]
         let data = try JSONSerialization.data(withJSONObject: body)
-        var request = URLRequest(url: URL(string: "\(IPCClient.ragHTTPBase)/kb/bases/\(kbId)/unwatch")!)
+        var request = URLRequest(url: URL(string: "\(ragHTTPBase)/kb/bases/\(kbId)/unwatch")!)
         request.httpMethod = "POST"
         request.httpBody = data
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -1289,7 +1289,7 @@ class IPCClient: ObservableObject {
     }
 
     func ragWatchStatus(kbId: String) async throws -> [String: Any] {
-        var request = URLRequest(url: URL(string: "\(IPCClient.ragHTTPBase)/kb/bases/\(kbId)/watch/status")!)
+        var request = URLRequest(url: URL(string: "\(ragHTTPBase)/kb/bases/\(kbId)/watch/status")!)
         request.httpMethod = "GET"
         let (responseData, _) = try await URLSession.shared.data(for: request)
         guard let json = try JSONSerialization.jsonObject(with: responseData) as? [String: Any] else {
@@ -2718,10 +2718,10 @@ enum IPCError: Error, LocalizedError {
 
 // MARK: - MLX HTTP API (REST, not JSON-RPC)
 extension IPCClient {
-    private static let mlxHTTPBase = "http://127.0.0.1:11435"
+    private var mlxHTTPBase: String { FusionConfig.shared.mlxBaseURL }
 
     func ocr(image: String, model: String, outputFormat: String = "markdown") async throws -> String {
-        let url = URL(string: "\(IPCClient.mlxHTTPBase)/v1/ocr")!
+        let url = URL(string: "\(mlxHTTPBase)/v1/ocr")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -2748,7 +2748,7 @@ extension IPCClient {
     }
 
     func listOCRModels() async throws -> [String] {
-        let url = URL(string: "\(IPCClient.mlxHTTPBase)/v1/ocr/models")!
+        let url = URL(string: "\(mlxHTTPBase)/v1/ocr/models")!
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         let (data, resp) = try await URLSession.shared.data(for: request)
@@ -2768,10 +2768,10 @@ extension IPCClient {
 // MARK: - FSB (Fusion Small Business) HTTP REST
 
 extension IPCClient {
-    private static let fsbHTTPBase = "http://127.0.0.1:8000/api/v1/fsb"
+    private var fsbHTTPBase: String { "\(FusionConfig.shared.mlxBaseURL)/api/v1/fsb" }
 
     private func fsbRequest(_ method: String, path: String, body: [String: Any]? = nil) async throws -> [String: Any] {
-        guard let url = URL(string: "\(IPCClient.fsbHTTPBase)\(path)") else {
+        guard let url = URL(string: "\(fsbHTTPBase)\(path)") else {
             throw IPCError.invalidResponse
         }
         var request = URLRequest(url: url)
@@ -2803,7 +2803,7 @@ extension IPCClient {
     }
 
     private func fsbRequestArray(_ method: String, path: String, body: [String: Any]? = nil) async throws -> [[String: Any]] {
-        guard let url = URL(string: "\(IPCClient.fsbHTTPBase)\(path)") else {
+        guard let url = URL(string: "\(fsbHTTPBase)\(path)") else {
             throw IPCError.invalidResponse
         }
         var request = URLRequest(url: url)
@@ -3079,7 +3079,7 @@ extension IPCClient {
     }
 
     func fsbUpdateVariables(wsId: String, variables: [[String: Any]]) async throws -> [[String: Any]] {
-        guard let url = URL(string: "\(IPCClient.fsbHTTPBase)/workspace/\(wsId)/variable") else {
+        guard let url = URL(string: "\(fsbHTTPBase)/workspace/\(wsId)/variable") else {
             throw IPCError.invalidResponse
         }
         var request = URLRequest(url: url)
@@ -3139,7 +3139,7 @@ extension IPCClient {
     // MARK: Health
 
     func fsbHealth() async throws -> [String: Any] {
-        guard let url = URL(string: "http://127.0.0.1:8000/health") else {
+        guard let url = URL(string: "\(FusionConfig.shared.mlxBaseURL)/health") else {
             throw IPCError.invalidResponse
         }
         var request = URLRequest(url: url)

@@ -296,7 +296,7 @@ struct SecurityWebPanelView: View {
 
     private var statusText: String {
         switch serviceStatus {
-        case .online: return "Fusion-Security 后端在线 (localhost:8000)"
+        case .online: return "Fusion-Security 后端在线 (localhost:\(FusionConfig.shared.securityPort))"
         case .offline: return "Fusion-Security 后端离线"
         case .unknown: return "检查中..."
         }
@@ -304,7 +304,7 @@ struct SecurityWebPanelView: View {
 
     private func checkService() {
         serviceStatus = .unknown
-        let url = URL(string: "http://localhost:8000/api/v1/system/info")!
+        let url = URL(string: "http://localhost:\(FusionConfig.shared.securityPort)/api/v1/system/info")!
         var request = URLRequest(url: url)
         request.timeoutInterval = 3
         URLSession.shared.dataTask(with: request) { _, response, error in

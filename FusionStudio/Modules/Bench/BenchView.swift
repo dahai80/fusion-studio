@@ -158,7 +158,7 @@ struct BenchView: View {
         isRunning = true
         Task {
             do {
-                let url = URL(string: "http://localhost:8000/v1/benchmarks/run")!
+                let url = URL(string: "\(FusionConfig.shared.mlxBaseURL)/v1/benchmarks/run")!
                 var request = URLRequest(url: url)
                 request.httpMethod = "POST"
                 request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -290,7 +290,7 @@ struct BenchWebPanelView: View {
 
     private func checkService() {
         serviceStatus = .unknown
-        let url = URL(string: "http://localhost:8000/api/v1/system/info")!
+        let url = URL(string: "\(FusionConfig.shared.mlxBaseURL)/api/v1/system/info")!
         var request = URLRequest(url: url)
         request.timeoutInterval = 3
         URLSession.shared.dataTask(with: request) { _, response, error in
