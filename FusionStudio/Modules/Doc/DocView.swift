@@ -1,156 +1,131 @@
-// Callers: ModuleDetailView routing.
-// Affected API: DocView (replacing NSColor with StudioTheme tokens).
-// Data schemas: None changed.
-// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
+// Callers: ModuleDetailView (case .doc: DocView()).
+// Affected API: DocBridge REST localhost:11449.
+// Data schemas: DocPage/DocBook/DocChapter/DocTag via DocBridge.
+// User instruction: "按照prd文档和fusion-doc配合打造有竞争力的领先的产品"
 
 import SwiftUI
+import os.log
 
-/// 文档条目
-struct DocEntry: Identifiable, Hashable {
-    let id: String
-    var title: String
-    var content: String
-    var lastModified: Date
-    var tags: [String]
-    var category: DocCategory
+private let docViewLog = Logger(subsystem: "com.fusion.studio", category: "DocView")
 
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
+enum DocSubTab: String, CaseIterable, Identifiable {
+    case editor = "编辑器"
+    case graph = "知识图谱"
+    case versions = "版本历史"
+    case office = "Office"
+    case workflow = "工作流"
+    case template = "模板"
 
-    static func == (lhs: DocEntry, rhs: DocEntry) -> Bool {
-        lhs.id == rhs.id
-    }
+    var id: String { rawValue }
 
-    enum DocCategory: String, CaseIterable {
-        case note    = "笔记"
-        case design  = "设计文档"
-        case api     = "API 文档"
-        case guide   = "使用指南"
-        case other   = "其他"
-
-        var icon: String {
-            switch self {
-            case .note:   return "note.text"
-            case .design: return "pencil.and.outline"
-            case .api:    return "doc.text.magnifyingglass"
-            case .guide:  return "book"
-            case .other:  return "doc"
-            }
+    var icon: String {
+        switch self {
+        case .editor:    return "doc.text"
+        case .graph:     return "point.3.connected.trianglepath.dotted"
+        case .versions:  return "clock.arrow.circlepath"
+        case .office:    return "desktopcomputer"
+        case .workflow:  return "arrow.triangle.branch"
+        case .template:  return "doc.badge.gearshape"
         }
     }
 }
-
-let sampleDocs: [DocEntry] = [
-    DocEntry(id: "doc-1", title: "Fusion Studio 架构设计", content: "# 架构设计\n\n## 分层架构\n\nFusion Studio 采用五层架构...", lastModified: Date(), tags: ["架构", "设计"], category: .design),
-    DocEntry(id: "doc-2", title: "IPC 通信协议", content: "# IPC 协议\n\n## JSON-RPC 2.0\n\n通信基于 Unix Socket...", lastModified: Date(), tags: ["IPC", "协议"], category: .api),
-    DocEntry(id: "doc-3", title: "快速开始指南", content: "# 快速开始\n\n## 安装\n\n1. 克隆仓库...", lastModified: Date(), tags: ["指南", "入门"], category: .guide),
-    DocEntry(id: "doc-4", title: "开发笔记", content: "## 待办事项\n\n- [ ] 完善仿真模块\n- [ ] 优化性能\n- [ ] 编写测试", lastModified: Date(), tags: ["笔记", "待办"], category: .note),
-]
 
 struct DocView: View {
     @Environment(\.studioTheme) private var theme
-    @State private var documents: [DocEntry] = sampleDocs
-    @State private var selectedDoc: DocEntry?
+    @StateObject private var bridge = DocBridge()
+    @State private var selectedPageId: String?
+    @State private var showCopilot = true
+    @State private var sidebarWidth: CGFloat = 260
+    @State private var copilotWidth: CGFloat = 320
     @State private var searchText = ""
-    @State private var selectedCategory: DocEntry.DocCategory?
-
-    var filteredDocs: [DocEntry] {
-        var result = documents
-        if let cat = selectedCategory {
-            result = result.filter { $0.category == cat }
-        }
-        if !searchText.isEmpty {
-            result = result.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
-        }
-        return result
-    }
-
-    var body: some View {
-        HSplitView {
-            // 左侧列表
-            VStack(spacing: 0) {
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(.secondary)
-                    TextField("搜索文档...", text: $searchText)
-                        .textFieldStyle(.plain)
-                }
-                .padding(8)
-                .background(theme.surfaceSecondary)
-
-                Divider()
-
-                List(selection: $selectedDoc) {
-                    ForEach(DocEntry.DocCategory.allCases, id: \.self) { cat in
-                        Section {
-                            let docs = filteredDocs.filter { $0.category == cat }
-                            ForEach(docs) { doc in
-                                Label(doc.title, systemImage: cat.icon)
-                                    .tag(doc)
-                                    .font(.subheadline)
-                            }
-                        } header: {
-                            Label(cat.rawValue, systemImage: cat.icon)
-                        }
-                    }
-                }
-                .listStyle(.sidebar)
-            }
-            .frame(minWidth: 200, maxWidth: 300)
-
-            // 右侧编辑器
-            if let doc = selectedDoc {
-                DocEditor(doc: Binding(
-                    get: { doc },
-                    set: { newValue in
-                        if let idx = documents.firstIndex(where: { $0.id == doc.id }) {
-                            documents[idx] = newValue
-                        }
-                    }
-                ))
-            } else {
-                VStack(spacing: 12) {
-                    Image(systemName: "doc.text")
-                        .font(.system(size: 48))
-                        .foregroundColor(.secondary)
-                    Text("选择或创建文档")
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-        }
-    }
-}
-
-struct DocEditor: View {
-    @Environment(\.studioTheme) private var theme
-    @Binding var doc: DocEntry
+    @State private var activeTab: DocSubTab = .editor
 
     var body: some View {
         VStack(spacing: 0) {
-            // 工具栏
-            HStack {
-                TextField("标题", text: $doc.title)
-                    .font(.title2)
-                    .textFieldStyle(.plain)
-                Spacer()
-                Text(doc.lastModified, style: .date)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            .padding(8)
-            .background(theme.surfaceSecondary)
-
+            tabBar
             Divider()
+            HSplitView {
+                DocSidebar(bridge: bridge, selectedPageId: $selectedPageId, searchText: $searchText)
+                    .frame(minWidth: 220, maxWidth: 320)
 
-            // Markdown 编辑器
-            ScrollView {
-                TextEditor(text: $doc.content)
-                    .font(.system(.body, design: .monospaced))
-                    .frame(minHeight: 300)
-                    .padding(8)
+                mainContent
+                    .frame(minWidth: 400)
+
+                if showCopilot {
+                    DocAICopilotView(bridge: bridge, selectedPageId: $selectedPageId)
+                        .frame(width: copilotWidth)
+                }
             }
         }
+        .toolbar {
+            ToolbarItemGroup(placement: .primaryAction) {
+                Button(action: { showCopilot.toggle() }) {
+                    Image(systemName: showCopilot ? "bubble.left.and.bubble.right.fill" : "bubble.left.and.bubble.right")
+                }
+                .help("AI Copilot")
+            }
+        }
+        .onAppear {
+            bridge.checkHealth()
+            bridge.fetchBooks()
+            bridge.fetchTags()
+        }
+    }
+
+    private var tabBar: some View {
+        HStack(spacing: 0) {
+            ForEach(DocSubTab.allCases) { tab in
+                Button(action: { activeTab = tab }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: tab.icon)
+                            .font(.caption)
+                        Text(tab.rawValue)
+                            .font(.caption)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(activeTab == tab ? theme.accentSoft : Color.clear)
+                    .foregroundColor(activeTab == tab ? theme.accent : theme.textSecondary)
+                    .cornerRadius(6)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 4)
+        .background(theme.surfaceSecondary)
+    }
+
+    @ViewBuilder
+    private var mainContent: some View {
+        switch activeTab {
+        case .editor:
+            DocEditorArea(bridge: bridge, selectedPageId: $selectedPageId)
+        case .graph:
+            DocGraphView(bridge: bridge)
+        case .versions:
+            if let pid = selectedPageId {
+                DocVersionView(bridge: bridge, pageId: pid)
+            } else {
+                emptyTab("选择页面查看版本历史", icon: "clock.arrow.circlepath")
+            }
+        case .office:
+            DocOfficeView(bridge: bridge)
+        case .workflow:
+            DocWorkflowView(bridge: bridge)
+        case .template:
+            DocTemplateView(bridge: bridge)
+        }
+    }
+
+    private func emptyTab(_ message: String, icon: String) -> some View {
+        VStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 40))
+                .foregroundColor(.secondary)
+            Text(message)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
