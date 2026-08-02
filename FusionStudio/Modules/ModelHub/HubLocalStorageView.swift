@@ -28,6 +28,11 @@ struct HubLocalStorageView: View {
     @State private var versions: [HubModelVersion] = []
     @State private var loadingVersions = false
 
+    // Batch quantize
+    @State private var showBatchQuantize = false
+    @State private var batchQuantBits = 4
+    @State private var batchQuantFormat = "mlx"
+
     private var families: [String] {
         let fams = Set(models.compactMap(\.family)).sorted()
         return ["全部"] + fams
@@ -57,6 +62,7 @@ struct HubLocalStorageView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task { await loadModels() }
+        .sheet(isPresented: $showBatchQuantize) { batchQuantizeSheet }
     }
 
     // MARK: - List Panel
@@ -129,6 +135,12 @@ struct HubLocalStorageView: View {
                     .buttonStyle(.bordered)
                     .controlSize(.mini)
                     .foregroundStyle(.red)
+                    Button("批量量化") {
+                        showBatchQuantize = true
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.mini)
+                    .foregroundStyle(.orange)
                     Button("同步至集群") {
                         syncToCluster()
                     }
@@ -282,6 +294,12 @@ struct HubLocalStorageView: View {
                             if let created = ver.createdAt {
                                 Text(created).font(.caption2).foregroundStyle(theme.textTertiary)
                             }
+                            Button("回滚") {
+                                rollbackVersion(ver)
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.mini)
+                            .foregroundStyle(.orange)
                         }
                         .padding(.vertical, 4)
                     }
@@ -375,6 +393,105 @@ struct HubLocalStorageView: View {
                 selectedIds.removeAll()
             } catch {
                 lastError = error.localizedDescription
+            }
+        }
+    }
+
+    // MARK: - Batch Quantize Sheet
+
+    private var batchQuantizeSheet: some View {
+        VStack(spacing: theme.spacingM) {
+            Text("批量量化")
+                .font(.title2)
+                .bold()
+            Text("将对 \(selectedCount) 个模型执行量化转换")
+                .font(.caption)
+                .foregroundStyle(theme.textSecondary)
+
+            HStack(spacing: theme.spacingM) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("目标格式").font(.caption).foregroundStyle(.secondary)
+                    Picker("", selection: $batchQuantFormat) {
+                        Text("MLX").tag("mlx")
+                        Text("GGUF").tag("gguf")
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 160)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("量化位数").font(.caption).foregroundStyle(.secondary)
+                    Picker("", selection: $batchQuantBits) {
+                        Text("2-bit").tag(2)
+                        Text("4-bit").tag(4)
+                        Text("8-bit").tag(8)
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 160)
+                }
+            }
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(batchSelectedModels) { m in
+                        HStack(spacing: 6) {
+                            Image(systemName: "cpu").font(.caption).foregroundStyle(.secondary)
+                            Text(m.displayTitle).font(.system(size: theme.footnoteSize))
+                            if let q = m.quantization { Text("(\(q))").font(.caption2).foregroundStyle(.secondary) }
+                        }
+                    }
+                }
+            }
+            .frame(maxHeight: 150)
+
+            if let err = lastError {
+                Text(err).font(.caption).foregroundStyle(.red)
+            }
+
+            HStack {
+                Button("取消") { showBatchQuantize = false }
+                    .buttonStyle(.bordered)
+                Button("开始量化") {
+                    batchQuantize()
+                    showBatchQuantize = false
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding()
+        .frame(width: 420)
+    }
+
+    private func batchQuantize() {
+        let ids = Array(selectedIds)
+        Task { @MainActor in
+            do {
+                for modelId in ids {
+                    _ = try await client.startQuantize(
+                        modelId: modelId,
+                        format: batchQuantFormat,
+                        bits: batchQuantBits
+                    )
+                    storageLog.info("Quantize started: \(modelId) \(batchQuantFormat) \(batchQuantBits)-bit")
+                }
+                lastError = nil
+            } catch {
+                lastError = "批量量化失败: \(error.localizedDescription)"
+                storageLog.error("Batch quantize failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func rollbackVersion(_ ver: HubModelVersion) {
+        Task { @MainActor in
+            do {
+                _ = try await client.rollbackVersion(versionId: ver.id)
+                storageLog.info("Rolled back to version: \(ver.id)")
+                if let model = selectedModel {
+                    loadVersionsFor(model)
+                }
+            } catch {
+                lastError = "版本回滚失败: \(error.localizedDescription)"
+                storageLog.error("Rollback failed: \(error.localizedDescription)")
             }
         }
     }
