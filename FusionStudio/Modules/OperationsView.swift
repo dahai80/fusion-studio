@@ -208,7 +208,6 @@ struct OpsServicesView: View {
         ("env-daemon", "运行中", 0, 12345, "0.2%", "4 MB"),
         ("mlx-daemon", "运行中", 8001, 12346, "1.5%", "28 MB"),
         ("fusion-mlx", "运行中", 8000, 12347, "45.2%", "5.2 GB"),
-        ("file-daemon", "已停止", 8002, 0, "-", "-"),
     ]
 
     var body: some View {

@@ -30,7 +30,7 @@ step()  { echo -e "${CYAN}━━━ $1 ━━━${NC}"; }
 build_services() {
     step "构建 Rust 后台服务"
 
-    local services=("env-daemon" "supervisor")
+    local services=("env-daemon")
     for svc in "${services[@]}"; do
         local svc_dir="$PROJECT_DIR/Services/$svc"
         if [ -f "$svc_dir/Cargo.toml" ]; then
@@ -304,7 +304,7 @@ main() {
         clean)
             step "清理构建产物"
             rm -rf "$BUILD_DIR" 2>/dev/null || true
-            for svc in env-daemon supervisor; do
+            for svc in env-daemon; do
                 (cd "$PROJECT_DIR/Services/$svc" && cargo clean 2>/dev/null) || true
             done
             (cd "$PROJECT_DIR" && swift package clean 2>/dev/null) || true

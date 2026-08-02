@@ -112,10 +112,10 @@ enum Module: String, CaseIterable, Identifiable {
     case dashboard = "控制台"
     case design    = "设计"
     case code      = "编码"
-    case simulation = "仿真"
+    case simulation = "仿真"  // L5 domain — deprecated, remove when upstream service lands
     case modelHub  = "模型"
     case multimodal = "多模态"
-    case training  = "训练"
+    case training  = "训练"  // L5 domain — deprecated, remove when upstream service lands
     case cli       = "命令行"
     case doc       = "文档"
     case kb        = "知识库"
@@ -147,7 +147,7 @@ enum Module: String, CaseIterable, Identifiable {
     case deploy     = "部署"
     // Callers: ModuleDetailView, sidebar. Affected API: verify.verify, budget.set/status. User instruction: "审视是否所有需要功能和api所有需要的GUI都在~/fusion/fusion-studio都已经有对应GUI了，所有有问题的都要在fusion-studio补齐GUI"
     case operations = "运维"
-    case eduK12 = "教育"
+    case eduK12 = "教育"  // L5 domain — deprecated, remove when upstream service lands
     case verification = "验证"
     case tokenBudget = "预算"
     case safety = "安全审批"
@@ -306,7 +306,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
 
     var modules: [Module] {
         switch self {
-        case .chats:     return [.code]
+        case .chats:     return [.chat, .code]
         case .projects:  return [.fusionProjects]
         case .artifacts: return [.artifactsRepo]
         case .code:      return [.code, .design, .doc, .docgen, .cli]
@@ -316,7 +316,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .aiAgent:   return [.aiAgentDashboard, .aiAgentList, .aiAgentChat, .aiAgentObserver, .aiAgentKnowledgeBase]
         case .cowork:    return [.cowork]
         case .mlx:       return [.dashboard, .modelHub, .tuning, .bench]
-        case .multiNode: return [.clusterOverview, .clusterTopology, .taskMonitor, .alertCenter, .nodeActions, .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb, .multimodal, .analytics, .collab, .external, .operations, .deploy]
+        case .multiNode: return [.clusterOverview, .clusterTopology, .clusterSync, .taskMonitor, .alertCenter, .nodeActions, .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb, .multimodal, .analytics, .collab, .external, .operations, .deploy]
         case .fsb:       return [.fsb]
         case .science:   return [.science]
         }

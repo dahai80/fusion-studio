@@ -104,7 +104,7 @@ build_all() {
     info "=== 构建所有组件 ==="
 
     # 构建 Rust 服务
-    for svc in env-daemon supervisor; do
+    for svc in env-daemon; do
         local svc_dir="$PROJECT_DIR/Services/$svc"
         if [ -f "$svc_dir/Cargo.toml" ]; then
             info "构建 $svc..."

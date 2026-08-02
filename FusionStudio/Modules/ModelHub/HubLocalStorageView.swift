@@ -381,8 +381,18 @@ struct HubLocalStorageView: View {
 
     private func syncToCluster() {
         storageLog.info("Sync to cluster: \(selectedIds)")
-        // TODO: call cluster sync API when available
-        lastError = "集群同步功能待上游 API 支持"
+        Task {
+            do {
+                for modelId in selectedIds {
+                    let _: HubSimpleResponse = try await client.post("/api/v1/cluster/sync-model", json: ["model_id": modelId])
+                    storageLog.info("Cluster sync started for \(modelId)")
+                }
+                lastError = nil
+            } catch {
+                storageLog.error("Cluster sync failed: \(error.localizedDescription)")
+                lastError = "集群同步失败: \(error.localizedDescription)"
+            }
+        }
     }
 }
 
