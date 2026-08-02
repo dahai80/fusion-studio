@@ -1,7 +1,7 @@
 // Callers: ModelHubAPIClient decodes these; all Model Hub views use them as data source.
 // Affected API: Codable DTOs matching fusion-model-hub /api/v1/* JSON responses.
 // Data schemas: JSON response shapes from upstream routers (models/quantize/downloads/cluster/monitor/auth/system/hardware/benchmarks).
-// User instruction: "按照prd文档和fusion-model-hub配合打造有竞争力的领先的产品"
+// User instruction: issue #63 — market search, modules, benchmarks, scheduling, QPS
 
 import Foundation
 
@@ -93,6 +93,24 @@ struct HubMarketModel: Identifiable, Codable, Hashable {
     var sizeGB: Double { Double(sizeBytes ?? 0) / 1_073_741_824.0 }
     var sizeFormatted: String { sizeGB > 0 ? String(format: "%.1f GB", sizeGB) : "" }
 
+    var sourceIcon: String {
+        switch source {
+        case "huggingface": return "h.square.fill"
+        case "modelscope": return "m.square.fill"
+        case "local": return "internaldrive"
+        default: return "globe"
+        }
+    }
+
+    var sourceColor: String {
+        switch source {
+        case "huggingface": return "yellow"
+        case "modelscope": return "blue"
+        case "local": return "gray"
+        default: return "green"
+        }
+    }
+
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
     static func == (lhs: HubMarketModel, rhs: HubMarketModel) -> Bool { lhs.id == rhs.id }
 }
@@ -150,6 +168,7 @@ struct HubQuantizeTask: Identifiable, Codable {
     let error: String?
     let createdAt: String?
     let completedAt: String?
+    let benchmarkResult: HubBenchmarkEntry?
 
     var isComplete: Bool { status == "completed" || status == "done" }
     var isFailed: Bool { status == "failed" || status == "error" }
@@ -175,14 +194,14 @@ struct HubQuantizePreset: Identifiable, Codable {
     let estimatedSizeReduction: Double?
 }
 
-// MARK: - Cluster
+// MARK: - Cluster / Smart Scheduling (issue #63 sub-feature 4)
 
 struct HubClusterNodeListResponse: Codable {
     let nodes: [HubClusterNode]
     let total: Int?
 }
 
-struct HubClusterNode: Identifiable, Codable {
+struct HubClusterNode: Identifiable, Codable, Hashable {
     let id: String
     let name: String?
     let host: String?
@@ -192,8 +211,72 @@ struct HubClusterNode: Identifiable, Codable {
     let gpuType: String?
     let memoryGB: Double?
     let lastSeen: String?
+    let cpuUsage: Double?
+    let gpuUsage: Double?
+    let memoryUsed: Double?
 
     var isOnline: Bool { status == "online" || status == "active" }
+
+    var healthStatus: HubNodeHealth {
+        guard isOnline else { return .offline }
+        if let cpu = cpuUsage, cpu > 0.9 { return .overloaded }
+        if let gpu = gpuUsage, gpu > 0.9 { return .overloaded }
+        if let mem = memoryUsed, let total = memoryGB, mem / total > 0.9 { return .overloaded }
+        return .healthy
+    }
+}
+
+enum HubNodeHealth: String {
+    case healthy = "健康"
+    case overloaded = "过载"
+    case offline = "离线"
+
+    var icon: String {
+        switch self {
+        case .healthy: return "checkmark.circle.fill"
+        case .overloaded: return "exclamationmark.triangle.fill"
+        case .offline: return "xmark.circle.fill"
+        }
+    }
+
+    var color: String {
+        switch self {
+        case .healthy: return "green"
+        case .overloaded: return "orange"
+        case .offline: return "red"
+        }
+    }
+}
+
+struct HubClusterTopologyResponse: Codable {
+    let nodes: [HubClusterNode]
+    let edges: [HubClusterEdge]
+    let localNode: String?
+}
+
+struct HubClusterEdge: Codable, Identifiable {
+    let id: String
+    let from: String
+    let to: String
+    let latency: Double?
+    let bandwidth: Double?
+}
+
+struct HubRouteInferenceRequest: Codable {
+    let modelId: String
+    let messages: [HubChatMessage]
+    let mode: String
+
+    enum CodingKeys: String, CodingKey {
+        case modelId = "model_id"
+        case messages
+        case mode
+    }
+}
+
+struct HubChatMessage: Codable {
+    let role: String
+    let content: String
 }
 
 // MARK: - Monitor
@@ -235,7 +318,7 @@ struct HubDiskStats: Codable {
     let modelsSize: Double?
 }
 
-// MARK: - Auth
+// MARK: - Auth (issue #63 sub-feature 2 & 5)
 
 struct HubAPIKeyListResponse: Codable {
     let keys: [HubAPIKey]
@@ -253,10 +336,57 @@ struct HubAPIKey: Identifiable, Codable {
     let prefix: String?
     let allowedModels: [String]?
     let allowedModules: [String]?
+    let qpsLimit: Int?
     let rateLimitQpm: Int?
     let isActive: Bool?
     let createdAt: String?
     let lastUsed: String?
+
+    var effectiveQPSLimit: Int? { qpsLimit ?? rateLimitQpm }
+}
+
+struct HubAPIKeyUsageResponse: Codable {
+    let keyId: String
+    let currentQps: Double?
+    let currentQpm: Int?
+    let totalRequests: Int?
+    let windowStart: String?
+    let windowEnd: String?
+}
+
+// MARK: - Module definitions (issue #63 sub-feature 2)
+
+enum HubModelModule: String, CaseIterable, Identifiable {
+    case nlp = "NLP"
+    case cv = "CV"
+    case audio = "Audio"
+    case multimodal = "Multimodal"
+    case code = "Code"
+    case science = "Science"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .nlp: return "text.bubble"
+        case .cv: return "eye"
+        case .audio: return "waveform"
+        case .multimodal: return "square.on.square.intersection"
+        case .code: return "chevron.left.forwardslash.chevron.right"
+        case .science: return "flask"
+        }
+    }
+
+    var color: String {
+        switch self {
+        case .nlp: return "blue"
+        case .cv: return "purple"
+        case .audio: return "green"
+        case .multimodal: return "orange"
+        case .code: return "cyan"
+        case .science: return "pink"
+        }
+    }
 }
 
 // MARK: - System
@@ -290,6 +420,7 @@ struct HubAuditLogResponse: Codable {
 struct HubAuditEntry: Identifiable, Codable {
     let id: String
     let action: String?
+    let source: String?
     let resource: String?
     let user: String?
     let timestamp: String?
@@ -311,7 +442,7 @@ struct HubHardwareResponse: Codable {
     let neuralEngineCores: Int?
 }
 
-// MARK: - Benchmarks
+// MARK: - Benchmarks (issue #63 sub-feature 3)
 
 struct HubBenchmarkCompareResponse: Codable {
     let benchmarks: [HubBenchmarkEntry]
@@ -326,6 +457,7 @@ struct HubBenchmarkEntry: Identifiable, Codable {
     let timeToFirstToken: Double?
     let memoryPeak: Double?
     let score: Double?
+    let accuracy: Double?
     let completedAt: String?
 }
 
@@ -336,6 +468,8 @@ struct HubInferenceResponse: Codable {
     let content: String?
     let model: String?
     let usage: HubInferenceUsage?
+    let routedTo: String?
+    let routeMode: String?
 }
 
 struct HubInferenceUsage: Codable {

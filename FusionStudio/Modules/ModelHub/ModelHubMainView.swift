@@ -1,7 +1,7 @@
-// Callers: ModuleDetailView routes Module.modelHub → ModelHubMainView.
+// Callers: ModuleDetailView routes Module.modelHub -> ModelHubMainView.
 // Affected API: Replaces old ModelHubView as primary entry; old view kept for compat.
-// Data schemas: ModelHubSection enum (8 cases), ModelHubAPIClient state.
-// User instruction: "按照prd文档和fusion-model-hub配合打造有竞争力的领先的产品"
+// Data schemas: ModelHubSection enum (9 cases), ModelHubAPIClient state.
+// User instruction: issue #63 — market search, modules, benchmarks, scheduling, QPS
 
 import SwiftUI
 import os.log
@@ -14,6 +14,7 @@ enum ModelHubSection: String, CaseIterable, Identifiable {
     case localStorage = "本地存储"
     case convertQuant = "转换量化"
     case schedule = "下载调度"
+    case cluster = "集群调度"
     case permission = "权限管控"
     case monitor = "系统监控"
     case benchmark = "性能评测"
@@ -27,6 +28,7 @@ enum ModelHubSection: String, CaseIterable, Identifiable {
         case .localStorage: return "internaldrive"
         case .convertQuant: return "arrow.triangle.2.circlepath"
         case .schedule:     return "arrow.down.circle"
+        case .cluster:      return "server.rack"
         case .permission:   return "lock.shield"
         case .monitor:      return "chart.line.uptrend.xyaxis"
         case .benchmark:    return "chart.bar.xaxis"
@@ -175,6 +177,8 @@ struct ModelHubMainView: View {
                 HubConvertQuantView(client: client)
             case .schedule:
                 HubScheduleView(client: client)
+            case .cluster:
+                HubClusterView(client: client)
             case .permission:
                 HubPermissionView(client: client)
             case .monitor:

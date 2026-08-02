@@ -15,7 +15,7 @@ struct ModuleDetailView: View {
             case .simulation:
                 SimulationView()
             case .modelHub:
-                ModelHubView()
+                ModelHubMainView()
             case .multimodal:
                 MultiModalView()
             case .training:
