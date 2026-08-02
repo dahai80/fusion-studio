@@ -1554,16 +1554,6 @@ class IPCClient: ObservableObject {
         return try await spaceCall(method: "desk.mlx.status")
     }
 
-    func deskMlxStart(model: String = "") async throws -> [String: Any] {
-        var params: [String: Any] = [:]
-        if !model.isEmpty { params["model"] = model }
-        return try await spaceCall(method: "desk.mlx.start", params: params)
-    }
-
-    func deskMlxStop() async throws -> [String: Any] {
-        return try await spaceCall(method: "desk.mlx.stop")
-    }
-
     func deskMlxModels() async throws -> [String: Any] {
         return try await spaceCall(method: "desk.mlx.models")
     }
