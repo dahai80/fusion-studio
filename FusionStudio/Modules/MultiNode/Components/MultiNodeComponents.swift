@@ -39,6 +39,7 @@ struct MetricStripCard: View {
 
 struct NodeRow: View {
     let node: ClusterNode
+    let nodeLoad: NodeLoadReport?
     let isSelected: Bool
     let onSelect: () -> Void
     @Environment(\.studioTheme) var theme
@@ -91,6 +92,13 @@ struct NodeRow: View {
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.textTertiary)
                 }
+                if let load = nodeLoad {
+                    HStack(spacing: theme.spacingM) {
+                        loadBadge(icon: "gpu", label: "GPU", ratio: load.gpuUsageRatio, detail: String(format: "%.1f/%.1fGB", load.gpuMemoryUsedGb, load.gpuMemoryTotalGb))
+                        loadBadge(icon: "memorychip", label: "RAM", ratio: load.ramUsageRatio, detail: String(format: "%.1f/%.1fGB", load.ramUsedGb, load.ramTotalGb))
+                        loadBadge(icon: "cpu", label: "CPU", value: String(format: "%.0f%%", load.cpuPercent))
+                    }
+                }
             }
         }
         .padding(.horizontal, theme.spacingL)
@@ -98,6 +106,39 @@ struct NodeRow: View {
         .background(isSelected ? theme.selBg : Color.clear)
         .contentShape(Rectangle())
         .onTapGesture { onSelect() }
+    }
+
+    private func loadBadge(icon: String, label: String, ratio: Double, detail: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 9))
+                .foregroundStyle(theme.textTertiary)
+            Text(label)
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(theme.textTertiary)
+            Text(detail)
+                .font(.system(size: 9, design: .monospaced))
+                .foregroundStyle(theme.textSecondary)
+                .monospacedDigit()
+            ProgressView(value: ratio)
+                .progressViewStyle(.linear)
+                .frame(width: 32)
+        }
+    }
+
+    private func loadBadge(icon: String, label: String, value: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 9))
+                .foregroundStyle(theme.textTertiary)
+            Text(label)
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(theme.textTertiary)
+            Text(value)
+                .font(.system(size: 9, design: .monospaced))
+                .foregroundStyle(theme.textSecondary)
+                .monospacedDigit()
+        }
     }
 }
 

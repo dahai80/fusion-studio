@@ -546,3 +546,121 @@ struct AgentHardwareInfo: Codable {
         case deviceModel = "device_model"
     }
 }
+
+// MARK: - /api/cluster/status 响应 (集群同步状态)
+
+struct ClusterSyncStatus: Codable {
+    let partition: PartitionInfo?
+    let syncAvailable: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case partition
+        case syncAvailable = "sync_available"
+    }
+
+    var isDegraded: Bool { partition?.isDegraded ?? false }
+    var partitionState: String { partition?.partitionState ?? "connected" }
+}
+
+struct PartitionInfo: Codable {
+    let nodeId: String?
+    let partitionState: String
+    let isDegraded: Bool
+    let nodes: [String: PartitionNodeStatus]?
+
+    enum CodingKeys: String, CodingKey {
+        case nodeId = "node_id"
+        case partitionState = "partition_state"
+        case isDegraded = "is_degraded"
+        case nodes
+    }
+}
+
+struct PartitionNodeStatus: Codable {
+    let lastHeartbeatAgo: Double?
+    let status: String?
+
+    enum CodingKeys: String, CodingKey {
+        case lastHeartbeatAgo = "last_heartbeat_ago"
+        case status
+    }
+}
+
+// MARK: - /api/models/{model_name}/manifest 响应
+
+struct ModelManifest: Codable, Identifiable {
+    var id: String { modelName }
+    let modelName: String
+    let modelId: String?
+    let totalSize: Int64?
+    let createdAt: String?
+    let files: [FileEntry]?
+
+    enum CodingKeys: String, CodingKey {
+        case modelName = "model_name"
+        case modelId = "model_id"
+        case totalSize = "total_size"
+        case createdAt = "created_at"
+        case files
+    }
+}
+
+struct FileEntry: Codable, Identifiable, Hashable {
+    var id: String { path }
+    let path: String
+    let size: Int64?
+    let sha256: String?
+    let modifiedAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case path, size, sha256
+        case modifiedAt = "modified_at"
+    }
+}
+
+// MARK: - /api/nodes/{node_id}/load 响应
+
+struct NodeLoadReport: Codable, Identifiable {
+    var id: String { nodeId }
+    let nodeId: String
+    let gpuMemoryUsedGb: Double
+    let gpuMemoryTotalGb: Double
+    let ramUsedGb: Double
+    let ramTotalGb: Double
+    let diskUsedGb: Double
+    let diskTotalGb: Double
+    let cpuPercent: Double
+    let activeTasks: Int
+    let maxTasks: Int
+    let reportedAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case nodeId = "node_id"
+        case gpuMemoryUsedGb = "gpu_memory_used_gb"
+        case gpuMemoryTotalGb = "gpu_memory_total_gb"
+        case ramUsedGb = "ram_used_gb"
+        case ramTotalGb = "ram_total_gb"
+        case diskUsedGb = "disk_used_gb"
+        case diskTotalGb = "disk_total_gb"
+        case cpuPercent = "cpu_percent"
+        case activeTasks = "active_tasks"
+        case maxTasks = "max_tasks"
+        case reportedAt = "reported_at"
+    }
+
+    var gpuUsageRatio: Double {
+        guard gpuMemoryTotalGb > 0 else { return 0 }
+        return gpuMemoryUsedGb / gpuMemoryTotalGb
+    }
+
+    var ramUsageRatio: Double {
+        guard ramTotalGb > 0 else { return 0 }
+        return ramUsedGb / ramTotalGb
+    }
+
+    static let empty = NodeLoadReport(
+        nodeId: "", gpuMemoryUsedGb: 0, gpuMemoryTotalGb: 0,
+        ramUsedGb: 0, ramTotalGb: 0, diskUsedGb: 0, diskTotalGb: 0,
+        cpuPercent: 0, activeTasks: 0, maxTasks: 0, reportedAt: nil
+    )
+}

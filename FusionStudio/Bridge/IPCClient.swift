@@ -2677,6 +2677,67 @@ class IPCClient: ObservableObject {
         ])
     }
 
+    // MARK: - Multi-Node Cluster Sync (#74)
+
+    func multiNodeCall(method: String, params: [String: Any] = [:]) async throws -> [String: Any] {
+        let host = FusionConfig.shared.modelHubHost
+        let port = 11452
+        let urlStr = "http://\(host):\(port)/rpc"
+        guard let url = URL(string: urlStr) else {
+            throw IPCError.invalidRequest
+        }
+        var request: [String: Any] = [
+            "jsonrpc": "2.0",
+            "id": Int(Date().timeIntervalSince1970 * 1000),
+            "method": method,
+        ]
+        if !params.isEmpty { request["params"] = params }
+        guard let requestData = try? JSONSerialization.data(withJSONObject: request) else {
+            throw IPCError.invalidRequest
+        }
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = "POST"
+        urlRequest.httpBody = requestData
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.timeoutInterval = 15
+        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw IPCError.invalidResponse
+        }
+        guard httpResponse.statusCode == 200 else {
+            throw IPCError.rpcError(code: httpResponse.statusCode, message: "HTTP \(httpResponse.statusCode)")
+        }
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw IPCError.invalidResponse
+        }
+        if let error = json["error"] as? [String: Any] {
+            let code = error["code"] as? Int ?? -1
+            let msg = error["message"] as? String ?? "Unknown error"
+            throw IPCError.rpcError(code: code, message: msg)
+        }
+        return json["result"] as? [String: Any] ?? [:]
+    }
+
+    func getModelManifest(modelName: String) async throws -> [String: Any] {
+        return try await multiNodeCall(method: "cluster.get_model_manifest", params: ["model_name": modelName])
+    }
+
+    func triggerIncrementalSync(modelName: String, sourceHost: String, sourcePort: Int = 11452) async throws -> [String: Any] {
+        return try await multiNodeCall(method: "cluster.incremental_sync", params: [
+            "model_name": modelName,
+            "source_host": sourceHost,
+            "source_port": sourcePort,
+        ])
+    }
+
+    func getClusterSyncStatus() async throws -> [String: Any] {
+        return try await multiNodeCall(method: "cluster.sync_status")
+    }
+
+    func getNodeLoad(nodeId: String) async throws -> [String: Any] {
+        return try await multiNodeCall(method: "cluster.get_node_load", params: ["node_id": nodeId])
+    }
+
 
     deinit {
         reconnectTimer?.invalidate()

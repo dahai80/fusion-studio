@@ -52,6 +52,8 @@ struct ModuleDetailView: View {
                 ClusterOverviewView()
             case .clusterTopology:
                 ClusterTopologyView()
+            case .clusterSync:
+                ClusterSyncView()
             case .taskMonitor:
                 TaskMonitorView()
             case .alertCenter:
