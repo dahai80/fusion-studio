@@ -563,8 +563,10 @@ struct ArtifactCanvasView: View {
         activeSection = sectionId
         Task {
             do {
-                let r = try await ipc.artifactLoad(artifactId: artifactId)
-                if let sectionsData = r["sections"] as? [[String: Any]] {
+                let r = try await ipc.artifactLoad(artifactId: artifactId, section: sectionId)
+                if let sec = r["content"] as? String {
+                    await MainActor.run { self.content = sec }
+                } else if let sectionsData = r["sections"] as? [[String: Any]] {
                     let target = sectionsData.first { ($0["id"] as? String) == sectionId }
                     if let sec = target?["content"] as? String {
                         await MainActor.run { self.content = sec }
