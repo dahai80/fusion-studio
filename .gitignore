@@ -38,3 +38,8 @@ __pycache__/
 
 # Local-only docs
 ARCHITECTURE.md
+# Local insight docs
+/docs/claude_code_dongcha.md
+/docs/claude_design_insight.md
+/docs/claude_dongcha.md
+/docs/claude_projects_insight.md
