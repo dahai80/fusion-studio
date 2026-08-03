@@ -236,13 +236,50 @@ class FusionCodeBridge: ObservableObject {
                 await MainActor.run {
                     self.availableModels = status.loaded
                     if self.availableModels.isEmpty {
-                        self.availableModels = ["qwen3.5-9b", "qwen3-30b", "deepseek-coder-6.7b"]
+                        self.availableModels = []
+                        fcBridgeLog.warning("no models loaded from fusion-code, falling back to MLX")
                     }
                     fcBridgeLog.info("available models: \(self.availableModels)")
                 }
+                if self.availableModels.isEmpty {
+                    let mlxModels = await fetchMLXModels()
+                    await MainActor.run {
+                        if !mlxModels.isEmpty { self.availableModels = mlxModels }
+                    }
+                }
             } catch {
+                fcBridgeLog.error("refreshModels failed: \(error.localizedDescription)")
+                let mlxModels = await fetchMLXModels()
                 await MainActor.run {
-                    self.availableModels = ["qwen3.5-9b", "qwen3-30b", "deepseek-coder-6.7b"]
+                    self.availableModels = mlxModels
+                }
+            }
+        }
+    }
+
+    private func fetchMLXModels() async -> [String] {
+        guard let url = URL(string: "http://localhost:11434/v1/models") else { return [] }
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let models = json["data"] as? [[String: Any]] else { return [] }
+            return models.compactMap { $0["id"] as? String }
+        } catch {
+            fcBridgeLog.warning("MLX /v1/models unavailable: \(error.localizedDescription)")
+            return []
+        }
+    }
+
+    func compactSession(sessionId: String? = nil) {
+        var dict: [String: Any] = ["action": "chat.compact"]
+        if let sid = sessionId { dict["session_id"] = sid }
+        if let data = try? JSONSerialization.data(withJSONObject: dict),
+           let str = String(data: data, encoding: .utf8) {
+            webSocketTask?.send(.string(str)) { error in
+                if let error = error {
+                    fcBridgeLog.error("WS compact send error: \(error.localizedDescription)")
+                } else {
+                    fcBridgeLog.info("WS compact sent for session \(sessionId ?? "current")")
                 }
             }
         }
@@ -256,7 +293,7 @@ class FusionCodeBridge: ObservableObject {
             sessionId: id,
             name: (s["name"] as? String) ?? "",
             workingDir: (s["working_dir"] as? String) ?? (s["cwd"] as? String) ?? "",
-            model: (s["model"] as? String) ?? "qwen3.5-9b",
+            model: (s["model"] as? String) ?? "",
             temperature: (s["temperature"] as? Double) ?? 0.1,
             maxTokens: (s["max_tokens"] as? Int) ?? 4096,
             securityMode: (s["security_mode"] as? String) ?? "manual",
@@ -338,10 +375,16 @@ class FusionCodeBridge: ObservableObject {
 
     // MARK: - WebSocket Chat Streaming
 
-    func chatStream(sessionId: String? = nil, message: String, cwd: String? = nil, model: String? = nil, executionMode: String? = nil, webSearch: Bool = false) {
+    func chatStream(sessionId: String? = nil, message: String, cwd: String? = nil, model: String? = nil, executionMode: String? = nil, webSearch: Bool = false, commandMode: Bool = false) {
         guard !isStreaming else { return }
 
-        let wsURL = URL(string: serverURL.replacingOccurrences(of: "http", with: "ws") + "/ws/chat")!
+        var wsURLStr = serverURL.replacingOccurrences(of: "http", with: "ws") + "/ws/chat"
+        let token = FusionConfig.shared.mlxResolvedApiKey
+        if !token.isEmpty {
+            let encoded = token.addingPercentEncoding(withAllowedCharacters: CharacterSet.urlQueryAllowed) ?? token
+            wsURLStr += "?token=\(encoded)"
+        }
+        let wsURL = URL(string: wsURLStr)!
         webSocketTask = urlSession.webSocketTask(with: wsURL)
         webSocketTask?.resume()
 
@@ -355,6 +398,7 @@ class FusionCodeBridge: ObservableObject {
         if let m = model { sendDict["model"] = m }
         if let mode = executionMode { sendDict["execution_mode"] = mode }
         if webSearch { sendDict["web_search"] = true }
+        if commandMode { sendDict["command_mode"] = true }
 
         if let sendData = try? JSONSerialization.data(withJSONObject: sendDict),
            let sendStr = String(data: sendData, encoding: .utf8) {

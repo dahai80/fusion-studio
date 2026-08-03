@@ -161,6 +161,8 @@ struct FusionCodeView: View {
         case preview = "Preview"
         case terminal = "Terminal"
         case snapshot = "Snapshot"
+        case workflow = "Workflow"
+        case sandbox = "Sandbox"
     }
 
     var body: some View {
@@ -814,6 +816,12 @@ struct FusionCodeView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
+
+            case .workflow:
+                FCWorkflowPanel()
+
+            case .sandbox:
+                FCSandboxPanel()
             }
 
             if workspace.selectedFile != nil && rightPaneTab == .editor {
@@ -862,6 +870,8 @@ struct FusionCodeView: View {
         case .preview:  return "safari"
         case .terminal: return "terminal"
         case .snapshot: return "camera"
+        case .workflow: return "flowchart"
+        case .sandbox:  return "lock.shield"
         }
     }
 
@@ -1265,13 +1275,15 @@ struct FusionCodeView: View {
                 messages.append(FCChatMessage(role: "assistant", content: "Current model: \(selectedModel.isEmpty ? "none" : selectedModel)", toolCalls: [], timestamp: Date()))
             }
         case "/compact":
+            fcBridge.compactSession(sessionId: currentSessionId)
             messages.append(FCChatMessage(role: "system", content: "Context compacted", toolCalls: [], timestamp: Date()))
+            fcLog.info("compact sent for session \(currentSessionId ?? "none")")
         case "/review", "/test", "/debug", "/refactor", "/explain", "/deploy", "/init":
             let userMsg = FCChatMessage(role: "user", content: text, toolCalls: [], timestamp: Date())
             messages.append(userMsg)
             let assistantMsg = FCChatMessage(role: "assistant", content: "", toolCalls: [], timestamp: Date(), isStreaming: true)
             messages.append(assistantMsg)
-            fcBridge.chatStream(sessionId: currentSessionId, message: text, cwd: workspace.projectRoot?.path, model: selectedModel.isEmpty ? nil : selectedModel, executionMode: executionMode.rawValue, webSearch: isWebSearchEnabled)
+            fcBridge.chatStream(sessionId: currentSessionId, message: text, cwd: workspace.projectRoot?.path, model: selectedModel.isEmpty ? nil : selectedModel, executionMode: executionMode.rawValue, webSearch: isWebSearchEnabled, commandMode: true)
         default:
             messages.append(FCChatMessage(role: "assistant", content: "Unknown command: \(cmd). Type /help for available commands.", toolCalls: [], timestamp: Date()))
         }

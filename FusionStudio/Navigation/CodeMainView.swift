@@ -52,6 +52,7 @@ struct CodeMainView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var bridge: AgentBridge
     @StateObject private var agent = CodeAgent.shared
+    @StateObject private var fcBridge = FusionCodeBridge.shared
     @StateObject private var workspace = ProjectWorkspace.shared
     @State private var inputText = ""
     @State private var isWebSearchEnabled = false
@@ -369,23 +370,23 @@ struct CodeMainView: View {
             }
 
             Menu {
-                Button("Morning") { codeMainLog.info("Skill: Morning") }
-                Button("Skill-creator") { codeMainLog.info("Skill: Skill-creator") }
-                Button("Manage skills") { codeMainLog.info("Skill: Manage skills") }
+                Button("Morning") { inputText = "/skill morning " }
+                Button("Skill-creator") { inputText = "/skill skill-creator " }
+                Button("Manage skills") { browseSkills() }
                 Divider()
-                Button("+ Browse skills") { codeMainLog.info("Skill: Browse skills") }
+                Button("+ Browse skills") { browseSkills() }
             } label: {
                 Label("Skills", systemImage: "sparkles")
             }
 
             Menu {
-                Button("Browse connectors") { codeMainLog.info("Connector: Browse") }
-                Button("Add custom connector") { codeMainLog.info("Connector: Custom") }
+                Button("Browse connectors") { inputText = "/connector list" }
+                Button("Add custom connector") { inputText = "/connector add " }
             } label: {
                 Label("Add connector", systemImage: "link")
             }
 
-            Button(action: { codeMainLog.info("Add plugins") }) {
+            Button(action: { browsePlugins() }) {
                 Label("Add plugins", systemImage: "puzzlepiece.extension")
             }
 
@@ -412,13 +413,37 @@ struct CodeMainView: View {
         .padding(.bottom, theme.spacingS)
     }
 
+    private func browseSkills() {
+        if fcBridge.isConnected {
+            inputText = "/skill list"
+        } else {
+            codeMainLog.info("Skills unavailable: fusion-code not connected")
+        }
+    }
+
+    private func browsePlugins() {
+        appState.activeSection = .pluginEcosystem
+    }
+
     private func sendMessage() {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
-        let effort = selectedEffort.lowercased()
-        agent.askAI(prompt: text, effort: effort, thinking: thinkingEnabled)
+
+        if fcBridge.isConnected {
+            fcBridge.chatStream(
+                message: text,
+                cwd: workspace.projectRoot?.path,
+                model: selectedModel.isEmpty ? nil : selectedModel,
+                executionMode: "ask",
+                webSearch: isWebSearchEnabled
+            )
+            codeMainLog.info("Message sent via fusion-code WS: \(text.prefix(50))")
+        } else {
+            let effort = selectedEffort.lowercased()
+            agent.askAI(prompt: text, effort: effort, thinking: thinkingEnabled)
+            codeMainLog.info("Message sent via MLX fallback: \(text.prefix(50)) effort=\(effort)")
+        }
         inputText = ""
-        codeMainLog.info("Message sent: \(text.prefix(50)) effort=\(effort) thinking=\(thinkingEnabled)")
     }
 
     private func takeScreenshot() {
