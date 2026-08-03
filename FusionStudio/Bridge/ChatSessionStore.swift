@@ -3,6 +3,21 @@
 // Data schemas: ChatMessageData (id/role/content/parentId/childrenIds/toolCalls), ChatSessionData (id/title/mode/messages/activeBranch)
 
 import AppKit
+import Foundation
+
+struct FusionCodeProject: Codable, Identifiable {
+    let id: String
+    let name: String
+    let path: String?
+    let createdAt: Double?
+    let updatedAt: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, path
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+}
 import Combine
 import Foundation
 import os.log
@@ -276,7 +291,7 @@ class ChatSessionStore: ObservableObject {
     private var ipc: IPCClient?
     weak var agentBridge: AgentBridge?
     private let storeDir = NSHomeDirectory() + "/.fusion-studio/chats"
-    private var fusionCodeClient: FusionCodeAPIClient?
+    private var fcBridge: FusionCodeBridge?
     private var activeRAGWatchId: String?
     private var activeRAGWatchKbId: String?
 
@@ -290,18 +305,28 @@ class ChatSessionStore: ObservableObject {
         self.agentBridge = bridge
     }
 
-    func setFusionCodeClient(_ client: FusionCodeAPIClient) {
-        self.fusionCodeClient = client
-        chatStoreLog.info("FusionCodeAPIClient set on ChatSessionStore")
+    func setFusionCodeBridge(_ bridge: FusionCodeBridge) {
+        self.fcBridge = bridge
+        chatStoreLog.info("FusionCodeBridge set on ChatSessionStore")
     }
 
     func fetchProjects() async -> [FusionCodeProject] {
-        guard let client = fusionCodeClient else {
-            chatStoreLog.warning("fetchProjects: no FusionCodeAPIClient, returning empty")
+        guard let bridge = fcBridge else {
+            chatStoreLog.warning("fetchProjects: no FusionCodeBridge, returning empty")
             return []
         }
         do {
-            return try await client.fetchProjects()
+            let rawProjects = try await bridge.listProjects()
+            return rawProjects.compactMap { p in
+                guard let id = p["id"] as? String, let name = p["name"] as? String else { return nil }
+                return FusionCodeProject(
+                    id: id,
+                    name: name,
+                    path: p["path"] as? String,
+                    createdAt: p["created_at"] as? Double,
+                    updatedAt: p["updated_at"] as? Double
+                )
+            }
         } catch {
             chatStoreLog.error("fetchProjects failed: \(error.localizedDescription)")
             return []

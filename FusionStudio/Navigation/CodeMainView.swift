@@ -45,6 +45,7 @@ struct QuickAction: Identifiable {
     let icon: String
     let title: String
     let prompt: String
+    let skillCommand: String?
 }
 
 struct CodeMainView: View {
@@ -65,11 +66,11 @@ struct CodeMainView: View {
     @State private var thinkingEnabled = false
 
     private let quickActions: [QuickAction] = [
-        QuickAction(icon: "pencil.line", title: "Write", prompt: "Help me write something"),
-        QuickAction(icon: "book", title: "Learn", prompt: "Help me learn about"),
-        QuickAction(icon: "chevron.left.forwardslash.chevron.right", title: "Code", prompt: "Help me code"),
-        QuickAction(icon: "heart", title: "Life stuff", prompt: "Help me with life stuff"),
-        QuickAction(icon: "star", title: "Claude's choice", prompt: "Surprise me with something creative"),
+        QuickAction(icon: "pencil.line", title: "Write", prompt: "Help me write something", skillCommand: "/skill writing-plans"),
+        QuickAction(icon: "book", title: "Learn", prompt: "Help me learn about", skillCommand: "/skill learn"),
+        QuickAction(icon: "chevron.left.forwardslash.chevron.right", title: "Code", prompt: "Help me code", skillCommand: "/skill tdd"),
+        QuickAction(icon: "heart", title: "Life stuff", prompt: "Help me with life stuff", skillCommand: nil),
+        QuickAction(icon: "star", title: "Claude's choice", prompt: "Surprise me with something creative", skillCommand: nil),
     ]
 
     private var greeting: String {
@@ -353,8 +354,22 @@ struct CodeMainView: View {
         HStack(spacing: theme.spacingS) {
             ForEach(quickActions) { action in
                 Button(action: {
-                    inputText = action.prompt
-                    codeMainLog.info("Quick action: \(action.title)")
+                    if let skill = action.skillCommand, fcBridge.isConnected {
+                        agent.conversation.append(CodeAgent.CodeMessage(role: "user", content: action.prompt, timestamp: Date(), codeBlocks: []))
+                        agent.conversation.append(CodeAgent.CodeMessage(role: "assistant", content: "", timestamp: Date(), codeBlocks: []))
+                        fcBridge.chatStream(
+                            message: skill,
+                            cwd: workspace.projectRoot?.path,
+                            model: selectedModel.isEmpty ? nil : selectedModel,
+                            executionMode: "ask",
+                            webSearch: isWebSearchEnabled,
+                            commandMode: true
+                        )
+                        codeMainLog.info("Quick action skill: \(action.title) → \(skill)")
+                    } else {
+                        inputText = action.prompt
+                        codeMainLog.info("Quick action prompt: \(action.title)")
+                    }
                 }) {
                     HStack(spacing: 6) {
                         Image(systemName: action.icon)

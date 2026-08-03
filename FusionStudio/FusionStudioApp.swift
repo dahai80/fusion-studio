@@ -86,8 +86,7 @@ struct FusionStudioApp: App {
                     // Callers: FusionStudioApp.init → wires FusionCodeAPIClient into ChatSessionStore. Affected API: chatStore.setFusionCodeClient. Data: FusionCodeAPIClient(baseURL: fusionCodeURL).
                     chatStore.setIPCClient(ipcClient)
                     chatStore.setAgentBridge(agentBridge)
-                    let fcURL = URL(string: FusionConfig.shared.fusionCodeURL)!
-                    chatStore.setFusionCodeClient(FusionCodeAPIClient(baseURL: fcURL))
+                    chatStore.setFusionCodeBridge(FusionCodeBridge.shared)
                     deskBridge.setIPCClient(ipcClient)
                     ArtifactSidebarCache.shared.configure(ipcClient: ipcClient)
                     Task {
