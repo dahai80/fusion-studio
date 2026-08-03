@@ -23,6 +23,7 @@ struct ArtifactPreviewCard: View {
     @State private var showCanvas = false
     @State private var showVersionHistory = false
     @State private var showShare = false
+    @State private var tokenCount: Int = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -92,6 +93,13 @@ struct ArtifactPreviewCard: View {
                         Text("v\(version)")
                             .font(.system(size: theme.captionSize))
                             .foregroundStyle(theme.textSecondary)
+                    }
+                    if tokenCount > 0 {
+                        Text("·")
+                            .foregroundStyle(theme.textTertiary)
+                        Text("\(tokenCount) tokens")
+                            .font(.system(size: theme.captionSize))
+                            .foregroundStyle(theme.textTertiary)
                     }
                     if !summary.isEmpty {
                         Text("·")
@@ -308,9 +316,10 @@ struct ArtifactPreviewCard: View {
     private func loadContent() {
         Task {
             do {
-                let r = try await ipc.artifactGetContent(artifactId: artifactId)
+                let r = try await ipc.artifactLoad(artifactId: artifactId)
                 let c = r["content"] as? String
-                await MainActor.run { content = c }
+                let tk = r["total_tokens"] as? Int ?? 0
+                await MainActor.run { content = c; tokenCount = tk }
             } catch {
                 artCardLog.error("preview load failed: \(error.localizedDescription)")
             }

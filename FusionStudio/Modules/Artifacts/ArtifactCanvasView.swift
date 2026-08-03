@@ -43,6 +43,10 @@ struct ArtifactCanvasView: View {
     @State private var showDeleteConfirm = false
     @State private var previewKey = UUID()
     @State private var showTagFolder = false
+    @State private var tokenCount: Int = 0
+    @State private var contextBudget: Int = 32768
+    @State private var sections: [[String: Any]] = []
+    @State private var activeSection: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -61,10 +65,14 @@ struct ArtifactCanvasView: View {
             .padding(.horizontal, theme.spacingM)
             switch activeTab {
             case .preview:
-                previewPanel
+                HStack(spacing: 0) {
+                    if !sections.isEmpty { sectionSidebar }
+                    previewPanel
+                }
             case .code:
                 codePanel
             }
+            tokenBudgetBar
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear { loadArtifact() }
@@ -370,6 +378,8 @@ struct ArtifactCanvasView: View {
                 let a = try await ipc.artifactGet(artifactId: artifactId)
                 let c = try await ipc.artifactGetContent(artifactId: artifactId)
                 let v = try await ipc.artifactVersionList(artifactId: artifactId)
+                let loaded = try await ipc.artifactLoad(artifactId: artifactId)
+                let budget = try await ipc.contextBudget()
                 await MainActor.run {
                     artifact = a
                     content = c["content"] as? String ?? ""
@@ -379,10 +389,13 @@ struct ArtifactCanvasView: View {
                     artifactType = a["type"] as? String ?? "html"
                     currentVersion = a["current_version"] as? Int ?? 1
                     versions = v["versions"] as? [[String: Any]] ?? []
+                    tokenCount = loaded["total_tokens"] as? Int ?? 0
+                    contextBudget = budget["total_budget"] as? Int ?? 32768
+                    sections = loaded["sections"] as? [[String: Any]] ?? []
                     previewKey = UUID()
                     isLoading = false
                 }
-                canvasLog.info("canvas loaded: \(artifactId) type=\(self.artifactType) v\(self.currentVersion)")
+                canvasLog.info("canvas loaded: \(artifactId) type=\(self.artifactType) v\(self.currentVersion) tokens=\(self.tokenCount)")
             } catch {
                 canvasLog.error("load artifact failed: \(error.localizedDescription)")
                 await MainActor.run { isLoading = false }
@@ -472,6 +485,93 @@ struct ArtifactCanvasView: View {
                 await MainActor.run { dismiss() }
             } catch {
                 canvasLog.error("delete failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    // MARK: - ST-3: Token Budget Bar
+
+    private var tokenBudgetBar: some View {
+        HStack(spacing: 8) {
+            Text("Tokens")
+                .font(.system(size: 10))
+                .foregroundStyle(theme.textTertiary)
+            Text("\(tokenCount)")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(theme.text)
+            let ratio = contextBudget > 0 ? Double(tokenCount) / Double(contextBudget) : 0
+            ProgressView(value: ratio)
+                .progressViewStyle(.linear)
+                .tint(ratio > 0.9 ? theme.accentDestructive : ratio > 0.7 ? .yellow : theme.accent)
+                .frame(maxWidth: 200)
+            Text(String(format: "%.0f%%", ratio * 100))
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundStyle(ratio > 0.9 ? theme.accentDestructive : theme.textTertiary)
+            Spacer()
+            if !sections.isEmpty {
+                Text("\(sections.count) 章节")
+                    .font(.system(size: 10))
+                    .foregroundStyle(theme.textTertiary)
+            }
+        }
+        .padding(.horizontal, theme.spacingL)
+        .padding(.vertical, theme.spacingXS)
+        .background(theme.surfaceSecondary)
+    }
+
+    // MARK: - ST-5: Section Sidebar
+
+    private var sectionSidebar: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("章节目录")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(theme.textSecondary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+            Rectangle().fill(theme.separator).frame(height: 1)
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(sections.indices, id: \.self) { idx in
+                        let sec = sections[idx]
+                        let title = sec["title"] as? String ?? "Section \(idx + 1)"
+                        let secId = sec["id"] as? String ?? "\(idx)"
+                        Button(action: { loadSection(secId) }) {
+                            HStack(spacing: 6) {
+                                if activeSection == secId {
+                                    RoundedRectangle(cornerRadius: 1.5).fill(theme.accent).frame(width: 2, height: 14)
+                                } else {
+                                    Color.clear.frame(width: 2, height: 14)
+                                }
+                                Text(title)
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(activeSection == secId ? theme.accent : theme.text)
+                                    .lineLimit(1)
+                            }
+                            .padding(.vertical, 3)
+                            .padding(.horizontal, 10)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .frame(width: 180)
+        .background(theme.surfaceSecondary)
+    }
+
+    private func loadSection(_ sectionId: String) {
+        activeSection = sectionId
+        Task {
+            do {
+                let r = try await ipc.artifactLoad(artifactId: artifactId)
+                if let sectionsData = r["sections"] as? [[String: Any]] {
+                    let target = sectionsData.first { ($0["id"] as? String) == sectionId }
+                    if let sec = target?["content"] as? String {
+                        await MainActor.run { self.content = sec }
+                    }
+                }
+            } catch {
+                canvasLog.error("loadSection failed: \(error.localizedDescription)")
             }
         }
     }

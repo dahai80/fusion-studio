@@ -191,7 +191,7 @@ struct ArtifactVersionHistoryPanel: View {
             Rectangle().fill(theme.separator).frame(height: 1)
 
             HStack {
-                Text("版本对比")
+                Text("增量变更")
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
                     .foregroundStyle(theme.text)
                 if let base = diffBaseVersion, let target = diffTargetVersion {
@@ -212,14 +212,51 @@ struct ArtifactVersionHistoryPanel: View {
 
             if let diff = diffContent {
                 ScrollView {
-                    Text(diff)
-                        .font(.system(size: theme.footnoteSize, design: .monospaced))
-                        .foregroundStyle(theme.textSecondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(theme.spacingM)
+                    VStack(alignment: .leading, spacing: 2) {
+                        ForEach(diff.split(separator: "\n").indices, id: \.self) { idx in
+                            let line = diff.split(separator: "\n")[idx]
+                            patchLineView(String(line))
+                        }
+                    }
+                    .padding(theme.spacingM)
                 }
                 .frame(maxHeight: 250)
             }
+        }
+    }
+
+    @ViewBuilder
+    private func patchLineView(_ line: String) -> some View {
+        if line.hasPrefix("+") && !line.hasPrefix("+++") {
+            Text(line)
+                .font(.system(size: theme.footnoteSize, design: .monospaced))
+                .foregroundStyle(.green)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 1)
+                .padding(.horizontal, 4)
+                .background(Color.green.opacity(0.08))
+        } else if line.hasPrefix("-") && !line.hasPrefix("---") {
+            Text(line)
+                .font(.system(size: theme.footnoteSize, design: .monospaced))
+                .foregroundStyle(.red)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 1)
+                .padding(.horizontal, 4)
+                .background(Color.red.opacity(0.08))
+        } else if line.hasPrefix("@@") {
+            Text(line)
+                .font(.system(size: theme.footnoteSize, design: .monospaced))
+                .foregroundStyle(theme.accent)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 1)
+                .padding(.horizontal, 4)
+        } else {
+            Text(line)
+                .font(.system(size: theme.footnoteSize, design: .monospaced))
+                .foregroundStyle(theme.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 1)
+                .padding(.horizontal, 4)
         }
     }
 
