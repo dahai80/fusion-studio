@@ -21,12 +21,16 @@ struct HubMarketView: View {
     @State private var selectedFormat: String = "all"
     @State private var selectedParamSize: String = "all"
     @State private var mlxOnly = false
+    @State private var localOnly = false
     @State private var selectedModel: HubMarketModel?
     @State private var downloadingIds: Set<String> = []
     @State private var lastError: String?
     @State private var ragDefaultId: String?
+    @State private var currentPage = 1
+    @State private var totalResults = 0
+    @State private var ratingSummaries: [String: HubRatingSummaryResponse] = [:]
 
-    private let sources = ["all", "huggingface", "modelscope", "local"]
+    private let sources = ["all", "huggingface", "modelscope", "local", "private"]
     private let tasks = ["all", "text-generation", "code", "vision", "embedding", "audio", "multimodal"]
     private let formats = ["all", "mlx", "safetensors", "gguf", "onnx"]
     private let paramSizes = [
@@ -117,6 +121,13 @@ struct HubMarketView: View {
                 }
                 .toggleStyle(.checkbox)
                 .controlSize(.small)
+
+                Toggle(isOn: $localOnly) {
+                    Text("仅本地")
+                        .font(.system(size: 11))
+                }
+                .toggleStyle(.checkbox)
+                .controlSize(.small)
             }
             .padding(.horizontal, theme.spacingS)
             .padding(.vertical, theme.spacingXS)
@@ -125,10 +136,25 @@ struct HubMarketView: View {
     }
 
     private var resultList: some View {
-        List(searchResults, selection: $selectedModel) { model in
-            MarketModelRow(model: model, isDownloading: downloadingIds.contains(model.id), isRAGDefault: ragDefaultId == model.id)
-                .tag(model)
-                .onTapGesture { selectedModel = model }
+        List(selection: $selectedModel) {
+            ForEach(searchResults) { model in
+                MarketModelRow(model: model, isDownloading: downloadingIds.contains(model.id), isRAGDefault: ragDefaultId == model.id, ratingSummary: ratingSummaries[model.id])
+                    .tag(model)
+                    .onTapGesture { selectedModel = model }
+            }
+            if searchResults.count < totalResults {
+                Button(action: loadMore) {
+                    HStack {
+                        Spacer()
+                        Text("加载更多 (\(searchResults.count)/\(totalResults))")
+                            .font(.system(size: theme.textSize))
+                            .foregroundStyle(theme.accent)
+                        Spacer()
+                    }
+                    .padding(.vertical, theme.spacingS)
+                }
+                .buttonStyle(.plain)
+            }
         }
         .listStyle(.plain)
     }
@@ -158,10 +184,24 @@ struct HubMarketView: View {
                             if downloadingIds.contains(model.id) {
                                 ProgressView().controlSize(.small)
                             } else {
-                                Button("下载") {
-                                    startDownload(model)
+                                HStack(spacing: theme.spacingS) {
+                                    Button("下载") {
+                                        startDownload(model)
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                    if model.format != "mlx" {
+                                        Button("一键转MLX") {
+                                            startMLXDownload(model)
+                                        }
+                                        .buttonStyle(.bordered)
+                                        .controlSize(.small)
+                                    }
+                                    Button("加入评测") {
+                                        triggerBenchmark(model)
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .controlSize(.small)
                                 }
-                                .buttonStyle(.borderedProminent)
                             }
                         }
 
@@ -172,6 +212,23 @@ struct HubMarketView: View {
                             if let t = model.task { HubTagBadge(text: t, color: .green) }
                             if let p = model.parameters { HubTagBadge(text: p, color: .cyan) }
                             if ragDefaultId == model.id { HubTagBadge(text: "RAG 默认", color: .mint) }
+                            if let hint = fusionModuleHint(task: model.task) { HubTagBadge(text: hint, icon: "star.circle", color: .blue) }
+                        }
+
+                        if let summary = ratingSummaries[model.id], let avg = summary.avgScore {
+                            HStack(spacing: 4) {
+                                ForEach(1...5, id: \.self) { star in
+                                    Image(systemName: star <= Int(avg.rounded()) ? "star.fill" : "star")
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(.yellow)
+                                }
+                                Text(String(format: "%.1f", avg))
+                                    .font(.system(size: theme.captionSize, weight: .medium))
+                                    .foregroundStyle(theme.textSecondary)
+                                if let cnt = summary.totalCount, cnt > 0 {
+                                    Text("(\(cnt))").font(.caption).foregroundStyle(theme.textTertiary)
+                                }
+                            }
                         }
 
                         // PRD: 设为RAG默认嵌入模型
@@ -220,6 +277,7 @@ struct HubMarketView: View {
 
     private func performSearch() {
         guard !searchText.isEmpty else { return }
+        currentPage = 1
         isSearching = true
         lastError = nil
         Task { @MainActor in
@@ -237,13 +295,58 @@ struct HubMarketView: View {
                 if selectedParamSize != "all" {
                     results = results.filter { matchesParamSize($0, bucket: selectedParamSize) }
                 }
+                if localOnly {
+                    results = results.filter { $0.source == "local" }
+                }
+                totalResults = resp.total ?? results.count
                 searchResults = results
+                loadRatings(for: results)
                 marketLog.info("Market search: \(searchText) → \(searchResults.count) results")
             } catch {
                 lastError = error.localizedDescription
                 marketLog.warning("Market search failed: \(error.localizedDescription)")
             }
             isSearching = false
+        }
+    }
+
+    private func loadMore() {
+        currentPage += 1
+        Task { @MainActor in
+            do {
+                var effectiveFormat = selectedFormat == "all" ? nil : selectedFormat
+                if mlxOnly { effectiveFormat = "mlx" }
+                let offset = searchResults.count
+                let resp = try await client.searchMarket(
+                    query: searchText,
+                    source: selectedSource == "all" ? nil : selectedSource,
+                    task: selectedTask == "all" ? nil : selectedTask,
+                    format: effectiveFormat,
+                    limit: 20
+                )
+                var more = resp.results
+                if selectedParamSize != "all" {
+                    more = more.filter { matchesParamSize($0, bucket: selectedParamSize) }
+                }
+                if localOnly {
+                    more = more.filter { $0.source == "local" }
+                }
+                searchResults.append(contentsOf: more)
+                loadRatings(for: more)
+                marketLog.info("Market load more: +\(more.count) results")
+            } catch {
+                marketLog.warning("Market load more failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func loadRatings(for models: [HubMarketModel]) {
+        for model in models {
+            Task { @MainActor in
+                if let summary = try? await client.getRatingSummary(modelId: model.id) {
+                    ratingSummaries[model.id] = summary
+                }
+            }
         }
     }
 
@@ -287,11 +390,50 @@ struct HubMarketView: View {
         }
     }
 
+    private func startMLXDownload(_ model: HubMarketModel) {
+        let repoId = model.repoId ?? model.id
+        downloadingIds.insert(model.id)
+        Task { @MainActor in
+            do {
+                _ = try await client.createDownload(repoId: repoId, source: model.source ?? "huggingface", format: "mlx", quantization: "4bit")
+                marketLog.info("MLX download started: \(repoId)")
+            } catch {
+                lastError = "MLX转换下载失败: \(error.localizedDescription)"
+                marketLog.error("MLX download failed: \(error.localizedDescription)")
+            }
+            downloadingIds.remove(model.id)
+        }
+    }
+
+    private func triggerBenchmark(_ model: HubMarketModel) {
+        Task { @MainActor in
+            do {
+                _ = try await client.triggerBenchmark(modelId: model.id)
+                marketLog.info("Benchmark triggered for: \(model.id)")
+            } catch {
+                lastError = "评测触发失败: \(error.localizedDescription)"
+                marketLog.error("Benchmark trigger failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func fusionModuleHint(task: String?) -> String? {
+        switch task {
+        case "text-generation", "conversational": return "→ Fusion Chat"
+        case "code", "text2code": return "→ Fusion Code"
+        case "embedding", "feature-extraction": return "→ Fusion RAG"
+        case "image-generation", "text-to-image": return "→ Fusion Design"
+        case "visual-question-answering", "multimodal": return "→ Fusion Design"
+        default: return nil
+        }
+    }
+
     private func sourceLabel(_ s: String) -> String {
         switch s {
         case "huggingface": return "HuggingFace"
         case "modelscope": return "ModelScope"
         case "local": return "本地"
+        case "private": return "私有仓库"
         default: return "全部来源"
         }
     }
@@ -301,6 +443,7 @@ struct HubMarketView: View {
         case "huggingface": return "h.square.fill"
         case "modelscope": return "m.square.fill"
         case "local": return "internaldrive"
+        case "private": return "lock.fill"
         default: return "globe"
         }
     }
@@ -310,6 +453,7 @@ struct HubMarketView: View {
         case "huggingface": return .yellow
         case "modelscope": return .blue
         case "local": return .gray
+        case "private": return .pink
         default: return .green
         }
     }
@@ -331,6 +475,7 @@ private struct MarketModelRow: View {
     let model: HubMarketModel
     let isDownloading: Bool
     let isRAGDefault: Bool
+    var ratingSummary: HubRatingSummaryResponse?
     @Environment(\.studioTheme) private var theme
 
     var body: some View {
@@ -346,12 +491,26 @@ private struct MarketModelRow: View {
                     if isRAGDefault {
                         Image(systemName: "star.fill").font(.system(size: 9)).foregroundStyle(.mint)
                     }
+                    if let avg = ratingSummary?.avgScore {
+                        HStack(spacing: 1) {
+                            Image(systemName: "star.fill").font(.system(size: 8)).foregroundStyle(.yellow)
+                            Text(String(format: "%.1f", avg)).font(.system(size: 9)).foregroundStyle(.secondary)
+                        }
+                    }
                 }
                 HStack(spacing: theme.spacingS) {
                     if let src = model.source { Text(sourceShortLabel(src)).font(.caption).foregroundStyle(.secondary) }
                     if let fmt = model.format { Text(fmt.uppercased()).font(.caption).foregroundStyle(.secondary) }
                     if !model.sizeFormatted.isEmpty { Text(model.sizeFormatted).font(.caption).foregroundStyle(.secondary) }
                     if let dl = model.downloads { Text("↓\(dl)").font(.caption).foregroundStyle(.secondary) }
+                    if let task = model.task {
+                        switch task {
+                        case "text-generation", "conversational": Text("Chat").font(.system(size: 9, weight: .medium)).foregroundStyle(.blue)
+                        case "code": Text("Code").font(.system(size: 9, weight: .medium)).foregroundStyle(.cyan)
+                        case "embedding", "feature-extraction": Text("RAG").font(.system(size: 9, weight: .medium)).foregroundStyle(.mint)
+                        default: EmptyView()
+                        }
+                    }
                 }
             }
             Spacer()

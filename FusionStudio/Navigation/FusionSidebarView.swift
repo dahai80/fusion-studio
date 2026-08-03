@@ -162,6 +162,8 @@ struct FusionSidebarView: View {
             fsbSidebarContent
         case .science:
             moduleListContent(.science)
+        case .finance:
+            moduleListContent(.finance)
         }
     }
 

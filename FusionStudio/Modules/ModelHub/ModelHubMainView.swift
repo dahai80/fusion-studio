@@ -15,9 +15,11 @@ enum ModelHubSection: String, CaseIterable, Identifiable {
     case convertQuant = "转换量化"
     case schedule = "下载调度"
     case cluster = "集群调度"
+    case deployment = "部署管理"
     case permission = "权限管控"
     case monitor = "系统监控"
     case benchmark = "性能评测"
+    case security = "安全中心"
 
     var id: String { rawValue }
 
@@ -29,9 +31,11 @@ enum ModelHubSection: String, CaseIterable, Identifiable {
         case .convertQuant: return "arrow.triangle.2.circlepath"
         case .schedule:     return "arrow.down.circle"
         case .cluster:      return "server.rack"
+        case .deployment:   return "play.circle"
         case .permission:   return "lock.shield"
         case .monitor:      return "chart.line.uptrend.xyaxis"
         case .benchmark:    return "chart.bar.xaxis"
+        case .security:     return "shield.checkered"
         }
     }
 }
@@ -41,6 +45,12 @@ struct ModelHubMainView: View {
     @Environment(\.studioTheme) private var theme
     @StateObject private var client = ModelHubAPIClient.shared
     @State private var selectedSection: ModelHubSection = .dashboard
+
+    private func navigateTo(_ section: ModelHubSection) {
+        withAnimation(theme.springSnappy) {
+            selectedSection = section
+        }
+    }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -168,7 +178,7 @@ struct ModelHubMainView: View {
         } else {
             switch selectedSection {
             case .dashboard:
-                HubDashboardView(client: client)
+                HubDashboardView(client: client, navigateTo: navigateTo)
             case .market:
                 HubMarketView(client: client)
             case .localStorage:
@@ -185,6 +195,10 @@ struct ModelHubMainView: View {
                 HubMonitorView(client: client)
             case .benchmark:
                 HubBenchmarkView(client: client)
+            case .deployment:
+                HubDeploymentView(client: client)
+            case .security:
+                HubSecurityView(client: client)
             }
         }
     }

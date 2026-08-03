@@ -119,6 +119,8 @@ struct ModuleDetailView: View {
                 AIAgentKnowledgeBaseView()
             case .science:
                 ScienceWorkbenchView()
+            case .finance:
+                FinanceWorkbenchView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

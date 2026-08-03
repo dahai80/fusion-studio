@@ -69,7 +69,7 @@ Design · Code · Simulation · MultiModal · Training · Data · Agent · KB ·
 | 2 | 🎨 **Design** | `pencil.and.outline` | ✅ Stable | AI-powered canvas (preview + interactive node editing), 8 design skills, 7 info tabs (props/layers/tokens/design-systems/lint/codegen/ecosystem), 20 grouped quick templates, version diff, 3 workflow recipes, theme switching, design system picker, SwiftUI/React/Vue export — surpassing Claude Design |
 | 3 | 💻 **Code** | `chevron.left.forwardslash.chevron.right` | 🆕 New | 5-panel layout: FileTree · Chat · Editor/Diff/Terminal + InputBar with /slash commands + 3 execution modes (Ask/Auto/Plan), KB query, memory, templates, permission tiers — surpassing Claude Code |
 | 4 | 🤖 **Simulation** | `gearshape.2` | ✅ Stable | PyBullet physics, 3D viewport, scene editor |
-| 5 | 📦 **Model Hub** | `cpu` | ✅ Stable | 9-section PRD GUI: Dashboard, Market (HF+ModelScope+private, RAG默认, param-size/MLX filter), Local Storage (batch ops, version mgmt), Convert/Quant, Schedule (下载+算力调度策略), Cluster (topology, routing), Permission (API keys+role ACL), Monitor (CPU/GPU/Disk+audit CSV export), Benchmark (auto-trigger rules) |
+| 5 | 📦 **Model Hub** | `cpu` | ✅ Stable | 11-section GUI + 116 API methods + 98 DTOs: Dashboard (stats+health badges+quick actions), Market (HF+ModelScope+private, pagination, rating, favorites, module hints), Local Storage (category tree, serving mgmt, version lifecycle), Convert/Quant (scene presets, layered quantize, compare, evaluate), Schedule (6 tabs: download/schedule/module-perm/throttle/TTL/auto-bench), Cluster (topology, routing, sync), Deployment (CRUD, scale, gray release, metrics), Permission (API keys+role ACL+tenants+approval), Monitor (per-model stats, source filter, deployment metrics), Benchmark (evaluations CRUD, history, accuracy alerts), Security (scan, watermark, encryption, approval) |
 | 6 | 🖼️ **MultiModal** | `photo.on.rectangle` | ✅ Stable | Text-to-image, image-to-image, OCR, speech-to-text, TTS |
 | 7 | 🧠 **Training** | `brain` | ✅ Stable | LoRA/QLoRA fine-tuning, monitoring, checkpoints, model export |
 | 8 | ⌨️ **CLI** | `terminal` | ✅ Stable | GUI CLI panel, 18 preset commands, execution history |
@@ -521,7 +521,7 @@ fusion-studio/
 │   │   ├── Design/               # AI canvas + 8 skills + 7 info tabs + version diff + workflows + theme
 │   │   ├── Code/                 # Code editor + terminal
 │   │   ├── Simulation/           # 3D physics simulation
-│   │   ├── ModelHub/             # Model management
+│   │   ├── ModelHub/             # 11-section model management (116 API methods, 98 DTOs)
 │   │   ├── MultiModalView.swift  # Image/speech/OCR
 │   │   ├── TrainingView.swift    # LoRA/QLoRA training
 │   │   ├── DataToolsView.swift   # CSV/statistics/charts

@@ -31,6 +31,7 @@ struct FusionStudioApp: App {
     @StateObject private var mlxHTTP = MlxHTTPClient(config: FusionConfig.shared)
     @StateObject private var scienceBridge = ScienceBridge()
     @StateObject private var scienceSSE = ScienceSSEClient()
+    @StateObject private var financeBridge = FinanceBridge()
 
     init() {
         // Dock 图标延后到 onAppear 中设置，init 阶段 NSApp 尚未就绪
@@ -62,6 +63,7 @@ struct FusionStudioApp: App {
                 .environmentObject(mlxHTTP)
                 .environmentObject(scienceBridge)
                 .environmentObject(scienceSSE)
+                .environmentObject(financeBridge)
                 .studioThemed()
                 .onAppear {
                     // 启动时检测并按需自动启动上游关键服务（mlx -> agent-studio -> artifacts-engine）。
