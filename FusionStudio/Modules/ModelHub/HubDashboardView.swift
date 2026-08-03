@@ -11,10 +11,12 @@ private let dashLog = Logger(subsystem: "com.fusion.studio", category: "HubDashb
 struct HubDashboardView: View {
     @ObservedObject var client: ModelHubAPIClient
     @Environment(\.studioTheme) private var theme
+    var navigateTo: ((ModelHubSection) -> Void)?
 
     @State private var stats = HubDashboardStats()
     @State private var recentModels: [HubModel] = []
     @State private var monitor: HubMonitorResponse?
+    @State private var health: HubHealthResponse?
     @State private var isLoading = false
     @State private var lastError: String?
 
@@ -22,6 +24,7 @@ struct HubDashboardView: View {
         ScrollView {
             VStack(spacing: theme.spacingL) {
                 statsGrid
+                statusBadges
                 quickActions
                 recentSection
                 systemOverview
@@ -30,6 +33,14 @@ struct HubDashboardView: View {
         }
         .overlay { if isLoading { ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity) } }
         .task { await loadDashboard() }
+    }
+
+    private var statusBadges: some View {
+        HStack(spacing: theme.spacingM) {
+            StatusBadge(label: "MLX推理引擎", isOn: health?.mlxConnected ?? false, onIcon: "bolt.fill", offIcon: "bolt.slash")
+            StatusBadge(label: "集群模式", isOn: stats.clusterNodesOnline > 0, onIcon: "server.rack", offIcon: "desktopcomputer")
+            StatusBadge(label: "模型服务", isOn: stats.servingModels > 0, onIcon: "play.circle.fill", offIcon: "pause.circle")
+        }
     }
 
     private var statsGrid: some View {
@@ -58,13 +69,13 @@ struct HubDashboardView: View {
 
             HStack(spacing: theme.spacingM) {
                 QuickActionButton(title: "搜索市场", icon: "magnifyingglass", color: .blue) {
-                    dashLog.info("Quick action: search market")
+                    navigateTo?(.market)
                 }
                 QuickActionButton(title: "下载模型", icon: "icloud.and.arrow.down", color: .green) {
-                    dashLog.info("Quick action: download model")
+                    navigateTo?(.market)
                 }
                 QuickActionButton(title: "量化模型", icon: "arrow.triangle.2.circlepath", color: .orange) {
-                    dashLog.info("Quick action: quantize model")
+                    navigateTo?(.convertQuant)
                 }
                 QuickActionButton(title: "系统清理", icon: "trash.circle", color: .red) {
                     Task { await cleanupSystem() }
@@ -88,22 +99,48 @@ struct HubDashboardView: View {
             } else {
                 ForEach(recentModels.prefix(5)) { model in
                     HStack(spacing: theme.spacingM) {
-                        Image(systemName: model.isActive == true ? "bolt.fill" : "cube")
-                            .foregroundStyle(model.isActive == true ? .green : theme.textTertiary)
+                        Image(systemName: model.isServing == true ? "bolt.fill" : (model.isActive == true ? "circle.fill" : "cube"))
+                            .foregroundStyle(model.isServing == true ? .green : (model.isActive == true ? .yellow : theme.textTertiary))
                             .frame(width: 20)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(model.displayTitle)
-                                .font(.system(size: theme.textSize, weight: .medium))
-                                .foregroundStyle(theme.text)
+                            HStack(spacing: theme.spacingXS) {
+                                Text(model.displayTitle)
+                                    .font(.system(size: theme.textSize, weight: .medium))
+                                    .foregroundStyle(theme.text)
+                                if model.isPinned == true {
+                                    Text("常驻").font(.system(size: 9, weight: .medium))
+                                        .foregroundStyle(.yellow)
+                                        .padding(.horizontal, 4)
+                                        .padding(.vertical, 1)
+                                        .background(Capsule().fill(Color.yellow.opacity(0.15)))
+                                }
+                                if model.isServing == true {
+                                    Text("推理中").font(.system(size: 9, weight: .medium))
+                                        .foregroundStyle(.green)
+                                        .padding(.horizontal, 4)
+                                        .padding(.vertical, 1)
+                                        .background(Capsule().fill(Color.green.opacity(0.15)))
+                                }
+                            }
                             HStack(spacing: theme.spacingS) {
                                 if let fam = model.family { Text(fam).font(.caption).foregroundStyle(.secondary) }
                                 if let q = model.quantization { Text(q).font(.caption).foregroundStyle(.secondary) }
                                 if model.sizeGB > 0 { Text(model.sizeFormatted).font(.caption).foregroundStyle(.secondary) }
+                                if let hint = model.fusionModuleHint {
+                                    Text(hint).font(.caption).foregroundStyle(.blue)
+                                }
                             }
                         }
                         Spacer()
-                        if model.isPinned == true {
-                            Image(systemName: "pin.fill").font(.caption).foregroundStyle(.yellow)
+                        if let modules = model.allowedModules, !modules.isEmpty {
+                            HStack(spacing: 2) {
+                                ForEach(modules.prefix(3), id: \.self) { mod in
+                                    Text(mod).font(.system(size: 8))
+                                        .padding(.horizontal, 3).padding(.vertical, 1)
+                                        .background(Capsule().fill(theme.accent.opacity(0.1)))
+                                        .foregroundStyle(theme.accent)
+                                }
+                            }
                         }
                     }
                     .padding(theme.spacingS)
@@ -153,12 +190,14 @@ struct HubDashboardView: View {
             async let quantizeResp = client.listRunningQuantize()
             async let clusterResp = client.listClusterNodes()
             async let monitorResp = client.getRealtimeMonitor()
+            async let healthResp = client.getSystemHealth()
 
             let models = try await modelsResp
             let downloads = try await downloadsResp
             let running = try await quantizeResp
             let cluster = try await clusterResp
             monitor = try await monitorResp
+            health = try await healthResp
 
             stats = HubDashboardStats(
                 totalModels: models.total ?? models.models.count,
@@ -169,10 +208,12 @@ struct HubDashboardView: View {
                 downloadsInProgress: downloads.tasks.filter { !$0.isComplete && !$0.isFailed }.count,
                 quantizeInProgress: running.tasks.filter { !$0.isComplete && !$0.isFailed }.count,
                 clusterNodesOnline: cluster.nodes.filter { $0.isOnline }.count,
-                clusterNodesTotal: cluster.total ?? cluster.nodes.count
+                clusterNodesTotal: cluster.total ?? cluster.nodes.count,
+                servingModels: models.models.filter { $0.isServing == true }.count,
+                mlxConnected: health?.mlxConnected ?? false
             )
             recentModels = Array(models.models.prefix(10))
-            dashLog.info("Dashboard loaded: \(stats.totalModels) models, \(stats.downloadedModels) downloaded")
+            dashLog.info("Dashboard loaded: \(stats.totalModels) models, \(stats.downloadedModels) downloaded, \(stats.servingModels) serving")
         } catch {
             lastError = error.localizedDescription
             dashLog.warning("Dashboard load failed: \(error.localizedDescription)")
@@ -252,5 +293,29 @@ private struct MetricView: View {
             Text(value).font(.system(size: theme.footnoteSize, weight: .medium)).foregroundStyle(theme.text)
             Text(label).font(.system(size: theme.captionSize)).foregroundStyle(theme.textTertiary)
         }
+    }
+}
+
+private struct StatusBadge: View {
+    let label: String
+    let isOn: Bool
+    let onIcon: String
+    let offIcon: String
+    @Environment(\.studioTheme) private var theme
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: isOn ? onIcon : offIcon)
+                .font(.system(size: 10))
+                .foregroundStyle(isOn ? .green : .secondary)
+            Text(label)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(isOn ? .green : theme.textTertiary)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(
+            Capsule().fill(isOn ? Color.green.opacity(0.1) : theme.surfacePrimary)
+        )
     }
 }

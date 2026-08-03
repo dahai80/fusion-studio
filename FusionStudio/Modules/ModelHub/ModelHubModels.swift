@@ -22,33 +22,50 @@ struct HubModelListResponse: Codable {
 
 struct HubModel: Identifiable, Codable, Hashable {
     let id: String
-    let name: String?
-    let displayName: String?
-    let modelPath: String?
-    let engineType: String?
-    let format: String?
-    let sizeBytes: Int?
-    let quantization: String?
-    let parameters: String?
-    let family: String?
-    let isDownloaded: Bool?
-    let isActive: Bool?
-    let isPinned: Bool?
-    let allowedModules: [String]?
-    let versions: [HubModelVersion]?
-    let source: String?
-    let description: String?
-    let tags: [String]?
-    let downloads: Int?
-    let likes: Int?
-    let license: String?
-    let task: String?
-    let createdAt: String?
-    let updatedAt: String?
+    var name: String?
+    var displayName: String?
+    var modelPath: String?
+    var engineType: String?
+    var format: String?
+    var sizeBytes: Int?
+    var quantization: String?
+    var parameters: String?
+    var family: String?
+    var isDownloaded: Bool?
+    var isActive: Bool?
+    var isPinned: Bool?
+    var allowedModules: [String]?
+    var versions: [HubModelVersion]?
+    var source: String?
+    var description: String?
+    var tags: [String]?
+    var downloads: Int?
+    var likes: Int?
+    var license: String?
+    var task: String?
+    var createdAt: String?
+    var updatedAt: String?
+    var modelType: String?
+    var ttlSeconds: Int?
+    var ratingAvg: Double?
+    var favoriteCount: Int?
+    var isServing: Bool?
+    var compatibleFormats: [String]?
 
     var displayTitle: String { displayName ?? name ?? id }
     var sizeGB: Double { Double(sizeBytes ?? 0) / 1_073_741_824.0 }
     var sizeFormatted: String { String(format: "%.1f GB", sizeGB) }
+
+    var fusionModuleHint: String? {
+        switch task {
+        case "text-generation", "conversational": return "Fusion Chat"
+        case "code", "text2code": return "Fusion Code"
+        case "embedding", "feature-extraction": return "Fusion RAG"
+        case "image-generation", "text-to-image": return "Fusion Design"
+        case "visual-question-answering", "multimodal": return "Fusion Design"
+        default: return nil
+        }
+    }
 
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
     static func == (lhs: HubModel, rhs: HubModel) -> Bool { lhs.id == rhs.id }
@@ -61,6 +78,51 @@ struct HubModelVersion: Codable, Identifiable {
     let sizeBytes: Int?
     let format: String?
     let quantization: String?
+    let status: String?
+    let benchmarkScore: Double?
+    let accuracy: Double?
+
+    var statusEnum: HubVersionStatus {
+        HubVersionStatus(rawValue: status ?? "") ?? .draft
+    }
+}
+
+enum HubVersionStatus: String, CaseIterable {
+    case draft = "draft"
+    case testing = "testing"
+    case published = "published"
+    case deprecated = "deprecated"
+    case retired = "retired"
+
+    var label: String {
+        switch self {
+        case .draft: return "草稿"
+        case .testing: return "测试中"
+        case .published: return "已发布"
+        case .deprecated: return "已废弃"
+        case .retired: return "已下线"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .draft: return "pencil"
+        case .testing: return "flask"
+        case .published: return "checkmark.circle.fill"
+        case .deprecated: return "exclamationmark.triangle"
+        case .retired: return "archivebox"
+        }
+    }
+
+    var color: String {
+        switch self {
+        case .draft: return "gray"
+        case .testing: return "orange"
+        case .published: return "green"
+        case .deprecated: return "yellow"
+        case .retired: return "red"
+        }
+    }
 }
 
 struct HubMarketSearchResponse: Codable {
@@ -448,6 +510,11 @@ struct HubBenchmarkCompareResponse: Codable {
     let benchmarks: [HubBenchmarkEntry]
 }
 
+struct HubBenchmarkListResponse: Codable {
+    let benchmarks: [HubBenchmarkEntry]
+    let total: Int?
+}
+
 struct HubBenchmarkEntry: Identifiable, Codable {
     let id: String
     let modelId: String?
@@ -459,6 +526,47 @@ struct HubBenchmarkEntry: Identifiable, Codable {
     let score: Double?
     let accuracy: Double?
     let completedAt: String?
+}
+
+struct HubBenchmarkDetail: Codable {
+    let id: String
+    let modelId: String?
+    let modelName: String?
+    let template: String?
+    let tokensPerSecond: Double?
+    let timeToFirstToken: Double?
+    let memoryPeak: Double?
+    let score: Double?
+    let accuracy: Double?
+    let completedAt: String?
+    let perTokenLatency: Double?
+    let firstTokenLatency: Double?
+    let throughputBatch1: Double?
+    let throughputBatch2: Double?
+    let throughputBatch4: Double?
+    let throughputBatch8: Double?
+    let memoryFootprint: Double?
+    let prefillLatency: Double?
+    let decodeLatency: Double?
+}
+
+struct HubThresholdConfig: Codable {
+    var accuracyThreshold: Double = 0.7
+    var scoreThreshold: Double = 50.0
+    var perModel: [String: PerModelThreshold] = [:]
+
+    struct PerModelThreshold: Codable {
+        var accuracyThreshold: Double?
+        var scoreThreshold: Double?
+    }
+
+    func accuracyThreshold(for modelId: String) -> Double {
+        perModel[modelId]?.accuracyThreshold ?? accuracyThreshold
+    }
+
+    func scoreThreshold(for modelId: String) -> Double {
+        perModel[modelId]?.scoreThreshold ?? scoreThreshold
+    }
 }
 
 // MARK: - Inference
@@ -490,4 +598,492 @@ struct HubDashboardStats {
     var quantizeInProgress: Int = 0
     var clusterNodesOnline: Int = 0
     var clusterNodesTotal: Int = 0
+    var servingModels: Int = 0
+    var mlxConnected: Bool = false
+}
+
+// MARK: - Serve (deploy model to MLX)
+
+struct HubServeResponse: Codable {
+    let modelId: String?
+    let status: String?
+    let host: String?
+    let port: Int?
+}
+
+struct HubServeRequest: Codable {
+    let modelId: String
+    let autoStart: Bool?
+    let ttlSeconds: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case modelId = "model_id"
+        case autoStart = "auto_start"
+        case ttlSeconds = "ttl_seconds"
+    }
+}
+
+// MARK: - Deployments
+
+struct HubDeploymentListResponse: Codable {
+    let deployments: [HubDeployment]
+    let total: Int?
+}
+
+struct HubDeployment: Identifiable, Codable, Hashable {
+    let id: String
+    let modelId: String?
+    let modelName: String?
+    let status: String?
+    let strategy: String?
+    let scale: Int?
+    let canaryPercent: Int?
+    let createdAt: String?
+    let updatedAt: String?
+
+    var isRunning: Bool { status == "running" || status == "active" }
+    var isFailed: Bool { status == "failed" || status == "error" }
+
+    var statusLabel: String {
+        switch status {
+        case "pending": return "等待中"
+        case "running", "active": return "运行中"
+        case "stopped": return "已停止"
+        case "failed", "error": return "失败"
+        default: return status ?? "未知"
+        }
+    }
+
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
+    static func == (lhs: HubDeployment, rhs: HubDeployment) -> Bool { lhs.id == rhs.id }
+}
+
+struct HubDeploymentCreateRequest: Codable {
+    let modelId: String
+    let strategy: String?
+    let scale: Int?
+    let canaryPercent: Int?
+    let autoStart: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case modelId = "model_id"
+        case strategy
+        case scale
+        case canaryPercent = "canary_percent"
+        case autoStart = "auto_start"
+    }
+}
+
+struct HubDeploymentMetricsResponse: Codable {
+    let deploymentId: String?
+    let requestsPerSecond: Double?
+    let avgLatencyMs: Double?
+    let errorRate: Double?
+    let tokensPerSecond: Double?
+    let activeConnections: Int?
+}
+
+// MARK: - Evaluations
+
+struct HubEvaluationListResponse: Codable {
+    let evaluations: [HubEvaluation]
+    let total: Int?
+}
+
+struct HubEvaluation: Identifiable, Codable {
+    let id: String
+    let modelId: String?
+    let modelName: String?
+    let template: String?
+    let status: String?
+    let scores: [String: Double]?
+    let overallScore: Double?
+    let createdAt: String?
+    let completedAt: String?
+
+    var isComplete: Bool { status == "completed" || status == "done" }
+    var isFailed: Bool { status == "failed" || status == "error" }
+}
+
+struct HubEvaluationCreateRequest: Codable {
+    let modelId: String
+    let template: String?
+    let config: [String: String]?
+
+    enum CodingKeys: String, CodingKey {
+        case modelId = "model_id"
+        case template, config
+    }
+}
+
+struct HubEvaluationCompareResponse: Codable {
+    let evaluations: [HubEvaluation]
+}
+
+// MARK: - Tenants
+
+struct HubTenantListResponse: Codable {
+    let tenants: [HubTenant]
+    let total: Int?
+}
+
+struct HubTenant: Identifiable, Codable, Hashable {
+    let id: String
+    let name: String?
+    let role: String?
+    let allowedModels: [String]?
+    let allowedModules: [String]?
+    let qpsLimit: Int?
+    let isActive: Bool?
+    let createdAt: String?
+
+    var roleLabel: String {
+        switch role {
+        case "admin": return "管理员"
+        case "developer": return "开发者"
+        case "viewer": return "只读"
+        default: return role ?? "自定义"
+        }
+    }
+
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
+    static func == (lhs: HubTenant, rhs: HubTenant) -> Bool { lhs.id == rhs.id }
+}
+
+struct HubTenantCreateRequest: Codable {
+    let name: String
+    let role: String?
+    let allowedModels: [String]?
+    let allowedModules: [String]?
+    let qpsLimit: Int?
+}
+
+struct HubRoleListResponse: Codable {
+    let roles: [HubRole]
+    let total: Int?
+}
+
+struct HubRole: Identifiable, Codable, Hashable {
+    let id: String
+    let tenantId: String?
+    let name: String?
+    let permissions: [String]?
+    let isDefault: Bool?
+    let createdAt: String?
+
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
+    static func == (lhs: HubRole, rhs: HubRole) { lhs.id == rhs.id }
+}
+
+// MARK: - Webhooks
+
+struct HubWebhookListResponse: Codable {
+    let webhooks: [HubWebhook]
+    let total: Int?
+}
+
+struct HubWebhook: Identifiable, Codable {
+    let id: String
+    let url: String?
+    let events: [String]?
+    let isActive: Bool?
+    let hmacSecret: String?
+    let createdAt: String?
+    let lastTriggered: String?
+}
+
+struct HubWebhookCreateRequest: Codable {
+    let url: String
+    let events: [String]?
+    let isActive: Bool?
+}
+
+// MARK: - Ratings
+
+struct HubRatingListResponse: Codable {
+    let ratings: [HubRating]
+    let total: Int?
+}
+
+struct HubRating: Identifiable, Codable {
+    let id: String
+    let modelId: String?
+    let score: Int?
+    let summary: String?
+    let userId: String?
+    let createdAt: String?
+}
+
+struct HubRatingCreateRequest: Codable {
+    let modelId: String
+    let score: Int
+    let summary: String?
+
+    enum CodingKeys: String, CodingKey {
+        case modelId = "model_id"
+        case score, summary
+    }
+}
+
+struct HubRatingSummaryResponse: Codable {
+    let modelId: String?
+    let avgScore: Double?
+    let totalCount: Int?
+}
+
+// MARK: - Favorites
+
+struct HubFavoriteListResponse: Codable {
+    let favorites: [HubFavorite]
+    let total: Int?
+}
+
+struct HubFavorite: Identifiable, Codable {
+    let id: String
+    let modelId: String?
+    let modelName: String?
+    let createdAt: String?
+}
+
+struct HubFavoriteToggleRequest: Codable {
+    let modelId: String
+
+    enum CodingKeys: String, CodingKey {
+        case modelId = "model_id"
+    }
+}
+
+// MARK: - Branches
+
+struct HubBranchListResponse: Codable {
+    let branches: [HubBranch]
+    let total: Int?
+}
+
+struct HubBranch: Identifiable, Codable {
+    let id: String
+    let modelId: String?
+    let name: String?
+    let status: String?
+    let createdAt: String?
+    let mergedAt: String?
+
+    var isActive: Bool { status == "active" }
+    var isMerged: Bool { status == "merged" }
+}
+
+struct HubBranchCreateRequest: Codable {
+    let modelId: String
+    let name: String
+
+    enum CodingKeys: String, CodingKey {
+        case modelId = "model_id"
+        case name
+    }
+}
+
+struct HubBranchMergeRequest: Codable {
+    let branchId: String
+
+    enum CodingKeys: String, CodingKey {
+        case branchId = "branch_id"
+    }
+}
+
+// MARK: - Security
+
+struct HubSecurityScanResponse: Codable {
+    let scanId: String?
+    let modelId: String?
+    let status: String?
+    let issues: [HubSecurityIssue]?
+    let scannedAt: String?
+}
+
+struct HubSecurityIssue: Identifiable, Codable {
+    let id: String
+    let severity: String?
+    let type: String?
+    let description: String?
+    let recommendation: String?
+}
+
+// MARK: - Watermark
+
+struct HubWatermarkResponse: Codable {
+    let modelId: String?
+    let status: String?
+    let watermarkId: String?
+    let verified: Bool?
+    let embeddedAt: String?
+}
+
+struct HubWatermarkRequest: Codable {
+    let modelId: String
+    let watermarkText: String?
+
+    enum CodingKeys: String, CodingKey {
+        case modelId = "model_id"
+        case watermarkText = "watermark_text"
+    }
+}
+
+// MARK: - Encryption
+
+struct HubEncryptionResponse: Codable {
+    let modelId: String?
+    let status: String?
+    let algorithm: String?
+    let encryptedAt: String?
+}
+
+struct HubEncryptionRequest: Codable {
+    let modelId: String
+    let algorithm: String?
+
+    enum CodingKeys: String, CodingKey {
+        case modelId = "model_id"
+        case algorithm
+    }
+}
+
+// MARK: - Approvals
+
+struct HubApprovalListResponse: Codable {
+    let approvals: [HubApproval]
+    let total: Int?
+}
+
+struct HubApproval: Identifiable, Codable {
+    let id: String
+    let modelId: String?
+    let modelName: String?
+    let operation: String?
+    let level: String?
+    let status: String?
+    let requestedBy: String?
+    let reviewedBy: String?
+    let createdAt: String?
+    let reviewedAt: String?
+    let comment: String?
+
+    var levelLabel: String {
+        switch level {
+        case "L1": return "L1 自动审批"
+        case "L2": return "L2 主管审批"
+        case "L3": return "L3 安全审批"
+        default: return level ?? "未知"
+        }
+    }
+
+    var isPending: Bool { status == "pending" }
+}
+
+struct HubApprovalSubmitRequest: Codable {
+    let modelId: String
+    let operation: String
+    let level: String?
+
+    enum CodingKeys: String, CodingKey {
+        case modelId = "model_id"
+        case operation, level
+    }
+}
+
+struct HubApprovalReviewRequest: Codable {
+    let approved: Bool
+    let comment: String?
+}
+
+// MARK: - Recommend
+
+struct HubRecommendResponse: Codable {
+    let recommendations: [HubRecommendItem]
+}
+
+struct HubRecommendItem: Identifiable, Codable {
+    let id: String
+    let modelId: String?
+    let modelName: String?
+    let score: Double?
+    let reason: String?
+    let task: String?
+}
+
+// MARK: - Adapt (auto-migration)
+
+struct HubAdaptAssessResponse: Codable {
+    let modelId: String?
+    let compatible: Bool?
+    let issues: [String]?
+    let recommendations: [String]?
+}
+
+struct HubAdaptPlanResponse: Codable {
+    let modelId: String?
+    let steps: [HubAdaptStep]?
+    let estimatedTime: String?
+}
+
+struct HubAdaptStep: Identifiable, Codable {
+    let id: String
+    let step: String?
+    let description: String?
+    let status: String?
+}
+
+struct HubAdaptExecuteResponse: Codable {
+    let taskId: String?
+    let modelId: String?
+    let status: String?
+    let progress: Double?
+}
+
+// MARK: - Sync
+
+struct HubSyncPushResponse: Codable {
+    let syncId: String?
+    let modelIds: [String]?
+    let targetNode: String?
+    let status: String?
+}
+
+struct HubSyncPullResponse: Codable {
+    let syncId: String?
+    let modelIds: [String]?
+    let sourceNode: String?
+    let status: String?
+}
+
+struct HubSyncManifestResponse: Codable {
+    let models: [HubSyncManifestEntry]?
+}
+
+struct HubSyncManifestEntry: Identifiable, Codable {
+    let id: String
+    let modelId: String?
+    let nodeName: String?
+    let version: String?
+    let syncedAt: String?
+}
+
+// MARK: - Per-model inference stats
+
+struct HubModelInferenceStatsListResponse: Codable {
+    let stats: [HubModelInferenceStats]
+    let total: Int?
+}
+
+struct HubModelInferenceStats: Codable, Identifiable {
+    let id: String
+    let modelId: String?
+    let modelName: String?
+    let requestsPerMin: Double?
+    let avgLatencyMs: Double?
+    let tokensPerSecond: Double?
+    let activeSessions: Int?
+    let memoryMB: Double?
+    let node: String?
+    let source: String?
+    let uptime: String?
 }

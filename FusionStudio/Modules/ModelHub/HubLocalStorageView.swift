@@ -17,6 +17,7 @@ struct HubLocalStorageView: View {
     @State private var selectedModel: HubModel?
     @State private var searchText = ""
     @State private var selectedFamily: String = "全部"
+    @State private var selectedCategory: String = "全部"
     @State private var isLoading = false
     @State private var lastError: String?
 
@@ -33,6 +34,13 @@ struct HubLocalStorageView: View {
     @State private var batchQuantBits = 4
     @State private var batchQuantFormat = "mlx"
 
+    // Serve
+    @State private var servingModelIds: Set<String> = []
+
+    private let categories = [
+        "全部", "通用对话", "代码专属", "向量嵌入", "图像多模态", "私有模型"
+    ]
+
     private var families: [String] {
         let fams = Set(models.compactMap(\.family)).sorted()
         return ["全部"] + fams
@@ -44,6 +52,9 @@ struct HubLocalStorageView: View {
             result = result.filter {
                 $0.displayTitle.localizedCaseInsensitiveContains(searchText) || $0.id.localizedCaseInsensitiveContains(searchText)
             }
+        }
+        if selectedCategory != "全部" {
+            result = result.filter { matchesCategory($0, category: selectedCategory) }
         }
         if selectedFamily != "全部" {
             result = result.filter { $0.family == selectedFamily }
@@ -68,17 +79,64 @@ struct HubLocalStorageView: View {
     // MARK: - List Panel
 
     private var listPanel: some View {
-        VStack(spacing: 0) {
-            searchBar
-            filterBar
-            batchToolbar
-            Divider()
-            modelList
-            if let err = lastError {
-                Text(err).font(.caption).foregroundStyle(.red).padding(4)
+        HStack(spacing: 0) {
+            categoryTree
+            Rectangle().fill(theme.separator).frame(width: 1)
+            VStack(spacing: 0) {
+                searchBar
+                filterBar
+                batchToolbar
+                Divider()
+                modelList
+                if let err = lastError {
+                    Text(err).font(.caption).foregroundStyle(.red).padding(4)
+                }
             }
         }
-        .frame(minWidth: 320, maxWidth: 450)
+        .frame(minWidth: 320, maxWidth: 500)
+    }
+
+    private var categoryTree: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("分类")
+                .font(.system(size: theme.captionSize, weight: .semibold))
+                .foregroundStyle(theme.textTertiary)
+                .padding(.horizontal, theme.spacingS)
+                .padding(.top, theme.spacingM)
+                .padding(.bottom, theme.spacingXS)
+
+            ForEach(categories, id: \.self) { cat in
+                Button(action: { selectedCategory = cat }) {
+                    HStack(spacing: theme.spacingS) {
+                        Image(systemName: categoryIcon(cat))
+                            .font(.system(size: 12))
+                            .foregroundStyle(selectedCategory == cat ? theme.accent : theme.textSecondary)
+                            .frame(width: 16)
+                        Text(cat)
+                            .font(.system(size: theme.footnoteSize, weight: selectedCategory == cat ? .medium : .regular))
+                            .foregroundStyle(selectedCategory == cat ? theme.text : theme.textSecondary)
+                        Spacer()
+                        let count = cat == "全部" ? models.count : models.filter { matchesCategory($0, category: cat) }.count
+                        if count > 0 {
+                            Text("\(count)")
+                                .font(.system(size: 10))
+                                .foregroundStyle(theme.textTertiary)
+                        }
+                    }
+                    .padding(.horizontal, theme.spacingS)
+                    .padding(.vertical, 6)
+                    .background(
+                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                            .fill(selectedCategory == cat ? theme.accent.opacity(0.08) : .clear)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+
+            Spacer()
+        }
+        .frame(width: 130)
+        .background(theme.surfaceSecondary)
     }
 
     private var searchBar: some View {
@@ -146,6 +204,11 @@ struct HubLocalStorageView: View {
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.mini)
+                    Button("导出路径") {
+                        exportPaths()
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.mini)
                 }
                 Spacer()
             }
@@ -157,7 +220,7 @@ struct HubLocalStorageView: View {
 
     private var modelList: some View {
         List(filteredModels, selection: $selectedModel) { model in
-            LocalModelRow(model: model, batchMode: batchMode, isSelected: selectedIds.contains(model.id))
+            LocalModelRow(model: model, batchMode: batchMode, isSelected: selectedIds.contains(model.id), isServing: servingModelIds.contains(model.id))
                 .tag(model)
                 .onTapGesture {
                     if batchMode {
@@ -198,13 +261,39 @@ struct HubLocalStorageView: View {
                             if let q = model.quantization { HubTagBadge(text: q, color: .orange) }
                             if let p = model.parameters { HubTagBadge(text: p, color: .cyan) }
                             if model.sizeGB > 0 { HubTagBadge(text: model.sizeFormatted, color: .gray) }
+                            if model.isServing == true || servingModelIds.contains(model.id) {
+                                HubTagBadge(text: "推理中", icon: "bolt.fill", color: .green)
+                            }
+                            if let hint = model.fusionModuleHint { HubTagBadge(text: hint, icon: "star.circle", color: .blue) }
                         }
 
-                        HStack(spacing: theme.spacingM) {
+                        if let compat = model.compatibleFormats, !compat.isEmpty {
+                            HStack(spacing: theme.spacingS) {
+                                Text("兼容格式:").font(.caption).foregroundStyle(theme.textTertiary)
+                                ForEach(compat, id: \.self) { fmt in
+                                    HubTagBadge(text: fmt.uppercased(), color: .secondary)
+                                }
+                            }
+                        }
+
+                        HStack(spacing: theme.spacingS) {
                             Button(model.isPinned == true ? "取消置顶" : "置顶") {
                                 togglePin(model)
                             }
                             .buttonStyle(.bordered)
+
+                            if servingModelIds.contains(model.id) || model.isServing == true {
+                                Button("停止推理") {
+                                    stopServing(model)
+                                }
+                                .buttonStyle(.bordered)
+                                .foregroundStyle(.orange)
+                            } else {
+                                Button("启动推理") {
+                                    startServing(model)
+                                }
+                                .buttonStyle(.borderedProminent)
+                            }
 
                             Button("删除") {
                                 deleteModel(model)
@@ -276,11 +365,18 @@ struct HubLocalStorageView: View {
                 } else {
                     ForEach(versions) { ver in
                         HStack(spacing: theme.spacingS) {
-                            Image(systemName: "doc.fill").foregroundStyle(.secondary)
+                            Image(systemName: ver.statusEnum.icon).foregroundStyle(color(for: ver.statusEnum.color))
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(ver.version ?? ver.id)
-                                    .font(.system(size: theme.textSize))
-                                    .foregroundStyle(theme.text)
+                                HStack(spacing: 4) {
+                                    Text(ver.version ?? ver.id)
+                                        .font(.system(size: theme.textSize))
+                                        .foregroundStyle(theme.text)
+                                    Text(ver.statusEnum.label)
+                                        .font(.system(size: 9, weight: .medium))
+                                        .padding(.horizontal, 4).padding(.vertical, 1)
+                                        .background(Capsule().fill(color(for: ver.statusEnum.color).opacity(0.15)))
+                                        .foregroundStyle(color(for: ver.statusEnum.color))
+                                }
                                 HStack(spacing: 8) {
                                     if let fmt = ver.format { Text(fmt).font(.caption).foregroundStyle(.secondary) }
                                     if let q = ver.quantization { Text(q).font(.caption).foregroundStyle(.secondary) }
@@ -291,15 +387,30 @@ struct HubLocalStorageView: View {
                                 }
                             }
                             Spacer()
-                            if let created = ver.createdAt {
-                                Text(created).font(.caption2).foregroundStyle(theme.textTertiary)
+                            HStack(spacing: 4) {
+                                Button("回滚") { rollbackVersion(ver) }
+                                    .buttonStyle(.bordered)
+                                    .controlSize(.mini)
+                                    .foregroundStyle(.orange)
+                                if ver.statusEnum == .draft {
+                                    Button("发布") { promoteVersion(ver) }
+                                        .buttonStyle(.bordered)
+                                        .controlSize(.mini)
+                                        .foregroundStyle(.green)
+                                }
+                                if ver.statusEnum == .published {
+                                    Button("废弃") { deprecateVersion(ver) }
+                                        .buttonStyle(.bordered)
+                                        .controlSize(.mini)
+                                        .foregroundStyle(.yellow)
+                                }
+                                if ver.statusEnum == .deprecated {
+                                    Button("下线") { retireVersion(ver) }
+                                        .buttonStyle(.bordered)
+                                        .controlSize(.mini)
+                                        .foregroundStyle(.red)
+                                }
                             }
-                            Button("回滚") {
-                                rollbackVersion(ver)
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.mini)
-                            .foregroundStyle(.orange)
                         }
                         .padding(.vertical, 4)
                     }
@@ -339,27 +450,29 @@ struct HubLocalStorageView: View {
         }
     }
 
+    private func color(for name: String) -> Color {
+        switch name {
+        case "gray": return .gray
+        case "orange": return .orange
+        case "green": return .green
+        case "yellow": return .yellow
+        case "red": return .red
+        case "blue": return .blue
+        case "purple": return .purple
+        default: return .secondary
+        }
+    }
+
     private func togglePin(_ model: HubModel) {
         Task { @MainActor in
             do {
                 let pin = model.isPinned != true
                 _ = try await client.pinModel(modelId: model.id, pin: pin)
                 if let idx = models.firstIndex(where: { $0.id == model.id }) {
-                    models[idx] = HubModel(
-                        id: models[idx].id, name: models[idx].name, displayName: models[idx].displayName,
-                        modelPath: models[idx].modelPath, engineType: models[idx].engineType,
-                        format: models[idx].format, sizeBytes: models[idx].sizeBytes,
-                        quantization: models[idx].quantization, parameters: models[idx].parameters,
-                        family: models[idx].family, isDownloaded: models[idx].isDownloaded,
-                        isActive: models[idx].isActive, isPinned: pin,
-                        allowedModules: models[idx].allowedModules, versions: models[idx].versions,
-                        source: models[idx].source, description: models[idx].description,
-                        tags: models[idx].tags, downloads: models[idx].downloads,
-                        likes: models[idx].likes, license: models[idx].license,
-                        task: models[idx].task, createdAt: models[idx].createdAt,
-                        updatedAt: models[idx].updatedAt
-                    )
-                    selectedModel = models[idx]
+                    var updated = models[idx]
+                    updated.isPinned = pin
+                    models[idx] = updated
+                    selectedModel = updated
                 }
                 storageLog.info("Pin \(pin) for \(model.id)")
             } catch {
@@ -511,12 +624,131 @@ struct HubLocalStorageView: View {
             }
         }
     }
+
+    private func matchesCategory(_ model: HubModel, category: String) -> Bool {
+        if category == "全部" { return true }
+        if category == "已固定" { return model.isPinned == true }
+        if category == "推理中" { return servingModelIds.contains(model.id) }
+        let fam = model.family?.lowercased() ?? ""
+        let task = model.task?.lowercased() ?? ""
+        let fmt = model.format?.lowercased() ?? ""
+        switch category {
+        case "语言模型": return fam.contains("llm") || fam.contains("gpt") || fam.contains("llama") || fam.contains("qwen") || task.contains("text-generation")
+        case "视觉模型": return fam.contains("vlm") || fam.contains("vision") || task.contains("image-text-to-text")
+        case "嵌入模型": return fam.contains("embed") || task.contains("embeddings")
+        case "代码模型": return fam.contains("code") || task.contains("code")
+        case "音频模型": return fam.contains("audio") || fam.contains("whisper") || task.contains("audio")
+        case "MLX格式": return fmt.contains("mlx")
+        case "GGUF格式": return fmt.contains("gguf") || fmt.contains("ggml")
+        case "Safetensors": return fmt.contains("safetensors")
+        default: return true
+        }
+    }
+
+    private func categoryIcon(_ category: String) -> String {
+        switch category {
+        case "全部": return "square.grid.2x2"
+        case "已固定": return "pin.fill"
+        case "推理中": return "bolt.fill"
+        case "语言模型": return "text.bubble.fill"
+        case "视觉模型": return "eye.fill"
+        case "嵌入模型": return "link"
+        case "代码模型": return "chevron.left.forwardslash.chevron.right"
+        case "音频模型": return "waveform"
+        case "MLX格式": return "apple.terminal"
+        case "GGUF格式": return "doc.zipper"
+        case "Safetensors": return "lock.shield"
+        default: return "folder"
+        }
+    }
+
+    private func startServing(_ model: HubModel) {
+        Task { @MainActor in
+            do {
+                let resp = try await client.serveModel(modelId: model.id)
+                servingModelIds.insert(model.id)
+                storageLog.info("Serving started for \(model.id): port=\(resp.port ?? 0)")
+                lastError = nil
+            } catch {
+                lastError = "启动推理失败: \(error.localizedDescription)"
+                storageLog.error("Serve failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func stopServing(_ model: HubModel) {
+        Task { @MainActor in
+            do {
+                _ = try await client.unserveModel(modelId: model.id)
+                servingModelIds.remove(model.id)
+                storageLog.info("Serving stopped for \(model.id)")
+                lastError = nil
+            } catch {
+                lastError = "停止推理失败: \(error.localizedDescription)"
+                storageLog.error("Unserve failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func exportPaths() {
+        let paths = models
+            .filter { selectedIds.contains($0.id) || (selectedIds.isEmpty && $0.id == selectedModel?.id) }
+            .compactMap { $0.modelPath }
+            .joined(separator: "\n")
+        if !paths.isEmpty {
+            #if os(macOS)
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(paths, forType: .string)
+            #endif
+            storageLog.info("Exported \(paths.components(separatedBy: "\n").count) model paths")
+        }
+    }
+
+    private func promoteVersion(_ ver: HubModelVersion) {
+        Task { @MainActor in
+            do {
+                _ = try await client.promoteVersion(versionId: ver.id)
+                storageLog.info("Promoted version: \(ver.id)")
+                if let model = selectedModel { loadVersionsFor(model) }
+            } catch {
+                lastError = "发布版本失败: \(error.localizedDescription)"
+                storageLog.error("Promote failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func deprecateVersion(_ ver: HubModelVersion) {
+        Task { @MainActor in
+            do {
+                _ = try await client.deprecateVersion(versionId: ver.id)
+                storageLog.info("Deprecated version: \(ver.id)")
+                if let model = selectedModel { loadVersionsFor(model) }
+            } catch {
+                lastError = "废弃版本失败: \(error.localizedDescription)"
+                storageLog.error("Deprecate failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func retireVersion(_ ver: HubModelVersion) {
+        Task { @MainActor in
+            do {
+                _ = try await client.retireVersion(versionId: ver.id)
+                storageLog.info("Retired version: \(ver.id)")
+                if let model = selectedModel { loadVersionsFor(model) }
+            } catch {
+                lastError = "下线版本失败: \(error.localizedDescription)"
+                storageLog.error("Retire failed: \(error.localizedDescription)")
+            }
+        }
+    }
 }
 
 private struct LocalModelRow: View {
     let model: HubModel
     let batchMode: Bool
     let isSelected: Bool
+    var isServing: Bool = false
     @Environment(\.studioTheme) private var theme
 
     var body: some View {
@@ -526,21 +758,56 @@ private struct LocalModelRow: View {
                     .foregroundStyle(isSelected ? theme.accent : .secondary)
             } else {
                 Circle()
-                    .fill(model.isActive == true ? Color.green : (model.isDownloaded == true ? Color.blue : Color.gray))
+                    .fill(isServing ? Color.green : (model.isActive == true ? Color.blue : (model.isDownloaded == true ? Color.orange : Color.gray)))
                     .frame(width: 8, height: 8)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text(model.displayTitle)
-                    .font(.system(size: theme.textSize, weight: .medium))
-                    .foregroundStyle(theme.text)
+                HStack(spacing: 4) {
+                    Text(model.displayTitle)
+                        .font(.system(size: theme.textSize, weight: .medium))
+                        .foregroundStyle(theme.text)
+                    if isServing {
+                        Text("推理中")
+                            .font(.system(size: 9, weight: .medium))
+                            .padding(.horizontal, 4).padding(.vertical, 1)
+                            .background(Capsule().fill(Color.green.opacity(0.15)))
+                            .foregroundStyle(.green)
+                    }
+                    if model.isPinned == true {
+                        Text("常驻")
+                            .font(.system(size: 9, weight: .medium))
+                            .padding(.horizontal, 4).padding(.vertical, 1)
+                            .background(Capsule().fill(Color.yellow.opacity(0.15)))
+                            .foregroundStyle(.yellow)
+                    }
+                }
                 HStack(spacing: 6) {
-                    if let fam = model.family { Text(fam).font(.caption).foregroundStyle(.secondary) }
-                    if let q = model.quantization { Text(q).font(.caption).foregroundStyle(.secondary) }
+                    if let fmt = model.format {
+                        Text(fmt.uppercased())
+                            .font(.system(size: 9, weight: .medium))
+                            .padding(.horizontal, 4).padding(.vertical, 1)
+                            .background(Capsule().fill(theme.accent.opacity(0.12)))
+                            .foregroundStyle(theme.accent)
+                    }
+                    if let q = model.quantization {
+                        Text(q)
+                            .font(.system(size: 9, weight: .medium))
+                            .padding(.horizontal, 4).padding(.vertical, 1)
+                            .background(Capsule().fill(Color.purple.opacity(0.12)))
+                            .foregroundStyle(.purple)
+                    }
                     if model.sizeGB > 0 { Text(model.sizeFormatted).font(.caption).foregroundStyle(.secondary) }
+                    if let hint = model.fusionModuleHint {
+                        Text(hint)
+                            .font(.system(size: 9, weight: .medium))
+                            .padding(.horizontal, 4).padding(.vertical, 1)
+                            .background(Capsule().fill(Color.cyan.opacity(0.12)))
+                            .foregroundStyle(.cyan)
+                    }
                 }
             }
             Spacer()
-            if model.isPinned == true {
+            if model.isPinned == true && !isServing {
                 Image(systemName: "pin.fill").font(.caption).foregroundStyle(.yellow)
             }
         }

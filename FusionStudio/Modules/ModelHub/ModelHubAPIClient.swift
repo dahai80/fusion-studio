@@ -62,12 +62,34 @@ final class ModelHubAPIClient: ObservableObject {
         try await post("/api/v1/models/import/hf", json: ["repo_id": repoId])
     }
 
-    func setModelModules(modelId: String, modules: [String]) async throws -> HubSimpleResponse {
-        try await patch("/api/v1/models/\(modelId)/modules", json: ["allowed_modules": modules])
+    func pinModel(modelId: String, pin: Bool) async throws -> HubSimpleResponse {
+        if pin {
+            return try await post("/api/v1/models/\(modelId)/pin", json: ["pinned": pin])
+        } else {
+            return try await delete("/api/v1/models/\(modelId)/pin")
+        }
     }
 
-    func pinModel(modelId: String, pin: Bool) async throws -> HubSimpleResponse {
-        try await post("/api/v1/models/\(modelId)/pin", json: ["pinned": pin])
+    // MARK: - Serve (deploy to MLX)
+
+    func serveModel(modelId: String, autoStart: Bool = true, ttlSeconds: Int? = nil) async throws -> HubServeResponse {
+        var json: [String: Any] = ["model_id": modelId, "auto_start": autoStart]
+        if let ttlSeconds { json["ttl_seconds"] = ttlSeconds }
+        return try await post("/api/v1/models/\(modelId)/serve", json: json)
+    }
+
+    func unserveModel(modelId: String) async throws -> HubSimpleResponse {
+        try await delete("/api/v1/models/\(modelId)/serve")
+    }
+
+    func getServeStatus(modelId: String) async throws -> HubServeResponse {
+        try await get("/api/v1/models/\(modelId)/serve")
+    }
+
+    // MARK: - Modules (PUT to match upstream)
+
+    func setModelModules(modelId: String, modules: [String]) async throws -> HubSimpleResponse {
+        try await put("/api/v1/models/\(modelId)/modules", json: ["allowed_modules": modules])
     }
 
     // MARK: - Downloads
@@ -87,6 +109,10 @@ final class ModelHubAPIClient: ObservableObject {
 
     func getDownload(taskId: String) async throws -> HubDownloadTask {
         try await get("/api/v1/downloads/\(taskId)")
+    }
+
+    func cancelDownload(taskId: String) async throws -> HubSimpleResponse {
+        try await delete("/api/v1/downloads/\(taskId)")
     }
 
     // MARK: - Quantize
@@ -121,6 +147,33 @@ final class ModelHubAPIClient: ObservableObject {
         ])
     }
 
+    func startLayeredQuantize(modelId: String, format: String = "mlx", bits: Int = 4, kvCacheOptimize: Bool = false, attentionQuantize: Bool = false) async throws -> HubQuantizeTaskResponse {
+        var json: [String: Any] = [
+            "model_id": modelId,
+            "target_format": format,
+            "bits": bits,
+        ]
+        if kvCacheOptimize { json["kv_cache_optimize"] = true }
+        if attentionQuantize { json["attention_layer_quantize"] = true }
+        return try await post("/api/v1/quantize/layered", json: json)
+    }
+
+    func getLayeredQuantizeJob(taskId: String) async throws -> HubQuantizeTask {
+        try await get("/api/v1/quantize/layered/jobs/\(taskId)")
+    }
+
+    func evaluateQuantize(taskId: String) async throws -> HubSimpleResponse {
+        try await post("/api/v1/quantize/evaluate", json: ["task_id": taskId])
+    }
+
+    func applyQuantizePreset(name: String, modelId: String) async throws -> HubQuantizeTaskResponse {
+        try await post("/api/v1/quantize/presets/\(name)/apply", json: ["model_id": modelId])
+    }
+
+    func compareQuantize(taskId: String) async throws -> HubBenchmarkCompareResponse {
+        try await get("/api/v1/quantize/\(taskId)/compare")
+    }
+
     // MARK: - Benchmarks (issue #63 sub-feature 3)
 
     func triggerBenchmark(modelId: String, template: String = "general") async throws -> HubSimpleResponse {
@@ -137,6 +190,16 @@ final class ModelHubAPIClient: ObservableObject {
         try await get("/api/v1/benchmarks/results", query: [
             URLQueryItem(name: "model_id", value: modelId),
         ])
+    }
+
+    func listBenchmarks(limit: Int = 50) async throws -> HubBenchmarkListResponse {
+        try await get("/api/v1/benchmarks", query: [
+            URLQueryItem(name: "limit", value: String(limit)),
+        ])
+    }
+
+    func getBenchmarkDetail(id: String) async throws -> HubBenchmarkDetail {
+        try await get("/api/v1/benchmarks/\(id)")
     }
 
     // MARK: - Cluster / Smart Scheduling (issue #63 sub-feature 4)
@@ -165,6 +228,10 @@ final class ModelHubAPIClient: ObservableObject {
 
     func getRealtimeMonitor() async throws -> HubMonitorResponse {
         try await get("/api/v1/monitor/realtime")
+    }
+
+    func getModelStats() async throws -> HubModelInferenceStatsListResponse {
+        try await get("/api/v1/monitor/model-stats")
     }
 
     // MARK: - Auth / API Keys (issue #63 sub-feature 5)
@@ -231,6 +298,317 @@ final class ModelHubAPIClient: ObservableObject {
 
     func rollbackVersion(versionId: String) async throws -> HubSimpleResponse {
         try await post("/api/v1/versions/\(versionId)/rollback", json: [:])
+    }
+
+    func updateVersionStatus(versionId: String, status: String) async throws -> HubSimpleResponse {
+        try await put("/api/v1/versions/\(versionId)/status", json: ["status": status])
+    }
+
+    func promoteVersion(versionId: String) async throws -> HubSimpleResponse {
+        try await post("/api/v1/versions/\(versionId)/promote", json: [:])
+    }
+
+    func deprecateVersion(versionId: String) async throws -> HubSimpleResponse {
+        try await post("/api/v1/versions/\(versionId)/deprecate", json: [:])
+    }
+
+    func retireVersion(versionId: String) async throws -> HubSimpleResponse {
+        try await post("/api/v1/versions/\(versionId)/retire", json: [:])
+    }
+
+    // MARK: - Deployments
+
+    func listDeployments() async throws -> HubDeploymentListResponse {
+        try await get("/api/v1/deployments")
+    }
+
+    func createDeployment(modelId: String, strategy: String? = nil, scale: Int? = nil, canaryPercent: Int? = nil) async throws -> HubDeployment {
+        var json: [String: Any] = ["model_id": modelId]
+        if let strategy { json["strategy"] = strategy }
+        if let scale { json["scale"] = scale }
+        if let canaryPercent { json["canary_percent"] = canaryPercent }
+        return try await post("/api/v1/deployments", json: json)
+    }
+
+    func getDeployment(id: String) async throws -> HubDeployment {
+        try await get("/api/v1/deployments/\(id)")
+    }
+
+    func stopDeployment(id: String) async throws -> HubSimpleResponse {
+        try await post("/api/v1/deployments/\(id)/stop", json: [:])
+    }
+
+    func deleteDeployment(id: String) async throws -> HubSimpleResponse {
+        try await delete("/api/v1/deployments/\(id)")
+    }
+
+    func scaleDeployment(id: String, scale: Int) async throws -> HubSimpleResponse {
+        try await post("/api/v1/deployments/\(id)/scale", json: ["scale": scale])
+    }
+
+    func grayReleaseDeployment(id: String, canaryPercent: Int) async throws -> HubSimpleResponse {
+        try await post("/api/v1/deployments/\(id)/gray-release", json: ["canary_percent": canaryPercent])
+    }
+
+    func getDeploymentMetrics(id: String) async throws -> HubDeploymentMetricsResponse {
+        try await get("/api/v1/deployments/\(id)/metrics")
+    }
+
+    // MARK: - Evaluations
+
+    func listEvaluations(modelId: String? = nil) async throws -> HubEvaluationListResponse {
+        var query: [URLQueryItem] = []
+        if let modelId { query.append(URLQueryItem(name: "model_id", value: modelId)) }
+        return try await get("/api/v1/evaluations", query: query)
+    }
+
+    func createEvaluation(modelId: String, template: String? = nil) async throws -> HubEvaluation {
+        var json: [String: Any] = ["model_id": modelId]
+        if let template { json["template"] = template }
+        return try await post("/api/v1/evaluations", json: json)
+    }
+
+    func getEvaluation(id: String) async throws -> HubEvaluation {
+        try await get("/api/v1/evaluations/\(id)")
+    }
+
+    func deleteEvaluation(id: String) async throws -> HubSimpleResponse {
+        try await delete("/api/v1/evaluations/\(id)")
+    }
+
+    func compareEvaluations(ids: [String]) async throws -> HubEvaluationCompareResponse {
+        try await get("/api/v1/evaluations/compare", query: [
+            URLQueryItem(name: "evaluation_ids", value: ids.joined(separator: ",")),
+        ])
+    }
+
+    // MARK: - Tenants
+
+    func listTenants() async throws -> HubTenantListResponse {
+        try await get("/api/v1/tenants")
+    }
+
+    func createTenant(name: String, role: String? = nil, allowedModels: [String]? = nil, allowedModules: [String]? = nil, qpsLimit: Int? = nil) async throws -> HubTenant {
+        var json: [String: Any] = ["name": name]
+        if let role { json["role"] = role }
+        if let allowedModels { json["allowed_models"] = allowedModels }
+        if let allowedModules { json["allowed_modules"] = allowedModules }
+        if let qpsLimit { json["qps_limit"] = qpsLimit }
+        return try await post("/api/v1/tenants", json: json)
+    }
+
+    func updateTenant(id: String, role: String? = nil, allowedModels: [String]? = nil, allowedModules: [String]? = nil, qpsLimit: Int? = nil) async throws -> HubTenant {
+        var json: [String: Any] = [:]
+        if let role { json["role"] = role }
+        if let allowedModels { json["allowed_models"] = allowedModels }
+        if let allowedModules { json["allowed_modules"] = allowedModules }
+        if let qpsLimit { json["qps_limit"] = qpsLimit }
+        return try await put("/api/v1/tenants/\(id)", json: json)
+    }
+
+    func deleteTenant(id: String) async throws -> HubSimpleResponse {
+        try await delete("/api/v1/tenants/\(id)")
+    }
+
+    // MARK: - Roles
+
+    func listRoles(tenantId: String) async throws -> HubRoleListResponse {
+        try await get("/api/v1/tenants/\(tenantId)/roles")
+    }
+
+    func createRole(tenantId: String, name: String, permissions: [String]? = nil) async throws -> HubRole {
+        var json: [String: Any] = ["name": name]
+        if let permissions { json["permissions"] = permissions }
+        return try await post("/api/v1/tenants/\(tenantId)/roles", json: json)
+    }
+
+    func updateRole(tenantId: String, roleId: String, name: String? = nil, permissions: [String]? = nil) async throws -> HubRole {
+        var json: [String: Any] = [:]
+        if let name { json["name"] = name }
+        if let permissions { json["permissions"] = permissions }
+        return try await put("/api/v1/tenants/\(tenantId)/roles/\(roleId)", json: json)
+    }
+
+    func deleteRole(tenantId: String, roleId: String) async throws -> HubSimpleResponse {
+        try await delete("/api/v1/tenants/\(tenantId)/roles/\(roleId)")
+    }
+
+    // MARK: - Webhooks
+
+    func listWebhooks() async throws -> HubWebhookListResponse {
+        try await get("/api/v1/webhooks")
+    }
+
+    func createWebhook(url: String, events: [String]? = nil) async throws -> HubWebhook {
+        var json: [String: Any] = ["url": url]
+        if let events { json["events"] = events }
+        return try await post("/api/v1/webhooks", json: json)
+    }
+
+    func deleteWebhook(id: String) async throws -> HubSimpleResponse {
+        try await delete("/api/v1/webhooks/\(id)")
+    }
+
+    func testWebhook(id: String) async throws -> HubSimpleResponse {
+        try await post("/api/v1/webhooks/\(id)/test", json: [:])
+    }
+
+    // MARK: - Security
+
+    func triggerSecurityScan(modelId: String) async throws -> HubSecurityScanResponse {
+        try await post("/api/v1/security/scan", json: ["model_id": modelId])
+    }
+
+    func getSecurityScanResult(modelId: String) async throws -> HubSecurityScanResponse {
+        try await get("/api/v1/security/scan/\(modelId)")
+    }
+
+    // MARK: - Watermark
+
+    func embedWatermark(modelId: String, text: String? = nil) async throws -> HubWatermarkResponse {
+        var json: [String: Any] = ["model_id": modelId]
+        if let text { json["watermark_text"] = text }
+        return try await post("/api/v1/watermark/embed", json: json)
+    }
+
+    func verifyWatermark(modelId: String) async throws -> HubWatermarkResponse {
+        try await post("/api/v1/watermark/verify", json: ["model_id": modelId])
+    }
+
+    // MARK: - Encryption
+
+    func encryptModel(modelId: String, algorithm: String? = nil) async throws -> HubEncryptionResponse {
+        var json: [String: Any] = ["model_id": modelId]
+        if let algorithm { json["algorithm"] = algorithm }
+        return try await post("/api/v1/encryption/encrypt", json: json)
+    }
+
+    func decryptModel(modelId: String) async throws -> HubEncryptionResponse {
+        try await post("/api/v1/encryption/decrypt", json: ["model_id": modelId])
+    }
+
+    func getEncryptionStatus(modelId: String) async throws -> HubEncryptionResponse {
+        try await get("/api/v1/encryption/status/\(modelId)")
+    }
+
+    // MARK: - Approvals
+
+    func listApprovals(status: String? = nil) async throws -> HubApprovalListResponse {
+        var query: [URLQueryItem] = []
+        if let status { query.append(URLQueryItem(name: "status", value: status)) }
+        return try await get("/api/v1/approvals", query: query)
+    }
+
+    func submitApproval(modelId: String, operation: String, level: String? = nil) async throws -> HubApproval {
+        var json: [String: Any] = ["model_id": modelId, "operation": operation]
+        if let level { json["level"] = level }
+        return try await post("/api/v1/approvals", json: json)
+    }
+
+    func approveRequest(id: String, comment: String? = nil) async throws -> HubSimpleResponse {
+        var json: [String: Any] = ["approved": true]
+        if let comment { json["comment"] = comment }
+        return try await post("/api/v1/approvals/\(id)/approve", json: json)
+    }
+
+    func rejectRequest(id: String, comment: String? = nil) async throws -> HubSimpleResponse {
+        var json: [String: Any] = ["approved": false]
+        if let comment { json["comment"] = comment }
+        return try await post("/api/v1/approvals/\(id)/reject", json: json)
+    }
+
+    // MARK: - Ratings
+
+    func listRatings(modelId: String) async throws -> HubRatingListResponse {
+        try await get("/api/v1/models/\(modelId)/ratings")
+    }
+
+    func createRating(modelId: String, score: Int, summary: String? = nil) async throws -> HubRating {
+        var json: [String: Any] = ["model_id": modelId, "score": score]
+        if let summary { json["summary"] = summary }
+        return try await post("/api/v1/models/\(modelId)/ratings", json: json)
+    }
+
+    func getRatingSummary(modelId: String) async throws -> HubRatingSummaryResponse {
+        try await get("/api/v1/models/\(modelId)/ratings/summary")
+    }
+
+    // MARK: - Favorites
+
+    func listFavorites() async throws -> HubFavoriteListResponse {
+        try await get("/api/v1/favorites")
+    }
+
+    func addFavorite(modelId: String) async throws -> HubFavorite {
+        try await post("/api/v1/favorites", json: ["model_id": modelId])
+    }
+
+    func removeFavorite(modelId: String) async throws -> HubSimpleResponse {
+        try await delete("/api/v1/favorites/\(modelId)")
+    }
+
+    // MARK: - Branches
+
+    func listBranches(modelId: String) async throws -> HubBranchListResponse {
+        try await get("/api/v1/models/\(modelId)/branches")
+    }
+
+    func createBranch(modelId: String, name: String) async throws -> HubBranch {
+        try await post("/api/v1/models/\(modelId)/branches", json: ["name": name])
+    }
+
+    func mergeBranch(branchId: String) async throws -> HubSimpleResponse {
+        try await post("/api/v1/branches/\(branchId)/merge", json: [:])
+    }
+
+    func deleteBranch(branchId: String) async throws -> HubSimpleResponse {
+        try await delete("/api/v1/branches/\(branchId)")
+    }
+
+    // MARK: - Recommend
+
+    func getRecommendations(task: String? = nil, limit: Int = 10) async throws -> HubRecommendResponse {
+        var query: [URLQueryItem] = [URLQueryItem(name: "limit", value: String(limit))]
+        if let task { query.append(URLQueryItem(name: "task", value: task)) }
+        return try await get("/api/v1/recommend", query: query)
+    }
+
+    func getQuickRecommend() async throws -> HubRecommendResponse {
+        try await get("/api/v1/recommend/quick")
+    }
+
+    // MARK: - Adapt
+
+    func assessAdapt(modelId: String) async throws -> HubAdaptAssessResponse {
+        try await post("/api/v1/adapt/assess", json: ["model_id": modelId])
+    }
+
+    func planAdapt(modelId: String) async throws -> HubAdaptPlanResponse {
+        try await post("/api/v1/adapt/plan", json: ["model_id": modelId])
+    }
+
+    func executeAdapt(modelId: String) async throws -> HubAdaptExecuteResponse {
+        try await post("/api/v1/adapt/execute", json: ["model_id": modelId])
+    }
+
+    // MARK: - Sync
+
+    func pushSync(modelIds: [String], targetNode: String) async throws -> HubSyncPushResponse {
+        try await post("/api/v1/sync/push", json: ["model_ids": modelIds, "target_node": targetNode])
+    }
+
+    func pullSync(modelIds: [String], sourceNode: String) async throws -> HubSyncPullResponse {
+        try await post("/api/v1/sync/pull", json: ["model_ids": modelIds, "source_node": sourceNode])
+    }
+
+    func getSyncManifest() async throws -> HubSyncManifestResponse {
+        try await get("/api/v1/sync/manifest")
+    }
+
+    // MARK: - Hardware refresh
+
+    func refreshHardware() async throws -> HubHardwareResponse {
+        try await post("/api/v1/hardware/refresh", json: [:])
     }
 
     // MARK: - Health check

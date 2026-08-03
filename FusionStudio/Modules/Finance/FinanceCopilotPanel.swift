@@ -3,6 +3,7 @@ import SwiftUI
 struct FinanceCopilotPanel: View {
     @EnvironmentObject var financeBridge: FinanceBridge
     @State private var inputText: String = ""
+    @State private var sessionId: String = UUID().uuidString
 
     var body: some View {
         VStack(spacing: 0) {
@@ -68,6 +69,6 @@ struct FinanceCopilotPanel: View {
         let text = inputText.trimmingCharacters(in: .whitespaces)
         guard !text.isEmpty else { return }
         inputText = ""
-        financeBridge.copilotChat(message: text)
+        financeBridge.copilotChat(sessionId: sessionId, message: text) { _ in }
     }
 }
