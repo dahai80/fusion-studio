@@ -260,7 +260,12 @@ class FusionCodeBridge: ObservableObject {
     private func fetchMLXModels() async -> [String] {
         guard let url = URL(string: "http://localhost:11434/v1/models") else { return [] }
         do {
-            let (data, _) = try await URLSession.shared.data(from: url)
+            var request = URLRequest(url: url)
+            let key = FusionConfig.shared.mlxResolvedApiKey
+            if !key.isEmpty {
+                request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+            }
+            let (data, _) = try await URLSession.shared.data(for: request)
             guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                   let models = json["data"] as? [[String: Any]] else { return [] }
             return models.compactMap { $0["id"] as? String }

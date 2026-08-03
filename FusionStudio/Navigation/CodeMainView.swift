@@ -110,6 +110,28 @@ struct CodeMainView: View {
                         }
                     }
                 }
+                .onChange(of: fcBridge.currentStreamContent) {
+                    guard !agent.conversation.isEmpty else { return }
+                    let lastIdx = agent.conversation.indices.last!
+                    guard agent.conversation[lastIdx].role == "assistant" else { return }
+                    let streamContent = fcBridge.currentStreamContent
+                    if !streamContent.isEmpty {
+                        agent.conversation[lastIdx] = CodeAgent.CodeMessage(
+                            role: "assistant",
+                            content: streamContent,
+                            timestamp: agent.conversation[lastIdx].timestamp,
+                            codeBlocks: []
+                        )
+                    }
+                }
+                .onChange(of: fcBridge.isStreaming) { streaming in
+                    if !streaming, !agent.conversation.isEmpty {
+                        let lastIdx = agent.conversation.indices.last!
+                        if agent.conversation[lastIdx].role == "assistant", agent.conversation[lastIdx].content.isEmpty {
+                            agent.conversation.removeLast()
+                        }
+                    }
+                }
             }
 
             Rectangle().fill(theme.separator).frame(height: 1)
@@ -430,6 +452,8 @@ struct CodeMainView: View {
         guard !text.isEmpty else { return }
 
         if fcBridge.isConnected {
+            agent.conversation.append(CodeAgent.CodeMessage(role: "user", content: text, timestamp: Date(), codeBlocks: []))
+            agent.conversation.append(CodeAgent.CodeMessage(role: "assistant", content: "", timestamp: Date(), codeBlocks: []))
             fcBridge.chatStream(
                 message: text,
                 cwd: workspace.projectRoot?.path,
