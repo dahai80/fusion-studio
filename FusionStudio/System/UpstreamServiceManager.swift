@@ -338,8 +338,9 @@ final class UpstreamServiceManager: ObservableObject {
             svc.message = healthy ? "运行中" : "未启动"
             updated.append(svc)
         }
+        let refreshed = updated
         await MainActor.run {
-            self.services = updated
+            self.services = refreshed
             self.isRefreshing = false
         }
         logger.info("refreshAll done")
