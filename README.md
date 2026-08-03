@@ -9,7 +9,7 @@
   <img src="https://img.shields.io/badge/Swift-5.9-red" alt="Swift">
   <img src="https://img.shields.io/badge/Rust-2021-purple" alt="Rust">
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
-  <img src="https://img.shields.io/badge/status-V0.1.15-yellow" alt="V0.1.15">
+  <img src="https://img.shields.io/badge/status-V0.1.16-yellow" alt="V0.1.16">
   <img src="https://img.shields.io/badge/modules-25-success" alt="20 Modules">
 </div>
 
@@ -466,6 +466,13 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 ---
 
 ## 📋 Changelog
+
+### v0.1.16 (2026-08-03)
+
+Bug fixes:
+
+- Fix Swift 6 concurrency warning in `UpstreamServiceManager.refreshAll()` (release build failure)
+- Delete stale `audit/ar-compliance-p0` remote branch
 
 ### v0.1.15 (2026-08-03)
 
