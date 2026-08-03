@@ -293,6 +293,8 @@ enum Module: String, CaseIterable, Identifiable {
             return .scienceSheet
         case .finance:
             return .financeSheet
+        case .pluginConfig, .pluginStatus, .pluginToken, .pluginVram, .pluginLog, .pluginMcp:
+            return .agentStudio
         }
     }
 }

@@ -42,7 +42,7 @@ struct PluginEcosystemView: View {
                 .foregroundStyle(theme.accent)
             Text("插件生态")
                 .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(theme.textPrimary)
+                .foregroundStyle(theme.text)
             Spacer()
             Circle()
                 .fill(bridge.isConnected ? Color.green : Color.red)
@@ -59,7 +59,7 @@ struct PluginEcosystemView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(theme.backgroundSecondary)
+        .background(theme.surfaceSecondary)
     }
 
     private var tabBar: some View {
@@ -80,6 +80,6 @@ struct PluginEcosystemView: View {
             }
         }
         .padding(.horizontal, 16)
-        .background(theme.backgroundSecondary)
+        .background(theme.surfaceSecondary)
     }
 }

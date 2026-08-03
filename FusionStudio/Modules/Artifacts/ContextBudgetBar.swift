@@ -13,7 +13,7 @@ struct ContextBudgetBar: View {
 
     private var ratio: Double { total > 0 ? Double(used) / Double(total) : 0 }
     private var ratioColor: Color {
-        if ratio > 0.9 { return theme.danger }
+        if ratio > 0.9 { return theme.accentDestructive }
         if ratio > 0.7 { return .yellow }
         return theme.accent
     }
@@ -35,7 +35,7 @@ struct ContextBudgetBar: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
-        .background(theme.cardBackground)
+        .background(theme.surfaceSecondary)
         .cornerRadius(6)
         .onAppear { fetchBudget() }
     }
@@ -44,10 +44,10 @@ struct ContextBudgetBar: View {
         isLoading = true
         Task {
             do {
-                let result = try await ipc.contextBudget(sessionId: sessionId)
+                let result = try await ipc.contextBudget()
                 DispatchQueue.main.async {
-                    self.used = result["used_tokens"] as? Int ?? 0
-                    self.total = result["total_budget"] as? Int ?? 32768
+                    self.used = result["used_tokens"] as? Int ?? result["total_artifact_tokens"] as? Int ?? 0
+                    self.total = result["total_budget"] as? Int ?? result["context_window"] as? Int ?? 32768
                     self.isLoading = false
                 }
             } catch {

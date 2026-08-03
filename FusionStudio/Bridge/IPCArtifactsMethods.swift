@@ -419,20 +419,35 @@ extension IPCClient {
         }
     }
 
-    // MARK: - Issue #90 additions
+    // MARK: - Issue #90 additions (artifact.patch / artifact.load / context.budget)
 
-    func artifactPatch(artifactId: String, patches: [[String: Any]]) async throws -> [String: Any] {
-        return try await artifactsCall(method: "artifact.patch", params: ["artifact_id": artifactId, "patches": patches])
+    func artifactPatch(artifactId: String, operation: String, anchor: String? = nil, content: String? = nil, expectedVersion: Int? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = [
+            "artifact_id": artifactId,
+            "operation": operation,
+        ]
+        if let a = anchor { p["anchor"] = a }
+        if let c = content { p["content"] = c }
+        if let v = expectedVersion { p["expected_version"] = v }
+        ipcLog.info("artifactPatch: id=\(artifactId, privacy: .public) op=\(operation, privacy: .public) anchor=\(anchor ?? "nil", privacy: .public)")
+        return try await artifactsCall(method: "artifact.patch", params: p)
     }
 
-    func artifactLoad(artifactId: String, version: Int? = nil) async throws -> [String: Any] {
-        var p: [String: Any] = ["artifact_id": artifactId]
-        if let v = version { p["version"] = v }
+    func artifactLoad(artifactId: String, previewOnly: Bool = false, section: String? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = [
+            "artifact_id": artifactId,
+            "preview_only": previewOnly,
+        ]
+        if let s = section { p["section"] = s }
+        ipcLog.info("artifactLoad: id=\(artifactId, privacy: .public) preview=\(previewOnly) section=\(section ?? "nil", privacy: .public)")
         return try await artifactsCall(method: "artifact.load", params: p)
     }
 
-    func contextBudget(sessionId: String) async throws -> [String: Any] {
-        return try await artifactsCall(method: "context.budget", params: ["session_id": sessionId])
+    func contextBudget(contextWindow: Int? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = [:]
+        if let cw = contextWindow { p["context_window"] = cw }
+        ipcLog.info("contextBudget: window=\(contextWindow?.description ?? "nil")")
+        return try await artifactsCall(method: "context.budget", params: p)
     }
 
 }

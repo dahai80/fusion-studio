@@ -37,6 +37,8 @@ struct UnifiedChatView: View {
     @State private var isDragTarget: Bool = false
     @State private var contextInfoText: String = ""
     @State private var showContextInfo: Bool = false
+    @State private var selectedArtifactRefId: String? = nil
+    @State private var showArtifactCanvas: Bool = false
 
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
@@ -98,6 +100,16 @@ struct UnifiedChatView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(contextInfoText)
+        }
+        .environment(\.openURL, OpenURLAction { url in
+            openArtifactRef(url)
+            return .handled
+        })
+        .sheet(isPresented: $showArtifactCanvas) {
+            if let aid = selectedArtifactRefId {
+                ArtifactCanvasView(artifactId: aid)
+                    .frame(minWidth: 800, minHeight: 600)
+            }
         }
     }
 
@@ -822,7 +834,7 @@ struct UnifiedChatView: View {
                                     .fill(theme.accent.opacity(0.12))
                             )
                     } else {
-                        Text(try! AttributedString(markdown: msg.content, options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)))
+                        Text(try! AttributedString(markdown: renderArtifactRefs(msg.content), options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)))
                             .font(.system(size: theme.textSize))
                             .foregroundStyle(theme.text)
                             .textSelection(.enabled)
@@ -1149,6 +1161,56 @@ struct UnifiedChatView: View {
             contextInfoText = "Usage query failed: \(error.localizedDescription)"
             showContextInfo = true
         }
+    }
+
+    // MARK: - Artifact-Ref Rendering (Issue #88)
+
+    private static let artifactRefPattern = try! NSRegularExpression(
+        pattern: #"\[Artifact:\s*([^|]+?)\s*\|\s*ID:\s*(art_\w+)\s*\|\s*Type:\s*(\w+)(?:\s*\|.*)?\]"#,
+        options: []
+    )
+
+    private func renderArtifactRefs(_ text: String) -> String {
+        let range = NSRange(text.startIndex..., in: text)
+        let matches = Self.artifactRefPattern.matches(in: text, options: [], range: range)
+        guard !matches.isEmpty else { return text }
+        var result = text
+        for match in matches.reversed() {
+            guard match.numberOfRanges >= 4,
+                  let nameRange = Range(match.range(at: 1), in: text),
+                  let idRange = Range(match.range(at: 2), in: text),
+                  let typeRange = Range(match.range(at: 3), in: text) else { continue }
+            let name = String(text[nameRange]).trimmingCharacters(in: .whitespaces)
+            let id = String(text[idRange])
+            let type = String(text[typeRange])
+            guard let fullRange = Range(match.range, in: text) else { continue }
+            let icon = iconForArtifactType(type)
+            let replacement = "[\(icon) \(name)](fusion://artifact/\(id))"
+            result.replaceSubrange(fullRange, with: replacement)
+        }
+        return result
+    }
+
+    private func iconForArtifactType(_ type: String) -> String {
+        switch type.lowercased() {
+        case "code": return "chevron.left.forwardslash.chevron.right"
+        case "doc", "document", "markdown": return "doc.text"
+        case "html", "react", "app": return "globe"
+        case "svg": return "paintbrush"
+        case "visualization", "chart": return "chart.bar"
+        case "data": return "tablecells"
+        case "mermaid": return "flowchart"
+        default: return "cube.box"
+        }
+    }
+
+    private func openArtifactRef(_ url: URL) {
+        guard url.scheme == "fusion",
+              url.host == "artifact",
+              let id = url.pathComponents.last, id.hasPrefix("art_") else { return }
+        chatViewLog.info("Artifact-ref tapped: \(id)")
+        selectedArtifactRefId = id
+        showArtifactCanvas = true
     }
 
     // MARK: - Helpers

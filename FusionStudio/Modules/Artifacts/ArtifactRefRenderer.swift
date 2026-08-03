@@ -19,24 +19,24 @@ struct ArtifactRefRenderer: View {
             } else if let err = errorMsg {
                 HStack(spacing: 6) {
                     Image(systemName: "exclamationmark.triangle")
-                        .foregroundStyle(theme.danger)
+                        .foregroundStyle(theme.accentDestructive)
                     Text(err)
                         .font(.system(size: 11))
-                        .foregroundStyle(theme.danger)
+                        .foregroundStyle(theme.accentDestructive)
                 }
                 .padding(8)
             } else {
                 ScrollView {
                     Text(content)
                         .font(.system(size: 12, design: .monospaced))
-                        .foregroundStyle(theme.textPrimary)
+                        .foregroundStyle(theme.text)
                         .textSelection(.enabled)
                         .padding(12)
                 }
             }
         }
         .frame(maxHeight: 300)
-        .background(theme.cardBackground)
+        .background(theme.surfaceSecondary)
         .cornerRadius(8)
         .onAppear { loadContent() }
     }
@@ -46,7 +46,7 @@ struct ArtifactRefRenderer: View {
         errorMsg = nil
         Task {
             do {
-                let result = try await ipc.artifactLoad(artifactId: artifactId)
+                let result = try await ipc.artifactLoad(artifactId: artifactId, previewOnly: true)
                 DispatchQueue.main.async {
                     self.content = result["content"] as? String ?? ""
                     self.isLoading = false

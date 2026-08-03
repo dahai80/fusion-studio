@@ -18,7 +18,7 @@ struct PluginCatalogView: View {
                     TextField("搜索插件...", text: $searchText)
                         .textFieldStyle(.plain)
                         .padding(8)
-                        .background(theme.inputBackground)
+                        .background(theme.inputBg)
                         .cornerRadius(6)
                     Picker("分类", selection: $filterCategory) {
                         ForEach(categories, id: \.self) { Text($0) }
@@ -62,7 +62,7 @@ struct PluginCatalogView: View {
                 HStack(spacing: 6) {
                     Text(plugin.name)
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(theme.textPrimary)
+                        .foregroundStyle(theme.text)
                     Text(plugin.version)
                         .font(.system(size: 10))
                         .foregroundStyle(theme.textTertiary)
@@ -79,7 +79,7 @@ struct PluginCatalogView: View {
                 }) {
                     Text("卸载")
                         .font(.system(size: 11))
-                        .foregroundStyle(theme.danger)
+                        .foregroundStyle(theme.accentDestructive)
                 }
                 .buttonStyle(.plain)
             } else {
@@ -94,7 +94,7 @@ struct PluginCatalogView: View {
             }
         }
         .padding(10)
-        .background(theme.cardBackground)
+        .background(theme.surfaceSecondary)
         .cornerRadius(8)
     }
 }

@@ -13,10 +13,10 @@ struct CliServiceView: View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
                 Image(systemName: "terminal").font(.system(size: 18, weight: .semibold)).foregroundStyle(theme.accent)
-                Text("CLI 服务").font(.system(size: 16, weight: .semibold)).foregroundStyle(theme.textPrimary)
+                Text("CLI 服务").font(.system(size: 16, weight: .semibold)).foregroundStyle(theme.text)
                 Spacer()
                 Button("清屏") { outputLines.removeAll() }.font(.system(size: 11)).foregroundStyle(theme.textTertiary).buttonStyle(.plain)
-            }.padding(.horizontal, 16).padding(.vertical, 10).background(theme.backgroundSecondary)
+            }.padding(.horizontal, 16).padding(.vertical, 10).background(theme.surfaceSecondary)
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 2) {
@@ -24,14 +24,14 @@ struct CliServiceView: View {
                             Text(outputLines[idx]).font(.system(size: 12, design: .monospaced)).foregroundStyle(lineColor(outputLines[idx])).textSelection(.enabled)
                         }
                     }.padding(12)
-                }.background(theme.backgroundPrimary)
+                }.background(theme.contentBg)
                 .onChange(of: outputLines.count) { _ in if let last = outputLines.indices.last { proxy.scrollTo(last, anchor: .bottom) } }
             }
             HStack(spacing: 8) {
                 Text(">").font(.system(size: 13, weight: .bold, design: .monospaced)).foregroundStyle(theme.accent)
                 TextField("输入命令...", text: $commandInput).font(.system(size: 12, design: .monospaced)).textFieldStyle(.plain).onSubmit { executeCommand() }
                 Button(action: executeCommand) { Image(systemName: "play.fill").font(.system(size: 11)).foregroundStyle(isRunning ? theme.textTertiary : theme.accent) }.buttonStyle(.plain).disabled(isRunning)
-            }.padding(.horizontal, 16).padding(.vertical, 10).background(theme.backgroundSecondary)
+            }.padding(.horizontal, 16).padding(.vertical, 10).background(theme.surfaceSecondary)
         }.onAppear { log.info("CliServiceView appeared") }
     }
 
@@ -70,7 +70,7 @@ struct CliServiceView: View {
 
     private func lineColor(_ line: String) -> Color {
         if line.hasPrefix("> ") { return theme.accent }
-        if line.hasPrefix("错误") { return theme.danger }
-        return theme.textPrimary
+        if line.hasPrefix("错误") { return theme.accentDestructive }
+        return theme.text
     }
 }
