@@ -217,8 +217,8 @@ struct DocGraphView: View {
             let angle = 2.0 * Double.pi * Double(i) / Double(nodes.count) - Double.pi / 2
             let offset = dragOffset[node.id] ?? .zero
             positions[node.id] = CGPoint(
-                x: centerX + radius * cos(angle) + offset.width,
-                y: centerY + radius * sin(angle) + offset.height
+                x: centerX + radius * Foundation.cos(angle) + offset.width,
+                y: centerY + radius * Foundation.sin(angle) + offset.height
             )
         }
         return positions
