@@ -9,7 +9,7 @@
   <img src="https://img.shields.io/badge/Swift-5.9-red" alt="Swift">
   <img src="https://img.shields.io/badge/Rust-2021-purple" alt="Rust">
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
-  <img src="https://img.shields.io/badge/status-V0.1.5-yellow" alt="V0.1.5">
+  <img src="https://img.shields.io/badge/status-V0.1.15-yellow" alt="V0.1.15">
   <img src="https://img.shields.io/badge/modules-25-success" alt="20 Modules">
 </div>
 
@@ -466,6 +466,32 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 ---
 
 ## 📋 Changelog
+
+### v0.1.15 (2026-08-03)
+
+New features:
+
+- **Model Hub GUI 全量增强**: 11 sections, 116 API methods, 98 DTOs
+  - HubDeploymentView (NEW): CRUD, scale, gray release, metrics
+  - HubSecurityView (NEW): scan, watermark, encryption, approval
+  - Dashboard: stats grid, health badges, quick actions
+  - Market: pagination, rating, module hints, favorites
+  - LocalStorage: category tree, serving management, version lifecycle
+  - ConvertQuant: scene presets, layered quantize, compare, evaluate
+  - Schedule: 6 tabs (download/schedule/module-perm/throttle/TTL/auto-bench)
+  - Permission: API keys, model perms, role access, tenant management
+  - Monitor: per-model stats, source filter, deployment metrics
+  - Benchmark: evaluations CRUD, history, accuracy alerts
+- **Finance Module**: FinanceBridge + 8 GUI views + SidebarSection registration
+
+Upstream issues filed:
+
+- [fusion-model-hub#5](https://github.com/dahai80/fusion-models-hub/issues/5) — GET /auth/keys/{id}/usage 端点不存在
+- [fusion-model-hub#6](https://github.com/dahai80/fusion-models-hub/issues/6) — GET /cluster/topology 端点不存在
+- [fusion-model-hub#7](https://github.com/dahai80/fusion-models-hub/issues/7) — GET /hardware 响应 schema 字段名需确认
+- [fusion-model-hub#8](https://github.com/dahai80/fusion-models-hub/issues/8) — GET /monitor/realtime 缺少模型级推理统计
+- [fusion-model-hub#9](https://github.com/dahai80/fusion-models-hub/issues/9) — Model 缺少 ttl_seconds 字段
+- [fusion-model-hub#10](https://github.com/dahai80/fusion-models-hub/issues/10) — Market 搜索分页参数需验证
 
 ### v0.1.5 (2026-07-30)
 
