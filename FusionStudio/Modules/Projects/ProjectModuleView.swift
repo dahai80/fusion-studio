@@ -1618,6 +1618,10 @@ struct ProjectChatsPanel: View {
     @State private var ragMode: RAGMode = .AUTO
     @State private var showRAGScopeSelector = false
     @State private var showSnapshots = false
+    @State private var tokenUsed: Int = 0
+    @State private var tokenBudget: Int = 128000
+    @State private var showAgentConfig = false
+    @State private var showRAGConfig = false
     @State private var snapshots: [ChatSnapshot] = []
     @State private var selectedChatForMenu: ProjectChat?
 
@@ -1709,6 +1713,7 @@ struct ProjectChatsPanel: View {
         .onAppear {
             loadChats()
             loadSnapshots()
+            refreshBudget()
         }
     }
 
@@ -1827,12 +1832,15 @@ struct ProjectChatsPanel: View {
         .padding(.horizontal, theme.spacingM)
     }
 
-    // GUI-4: Bottom bar with Agent / RAG / Send
+    // GUI-4 + GUI-12: Bottom bar with Agent / RAG / Budget / Send
     private func chatInputBar(chatId: String) -> some View {
         VStack(spacing: 0) {
+            // GUI-12: Context budget bar
+            contextBudgetBar
+
             Divider()
             HStack(spacing: theme.spacingS) {
-                // Agent selector (GUI-10)
+                // Agent selector (GUI-10) + config button
                 Menu {
                     Button("使用项目默认智能体") { }
                     Button("通用对话（不绑定Agent）") { }
@@ -1851,6 +1859,14 @@ struct ProjectChatsPanel: View {
                 }
                 .menuStyle(.borderlessButton)
 
+                // FS-2: Agent config button
+                Button(action: { showAgentConfig = true }) {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: theme.iconXS))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .buttonStyle(.plain)
+
                 // RAG mode (GUI-17)
                 Menu {
                     Button("AUTO（智能检索）") { ragMode = .AUTO }
@@ -1868,6 +1884,14 @@ struct ProjectChatsPanel: View {
                     .foregroundStyle(ragMode == .OFF ? theme.textTertiary : theme.accent)
                 }
                 .menuStyle(.borderlessButton)
+
+                // FS-3: RAG config button
+                Button(action: { showRAGConfig = true }) {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: theme.iconXS))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .buttonStyle(.plain)
 
                 // Attachments dropdown
                 Menu {
@@ -1902,6 +1926,65 @@ struct ProjectChatsPanel: View {
         }
         .sheet(isPresented: $showRAGScopeSelector) {
             RAGScopeSelector(projectId: projectId, ragMode: $ragMode)
+        }
+        .sheet(isPresented: $showAgentConfig) {
+            AgentConfigSheet(projectId: projectId)
+        }
+        .sheet(isPresented: $showRAGConfig) {
+            RAGConfigSheet(projectId: projectId, ragMode: $ragMode)
+        }
+    }
+
+    // GUI-12: Context budget bar
+    private var contextBudgetBar: some View {
+        let ratio = tokenBudget > 0 ? Double(tokenUsed) / Double(tokenBudget) : 0
+        return HStack(spacing: 8) {
+            Image(systemName: "text.bubble.fill")
+                .font(.system(size: 9))
+                .foregroundStyle(ratio > 0.9 ? theme.accentDestructive : theme.textTertiary)
+            Text(formatTokenCount(tokenUsed))
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(theme.text)
+            Text("/")
+                .font(.system(size: 10))
+                .foregroundStyle(theme.textTertiary)
+            Text(formatTokenCount(tokenBudget))
+                .font(.system(size: 10))
+                .foregroundStyle(theme.textTertiary)
+            ProgressView(value: ratio)
+                .progressViewStyle(.linear)
+                .tint(ratio > 0.9 ? theme.accentDestructive : ratio > 0.7 ? .yellow : theme.accent)
+                .frame(maxWidth: 120)
+            Text(String(format: "%.0f%%", ratio * 100))
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundStyle(ratio > 0.9 ? theme.accentDestructive : theme.textTertiary)
+            if ratio > 0.9 {
+                Text("⚠️ 预算不足")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(theme.accentDestructive)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, theme.spacingL)
+        .padding(.vertical, 3)
+        .background(theme.surfaceSecondary)
+    }
+
+    private func formatTokenCount(_ n: Int) -> String {
+        if n >= 1000 { return String(format: "%.1fk", Double(n) / 1000.0) }
+        return "\(n)"
+    }
+
+    private func refreshBudget() {
+        Task {
+            do {
+                let r = try await ipc.contextBudget()
+                let used = r["used"] as? Int ?? r["token_used"] as? Int ?? 0
+                let budget = r["budget"] as? Int ?? r["total_budget"] as? Int ?? 128000
+                await MainActor.run { tokenUsed = used; tokenBudget = budget }
+            } catch {
+                projLog.error("refreshBudget failed: \(error.localizedDescription)")
+            }
         }
     }
 
@@ -2067,6 +2150,235 @@ private struct ChatContextMenu: View {
     private func deleteChat() {
         Task {
             try await ipc.projectChatDelete(chatId: chat.id)
+        }
+    }
+}
+
+// MARK: - FS-2: Agent Config Sheet
+
+struct AgentConfigSheet: View {
+    let projectId: String
+    @EnvironmentObject var ipc: IPCClient
+    @Environment(\.studioTheme) private var theme
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var selectedAgentId: String?
+    @State private var availableAgents: [AgentMeta] = []
+    @State private var promptMergeMode: PromptMergeMode = .AGENT_FIRST
+    @State private var isSaving = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: theme.spacingL) {
+            Text("智能体配置")
+                .font(.system(size: theme.headlineSize, weight: .bold))
+
+            VStack(alignment: .leading, spacing: theme.spacingS) {
+                Text("默认智能体")
+                    .font(.system(size: theme.captionSize, weight: .medium))
+                    .foregroundStyle(theme.textSecondary)
+                Menu {
+                    Button("不绑定（纯模型对话）") { selectedAgentId = nil }
+                    Divider()
+                    ForEach(availableAgents) { agent in
+                        Button(agent.name) { selectedAgentId = agent.id }
+                    }
+                } label: {
+                    HStack {
+                        Text(agentDisplayName)
+                        Spacer()
+                        Image(systemName: "chevron.down")
+                    }
+                    .font(.system(size: theme.footnoteSize))
+                    .padding(6)
+                    .background(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                        .stroke(theme.textTertiary.opacity(0.2)))
+                }
+                .menuStyle(.borderlessButton)
+            }
+
+            VStack(alignment: .leading, spacing: theme.spacingS) {
+                Text("Prompt 合并策略")
+                    .font(.system(size: theme.captionSize, weight: .medium))
+                    .foregroundStyle(theme.textSecondary)
+                Picker("", selection: $promptMergeMode) {
+                    Text("Agent Prompt 优先（推荐）").tag(PromptMergeMode.AGENT_FIRST)
+                    Text("仅使用项目 Instructions").tag(PromptMergeMode.PROJECT_ONLY)
+                }
+                .pickerStyle(.radioGroup)
+                .font(.system(size: theme.captionSize))
+            }
+
+            Spacer(minLength: 0)
+
+            HStack {
+                Spacer()
+                Button("取消") { dismiss() }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(theme.textSecondary)
+                Button("保存") { saveConfig() }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, theme.spacingL)
+                    .padding(.vertical, theme.spacingS)
+                    .background(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous).fill(theme.accent))
+                    .disabled(isSaving)
+            }
+        }
+        .padding(theme.spacingL)
+        .frame(width: 440, height: 360)
+        .onAppear { loadAgents() }
+    }
+
+    private var agentDisplayName: String {
+        selectedAgentId.flatMap { id in availableAgents.first(where: { $0.id == id })?.name } ?? "不绑定"
+    }
+
+    private func loadAgents() {
+        Task {
+            do {
+                let result = try await ipc.projectAgentList()
+                if let items = result["agents"] as? [[String: Any]] ?? result["items"] as? [[String: Any]] {
+                    await MainActor.run { availableAgents = items.compactMap { AgentMeta.fromDict($0) } }
+                }
+            } catch {
+                projLog.error("AgentConfigSheet loadAgents failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func saveConfig() {
+        isSaving = true
+        Task {
+            do {
+                _ = try await ipc.projectAgentSet(projectId: projectId, agentId: selectedAgentId,
+                                                   mergeMode: promptMergeMode.rawValue)
+                projLog.info("AgentConfig saved for project \(projectId)")
+                await MainActor.run { dismiss() }
+            } catch {
+                projLog.error("AgentConfig save failed: \(error.localizedDescription)")
+                await MainActor.run { isSaving = false }
+            }
+        }
+    }
+}
+
+// MARK: - FS-3: RAG Config Sheet
+
+struct RAGConfigSheet: View {
+    let projectId: String
+    @Binding var ragMode: RAGMode
+    @EnvironmentObject var ipc: IPCClient
+    @Environment(\.studioTheme) private var theme
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var ragTopK: Int = 5
+    @State private var ragThreshold: Double = 0.5
+    @State private var isSaving = false
+    @State private var showScopeSelector = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: theme.spacingL) {
+            Text("RAG 配置")
+                .font(.system(size: theme.headlineSize, weight: .bold))
+
+            VStack(alignment: .leading, spacing: theme.spacingS) {
+                Text("检索模式")
+                    .font(.system(size: theme.captionSize, weight: .medium))
+                    .foregroundStyle(theme.textSecondary)
+                Picker("", selection: $ragMode) {
+                    Text("AUTO（智能检索）").tag(RAGMode.AUTO)
+                    Text("MANUAL（手动指定）").tag(RAGMode.MANUAL)
+                    Text("OFF（关闭检索）").tag(RAGMode.OFF)
+                }
+                .pickerStyle(.segmented)
+                .font(.system(size: theme.captionSize))
+            }
+
+            if ragMode != .OFF {
+                VStack(alignment: .leading, spacing: theme.spacingS) {
+                    HStack {
+                        Text("Top-K: \(ragTopK)")
+                            .font(.system(size: theme.captionSize, weight: .medium))
+                            .foregroundStyle(theme.textSecondary)
+                        Spacer()
+                    }
+                    Slider(value: Binding(
+                        get: { Double(ragTopK) },
+                        set: { ragTopK = Int($0) }
+                    ), in: 1...20, step: 1)
+                    .tint(theme.accent)
+                }
+
+                VStack(alignment: .leading, spacing: theme.spacingS) {
+                    HStack {
+                        Text("相似度阈值: \(String(format: "%.2f", ragThreshold))")
+                            .font(.system(size: theme.captionSize, weight: .medium))
+                            .foregroundStyle(theme.textSecondary)
+                        Spacer()
+                    }
+                    Slider(value: $ragThreshold, in: 0.1...0.99, step: 0.05)
+                        .tint(theme.accent)
+                }
+            }
+
+            if ragMode == .MANUAL {
+                Button(action: { showScopeSelector = true }) {
+                    Label("选择检索范围", systemImage: "folder.badge.plus")
+                }
+                .font(.system(size: theme.footnoteSize))
+                .buttonStyle(.plain)
+                .foregroundStyle(theme.accent)
+            }
+
+            Spacer(minLength: 0)
+
+            HStack {
+                Spacer()
+                Button("取消") { dismiss() }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(theme.textSecondary)
+                Button("保存") { saveConfig() }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, theme.spacingL)
+                    .padding(.vertical, theme.spacingS)
+                    .background(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous).fill(theme.accent))
+                    .disabled(isSaving)
+            }
+        }
+        .padding(theme.spacingL)
+        .frame(width: 440, height: 420)
+        .onAppear { loadCurrentConfig() }
+        .sheet(isPresented: $showScopeSelector) {
+            RAGScopeSelector(projectId: projectId, ragMode: $ragMode)
+        }
+    }
+
+    private func loadCurrentConfig() {
+        Task {
+            do {
+                let r = try await ipc.projectRagConfigGet(projectId: projectId)
+                let topK = r["top_k"] as? Int ?? r["rag_top_k"] as? Int ?? 5
+                let threshold = r["threshold"] as? Double ?? r["rag_threshold"] as? Double ?? 0.5
+                await MainActor.run { ragTopK = topK; ragThreshold = threshold }
+            } catch {
+                projLog.error("RAGConfigSheet load failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func saveConfig() {
+        isSaving = true
+        Task {
+            do {
+                _ = try await ipc.projectRagConfigSet(projectId: projectId, ragMode: ragMode.rawValue,
+                                                       ragTopK: ragTopK, ragThreshold: ragThreshold)
+                projLog.info("RAGConfig saved for project \(projectId)")
+                await MainActor.run { dismiss() }
+            } catch {
+                projLog.error("RAGConfig save failed: \(error.localizedDescription)")
+                await MainActor.run { isSaving = false }
+            }
         }
     }
 }
