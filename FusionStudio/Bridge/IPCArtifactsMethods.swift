@@ -419,4 +419,20 @@ extension IPCClient {
         }
     }
 
+    // MARK: - Issue #90 additions
+
+    func artifactPatch(artifactId: String, patches: [[String: Any]]) async throws -> [String: Any] {
+        return try await artifactsCall(method: "artifact.patch", params: ["artifact_id": artifactId, "patches": patches])
+    }
+
+    func artifactLoad(artifactId: String, version: Int? = nil) async throws -> [String: Any] {
+        var p: [String: Any] = ["artifact_id": artifactId]
+        if let v = version { p["version"] = v }
+        return try await artifactsCall(method: "artifact.load", params: p)
+    }
+
+    func contextBudget(sessionId: String) async throws -> [String: Any] {
+        return try await artifactsCall(method: "context.budget", params: ["session_id": sessionId])
+    }
+
 }

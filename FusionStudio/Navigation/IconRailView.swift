@@ -119,6 +119,12 @@ struct IconRailView: View {
                 case .finance:
                     appState.selectedModule = .finance
                     appState.selectedSheet = .financeSheet
+                case .pluginEcosystem:
+                    appState.selectedModule = .pluginConfig
+                    appState.selectedSheet = .pluginEcosystemSheet
+                case .cliService:
+                    appState.selectedModule = .cli
+                    appState.selectedSheet = .cliServiceSheet
                 }
             }
             railLog.info("Section selected: \(section.rawValue)")

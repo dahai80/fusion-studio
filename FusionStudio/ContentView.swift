@@ -178,6 +178,11 @@ struct SectionContentView: View {
                     .environmentObject(ScienceSSEClient())
             case .finance:
                 FinanceWorkbenchView()
+            case .pluginEcosystem:
+                PluginEcosystemView()
+                    .environmentObject(PluginBridge.shared)
+            case .cliService:
+                CliServiceView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

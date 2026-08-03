@@ -121,6 +121,18 @@ struct ModuleDetailView: View {
                 ScienceWorkbenchView()
             case .finance:
                 FinanceWorkbenchView()
+            case .pluginConfig:
+                PluginConfigView()
+            case .pluginStatus:
+                PluginStatusView()
+            case .pluginToken:
+                PluginTokenDashboard()
+            case .pluginVram:
+                PluginVramView()
+            case .pluginLog:
+                PluginLogViewer()
+            case .pluginMcp:
+                PluginMcpView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

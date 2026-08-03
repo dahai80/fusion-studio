@@ -1,0 +1,100 @@
+import SwiftUI
+import os.log
+
+private let log = Logger(subsystem: "com.fusion.studio", category: "PluginCatalogView")
+
+struct PluginCatalogView: View {
+    @EnvironmentObject var bridge: PluginBridge
+    @Environment(\.studioTheme) private var theme
+    @State private var filterCategory: String = "all"
+    @State private var searchText: String = ""
+
+    private let categories = ["all", "codingPlan", "contextCompress", "mlxInference", "terminalProxy", "fileIndex", "quantization", "visualBackend", "custom"]
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 8) {
+                    TextField("搜索插件...", text: $searchText)
+                        .textFieldStyle(.plain)
+                        .padding(8)
+                        .background(theme.inputBackground)
+                        .cornerRadius(6)
+                    Picker("分类", selection: $filterCategory) {
+                        ForEach(categories, id: \.self) { Text($0) }
+                    }
+                    .frame(width: 140)
+                }
+
+                ForEach(filteredPlugins) { plugin in
+                    pluginRow(plugin)
+                }
+
+                if filteredPlugins.isEmpty {
+                    Text("暂无插件")
+                        .foregroundStyle(theme.textTertiary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 40)
+                }
+            }
+            .padding(16)
+        }
+        .onAppear {
+            bridge.listPlugins()
+            log.info("PluginCatalogView appeared")
+        }
+    }
+
+    private var filteredPlugins: [PluginListItem] {
+        bridge.plugins.filter { p in
+            (filterCategory == "all" || p.category == filterCategory) &&
+            (searchText.isEmpty || p.name.localizedCaseInsensitiveContains(searchText))
+        }
+    }
+
+    private func pluginRow(_ plugin: PluginListItem) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: "puzzlepiece.extension")
+                .font(.system(size: 16))
+                .foregroundStyle(theme.accent)
+                .frame(width: 28)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(plugin.name)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(theme.textPrimary)
+                    Text(plugin.version)
+                        .font(.system(size: 10))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                Text(plugin.description)
+                    .font(.system(size: 11))
+                    .foregroundStyle(theme.textSecondary)
+                    .lineLimit(1)
+            }
+            Spacer()
+            if plugin.installed {
+                Button(action: {
+                    bridge.uninstallPlugin(pluginId: plugin.id) { _ in bridge.listPlugins() }
+                }) {
+                    Text("卸载")
+                        .font(.system(size: 11))
+                        .foregroundStyle(theme.danger)
+                }
+                .buttonStyle(.plain)
+            } else {
+                Button(action: {
+                    bridge.installPlugin(pluginId: plugin.id) { _ in bridge.listPlugins() }
+                }) {
+                    Text("安装")
+                        .font(.system(size: 11))
+                        .foregroundStyle(theme.accent)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(10)
+        .background(theme.cardBackground)
+        .cornerRadius(8)
+    }
+}

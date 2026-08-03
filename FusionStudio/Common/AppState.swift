@@ -59,6 +59,8 @@ enum ProductSheet: String, CaseIterable, Identifiable {
     case ragSheet = "RAG"
     case scienceSheet = "Science"
     case financeSheet = "Finance"
+    case pluginEcosystemSheet = "Plugin Ecosystem"
+    case cliServiceSheet = "CLI Service"
 
     var id: String { rawValue }
 
@@ -77,6 +79,8 @@ enum ProductSheet: String, CaseIterable, Identifiable {
         case .ragSheet:       "books.vertical"
         case .scienceSheet:   "flask"
         case .financeSheet:   "chart.line.uptrend.xyaxis"
+        case .pluginEcosystemSheet: "puzzlepiece.extension"
+        case .cliServiceSheet: "terminal"
         }
     }
 
@@ -108,6 +112,10 @@ enum ProductSheet: String, CaseIterable, Identifiable {
             return [.science]
         case .financeSheet:
             return [.finance]
+        case .pluginEcosystemSheet:
+            return [.pluginConfig, .pluginStatus, .pluginToken, .pluginVram, .pluginLog, .pluginMcp]
+        case .cliServiceSheet:
+            return [.cli]
         }
     }
 }
@@ -172,6 +180,12 @@ enum Module: String, CaseIterable, Identifiable {
     case aiAgentKnowledgeBase = "AI知识库"
     case science = "科研"
     case finance = "金融"
+    case pluginConfig = "插件配置"
+    case pluginStatus = "插件状态"
+    case pluginToken = "Token"
+    case pluginVram = "VRAM"
+    case pluginLog = "插件日志"
+    case pluginMcp = "MCP"
 
     var id: String { rawValue }
 
@@ -233,6 +247,12 @@ enum Module: String, CaseIterable, Identifiable {
         case .aiAgentKnowledgeBase: return "books.vertical"
         case .science: return "flask"
         case .finance: return "chart.line.uptrend.xyaxis"
+        case .pluginConfig: return "gearshape"
+        case .pluginStatus: return "checkmark.circle"
+        case .pluginToken: return "coins"
+        case .pluginVram: return "memorychip"
+        case .pluginLog: return "list.bullet.rectangle"
+        case .pluginMcp: return "link"
         }
     }
 
@@ -292,6 +312,8 @@ enum SidebarSection: String, CaseIterable, Identifiable {
     case multiNode = "Multi-Node"
     case science = "Science"
     case finance = "Finance"
+    case pluginEcosystem = "Plugin Ecosystem"
+    case cliService = "CLI Service"
 
     var id: String { rawValue }
 
@@ -311,6 +333,8 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .fsb:       return "storefront"
         case .science:   return "flask"
         case .finance:   return "chart.line.uptrend.xyaxis"
+        case .pluginEcosystem: return "puzzlepiece.extension"
+        case .cliService: return "terminal"
         }
     }
 
@@ -330,6 +354,8 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .fsb:       return [.fsb]
         case .science:   return [.science]
         case .finance:   return [.finance]
+        case .pluginEcosystem: return [.pluginConfig, .pluginStatus, .pluginToken, .pluginVram, .pluginLog, .pluginMcp]
+        case .cliService: return [.cli]
         }
     }
 }

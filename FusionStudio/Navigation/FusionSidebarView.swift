@@ -164,6 +164,10 @@ struct FusionSidebarView: View {
             moduleListContent(.science)
         case .finance:
             moduleListContent(.finance)
+        case .pluginEcosystem:
+            moduleListContent(.pluginEcosystem)
+        case .cliService:
+            moduleListContent(.cliService)
         }
     }
 
