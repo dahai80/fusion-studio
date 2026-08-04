@@ -3,6 +3,10 @@
 # Fusion Studio 全量服务启动脚本
 # 按 SidebarSection 顺序启动所有后台服务
 # Usage: ./start.sh [start|stop|restart|status] [--no-app]
+# Callers: developer CLI, CI pipeline
+# Affected API: health endpoints for all services (port-aligned to FusionConfig.swift)
+# Data: SERVICES array (id|display_name|start_sh|health_type|health_target|order|critical)
+# User instruction: "修复issue #111" — align ports to FusionConfig authoritative table
 # ──────────────────────────────────────────────────────────────
 
 set -euo pipefail
@@ -27,13 +31,15 @@ skip()  { printf "${CYAN}[SKIP]${NC}  %s\n" "$*"; }
 
 SERVICES=(
     "agent-studio|Agent Studio|~/fusion/fusion-agent-studio/start.sh|socket|/tmp/fusion-studio.sock|1|1"
-    "mlx|Fusion-MLX|~/claude-home/fusion-mlx/start.sh|http|http://localhost:11434/health|0|1"
-    "artifacts-engine|Artifacts Engine|~/fusion/fusion-artifacts-engine/start.sh|jsonrpc|http://127.0.0.1:8892|2|1"
+    "mlx|Fusion-MLX|~/claude-home/fusion-mlx/start.sh|http|http://localhost:11432/health|0|1"
+    "artifacts-engine|Artifacts Engine|~/fusion/fusion-artifacts-engine/start.sh|jsonrpc|http://127.0.0.1:11451|2|1"
     "fusion-rag|Fusion-RAG|~/fusion/fusion-kb/start.sh|http|http://127.0.0.1:11436/health|3|0"
+    "fusion-doc|Fusion Doc|~/fusion/fusion-doc/start.sh|http|http://127.0.0.1:11449/api/health|4|0"
+    "multi-node|Multi-Node|~/fusion/fusion-multi-node/start.sh|http|http://127.0.0.1:11452/api/health|5|0"
+    "fusion-model-hub|Model Hub|~/fusion/fusion-model-hub/start.sh|http|http://127.0.0.1:11444/api/v1/system/info|6|0"
+    "fusion-code|Fusion Code|~/fusion/fusion-code/start.sh|http|http://127.0.0.1:11441/api/project/context|8|0"
     "project-svc|Fusion Projects|~/fusion/fusion-projects/start.sh|socket|/tmp/fusion-project-svc.sock|9|0"
     "cowork-desk|CoWork Desk|~/fusion/fusion-cowork|socket|/tmp/fusion-cowork.sock|10|0"
-    "fusion-code|Fusion Code|~/fusion/fusion-code/start.sh|http|http://127.0.0.1:4827/api/project/context|8|0"
-    "multi-node|Multi-Node|~/fusion/fusion-multi-node/start.sh|http|http://127.0.0.1:9753/api/health|4|0"
 )
 
 expand_path() {

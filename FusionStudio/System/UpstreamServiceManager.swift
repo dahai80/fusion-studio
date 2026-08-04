@@ -2,6 +2,10 @@ import Foundation
 import Combine
 import os.log
 import SwiftUI
+// Callers: ContentView service health UI, SettingsView
+// Affected API: multi-node health endpoint (9753→cfg.multiNodePort=11452)
+// Data: UpstreamService healthEndpoint string
+// User instruction: "修复issue #111" — eliminate hardcoded 9753
 
 // 上游服务状态横幅：在依赖上游服务的模块视图顶部展示服务状态 + 启动入口
 struct UpstreamServiceStatusBanner: View {
@@ -162,7 +166,7 @@ final class UpstreamServiceManager: ObservableObject {
                             icon: "network",
                             isCritical: false, startOrder: 4,
                             repoPathRaw: cfg.upstreamMultiNodePath,
-                            healthKind: .httpGet, healthEndpoint: "http://localhost:9753/api/health"),
+                            healthKind: .httpGet, healthEndpoint: "http://localhost:\(cfg.multiNodePort)/api/health"),
             UpstreamService(id: "fusion-design",
                             displayName: "Fusion Design (fd-cli)",
                             icon: "paintbrush",

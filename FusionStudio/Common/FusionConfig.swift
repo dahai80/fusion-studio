@@ -1,5 +1,9 @@
 import Foundation
 import SwiftUI
+// Callers: UpstreamServiceManager, ContentView, SettingsView
+// Affected API: multi-node health endpoint port
+// Data: @AppStorage port properties
+// User instruction: "修复issue #111" — add multiNodePort=11452
 
 /// 模型档位：小（日常对话）/ 代码 / 复杂事务
 enum ModelSlot: String, CaseIterable, Identifiable {
@@ -138,6 +142,7 @@ class FusionConfig: ObservableObject {
     @AppStorage("fusionDocPort") var fusionDocPort = 11449
     @AppStorage("fusionBenchPort") var fusionBenchPort = 11450
     @AppStorage("agentStudioHttpPort") var agentStudioHttpPort = 11453
+    @AppStorage("multiNodePort") var multiNodePort = 11452
 
     /// 展开 ~/ 路径为绝对路径
     func expandedUpstreamPath(_ raw: String) -> String {
