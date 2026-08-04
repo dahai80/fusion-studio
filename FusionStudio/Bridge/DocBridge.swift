@@ -242,6 +242,33 @@ struct DocWorkflowTransition: Codable {
     var target_state: String?
 }
 
+struct DocAuthSetup: Codable {
+    var username: String
+    var password: String
+}
+
+struct DocAuthLogin: Codable {
+    var username: String
+    var password: String
+}
+
+struct DocAuthResponse: Codable {
+    var token: String?
+    var expiresIn: Int?
+    var message: String?
+}
+
+struct DocWorkspace: Codable, Identifiable, Hashable {
+    let id: String
+    var name: String
+    var description: String?
+    var created_at: String?
+    var updated_at: String?
+
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
+    static func == (lhs: DocWorkspace, rhs: DocWorkspace) -> Bool { lhs.id == rhs.id }
+}
+
 // MARK: - DocBridge
 
 class DocBridge: ObservableObject {
@@ -263,6 +290,21 @@ class DocBridge: ObservableObject {
     @Published var activities: [DocActivity] = []
     @Published var files: [DocFileUpload] = []
     @Published var chunks: [DocRAGChunk] = []
+    @Published var workspaces: [DocWorkspace] = []
+    @Published var currentWorkspace: DocWorkspace?
+    @Published var isAuthenticated: Bool = false
+    @Published var authError: String?
+
+    private var authToken: String? {
+        get { UserDefaults.standard.string(forKey: "fusion_doc_auth_token") }
+        set {
+            if let token = newValue {
+                UserDefaults.standard.set(token, forKey: "fusion_doc_auth_token")
+            } else {
+                UserDefaults.standard.removeObject(forKey: "fusion_doc_auth_token")
+            }
+        }
+    }
 
     private let baseURL: String
     private let session: URLSession
@@ -282,7 +324,9 @@ class DocBridge: ObservableObject {
             completion(.failure(NSError(domain: "DocBridge", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))
             return
         }
-        session.dataTask(with: url) { data, _, error in
+        var request = URLRequest(url: url)
+        if let token = authToken { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
+        session.dataTask(with: request) { data, _, error in
             if let error = error { completion(.failure(error)); return }
             guard let data = data else {
                 completion(.failure(NSError(domain: "DocBridge", code: -2, userInfo: [NSLocalizedDescriptionKey: "No data"])))
@@ -305,6 +349,7 @@ class DocBridge: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let token = authToken { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
         if let body = body {
             request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         }
@@ -331,6 +376,7 @@ class DocBridge: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "PUT"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let token = authToken { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         session.dataTask(with: request) { data, _, error in
             if let error = error { completion(.failure(error)); return }
@@ -354,6 +400,7 @@ class DocBridge: ObservableObject {
         }
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
+        if let token = authToken { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
         session.dataTask(with: request) { data, _, error in
             if let error = error { completion(.failure(error)); return }
             guard let data = data else {
@@ -1091,5 +1138,146 @@ class DocBridge: ObservableObject {
 
     func fetchGraphNode(id: String, completion: @escaping (Result<DocGraphNode, Error>) -> Void) {
         get("/api/graph/\(id)", completion: completion)
+    }
+
+    // MARK: - Auth
+
+    func authSetup(username: String, password: String, completion: @escaping (Result<DocAuthResponse, Error>) -> Void) {
+        docBridgeLog.info("authSetup: username=\(username)")
+        post("/api/auth/setup", body: ["username": username, "password": password]) { [weak self] (result: Result<DocAuthResponse, Error>) in
+            switch result {
+            case .success(let resp):
+                if let token = resp.token {
+                    self?.authToken = token
+                    DispatchQueue.main.async { self?.isAuthenticated = true; self?.authError = nil }
+                    docBridgeLog.info("authSetup success, token saved")
+                }
+                completion(.success(resp))
+            case .failure(let err):
+                DispatchQueue.main.async { self?.authError = err.localizedDescription }
+                docBridgeLog.error("authSetup failed: \(err.localizedDescription)")
+                completion(.failure(err))
+            }
+        }
+    }
+
+    func authLogin(username: String, password: String, completion: @escaping (Result<DocAuthResponse, Error>) -> Void) {
+        docBridgeLog.info("authLogin: username=\(username)")
+        post("/api/auth/login", body: ["username": username, "password": password]) { [weak self] (result: Result<DocAuthResponse, Error>) in
+            switch result {
+            case .success(let resp):
+                if let token = resp.token {
+                    self?.authToken = token
+                    DispatchQueue.main.async { self?.isAuthenticated = true; self?.authError = nil }
+                    docBridgeLog.info("authLogin success, token saved")
+                }
+                completion(.success(resp))
+            case .failure(let err):
+                DispatchQueue.main.async { self?.authError = err.localizedDescription }
+                docBridgeLog.error("authLogin failed: \(err.localizedDescription)")
+                completion(.failure(err))
+            }
+        }
+    }
+
+    func authRefresh(completion: @escaping (Result<DocAuthResponse, Error>) -> Void) {
+        docBridgeLog.info("authRefresh")
+        post("/api/auth/refresh", body: nil) { [weak self] (result: Result<DocAuthResponse, Error>) in
+            switch result {
+            case .success(let resp):
+                if let token = resp.token {
+                    self?.authToken = token
+                    DispatchQueue.main.async { self?.isAuthenticated = true }
+                    docBridgeLog.info("authRefresh success")
+                }
+                completion(.success(resp))
+            case .failure(let err):
+                docBridgeLog.error("authRefresh failed: \(err.localizedDescription)")
+                completion(.failure(err))
+            }
+        }
+    }
+
+    func authLogout() {
+        docBridgeLog.info("authLogout")
+        authToken = nil
+        DispatchQueue.main.async { self.isAuthenticated = false }
+    }
+
+    func restoreAuth() {
+        if authToken != nil {
+            docBridgeLog.info("restoreAuth: token found, marking authenticated")
+            isAuthenticated = true
+        }
+    }
+
+    // MARK: - Workspace CRUD
+
+    func fetchWorkspaces(completion: @escaping (Result<[DocWorkspace], Error>) -> Void) {
+        docBridgeLog.info("fetchWorkspaces")
+        get("/api/workspaces") { [weak self] (result: Result<[DocWorkspace], Error>) in
+            switch result {
+            case .success(let list):
+                DispatchQueue.main.async { self?.workspaces = list }
+                completion(.success(list))
+            case .failure(let err):
+                self?.handleError(err, context: "fetchWorkspaces")
+                completion(.failure(err))
+            }
+        }
+    }
+
+    func createWorkspace(name: String, description: String? = nil, completion: @escaping (Result<DocWorkspace, Error>) -> Void) {
+        docBridgeLog.info("createWorkspace: name=\(name)")
+        var body: [String: Any] = ["name": name]
+        if let desc = description { body["description"] = desc }
+        post("/api/workspaces", body: body) { [weak self] (result: Result<DocWorkspace, Error>) in
+            switch result {
+            case .success(let ws):
+                DispatchQueue.main.async { self?.workspaces.append(ws); self?.currentWorkspace = ws }
+                docBridgeLog.info("createWorkspace success: \(ws.id)")
+                completion(.success(ws))
+            case .failure(let err):
+                self?.handleError(err, context: "createWorkspace")
+                completion(.failure(err))
+            }
+        }
+    }
+
+    func updateWorkspace(id: String, name: String? = nil, description: String? = nil, completion: @escaping (Result<DocWorkspace, Error>) -> Void) {
+        docBridgeLog.info("updateWorkspace: id=\(id)")
+        var body: [String: Any] = [:]
+        if let n = name { body["name"] = n }
+        if let d = description { body["description"] = d }
+        put("/api/workspaces/\(id)", body: body) { [weak self] (result: Result<DocWorkspace, Error>) in
+            switch result {
+            case .success(let ws):
+                DispatchQueue.main.async {
+                    self?.workspaces = self?.workspaces.map { $0.id == ws.id ? ws : $0 } ?? []
+                    if self?.currentWorkspace?.id == ws.id { self?.currentWorkspace = ws }
+                }
+                completion(.success(ws))
+            case .failure(let err):
+                self?.handleError(err, context: "updateWorkspace")
+                completion(.failure(err))
+            }
+        }
+    }
+
+    func deleteWorkspace(id: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
+        docBridgeLog.info("deleteWorkspace: id=\(id)")
+        delete("/api/workspaces/\(id)") { [weak self] (result: Result<[String: Bool], Error>) in
+            switch result {
+            case .success(let resp):
+                DispatchQueue.main.async {
+                    self?.workspaces = self?.workspaces.filter { $0.id != id } ?? []
+                    if self?.currentWorkspace?.id == id { self?.currentWorkspace = nil }
+                }
+                completion(.success(resp))
+            case .failure(let err):
+                self?.handleError(err, context: "deleteWorkspace")
+                completion(.failure(err))
+            }
+        }
     }
 }
