@@ -258,7 +258,7 @@ class FusionCodeBridge: ObservableObject {
     }
 
     private func fetchMLXModels() async -> [String] {
-        guard let url = URL(string: "http://localhost:11434/v1/models") else { return [] }
+        guard let url = URL(string: FusionConfig.shared.mlxBaseURL + "/v1/models") else { return [] }
         do {
             var request = URLRequest(url: url)
             let key = FusionConfig.shared.mlxResolvedApiKey

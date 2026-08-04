@@ -11,7 +11,7 @@ struct EnvironmentHealthCard: View {
     let checks: [HealthCheckItem.Def] = [
         .init(id: "python", label: "Python 3.11+", icon: "laptopcomputer"),
         .init(id: "mlx_server", label: "MLX 服务进程", icon: "cpu"),
-        .init(id: "mlx_api", label: "MLX API (port 11434)", icon: "bolt"),
+        .init(id: "mlx_api", label: "MLX API (port \(FusionConfig.shared.mlxPort))", icon: "bolt"),
         .init(id: "daemon_socket", label: "Daemon UDS Socket", icon: "externaldrive"),
         .init(id: "httpx", label: "HTTP Client (httpx)", icon: "network"),
         .init(id: "model_cache", label: "Model Cache", icon: "internaldrive"),

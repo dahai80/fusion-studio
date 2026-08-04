@@ -16,7 +16,7 @@ enum WelcomeStep: Equatable, Sendable {
 @MainActor
 final class WelcomeViewModel: ObservableObject {
     @Published var step: WelcomeStep = .intro
-    @Published var portText: String = "11434"
+    @Published var portText: String = "11432"
     @Published var apiKey: String = ""
     @Published var apiKeyVisible: Bool = false
     @Published var lastError: String?
@@ -428,7 +428,7 @@ struct WelcomeSetupStep: View {
                 VStack(spacing: theme.spacingM) {
                     HStack {
                         Text("端口").font(.system(size: 13)).foregroundStyle(theme.textSecondary).frame(width: 80, alignment: .leading)
-                        TextField("11434", text: $vm.portText)
+                        TextField("11432", text: $vm.portText)
                             .textFieldStyle(.roundedBorder)
                             .frame(width: 120)
                         Spacer()

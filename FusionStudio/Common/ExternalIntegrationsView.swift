@@ -67,7 +67,7 @@ class ExternalIntegrationManager: ObservableObject {
         connections = [
             ServiceConnection(id: "gh-1", service: .github, name: "dahai80/fusion-studio", url: "https://github.com/dahai80/fusion-studio", token: "ghp_***", isConnected: true, lastSync: Date(), config: ["repo": "dahai80/fusion-studio", "branch": "master"]),
             ServiceConnection(id: "ji-1", service: .jira, name: "Fusion Studio Project", url: "https://fusion.atlassian.net", token: "jira_***", isConnected: false, lastSync: nil, config: ["project": "FUSION", "board": "Sprint 1"]),
-            ServiceConnection(id: "oa-1", service: .openai, name: "Local MLX (兼容)", url: "http://localhost:11434/v1", token: "", isConnected: true, lastSync: Date(), config: ["model": "qwen3.5-9b-4bit"]),
+            ServiceConnection(id: "oa-1", service: .openai, name: "Local MLX (兼容)", url: FusionConfig.shared.mlxBaseURL + "/v1", token: "", isConnected: true, lastSync: Date(), config: ["model": "qwen3.5-9b-4bit"]),
         ]
     }
 

@@ -69,7 +69,7 @@ class FusionConfig: ObservableObject {
 
     // MARK: - MLX
     @AppStorage("mlxHost") var mlxHost = "localhost"
-    @AppStorage("mlxPort") var mlxPort = 11434
+    @AppStorage("mlxPort") var mlxPort = 11432
     @AppStorage("mlxApiKey") var mlxApiKey = ""
     @AppStorage("mlxModel") var mlxModel = ""
     @AppStorage("mlxPath") var mlxPath = ""
@@ -231,7 +231,7 @@ class FusionConfig: ObservableObject {
         workspacePath = "~/FusionStudio/workspace"
         ipcSocketPath = "/tmp/fusion-studio.sock"
         mlxHost = "localhost"
-        mlxPort = 11434
+        mlxPort = 11432
         mlxModel = ""
         mlxModelSmall = ""
         mlxModelCode = ""

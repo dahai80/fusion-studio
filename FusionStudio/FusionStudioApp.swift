@@ -170,7 +170,7 @@ struct FusionStudioApp: App {
 
     private func performStartupHealthCheck() async {
         appState.healthStatus = .checking
-        // app 复用外部 mlx(11434)：直接 HTTP 探活，不依赖 env-daemon IPC。
+        // app 复用外部 mlx(11432)：直接 HTTP 探活，不依赖 env-daemon IPC。
         // 重试 ~10s 覆盖启动竞态，最终必收敛到 healthy/issuesFound，不再滞留 .checking (bug3/bug8)。
         let maxAttempts = 5
         var mlxOk = false
