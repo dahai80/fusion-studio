@@ -62,6 +62,10 @@ enum ProductSheet: String, CaseIterable, Identifiable {
     case pluginEcosystemSheet = "Plugin Ecosystem"
     case cliServiceSheet = "CLI Service"
     case docSheet = "Fusion Doc"
+    // Callers: IconRailView/FusionSidebarView/ModuleDetailView/SectionContentView routing.
+    // Affected API: ProductSheet.simulationSheet case + SidebarSection.simulation section.
+    // Data schemas: enum case. User instruction: "在左侧菜单增加 fusion simulation"
+    case simulationSheet = "Fusion Simulation"
 
     var id: String { rawValue }
 
@@ -83,6 +87,7 @@ enum ProductSheet: String, CaseIterable, Identifiable {
         case .pluginEcosystemSheet: "puzzlepiece.extension"
         case .cliServiceSheet: "terminal"
         case .docSheet:       "doc.text"
+        case .simulationSheet: "cube.transparent"
         }
     }
 
@@ -95,7 +100,7 @@ enum ProductSheet: String, CaseIterable, Identifiable {
         case .agentStudio:
             return [.agent, .plugin, .security, .kb, .dataTools, .rag, .memory, .planner]
         case .multiNode:
-            return [.clusterOverview, .clusterTopology, .clusterSync, .taskMonitor, .alertCenter, .nodeActions, .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb, .multimodal, .simulation, .analytics, .collab, .external, .operations]
+            return [.clusterOverview, .clusterTopology, .clusterSync, .taskMonitor, .alertCenter, .nodeActions, .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb, .multimodal, .analytics, .collab, .external, .operations]
         case .chat:
             return [.chat]
         case .fusionProjectsSheet:
@@ -120,6 +125,8 @@ enum ProductSheet: String, CaseIterable, Identifiable {
             return [.cli]
         case .docSheet:
             return [.doc]
+        case .simulationSheet:
+            return [.simulation]
         }
     }
 }
@@ -272,7 +279,7 @@ enum Module: String, CaseIterable, Identifiable {
             return .docSheet
         case .agent, .plugin, .security, .dataTools:
             return .agentStudio
-        case .multimodal, .simulation, .analytics, .collab, .external, .desk,
+        case .multimodal, .analytics, .collab, .external, .desk,
              .clusterOverview, .clusterTopology, .clusterSync, .taskMonitor, .alertCenter, .nodeActions,
              .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb,
              .operations:
@@ -299,6 +306,8 @@ enum Module: String, CaseIterable, Identifiable {
             return .scienceSheet
         case .finance:
             return .financeSheet
+        case .simulation:
+            return .simulationSheet
         case .pluginConfig, .pluginStatus, .pluginToken, .pluginVram, .pluginLog, .pluginMcp:
             return .agentStudio
         }
@@ -323,6 +332,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
     case pluginEcosystem = "Plugin Ecosystem"
     case cliService = "CLI Service"
     case doc = "Fusion Doc"
+    case simulation = "Fusion Simulation"
 
     var id: String { rawValue }
 
@@ -345,6 +355,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .pluginEcosystem: return "puzzlepiece.extension"
         case .cliService: return "terminal"
         case .doc:       return "doc.text"
+        case .simulation: return "cube.transparent"
         }
     }
 
@@ -355,6 +366,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .artifacts: return [.artifactsRepo]
         case .code:      return [.code, .design, .docgen, .cli]
         case .doc:       return [.doc]
+        case .simulation: return [.simulation]
         case .design:    return [.design]
         case .rag:       return [.kb, .rag]
         case .agent:     return [.agent, .agentDashboard, .teamCollab, .tools, .safety, .memory, .planner, .verification, .tokenBudget, .security, .dataTools, .plugin, .desk]

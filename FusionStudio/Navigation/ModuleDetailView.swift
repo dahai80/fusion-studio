@@ -12,8 +12,11 @@ struct ModuleDetailView: View {
                 DesignView()
             case .code:
                 CodeView()
+            // Callers: ModuleDetailView switch on appState.selectedModule.
+            // Affected API: .simulation now renders SimulationWorkbenchView (was local SimulationView Metal demo).
+            // Data schemas: Module.simulation. User instruction: "和~/fusion/fuison-simulation项目集成起来"
             case .simulation:
-                SimulationView()
+                SimulationWorkbenchView()
             case .modelHub:
                 ModelHubMainView()
             case .multimodal:

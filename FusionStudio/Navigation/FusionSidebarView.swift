@@ -17,7 +17,7 @@ struct FusionSidebarView: View {
     @State private var searchText = ""
     // Callers: ContentView, IconRailView. Affected API: SidebarSection.doc, AppState.activeSection.
     // Data schemas: SidebarSection.allCases auto-includes .doc. User instruction: "在左侧菜单增加 fusion doc"
-    @State private var expandedSections: Set<SidebarSection> = [.code, .chats, .projects, .agent, .mlx, .rag, .doc]
+    @State private var expandedSections: Set<SidebarSection> = [.code, .chats, .projects, .agent, .mlx, .rag, .doc, .simulation]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -172,6 +172,12 @@ struct FusionSidebarView: View {
             moduleListContent(.cliService)
         case .doc:
             moduleListContent(.doc)
+        // Callers: FusionSidebarView sectionGroup via SidebarSection.allCases.
+        // Affected API: sectionContent routing for simulation section.
+        // Data schemas: SidebarSection.simulation -> moduleListContent(.simulation) -> Module.simulation.
+        // User instruction: "在左侧菜单增加 fusion simulation"
+        case .simulation:
+            moduleListContent(.simulation)
         }
     }
 

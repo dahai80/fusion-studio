@@ -129,6 +129,11 @@ class FusionConfig: ObservableObject {
     @AppStorage("upstreamMultiNodePath") var upstreamMultiNodePath = "~/fusion/fusion-multi-node"
     @AppStorage("upstreamFusionCodePath") var upstreamFusionCodePath = "~/fusion/fusion-code"
     @AppStorage("upstreamSciencePath") var upstreamSciencePath = "~/fusion/fusion-science"
+    // Callers: SimulationBridge (baseURL), UpstreamServiceManager (health + repoPath).
+    // Affected API: @AppStorage simulationHost/simulationPort + simulationBaseURL computed property.
+    // Data schemas: @AppStorage (UserDefaults) host/port, port 11455 = fusion-sim FastAPI dashboard (--gui).
+    // User instruction: "在左侧菜单增加 fusion simulation,fusion-studio负责GUI，和~/fusion/fuison-simulation项目集成起来"
+    @AppStorage("upstreamSimulationPath") var upstreamSimulationPath = "~/fusion/fusion-simulation"
     @AppStorage("fusionCodePort") var fusionCodePort = 11441
     @AppStorage("upstreamAutoStartCritical") var upstreamAutoStartCritical = true
 
@@ -149,6 +154,13 @@ class FusionConfig: ObservableObject {
 
     /// Fusion-Science 服务地址
     var scienceBaseURL: String { "http://\(scienceHost):\(sciencePort)" }
+
+    // Callers: SimulationBridge, UpstreamServiceManager. Port 11455 = fusion-sim dashboard (--gui).
+    @AppStorage("simulationHost") var simulationHost = "127.0.0.1"
+    @AppStorage("simulationPort") var simulationPort = 11455
+
+    /// Fusion-Simulation 服务地址（FastAPI 控制面，需 fusion-sim service start --gui）
+    var simulationBaseURL: String { "http://\(simulationHost):\(simulationPort)" }
 
     /// 展开 ~/ 路径为绝对路径
     func expandedUpstreamPath(_ raw: String) -> String {
@@ -267,6 +279,7 @@ class FusionConfig: ObservableObject {
         upstreamMultiNodePath = "~/fusion/fusion-multi-node"
         upstreamFusionCodePath = "~/fusion/fusion-code"
         upstreamSciencePath = "~/fusion/fusion-science"
+        upstreamSimulationPath = "~/fusion/fusion-simulation"
         fusionCodePort = 11441
         upstreamAutoStartCritical = true
 
@@ -282,5 +295,7 @@ class FusionConfig: ObservableObject {
         agentStudioHttpPort = 11453
         scienceHost = "127.0.0.1"
         sciencePort = 8200
+        simulationHost = "127.0.0.1"
+        simulationPort = 11455
     }
 }

@@ -216,6 +216,15 @@ final class UpstreamServiceManager: ObservableObject {
                             isCritical: false, startOrder: 11,
                             repoPathRaw: cfg.upstreamSciencePath,
                             healthKind: .httpGet, healthEndpoint: "\(cfg.scienceBaseURL)/api/v1/health"),
+            // Callers: SimulationWorkbenchView UpstreamServiceStatusBanner(serviceId:"fusion-simulation"), refreshAll.
+            // Affected API: UpstreamService entry (httpGet health at simulationBaseURL/api/health, port 11455).
+            // Data: UpstreamService struct. User instruction: "和~/fusion/fuison-simulation项目集成起来"
+            UpstreamService(id: "fusion-simulation",
+                            displayName: "Fusion-Simulation 仿真",
+                            icon: "cube.transparent",
+                            isCritical: false, startOrder: 12,
+                            repoPathRaw: cfg.upstreamSimulationPath,
+                            healthKind: .httpGet, healthEndpoint: "\(cfg.simulationBaseURL)/api/health"),
         ]
     }
 

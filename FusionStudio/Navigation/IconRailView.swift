@@ -128,6 +128,13 @@ struct IconRailView: View {
                 case .doc:
                     appState.selectedModule = .doc
                     appState.selectedSheet = .docSheet
+                // Callers: IconRailView rail button tap.
+                // Affected API: appState.selectedModule/.selectedSheet routing for simulation section.
+                // Data schemas: SidebarSection.simulation -> Module.simulation -> ProductSheet.simulationSheet.
+                // User instruction: "在左侧菜单增加 fusion simulation"
+                case .simulation:
+                    appState.selectedModule = .simulation
+                    appState.selectedSheet = .simulationSheet
                 }
             }
             railLog.info("Section selected: \(section.rawValue)")
