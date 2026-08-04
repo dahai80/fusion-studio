@@ -68,7 +68,7 @@ Design · Code · Simulation · MultiModal · Training · Data · Agent · KB ·
 | 6 | 🖼️ **MultiModal** | `photo.on.rectangle` | ✅ Stable | Text-to-image, image-to-image, OCR, speech-to-text, TTS |
 | 7 | 🧠 **Training** | `brain` | ✅ Stable | LoRA/QLoRA fine-tuning, monitoring, checkpoints, model export |
 | 8 | ⌨️ **CLI** | `terminal` | ✅ Stable | GUI CLI panel, 18 preset commands, execution history |
-| 9 | 📄 **Doc** | `doc.text` | ✅ Stable | AI-First Document OS, 12 tabs (editor/graph/versions/office/workflow/template/search/comments/favorites/files/rag/activity), 55+ API methods, 7 copilot modes |
+| 9 | 📄 **Doc** | `doc.text` | ✅ Stable | AI-First Document OS, 12 tabs (editor/graph/versions/office/workflow/template/search/comments/favorites/files/rag/activity), 102 routes, 90+ API methods (auth/workspace/users/pages/books/chapters/tags/graph/workflow/template/office/copilot/rag/search/comment/favorite/activity/file/branding/theme/vocabulary/webhook/metadata/system/export/notification/ai/collab), 7 copilot modes, WebSocket collab client |
 | 10 | 📚 **KB** | `books.vertical` | ✅ Stable | Knowledge base, RAG retrieval, document indexing |
 | 11 | 📊 **Bench** | `chart.bar` | ✅ Stable | Speed/memory/context/quality benchmarks |
 | 12 | 🧹 **Desk** | `desktopcomputer` | ✅ Stable | Desktop automation, 6 preset templates |
@@ -393,7 +393,9 @@ comes up).
 | fusion-agent-studio | `~/fusion/fusion-agent-studio/start.sh` | `/tmp/fusion-studio.sock` (UDS) | ✅ |
 | fusion-artifacts-engine | `~/fusion/fusion-artifacts-engine/start.sh` | `127.0.0.1:11451` | ✅ |
 | fusion-kb (RAG) | `~/fusion/fusion-kb/start.sh` | `127.0.0.1:11436` | optional |
-| fusion-multi-node | `~/fusion/fusion-multi-node/start.sh` | `127.0.0.1:9753` | optional |
+| fusion-doc | `~/fusion/fusion-doc/start.sh` | `127.0.0.1:11449` | optional |
+| fusion-multi-node | `~/fusion/fusion-multi-node/start.sh` | `127.0.0.1:11452` | optional |
+| fusion-model-hub | `~/fusion/fusion-model-hub/start.sh` | `127.0.0.1:11444` | optional |
 | fusion-design | (CLI tool, no start.sh) | - | n/a |
 
 - Critical services auto-start in order: mlx -> agent-studio -> artifacts-engine.
@@ -464,6 +466,15 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 
 ### v0.1.22 (2026-08-04)
 
+Doc GUI + integration:
+
+- **Fusion Doc GUI**: 12 tabs (editor/graph/versions/office/workflow/template/search/comments/favorites/files/rag/activity), SidebarSection.doc promoted to independent section, DocBridge with 90+ API methods
+- **DocBridge**: 102 routes across auth/workspace/users/pages/books/chapters/tags/graph/workflow/template/office/copilot/rag/search/comment/favorite/activity/file/branding/theme/vocabulary/webhook/metadata/system/export/notification/ai/collab
+- **Auth**: setup/login/refresh/logout with JWT token persistence via UserDefaults, Bearer injection on all HTTP helpers
+- **Workspace CRUD**: fetchWorkspaces/createWorkspace/updateWorkspace/deleteWorkspace
+- **Collab**: WebSocket client (connectCollab/disconnectCollab/sendCollabUpdate), pending upstream Yjs server
+- **15 upstream issues filed**: fusion-doc#7–#21 (auth/workspace/users/ai-raw/branding/theme/vocabulary/webhooks/metadata/system/files-upload/export/rag-basic/graph-search/notifications), #22 (collab WebSocket)
+
 Bug fixes & improvements:
 
 - **#97–#104**: FusionCode bridge — WebSocket chat streaming, `commandMode` param for slash commands, `/compact` IPC call, auth token on WS connection, MLX model fetch with auth header, workflow/sandbox right panes
@@ -472,6 +483,7 @@ Bug fixes & improvements:
 - **#107**: QuickAction skill routing — skill commands route through `chatStream(commandMode: true)`
 - **#108**: Remove `FusionCodeAPIClient` — unify to `FusionCodeBridge` singleton; move `FusionCodeProject` model to `ChatSessionStore`
 - **#109**: URL migration — eliminate all hardcoded `localhost:11434`; default `mlxPort` changed from 11434 to 11432; `FusionConfig.mlxBaseURL` / `StreamingBridge` / `WelcomeView` / `EnvironmentHealthCard` / `MultiModalView` / `ExternalIntegrationsView` all updated
+- **#111**: start.sh port alignment — mlx 11434→11432, artifacts-engine 8892→11451, fusion-code 4827→11441, multi-node 9753→11452; added fusion-doc(11449)/fusion-model-hub(11444) entries; added `multiNodePort` @AppStorage property; fixed UpstreamServiceManager hardcoded 9753→cfg.multiNodePort
 - **License**: Changed from MIT to Apache 2.0
 
 ### v0.1.16 (2026-08-03)
