@@ -269,6 +269,97 @@ struct DocWorkspace: Codable, Identifiable, Hashable {
     static func == (lhs: DocWorkspace, rhs: DocWorkspace) -> Bool { lhs.id == rhs.id }
 }
 
+struct DocUser: Codable, Identifiable, Hashable {
+    let id: String
+    var username: String?
+    var email: String?
+    var role: String?
+    var created_at: String?
+
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
+    static func == (lhs: DocUser, rhs: DocUser) -> Bool { lhs.id == rhs.id }
+}
+
+struct DocBranding: Codable {
+    var logo_url: String?
+    var primary_color: String?
+    var secondary_color: String?
+    var font: String?
+    var custom_css: String?
+}
+
+struct DocTheme: Codable, Identifiable, Hashable {
+    let id: String
+    var name: String
+    var css: String?
+    var is_dark: Bool?
+    var created_at: String?
+
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
+    static func == (lhs: DocTheme, rhs: DocTheme) -> Bool { lhs.id == rhs.id }
+}
+
+struct DocVocabulary: Codable, Identifiable, Hashable {
+    let id: String
+    var term: String
+    var definition: String?
+    var category: String?
+    var created_at: String?
+
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
+    static func == (lhs: DocVocabulary, rhs: DocVocabulary) -> Bool { lhs.id == rhs.id }
+}
+
+struct DocWebhook: Codable, Identifiable, Hashable {
+    let id: String
+    var url: String
+    var events: [String]?
+    var secret: String?
+    var is_active: Bool?
+    var created_at: String?
+
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
+    static func == (lhs: DocWebhook, rhs: DocWebhook) -> Bool { lhs.id == rhs.id }
+}
+
+struct DocMetadataEntry: Codable, Identifiable {
+    let id: String
+    var key: String
+    var value: String?
+}
+
+struct DocSystemInfo: Codable {
+    var version: String?
+    var uptime: Double?
+    var total_books: Int?
+    var total_pages: Int?
+    var total_users: Int?
+}
+
+struct DocSystemConfig: Codable {
+    var key: String
+    var value: String?
+}
+
+struct DocExportJob: Codable, Identifiable {
+    let id: String
+    var status: String?
+    var progress: Double?
+    var download_url: String?
+    var created_at: String?
+}
+
+struct DocNotification: Codable, Identifiable, Hashable {
+    let id: String
+    var type: String?
+    var message: String?
+    var is_read: Bool?
+    var created_at: String?
+
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
+    static func == (lhs: DocNotification, rhs: DocNotification) -> Bool { lhs.id == rhs.id }
+}
+
 // MARK: - DocBridge
 
 class DocBridge: ObservableObject {
@@ -292,6 +383,15 @@ class DocBridge: ObservableObject {
     @Published var chunks: [DocRAGChunk] = []
     @Published var workspaces: [DocWorkspace] = []
     @Published var currentWorkspace: DocWorkspace?
+    @Published var users: [DocUser] = []
+    @Published var branding: DocBranding?
+    @Published var themes: [DocTheme] = []
+    @Published var vocabulary: [DocVocabulary] = []
+    @Published var webhooks: [DocWebhook] = []
+    @Published var systemInfo: DocSystemInfo?
+    @Published var systemConfig: [DocSystemConfig] = []
+    @Published var exportJobs: [DocExportJob] = []
+    @Published var notifications: [DocNotification] = []
     @Published var isAuthenticated: Bool = false
     @Published var authError: String?
 
@@ -1279,5 +1379,357 @@ class DocBridge: ObservableObject {
                 completion(.failure(err))
             }
         }
+    }
+
+    // MARK: - Users
+
+    func fetchUsers(completion: @escaping (Result<[DocUser], Error>) -> Void) {
+        docBridgeLog.info("fetchUsers")
+        get("/api/users") { [weak self] (result: Result<[DocUser], Error>) in
+            switch result {
+            case .success(let list): DispatchQueue.main.async { self?.users = list }; completion(.success(list))
+            case .failure(let err): self?.handleError(err, context: "fetchUsers"); completion(.failure(err))
+            }
+        }
+    }
+
+    func updateUser(id: String, username: String? = nil, email: String? = nil, role: String? = nil, completion: @escaping (Result<DocUser, Error>) -> Void) {
+        docBridgeLog.info("updateUser: id=\(id)")
+        var body: [String: Any] = [:]
+        if let u = username { body["username"] = u }
+        if let e = email { body["email"] = e }
+        if let r = role { body["role"] = r }
+        put("/api/users/\(id)", body: body) { [weak self] (result: Result<DocUser, Error>) in
+            switch result {
+            case .success(let user):
+                DispatchQueue.main.async { self?.users = self?.users.map { $0.id == user.id ? user : $0 } ?? [] }
+                completion(.success(user))
+            case .failure(let err): self?.handleError(err, context: "updateUser"); completion(.failure(err))
+            }
+        }
+    }
+
+    func deleteUser(id: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
+        docBridgeLog.info("deleteUser: id=\(id)")
+        delete("/api/users/\(id)") { [weak self] (result: Result<[String: Bool], Error>) in
+            switch result {
+            case .success(let resp):
+                DispatchQueue.main.async { self?.users = self?.users.filter { $0.id != id } ?? [] }
+                completion(.success(resp))
+            case .failure(let err): self?.handleError(err, context: "deleteUser"); completion(.failure(err))
+            }
+        }
+    }
+
+    // MARK: - AI Raw
+
+    func aiChat(messages: [[String: String]], completion: @escaping (Result<[String: String], Error>) -> Void) {
+        docBridgeLog.info("aiChat")
+        post("/api/ai/chat", body: ["messages": messages], completion: completion)
+    }
+
+    func aiCompletions(prompt: String, completion: @escaping (Result<[String: String], Error>) -> Void) {
+        docBridgeLog.info("aiCompletions: prompt=\(prompt.prefix(50))")
+        post("/api/ai/completions", body: ["prompt": prompt], completion: completion)
+    }
+
+    // MARK: - Branding
+
+    func fetchBranding(completion: @escaping (Result<DocBranding, Error>) -> Void) {
+        docBridgeLog.info("fetchBranding")
+        get("/api/branding") { [weak self] (result: Result<DocBranding, Error>) in
+            switch result {
+            case .success(let b): DispatchQueue.main.async { self?.branding = b }; completion(.success(b))
+            case .failure(let err): self?.handleError(err, context: "fetchBranding"); completion(.failure(err))
+            }
+        }
+    }
+
+    func updateBranding(branding: DocBranding, completion: @escaping (Result<DocBranding, Error>) -> Void) {
+        docBridgeLog.info("updateBranding")
+        let body: [String: Any?] = [
+            "logo_url": branding.logo_url,
+            "primary_color": branding.primary_color,
+            "secondary_color": branding.secondary_color,
+            "font": branding.font,
+            "custom_css": branding.custom_css,
+        ]
+        put("/api/branding", body: body.compactMapValues { $0 }) { [weak self] (result: Result<DocBranding, Error>) in
+            switch result {
+            case .success(let b): DispatchQueue.main.async { self?.branding = b }; completion(.success(b))
+            case .failure(let err): self?.handleError(err, context: "updateBranding"); completion(.failure(err))
+            }
+        }
+    }
+
+    // MARK: - Theme CRUD
+
+    func fetchThemes(completion: @escaping (Result<[DocTheme], Error>) -> Void) {
+        docBridgeLog.info("fetchThemes")
+        get("/api/themes") { [weak self] (result: Result<[DocTheme], Error>) in
+            switch result {
+            case .success(let list): DispatchQueue.main.async { self?.themes = list }; completion(.success(list))
+            case .failure(let err): self?.handleError(err, context: "fetchThemes"); completion(.failure(err))
+            }
+        }
+    }
+
+    func createTheme(name: String, css: String? = nil, isDark: Bool? = nil, completion: @escaping (Result<DocTheme, Error>) -> Void) {
+        docBridgeLog.info("createTheme: name=\(name)")
+        var body: [String: Any] = ["name": name]
+        if let c = css { body["css"] = c }
+        if let d = isDark { body["is_dark"] = d }
+        post("/api/themes", body: body) { [weak self] (result: Result<DocTheme, Error>) in
+            switch result {
+            case .success(let t): DispatchQueue.main.async { self?.themes.append(t) }; completion(.success(t))
+            case .failure(let err): self?.handleError(err, context: "createTheme"); completion(.failure(err))
+            }
+        }
+    }
+
+    func deleteTheme(id: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
+        docBridgeLog.info("deleteTheme: id=\(id)")
+        delete("/api/themes/\(id)") { [weak self] (result: Result<[String: Bool], Error>) in
+            switch result {
+            case .success(let resp):
+                DispatchQueue.main.async { self?.themes = self?.themes.filter { $0.id != id } ?? [] }
+                completion(.success(resp))
+            case .failure(let err): self?.handleError(err, context: "deleteTheme"); completion(.failure(err))
+            }
+        }
+    }
+
+    // MARK: - Vocabulary CRUD
+
+    func fetchVocabulary(completion: @escaping (Result<[DocVocabulary], Error>) -> Void) {
+        docBridgeLog.info("fetchVocabulary")
+        get("/api/vocabulary") { [weak self] (result: Result<[DocVocabulary], Error>) in
+            switch result {
+            case .success(let list): DispatchQueue.main.async { self?.vocabulary = list }; completion(.success(list))
+            case .failure(let err): self?.handleError(err, context: "fetchVocabulary"); completion(.failure(err))
+            }
+        }
+    }
+
+    func createVocabulary(term: String, definition: String? = nil, category: String? = nil, completion: @escaping (Result<DocVocabulary, Error>) -> Void) {
+        docBridgeLog.info("createVocabulary: term=\(term)")
+        var body: [String: Any] = ["term": term]
+        if let d = definition { body["definition"] = d }
+        if let c = category { body["category"] = c }
+        post("/api/vocabulary", body: body) { [weak self] (result: Result<DocVocabulary, Error>) in
+            switch result {
+            case .success(let v): DispatchQueue.main.async { self?.vocabulary.append(v) }; completion(.success(v))
+            case .failure(let err): self?.handleError(err, context: "createVocabulary"); completion(.failure(err))
+            }
+        }
+    }
+
+    func deleteVocabulary(id: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
+        docBridgeLog.info("deleteVocabulary: id=\(id)")
+        delete("/api/vocabulary/\(id)") { [weak self] (result: Result<[String: Bool], Error>) in
+            switch result {
+            case .success(let resp):
+                DispatchQueue.main.async { self?.vocabulary = self?.vocabulary.filter { $0.id != id } ?? [] }
+                completion(.success(resp))
+            case .failure(let err): self?.handleError(err, context: "deleteVocabulary"); completion(.failure(err))
+            }
+        }
+    }
+
+    // MARK: - Webhooks CRUD
+
+    func fetchWebhooks(completion: @escaping (Result<[DocWebhook], Error>) -> Void) {
+        docBridgeLog.info("fetchWebhooks")
+        get("/api/webhooks") { [weak self] (result: Result<[DocWebhook], Error>) in
+            switch result {
+            case .success(let list): DispatchQueue.main.async { self?.webhooks = list }; completion(.success(list))
+            case .failure(let err): self?.handleError(err, context: "fetchWebhooks"); completion(.failure(err))
+            }
+        }
+    }
+
+    func createWebhook(url: String, events: [String]? = nil, secret: String? = nil, completion: @escaping (Result<DocWebhook, Error>) -> Void) {
+        docBridgeLog.info("createWebhook: url=\(url)")
+        var body: [String: Any] = ["url": url]
+        if let e = events { body["events"] = e }
+        if let s = secret { body["secret"] = s }
+        post("/api/webhooks", body: body) { [weak self] (result: Result<DocWebhook, Error>) in
+            switch result {
+            case .success(let w): DispatchQueue.main.async { self?.webhooks.append(w) }; completion(.success(w))
+            case .failure(let err): self?.handleError(err, context: "createWebhook"); completion(.failure(err))
+            }
+        }
+    }
+
+    func deleteWebhook(id: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
+        docBridgeLog.info("deleteWebhook: id=\(id)")
+        delete("/api/webhooks/\(id)") { [weak self] (result: Result<[String: Bool], Error>) in
+            switch result {
+            case .success(let resp):
+                DispatchQueue.main.async { self?.webhooks = self?.webhooks.filter { $0.id != id } ?? [] }
+                completion(.success(resp))
+            case .failure(let err): self?.handleError(err, context: "deleteWebhook"); completion(.failure(err))
+            }
+        }
+    }
+
+    func testWebhook(id: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
+        docBridgeLog.info("testWebhook: id=\(id)")
+        post("/api/webhooks/\(id)/test", body: nil, completion: completion)
+    }
+
+    // MARK: - Metadata
+
+    func fetchMetadata(entity: String, entityId: String, completion: @escaping (Result<[DocMetadataEntry], Error>) -> Void) {
+        docBridgeLog.info("fetchMetadata: \(entity)/\(entityId)")
+        get("/api/\(entity)/\(entityId)/metadata", completion: completion)
+    }
+
+    func setMetadata(entity: String, entityId: String, key: String, value: String, completion: @escaping (Result<DocMetadataEntry, Error>) -> Void) {
+        docBridgeLog.info("setMetadata: \(entity)/\(entityId) key=\(key)")
+        put("/api/\(entity)/\(entityId)/metadata", body: ["key": key, "value": value], completion: completion)
+    }
+
+    func deleteMetadata(entity: String, entityId: String, key: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
+        docBridgeLog.info("deleteMetadata: \(entity)/\(entityId) key=\(key)")
+        delete("/api/\(entity)/\(entityId)/metadata/\(key)", completion: completion)
+    }
+
+    // MARK: - System
+
+    func fetchSystemInfo(completion: @escaping (Result<DocSystemInfo, Error>) -> Void) {
+        docBridgeLog.info("fetchSystemInfo")
+        get("/api/system/info") { [weak self] (result: Result<DocSystemInfo, Error>) in
+            switch result {
+            case .success(let info): DispatchQueue.main.async { self?.systemInfo = info }; completion(.success(info))
+            case .failure(let err): self?.handleError(err, context: "fetchSystemInfo"); completion(.failure(err))
+            }
+        }
+    }
+
+    func fetchSystemConfig(completion: @escaping (Result<[DocSystemConfig], Error>) -> Void) {
+        docBridgeLog.info("fetchSystemConfig")
+        get("/api/system/config") { [weak self] (result: Result<[DocSystemConfig], Error>) in
+            switch result {
+            case .success(let cfg): DispatchQueue.main.async { self?.systemConfig = cfg }; completion(.success(cfg))
+            case .failure(let err): self?.handleError(err, context: "fetchSystemConfig"); completion(.failure(err))
+            }
+        }
+    }
+
+    func updateSystemConfig(key: String, value: String, completion: @escaping (Result<DocSystemConfig, Error>) -> Void) {
+        docBridgeLog.info("updateSystemConfig: key=\(key)")
+        put("/api/system/config", body: ["key": key, "value": value], completion: completion)
+    }
+
+    // MARK: - File Upload
+
+    func uploadFile(fileData: Data, fileName: String, mimeType: String, completion: @escaping (Result<DocFileUpload, Error>) -> Void) {
+        docBridgeLog.info("uploadFile: name=\(fileName)")
+        guard let url = URL(string: "\(baseURL)/api/files/upload") else {
+            completion(.failure(NSError(domain: "DocBridge", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))
+            return
+        }
+        let boundary = UUID().uuidString
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        if let token = authToken { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
+        var body = Data()
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
+        body.append(fileData)
+        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+        request.httpBody = body
+        session.dataTask(with: request) { data, _, error in
+            if let error = error { completion(.failure(error)); return }
+            guard let data = data else {
+                completion(.failure(NSError(domain: "DocBridge", code: -2, userInfo: [NSLocalizedDescriptionKey: "No data"])))
+                return
+            }
+            do {
+                let decoded = try JSONDecoder().decode(DocFileUpload.self, from: data)
+                completion(.success(decoded))
+            } catch { completion(.failure(error)) }
+        }.resume()
+    }
+
+    // MARK: - Export
+
+    func exportBook(bookId: String, format: String, completion: @escaping (Result<DocExportJob, Error>) -> Void) {
+        docBridgeLog.info("exportBook: bookId=\(bookId) format=\(format)")
+        post("/api/export/\(format)", body: ["book_id": bookId]) { [weak self] (result: Result<DocExportJob, Error>) in
+            switch result {
+            case .success(let job): DispatchQueue.main.async { self?.exportJobs.append(job) }; completion(.success(job))
+            case .failure(let err): self?.handleError(err, context: "exportBook"); completion(.failure(err))
+            }
+        }
+    }
+
+    func fetchExportStatus(jobId: String, completion: @escaping (Result<DocExportJob, Error>) -> Void) {
+        docBridgeLog.info("fetchExportStatus: jobId=\(jobId)")
+        get("/api/export/\(jobId)/status", completion: completion)
+    }
+
+    // MARK: - RAG Basic
+
+    func buildRAGIndex(completion: @escaping (Result<[String: Bool], Error>) -> Void) {
+        docBridgeLog.info("buildRAGIndex")
+        post("/api/rag/index", body: nil, completion: completion)
+    }
+
+    func fetchRAGStatus(completion: @escaping (Result<[String: String], Error>) -> Void) {
+        docBridgeLog.info("fetchRAGStatus")
+        get("/api/rag/status", completion: completion)
+    }
+
+    func clearRAGIndex(completion: @escaping (Result<[String: Bool], Error>) -> Void) {
+        docBridgeLog.info("clearRAGIndex")
+        delete("/api/rag/index", completion: completion)
+    }
+
+    func embedRAGContent(content: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
+        docBridgeLog.info("embedRAGContent")
+        post("/api/rag/embed", body: ["content": content], completion: completion)
+    }
+
+    // MARK: - Graph Search
+
+    func graphSemanticSearch(query: String, completion: @escaping (Result<DocGraph, Error>) -> Void) {
+        docBridgeLog.info("graphSemanticSearch: query=\(query.prefix(50))")
+        post("/api/graph/search", body: ["query": query], completion: completion)
+    }
+
+    func graphTraverse(startId: String, direction: String = "both", maxDepth: Int = 3, completion: @escaping (Result<DocGraph, Error>) -> Void) {
+        docBridgeLog.info("graphTraverse: start=\(startId) depth=\(maxDepth)")
+        post("/api/graph/traverse", body: ["start_id": startId, "direction": direction, "max_depth": maxDepth], completion: completion)
+    }
+
+    func graphCluster(algorithm: String = "louvain", completion: @escaping (Result<[String: [[String]]], Error>) -> Void) {
+        docBridgeLog.info("graphCluster: algorithm=\(algorithm)")
+        post("/api/graph/cluster", body: ["algorithm": algorithm], completion: completion)
+    }
+
+    // MARK: - Notifications
+
+    func fetchNotifications(completion: @escaping (Result<[DocNotification], Error>) -> Void) {
+        docBridgeLog.info("fetchNotifications")
+        get("/api/notifications") { [weak self] (result: Result<[DocNotification], Error>) in
+            switch result {
+            case .success(let list): DispatchQueue.main.async { self?.notifications = list }; completion(.success(list))
+            case .failure(let err): self?.handleError(err, context: "fetchNotifications"); completion(.failure(err))
+            }
+        }
+    }
+
+    func markNotificationRead(id: String, completion: @escaping (Result<DocNotification, Error>) -> Void) {
+        docBridgeLog.info("markNotificationRead: id=\(id)")
+        put("/api/notifications/\(id)/read", body: [:], completion: completion)
+    }
+
+    func markAllNotificationsRead(completion: @escaping (Result<[String: Bool], Error>) -> Void) {
+        docBridgeLog.info("markAllNotificationsRead")
+        put("/api/notifications/read-all", body: [:], completion: completion)
     }
 }
