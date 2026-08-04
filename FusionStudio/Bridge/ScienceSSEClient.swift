@@ -20,7 +20,7 @@ class ScienceSSEClient: ObservableObject {
         self.session = URLSession(configuration: config)
     }
 
-    func streamChat(baseURL: String = "http://127.0.0.1:8200", sessionId: String, message: String) {
+    func streamChat(baseURL: String = FusionConfig.shared.scienceBaseURL, sessionId: String, message: String) {
         guard let url = URL(string: "\(baseURL)/api/v1/sessions/\(sessionId)/chat") else {
             sseLog.error("SSE: invalid URL")
             return

@@ -17,16 +17,22 @@ class ScienceBridge: ObservableObject {
 
     private let baseURL: String
     private let session: URLSession
+    private var reconnectTimer: Timer?
 
-    init(baseURL: String = "http://127.0.0.1:8200") {
+    init(baseURL: String = FusionConfig.shared.scienceBaseURL) {
         self.baseURL = baseURL
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 8
         config.timeoutIntervalForResource = 30
         self.session = URLSession(configuration: config)
+        checkHealth()
     }
 
-    // MARK: - Health
+    deinit {
+        reconnectTimer?.invalidate()
+    }
+
+    // MARK: - Health & Reconnect
 
     func checkHealth() {
         get("/api/v1/health") { [weak self] (result: Result<ScienceHealthResponse, Error>) in
@@ -35,9 +41,32 @@ class ScienceBridge: ObservableObject {
                 DispatchQueue.main.async {
                     self?.isConnected = true
                     self?.lastError = nil
+                    self?.reconnectTimer?.invalidate()
+                    self?.reconnectTimer = nil
                 }
             case .failure(let err):
-                self?.handleError(err, context: "health")
+                self?.handleHealthFailure(err)
+            }
+        }
+    }
+
+    private func handleHealthFailure(_ error: Error) {
+        let msg = error.localizedDescription
+        bridgeLog.error("ScienceBridge health failed: \(msg)")
+        DispatchQueue.main.async { [weak self] in
+            self?.isConnected = false
+            self?.lastError = "health: \(msg)"
+            self?.scheduleReconnect()
+        }
+    }
+
+    // 对齐 IPCClient 3s 重连策略：健康探测失败后每 3s 重试，成功即停止
+    private func scheduleReconnect() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.reconnectTimer?.invalidate()
+            self.reconnectTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
+                self?.checkHealth()
             }
         }
     }
@@ -278,6 +307,7 @@ class ScienceBridge: ObservableObject {
             self?.lastError = "\(context): \(msg)"
             if msg.contains("connect") || msg.contains("refused") {
                 self?.isConnected = false
+                self?.checkHealth()
             }
         }
     }

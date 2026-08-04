@@ -128,6 +128,7 @@ class FusionConfig: ObservableObject {
     @AppStorage("upstreamRagPath") var upstreamRagPath = "~/fusion/fusion-kb"
     @AppStorage("upstreamMultiNodePath") var upstreamMultiNodePath = "~/fusion/fusion-multi-node"
     @AppStorage("upstreamFusionCodePath") var upstreamFusionCodePath = "~/fusion/fusion-code"
+    @AppStorage("upstreamSciencePath") var upstreamSciencePath = "~/fusion/fusion-science"
     @AppStorage("fusionCodePort") var fusionCodePort = 11441
     @AppStorage("upstreamAutoStartCritical") var upstreamAutoStartCritical = true
 
@@ -143,6 +144,11 @@ class FusionConfig: ObservableObject {
     @AppStorage("fusionBenchPort") var fusionBenchPort = 11450
     @AppStorage("agentStudioHttpPort") var agentStudioHttpPort = 11453
     @AppStorage("multiNodePort") var multiNodePort = 11452
+    @AppStorage("scienceHost") var scienceHost = "127.0.0.1"
+    @AppStorage("sciencePort") var sciencePort = 8200
+
+    /// Fusion-Science 服务地址
+    var scienceBaseURL: String { "http://\(scienceHost):\(sciencePort)" }
 
     /// 展开 ~/ 路径为绝对路径
     func expandedUpstreamPath(_ raw: String) -> String {
@@ -260,6 +266,7 @@ class FusionConfig: ObservableObject {
         upstreamRagPath = "~/fusion/fusion-kb"
         upstreamMultiNodePath = "~/fusion/fusion-multi-node"
         upstreamFusionCodePath = "~/fusion/fusion-code"
+        upstreamSciencePath = "~/fusion/fusion-science"
         fusionCodePort = 11441
         upstreamAutoStartCritical = true
 
@@ -273,5 +280,7 @@ class FusionConfig: ObservableObject {
         fusionDocPort = 11449
         fusionBenchPort = 11450
         agentStudioHttpPort = 11453
+        scienceHost = "127.0.0.1"
+        sciencePort = 8200
     }
 }

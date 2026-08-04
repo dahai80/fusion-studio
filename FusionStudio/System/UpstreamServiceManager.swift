@@ -210,6 +210,12 @@ final class UpstreamServiceManager: ObservableObject {
                             isCritical: false, startOrder: 10,
                             repoPathRaw: "~/fusion/fusion-cowork",
                             healthKind: .socket, healthEndpoint: "/tmp/fusion-cowork.sock"),
+            UpstreamService(id: "fusion-science",
+                            displayName: "Fusion-Science 科研",
+                            icon: "atom",
+                            isCritical: false, startOrder: 11,
+                            repoPathRaw: cfg.upstreamSciencePath,
+                            healthKind: .httpGet, healthEndpoint: "\(cfg.scienceBaseURL)/api/v1/health"),
         ]
     }
 
