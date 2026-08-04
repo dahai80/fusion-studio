@@ -1,6 +1,6 @@
 // Callers: DocView, DocSidebar, DocEditorArea, DocAICopilotView, DocGraphView, DocVersionView, DocOfficeView, DocWorkflowView, DocTemplateView, DocSearchView, DocCommentsView, DocFavoritesView, DocFilesPanel, DocRAGPanel, DocActivityView.
-// Affected API: REST localhost:11449 (fusion-doc server — 82 routes across page/book/chapter/tag/graph/workflow/template/office/copilot/rag/search/comment/favorite/activity/file controllers).
-// Data schemas: DocPage/DocBook/DocChapter/DocTag/DocGraphNode/DocGraphEdge/DocWorkflow/DocTemplate/DocVersion/DocDiffLine/DocOfficeStatus/DocSearchResult/DocComment/DocFavorite/DocActivity/DocFileUpload/DocWorkflowState aligned with fusion-doc controller responses.
+// Affected API: REST localhost:11449 (fusion-doc server — 102 routes across auth/workspace/users/page/book/chapter/tag/graph/workflow/template/office/copilot/rag/search/comment/favorite/activity/file/branding/theme/vocabulary/webhook/metadata/system/export/notification/ai controllers).
+// Data schemas: DocPage/DocBook/DocChapter/DocTag/DocGraphNode/DocGraphEdge/DocWorkflow/DocTemplate/DocVersion/DocDiffLine/DocOfficeStatus/DocSearchResult/DocComment/DocFavorite/DocActivity/DocFileUpload/DocWorkflowState/DocAuthResponse/DocWorkspace/DocUser/DocBranding/DocTheme/DocVocabulary/DocWebhook/DocMetadataEntry/DocSystemInfo/DocSystemConfig/DocExportJob/DocNotification aligned with fusion-doc controller responses.
 // User instruction: "在左侧菜单增加 fusion doc,fusion-studio负责GUI，和~/fusion/fusion-doc项目集成起来，包括GUI和workflow，usercase，全面集成"
 
 import Foundation
