@@ -242,8 +242,8 @@ final class ModelHubAPIClient: ObservableObject {
 
     func createAPIKey(name: String, allowedModels: [String]? = nil, allowedModules: [String]? = nil, qpsLimit: Int? = nil) async throws -> HubAPIKeyResponse {
         var json: [String: Any] = ["name": name]
-        if let allowedModels { json["allowed_models"] = allowedModels }
-        if let allowedModules { json["allowed_modules"] = allowedModules }
+        if let allowedModels { json["allowed_models"] = allowedModels.joined(separator: ",") }
+        if let allowedModules { json["allowed_modules"] = allowedModules.joined(separator: ",") }
         if let qpsLimit { json["qps_limit"] = qpsLimit }
         return try await post("/api/v1/auth/keys", json: json)
     }
@@ -674,9 +674,13 @@ final class ModelHubAPIClient: ObservableObject {
         return try await execute(request)
     }
 
+    // Callers: get/post/put/patch/delete helpers all call addAuth() before execute()
+    // Affected API: every ModelHubAPIClient HTTP request -> upstream fusion-model-hub X-API-Key header
+    // Data schemas:
+    // User instruction: "和~/fusion/fuison-models-hub项目集成起来...最后要完成端到端测试，确保系统可用"
     private func addAuth(_ request: inout URLRequest) {
         if !apiKey.isEmpty {
-            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+            request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
         }
     }
 

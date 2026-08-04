@@ -383,13 +383,22 @@ struct HubDiskStats: Codable {
 // MARK: - Auth (issue #63 sub-feature 2 & 5)
 
 struct HubAPIKeyListResponse: Codable {
-    let keys: [HubAPIKey]
+    let items: [HubAPIKey]?
     let total: Int?
+
+    var keys: [HubAPIKey] { items ?? [] }
 }
 
 struct HubAPIKeyResponse: Codable {
-    let key: HubAPIKey
-    let rawKey: String?
+    let id: String?
+    let name: String?
+    let key: String?
+    let isActive: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, key
+        case isActive = "is_active"
+    }
 }
 
 struct HubAPIKey: Identifiable, Codable {
@@ -405,6 +414,40 @@ struct HubAPIKey: Identifiable, Codable {
     let lastUsed: String?
 
     var effectiveQPSLimit: Int? { qpsLimit ?? rateLimitQpm }
+
+    enum CodingKeys: String, CodingKey {
+        case id, name
+        case prefix = "key_prefix"
+        case allowedModels = "allowed_models"
+        case allowedModules = "allowed_modules"
+        case qpsLimit = "qps_limit"
+        case rateLimitQpm = "rate_limit_qpm"
+        case isActive = "is_active"
+        case createdAt = "created_at"
+        case lastUsed = "last_used_at"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        name = try c.decodeIfPresent(String.self, forKey: .name)
+        prefix = try c.decodeIfPresent(String.self, forKey: .prefix)
+        qpsLimit = try c.decodeIfPresent(Int.self, forKey: .qpsLimit)
+        rateLimitQpm = try c.decodeIfPresent(Int.self, forKey: .rateLimitQpm)
+        isActive = try c.decodeIfPresent(Bool.self, forKey: .isActive)
+        createdAt = try c.decodeIfPresent(String.self, forKey: .createdAt)
+        lastUsed = try c.decodeIfPresent(String.self, forKey: .lastUsed)
+        allowedModels = try HubAPIKey.parseStringList(c, .allowedModels)
+        allowedModules = try HubAPIKey.parseStringList(c, .allowedModules)
+    }
+
+    private static func parseStringList(_ c: KeyedDecodingContainer<CodingKeys>, _ key: CodingKeys) throws -> [String]? {
+        if let arr = try? c.decode([String].self, forKey: key) { return arr }
+        if let s = try c.decodeIfPresent(String.self, forKey: key), !s.isEmpty {
+            return s.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+        }
+        return nil
+    }
 }
 
 struct HubAPIKeyUsageResponse: Codable {

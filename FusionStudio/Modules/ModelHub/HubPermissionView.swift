@@ -763,13 +763,17 @@ struct HubPermissionView: View {
                     allowedModules: newKeyModules.isEmpty ? nil : newKeyModules,
                     qpsLimit: newKeyRateLimit > 0 ? newKeyRateLimit : nil
                 )
-                createdRawKey = resp.rawKey
+                createdRawKey = resp.key
+                if let rawKey = resp.key, !rawKey.isEmpty {
+                    FusionConfig.shared.modelHubApiKey = rawKey
+                    permLog.info("API key auto-stored for auth: \(rawKey.prefix(12))…")
+                }
                 newKeyName = ""
                 newKeyModels = []
                 newKeyModules = []
                 newKeyRateLimit = 0
                 await loadAll()
-                permLog.info("API key created: \(resp.key.name ?? resp.key.id)")
+                permLog.info("API key created: \(resp.name ?? resp.id ?? "?")")
             } catch {
                 lastError = error.localizedDescription
             }

@@ -545,6 +545,20 @@ Bug fixes & improvements:
 - **#111**: start.sh port alignment — mlx 11434→11432, artifacts-engine 8892→11451, fusion-code 4827→11441, multi-node 9753→11452; added fusion-doc(11449)/fusion-model-hub(11444) entries; added `multiNodePort` @AppStorage property; fixed UpstreamServiceManager hardcoded 9753→cfg.multiNodePort
 - **License**: Changed from MIT to Apache 2.0
 
+### v0.1.17 (2026-08-04)
+
+Bug fixes:
+
+- **Model Hub auth 对齐**: `ModelHubAPIClient.addAuth()` 改发 `X-API-Key`（原误用 `Authorization: Bearer`），修复所有受保护端点 401；E2E 验证 create+list+6 核心读端点全通
+- **API Key schema 对齐**: `HubAPIKeyResponse` 改扁平（`key` 为原始密钥字符串，对齐上游 create_key）；`HubAPIKeyListResponse` 用 `items` + 兼容 `keys`；`HubAPIKey` 加 CodingKeys（`key_prefix`/`last_used_at`/`qps_limit`/`is_active`/`created_at`）+ 字符串/数组兼容解析 `allowed_models`/`allowed_modules`（上游为逗号字符串）
+- **createAPIKey 请求体**: `allowed_models`/`allowed_modules` 由数组改逗号拼接字符串（上游 `ApiKeyCreate` 为 str，数组会 422）
+- **Key 引导闭环**: `HubPermissionView.createKey()` 创建后自动存入 `FusionConfig.shared.modelHubApiKey`，后续调用即鉴权
+- **No-key 引导横幅**: `ModelHubMainView` 连接但无 key 时显示横幅，引导到「权限管控」创建
+
+Upstream issues filed:
+
+- [fusion-model-hub#18](https://github.com/dahai80/fusion-models-hub/issues/18) - 9 端点/schema 缺口（benchmarks/compare, deployments/stop, tenants/{id}/roles, favorites, branches 等）
+
 ### v0.1.16 (2026-08-03)
 
 Bug fixes:
