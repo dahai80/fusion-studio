@@ -766,7 +766,7 @@ struct HubPermissionView: View {
                 createdRawKey = resp.key
                 if let rawKey = resp.key, !rawKey.isEmpty {
                     FusionConfig.shared.modelHubApiKey = rawKey
-                    permLog.info("API key auto-stored for auth: \(rawKey.prefix(12))…")
+                    permLog.info("API key auto-stored for auth: \(resp.name ?? resp.id ?? "?")")
                 }
                 newKeyName = ""
                 newKeyModels = []
