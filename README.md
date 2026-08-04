@@ -472,6 +472,7 @@ Doc GUI + integration:
 - **DocBridge**: 102 routes across auth/workspace/users/pages/books/chapters/tags/graph/workflow/template/office/copilot/rag/search/comment/favorite/activity/file/branding/theme/vocabulary/webhook/metadata/system/export/notification/ai/collab
 - **Auth**: setup/login/refresh/logout with JWT token persistence via UserDefaults, Bearer injection on all HTTP helpers
 - **Workspace CRUD**: fetchWorkspaces/createWorkspace/updateWorkspace/deleteWorkspace
+- **Admin GUI**: DocAuthSheet (login/setup segmented auth + JWT persistence), DocWorkspacePicker (list/create/delete/switch workspaces), DocAdminView (13 API group panels: users/ai-raw/branding/theme/vocabulary/webhooks/metadata/system-info/system-config/export/rag/graph/notifications)
 - **Collab**: WebSocket client (connectCollab/disconnectCollab/sendCollabUpdate), pending upstream Yjs server
 - **15 upstream issues filed**: fusion-doc#7–#21 (auth/workspace/users/ai-raw/branding/theme/vocabulary/webhooks/metadata/system/files-upload/export/rag-basic/graph-search/notifications), #22 (collab WebSocket)
 
