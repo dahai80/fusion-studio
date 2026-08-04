@@ -298,7 +298,7 @@ struct HubPermissionView: View {
                         RoleRow(role: role) {
                             editingRole = role
                             editRoleName = role.name ?? ""
-                            editRolePermissions = role.permissions ?? []
+                            editRolePermissions = role.permissionsList
                         } onDelete: {
                             deleteRole(role)
                         }
@@ -763,13 +763,17 @@ struct HubPermissionView: View {
                     allowedModules: newKeyModules.isEmpty ? nil : newKeyModules,
                     qpsLimit: newKeyRateLimit > 0 ? newKeyRateLimit : nil
                 )
-                createdRawKey = resp.rawKey
+                createdRawKey = resp.key
+                if let rawKey = resp.key, !rawKey.isEmpty {
+                    FusionConfig.shared.modelHubApiKey = rawKey
+                    permLog.info("API key auto-stored for auth: \(resp.name ?? resp.id ?? "?")")
+                }
                 newKeyName = ""
                 newKeyModels = []
                 newKeyModules = []
                 newKeyRateLimit = 0
                 await loadAll()
-                permLog.info("API key created: \(resp.key.name ?? resp.key.id)")
+                permLog.info("API key created: \(resp.name ?? resp.id ?? "?")")
             } catch {
                 lastError = error.localizedDescription
             }
@@ -1000,17 +1004,17 @@ private struct RoleRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: theme.spacingS) {
-                Image(systemName: role.isDefault == true ? "star.fill" : "shield")
-                    .foregroundStyle(role.isDefault == true ? .yellow : .blue)
+                Image(systemName: role.isActive == false ? "shield.lefthalf.filled" : "shield")
+                    .foregroundStyle(role.isActive == false ? Color.secondary : Color.blue)
                     .frame(width: 20)
                 Text(role.name ?? role.id)
                     .font(.system(size: theme.textSize, weight: .medium))
                     .foregroundStyle(theme.text)
-                if role.isDefault == true {
-                    Text("默认").font(.caption2)
+                if role.isActive == false {
+                    Text("已停用").font(.caption2)
                         .padding(.horizontal, 4).padding(.vertical, 1)
-                        .background(.yellow.opacity(0.15))
-                        .foregroundStyle(.yellow)
+                        .background(.secondary.opacity(0.15))
+                        .foregroundStyle(.secondary)
                         .clipShape(Capsule())
                 }
                 Spacer()
@@ -1028,10 +1032,10 @@ private struct RoleRow: View {
                 .buttonStyle(.plain)
             }
 
-            if let perms = role.permissions, !perms.isEmpty {
+            if !role.permissionsList.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 4) {
-                        ForEach(perms, id: \.self) { perm in
+                        ForEach(role.permissionsList, id: \.self) { perm in
                             Text(perm)
                                 .font(.system(size: 9))
                                 .padding(.horizontal, 4).padding(.vertical, 1)

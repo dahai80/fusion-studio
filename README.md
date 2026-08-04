@@ -545,6 +545,30 @@ Bug fixes & improvements:
 - **#111**: start.sh port alignment — mlx 11434→11432, artifacts-engine 8892→11451, fusion-code 4827→11441, multi-node 9753→11452; added fusion-doc(11449)/fusion-model-hub(11444) entries; added `multiNodePort` @AppStorage property; fixed UpstreamServiceManager hardcoded 9753→cfg.multiNodePort
 - **License**: Changed from MIT to Apache 2.0
 
+### v0.1.18 (2026-08-05)
+
+Bug fixes:
+
+- **Issue #18 闭环（上游 PR #20 + studio 对齐）**: model-hub 9 端点/schema 缺口全部解决
+  - 上游新增（fusion-model-hub PR #20, commit 02fadf5 + 19c864d）: `GET /benchmarks/compare?model_ids=` 多模型对比、`POST /deployments/{id}/stop`、`POST /deployments/{id}/gray`（`gray_version_id` 改可选）、`GET/POST /tenants/{id}/roles` + `PUT/DELETE /tenants/{id}/roles/{rid}`（新增 Role 表，auto-create_all）、`GET /monitor/model-stats`（复用 `_loaded_models`/`_model_stats`，返回 `{stats:[...]}`）
+  - studio 对齐: `HubRole`（`permissions` 改字符串 + `permissionsList` 计算、`isActive`/`updatedAt`）、`HubBranchListResponse`（`branches`->`items`）、`HubBranch`（加 `baseVersionId`/`headVersionId`/`description`/`updatedAt` + snake_case CodingKeys）、`HubModelInferenceStats`（加 CodingKeys）、`mergeBranch` 返回 `HubBranch` + 路径 `/models/branches/`、`grayReleaseDeployment` 路径 `/gray` + 字段 `gray_traffic_ratio`、`createRole`/`updateRole` body `permissions` 逗号拼接
+  - 移除死代码（0 调用）: `getBenchmarkResults`、`testWebhook`、`getSyncManifest`
+- E2E 验证: roles CRUD 201、deployment stop/gray 404 路由命中、benchmark compare `{items,model_ids}`、merge 404 路由命中、model-stats `{stats:[]}`
+
+### v0.1.17 (2026-08-04)
+
+Bug fixes:
+
+- **Model Hub auth 对齐**: `ModelHubAPIClient.addAuth()` 改发 `X-API-Key`（原误用 `Authorization: Bearer`），修复所有受保护端点 401；E2E 验证 create+list+6 核心读端点全通
+- **API Key schema 对齐**: `HubAPIKeyResponse` 改扁平（`key` 为原始密钥字符串，对齐上游 create_key）；`HubAPIKeyListResponse` 用 `items` + 兼容 `keys`；`HubAPIKey` 加 CodingKeys（`key_prefix`/`last_used_at`/`qps_limit`/`is_active`/`created_at`）+ 字符串/数组兼容解析 `allowed_models`/`allowed_modules`（上游为逗号字符串）
+- **createAPIKey 请求体**: `allowed_models`/`allowed_modules` 由数组改逗号拼接字符串（上游 `ApiKeyCreate` 为 str，数组会 422）
+- **Key 引导闭环**: `HubPermissionView.createKey()` 创建后自动存入 `FusionConfig.shared.modelHubApiKey`，后续调用即鉴权
+- **No-key 引导横幅**: `ModelHubMainView` 连接但无 key 时显示横幅，引导到「权限管控」创建
+
+Upstream issues filed:
+
+- [fusion-model-hub#18](https://github.com/dahai80/fusion-models-hub/issues/18) - 9 端点/schema 缺口（benchmarks/compare, deployments/stop, tenants/{id}/roles, favorites, branches 等）
+
 ### v0.1.16 (2026-08-03)
 
 Bug fixes:

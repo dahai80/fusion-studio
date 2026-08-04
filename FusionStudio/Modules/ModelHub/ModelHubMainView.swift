@@ -52,13 +52,37 @@ struct ModelHubMainView: View {
         }
     }
 
+    private var noKeyBanner: some View {
+        HStack(spacing: theme.spacingS) {
+            Image(systemName: "key.fill")
+                .foregroundStyle(.orange)
+            Text("未配置 API Key，受保护接口将返回 401。请到「权限管控」创建 Key。")
+                .font(.system(size: theme.captionSize))
+                .foregroundStyle(theme.textSecondary)
+            Spacer()
+            Button("前往创建") { navigateTo(.permission) }
+                .font(.system(size: theme.captionSize, weight: .medium))
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+        }
+        .padding(.horizontal, theme.spacingM)
+        .padding(.vertical, theme.spacingS)
+        .background(theme.accent.opacity(0.08))
+        .onAppear { mainLog.info("noKeyBanner shown: connected=\(client.isConnected), hasKey=\(!FusionConfig.shared.modelHubApiKey.isEmpty)") }
+    }
+
     var body: some View {
         HStack(spacing: 0) {
             sectionSidebar
 
             Rectangle().fill(theme.separator).frame(width: 1)
 
-            contentArea
+            VStack(spacing: 0) {
+                if client.isConnected && FusionConfig.shared.modelHubApiKey.isEmpty {
+                    noKeyBanner
+                }
+                contentArea
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task {
