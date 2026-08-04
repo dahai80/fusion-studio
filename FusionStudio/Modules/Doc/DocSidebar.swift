@@ -21,10 +21,14 @@ struct DocSidebar: View {
     @State private var targetBookId: String?
     @State private var targetChapterId: String?
     @State private var selectedTag: DocTag?
+    @State private var showAuthSheet = false
+    @State private var showWorkspacePicker = false
 
     var body: some View {
         VStack(spacing: 0) {
             headerBar
+            Divider()
+            workspaceBar
             Divider()
             searchField
             Divider()
@@ -33,9 +37,10 @@ struct DocSidebar: View {
             bookTree
             favoritesSection
             Spacer()
-            connectionBadge
+            connectionBar
         }
         .background(theme.surfacePrimary)
+        .onAppear { bridge.restoreAuth() }
     }
 
     private var headerBar: some View {
@@ -44,6 +49,10 @@ struct DocSidebar: View {
                 .font(.headline)
                 .foregroundColor(.primary)
             Spacer()
+            Button(action: { showWorkspacePicker = true }) {
+                Image(systemName: "square.stack.3d.up")
+            }
+            .help("工作空间")
             Button(action: { showNewBook = true }) {
                 Image(systemName: "books.vertical.badge.plus")
             }
@@ -62,6 +71,36 @@ struct DocSidebar: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(theme.surfaceSecondary)
+    }
+
+    private var workspaceBar: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "square.stack.3d.up")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            if let ws = bridge.currentWorkspace {
+                Text(ws.name)
+                    .font(.caption)
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+            } else {
+                Text("未选择工作空间")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            Spacer()
+            Image(systemName: "chevron.down")
+                .font(.system(size: 8))
+                .foregroundColor(.secondary)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(theme.surfaceSecondary.opacity(0.5))
+        .contentShape(Rectangle())
+        .onTapGesture { showWorkspacePicker = true }
+        .popover(isPresented: $showWorkspacePicker) {
+            DocWorkspacePicker(bridge: bridge)
+        }
     }
 
     private var searchField: some View {
@@ -282,16 +321,51 @@ struct DocSidebar: View {
         }
     }
 
-    private var connectionBadge: some View {
-        HStack(spacing: 4) {
+    private var connectionBar: some View {
+        HStack(spacing: 6) {
             Circle()
                 .fill(bridge.isConnected ? Color.green : Color.red)
                 .frame(width: 6, height: 6)
+            if bridge.isAuthenticated {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 9))
+                    .foregroundColor(.green)
+            } else {
+                Image(systemName: "lock.open")
+                    .font(.system(size: 9))
+                    .foregroundColor(.orange)
+            }
             Text(bridge.isConnected ? "已连接" : "未连接")
                 .font(.caption2)
                 .foregroundColor(.secondary)
+            Spacer()
+            if bridge.isAuthenticated {
+                Button(action: { bridge.authLogout() }) {
+                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                        .font(.caption2)
+                }
+                .buttonStyle(.plain)
+                .help("退出登录")
+            } else {
+                Button(action: { showAuthSheet = true }) {
+                    Text("登录")
+                        .font(.caption2)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(Color.accentColor)
+                        .cornerRadius(4)
+                }
+                .buttonStyle(.plain)
+                .help("登录认证")
+            }
         }
-        .padding(8)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(theme.surfaceSecondary)
+        .sheet(isPresented: $showAuthSheet) {
+            DocAuthSheet(bridge: bridge)
+        }
     }
 
     // MARK: - Popovers
@@ -306,7 +380,7 @@ struct DocSidebar: View {
                 Button("取消") { showNewBook = false }
                 Button("创建") {
                     if !newBookTitle.isEmpty {
-                        bridge.createBook(title: newBookTitle)
+                        bridge.createBook(title: newBookTitle, workspaceId: bridge.currentWorkspace?.id)
                         newBookTitle = ""
                         showNewBook = false
                     }

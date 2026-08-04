@@ -554,9 +554,10 @@ class DocBridge: ObservableObject {
         }
     }
 
-    func createBook(title: String, description: String? = nil) {
+    func createBook(title: String, description: String? = nil, workspaceId: String? = nil) {
         var body: [String: Any] = ["title": title]
         if let desc = description { body["description"] = desc }
+        if let wsId = workspaceId { body["workspace_id"] = wsId }
         post("/api/books", body: body) { [weak self] (result: Result<DocBook, Error>) in
             switch result {
             case .success(let book):
