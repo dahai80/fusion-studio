@@ -23,6 +23,7 @@ struct DocSidebar: View {
     @State private var selectedTag: DocTag?
     @State private var showAuthSheet = false
     @State private var showWorkspacePicker = false
+    @State private var showAdminSheet = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -53,6 +54,10 @@ struct DocSidebar: View {
                 Image(systemName: "square.stack.3d.up")
             }
             .help("工作空间")
+            Button(action: { showAdminSheet = true }) {
+                Image(systemName: "slider.horizontal.3")
+            }
+            .help("管理（用户/品牌/主题/Webhook 等）")
             Button(action: { showNewBook = true }) {
                 Image(systemName: "books.vertical.badge.plus")
             }
@@ -365,6 +370,9 @@ struct DocSidebar: View {
         .background(theme.surfaceSecondary)
         .sheet(isPresented: $showAuthSheet) {
             DocAuthSheet(bridge: bridge)
+        }
+        .sheet(isPresented: $showAdminSheet) {
+            DocAdminView(bridge: bridge)
         }
     }
 
