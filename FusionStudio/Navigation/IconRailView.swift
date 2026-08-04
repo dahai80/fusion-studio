@@ -125,6 +125,9 @@ struct IconRailView: View {
                 case .cliService:
                     appState.selectedModule = .cli
                     appState.selectedSheet = .cliServiceSheet
+                case .doc:
+                    appState.selectedModule = .doc
+                    appState.selectedSheet = .docSheet
                 }
             }
             railLog.info("Section selected: \(section.rawValue)")

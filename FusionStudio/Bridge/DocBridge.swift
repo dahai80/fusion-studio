@@ -1,7 +1,7 @@
-// Callers: DocView, DocSidebar, DocEditorView, DocAICopilotView, DocGraphView, DocVersionView, DocOfficeView, DocWorkflowView, DocTemplateView.
-// Affected API: REST localhost:11449 (fusion-doc server — 82 routes across page/book/chapter/tag/graph/workflow/template/office/copilot/rag controllers).
-// Data schemas: DocPage/DocBook/DocChapter/DocTag/DocGraphNode/DocGraphEdge/DocWorkflow/DocTemplate/DocVersion/DocDiffLine/DocOfficeStatus aligned with fusion-doc controller responses.
-// User instruction: "按照prd文档和fusion-doc配合打造有竞争力的领先的产品"
+// Callers: DocView, DocSidebar, DocEditorArea, DocAICopilotView, DocGraphView, DocVersionView, DocOfficeView, DocWorkflowView, DocTemplateView, DocSearchView, DocCommentsView, DocFavoritesView, DocFilesPanel, DocRAGPanel, DocActivityView.
+// Affected API: REST localhost:11449 (fusion-doc server — 82 routes across page/book/chapter/tag/graph/workflow/template/office/copilot/rag/search/comment/favorite/activity/file controllers).
+// Data schemas: DocPage/DocBook/DocChapter/DocTag/DocGraphNode/DocGraphEdge/DocWorkflow/DocTemplate/DocVersion/DocDiffLine/DocOfficeStatus/DocSearchResult/DocComment/DocFavorite/DocActivity/DocFileUpload/DocWorkflowState aligned with fusion-doc controller responses.
+// User instruction: "在左侧菜单增加 fusion doc,fusion-studio负责GUI，和~/fusion/fusion-doc项目集成起来，包括GUI和workflow，usercase，全面集成"
 
 import Foundation
 import Combine
@@ -184,6 +184,64 @@ struct DocRAGChunk: Codable, Identifiable {
     var chunk_type: String?
 }
 
+struct DocSearchResult: Codable, Identifiable {
+    let id: String
+    var title: String?
+    var content: String?
+    var score: Double?
+    var type: String?
+    var book_id: String?
+    var tags: [DocTag]?
+}
+
+struct DocComment: Codable, Identifiable, Hashable {
+    let id: String
+    var page_id: String?
+    var content: String?
+    var parent_id: String?
+    var created_at: String?
+
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
+    static func == (lhs: DocComment, rhs: DocComment) -> Bool { lhs.id == rhs.id }
+}
+
+struct DocFavorite: Codable, Identifiable, Hashable {
+    let id: String
+    var page_id: String?
+    var title: String?
+    var created_at: String?
+
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
+    static func == (lhs: DocFavorite, rhs: DocFavorite) -> Bool { lhs.id == rhs.id }
+}
+
+struct DocActivity: Codable, Identifiable {
+    let id: String
+    var event: String?
+    var data: String?
+    var created_at: String?
+}
+
+struct DocFileUpload: Codable, Identifiable {
+    let id: String
+    var name: String?
+    var mime: String?
+    var size: Int?
+    var created_at: String?
+}
+
+struct DocWorkflowState: Codable {
+    var page_id: String?
+    var workflow_id: String?
+    var current_state: String?
+    var transitions: [DocWorkflowTransition]?
+}
+
+struct DocWorkflowTransition: Codable {
+    var name: String?
+    var target_state: String?
+}
+
 // MARK: - DocBridge
 
 class DocBridge: ObservableObject {
@@ -199,6 +257,12 @@ class DocBridge: ObservableObject {
     @Published var officeStatus: DocOfficeStatus?
     @Published var isConnected: Bool = false
     @Published var lastError: String?
+    @Published var searchResults: [DocSearchResult] = []
+    @Published var comments: [DocComment] = []
+    @Published var favorites: [DocFavorite] = []
+    @Published var activities: [DocActivity] = []
+    @Published var files: [DocFileUpload] = []
+    @Published var chunks: [DocRAGChunk] = []
 
     private let baseURL: String
     private let session: URLSession
@@ -680,5 +744,352 @@ class DocBridge: ObservableObject {
                 self?.handleError(err, context: "addLink")
             }
         }
+    }
+
+    // MARK: - Search
+
+    func searchPages(query: String, completion: @escaping (Result<[DocSearchResult], Error>) -> Void) {
+        get("/api/search?q=\(query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query)") { result in
+            completion(result)
+        }
+    }
+
+    func searchAdvanced(query: String, tag: String? = nil, type: String? = nil, sort: String? = nil, order: String? = nil, completion: @escaping (Result<[DocSearchResult], Error>) -> Void) {
+        var params: [String] = ["q=\(query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query)"]
+        if let tag = tag { params.append("tag=\(tag)") }
+        if let type = type { params.append("type=\(type)") }
+        if let sort = sort { params.append("sort=\(sort)") }
+        if let order = order { params.append("order=\(order)") }
+        get("/api/search/advanced?\(params.joined(separator: "&"))") { result in
+            completion(result)
+        }
+    }
+
+    // MARK: - Copilot Actions (non-streaming)
+
+    func copilotRewrite(text: String, instruction: String? = nil, completion: @escaping (Result<[String: String], Error>) -> Void) {
+        var body: [String: Any] = ["text": text]
+        if let inst = instruction { body["instruction"] = inst }
+        post("/api/copilot/rewrite", body: body, completion: completion)
+    }
+
+    func copilotTranslate(text: String, targetLang: String, completion: @escaping (Result<[String: String], Error>) -> Void) {
+        post("/api/copilot/translate", body: ["text": text, "target_lang": targetLang], completion: completion)
+    }
+
+    func copilotSummarize(text: String, completion: @escaping (Result<[String: String], Error>) -> Void) {
+        post("/api/copilot/summarize", body: ["text": text], completion: completion)
+    }
+
+    func copilotExpand(text: String, completion: @escaping (Result<[String: String], Error>) -> Void) {
+        post("/api/copilot/expand", body: ["text": text], completion: completion)
+    }
+
+    func fetchCopilotContext(pageId: String, completion: @escaping (Result<[String: String], Error>) -> Void) {
+        get("/api/copilot/context/\(pageId)", completion: completion)
+    }
+
+    // MARK: - Office Extended
+
+    func exportOffice(pageId: String, format: String, completion: @escaping (Result<[String: String], Error>) -> Void) {
+        post("/api/office/export", body: ["page_id": pageId, "format": format], completion: completion)
+    }
+
+    func previewOffice(id: String, completion: @escaping (Result<[String: String], Error>) -> Void) {
+        get("/api/office/preview/\(id)", completion: completion)
+    }
+
+    func mergeOffice(template: String, data: [String: Any], completion: @escaping (Result<[String: String], Error>) -> Void) {
+        var body = data
+        body["template"] = template
+        post("/api/office/merge", body: body, completion: completion)
+    }
+
+    func importOfficeDir(dirPath: String, bookId: String? = nil, completion: @escaping (Result<[DocPage], Error>) -> Void) {
+        var body: [String: Any] = ["dir_path": dirPath]
+        if let bid = bookId { body["book_id"] = bid }
+        post("/api/office/import-dir", body: body, completion: completion)
+    }
+
+    func executeOfficeCommand(file: String, command: String, args: [String: Any]? = nil, completion: @escaping (Result<[String: String], Error>) -> Void) {
+        var body: [String: Any] = ["file": file, "command": command]
+        if let args = args { body["args"] = args }
+        post("/api/office/command", body: body, completion: completion)
+    }
+
+    // MARK: - Template CRUD
+
+    func createTemplate(name: String, type: String? = nil, content: String? = nil, category: String? = nil, completion: @escaping (Result<DocTemplate, Error>) -> Void) {
+        var body: [String: Any] = ["name": name]
+        if let t = type { body["type"] = t }
+        if let c = content { body["content"] = c }
+        if let cat = category { body["category"] = cat }
+        post("/api/templates", body: body) { [weak self] (result: Result<DocTemplate, Error>) in
+            switch result {
+            case .success(let tmpl):
+                DispatchQueue.main.async { self?.templates.append(tmpl) }
+                completion(.success(tmpl))
+            case .failure(let err):
+                self?.handleError(err, context: "createTemplate")
+                completion(.failure(err))
+            }
+        }
+    }
+
+    func updateTemplate(id: String, name: String? = nil, content: String? = nil, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
+        var body: [String: Any] = [:]
+        if let n = name { body["name"] = n }
+        if let c = content { body["content"] = c }
+        put("/api/templates/\(id)", body: body, completion: completion)
+    }
+
+    func deleteTemplate(id: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
+        delete("/api/templates/\(id)") { [weak self] (result: Result<[String: Bool], Error>) in
+            switch result {
+            case .success:
+                DispatchQueue.main.async { self?.templates.removeAll { $0.id == id } }
+                completion(.success(["deleted": true]))
+            case .failure(let err):
+                self?.handleError(err, context: "deleteTemplate")
+                completion(.failure(err))
+            }
+        }
+    }
+
+    func fetchTemplateVariables(id: String, completion: @escaping (Result<[String: [String]], Error>) -> Void) {
+        get("/api/templates/\(id)/variables", completion: completion)
+    }
+
+    // MARK: - Workflow CRUD
+
+    func createWorkflow(name: String, description: String? = nil, yamlDef: String? = nil, completion: @escaping (Result<DocWorkflow, Error>) -> Void) {
+        var body: [String: Any] = ["name": name]
+        if let d = description { body["description"] = d }
+        if let y = yamlDef { body["yaml_def"] = y }
+        post("/api/workflows", body: body) { [weak self] (result: Result<DocWorkflow, Error>) in
+            switch result {
+            case .success(let wf):
+                DispatchQueue.main.async { self?.workflows.append(wf) }
+                completion(.success(wf))
+            case .failure(let err):
+                self?.handleError(err, context: "createWorkflow")
+                completion(.failure(err))
+            }
+        }
+    }
+
+    func deleteWorkflow(id: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
+        delete("/api/workflows/\(id)") { [weak self] (result: Result<[String: Bool], Error>) in
+            switch result {
+            case .success:
+                DispatchQueue.main.async { self?.workflows.removeAll { $0.id == id } }
+                completion(.success(["deleted": true]))
+            case .failure(let err):
+                self?.handleError(err, context: "deleteWorkflow")
+                completion(.failure(err))
+            }
+        }
+    }
+
+    func fetchWorkflowDetail(id: String, completion: @escaping (Result<DocWorkflow, Error>) -> Void) {
+        get("/api/workflows/\(id)", completion: completion)
+    }
+
+    func seedWorkflows(completion: @escaping (Result<[DocWorkflow], Error>) -> Void) {
+        post("/api/workflows/seed", body: nil) { [weak self] (result: Result<[DocWorkflow], Error>) in
+            switch result {
+            case .success(let list):
+                DispatchQueue.main.async { self?.workflows = list }
+                completion(.success(list))
+            case .failure(let err):
+                self?.handleError(err, context: "seedWorkflows")
+                completion(.failure(err))
+            }
+        }
+    }
+
+    func fetchPageWorkflowStatus(pageId: String, completion: @escaping (Result<DocWorkflowState, Error>) -> Void) {
+        get("/api/pages/\(pageId)/workflow-status", completion: completion)
+    }
+
+    func fetchPageTransitions(pageId: String, completion: @escaping (Result<[DocWorkflowTransition], Error>) -> Void) {
+        get("/api/pages/\(pageId)/transitions", completion: completion)
+    }
+
+    func executeTransition(pageId: String, transition: String, completion: @escaping (Result<DocWorkflowState, Error>) -> Void) {
+        post("/api/pages/\(pageId)/transitions", body: ["transition": transition], completion: completion)
+    }
+
+    // MARK: - Files
+
+    func fetchFiles(pageId: String, completion: @escaping (Result<[DocFileUpload], Error>) -> Void) {
+        get("/api/pages/\(pageId)/files") { [weak self] (result: Result<[DocFileUpload], Error>) in
+            switch result {
+            case .success(let list):
+                DispatchQueue.main.async { self?.files = list }
+                completion(.success(list))
+            case .failure(let err):
+                self?.handleError(err, context: "fetchFiles")
+                completion(.failure(err))
+            }
+        }
+    }
+
+    func uploadFile(pageId: String, name: String, mime: String, content: String, completion: @escaping (Result<DocFileUpload, Error>) -> Void) {
+        post("/api/pages/\(pageId)/files", body: ["name": name, "mime": mime, "content": content]) { [weak self] (result: Result<DocFileUpload, Error>) in
+            switch result {
+            case .success(let file):
+                DispatchQueue.main.async { self?.files.append(file) }
+                completion(.success(file))
+            case .failure(let err):
+                self?.handleError(err, context: "uploadFile")
+                completion(.failure(err))
+            }
+        }
+    }
+
+    func deleteFile(id: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
+        delete("/api/files/\(id)") { [weak self] (result: Result<[String: Bool], Error>) in
+            switch result {
+            case .success:
+                DispatchQueue.main.async { self?.files.removeAll { $0.id == id } }
+                completion(.success(["deleted": true]))
+            case .failure(let err):
+                self?.handleError(err, context: "deleteFile")
+                completion(.failure(err))
+            }
+        }
+    }
+
+    // MARK: - Comments
+
+    func fetchComments(pageId: String, completion: @escaping (Result<[DocComment], Error>) -> Void) {
+        get("/api/pages/\(pageId)/comments") { [weak self] (result: Result<[DocComment], Error>) in
+            switch result {
+            case .success(let list):
+                DispatchQueue.main.async { self?.comments = list }
+                completion(.success(list))
+            case .failure(let err):
+                self?.handleError(err, context: "fetchComments")
+                completion(.failure(err))
+            }
+        }
+    }
+
+    func createComment(pageId: String, content: String, parentId: String? = nil, completion: @escaping (Result<DocComment, Error>) -> Void) {
+        var body: [String: Any] = ["content": content]
+        if let pid = parentId { body["parent_id"] = pid }
+        post("/api/pages/\(pageId)/comments", body: body) { [weak self] (result: Result<DocComment, Error>) in
+            switch result {
+            case .success(let comment):
+                DispatchQueue.main.async { self?.comments.append(comment) }
+                completion(.success(comment))
+            case .failure(let err):
+                self?.handleError(err, context: "createComment")
+                completion(.failure(err))
+            }
+        }
+    }
+
+    func deleteComment(id: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
+        delete("/api/comments/\(id)") { [weak self] (result: Result<[String: Bool], Error>) in
+            switch result {
+            case .success:
+                DispatchQueue.main.async { self?.comments.removeAll { $0.id == id } }
+                completion(.success(["deleted": true]))
+            case .failure(let err):
+                self?.handleError(err, context: "deleteComment")
+                completion(.failure(err))
+            }
+        }
+    }
+
+    // MARK: - Favorites
+
+    func fetchFavorites(completion: @escaping (Result<[DocFavorite], Error>) -> Void) {
+        get("/api/favorites") { [weak self] (result: Result<[DocFavorite], Error>) in
+            switch result {
+            case .success(let list):
+                DispatchQueue.main.async { self?.favorites = list }
+                completion(.success(list))
+            case .failure(let err):
+                self?.handleError(err, context: "fetchFavorites")
+                completion(.failure(err))
+            }
+        }
+    }
+
+    func addFavorite(pageId: String, completion: @escaping (Result<DocFavorite, Error>) -> Void) {
+        post("/api/favorites", body: ["page_id": pageId]) { [weak self] (result: Result<DocFavorite, Error>) in
+            switch result {
+            case .success(let fav):
+                DispatchQueue.main.async { self?.favorites.append(fav) }
+                completion(.success(fav))
+            case .failure(let err):
+                self?.handleError(err, context: "addFavorite")
+                completion(.failure(err))
+            }
+        }
+    }
+
+    func removeFavorite(pageId: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
+        delete("/api/favorites/\(pageId)") { [weak self] (result: Result<[String: Bool], Error>) in
+            switch result {
+            case .success:
+                DispatchQueue.main.async { self?.favorites.removeAll { $0.page_id == pageId } }
+                completion(.success(["deleted": true]))
+            case .failure(let err):
+                self?.handleError(err, context: "removeFavorite")
+                completion(.failure(err))
+            }
+        }
+    }
+
+    // MARK: - Activity
+
+    func fetchActivity(limit: Int = 50, completion: @escaping (Result<[DocActivity], Error>) -> Void) {
+        get("/api/activity?limit=\(limit)") { [weak self] (result: Result<[DocActivity], Error>) in
+            switch result {
+            case .success(let list):
+                DispatchQueue.main.async { self?.activities = list }
+                completion(.success(list))
+            case .failure(let err):
+                self?.handleError(err, context: "fetchActivity")
+                completion(.failure(err))
+            }
+        }
+    }
+
+    func recordActivity(event: String, data: [String: Any]? = nil, completion: @escaping (Result<DocActivity, Error>) -> Void) {
+        var body: [String: Any] = ["event": event]
+        if let d = data { body["data"] = d }
+        post("/api/activity", body: body, completion: completion)
+    }
+
+    // MARK: - RAG Extended
+
+    func reindexAll(completion: @escaping (Result<[String: Bool], Error>) -> Void) {
+        post("/api/rag/reindex-all", body: nil, completion: completion)
+    }
+
+    func fetchChunks(pageId: String, completion: @escaping (Result<[DocRAGChunk], Error>) -> Void) {
+        get("/api/rag/chunks/\(pageId)") { [weak self] (result: Result<[DocRAGChunk], Error>) in
+            switch result {
+            case .success(let list):
+                DispatchQueue.main.async { self?.chunks = list }
+                completion(.success(list))
+            case .failure(let err):
+                self?.handleError(err, context: "fetchChunks")
+                completion(.failure(err))
+            }
+        }
+    }
+
+    func graphSearch(query: String, completion: @escaping (Result<DocGraph, Error>) -> Void) {
+        post("/api/rag/graph/search", body: ["query": query], completion: completion)
+    }
+
+    func fetchGraphNode(id: String, completion: @escaping (Result<DocGraphNode, Error>) -> Void) {
+        get("/api/graph/\(id)", completion: completion)
     }
 }

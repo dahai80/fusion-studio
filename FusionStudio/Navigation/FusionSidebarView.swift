@@ -15,7 +15,9 @@ struct FusionSidebarView: View {
     @StateObject private var workspace = ProjectWorkspace.shared
     @StateObject private var agent = CodeAgent.shared
     @State private var searchText = ""
-    @State private var expandedSections: Set<SidebarSection> = [.code, .chats, .projects, .agent, .mlx, .rag]
+    // Callers: ContentView, IconRailView. Affected API: SidebarSection.doc, AppState.activeSection.
+    // Data schemas: SidebarSection.allCases auto-includes .doc. User instruction: "在左侧菜单增加 fusion doc"
+    @State private var expandedSections: Set<SidebarSection> = [.code, .chats, .projects, .agent, .mlx, .rag, .doc]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -168,6 +170,8 @@ struct FusionSidebarView: View {
             moduleListContent(.pluginEcosystem)
         case .cliService:
             moduleListContent(.cliService)
+        case .doc:
+            moduleListContent(.doc)
         }
     }
 

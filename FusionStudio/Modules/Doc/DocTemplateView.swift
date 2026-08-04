@@ -1,5 +1,5 @@
-// Callers: DocView toolbar button, DocSidebar template tab.
-// Affected API: DocBridge fetchTemplates, instantiateTemplate.
+// Callers: DocView (case .template: DocTemplateView), DocSidebar.
+// Affected API: DocBridge fetchTemplates, instantiateTemplate, createTemplate, updateTemplate, deleteTemplate, fetchTemplateVariables.
 // Data schemas: DocTemplate (from DocBridge.swift).
 // User instruction: "按照prd文档和fusion-doc配合打造有竞争力的领先的产品"
 
@@ -13,6 +13,13 @@ struct DocTemplateView: View {
     @ObservedObject var bridge: DocBridge
     @State private var selectedTemplate: DocTemplate?
     @State private var variableInputs: [String: String] = [:]
+    @State private var showCreateSheet = false
+    @State private var newName = ""
+    @State private var newType = ""
+    @State private var newContent = ""
+    @State private var newCategory = ""
+    @State private var editContent = ""
+    @State private var extractedVars: [String] = []
 
     var body: some View {
         VStack(spacing: 0) {
@@ -29,6 +36,31 @@ struct DocTemplateView: View {
         .onAppear {
             bridge.fetchTemplates()
         }
+        .sheet(isPresented: $showCreateSheet) {
+            VStack(spacing: 12) {
+                Text("新建模板").font(.headline)
+                TextField("名称", text: $newName).textFieldStyle(.roundedBorder)
+                TextField("类型 (report/letter/...)", text: $newType).textFieldStyle(.roundedBorder)
+                TextField("分类", text: $newCategory).textFieldStyle(.roundedBorder)
+                TextEditor(text: $newContent)
+                    .font(.system(.caption, design: .monospaced))
+                    .scrollContentBackground(.hidden)
+                    .frame(height: 120)
+                    .border(Color.gray.opacity(0.3))
+                HStack {
+                    Button("取消") { showCreateSheet = false }
+                    Button("创建") {
+                        guard !newName.isEmpty else { return }
+                        bridge.createTemplate(name: newName, type: newType.isEmpty ? nil : newType, content: newContent.isEmpty ? nil : newContent, category: newCategory.isEmpty ? nil : newCategory) { _ in }
+                        newName = ""; newType = ""; newContent = ""; newCategory = ""
+                        showCreateSheet = false
+                    }
+                    .disabled(newName.isEmpty)
+                }
+            }
+            .padding(16)
+            .frame(width: 360)
+        }
     }
 
     private var templateHeader: some View {
@@ -37,6 +69,10 @@ struct DocTemplateView: View {
                 .font(.headline)
                 .foregroundColor(.primary)
             Spacer()
+            Button(action: { showCreateSheet = true }) {
+                Image(systemName: "plus")
+            }
+            .help("新建模板")
             Button(action: { bridge.fetchTemplates() }) {
                 Image(systemName: "arrow.clockwise")
             }
@@ -86,6 +122,18 @@ struct DocTemplateView: View {
             }
         }
         .tag(tmpl)
+        .contextMenu {
+            Button("提取变量") {
+                bridge.fetchTemplateVariables(id: tmpl.id) { result in
+                    if case .success(let dict) = result, let vars = dict["variables"] {
+                        DispatchQueue.main.async { self.extractedVars = vars }
+                    }
+                }
+            }
+            Button("删除模板", role: .destructive) {
+                bridge.deleteTemplate(id: tmpl.id) { _ in }
+            }
+        }
     }
 
     private var templateDetail: some View {

@@ -1,6 +1,6 @@
 // Callers: ModuleDetailView (case .doc: DocView()).
-// Affected API: DocBridge REST localhost:11449.
-// Data schemas: DocPage/DocBook/DocChapter/DocTag via DocBridge.
+// Affected API: DocBridge REST localhost:11449 — all 82 routes.
+// Data schemas: DocPage/DocBook/DocChapter/DocTag/DocSearchResult/DocComment/DocFavorite/DocActivity/DocFileUpload/DocRAGChunk via DocBridge.
 // User instruction: "按照prd文档和fusion-doc配合打造有竞争力的领先的产品"
 
 import SwiftUI
@@ -15,6 +15,12 @@ enum DocSubTab: String, CaseIterable, Identifiable {
     case office = "Office"
     case workflow = "工作流"
     case template = "模板"
+    case search = "搜索"
+    case comments = "评论"
+    case favorites = "收藏"
+    case files = "文件"
+    case rag = "RAG"
+    case activity = "动态"
 
     var id: String { rawValue }
 
@@ -26,6 +32,12 @@ enum DocSubTab: String, CaseIterable, Identifiable {
         case .office:    return "desktopcomputer"
         case .workflow:  return "arrow.triangle.branch"
         case .template:  return "doc.badge.gearshape"
+        case .search:    return "magnifyingglass"
+        case .comments:  return "bubble.left.and.bubble.right"
+        case .favorites: return "star"
+        case .files:     return "folder"
+        case .rag:       return "brain"
+        case .activity:  return "bell"
         }
     }
 }
@@ -115,6 +127,18 @@ struct DocView: View {
             DocWorkflowView(bridge: bridge)
         case .template:
             DocTemplateView(bridge: bridge)
+        case .search:
+            DocSearchView(bridge: bridge)
+        case .comments:
+            DocCommentsView(bridge: bridge, selectedPageId: $selectedPageId)
+        case .favorites:
+            DocFavoritesView(bridge: bridge, selectedPageId: $selectedPageId)
+        case .files:
+            DocFilesPanel(bridge: bridge, selectedPageId: $selectedPageId)
+        case .rag:
+            DocRAGPanel(bridge: bridge, selectedPageId: $selectedPageId)
+        case .activity:
+            DocActivityView(bridge: bridge)
         }
     }
 

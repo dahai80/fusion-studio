@@ -183,6 +183,8 @@ struct SectionContentView: View {
                     .environmentObject(PluginBridge.shared)
             case .cliService:
                 CliServiceView()
+            case .doc:
+                DocView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

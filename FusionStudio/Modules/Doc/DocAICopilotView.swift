@@ -1,7 +1,7 @@
 // Callers: DocView (HSplitView right pane).
-// Affected API: DocBridge copilotCompleteURL/copilotRewriteURL/copilotCommandURL/buildCopilotRequest/ragEnhancedQuery — SSE stream /api/copilot/* endpoints.
-// Data schemas: CopilotMessage (local), DocPage context from DocBridge.
-// User instruction: "按照prd文档和fusion-doc配合打造有竞争力的领先的产品"
+// Affected API: DocBridge copilotCompleteURL/copilotRewriteURL/copilotCommandURL/buildCopilotRequest/ragEnhancedQuery/copilotRewrite/copilotTranslate/copilotSummarize/copilotExpand/fetchCopilotContext — SSE + REST /api/copilot/* + /api/rag/* endpoints.
+// Data schemas: CopilotMessage (local), DocPage context from DocBridge, CopilotMode 7 modes.
+// User instruction: "在左侧菜单增加 fusion doc,fusion-studio负责GUI，和~/fusion/fusion-doc项目集成起来，包括GUI和workflow，usercase，全面集成"
 
 import SwiftUI
 import os.log
@@ -16,11 +16,16 @@ struct DocAICopilotView: View {
     @State private var inputText = ""
     @State private var isStreaming = false
     @State private var copilotMode: CopilotMode = .chat
+    @State private var targetLang = "English"
 
     enum CopilotMode: String, CaseIterable {
         case chat = "对话"
         case command = "指令"
         case rag = "知识"
+        case rewrite = "改写"
+        case translate = "翻译"
+        case summarize = "摘要"
+        case expand = "扩展"
     }
 
     struct CopilotMessage: Identifiable {
@@ -55,6 +60,15 @@ struct DocAICopilotView: View {
                 .buttonStyle(.plain)
             }
             Spacer()
+            if copilotMode == .translate {
+                Picker("目标语言", selection: $targetLang) {
+                    ForEach(["English", "中文", "日本語", "한국어", "Français", "Deutsch", "Español"], id: \.self) { lang in
+                        Text(lang).tag(lang)
+                    }
+                }
+                .frame(width: 100)
+                .font(.caption)
+            }
             Button(action: { chatMessages.removeAll() }) {
                 Image(systemName: "trash")
                     .font(.caption)
@@ -120,6 +134,10 @@ struct DocAICopilotView: View {
             TextField(
                 copilotMode == .chat ? "输入消息..." :
                 copilotMode == .command ? "/command ..." :
+                copilotMode == .rewrite ? "输入改写指令..." :
+                copilotMode == .translate ? "输入文本翻译为\(targetLang)..." :
+                copilotMode == .summarize ? "输入文本生成摘要..." :
+                copilotMode == .expand ? "输入文本扩展内容..." :
                 "? 知识检索...",
                 text: $inputText,
                 axis: .vertical
@@ -158,6 +176,14 @@ struct DocAICopilotView: View {
             sendCommand(text)
         case .rag:
             sendRAGQuery(text)
+        case .rewrite:
+            sendRewrite(text)
+        case .translate:
+            sendTranslate(text)
+        case .summarize:
+            sendSummarize(text)
+        case .expand:
+            sendExpand(text)
         }
     }
 
@@ -260,6 +286,66 @@ struct DocAICopilotView: View {
                 copilotLog.info("Copilot response: \(accumulated.prefix(100))")
             }
         }.resume()
+    }
+
+    private func sendRewrite(_ text: String) {
+        bridge.copilotRewrite(text: text) { result in
+            DispatchQueue.main.async {
+                self.isStreaming = false
+                switch result {
+                case .success(let resp):
+                    let content = resp["result"] ?? resp["text"] ?? "(无结果)"
+                    self.chatMessages.append(CopilotMessage(role: "assistant", content: "✏️ 改写结果：\n\(content)"))
+                case .failure(let err):
+                    self.appendError(err.localizedDescription)
+                }
+            }
+        }
+    }
+
+    private func sendTranslate(_ text: String) {
+        bridge.copilotTranslate(text: text, targetLang: targetLang) { result in
+            DispatchQueue.main.async {
+                self.isStreaming = false
+                switch result {
+                case .success(let resp):
+                    let content = resp["result"] ?? resp["translation"] ?? "(无结果)"
+                    self.chatMessages.append(CopilotMessage(role: "assistant", content: "🌐 翻译结果(\(self.targetLang))：\n\(content)"))
+                case .failure(let err):
+                    self.appendError(err.localizedDescription)
+                }
+            }
+        }
+    }
+
+    private func sendSummarize(_ text: String) {
+        bridge.copilotSummarize(text: text) { result in
+            DispatchQueue.main.async {
+                self.isStreaming = false
+                switch result {
+                case .success(let resp):
+                    let content = resp["result"] ?? resp["summary"] ?? "(无结果)"
+                    self.chatMessages.append(CopilotMessage(role: "assistant", content: "📋 摘要：\n\(content)"))
+                case .failure(let err):
+                    self.appendError(err.localizedDescription)
+                }
+            }
+        }
+    }
+
+    private func sendExpand(_ text: String) {
+        bridge.copilotExpand(text: text) { result in
+            DispatchQueue.main.async {
+                self.isStreaming = false
+                switch result {
+                case .success(let resp):
+                    let content = resp["result"] ?? resp["expanded"] ?? "(无结果)"
+                    self.chatMessages.append(CopilotMessage(role: "assistant", content: "📖 扩展内容：\n\(content)"))
+                case .failure(let err):
+                    self.appendError(err.localizedDescription)
+                }
+            }
+        }
     }
 
     private func appendError(_ message: String) {

@@ -1,6 +1,6 @@
-// Callers: DocView toolbar button, DocSidebar workflow tab.
-// Affected API: DocBridge fetchWorkflows, runWorkflow, fetchWorkflowRuns.
-// Data schemas: DocWorkflow, DocWorkflowRun (from DocBridge.swift).
+// Callers: DocView (case .workflow: DocWorkflowView).
+// Affected API: DocBridge fetchWorkflows, runWorkflow, fetchWorkflowRuns, createWorkflow, deleteWorkflow, fetchWorkflowDetail, seedWorkflows, fetchPageWorkflowStatus, fetchPageTransitions, executeTransition.
+// Data schemas: DocWorkflow, DocWorkflowRun, DocWorkflowState, DocWorkflowTransition (from DocBridge.swift).
 // User instruction: "按照prd文档和fusion-doc配合打造有竞争力的领先的产品"
 
 import SwiftUI
@@ -14,6 +14,13 @@ struct DocWorkflowView: View {
     @State private var selectedWorkflow: DocWorkflow?
     @State private var runs: [DocWorkflowRun] = []
     @State private var runInput = ""
+    @State private var showCreateSheet = false
+    @State private var newWfName = ""
+    @State private var newWfDesc = ""
+    @State private var newWfYaml = ""
+    @State private var transitionPageId = ""
+    @State private var pageTransitions: [DocWorkflowTransition] = []
+    @State private var pageWfState: DocWorkflowState?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -30,6 +37,30 @@ struct DocWorkflowView: View {
         .onAppear {
             bridge.fetchWorkflows()
         }
+        .sheet(isPresented: $showCreateSheet) {
+            VStack(spacing: 12) {
+                Text("新建工作流").font(.headline)
+                TextField("名称", text: $newWfName).textFieldStyle(.roundedBorder)
+                TextField("描述", text: $newWfDesc).textFieldStyle(.roundedBorder)
+                TextEditor(text: $newWfYaml)
+                    .font(.system(.caption, design: .monospaced))
+                    .scrollContentBackground(.hidden)
+                    .frame(height: 120)
+                    .border(Color.gray.opacity(0.3))
+                HStack {
+                    Button("取消") { showCreateSheet = false }
+                    Button("创建") {
+                        guard !newWfName.isEmpty else { return }
+                        bridge.createWorkflow(name: newWfName, description: newWfDesc.isEmpty ? nil : newWfDesc, yamlDef: newWfYaml.isEmpty ? nil : newWfYaml) { _ in }
+                        newWfName = ""; newWfDesc = ""; newWfYaml = ""
+                        showCreateSheet = false
+                    }
+                    .disabled(newWfName.isEmpty)
+                }
+            }
+            .padding(16)
+            .frame(width: 360)
+        }
     }
 
     private var workflowHeader: some View {
@@ -38,6 +69,14 @@ struct DocWorkflowView: View {
                 .font(.headline)
                 .foregroundColor(.primary)
             Spacer()
+            Button(action: { showCreateSheet = true }) {
+                Image(systemName: "plus")
+            }
+            .help("新建")
+            Button(action: { bridge.seedWorkflows { _ in bridge.fetchWorkflows() } }) {
+                Image(systemName: "leaf.arrow.circlepath")
+            }
+            .help("种子工作流")
             Button(action: { bridge.fetchWorkflows() }) {
                 Image(systemName: "arrow.clockwise")
             }
@@ -88,6 +127,11 @@ struct DocWorkflowView: View {
             }
         }
         .tag(wf)
+        .contextMenu {
+            Button("删除工作流", role: .destructive) {
+                bridge.deleteWorkflow(id: wf.id) { _ in }
+            }
+        }
     }
 
     private var workflowDetail: some View {
@@ -164,6 +208,9 @@ struct DocWorkflowView: View {
                     }
 
                     Spacer()
+
+                    Divider()
+                    pageTransitionSection
                 }
                 .padding(16)
             } else {
@@ -214,6 +261,48 @@ struct DocWorkflowView: View {
         bridge.fetchWorkflowRuns(id: wf.id) { result in
             if case .success(let data) = result {
                 DispatchQueue.main.async { self.runs = data }
+            }
+        }
+    }
+
+    private var pageTransitionSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("页面状态转换")
+                .font(.caption.weight(.semibold))
+                .foregroundColor(theme.textSecondary)
+            HStack {
+                TextField("页面 ID", text: $transitionPageId)
+                    .textFieldStyle(.roundedBorder)
+                Button("查询") {
+                    guard !transitionPageId.isEmpty else { return }
+                    bridge.fetchPageTransitions(pageId: transitionPageId) { result in
+                        if case .success(let ts) = result {
+                            DispatchQueue.main.async { self.pageTransitions = ts }
+                        }
+                    }
+                    bridge.fetchPageWorkflowStatus(pageId: transitionPageId) { result in
+                        if case .success(let s) = result {
+                            DispatchQueue.main.async { self.pageWfState = s }
+                        }
+                    }
+                }
+                .disabled(transitionPageId.isEmpty)
+            }
+            if let st = pageWfState {
+                Text("当前状态: \(st.current_state ?? "-")")
+                    .font(.caption)
+                    .foregroundColor(theme.accent)
+            }
+            ForEach(pageTransitions, id: \.name) { t in
+                HStack {
+                    Text(t.name ?? "").font(.caption)
+                    Spacer()
+                    Text("→ \(t.target_state ?? "")").font(.caption2).foregroundColor(.secondary)
+                    Button("执行") {
+                        bridge.executeTransition(pageId: transitionPageId, transition: t.name ?? "") { _ in }
+                    }
+                    .font(.caption2)
+                }
             }
         }
     }

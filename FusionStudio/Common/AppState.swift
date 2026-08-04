@@ -61,6 +61,7 @@ enum ProductSheet: String, CaseIterable, Identifiable {
     case financeSheet = "Finance"
     case pluginEcosystemSheet = "Plugin Ecosystem"
     case cliServiceSheet = "CLI Service"
+    case docSheet = "Fusion Doc"
 
     var id: String { rawValue }
 
@@ -81,6 +82,7 @@ enum ProductSheet: String, CaseIterable, Identifiable {
         case .financeSheet:   "chart.line.uptrend.xyaxis"
         case .pluginEcosystemSheet: "puzzlepiece.extension"
         case .cliServiceSheet: "terminal"
+        case .docSheet:       "doc.text"
         }
     }
 
@@ -116,6 +118,8 @@ enum ProductSheet: String, CaseIterable, Identifiable {
             return [.pluginConfig, .pluginStatus, .pluginToken, .pluginVram, .pluginLog, .pluginMcp]
         case .cliServiceSheet:
             return [.cli]
+        case .docSheet:
+            return [.doc]
         }
     }
 }
@@ -262,8 +266,10 @@ enum Module: String, CaseIterable, Identifiable {
             return .mlx
         case .chat:
             return .chat
-        case .design, .code, .doc, .docgen, .cli:
+        case .design, .code, .docgen, .cli:
             return .code
+        case .doc:
+            return .docSheet
         case .agent, .plugin, .security, .dataTools:
             return .agentStudio
         case .multimodal, .simulation, .analytics, .collab, .external, .desk,
@@ -316,6 +322,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
     case finance = "Finance"
     case pluginEcosystem = "Plugin Ecosystem"
     case cliService = "CLI Service"
+    case doc = "Fusion Doc"
 
     var id: String { rawValue }
 
@@ -337,6 +344,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .finance:   return "chart.line.uptrend.xyaxis"
         case .pluginEcosystem: return "puzzlepiece.extension"
         case .cliService: return "terminal"
+        case .doc:       return "doc.text"
         }
     }
 
@@ -345,7 +353,8 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .chats:     return [.chat, .code]
         case .projects:  return [.fusionProjects]
         case .artifacts: return [.artifactsRepo]
-        case .code:      return [.code, .design, .doc, .docgen, .cli]
+        case .code:      return [.code, .design, .docgen, .cli]
+        case .doc:       return [.doc]
         case .design:    return [.design]
         case .rag:       return [.kb, .rag]
         case .agent:     return [.agent, .agentDashboard, .teamCollab, .tools, .safety, .memory, .planner, .verification, .tokenBudget, .security, .dataTools, .plugin, .desk]

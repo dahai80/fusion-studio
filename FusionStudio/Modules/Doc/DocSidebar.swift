@@ -1,6 +1,6 @@
 // IMPORTERS/CALLERS: DocView (HSplitView left pane), DocEditorArea (DocView center pane)
-// AFFECTED API: DocBridge — fetchBooks, fetchChapters, fetchPages, createBook, createChapter, createPage, deletePage, fetchTags, updatePage
-// DATA SCHEMAS: DocBook, DocChapter, DocPage, DocTag (from DocBridge.swift)
+// AFFECTED API: DocBridge — fetchBooks, fetchChapters, fetchPages, createBook, createChapter, createPage, deletePage, fetchTags, updatePage, fetchFavorites, searchPages
+// DATA SCHEMAS: DocBook, DocChapter, DocPage, DocTag, DocFavorite (from DocBridge.swift)
 // USER INSTRUCTION: "按照prd文档和fusion-doc配合打造有竞争力的领先的产品"
 
 import SwiftUI
@@ -31,6 +31,7 @@ struct DocSidebar: View {
             tagFilter
             Divider()
             bookTree
+            favoritesSection
             Spacer()
             connectionBadge
         }
@@ -254,6 +255,31 @@ struct DocSidebar: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 24)
+    }
+
+    private var favoritesSection: some View {
+        Group {
+            if !bridge.favorites.isEmpty {
+                Divider()
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("收藏")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(theme.textSecondary)
+                        .padding(.horizontal, 8)
+                    ForEach(bridge.favorites) { fav in
+                        Button(action: { selectedPageId = fav.page_id ?? "" }) {
+                            HStack {
+                                Image(systemName: "star.fill").foregroundColor(.yellow).font(.caption2)
+                                Text(fav.title ?? "").font(.caption).lineLimit(1)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 8)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+        }
     }
 
     private var connectionBadge: some View {

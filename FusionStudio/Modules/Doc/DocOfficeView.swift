@@ -1,7 +1,7 @@
 // Callers: DocView toolbar button, DocSidebar office tab.
-// Affected API: DocBridge checkOfficeStatus, createOfficeDocument, importOfficeDocument.
+// Affected API: DocBridge checkOfficeStatus, createOfficeDocument, importOfficeDocument, exportOffice, previewOffice, mergeOffice, importOfficeDir, executeOfficeCommand.
 // Data schemas: DocOfficeStatus (from DocBridge.swift).
-// User instruction: "按照prd文档和fusion-doc配合打造有竞争力的领先的产品"
+// User instruction: "在左侧菜单增加 fusion doc,fusion-studio负责GUI，和~/fusion/fusion-doc项目集成起来，包括GUI和workflow，usercase，全面集成"
 
 import SwiftUI
 import os.log
@@ -14,6 +14,14 @@ struct DocOfficeView: View {
     @State private var docName = ""
     @State private var selectedFormat = "docx"
     @State private var importPath = ""
+    @State private var exportPageId = ""
+    @State private var exportFormat = "docx"
+    @State private var mergeTemplate = ""
+    @State private var mergeData = ""
+    @State private var commandFile = ""
+    @State private var commandAction = ""
+    @State private var importDirPath = ""
+    @State private var previewResult = ""
 
     let formats = [
         ("docx", "Word 文档", "doc.richtext"),
@@ -30,6 +38,10 @@ struct DocOfficeView: View {
                     officeStatusCard
                     createSection
                     importSection
+                    exportSection
+                    mergeSection
+                    commandSection
+                    importDirSection
                 }
                 .padding(16)
             }
@@ -150,6 +162,111 @@ struct DocOfficeView: View {
                     }
                 }
                 .disabled(importPath.isEmpty)
+            }
+        }
+    }
+
+    private var exportSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("导出页面")
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(.primary)
+
+            HStack {
+                TextField("页面 ID", text: $exportPageId)
+                    .textFieldStyle(.roundedBorder)
+                Picker("格式", selection: $exportFormat) {
+                    ForEach(["docx", "pdf", "html", "md"], id: \.self) { f in
+                        Text(f).tag(f)
+                    }
+                }
+                .frame(width: 80)
+                Button("导出") {
+                    if !exportPageId.isEmpty {
+                        bridge.exportOffice(pageId: exportPageId, format: exportFormat) { result in
+                            if case .success(let resp) = result {
+                                officeLog.info("Exported: \(resp)")
+                            }
+                        }
+                        exportPageId = ""
+                    }
+                }
+                .disabled(exportPageId.isEmpty)
+            }
+        }
+    }
+
+    private var mergeSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("模板合并")
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(.primary)
+
+            HStack {
+                TextField("模板名", text: $mergeTemplate)
+                    .textFieldStyle(.roundedBorder)
+                TextField("数据 JSON", text: $mergeData)
+                    .textFieldStyle(.roundedBorder)
+                Button("合并") {
+                    if !mergeTemplate.isEmpty, let data = try? JSONSerialization.jsonObject(with: Data(mergeData.utf8)) as? [String: Any] {
+                        bridge.mergeOffice(template: mergeTemplate, data: data) { result in
+                            if case .success(let resp) = result {
+                                officeLog.info("Merged: \(resp)")
+                            }
+                        }
+                        mergeTemplate = ""
+                        mergeData = ""
+                    }
+                }
+                .disabled(mergeTemplate.isEmpty)
+            }
+        }
+    }
+
+    private var commandSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Office 命令")
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(.primary)
+
+            HStack {
+                TextField("文件", text: $commandFile)
+                    .textFieldStyle(.roundedBorder)
+                TextField("命令", text: $commandAction)
+                    .textFieldStyle(.roundedBorder)
+                Button("执行") {
+                    if !commandFile.isEmpty, !commandAction.isEmpty {
+                        bridge.executeOfficeCommand(file: commandFile, command: commandAction) { result in
+                            if case .success(let resp) = result {
+                                officeLog.info("Command result: \(resp)")
+                            }
+                        }
+                        commandFile = ""
+                        commandAction = ""
+                    }
+                }
+                .disabled(commandFile.isEmpty || commandAction.isEmpty)
+            }
+        }
+    }
+
+    private var importDirSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("批量导入目录")
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(.primary)
+
+            HStack {
+                TextField("目录路径", text: $importDirPath)
+                    .textFieldStyle(.roundedBorder)
+                Button("导入") {
+                    if !importDirPath.isEmpty {
+                        bridge.importOfficeDir(dirPath: importDirPath) { _ in }
+                        officeLog.info("Import dir: \(importDirPath)")
+                        importDirPath = ""
+                    }
+                }
+                .disabled(importDirPath.isEmpty)
             }
         }
     }
