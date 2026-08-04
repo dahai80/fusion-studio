@@ -802,17 +802,33 @@ struct HubTenantCreateRequest: Codable {
 }
 
 struct HubRoleListResponse: Codable {
-    let roles: [HubRole]
+    let items: [HubRole]?
     let total: Int?
+
+    var roles: [HubRole] { items ?? [] }
 }
 
 struct HubRole: Identifiable, Codable, Hashable {
     let id: String
     let tenantId: String?
     let name: String?
-    let permissions: [String]?
-    let isDefault: Bool?
+    let permissions: String?
+    let isActive: Bool?
     let createdAt: String?
+    let updatedAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case tenantId = "tenant_id"
+        case name, permissions
+        case isActive = "is_active"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+
+    var permissionsList: [String] {
+        permissions?.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) } ?? []
+    }
 
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
     static func == (lhs: HubRole, rhs: HubRole) { lhs.id == rhs.id }
@@ -899,17 +915,33 @@ struct HubFavoriteToggleRequest: Codable {
 // MARK: - Branches
 
 struct HubBranchListResponse: Codable {
-    let branches: [HubBranch]
+    let items: [HubBranch]?
     let total: Int?
+    var branches: [HubBranch] { items ?? [] }
 }
 
 struct HubBranch: Identifiable, Codable {
     let id: String
     let modelId: String?
     let name: String?
+    let baseVersionId: String?
+    let headVersionId: String?
     let status: String?
+    let description: String?
     let createdAt: String?
-    let mergedAt: String?
+    let updatedAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case modelId = "model_id"
+        case name
+        case baseVersionId = "base_version_id"
+        case headVersionId = "head_version_id"
+        case status
+        case description
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
 
     var isActive: Bool { status == "active" }
     var isMerged: Bool { status == "merged" }
@@ -1129,4 +1161,16 @@ struct HubModelInferenceStats: Codable, Identifiable {
     let node: String?
     let source: String?
     let uptime: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case modelId = "model_id"
+        case modelName = "model_name"
+        case requestsPerMin = "requests_per_min"
+        case avgLatencyMs = "avg_latency_ms"
+        case tokensPerSecond = "tokens_per_second"
+        case activeSessions = "active_sessions"
+        case memoryMB = "memory_mb"
+        case node, source, uptime
+    }
 }

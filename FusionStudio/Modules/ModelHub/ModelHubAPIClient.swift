@@ -186,12 +186,6 @@ final class ModelHubAPIClient: ObservableObject {
         ])
     }
 
-    func getBenchmarkResults(modelId: String) async throws -> HubBenchmarkCompareResponse {
-        try await get("/api/v1/benchmarks/results", query: [
-            URLQueryItem(name: "model_id", value: modelId),
-        ])
-    }
-
     func listBenchmarks(limit: Int = 50) async throws -> HubBenchmarkListResponse {
         try await get("/api/v1/benchmarks", query: [
             URLQueryItem(name: "limit", value: String(limit)),
@@ -347,7 +341,7 @@ final class ModelHubAPIClient: ObservableObject {
     }
 
     func grayReleaseDeployment(id: String, canaryPercent: Int) async throws -> HubSimpleResponse {
-        try await post("/api/v1/deployments/\(id)/gray-release", json: ["canary_percent": canaryPercent])
+        try await post("/api/v1/deployments/\(id)/gray", json: ["gray_traffic_ratio": canaryPercent])
     }
 
     func getDeploymentMetrics(id: String) async throws -> HubDeploymentMetricsResponse {
@@ -418,14 +412,14 @@ final class ModelHubAPIClient: ObservableObject {
 
     func createRole(tenantId: String, name: String, permissions: [String]? = nil) async throws -> HubRole {
         var json: [String: Any] = ["name": name]
-        if let permissions { json["permissions"] = permissions }
+        if let permissions { json["permissions"] = permissions.joined(separator: ",") }
         return try await post("/api/v1/tenants/\(tenantId)/roles", json: json)
     }
 
     func updateRole(tenantId: String, roleId: String, name: String? = nil, permissions: [String]? = nil) async throws -> HubRole {
         var json: [String: Any] = [:]
         if let name { json["name"] = name }
-        if let permissions { json["permissions"] = permissions }
+        if let permissions { json["permissions"] = permissions.joined(separator: ",") }
         return try await put("/api/v1/tenants/\(tenantId)/roles/\(roleId)", json: json)
     }
 
@@ -447,10 +441,6 @@ final class ModelHubAPIClient: ObservableObject {
 
     func deleteWebhook(id: String) async throws -> HubSimpleResponse {
         try await delete("/api/v1/webhooks/\(id)")
-    }
-
-    func testWebhook(id: String) async throws -> HubSimpleResponse {
-        try await post("/api/v1/webhooks/\(id)/test", json: [:])
     }
 
     // MARK: - Security
@@ -557,12 +547,12 @@ final class ModelHubAPIClient: ObservableObject {
         try await post("/api/v1/models/\(modelId)/branches", json: ["name": name])
     }
 
-    func mergeBranch(branchId: String) async throws -> HubSimpleResponse {
-        try await post("/api/v1/branches/\(branchId)/merge", json: [:])
+    func mergeBranch(branchId: String) async throws -> HubBranch {
+        try await post("/api/v1/models/branches/\(branchId)/merge", json: [:])
     }
 
     func deleteBranch(branchId: String) async throws -> HubSimpleResponse {
-        try await delete("/api/v1/branches/\(branchId)")
+        try await delete("/api/v1/models/branches/\(branchId)")
     }
 
     // MARK: - Recommend
@@ -599,10 +589,6 @@ final class ModelHubAPIClient: ObservableObject {
 
     func pullSync(modelIds: [String], sourceNode: String) async throws -> HubSyncPullResponse {
         try await post("/api/v1/sync/pull", json: ["model_ids": modelIds, "source_node": sourceNode])
-    }
-
-    func getSyncManifest() async throws -> HubSyncManifestResponse {
-        try await get("/api/v1/sync/manifest")
     }
 
     // MARK: - Hardware refresh
