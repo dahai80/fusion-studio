@@ -376,6 +376,12 @@ class DocGenerator: ObservableObject {
             - AgentStudio ConfigureAgentSheet：模型字段改下拉选择 + L1-L3 安全等级说明（对齐后端 SafetyGateway 三级）
             - 修复过期测试用例：RAGEngine -> RAGAPIClient、InfoPanelTab 断言 2 -> 7 cases
 
+            ## [0.1.27] - 2026-08-04
+
+            ### 新增
+            - Fusion Simulation 模块: fusion-simulation GUI 工作台 (SimulationBridge + 4-zone WorkbenchView)
+            - REST :11455 + gRPC :11447 集成: 场景加载/传感器/LLM Agent 策略/快照/实时监控
+
             ## [0.1.3] - 2026-07-29
 
             ### 新增
