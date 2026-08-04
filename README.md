@@ -1,16 +1,11 @@
-<!-- Callers: Project documentation. -->
-<!-- Affected API: README.md (adding three-column UI layout section). -->
-<!-- Data schemas: None. -->
-<!-- User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF" -->
-
 <div align="center">
   <img src="https://img.shields.io/badge/macOS-14%2B-brightgreen" alt="macOS">
   <img src="https://img.shields.io/badge/Apple%20Silicon-M1--M5-orange" alt="Apple Silicon">
   <img src="https://img.shields.io/badge/Swift-5.9-red" alt="Swift">
   <img src="https://img.shields.io/badge/Rust-2021-purple" alt="Rust">
-  <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
-  <img src="https://img.shields.io/badge/status-V0.1.16-yellow" alt="V0.1.16">
-  <img src="https://img.shields.io/badge/modules-25-success" alt="20 Modules">
+  <img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License">
+  <img src="https://img.shields.io/badge/status-V0.1.22-yellow" alt="V0.1.22">
+  <img src="https://img.shields.io/badge/modules-27-success" alt="27 Modules">
 </div>
 
 <h1 align="center">⚡ Fusion Studio</h1>
@@ -21,7 +16,7 @@
 
 ## 📋 Overview
 
-**Fusion Studio** is the unified macOS native desktop application for the entire [Fusion-MLX](https://github.com/dahai80?tab=repositories) local AI ecosystem. It consolidates **20 modules** across 6 product phases into a single, cohesive user experience — eliminating the pain of juggling multiple terminals, browser tabs, and scattered directories.
+**Fusion Studio** is the unified macOS native desktop application for the entire [Fusion-MLX](https://github.com/dahai80?tab=repositories) local AI ecosystem. It consolidates **27 modules** across 7 product phases into a single, cohesive user experience — eliminating the pain of juggling multiple terminals, browser tabs, and scattered directories.
 
 ### Why Fusion Studio?
 
@@ -45,7 +40,7 @@ Design · Code · Simulation · MultiModal · Training · Data · Agent · KB ·
 
 ---
 
-## ✨ Feature Matrix (20 Modules)
+## ✨ Feature Matrix (27 Modules)
 
 ### 🎯 Core Platform
 
@@ -214,7 +209,7 @@ Fusion Studio integrates with [fusion-smallbusiness](https://github.com/dahai80/
 | Integration | `fsbCreateArtifact/fsbSendToCanvas/fsbSyncToProject` |
 | Health | `fsbHealth` |
 
-**Communication**: HTTP REST to `127.0.0.1:11434/api/v1/fsb` (separate from JSON-RPC UDS channel), via `IPCClient.fsbRequest()`/`fsbRequestArray()`.
+**Communication**: HTTP REST to `127.0.0.1:11432/api/v1/fsb` (separate from JSON-RPC UDS channel), via `IPCClient.fsbRequest()`/`fsbRequestArray()`.
 
 **E2E Test Status**: 54/54 IPC methods verified passing against backend (2026-08-01). 9 upstream issues filed and closed.
 
@@ -285,7 +280,7 @@ Fusion Studio integrates with [fusion-code](https://github.com/dahai80/fusion-co
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │  📱 Application Layer — SwiftUI Native Desktop               │
-│  Navigation (20 modules) · Settings · Health Check · Tasks   │
+│  Navigation (27 modules) · Settings · Health Check · Tasks   │
 ├──────────────────────────────────────────────────────────────┤
 │  🛠️ Container Layer — WKWebView + Native Components          │
 │  Design · Code · Simulation · MultiModal · Training · Data   │
@@ -394,7 +389,7 @@ comes up).
 
 | Service | start.sh | Endpoint | Critical |
 |---------|----------|----------|----------|
-| fusion-mlx | `~/claude-home/fusion-mlx/start.sh` | `localhost:11434` | ✅ |
+| fusion-mlx | `~/claude-home/fusion-mlx/start.sh` | `localhost:11432` | ✅ |
 | fusion-agent-studio | `~/fusion/fusion-agent-studio/start.sh` | `/tmp/fusion-studio.sock` (UDS) | ✅ |
 | fusion-artifacts-engine | `~/fusion/fusion-artifacts-engine/start.sh` | `127.0.0.1:11451` | ✅ |
 | fusion-kb (RAG) | `~/fusion/fusion-kb/start.sh` | `127.0.0.1:11436` | optional |
@@ -430,7 +425,7 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 **not** spawn its own):
 
 - **HTTP, not IPC, for model ops.** `MlxHTTPClient` talks to the external
-  fusion-mlx admin API (`/admin/api/*`, port 11434) with cookie-jar session +
+  fusion-mlx admin API (`/admin/api/*`, port 11432) with cookie-jar session +
   401 auto-relogin. Endpoints: `login`, `models`, `hf/recommended`,
   `hf/download`, `hf/tasks`, `hf/cancel`, `setup-api-key`.
 - **Local-first slot configuration.** The recommend step lists the external
@@ -466,6 +461,18 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 ---
 
 ## 📋 Changelog
+
+### v0.1.22 (2026-08-04)
+
+Bug fixes & improvements:
+
+- **#97–#104**: FusionCode bridge — WebSocket chat streaming, `commandMode` param for slash commands, `/compact` IPC call, auth token on WS connection, MLX model fetch with auth header, workflow/sandbox right panes
+- **#105**: CodeMainView — consume `fcBridge` WS events (`currentStreamContent` / `isStreaming`) via `onChange`, append user+assistant messages on WS path
+- **#106**: `fetchMLXModels()` — add `Authorization: Bearer` header using `FusionConfig.shared.mlxResolvedApiKey`
+- **#107**: QuickAction skill routing — skill commands route through `chatStream(commandMode: true)`
+- **#108**: Remove `FusionCodeAPIClient` — unify to `FusionCodeBridge` singleton; move `FusionCodeProject` model to `ChatSessionStore`
+- **#109**: URL migration — eliminate all hardcoded `localhost:11434`; default `mlxPort` changed from 11434 to 11432; `FusionConfig.mlxBaseURL` / `StreamingBridge` / `WelcomeView` / `EnvironmentHealthCard` / `MultiModalView` / `ExternalIntegrationsView` all updated
+- **License**: Changed from MIT to Apache 2.0
 
 ### v0.1.16 (2026-08-03)
 
@@ -542,15 +549,15 @@ Upstream issues filed:
 fusion-studio/
 ├── FusionStudio.xcodeproj/       # Xcode project
 ├── Package.swift                  # Swift Package Manager
-├── FusionStudio/                 # SwiftUI source code (50+ files)
+├── FusionStudio/                 # SwiftUI source code (260+ files)
 │   ├── FusionStudioApp.swift     # @main entry point
 │   ├── ContentView.swift          # Main layout (Three-column HStack)
-│   ├── Navigation/               # Sidebar + module routing (20 modules)
+│   ├── Navigation/               # Sidebar + module routing (27 modules)
 │   ├── Settings/                 # Settings panels (5 tabs)
 │   ├── Environment/              # Health check engine
 │   ├── TaskManager/              # Task queue + hardware monitor
-│   ├── Bridge/                   # IPC client (JSON-RPC)
-│   ├── Modules/                  # Module containers (20+ modules)
+│   ├── Bridge/                   # IPC client (JSON-RPC) + FusionCodeBridge
+│   ├── Modules/                  # Module containers (27 modules)
 │   │   ├── Design/               # AI canvas + 8 skills + 7 info tabs + version diff + workflows + theme
 │   │   ├── Code/                 # Code editor + terminal
 │   │   ├── Simulation/           # 3D physics simulation
@@ -606,7 +613,7 @@ fusion-studio/
 
 ## 📄 License
 
-MIT License. See [LICENSE](LICENSE) for details.
+Apache License 2.0. See [LICENSE](LICENSE) for details.
 
 ---
 
@@ -614,5 +621,5 @@ MIT License. See [LICENSE](LICENSE) for details.
   <strong>Fusion Studio</strong> — One App, All Fusion. 100% Local, 100% Yours.
 </p>
 <p align="center">
-  <sub>Built with ❤️ for Apple Silicon · 20 Modules · 50,000+ Lines of Swift</sub>
+  <sub>Built with ❤️ for Apple Silicon · 27 Modules · 260 Swift Files · Apache 2.0</sub>
 </p>
