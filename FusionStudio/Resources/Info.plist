@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key>
+    <string>FusionStudio</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.fusion-mlx.studio</string>
+    <key>CFBundleName</key>
+    <string>Fusion Studio</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>Fusion Studio needs speech recognition for voice input in chat.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Fusion Studio needs microphone access for voice input in chat.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Fusion Studio needs camera access for multimodal input.</string>
+</dict>
+</plist>

@@ -15,7 +15,7 @@ CONFIGURATION="${CONFIGURATION:-release}"
 
 # Callers: build.sh package/dmg/sign. Affected API: VERSION variable → DMG filename + Info.plist CFBundleShortVersionString. Data: version string. User: "修复 Release workflow"
 # 版本信息
-VERSION="0.1.22"
+VERSION="0.1.23"
 BUILD_NUM=$(date +%Y%m%d%H%M)
 
 # 颜色
@@ -49,6 +49,13 @@ build_app() {
     # 使用 Swift Package Manager 构建
     (cd "$PROJECT_DIR" && swift build -c $CONFIGURATION 2>&1 | tail -5)
     info "✅ SPM 构建完成"
+
+    # 将 Info.plist 复制到 SPM 构建产物旁（裸二进制运行需要隐私描述）
+    local binary_path=$(cd "$PROJECT_DIR" && swift build -c $CONFIGURATION --show-bin-path 2>/dev/null || echo "")
+    if [ -n "$binary_path" ] && [ -d "$binary_path" ]; then
+        cp "$PROJECT_DIR/FusionStudio/Resources/Info.plist" "$binary_path/"
+        info "✅ 复制 Info.plist 到构建产物目录"
+    fi
 }
 
 # ─── 阶段 3: 打包 .app Bundle ─────────────────────────────────
