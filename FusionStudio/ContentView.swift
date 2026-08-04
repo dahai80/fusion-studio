@@ -185,6 +185,11 @@ struct SectionContentView: View {
                 CliServiceView()
             case .doc:
                 DocView()
+            // Callers: SectionContentView switch on appState.activeSection.
+            // Affected API: renders SimulationWorkbenchView for .simulation section.
+            // Data schemas: SidebarSection.simulation. User instruction: "在左侧菜单增加 fusion simulation"
+            case .simulation:
+                SimulationWorkbenchView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

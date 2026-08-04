@@ -32,6 +32,10 @@ struct FusionStudioApp: App {
     @StateObject private var scienceBridge = ScienceBridge()
     @StateObject private var scienceSSE = ScienceSSEClient()
     @StateObject private var financeBridge = FinanceBridge()
+    // Callers: FusionStudioApp body; SimulationWorkbenchView (@EnvironmentObject).
+    // Affected API: simulationBridge injected via .environmentObject; HTTP to fusion-sim :11455 /api/*.
+    // Data schemas: SimulationBridge (ObservableObject) -> SimStatusDTO et al. User instruction: "和~/fusion/fuison-simulation项目集成起来"
+    @StateObject private var simulationBridge = SimulationBridge()
 
     init() {
         // Dock 图标延后到 onAppear 中设置，init 阶段 NSApp 尚未就绪
@@ -64,6 +68,7 @@ struct FusionStudioApp: App {
                 .environmentObject(scienceBridge)
                 .environmentObject(scienceSSE)
                 .environmentObject(financeBridge)
+                .environmentObject(simulationBridge)
                 .studioThemed()
                 .onAppear {
                     // 启动时检测并按需自动启动上游关键服务（mlx -> agent-studio -> artifacts-engine）。

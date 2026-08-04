@@ -63,7 +63,7 @@ Design · Code · Simulation · MultiModal · Training · Data · Agent · KB ·
 | 1 | 🏠 **Dashboard** | `square.grid.2x2` | ✅ Stable | Command center, health check, task queue, hardware monitor |
 | 2 | 🎨 **Design** | `pencil.and.outline` | ✅ Stable | AI-powered canvas (preview + interactive node editing), 8 design skills, 7 info tabs (props/layers/tokens/design-systems/lint/codegen/ecosystem), 20 grouped quick templates, version diff, 3 workflow recipes, theme switching, design system picker, SwiftUI/React/Vue export — surpassing Claude Design |
 | 3 | 💻 **Code** | `chevron.left.forwardslash.chevron.right` | 🆕 New | 5-panel layout: FileTree · Chat · Editor/Diff/Terminal + InputBar with /slash commands + 3 execution modes (Ask/Auto/Plan), KB query, memory, templates, permission tiers — surpassing Claude Code |
-| 4 | 🤖 **Simulation** | `gearshape.2` | ✅ Stable | PyBullet physics, 3D viewport, scene editor |
+| 4 | 🤖 **Simulation** | `cube.transparent` | 🆕 New | fusion-simulation integration (REST :11455 + gRPC :11447): PyBullet physics, scene loader (default/pick/push), 7 sensor types (rgb/depth/segmentation/imu/force-torque/joint/contact), LLM agent policy via fusion-mlx (Bearer auth), snapshots save/restore, real-time status/timing/observations monitor, env_check |
 | 5 | 📦 **Model Hub** | `cpu` | ✅ Stable | 11-section GUI + 116 API methods + 98 DTOs: Dashboard (stats+health badges+quick actions), Market (HF+ModelScope+private, pagination, rating, favorites, module hints), Local Storage (category tree, serving mgmt, version lifecycle), Convert/Quant (scene presets, layered quantize, compare, evaluate), Schedule (6 tabs: download/schedule/module-perm/throttle/TTL/auto-bench), Cluster (topology, routing, sync), Deployment (CRUD, scale, gray release, metrics), Permission (API keys+role ACL+tenants+approval), Monitor (per-model stats, source filter, deployment metrics), Benchmark (evaluations CRUD, history, accuracy alerts), Security (scan, watermark, encryption, approval) |
 | 6 | 🖼️ **MultiModal** | `photo.on.rectangle` | ✅ Stable | Text-to-image, image-to-image, OCR, speech-to-text, TTS |
 | 7 | 🧠 **Training** | `brain` | ✅ Stable | LoRA/QLoRA fine-tuning, monitoring, checkpoints, model export |
@@ -274,6 +274,64 @@ Fusion Studio integrates with [fusion-code](https://github.com/dahai80/fusion-co
 | Git integration | CLI only | **Visual Git Panel** + URL detection bar |
 
 ---
+
+### 🤖 Fusion Simulation - Physics + LLM Agent Simulation Workbench
+
+Fusion Studio provides the GUI for [fusion-simulation](https://github.com/dahai80/fusion-simulation) - a 6-layer PyBullet physics + LLM-agent simulation engine. The integration is a 4-zone native SwiftUI workbench driven by `SimulationBridge` (HTTP client to the fusion-sim dashboard on `:11455`).
+
+**Architecture**
+
+```
+fusion-studio (GUI)  ──HTTP REST──>  fusion-simulation (:11455 dashboard)
+   SimulationBridge                    ├── :11447 gRPC (sim control)
+                                       ├── :11456 metrics
+                                       └── PolicyClient ──HTTP──> fusion-mlx (:11434, LLM agent decisions)
+```
+
+**4-Zone Workbench** (`Modules/Simulation/SimulationWorkbenchView.swift`)
+
+| Zone | Content |
+|------|---------|
+| Banner | `UpstreamServiceStatusBanner` - fusion-simulation health (startOrder 12, `.httpGet` probe) |
+| Left - Entities | Scene picker (default/pick/push) + Load; Agent builder (name/role/action_dim/entity/model + Add); Sensor builder (7 types + Add); live entity lists |
+| Center - Monitor | Status grid (state/sim_time/frame_count/entity_count/RTF/initialized); timing bars (physics/sensor/agent/render vs total); observations summary |
+| Right - Inspector | `FusionTabBar` (状态/环境/快照): full status rows, env_check component dots, snapshot save/restore |
+| Bottom - Transport | Init / Steps picker (1/10/100) / Step / Pause / Resume / Reset + lastError |
+
+**REST API Contract** (all POSTs use query params; `JSONDecoder.sim` uses `.convertFromSnakeCase`)
+
+| Endpoint | Method | Bridge DTO |
+|----------|--------|-----------|
+| `/api/health` | GET | `initialized:bool` |
+| `/api/status` | GET | `SimStatusDTO` (state/sim_time/frame_count/entity_count/real_time_factor/paused) |
+| `/api/init` `/api/reset` `/api/pause` `/api/resume` | POST | `SimActionResponseDTO` |
+| `/api/step?num_steps=N` | POST | `SimStepResultDTO` (physics/sensor/agent/render/total ms) |
+| `/api/load_scene?name=` | POST | `SimActionResponseDTO` |
+| `/api/add_sensor?type=&name=&entity_id=` | POST | `SimActionResponseDTO` |
+| `/api/add_agent?name=&role=&action_dim=&entity_id=&model_name=` | POST | `SimActionResponseDTO` |
+| `/api/observations` | GET | `{sensor: {type,name,data,shape}}` |
+| `/api/save_snapshot?name=` `/api/restore_snapshot?snapshot_id=` | POST | `{snapshot_id}` |
+| `/api/env_check` | GET | `{pybullet,grpc,fusion_mlx,simulation_service}` |
+
+**Running** (fusion-sim has no `start.sh`; start manually with fusion-mlx auth)
+
+```bash
+# 1. fusion-mlx with auth (api_key in ~/.fusion-mlx/settings.json auth.api_key)
+~/claude-home/fusion-mlx/start.sh start
+
+# 2. fusion-sim dashboard + gRPC, threading the mlx API key
+cd ~/fusion/fusion-simulation
+python -c "from fusion_simulation.cli import main; main()" service start \
+  --gui --headless --host 127.0.0.1 \
+  --api-key <key> --mlx-url http://localhost:11434/v1
+```
+
+**End-to-end verified**: init → load_scene(default) → add_sensor(rgb_camera) → add_agent(robot, Qwen3-0.6B-4bit) → step(3) → 3× LLM 200 OK, `agent_decide_ms ~324ms`, 0 crashes; env_check `fusion_mlx:available:true`; snapshot save/restore; pause/resume.
+
+> **Upstream**: fusion-simulation `PolicyClient` lacked API-key auth (issue [#6](https://github.com/dahai80/fusion-simulation/issues/6), PR [#7](https://github.com/dahai80/fusion-simulation/pull/7)) - landed via the issue→PR→code flow. pybullet 3.2.7 on macOS arm64/Clang 21 needs a one-line `zutil.h` `fdopen` macro patch to build.
+
+---
+
 
 ## 🏗️ Architecture
 
@@ -573,7 +631,7 @@ fusion-studio/
 │   ├── Modules/                  # Module containers (27 modules)
 │   │   ├── Design/               # AI canvas + 8 skills + 7 info tabs + version diff + workflows + theme
 │   │   ├── Code/                 # Code editor + terminal
-│   │   ├── Simulation/           # 3D physics simulation
+│   │   ├── Simulation/           # fusion-simulation workbench (SimulationBridge + SimulationWorkbenchView)
 │   │   ├── ModelHub/             # 11-section model management (116 API methods, 98 DTOs)
 │   │   ├── MultiModalView.swift  # Image/speech/OCR
 │   │   ├── TrainingView.swift    # LoRA/QLoRA training
