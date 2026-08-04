@@ -1245,7 +1245,7 @@ class DocBridge: ObservableObject {
 
     func authSetup(username: String, password: String, completion: @escaping (Result<DocAuthResponse, Error>) -> Void) {
         docBridgeLog.info("authSetup: username=\(username)")
-        post("/api/auth/setup", body: ["username": username, "password": password]) { [weak self] (result: Result<DocAuthResponse, Error>) in
+        post("/api/auth/setup", body: ["email": username, "password": password]) { [weak self] (result: Result<DocAuthResponse, Error>) in
             switch result {
             case .success(let resp):
                 if let token = resp.token {
@@ -1264,7 +1264,7 @@ class DocBridge: ObservableObject {
 
     func authLogin(username: String, password: String, completion: @escaping (Result<DocAuthResponse, Error>) -> Void) {
         docBridgeLog.info("authLogin: username=\(username)")
-        post("/api/auth/login", body: ["username": username, "password": password]) { [weak self] (result: Result<DocAuthResponse, Error>) in
+        post("/api/auth/login", body: ["email": username, "password": password]) { [weak self] (result: Result<DocAuthResponse, Error>) in
             switch result {
             case .success(let resp):
                 if let token = resp.token {
