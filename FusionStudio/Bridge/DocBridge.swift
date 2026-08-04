@@ -1732,4 +1732,64 @@ class DocBridge: ObservableObject {
         docBridgeLog.info("markAllNotificationsRead")
         put("/api/notifications/read-all", body: [:], completion: completion)
     }
+
+    // MARK: - Collaboration (WebSocket — pending upstream #22)
+
+    @Published var collabConnected: Bool = false
+    @Published var collabUsers: [String] = []
+    private var collabTask: URLSessionWebSocketTask?
+
+    func connectCollab(pageId: String) {
+        docBridgeLog.info("connectCollab: pageId=\(pageId)")
+        guard let url = URL(string: baseURL.replacingOccurrences(of: "http", with: "ws") + "/collaboration?page=\(pageId)") else {
+            docBridgeLog.error("connectCollab: invalid WS URL")
+            return
+        }
+        var request = URLRequest(url: url)
+        if let token = authToken { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
+        collabTask = session.webSocketTask(with: request)
+        collabTask?.resume()
+        DispatchQueue.main.async { self.collabConnected = true }
+        docBridgeLog.info("connectCollab: WS task started")
+        receiveCollabMessage()
+    }
+
+    func disconnectCollab() {
+        docBridgeLog.info("disconnectCollab")
+        collabTask?.cancel(with: .goingAway, reason: nil)
+        collabTask = nil
+        DispatchQueue.main.async { self.collabConnected = false; self.collabUsers = [] }
+    }
+
+    func sendCollabUpdate(data: Data) {
+        guard let task = collabTask else {
+            docBridgeLog.warning("sendCollabUpdate: no active WS task")
+            return
+        }
+        task.send(.data(data)) { error in
+            if let error = error {
+                docBridgeLog.error("sendCollabUpdate failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func receiveCollabMessage() {
+        collabTask?.receive { [weak self] result in
+            switch result {
+            case .success(let message):
+                switch message {
+                case .string(let text):
+                    docBridgeLog.info("collab message: \(text.prefix(100))")
+                case .data(let data):
+                    docBridgeLog.info("collab binary: \(data.count) bytes")
+                @unknown default:
+                    break
+                }
+                self?.receiveCollabMessage()
+            case .failure(let error):
+                docBridgeLog.error("collab receive error: \(error.localizedDescription)")
+                DispatchQueue.main.async { self?.collabConnected = false }
+            }
+        }
+    }
 }
