@@ -61,7 +61,14 @@ extension IPCClient {
     }
 
     func artifactGet(artifactId: String) async throws -> [String: Any] {
-        return try await artifactsCall(method: "artifact.get", params: ["artifact_id": artifactId])
+        let r = try await artifactsCall(method: "artifact.get", params: ["artifact_id": artifactId])
+        if let art = r["artifact"] as? [String: Any] {
+            var flat = art
+            if flat["starred"] == nil { flat["starred"] = flat["is_starred"] }
+            if flat["pinned"] == nil { flat["pinned"] = flat["is_pinned"] }
+            return flat
+        }
+        return r
     }
 
     func artifactGetContent(artifactId: String, version: Int? = nil) async throws -> [String: Any] {
@@ -323,6 +330,7 @@ extension IPCClient {
 
     // Callers: ArtifactShareDialog / share link resolver. Affected API: GET /api/v1/share/{share_id}.
     // No auth required; returns read-only artifact render data.
+    // Fallback: REST 端点上游未实现（fusion-artifacts-engine #38）→ 退回 RPC artifact.get_shared。
     func shareGet(shareId: String) async throws -> [String: Any] {
         let baseURL = artifactsEngineURL
         guard let url = URL(string: "\(baseURL)/api/v1/share/\(shareId)") else {
@@ -335,15 +343,15 @@ extension IPCClient {
         guard let httpResponse = response as? HTTPURLResponse else {
             throw IPCError.invalidResponse
         }
-        guard httpResponse.statusCode == 200 else {
-            ipcLog.warning("shareGet HTTP \(httpResponse.statusCode) share_id=\(shareId, privacy: .public)")
-            throw IPCError.rpcError(code: httpResponse.statusCode, message: "shareGet HTTP \(httpResponse.statusCode)")
+        if httpResponse.statusCode == 200 {
+            guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                throw IPCError.invalidResponse
+            }
+            ipcLog.info("shareGet REST: share_id=\(shareId, privacy: .public) ok")
+            return json
         }
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw IPCError.invalidResponse
-        }
-        ipcLog.info("shareGet: share_id=\(shareId, privacy: .public) ok")
-        return json
+        ipcLog.warning("shareGet REST \(httpResponse.statusCode) share_id=\(shareId, privacy: .public), fallback to RPC artifact.get_shared")
+        return try await artifactsCall(method: "artifact.get_shared", params: ["share_id": shareId])
     }
 
     // MARK: - SSE Subscriptions (Issue #26-C: artifact + session event streams)
