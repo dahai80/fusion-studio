@@ -27,8 +27,6 @@ struct ModuleDetailView: View {
                 CLIView()
             case .doc:
                 DocView()
-            case .kb:
-                KBView()
             case .bench:
                 BenchView()
             case .desk:
@@ -74,7 +72,7 @@ struct ModuleDetailView: View {
             case .serviceWeb:
                 ServiceWebView()
             case .rag:
-                RAGPipelineView()
+                RAGMainView()
             case .memory:
                 MemoryView()
             case .planner:

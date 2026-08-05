@@ -93,7 +93,7 @@ struct IconRailView: View {
                     appState.selectedSheet = .code
                     appState.isInspectorVisible = false
                 case .rag:
-                    appState.selectedModule = .kb
+                    appState.selectedModule = .rag
                     appState.selectedSheet = .ragSheet
                 case .agent:
                     appState.selectedModule = .agent

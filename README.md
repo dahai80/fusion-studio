@@ -465,6 +465,19 @@ comes up).
 - Upstream repo paths and the auto-start toggle live in Settings
   (`FusionConfig.upstream*Path`, `upstreamAutoStartCritical`, default on).
 
+#### API Key 解析（gateway 入站鉴权）
+
+fusion-studio 默认通过 fusion-gateway(`:11432`) 连接 fusion-mlx，gateway 使用
+自己的入站 key（非 mlx `settings.json` 的 key）。`FusionConfig.mlxResolvedApiKey`
+按以下优先级解析（与上游 fusion-mlx `_resolve_api_key` 对齐）：
+
+1. 用户在 Settings 显式设置（`mlxApiKey @AppStorage`）
+2. 进程环境变量 `FUSION_MLX_API_KEY`（fusion-mlx/fusion-gateway 启动时注入）
+3. `~/.fusion-mlx/settings.json` → `auth.api_key`
+
+解析来源记录到 `os.log`（subsystem `com.fusion.studio`, category `FusionConfig`）。
+启动 fusion-gateway/mlx 时导出 `FUSION_MLX_API_KEY` 即可让 studio 取到正确入站 key。
+
 ### First-Run Onboarding (三档模型引导)
 
 On first launch, if no small-model slot is set (`@AppStorage("mlxModelSmall")` empty),
@@ -521,6 +534,17 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 ---
 
 ## 📋 Changelog
+
+### Fusion RAG Consolidation (2026-08-05)
+
+Single "Fusion RAG" sidebar entry -> `RAGMainView` (8 sections) wired to **fusion-rag** backend (FastAPI `127.0.0.1:11436`):
+
+- **Menu consolidation**: removed duplicate `.kb` Module case + dead `KBView`/`RAGPipelineView` branches; `IconRailView` now routes to `.rag` -> `RAGMainView`. `ragSheet` rawValue = "Fusion RAG"
+- **8 GUI sections** (all non-stub, real REST): Dashboard / Files / Embed Config / Search Config / Permissions / Vector Ops / Call Log / Bench Eval
+- **`RAGAPIClient.shared`**: singleton HTTP client, snake_case field mapping, X-API-Key auth (empty=not sent), baseURL from `FusionConfig.fusionRagURL`
+- **E2E verified**: KB CRUD (`/kb/bases`), document ingest, vector search (score 0.52+), stats, auth keys (`/kb/auth/keys` -> `frg_...`), version snapshots. `swift build -c debug` clean
+- **Upstream fix** (fusion-rag issue #34 / PR #35): `_generate_answer()` now passes MLX api_key as `Authorization: Bearer` header (was 401). Gateway key = `fg-admin-key`
+- **Known**: MLX 502 on ask when no chat model loaded (runtime, not code); projects router double-prefix fixed upstream (fusion-rag issue #36 / PR #37)
 
 ### v0.1.22 (2026-08-04)
 
