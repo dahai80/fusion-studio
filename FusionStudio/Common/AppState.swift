@@ -56,7 +56,7 @@ enum ProductSheet: String, CaseIterable, Identifiable {
     case artifactsSheet = "Artifacts"
     case fsbSheet = "FSB"
     case aiAgentSheet = "AI Agent"
-    case ragSheet = "RAG"
+    case ragSheet = "Fusion RAG"
     case scienceSheet = "Science"
     case financeSheet = "Finance"
     case pluginEcosystemSheet = "Plugin Ecosystem"
@@ -98,7 +98,7 @@ enum ProductSheet: String, CaseIterable, Identifiable {
         case .code:
             return [.code, .design, .doc, .docgen, .cli, .deploy]
         case .agentStudio:
-            return [.agent, .plugin, .security, .kb, .dataTools, .rag, .memory, .planner]
+            return [.agent, .plugin, .security, .dataTools, .rag, .memory, .planner]
         case .multiNode:
             return [.clusterOverview, .clusterTopology, .clusterSync, .taskMonitor, .alertCenter, .nodeActions, .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb, .multimodal, .analytics, .collab, .external, .operations]
         case .chat:
@@ -114,7 +114,7 @@ enum ProductSheet: String, CaseIterable, Identifiable {
         case .aiAgentSheet:
             return [.aiAgentDashboard, .aiAgentList, .aiAgentChat, .aiAgentObserver, .aiAgentKnowledgeBase]
         case .ragSheet:
-            return [.kb, .rag]
+            return [.rag]
         case .scienceSheet:
             return [.science]
         case .financeSheet:
@@ -141,7 +141,6 @@ enum Module: String, CaseIterable, Identifiable {
     case training  = "训练"  // L5 domain — deprecated, remove when upstream service lands
     case cli       = "命令行"
     case doc       = "文档"
-    case kb        = "知识库"
     case bench     = "测评"
     case desk      = "自动化"
     case dataTools = "数据工具"
@@ -211,7 +210,6 @@ enum Module: String, CaseIterable, Identifiable {
         case .training:   return "brain"
         case .cli:        return "terminal"
         case .doc:        return "doc.text"
-        case .kb:         return "books.vertical"
         case .bench:      return "chart.bar"
         case .desk:       return "desktopcomputer"
         case .dataTools:  return "tablecells"
@@ -284,7 +282,7 @@ enum Module: String, CaseIterable, Identifiable {
              .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb,
              .operations:
             return .multiNode
-        case .kb, .rag:
+        case .rag:
             return .ragSheet
         case .memory, .planner, .verification, .tokenBudget, .safety, .tools, .agentDashboard, .teamCollab:
             return .agentStudio
@@ -368,7 +366,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .doc:       return [.doc]
         case .simulation: return [.simulation]
         case .design:    return [.design]
-        case .rag:       return [.kb, .rag]
+        case .rag:       return [.rag]
         case .agent:     return [.agent, .agentDashboard, .teamCollab, .tools, .safety, .memory, .planner, .verification, .tokenBudget, .security, .dataTools, .plugin, .desk]
         case .aiAgent:   return [.aiAgentDashboard, .aiAgentList, .aiAgentChat, .aiAgentObserver, .aiAgentKnowledgeBase]
         case .cowork:    return [.cowork]

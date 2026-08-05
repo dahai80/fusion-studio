@@ -147,13 +147,17 @@ final class SecurityScanTests: XCTestCase {
             if file.hasSuffix(".swift") { files.append(file) }
         }
 
-        let sensitivePatterns = ["API_KEY", "SECRET_KEY", "password=\""]
+        // 检测硬编码的敏感值（赋值字面量），而非环境变量名引用。
+        // 环境变量名如 FUSION_MLX_API_KEY、字段名如 mlxApiKey 不算泄露。
+        // 仅匹配被赋了非空字面量的敏感字段（形如 key = "value"）。
+        // 空串初始化如 password = ""、环境变量名引用如 FUSION_MLX_API_KEY 不算泄露。
+        let sensitivePatterns = ["SECRET_KEY\\s*=\\s*\"[^\"]+\"", "API_KEY\\s*=\\s*\"[^\"]+\"", "password\\s*=\\s*\"[^\"]+\""]
         for file in files {
             let path = "\(sourceDir)/\(file)"
             guard let content = try? String(contentsOfFile: path) else { continue }
             for pattern in sensitivePatterns {
-                if content.contains(pattern) {
-                    XCTFail("发现可能的敏感信息泄露: \(file) 包含 '\(pattern)'")
+                if content.range(of: pattern, options: .regularExpression) != nil {
+                    XCTFail("发现可能的敏感信息泄露: \(file) 包含硬编码 '\(pattern)'")
                 }
             }
         }

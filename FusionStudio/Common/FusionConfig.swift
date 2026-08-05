@@ -1,9 +1,12 @@
 import Foundation
 import SwiftUI
+import os.log
 // Callers: UpstreamServiceManager, ContentView, SettingsView
 // Affected API: multi-node health endpoint port
 // Data: @AppStorage port properties
 // User instruction: "修复issue #111" — add multiNodePort=11452
+
+private let fusionConfigLog = Logger(subsystem: "com.fusion.studio", category: "FusionConfig")
 
 /// 模型档位：小（日常对话）/ 代码 / 复杂事务
 enum ModelSlot: String, CaseIterable, Identifiable {
@@ -207,15 +210,27 @@ class FusionConfig: ObservableObject {
     /// MLX 服务地址
     var mlxBaseURL: String { "http://\(mlxHost):\(mlxPort)" }
 
-    /// MLX API Key (from ~/.fusion-mlx/settings.json)
+    /// MLX API Key — 解析优先级与上游 fusion-mlx _resolve_api_key 对齐：
+    /// 1) 用户在 Settings 显式设置 (mlxApiKey @AppStorage)
+    /// 2) 进程环境变量 FUSION_MLX_API_KEY（fusion-mlx/fusion-gateway 启动时注入）
+    /// 3) ~/.fusion-mlx/settings.json -> auth.api_key
     var mlxResolvedApiKey: String {
-        if !mlxApiKey.isEmpty { return mlxApiKey }
+        if !mlxApiKey.isEmpty {
+            fusionConfigLog.info("mlxResolvedApiKey: source=user-settings")
+            return mlxApiKey
+        }
+        if let envKey = ProcessInfo.processInfo.environment["FUSION_MLX_API_KEY"], !envKey.isEmpty {
+            fusionConfigLog.info("mlxResolvedApiKey: source=FUSION_MLX_API_KEY env")
+            return envKey
+        }
         if let data = try? Data(contentsOf: URL(fileURLWithPath: NSHomeDirectory() + "/.fusion-mlx/settings.json")),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let auth = json["auth"] as? [String: Any],
-           let key = auth["api_key"] as? String {
+           let key = auth["api_key"] as? String, !key.isEmpty {
+            fusionConfigLog.info("mlxResolvedApiKey: source=settings.json")
             return key
         }
+        fusionConfigLog.warning("mlxResolvedApiKey: no key resolved (env/settings both empty)")
         return ""
     }
 
