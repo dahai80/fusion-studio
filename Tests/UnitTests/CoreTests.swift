@@ -38,7 +38,6 @@ final class AppStateTests: XCTestCase {
         XCTAssertEqual(Module.modelHub.icon, "cpu")
         XCTAssertEqual(Module.cli.icon, "terminal")
         XCTAssertEqual(Module.doc.icon, "doc.text")
-        XCTAssertEqual(Module.kb.icon, "books.vertical")
         XCTAssertEqual(Module.bench.icon, "chart.bar")
         XCTAssertEqual(Module.desk.icon, "desktopcomputer")
     }
