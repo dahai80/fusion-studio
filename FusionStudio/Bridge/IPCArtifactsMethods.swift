@@ -27,6 +27,9 @@ extension IPCClient {
         urlRequest.httpMethod = "POST"
         urlRequest.httpBody = requestData
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let key = ProcessInfo.processInfo.environment["FUSION_ARTIFACTS_API_KEY"], !key.isEmpty {
+            urlRequest.setValue(key, forHTTPHeaderField: "X-API-Key")
+        }
         urlRequest.timeoutInterval = 30
         let (data, response) = try await URLSession.shared.data(for: urlRequest)
         guard let httpResponse = response as? HTTPURLResponse else {
