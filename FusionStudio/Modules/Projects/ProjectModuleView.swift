@@ -979,7 +979,17 @@ private struct ProjectGlobalMenu: View {
         Task { _ = try await ipc.projectExport(projectId: project.id) }
     }
     private func deleteProject() {
-        Task { try await ipc.projectDelete(projectId: project.id) }
+        Task {
+            do {
+                if !project.isArchived {
+                    _ = try await ipc.projectArchive(projectId: project.id)
+                }
+                try await ipc.projectDelete(projectId: project.id)
+                projLog.info("deleted project \(project.id)")
+            } catch {
+                projLog.error("deleteProject failed: \(error.localizedDescription)")
+            }
+        }
     }
 }
 
