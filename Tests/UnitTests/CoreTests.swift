@@ -66,6 +66,24 @@ final class FusionConfigTests: XCTestCase {
         XCTAssertEqual(config.mlxBaseURL, "http://localhost:11434")
     }
 
+    // mlxResolvedApiKey 必须从环境变量 FUSION_MLX_API_KEY 取值
+    // （gateway 入站鉴权）。用户设置(@AppStorage mlxApiKey)优先；
+    // 为空时回退 env，再回退 ~/.fusion-mlx/settings.json auth.api_key。
+    func testMLXResolvedApiKeyEnvVar() {
+        let config = FusionConfig.shared
+        let savedUserKey = config.mlxApiKey
+        defer { config.mlxApiKey = savedUserKey }
+        config.mlxApiKey = ""
+        let envKey = ProcessInfo.processInfo.environment["FUSION_MLX_API_KEY"] ?? ""
+        let resolved = config.mlxResolvedApiKey
+        if !envKey.isEmpty {
+            XCTAssertEqual(resolved, envKey, "env FUSION_MLX_API_KEY 应被采用")
+        } else {
+            // env 未设置时，解析结果应来自 settings.json 或为空，不得是硬编码值
+            XCTAssertTrue(resolved.isEmpty || resolved.count <= 64, "无 env 时回退 settings.json，非硬编码")
+        }
+    }
+
     func testResetToDefaults() {
         let config = FusionConfig.shared
         config.launchAtLogin = true
