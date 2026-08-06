@@ -21,8 +21,12 @@ struct IconRailView: View {
 
             newChatButton
 
-            ForEach(SidebarSection.allCases) { section in
-                sectionIcon(section)
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    ForEach(SidebarSection.allCases) { section in
+                        sectionIcon(section)
+                    }
+                }
             }
 
             Spacer()

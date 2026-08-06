@@ -156,6 +156,7 @@ class DesignBridge: ObservableObject {
     @Published var streamPreviewText: String = ""
     @Published var errorMessage: String?
     @Published var artifactId: String = ""
+    @Published var selectedModel: String = ""
     @Published var versionHistory: [[String: Any]] = []
     @Published var isLoadingHistory: Bool = false
     @Published var pages: [DesignPage] = []
@@ -1112,7 +1113,7 @@ class DesignBridge: ObservableObject {
             "max_tokens": 4096,
             "stream": true,
         ]
-        let model = config.defaultModel(for: .code)
+        let model = selectedModel.isEmpty ? config.defaultModel(for: .code) : selectedModel
         if !model.isEmpty {
             body["model"] = model
         }
@@ -1128,6 +1129,7 @@ class DesignBridge: ObservableObject {
         request.httpBody = requestData
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+        request.setValue("studio", forHTTPHeaderField: "X-Fusion-Route")
         request.timeoutInterval = 300
         if !apiKey.isEmpty {
             request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")

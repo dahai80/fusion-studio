@@ -23,6 +23,9 @@ struct DesignChatPanel: View {
     @State private var showSwiftUIExport: Bool = false
     @State private var showCodegenExport: Bool = false
     @State private var showBatchExport: Bool = false
+    @State private var refocusTrigger: Int = 0
+    @State private var selectedModel: String = ""
+    @StateObject private var voiceInput = VoiceInputManager()
 
     private var hasDesignMessages: Bool {
         !designBridge.messages.isEmpty || designBridge.isGenerating
@@ -46,38 +49,26 @@ struct DesignChatPanel: View {
                     Rectangle().fill(theme.separator).frame(height: 1)
                 }
 
+                if let error = designBridge.errorMessage {
+                    HStack(spacing: theme.spacingXS) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: theme.captionSize))
+                            .foregroundStyle(.orange)
+                        Text(error)
+                            .font(.system(size: theme.captionSize))
+                            .foregroundStyle(.orange)
+                            .lineLimit(2)
+                    }
+                    .padding(.horizontal, theme.spacingM)
+                    .padding(.top, theme.spacingS)
+                }
+
                 Rectangle().fill(theme.separator).frame(height: 1)
-                CenteredChatInput(
-                    text: $inputText,
-                    placeholder: "描述你想设计的界面...",
-                    isCentered: false,
-                    onSend: sendChat,
-                    trailingContent: AnyView(
-                        Button(action: { sendChat() }) {
-                            Image(systemName: designBridge.isGenerating ? "stop.circle" : "arrow.up.circle.fill")
-                                .font(.system(size: theme.iconL))
-                                .foregroundStyle(designBridge.isGenerating ? theme.textTertiary : theme.accent)
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(inputText.isEmpty && !designBridge.isGenerating)
-                    )
-                )
+                designInputCard
             } else {
-                CenteredChatInput(
-                    text: $inputText,
-                    placeholder: "描述你想设计的界面...",
-                    isCentered: true,
-                    onSend: sendChat,
-                    trailingContent: AnyView(
-                        Button(action: { sendChat() }) {
-                            Image(systemName: "arrow.up.circle.fill")
-                                .font(.system(size: 24))
-                                .foregroundStyle(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? theme.textQuaternary : theme.accent)
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    )
-                )
+                welcomeContent
+                Rectangle().fill(theme.separator).frame(height: 1)
+                designInputCard
             }
         }
         .frame(minWidth: 280, idealWidth: 320, maxWidth: 400)
@@ -254,10 +245,181 @@ struct DesignChatPanel: View {
         .padding(.vertical, theme.spacingS)
     }
 
+    private var welcomeContent: some View {
+        VStack(spacing: 0) {
+            Spacer(minLength: 0)
+
+            Image(systemName: "paintbrush.pointed")
+                .font(.system(size: 40))
+                .foregroundStyle(theme.textQuaternary)
+
+            Text("Fusion Design")
+                .font(.system(size: 28, weight: .bold))
+                .foregroundStyle(theme.text)
+                .padding(.top, theme.spacingM)
+
+            Text("描述你想设计的界面，AI 将为你生成可交互的代码")
+                .font(.system(size: theme.textSize))
+                .foregroundStyle(theme.textTertiary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 260)
+                .padding(.top, theme.spacingS)
+
+            quickTemplateGrid
+                .padding(.top, theme.spacingL)
+
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var designInputCard: some View {
+        VStack(spacing: 0) {
+            if !designBridge.marqueeSelectedNodeIDs.isEmpty {
+                marqueeEditBanner
+                    .padding(.horizontal, theme.spacingM)
+                    .padding(.top, theme.spacingS)
+            }
+
+            VStack(spacing: 0) {
+                SendableTextEditor(
+                    text: $inputText,
+                    placeholder: "描述你想设计的界面...",
+                    font: .systemFont(ofSize: CGFloat(theme.textSize)),
+                    textColor: NSColor(theme.text),
+                    placeholderColor: NSColor(theme.textTertiary),
+                    maxHeight: 88,
+                    onSend: sendChat,
+                    refocusTrigger: $refocusTrigger
+                )
+                .frame(minHeight: 36, idealHeight: 44, maxHeight: 88)
+                .padding(.horizontal, theme.spacingL)
+                .padding(.top, theme.spacingM)
+
+                Rectangle().fill(theme.separator.opacity(0.5)).frame(height: 1)
+
+                inputToolbarRow
+            }
+            .frame(maxWidth: 680)
+            .background(theme.inputBg)
+            .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
+                    .stroke(theme.inputBorder, lineWidth: 1)
+            )
+        }
+        .padding(.horizontal, theme.spacingL)
+        .padding(.vertical, theme.spacingM)
+        .background(theme.contentBg)
+    }
+
+    private var inputToolbarRow: some View {
+        HStack(spacing: theme.spacingS) {
+            Menu {
+                Button(action: { inputText = "" }) {
+                    Label("清空输入", systemImage: "xmark.circle")
+                }
+                Divider()
+                Button(action: { designBridge.clearConversation() }) {
+                    Label("清空对话", systemImage: "trash")
+                }
+                .disabled(designBridge.messages.isEmpty)
+                Divider()
+                Button(action: { designBridge.copyCurrentCode() }) {
+                    Label("复制当前代码", systemImage: "doc.on.doc")
+                }
+                .disabled(designBridge.currentArtifactCode.isEmpty)
+            } label: {
+                Image(systemName: "plus.circle")
+                    .font(.system(size: 18))
+                    .foregroundStyle(theme.textTertiary)
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+
+            if !designBridge.currentArtifactCode.isEmpty && !designBridge.isGenerating {
+                Button(action: { saveArtifact() }) {
+                    Image(systemName: designBridge.artifactSaved ? "checkmark.circle.fill" : "square.and.arrow.down")
+                        .font(.system(size: theme.iconS))
+                        .foregroundStyle(designBridge.artifactSaved ? .green : theme.textTertiary)
+                }
+                .buttonStyle(.plain)
+                .disabled(designBridge.artifactSaved)
+                .help("保存")
+
+                Button(action: { designBridge.copyCurrentCode() }) {
+                    Image(systemName: "doc.on.doc")
+                        .font(.system(size: theme.iconS))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .buttonStyle(.plain)
+                .help("复制代码")
+
+                if !designBridge.artifactId.isEmpty {
+                    Button(action: {
+                        showVersionHistory.toggle()
+                        if showVersionHistory {
+                            Task { await designBridge.loadVersionHistory() }
+                        }
+                    }) {
+                        Image(systemName: "clock.arrow.circlepath")
+                            .font(.system(size: theme.iconS))
+                            .foregroundStyle(showVersionHistory ? theme.accent : theme.textTertiary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("历史")
+                }
+
+                Button(action: { exportSwiftUI() }) {
+                    if designBridge.isExportingSwiftUI {
+                        ProgressView().scaleEffect(0.6).frame(width: 12, height: 12)
+                    } else {
+                        Image(systemName: "swift")
+                            .font(.system(size: theme.iconS))
+                            .foregroundStyle(theme.textTertiary)
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(designBridge.isExportingSwiftUI)
+                .help("导出 SwiftUI")
+            }
+
+            Spacer()
+
+            FusionModelPicker(scene: .artifacts, selection: $selectedModel, models: agentBridge.models, onChange: { id in
+                designBridge.selectedModel = id
+                chatPanelLog.info("Design model selected: \(id)")
+            })
+
+            VoiceInputButton(voice: voiceInput, text: $inputText, onSend: sendChat)
+
+            if designBridge.isGenerating {
+                Button(action: { sendChat() }) {
+                    Image(systemName: "stop.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(theme.accentDestructive)
+                }
+                .buttonStyle(.plain)
+                .help("停止")
+            } else {
+                Button(action: sendChat) {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? theme.textQuaternary : theme.accent)
+                }
+                .buttonStyle(.plain)
+                .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .help("发送")
+            }
+        }
+        .padding(.horizontal, theme.spacingM)
+        .padding(.vertical, theme.spacingS)
+    }
+
     private var messageList: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(spacing: theme.spacingS) {
+                LazyVStack(spacing: theme.spacingM) {
                     if designBridge.messages.isEmpty {
                         emptyState
                     } else {
@@ -271,8 +433,9 @@ struct DesignChatPanel: View {
                         }
                     }
                 }
-                .padding(theme.spacingM)
+                .padding(theme.spacingL)
             }
+            .background(theme.contentBg)
             .onChange(of: designBridge.messages.count) {
                 if autoScroll, let last = designBridge.messages.last {
                     withAnimation(.easeOut(duration: 0.2)) {
@@ -413,21 +576,23 @@ struct DesignChatPanel: View {
 
     private func messageBubble(_ msg: DesignMessage) -> some View {
         let isUser = msg.role == "user"
-        return HStack {
-            if isUser { Spacer(minLength: 40) }
+        return HStack(alignment: .top, spacing: theme.spacingS) {
+            if isUser { Spacer(minLength: 60) }
             VStack(alignment: isUser ? .trailing : .leading, spacing: 4) {
                 Text(isUser ? "你" : "设计师")
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(theme.textTertiary)
+                    .font(.system(size: theme.captionSize, weight: .medium))
+                    .foregroundStyle(isUser ? theme.textTertiary : theme.accent)
 
                 if isUser {
                     Text(msg.content)
-                        .font(.system(size: theme.footnoteSize))
+                        .font(.system(size: theme.textSize))
                         .foregroundStyle(theme.text)
-                        .padding(theme.spacingM)
+                        .textSelection(.enabled)
+                        .padding(.horizontal, theme.spacingM)
+                        .padding(.vertical, theme.spacingS)
                         .background(
-                            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                                .fill(theme.accent.opacity(0.15))
+                            RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
+                                .fill(theme.accent.opacity(0.12))
                         )
                 } else {
                     assistantContent(msg)
@@ -436,15 +601,15 @@ struct DesignChatPanel: View {
                 if msg.artifactInfo != nil {
                     HStack(spacing: theme.spacingXS) {
                         Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 9))
+                            .font(.system(size: theme.captionSize))
                             .foregroundStyle(.green)
                         Text("已解析: \(msg.artifactInfo!.title)")
-                            .font(.system(size: 9))
+                            .font(.system(size: theme.captionSize))
                             .foregroundStyle(theme.textTertiary)
                     }
                 }
             }
-            if !isUser { Spacer(minLength: 40) }
+            if !isUser { Spacer(minLength: 60) }
         }
     }
 
@@ -465,31 +630,34 @@ struct DesignChatPanel: View {
                         .padding(.horizontal, 4)
                         .padding(.vertical, 1)
                         .background(
-                            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                                RoundedRectangle(cornerRadius: 3, style: .continuous)
                                 .fill(theme.accent.opacity(0.15))
                         )
                 }
-                .padding(theme.spacingM)
+                .padding(.horizontal, theme.spacingM)
+                .padding(.vertical, theme.spacingS)
                 .background(
-                    RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                        .fill(theme.surfaceElevated)
+                    RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
+                        .fill(theme.surfaceSecondary)
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                    RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
                         .stroke(theme.accent.opacity(0.3), lineWidth: 1)
                 )
             }
         } else {
             let displayText = stripArtifactTags(msg.content)
             if !displayText.isEmpty {
-                Text(displayText)
-                    .font(.system(size: theme.footnoteSize))
+                Text((try? AttributedString(markdown: displayText, options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(displayText))
+                    .font(.system(size: theme.textSize))
                     .foregroundStyle(theme.text)
+                    .tint(theme.accent)
                     .textSelection(.enabled)
-                    .padding(theme.spacingM)
+                    .padding(.horizontal, theme.spacingM)
+                    .padding(.vertical, theme.spacingS)
                     .background(
-                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                            .fill(theme.groupBg)
+                        RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
+                            .fill(theme.surfaceSecondary)
                     )
             }
         }
@@ -508,216 +676,6 @@ struct DesignChatPanel: View {
         return result.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private var inputArea: some View {
-        VStack(spacing: theme.spacingS) {
-            if !designBridge.marqueeSelectedNodeIDs.isEmpty {
-                marqueeEditBanner
-            }
-
-            if let error = designBridge.errorMessage {
-                HStack(spacing: theme.spacingXS) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.system(size: 9))
-                        .foregroundStyle(.orange)
-                    Text(error)
-                        .font(.system(size: 9))
-                        .foregroundStyle(.orange)
-                        .lineLimit(2)
-                }
-                .padding(.horizontal, theme.spacingM)
-            }
-
-            HStack(spacing: theme.spacingS) {
-                TextField("描述你想设计的界面...", text: $inputText, axis: .vertical)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: theme.textSize))
-                    .lineLimit(1...5)
-                    .onSubmit { sendChat() }
-
-                Button(action: { sendChat() }) {
-                    Image(systemName: designBridge.isGenerating ? "stop.circle" : "arrow.up.circle.fill")
-                        .font(.system(size: theme.iconL))
-                        .foregroundStyle(designBridge.isGenerating ? theme.textTertiary : theme.accent)
-                }
-                .buttonStyle(.plain)
-                .disabled(inputText.isEmpty && !designBridge.isGenerating)
-                .help(designBridge.isGenerating ? "停止" : "发送")
-            }
-            .padding(.horizontal, theme.spacingM)
-            .padding(.vertical, theme.spacingXS)
-
-            if !designBridge.currentArtifactCode.isEmpty && !designBridge.isGenerating {
-                actionBar
-            }
-        }
-        .padding(.bottom, theme.spacingS)
-    }
-
-    private var actionBar: some View {
-        VStack(spacing: theme.spacingXS) {
-            HStack(spacing: theme.spacingS) {
-                Button(action: { saveArtifact() }) {
-                    HStack(spacing: theme.spacingXS) {
-                        Image(systemName: "square.and.arrow.down")
-                            .font(.system(size: theme.iconS))
-                        Text(designBridge.artifactSaved ? "已保存" : "保存")
-                            .font(.system(size: theme.footnoteSize, weight: .medium))
-                    }
-                    .foregroundStyle(designBridge.artifactSaved ? .green : theme.accent)
-                    .padding(.horizontal, theme.spacingM)
-                    .padding(.vertical, theme.spacingXS)
-                    .background(
-                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                            .stroke(designBridge.artifactSaved ? Color.green : theme.accent, lineWidth: 1)
-                    )
-                }
-                .buttonStyle(.plain)
-                .disabled(designBridge.artifactSaved)
-
-                Button(action: { designBridge.copyCurrentCode() }) {
-                    HStack(spacing: theme.spacingXS) {
-                        Image(systemName: "doc.on.doc")
-                            .font(.system(size: theme.iconS))
-                        Text("复制代码")
-                            .font(.system(size: theme.footnoteSize, weight: .medium))
-                    }
-                    .foregroundStyle(theme.textSecondary)
-                    .padding(.horizontal, theme.spacingM)
-                    .padding(.vertical, theme.spacingXS)
-                    .background(
-                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                            .stroke(theme.groupBorder, lineWidth: 1)
-                    )
-                }
-                .buttonStyle(.plain)
-
-                if !designBridge.artifactId.isEmpty {
-                    Button(action: {
-                        showVersionHistory.toggle()
-                        if showVersionHistory {
-                            Task { await designBridge.loadVersionHistory() }
-                        }
-                    }) {
-                        HStack(spacing: theme.spacingXS) {
-                            Image(systemName: "clock.arrow.circlepath")
-                                .font(.system(size: theme.iconS))
-                            Text("历史")
-                                .font(.system(size: theme.footnoteSize, weight: .medium))
-                        }
-                        .foregroundStyle(showVersionHistory ? theme.accent : theme.textSecondary)
-                        .padding(.horizontal, theme.spacingM)
-                        .padding(.vertical, theme.spacingXS)
-                        .background(
-                            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                                .stroke(showVersionHistory ? theme.accent : theme.groupBorder, lineWidth: 1)
-                        )
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                if !designBridge.currentArtifactCode.isEmpty {
-                    Button(action: { exportSwiftUI() }) {
-                        HStack(spacing: theme.spacingXS) {
-                            if designBridge.isExportingSwiftUI {
-                                ProgressView()
-                                    .scaleEffect(0.6)
-                                    .frame(width: 12, height: 12)
-                            } else {
-                                Image(systemName: "swift")
-                                    .font(.system(size: theme.iconS))
-                            }
-                            Text(designBridge.isExportingSwiftUI ? "导出中" : "SwiftUI")
-                                .font(.system(size: theme.footnoteSize, weight: .medium))
-                        }
-                        .foregroundStyle(theme.textSecondary)
-                        .padding(.horizontal, theme.spacingM)
-                        .padding(.vertical, theme.spacingXS)
-                        .background(
-                            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                                .stroke(theme.groupBorder, lineWidth: 1)
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(designBridge.isExportingSwiftUI)
-
-                    Menu {
-                        Button("HTML") {
-                            Task { await exportCodegen(target: "html") }
-                        }
-                        Button("React + Tailwind") {
-                            Task { await exportCodegen(target: "react-tailwind") }
-                        }
-                        Button("Tailwind only") {
-                            Task { await exportCodegen(target: "tailwind-only") }
-                        }
-                    } label: {
-                        HStack(spacing: theme.spacingXS) {
-                            if designBridge.isExportingCodegen {
-                                ProgressView()
-                                    .scaleEffect(0.6)
-                                    .frame(width: 12, height: 12)
-                            } else {
-                                Image(systemName: "chevron.left.forwardslash.chevron.right")
-                                    .font(.system(size: theme.iconS))
-                            }
-                            Text(designBridge.isExportingCodegen ? "导出中" : "Code")
-                                .font(.system(size: theme.footnoteSize, weight: .medium))
-                        }
-                        .foregroundStyle(theme.textSecondary)
-                        .padding(.horizontal, theme.spacingM)
-                        .padding(.vertical, theme.spacingXS)
-                        .background(
-                            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                                .stroke(theme.groupBorder, lineWidth: 1)
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(designBridge.isExportingCodegen)
-
-                    Menu {
-                        Button("SVG") {
-                            Task { await batchExport(format: "svg") }
-                        }
-                        Button("HTML") {
-                            Task { await batchExport(format: "html") }
-                        }
-                        Button("JSON") {
-                            Task { await batchExport(format: "json") }
-                        }
-                    } label: {
-                        HStack(spacing: theme.spacingXS) {
-                            if designBridge.isBatchExporting {
-                                ProgressView()
-                                    .scaleEffect(0.6)
-                                    .frame(width: 12, height: 12)
-                            } else {
-                                Image(systemName: "square.and.arrow.up")
-                                    .font(.system(size: theme.iconS))
-                            }
-                            Text(designBridge.isBatchExporting ? "导出中" : "导出")
-                                .font(.system(size: theme.footnoteSize, weight: .medium))
-                        }
-                        .foregroundStyle(theme.textSecondary)
-                        .padding(.horizontal, theme.spacingM)
-                        .padding(.vertical, theme.spacingXS)
-                        .background(
-                            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                                .stroke(theme.groupBorder, lineWidth: 1)
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(designBridge.isBatchExporting)
-                }
-
-                Spacer()
-            }
-            .padding(.horizontal, theme.spacingM)
-
-            if showVersionHistory && !designBridge.artifactId.isEmpty {
-                versionHistoryList
-            }
-        }
-    }
 
     private var versionHistoryList: some View {
         VStack(alignment: .leading, spacing: theme.spacingXS) {
@@ -1117,12 +1075,13 @@ struct DesignChatPanel: View {
 
                 inferenceStepBar
             }
-            Spacer(minLength: 40)
+            Spacer(minLength: 60)
         }
-        .padding(theme.spacingM)
+        .padding(.horizontal, theme.spacingM)
+        .padding(.vertical, theme.spacingS)
         .background(
-            RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                .fill(theme.groupBg)
+            RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
+                .fill(theme.surfaceSecondary)
         )
         .id("inference-progress")
     }

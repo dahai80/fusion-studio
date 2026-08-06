@@ -121,7 +121,8 @@ struct MLXModelInfo: Codable, Equatable, Identifiable {
 }
 
 // Callers: ChatSessionStore, DesignBridge, CodeEditorView. Affected API: BridgeError.userMessage. Data: error classification for user-facing messages.
-enum BridgeError: Error, Equatable {
+enum BridgeError: Error, Equatable, LocalizedError {
+    var errorDescription: String? { userMessage }
     case notConnected
     case ipcError(String)
     case decodeError(String)
@@ -807,6 +808,7 @@ final class AgentBridge: ObservableObject {
             var request = URLRequest(url: url)
             request.httpMethod = "GET"
             request.timeoutInterval = 10
+            request.setValue("studio", forHTTPHeaderField: "X-Fusion-Route")
             if !apiKey.isEmpty {
                 request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
             }
@@ -988,6 +990,7 @@ final class AgentBridge: ObservableObject {
         request.httpMethod = "POST"
         request.httpBody = requestData
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("studio", forHTTPHeaderField: "X-Fusion-Route")
         request.timeoutInterval = 120
         if !apiKey.isEmpty {
             request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
@@ -1054,6 +1057,7 @@ final class AgentBridge: ObservableObject {
         request.httpBody = requestData
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+        request.setValue("studio", forHTTPHeaderField: "X-Fusion-Route")
         request.timeoutInterval = 300
         if !apiKey.isEmpty {
             request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
@@ -1064,6 +1068,7 @@ final class AgentBridge: ObservableObject {
             throw BridgeError.serviceUnavailable("MLX non-HTTP response")
         }
         if httpResp.statusCode == 401 || httpResp.statusCode == 403 {
+            logger.error("inferStream: auth failed HTTP \(httpResp.statusCode), baseURL=\(baseURL), apiKeyLen=\(apiKey.count), route=studio")
             throw BridgeError.authFailed("MLX returned HTTP \(httpResp.statusCode)")
         }
         guard httpResp.statusCode == 200 else {

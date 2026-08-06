@@ -123,6 +123,7 @@ struct FusionCodeView: View {
     @EnvironmentObject var bridge: AgentBridge
     @StateObject private var fcBridge = FusionCodeBridge.shared
     @StateObject private var workspace = ProjectWorkspace.shared
+    @StateObject private var voiceInput = VoiceInputManager()
 
     @State private var inputText = ""
     @State private var messages: [FCChatMessage] = []
@@ -706,6 +707,8 @@ struct FusionCodeView: View {
                     detectGitURL(newValue)
                 }
 
+                VoiceInputButton(voice: voiceInput, text: $inputText, onSend: sendMessage)
+
                 if fcBridge.isStreaming {
                     Button(action: { fcBridge.chatCancel() }) {
                         Image(systemName: "stop.circle.fill")
@@ -1094,6 +1097,13 @@ struct FusionCodeView: View {
     // MARK: - Actions
 
     private func sendMessage() {
+        if voiceInput.isRecording {
+            let transcript = voiceInput.stopRecording()
+            let trimmed = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty {
+                inputText += (inputText.isEmpty ? "" : " ") + trimmed
+            }
+        }
         let text = inputText.trimmingCharacters(in: .whitespaces)
         guard !text.isEmpty else { return }
 

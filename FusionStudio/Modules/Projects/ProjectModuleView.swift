@@ -985,6 +985,15 @@ private struct ProjectGlobalMenu: View {
                     _ = try await ipc.projectArchive(projectId: project.id)
                 }
                 try await ipc.projectDelete(projectId: project.id)
+                await MainActor.run {
+                    let pm = FusionProjectManager.shared
+                    pm.projects.removeAll { $0.id == project.id }
+                    if pm.activeProject?.id == project.id {
+                        pm.activeProject = nil
+                        pm.activeChat = nil
+                        pm.activeChatMessages = []
+                    }
+                }
                 projLog.info("deleted project \(project.id)")
             } catch {
                 projLog.error("deleteProject failed: \(error.localizedDescription)")
@@ -1618,6 +1627,7 @@ private struct KnowledgeFileMenu: View {
 
 struct ProjectChatsPanel: View {
     @EnvironmentObject var ipc: IPCClient
+    @EnvironmentObject var agentBridge: AgentBridge
     @Environment(\.studioTheme) private var theme
 
     let projectId: String
@@ -1625,6 +1635,8 @@ struct ProjectChatsPanel: View {
     @State private var activeChatId: String?
     @State private var messages: [ChatMessage] = []
     @State private var inputText = ""
+    @State private var selectedModel: String = ""
+    @StateObject private var voiceInput = VoiceInputManager()
     @State private var ragMode: RAGMode = .AUTO
     @State private var showRAGScopeSelector = false
     @State private var showSnapshots = false
@@ -1634,6 +1646,8 @@ struct ProjectChatsPanel: View {
     @State private var showRAGConfig = false
     @State private var snapshots: [ChatSnapshot] = []
     @State private var selectedChatForMenu: ProjectChat?
+    @State private var errorMessage: String?
+    @State private var showError = false
 
     var body: some View {
         HStack(spacing: 0) {
@@ -1724,6 +1738,11 @@ struct ProjectChatsPanel: View {
             loadChats()
             loadSnapshots()
             refreshBudget()
+        }
+        .alert("提示", isPresented: $showError, presenting: errorMessage) { _ in
+            Button("好的", role: .cancel) {}
+        } message: { msg in
+            Text(msg)
         }
     }
 
@@ -1922,6 +1941,12 @@ struct ProjectChatsPanel: View {
                     .font(.system(size: theme.footnoteSize))
                     .onSubmit { sendMessage(chatId: chatId) }
 
+                FusionModelPicker(scene: .agent, selection: $selectedModel, models: agentBridge.models, onChange: { id in
+                    projLog.info("Project chat model selected: \(id)")
+                })
+
+                VoiceInputButton(voice: voiceInput, text: $inputText, onSend: { sendMessage(chatId: chatId) })
+
                 // Send
                 Button(action: { sendMessage(chatId: chatId) }) {
                     Image(systemName: "paperplane.fill")
@@ -2050,6 +2075,10 @@ struct ProjectChatsPanel: View {
                 projLog.info("Chat created in project \(projectId)")
             } catch {
                 projLog.error("createNewChat failed: \(error.localizedDescription)")
+                await MainActor.run {
+                    self.errorMessage = "创建会话失败：\(error.localizedDescription)\n请确认 fusion-projects 服务已启动。"
+                    self.showError = true
+                }
             }
         }
     }
@@ -2070,6 +2099,13 @@ struct ProjectChatsPanel: View {
     }
 
     private func sendMessage(chatId: String) {
+        if voiceInput.isRecording {
+            let transcript = voiceInput.stopRecording()
+            let trimmed = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty {
+                inputText += (inputText.isEmpty ? "" : " ") + trimmed
+            }
+        }
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         inputText = ""

@@ -11,19 +11,22 @@ struct CenteredChatInput: View {
     let onSend: () -> Void
     var maxLineLimit: Int = 6
     var trailingContent: AnyView?
+    var isGenerating: Bool = false
 
     init(text: Binding<String>,
          placeholder: String = "Message...",
          isCentered: Bool,
          onSend: @escaping () -> Void,
          maxLineLimit: Int = 6,
-         trailingContent: AnyView? = nil) {
+         trailingContent: AnyView? = nil,
+         isGenerating: Bool = false) {
         self._text = text
         self.placeholder = placeholder
         self.isCentered = isCentered
         self.onSend = onSend
         self.maxLineLimit = maxLineLimit
         self.trailingContent = trailingContent
+        self.isGenerating = isGenerating
     }
 
     var body: some View {
@@ -70,12 +73,12 @@ struct CenteredChatInput: View {
                     trailing
                 }
                 Button(action: sendIfNotEmpty) {
-                    Image(systemName: "arrow.up.circle.fill")
+                    Image(systemName: isGenerating ? "stop.circle" : "arrow.up.circle.fill")
                         .font(.system(size: 24))
-                        .foregroundStyle(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? theme.textQuaternary : theme.accent)
+                        .foregroundStyle(isGenerating ? theme.textTertiary : (text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? theme.textQuaternary : theme.accent))
                 }
                 .buttonStyle(.plain)
-                .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(!isGenerating && text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
 
             Spacer()
@@ -116,12 +119,12 @@ struct CenteredChatInput: View {
             }
 
             Button(action: sendIfNotEmpty) {
-                Image(systemName: "arrow.up.circle.fill")
+                Image(systemName: isGenerating ? "stop.circle" : "arrow.up.circle.fill")
                     .font(.system(size: 24))
-                    .foregroundStyle(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? theme.textQuaternary : theme.accent)
+                    .foregroundStyle(isGenerating ? theme.textTertiary : (text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? theme.textQuaternary : theme.accent))
             }
             .buttonStyle(.plain)
-            .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .disabled(!isGenerating && text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .padding(.horizontal, theme.spacingL)
         .padding(.vertical, theme.spacingM)

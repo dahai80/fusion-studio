@@ -221,11 +221,7 @@ struct DesignTokenPanel: View {
 
     @ViewBuilder
     private func editableColorSwatch(name: String, color: Color) -> some View {
-        let nsColor = NSColor(color)
-        let hex = String(format: "#%02X%02X%02X",
-            Int(nsColor.redComponent * 255),
-            Int(nsColor.greenComponent * 255),
-            Int(nsColor.blueComponent * 255))
+        let hex = Self.hexString(for: color)
 
         RoundedRectangle(cornerRadius: 6, style: .continuous)
             .fill(color)
@@ -430,6 +426,17 @@ struct DesignTokenPanel: View {
                 .padding(theme.spacingXS)
             }
         }
+    }
+
+    static func hexString(for color: Color) -> String {
+        let raw = NSColor(color)
+        guard let srgb = raw.usingColorSpace(.sRGB) else {
+            tokenLog.error("DesignTokenPanel: color not convertible to sRGB, fallback #000000")
+            return "#000000"
+        }
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        srgb.getRed(&r, green: &g, blue: &b, alpha: &a)
+        return String(format: "#%02X%02X%02X", Int(r * 255), Int(g * 255), Int(b * 255))
     }
 
     private func tokenSectionHeader(_ title: String) -> some View {

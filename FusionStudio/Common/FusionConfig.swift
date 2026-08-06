@@ -76,7 +76,7 @@ class FusionConfig: ObservableObject {
 
     // MARK: - MLX
     @AppStorage("mlxHost") var mlxHost = "localhost"
-    @AppStorage("mlxPort") var mlxPort = 11432
+    @AppStorage("mlxPort") var mlxPort = 11434
     @AppStorage("mlxApiKey") var mlxApiKey = ""
     @AppStorage("mlxModel") var mlxModel = ""
     @AppStorage("mlxPath") var mlxPath = ""
@@ -216,21 +216,21 @@ class FusionConfig: ObservableObject {
     /// 3) ~/.fusion-mlx/settings.json -> auth.api_key
     var mlxResolvedApiKey: String {
         if !mlxApiKey.isEmpty {
-            fusionConfigLog.info("mlxResolvedApiKey: source=user-settings")
+            fusionConfigLog.error("mlxResolvedApiKey: source=user-settings")
             return mlxApiKey
         }
         if let envKey = ProcessInfo.processInfo.environment["FUSION_MLX_API_KEY"], !envKey.isEmpty {
-            fusionConfigLog.info("mlxResolvedApiKey: source=FUSION_MLX_API_KEY env")
+            fusionConfigLog.error("mlxResolvedApiKey: source=FUSION_MLX_API_KEY env")
             return envKey
         }
         if let data = try? Data(contentsOf: URL(fileURLWithPath: NSHomeDirectory() + "/.fusion-mlx/settings.json")),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let auth = json["auth"] as? [String: Any],
            let key = auth["api_key"] as? String, !key.isEmpty {
-            fusionConfigLog.info("mlxResolvedApiKey: source=settings.json")
+            fusionConfigLog.error("mlxResolvedApiKey: source=settings.json")
             return key
         }
-        fusionConfigLog.warning("mlxResolvedApiKey: no key resolved (env/settings both empty)")
+        fusionConfigLog.error("mlxResolvedApiKey: no key resolved (env/settings both empty)")
         return ""
     }
 
@@ -269,7 +269,7 @@ class FusionConfig: ObservableObject {
         workspacePath = "~/FusionStudio/workspace"
         ipcSocketPath = "/tmp/fusion-studio.sock"
         mlxHost = "localhost"
-        mlxPort = 11432
+        mlxPort = 11434
         mlxModel = ""
         mlxModelSmall = ""
         mlxModelCode = ""

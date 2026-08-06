@@ -105,6 +105,8 @@ struct ArtifactsPanel: View {
     @State private var chatInput = ""
     @State private var chatGenerating = false
     @State private var chatError: String?
+    @State private var selectedModel: String = ""
+    @StateObject private var voiceInput = VoiceInputManager()
     @State private var liveContent = ""
     @State private var liveType = "html"
     @State private var liveKind: ArtifactKind = .app
@@ -516,6 +518,12 @@ struct ArtifactsPanel: View {
                     .lineLimit(1...5)
                     .onSubmit { sendChat() }
 
+                FusionModelPicker(scene: .artifacts, selection: $selectedModel, models: agentBridge.models, onChange: { id in
+                    artifactsLog.info("Artifacts model selected: \(id)")
+                })
+
+                VoiceInputButton(voice: voiceInput, text: $chatInput, onSend: sendChat)
+
                 Button(action: { sendChat() }) {
                     Image(systemName: chatGenerating ? "stop.fill" : "arrow.up.circle.fill")
                         .font(.system(size: theme.iconL))
@@ -616,6 +624,13 @@ struct ArtifactsPanel: View {
     }
 
     private func sendChat() {
+        if voiceInput.isRecording {
+            let transcript = voiceInput.stopRecording()
+            let trimmed = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty {
+                chatInput += (chatInput.isEmpty ? "" : " ") + trimmed
+            }
+        }
         let prompt = chatInput.trimmingCharacters(in: .whitespaces)
         guard !prompt.isEmpty else { return }
         chatInput = ""
@@ -644,7 +659,7 @@ struct ArtifactsPanel: View {
 
         Task {
             do {
-                let artifactsModel = FusionConfig.shared.defaultModel(for: .artifacts)
+                let artifactsModel = selectedModel.isEmpty ? FusionConfig.shared.defaultModel(for: .artifacts) : selectedModel
                 artifactsLog.info("Artifacts stream model: \(artifactsModel.isEmpty ? "(mlx default)" : artifactsModel)")
                 let fullResp = try await agentBridge.inferStream(
                     messages: messages,
@@ -1555,7 +1570,8 @@ struct ArtifactCreateChatSheet: View {
                 chatMessages.append(ChatMessage(role: "assistant", content: response))
                 artifactsLog.info("Generated artifact content: \(generatedContent.count) chars")
             } catch {
-                errorMessage = "Generation failed: \(error.localizedDescription)"
+                let msg = (error as? BridgeError)?.userMessage ?? error.localizedDescription
+                errorMessage = "Generation failed: \(msg)"
                 artifactsLog.error("generateArtifact: \(error)")
             }
             isGenerating = false

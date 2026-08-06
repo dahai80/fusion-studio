@@ -7,9 +7,12 @@ struct ScienceChatView: View {
     @Environment(\.studioTheme) private var theme
     @EnvironmentObject var scienceBridge: ScienceBridge
     @EnvironmentObject var scienceSSE: ScienceSSEClient
+    @EnvironmentObject var agentBridge: AgentBridge
     @Binding var inputText: String
     @Binding var selectedPipeline: SciencePipelineTemplate?
     @State private var autoScroll: Bool = true
+    @State private var selectedModel: String = ""
+    @StateObject private var voiceInput = VoiceInputManager()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -276,6 +279,10 @@ struct ScienceChatView: View {
                     .onTapGesture { selectedPipeline = nil }
                 }
                 Spacer()
+                FusionModelPicker(scene: .chat, selection: $selectedModel, models: agentBridge.models, onChange: { id in
+                    chatLog.info("Science model selected: \(id)")
+                })
+                VoiceInputButton(voice: voiceInput, text: $inputText, onSend: sendMessage)
                 Button {
                     sendMessage()
                 } label: {
@@ -293,6 +300,13 @@ struct ScienceChatView: View {
     }
 
     private func sendMessage() {
+        if voiceInput.isRecording {
+            let transcript = voiceInput.stopRecording()
+            let trimmed = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty {
+                inputText += (inputText.isEmpty ? "" : " ") + trimmed
+            }
+        }
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
 

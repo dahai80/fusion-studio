@@ -25,7 +25,7 @@ struct ProjectsPanel: View {
     @Environment(\.studioTheme) private var theme
     @StateObject private var pm = FusionProjectManager.shared
     @State private var searchText = ""
-    @State private var sortOption: ProjectSortOption = .lastUpdated
+    @State private var sortOption: ProjectSortOption = .dateCreated
     @State private var showDetail = false
     @State private var detailTab: ProjectDetailTab = .knowledge
     @State private var instructionText = ""

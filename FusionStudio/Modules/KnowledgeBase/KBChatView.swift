@@ -5,11 +5,14 @@ import os
 
 struct KBChatView: View {
     @StateObject private var client = RAGAPIClient.shared
+    @EnvironmentObject private var agentBridge: AgentBridge
     @State private var selectedKBId: String = ""
     @State private var question = ""
     @State private var isAsking = false
     @State private var chatHistory: [ChatMessage] = []
     @State private var rewriteMode: String? = nil
+    @State private var selectedModel: String = ""
+    @StateObject private var voiceInput = VoiceInputManager()
 
     private let logger = Logger(subsystem: "com.fusion.studio", category: "KBChatView")
 
@@ -48,7 +51,8 @@ struct KBChatView: View {
                     text: $question,
                     placeholder: "输入问题...",
                     isCentered: true,
-                    onSend: submitQuestion
+                    onSend: submitQuestion,
+                    trailingContent: AnyView(inputControls)
                 )
             } else {
                 ScrollViewReader { proxy in
@@ -73,7 +77,8 @@ struct KBChatView: View {
                     text: $question,
                     placeholder: "输入问题...",
                     isCentered: false,
-                    onSend: submitQuestion
+                    onSend: submitQuestion,
+                    trailingContent: AnyView(inputControls)
                 )
             }
         }
@@ -82,7 +87,23 @@ struct KBChatView: View {
         }
     }
 
+    private var inputControls: some View {
+        HStack(spacing: 8) {
+            FusionModelPicker(scene: .chat, selection: $selectedModel, models: agentBridge.models, onChange: { id in
+                logger.info("KB model selected: \(id)")
+            })
+            VoiceInputButton(voice: voiceInput, text: $question, onSend: submitQuestion)
+        }
+    }
+
     private func submitQuestion() {
+        if voiceInput.isRecording {
+            let transcript = voiceInput.stopRecording()
+            let trimmed = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty {
+                question += (question.isEmpty ? "" : " ") + trimmed
+            }
+        }
         guard !question.isEmpty, !selectedKBId.isEmpty else { return }
         let q = question
         question = ""

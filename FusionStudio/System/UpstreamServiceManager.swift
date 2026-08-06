@@ -235,23 +235,22 @@ final class UpstreamServiceManager: ObservableObject {
 
     // MARK: - 启动流程
 
-    /// 启动时调用：先全量探测，再按顺序自动启动未运行的关键服务。
+    /// 启动时调用：先全量探测，再按顺序自动启动未运行的服务。
     func ensureCriticalRunning() async {
         logger.info("ensureCriticalRunning: begin")
         await refreshAll()
         guard FusionConfig.shared.upstreamAutoStartCritical else {
-            logger.info("auto-start disabled by config, skipping critical launch")
+            logger.info("auto-start disabled by config, skipping launch")
             await MainActor.run { self.startupCompleted = true }
             return
         }
-        // 按依赖顺序启动关键服务：mlx -> agent-studio -> artifacts-engine
+        // 按依赖顺序启动所有未运行的服务（非关键服务失败不阻塞）
         let ordered = services
-            .filter { $0.isCritical }
             .sorted { $0.startOrder < $1.startOrder }
         for svc in ordered {
             let cur = services.first { $0.id == svc.id }?.status ?? .unknown
             if cur == .stopped {
-                logger.info("auto-starting critical service: \(svc.id)")
+                logger.info("auto-starting service: \(svc.id)")
                 await startService(id: svc.id)
             } else {
                 logger.info("service \(svc.id) status=\(svc.status.text), skip auto-start")

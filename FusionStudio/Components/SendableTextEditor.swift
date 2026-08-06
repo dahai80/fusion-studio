@@ -106,7 +106,7 @@ struct SendableTextEditor: NSViewRepresentable {
             guard let textView = textView else { return }
             if textView.string.isEmpty {
                 if placeholderTextView == nil {
-                    let ph = NSTextView()
+                    let ph = PassthroughPlaceholderTextView()
                     ph.isEditable = false
                     ph.isSelectable = false
                     ph.drawsBackground = false
@@ -129,6 +129,12 @@ struct SendableTextEditor: NSViewRepresentable {
                 placeholderTextView?.isHidden = true
             }
         }
+    }
+}
+
+class PassthroughPlaceholderTextView: NSTextView {
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        return nil
     }
 }
 
