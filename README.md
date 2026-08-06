@@ -535,6 +535,18 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 
 ## 📋 Changelog
 
+### Health Check + Module Fixes (2026-08-06)
+
+Strict health check + per-subsystem startup buttons + several module UX/auth fixes:
+
+- **Strict health check**: only HTTP 200-299 (not 401/403/404) and UDS responses with `result` field count as healthy. `EnvironmentHealthSheet` now probes 9 subsystems (added **fusion-model-hub**) via strict `probeHTTP`/`probeUDS`. UDS probe loop-reads until newline (fixes 6272-byte `project.list` truncation false-negative)
+- **Per-subsystem 启动 buttons**: `upstreamServiceIdMap` maps each failing subsystem to an `UpstreamServiceManager` service id; 启动 calls `start.sh start`, waits 3s, re-probes. Covers mlx/rag/modelhub/artifacts/cowork/projects/code
+- **fusion-model-hub lifecycle**: created upstream `start.sh` (nohup `fusion-model-hub serve`, PID file, logs/) + changed health endpoint from `/api/v1/system/info` (needs auth) to `/api/v1/system/health` (public 200)
+- **Projects delete "project not found" fix**: `FusionProject.id` `let`→`var` + direct id assignment in `fromDict`; removed fragile encode-decode `_rebuildWithId` roundtrip (date strategy mismatch produced local uppercase UUID → server 404)
+- **Code module fixes**: (1) chat input box moved from full-width bottom bar into the middle chat column only; (2) "fusion-code offline" root cause = `/api/model/status` 401 without auth → added `Bearer fg-admin-key` to all `FusionCodeBridge` HTTP + WS calls
+- **Design submit fix**: empty default model → MLX 400 "model: Field required". `FusionStudioApp.autoPickDefaultModel` picks from `/api/status` (default_model/loaded_models[0]); `DesignBridge`/`DesignChatPanel` guard empty model before send
+- **AI auth self-heal** (`AgentBridge.probeMLXRunningStatus`): on 401/403 catches `BridgeError.authFailed`, reads `~/.fusion-mlx/settings.json` `auth.api_key`, re-probes, and persists to user-settings `mlxApiKey` (priority 1) to override a stale `FUSION_MLX_API_KEY` env var. Verified: cleared key + bad env → self-heal persists `dahai168`, MLX 200
+
 ### Fusion RAG Consolidation (2026-08-05)
 
 Single "Fusion RAG" sidebar entry -> `RAGMainView` (8 sections) wired to **fusion-rag** backend (FastAPI `127.0.0.1:11436`):

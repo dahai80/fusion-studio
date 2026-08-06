@@ -164,7 +164,7 @@ struct ProjectSettings: Codable, Equatable {
 }
 
 struct FusionProject: Identifiable, Codable, Equatable {
-    let id: String
+    var id: String
     var name: String
     var description: String
     var rootPath: String
@@ -238,28 +238,19 @@ struct FusionProject: Identifiable, Codable, Equatable {
         var project = FusionProject(name: name, rootPath: root, description: desc,
                                     customInstructions: instructions, ragMode: ragMode,
                                     promptMergeMode: mergeMode)
+        project.id = id
         project.isStarred = isStarred
         project.isArchived = isArchived
         project.ragTopK = ragTopK
         project.ragThreshold = ragThreshold
         project.defaultAgentId = defaultAgent
-        // Override the auto-generated id with backend id
-        // Since id is `let`, we must reconstruct
-        let reconstructed = FusionProject._rebuildWithId(project, newId: id)
-        return reconstructed
+        return project
     }
 
     private static func _rebuildWithId(_ p: FusionProject, newId: String) -> FusionProject {
         var result = p
-        // Use mirror to set let property — id must be backend id
-        // Since struct `let` can't be mutated, we encode-decode with id override
-        guard var container = try? JSONEncoder().encode(p) else { return p }
-        guard var dict = try? JSONSerialization.jsonObject(with: container) as? [String: Any] else { return p }
-        dict["id"] = newId
-        guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return p }
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        return (try? decoder.decode(FusionProject.self, from: data)) ?? p
+        result.id = newId
+        return result
     }
 
     static func from(recent: RecentProject) -> FusionProject {
@@ -311,6 +302,10 @@ class FusionProjectManager: ObservableObject {
 
     func setIPCClient(_ client: IPCClient) {
         ipcClient = client
+        // IPC 注入后立刻从后端拉取真实项目，覆盖本地遗留 UUID 项目
+        // 否则 ProjectsPanel 侧边栏只会显示 ~/.fusion-studio/projects 本地占位，
+        // 点会话时传本地 UUID 给后端 -> "project not found"
+        Task { await loadProjectsFromBackend() }
     }
 
     // MARK: - Backend-Synced Operations

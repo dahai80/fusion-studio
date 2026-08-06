@@ -407,8 +407,50 @@ final class AgentBridge: ObservableObject {
             _ = try await fetchModels()
             logger.info("probeMLXRunningStatus: mlx reachable (HTTP /v1/models)")
             return true
+        } catch BridgeError.authFailed {
+            // 401/403：当前解析的 api key 无效。常见根因：~/.zshrc 注入了错误的
+            // FUSION_MLX_API_KEY（gateway 残留 key），env 优先级高于 settings.json。
+            // 自愈：用 settings.json 的 auth.api_key 重试，成功则持久化到 user-settings，
+            // 抬高其优先级覆盖错误 env，避免每次启动都 401。
+            logger.warning("probeMLXRunningStatus: auth failed, attempting settings.json key self-heal")
+            return await selfHealApiKeyFromSettings()
         } catch {
             logger.error("probeMLXRunningStatus: mlx unreachable: \(error)")
+            return false
+        }
+    }
+
+    // 用 ~/.fusion-mlx/settings.json auth.api_key 重试 MLX 探活，成功则写入 user-settings mlxApiKey 持久化
+    private func selfHealApiKeyFromSettings() async -> Bool {
+        let cfg = FusionConfig.shared
+        guard let data = try? Data(contentsOf: URL(fileURLWithPath: NSHomeDirectory() + "/.fusion-mlx/settings.json")),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let auth = json["auth"] as? [String: Any],
+              let key = auth["api_key"] as? String, !key.isEmpty,
+              key != cfg.mlxResolvedApiKey else {
+            logger.error("selfHealApiKey: no valid settings.json key to fall back")
+            return false
+        }
+        let baseURL = cfg.mlxBaseURL
+        guard let url = URL(string: "\(baseURL)/v1/models") else { return false }
+        do {
+            var req = URLRequest(url: url)
+            req.setValue("studio", forHTTPHeaderField: "X-Fusion-Route")
+            req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+            req.timeoutInterval = 10
+            let (_, resp) = try await URLSession.shared.data(for: req)
+            guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else {
+                logger.error("selfHealApiKey: settings.json key also failed (HTTP \((resp as? HTTPURLResponse)?.statusCode ?? -1))")
+                return false
+            }
+            // 持久化：写入 user-settings，优先级最高，覆盖错误 env
+            await MainActor.run {
+                cfg.mlxApiKey = key
+            }
+            logger.info("selfHealApiKey: persisted settings.json key to user-settings (env key was invalid)")
+            return true
+        } catch {
+            logger.error("selfHealApiKey: probe with settings.json key failed: \(error)")
             return false
         }
     }

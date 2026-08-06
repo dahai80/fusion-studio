@@ -168,6 +168,8 @@ struct SectionContentView: View {
                 SpaceListView()
             case .mlx:
                 ModuleDetailView()
+            case .modelHub:
+                ModuleDetailView()
             case .multiNode:
                 ModuleDetailView()
             case .fsb:

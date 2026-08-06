@@ -297,7 +297,7 @@ struct ProjectModuleView: View {
         case .unarchive:
             Task { await unarchiveProject(project.id) }
         case .delete:
-            break
+            Task { await deleteProjectCard(project.id) }
         case .settings:
             selectedProjectId = project.id
         }
@@ -363,6 +363,33 @@ struct ProjectModuleView: View {
             projLog.info("Project exported: \(pid)")
         } catch {
             projLog.error("exportProject failed: \(error.localizedDescription)")
+        }
+    }
+
+    // 卡片菜单删除：归档优先再物理删除，与 ProjectGlobalMenu.deleteProject 对齐 (上游 PR #115)
+    private func deleteProjectCard(_ pid: String) async {
+        do {
+            let target = projects.first { $0.id == pid } ?? archivedProjects.first { $0.id == pid }
+            if let p = target, !p.isArchived {
+                _ = try await ipc.projectArchive(projectId: pid)
+            }
+            try await ipc.projectDelete(projectId: pid)
+            projLog.info("deleted project via card menu: \(pid)")
+            await MainActor.run {
+                let pm = FusionProjectManager.shared
+                pm.projects.removeAll { $0.id == pid }
+                if pm.activeProject?.id == pid {
+                    pm.activeProject = nil
+                    pm.activeChat = nil
+                    pm.activeChatMessages = []
+                }
+            }
+            loadProjects()
+        } catch {
+            projLog.error("deleteProjectCard failed: \(error.localizedDescription)")
+            await MainActor.run {
+                errorMessage = "删除失败: \(error.localizedDescription)"
+            }
         }
     }
 

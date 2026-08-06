@@ -196,6 +196,47 @@ struct FusionStudioApp: App {
 
         if !mlxOk {
             appLog.error("performStartupHealthCheck: mlx unreachable after \(maxAttempts) attempts")
+            return
+        }
+
+        // MLX 可达后，若用户未配置默认对话模型，从 /api/status 取已加载模型自动填充，
+        // 避免各模块发送 chat 请求时 model 字段为空被 MLX 400 拒绝（Design/Chat 提交无反应根因）。
+        await autoPickDefaultModel()
+    }
+
+    // 从 MLX /api/status 读取已加载模型，填入 mlxModel 作为通用默认对话模型。
+    // 优先 default_model，其次 loaded_models 第一个。
+    private func autoPickDefaultModel() async {
+        let cfg = FusionConfig.shared
+        if !cfg.mlxModel.isEmpty {
+            appLog.info("autoPickDefaultModel: mlxModel already set, skip")
+            return
+        }
+        guard let url = URL(string: "\(cfg.mlxBaseURL)/api/status") else { return }
+        do {
+            var req = URLRequest(url: url)
+            req.setValue("studio", forHTTPHeaderField: "X-Fusion-Route")
+            req.setValue("Bearer \(cfg.mlxResolvedApiKey)", forHTTPHeaderField: "Authorization")
+            req.timeoutInterval = 8
+            let (data, resp) = try await URLSession.shared.data(for: req)
+            guard let http = resp as? HTTPURLResponse, http.statusCode == 200,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                appLog.warning("autoPickDefaultModel: /api/status parse failed")
+                return
+            }
+            let defaultModel = json["default_model"] as? String
+            let loaded = json["loaded_models"] as? [String] ?? []
+            let pick = (defaultModel?.isEmpty == false ? defaultModel : nil) ?? loaded.first
+            guard let model = pick, !model.isEmpty else {
+                appLog.warning("autoPickDefaultModel: no default/loaded model available")
+                return
+            }
+            await MainActor.run {
+                cfg.mlxModel = model
+                appLog.info("autoPickDefaultModel: set mlxModel=\(model, privacy: .public)")
+            }
+        } catch {
+            appLog.warning("autoPickDefaultModel: /api/status unreachable: \(error.localizedDescription)")
         }
     }
 }

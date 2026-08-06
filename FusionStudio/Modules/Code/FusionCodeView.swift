@@ -195,8 +195,6 @@ struct FusionCodeView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            fcInputBar
         }
         .sheet(isPresented: $showOpenProject) {
             OpenProjectSheet(workspace: workspace)
@@ -456,6 +454,9 @@ struct FusionCodeView: View {
                     }
                 }
             }
+            // 对话输入框限定在中间 chat 列底部，不贯穿整个底部
+            Divider()
+            fcInputBar
         }
     }
 
