@@ -658,12 +658,24 @@ class DesignBridge: ObservableObject {
                 return ("", error.localizedDescription, 1)
             }
         }
+        var outData = Data()
+        var errData = Data()
+        let readGroup = DispatchGroup()
+        readGroup.enter()
+        DispatchQueue.global(qos: .userInitiated).async {
+            outData = outPipe.fileHandleForReading.readDataToEndOfFile()
+            readGroup.leave()
+        }
+        readGroup.enter()
+        DispatchQueue.global(qos: .userInitiated).async {
+            errData = errPipe.fileHandleForReading.readDataToEndOfFile()
+            readGroup.leave()
+        }
         process.waitUntilExit()
-        let outData = outPipe.fileHandleForReading.readDataToEndOfFile()
-        let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
+        readGroup.wait()
         let output = String(data: outData, encoding: .utf8) ?? ""
         let errorStr = String(data: errData, encoding: .utf8) ?? ""
-        designBridgeLog.info("DesignBridge: CLI \(args.first ?? "") exit=\(process.terminationStatus)")
+        designBridgeLog.info("DesignBridge: CLI \(args.first ?? "") exit=\(process.terminationStatus) outLen=\(output.count)")
         return (output, errorStr, process.terminationStatus)
     }
 
@@ -1069,7 +1081,11 @@ class DesignBridge: ObservableObject {
     // MARK: - Send Design Chat
 
     func sendDesignChat(_ userMessage: String) async {
-        guard !userMessage.isEmpty else { return }
+        DesignPreviewTrace.log("sendDesignChat: ENTER msgLen=\(userMessage.count)")
+        guard !userMessage.isEmpty else {
+            DesignPreviewTrace.log("sendDesignChat: empty message, return")
+            return
+        }
 
         let userMsg = DesignMessage(role: "user", content: userMessage, timestamp: Date())
         messages.append(userMsg)
@@ -1088,9 +1104,14 @@ class DesignBridge: ObservableObject {
             systemPrompt += "\n\n当前设计代码:\n```html\n\(currentArtifactCode)\n```\n请基于此代码进行迭代修改。"
         }
 
-        if let ragContext = await fetchRAGContext(for: userMessage), !ragContext.isEmpty {
-            systemPrompt += "\n\n项目设计规范:\n\(ragContext)"
-            designBridgeLog.info("DesignBridge: injected RAG context (\(ragContext.count) chars)")
+        DesignPreviewTrace.log("sendDesignChat: before fetchRAGContext")
+        let ragEnabled = false
+        let ragContext: String? = ragEnabled ? await fetchRAGContextBounded(for: userMessage, timeoutSeconds: 5) : nil
+        DesignPreviewTrace.log("sendDesignChat: fetchRAGContext done ragEnabled=\(ragEnabled) nil=\(ragContext == nil)")
+        if let rag = ragContext, !rag.isEmpty {
+            systemPrompt += "\n\n项目设计规范:\n\(rag)"
+            designBridgeLog.info("DesignBridge: injected RAG context (\(rag.count) chars)")
+            DesignPreviewTrace.log("sendDesignChat: RAG context injected len=\(rag.count)")
         }
 
         var chatMessages: [[String: String]] = [["role": "system", "content": systemPrompt]]
@@ -1100,7 +1121,7 @@ class DesignBridge: ObservableObject {
 
         let config = FusionConfig.shared
         let baseURL = config.mlxBaseURL
-        let apiKey = config.mlxResolvedApiKey
+        var apiKey = config.mlxResolvedApiKey
         guard let url = URL(string: "\(baseURL)/v1/chat/completions") else {
             errorMessage = "Invalid MLX URL: \(baseURL)"
             isGenerating = false
@@ -1110,13 +1131,14 @@ class DesignBridge: ObservableObject {
         var body: [String: Any] = [
             "messages": chatMessages,
             "temperature": 0.7,
-            "max_tokens": 4096,
+            "max_tokens": 8192,
             "stream": true,
         ]
         let model = selectedModel.isEmpty ? config.defaultModel(for: .code) : selectedModel
         if !model.isEmpty {
             body["model"] = model
         }
+        DesignPreviewTrace.log("sendDesignChat: request built, model=\(model) baseURL=\(baseURL) msgCount=\(chatMessages.count)")
 
         guard let requestData = try? JSONSerialization.data(withJSONObject: body) else {
             errorMessage = "Failed to encode request"
@@ -1124,25 +1146,42 @@ class DesignBridge: ObservableObject {
             return
         }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.httpBody = requestData
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
-        request.setValue("studio", forHTTPHeaderField: "X-Fusion-Route")
-        request.timeoutInterval = 300
-        if !apiKey.isEmpty {
-            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        func buildRequest(key: String) -> URLRequest {
+            var req = URLRequest(url: url)
+            req.httpMethod = "POST"
+            req.httpBody = requestData
+            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            req.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+            req.setValue("studio", forHTTPHeaderField: "X-Fusion-Route")
+            req.timeoutInterval = 300
+            if !key.isEmpty {
+                req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+            }
+            return req
         }
 
+        var request = buildRequest(key: apiKey)
+
         do {
-            let (bytes, response) = try await URLSession.shared.bytes(for: request)
-            guard let httpResp = response as? HTTPURLResponse, httpResp.statusCode == 200 else {
-                throw NSError(domain: "DesignBridge", code: -1, userInfo: [NSLocalizedDescriptionKey: "MLX streaming returned non-200"])
+            var (bytes, response) = try await URLSession.shared.bytes(for: request)
+            var httpResp = response as? HTTPURLResponse
+            if httpResp?.statusCode == 401 || httpResp?.statusCode == 403 {
+                if let fallback = AgentBridge.mlxSettingsJsonApiKey(), !fallback.isEmpty, fallback != apiKey {
+                    designBridgeLog.warning("sendDesignChat: auth failed (HTTP \(httpResp?.statusCode ?? 0)), retrying with settings.json key")
+                    DesignPreviewTrace.log("sendDesignChat: auth retry with settings.json key")
+                    apiKey = fallback
+                    request = buildRequest(key: apiKey)
+                    ;(bytes, response) = try await URLSession.shared.bytes(for: request)
+                    httpResp = response as? HTTPURLResponse
+                }
+            }
+            guard let httpResp, httpResp.statusCode == 200 else {
+                throw NSError(domain: "DesignBridge", code: -1, userInfo: [NSLocalizedDescriptionKey: "MLX streaming returned non-200 (status=\(httpResp?.statusCode ?? -1))"])
             }
 
             inferenceStep = "generating"
             var assistantContent = ""
+            DesignPreviewTrace.log("sendDesignChat: stream connected, status=\(httpResp.statusCode) model=\(model)")
             for try await line in bytes.lines {
                 guard line.hasPrefix("data: ") else { continue }
                 let payload = String(line.dropFirst(6))
@@ -1170,6 +1209,7 @@ class DesignBridge: ObservableObject {
             }
 
             let finalArtifact = extractArtifactFromComplete(rawAssistantContent)
+            DesignPreviewTrace.log("sendDesignChat: stream loop done, rawLen=\(rawAssistantContent.count) tokens=\(streamTokenCount) hasAnt=\(rawAssistantContent.contains("<antArtifact")) finalArtifact=\(finalArtifact != nil)")
             let assistantMsg = DesignMessage(
                 role: "assistant",
                 content: assistantContent,
@@ -1180,23 +1220,31 @@ class DesignBridge: ObservableObject {
 
             if finalArtifact != nil {
                 designBridgeLog.info("DesignBridge: artifact parsed — type=\(self.currentArtifactType), title=\(self.currentArtifactTitle), \(self.currentArtifactCode.count) chars")
-            } else if !currentArtifactCode.isEmpty {
+                DesignPreviewTrace.log("sendDesignChat: finalArtifact set, codeLen=\(self.currentArtifactCode.count)")
+            } else {
                 let extractedCode = extractCodeBlock(from: rawAssistantContent)
                 if !extractedCode.isEmpty {
                     currentArtifactCode = extractedCode
+                    if currentArtifactTitle.isEmpty { currentArtifactTitle = "Design" }
+                    if currentArtifactType.isEmpty { currentArtifactType = "html" }
                     designBridgeLog.info("DesignBridge: code block extracted, \(extractedCode.count) chars")
+                    DesignPreviewTrace.log("sendDesignChat: codeBlock fallback, len=\(extractedCode.count)")
+                } else {
+                    DesignPreviewTrace.log("sendDesignChat: NO artifact extracted, rawLen=\(rawAssistantContent.count) hasAnt=\(rawAssistantContent.contains("<antArtifact")) hasFence=\(rawAssistantContent.contains("```html"))")
                 }
             }
 
-            // AI artifact 完成 → 渲染到 wasm 画布
-            if !currentArtifactCode.isEmpty && canvasWebView != nil {
+            // AI artifact 完成 → 解析为 PenDocument 并暂存，供切到 canvas 时回放渲染
+            if !currentArtifactCode.isEmpty {
                 inferenceStep = "rendering"
                 await renderArtifactToCanvas()
+                DesignPreviewTrace.log("sendDesignChat: renderArtifactToCanvas done, docJSON.len=\(self.lastRenderedDocumentJSON?.count ?? 0) canvasWebViewNotNil=\(self.canvasWebView != nil)")
             }
 
         } catch {
             errorMessage = "Generation failed: \(error.localizedDescription)"
             designBridgeLog.error("DesignBridge sendDesignChat: \(error)")
+            DesignPreviewTrace.log("sendDesignChat CAUGHT: \(error.localizedDescription) rawLen=\(rawAssistantContent.count) tokens=\(streamTokenCount)")
         }
 
         isGenerating = false
@@ -1279,11 +1327,17 @@ class DesignBridge: ObservableObject {
 
     func extractArtifactFromComplete(_ content: String) -> ArtifactParseResult? {
         guard let openRange = content.range(of: "<antArtifact") else { return nil }
-        guard let closeRange = content.range(of: "</antArtifact>", range: openRange.upperBound..<content.endIndex) else { return nil }
+        guard let openTagEnd = content.range(of: ">", range: openRange.upperBound..<content.endIndex) else { return nil }
 
-        let openTagEnd = content.range(of: ">", range: openRange.lowerBound..<closeRange.lowerBound)!
         let openTag = String(content[openRange.lowerBound..<openTagEnd.upperBound])
-        let code = String(content[openTagEnd.upperBound..<closeRange.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
+        var code: String
+        if let closeRange = content.range(of: "</antArtifact>", range: openTagEnd.upperBound..<content.endIndex) {
+            code = String(content[openTagEnd.upperBound..<closeRange.lowerBound])
+        } else {
+            code = String(content[openTagEnd.upperBound..<content.endIndex])
+            designBridgeLog.warning("DesignBridge: antArtifact open tag found but close tag missing (likely truncated by max_tokens), extracting partial code")
+        }
+        code = code.trimmingCharacters(in: .whitespacesAndNewlines)
 
         var artType = "html"
         var artTitle = "Design"
@@ -1317,14 +1371,17 @@ class DesignBridge: ObservableObject {
     }
 
     func extractCodeBlock(from content: String) -> String {
-        let patterns = ["```html\n", "```react\n", "```jsx\n", "```\n"]
-        for prefix in patterns {
-            if let startRange = content.range(of: prefix) {
-                let codeStart = startRange.upperBound
-                if let endRange = content.range(of: "```", range: codeStart..<content.endIndex) {
-                    return String(content[codeStart..<endRange.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
-                }
+        let fenceOpeners = ["```html", "```react", "```jsx", "```"]
+        for opener in fenceOpeners {
+            guard let startRange = content.range(of: opener) else { continue }
+            let codeStart = content.index(after: startRange.upperBound)
+            let codeStartAdjusted = codeStart < content.endIndex && content[codeStart] == "\n"
+                ? content.index(after: codeStart)
+                : codeStart
+            if let endRange = content.range(of: "```", range: codeStartAdjusted..<content.endIndex) {
+                return String(content[codeStartAdjusted..<endRange.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
             }
+            return String(content[codeStartAdjusted..<content.endIndex]).trimmingCharacters(in: .whitespacesAndNewlines)
         }
         return ""
     }
@@ -1564,8 +1621,25 @@ class DesignBridge: ObservableObject {
 
     // MARK: - Design RAG
 
-    func fetchRAGContext(for query: String) async -> String? {
+    func fetchRAGContextBounded(for query: String, timeoutSeconds: UInt64) async -> String? {
         guard let ipc = ipcClient else { return nil }
+        return await Self.ragContextWithTimeout(ipc: ipc, query: query, timeoutSeconds: timeoutSeconds)
+    }
+
+    nonisolated static func ragContextWithTimeout(ipc: IPCClient, query: String, timeoutSeconds: UInt64) async -> String? {
+        await withTaskGroup(of: String?.self) { group in
+            group.addTask { await fetchRAGContextStatic(ipc: ipc, query: query) }
+            group.addTask {
+                try? await Task.sleep(nanoseconds: timeoutSeconds * 1_000_000_000)
+                return nil
+            }
+            let first = await group.next()
+            group.cancelAll()
+            return first ?? nil
+        }
+    }
+
+    nonisolated static func fetchRAGContextStatic(ipc: IPCClient, query: String) async -> String? {
         do {
             let result = try await ipc.knowledgeSearch(query: query, limit: 3)
             if let entries = result["results"] as? [[String: Any]] {
@@ -1574,7 +1648,7 @@ class DesignBridge: ObservableObject {
                 return chunks.joined(separator: "\n---\n")
             }
         } catch {
-            designBridgeLog.warning("DesignBridge RAG search failed: \(error.localizedDescription)")
+            DesignPreviewTrace.log("DesignBridge RAG search failed: \(error)")
         }
         return nil
     }

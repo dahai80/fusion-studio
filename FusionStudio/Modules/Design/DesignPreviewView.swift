@@ -9,6 +9,20 @@ import os.log
 
 private let previewLog = Logger(subsystem: "com.fusion.studio", category: "DesignPreviewView")
 
+enum DesignPreviewTrace {
+    static func log(_ msg: String) {
+        let line = "\(msg)\n"
+        let path = NSHomeDirectory() + "/.fusion-design-preview-debug.log"
+        if let handle = try? FileHandle(forWritingTo: URL(fileURLWithPath: path)) {
+            handle.seekToEndOfFile()
+            if let data = line.data(using: .utf8) { handle.write(data) }
+            try? handle.close()
+        } else {
+            try? line.write(toFile: path, atomically: true, encoding: .utf8)
+        }
+    }
+}
+
 enum PreviewDeviceMode: String, CaseIterable {
     case mobile = "375"
     case tablet = "768"
@@ -80,7 +94,7 @@ struct DesignPreviewView: NSViewRepresentable {
 
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
-        webView.setValue(true, forKey: "drawsTransparentBackground")
+        webView.setValue(false, forKey: "drawsTransparentBackground")
         context.coordinator.webView = webView
 
         previewLog.info("DesignPreviewView: WKWebView created")
@@ -131,10 +145,10 @@ struct DesignPreviewView: NSViewRepresentable {
               --color-success: #34C759;
               --color-warning: #FF9500;
               --color-error: #FF3B30;
-              --color-bg: #1a1a2e;
-              --color-surface: #16213e;
-              --color-text: #e0e0e0;
-              --color-text-secondary: #a0a0a0;
+              --color-bg: #ffffff;
+              --color-surface: #f5f5f7;
+              --color-text: #1d1d1f;
+              --color-text-secondary: #6e6e73;
               --radius-sm: 6px;
               --radius-md: 10px;
               --radius-lg: 16px;
@@ -142,7 +156,7 @@ struct DesignPreviewView: NSViewRepresentable {
             body {
               margin: 0;
               padding: 0;
-              background: var(--color-bg);
+              background: #ffffff;
               color: var(--color-text);
               font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
             }
@@ -156,21 +170,32 @@ struct DesignPreviewView: NSViewRepresentable {
     }
 
     private func injectTailwindIntoExisting(_ html: String, hasLocal: Bool) -> String {
-        if html.contains("tailwindcss") || html.contains("tailwind.min.css") {
-            return html
+        var cleaned = html
+        if hasLocal {
+            let cdnPatterns = [
+                "<script src=\"https://cdn.tailwindcss.com\"></script>",
+                "<script src='https://cdn.tailwindcss.com'></script>"
+            ]
+            for p in cdnPatterns {
+                while let r = cleaned.range(of: p) { cleaned.removeSubrange(r) }
+            }
+            previewLog.info("DesignPreviewView: stripped CDN tailwind, using local tailwind-play injection")
+            return cleaned
         }
-        if hasLocal { return html }
+        if cleaned.contains("tailwindcss") || cleaned.contains("tailwind.min.css") {
+            return cleaned
+        }
 
         let tailwindScript = "<script src=\"https://cdn.tailwindcss.com\"></script>"
-        if let headRange = html.range(of: "<head>") {
-            return String(html[..<headRange.upperBound]) + tailwindScript + String(html[headRange.upperBound...])
+        if let headRange = cleaned.range(of: "<head>") {
+            return String(cleaned[..<headRange.upperBound]) + tailwindScript + String(cleaned[headRange.upperBound...])
         }
-        if let htmlRange = html.range(of: "<html") {
-            if let insertPoint = html.range(of: ">", range: htmlRange.lowerBound..<html.endIndex) {
-                return String(html[..<insertPoint.upperBound]) + "<head>\(tailwindScript)</head>" + String(html[insertPoint.upperBound...])
+        if let htmlRange = cleaned.range(of: "<html") {
+            if let insertPoint = cleaned.range(of: ">", range: htmlRange.lowerBound..<cleaned.endIndex) {
+                return String(cleaned[..<insertPoint.upperBound]) + "<head>\(tailwindScript)</head>" + String(cleaned[insertPoint.upperBound...])
             }
         }
-        return "<head>\(tailwindScript)</head>" + html
+        return "<head>\(tailwindScript)</head>" + cleaned
     }
 
     class Coordinator: NSObject, WKNavigationDelegate {

@@ -33,7 +33,7 @@ SERVICES=(
     "agent-studio|Agent Studio|~/fusion/fusion-agent-studio/start.sh|socket|/tmp/fusion-studio.sock|1|1"
     "mlx|Fusion-MLX|~/claude-home/fusion-mlx/start.sh|http|http://localhost:11432/health|0|1"
     "artifacts-engine|Artifacts Engine|~/fusion/fusion-artifacts-engine/start.sh|jsonrpc|http://127.0.0.1:11451|2|1"
-    "fusion-rag|Fusion-RAG|~/fusion/fusion-kb/start.sh|http|http://127.0.0.1:11436/health|3|0"
+    "fusion-rag|Fusion-RAG|~/fusion/fusion-rag/start.sh|http|http://127.0.0.1:11436/health|3|0"
     "fusion-doc|Fusion Doc|~/fusion/fusion-doc/start.sh|http|http://127.0.0.1:11449/api/health|4|0"
     "multi-node|Multi-Node|~/fusion/fusion-multi-node/start.sh|http|http://127.0.0.1:11452/api/health|5|0"
     "fusion-model-hub|Model Hub|~/fusion/fusion-model-hub/start.sh|http|http://127.0.0.1:11444/api/v1/system/info|6|0"

@@ -282,7 +282,7 @@ extension DesignBridgeTests {
 
     func testFetchRAGContextNoIPC() async {
         let bridge = DesignBridge()
-        let result = await bridge.fetchRAGContext(for: "button styles")
+        let result = await bridge.fetchRAGContextBounded(for: "button styles", timeoutSeconds: 2)
         XCTAssertNil(result)
     }
 
