@@ -535,6 +535,14 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 
 ## 📋 Changelog
 
+### Project Chat Reply + Bubble UX (2026-08-06)
+
+Project module 会话两个问题修复：
+
+- **会话无 AI 回复**: `ProjectChatsPanel.sendMessage` 只调 `project.chat.message.add` 存用户消息，未触发推理。新增 `generateReply`：用会话历史调 `AgentBridge.infer` (MLX `/v1/chat/completions`)，回填本地 `ChatMessage(role:"assistant")`。模型取 `selectedModel` 或 `defaultModel(for:.agent)`，空则提示选模型
+- **气泡区分**: 用户/AI 消息此前都左对齐无区分。用户消息右对齐 + accent 背景气泡，AI 消息左对齐 + 中性气泡
+- **上游 issue**: fusion-projects#20 — `project.chat.message.add` 忽略 `role` 参数（强制 user），assistant 回复暂本地展示，待上游支持后落库
+
 ### Health Check + Module Fixes (2026-08-06)
 
 Strict health check + per-subsystem startup buttons + several module UX/auth fixes:
