@@ -163,6 +163,8 @@ struct FusionSidebarView: View {
             coworkSidebarContent
         case .mlx:
             moduleListContent(.mlx)
+        case .modelHub:
+            moduleListContent(.modelHub)
         case .multiNode:
             moduleListContent(.multiNode)
         case .fsb:

@@ -51,7 +51,9 @@ class FusionCodeBridge: ObservableObject {
     func checkConnection() {
         Task {
             do {
-                let (_, response) = try await urlSession.data(from: URL(string: "\(serverURL)/api/model/status")!)
+                var req = URLRequest(url: URL(string: "\(serverURL)/api/model/status")!)
+                req.setValue("Bearer \(FusionConfig.shared.fusionCodeApiKey)", forHTTPHeaderField: "Authorization")
+                let (_, response) = try await urlSession.data(for: req)
                 await MainActor.run {
                     self.isConnected = (response as? HTTPURLResponse)?.statusCode == 200
                     if self.isConnected {
@@ -76,7 +78,9 @@ class FusionCodeBridge: ObservableObject {
         if !query.isEmpty {
             comps.queryItems = query.map { URLQueryItem(name: $0.key, value: $0.value) }
         }
-        let (data, resp) = try await urlSession.data(from: comps.url!)
+        var request = URLRequest(url: comps.url!)
+        request.setValue("Bearer \(FusionConfig.shared.fusionCodeApiKey)", forHTTPHeaderField: "Authorization")
+        let (data, resp) = try await urlSession.data(for: request)
         guard let http = resp as? HTTPURLResponse else {
             throw NSError(domain: "FusionCodeBridge", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])
         }
@@ -99,6 +103,7 @@ class FusionCodeBridge: ObservableObject {
         var request = URLRequest(url: comps.url!)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(FusionConfig.shared.fusionCodeApiKey)", forHTTPHeaderField: "Authorization")
         if let body = body {
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
         }
@@ -384,7 +389,7 @@ class FusionCodeBridge: ObservableObject {
         guard !isStreaming else { return }
 
         var wsURLStr = serverURL.replacingOccurrences(of: "http", with: "ws") + "/ws/chat"
-        let token = FusionConfig.shared.mlxResolvedApiKey
+        let token = FusionConfig.shared.fusionCodeApiKey
         if !token.isEmpty {
             let encoded = token.addingPercentEncoding(withAllowedCharacters: CharacterSet.urlQueryAllowed) ?? token
             wsURLStr += "?token=\(encoded)"

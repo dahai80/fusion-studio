@@ -272,7 +272,7 @@ struct ArtifactsPanel: View {
 
             if !liveContent.isEmpty {
                 livePreviewPane
-                    .frame(minWidth: 280, idealWidth: 440)
+                    .frame(minWidth: 560, idealWidth: 880)
             }
         }
     }

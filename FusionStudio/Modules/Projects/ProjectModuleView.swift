@@ -297,7 +297,7 @@ struct ProjectModuleView: View {
         case .unarchive:
             Task { await unarchiveProject(project.id) }
         case .delete:
-            break
+            Task { await deleteProjectCard(project.id) }
         case .settings:
             selectedProjectId = project.id
         }
@@ -363,6 +363,33 @@ struct ProjectModuleView: View {
             projLog.info("Project exported: \(pid)")
         } catch {
             projLog.error("exportProject failed: \(error.localizedDescription)")
+        }
+    }
+
+    // 卡片菜单删除：归档优先再物理删除，与 ProjectGlobalMenu.deleteProject 对齐 (上游 PR #115)
+    private func deleteProjectCard(_ pid: String) async {
+        do {
+            let target = projects.first { $0.id == pid } ?? archivedProjects.first { $0.id == pid }
+            if let p = target, !p.isArchived {
+                _ = try await ipc.projectArchive(projectId: pid)
+            }
+            try await ipc.projectDelete(projectId: pid)
+            projLog.info("deleted project via card menu: \(pid)")
+            await MainActor.run {
+                let pm = FusionProjectManager.shared
+                pm.projects.removeAll { $0.id == pid }
+                if pm.activeProject?.id == pid {
+                    pm.activeProject = nil
+                    pm.activeChat = nil
+                    pm.activeChatMessages = []
+                }
+            }
+            loadProjects()
+        } catch {
+            projLog.error("deleteProjectCard failed: \(error.localizedDescription)")
+            await MainActor.run {
+                errorMessage = "删除失败: \(error.localizedDescription)"
+            }
         }
     }
 
@@ -1809,10 +1836,13 @@ struct ProjectChatsPanel: View {
 
     // GUI-22: RAG source annotation in messages
     private func messageBubble(_ msg: ChatMessage) -> some View {
-        HStack(alignment: .top, spacing: theme.spacingS) {
-            Image(systemName: msg.role == "user" ? "person.fill" : "robot")
+        let isUser = msg.role == "user"
+        return HStack(alignment: .top, spacing: theme.spacingS) {
+            if isUser { Spacer(minLength: 40) }
+
+            Image(systemName: isUser ? "person.fill" : "robot")
                 .font(.system(size: theme.iconS))
-                .foregroundStyle(msg.role == "user" ? theme.textSecondary : theme.accent)
+                .foregroundStyle(isUser ? theme.textSecondary : theme.accent)
                 .frame(width: 24)
 
             VStack(alignment: .leading, spacing: 4) {
@@ -1856,7 +1886,13 @@ struct ProjectChatsPanel: View {
                         .fill(theme.accent.opacity(0.06)))
                 }
             }
-            Spacer()
+            .padding(theme.spacingS)
+            .background(
+                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                    .fill(isUser ? theme.accent.opacity(0.12) : theme.textTertiary.opacity(0.04))
+            )
+
+            if !isUser { Spacer(minLength: 40) }
         }
         .padding(.horizontal, theme.spacingM)
     }
@@ -2115,10 +2151,47 @@ struct ProjectChatsPanel: View {
                     chatId: chatId, content: text,
                     ragMode: ragMode == .OFF ? nil : ragMode.rawValue
                 )
-                let msg = ChatMessage.fromDict(result)
-                await MainActor.run { self.messages.append(msg) }
+                let userMsg = ChatMessage.fromDict(result)
+                await MainActor.run { self.messages.append(userMsg) }
+                await generateReply(chatId: chatId)
             } catch {
                 projLog.error("sendMessage failed: \(error.localizedDescription)")
+                await MainActor.run {
+                    self.errorMessage = "发送失败：\(error.localizedDescription)"
+                    self.showError = true
+                }
+            }
+        }
+    }
+
+    // 生成 AI 回复：用当前会话历史调 MLX /v1/chat/completions，回填到 messages。
+    // 上游 project.chat.message.add 暂不接 role 字段（强制 user），assistant 回复先本地展示，
+    // 待上游 PR 支持后落库。
+    private func generateReply(chatId: String) async {
+        let cfg = FusionConfig.shared
+        let model = selectedModel.isEmpty ? cfg.defaultModel(for: .agent) : selectedModel
+        if model.isEmpty {
+            projLog.error("generateReply: no model selected, cannot infer")
+            await MainActor.run {
+                self.errorMessage = "未选择对话模型，请在顶部模型选择器选一个模型后再发送"
+                self.showError = true
+            }
+            return
+        }
+        var hist: [[String: Any]] = []
+        for m in messages {
+            hist.append(["role": m.role, "content": m.content])
+        }
+        do {
+            let reply = try await agentBridge.infer(messages: hist, model: model)
+            let assistantMsg = ChatMessage(id: UUID().uuidString, role: "assistant", content: reply)
+            await MainActor.run { self.messages.append(assistantMsg) }
+            projLog.info("generateReply: reply \(reply.count) chars for chat \(chatId)")
+        } catch {
+            projLog.error("generateReply infer failed: \(error.localizedDescription)")
+            await MainActor.run {
+                self.errorMessage = "AI 回复失败：\(error.localizedDescription)"
+                self.showError = true
             }
         }
     }

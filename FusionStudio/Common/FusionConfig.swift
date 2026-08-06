@@ -120,6 +120,9 @@ class FusionConfig: ObservableObject {
     /// Fusion-Code API 服务地址
     var fusionCodeURL: String { "http://127.0.0.1:\(fusionCodePort)" }
 
+    /// Fusion-Code 鉴权 API key（与 gateway 同源 fg-admin-key）
+    var fusionCodeApiKey: String { "fg-admin-key" }
+
     // MARK: - Upstream Services
     // Callers: UpstreamServiceManager reads these to locate each upstream repo's start.sh.
     // Affected API: @AppStorage upstream*Path fields + upstreamAutoStartCritical + expandedUpstreamPath(_:).

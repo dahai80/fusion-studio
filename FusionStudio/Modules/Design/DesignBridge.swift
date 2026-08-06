@@ -1135,9 +1135,14 @@ class DesignBridge: ObservableObject {
             "stream": true,
         ]
         let model = selectedModel.isEmpty ? config.defaultModel(for: .code) : selectedModel
-        if !model.isEmpty {
-            body["model"] = model
+        if model.isEmpty {
+            // 无默认对话模型：MLX 会 400 "model: Field required"，提前给出明确错误并复位状态
+            errorMessage = "未选择对话模型，请在顶部模型选择器选一个模型后再发送"
+            isGenerating = false
+            designBridgeLog.error("sendDesignChat: aborted, no model selected (selectedModel & defaultModel both empty)")
+            return
         }
+        body["model"] = model
         DesignPreviewTrace.log("sendDesignChat: request built, model=\(model) baseURL=\(baseURL) msgCount=\(chatMessages.count)")
 
         guard let requestData = try? JSONSerialization.data(withJSONObject: body) else {

@@ -550,6 +550,26 @@ Design 模块"生成登录页模板后预览不可见、对话框无法提交、
 - **Design RAG 暂禁**: `ragEnabled=false`，`fetchRAGContextBounded` 用 `nonisolated static` + `withTaskGroup` 超时保护（Swift 5.9 无 `addTask(detached:)`，用 nonisolated 函数脱离 MainActor）
 - **E2E 验证**: 提交→生成(6154 tokens, `<antArtifact>` 解析成功, codeLen 15209)→预览渲染；`DesignPreviewTrace` 文件日志(`~/.fusion-design-preview-debug.log`)辅助定位
 
+### Project Chat Reply + Bubble UX (2026-08-06)
+
+Project module 会话两个问题修复：
+
+- **会话无 AI 回复**: `ProjectChatsPanel.sendMessage` 只调 `project.chat.message.add` 存用户消息，未触发推理。新增 `generateReply`：用会话历史调 `AgentBridge.infer` (MLX `/v1/chat/completions`)，回填本地 `ChatMessage(role:"assistant")`。模型取 `selectedModel` 或 `defaultModel(for:.agent)`，空则提示选模型
+- **气泡区分**: 用户/AI 消息此前都左对齐无区分。用户消息右对齐 + accent 背景气泡，AI 消息左对齐 + 中性气泡
+- **上游 issue**: fusion-projects#20 — `project.chat.message.add` 忽略 `role` 参数（强制 user），assistant 回复暂本地展示，待上游支持后落库
+
+### Health Check + Module Fixes (2026-08-06)
+
+Strict health check + per-subsystem startup buttons + several module UX/auth fixes:
+
+- **Strict health check**: only HTTP 200-299 (not 401/403/404) and UDS responses with `result` field count as healthy. `EnvironmentHealthSheet` now probes 9 subsystems (added **fusion-model-hub**) via strict `probeHTTP`/`probeUDS`. UDS probe loop-reads until newline (fixes 6272-byte `project.list` truncation false-negative)
+- **Per-subsystem 启动 buttons**: `upstreamServiceIdMap` maps each failing subsystem to an `UpstreamServiceManager` service id; 启动 calls `start.sh start`, waits 3s, re-probes. Covers mlx/rag/modelhub/artifacts/cowork/projects/code
+- **fusion-model-hub lifecycle**: created upstream `start.sh` (nohup `fusion-model-hub serve`, PID file, logs/) + changed health endpoint from `/api/v1/system/info` (needs auth) to `/api/v1/system/health` (public 200)
+- **Projects delete "project not found" fix**: `FusionProject.id` `let`→`var` + direct id assignment in `fromDict`; removed fragile encode-decode `_rebuildWithId` roundtrip (date strategy mismatch produced local uppercase UUID → server 404)
+- **Code module fixes**: (1) chat input box moved from full-width bottom bar into the middle chat column only; (2) "fusion-code offline" root cause = `/api/model/status` 401 without auth → added `Bearer fg-admin-key` to all `FusionCodeBridge` HTTP + WS calls
+- **Design submit fix**: empty default model → MLX 400 "model: Field required". `FusionStudioApp.autoPickDefaultModel` picks from `/api/status` (default_model/loaded_models[0]); `DesignBridge`/`DesignChatPanel` guard empty model before send
+- **AI auth self-heal** (`AgentBridge.probeMLXRunningStatus`): on 401/403 catches `BridgeError.authFailed`, reads `~/.fusion-mlx/settings.json` `auth.api_key`, re-probes, and persists to user-settings `mlxApiKey` (priority 1) to override a stale `FUSION_MLX_API_KEY` env var. Verified: cleared key + bad env → self-heal persists `dahai168`, MLX 200
+
 ### Fusion RAG Consolidation (2026-08-05)
 
 Single "Fusion RAG" sidebar entry -> `RAGMainView` (8 sections) wired to **fusion-rag** backend (FastAPI `127.0.0.1:11436`):

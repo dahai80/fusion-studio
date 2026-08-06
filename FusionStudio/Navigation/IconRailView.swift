@@ -115,6 +115,10 @@ struct IconRailView: View {
                 case .mlx:
                     appState.selectedModule = .dashboard
                     appState.selectedSheet = .mlx
+                // Model Hub 作为图标栏顶层独立入口，直接进 ModelHubMainView
+                case .modelHub:
+                    appState.selectedModule = .modelHub
+                    appState.selectedSheet = .mlx
                 case .multiNode:
                     appState.selectedModule = .clusterOverview
                     appState.selectedSheet = .multiNode

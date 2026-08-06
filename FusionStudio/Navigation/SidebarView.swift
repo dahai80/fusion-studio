@@ -47,20 +47,28 @@ struct SidebarRow: View {
 struct HealthStatusBadge: View {
     let status: AppState.HealthStatus
     @Environment(\.studioTheme) private var theme
+    @State private var showHealthSheet = false
 
     var body: some View {
-        HStack(spacing: 4) {
-            Circle()
-                .fill(color)
-                .frame(width: 6, height: 6)
-            Text(text)
-                .font(.system(size: theme.captionSize))
-                .foregroundStyle(theme.textSecondary)
+        Button(action: { showHealthSheet = true }) {
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(color)
+                    .frame(width: 6, height: 6)
+                Text(text)
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(theme.textSecondary)
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(color.opacity(0.1))
+            .cornerRadius(4)
         }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 3)
-        .background(color.opacity(0.1))
-        .cornerRadius(4)
+        .buttonStyle(.plain)
+        .help("点击查看所有子系统健康状态")
+        .sheet(isPresented: $showHealthSheet) {
+            EnvironmentHealthSheet()
+        }
     }
 
     private var color: Color {

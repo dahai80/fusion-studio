@@ -185,7 +185,7 @@ final class UpstreamServiceManager: ObservableObject {
                             icon: "shippingbox",
                             isCritical: false, startOrder: 6,
                             repoPathRaw: "~/fusion/fusion-model-hub",
-                            healthKind: .httpGet, healthEndpoint: "http://localhost:\(cfg.modelHubPort)/api/v1/system/info"),
+                            healthKind: .httpGet, healthEndpoint: "http://localhost:\(cfg.modelHubPort)/api/v1/system/health"),
             UpstreamService(id: "fusion-security",
                             displayName: "Fusion-Security 审计",
                             icon: "shield.checkered",

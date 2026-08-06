@@ -324,6 +324,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
     case cowork = "CoWork"
     case fsb = "FSB"
     case mlx = "Fusion-MLX"
+    case modelHub = "Model Hub"
     case multiNode = "Multi-Node"
     case science = "Science"
     case finance = "Finance"
@@ -346,6 +347,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .aiAgent:   return "brain"
         case .cowork:    return "person.2.square.stack"
         case .mlx:       return "chip"
+        case .modelHub:  return "square.stack.3d.up.fill"
         case .multiNode: return "network"
         case .fsb:       return "storefront"
         case .science:   return "flask"
@@ -371,6 +373,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .aiAgent:   return [.aiAgentDashboard, .aiAgentList, .aiAgentChat, .aiAgentObserver, .aiAgentKnowledgeBase]
         case .cowork:    return [.cowork]
         case .mlx:       return [.dashboard, .modelHub, .tuning, .bench]
+        case .modelHub:  return [.modelHub]
         case .multiNode: return [.clusterOverview, .clusterTopology, .clusterSync, .taskMonitor, .alertCenter, .nodeActions, .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb, .multimodal, .analytics, .collab, .external, .operations, .deploy]
         case .fsb:       return [.fsb]
         case .science:   return [.science]

@@ -762,6 +762,14 @@ struct DesignChatPanel: View {
             return
         }
 
+        // 发送前校验模型：空则提示且保留输入内容，避免清空后用户无法重试
+        let cfg = FusionConfig.shared
+        let resolvedModel = selectedModel.isEmpty ? cfg.defaultModel(for: .code) : selectedModel
+        if resolvedModel.isEmpty {
+            designBridge.errorMessage = "未选择对话模型，请在顶部模型选择器选一个模型后再发送"
+            chatPanelLog.warning("DesignChatPanel: send aborted - no model selected")
+            return
+        }
         inputText = ""
         Task {
             await designBridge.sendDesignChat(message)
