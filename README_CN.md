@@ -156,9 +156,9 @@ Fusion Studio 依赖上游生态服务。启动时逐个探测，关键服务通
 |------|----------|------|------|
 | fusion-mlx | `~/claude-home/fusion-mlx/start.sh` | `localhost:11434` | ✅ |
 | fusion-agent-studio | `~/fusion/fusion-agent-studio/start.sh` | `/tmp/fusion-studio.sock` (UDS) | ✅ |
-| fusion-artifacts-engine | `~/fusion/fusion-artifacts-engine/start.sh` | `127.0.0.1:8892` | ✅ |
-| fusion-kb (RAG) | `~/fusion/fusion-kb/start.sh` | `127.0.0.1:11436` | 可选 |
-| fusion-multi-node | `~/fusion/fusion-multi-node/start.sh` | `127.0.0.1:9753` | 可选 |
+| fusion-artifacts-engine | `~/fusion/fusion-artifacts-engine/start.sh` | `127.0.0.1:11451` | ✅ |
+| fusion-rag (RAG) | `~/fusion/fusion-rag/start.sh` | `127.0.0.1:11436` | 可选 |
+| fusion-multi-node | `~/fusion/fusion-multi-node/start.sh` | `127.0.0.1:11452` | 可选 |
 | fusion-design | (CLI 工具，无 start.sh) | - | 不适用 |
 
 - 关键服务按顺序自动启动：mlx -> agent-studio -> artifacts-engine。

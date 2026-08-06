@@ -450,7 +450,7 @@ comes up).
 | fusion-mlx | `~/claude-home/fusion-mlx/start.sh` | `localhost:11432` | ✅ |
 | fusion-agent-studio | `~/fusion/fusion-agent-studio/start.sh` | `/tmp/fusion-studio.sock` (UDS) | ✅ |
 | fusion-artifacts-engine | `~/fusion/fusion-artifacts-engine/start.sh` | `127.0.0.1:11451` | ✅ |
-| fusion-kb (RAG) | `~/fusion/fusion-kb/start.sh` | `127.0.0.1:11436` | optional |
+| fusion-rag (RAG) | `~/fusion/fusion-rag/start.sh` | `127.0.0.1:11436` | optional |
 | fusion-doc | `~/fusion/fusion-doc/start.sh` | `127.0.0.1:11449` | optional |
 | fusion-multi-node | `~/fusion/fusion-multi-node/start.sh` | `127.0.0.1:11452` | optional |
 | fusion-model-hub | `~/fusion/fusion-model-hub/start.sh` | `127.0.0.1:11444` | optional |
