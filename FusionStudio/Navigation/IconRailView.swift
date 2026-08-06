@@ -39,6 +39,8 @@ struct IconRailView: View {
         }
         .frame(width: 52)
         .background(.ultraThinMaterial)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("IconRail")
     }
 
     private var openSidebarButton: some View {
@@ -55,6 +57,7 @@ struct IconRailView: View {
         }
         .buttonStyle(.plain)
         .help("Toggle Sidebar (⌘\\)")
+        .accessibilityIdentifier("sidebar.toggle")
     }
 
     private var newChatButton: some View {
@@ -71,6 +74,7 @@ struct IconRailView: View {
         }
         .buttonStyle(.plain)
         .help("New Chat")
+        .accessibilityIdentifier("chat.new")
     }
 
     private func sectionIcon(_ section: SidebarSection) -> some View {
@@ -158,6 +162,7 @@ struct IconRailView: View {
         }
         .buttonStyle(.plain)
         .help(section.rawValue)
+        .accessibilityIdentifier("nav.\(section.rawValue)")
     }
 
     private var getAppsButton: some View {
@@ -173,6 +178,7 @@ struct IconRailView: View {
         }
         .buttonStyle(.plain)
         .help("Get App & Extensions")
+        .accessibilityIdentifier("apps.get")
     }
 
     private var settingsButton: some View {
@@ -184,6 +190,7 @@ struct IconRailView: View {
         }
         .buttonStyle(.plain)
         .help("Settings")
+        .accessibilityIdentifier("settings.open")
     }
 
     private var userAvatar: some View {

@@ -43,6 +43,8 @@ struct FusionSidebarView: View {
         }
         .frame(width: appState.sidebarWidth)
         .background(.ultraThinMaterial)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("Sidebar")
     }
 
     private var searchBar: some View {
@@ -68,6 +70,7 @@ struct FusionSidebarView: View {
             }
             .buttonStyle(.plain)
             .help("Hide Sidebar (⌘\\)")
+            .accessibilityIdentifier("sidebar.hide")
         }
         .padding(.horizontal, theme.spacingM)
         .padding(.vertical, theme.spacingS)
@@ -100,6 +103,7 @@ struct FusionSidebarView: View {
         }
         .buttonStyle(.plain)
         .padding(.top, theme.spacingXS)
+        .accessibilityIdentifier("chat.new")
     }
 
     private func sectionGroup(_ section: SidebarSection) -> some View {
@@ -133,6 +137,7 @@ struct FusionSidebarView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("section.\(section.rawValue)")
     }
 
     @ViewBuilder
@@ -490,6 +495,7 @@ struct FusionSidebarView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("module.\(module.rawValue)")
     }
 
     private var recentsSection: some View {
