@@ -289,7 +289,7 @@ struct DesignChatPanel: View {
                     textColor: NSColor(theme.text),
                     placeholderColor: NSColor(theme.textTertiary),
                     maxHeight: 88,
-                    onSend: sendChat,
+                    onSend: { sendChat() },
                     refocusTrigger: $refocusTrigger
                 )
                 .frame(minHeight: 36, idealHeight: 44, maxHeight: 88)
@@ -391,7 +391,7 @@ struct DesignChatPanel: View {
                 chatPanelLog.info("Design model selected: \(id)")
             })
 
-            VoiceInputButton(voice: voiceInput, text: $inputText, onSend: sendChat)
+            VoiceInputButton(voice: voiceInput, text: $inputText, onSend: { sendChat() })
 
             if designBridge.isGenerating {
                 Button(action: { sendChat() }) {
@@ -402,7 +402,7 @@ struct DesignChatPanel: View {
                 .buttonStyle(.plain)
                 .help("停止")
             } else {
-                Button(action: sendChat) {
+                Button(action: { sendChat() }) {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.system(size: 22))
                         .foregroundStyle(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? theme.textQuaternary : theme.accent)
@@ -501,7 +501,7 @@ struct DesignChatPanel: View {
                                         handleSkillTemplate(tmpl)
                                     } else {
                                         inputText = tmpl.prompt
-                                        sendChat()
+                                        sendChat(explicitMessage: tmpl.prompt)
                                     }
                                 }) {
                                     HStack(spacing: theme.spacingXS) {
@@ -569,8 +569,9 @@ struct DesignChatPanel: View {
             let prompt = inputText.isEmpty ? "首页→列表→详情的导航流程" : inputText
             designBridge.skillPageFlow(prompt: prompt)
         default:
-            inputText = "使用\(tmpl.name)技能: \(inputText)"
-            sendChat()
+            let skillMsg = "使用\(tmpl.name)技能: \(inputText)"
+            inputText = skillMsg
+            sendChat(explicitMessage: skillMsg)
         }
     }
 
@@ -720,23 +721,40 @@ struct DesignChatPanel: View {
         .padding(.horizontal, theme.spacingM)
     }
 
-    private func sendChat() {
-        guard !inputText.isEmpty || designBridge.isGenerating else { return }
+    private func sendChat(explicitMessage: String? = nil) {
+        let message = explicitMessage ?? inputText
+        DesignPreviewTrace.log("sendChat: called explicitNil=\(explicitMessage == nil) msgLen=\(message.count) isGenerating=\(designBridge.isGenerating) isMLXRunning=\(appState.isMLXRunning)")
+        guard !message.isEmpty || designBridge.isGenerating else { return }
         if designBridge.isGenerating {
             chatPanelLog.info("DesignChatPanel: stop requested (not supported in current streaming)")
             return
         }
 
         if !appState.isMLXRunning {
-            designBridge.errorMessage = "MLX 服务未运行，请先在 MLX 面板启动服务后再发送"
-            chatPanelLog.warning("DesignChatPanel: send blocked - MLX not running")
+            Task {
+                let ok = await agentBridge.probeMLXRunningStatus()
+                await MainActor.run { appState.isMLXRunning = ok }
+                DesignPreviewTrace.log("sendChat: live probe isMLXRunning=\(appState.isMLXRunning)")
+                if ok {
+                    await MainActor.run { proceedToSend(message: message) }
+                } else {
+                    await MainActor.run {
+                        designBridge.errorMessage = "MLX 服务未运行，请先在 MLX 面板启动服务后再发送"
+                        chatPanelLog.warning("DesignChatPanel: send blocked - MLX not running (live probe failed)")
+                    }
+                }
+            }
             return
         }
 
+        proceedToSend(message: message)
+    }
+
+    private func proceedToSend(message: String) {
         // 如果有框选节点，走 local-edit 流程
         if !designBridge.marqueeSelectedNodeIDs.isEmpty {
             let nodeIDs = designBridge.marqueeSelectedNodeIDs
-            let instruction = inputText
+            let instruction = message
             inputText = ""
             let nodesJSON = buildNodesJSON(from: nodeIDs)
             designBridge.applyLocalEdit(nodesJSON: nodesJSON, instruction: instruction)
@@ -744,7 +762,6 @@ struct DesignChatPanel: View {
             return
         }
 
-        let message = inputText
         inputText = ""
         Task {
             await designBridge.sendDesignChat(message)

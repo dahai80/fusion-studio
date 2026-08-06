@@ -535,6 +535,21 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 
 ## 📋 Changelog
 
+### Design 模块提交/预览/Canvas 修复 (2026-08-07)
+
+Design 模块"生成登录页模板后预览不可见、对话框无法提交、canvas 显示功能未实现"三连修复：
+
+- **提交卡死根因**: app 直连 `mlx:11434`，但启动环境 `FUSION_MLX_API_KEY` 是 gateway(`:11432`) 的 key，对 mlx 返回 401 → `isMLXRunning=false` → `sendChat` 拦截。`mlxResolvedApiKey` 解析优先级 env > settings.json，导致用了无效 key
+- **鉴权回退**: `AgentBridge.fetchModels` 与 `DesignBridge.sendDesignChat` 在 401/403 时回退到 `~/.fusion-mlx/settings.json` 的 `auth.api_key`（`AgentBridge.mlxSettingsJsonApiKey()` 静态方法读取）。sendDesignChat 流式请求遇 401 自动用 fallback key 重建请求重试
+- **sendChat 实时 probe**: `isMLXRunning=false` 时不硬拦截，先 `probeMLXRunningStatus()` 复核，成功则继续提交
+- **sendChat @State 竞态**: 模板按钮 `inputText = tmpl.prompt; sendChat()` 的同步读返回旧值，改为 `sendChat(explicitMessage:)` 显式传参；所有 `onSend: sendChat` / `Button(action: sendChat)` 包闭包
+- **预览背景白色调**: `DesignPreviewView` `drawsTransparentBackground=false`，`buildFullHTML` 片段 `--color-bg:#ffffff`，`injectTailwindIntoExisting` 剥离 CDN tailwind 脚本避免离线阻塞（用户选择"只改预览背景"）
+- **Canvas wasm 加载**: `DesignCanvasView` wasm/glue 资源改用 `Bundle.module` 优先（SPM `.process` 扁平化到 module bundle）；HTML 改 ES module `<script type="module"> import init, { mount, fusion_bridge_send_command }`（fd_host_web.js 是 wasm-bindgen ESM 输出）
+- **artifact 解析**: `max_tokens` 4096→8192 防截断；`extractArtifactFromComplete` 处理缺失 `</antArtifact>` 闭合标签；`extractCodeBlock` 兼容 ```` ```html ```` 无换行 + 截断块；fallback 改无条件触发
+- **runFusionDesign 管道死锁**: `parseHtmlViaCLI` 大输出(>64KB)时 `waitUntilExit` 与 `readDataToEndOfFile` 互锁，改用 `DispatchGroup` 并发读 stdout/stderr 后再 join
+- **Design RAG 暂禁**: `ragEnabled=false`，`fetchRAGContextBounded` 用 `nonisolated static` + `withTaskGroup` 超时保护（Swift 5.9 无 `addTask(detached:)`，用 nonisolated 函数脱离 MainActor）
+- **E2E 验证**: 提交→生成(6154 tokens, `<antArtifact>` 解析成功, codeLen 15209)→预览渲染；`DesignPreviewTrace` 文件日志(`~/.fusion-design-preview-debug.log`)辅助定位
+
 ### Fusion RAG Consolidation (2026-08-05)
 
 Single "Fusion RAG" sidebar entry -> `RAGMainView` (8 sections) wired to **fusion-rag** backend (FastAPI `127.0.0.1:11436`):

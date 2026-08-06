@@ -241,18 +241,21 @@ struct DesignCanvasView: NSViewRepresentable {
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
                 * { margin: 0; padding: 0; box-sizing: border-box; }
-                html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1a2e; }
+                html, body { width: 100%; height: 100%; overflow: hidden; background: #ffffff; }
                 #fusion-canvas { width: 100%; height: 100%; display: block; }
+                #fusion-dom-root { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
             </style>
         </head>
         <body>
             <canvas id="fusion-canvas"></canvas>
-            <script src="\(jsGlueFileName).js"></script>
-            <script>
+            <div id="fusion-dom-root"></div>
+            <script type="module">
+                import init, { mount, fusion_bridge_send_command } from './\(jsGlueFileName).js';
                 async function initWasm() {
                     try {
-                        await wasm_bindgen('./\(wasmFileName)_bg.wasm');
-                        const shell = wasm_bindgen.mount('fusion-canvas');
+                        await init('./\(wasmFileName)_bg.wasm');
+                        window.__fusionShell = mount('fusion-canvas');
+                        window.fusion_bridge_send_command = fusion_bridge_send_command;
                         console.log('fd-host-web wasm initialized');
                         if (window.fusionBridge) {
                             window.fusionBridge.postMessage(JSON.stringify({
@@ -308,12 +311,14 @@ struct DesignCanvasView: NSViewRepresentable {
     // MARK: - Bundle Resource Helpers
 
     private func wasmBundleURL() -> URL? {
-        Bundle.main.url(forResource: "fd_host_web_bg", withExtension: "wasm", subdirectory: "wasm")
+        Bundle.module.url(forResource: "fd_host_web_bg", withExtension: "wasm")
+            ?? Bundle.main.url(forResource: "fd_host_web_bg", withExtension: "wasm", subdirectory: "wasm")
             ?? Bundle.main.url(forResource: "fd_host_web_bg", withExtension: "wasm")
     }
 
     private func jsGlueBundleURL() -> URL? {
-        Bundle.main.url(forResource: "fd_host_web", withExtension: "js", subdirectory: "wasm")
+        Bundle.module.url(forResource: "fd_host_web", withExtension: "js")
+            ?? Bundle.main.url(forResource: "fd_host_web", withExtension: "js", subdirectory: "wasm")
             ?? Bundle.main.url(forResource: "fd_host_web", withExtension: "js")
     }
 

@@ -403,12 +403,16 @@ final class AgentBridge: ObservableObject {
     // 复核 MLX 是否可达：直接走 HTTP /v1/models（app 复用外部 mlx，env-daemon 不一定在线）。
     // 用于启动竞态后重试 / Design 等模块进入时复核，避免 isMLXRunning 滞留 false (bug3/bug7/bug8)。
     func probeMLXRunningStatus() async -> Bool {
+        let config = FusionConfig.shared
+        DesignPreviewTrace.log("probeMLXRunningStatus: baseURL=\(config.mlxBaseURL) apiKeyLen=\(config.mlxResolvedApiKey.count) route=studio")
         do {
             _ = try await fetchModels()
             logger.info("probeMLXRunningStatus: mlx reachable (HTTP /v1/models)")
+            DesignPreviewTrace.log("probeMLXRunningStatus: OK reachable")
             return true
         } catch {
             logger.error("probeMLXRunningStatus: mlx unreachable: \(error)")
+            DesignPreviewTrace.log("probeMLXRunningStatus: FAIL \(error)")
             return false
         }
     }
@@ -798,9 +802,12 @@ final class AgentBridge: ObservableObject {
     // MARK: - MLX Operations
 
     func fetchModels() async throws -> [MLXModelInfo] {
+        try await fetchModels(withApiKey: FusionConfig.shared.mlxResolvedApiKey)
+    }
+
+    private func fetchModels(withApiKey apiKey: String) async throws -> [MLXModelInfo] {
         let config = FusionConfig.shared
         let baseURL = config.mlxBaseURL
-        let apiKey = config.mlxResolvedApiKey
         guard let url = URL(string: "\(baseURL)/v1/models") else {
             throw BridgeError.ipcError("Invalid MLX URL: \(baseURL)")
         }
@@ -821,6 +828,10 @@ final class AgentBridge: ObservableObject {
                 logger.error("fetchModels: HTTP \(httpResp.statusCode) — \(body)")
                 let code = httpResp.statusCode
                 if code == 401 || code == 403 {
+                    if let fallback = Self.mlxSettingsJsonApiKey(), !fallback.isEmpty, fallback != apiKey {
+                        logger.warning("fetchModels: auth failed with resolved key (len \(apiKey.count)), retrying with settings.json key")
+                        return try await fetchModels(withApiKey: fallback)
+                    }
                     throw BridgeError.authFailed("MLX returned HTTP \(code)")
                 }
                 throw BridgeError.serviceUnavailable("MLX returned HTTP \(code)")
@@ -851,6 +862,16 @@ final class AgentBridge: ObservableObject {
             logger.error("fetchModels: \(error)")
             throw bridgeErr
         }
+    }
+
+    static func mlxSettingsJsonApiKey() -> String? {
+        guard let data = try? Data(contentsOf: URL(fileURLWithPath: NSHomeDirectory() + "/.fusion-mlx/settings.json")),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let auth = json["auth"] as? [String: Any],
+              let key = auth["api_key"] as? String, !key.isEmpty else {
+            return nil
+        }
+        return key
     }
 
     func startMLX(model: String = "") async throws -> [String: Any] {
