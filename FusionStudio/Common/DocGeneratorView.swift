@@ -302,6 +302,21 @@ class DocGenerator: ObservableObject {
 
             ## [Unreleased]
 
+            ## [0.1.30] - 2026-08-07
+
+            ### 修复
+            - Design 模块提交卡死/预览不可见/Canvas 修复：mlx 直连 401 鉴权回退到 settings.json、sendChat 实时 probe、预览白色背景、Canvas wasm Bundle.module 加载、runFusionDesign 管道死锁、Design RAG 暂禁+超时保护
+            - Project 会话无 AI 回复：新增 generateReply 调 infer 回填 assistant 气泡（用户右对齐/AI 左对齐）
+            - 严格健康检查：仅 HTTP 200-299 + UDS result 字段计为健康；9 子系统逐项探活 + 启动按钮；UDS 探活循环读至换行修复截断假阴性
+            - Projects 删除 "project not found"：FusionProject.id let→var + fromDict 直赋值，移除 encode-decode 往返
+            - Code 模块：聊天输入框移入中列；fusion-code offline 根因 /api/model/status 401，全量 HTTP+WS 加 Bearer
+            - AI 鉴权自愈：probeMLXRunningStatus 401/403 读 settings.json auth.api_key 重试并持久化覆盖失效 env
+            - Artifacts：X-API-Key header 从 FUSION_ARTIFACTS_API_KEY env 读取；artifactGet 解包嵌套 result + shareGet REST 404 fallback
+
+            ### 新增
+            - 侧边栏/IconRail 无障碍标识符 (closes #123)
+            - fusion-model-hub 生命周期 start.sh + 公开健康端点 /api/v1/system/health
+
             ## [0.1.11] - 2026-07-31
 
             ### 新增
