@@ -302,6 +302,18 @@ class DocGenerator: ObservableObject {
 
             ## [Unreleased]
 
+            ## [0.1.31] - 2026-08-07
+
+            ### 修复
+            - fusion-science 缺失 start.sh SERVICES 注册 (#113)
+            - Design 检查器面板按钮无响应：observeNotifications 同步设置 selectedElement (#120)
+            - Agent / AI Agent 菜单语义重叠：SidebarSection rawValue 区分 "Agent 工作台" / "AI 控制台" (#122)
+            - AX 主窗口未暴露为 AXWindow：WindowGroup 加标题 + .windowStyle(.automatic) 替 .titleBar (#125)
+
+            ### 新增
+            - fusion-health 集成侧栏：HealthBridge (HTTP :11456, X-API-Key) + HealthWorkbenchView (概览/病历摘要/体征提取/AI咨询) (#121)
+            - UpstreamServiceManager 注册 fusion-health 健康探针；EnvironmentHealthSheet 增加 science/health 探针
+
             ## [0.1.30] - 2026-08-07
 
             ### 修复
