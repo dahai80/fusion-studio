@@ -11,6 +11,7 @@ class AppState: ObservableObject {
     @Published var showHelp = false
     @Published var showWelcome = false
     @Published var showSettings = false
+    @Published var showEnvironmentHealth = false
     @Published var isHealthCheckPassed = false
     @Published var isMLXRunning = false
     @Published var healthStatus: HealthStatus = .checking

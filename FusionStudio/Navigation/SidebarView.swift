@@ -46,11 +46,11 @@ struct SidebarRow: View {
 
 struct HealthStatusBadge: View {
     let status: AppState.HealthStatus
+    @EnvironmentObject private var appState: AppState
     @Environment(\.studioTheme) private var theme
-    @State private var showHealthSheet = false
 
     var body: some View {
-        Button(action: { showHealthSheet = true }) {
+        Button(action: { appState.showEnvironmentHealth = true }) {
             HStack(spacing: 4) {
                 Circle()
                     .fill(color)
@@ -66,9 +66,6 @@ struct HealthStatusBadge: View {
         }
         .buttonStyle(.plain)
         .help("点击查看所有子系统健康状态")
-        .sheet(isPresented: $showHealthSheet) {
-            EnvironmentHealthSheet()
-        }
     }
 
     private var color: Color {
