@@ -302,6 +302,13 @@ class DocGenerator: ObservableObject {
 
             ## [Unreleased]
 
+            ## [0.1.34] - 2026-08-07
+
+            ### 修复
+            - 硬件监控改接真实 hardware.metrics IPC（psutil），替换 Double.random 假数据；失败保持上次值并标记"离线"（生产验收 #27 发现①）
+            - 依赖上游 fusion-agent-studio PR #99 新增 hardware.metrics RPC（memory/cpu/gpu/mlx）
+            - README 订正：存储为 UserDefaults（非 SQLite/加密）、无障碍覆盖进行中、模块数澄清（Module 枚举 27 / IconRail 顶级 20）
+
             ## [0.1.33] - 2026-08-07
 
             ### 新增
