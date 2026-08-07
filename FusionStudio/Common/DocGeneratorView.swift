@@ -302,6 +302,16 @@ class DocGenerator: ObservableObject {
 
             ## [Unreleased]
 
+            ## [0.1.32] - 2026-08-07
+
+            ### 修复
+            - Code 模块 Offline：fusion-code start.sh 前台 exec 被 Studio 30s 超时连带终止，改后台 detach (#136 上游 fusion-code#55)
+            - RAG 环境检测异常：upstreamRagPath 误指不存在的 ~/fusion/fusion-kb，修正为 ~/fusion/fusion-rag (#136)
+            - Science 环境检测异常：sciencePort 8200 与 start.sh 默认 11462 不一致，修正为 11462 (#136)
+            - Health 环境检测异常：无 start.sh 未运行，上游新增后台 detach 启动脚本 :11456 (#136 上游 fusion-health#10)
+            - Doc 环境检测异常：未纳入 UpstreamServiceManager + 端口 11449 被 multi-node 占用；新增管理器条目，multi-node 上游迁 11452 释放 11449 (#136 上游 fusion-multi-nodes#13 / fusion-doc#31)
+            - EnvironmentHealthSheet doc 探活端点 /health 误用，修正为 /api/health
+
             ## [0.1.31] - 2026-08-07
 
             ### 修复

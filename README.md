@@ -535,6 +535,18 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 
 ## 📋 Changelog
 
+### v0.1.32 — Code Offline + 四产品环境检测修复 (2026-08-07)
+
+修复 Code 模块 Offline 及 rag/doc/science/health 四个产品环境检测异常 (#136)：
+
+- **Code Offline**: fusion-code `start.sh` 前台 `exec` 不返回，被 Studio `UpstreamServiceManager` 30s 超时强制 terminate 连同服务一起杀掉。改后台 detach（nohup + PID + start|stop|status|restart）。上游 PR [fusion-code#55](https://github.com/dahai80/fusion-code/pull/55)
+- **RAG**: `upstreamRagPath` 误指不存在的 `~/fusion/fusion-kb`，实际服务在 `~/fusion/fusion-rag`（:11436）。修正路径
+- **Science**: `sciencePort=8200` 与 fusion-science `start.sh` 默认端口 **11462** 不一致。修正为 11462
+- **Health**: 无 `start.sh` 且未运行；健康路由 `/api/v1/health`（health router prefix=/api/v1）。上游新增后台 detach 启动脚本 :11456。上游 PR [fusion-health#10](https://github.com/dahai80/fusion-health/pull/10)
+- **Doc**: 此前未纳入 `UpstreamServiceManager`（无自动启动/健康探测）；且端口 11449 被 fusion-multi-node 占用（multi-node `start.sh` 默认 11449，但 Studio `multiNodePort=11452`）。新增 fusion-doc 管理器条目（healthEndpoint `/api/health`）；multi-node 上游迁 11452 释放 11449。上游 PR [fusion-multi-nodes#13](https://github.com/dahai80/fusion-multi-nodes/pull/13) + [fusion-doc#31](https://github.com/dahai80/fusion-doc/pull/31)
+- **EnvironmentHealthSheet**: `case "doc"` 探活端点 `/health` 误用，修正为 `/api/health`
+- **验证**: 四服务经 Studio 精确探活端点均 200（RAG 11436/health、DOC 11449/api/health、SCIENCE 11462/api/v1/health、HEALTH 11456/api/v1/health）；`swift build -c release` 0 error；`swift test` 140/140 PASS
+
 ### v0.1.31 — 5 Issue 修复 (2026-08-07)
 
 修复 5 个开放 issue (#113/#120/#121/#122/#125)：
