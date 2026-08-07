@@ -1662,6 +1662,7 @@ struct ProjectChatsPanel: View {
     @State private var activeChatId: String?
     @State private var messages: [ChatMessage] = []
     @State private var inputText = ""
+    @State private var refocusTrigger = 0
     @State private var selectedModel: String = ""
     @StateObject private var voiceInput = VoiceInputManager()
     @State private var ragMode: RAGMode = .AUTO
@@ -1971,11 +1972,18 @@ struct ProjectChatsPanel: View {
                 }
                 .menuStyle(.borderlessButton)
 
-                // Input field
-                TextField("输入消息…", text: $inputText)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: theme.footnoteSize))
-                    .onSubmit { sendMessage(chatId: chatId) }
+                // Input field — 多行输入框，占两行高度
+                SendableTextEditor(
+                    text: $inputText,
+                    placeholder: "输入消息…",
+                    font: .systemFont(ofSize: theme.footnoteSize),
+                    textColor: NSColor.labelColor,
+                    placeholderColor: NSColor.tertiaryLabelColor,
+                    maxHeight: 60,
+                    onSend: { sendMessage(chatId: chatId) },
+                    refocusTrigger: $refocusTrigger
+                )
+                .frame(minHeight: 36, maxHeight: 60)
 
                 FusionModelPicker(scene: .agent, selection: $selectedModel, models: agentBridge.models, onChange: { id in
                     projLog.info("Project chat model selected: \(id)")
