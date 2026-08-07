@@ -424,39 +424,37 @@ final class AgentBridge: ObservableObject {
         }
     }
 
-    // 用 ~/.fusion-mlx/settings.json auth.api_key 重试 MLX 探活，成功则写入 user-settings mlxApiKey 持久化
+    // MLX 探活 401 自愈：按候选 key 序列（gateway config.yaml > settings.json > fg-admin-key）
+    // 逐个探测当前 baseURL（gateway 11432 或直连 11434），首个 200 的持久化到 user-settings。
     private func selfHealApiKeyFromSettings() async -> Bool {
         let cfg = FusionConfig.shared
-        guard let data = try? Data(contentsOf: URL(fileURLWithPath: NSHomeDirectory() + "/.fusion-mlx/settings.json")),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let auth = json["auth"] as? [String: Any],
-              let key = auth["api_key"] as? String, !key.isEmpty,
-              key != cfg.mlxResolvedApiKey else {
-            logger.error("selfHealApiKey: no valid settings.json key to fall back")
+        let candidates = Self.mlxSelfHealKeyCandidates(currentResolved: cfg.mlxResolvedApiKey)
+        guard !candidates.isEmpty else {
+            logger.error("selfHealApiKey: no candidate keys to fall back")
             return false
         }
         let baseURL = cfg.mlxBaseURL
         guard let url = URL(string: "\(baseURL)/v1/models") else { return false }
-        do {
-            var req = URLRequest(url: url)
-            req.setValue("studio", forHTTPHeaderField: "X-Fusion-Route")
-            req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
-            req.timeoutInterval = 10
-            let (_, resp) = try await URLSession.shared.data(for: req)
-            guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else {
-                logger.error("selfHealApiKey: settings.json key also failed (HTTP \((resp as? HTTPURLResponse)?.statusCode ?? -1))")
-                return false
+        for key in candidates {
+            do {
+                var req = URLRequest(url: url)
+                req.setValue("studio", forHTTPHeaderField: "X-Fusion-Route")
+                req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+                req.timeoutInterval = 10
+                let (_, resp) = try await URLSession.shared.data(for: req)
+                let code = (resp as? HTTPURLResponse)?.statusCode ?? -1
+                if code == 200 {
+                    await MainActor.run { cfg.mlxApiKey = key }
+                    logger.info("selfHealApiKey: persisted key (len \(key.count)) to user-settings (resolved key was invalid)")
+                    return true
+                }
+                logger.warning("selfHealApiKey: candidate key (len \(key.count)) failed HTTP \(code)")
+            } catch {
+                logger.warning("selfHealApiKey: candidate key probe failed: \(error.localizedDescription)")
             }
-            // 持久化：写入 user-settings，优先级最高，覆盖错误 env
-            await MainActor.run {
-                cfg.mlxApiKey = key
-            }
-            logger.info("selfHealApiKey: persisted settings.json key to user-settings (env key was invalid)")
-            return true
-        } catch {
-            logger.error("selfHealApiKey: probe with settings.json key failed: \(error)")
-            return false
         }
+        logger.error("selfHealApiKey: all \(candidates.count) candidate keys failed")
+        return false
     }
 
     func repair(itemId: String) async throws -> [String: Any] {
@@ -916,6 +914,37 @@ final class AgentBridge: ObservableObject {
         return key
     }
 
+    // gateway (11432) 的有效 api key：解析 ~/fusion/fusion-gateway/config.yaml auth.api_keys[0]。
+    // env FUSION_MLX_API_KEY 常是过期值（被 gateway 拒），自愈回退到此 key。
+    static func gatewayConfigApiKey() -> String? {
+        let paths = [
+            NSHomeDirectory() + "/fusion/fusion-gateway/config.yaml",
+            "/Users/dahai/fusion/fusion-gateway/config.yaml",
+        ]
+        for path in paths {
+            guard let content = try? String(contentsOfFile: path, encoding: .utf8) else { continue }
+            for line in content.split(separator: "\n") {
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                if trimmed.hasPrefix("key:") {
+                    let v = trimmed.dropFirst(4).trimmingCharacters(in: .whitespaces)
+                    if !v.isEmpty && !v.contains("your-") && !v.contains("change-me") {
+                        return v
+                    }
+                }
+            }
+        }
+        return nil
+    }
+
+    // 自愈候选 key 序列：gateway config.yaml > settings.json > 内置 fg-admin-key 兜底
+    static func mlxSelfHealKeyCandidates(currentResolved: String) -> [String] {
+        var cands: [String] = []
+        if let g = gatewayConfigApiKey(), !g.isEmpty, g != currentResolved { cands.append(g) }
+        if let s = mlxSettingsJsonApiKey(), !s.isEmpty, s != currentResolved { cands.append(s) }
+        if !cands.contains("fg-admin-key") { cands.append("fg-admin-key") }
+        return cands
+    }
+
     func startMLX(model: String = "") async throws -> [String: Any] {
         guard let client = ipcClient else {
             throw BridgeError.notConnected
@@ -1067,11 +1096,49 @@ final class AgentBridge: ObservableObject {
             logger.error("infer: HTTP \(httpResp.statusCode) — \(responseBody)")
             let code = httpResp.statusCode
             if code == 401 || code == 403 {
+                // 自愈：env key 常过期（gateway 拒），回退候选 key 重试一次
+                if let healed = await selfHealApiKeyForInfer(currentURL: url, routeKey: apiKey) {
+                    var retryReq = request
+                    retryReq.setValue("Bearer \(healed)", forHTTPHeaderField: "Authorization")
+                    let (d2, r2) = try await URLSession.shared.data(for: retryReq)
+                    guard let h2 = r2 as? HTTPURLResponse, h2.statusCode == 200 else {
+                        throw BridgeError.authFailed("MLX inference returned HTTP \(code) (self-heal retry HTTP \((r2 as? HTTPURLResponse)?.statusCode ?? -1))")
+                    }
+                    return try parseInferResponse(data: d2, thinking: thinking)
+                }
                 throw BridgeError.authFailed("MLX inference returned HTTP \(code)")
             }
             throw BridgeError.serviceUnavailable("MLX inference returned HTTP \(code)")
         }
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+        return try parseInferResponse(data: data, thinking: thinking)
+    }
+
+    // 探测候选 key（gateway config.yaml > settings.json > fg-admin-key），首个 200 的持久化并返回。
+    private func selfHealApiKeyForInfer(currentURL: URL, routeKey: String) async -> String? {
+        let cfg = FusionConfig.shared
+        let candidates = Self.mlxSelfHealKeyCandidates(currentResolved: routeKey)
+        for key in candidates {
+            guard let probeURL = URL(string: "\(cfg.mlxBaseURL)/v1/models") else { continue }
+            var req = URLRequest(url: probeURL)
+            req.setValue("studio", forHTTPHeaderField: "X-Fusion-Route")
+            req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+            req.timeoutInterval = 10
+            do {
+                let (_, resp) = try await URLSession.shared.data(for: req)
+                if (resp as? HTTPURLResponse)?.statusCode == 200 {
+                    await MainActor.run { cfg.mlxApiKey = key }
+                    logger.info("infer selfHeal: persisted key (len \(key.count))")
+                    return key
+                }
+            } catch {
+                logger.warning("infer selfHeal: probe failed: \(error.localizedDescription)")
+            }
+        }
+        return nil
+    }
+
+    private func parseInferResponse(data: Data, thinking: Bool) throws -> String {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let choices = json["choices"] as? [[String: Any]],
               let firstChoice = choices.first,
               let message = firstChoice["message"] as? [String: Any] else {
@@ -1081,7 +1148,7 @@ final class AgentBridge: ObservableObject {
         if thinking, let reasoning = message["reasoning_content"] as? String, !reasoning.isEmpty {
             content = "<think>\n\(reasoning)\n</think>\n\n\(content)"
         }
-        logger.info("infer: received \(content.count) chars, effort=\(effort), thinking=\(thinking)")
+        logger.info("infer: received \(content.count) chars, thinking=\(thinking)")
         return content
     }
 
@@ -1132,12 +1199,26 @@ final class AgentBridge: ObservableObject {
         }
         if httpResp.statusCode == 401 || httpResp.statusCode == 403 {
             logger.error("inferStream: auth failed HTTP \(httpResp.statusCode), baseURL=\(baseURL), apiKeyLen=\(apiKey.count), route=studio")
+            // 自愈：env key 常过期（gateway 拒），回退候选 key 重试一次（流式重发）
+            if let healed = await selfHealApiKeyForInfer(currentURL: url, routeKey: apiKey) {
+                var retryReq = request
+                retryReq.setValue("Bearer \(healed)", forHTTPHeaderField: "Authorization")
+                let (b2, r2) = try await URLSession.shared.bytes(for: retryReq)
+                guard let h2 = r2 as? HTTPURLResponse, h2.statusCode == 200 else {
+                    throw BridgeError.authFailed("MLX returned HTTP \(httpResp.statusCode) (self-heal retry HTTP \((r2 as? HTTPURLResponse)?.statusCode ?? -1))")
+                }
+                return try await drainStream(bytes: b2, thinking: thinking, onToken: onToken)
+            }
             throw BridgeError.authFailed("MLX returned HTTP \(httpResp.statusCode)")
         }
         guard httpResp.statusCode == 200 else {
             throw BridgeError.serviceUnavailable("MLX streaming returned HTTP \(httpResp.statusCode)")
         }
+        return try await drainStream(bytes: bytes, thinking: thinking, onToken: onToken)
+    }
 
+    // 消费流式响应，拼装 fullContent + thinking 前缀，逐 token 回调
+    private func drainStream(bytes: URLSession.AsyncBytes, thinking: Bool, onToken: @escaping (String) -> Void) async throws -> String {
         var fullContent = ""
         var thinkingContent = ""
         var isInThinking = thinking
