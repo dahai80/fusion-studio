@@ -535,6 +535,18 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 
 ## 📋 Changelog
 
+### v0.1.31 — 5 Issue 修复 (2026-08-07)
+
+修复 5 个开放 issue (#113/#120/#121/#122/#125)：
+
+- **#113 fusion-science start.sh 注册**: `Scripts/start.sh` SERVICES 补充 fusion-science 行（health `http://127.0.0.1:8200/api/v1/health`，startOrder=11）
+- **#120 Design 检查器按钮无响应**: `DesignInspectorView.observeNotifications` 的 show observer 只设 `inspectorContext` 未设 `state.selectedElement`，导致 `pushSizeToCanvas`/`applyPreset` 提前 return。修复：同步设置 `selectedElement`，hide 时清空
+- **#121 fusion-health 侧栏集成**: 新增 `HealthBridge`（HTTP `:11456`，`X-API-Key` 来自 `FUSION_HEALTH_API_KEY` env，空则跳过鉴权）+ `HealthWorkbenchView`（概览/病历摘要/体征提取/AI咨询 4 tab）。`SidebarSection`/`Module`/`ProductSheet` 新增 `.health`，`FusionConfig` 新增 `healthHost/healthPort(11456)/upstreamHealthPath`，`UpstreamServiceManager` 注册健康探针，`EnvironmentHealthSheet` 增加 science/health 探针，`Scripts/start.sh` 注册 fusion-health（startOrder=12）。端口选 11456 避开 fusion-agent-studio http 的 11453
+- **#122 Agent / AI Agent 语义重叠**: `SidebarSection` rawValue 区分 `agent="Agent 工作台"` / `aiAgent="AI 控制台"`，边界清晰不物理合并
+- **#125 AX 主窗口未暴露为 AXWindow**: `.windowStyle(.titleBar)` 产生无边框窗口致 `AXWindows[0].AXRole==AXApplication`。改为 `WindowGroup("Fusion Studio")` + `.windowStyle(.automatic)`，GUI 自动化可识别 AXWindow
+- **上游阻塞**: fusion-health 缺 `start.sh` + `serve` 子命令，已提 issue dahai80/fusion-health#8。studio 侧已就绪，待上游启动入口后健康探针生效
+- **验证**: `swift build -c release` 0 error；`swift test` 140/140 PASS
+
 ### Design 模块提交/预览/Canvas 修复 (2026-08-07)
 
 Design 模块"生成登录页模板后预览不可见、对话框无法提交、canvas 显示功能未实现"三连修复：
