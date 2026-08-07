@@ -59,6 +59,7 @@ enum ProductSheet: String, CaseIterable, Identifiable {
     case ragSheet = "Fusion RAG"
     case scienceSheet = "Science"
     case financeSheet = "Finance"
+    case healthSheet = "Health"
     case pluginEcosystemSheet = "Plugin Ecosystem"
     case cliServiceSheet = "CLI Service"
     case docSheet = "Fusion Doc"
@@ -84,6 +85,7 @@ enum ProductSheet: String, CaseIterable, Identifiable {
         case .ragSheet:       "books.vertical"
         case .scienceSheet:   "flask"
         case .financeSheet:   "chart.line.uptrend.xyaxis"
+        case .healthSheet:    "heart.text.square"
         case .pluginEcosystemSheet: "puzzlepiece.extension"
         case .cliServiceSheet: "terminal"
         case .docSheet:       "doc.text"
@@ -119,6 +121,8 @@ enum ProductSheet: String, CaseIterable, Identifiable {
             return [.science]
         case .financeSheet:
             return [.finance]
+        case .healthSheet:
+            return [.health]
         case .pluginEcosystemSheet:
             return [.pluginConfig, .pluginStatus, .pluginToken, .pluginVram, .pluginLog, .pluginMcp]
         case .cliServiceSheet:
@@ -190,6 +194,7 @@ enum Module: String, CaseIterable, Identifiable {
     case aiAgentKnowledgeBase = "AI知识库"
     case science = "科研"
     case finance = "金融"
+    case health = "健康"
     case pluginConfig = "插件配置"
     case pluginStatus = "插件状态"
     case pluginToken = "Token"
@@ -256,6 +261,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .aiAgentKnowledgeBase: return "books.vertical"
         case .science: return "flask"
         case .finance: return "chart.line.uptrend.xyaxis"
+        case .health: return "heart.text.square"
         case .pluginConfig: return "gearshape"
         case .pluginStatus: return "checkmark.circle"
         case .pluginToken: return "coins"
@@ -304,6 +310,8 @@ enum Module: String, CaseIterable, Identifiable {
             return .scienceSheet
         case .finance:
             return .financeSheet
+        case .health:
+            return .healthSheet
         case .simulation:
             return .simulationSheet
         case .pluginConfig, .pluginStatus, .pluginToken, .pluginVram, .pluginLog, .pluginMcp:
@@ -319,8 +327,8 @@ enum SidebarSection: String, CaseIterable, Identifiable {
     case code = "Code"
     case design = "Design"
     case rag = "RAG"
-    case agent = "Agent"
-    case aiAgent = "AI Agent"
+    case agent = "Agent 工作台"
+    case aiAgent = "AI 控制台"
     case cowork = "CoWork"
     case fsb = "FSB"
     case mlx = "Fusion-MLX"
@@ -328,6 +336,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
     case multiNode = "Multi-Node"
     case science = "Science"
     case finance = "Finance"
+    case health = "Health"
     case pluginEcosystem = "Plugin Ecosystem"
     case cliService = "CLI Service"
     case doc = "Fusion Doc"
@@ -352,6 +361,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .fsb:       return "storefront"
         case .science:   return "flask"
         case .finance:   return "chart.line.uptrend.xyaxis"
+        case .health:    return "heart.text.square"
         case .pluginEcosystem: return "puzzlepiece.extension"
         case .cliService: return "terminal"
         case .doc:       return "doc.text"
@@ -378,6 +388,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .fsb:       return [.fsb]
         case .science:   return [.science]
         case .finance:   return [.finance]
+        case .health:    return [.health]
         case .pluginEcosystem: return [.pluginConfig, .pluginStatus, .pluginToken, .pluginVram, .pluginLog, .pluginMcp]
         case .cliService: return [.cli]
         }

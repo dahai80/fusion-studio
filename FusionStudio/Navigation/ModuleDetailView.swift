@@ -122,6 +122,8 @@ struct ModuleDetailView: View {
                 ScienceWorkbenchView()
             case .finance:
                 FinanceWorkbenchView()
+            case .health:
+                HealthWorkbenchView()
             case .pluginConfig:
                 PluginConfigView()
             case .pluginStatus:

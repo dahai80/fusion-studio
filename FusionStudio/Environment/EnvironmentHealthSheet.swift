@@ -25,6 +25,8 @@ struct EnvironmentHealthSheet: View {
         "cowork": "cowork-desk",
         "projects": "project-svc",
         "code": "fusion-code",
+        "science": "fusion-science",
+        "health": "fusion-health",
     ]
 
     // 全量子系统清单：id -> (label, icon, 探活方式)
@@ -38,6 +40,8 @@ struct EnvironmentHealthSheet: View {
         .init(id: "projects", label: "Fusion Projects 项目服务", icon: "folder.badge.gearshape"),
         .init(id: "doc", label: "Fusion Doc 文档服务", icon: "doc.text"),
         .init(id: "code", label: "Fusion Code 代码服务", icon: "chevron.left.forwardslash.chevron.right"),
+        .init(id: "science", label: "Fusion Science 科研服务", icon: "flask"),
+        .init(id: "health", label: "Fusion Health 健康服务", icon: "heart.text.square"),
     ]
 
     var body: some View {
@@ -227,6 +231,10 @@ struct EnvironmentHealthSheet: View {
             case "code":
                 // fusion-code 无 /health 端点(404)，用真实业务接口 /api/projects + Bearer 鉴权探活
                 detail = try await probeHTTP("http://127.0.0.1:\(cfg.fusionCodePort)/api/projects", headers: ["Authorization": "Bearer fg-admin-key"])
+            case "science":
+                detail = try await probeHTTP("\(cfg.scienceBaseURL)/api/v1/health", headers: [:])
+            case "health":
+                detail = try await probeHTTP("\(cfg.healthBaseURL)/api/v1/health", headers: [:])
             default:
                 detail = "未配置探活"
             }

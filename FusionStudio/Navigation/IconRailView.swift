@@ -131,6 +131,9 @@ struct IconRailView: View {
                 case .finance:
                     appState.selectedModule = .finance
                     appState.selectedSheet = .financeSheet
+                case .health:
+                    appState.selectedModule = .health
+                    appState.selectedSheet = .healthSheet
                 case .pluginEcosystem:
                     appState.selectedModule = .pluginConfig
                     appState.selectedSheet = .pluginEcosystemSheet

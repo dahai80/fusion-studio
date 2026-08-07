@@ -40,6 +40,8 @@ SERVICES=(
     "fusion-code|Fusion Code|~/fusion/fusion-code/start.sh|http|http://127.0.0.1:11441/api/project/context|8|0"
     "project-svc|Fusion Projects|~/fusion/fusion-projects/start.sh|socket|/tmp/fusion-project-svc.sock|9|0"
     "cowork-desk|CoWork Desk|~/fusion/fusion-cowork|socket|/tmp/fusion-cowork.sock|10|0"
+    "fusion-science|Fusion Science|~/fusion/fusion-science/start.sh|http|http://127.0.0.1:8200/api/v1/health|11|0"
+    "fusion-health|Fusion Health|~/fusion/fusion-health/start.sh|http|http://127.0.0.1:11456/api/v1/health|12|0"
 )
 
 expand_path() {
