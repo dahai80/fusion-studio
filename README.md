@@ -54,7 +54,7 @@ Design · Code · Simulation · MultiModal · Training · Data · Agent · KB ·
 | 🔌 **Plugin System** | Third-party extension support |
 | ♿ **Accessibility** | VoiceOver, keyboard navigation, reduce motion |
 | 🌐 **i18n** | Chinese, English, Japanese, Korean |
-| 🔒 **Security Center** | Sandbox, file access control, integrity check |
+| 🔒 **Security Center** | SAST 扫描 + AI 修复 + 质量门禁 + 运行时防护（沙箱/脱敏/注入检测） |
 
 ### 🧩 Module Overview
 
@@ -75,7 +75,7 @@ Design · Code · Simulation · MultiModal · Training · Data · Agent · KB ·
 | 13 | 📈 **Data Tools** | `tablecells` | ✅ Stable | CSV import/export, statistics, charts, SQL queries |
 | 14 | 🤝 **Agent** | `person.2.fill` | ✅ Stable | Multi-agent orchestration, workflows, task delegation |
 | 15 | 🔌 **Plugin** | `puzzlepiece.extension` | ✅ Stable | Plugin manager, marketplace, developer tools |
-| 16 | 🔒 **Security** | `shield.checkered` | ✅ Stable | Security scan, event monitoring, config hardening |
+| 16 | 🔒 **Security** | `shield.checkered` | ✅ Stable | 6 原生 tab：安全概览/项目与扫描/漏洞清单/AI 修复/质量门禁/运行时防护，直连 fusion-security :11454 |
 | 17 | 📊 **Analytics** | `chart.bar.xaxis` | ✅ Stable | Usage analytics, inference stats, error analysis |
 | 18 | 👥 **Collaboration** | `person.2` | ✅ Stable | LAN peer discovery, real-time chat, shared resources |
 | 19 | ⚡ **Auto Tuning** | `wand.and.rays` | ✅ Stable | MLX auto-tuning, performance optimization |
@@ -534,6 +534,23 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 ---
 
 ## 📋 Changelog
+
+### v0.1.33 — Security 中心全量重构：6 原生 tab 接入 fusion-security (2026-08-07)
+
+深度对标 Claude Code 安全能力并集成 fusion-security，使 Studio 安全中心在静态分析维度全面超越 Claude Code 的运行时防护：
+
+- **SecurityBridge** (NEW): HTTP client 直连 fusion-security FastAPI `:11454/api/v1/*`，generic get/postJSON + convertFromSnakeCase 解码 + 15 DTO
+- **6 原生 tab** 取代旧的 5 tab（含失效的 WebView :3000 面板）：
+  1. **安全概览** — 引擎信息 + 扫描/漏洞/项目/严重度统计 + 高频规则 TOP
+  2. **项目与扫描** — 项目 CRUD + 一键发起扫描（AI 增强开关）+ 扫描历史
+  3. **漏洞清单** — 严重度过滤 + 展开看代码片段/修复建议 + 一键生成 AI 补丁 / 标记误报
+  4. **AI 修复** — 补丁列表 + 原始/修复代码对比 + 应用→验证全流程
+  5. **质量门禁** — 策略评估（pass/fail + blocked_by）+ 内置规则 + 自定义规则 CRUD
+  6. **运行时防护** — 沙箱/文件/网络/完整性 + 新增「敏感信息脱敏」「Prompt 注入检测」（超越 Claude Code 的运行时能力）
+- **端口对齐**: `securityPort` 11442 → 11454（fusion-security `serve` 默认）
+- **健康端点**: `env-daemon` 探活改 `/api/v1/system/health`（公开 200）
+- **E2E 验证**: health/info/dashboard/rules GET + 项目→扫描→5 漏洞→补丁 generate/apply/verify→门禁 全链路通过
+- 上游依赖：fusion-security PR #16/#18/#20（scan 时间戳/补丁生成/启动脚本，已合并）
 
 ### v0.1.32 — Code Offline + 四产品环境检测修复 (2026-08-07)
 
