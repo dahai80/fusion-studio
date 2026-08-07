@@ -222,7 +222,8 @@ struct EnvironmentHealthSheet: View {
                 // artifacts 无 /health 端点(404)，用真实业务接口 /api/v1/artifacts 探活
                 detail = try await probeHTTP("\(cfg.artifactsEngineURL)/api/v1/artifacts", headers: [:])
             case "doc":
-                detail = try await probeHTTP("http://127.0.0.1:\(cfg.fusionDocPort)/health", headers: [:])
+                // fusion-doc 健康路由为 /api/health（auth 中间件白名单），非 /health
+                detail = try await probeHTTP("http://127.0.0.1:\(cfg.fusionDocPort)/api/health", headers: [:])
             case "cowork":
                 // cowork UDS 用 desk.space.list 真实业务方法探活
                 detail = try await probeUDS("/tmp/fusion-cowork.sock", method: "desk.space.list")

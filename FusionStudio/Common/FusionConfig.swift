@@ -131,7 +131,10 @@ class FusionConfig: ObservableObject {
     @AppStorage("upstreamAgentStudioPath") var upstreamAgentStudioPath = "~/fusion/fusion-agent-studio"
     @AppStorage("upstreamMlxPath") var upstreamMlxPath = "~/claude-home/fusion-mlx"
     @AppStorage("upstreamArtifactsPath") var upstreamArtifactsPath = "~/fusion/fusion-artifacts-engine"
-    @AppStorage("upstreamRagPath") var upstreamRagPath = "~/fusion/fusion-kb"
+    // Callers: UpstreamServiceManager (repoPathRaw for fusion-rag). Affected API: start.sh path resolution.
+    // Data: @AppStorage string path. User instruction: "现在还是有四个产品环境检测异常，rag，doc，science，health，请排查问题，并进行修复"
+    // fix: RAG 服务实际位于 fusion-rag（非 fusion-kb，后者不存在），端口 11436。
+    @AppStorage("upstreamRagPath") var upstreamRagPath = "~/fusion/fusion-rag"
     @AppStorage("upstreamMultiNodePath") var upstreamMultiNodePath = "~/fusion/fusion-multi-node"
     @AppStorage("upstreamFusionCodePath") var upstreamFusionCodePath = "~/fusion/fusion-code"
     @AppStorage("upstreamSciencePath") var upstreamSciencePath = "~/fusion/fusion-science"
@@ -156,8 +159,10 @@ class FusionConfig: ObservableObject {
     @AppStorage("fusionBenchPort") var fusionBenchPort = 11450
     @AppStorage("agentStudioHttpPort") var agentStudioHttpPort = 11453
     @AppStorage("multiNodePort") var multiNodePort = 11452
+    // Callers: UpstreamServiceManager (health endpoint), ScienceBridge. Affected API: scienceBaseURL.
+    // Data: @AppStorage host/port. fix: fusion-science start.sh 默认端口 11462（非 8200），对齐上游。
     @AppStorage("scienceHost") var scienceHost = "127.0.0.1"
-    @AppStorage("sciencePort") var sciencePort = 8200
+    @AppStorage("sciencePort") var sciencePort = 11462
 
     /// Fusion-Science 服务地址
     var scienceBaseURL: String { "http://\(scienceHost):\(sciencePort)" }
@@ -314,7 +319,7 @@ class FusionConfig: ObservableObject {
         upstreamAgentStudioPath = "~/fusion/fusion-agent-studio"
         upstreamMlxPath = "~/claude-home/fusion-mlx"
         upstreamArtifactsPath = "~/fusion/fusion-artifacts-engine"
-        upstreamRagPath = "~/fusion/fusion-kb"
+        upstreamRagPath = "~/fusion/fusion-rag"
         upstreamMultiNodePath = "~/fusion/fusion-multi-node"
         upstreamFusionCodePath = "~/fusion/fusion-code"
         upstreamSciencePath = "~/fusion/fusion-science"
@@ -334,7 +339,7 @@ class FusionConfig: ObservableObject {
         fusionBenchPort = 11450
         agentStudioHttpPort = 11453
         scienceHost = "127.0.0.1"
-        sciencePort = 8200
+        sciencePort = 11462
         simulationHost = "127.0.0.1"
         simulationPort = 11455
         healthHost = "127.0.0.1"

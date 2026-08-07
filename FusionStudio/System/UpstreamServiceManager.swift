@@ -222,6 +222,15 @@ final class UpstreamServiceManager: ObservableObject {
                             isCritical: false, startOrder: 13,
                             repoPathRaw: cfg.upstreamHealthPath,
                             healthKind: .httpGet, healthEndpoint: "\(cfg.healthBaseURL)/api/v1/health"),
+            // Callers: DocBridge (baseURL 11449), EnvironmentHealthSheet case "doc". Affected API: httpGet health.
+            // Data: UpstreamService entry. fix: fusion-doc 此前未纳入管理器，无自动启动/健康探测。
+            // 端口 11449（与 multi-node 冲突已由 multi-node 迁至 11452 解决）。健康路由 /api/health。
+            UpstreamService(id: "fusion-doc",
+                            displayName: "Fusion-Doc 文档",
+                            icon: "doc.text",
+                            isCritical: false, startOrder: 14,
+                            repoPathRaw: "~/fusion/fusion-doc",
+                            healthKind: .httpGet, healthEndpoint: "http://127.0.0.1:\(cfg.fusionDocPort)/api/health"),
             // Callers: SimulationWorkbenchView UpstreamServiceStatusBanner(serviceId:"fusion-simulation"), refreshAll.
             // Affected API: UpstreamService entry (httpGet health at simulationBaseURL/api/health, port 11455).
             // Data: UpstreamService struct. User instruction: "和~/fusion/fuison-simulation项目集成起来"
