@@ -140,6 +140,7 @@ class FusionConfig: ObservableObject {
     // Data schemas: @AppStorage (UserDefaults) host/port, port 11455 = fusion-sim FastAPI dashboard (--gui).
     // User instruction: "在左侧菜单增加 fusion simulation,fusion-studio负责GUI，和~/fusion/fuison-simulation项目集成起来"
     @AppStorage("upstreamSimulationPath") var upstreamSimulationPath = "~/fusion/fusion-simulation"
+    @AppStorage("upstreamHealthPath") var upstreamHealthPath = "~/fusion/fusion-health"
     @AppStorage("fusionCodePort") var fusionCodePort = 11441
     @AppStorage("upstreamAutoStartCritical") var upstreamAutoStartCritical = true
 
@@ -167,6 +168,11 @@ class FusionConfig: ObservableObject {
 
     /// Fusion-Simulation 服务地址（FastAPI 控制面，需 fusion-sim service start --gui）
     var simulationBaseURL: String { "http://\(simulationHost):\(simulationPort)" }
+
+    @AppStorage("healthHost") var healthHost = "127.0.0.1"
+    @AppStorage("healthPort") var healthPort = 11456
+
+    var healthBaseURL: String { "http://\(healthHost):\(healthPort)" }
 
     /// 展开 ~/ 路径为绝对路径
     func expandedUpstreamPath(_ raw: String) -> String {
@@ -298,6 +304,7 @@ class FusionConfig: ObservableObject {
         upstreamFusionCodePath = "~/fusion/fusion-code"
         upstreamSciencePath = "~/fusion/fusion-science"
         upstreamSimulationPath = "~/fusion/fusion-simulation"
+        upstreamHealthPath = "~/fusion/fusion-health"
         fusionCodePort = 11441
         upstreamAutoStartCritical = true
 
@@ -315,5 +322,7 @@ class FusionConfig: ObservableObject {
         sciencePort = 8200
         simulationHost = "127.0.0.1"
         simulationPort = 11455
+        healthHost = "127.0.0.1"
+        healthPort = 11456
     }
 }

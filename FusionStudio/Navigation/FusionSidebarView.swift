@@ -185,6 +185,8 @@ struct FusionSidebarView: View {
         // User instruction: "在左侧菜单增加 fusion simulation"
         case .simulation:
             moduleListContent(.simulation)
+        case .health:
+            moduleListContent(.health)
         }
     }
 

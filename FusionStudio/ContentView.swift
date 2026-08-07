@@ -180,6 +180,8 @@ struct SectionContentView: View {
                     .environmentObject(ScienceSSEClient())
             case .finance:
                 FinanceWorkbenchView()
+            case .health:
+                HealthWorkbenchView()
             case .pluginEcosystem:
                 PluginEcosystemView()
                     .environmentObject(PluginBridge.shared)

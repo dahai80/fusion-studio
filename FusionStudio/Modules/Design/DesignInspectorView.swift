@@ -342,6 +342,8 @@ struct DesignInspectorView: View {
             if let nodeID = notification.userInfo?["node_id"] as? String {
                 appState.inspectorContext = .node(id: nodeID)
                 appState.isInspectorVisible = true
+                state.selectedElement = nodeID
+                logger.info("DesignInspectorView: show node=\(nodeID), selectedElement set")
             }
         }
         NotificationCenter.default.addObserver(
@@ -351,6 +353,8 @@ struct DesignInspectorView: View {
         ) { _ in
             appState.inspectorContext = .none
             appState.isInspectorVisible = false
+            state.selectedElement = nil
+            logger.info("DesignInspectorView: hide, selectedElement cleared")
         }
     }
 
