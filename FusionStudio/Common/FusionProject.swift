@@ -187,7 +187,7 @@ struct FusionProject: Identifiable, Codable, Equatable {
     init(name: String, rootPath: String = "", description: String = "",
          customInstructions: String = "", ragMode: RAGMode = .AUTO,
          promptMergeMode: PromptMergeMode = .AGENT_FIRST) {
-        self.id = UUID().uuidString
+        self.id = UUID().uuidString.lowercased().replacingOccurrences(of: "-", with: "")
         self.name = name
         self.rootPath = rootPath
         self.description = description
@@ -220,7 +220,7 @@ struct FusionProject: Identifiable, Codable, Equatable {
     var agentName: String? { agentBinding?.agentName }
 
     static func fromDict(_ d: [String: Any]) -> FusionProject {
-        let id = d["id"] as? String ?? UUID().uuidString
+        let id = d["id"] as? String ?? UUID().uuidString.lowercased().replacingOccurrences(of: "-", with: "")
         let name = d["name"] as? String ?? "Untitled"
         let desc = d["description"] as? String ?? ""
         let root = d["root_path"] as? String ?? ""
@@ -315,12 +315,14 @@ class FusionProjectManager: ObservableObject {
         isLoading = true
         do {
             let result = try await ipc.projectList(includeArchived: true)
-            if let items = result as? [[String: Any]] {
+            if let items = result["items"] as? [[String: Any]] {
                 let loaded = items.map { FusionProject.fromDict($0) }
+                let backendIds = Set(loaded.map { $0.id })
                 await MainActor.run {
                     self.projects = loaded
                     self.isLoading = false
                 }
+                purgeStaleLocalProjects(keeping: backendIds)
                 projectLog.info("Loaded \(items.count) projects from backend")
             } else {
                 await MainActor.run { self.isLoading = false }
@@ -896,6 +898,29 @@ class FusionProjectManager: ObservableObject {
 
         isLoading = false
         projectLog.info("Loaded \(self.projects.count) projects")
+    }
+
+    // 后端项目加载成功后，清理本地遗留的 fallback 项目目录（大写 UUID 等），
+    // 防止下次 init 再加载进列表 → 点会话传本地 id 给后端 → "project not found"。
+    private func purgeStaleLocalProjects(keeping backendIds: Set<String>) {
+        let fm = FileManager.default
+        guard let entries = try? fm.contentsOfDirectory(at: baseDir, includingPropertiesForKeys: nil) else { return }
+        var removed = 0
+        for dir in entries where dir.hasDirectoryPath {
+            let pid = dir.lastPathComponent
+            if !backendIds.contains(pid) {
+                try? fm.removeItem(at: dir)
+                removed += 1
+            }
+        }
+        if removed > 0 {
+            let kept = entries.filter { backendIds.contains($0.lastPathComponent) }
+            let newIndex = kept.map { ProjectIndex(id: $0.lastPathComponent, name: "", rootPath: "", updatedAt: Date()) }
+            if let data = try? encoder.encode(newIndex) {
+                try? data.write(to: indexURL, options: .atomic)
+            }
+            projectLog.info("Purged \(removed) stale local project dirs not in backend")
+        }
     }
 
     private let knowledgeExtensions: Set<String> = [

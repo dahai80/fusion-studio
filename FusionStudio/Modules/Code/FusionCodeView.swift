@@ -185,14 +185,28 @@ struct FusionCodeView: View {
                     Divider()
                 }
 
-                fcChatPanel
-                    .frame(maxWidth: .infinity)
+                // 右侧两列（chat + 右侧面板）组合，输入框贯穿其底部
+                VStack(spacing: 0) {
+                    HStack(spacing: 0) {
+                        fcChatPanel
+                            .frame(maxWidth: .infinity)
 
-                if showRightPanel && layoutMode != .chatOnly && layoutMode != .twoColumn {
-                    fcRightPanel
-                        .frame(width: 480)
-                        .background(theme.contentBg)
+                        if showRightPanel && layoutMode != .chatOnly && layoutMode != .twoColumn {
+                            Divider()
+                            fcRightPanel
+                                .frame(width: 480)
+                                .background(theme.contentBg)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                    // 对话输入框贯穿右侧两列底部
+                    if layoutMode != .chatOnly {
+                        Divider()
+                        fcInputBar
+                    }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -454,9 +468,6 @@ struct FusionCodeView: View {
                     }
                 }
             }
-            // 对话输入框限定在中间 chat 列底部，不贯穿整个底部
-            Divider()
-            fcInputBar
         }
     }
 

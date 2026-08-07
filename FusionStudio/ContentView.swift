@@ -53,6 +53,9 @@ struct ContentView: View {
         .sheet(isPresented: $appState.showAboutPanel) {
             AboutView()
         }
+        .sheet(isPresented: $appState.showEnvironmentHealth) {
+            EnvironmentHealthSheet()
+        }
         .onAppear {
             applyNativeAppearance(appState.isDarkMode)
             contentViewLog.info("ContentView appeared - 3-column layout, darkMode=\(appState.isDarkMode)")
