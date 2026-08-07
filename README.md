@@ -52,11 +52,13 @@ Design · Code · Simulation · MultiModal · Training · Data · Agent · KB ·
 | 📊 **Hardware Monitor** | Real-time CPU/GPU/memory/MLX metrics |
 | 📋 **Global Task Queue** | Background task management with persistence |
 | 🔌 **Plugin System** | Third-party extension support |
-| ♿ **Accessibility** | VoiceOver, keyboard navigation, reduce motion |
+| ♿ **Accessibility** | VoiceOver labels, keyboard navigation, reduce motion (partial — `accessibilityIdentifier` coverage in progress) |
 | 🌐 **i18n** | Chinese, English, Japanese, Korean |
 | 🔒 **Security Center** | SAST 扫描 + AI 修复 + 质量门禁 + 运行时防护（沙箱/脱敏/注入检测） |
 
 ### 🧩 Module Overview
+
+> **Module count**: the `Module` enum has 27 cases (below). The icon rail (`SidebarSection.allCases`) renders 20 top-level entries; the remaining modules appear as sub-items or are routed via `ModuleDetailView`.
 
 | # | Module | Icon | Status | Description |
 |---|--------|------|--------|-------------|
@@ -399,7 +401,7 @@ python -c "from fusion_simulation.cli import main; main()" service start \
 | IPC | **Unix Socket + JSON-RPC 2.0** | Lightweight, zero-dependency, cross-language |
 | Backend Services | **Rust** (primary) + **Python** (secondary) | Rust for performance/process mgmt, Python for MLX |
 | Inference Engine | **fusion-mlx** | Apple Silicon MLX, multi-modal, quantization |
-| Storage | **SQLite + UserDefaults** | Zero-config, local-first, encrypted |
+| Storage | **UserDefaults** (local-first) | Zero-config, local-first; integrity via SHA256 (no at-rest encryption / SQLite on Studio side) |
 | Packaging | **Xcode Archive + Notarization + DMG** | Standard macOS distribution |
 
 ---
