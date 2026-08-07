@@ -217,7 +217,22 @@ class FusionConfig: ObservableObject {
     var isOffline: Bool { offlineMode }
 
     /// MLX 服务地址
-    var mlxBaseURL: String { "http://\(mlxHost):\(mlxPort)" }
+    /// 优先级：FUSION_GATEWAY_URL / FUSION_MLX_URL（完整 URL，走 gateway 11432）
+    ///         > FUSION_MLX_PORT（仅覆盖端口）> 默认 mlxHost:mlxPort（直连 11434）
+    var mlxBaseURL: String {
+        let env = ProcessInfo.processInfo.environment
+        let host = mlxHost
+        let port = mlxPort
+        if let full = env["FUSION_GATEWAY_URL"] ?? env["FUSION_MLX_URL"], !full.isEmpty {
+            fusionConfigLog.error("mlxBaseURL: source=FUSION_GATEWAY_URL/MLX_URL env -> \(full)")
+            return full
+        }
+        if let portStr = env["FUSION_MLX_PORT"], let envPort = Int(portStr), envPort > 0 {
+            fusionConfigLog.error("mlxBaseURL: source=FUSION_MLX_PORT env -> \(host):\(envPort)")
+            return "http://\(host):\(envPort)"
+        }
+        return "http://\(host):\(port)"
+    }
 
     /// MLX API Key — 解析优先级与上游 fusion-mlx _resolve_api_key 对齐：
     /// 1) 用户在 Settings 显式设置 (mlxApiKey @AppStorage)

@@ -59,11 +59,19 @@ final class FusionConfigTests: XCTestCase {
         XCTAssertTrue(config.isOffline)
     }
 
+    // mlxBaseURL 优先级：FUSION_GATEWAY_URL/FUSION_MLX_URL > FUSION_MLX_PORT > mlxHost:mlxPort
     func testMLXBaseURL() {
         let config = FusionConfig.shared
         config.mlxHost = "localhost"
         config.mlxPort = 11434
-        XCTAssertEqual(config.mlxBaseURL, "http://localhost:11434")
+        let env = ProcessInfo.processInfo.environment
+        if let full = env["FUSION_GATEWAY_URL"] ?? env["FUSION_MLX_URL"], !full.isEmpty {
+            XCTAssertEqual(config.mlxBaseURL, full, "env FUSION_GATEWAY_URL/MLX_URL 应被采用")
+        } else if let portStr = env["FUSION_MLX_PORT"], let port = Int(portStr), port > 0 {
+            XCTAssertEqual(config.mlxBaseURL, "http://localhost:\(port)", "env FUSION_MLX_PORT 应覆盖端口")
+        } else {
+            XCTAssertEqual(config.mlxBaseURL, "http://localhost:11434", "无 env 时用 mlxHost:mlxPort")
+        }
     }
 
     // mlxResolvedApiKey 必须从环境变量 FUSION_MLX_API_KEY 取值
