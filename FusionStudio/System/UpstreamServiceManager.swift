@@ -191,7 +191,7 @@ final class UpstreamServiceManager: ObservableObject {
                             icon: "shield.checkered",
                             isCritical: false, startOrder: 7,
                             repoPathRaw: "~/fusion/fusion-security",
-                            healthKind: .httpGet, healthEndpoint: "http://localhost:\(cfg.securityPort)/api/v1/system/info"),
+                            healthKind: .httpGet, healthEndpoint: "http://localhost:\(cfg.securityPort)/api/v1/system/health"),
             UpstreamService(id: "fusion-code",
                             displayName: "Fusion Code API",
                             icon: "terminal",

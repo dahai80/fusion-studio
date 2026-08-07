@@ -153,7 +153,7 @@ class FusionConfig: ObservableObject {
     @AppStorage("modelHubHost") var modelHubHost = "127.0.0.1"
     @AppStorage("modelHubPort") var modelHubPort = 11444
     @AppStorage("modelHubApiKey") var modelHubApiKey = ""
-    @AppStorage("securityPort") var securityPort = 11442
+    @AppStorage("securityPort") var securityPort = 11454
     @AppStorage("fusionDeskPort") var fusionDeskPort = 9761
     @AppStorage("fusionDocPort") var fusionDocPort = 11449
     @AppStorage("fusionBenchPort") var fusionBenchPort = 11450
@@ -333,7 +333,7 @@ class FusionConfig: ObservableObject {
         modelHubHost = "127.0.0.1"
         modelHubPort = 11444
         modelHubApiKey = ""
-        securityPort = 11442
+        securityPort = 11454
         fusionDeskPort = 9761
         fusionDocPort = 11449
         fusionBenchPort = 11450

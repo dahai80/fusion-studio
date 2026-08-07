@@ -302,6 +302,17 @@ class DocGenerator: ObservableObject {
 
             ## [Unreleased]
 
+            ## [0.1.33] - 2026-08-07
+
+            ### 新增
+            - Security 中心全量重构：6 原生 tab 接入 fusion-security :11454（安全概览/项目与扫描/漏洞清单/AI 修复/质量门禁/运行时防护）
+            - SecurityBridge HTTP client + 15 DTO，直连 fusion-security FastAPI /api/v1/*
+            - 运行时防护新增「敏感信息脱敏」「Prompt 注入检测」，超越 Claude Code 运行时安全能力
+            - 端口对齐 securityPort 11442→11454，健康端点改 /api/v1/system/health
+
+            ### 移除
+            - 失效的 Security WebView 面板（直连前端 :3000，前端未运行）
+
             ## [0.1.32] - 2026-08-07
 
             ### 修复
