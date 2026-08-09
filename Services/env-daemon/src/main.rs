@@ -42,14 +42,17 @@ async fn main() -> anyhow::Result<()> {
     // 初始化日志
     tracing_subscriber::fmt::init();
 
-    let socket_path = "/tmp/fusion-studio.sock";
+    // env-daemon 监听独立 socket，避免与 agent-studio 中央路由
+    // (/tmp/fusion-studio.sock) 抢占。env.* 方法由 agent-studio 自带实现转发。
+    let default_sock = "/tmp/fusion-env-daemon.sock";
+    let socket_path = std::env::var("FUSION_ENV_DAEMON_SOCKET").unwrap_or_else(|_| default_sock.to_string());
     let health_checker = Arc::new(HealthChecker::new());
     let repair_engine = Arc::new(RepairEngine::new());
 
     let mut retry_count = 0;
 
     loop {
-        match run_server(socket_path, &health_checker, &repair_engine).await {
+        match run_server(&socket_path, &health_checker, &repair_engine).await {
             Ok(()) => {
                 // 正常退出，重置重试计数
                 retry_count = 0;
