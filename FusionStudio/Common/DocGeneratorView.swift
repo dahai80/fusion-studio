@@ -302,6 +302,11 @@ class DocGenerator: ObservableObject {
 
             ## [Unreleased]
 
+            ## [0.1.35] - 2026-08-09
+
+            ### 修复
+            - env-daemon 改用独立 socket /tmp/fusion-env-daemon.sock，避免与 agent-studio 中央路由 (/tmp/fusion-studio.sock) 抢占，修复 agent.*/hardware.metrics 全部返回「未知方法」、agent-studio 表现为不可用的问题 (PR #141)
+
             ## [0.1.34] - 2026-08-07
 
             ### 修复
