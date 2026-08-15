@@ -259,11 +259,19 @@ create_dmg() {
     cp -R "$APP_BUNDLE" "$tmp_dir/"
     ln -s "/Applications" "$tmp_dir/Applications"
 
+    # 显式指定镜像容量：hdiutil -srcfolder 自动估算偏小，曾导致
+    # "No space left on device"（镜像内部空间不足）。按实际内容 MB * 1.5 + 256MB 余量。
+    local content_mb
+    content_mb=$(du -sm "$tmp_dir" 2>/dev/null | awk '{print $1}')
+    local dmg_size=$(( content_mb * 3 / 2 + 256 ))
+    info "DMG 内容 ${content_mb}MB → 镜像容量 ${dmg_size}MB"
+
     # 创建 DMG
     hdiutil create -volname "Fusion Studio $VERSION" \
         -srcfolder "$tmp_dir" \
         -ov -format UDZO \
         -imagekey zlib-level=9 \
+        -size "${dmg_size}m" \
         "$dmg_path" 2>&1 | tail -3
 
     rm -rf "$tmp_dir"
