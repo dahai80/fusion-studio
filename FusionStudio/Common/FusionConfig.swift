@@ -131,6 +131,10 @@ class FusionConfig: ObservableObject {
     @AppStorage("upstreamAgentStudioPath") var upstreamAgentStudioPath = "~/fusion/fusion-agent-studio"
     @AppStorage("upstreamMlxPath") var upstreamMlxPath = "~/claude-home/fusion-mlx"
     @AppStorage("upstreamArtifactsPath") var upstreamArtifactsPath = "~/fusion/fusion-artifacts-engine"
+    // Callers: UpstreamServiceManager (comfyui 造片服务 repoPathRaw + health port). Affected API: start.sh path + healthEndpoint.
+    // Data: @AppStorage string path + int port. fix: comfyui (文生图+TTS) 是造片链 Graph C 依赖，此前未纳入上游管理，fusion-studio 启动不会自动拉起。
+    @AppStorage("upstreamComfyuiPath") var upstreamComfyuiPath = "~/fusion/fusion-comfyui"
+    @AppStorage("comfyuiPort") var comfyuiPort = 11445
     // Callers: UpstreamServiceManager (repoPathRaw for fusion-rag). Affected API: start.sh path resolution.
     // Data: @AppStorage string path. User instruction: "现在还是有四个产品环境检测异常，rag，doc，science，health，请排查问题，并进行修复"
     // fix: RAG 服务实际位于 fusion-rag（非 fusion-kb，后者不存在），端口 11436。
@@ -319,6 +323,8 @@ class FusionConfig: ObservableObject {
         upstreamAgentStudioPath = "~/fusion/fusion-agent-studio"
         upstreamMlxPath = "~/claude-home/fusion-mlx"
         upstreamArtifactsPath = "~/fusion/fusion-artifacts-engine"
+        upstreamComfyuiPath = "~/fusion/fusion-comfyui"
+        comfyuiPort = 11445
         upstreamRagPath = "~/fusion/fusion-rag"
         upstreamMultiNodePath = "~/fusion/fusion-multi-node"
         upstreamFusionCodePath = "~/fusion/fusion-code"

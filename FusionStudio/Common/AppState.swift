@@ -68,6 +68,7 @@ enum ProductSheet: String, CaseIterable, Identifiable {
     // Affected API: ProductSheet.simulationSheet case + SidebarSection.simulation section.
     // Data schemas: enum case. User instruction: "在左侧菜单增加 fusion simulation"
     case simulationSheet = "Fusion Simulation"
+    case douyinOperationSheet = "抖音运营"
 
     var id: String { rawValue }
 
@@ -91,6 +92,7 @@ enum ProductSheet: String, CaseIterable, Identifiable {
         case .cliServiceSheet: "terminal"
         case .docSheet:       "doc.text"
         case .simulationSheet: "cube.transparent"
+        case .douyinOperationSheet: "play.rectangle.fill"
         }
     }
 
@@ -132,6 +134,8 @@ enum ProductSheet: String, CaseIterable, Identifiable {
             return [.doc]
         case .simulationSheet:
             return [.simulation]
+        case .douyinOperationSheet:
+            return []
         }
     }
 }
@@ -342,6 +346,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
     case cliService = "CLI Service"
     case doc = "Fusion Doc"
     case simulation = "Fusion Simulation"
+    case douyinOperation = "抖音运营"
 
     var id: String { rawValue }
 
@@ -367,6 +372,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .cliService: return "terminal"
         case .doc:       return "doc.text"
         case .simulation: return "cube.transparent"
+        case .douyinOperation: return "play.rectangle.fill"
         }
     }
 
@@ -392,6 +398,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .health:    return [.health]
         case .pluginEcosystem: return [.pluginConfig, .pluginStatus, .pluginToken, .pluginVram, .pluginLog, .pluginMcp]
         case .cliService: return [.cli]
+        case .douyinOperation: return []
         }
     }
 }
