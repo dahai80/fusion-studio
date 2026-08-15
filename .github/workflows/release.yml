@@ -39,6 +39,12 @@ jobs:
 
       - name: Create DMG
         run: |
+          # 释放 runner 磁盘：清理 cargo registry + Swift 包缓存 + release 构建中间产物
+          df -h / | tail -1
+          rm -rf ~/.cargo/registry ~/.cargo/git 2>/dev/null || true
+          rm -rf ~/Library/Caches/org.swift.swiftpm 2>/dev/null || true
+          rm -rf .build/release 2>/dev/null || true
+          df -h / | tail -1
           ./Scripts/build.sh dmg 2>&1
 
       - name: List artifacts
