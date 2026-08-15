@@ -149,6 +149,16 @@ final class UpstreamServiceManager: ObservableObject {
                             isCritical: true, startOrder: 0,
                             repoPathRaw: cfg.upstreamMlxPath,
                             healthKind: .httpGet, healthEndpoint: "\(cfg.mlxBaseURL)/health"),
+            // Callers: DouyinOperationBridge 造片链 (Graph C 配图+TTS 经 agent-studio RPC 调 comfyui_image/comfyui_tts).
+            // Affected API: UpstreamService entry, ensureCriticalRunning 按 startOrder=1 自动 start.sh start.
+            // Data: UpstreamService struct. fix: comfyui 此前未注册，fusion-studio 不会自动拉起造片服务。
+            // 健康路由 /system_stats (ComfyUI 标准，非 /health)。依赖 mlx (TTS http backend)，故 startOrder=1 与 agent-studio 同级、晚于 mlx=0。
+            UpstreamService(id: "comfyui",
+                            displayName: "ComfyUI 造片服务",
+                            icon: "wand.and.stars",
+                            isCritical: true, startOrder: 1,
+                            repoPathRaw: cfg.upstreamComfyuiPath,
+                            healthKind: .httpGet, healthEndpoint: "http://127.0.0.1:\(cfg.comfyuiPort)/system_stats"),
             UpstreamService(id: "artifacts-engine",
                             displayName: "Artifacts Engine",
                             icon: "shippingbox",

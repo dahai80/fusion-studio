@@ -11,13 +11,14 @@ private let sidebarLog = Logger(subsystem: "com.fusion.studio", category: "Fusio
 
 struct FusionSidebarView: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var douyinBridge: DouyinOperationBridge
     @Environment(\.studioTheme) private var theme
     @StateObject private var workspace = ProjectWorkspace.shared
     @StateObject private var agent = CodeAgent.shared
     @State private var searchText = ""
     // Callers: ContentView, IconRailView. Affected API: SidebarSection.doc, AppState.activeSection.
     // Data schemas: SidebarSection.allCases auto-includes .doc. User instruction: "在左侧菜单增加 fusion doc"
-    @State private var expandedSections: Set<SidebarSection> = [.code, .chats, .projects, .agent, .mlx, .rag, .doc, .simulation]
+    @State private var expandedSections: Set<SidebarSection> = [.code, .chats, .projects, .agent, .mlx, .rag, .doc, .simulation, .douyinOperation]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -187,6 +188,9 @@ struct FusionSidebarView: View {
             moduleListContent(.simulation)
         case .health:
             moduleListContent(.health)
+        // Callers: FusionSidebarView sectionGroup via SidebarSection.allCases. Phase 4 GUI。
+        case .douyinOperation:
+            douyinSidebarContent
         }
     }
 
@@ -206,6 +210,57 @@ struct FusionSidebarView: View {
                 }
             }
         }
+    }
+
+    // Callers: FusionSidebarView.sectionContent(.douyinOperation). Phase 4 GUI：库存速览侧栏 + 看板入口.
+    // fix: 侧栏抖音运营组只显示统计无点击入口, activeSection 无法切到 .douyinOperation → 主区进不了 DouyinOperationView.
+    // 加「运营看板」按钮切 activeSection, 与 chatRow 切 .chats 同模式.
+    private var douyinSidebarContent: some View {
+        VStack(alignment: .leading, spacing: theme.spacingS) {
+            Button(action: {
+                withAnimation(theme.springSnappy) {
+                    appState.activeSection = .douyinOperation
+                }
+                sidebarLog.info("Open douyin operation dashboard")
+            }) {
+                HStack(spacing: theme.spacingS) {
+                    Image(systemName: "play.rectangle.fill")
+                        .font(.system(size: theme.iconS))
+                        .foregroundStyle(theme.accent)
+                    Text("运营看板")
+                        .font(.system(size: theme.textSize, weight: .medium))
+                        .foregroundStyle(theme.text)
+                    Spacer()
+                }
+                .padding(.horizontal, theme.spacingM)
+                .padding(.vertical, 5)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            HStack {
+                Image(systemName: "tray").foregroundStyle(theme.amberDot).font(.system(size: 11))
+                Text("待发布").font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textSecondary)
+                Spacer()
+                Text("\(douyinBridge.queueCounts.pending)").font(.system(size: theme.footnoteSize, weight: .semibold)).foregroundStyle(theme.text)
+            }
+            HStack {
+                Image(systemName: "checkmark.circle").foregroundStyle(theme.greenDot).font(.system(size: 11))
+                Text("已发布").font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textSecondary)
+                Spacer()
+                Text("\(douyinBridge.queueCounts.published)").font(.system(size: theme.footnoteSize, weight: .semibold)).foregroundStyle(theme.text)
+            }
+            HStack {
+                Image(systemName: "flame").foregroundStyle(theme.accent).font(.system(size: 11))
+                Text("爆款").font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textSecondary)
+                Spacer()
+                Text("\(douyinBridge.winning.hotCount)").font(.system(size: theme.footnoteSize, weight: .semibold)).foregroundStyle(theme.text)
+            }
+            Text("点击「运营看板」进入主区操作造片 / 发布 / 评论 / 进化")
+                .font(.system(size: 11)).foregroundStyle(theme.textTertiary)
+                .padding(.top, theme.spacingS)
+        }
+        .padding(.horizontal, theme.spacingL)
+        .padding(.vertical, theme.spacingS)
     }
 
     private func chatRow(_ msg: CodeAgent.CodeMessage) -> some View {
@@ -567,7 +622,7 @@ struct FusionSidebarView: View {
                 Spacer()
 
                 Button(action: {
-                    if let url = URL(string: "https://github.com/fusion-ml/fusion-studio/releases") {
+                    if let url = URL(string: "https://github.com/dahai80/fusion-studio") {
                         NSWorkspace.shared.open(url)
                     }
                 }) {

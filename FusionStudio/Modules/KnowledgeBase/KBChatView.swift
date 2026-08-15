@@ -4,6 +4,7 @@ import SwiftUI
 import os
 
 struct KBChatView: View {
+    var initialKBId: String = ""
     @StateObject private var client = RAGAPIClient.shared
     @EnvironmentObject private var agentBridge: AgentBridge
     @State private var selectedKBId: String = ""
@@ -84,6 +85,10 @@ struct KBChatView: View {
         }
         .task {
             await client.listBases()
+            if selectedKBId.isEmpty && !initialKBId.isEmpty {
+                selectedKBId = initialKBId
+                logger.info("KBChatView preselect KB: \(initialKBId, privacy: .public)")
+            }
         }
     }
 

@@ -5,6 +5,8 @@ private let dashLog = Logger(subsystem: "com.fusion.studio", category: "RAGDashb
 
 struct RAGDashboardView: View {
     @Binding var selectedKBId: String
+    var onEnter: ((String) -> Void)? = nil
+    var onChat: ((String) -> Void)? = nil
     @Environment(\.studioTheme) private var theme
     @StateObject private var client = RAGAPIClient.shared
     @State private var showCreate = false
@@ -114,6 +116,10 @@ struct RAGDashboardView: View {
                     stats: kbStats[kb.id],
                     isSelected: selectedKBId == kb.id,
                     onSelect: { selectedKBId = kb.id },
+                    onEnter: {
+                        selectedKBId = kb.id
+                        onEnter?(kb.id)
+                    },
                     onScan: {
                         scanKBId = kb.id
                         scanDirPath = ""
@@ -127,6 +133,7 @@ struct RAGDashboardView: View {
                     },
                     onChat: {
                         selectedKBId = kb.id
+                        onChat?(kb.id)
                     }
                 )
             }
@@ -219,6 +226,7 @@ struct KBCardView: View {
     let stats: KBStats?
     let isSelected: Bool
     let onSelect: () -> Void
+    let onEnter: () -> Void
     let onScan: () -> Void
     let onDelete: () -> Void
     let onChat: () -> Void
@@ -271,7 +279,7 @@ struct KBCardView: View {
             }
 
             HStack(spacing: theme.spacingS) {
-                Button(action: onSelect) {
+                Button(action: onEnter) {
                     Label("进入", systemImage: "arrow.right.circle")
                         .font(.system(size: theme.captionSize, weight: .medium))
                 }

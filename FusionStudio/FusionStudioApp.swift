@@ -37,6 +37,10 @@ struct FusionStudioApp: App {
     // Data schemas: SimulationBridge (ObservableObject) -> SimStatusDTO et al. User instruction: "和~/fusion/fuison-simulation项目集成起来"
     @StateObject private var simulationBridge = SimulationBridge()
     @StateObject private var healthBridge = HealthBridge()
+    // Callers: FusionStudioApp body; DouyinOperationView (@EnvironmentObject).
+    // Affected API: douyinOperationBridge injected via .environmentObject; reads fusion-operation out/ops + IPC graph.execute。
+    // Data schemas: DouyinOperationBridge (ObservableObject) -> DouyinQueueCounts/WinningPatterns/StatsSnapshot. Phase 4 GUI。
+    @StateObject private var douyinOperationBridge = DouyinOperationBridge()
 
     init() {
         // Dock 图标延后到 onAppear 中设置，init 阶段 NSApp 尚未就绪
@@ -71,6 +75,7 @@ struct FusionStudioApp: App {
                 .environmentObject(financeBridge)
                 .environmentObject(simulationBridge)
                 .environmentObject(healthBridge)
+                .environmentObject(douyinOperationBridge)
                 .studioThemed()
                 .onAppear {
                     // 启动时检测并按需自动启动上游关键服务（mlx -> agent-studio -> artifacts-engine）。

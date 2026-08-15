@@ -150,6 +150,9 @@ struct IconRailView: View {
                 case .simulation:
                     appState.selectedModule = .simulation
                     appState.selectedSheet = .simulationSheet
+                // Callers: IconRailView rail button tap. Affected API: selectedSheet routing for douyin section. Phase 4 GUI。
+                case .douyinOperation:
+                    appState.selectedSheet = .douyinOperationSheet
                 }
             }
             railLog.info("Section selected: \(section.rawValue)")
@@ -174,7 +177,7 @@ struct IconRailView: View {
 
     private var getAppsButton: some View {
         Button(action: {
-            if let url = URL(string: "https://github.com/fusion-ml") {
+            if let url = URL(string: "https://github.com/dahai80/fusion-studio") {
                 NSWorkspace.shared.open(url)
             }
         }) {
@@ -215,19 +218,93 @@ struct IconRailView: View {
 
     private func showSettingsMenu() {
         let menu = NSMenu()
-        let settingsItem = NSMenuItem(title: "Settings", action: Selector(("showSettingsWindow:")), keyEquivalent: ",")
+        let target = MenuActionTarget()
+
+        let settingsItem = NSMenuItem(title: "Settings", action: #selector(MenuActionTarget.runClosure), keyEquivalent: ",")
+        settingsItem.target = target
+        settingsItem.representedObject = { [self] in
+            appState.showSettings = true
+            railLog.info("settings menu: open SettingsView")
+        }
         menu.addItem(settingsItem)
-        menu.addItem(withTitle: "Language", action: nil, keyEquivalent: "")
+
+        // Language 子菜单：切换 I18nManager.shared.currentLanguage，当前语言打勾
+        let langMenu = NSMenu()
+        let currentLang = I18nManager.shared.currentLanguage
+        for lang in AppLanguage.allCases {
+            let item = NSMenuItem(title: "\(lang.flag) \(lang.displayName)", action: #selector(MenuActionTarget.runClosure), keyEquivalent: "")
+            item.target = target
+            item.representedObject = {
+                I18nManager.shared.currentLanguage = lang
+                railLog.info("settings menu: language -> \(lang.rawValue)")
+            }
+            item.state = (lang == currentLang) ? .on : .off
+            langMenu.addItem(item)
+        }
+        let langItem = NSMenuItem(title: "Language", action: nil, keyEquivalent: "")
+        langItem.submenu = langMenu
+        menu.addItem(langItem)
+
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(withTitle: "Get Help", action: nil, keyEquivalent: "")
-        menu.addItem(withTitle: "Upgrade Plan", action: nil, keyEquivalent: "")
-        menu.addItem(withTitle: "Get Apps & Extensions", action: nil, keyEquivalent: "")
-        menu.addItem(withTitle: "Learn More", action: nil, keyEquivalent: "")
+
+        let helpItem = NSMenuItem(title: "Get Help", action: #selector(MenuActionTarget.runClosure), keyEquivalent: "")
+        helpItem.target = target
+        helpItem.representedObject = {
+            if let url = URL(string: "https://github.com/dahai80/fusion-studio/issues") {
+                NSWorkspace.shared.open(url)
+            }
+        }
+        menu.addItem(helpItem)
+
+        let upgradeItem = NSMenuItem(title: "Upgrade Plan", action: #selector(MenuActionTarget.runClosure), keyEquivalent: "")
+        upgradeItem.target = target
+        upgradeItem.representedObject = {
+            if let url = URL(string: "https://github.com/dahai80/fusion-studio/releases") {
+                NSWorkspace.shared.open(url)
+            }
+        }
+        menu.addItem(upgradeItem)
+
+        let appsItem = NSMenuItem(title: "Get Apps & Extensions", action: #selector(MenuActionTarget.runClosure), keyEquivalent: "")
+        appsItem.target = target
+        appsItem.representedObject = {
+            if let url = URL(string: "https://github.com/dahai80/fusion-studio") {
+                NSWorkspace.shared.open(url)
+            }
+        }
+        menu.addItem(appsItem)
+
+        let learnItem = NSMenuItem(title: "Learn More", action: #selector(MenuActionTarget.runClosure), keyEquivalent: "")
+        learnItem.target = target
+        learnItem.representedObject = {
+            if let url = URL(string: "https://github.com/dahai80/fusion-studio") {
+                NSWorkspace.shared.open(url)
+            }
+        }
+        menu.addItem(learnItem)
+
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(withTitle: "Logout", action: nil, keyEquivalent: "")
+
+        // Logout：本地优先架构无账号登录，置灰
+        let logoutItem = NSMenuItem(title: "Logout", action: nil, keyEquivalent: "")
+        logoutItem.isEnabled = false
+        menu.addItem(logoutItem)
+
+        // 持有 target 防止菜单生命周期内被释放
+        objc_setAssociatedObject(menu, "menuActionTarget", target, .OBJC_ASSOCIATION_RETAIN)
 
         if let event = NSApp.currentEvent {
             NSMenu.popUpContextMenu(menu, with: event, for: NSApp.keyWindow?.contentView ?? NSView())
+        }
+    }
+}
+
+// NSMenuItem target/action 闭包中介。菜单项 representedObject 存闭包，
+// runClosure 回调时取出执行。
+private final class MenuActionTarget: NSObject {
+    @objc func runClosure(_ sender: NSMenuItem) {
+        if let action = sender.representedObject as? () -> Void {
+            action()
         }
     }
 }

@@ -302,6 +302,18 @@ class DocGenerator: ObservableObject {
 
             ## [Unreleased]
 
+            ## [0.1.36] - 2026-08-15
+
+            ### 新增
+            - 抖音运营模块 (Phase 4 GUI)：DouyinOperationView + DouyinOperationBridge，读 fusion-operation ops 数据 + 调 agent-studio graph DAG；sidebar 抖音运营组统计卡片 + 点击进入主区
+            - comfyui 造片服务纳入上游管理 (FusionConfig upstreamComfyuiPath + comfyuiPort 11445，UpstreamServiceManager 自动拉起)
+
+            ### 修复
+            - 下载按钮链接修正为 https://github.com/dahai80/fusion-studio (IconRail + Sidebar 两处)
+            - 设置按钮子菜单全部接通功能：Settings 打开设置、Language 子菜单 4 语言切换、Get Help/Upgrade Plan/Get Apps/Learn More 跳 GitHub、Logout 置灰 (本地优先无账号)
+            - RAG 知识库卡片「进入」按钮接通：选中 KB + 跳转文件目录管理 (此前只高亮无反应)
+            - RAG 知识库卡片 `...` → 「RAG 对话」接通：选中 KB + 跳转 RAG 对话 section，KBChatView 预选知识库 (此前只高亮无反应)
+
             ## [0.1.35] - 2026-08-09
 
             ### 修复

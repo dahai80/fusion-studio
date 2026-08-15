@@ -197,6 +197,11 @@ struct SectionContentView: View {
             // Data schemas: SidebarSection.simulation. User instruction: "在左侧菜单增加 fusion simulation"
             case .simulation:
                 SimulationWorkbenchView()
+            // Callers: SectionContentView switch on appState.activeSection.
+            // Affected API: renders DouyinOperationView for .douyinOperation section (Phase 4 GUI)。
+            // Data schemas: SidebarSection.douyinOperation. User instruction: ~/operation/reconstruct-operation.md Phase 4。
+            case .douyinOperation:
+                DouyinOperationView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -208,4 +213,5 @@ struct SectionContentView: View {
         .environmentObject(AppState())
         .environmentObject(IPCClient())
         .environmentObject(TaskManager())
+        .environmentObject(DouyinOperationBridge())
 }

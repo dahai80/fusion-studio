@@ -6,6 +6,7 @@ private let ragLog = Logger(subsystem: "com.fusion.studio", category: "RAGMainVi
 enum RAGSection: String, CaseIterable, Identifiable {
     case dashboard = "知识库总览"
     case files = "文件目录管理"
+    case chat = "RAG 对话"
     case embedConfig = "嵌入模型配置"
     case searchConfig = "检索策略配置"
     case permissions = "权限管控"
@@ -19,6 +20,7 @@ enum RAGSection: String, CaseIterable, Identifiable {
         switch self {
         case .dashboard:    return "square.grid.2x2"
         case .files:        return "folder.badge.gearshape"
+        case .chat:         return "bubble.left.and.bubble.right"
         case .embedConfig:  return "cpu"
         case .searchConfig: return "slider.horizontal.3"
         case .permissions:  return "lock.shield"
@@ -130,9 +132,23 @@ struct RAGMainView: View {
     private var ragContentArea: some View {
         switch selectedSection {
         case .dashboard:
-            RAGDashboardView(selectedKBId: $selectedKBId)
+            RAGDashboardView(selectedKBId: $selectedKBId, onEnter: { kbId in
+                selectedKBId = kbId
+                withAnimation(theme.springSnappy) {
+                    selectedSection = .files
+                }
+                ragLog.info("RAG enter KB: \(kbId, privacy: .public) -> files section")
+            }, onChat: { kbId in
+                selectedKBId = kbId
+                withAnimation(theme.springSnappy) {
+                    selectedSection = .chat
+                }
+                ragLog.info("RAG chat KB: \(kbId, privacy: .public) -> chat section")
+            })
         case .files:
             RAGFilesView(selectedKBId: selectedKBId)
+        case .chat:
+            KBChatView(initialKBId: selectedKBId)
         case .embedConfig:
             RAGEmbedConfigView()
         case .searchConfig:
