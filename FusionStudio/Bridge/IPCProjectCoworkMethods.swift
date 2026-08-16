@@ -144,6 +144,65 @@ extension IPCClient {
         return try await call(method: "cron.list_executions", params: params)
     }
 
+    // MARK: - Task (通用 Task 持久化, #141 PR#143)
+
+    func taskSubmit(
+        taskId: String = "",
+        title: String,
+        description: String = "",
+        agentId: String = "",
+        graphId: String = "",
+        trigger: String = "immediate",
+        cronExpression: String = "",
+        runAt: Double = 0,
+        input: String = "",
+        status: String = "pending",
+        priority: Int = 1,
+        sessionId: String = "",
+        maxRetries: Int = 3
+    ) async throws -> [String: Any] {
+        return try await call(method: "task.submit", params: [
+            "task_id": taskId,
+            "title": title,
+            "description": description,
+            "agent_id": agentId,
+            "graph_id": graphId,
+            "trigger": trigger,
+            "cron_expression": cronExpression,
+            "run_at": runAt,
+            "input": input,
+            "status": status,
+            "priority": priority,
+            "session_id": sessionId,
+            "max_retries": maxRetries,
+        ])
+    }
+
+    func taskList(status: String = "", agentId: String = "", limit: Int = 100) async throws -> [String: Any] {
+        var params: [String: Any] = ["limit": limit]
+        if !status.isEmpty { params["status"] = status }
+        if !agentId.isEmpty { params["agent_id"] = agentId }
+        return try await call(method: "task.list", params: params)
+    }
+
+    func taskGet(taskId: String) async throws -> [String: Any] {
+        return try await call(method: "task.get", params: ["task_id": taskId])
+    }
+
+    func taskStatus(taskId: String, status: String, lastResult: [String: Any]? = nil, lastError: String = "") async throws -> [String: Any] {
+        var params: [String: Any] = ["task_id": taskId, "status": status, "last_error": lastError]
+        if let r = lastResult { params["last_result"] = r }
+        return try await call(method: "task.status", params: params)
+    }
+
+    func taskCancel(taskId: String) async throws -> [String: Any] {
+        return try await call(method: "task.cancel", params: ["task_id": taskId])
+    }
+
+    func taskRerun(taskId: String) async throws -> [String: Any] {
+        return try await call(method: "task.rerun", params: ["task_id": taskId])
+    }
+
     // MARK: - Hooks
 
     func hooksList() async throws -> [String: Any] {

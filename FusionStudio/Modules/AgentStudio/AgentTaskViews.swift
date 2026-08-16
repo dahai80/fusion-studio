@@ -75,6 +75,13 @@ struct AgentTaskListView: View {
                     showCreateTask = true
                 }
             }
+            ToolbarItem {
+                Button {
+                    Task { await bridge.fetchTasks() }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+            }
         }
         .sheet(isPresented: $showCreateTask) {
             CreateTaskSheet(toastManager: toastManager)
@@ -82,6 +89,7 @@ struct AgentTaskListView: View {
         .sheet(item: $selectedTask) { task in
             AgentTaskDetailView(taskId: task.id, toastManager: toastManager)
         }
+        .onAppear { Task { await bridge.fetchTasks() } }
     }
 
     private func taskCard(task: TaskModel) -> some View {
@@ -150,12 +158,12 @@ struct AgentTaskListView: View {
         .contextMenu {
             if !task.status.isTerminal {
                 Button("Cancel", role: .destructive) {
-                    bridge.taskCancel(task.id)
+                    Task { await bridge.taskCancel(task.id) }
                     toastManager.show(style: .info, title: "Task Cancelled", message: task.title)
                 }
             }
             Button("Rerun") {
-                bridge.taskRerun(task.id)
+                Task { await bridge.taskRerun(task.id) }
                 toastManager.show(style: .success, title: "Task Rerun", message: task.title)
             }
             Button("Delete", role: .destructive) {
@@ -358,27 +366,40 @@ struct CreateTaskSheet: View {
     }
 
     private func createTask() {
-        let task = bridge.taskSubmit(
-            title: title,
-            description: description,
-            agentId: selectedAgent,
-            graphId: selectedGraph,
-            trigger: trigger,
-            cronExpression: trigger == .cron ? cronExpression : "",
-            runAt: trigger == .runAt ? runAtDate : nil,
-            input: input,
-            priority: priority
-        )
-        switch trigger {
-        case .immediate:
-            bridge.taskExecuteImmediate(task.id)
-        case .cron:
-            bridge.taskScheduleCron(task.id, expression: cronExpression, input: input)
-        case .runAt:
-            bridge.taskScheduleRunAt(task.id, runAt: runAtDate, input: input)
+        Task {
+            do {
+                let task = try await bridge.taskSubmit(
+                    title: title,
+                    description: description,
+                    agentId: selectedAgent,
+                    graphId: selectedGraph,
+                    trigger: trigger,
+                    cronExpression: trigger == .cron ? cronExpression : "",
+                    runAt: trigger == .runAt ? runAtDate : nil,
+                    input: input,
+                    priority: priority
+                )
+                switch trigger {
+                case .immediate:
+                    await MainActor.run { bridge.taskExecuteImmediate(task.id) }
+                case .cron:
+                    // 后端 task.submit 已自动注册 cron job (需 graph_id); 无 graph_id 时前端补注册.
+                    if selectedGraph.isEmpty {
+                        bridge.taskScheduleCron(task.id, expression: cronExpression, input: input)
+                    }
+                case .runAt:
+                    bridge.taskScheduleRunAt(task.id, runAt: runAtDate, input: input)
+                }
+                await MainActor.run {
+                    toastManager.show(style: .success, title: "Task Created", message: title)
+                    dismiss()
+                }
+            } catch {
+                await MainActor.run {
+                    toastManager.show(style: .error, title: "Create Failed", message: error.localizedDescription)
+                }
+            }
         }
-        toastManager.show(style: .success, title: "Task Created", message: title)
-        dismiss()
     }
 
     private func labeledField<Content: View>(_ label: String, @ViewBuilder content: () -> Content) -> some View {
@@ -532,12 +553,12 @@ struct AgentTaskDetailView: View {
                     HStack(spacing: theme.spacingM) {
                         if !task.status.isTerminal {
                             FusionButton("Cancel", icon: "stop.fill", style: .destructive, size: .small) {
-                                bridge.taskCancel(task.id)
+                                Task { await bridge.taskCancel(task.id) }
                                 toastManager.show(style: .info, title: "Cancelled", message: task.title)
                             }
                         }
                         FusionButton("Rerun", icon: "arrow.clockwise", style: .secondary, size: .small) {
-                            bridge.taskRerun(task.id)
+                            Task { await bridge.taskRerun(task.id) }
                             toastManager.show(style: .success, title: "Rerun Started", message: task.title)
                             loadExecutions(cronJobId: task.cronJobId)
                         }
@@ -694,10 +715,10 @@ struct TaskBoardView: View {
         .contextMenu {
             if !task.status.isTerminal {
                 Button("Cancel", role: .destructive) {
-                    bridge.taskCancel(task.id)
+                    Task { await bridge.taskCancel(task.id) }
                 }
             }
-            Button("Rerun") { bridge.taskRerun(task.id) }
+            Button("Rerun") { Task { await bridge.taskRerun(task.id) } }
             Button("Delete", role: .destructive) { bridge.taskDelete(task.id) }
         }
     }

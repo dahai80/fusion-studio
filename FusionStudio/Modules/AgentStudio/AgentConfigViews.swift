@@ -392,20 +392,31 @@ struct AgentDetailView: View {
                             }
 
                         FusionButton("Assign", icon: "paperplane", style: .primary, size: .small, isDisabled: taskInput.isEmpty) {
-                            let task = bridge.taskSubmit(
-                                title: taskInput,
-                                description: taskInput,
-                                agentId: agent.id,
-                                graphId: "",
-                                trigger: .immediate,
-                                cronExpression: "",
-                                runAt: nil,
-                                input: taskInput,
-                                priority: .medium
-                            )
-                            bridge.taskExecuteImmediate(task.id)
-                            toastManager.show(style: .success, title: "Task Assigned", message: "Task sent to \(agent.name)")
-                            taskInput = ""
+                            let inputCopy = taskInput
+                            Task {
+                                do {
+                                    let task = try await bridge.taskSubmit(
+                                        title: inputCopy,
+                                        description: inputCopy,
+                                        agentId: agent.id,
+                                        graphId: "",
+                                        trigger: .immediate,
+                                        cronExpression: "",
+                                        runAt: nil,
+                                        input: inputCopy,
+                                        priority: .medium
+                                    )
+                                    await MainActor.run {
+                                        bridge.taskExecuteImmediate(task.id)
+                                        toastManager.show(style: .success, title: "Task Assigned", message: "Task sent to \(agent.name)")
+                                        taskInput = ""
+                                    }
+                                } catch {
+                                    await MainActor.run {
+                                        toastManager.show(style: .error, title: "Assign Failed", message: error.localizedDescription)
+                                    }
+                                }
+                            }
                         }
                     }
                 }
