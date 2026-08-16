@@ -2656,14 +2656,33 @@ final class AgentBridge: ObservableObject {
         }
     }
 
-    // 后端无 task.delete RPC; cancel 后本地移除 (上游待补 task.delete).
+    // 上游 task.delete RPC 已落地 (PR#148); 真删 + 注销关联 cron job (后端处理).
     func taskDelete(_ taskId: String) {
+        guard let client = ipcClient else { return }
         Task {
-            _ = try? await taskCancel(taskId)
-            await MainActor.run {
-                self.tasks.removeAll { $0.id == taskId }
-                logger.info("taskDelete: id=\(taskId)")
+            do {
+                _ = try await client.taskDelete(taskId: taskId)
+                await MainActor.run {
+                    self.tasks.removeAll { $0.id == taskId }
+                    logger.info("taskDelete: id=\(taskId) deleted via RPC")
+                }
+            } catch {
+                logger.error("taskDelete failed: id=\(taskId) err=\(error.localizedDescription)")
             }
+        }
+    }
+
+    func taskAddArtifacts(_ taskId: String, artifactIds: [String]) async {
+        guard let client = ipcClient else { return }
+        do {
+            let resp = try await client.taskAddArtifacts(taskId: taskId, artifactIds: artifactIds)
+            let aids = resp["artifact_ids"] as? [String] ?? []
+            await MainActor.run {
+                self.updateTask(taskId) { t in t.artifactIds = aids }
+                logger.info("taskAddArtifacts: id=\(taskId) +\(artifactIds.count) -> \(aids.count)")
+            }
+        } catch {
+            logger.error("taskAddArtifacts failed: id=\(taskId) err=\(error.localizedDescription)")
         }
     }
 
