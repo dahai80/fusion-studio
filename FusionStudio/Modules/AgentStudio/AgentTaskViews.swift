@@ -277,7 +277,7 @@ struct WorkflowListView: View {
                             .onTapGesture {
                                 selectedGraph = graph
                                 Task {
-                                    if let fresh = try? await bridge.graphGet(graphId: graph.id.uuidString) {
+                                    if let fresh = try? await bridge.graphGet(graphId: graph.id) {
                                         selectedGraph = fresh
                                     }
                                 }
@@ -347,7 +347,7 @@ struct WorkflowDetailView: View {
                         Text(graph.name)
                             .font(.system(size: theme.titleSize, weight: .bold, design: .rounded))
                             .foregroundStyle(theme.text)
-                        Text("ID: \(graph.id.uuidString.prefix(8))")
+                        Text("ID: \(graph.id.prefix(8))")
                             .font(.system(size: theme.captionSize, design: .monospaced))
                             .foregroundStyle(theme.textTertiary)
                     }

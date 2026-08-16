@@ -71,8 +71,8 @@ struct EdgeModel: Codable, Equatable {
     var condition: String?
 }
 
-struct AgentGraphModel: Codable, Equatable {
-    var id: UUID
+struct AgentGraphModel: Codable, Equatable, Identifiable {
+    var id: String
     var name: String
     var nodes: [NodeConfigModel]
     var edges: [EdgeModel]
@@ -563,13 +563,13 @@ final class AgentBridge: ObservableObject {
         }
     }
 
-    func deleteGraph(id: UUID) async throws {
+    func deleteGraph(id: String) async throws {
         guard let client = ipcClient else {
             throw BridgeError.notConnected
         }
         logger.info("deleteGraph: id=\(id)")
         do {
-            _ = try await client.call(method: "graph.delete", params: ["graph_id": id.uuidString])
+            _ = try await client.call(method: "graph.delete", params: ["graph_id": id])
             logger.info("deleteGraph: deleted id=\(id)")
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
@@ -579,7 +579,7 @@ final class AgentBridge: ObservableObject {
         }
     }
 
-    func executeGraph(id: UUID, input: String) async throws {
+    func executeGraph(id: String, input: String) async throws {
         guard let client = ipcClient else {
             throw BridgeError.notConnected
         }
@@ -589,7 +589,7 @@ final class AgentBridge: ObservableObject {
 
         do {
             let result = try await client.call(method: "graph.execute", params: [
-                "graph_id": id.uuidString,
+                "graph_id": id,
                 "input": input,
             ])
 
@@ -623,12 +623,12 @@ final class AgentBridge: ObservableObject {
         self.isExecuting = false
     }
 
-    func updateGraph(id: UUID, name: String? = nil, nodes: [NodeConfigModel]? = nil, edges: [EdgeModel]? = nil) async throws -> AgentGraphModel? {
+    func updateGraph(id: String, name: String? = nil, nodes: [NodeConfigModel]? = nil, edges: [EdgeModel]? = nil) async throws -> AgentGraphModel? {
         guard let client = ipcClient else {
             throw BridgeError.notConnected
         }
         logger.info("updateGraph: id=\(id)")
-        var params: [String: Any] = ["graph_id": id.uuidString]
+        var params: [String: Any] = ["graph_id": id]
         if let name { params["name"] = name }
         if let nodes {
             params["nodes"] = nodes.map { node -> [String: Any] in
@@ -2549,7 +2549,6 @@ final class AgentBridge: ObservableObject {
               let name = dict["name"] as? String else {
             return nil
         }
-        let uuid = UUID(uuidString: graphId) ?? UUID()
 
         var nodes: [NodeConfigModel] = []
         if let nodesDict = dict["nodes"] as? [String: [String: Any]] {
@@ -2613,7 +2612,7 @@ final class AgentBridge: ObservableObject {
         }
 
         return AgentGraphModel(
-            id: uuid,
+            id: graphId,
             name: name,
             nodes: nodes,
             edges: edges,

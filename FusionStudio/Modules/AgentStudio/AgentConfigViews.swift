@@ -466,7 +466,7 @@ struct CreateAgentSheet: View {
     @EnvironmentObject var bridge: AgentBridge
     @State private var name = ""
     @State private var availableGraphs: [AgentGraphModel] = []
-    @State private var selectedGraphId: UUID? = nil
+    @State private var selectedGraphId: String? = nil
     @State private var type: AgentType = .custom
     @State private var model = ""
     @State private var systemPrompt = ""
@@ -479,7 +479,7 @@ struct CreateAgentSheet: View {
     @State private var soulMd: String = ""
     @State private var memoryMd: String = ""
     @State private var agentsMd: String = ""
-    let onCreate: (String, AgentType, String, String, Double, Int, [String], [String], String, [String], String, String, String, UUID?) -> Void
+    let onCreate: (String, AgentType, String, String, Double, Int, [String], [String], String, [String], String, String, String, String?) -> Void
 
     // Backend SafetyGateway defines a 3-level system (L1/L2/L3); L4 has no backend meaning.
     private let safetyLevels = ["L1", "L2", "L3"]
@@ -682,10 +682,10 @@ struct CreateAgentSheet: View {
                                 }
                             } else {
                                 Picker("Select Graph", selection: $selectedGraphId) {
-                                    Text("None").tag(UUID?.none)
+                                    Text("None").tag(String?.none)
                                     ForEach(availableGraphs, id: \.id) { graph in
                                         Text("\(graph.name) (\(graph.nodes.count) nodes)")
-                                            .tag(UUID?.some(graph.id))
+                                            .tag(String?.some(graph.id))
                                     }
                                 }
                                 .pickerStyle(.menu)
