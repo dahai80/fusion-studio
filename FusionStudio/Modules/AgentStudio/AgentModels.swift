@@ -158,6 +158,7 @@ struct TaskModel: Identifiable, Hashable {
     var status: TaskStatus
     var priority: AgentTask.TaskPriority
     var sessionId: String
+    var projectId: String
     var artifactIds: [String]
     var lastResult: String
     var lastError: String
@@ -283,6 +284,7 @@ struct TaskModel: Identifiable, Hashable {
         self.status = TaskStatus.fromBackend(d["status"] as? String ?? "pending")
         self.priority = TaskModel.priorityFromBackend(d["priority"])
         self.sessionId = d["session_id"] as? String ?? ""
+        self.projectId = d["project_id"] as? String ?? ""
         if let arr = d["artifact_ids"] as? [String] {
             self.artifactIds = arr
         } else if let arr = d["artifact_ids"] as? [Any] {
@@ -313,6 +315,29 @@ struct TaskModel: Identifiable, Hashable {
 
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
     static func == (lhs: TaskModel, rhs: TaskModel) -> Bool { lhs.id == rhs.id }
+}
+
+// Project 聚合看板桶 (#141 priority-2): 后端 project.list 返回每 project_id 的任务数/状态分布.
+struct ProjectBucket: Identifiable, Hashable {
+    let id: String
+    var total: Int
+    var pending: Int
+    var running: Int
+    var completed: Int
+    var failed: Int
+    var canceled: Int
+
+    init?(backendDict d: [String: Any]) {
+        guard let pid = d["project_id"] as? String, !pid.isEmpty else { return nil }
+        func cnt(_ k: String) -> Int { d[k] as? Int ?? 0 }
+        self.id = pid
+        self.total = cnt("total")
+        self.pending = cnt("pending")
+        self.running = cnt("running")
+        self.completed = cnt("completed")
+        self.failed = cnt("failed")
+        self.canceled = cnt("canceled")
+    }
 }
 
 struct AgentWorkflow: Identifiable, Hashable {

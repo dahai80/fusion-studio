@@ -159,9 +159,10 @@ extension IPCClient {
         status: String = "pending",
         priority: Int = 1,
         sessionId: String = "",
+        projectId: String = "",
         maxRetries: Int = 3
     ) async throws -> [String: Any] {
-        return try await call(method: "task.submit", params: [
+        var params: [String: Any] = [
             "task_id": taskId,
             "title": title,
             "description": description,
@@ -175,14 +176,29 @@ extension IPCClient {
             "priority": priority,
             "session_id": sessionId,
             "max_retries": maxRetries,
-        ])
+        ]
+        if !projectId.isEmpty { params["project_id"] = projectId }
+        return try await call(method: "task.submit", params: params)
     }
 
-    func taskList(status: String = "", agentId: String = "", limit: Int = 100) async throws -> [String: Any] {
+    func taskList(status: String = "", agentId: String = "", projectId: String = "", limit: Int = 100) async throws -> [String: Any] {
         var params: [String: Any] = ["limit": limit]
         if !status.isEmpty { params["status"] = status }
         if !agentId.isEmpty { params["agent_id"] = agentId }
+        if !projectId.isEmpty { params["project_id"] = projectId }
         return try await call(method: "task.list", params: params)
+    }
+
+    // MARK: - Project (#141 priority-2: 多 Task 聚合容器/看板)
+
+    func projectList() async throws -> [String: Any] {
+        return try await call(method: "project.list")
+    }
+
+    func projectTasks(projectId: String, status: String = "", limit: Int = 500) async throws -> [String: Any] {
+        var params: [String: Any] = ["project_id": projectId, "limit": limit]
+        if !status.isEmpty { params["status"] = status }
+        return try await call(method: "project.tasks", params: params)
     }
 
     func taskGet(taskId: String) async throws -> [String: Any] {

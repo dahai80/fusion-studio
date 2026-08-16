@@ -2429,6 +2429,7 @@ final class AgentBridge: ObservableObject {
     @Published var cronJobs: [[String: Any]] = []
     @Published var hooks: [[String: Any]] = []
     @Published var tasks: [TaskModel] = []
+    @Published var projects: [ProjectBucket] = []
 
     func teamOrchestrate(task: String, agentIds: [String], mode: String = "sequential") async throws -> [String: Any] {
         guard let client = ipcClient else { throw BridgeError.notConnected }
@@ -2507,6 +2508,25 @@ final class AgentBridge: ObservableObject {
         }
     }
 
+    // 拉取 Project 聚合看板桶 (#141 priority-2). 后端 project.list 按 project_id 分组统计.
+    func fetchProjects() async {
+        guard let client = ipcClient else { return }
+        do {
+            let result = try await client.projectList()
+            let raw = result["projects"] as? [[String: Any]] ?? []
+            var parsed: [ProjectBucket] = []
+            for d in raw {
+                if let b = ProjectBucket(backendDict: d) { parsed.append(b) }
+            }
+            await MainActor.run {
+                self.projects = parsed
+                logger.info("fetchProjects: \(parsed.count) projects")
+            }
+        } catch {
+            logger.warning("fetchProjects failed: \(error.localizedDescription)")
+        }
+    }
+
     func agentName(for id: String) -> String {
         agents.first(where: { $0.id == id })?.name ?? id.prefix(8).description
     }
@@ -2537,7 +2557,8 @@ final class AgentBridge: ObservableObject {
         cronExpression: String,
         runAt: Date?,
         input: String,
-        priority: AgentTask.TaskPriority = .medium
+        priority: AgentTask.TaskPriority = .medium,
+        projectId: String = ""
     ) async throws -> TaskModel {
         guard let client = ipcClient else { throw BridgeError.notConnected }
         let runAtEpoch = runAt?.timeIntervalSince1970 ?? 0
@@ -2554,6 +2575,7 @@ final class AgentBridge: ObservableObject {
             input: input,
             status: "pending",
             priority: prioInt,
+            projectId: projectId,
             maxRetries: 3
         )
         guard let taskDict = result["task"] as? [String: Any],

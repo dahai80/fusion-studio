@@ -50,7 +50,7 @@ Design · Code · Simulation · MultiModal · Training · Data · Agent · KB ·
 | 🛠️ **One-Click Repair** | Fix all dependencies automatically |
 | ⚙️ **Unified Settings** | Hardware, offline mode, quantization, workspace |
 | 📊 **Hardware Monitor** | Real-time CPU/GPU/memory/MLX metrics |
-| 📋 **Task System** | Unified Task with Immediate/Schedule(cron)/Once triggers, persisted via backend `task.*` RPC (task_store SQLite); agent.execute/graph.execute execution + status writeback; Kanban board + detail view + auto-retry |
+| 📋 **Task System** | Unified Task with Immediate/Schedule(cron)/Once triggers, persisted via backend `task.*` RPC (task_store SQLite); optional `project_id` container with `project.list`/`project.tasks` aggregation; agent.execute/graph.execute execution + status writeback; Kanban board + detail view + auto-retry |
 | 🔌 **Plugin System** | Third-party extension support |
 | ♿ **Accessibility** | VoiceOver labels, keyboard navigation, reduce motion (partial — `accessibilityIdentifier` coverage in progress) |
 | 🌐 **i18n** | Chinese, English, Japanese, Korean |
