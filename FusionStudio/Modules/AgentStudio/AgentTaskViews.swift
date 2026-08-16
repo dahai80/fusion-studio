@@ -77,7 +77,10 @@ struct AgentTaskListView: View {
             }
             ToolbarItem {
                 Button {
-                    Task { await bridge.fetchTasks() }
+                    Task {
+                        await bridge.fetchTasks()
+                        await bridge.fetchProjects()
+                    }
                 } label: {
                     Image(systemName: "arrow.clockwise")
                 }
@@ -89,7 +92,12 @@ struct AgentTaskListView: View {
         .sheet(item: $selectedTask) { task in
             AgentTaskDetailView(taskId: task.id, toastManager: toastManager)
         }
-        .onAppear { Task { await bridge.fetchTasks() } }
+        .onAppear {
+            Task {
+                await bridge.fetchTasks()
+                await bridge.fetchProjects()
+            }
+        }
     }
 
     private func taskCard(task: TaskModel) -> some View {
@@ -125,6 +133,9 @@ struct AgentTaskListView: View {
                             icon: "arrow.triangle.branch",
                             color: .purple
                         )
+                    }
+                    if !task.projectId.isEmpty {
+                        FusionTag(task.projectId, icon: "folder", color: .green)
                     }
                     if task.trigger == .cron {
                         Text(nextRunText(task))
@@ -220,6 +231,8 @@ struct CreateTaskSheet: View {
     @State private var description = ""
     @State private var selectedAgent = ""
     @State private var selectedGraph = ""
+    @State private var selectedProject = ""
+    @State private var newProjectName = ""
     @State private var trigger: TaskModel.TaskTrigger = .immediate
     @State private var cronExpression = "0 * * * *"
     @State private var runAtDate = Date().addingTimeInterval(3600)
@@ -287,6 +300,23 @@ struct CreateTaskSheet: View {
                                 }
                             }
                             .pickerStyle(.menu)
+                        }
+
+                        labeledField("Project (optional)") {
+                            VStack(spacing: theme.spacingXS) {
+                                Picker("Project", selection: $selectedProject) {
+                                    Text("No project").tag("")
+                                    ForEach(bridge.projects) { p in
+                                        Text("\(p.id) (\(p.total))").tag(p.id)
+                                    }
+                                    Text("New project…").tag("__new__")
+                                }
+                                .pickerStyle(.menu)
+                                if selectedProject == "__new__" {
+                                    textEditor($newProjectName, placeholder: "New project id (e.g. release-v1)")
+                                        .font(.system(size: theme.footnoteSize))
+                                }
+                            }
                         }
 
                         labeledField("Trigger") {
@@ -363,9 +393,14 @@ struct CreateTaskSheet: View {
             .background(theme.windowBg)
         }
         .frame(width: 480, height: 640)
+        .onAppear { Task { await bridge.fetchProjects() } }
     }
 
     private func createTask() {
+        // __new__ 占位 → 取 newProjectName 为 project_id; 空则不入 project.
+        let effectiveProject = selectedProject == "__new__"
+            ? newProjectName.trimmingCharacters(in: .whitespacesAndNewlines)
+            : selectedProject
         Task {
             do {
                 let task = try await bridge.taskSubmit(
@@ -377,7 +412,8 @@ struct CreateTaskSheet: View {
                     cronExpression: trigger == .cron ? cronExpression : "",
                     runAt: trigger == .runAt ? runAtDate : nil,
                     input: input,
-                    priority: priority
+                    priority: priority,
+                    projectId: effectiveProject
                 )
                 switch trigger {
                 case .immediate:
@@ -471,6 +507,9 @@ struct AgentTaskDetailView: View {
                             if !task.graphId.isEmpty {
                                 let gname = bridge.graphName(for: task.graphId)
                                 detailRow("Workflow", gname.isEmpty ? task.graphId : gname)
+                            }
+                            if !task.projectId.isEmpty {
+                                detailRow("Project", task.projectId)
                             }
                             detailRow("Trigger", task.trigger.rawValue)
                             if !task.cronExpression.isEmpty {
@@ -701,6 +740,9 @@ struct TaskBoardView: View {
                 FusionTag(bridge.agentName(for: task.agentId), icon: "person", color: .blue)
                 if !task.graphId.isEmpty {
                     FusionTag("workflow", icon: "arrow.triangle.branch", color: .purple)
+                }
+                if !task.projectId.isEmpty {
+                    FusionTag(task.projectId, icon: "folder", color: .green)
                 }
                 Spacer()
                 FusionTag(task.trigger.rawValue, icon: task.trigger.icon, color: .gray)
