@@ -276,6 +276,7 @@ struct BackendAgentDetailView: View {
     @State private var newSkillName = ""
     @State private var showSoulEditor = false
     @State private var editSoulContent = ""
+    @State private var showEditAgent = false
     @State private var versions: [[String: Any]] = []
     @State private var isLoadingVersions = false
 
@@ -360,6 +361,9 @@ struct BackendAgentDetailView: View {
                         editModel = agent.model
                         showConfigure = true
                     }
+                    FusionButton("Edit", icon: "pencil.line", style: .primary, size: .small) {
+                        showEditAgent = true
+                    }
                     FusionButton("Delete Agent", icon: "trash", style: .destructive, size: .small) {
                         deleteAgent()
                     }
@@ -386,6 +390,11 @@ struct BackendAgentDetailView: View {
             SoulEditorSheet(soulContent: $editSoulContent, onSave: {
                 saveSoul()
             }, toastManager: toastManager)
+        }
+        .sheet(isPresented: $showEditAgent) {
+            EditAgentSheet(agent: agent) { name, desc, model, prompt, temp, maxTok, tools, caps, tags, safety in
+                editAgent(name: name, description: desc, model: model, systemPrompt: prompt, temperature: temp, maxTokens: maxTok, tools: tools, capabilities: caps, tags: tags, safetyLevel: safety)
+            }
         }
         .onAppear {
             loadSkillsAndSoul()
@@ -702,6 +711,32 @@ struct BackendAgentDetailView: View {
                 toastManager.show(style: .success, title: "Configuration Saved", message: "\(agent.name) updated")
             } catch {
                 toastManager.show(style: .error, title: "Save Failed", message: error.localizedDescription)
+            }
+        }
+    }
+
+    private func editAgent(name: String, description: String, model: String, systemPrompt: String, temperature: Double, maxTokens: Int, tools: [String], capabilities: [String], tags: [String], safetyLevel: String) {
+        agentStudioLog.info("editAgent: id=\(agent.id) name=\(name) model=\(model) tools=\(tools.count)")
+        Task {
+            do {
+                _ = try await bridge.agentUpdate(
+                    agentId: agent.id,
+                    name: name,
+                    model: model,
+                    systemPrompt: systemPrompt,
+                    temperature: temperature,
+                    maxTokens: maxTokens,
+                    tools: tools,
+                    capabilities: capabilities,
+                    safetyLevel: safetyLevel,
+                    tags: tags,
+                    description: description
+                )
+                try await bridge.fetchAgents()
+                toastManager.show(style: .success, title: "Agent Updated", message: "\(name) saved")
+            } catch {
+                agentStudioLog.error("editAgent id=\(agent.id) failed: \(error.localizedDescription)")
+                toastManager.show(style: .error, title: "Update Failed", message: error.localizedDescription)
             }
         }
     }
