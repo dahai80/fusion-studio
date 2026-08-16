@@ -309,6 +309,7 @@ class DocGenerator: ObservableObject {
             - 接通真实后端 task.* RPC (上游 issue #141 / PR#143 已落地)，前端用 agent.execute/graph.execute 直连降耦 (#150)
             - 接入 project_id 容器 + project.list / project.tasks (#151)
             - taskDelete 切真删 RPC + 新增 taskAddArtifacts (上游 PR#148 closes #147) (#152)
+            - 执行时 artifact 回写闭环最后一环：executeGraph 透传 task_id，任务执行产出的 artifact 自动关联回 Task 记录（后端 daemon_server._handle_graph_execute 已收 artifact_create tool_result 并回写）(#141 priority-4)
             - 抖音运营看板新增「计划」tab——高峰时段 cron 自动发布
 
             ### 修复
