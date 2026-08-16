@@ -219,6 +219,14 @@ extension IPCClient {
         return try await call(method: "task.rerun", params: ["task_id": taskId])
     }
 
+    func taskDelete(taskId: String) async throws -> [String: Any] {
+        return try await call(method: "task.delete", params: ["task_id": taskId])
+    }
+
+    func taskAddArtifacts(taskId: String, artifactIds: [String]) async throws -> [String: Any] {
+        return try await call(method: "task.add_artifacts", params: ["task_id": taskId, "artifact_ids": artifactIds])
+    }
+
     // MARK: - Hooks
 
     func hooksList() async throws -> [String: Any] {
