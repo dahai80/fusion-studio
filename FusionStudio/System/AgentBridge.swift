@@ -2488,8 +2488,23 @@ final class AgentBridge: ObservableObject {
 
     // MARK: - Task Operations
 
-    func fetchTasks() {
-        logger.info("fetchTasks: \(self.tasks.count) local tasks")
+    // 从后端 task.list 拉取持久化任务. 后端 5 态 → 前端 7 态.
+    func fetchTasks() async {
+        guard let client = ipcClient else { return }
+        do {
+            let result = try await client.taskList(limit: 200)
+            let raw = result["tasks"] as? [[String: Any]] ?? []
+            var parsed: [TaskModel] = []
+            for d in raw {
+                if let t = TaskModel(backendDict: d) { parsed.append(t) }
+            }
+            await MainActor.run {
+                self.tasks = parsed
+                logger.info("fetchTasks: \(parsed.count) backend tasks")
+            }
+        } catch {
+            logger.warning("fetchTasks failed: \(error.localizedDescription)")
+        }
     }
 
     func agentName(for id: String) -> String {
@@ -2510,6 +2525,9 @@ final class AgentBridge: ObservableObject {
         tasks[idx].updatedAt = Date()
     }
 
+    // 提交到后端 task.submit; cron 触发由后端自动注册 cron job 并回写 cron_job_id.
+    // 返回后端落库后的 TaskModel (含真实 task_id, cron_job_id).
+    @discardableResult
     func taskSubmit(
         title: String,
         description: String,
@@ -2520,34 +2538,37 @@ final class AgentBridge: ObservableObject {
         runAt: Date?,
         input: String,
         priority: AgentTask.TaskPriority = .medium
-    ) -> TaskModel {
-        let task = TaskModel(
-            id: "task-\(UUID().uuidString.prefix(8))",
+    ) async throws -> TaskModel {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        let runAtEpoch = runAt?.timeIntervalSince1970 ?? 0
+        let prioInt = priority == .low ? 0 : (priority == .medium ? 1 : (priority == .high ? 2 : 3))
+        let triggerStr = trigger == .immediate ? "immediate" : (trigger == .cron ? "cron" : "run_at")
+        let result = try await client.taskSubmit(
             title: title,
             description: description,
             agentId: agentId,
             graphId: graphId,
-            trigger: trigger,
+            trigger: triggerStr,
             cronExpression: cronExpression,
-            runAt: runAt,
-            cronJobId: "",
+            runAt: runAtEpoch,
             input: input,
-            status: .pending,
-            priority: priority,
-            sessionId: "",
-            artifactIds: [],
-            lastResult: "",
-            lastError: "",
-            retryCount: 0,
-            maxRetries: 3,
-            createdAt: Date(),
-            updatedAt: Date(),
-            lastRunAt: nil,
-            events: []
+            status: "pending",
+            priority: prioInt,
+            maxRetries: 3
         )
-        tasks.append(task)
-        logger.info("taskSubmit: id=\(task.id) title=\(title) trigger=\(trigger.rawValue) agent=\(agentId) graph=\(graphId)")
-        return task
+        guard let taskDict = result["task"] as? [String: Any],
+              let saved = TaskModel(backendDict: taskDict) else {
+            throw BridgeError.decodeError("task.submit missing task field")
+        }
+        await MainActor.run {
+            if let idx = self.taskIndex(saved.id) {
+                self.tasks[idx] = saved
+            } else {
+                self.tasks.append(saved)
+            }
+            logger.info("taskSubmit: id=\(saved.id) title=\(title) trigger=\(trigger.rawValue) cron_job=\(saved.cronJobId)")
+        }
+        return saved
     }
 
     func taskExecuteImmediate(_ taskId: String) {
@@ -2560,6 +2581,7 @@ final class AgentBridge: ObservableObject {
             t.lastRunAt = Date()
             t.lastError = ""
         }
+        reportTaskStatus(taskId, status: "running")
         logger.info("taskExecuteImmediate: id=\(taskId) agent=\(agentId) graph=\(graphId)")
         Task {
             do {
@@ -2589,6 +2611,7 @@ final class AgentBridge: ObservableObject {
                     }
                     logger.info("taskExecuteImmediate done: id=\(taskId) events=\(eventsParsed.count)")
                 }
+                self.reportTaskStatus(taskId, status: "completed", lastResult: ["summary": summary, "events": eventsParsed.count])
             } catch {
                 await MainActor.run {
                     self.updateTask(taskId) { t in
@@ -2596,65 +2619,72 @@ final class AgentBridge: ObservableObject {
                         t.lastRunAt = Date()
                         t.retryCount += 1
                     }
-                    let shouldRetry = self.tasks[self.taskIndex(taskId) ?? 0].retryCount <= self.tasks[self.taskIndex(taskId) ?? 0].maxRetries
-                    if shouldRetry {
+                    let cur = self.tasks[self.taskIndex(taskId) ?? 0]
+                    if cur.retryCount <= cur.maxRetries {
                         self.updateTask(taskId) { t in t.status = .queued }
-                        logger.warning("taskExecuteImmediate retry: id=\(taskId) retryCount=\(self.tasks[self.taskIndex(taskId) ?? 0].retryCount)")
+                        logger.warning("taskExecuteImmediate retry: id=\(taskId) retryCount=\(cur.retryCount)")
                         self.taskExecuteImmediate(taskId)
                     } else {
                         self.updateTask(taskId) { t in t.status = .failed }
                         logger.error("taskExecuteImmediate failed: id=\(taskId) err=\(error.localizedDescription)")
                     }
                 }
+                self.reportTaskStatus(taskId, status: "failed", lastError: error.localizedDescription)
             }
         }
     }
 
-    func taskCancel(_ taskId: String) {
-        guard let idx = taskIndex(taskId) else { return }
-        let trigger = tasks[idx].trigger
-        let cronJobId = tasks[idx].cronJobId
-        updateTask(taskId) { t in
-            t.status = .cancelled
-        }
-        logger.info("taskCancel: id=\(taskId) trigger=\(trigger.rawValue)")
-        if (trigger == .cron || trigger == .runAt) && !cronJobId.isEmpty {
-            Task {
-                do {
-                    _ = try await cronUnregister(id: cronJobId)
-                } catch {
-                    logger.error("taskCancel unregister cron: \(error.localizedDescription)")
-                }
-            }
-        }
-    }
-
-    func taskRerun(_ taskId: String) {
-        guard let idx = taskIndex(taskId) else { return }
-        let original = tasks[idx]
-        let newTask = taskSubmit(
-            title: original.title,
-            description: original.description,
-            agentId: original.agentId,
-            graphId: original.graphId,
-            trigger: .immediate,
-            cronExpression: "",
-            runAt: nil,
-            input: original.input,
-            priority: original.priority
-        )
-        taskExecuteImmediate(newTask.id)
-    }
-
+    // 后端无 task.delete RPC; cancel 后本地移除 (上游待补 task.delete).
     func taskDelete(_ taskId: String) {
-        guard let idx = taskIndex(taskId) else { return }
-        let cronJobId = tasks[idx].cronJobId
-        let trigger = tasks[idx].trigger
-        tasks.remove(at: idx)
-        logger.info("taskDelete: id=\(taskId)")
-        if (trigger == .cron || trigger == .runAt) && !cronJobId.isEmpty {
-            Task {
-                _ = try? await cronUnregister(id: cronJobId)
+        Task {
+            _ = try? await taskCancel(taskId)
+            await MainActor.run {
+                self.tasks.removeAll { $0.id == taskId }
+                logger.info("taskDelete: id=\(taskId)")
+            }
+        }
+    }
+
+    func taskCancel(_ taskId: String) async {
+        guard let client = ipcClient else { return }
+        do {
+            _ = try await client.taskCancel(taskId: taskId)
+            await MainActor.run {
+                self.updateTask(taskId) { t in t.status = .cancelled }
+                logger.info("taskCancel: id=\(taskId)")
+            }
+        } catch {
+            logger.error("taskCancel failed: id=\(taskId) err=\(error.localizedDescription)")
+        }
+    }
+
+    func taskRerun(_ taskId: String) async {
+        guard let client = ipcClient else { return }
+        do {
+            let result = try await client.taskRerun(taskId: taskId)
+            if let d = result["task"] as? [String: Any], let updated = TaskModel(backendDict: d) {
+                await MainActor.run {
+                    if let idx = self.taskIndex(taskId) {
+                        self.tasks[idx] = updated
+                    }
+                    logger.info("taskRerun: id=\(taskId)")
+                }
+                // rerun 重置为 pending, 前端立即执行 immediate 触发.
+                taskExecuteImmediate(taskId)
+            }
+        } catch {
+            logger.error("taskRerun failed: id=\(taskId) err=\(error.localizedDescription)")
+        }
+    }
+
+    // 报告状态到后端 task.status (前端执行的结果回写).
+    private func reportTaskStatus(_ taskId: String, status: String, lastResult: [String: Any]? = nil, lastError: String = "") {
+        guard let client = ipcClient else { return }
+        Task {
+            do {
+                _ = try await client.taskStatus(taskId: taskId, status: status, lastResult: lastResult, lastError: lastError)
+            } catch {
+                logger.warning("reportTaskStatus failed: id=\(taskId) status=\(status) err=\(error.localizedDescription)")
             }
         }
     }

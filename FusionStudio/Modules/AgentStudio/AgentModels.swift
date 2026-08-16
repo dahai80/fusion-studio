@@ -204,6 +204,111 @@ struct TaskModel: Identifiable, Hashable {
         }
 
         var isTerminal: Bool { self == .completed || self == .failed || self == .cancelled }
+
+        // 后端 snake_case status → 前端. 后端 5 态: pending/running/completed/failed/canceled ( canceled 单 d ).
+        static func fromBackend(_ raw: String) -> TaskStatus {
+            switch raw.lowercased() {
+            case "running":   return .running
+            case "completed": return .completed
+            case "failed":    return .failed
+            case "canceled", "cancelled": return .cancelled
+            case "scheduled": return .scheduled
+            case "queued":    return .queued
+            default:          return .pending
+            }
+        }
+    }
+
+    // 后端 trigger: immediate/cron/run_at → 前端 TaskTrigger
+    static func triggerFromBackend(_ raw: String) -> TaskTrigger {
+        switch raw.lowercased() {
+        case "cron":   return .cron
+        case "run_at": return .runAt
+        default:       return .immediate
+        }
+    }
+
+    static func priorityFromBackend(_ value: Any?) -> AgentTask.TaskPriority {
+        let idx: Int = {
+            if let i = value as? Int { return i }
+            if let s = value as? String, let i = Int(s) { return i }
+            if let d = value as? Double { return Int(d) }
+            return 1
+        }()
+        switch idx {
+        case 0:  return .low
+        case 2:  return .high
+        case 3:  return .critical
+        default: return .medium
+        }
+    }
+
+    var priorityInt: Int {
+        switch priority {
+        case .low:      return 0
+        case .medium:   return 1
+        case .high:     return 2
+        case .critical: return 3
+        }
+    }
+
+    var triggerBackend: String {
+        switch trigger {
+        case .immediate: return "immediate"
+        case .cron:      return "cron"
+        case .runAt:     return "run_at"
+        }
+    }
+
+    // 后端 to_dict (snake_case, 时间为 epoch float, 0 = nil) → TaskModel
+    init?(backendDict d: [String: Any]) {
+        guard let id = d["task_id"] as? String, !id.isEmpty else { return nil }
+        func date(_ key: String) -> Date? {
+            let v = d[key]
+            if let f = v as? Double, f > 0 { return Date(timeIntervalSince1970: f) }
+            if let i = v as? Int, i > 0 { return Date(timeIntervalSince1970: TimeInterval(i)) }
+            if let s = v as? String, let f = Double(s), f > 0 { return Date(timeIntervalSince1970: f) }
+            return nil
+        }
+        self.id = id
+        self.title = d["title"] as? String ?? ""
+        self.description = d["description"] as? String ?? ""
+        self.agentId = d["agent_id"] as? String ?? ""
+        self.graphId = d["graph_id"] as? String ?? ""
+        self.trigger = TaskModel.triggerFromBackend(d["trigger"] as? String ?? "immediate")
+        self.cronExpression = d["cron_expression"] as? String ?? ""
+        self.runAt = date("run_at")
+        self.cronJobId = d["cron_job_id"] as? String ?? ""
+        self.input = d["input"] as? String ?? ""
+        self.status = TaskStatus.fromBackend(d["status"] as? String ?? "pending")
+        self.priority = TaskModel.priorityFromBackend(d["priority"])
+        self.sessionId = d["session_id"] as? String ?? ""
+        if let arr = d["artifact_ids"] as? [String] {
+            self.artifactIds = arr
+        } else if let arr = d["artifact_ids"] as? [Any] {
+            self.artifactIds = arr.compactMap { $0 as? String }
+        } else {
+            self.artifactIds = []
+        }
+        if let res = d["last_result"] as? [String: Any], !res.isEmpty {
+            if let data = try? JSONSerialization.data(withJSONObject: res),
+               let str = String(data: data, encoding: .utf8) {
+                self.lastResult = str
+            } else {
+                self.lastResult = ""
+            }
+        } else if let s = d["last_result"] as? String {
+            self.lastResult = s
+        } else {
+            self.lastResult = ""
+        }
+        self.lastError = d["last_error"] as? String ?? ""
+        self.retryCount = d["retry_count"] as? Int ?? 0
+        self.maxRetries = d["max_retries"] as? Int ?? 3
+        self.createdAt = date("created_at") ?? Date()
+        self.updatedAt = date("updated_at") ?? Date()
+        self.lastRunAt = date("last_run_at")
+        self.events = []
     }
 
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
