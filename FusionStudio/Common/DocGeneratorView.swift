@@ -302,6 +302,11 @@ class DocGenerator: ObservableObject {
 
             ## [Unreleased]
 
+            ## [0.1.38] - 2026-08-16
+
+            ### 修复
+            - 执行时 artifact 回写闭环最后一环：executeGraph 透传 task_id，任务执行产出的 artifact 自动关联回 Task 记录（后端 daemon_server._handle_graph_execute 已收 artifact_create tool_result 并回写），激活 Task 体系 priority-4 闭环 (#141, #154)
+
             ## [0.1.37] - 2026-08-16
 
             ### 新增
