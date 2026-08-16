@@ -1,10 +1,10 @@
+use env_daemon::{HealthCheckItem, HealthChecker, RepairEngine, RepairResult};
+use serde::{Deserialize, Serialize};
+use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::os::unix::fs::PermissionsExt;
-use tokio::net::UnixListener;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use serde::{Deserialize, Serialize};
-use env_daemon::{HealthChecker, RepairEngine, HealthCheckItem, RepairResult};
+use tokio::net::UnixListener;
 
 /// JSON-RPC 请求
 #[derive(Debug, Deserialize)]
@@ -45,7 +45,8 @@ async fn main() -> anyhow::Result<()> {
     // env-daemon 监听独立 socket，避免与 agent-studio 中央路由
     // (/tmp/fusion-studio.sock) 抢占。env.* 方法由 agent-studio 自带实现转发。
     let default_sock = "/tmp/fusion-env-daemon.sock";
-    let socket_path = std::env::var("FUSION_ENV_DAEMON_SOCKET").unwrap_or_else(|_| default_sock.to_string());
+    let socket_path =
+        std::env::var("FUSION_ENV_DAEMON_SOCKET").unwrap_or_else(|_| default_sock.to_string());
     let health_checker = Arc::new(HealthChecker::new());
     let repair_engine = Arc::new(RepairEngine::new());
 
@@ -182,7 +183,8 @@ async fn handle_request(
             serde_json::to_value(items).ok()
         }
         "env.repair" => {
-            let item_id = req.params
+            let item_id = req
+                .params
                 .and_then(|p| p.get("item_id").and_then(|v| v.as_str().map(String::from)))
                 .unwrap_or_default();
             let result = repairer.repair(&item_id).await;
@@ -198,9 +200,7 @@ async fn handle_request(
             }
             serde_json::to_value(results).ok()
         }
-        "ping" => {
-            Some(serde_json::json!({ "pong": true, "version": "0.1.0" }))
-        }
+        "ping" => Some(serde_json::json!({ "pong": true, "version": "0.1.0" })),
         _ => {
             return JsonRpcResponse {
                 jsonrpc: "2.0".into(),

@@ -1,6 +1,6 @@
-use std::process::Command;
-use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
+use std::process::Command;
 
 /// 环境健康检查项
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -40,8 +40,7 @@ pub struct HealthChecker {
 
 impl HealthChecker {
     pub fn new() -> Self {
-        let home = std::env::var("HOME")
-            .expect("HOME 环境变量必须设置");
+        let home = std::env::var("HOME").expect("HOME 环境变量必须设置");
         let home_dir = PathBuf::from(&home);
         Self {
             home_dir: home_dir.clone(),
@@ -65,9 +64,7 @@ impl HealthChecker {
 
     /// 检查 Xcode CLI Tools
     fn check_xcode_cli(&self) -> HealthCheckItem {
-        let output = Command::new("xcode-select")
-            .args(["-p"])
-            .output();
+        let output = Command::new("xcode-select").args(["-p"]).output();
         match output {
             Ok(o) if o.status.success() => {
                 let _xcode_path = String::from_utf8_lossy(&o.stdout).trim().to_string();
@@ -91,13 +88,14 @@ impl HealthChecker {
 
     /// 检查 Homebrew
     fn check_homebrew(&self) -> HealthCheckItem {
-        let output = Command::new("brew")
-            .args(["--version"])
-            .output();
+        let output = Command::new("brew").args(["--version"]).output();
         match output {
             Ok(o) if o.status.success() => {
                 let ver = String::from_utf8_lossy(&o.stdout)
-                    .lines().next().unwrap_or("").to_string();
+                    .lines()
+                    .next()
+                    .unwrap_or("")
+                    .to_string();
                 HealthCheckItem {
                     id: "homebrew".into(),
                     label: "Homebrew".into(),
@@ -118,19 +116,19 @@ impl HealthChecker {
 
     /// 检查 Python 环境
     fn check_python(&self) -> HealthCheckItem {
-        let output = Command::new("python3")
-            .args(["--version"])
-            .output();
+        let output = Command::new("python3").args(["--version"]).output();
         match output {
             Ok(o) if o.status.success() => {
                 let ver = String::from_utf8_lossy(&o.stdout).trim().to_string();
-                let has_pip = Command::new("pip3")
-                    .args(["--version"])
-                    .output().is_ok();
+                let has_pip = Command::new("pip3").args(["--version"]).output().is_ok();
                 HealthCheckItem {
                     id: "python".into(),
                     label: "Python 3.11+".into(),
-                    status: if has_pip { CheckStatus::Passed } else { CheckStatus::Failed },
+                    status: if has_pip {
+                        CheckStatus::Passed
+                    } else {
+                        CheckStatus::Failed
+                    },
                     detail: Some(ver),
                     fixable: true,
                 }
@@ -208,19 +206,19 @@ impl HealthChecker {
 
     /// 检查 Rust 工具链
     fn check_rust(&self) -> HealthCheckItem {
-        let output = Command::new("rustc")
-            .args(["--version"])
-            .output();
+        let output = Command::new("rustc").args(["--version"]).output();
         match output {
             Ok(o) if o.status.success() => {
                 let ver = String::from_utf8_lossy(&o.stdout).trim().to_string();
-                let has_cargo = Command::new("cargo")
-                    .args(["--version"])
-                    .output().is_ok();
+                let has_cargo = Command::new("cargo").args(["--version"]).output().is_ok();
                 HealthCheckItem {
                     id: "rust".into(),
                     label: "Rust 工具链".into(),
-                    status: if has_cargo { CheckStatus::Passed } else { CheckStatus::Failed },
+                    status: if has_cargo {
+                        CheckStatus::Passed
+                    } else {
+                        CheckStatus::Failed
+                    },
                     detail: Some(ver),
                     fixable: true,
                 }
@@ -239,7 +237,14 @@ impl HealthChecker {
     fn check_fusion_mlx_service(&self) -> HealthCheckItem {
         // 检测 fusion-mlx HTTP 服务是否在运行
         let output = Command::new("curl")
-            .args(["-s", "-o", "/dev/null", "-w", "%{http_code}", "http://localhost:8000/v1/models"])
+            .args([
+                "-s",
+                "-o",
+                "/dev/null",
+                "-w",
+                "%{http_code}",
+                "http://localhost:8000/v1/models",
+            ])
             .output();
         match output {
             Ok(o) if o.status.success() => {
@@ -309,9 +314,7 @@ impl RepairEngine {
         let mut logs = Vec::new();
         logs.push(format!("$ {} {}", cmd, args.join(" ")));
 
-        let output = Command::new(cmd)
-            .args(args)
-            .output();
+        let output = Command::new(cmd).args(args).output();
 
         match output {
             Ok(o) => {
@@ -335,7 +338,11 @@ impl RepairEngine {
         RepairResult {
             item_id: "xcode".into(),
             success,
-            message: if success { "Xcode CLI Tools 安装成功".into() } else { "安装失败，请手动安装".into() },
+            message: if success {
+                "Xcode CLI Tools 安装成功".into()
+            } else {
+                "安装失败，请手动安装".into()
+            },
             logs,
         }
     }
@@ -346,7 +353,11 @@ impl RepairEngine {
         RepairResult {
             item_id: "homebrew".into(),
             success,
-            message: if success { "Homebrew 安装成功".into() } else { "安装失败".into() },
+            message: if success {
+                "Homebrew 安装成功".into()
+            } else {
+                "安装失败".into()
+            },
             logs,
         }
     }
@@ -356,7 +367,11 @@ impl RepairEngine {
         RepairResult {
             item_id: "python".into(),
             success,
-            message: if success { "Python 3.11 安装成功".into() } else { "安装失败".into() },
+            message: if success {
+                "Python 3.11 安装成功".into()
+            } else {
+                "安装失败".into()
+            },
             logs,
         }
     }
@@ -366,7 +381,11 @@ impl RepairEngine {
         RepairResult {
             item_id: "mlx".into(),
             success,
-            message: if success { "MLX 安装成功".into() } else { "安装失败".into() },
+            message: if success {
+                "MLX 安装成功".into()
+            } else {
+                "安装失败".into()
+            },
             logs,
         }
     }
@@ -390,11 +409,8 @@ impl RepairEngine {
 
         // 如果 pip 失败，尝试源码编译（常见于 PyBullet 的编译问题）
         logs.push("pip 安装失败，尝试源码编译...".into());
-        let (build_ok, build_logs) = Self::run_command("pip3", &[
-            "install",
-            "--no-binary", "pybullet",
-            "pybullet",
-        ]).await;
+        let (build_ok, build_logs) =
+            Self::run_command("pip3", &["install", "--no-binary", "pybullet", "pybullet"]).await;
         logs.extend(build_logs);
 
         RepairResult {
@@ -410,17 +426,30 @@ impl RepairEngine {
     }
 
     async fn repair_rust(&self) -> RepairResult {
-        let (success, logs) = Self::run_command("curl", &[
-            "--proto", "=https",
-            "--tlsv1.2",
-            "-sSf",
-            "https://sh.rustup.rs",
-            "|", "sh", "-s", "--", "-y",
-        ]).await;
+        let (success, logs) = Self::run_command(
+            "curl",
+            &[
+                "--proto",
+                "=https",
+                "--tlsv1.2",
+                "-sSf",
+                "https://sh.rustup.rs",
+                "|",
+                "sh",
+                "-s",
+                "--",
+                "-y",
+            ],
+        )
+        .await;
         RepairResult {
             item_id: "rust".into(),
             success,
-            message: if success { "Rust 工具链安装成功".into() } else { "安装失败".into() },
+            message: if success {
+                "Rust 工具链安装成功".into()
+            } else {
+                "安装失败".into()
+            },
             logs,
         }
     }
@@ -429,19 +458,26 @@ impl RepairEngine {
         // 启动 fusion-mlx 服务
         let mlx_path = self.home_dir.join("claude-home").join("fusion-mlx");
         let mut logs = Vec::new();
-        logs.push(format!("尝试启动 fusion-mlx (路径: {})", mlx_path.display()));
+        logs.push(format!(
+            "尝试启动 fusion-mlx (路径: {})",
+            mlx_path.display()
+        ));
 
         if mlx_path.exists() {
-            let (success, cmd_logs) = Self::run_command("python3", &[
-                "-m", "fusion_mlx.serve",
-                "--port", "8000",
-                "--daemon",
-            ]).await;
+            let (success, cmd_logs) = Self::run_command(
+                "python3",
+                &["-m", "fusion_mlx.serve", "--port", "8000", "--daemon"],
+            )
+            .await;
             logs.extend(cmd_logs);
             RepairResult {
                 item_id: "fusion-mlx".into(),
                 success,
-                message: if success { "fusion-mlx 服务已启动".into() } else { "启动失败".into() },
+                message: if success {
+                    "fusion-mlx 服务已启动".into()
+                } else {
+                    "启动失败".into()
+                },
                 logs,
             }
         } else {
