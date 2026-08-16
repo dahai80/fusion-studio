@@ -57,6 +57,27 @@ struct DouyinRunResult: Hashable {
     var message: String = ""
 }
 
+struct DouyinCronJob: Identifiable, Hashable {
+    let id: String
+    let name: String
+    let expression: String
+    let graphId: String
+    let enabled: Bool
+    let nextRun: Double
+    let lastRun: Double
+    let inputData: String
+}
+
+struct DouyinCronExecution: Identifiable, Hashable {
+    let id: String
+    let jobId: String
+    let startedAt: Double
+    let finishedAt: Double
+    let status: String
+    let error: String
+    let resultPreview: String
+}
+
 class DouyinOperationBridge: ObservableObject {
     @Published var isConnected: Bool = false
     @Published var lastError: String?
@@ -73,6 +94,10 @@ class DouyinOperationBridge: ObservableObject {
 
     @Published var lastRunResult: DouyinRunResult?
     @Published var runningAction: String = ""
+
+    @Published var cronJobs: [DouyinCronJob] = []
+    @Published var cronExecutions: [DouyinCronExecution] = []
+    @Published var cronLoading: Bool = false
 
     @Published var opsRoot: String
 
@@ -338,6 +363,125 @@ class DouyinOperationBridge: ObservableObject {
 
     func repairPublish(ipc: IPCClient?) {
         runGraph(graphName: "douyin_repair_publish", actionLabel: "差片修复", ipc: ipc)
+    }
+
+    // MARK: - 发布计划（cron 调度，agent-studio issue #139 → PR #140）
+
+    // 抖音运营 cron job id 前缀, 用于从全部 cron job 中筛出本看板注册的计划.
+    static let cronIdPrefix = "douyin_publish_plan_"
+
+    // Graph D 库存发布 graph 名, cron 计划绑定它.
+    static let publishGraphName = "douyin_queue_publish"
+
+    // 高峰时段发布计划默认 cron: 每天两个高峰窗口各发 1 条 (12:05 / 19:05).
+    static let defaultPeakCron = "5 12,19 * * *"
+
+    func registerPublishPlan(expression: String, dryRun: Bool, ipc: IPCClient?) {
+        guard let ipc = ipc else {
+            publishError("IPC 未连接，无法注册发布计划")
+            return
+        }
+        DispatchQueue.main.async {
+            self.cronLoading = true
+            self.lastError = nil
+        }
+        let inputData = "{\"dry_run\":\"\(dryRun ? "true" : "false")\"}"
+        douyinBridgeLog.info("registerPublishPlan: expr=\(expression, privacy: .public) dryRun=\(dryRun)")
+        Task {
+            do {
+                let graphId = try await ensureGraph(graphName: Self.publishGraphName, ipc: ipc)
+                let jobId = Self.cronIdPrefix + expression.replacingOccurrences(of: " ", with: "_")
+                let resp = try await ipc.call(method: "cron.register", params: [
+                    "id": jobId,
+                    "name": "抖音高峰发布计划",
+                    "expression": expression,
+                    "graph_id": graphId,
+                    "input_data": inputData,
+                    "enabled": true,
+                    "max_retries": 0,
+                ])
+                let ok = (resp["status"] as? String) == "ok"
+                DispatchQueue.main.async {
+                    self.cronLoading = false
+                    self.lastRunResult = DouyinRunResult(
+                        graphId: graphId,
+                        status: ok ? "registered" : "failed",
+                        eventCount: 0,
+                        success: ok,
+                        message: ok ? "发布计划已注册，等待高峰时段自动触发" : "注册失败"
+                    )
+                    self.refreshCron(ipc: ipc)
+                }
+            } catch {
+                self.publishError("注册发布计划失败: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    func unregisterPlan(jobId: String, ipc: IPCClient?) {
+        guard let ipc = ipc else { return }
+        DispatchQueue.main.async { self.cronLoading = true }
+        douyinBridgeLog.info("unregisterPlan: \(jobId, privacy: .public)")
+        Task {
+            do {
+                _ = try await ipc.call(method: "cron.unregister", params: ["id": jobId])
+                DispatchQueue.main.async {
+                    self.cronLoading = false
+                    self.refreshCron(ipc: ipc)
+                }
+            } catch {
+                self.publishError("取消计划失败: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    func refreshCron(ipc: IPCClient?) {
+        guard let ipc = ipc else { return }
+        Task {
+            do {
+                let result = try await ipc.call(method: "cron.list", params: [:])
+                let raw = (result["jobs"] as? [[String: Any]]) ?? []
+                let jobs: [DouyinCronJob] = raw.compactMap { parseCronJob($0) }
+                    .filter { $0.id.hasPrefix(Self.cronIdPrefix) }
+                DispatchQueue.main.async { self.cronJobs = jobs }
+                if let first = jobs.first {
+                    let exeResult = try await ipc.call(method: "cron.list_executions", params: ["job_id": first.id, "limit": 20])
+                    let exes = ((exeResult["executions"] as? [[String: Any]]) ?? []).compactMap { parseCronExecution($0) }
+                    DispatchQueue.main.async { self.cronExecutions = exes }
+                } else {
+                    DispatchQueue.main.async { self.cronExecutions = [] }
+                }
+            } catch {
+                douyinBridgeLog.error("refreshCron failed: \(error, privacy: .public)")
+            }
+        }
+    }
+
+    private func parseCronJob(_ obj: [String: Any]) -> DouyinCronJob? {
+        guard let id = obj["id"] as? String else { return nil }
+        return DouyinCronJob(
+            id: id,
+            name: obj["name"] as? String ?? "",
+            expression: obj["expression"] as? String ?? "",
+            graphId: obj["graph_id"] as? String ?? "",
+            enabled: obj["enabled"] as? Bool ?? true,
+            nextRun: (obj["next_run"] as? Double) ?? 0,
+            lastRun: (obj["last_run"] as? Double) ?? 0,
+            inputData: obj["input_data"] as? String ?? ""
+        )
+    }
+
+    private func parseCronExecution(_ obj: [String: Any]) -> DouyinCronExecution? {
+        guard let id = obj["id"] as? String else { return nil }
+        return DouyinCronExecution(
+            id: id,
+            jobId: obj["job_id"] as? String ?? "",
+            startedAt: (obj["started_at"] as? Double) ?? 0,
+            finishedAt: (obj["finished_at"] as? Double) ?? 0,
+            status: obj["status"] as? String ?? "",
+            error: obj["error"] as? String ?? "",
+            resultPreview: obj["result_preview"] as? String ?? ""
+        )
     }
 
     // MARK: - 轮询

@@ -18,6 +18,8 @@ struct DouyinOperationView: View {
     @State private var produceTopic = ""
     @State private var produceVariant = "A"
     @State private var publishDryRun = true
+    @State private var planExpression = "5 12,19 * * *"
+    @State private var planDryRun = true
 
     private let variants = ["A", "B", "C"]
     // 钩子变体说明, 与 mlx_script.py VARIANT_HOOK 同源. 用户选择时知道每个变体代表什么钩子风格.
@@ -30,6 +32,7 @@ struct DouyinOperationView: View {
         FusionTabItem(title: "库存", icon: "shippingbox"),
         FusionTabItem(title: "造片", icon: "film.stack"),
         FusionTabItem(title: "发布", icon: "paperplane"),
+        FusionTabItem(title: "计划", icon: "clock.badge"),
         FusionTabItem(title: "评论", icon: "bubble.left.and.bubble.right"),
         FusionTabItem(title: "进化", icon: "chart.line.uptrend.xyaxis"),
         FusionTabItem(title: "统计", icon: "chart.bar"),
@@ -52,8 +55,9 @@ struct DouyinOperationView: View {
                     case 0: inventoryPanel
                     case 1: producePanel
                     case 2: publishPanel
-                    case 3: commentPanel
-                    case 4: evolvePanel
+                    case 3: schedulePanel
+                    case 4: commentPanel
+                    case 5: evolvePanel
                     default: statsPanel
                     }
                 }
@@ -67,6 +71,7 @@ struct DouyinOperationView: View {
         .background(theme.contentBg)
         .onAppear {
             bridge.refreshAll()
+            bridge.refreshCron(ipc: ipc)
             bridge.startPolling(interval: 30)
             douyinViewLog.info("DouyinOperationView appeared")
         }
@@ -226,6 +231,126 @@ struct DouyinOperationView: View {
                 runResultRow(r)
             }
         }
+    }
+
+    // MARK: - 发布计划面板（cron 调度，高峰时段自动发布）
+
+    private var schedulePanel: some View {
+        VStack(alignment: .leading, spacing: theme.spacingM) {
+            sectionLabel("高峰时段发布计划", icon: "clock.badge.fill")
+            Text("注册 cron 计划，每天高峰窗口（12-13 / 19-21）自动跑 Graph D 从库存取片发布，无需人工点按钮。底层为 agent-studio cron 运行时（PR #140）。")
+                .font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textSecondary)
+
+            VStack(alignment: .leading, spacing: theme.spacingS) {
+                Text("Cron 表达式（分 时 日 月 周）").font(.system(size: 11)).foregroundStyle(theme.textSecondary)
+                TextField("5 12,19 * * *", text: $planExpression)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: theme.footnoteSize, design: .monospaced))
+                Text("默认 `5 12,19 * * *` = 每天 12:05 与 19:05 各触发一次（高峰窗口开场后 5 分钟）。")
+                    .font(.system(size: 10)).foregroundStyle(theme.textTertiary)
+            }
+
+            Toggle("Dry-run（不真实发布，验证计划触发）", isOn: $planDryRun)
+                .font(.system(size: theme.footnoteSize))
+            if !planDryRun {
+                Text("⚠️ 真实计划会在高峰时段自动上传视频到抖音，请确认库存与登录态。")
+                    .font(.system(size: 11)).foregroundStyle(theme.accentDestructive)
+            }
+
+            HStack(spacing: theme.spacingS) {
+                FusionButton("注册发布计划", icon: "clock.badge.plus", style: .primary, size: .small,
+                             isLoading: bridge.cronLoading) {
+                    bridge.registerPublishPlan(expression: planExpression, dryRun: planDryRun, ipc: ipc)
+                }
+                if !bridge.cronJobs.isEmpty {
+                    FusionButton("刷新", icon: "arrow.clockwise", style: .secondary, size: .small) {
+                        bridge.refreshCron(ipc: ipc)
+                    }
+                }
+            }
+
+            if let r = bridge.lastRunResult, bridge.runningAction.isEmpty, r.status == "registered" || r.status == "failed" {
+                runResultRow(r)
+            }
+
+            if bridge.cronJobs.isEmpty {
+                emptyHint("暂无发布计划，注册后将在此显示下次触发时间与执行历史")
+            } else {
+                sectionLabel("已注册计划", icon: "clock.fill")
+                ForEach(bridge.cronJobs) { job in
+                    cronJobRow(job)
+                }
+
+                if !bridge.cronExecutions.isEmpty {
+                    sectionLabel("执行历史", icon: "list.bullet.rectangle")
+                    ForEach(bridge.cronExecutions) { exe in
+                        cronExecutionRow(exe)
+                    }
+                }
+            }
+        }
+    }
+
+    private func cronJobRow(_ job: DouyinCronJob) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                Circle().fill(job.enabled ? theme.greenDot : theme.textTertiary).frame(width: 6, height: 6)
+                Text(job.name).font(.system(size: 13, weight: .medium)).foregroundStyle(theme.text)
+                Spacer()
+                Text(job.expression).font(.system(size: 11, design: .monospaced)).foregroundStyle(theme.accent)
+            }
+            HStack(spacing: 8) {
+                if job.nextRun > 0 {
+                    Label("下次: \(formatEpoch(job.nextRun))", systemImage: "arrow.clockwise")
+                }
+                if job.lastRun > 0 {
+                    Label("上次: \(formatEpoch(job.lastRun))", systemImage: "checkmark")
+                }
+            }.font(.system(size: 10)).foregroundStyle(theme.textTertiary)
+            if !job.inputData.isEmpty {
+                Text("参数: \(job.inputData)").font(.system(size: 10, design: .monospaced)).foregroundStyle(theme.textTertiary)
+            }
+            FusionButton("取消计划", icon: "trash", style: .secondary, size: .small,
+                         isLoading: bridge.cronLoading) {
+                bridge.unregisterPlan(jobId: job.id, ipc: ipc)
+            }
+        }
+        .padding(theme.spacingS)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(theme.surfaceSecondary)
+        .cornerRadius(6)
+    }
+
+    private func cronExecutionRow(_ exe: DouyinCronExecution) -> some View {
+        let statusColor = exe.status == "success" ? theme.greenDot : (exe.status == "failed" ? theme.redDot : theme.amberDot)
+        return HStack(alignment: .top, spacing: theme.spacingS) {
+            Circle().fill(statusColor).frame(width: 6, height: 6)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 8) {
+                    Text(exe.status).font(.system(size: 11, weight: .semibold)).foregroundStyle(theme.text)
+                    Text(formatEpoch(exe.startedAt)).font(.system(size: 10)).foregroundStyle(theme.textTertiary)
+                }
+                if !exe.resultPreview.isEmpty {
+                    Text(exe.resultPreview).font(.system(size: 10, design: .monospaced)).foregroundStyle(theme.textSecondary).lineLimit(2)
+                }
+                if !exe.error.isEmpty {
+                    Text(exe.error).font(.system(size: 10)).foregroundStyle(theme.accentDestructive).lineLimit(2)
+                }
+            }
+            Spacer()
+        }
+        .padding(theme.spacingS)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(theme.surfaceSecondary)
+        .cornerRadius(6)
+    }
+
+    private func formatEpoch(_ ts: Double) -> String {
+        guard ts > 0 else { return "—" }
+        let date = Date(timeIntervalSince1970: ts)
+        let f = DateFormatter()
+        f.dateFormat = "MM-dd HH:mm"
+        return f.string(from: date)
     }
 
     // MARK: - 评论面板（Graph B）
