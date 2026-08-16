@@ -70,7 +70,7 @@ class DAGViewModel: ObservableObject {
     @Published var hoveredNodeId: String?
     @Published var isSimulating: Bool = false
     @Published var simulationStep: Int = 0
-    @Published var currentGraphId: UUID?
+    @Published var currentGraphId: String?
     @Published var currentGraphName: String = ""
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
@@ -85,12 +85,12 @@ class DAGViewModel: ObservableObject {
         logger.info("Loaded DAG with \(nodes.count) nodes, \(edges.count) edges")
     }
 
-    func loadFromBridge(_ bridge: AgentBridge, graphId: UUID? = nil) async {
+    func loadFromBridge(_ bridge: AgentBridge, graphId: String? = nil) async {
         isLoading = true
         defer { isLoading = false }
         do {
             if let gid = graphId {
-                guard let graph = try await bridge.graphGet(graphId: gid.uuidString) else {
+                guard let graph = try await bridge.graphGet(graphId: gid) else {
                     errorMessage = "Graph not found"
                     return
                 }
