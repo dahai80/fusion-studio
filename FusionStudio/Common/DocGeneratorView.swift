@@ -302,6 +302,19 @@ class DocGenerator: ObservableObject {
 
             ## [Unreleased]
 
+            ## [0.1.37] - 2026-08-16
+
+            ### 新增
+            - Task 体系四 Phase 落地：TaskModel + TaskTrigger(Immediate/Schedule/Once) + TaskStatus(7态)；AgentBridge @Published tasks + taskSubmit/ExecuteImmediate/Cancel/Rerun/Delete/ScheduleCron/ScheduleRunAt；AgentTaskListView + CreateTaskSheet(触发方式/Workflow Picker/Input/Priority) + AgentTaskDetailView；CronTabView 改只读监控(读后端 expression/graph_id/input_data)；TaskBoardView Kanban 按状态分列；AgentDetailView 快速 Assign (#149)
+            - 接通真实后端 task.* RPC (上游 issue #141 / PR#143 已落地)，前端用 agent.execute/graph.execute 直连降耦 (#150)
+            - 接入 project_id 容器 + project.list / project.tasks (#151)
+            - taskDelete 切真删 RPC + 新增 taskAddArtifacts (上游 PR#148 closes #147) (#152)
+            - 抖音运营看板新增「计划」tab——高峰时段 cron 自动发布
+
+            ### 修复
+            - agent-graph 使用真实 graph_id String，不再强制转 UUID，修复 graph 路由错配 (#146)
+            - Services/env-daemon Rust 源码 rustfmt 格式化归一 (lint 全绿)
+
             ## [0.1.36] - 2026-08-15
 
             ### 新增
