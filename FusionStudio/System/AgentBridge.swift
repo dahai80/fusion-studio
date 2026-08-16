@@ -586,19 +586,23 @@ final class AgentBridge: ObservableObject {
         }
     }
 
-    func executeGraph(id: String, input: String) async throws {
+    func executeGraph(id: String, input: String, taskId: String = "") async throws {
         guard let client = ipcClient else {
             throw BridgeError.notConnected
         }
-        logger.info("executeGraph: id=\(id)")
+        logger.info("executeGraph: id=\(id) task=\(taskId.isEmpty ? "-" : taskId)")
         self.isExecuting = true
         self.events = []
 
         do {
-            let result = try await client.call(method: "graph.execute", params: [
+            var params: [String: Any] = [
                 "graph_id": id,
                 "input": input,
-            ])
+            ]
+            if !taskId.isEmpty {
+                params["task_id"] = taskId
+            }
+            let result = try await client.call(method: "graph.execute", params: params)
 
             let eventsData = result["events"] as? [[String: Any]] ?? []
             var parsed: [AgentEventModel] = []
@@ -2610,7 +2614,7 @@ final class AgentBridge: ObservableObject {
                 var eventsParsed: [AgentEventModel] = []
                 var sessionId = ""
                 if !graphId.isEmpty {
-                    try await executeGraph(id: graphId, input: inputText)
+                    try await executeGraph(id: graphId, input: inputText, taskId: taskId)
                     eventsParsed = self.events
                 } else {
                     let result = try await agentExecute(agentId: agentId, input: inputText)
