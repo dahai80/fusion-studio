@@ -14,7 +14,7 @@ struct AgentStudioView: View {
     @Environment(\.studioTheme) var theme
 
     private var taskCount: Int {
-        orchestrator.tasks.filter { $0.status != .completed }.count
+        bridge.tasks.filter { !$0.status.isTerminal }.count
     }
 
     private var unreadCount: Int {
@@ -89,7 +89,7 @@ struct AgentStudioView: View {
                 case 16: ToolsTabView(toastManager: toastManager)
                 case 17: SkillsTabView(toastManager: toastManager)
                 case 18: MarketplaceTabView(toastManager: toastManager)
-                case 19: ConversationView(toastManager: toastManager)
+                case 19: ChatsPanel()
                 default: AgentListView(toastManager: toastManager)
                 }
             }

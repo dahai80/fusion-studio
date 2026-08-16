@@ -27,25 +27,37 @@ struct FusionTabBar: View {
     @Environment(\.studioTheme) var theme
     @State private var indicatorWidth: CGFloat = 0
     @State private var indicatorOffset: CGFloat = 0
+    @State private var scrollProxy: ScrollViewProxy?
 
     var body: some View {
         VStack(spacing: 0) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 0) {
-                    ForEach(Array(tabs.enumerated()), id: \.offset) { index, tab in
-                        tabButton(for: tab, at: index)
-                    }
-                }
-                .background(
-                    GeometryReader { geo in
-                        Color.clear.preference(
-                            key: TabBarIndicatorPreferenceKey.self,
-                            value: TabBarIndicatorData(offset: indicatorOffset, width: indicatorWidth)
+            HStack(spacing: 0) {
+                scrollButton(direction: .leading)
+                ScrollViewReader { proxy in
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 0) {
+                            ForEach(Array(tabs.enumerated()), id: \.offset) { index, tab in
+                                tabButton(for: tab, at: index)
+                                    .id("tab_\(index)")
+                            }
+                        }
+                        .background(
+                            GeometryReader { geo in
+                                Color.clear.preference(
+                                    key: TabBarIndicatorPreferenceKey.self,
+                                    value: TabBarIndicatorData(offset: indicatorOffset, width: indicatorWidth)
+                                )
+                            }
                         )
                     }
-                )
+                    .onAppear {
+                        scrollProxy = proxy
+                        fusionTabBarLog.info("FusionTabBar ScrollViewProxy captured")
+                    }
+                }
+
+                scrollButton(direction: .trailing)
             }
-            .padding(.horizontal, theme.spacingL)
 
             Rectangle()
                 .fill(theme.accent)
@@ -55,7 +67,47 @@ struct FusionTabBar: View {
         }
         .onChange(of: selected) { _, newIndex in
             fusionTabBarLog.info("FusionTabBar selected changed to \(newIndex)")
+            // 选中超出可见区时滚动到位
+            withAnimation(theme.springSnappy) {
+                scrollProxy?.scrollTo("tab_\(newIndex)", anchor: .center)
+            }
         }
+    }
+
+    private enum ScrollDirection {
+        case leading, trailing
+    }
+
+    private func scrollButton(direction: ScrollDirection) -> some View {
+        let disabled: Bool
+        let icon: String
+        let targetIndex: Int
+        switch direction {
+        case .leading:
+            disabled = selected <= 0
+            icon = "chevron.left"
+            targetIndex = max(0, selected - 1)
+        case .trailing:
+            disabled = selected >= tabs.count - 1
+            icon = "chevron.right"
+            targetIndex = min(tabs.count - 1, selected + 1)
+        }
+        return Button {
+            fusionTabBarLog.info("FusionTabBar scroll \(String(describing: direction), privacy: .public) tapped -> index \(targetIndex)")
+            withAnimation(theme.springSnappy) {
+                selected = targetIndex
+                scrollProxy?.scrollTo("tab_\(targetIndex)", anchor: .center)
+            }
+        } label: {
+            Image(systemName: icon)
+                .font(.system(size: theme.iconS, weight: .semibold))
+                .foregroundStyle(disabled ? theme.textTertiary : theme.textSecondary)
+                .frame(width: 24, height: 32)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(disabled)
+        .help(direction == .leading ? "上一个" : "下一个")
     }
 
     private func tabButton(for tab: FusionTabItem, at index: Int) -> some View {

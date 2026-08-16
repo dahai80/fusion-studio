@@ -2,24 +2,39 @@ import SwiftUI
 import Combine
 import os.log
 
+private let workflowLog = Logger(subsystem: "com.fusion.studio", category: "WorkflowListView")
+
 // MARK: - AgentTaskListView
 
 struct AgentTaskListView: View {
-    @StateObject private var orchestrator = AgentOrchestrator.shared
+    @EnvironmentObject private var bridge: AgentBridge
     @State private var showCreateTask = false
+    @State private var selectedTask: TaskModel?
+    @State private var viewMode: TaskViewMode = .list
     let toastManager: FusionToastManager
 
     @Environment(\.studioTheme) var theme
 
+    enum TaskViewMode { case list, board }
+
+    private var activeTasks: [TaskModel] {
+        bridge.tasks.filter { !$0.status.isTerminal }
+    }
+
+    private var completedTasks: [TaskModel] {
+        bridge.tasks.filter { $0.status.isTerminal }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            if orchestrator.tasks.isEmpty {
+            if bridge.tasks.isEmpty {
                 emptyTasksPlaceholder
+            } else if viewMode == .board {
+                TaskBoardView(toastManager: toastManager)
             } else {
                 ScrollView {
                     VStack(spacing: theme.spacingS) {
                         StudioSectionHeader(title: "Active Tasks")
-                        let activeTasks = orchestrator.tasks.filter { $0.status != .completed && $0.status != .failed }
                         if activeTasks.isEmpty {
                             Text("No active tasks")
                                 .font(.system(size: theme.footnoteSize))
@@ -32,7 +47,6 @@ struct AgentTaskListView: View {
                         }
 
                         StudioSectionHeader(title: "Completed")
-                        let completedTasks = orchestrator.tasks.filter { $0.status == .completed || $0.status == .failed }
                         if completedTasks.isEmpty {
                             Text("No completed tasks")
                                 .font(.system(size: theme.footnoteSize))
@@ -48,6 +62,14 @@ struct AgentTaskListView: View {
             }
         }
         .toolbar {
+            ToolbarItemGroup(placement: .navigation) {
+                Picker("View", selection: $viewMode) {
+                    Label("List", systemImage: "list.bullet").tag(AgentTaskListView.TaskViewMode.list)
+                    Label("Board", systemImage: "square.grid.2x2").tag(AgentTaskListView.TaskViewMode.board)
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 120)
+            }
             ToolbarItem {
                 FusionButton("New Task", icon: "plus", style: .primary, size: .small) {
                     showCreateTask = true
@@ -57,9 +79,12 @@ struct AgentTaskListView: View {
         .sheet(isPresented: $showCreateTask) {
             CreateTaskSheet(toastManager: toastManager)
         }
+        .sheet(item: $selectedTask) { task in
+            AgentTaskDetailView(taskId: task.id, toastManager: toastManager)
+        }
     }
 
-    private func taskCard(task: AgentTask) -> some View {
+    private func taskCard(task: TaskModel) -> some View {
         FusionCard(style: .elevated) {
             VStack(alignment: .leading, spacing: theme.spacingS) {
                 HStack(spacing: theme.spacingS) {
@@ -69,33 +94,94 @@ struct AgentTaskListView: View {
                         .foregroundStyle(theme.text)
                         .lineLimit(1)
                     Spacer()
-                    FusionTag(task.priority.rawValue, color: task.priority.tagColor)
+                    FusionTag(task.trigger.rawValue, icon: task.trigger.icon, color: triggerColor(task.trigger))
                 }
 
-                Text(task.description)
-                    .font(.system(size: theme.footnoteSize))
-                    .foregroundStyle(theme.textSecondary)
-                    .lineLimit(2)
+                if !task.description.isEmpty {
+                    Text(task.description)
+                        .font(.system(size: theme.footnoteSize))
+                        .foregroundStyle(theme.textSecondary)
+                        .lineLimit(2)
+                }
 
                 HStack(spacing: theme.spacingS) {
                     FusionTag(
-                        orchestrator.agents.first(where: { $0.id == task.assignedAgent })?.name ?? "Unknown",
+                        bridge.agentName(for: task.agentId),
                         icon: "person",
                         color: .blue
                     )
-                    Text(task.createdAt, style: .date)
+                    if !task.graphId.isEmpty {
+                        let gname = bridge.graphName(for: task.graphId)
+                        FusionTag(
+                            gname.isEmpty ? "workflow" : gname,
+                            icon: "arrow.triangle.branch",
+                            color: .purple
+                        )
+                    }
+                    if task.trigger == .cron {
+                        Text(nextRunText(task))
+                            .font(.system(size: theme.captionSize))
+                            .foregroundStyle(theme.textTertiary)
+                    }
+                    Spacer()
+                    Text(task.createdAt, style: .relative)
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.textTertiary)
+                }
 
-                    if let result = task.result {
-                        Text(result.prefix(60))
-                            .font(.system(size: theme.captionSize, design: .monospaced))
-                            .foregroundStyle(theme.textTertiary)
-                            .lineLimit(1)
-                    }
+                if !task.lastResult.isEmpty {
+                    Text(task.lastResult.prefix(80))
+                        .font(.system(size: theme.captionSize, design: .monospaced))
+                        .foregroundStyle(theme.textTertiary)
+                        .lineLimit(1)
+                }
+                if !task.lastError.isEmpty {
+                    Text(task.lastError.prefix(80))
+                        .font(.system(size: theme.captionSize, design: .monospaced))
+                        .foregroundStyle(theme.errorText)
+                        .lineLimit(1)
                 }
             }
         }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            selectedTask = task
+        }
+        .contextMenu {
+            if !task.status.isTerminal {
+                Button("Cancel", role: .destructive) {
+                    bridge.taskCancel(task.id)
+                    toastManager.show(style: .info, title: "Task Cancelled", message: task.title)
+                }
+            }
+            Button("Rerun") {
+                bridge.taskRerun(task.id)
+                toastManager.show(style: .success, title: "Task Rerun", message: task.title)
+            }
+            Button("Delete", role: .destructive) {
+                bridge.taskDelete(task.id)
+            }
+        }
+    }
+
+    private func triggerColor(_ t: TaskModel.TaskTrigger) -> TagColor {
+        switch t {
+        case .immediate: return .green
+        case .cron:      return .orange
+        case .runAt:     return .blue
+        }
+    }
+
+    private func nextRunText(_ task: TaskModel) -> String {
+        if let runAt = task.runAt {
+            let fmt = DateFormatter()
+            fmt.dateFormat = "MM-dd HH:mm"
+            return "at \(fmt.string(from: runAt))"
+        }
+        if !task.cronExpression.isEmpty {
+            return "cron \(task.cronExpression)"
+        }
+        return ""
     }
 
     private var emptyTasksPlaceholder: some View {
@@ -120,89 +206,500 @@ struct AgentTaskListView: View {
 struct CreateTaskSheet: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.studioTheme) var theme
+    @EnvironmentObject private var bridge: AgentBridge
     @StateObject private var orchestrator = AgentOrchestrator.shared
     @State private var title = ""
     @State private var description = ""
-    @State private var selectedAgent = "agent-general"
+    @State private var selectedAgent = ""
+    @State private var selectedGraph = ""
+    @State private var trigger: TaskModel.TaskTrigger = .immediate
+    @State private var cronExpression = "0 * * * *"
+    @State private var runAtDate = Date().addingTimeInterval(3600)
+    @State private var input = ""
     @State private var priority: AgentTask.TaskPriority = .medium
     let toastManager: FusionToastManager
 
+    private let cronPresets: [(String, String)] = [
+        ("Every hour", "0 * * * *"),
+        ("Every 30 min", "*/30 * * * *"),
+        ("Daily 9am", "0 9 * * *"),
+    ]
+
+    private var canCreate: Bool {
+        guard !title.isEmpty, !selectedAgent.isEmpty else { return false }
+        if trigger == .cron && cronExpression.isEmpty { return false }
+        return true
+    }
+
     var body: some View {
-        VStack(spacing: theme.spacingL) {
-            Text("New Task")
-                .font(.system(size: theme.headlineSize, weight: .bold, design: .rounded))
-                .foregroundStyle(theme.text)
+        ScrollView {
+            VStack(spacing: theme.spacingL) {
+                Text("New Task")
+                    .font(.system(size: theme.headlineSize, weight: .bold, design: .rounded))
+                    .foregroundStyle(theme.text)
 
-            FusionCard(style: .bordered) {
-                VStack(spacing: theme.spacingM) {
-                    VStack(alignment: .leading, spacing: theme.spacingXS) {
-                        Text("Title")
-                            .font(.system(size: theme.footnoteSize, weight: .medium))
-                            .foregroundStyle(theme.textSecondary)
-                        TextField("Task title", text: $title)
-                            .textFieldStyle(.plain)
-                            .padding(theme.spacingS)
-                            .background(theme.inputBg)
-                            .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
-                            .overlay {
-                                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                                    .stroke(theme.inputBorder, lineWidth: 1)
+                FusionCard(style: .bordered) {
+                    VStack(spacing: theme.spacingM) {
+                        labeledField("Title") {
+                            textEditor($title, placeholder: "Task title")
+                        }
+
+                        labeledField("Description") {
+                            textEditor($description, placeholder: "Describe the task...")
+                        }
+
+                        labeledField("Assign Agent") {
+                            Picker("Agent", selection: $selectedAgent) {
+                                if bridge.agents.isEmpty && orchestrator.agents.isEmpty {
+                                    Text("No agents available").tag("")
+                                }
+                                if !bridge.agents.isEmpty {
+                                    Section("Backend Agents") {
+                                        ForEach(bridge.agents) { agent in
+                                            Label(agent.name, systemImage: "brain.head.profile").tag(agent.id)
+                                        }
+                                    }
+                                }
+                                if !orchestrator.agents.isEmpty {
+                                    Section("Built-in Agents") {
+                                        ForEach(orchestrator.agents) { agent in
+                                            Label(agent.name, systemImage: agent.type.icon).tag(agent.id)
+                                        }
+                                    }
+                                }
                             }
-                    }
+                            .pickerStyle(.menu)
+                        }
 
-                    VStack(alignment: .leading, spacing: theme.spacingXS) {
-                        Text("Description")
-                            .font(.system(size: theme.footnoteSize, weight: .medium))
-                            .foregroundStyle(theme.textSecondary)
-                        TextField("Describe the task...", text: $description)
-                            .textFieldStyle(.plain)
-                            .padding(theme.spacingS)
-                            .background(theme.inputBg)
-                            .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
-                            .overlay {
-                                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                                    .stroke(theme.inputBorder, lineWidth: 1)
+                        labeledField("Workflow (optional)") {
+                            Picker("Workflow", selection: $selectedGraph) {
+                                Text("None (single agent step)").tag("")
+                                ForEach(bridge.graphs) { g in
+                                    Text(g.name).tag(g.id)
+                                }
                             }
-                    }
+                            .pickerStyle(.menu)
+                        }
 
-                    VStack(alignment: .leading, spacing: theme.spacingXS) {
-                        Text("Assign Agent")
-                            .font(.system(size: theme.footnoteSize, weight: .medium))
-                            .foregroundStyle(theme.textSecondary)
-                        Picker("Agent", selection: $selectedAgent) {
-                            ForEach(orchestrator.agents) { agent in
-                                Label(agent.name, systemImage: agent.type.icon).tag(agent.id)
+                        labeledField("Trigger") {
+                            Picker("Trigger", selection: $trigger) {
+                                ForEach(TaskModel.TaskTrigger.allCases) { t in
+                                    Label(t.rawValue, systemImage: t.icon).tag(t)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                        }
+
+                        if trigger == .cron {
+                            labeledField("Cron Expression") {
+                                VStack(spacing: theme.spacingXS) {
+                                    textEditor($cronExpression, placeholder: "*/5 * * * *")
+                                        .font(.system(.body, design: .monospaced))
+                                    HStack(spacing: theme.spacingS) {
+                                        ForEach(cronPresets, id: \.1) { label, expr in
+                                            FusionButton(label, style: .tinted, size: .small) {
+                                                cronExpression = expr
+                                            }
+                                        }
+                                    }
+                                    Text("Format: minute hour day month weekday")
+                                        .font(.system(size: theme.captionSize))
+                                        .foregroundStyle(theme.textTertiary)
+                                }
+                            }
+                        } else if trigger == .runAt {
+                            labeledField("Run Once At") {
+                                DatePicker("When", selection: $runAtDate, in: Date()...)
+                                    .labelsHidden()
                             }
                         }
-                        .pickerStyle(.menu)
-                    }
 
-                    VStack(alignment: .leading, spacing: theme.spacingXS) {
-                        Text("Priority")
-                            .font(.system(size: theme.footnoteSize, weight: .medium))
-                            .foregroundStyle(theme.textSecondary)
-                        Picker("Priority", selection: $priority) {
-                            ForEach(AgentTask.TaskPriority.allCases, id: \.self) { p in
-                                Text(p.rawValue).tag(p)
+                        labeledField("Priority") {
+                            Picker("Priority", selection: $priority) {
+                                ForEach(AgentTask.TaskPriority.allCases, id: \.self) { p in
+                                    Text(p.rawValue).tag(p)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                        }
+
+                        labeledField("Input") {
+                            VStack(spacing: theme.spacingXS) {
+                                TextEditor(text: $input)
+                                    .font(.system(size: theme.footnoteSize, design: .monospaced))
+                                    .frame(minHeight: 60)
+                                    .padding(theme.spacingS)
+                                    .background(theme.inputBg)
+                                    .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                            .stroke(theme.inputBorder, lineWidth: 1)
+                                    }
+                                Text("Execution input sent to agent / workflow")
+                                    .font(.system(size: theme.captionSize))
+                                    .foregroundStyle(theme.textTertiary)
                             }
                         }
-                        .pickerStyle(.segmented)
+                    }
+                }
+
+                HStack(spacing: theme.spacingM) {
+                    FusionButton("Cancel", style: .secondary, size: .regular) { dismiss() }
+                    FusionButton("Create", icon: "plus", style: .primary, size: .regular, isDisabled: !canCreate) {
+                        createTask()
                     }
                 }
             }
+            .padding(theme.spacingXL)
+            .frame(width: 460)
+            .background(theme.windowBg)
+        }
+        .frame(width: 480, height: 640)
+    }
 
-            HStack(spacing: theme.spacingM) {
-                FusionButton("Cancel", style: .secondary, size: .regular) { dismiss() }
-                FusionButton("Create", icon: "plus", style: .primary, size: .regular, isDisabled: title.isEmpty) {
-                    orchestrator.createTask(title: title, description: description, assignTo: selectedAgent, priority: priority)
-                    toastManager.show(style: .success, title: "Task Created", message: title)
-                    dismiss()
+    private func createTask() {
+        let task = bridge.taskSubmit(
+            title: title,
+            description: description,
+            agentId: selectedAgent,
+            graphId: selectedGraph,
+            trigger: trigger,
+            cronExpression: trigger == .cron ? cronExpression : "",
+            runAt: trigger == .runAt ? runAtDate : nil,
+            input: input,
+            priority: priority
+        )
+        switch trigger {
+        case .immediate:
+            bridge.taskExecuteImmediate(task.id)
+        case .cron:
+            bridge.taskScheduleCron(task.id, expression: cronExpression, input: input)
+        case .runAt:
+            bridge.taskScheduleRunAt(task.id, runAt: runAtDate, input: input)
+        }
+        toastManager.show(style: .success, title: "Task Created", message: title)
+        dismiss()
+    }
+
+    private func labeledField<Content: View>(_ label: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: theme.spacingXS) {
+            Text(label)
+                .font(.system(size: theme.footnoteSize, weight: .medium))
+                .foregroundStyle(theme.textSecondary)
+            content()
+        }
+    }
+
+    private func textEditor(_ text: Binding<String>, placeholder: String) -> some View {
+        TextField(placeholder, text: text)
+            .textFieldStyle(.plain)
+            .padding(theme.spacingS)
+            .background(theme.inputBg)
+            .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                    .stroke(theme.inputBorder, lineWidth: 1)
+            }
+    }
+}
+
+// MARK: - TaskDetailView
+
+struct AgentTaskDetailView: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.studioTheme) var theme
+    @EnvironmentObject private var bridge: AgentBridge
+    let taskId: String
+    let toastManager: FusionToastManager
+    @State private var executions: [CronExecutionModel] = []
+    @State private var isLoadingExec = false
+
+    private var task: TaskModel? {
+        bridge.tasks.first(where: { $0.id == taskId })
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: theme.spacingL) {
+                if let task {
+                    HStack(spacing: theme.spacingM) {
+                        Image(systemName: task.trigger.icon)
+                            .font(.system(size: theme.iconXL))
+                            .foregroundStyle(theme.accent)
+                            .frame(width: 40, height: 40)
+                            .background(theme.accentSoft)
+                            .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
+                        VStack(alignment: .leading, spacing: theme.spacingXS) {
+                            Text(task.title)
+                                .font(.system(size: theme.titleSize, weight: .bold, design: .rounded))
+                                .foregroundStyle(theme.text)
+                            HStack(spacing: theme.spacingS) {
+                                StatusPill(status: task.status.pillStatus, compact: true)
+                                Text(task.id)
+                                    .font(.system(size: theme.captionSize, design: .monospaced))
+                                    .foregroundStyle(theme.textTertiary)
+                            }
+                        }
+                        Spacer()
+                        FusionButton("Close", icon: "xmark", style: .secondary, size: .small) { dismiss() }
+                    }
+
+                    FusionCard(style: .inset, header: "Details", headerIcon: "info.circle") {
+                        VStack(spacing: theme.spacingS) {
+                            detailRow("Agent", bridge.agentName(for: task.agentId))
+                            if !task.graphId.isEmpty {
+                                let gname = bridge.graphName(for: task.graphId)
+                                detailRow("Workflow", gname.isEmpty ? task.graphId : gname)
+                            }
+                            detailRow("Trigger", task.trigger.rawValue)
+                            if !task.cronExpression.isEmpty {
+                                detailRow("Cron", task.cronExpression)
+                            }
+                            if let runAt = task.runAt {
+                                detailRow("Run At", runAtText(runAt))
+                            }
+                            if !task.sessionId.isEmpty {
+                                detailRow("Session", task.sessionId)
+                            }
+                            if !task.cronJobId.isEmpty {
+                                detailRow("Cron Job", task.cronJobId)
+                            }
+                        }
+                    }
+
+                    if !task.input.isEmpty {
+                        FusionCard(style: .inset, header: "Input", headerIcon: "text.alignleft") {
+                            Text(task.input)
+                                .font(.system(size: theme.footnoteSize, design: .monospaced))
+                                .foregroundStyle(theme.textSecondary)
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+
+                    if !task.lastError.isEmpty {
+                        FusionCard(style: .inset, header: "Error", headerIcon: "exclamationmark.triangle") {
+                            Text(task.lastError)
+                                .font(.system(size: theme.footnoteSize, design: .monospaced))
+                                .foregroundStyle(theme.errorText)
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+
+                    if !task.lastResult.isEmpty {
+                        FusionCard(style: .inset, header: "Result", headerIcon: "checkmark.circle") {
+                            ScrollView {
+                                Text(task.lastResult)
+                                    .font(.system(size: theme.footnoteSize, design: .monospaced))
+                                    .foregroundStyle(theme.textSecondary)
+                                    .textSelection(.enabled)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .frame(maxHeight: 240)
+                        }
+                    }
+
+                    if (task.trigger == .cron || task.trigger == .runAt) && !task.cronJobId.isEmpty {
+                        FusionCard(style: .inset, header: "Execution History", headerIcon: "clock.arrow.2.circlepath") {
+                            if isLoadingExec {
+                                ProgressView().padding()
+                            } else if executions.isEmpty {
+                                Text("No executions recorded")
+                                    .font(.system(size: theme.footnoteSize))
+                                    .foregroundStyle(theme.textTertiary)
+                                    .padding(.vertical, theme.spacingS)
+                            } else {
+                                VStack(spacing: 0) {
+                                    ForEach(Array(executions.enumerated()), id: \.element.id) { idx, exe in
+                                        HStack(spacing: theme.spacingS) {
+                                            Circle().fill(exe.statusColor).frame(width: 8, height: 8)
+                                            Text(exe.startedAtText).font(.system(size: theme.captionSize, design: .monospaced))
+                                            Text(exe.durationText).font(.system(size: theme.captionSize)).foregroundStyle(theme.textTertiary)
+                                            Spacer()
+                                            Text(exe.status).font(.system(size: theme.captionSize)).foregroundStyle(exe.statusColor)
+                                        }
+                                        .padding(.vertical, theme.spacingS)
+                                        if idx < executions.count - 1 {
+                                            Divider().foregroundStyle(theme.rowSep)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    HStack(spacing: theme.spacingM) {
+                        if !task.status.isTerminal {
+                            FusionButton("Cancel", icon: "stop.fill", style: .destructive, size: .small) {
+                                bridge.taskCancel(task.id)
+                                toastManager.show(style: .info, title: "Cancelled", message: task.title)
+                            }
+                        }
+                        FusionButton("Rerun", icon: "arrow.clockwise", style: .secondary, size: .small) {
+                            bridge.taskRerun(task.id)
+                            toastManager.show(style: .success, title: "Rerun Started", message: task.title)
+                            loadExecutions(cronJobId: task.cronJobId)
+                        }
+                    }
+                } else {
+                    Text("Task not found")
+                        .foregroundStyle(theme.textTertiary)
+                        .padding()
+                }
+            }
+            .padding(theme.spacingL)
+        }
+        .frame(width: 560, height: 600)
+        .background(theme.windowBg)
+        .onAppear {
+            if let task, (task.trigger == .cron || task.trigger == .runAt) && !task.cronJobId.isEmpty {
+                loadExecutions(cronJobId: task.cronJobId)
+            }
+        }
+    }
+
+    private func runAtText(_ date: Date) -> String {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd HH:mm"
+        return fmt.string(from: date)
+    }
+
+    private func detailRow(_ label: String, _ value: String) -> some View {
+        HStack(alignment: .top, spacing: theme.spacingS) {
+            Text(label)
+                .font(.system(size: theme.footnoteSize, weight: .medium))
+                .foregroundStyle(theme.textTertiary)
+                .frame(width: 80, alignment: .leading)
+            Text(value)
+                .font(.system(size: theme.footnoteSize))
+                .foregroundStyle(theme.text)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func loadExecutions(cronJobId: String) {
+        isLoadingExec = true
+        Task {
+            do {
+                let result = try await bridge.cronListExecutions(jobId: cronJobId)
+                await MainActor.run {
+                    self.executions = result.map { CronExecutionModel(from: $0) }
+                    self.isLoadingExec = false
+                }
+            } catch {
+                await MainActor.run { self.isLoadingExec = false }
+            }
+        }
+    }
+}
+
+// MARK: - TaskBoardView
+
+struct TaskBoardView: View {
+    @EnvironmentObject private var bridge: AgentBridge
+    @Environment(\.studioTheme) var theme
+    @State private var selectedTask: TaskModel?
+    let toastManager: FusionToastManager
+
+    private var columns: [(TaskModel.TaskStatus, [TaskModel])] {
+        let order: [TaskModel.TaskStatus] = [.pending, .queued, .scheduled, .running, .failed, .completed, .cancelled]
+        return order.map { status in
+            (status, bridge.tasks.filter { $0.status == status })
+        }.filter { !$0.1.isEmpty || $0.0 == .pending || $0.0 == .running }
+    }
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(alignment: .top, spacing: theme.spacingM) {
+                ForEach(columns, id: \.0) { status, tasks in
+                    boardColumn(status: status, tasks: tasks)
+                }
+            }
+            .padding(theme.spacingM)
+        }
+        .sheet(item: $selectedTask) { task in
+            AgentTaskDetailView(taskId: task.id, toastManager: toastManager)
+        }
+    }
+
+    private func boardColumn(status: TaskModel.TaskStatus, tasks: [TaskModel]) -> some View {
+        VStack(alignment: .leading, spacing: theme.spacingS) {
+            HStack(spacing: theme.spacingS) {
+                Circle()
+                    .fill(status.pillStatus == .error ? theme.errorText : theme.accent)
+                    .frame(width: 8, height: 8)
+                Text(status.rawValue)
+                    .font(.system(size: theme.footnoteSize, weight: .semibold))
+                    .foregroundStyle(theme.textSecondary)
+                Text("\(tasks.count)")
+                    .font(.system(size: theme.captionSize, weight: .semibold))
+                    .foregroundStyle(theme.textTertiary)
+                Spacer()
+            }
+            .padding(.horizontal, theme.spacingS)
+
+            VStack(spacing: theme.spacingS) {
+                ForEach(tasks) { task in
+                    boardCard(task: task)
+                }
+                if tasks.isEmpty {
+                    Text("—")
+                        .font(.system(size: theme.captionSize))
+                        .foregroundStyle(theme.textTertiary)
+                        .frame(maxWidth: .infinity)
+                        .padding(theme.spacingS)
                 }
             }
         }
-        .padding(theme.spacingXL)
-        .frame(width: 400)
-        .background(theme.windowBg)
+        .frame(width: 260, alignment: .leading)
+        .padding(theme.spacingS)
+        .background(theme.groupBg)
+        .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
+                .stroke(theme.rowSep, lineWidth: 1)
+        }
+    }
+
+    private func boardCard(task: TaskModel) -> some View {
+        VStack(alignment: .leading, spacing: theme.spacingXS) {
+            Text(task.title)
+                .font(.system(size: theme.footnoteSize, weight: .medium))
+                .foregroundStyle(theme.text)
+                .lineLimit(2)
+
+            if !task.description.isEmpty {
+                Text(task.description)
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(theme.textTertiary)
+                    .lineLimit(2)
+            }
+
+            HStack(spacing: theme.spacingXS) {
+                FusionTag(bridge.agentName(for: task.agentId), icon: "person", color: .blue)
+                if !task.graphId.isEmpty {
+                    FusionTag("workflow", icon: "arrow.triangle.branch", color: .purple)
+                }
+                Spacer()
+                FusionTag(task.trigger.rawValue, icon: task.trigger.icon, color: .gray)
+            }
+        }
+        .padding(theme.spacingS)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(theme.inputBg)
+        .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
+        .contentShape(Rectangle())
+        .onTapGesture { selectedTask = task }
+        .contextMenu {
+            if !task.status.isTerminal {
+                Button("Cancel", role: .destructive) {
+                    bridge.taskCancel(task.id)
+                }
+            }
+            Button("Rerun") { bridge.taskRerun(task.id) }
+            Button("Delete", role: .destructive) { bridge.taskDelete(task.id) }
+        }
     }
 }
 
@@ -212,22 +709,38 @@ struct WorkflowListView: View {
     @EnvironmentObject private var bridge: AgentBridge
     @State private var selectedGraph: AgentGraphModel?
     @State private var showCreateWorkflow = false
+    @State private var searchText = ""
+    @State private var isLoading = false
     let toastManager: FusionToastManager
 
     @Environment(\.studioTheme) var theme
 
+    private var filteredGraphs: [AgentGraphModel] {
+        guard !searchText.isEmpty else { return bridge.graphs }
+        return bridge.graphs.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+    }
+
     var body: some View {
         HSplitView {
             workflowListPanel
-                .frame(minWidth: 280)
+                .frame(minWidth: 240, idealWidth: 320, maxWidth: 420)
 
             if let graph = selectedGraph {
-                WorkflowDetailView(graph: graph, toastManager: toastManager)
+                WorkflowDetailView(graph: graph, toastManager: toastManager) { updated in
+                    selectedGraph = updated
+                }
+                    .frame(minWidth: 480)
             } else {
                 emptyWorkflowPlaceholder
+                    .frame(minWidth: 480)
             }
         }
         .toolbar {
+            ToolbarItem {
+                FusionButton("Refresh", icon: "arrow.clockwise", style: .secondary, size: .small, isDisabled: isLoading) {
+                    Task { await refreshGraphs() }
+                }
+            }
             ToolbarItem {
                 FusionButton("Create Workflow", icon: "plus", style: .primary, size: .small) {
                     showCreateWorkflow = true
@@ -238,6 +751,40 @@ struct WorkflowListView: View {
             CreateWorkflowSheet { name, nodes, edges in
                 createWorkflowViaBridge(name: name, nodes: nodes, edges: edges)
             }
+        }
+        .task {
+            // 已有数据不重拉, 避免每次切 tab 都 fetch 触发 body 重算导致转圈
+            if bridge.graphs.isEmpty {
+                await loadGraphs()
+            }
+        }
+    }
+
+    private func loadGraphs() async {
+        guard !isLoading else { return }
+        isLoading = true
+        // defer 保证 task 被取消(tab 切走)时 isLoading 也能复位, 避免卡转圈
+        defer { isLoading = false }
+        let t0 = Date()
+        do {
+            try await bridge.fetchGraphs()
+            let elapsed = Int(Date().timeIntervalSince(t0) * 1000)
+            workflowLog.info("WorkflowListView loaded \(bridge.graphs.count) graphs in \(elapsed)ms")
+        } catch {
+            let elapsed = Int(Date().timeIntervalSince(t0) * 1000)
+            workflowLog.error("WorkflowListView loadGraphs failed in \(elapsed)ms: \(error)")
+            toastManager.show(style: .warning, title: "Load Failed", message: "无法加载流水线: \(error.localizedDescription)")
+        }
+    }
+
+    private func refreshGraphs() async {
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            try await bridge.fetchGraphs()
+            workflowLog.info("WorkflowListView refreshed \(bridge.graphs.count) graphs")
+        } catch {
+            workflowLog.error("WorkflowListView refresh failed: \(error)")
         }
     }
 
@@ -257,20 +804,29 @@ struct WorkflowListView: View {
         ScrollView {
             VStack(spacing: 0) {
                 StudioSectionHeader(title: "Workflows")
-                if bridge.graphs.isEmpty {
+                searchBox
+                if isLoading && bridge.graphs.isEmpty {
+                    VStack(spacing: theme.spacingS) {
+                        ProgressView()
+                        Text("Loading workflows...")
+                            .font(.system(size: theme.footnoteSize))
+                            .foregroundStyle(theme.textTertiary)
+                    }
+                    .padding(.vertical, theme.spacing2XL)
+                } else if filteredGraphs.isEmpty {
                     VStack(spacing: theme.spacingM) {
                         Image(systemName: "arrow.triangle.branch")
                             .font(.system(size: 32))
                             .foregroundStyle(theme.textTertiary)
-                        Text("No workflows yet - create one")
+                        Text(searchText.isEmpty ? "No workflows yet - create one" : "No matching workflows")
                             .font(.system(size: theme.footnoteSize))
                             .foregroundStyle(theme.textTertiary)
                     }
                     .padding(.vertical, theme.spacing2XL)
                 } else {
                     ListGroup {
-                        ForEach(Array(bridge.graphs.enumerated()), id: \.element.id) { index, graph in
-                            StudioRow(label: graph.name, sublabel: "\(graph.nodes.count) nodes, \(graph.edges.count) edges", isLast: index == bridge.graphs.count - 1) {
+                        ForEach(Array(filteredGraphs.enumerated()), id: \.element.id) { index, graph in
+                            StudioRow(label: graph.name, sublabel: "\(graph.nodeCount) nodes, \(graph.edgeCount) edges", isLast: index == filteredGraphs.count - 1) {
                                 FusionTag("graph", color: .green)
                             }
                             .contentShape(Rectangle())
@@ -294,11 +850,27 @@ struct WorkflowListView: View {
         }
     }
 
+    private var searchBox: some View {
+        HStack(spacing: theme.spacingS) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: theme.iconS))
+                .foregroundStyle(theme.textTertiary)
+            TextField("Search workflows (e.g. douyin)", text: $searchText)
+                .font(.system(size: theme.footnoteSize))
+                .textFieldStyle(.plain)
+        }
+        .padding(.horizontal, theme.spacingL)
+        .padding(.vertical, theme.spacingS)
+        .background(theme.surfaceSecondary)
+    }
+
     private func deleteGraph(_ graph: AgentGraphModel) {
         Task {
             do {
                 try await bridge.deleteGraph(id: graph.id)
                 if selectedGraph?.id == graph.id { selectedGraph = nil }
+                // 删除成功立即刷新列表, 否则列表仍显示已删项, 再次删除会触发 Graph not found
+                try await bridge.fetchGraphs()
                 toastManager.show(style: .info, title: "Workflow Deleted", message: graph.name)
             } catch {
                 toastManager.show(style: .error, title: "Delete Failed", message: error.localizedDescription)
@@ -326,10 +898,12 @@ struct WorkflowListView: View {
 struct WorkflowDetailView: View {
     let graph: AgentGraphModel
     let toastManager: FusionToastManager
+    var onGraphUpdated: ((AgentGraphModel) -> Void)?
     @EnvironmentObject private var bridge: AgentBridge
     @State private var executeInput = ""
     @State private var isExecuting = false
     @State private var executionResult = ""
+    @State private var showEditWorkflow = false
 
     @Environment(\.studioTheme) var theme
 
@@ -352,6 +926,9 @@ struct WorkflowDetailView: View {
                             .foregroundStyle(theme.textTertiary)
                     }
                     Spacer()
+                    FusionButton("Edit", icon: "pencil", style: .secondary, size: .small) {
+                        showEditWorkflow = true
+                    }
                 }
 
                 FusionCard(style: .inset, header: "Nodes (\(graph.nodes.count))", headerIcon: "circle.grid.2x2") {
@@ -440,6 +1017,28 @@ struct WorkflowDetailView: View {
             }
             .padding(.vertical, theme.spacingL)
         }
+        .sheet(isPresented: $showEditWorkflow) {
+            EditWorkflowSheet(graph: graph) { name, nodes, edges in
+                updateWorkflowViaBridge(name: name, nodes: nodes, edges: edges)
+            }
+        }
+    }
+
+    private func updateWorkflowViaBridge(name: String, nodes: [NodeConfigModel], edges: [EdgeModel]) {
+        Task {
+            do {
+                _ = try await bridge.updateGraph(id: graph.id, name: name, nodes: nodes, edges: edges)
+                try await bridge.fetchGraphs()
+                // 重新拉取最新 graph 回传, 刷新 detail 展示
+                let fresh = try await bridge.graphGet(graphId: graph.id)
+                if let fresh {
+                    onGraphUpdated?(fresh)
+                }
+                toastManager.show(style: .success, title: "Workflow Updated", message: name)
+            } catch {
+                toastManager.show(style: .error, title: "Update Failed", message: error.localizedDescription)
+            }
+        }
     }
 
     private func executeGraph() {
@@ -508,6 +1107,171 @@ struct WorkflowDetailView: View {
         case "error_handler": return .red
         default: return .gray
         }
+    }
+}
+
+// MARK: - EditWorkflowSheet
+
+struct EditWorkflowSheet: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.studioTheme) var theme
+    let graph: AgentGraphModel
+    let onSave: (String, [NodeConfigModel], [EdgeModel]) -> Void
+
+    @State private var name = ""
+    @State private var nodeRows: [EditNodeRow] = []
+    @State private var edgeRows: [EditEdgeRow] = []
+
+    private let nodeTypes = ["start", "llm", "tool", "condition", "loop", "end", "error_handler"]
+
+    struct EditNodeRow: Identifiable {
+        let id = UUID()
+        var nodeId: String
+        var type: String
+    }
+
+    struct EditEdgeRow: Identifiable {
+        let id = UUID()
+        var source: String
+        var target: String
+        var condition: String
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: theme.spacingL) {
+                Text("Edit Workflow")
+                    .font(.system(size: theme.headlineSize, weight: .bold, design: .rounded))
+                    .foregroundStyle(theme.text)
+
+                FusionCard(style: .bordered) {
+                    VStack(alignment: .leading, spacing: theme.spacingM) {
+                        Text("Name *")
+                            .font(.system(size: theme.footnoteSize, weight: .medium))
+                            .foregroundStyle(theme.textSecondary)
+                        TextField("Workflow name", text: $name)
+                            .textFieldStyle(.plain)
+                            .padding(theme.spacingS)
+                            .background(theme.inputBg)
+                            .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                    .stroke(theme.inputBorder, lineWidth: 1)
+                            }
+                    }
+                }
+
+                FusionCard(style: .bordered, header: "Nodes", headerIcon: "circle.grid.2x2") {
+                    VStack(spacing: theme.spacingS) {
+                        ForEach($nodeRows) { $row in
+                            HStack(spacing: theme.spacingS) {
+                                TextField("Node ID", text: $row.nodeId)
+                                    .textFieldStyle(.plain)
+                                    .padding(theme.spacingXS)
+                                    .background(theme.inputBg)
+                                    .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                            .stroke(theme.inputBorder, lineWidth: 1)
+                                    }
+                                Picker("Type", selection: $row.type) {
+                                    ForEach(nodeTypes, id: \.self) { t in Text(t) }
+                                }
+                                .pickerStyle(.menu)
+                                .frame(width: 130)
+                                Button(action: { nodeRows.removeAll { $0.id == row.id } }) {
+                                    Image(systemName: "minus.circle")
+                                        .foregroundStyle(.red)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        Button(action: { nodeRows.append(EditNodeRow(nodeId: "", type: "llm")) }) {
+                            Label("Add Node", systemImage: "plus.circle")
+                                .font(.system(size: theme.footnoteSize))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                FusionCard(style: .bordered, header: "Edges", headerIcon: "arrow.right") {
+                    VStack(spacing: theme.spacingS) {
+                        ForEach($edgeRows) { $row in
+                            HStack(spacing: theme.spacingS) {
+                                TextField("Source", text: $row.source)
+                                    .textFieldStyle(.plain)
+                                    .padding(theme.spacingXS)
+                                    .background(theme.inputBg)
+                                    .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                            .stroke(theme.inputBorder, lineWidth: 1)
+                                    }
+                                Image(systemName: "arrow.right")
+                                    .foregroundStyle(theme.textTertiary)
+                                TextField("Target", text: $row.target)
+                                    .textFieldStyle(.plain)
+                                    .padding(theme.spacingXS)
+                                    .background(theme.inputBg)
+                                    .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                            .stroke(theme.inputBorder, lineWidth: 1)
+                                    }
+                                TextField("Condition", text: $row.condition)
+                                    .textFieldStyle(.plain)
+                                    .frame(width: 80)
+                                    .padding(theme.spacingXS)
+                                    .background(theme.inputBg)
+                                    .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                            .stroke(theme.inputBorder, lineWidth: 1)
+                                    }
+                                Button(action: { edgeRows.removeAll { $0.id == row.id } }) {
+                                    Image(systemName: "minus.circle")
+                                        .foregroundStyle(.red)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        Button(action: { edgeRows.append(EditEdgeRow(source: "", target: "", condition: "")) }) {
+                            Label("Add Edge", systemImage: "plus.circle")
+                                .font(.system(size: theme.footnoteSize))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                HStack(spacing: theme.spacingM) {
+                    FusionButton("Cancel", icon: "xmark", style: .secondary, size: .regular) {
+                        dismiss()
+                    }
+                    FusionButton("Save", icon: "checkmark", style: .primary, size: .regular, isDisabled: name.isEmpty) {
+                        let nodes = nodeRows.filter { !$0.nodeId.isEmpty }.map {
+                            NodeConfigModel(id: $0.nodeId, type: $0.type, config: [:], position: nil)
+                        }
+                        let edges = edgeRows.filter { !$0.source.isEmpty && !$0.target.isEmpty }.map {
+                            EdgeModel(id: "\($0.source)-\($0.target)", source: $0.source, target: $0.target, condition: $0.condition.isEmpty ? nil : $0.condition)
+                        }
+                        onSave(name, nodes, edges)
+                        dismiss()
+                    }
+                }
+            }
+            .padding(theme.spacingXL)
+        }
+        .frame(width: 600, height: 600)
+        .background(theme.windowBg)
+        .onAppear { prefill() }
+    }
+
+    private func prefill() {
+        name = graph.name
+        nodeRows = graph.nodes.map { EditNodeRow(nodeId: $0.id, type: $0.type) }
+        if nodeRows.isEmpty { nodeRows = [EditNodeRow(nodeId: "", type: "llm")] }
+        edgeRows = graph.edges.map { EditEdgeRow(source: $0.source, target: $0.target, condition: $0.condition ?? "") }
+        if edgeRows.isEmpty { edgeRows = [EditEdgeRow(source: "", target: "", condition: "")] }
     }
 }
 

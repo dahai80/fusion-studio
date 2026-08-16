@@ -13,6 +13,8 @@ class IPCClient: ObservableObject {
     private var requestId: Int = 0
     private var socketFd: Int32 = -1
     private let queue = DispatchQueue(label: "com.fusion-studio.ipc", qos: .userInitiated)
+    // 读取循环独占的 queue, 不能与发送/超时共用串行 queue, 否则 while 死循环会饿死所有 call() 导致续体永不 resume (Workflows 转圈根因)
+    private let readQueue = DispatchQueue(label: "com.fusion-studio.ipc.read", qos: .userInitiated)
     private var reconnectTimer: Timer?
     // 续体直接存储：handleResponse / 超时 / 断连 三处 removeValue 取出并 resume，保证恰好一次
     private var pendingRequests: [Int: CheckedContinuation<[String: Any], Error>] = [:]
@@ -258,7 +260,7 @@ class IPCClient: ObservableObject {
     // MARK: - 读取循环
 
     private func startReading() {
-        queue.async { [weak self] in
+        readQueue.async { [weak self] in
             guard let self = self else { return }
             var buffer = Data()
 

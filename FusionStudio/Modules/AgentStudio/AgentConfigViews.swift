@@ -350,6 +350,7 @@ struct AgentDetailView: View {
     let agent: Agent
     let toastManager: FusionToastManager
     @StateObject private var orchestrator = AgentOrchestrator.shared
+    @EnvironmentObject var bridge: AgentBridge
     @State private var taskInput = ""
 
     @Environment(\.studioTheme) var theme
@@ -391,7 +392,18 @@ struct AgentDetailView: View {
                             }
 
                         FusionButton("Assign", icon: "paperplane", style: .primary, size: .small, isDisabled: taskInput.isEmpty) {
-                            orchestrator.createTask(title: taskInput, description: taskInput, assignTo: agent.id)
+                            let task = bridge.taskSubmit(
+                                title: taskInput,
+                                description: taskInput,
+                                agentId: agent.id,
+                                graphId: "",
+                                trigger: .immediate,
+                                cronExpression: "",
+                                runAt: nil,
+                                input: taskInput,
+                                priority: .medium
+                            )
+                            bridge.taskExecuteImmediate(task.id)
                             toastManager.show(style: .success, title: "Task Assigned", message: "Task sent to \(agent.name)")
                             taskInput = ""
                         }
@@ -743,6 +755,197 @@ struct CreateAgentSheet: View {
                             .padding(theme.spacingS)
                             .allowsHitTesting(false)
                     }
+                }
+        }
+    }
+}
+
+// MARK: - EditAgentSheet
+// 编辑已有 agent 的核心字段: name/description/model/system_prompt/tools/capabilities/tags/safety_level.
+// 对应后端 agent.update (IPCAgentMethods.agentUpdate -> AgentBridge.agentUpdate).
+
+struct EditAgentSheet: View {
+    let agent: AgentModel
+    let onSave: (String, String, String, String, Double, Int, [String], [String], [String], String) -> Void
+
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.studioTheme) var theme
+    @EnvironmentObject var bridge: AgentBridge
+
+    @State private var name: String = ""
+    @State private var descriptionText: String = ""
+    @State private var model: String = ""
+    @State private var systemPrompt: String = ""
+    @State private var temperature: Double = 0.7
+    @State private var maxTokens: Int = 4096
+    @State private var safetyLevel: String = "L1"
+    @State private var toolsText: String = ""
+    @State private var capabilitiesText: String = ""
+    @State private var tagsText: String = ""
+
+    private let safetyLevels = ["L1", "L2", "L3"]
+    private let safetyExplanations: [String: String] = [
+        "L1": "Autonomous — agent acts silently, no approval needed.",
+        "L2": "Preview — agent shows a diff/plan and waits for your confirm before executing.",
+        "L3": "Gateway — agent must get explicit approval before every action."
+    ]
+
+    private var availableModels: [MLXModelInfo] {
+        let chat = bridge.models.filter { $0.isTextChatModel }
+        return chat.isEmpty ? bridge.models : chat
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: theme.spacingL) {
+                HStack {
+                    Text("Edit Agent")
+                        .font(.system(size: theme.headlineSize, weight: .bold, design: .rounded))
+                        .foregroundStyle(theme.text)
+                    Text(agent.name)
+                        .font(.system(size: theme.textSize, weight: .medium))
+                        .foregroundStyle(theme.textSecondary)
+                    Spacer()
+                }
+
+                FusionCard(style: .bordered) {
+                    VStack(spacing: theme.spacingM) {
+                        fieldLabel("Name *")
+                        TextField("Agent name", text: $name)
+                            .textFieldStyle(.plain)
+                            .padding(theme.spacingS)
+                            .background(theme.inputBg)
+                            .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                    .stroke(theme.inputBorder, lineWidth: 1)
+                            }
+
+                        fieldLabel("Description")
+                        TextField("Short description", text: $descriptionText, axis: .vertical)
+                            .lineLimit(1...3)
+                            .textFieldStyle(.plain)
+                            .padding(theme.spacingS)
+                            .background(theme.inputBg)
+                            .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                    .stroke(theme.inputBorder, lineWidth: 1)
+                            }
+
+                        fieldLabel("Model")
+                        if availableModels.isEmpty {
+                            TextField(agent.model, text: $model)
+                                .textFieldStyle(.plain)
+                                .padding(theme.spacingS)
+                                .background(theme.inputBg)
+                                .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                        .stroke(theme.inputBorder, lineWidth: 1)
+                                }
+                        } else {
+                            FusionModelPicker(scene: .agent, selection: $model, models: bridge.models, defaultTag: "")
+                        }
+
+                        fieldLabel("System Prompt")
+                        TextEditor(text: $systemPrompt)
+                            .font(.system(size: theme.footnoteSize, design: .monospaced))
+                            .scrollContentBackground(.hidden)
+                            .padding(theme.spacingS)
+                            .frame(minHeight: 100, idealHeight: 140)
+                            .background(theme.inputBg)
+                            .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                    .stroke(theme.inputBorder, lineWidth: 1)
+                            }
+
+                        fieldLabel("Temperature: \(String(format: "%.1f", temperature))")
+                        Slider(value: $temperature, in: 0...2, step: 0.1)
+
+                        HStack(spacing: theme.spacingM) {
+                            VStack(alignment: .leading, spacing: theme.spacingXS) {
+                                fieldLabel("Max Tokens")
+                                TextField("4096", value: $maxTokens, format: .number)
+                                    .textFieldStyle(.plain)
+                                    .padding(theme.spacingS)
+                                    .background(theme.inputBg)
+                                    .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                            .stroke(theme.inputBorder, lineWidth: 1)
+                                    }
+                            }
+                            VStack(alignment: .leading, spacing: theme.spacingXS) {
+                                fieldLabel("Safety Level")
+                                Picker("Safety", selection: $safetyLevel) {
+                                    ForEach(safetyLevels, id: \.self) { level in
+                                        Text(level).tag(level)
+                                    }
+                                }
+                                .pickerStyle(.segmented)
+                                Text(safetyExplanations[safetyLevel] ?? "")
+                                    .font(.system(size: theme.captionSize))
+                                    .foregroundStyle(theme.textTertiary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+
+                        commaField("Tools (comma-separated)", placeholder: "web_search, calculator", text: $toolsText)
+                        commaField("Capabilities (comma-separated)", placeholder: "code_generation", text: $capabilitiesText)
+                        commaField("Tags (comma-separated)", placeholder: "code, python", text: $tagsText)
+                    }
+                }
+
+                HStack(spacing: theme.spacingM) {
+                    FusionButton("Cancel", style: .secondary, size: .regular) { dismiss() }
+                    FusionButton("Save", icon: "checkmark", style: .primary, size: .regular, isDisabled: name.isEmpty) {
+                        let tools = toolsText.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+                        let capabilities = capabilitiesText.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+                        let tags = tagsText.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+                        onSave(name, descriptionText, model, systemPrompt, temperature, maxTokens, tools, capabilities, tags, safetyLevel)
+                        dismiss()
+                    }
+                }
+            }
+            .padding(theme.spacingXL)
+            .frame(width: 460)
+            .background(theme.windowBg)
+        }
+        .onAppear { prefill() }
+    }
+
+    private func prefill() {
+        name = agent.name
+        descriptionText = agent.description
+        model = agent.model
+        systemPrompt = agent.system_prompt
+        temperature = agent.temperature
+        maxTokens = agent.max_tokens
+        safetyLevel = agent.safety_level.isEmpty ? "L1" : agent.safety_level
+        toolsText = agent.tools.joined(separator: ", ")
+        capabilitiesText = agent.capabilities.joined(separator: ", ")
+        tagsText = agent.tags.joined(separator: ", ")
+    }
+
+    private func fieldLabel(_ title: String) -> some View {
+        Text(title)
+            .font(.system(size: theme.footnoteSize, weight: .medium))
+            .foregroundStyle(theme.textSecondary)
+    }
+
+    private func commaField(_ title: String, placeholder: String, text: Binding<String>) -> some View {
+        VStack(alignment: .leading, spacing: theme.spacingXS) {
+            fieldLabel(title)
+            TextField(placeholder, text: text)
+                .textFieldStyle(.plain)
+                .padding(theme.spacingS)
+                .background(theme.inputBg)
+                .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                        .stroke(theme.inputBorder, lineWidth: 1)
                 }
         }
     }

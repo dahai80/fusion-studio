@@ -77,6 +77,9 @@ struct AgentGraphModel: Codable, Equatable, Identifiable {
     var nodes: [NodeConfigModel]
     var edges: [EdgeModel]
     var created_at: String
+    // graph.list 只返回 node_count/edge_count (nodes 为空 dict), 列表展示用此计数
+    var nodeCount: Int
+    var edgeCount: Int
 }
 
 struct AgentEventModel: Codable, Equatable {
@@ -486,8 +489,13 @@ final class AgentBridge: ObservableObject {
                     parsed.append(model)
                 }
             }
-            self.graphs = parsed
-            logger.info("fetchGraphs: received \(parsed.count) graphs")
+            // 仅在 id 集合或数量变化时更新 @Published, 避免 .task 反复触发 AgentStudioView body 重算导致 Workflows 转圈
+            let changed = parsed.count != self.graphs.count
+                || zip(parsed, self.graphs).contains { $0.id != $1.id }
+            if changed {
+                self.graphs = parsed
+            }
+            logger.info("fetchGraphs: received \(parsed.count) graphs (changed=\(changed))")
             return parsed
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
@@ -551,9 +559,8 @@ final class AgentBridge: ObservableObject {
         logger.info("graphGet: graphId=\(graphId)")
         do {
             let result = try await client.graphGet(graphId: graphId)
-            guard let graphData = result["graph"] as? [String: Any] else {
-                return nil
-            }
+            // daemon graph.get 的 result 顶层即 graph 数据 (含 nodes/edges/name), 不包在 graph key 里
+            let graphData = (result["graph"] as? [String: Any]) ?? result
             return Self.parseGraphModel(from: graphData)
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
@@ -570,11 +577,11 @@ final class AgentBridge: ObservableObject {
         logger.info("deleteGraph: id=\(id)")
         do {
             _ = try await client.call(method: "graph.delete", params: ["graph_id": id])
-            logger.info("deleteGraph: deleted id=\(id)")
+            logger.info("deleteGraph: deleted id=\(id, privacy: .public)")
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
             self.lastError = bridgeErr
-            logger.error("deleteGraph: \(error)")
+            logger.error("deleteGraph id=\(id, privacy: .public) failed: \(error.errorDescription ?? "unknown", privacy: .public)")
             throw bridgeErr
         }
     }
@@ -2421,6 +2428,7 @@ final class AgentBridge: ObservableObject {
     @Published var plazaChannels: [[String: Any]] = []
     @Published var cronJobs: [[String: Any]] = []
     @Published var hooks: [[String: Any]] = []
+    @Published var tasks: [TaskModel] = []
 
     func teamOrchestrate(task: String, agentIds: [String], mode: String = "sequential") async throws -> [String: Any] {
         guard let client = ipcClient else { throw BridgeError.notConnected }
@@ -2476,6 +2484,289 @@ final class AgentBridge: ObservableObject {
     func teamPlazaBroadcast(channelId: String, message: String) async throws -> [String: Any] {
         guard let client = ipcClient else { throw BridgeError.notConnected }
         return try await client.teamPlazaBroadcast(channelId: channelId, message: message)
+    }
+
+    // MARK: - Task Operations
+
+    func fetchTasks() {
+        logger.info("fetchTasks: \(self.tasks.count) local tasks")
+    }
+
+    func agentName(for id: String) -> String {
+        agents.first(where: { $0.id == id })?.name ?? id.prefix(8).description
+    }
+
+    func graphName(for id: String) -> String {
+        graphs.first(where: { $0.id == id })?.name ?? ""
+    }
+
+    private func taskIndex(_ id: String) -> Int? {
+        tasks.firstIndex(where: { $0.id == id })
+    }
+
+    private func updateTask(_ id: String, _ mutate: (inout TaskModel) -> Void) {
+        guard let idx = taskIndex(id) else { return }
+        mutate(&tasks[idx])
+        tasks[idx].updatedAt = Date()
+    }
+
+    func taskSubmit(
+        title: String,
+        description: String,
+        agentId: String,
+        graphId: String,
+        trigger: TaskModel.TaskTrigger,
+        cronExpression: String,
+        runAt: Date?,
+        input: String,
+        priority: AgentTask.TaskPriority = .medium
+    ) -> TaskModel {
+        let task = TaskModel(
+            id: "task-\(UUID().uuidString.prefix(8))",
+            title: title,
+            description: description,
+            agentId: agentId,
+            graphId: graphId,
+            trigger: trigger,
+            cronExpression: cronExpression,
+            runAt: runAt,
+            cronJobId: "",
+            input: input,
+            status: .pending,
+            priority: priority,
+            sessionId: "",
+            artifactIds: [],
+            lastResult: "",
+            lastError: "",
+            retryCount: 0,
+            maxRetries: 3,
+            createdAt: Date(),
+            updatedAt: Date(),
+            lastRunAt: nil,
+            events: []
+        )
+        tasks.append(task)
+        logger.info("taskSubmit: id=\(task.id) title=\(title) trigger=\(trigger.rawValue) agent=\(agentId) graph=\(graphId)")
+        return task
+    }
+
+    func taskExecuteImmediate(_ taskId: String) {
+        guard let idx = taskIndex(taskId) else { return }
+        let agentId = tasks[idx].agentId
+        let graphId = tasks[idx].graphId
+        let inputText = tasks[idx].input
+        updateTask(taskId) { t in
+            t.status = .running
+            t.lastRunAt = Date()
+            t.lastError = ""
+        }
+        logger.info("taskExecuteImmediate: id=\(taskId) agent=\(agentId) graph=\(graphId)")
+        Task {
+            do {
+                var eventsParsed: [AgentEventModel] = []
+                var sessionId = ""
+                if !graphId.isEmpty {
+                    try await executeGraph(id: graphId, input: inputText)
+                    eventsParsed = self.events
+                } else {
+                    let result = try await agentExecute(agentId: agentId, input: inputText)
+                    sessionId = result["session_id"] as? String ?? ""
+                    let eventsData = result["events"] as? [[String: Any]] ?? []
+                    for ev in eventsData {
+                        if let model = Self.parseEventModel(from: ev) {
+                            eventsParsed.append(model)
+                        }
+                    }
+                }
+                let summary = summarizeEvents(eventsParsed)
+                await MainActor.run {
+                    self.updateTask(taskId) { t in
+                        t.status = .completed
+                        t.events = eventsParsed
+                        t.lastResult = summary
+                        t.sessionId = sessionId
+                        t.lastRunAt = Date()
+                    }
+                    logger.info("taskExecuteImmediate done: id=\(taskId) events=\(eventsParsed.count)")
+                }
+            } catch {
+                await MainActor.run {
+                    self.updateTask(taskId) { t in
+                        t.lastError = error.localizedDescription
+                        t.lastRunAt = Date()
+                        t.retryCount += 1
+                    }
+                    let shouldRetry = self.tasks[self.taskIndex(taskId) ?? 0].retryCount <= self.tasks[self.taskIndex(taskId) ?? 0].maxRetries
+                    if shouldRetry {
+                        self.updateTask(taskId) { t in t.status = .queued }
+                        logger.warning("taskExecuteImmediate retry: id=\(taskId) retryCount=\(self.tasks[self.taskIndex(taskId) ?? 0].retryCount)")
+                        self.taskExecuteImmediate(taskId)
+                    } else {
+                        self.updateTask(taskId) { t in t.status = .failed }
+                        logger.error("taskExecuteImmediate failed: id=\(taskId) err=\(error.localizedDescription)")
+                    }
+                }
+            }
+        }
+    }
+
+    func taskCancel(_ taskId: String) {
+        guard let idx = taskIndex(taskId) else { return }
+        let trigger = tasks[idx].trigger
+        let cronJobId = tasks[idx].cronJobId
+        updateTask(taskId) { t in
+            t.status = .cancelled
+        }
+        logger.info("taskCancel: id=\(taskId) trigger=\(trigger.rawValue)")
+        if (trigger == .cron || trigger == .runAt) && !cronJobId.isEmpty {
+            Task {
+                do {
+                    _ = try await cronUnregister(id: cronJobId)
+                } catch {
+                    logger.error("taskCancel unregister cron: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+
+    func taskRerun(_ taskId: String) {
+        guard let idx = taskIndex(taskId) else { return }
+        let original = tasks[idx]
+        let newTask = taskSubmit(
+            title: original.title,
+            description: original.description,
+            agentId: original.agentId,
+            graphId: original.graphId,
+            trigger: .immediate,
+            cronExpression: "",
+            runAt: nil,
+            input: original.input,
+            priority: original.priority
+        )
+        taskExecuteImmediate(newTask.id)
+    }
+
+    func taskDelete(_ taskId: String) {
+        guard let idx = taskIndex(taskId) else { return }
+        let cronJobId = tasks[idx].cronJobId
+        let trigger = tasks[idx].trigger
+        tasks.remove(at: idx)
+        logger.info("taskDelete: id=\(taskId)")
+        if (trigger == .cron || trigger == .runAt) && !cronJobId.isEmpty {
+            Task {
+                _ = try? await cronUnregister(id: cronJobId)
+            }
+        }
+    }
+
+    func taskScheduleCron(_ taskId: String, expression: String, input: String) {
+        guard let idx = taskIndex(taskId) else { return }
+        let agentId = tasks[idx].agentId
+        let graphId = tasks[idx].graphId
+        let name = tasks[idx].title
+        let inputData = encodeCronInput(taskId: taskId, agentId: agentId, input: input)
+        updateTask(taskId) { t in
+            t.status = .scheduled
+            t.cronExpression = expression
+        }
+        logger.info("taskScheduleCron: id=\(taskId) expr=\(expression) graph=\(graphId)")
+        Task {
+            do {
+                let result = try await cronRegister(
+                    name: name,
+                    expression: expression,
+                    graphId: graphId,
+                    inputData: inputData
+                )
+                let jobId = result["id"] as? String
+                    ?? (result["job"] as? [String: Any])?["id"] as? String
+                    ?? ""
+                await MainActor.run {
+                    self.updateTask(taskId) { t in
+                        t.cronJobId = jobId
+                    }
+                    logger.info("taskScheduleCron registered: id=\(taskId) cron_job=\(jobId)")
+                }
+            } catch {
+                await MainActor.run {
+                    self.updateTask(taskId) { t in
+                        t.status = .failed
+                        t.lastError = error.localizedDescription
+                    }
+                    logger.error("taskScheduleCron failed: id=\(taskId) err=\(error.localizedDescription)")
+                }
+            }
+        }
+    }
+
+    func taskScheduleRunAt(_ taskId: String, runAt: Date, input: String) {
+        guard let idx = taskIndex(taskId) else { return }
+        let agentId = tasks[idx].agentId
+        let graphId = tasks[idx].graphId
+        let name = tasks[idx].title
+        let comp = Calendar.current.dateComponents([.minute, .hour, .day, .month], from: runAt)
+        let expr = "\(comp.minute ?? 0) \(comp.hour ?? 0) \(comp.day ?? 1) \(comp.month ?? 1) *"
+        let inputData = encodeCronInput(taskId: taskId, agentId: agentId, input: input)
+        updateTask(taskId) { t in
+            t.status = .scheduled
+            t.runAt = runAt
+            t.cronExpression = expr
+        }
+        logger.info("taskScheduleRunAt: id=\(taskId) runAt=\(runAt) expr=\(expr)")
+        Task {
+            do {
+                let result = try await cronRegister(
+                    name: name,
+                    expression: expr,
+                    graphId: graphId,
+                    inputData: inputData
+                )
+                let jobId = result["id"] as? String
+                    ?? (result["job"] as? [String: Any])?["id"] as? String
+                    ?? ""
+                await MainActor.run {
+                    self.updateTask(taskId) { t in
+                        t.cronJobId = jobId
+                    }
+                    logger.info("taskScheduleRunAt registered: id=\(taskId) cron_job=\(jobId)")
+                }
+            } catch {
+                await MainActor.run {
+                    self.updateTask(taskId) { t in
+                        t.status = .failed
+                        t.lastError = error.localizedDescription
+                    }
+                    logger.error("taskScheduleRunAt failed: id=\(taskId) err=\(error.localizedDescription)")
+                }
+            }
+        }
+    }
+
+    private func encodeCronInput(taskId: String, agentId: String, input: String) -> String {
+        let payload: [String: Any] = [
+            "task_id": taskId,
+            "agent_id": agentId,
+            "input": input,
+        ]
+        guard let data = try? JSONSerialization.data(withJSONObject: payload),
+              let str = String(data: data, encoding: .utf8) else {
+            return "{\"task_id\":\"\(taskId)\",\"input\":\"\(input)\"}"
+        }
+        return str
+    }
+
+    private func summarizeEvents(_ events: [AgentEventModel]) -> String {
+        guard !events.isEmpty else { return "Task completed (no events)" }
+        var lines: [String] = []
+        for ev in events {
+            var line = "[\(ev.type)] \(ev.node_id ?? "?")"
+            if let data = ev.data, !data.isEmpty {
+                let parts = data.map { "\($0)=\($1)" }.joined(separator: " ")
+                line += ": \(parts)"
+            }
+            lines.append(line)
+        }
+        return lines.joined(separator: "\n")
     }
 
     // MARK: - Cron Operations
@@ -2611,12 +2902,18 @@ final class AgentBridge: ObservableObject {
             createdAt = ""
         }
 
+        // node_count/edge_count 优先取后端元数据; graph.get 返回完整 nodes 时退化为实际数组长度
+        let nodeCount = dict["node_count"] as? Int ?? nodes.count
+        let edgeCount = dict["edge_count"] as? Int ?? edges.count
+
         return AgentGraphModel(
             id: graphId,
             name: name,
             nodes: nodes,
             edges: edges,
-            created_at: createdAt
+            created_at: createdAt,
+            nodeCount: nodeCount,
+            edgeCount: edgeCount
         )
     }
 
