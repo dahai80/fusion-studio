@@ -391,29 +391,10 @@ struct PerformanceBenchmarkView: View {
     }
 
     private func runBenchmark() {
-        isRunning = true
+        // 假基准结果已清理：等待接通真实硬件基准后端后填充
+        isRunning = false
         progress = 0
         results = []
-
-        let tests: [(String, String, String, Color)] = [
-            ("GPU 渲染性能", "45.2 fps", "speedometer", .blue),
-            ("CPU 物理模拟", "12.8 ms/step", "gearshape.2", .green),
-            ("内存带宽", "68.5 GB/s", "memorychip", .orange),
-            ("MLX 推理延迟", "22.3 ms", "cpu", .purple),
-            ("纹理填充率", "2.1 GPixel/s", "square.grid.3x3", .pink),
-        ]
-
-        Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { timer in
-            let idx = results.count
-            if idx < tests.count {
-                let test = tests[idx]
-                results.append(BenchResult(name: test.0, score: test.1, icon: test.2, color: test.3))
-                progress = Double(idx + 1) / Double(tests.count)
-            } else {
-                timer.invalidate()
-                isRunning = false
-            }
-        }
     }
 }
 

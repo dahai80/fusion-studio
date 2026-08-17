@@ -60,15 +60,12 @@ class ExternalIntegrationManager: ObservableObject {
     @Published var syncLog: [String] = []
 
     init() {
-        loadSampleConnections()
+        // 假服务连接已清理：等待用户手动添加真实集成
     }
 
     private func loadSampleConnections() {
-        connections = [
-            ServiceConnection(id: "gh-1", service: .github, name: "dahai80/fusion-studio", url: "https://github.com/dahai80/fusion-studio", token: "ghp_***", isConnected: true, lastSync: Date(), config: ["repo": "dahai80/fusion-studio", "branch": "master"]),
-            ServiceConnection(id: "ji-1", service: .jira, name: "Fusion Studio Project", url: "https://fusion.atlassian.net", token: "jira_***", isConnected: false, lastSync: nil, config: ["project": "FUSION", "board": "Sprint 1"]),
-            ServiceConnection(id: "oa-1", service: .openai, name: "Local MLX (兼容)", url: FusionConfig.shared.mlxBaseURL + "/v1", token: "", isConnected: true, lastSync: Date(), config: ["model": "qwen3.5-9b-4bit"]),
-        ]
+        // 假服务连接已清理：保留方法签名以兼容潜在调用，不再注入示例数据
+        connections = []
     }
 
     func connect(_ id: String) {
@@ -356,13 +353,8 @@ struct AddServiceSheet: View {
 
 struct GitHubIntegrationView: View {
     @StateObject private var manager = ExternalIntegrationManager.shared
-    @State private var issues: [(title: String, state: String, date: String)] = [
-        ("添加暗黑模式支持", "open", "2d ago"),
-        ("修复 MLX 内存泄漏", "open", "5d ago"),
-        ("优化启动速度", "closed", "1w ago"),
-        ("添加单元测试", "open", "1w ago"),
-        ("更新文档", "merged", "2w ago"),
-    ]
+    // 假 issues 已清理：等待接通真实 GitHub Issues API 后填充
+    @State private var issues: [(title: String, state: String, date: String)] = []
 
     var body: some View {
         let github = manager.connections.first { $0.service == .github }
@@ -375,17 +367,25 @@ struct GitHubIntegrationView: View {
                 }
 
                 Section("最近 Issues (\(issues.filter { $0.state == "open" }.count) 开放)") {
-                    ForEach(issues, id: \.title) { issue in
-                        HStack {
-                            Circle()
-                                .fill(issue.state == "open" ? Color.green : (issue.state == "closed" ? Color.red : Color.purple))
-                                .frame(width: 8, height: 8)
-                            Text(issue.title).font(.subheadline)
-                            Spacer()
-                            Text(issue.state).font(.caption2).foregroundColor(.secondary)
-                            Text(issue.date).font(.caption2).foregroundColor(.secondary)
+                    if issues.isEmpty {
+                        Text("暂无 Issues 数据，接入 GitHub API 后加载")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.vertical, 12)
+                    } else {
+                        ForEach(issues, id: \.title) { issue in
+                            HStack {
+                                Circle()
+                                    .fill(issue.state == "open" ? Color.green : (issue.state == "closed" ? Color.red : Color.purple))
+                                    .frame(width: 8, height: 8)
+                                Text(issue.title).font(.subheadline)
+                                Spacer()
+                                Text(issue.state).font(.caption2).foregroundColor(.secondary)
+                                Text(issue.date).font(.caption2).foregroundColor(.secondary)
+                            }
+                            .padding(.vertical, 4)
                         }
-                        .padding(.vertical, 4)
                     }
                 }
             }
@@ -472,13 +472,41 @@ struct APITestView: View {
     }
 
     private func sendRequest() {
+        guard let url = URL(string: endpoint) else {
+            response = "Error: 无效的 URL"
+            return
+        }
         isLoading = true
         response = ""
         Task {
-            try? await Task.sleep(nanoseconds: 1_500_000_000)
-            await MainActor.run {
-                response = "\(method) \(endpoint)\nStatus: 200 OK\n\n{\n  \"status\": \"success\",\n  \"message\": \"API 测试端点响应示例\"\n}"
-                isLoading = false
+            do {
+                var request = URLRequest(url: url)
+                request.httpMethod = method
+                request.timeoutInterval = 30
+                if !headers.isEmpty {
+                    for line in headers.split(separator: "\n") {
+                        let parts = line.split(separator: ":", maxSplits: 1)
+                        if parts.count == 2 {
+                            request.setValue(String(parts[1]).trimmingCharacters(in: .whitespaces),
+                                             forHTTPHeaderField: String(parts[0]).trimmingCharacters(in: .whitespaces))
+                        }
+                    }
+                }
+                if !body_text.isEmpty && method != "GET" {
+                    request.httpBody = body_text.data(using: .utf8)
+                }
+                let (data, resp) = try await URLSession.shared.data(for: request)
+                await MainActor.run {
+                    let status = (resp as? HTTPURLResponse)?.statusCode ?? 0
+                    let body = String(data: data, encoding: .utf8) ?? "<二进制数据 \(data.count) bytes>"
+                    response = "\(method) \(endpoint)\nStatus: \(status)\n\n\(body)"
+                    isLoading = false
+                }
+            } catch {
+                await MainActor.run {
+                    response = "Error: \(error.localizedDescription)"
+                    isLoading = false
+                }
             }
         }
     }

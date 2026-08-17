@@ -121,7 +121,7 @@ class LogManager: ObservableObject {
     var warningCount: Int { logs.filter { $0.level == .warning }.count }
 
     init() {
-        addSampleLogs()
+        // 测试日志已清理：仅展示真实运行时日志（addLog 注入）
     }
 
     // MARK: - 添加日志
@@ -177,42 +177,6 @@ class LogManager: ObservableObject {
         }.joined(separator: "\n")
     }
 
-    private func addSampleLogs() {
-        let sampleLogs: [(LogLevel, String, String, String)] = [
-            (.info, "env-daemon", "系统", "env-daemon 启动，监听: /tmp/fusion-studio.sock (权限: 0600)"),
-            (.info, "env-daemon", "系统", "HealthChecker 初始化完成，准备环境检测"),
-            (.info, "mlx-daemon", "系统", "MLX Daemon 管理服务启动: localhost:8001"),
-            (.info, "mlx-daemon", "推理", "fusion-mlx 已启动 (PID: 12345)"),
-            (.info, "mlx-daemon", "推理", "fusion-mlx 服务就绪，模型: qwen3.5-9b-4bit"),
-            (.warning, "env-daemon", "环境", "PyBullet 未安装或编译失败，等待修复"),
-            (.info, "FusionStudio", "IPC", "IPC 客户端连接成功"),
-            // Callers: LogPanelView sample data. Affected API: none. Data: version string. User: "发布补丁版本"
-            (.info, "FusionStudio", "UI", "Fusion Studio v0.1.11 启动完成"),
-            (.debug, "env-daemon", "网络", "Socket 连接来自: (null)"),
-            (.error, "mlx-daemon", "推理", "推理请求超时 (30s)，正在重试..."),
-            (.info, "mlx-daemon", "推理", "推理重试成功，延迟: 1.2s"),
-            (.warning, "FusionStudio", "存储", "工作区目录不存在，正在创建: ~/FusionStudio/workspace"),
-            (.info, "FusionStudio", "存储", "工作区目录创建成功"),
-            (.info, "env-daemon", "环境", "环境健康检查完成: 全部通过"),
-            (.debug, "mlx-daemon", "硬件", "内存使用: 12.5GB/32GB (39.1%)"),
-            (.debug, "mlx-daemon", "硬件", "GPU 占用: 23%"),
-            (.info, "FusionStudio", "任务", "任务队列初始化完成"),
-            (.info, "FusionStudio", "UI", "侧边栏加载完成，10 个模块就绪"),
-        ]
-
-        for (level, source, module, message) in sampleLogs {
-            let entry = LogEntry(
-                id: UUID().uuidString,
-                timestamp: Date().addingTimeInterval(-Double(sampleLogs.firstIndex(where: { $0.2 == module && $0.1 == source && $0.3 == message }) ?? 0) * 2),
-                level: level,
-                source: source,
-                message: message,
-                details: nil,
-                module: module
-            )
-            logs.append(entry)
-        }
-    }
 }
 
 // MARK: - 日志面板主视图
@@ -347,12 +311,16 @@ struct LogListView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(logManager.filteredLogs) { entry in
-                        LogRowView(entry: entry)
-                            .id(entry.id)
-                            .onTapGesture {
-                                logManager.selectedLog = entry
-                            }
+                    if logManager.filteredLogs.isEmpty {
+                        EmptyLogStateView()
+                    } else {
+                        ForEach(logManager.filteredLogs) { entry in
+                            LogRowView(entry: entry)
+                                .id(entry.id)
+                                .onTapGesture {
+                                    logManager.selectedLog = entry
+                                }
+                        }
                     }
                 }
             }
@@ -368,6 +336,23 @@ struct LogListView: View {
         .sheet(item: $logManager.selectedLog) { entry in
             LogDetailView(entry: entry)
         }
+    }
+}
+
+// MARK: - 空态
+
+struct EmptyLogStateView: View {
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "doc.text.magnifyingglass")
+                .font(.system(size: 32))
+                .foregroundStyle(.secondary)
+            Text("暂无日志")
+                .font(.system(size: 14))
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, minHeight: 120)
+        .padding(.vertical, 40)
     }
 }
 
