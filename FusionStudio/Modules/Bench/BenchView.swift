@@ -43,16 +43,10 @@ struct BenchResult: Identifiable {
     }
 }
 
-let sampleResults: [BenchResult] = [
-    BenchResult(id: "b1", modelName: "Qwen3.5 9B 4bit", testType: .speed, score: 45.2, unit: "token/s", timestamp: Date(), details: ["延迟": "22ms", "内存": "5.2 GB", "批处理": "1"]),
-    BenchResult(id: "b2", modelName: "Llama 3 8B 4bit", testType: .speed, score: 52.1, unit: "token/s", timestamp: Date(), details: ["延迟": "19ms", "内存": "4.8 GB", "批处理": "1"]),
-    BenchResult(id: "b3", modelName: "Qwen3.5 9B 4bit", testType: .memory, score: 5.2, unit: "GB", timestamp: Date(), details: ["峰值": "5.8 GB", "基线": "1.2 GB", "增量": "4.6 GB"]),
-    BenchResult(id: "b4", modelName: "Qwen3.5 9B 4bit", testType: .context, score: 8192, unit: "tokens", timestamp: Date(), details: ["最大长度": "8192", "通过率": "100%", "困惑度": "3.2"]),
-]
-
 struct BenchView: View {
     @Environment(\.studioTheme) private var theme
-    @State private var results: [BenchResult] = sampleResults
+    // 假基准结果已清理：初始为空，运行真实 POST /v1/benchmarks/run 后填充
+    @State private var results: [BenchResult] = []
     @State private var selectedType: BenchResult.BenchType?
     @State private var isRunning = false
     @State private var selectedTab: BenchTab = .results

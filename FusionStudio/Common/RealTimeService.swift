@@ -58,15 +58,7 @@ class RealTimeCollaboration: ObservableObject {
     private var pingTimer: Timer?
 
     init() {
-        loadSamplePresence()
-    }
-
-    private func loadSamplePresence() {
-        presenceList = [
-            RTPresence(id: "user-1", name: "张三", status: .online, lastSeen: Date(), currentModule: "design"),
-            RTPresence(id: "user-2", name: "李四", status: .editing, lastSeen: Date(), currentModule: "code"),
-            RTPresence(id: "user-3", name: "王五", status: .away, lastSeen: Date().addingTimeInterval(-300), currentModule: nil),
-        ]
+        // 假在线状态已清理：仅展示真实协作成员
     }
 
     func connect() {
@@ -77,8 +69,6 @@ class RealTimeCollaboration: ObservableObject {
             members: presenceList,
             messages: [
                 RTChatMessage(sender: "系统", content: "欢迎加入协作会话", timestamp: Date(), type: .system),
-                RTChatMessage(sender: "张三", content: "我开始设计新的仪表盘了", timestamp: Date(), type: .text),
-                RTChatMessage(sender: "李四", content: "我来写对应的 SwiftUI 代码", timestamp: Date(), type: .text),
             ],
             sharedCursor: [:]
         )
@@ -354,30 +344,43 @@ struct PresenceListView: View {
 // MARK: - 活动视图
 
 struct ActivityView: View {
-    let activities: [(String, String, Date)] = [
-        ("张三", "更新了设计稿: 仪表盘 v2", Date().addingTimeInterval(-60)),
-        ("李四", "提交了代码: 添加动画效果", Date().addingTimeInterval(-300)),
-        ("王五", "运行了仿真: 机械臂测试", Date().addingTimeInterval(-600)),
-        ("张三", "导出了设计稿", Date().addingTimeInterval(-900)),
-        ("系统", "协作会话已创建", Date().addingTimeInterval(-1800)),
-    ]
+    let activities: [(String, String, Date)]
+
+    init(activities: [(String, String, Date)] = []) {
+        self.activities = activities
+    }
 
     var body: some View {
-        List(activities, id: \.2) { (user, action, time) in
-            HStack(spacing: 10) {
-                Image(systemName: "circle.fill")
-                    .font(.system(size: 6))
-                    .foregroundColor(time > Date().addingTimeInterval(-120) ? .green : .secondary)
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack {
-                        Text(user).font(.headline)
-                        Text(action).font(.subheadline).foregroundColor(.secondary)
+        Group {
+            if activities.isEmpty {
+                VStack(spacing: 8) {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.system(size: 28))
+                        .foregroundStyle(.secondary)
+                    Text("暂无协作活动")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, minHeight: 120)
+                .padding(.vertical, 30)
+            } else {
+                List(activities, id: \.2) { (user, action, time) in
+                    HStack(spacing: 10) {
+                        Image(systemName: "circle.fill")
+                            .font(.system(size: 6))
+                            .foregroundColor(time > Date().addingTimeInterval(-120) ? .green : .secondary)
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack {
+                                Text(user).font(.headline)
+                                Text(action).font(.subheadline).foregroundColor(.secondary)
+                            }
+                            Text(time.formatted(date: .numeric, time: .shortened))
+                                .font(.caption2).foregroundColor(.secondary)
+                        }
                     }
-                    Text(time.formatted(date: .numeric, time: .shortened))
-                        .font(.caption2).foregroundColor(.secondary)
+                    .padding(.vertical, 4)
                 }
             }
-            .padding(.vertical, 4)
         }
     }
 }

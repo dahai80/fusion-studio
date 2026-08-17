@@ -26,26 +26,27 @@ class AgentOrchestrator: ObservableObject {
     }
 
     private func loadBuiltinAgents() {
+        // 内置 agent 作为产品种子模板保留（isBuiltin=true）；假 taskCount 统计已清零
         agents = [
             Agent(id: "agent-code", name: "CodeWizard", type: .code, model: "deepseek-coder-6.7b-4bit",
                   systemPrompt: "You are a professional code generation and review agent.",
-                  status: .idle, createdAt: Date(), taskCount: 42, isBuiltin: true,
+                  status: .idle, createdAt: Date(), taskCount: 0, isBuiltin: true,
                   temperature: 0.7, maxTokens: 4096, tools: [], capabilities: [], safetyLevel: "L1", tags: ["code"]),
             Agent(id: "agent-research", name: "ResearchBot", type: .research, model: "qwen3.5-9b-4bit",
                   systemPrompt: "You are a research assistant, skilled at information retrieval and analysis.",
-                  status: .idle, createdAt: Date(), taskCount: 28, isBuiltin: true,
+                  status: .idle, createdAt: Date(), taskCount: 0, isBuiltin: true,
                   temperature: 0.5, maxTokens: 4096, tools: [], capabilities: [], safetyLevel: "L1", tags: ["research"]),
             Agent(id: "agent-design", name: "DesignAI", type: .design, model: "qwen2-vl-7b-4bit",
                   systemPrompt: "You are an AI design assistant, skilled at UI design and layout.",
-                  status: .idle, createdAt: Date(), taskCount: 15, isBuiltin: true,
+                  status: .idle, createdAt: Date(), taskCount: 0, isBuiltin: true,
                   temperature: 0.8, maxTokens: 4096, tools: [], capabilities: [], safetyLevel: "L1", tags: ["design"]),
             Agent(id: "agent-analysis", name: "DataViz", type: .analysis, model: "qwen3.5-9b-4bit",
                   systemPrompt: "You are a data analyst, skilled at processing and visualization.",
-                  status: .idle, createdAt: Date(), taskCount: 33, isBuiltin: true,
+                  status: .idle, createdAt: Date(), taskCount: 0, isBuiltin: true,
                   temperature: 0.3, maxTokens: 4096, tools: [], capabilities: [], safetyLevel: "L1", tags: ["analysis"]),
             Agent(id: "agent-general", name: "FusionBot", type: .general, model: "llama3-8b-4bit",
                   systemPrompt: "You are a general assistant for multi-agent collaboration.",
-                  status: .idle, createdAt: Date(), taskCount: 56, isBuiltin: true,
+                  status: .idle, createdAt: Date(), taskCount: 0, isBuiltin: true,
                   temperature: 0.7, maxTokens: 4096, tools: [], capabilities: [], safetyLevel: "L1", tags: ["general"]),
         ]
         loadSampleWorkflows()

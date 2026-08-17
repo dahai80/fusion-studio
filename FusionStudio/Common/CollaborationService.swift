@@ -161,7 +161,7 @@ class CollaborationService: ObservableObject {
         startAdvertising()
         startBrowsing()
         startPing()
-        addSamplePeers()
+        // 假 peer 已清理：仅展示 Bonjour 真实发现的局域网协作节点
         objectWillChange.send()
     }
 
@@ -326,14 +326,6 @@ class CollaborationService: ObservableObject {
         let threshold = Date().addingTimeInterval(-120)
         peers.removeAll { $0.lastSeen < threshold && $0.status == .online }
         objectWillChange.send()
-    }
-
-    private func addSamplePeers() {
-        peers = [
-            Collaborator(id: "peer-1", name: "张三的 Mac", host: "192.168.1.101", port: 8000, status: .online, lastSeen: Date(), sharedModules: ["design", "code"], version: "1.0.0"),
-            Collaborator(id: "peer-2", name: "李四的 MacBook", host: "192.168.1.102", port: 8000, status: .online, lastSeen: Date(), sharedModules: ["simulation", "bench"], version: "1.0.0"),
-            Collaborator(id: "peer-3", name: "王五的 Studio", host: "192.168.1.103", port: 8000, status: .away, lastSeen: Date().addingTimeInterval(-300), sharedModules: ["model-hub", "kb"], version: "0.9.0"),
-        ]
     }
 }
 

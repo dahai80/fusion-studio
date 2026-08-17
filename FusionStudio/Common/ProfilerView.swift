@@ -79,25 +79,8 @@ class PerformanceProfiler: ObservableObject {
     }
 
     private func sampleMetrics() {
-        // 模拟采样（实际通过 IPC 获取真实数据）
-        let sample = PerfMetrics(
-            cpuUsage: Double.random(in: 15...75),
-            memoryUsage: Double.random(in: 4...20),
-            gpuUsage: Double.random(in: 5...60),
-            fps: Double.random(in: 20...120),
-            frameTime: Double.random(in: 8...50),
-            drawCalls: Int.random(in: 100...2000),
-            triangleCount: Int.random(in: 10000...500000),
-            mlxInferenceMs: Double.random(in: 10...200),
-            diskIO: Double.random(in: 0...100),
-            networkIO: Double.random(in: 0...10),
-            thermalState: ["正常", "轻微", "严重"].randomElement()!,
-            powerUsage: Double.random(in: 5...30)
-        )
-        metrics = sample
-        history.append(sample)
-        if history.count > maxHistory { history.removeFirst() }
-        analyzeMetrics(sample)
+        // 假采样数据已清理：等待接通真实性能 IPC 后在此填充
+        // 暂不生成随机指标，避免误导
     }
 
     private func analyzeMetrics(_ m: PerfMetrics) {
@@ -117,13 +100,8 @@ class PerformanceProfiler: ObservableObject {
     func clearHistory() { history.removeAll() }
 
     func generateRecommendations() {
-        recommendations = [
-            ProfilerRecommendation(title: "降低量化精度", description: "从 8bit 降到 4bit 可减少 50% 内存使用", impact: "高", effort: "低", category: "MLX") {},
-            ProfilerRecommendation(title: "启用 Metal 加速", description: "确保设置中已启用 Metal GPU 加速", impact: "高", effort: "低", category: "硬件") {},
-            ProfilerRecommendation(title: "限制最大 FPS", description: "将最大 FPS 设为 60 可减少 GPU 负载", impact: "中", effort: "低", category: "渲染") {},
-            ProfilerRecommendation(title: "减少并行任务", description: "限制同时运行的推理任务数为 1-2 个", impact: "中", effort: "低", category: "任务") {},
-            ProfilerRecommendation(title: "清理缓存", description: "定期清理模型缓存和临时文件", impact: "低", effort: "低", category: "存储") {},
-        ]
+        // 假优化建议已清理：等待接通真实性能分析后基于实际指标生成
+        recommendations = []
     }
 }
 
@@ -292,6 +270,21 @@ struct ProfilerOptimizeView: View {
 
     var body: some View {
         ScrollView {
+            if profiler.recommendations.isEmpty {
+                VStack(spacing: 10) {
+                    Spacer().frame(height: 40)
+                    Image(systemName: "lightbulb.slash")
+                        .font(.system(size: 32))
+                        .foregroundStyle(.secondary)
+                    Text("暂无优化建议")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.secondary)
+                    Text("接通真实性能分析后将基于实际指标生成")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+            }
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 300))], spacing: 12) {
                 ForEach(profiler.recommendations) { rec in
                     VStack(alignment: .leading, spacing: 8) {
@@ -429,11 +422,19 @@ struct MemoryAnalyzerView: View {
 
             GroupBox("内存分布") {
                 VStack(spacing: 6) {
-                    MemRow("模型权重", "8.2 GB", 0.26)
-                    MemRow("KV Cache", "2.1 GB", 0.07)
-                    MemRow("应用", "1.8 GB", 0.06)
-                    MemRow("系统缓存", "3.5 GB", 0.11)
-                    MemRow("其他", "1.2 GB", 0.04)
+                    if profiler.metrics.memoryUsage <= 0 {
+                        Text("暂无内存分布数据")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.vertical, 12)
+                    } else {
+                        MemRow("模型权重", "—", 0)
+                        MemRow("KV Cache", "—", 0)
+                        MemRow("应用", "—", 0)
+                        MemRow("系统缓存", "—", 0)
+                        MemRow("其他", "—", 0)
+                    }
                 }
                 .padding(8)
             }
@@ -501,18 +502,8 @@ struct LeakCheckView: View {
     }
 
     private func runLeakCheck() {
-        isRunning = true
-        let checks = ["检查 ViewController 引用", "检查闭包捕获", "检查 Timer 生命周期", "检查 Notification 观察者", "检查 WKWebView 引用"]
-        Timer.scheduledTimer(withTimeInterval: 0.8, repeats: true) { timer in
-            let idx = results.count
-            if idx < checks.count {
-                results.append("✅ \(checks[idx]) — 未发现泄漏")
-                progress = Double(idx + 1) / Double(checks.count)
-            } else {
-                results.append("✅ 检测完成，未发现内存泄漏")
-                timer.invalidate()
-                isRunning = false
-            }
-        }
+        // 假泄漏检测结果已清理：需接通真实内存诊断后实现
+        results = ["⚠️ 内存泄漏检测尚未接入真实诊断，暂无数据"]
+        isRunning = false
     }
 }

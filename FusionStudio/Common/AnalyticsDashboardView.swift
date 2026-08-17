@@ -56,34 +56,17 @@ class AnalyticsEngine: ObservableObject {
     }
 
     private func loadMetrics() {
-        metrics = [
-            AnalyticsMetric(name: "活跃用户", value: "1,284", change: 12.5, trend: .up, icon: "person.2", color: .blue, detail: "日活跃用户数"),
-            AnalyticsMetric(name: "推理请求", value: "45,892", change: 8.3, trend: .up, icon: "bolt", color: .orange, detail: "每日 MLX 推理调用"),
-            AnalyticsMetric(name: "平均延迟", value: "124ms", change: -5.2, trend: .down, icon: "clock", color: .green, detail: "推理请求平均延迟"),
-            AnalyticsMetric(name: "错误率", value: "0.8%", change: -0.3, trend: .down, icon: "exclamationmark.triangle", color: .red, detail: "请求失败率"),
-            AnalyticsMetric(name: "内存使用", value: "12.4 GB", change: 2.1, trend: .up, icon: "memorychip", color: .purple, detail: "平均内存占用"),
-            AnalyticsMetric(name: "任务完成", value: "3,421", change: 15.7, trend: .up, icon: "checkmark.circle", color: .green, detail: "每日完成的任务数"),
-            AnalyticsMetric(name: "模型数", value: "8", change: 0, trend: .stable, icon: "cpu", color: .indigo, detail: "已安装模型数量"),
-            AnalyticsMetric(name: "存储使用", value: "45.2 GB", change: 3.8, trend: .up, icon: "externaldrive", color: .cyan, detail: "模型和缓存占用"),
-        ]
+        // 假分析指标已清理：等待接通真实分析后端后填充
+        metrics = []
     }
 
     private func loadChartData() {
-        let now = Date()
-        let sampleCount = 24
-
-        for i in 0..<sampleCount {
-            let date = now.addingTimeInterval(-Double(sampleCount - i) * 3600)
-            dailyActiveUsers.append(AnalyticsChartPoint(date: date, value: Double.random(in: 800...1500), series: "活跃用户"))
-            moduleUsage.append(AnalyticsChartPoint(date: date, value: Double.random(in: 100...500), series: "模块使用"))
-            inferenceVolume.append(AnalyticsChartPoint(date: date, value: Double.random(in: 500...3000), series: "推理请求"))
-            errorRate.append(AnalyticsChartPoint(date: date, value: Double.random(in: 0.1...2.0), series: "错误率"))
-        }
+        // 假图表数据已清理：等待接通真实分析后端后填充
     }
 
     func refresh() {
         isRefreshing = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
             self?.loadMetrics()
             self?.isRefreshing = false
         }
@@ -198,24 +181,12 @@ struct UsageTab: View {
     var body: some View {
         List {
             Section("模块使用排行") {
-                let modules = [
-                    ("设计模块", 45.2, "pencil.and.outline", Color.blue),
-                    ("编码模块", 32.8, "chevron.left.forwardslash.chevron.right", Color.green),
-                    ("仿真模块", 28.5, "gearshape.2", Color.orange),
-                    ("模型管理", 22.1, "cpu", Color.purple),
-                    ("知识库", 18.7, "books.vertical", Color.pink),
-                    ("文档", 15.3, "doc.text", Color.indigo),
-                    ("CLI", 12.9, "terminal", Color.gray),
-                    ("基准测试", 8.4, "chart.bar", Color.yellow),
-                ]
-                ForEach(modules, id: \.0) { (name, pct, icon, color) in
-                    HStack {
-                        Image(systemName: icon).foregroundColor(color).frame(width: 20)
-                        Text(name).frame(width: 80, alignment: .leading)
-                        ProgressView(value: pct / 100).tint(color)
-                        Text("\(pct, specifier: "%.1f")%").font(.caption).frame(width: 40)
-                    }
-                    .padding(.vertical, 4)
+                if analytics.moduleUsage.isEmpty {
+                    Text("暂无模块使用数据")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.vertical, 12)
                 }
             }
 
@@ -235,12 +206,13 @@ struct InferenceTab: View {
     var body: some View {
         List {
             Section("推理统计") {
-                HStack { Text("总请求数"); Spacer(); Text("45,892").font(.system(.body, design: .monospaced)) }
-                HStack { Text("成功"); Spacer(); Text("45,525 (99.2%)").font(.system(.body, design: .monospaced)).foregroundColor(.green) }
-                HStack { Text("失败"); Spacer(); Text("367 (0.8%)").font(.system(.body, design: .monospaced)).foregroundColor(.red) }
-                HStack { Text("平均延迟"); Spacer(); Text("124ms").font(.system(.body, design: .monospaced)) }
-                HStack { Text("P99 延迟"); Spacer(); Text("892ms").font(.system(.body, design: .monospaced)) }
-                HStack { Text("Token 吞吐量"); Spacer(); Text("45.2 t/s").font(.system(.body, design: .monospaced)) }
+                if analytics.inferenceVolume.isEmpty {
+                    Text("暂无推理统计数据")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.vertical, 12)
+                }
             }
 
             Section("请求趋势") {
@@ -256,29 +228,15 @@ struct InferenceTab: View {
 struct ErrorsTab: View {
     @StateObject private var analytics = AnalyticsEngine.shared
 
-    let errors: [(String, Int, String)] = [
-        ("超时错误", 156, "推理请求超过 30s 超时限制"),
-        ("内存不足", 89, "模型加载或推理时内存不足"),
-        ("模型加载失败", 52, "模型文件损坏或不兼容"),
-        ("连接拒绝", 38, "fusion-mlx 服务未运行"),
-        ("无效参数", 22, "请求参数格式错误"),
-        ("KV Cache 溢出", 10, "上下文长度超过限制"),
-    ]
-
     var body: some View {
         List {
             Section("错误分布") {
-                ForEach(errors, id: \.0) { (name, count, detail) in
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Circle().fill(.red).frame(width: 6, height: 6)
-                            Text(name).font(.headline)
-                            Spacer()
-                            Text("\(count)").font(.system(.body, design: .monospaced)).foregroundColor(.red)
-                        }
-                        Text(detail).font(.caption).foregroundColor(.secondary)
-                    }
-                    .padding(.vertical, 4)
+                if analytics.errorRate.isEmpty {
+                    Text("暂无错误数据")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.vertical, 12)
                 }
             }
 
