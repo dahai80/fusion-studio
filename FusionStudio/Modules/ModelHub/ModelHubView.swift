@@ -1,7 +1,6 @@
 // Callers: ModuleDetailView routing.
 // Affected API: MlxHTTPClient (listModels/listHFTasks/getHFRecommended/startHFDownload/searchHFModels).
 // Data schemas: ModelInfo, ModelDTO, HFTaskDTO, HFModelInfo.
-// User instruction: bug16 — connect ModelHubView to real fusion-mlx API, remove mock data.
 
 import SwiftUI
 import os.log

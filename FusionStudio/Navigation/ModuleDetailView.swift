@@ -142,8 +142,6 @@ struct ModuleDetailView: View {
     }
 }
 
-// MARK: - 各模块占位视图（后续逐步替换为真实实现）
-
 struct DashboardView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var taskManager: TaskManager
