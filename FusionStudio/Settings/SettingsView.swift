@@ -65,10 +65,12 @@ struct SettingsView: View {
 
 struct GeneralSettingsView: View {
     @EnvironmentObject private var appState: AppState
+    @StateObject private var i18n = I18nManager.shared
     @AppStorage("launchAtLogin") private var launchAtLogin = false
     @AppStorage("autoStartMLX") private var autoStartMLX = true
     @AppStorage("minimizeToMenuBar") private var minimizeToMenuBar = false
-    @AppStorage("language") private var language = "zh-CN"
+
+    private let settingsLog = Logger(subsystem: "com.fusion.studio", category: "Settings")
 
     var body: some View {
         Form {
@@ -83,9 +85,18 @@ struct GeneralSettingsView: View {
                 Toggle("最小化到菜单栏", isOn: $minimizeToMenuBar)
             }
             Section("语言") {
-                Picker("界面语言", selection: $language) {
-                    Text("中文").tag("zh-CN")
-                    Text("English").tag("en-US")
+                Picker("界面语言", selection: Binding(
+                    get: { i18n.currentLanguage.rawValue },
+                    set: { newVal in
+                        if let lang = AppLanguage(rawValue: newVal) {
+                            i18n.currentLanguage = lang
+                            settingsLog.info("Language switched to \(lang.rawValue)")
+                        }
+                    }
+                )) {
+                    ForEach(AppLanguage.allCases) { lang in
+                        Text("\(lang.flag) \(lang.displayName)").tag(lang.rawValue)
+                    }
                 }
             }
         }

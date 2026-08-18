@@ -239,6 +239,15 @@ let jaJPTranslations: [String: String] = [
     "general": "一般", "hardware": "ハードウェア", "network": "ネットワーク",
     "offlineMode": "オフラインモード", "language": "言語", "workspace": "ワークスペース",
     "cpu": "CPU", "memory": "メモリ", "gpu": "GPU", "mlx": "MLX",
+    "metal": "Metal", "ane": "ニューラルエンジン",
+    "autoStart": "自動起動", "quantization": "量子化プリセット",
+    "taskQueue": "タスクキュー", "noTasks": "タスクなし",
+    "running": "実行中", "pending": "待機中", "completed": "完了",
+    "failed": "失敗", "cancelled": "キャンセル済み",
+    "moduleDesign": "AIデザインキャンバス", "moduleCode": "AIコーディングアシスタント",
+    "moduleSimulation": "ロボットシミュレーション", "moduleModelHub": "モデル管理",
+    "moduleCLI": "コマンドライン", "moduleDoc": "ドキュメント管理",
+    "moduleKB": "ナレッジベース", "moduleBench": "ベンチマーク", "moduleDesk": "デスクトップ自動化",
 ]
 
 let koKRTranslations: [String: String] = [
@@ -254,6 +263,16 @@ let koKRTranslations: [String: String] = [
     "general": "일반", "hardware": "하드웨어", "network": "네트워크",
     "offlineMode": "오프라인 모드", "language": "언어", "workspace": "작업 공간",
     "cpu": "CPU", "memory": "메모리", "gpu": "GPU", "mlx": "MLX",
+    "metal": "Metal", "ane": "뉴럴 엔진",
+    "autoStart": "자동 시작", "quantization": "양자화 프리셋",
+    "taskQueue": "태스크 대기열", "noTasks": "태스크 없음",
+    "running": "실행 중", "pending": "대기 중", "completed": "완료",
+    "failed": "실패", "cancelled": "취소됨",
+    "runHealthCheck": "건강 검사 실행",
+    "moduleDesign": "AI 디자인 캔버스", "moduleCode": "AI 코딩 어시스턴트",
+    "moduleSimulation": "로봇 시뮬레이션", "moduleModelHub": "모델 관리",
+    "moduleCLI": "명령줄", "moduleDoc": "문서 관리",
+    "moduleKB": "지식베이스", "moduleBench": "벤치마크", "moduleDesk": "데스크톱 자동화",
 ]
 
 // MARK: - 国际化文本视图
