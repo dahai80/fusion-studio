@@ -12,6 +12,7 @@ private let storageLog = Logger(subsystem: "com.fusion.studio", category: "HubLo
 struct HubLocalStorageView: View {
     @ObservedObject var client: ModelHubAPIClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var models: [HubModel] = []
     @State private var selectedModel: HubModel?
@@ -44,6 +45,27 @@ struct HubLocalStorageView: View {
     private var families: [String] {
         let fams = Set(models.compactMap(\.family)).sorted()
         return ["全部"] + fams
+    }
+
+    private func catName(_ cat: String) -> String {
+        switch cat {
+        case "全部": return i18n.t(.hub_ls_catAll)
+        case "通用对话": return i18n.t(.hub_ls_catChat)
+        case "代码专属": return i18n.t(.hub_ls_catCode)
+        case "向量嵌入": return i18n.t(.hub_ls_catEmbed)
+        case "图像多模态": return i18n.t(.hub_ls_catVision)
+        case "私有模型": return i18n.t(.hub_ls_catPrivate)
+        case "已固定": return i18n.t(.hub_ls_catPinned)
+        case "推理中": return i18n.t(.hub_ls_catServing)
+        case "语言模型": return i18n.t(.hub_ls_catLLM)
+        case "视觉模型": return i18n.t(.hub_ls_catVLM)
+        case "嵌入模型": return i18n.t(.hub_ls_catEmbedM)
+        case "代码模型": return i18n.t(.hub_ls_catCodeM)
+        case "音频模型": return i18n.t(.hub_ls_catAudioM)
+        case "MLX格式": return i18n.t(.hub_ls_catMLX)
+        case "GGUF格式": return i18n.t(.hub_ls_catGGUF)
+        default: return cat
+        }
     }
 
     private var filteredModels: [HubModel] {
@@ -98,7 +120,7 @@ struct HubLocalStorageView: View {
 
     private var categoryTree: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("分类")
+            Text(i18n.t(.hub_ls_category))
                 .font(.system(size: theme.captionSize, weight: .semibold))
                 .foregroundStyle(theme.textTertiary)
                 .padding(.horizontal, theme.spacingS)
@@ -112,7 +134,7 @@ struct HubLocalStorageView: View {
                             .font(.system(size: 12))
                             .foregroundStyle(selectedCategory == cat ? theme.accent : theme.textSecondary)
                             .frame(width: 16)
-                        Text(cat)
+                        Text(catName(cat))
                             .font(.system(size: theme.footnoteSize, weight: selectedCategory == cat ? .medium : .regular))
                             .foregroundStyle(selectedCategory == cat ? theme.text : theme.textSecondary)
                         Spacer()
@@ -142,7 +164,7 @@ struct HubLocalStorageView: View {
     private var searchBar: some View {
         HStack(spacing: theme.spacingS) {
             Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-            TextField("搜索本地模型...", text: $searchText).textFieldStyle(.plain)
+            TextField(i18n.t(.hub_ls_searchPlaceholder), text: $searchText).textFieldStyle(.plain)
             if isLoading { ProgressView().controlSize(.small) }
             Button(action: { Task { await loadModels() } }) {
                 Image(systemName: "arrow.clockwise")
@@ -172,39 +194,39 @@ struct HubLocalStorageView: View {
     private var batchToolbar: some View {
         HStack(spacing: theme.spacingS) {
             Toggle(isOn: $batchMode) {
-                Text("批量模式").font(.system(size: theme.captionSize))
+                Text(i18n.t(.hub_ls_batchMode)).font(.system(size: theme.captionSize))
             }
             .toggleStyle(.checkbox)
             .controlSize(.small)
 
             if batchMode {
                 if selectedCount > 0 {
-                    Text("已选 \(selectedCount) 个")
+                    Text(String(format: i18n.t(.hub_ls_selectedCountFmt), selectedCount))
                         .font(.caption)
                         .foregroundStyle(theme.accent)
-                    Button("全选") {
+                    Button(i18n.t(.hub_ls_selectAll)) {
                         selectedIds = Set(filteredModels.map(\.id))
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.mini)
-                    Button("批量删除") {
+                    Button(i18n.t(.hub_ls_batchDelete)) {
                         batchDelete()
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.mini)
                     .foregroundStyle(.red)
-                    Button("批量量化") {
+                    Button(i18n.t(.hub_ls_batchQuantize)) {
                         showBatchQuantize = true
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.mini)
                     .foregroundStyle(.orange)
-                    Button("同步至集群") {
+                    Button(i18n.t(.hub_ls_syncCluster)) {
                         syncToCluster()
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.mini)
-                    Button("导出路径") {
+                    Button(i18n.t(.hub_ls_exportPath)) {
                         exportPaths()
                     }
                     .buttonStyle(.bordered)
@@ -251,7 +273,7 @@ struct HubLocalStorageView: View {
                                 .foregroundStyle(theme.text)
                             Spacer()
                             if model.isActive == true {
-                                Label("当前使用", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                                Label(i18n.t(.hub_ls_currentUse), systemImage: "checkmark.circle.fill").foregroundStyle(.green)
                             }
                         }
 
@@ -262,14 +284,14 @@ struct HubLocalStorageView: View {
                             if let p = model.parameters { HubTagBadge(text: p, color: .cyan) }
                             if model.sizeGB > 0 { HubTagBadge(text: model.sizeFormatted, color: .gray) }
                             if model.isServing == true || servingModelIds.contains(model.id) {
-                                HubTagBadge(text: "推理中", icon: "bolt.fill", color: .green)
+                                HubTagBadge(text: i18n.t(.hub_ls_serving), icon: "bolt.fill", color: .green)
                             }
                             if let hint = model.fusionModuleHint { HubTagBadge(text: hint, icon: "star.circle", color: .blue) }
                         }
 
                         if let compat = model.compatibleFormats, !compat.isEmpty {
                             HStack(spacing: theme.spacingS) {
-                                Text("兼容格式:").font(.caption).foregroundStyle(theme.textTertiary)
+                                Text(i18n.t(.hub_ls_compatFormats)).font(.caption).foregroundStyle(theme.textTertiary)
                                 ForEach(compat, id: \.self) { fmt in
                                     HubTagBadge(text: fmt.uppercased(), color: .secondary)
                                 }
@@ -277,43 +299,43 @@ struct HubLocalStorageView: View {
                         }
 
                         HStack(spacing: theme.spacingS) {
-                            Button(model.isPinned == true ? "取消置顶" : "置顶") {
+                            Button(model.isPinned == true ? i18n.t(.hub_ls_unpin) : i18n.t(.hub_ls_pin)) {
                                 togglePin(model)
                             }
                             .buttonStyle(.bordered)
 
                             if servingModelIds.contains(model.id) || model.isServing == true {
-                                Button("停止推理") {
+                                Button(i18n.t(.hub_ls_stopServe)) {
                                     stopServing(model)
                                 }
                                 .buttonStyle(.bordered)
                                 .foregroundStyle(.orange)
                             } else {
-                                Button("启动推理") {
+                                Button(i18n.t(.hub_ls_startServe)) {
                                     startServing(model)
                                 }
                                 .buttonStyle(.borderedProminent)
                             }
 
-                            Button("删除") {
+                            Button(i18n.t(.delete)) {
                                 deleteModel(model)
                             }
                             .buttonStyle(.bordered)
                             .foregroundStyle(.red)
                         }
 
-                        GroupBox("基本信息") {
+                        GroupBox(i18n.t(.hub_ls_basicInfo)) {
                             VStack(alignment: .leading, spacing: 6) {
                                 HubDetailCell(label: "ID", value: model.id)
-                                if let path = model.modelPath { HubDetailCell(label: "路径", value: path) }
-                                if let src = model.source { HubDetailCell(label: "来源", value: src) }
-                                if let eng = model.engineType { HubDetailCell(label: "引擎", value: eng) }
-                                if let lic = model.license { HubDetailCell(label: "许可", value: lic) }
+                                if let path = model.modelPath { HubDetailCell(label: i18n.t(.hub_ls_path), value: path) }
+                                if let src = model.source { HubDetailCell(label: i18n.t(.hub_ls_source), value: src) }
+                                if let eng = model.engineType { HubDetailCell(label: i18n.t(.hub_ls_engine), value: eng) }
+                                if let lic = model.license { HubDetailCell(label: i18n.t(.hub_ls_license), value: lic) }
                             }
                         }
 
                         if let mods = model.allowedModules, !mods.isEmpty {
-                            GroupBox("允许模块") {
+                            GroupBox(i18n.t(.hub_ls_allowedModules)) {
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: 4) {
                                         ForEach(mods, id: \.self) { mod in
@@ -333,7 +355,7 @@ struct HubLocalStorageView: View {
             } else {
                 VStack(spacing: theme.spacingM) {
                     Image(systemName: "internaldrive").font(.system(size: 48)).foregroundStyle(.secondary)
-                    Text("选择模型查看详情")
+                    Text(i18n.t(.hub_ls_selectModelHint))
                         .foregroundStyle(theme.textSecondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -342,10 +364,10 @@ struct HubLocalStorageView: View {
     }
 
     private func versionSection(for model: HubModel) -> some View {
-        GroupBox("版本管理") {
+        GroupBox(i18n.t(.hub_ls_versionMgmt)) {
             VStack(alignment: .leading, spacing: theme.spacingS) {
                 HStack {
-                    Text("版本列表")
+                    Text(i18n.t(.hub_ls_versionList))
                         .font(.system(size: theme.textSize, weight: .medium))
                         .foregroundStyle(theme.text)
                     Spacer()
@@ -359,7 +381,7 @@ struct HubLocalStorageView: View {
                 if loadingVersions {
                     ProgressView().controlSize(.small)
                 } else if versions.isEmpty {
-                    Text("暂无版本信息")
+                    Text(i18n.t(.hub_ls_noVersions))
                         .font(.caption)
                         .foregroundStyle(theme.textTertiary)
                 } else {
@@ -388,24 +410,24 @@ struct HubLocalStorageView: View {
                             }
                             Spacer()
                             HStack(spacing: 4) {
-                                Button("回滚") { rollbackVersion(ver) }
+                                Button(i18n.t(.hub_ls_rollback)) { rollbackVersion(ver) }
                                     .buttonStyle(.bordered)
                                     .controlSize(.mini)
                                     .foregroundStyle(.orange)
                                 if ver.statusEnum == .draft {
-                                    Button("发布") { promoteVersion(ver) }
+                                    Button(i18n.t(.hub_ls_publish)) { promoteVersion(ver) }
                                         .buttonStyle(.bordered)
                                         .controlSize(.mini)
                                         .foregroundStyle(.green)
                                 }
                                 if ver.statusEnum == .published {
-                                    Button("废弃") { deprecateVersion(ver) }
+                                    Button(i18n.t(.hub_ls_deprecate)) { deprecateVersion(ver) }
                                         .buttonStyle(.bordered)
                                         .controlSize(.mini)
                                         .foregroundStyle(.yellow)
                                 }
                                 if ver.statusEnum == .deprecated {
-                                    Button("下线") { retireVersion(ver) }
+                                    Button(i18n.t(.hub_ls_retire)) { retireVersion(ver) }
                                         .buttonStyle(.bordered)
                                         .controlSize(.mini)
                                         .foregroundStyle(.red)
@@ -514,16 +536,16 @@ struct HubLocalStorageView: View {
 
     private var batchQuantizeSheet: some View {
         VStack(spacing: theme.spacingM) {
-            Text("批量量化")
+            Text(i18n.t(.hub_ls_batchQuantTitle))
                 .font(.title2)
                 .bold()
-            Text("将对 \(selectedCount) 个模型执行量化转换")
+            Text(String(format: i18n.t(.hub_ls_batchQuantHintFmt), selectedCount))
                 .font(.caption)
                 .foregroundStyle(theme.textSecondary)
 
             HStack(spacing: theme.spacingM) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("目标格式").font(.caption).foregroundStyle(.secondary)
+                    Text(i18n.t(.hub_ls_targetFormat)).font(.caption).foregroundStyle(.secondary)
                     Picker("", selection: $batchQuantFormat) {
                         Text("MLX").tag("mlx")
                         Text("GGUF").tag("gguf")
@@ -532,7 +554,7 @@ struct HubLocalStorageView: View {
                     .frame(width: 160)
                 }
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("量化位数").font(.caption).foregroundStyle(.secondary)
+                    Text(i18n.t(.hub_ls_quantBits)).font(.caption).foregroundStyle(.secondary)
                     Picker("", selection: $batchQuantBits) {
                         Text("2-bit").tag(2)
                         Text("4-bit").tag(4)
@@ -561,9 +583,9 @@ struct HubLocalStorageView: View {
             }
 
             HStack {
-                Button("取消") { showBatchQuantize = false }
+                Button(i18n.t(.cancel)) { showBatchQuantize = false }
                     .buttonStyle(.bordered)
-                Button("开始量化") {
+                Button(i18n.t(.hub_ls_startQuantize)) {
                     batchQuantize()
                     showBatchQuantize = false
                 }
@@ -588,7 +610,7 @@ struct HubLocalStorageView: View {
                 }
                 lastError = nil
             } catch {
-                lastError = "批量量化失败: \(error.localizedDescription)"
+                lastError = String(format: i18n.t(.hub_ls_batchQuantFailFmt), error.localizedDescription)
                 storageLog.error("Batch quantize failed: \(error.localizedDescription)")
             }
         }
@@ -603,7 +625,7 @@ struct HubLocalStorageView: View {
                     loadVersionsFor(model)
                 }
             } catch {
-                lastError = "版本回滚失败: \(error.localizedDescription)"
+                lastError = String(format: i18n.t(.hub_ls_rollbackFailFmt), error.localizedDescription)
                 storageLog.error("Rollback failed: \(error.localizedDescription)")
             }
         }
@@ -620,7 +642,7 @@ struct HubLocalStorageView: View {
                 lastError = nil
             } catch {
                 storageLog.error("Cluster sync failed: \(error.localizedDescription)")
-                lastError = "集群同步失败: \(error.localizedDescription)"
+                lastError = String(format: i18n.t(.hub_ls_syncFailFmt), error.localizedDescription)
             }
         }
     }
@@ -670,7 +692,7 @@ struct HubLocalStorageView: View {
                 storageLog.info("Serving started for \(model.id): port=\(resp.port ?? 0)")
                 lastError = nil
             } catch {
-                lastError = "启动推理失败: \(error.localizedDescription)"
+                lastError = String(format: i18n.t(.hub_ls_startServeFailFmt), error.localizedDescription)
                 storageLog.error("Serve failed: \(error.localizedDescription)")
             }
         }
@@ -684,7 +706,7 @@ struct HubLocalStorageView: View {
                 storageLog.info("Serving stopped for \(model.id)")
                 lastError = nil
             } catch {
-                lastError = "停止推理失败: \(error.localizedDescription)"
+                lastError = String(format: i18n.t(.hub_ls_stopServeFailFmt), error.localizedDescription)
                 storageLog.error("Unserve failed: \(error.localizedDescription)")
             }
         }
@@ -711,7 +733,7 @@ struct HubLocalStorageView: View {
                 storageLog.info("Promoted version: \(ver.id)")
                 if let model = selectedModel { loadVersionsFor(model) }
             } catch {
-                lastError = "发布版本失败: \(error.localizedDescription)"
+                lastError = String(format: i18n.t(.hub_ls_publishFailFmt), error.localizedDescription)
                 storageLog.error("Promote failed: \(error.localizedDescription)")
             }
         }
@@ -724,7 +746,7 @@ struct HubLocalStorageView: View {
                 storageLog.info("Deprecated version: \(ver.id)")
                 if let model = selectedModel { loadVersionsFor(model) }
             } catch {
-                lastError = "废弃版本失败: \(error.localizedDescription)"
+                lastError = String(format: i18n.t(.hub_ls_deprecateFailFmt), error.localizedDescription)
                 storageLog.error("Deprecate failed: \(error.localizedDescription)")
             }
         }
@@ -737,7 +759,7 @@ struct HubLocalStorageView: View {
                 storageLog.info("Retired version: \(ver.id)")
                 if let model = selectedModel { loadVersionsFor(model) }
             } catch {
-                lastError = "下线版本失败: \(error.localizedDescription)"
+                lastError = String(format: i18n.t(.hub_ls_retireFailFmt), error.localizedDescription)
                 storageLog.error("Retire failed: \(error.localizedDescription)")
             }
         }
@@ -750,6 +772,7 @@ private struct LocalModelRow: View {
     let isSelected: Bool
     var isServing: Bool = false
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         HStack(spacing: theme.spacingS) {
@@ -767,14 +790,14 @@ private struct LocalModelRow: View {
                         .font(.system(size: theme.textSize, weight: .medium))
                         .foregroundStyle(theme.text)
                     if isServing {
-                        Text("推理中")
+                        Text(i18n.t(.hub_ls_serving))
                             .font(.system(size: 9, weight: .medium))
                             .padding(.horizontal, 4).padding(.vertical, 1)
                             .background(Capsule().fill(Color.green.opacity(0.15)))
                             .foregroundStyle(.green)
                     }
                     if model.isPinned == true {
-                        Text("常驻")
+                        Text(i18n.t(.hub_ls_resident))
                             .font(.system(size: 9, weight: .medium))
                             .padding(.horizontal, 4).padding(.vertical, 1)
                             .background(Capsule().fill(Color.yellow.opacity(0.15)))

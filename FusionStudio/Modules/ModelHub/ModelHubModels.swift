@@ -96,11 +96,11 @@ enum HubVersionStatus: String, CaseIterable {
 
     var label: String {
         switch self {
-        case .draft: return "草稿"
-        case .testing: return "测试中"
-        case .published: return "已发布"
-        case .deprecated: return "已废弃"
-        case .retired: return "已下线"
+        case .draft: return I18nManager.shared.t(.hub_ver_draft)
+        case .testing: return I18nManager.shared.t(.hub_ver_testing)
+        case .published: return I18nManager.shared.t(.hub_ver_published)
+        case .deprecated: return I18nManager.shared.t(.hub_ver_deprecated)
+        case .retired: return I18nManager.shared.t(.hub_ver_retired)
         }
     }
 
@@ -689,11 +689,11 @@ struct HubDeployment: Identifiable, Codable, Hashable {
 
     var statusLabel: String {
         switch status {
-        case "pending": return "等待中"
-        case "running", "active": return "运行中"
-        case "stopped": return "已停止"
-        case "failed", "error": return "失败"
-        default: return status ?? "未知"
+        case "pending": return I18nManager.shared.t(.hub_dep_stPending)
+        case "running", "active": return I18nManager.shared.t(.hub_dep_stRunning)
+        case "stopped": return I18nManager.shared.t(.hub_dep_stStopped)
+        case "failed", "error": return I18nManager.shared.t(.hub_dep_stFailed)
+        default: return status ?? I18nManager.shared.t(.hub_dep_stUnknown)
         }
     }
 
@@ -782,10 +782,10 @@ struct HubTenant: Identifiable, Codable, Hashable {
 
     var roleLabel: String {
         switch role {
-        case "admin": return "管理员"
-        case "developer": return "开发者"
-        case "viewer": return "只读"
-        default: return role ?? "自定义"
+        case "admin": return I18nManager.shared.t(.hub_role_admin)
+        case "developer": return I18nManager.shared.t(.hub_role_developer)
+        case "viewer": return I18nManager.shared.t(.hub_role_viewer)
+        default: return role ?? I18nManager.shared.t(.hub_role_custom)
         }
     }
 
@@ -1044,10 +1044,10 @@ struct HubApproval: Identifiable, Codable {
 
     var levelLabel: String {
         switch level {
-        case "L1": return "L1 自动审批"
-        case "L2": return "L2 主管审批"
-        case "L3": return "L3 安全审批"
-        default: return level ?? "未知"
+        case "L1": return I18nManager.shared.t(.hub_lvl_l1)
+        case "L2": return I18nManager.shared.t(.hub_lvl_l2)
+        case "L3": return I18nManager.shared.t(.hub_lvl_l3)
+        default: return level ?? I18nManager.shared.t(.hub_lvl_unknown)
         }
     }
 

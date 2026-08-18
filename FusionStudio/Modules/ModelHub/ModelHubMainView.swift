@@ -38,11 +38,28 @@ enum ModelHubSection: String, CaseIterable, Identifiable {
         case .security:     return "shield.checkered"
         }
     }
+
+    var localLabel: String {
+        switch self {
+        case .dashboard:    return I18nManager.shared.t(.hub_main_secDashboard)
+        case .market:       return I18nManager.shared.t(.hub_main_secMarket)
+        case .localStorage: return I18nManager.shared.t(.hub_main_secLocalStorage)
+        case .convertQuant: return I18nManager.shared.t(.hub_main_secConvertQuant)
+        case .schedule:     return I18nManager.shared.t(.hub_main_secSchedule)
+        case .cluster:      return I18nManager.shared.t(.hub_main_secCluster)
+        case .deployment:   return I18nManager.shared.t(.hub_main_secDeployment)
+        case .permission:   return I18nManager.shared.t(.hub_main_secPermission)
+        case .monitor:      return I18nManager.shared.t(.hub_main_secMonitor)
+        case .benchmark:    return I18nManager.shared.t(.hub_main_secBenchmark)
+        case .security:     return I18nManager.shared.t(.hub_main_secSecurity)
+        }
+    }
 }
 
 struct ModelHubMainView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @StateObject private var client = ModelHubAPIClient.shared
     @State private var selectedSection: ModelHubSection = .dashboard
 
@@ -56,11 +73,11 @@ struct ModelHubMainView: View {
         HStack(spacing: theme.spacingS) {
             Image(systemName: "key.fill")
                 .foregroundStyle(.orange)
-            Text("未配置 API Key，受保护接口将返回 401。请到「权限管控」创建 Key。")
+            Text(i18n.t(.hub_main_noKeyMsg))
                 .font(.system(size: theme.captionSize))
                 .foregroundStyle(theme.textSecondary)
             Spacer()
-            Button("前往创建") { navigateTo(.permission) }
+            Button(i18n.t(.hub_main_goCreate)) { navigateTo(.permission) }
                 .font(.system(size: theme.captionSize, weight: .medium))
                 .buttonStyle(.bordered)
                 .controlSize(.small)
@@ -143,7 +160,7 @@ struct ModelHubMainView: View {
                         .foregroundStyle(isActive ? theme.accent : theme.textTertiary)
                         .frame(width: 20)
                 }
-                Text(section.rawValue)
+                Text(section.localLabel)
                     .font(.system(size: theme.textSize, weight: isActive ? .medium : .regular))
                     .foregroundStyle(isActive ? theme.text : theme.textSecondary)
                 Spacer()
@@ -164,7 +181,7 @@ struct ModelHubMainView: View {
             Circle()
                 .fill(client.isConnected ? Color.green : Color.red)
                 .frame(width: 6, height: 6)
-            Text(client.isConnected ? "已连接" : (client.lastError ?? "未连接"))
+            Text(client.isConnected ? i18n.t(.hub_main_connected) : (client.lastError ?? i18n.t(.hub_main_disconnected)))
                 .font(.system(size: theme.captionSize))
                 .foregroundStyle(theme.textTertiary)
                 .lineLimit(1)
@@ -187,13 +204,13 @@ struct ModelHubMainView: View {
                 Image(systemName: "exclamationmark.triangle")
                     .font(.system(size: 48))
                     .foregroundStyle(.orange)
-                Text("Model Hub 服务未连接")
+                Text(i18n.t(.hub_main_serviceNotConnected))
                     .font(.system(size: theme.titleSize, weight: .medium))
                     .foregroundStyle(theme.text)
-                Text("请确认 fusion-model-hub 服务已启动（端口 \(FusionConfig.shared.modelHubPort)）")
+                Text(String(format: i18n.t(.hub_main_serviceHintFmt), FusionConfig.shared.modelHubPort))
                     .font(.system(size: theme.textSize))
                     .foregroundStyle(theme.textSecondary)
-                Button("重试连接") {
+                Button(i18n.t(.hub_main_retry)) {
                     Task { await client.checkConnection() }
                 }
                 .buttonStyle(.borderedProminent)

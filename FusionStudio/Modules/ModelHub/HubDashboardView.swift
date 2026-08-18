@@ -10,6 +10,7 @@ private let dashLog = Logger(subsystem: "com.fusion.studio", category: "HubDashb
 
 struct HubDashboardView: View {
     @ObservedObject var client: ModelHubAPIClient
+    @StateObject private var i18n = I18nManager.shared
     @Environment(\.studioTheme) private var theme
     var navigateTo: ((ModelHubSection) -> Void)?
 
@@ -37,9 +38,9 @@ struct HubDashboardView: View {
 
     private var statusBadges: some View {
         HStack(spacing: theme.spacingM) {
-            StatusBadge(label: "MLX推理引擎", isOn: health?.mlxConnected ?? false, onIcon: "bolt.fill", offIcon: "bolt.slash")
-            StatusBadge(label: "集群模式", isOn: stats.clusterNodesOnline > 0, onIcon: "server.rack", offIcon: "desktopcomputer")
-            StatusBadge(label: "模型服务", isOn: stats.servingModels > 0, onIcon: "play.circle.fill", offIcon: "pause.circle")
+            StatusBadge(label: i18n.t(.hub_dash_mlxEngine), isOn: health?.mlxConnected ?? false, onIcon: "bolt.fill", offIcon: "bolt.slash")
+            StatusBadge(label: i18n.t(.hub_dash_clusterMode), isOn: stats.clusterNodesOnline > 0, onIcon: "server.rack", offIcon: "desktopcomputer")
+            StatusBadge(label: i18n.t(.hub_dash_modelService), isOn: stats.servingModels > 0, onIcon: "play.circle.fill", offIcon: "pause.circle")
         }
     }
 
@@ -50,34 +51,34 @@ struct HubDashboardView: View {
             GridItem(.flexible(), spacing: theme.spacingM),
             GridItem(.flexible(), spacing: theme.spacingM),
         ], spacing: theme.spacingM) {
-            HubStatCard(title: "本地模型", value: "\(stats.downloadedModels)", icon: "internaldrive", color: .blue)
-            HubStatCard(title: "活跃模型", value: "\(stats.activeModels)", icon: "bolt.fill", color: .green)
-            HubStatCard(title: "下载中", value: "\(stats.downloadsInProgress)", icon: "arrow.down.circle", color: .orange)
-            HubStatCard(title: "总存储", value: String(format: "%.1f GB", stats.totalSizeGB), icon: "harddrive", color: .purple)
-            HubStatCard(title: "置顶", value: "\(stats.pinnedModels)", icon: "pin.fill", color: .yellow)
-            HubStatCard(title: "量化中", value: "\(stats.quantizeInProgress)", icon: "arrow.triangle.2.circlepath", color: .cyan)
-            HubStatCard(title: "集群节点", value: "\(stats.clusterNodesOnline)/\(stats.clusterNodesTotal)", icon: "server.rack", color: .indigo)
-            HubStatCard(title: "模型总数", value: "\(stats.totalModels)", icon: "cube.box", color: .gray)
+            HubStatCard(title: i18n.t(.hub_dash_localModels), value: "\(stats.downloadedModels)", icon: "internaldrive", color: .blue)
+            HubStatCard(title: i18n.t(.hub_dash_activeModels), value: "\(stats.activeModels)", icon: "bolt.fill", color: .green)
+            HubStatCard(title: i18n.t(.hub_dash_downloading), value: "\(stats.downloadsInProgress)", icon: "arrow.down.circle", color: .orange)
+            HubStatCard(title: i18n.t(.hub_dash_totalStorage), value: String(format: "%.1f GB", stats.totalSizeGB), icon: "harddrive", color: .purple)
+            HubStatCard(title: i18n.t(.hub_dash_pinned), value: "\(stats.pinnedModels)", icon: "pin.fill", color: .yellow)
+            HubStatCard(title: i18n.t(.hub_dash_quantizing), value: "\(stats.quantizeInProgress)", icon: "arrow.triangle.2.circlepath", color: .cyan)
+            HubStatCard(title: i18n.t(.hub_dash_clusterNodes), value: "\(stats.clusterNodesOnline)/\(stats.clusterNodesTotal)", icon: "server.rack", color: .indigo)
+            HubStatCard(title: i18n.t(.hub_dash_totalModels), value: "\(stats.totalModels)", icon: "cube.box", color: .gray)
         }
     }
 
     private var quickActions: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            Text("快捷操作")
+            Text(i18n.t(.hub_dash_quickActions))
                 .font(.system(size: theme.headlineSize, weight: .semibold))
                 .foregroundStyle(theme.text)
 
             HStack(spacing: theme.spacingM) {
-                QuickActionButton(title: "搜索市场", icon: "magnifyingglass", color: .blue) {
+                QuickActionButton(title: i18n.t(.hub_dash_searchMarket), icon: "magnifyingglass", color: .blue) {
                     navigateTo?(.market)
                 }
-                QuickActionButton(title: "下载模型", icon: "icloud.and.arrow.down", color: .green) {
+                QuickActionButton(title: i18n.t(.hub_dash_downloadModel), icon: "icloud.and.arrow.down", color: .green) {
                     navigateTo?(.market)
                 }
-                QuickActionButton(title: "量化模型", icon: "arrow.triangle.2.circlepath", color: .orange) {
+                QuickActionButton(title: i18n.t(.hub_dash_quantizeModel), icon: "arrow.triangle.2.circlepath", color: .orange) {
                     navigateTo?(.convertQuant)
                 }
-                QuickActionButton(title: "系统清理", icon: "trash.circle", color: .red) {
+                QuickActionButton(title: i18n.t(.hub_dash_systemClean), icon: "trash.circle", color: .red) {
                     Task { await cleanupSystem() }
                 }
             }
@@ -86,12 +87,12 @@ struct HubDashboardView: View {
 
     private var recentSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            Text("最近模型")
+            Text(i18n.t(.hub_dash_recentModels))
                 .font(.system(size: theme.headlineSize, weight: .semibold))
                 .foregroundStyle(theme.text)
 
             if recentModels.isEmpty {
-                Text("暂无模型")
+                Text(i18n.t(.hub_dash_noModels))
                     .font(.system(size: theme.textSize))
                     .foregroundStyle(theme.textTertiary)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -108,14 +109,14 @@ struct HubDashboardView: View {
                                     .font(.system(size: theme.textSize, weight: .medium))
                                     .foregroundStyle(theme.text)
                                 if model.isPinned == true {
-                                    Text("常驻").font(.system(size: 9, weight: .medium))
+                                    Text(i18n.t(.hub_dash_resident)).font(.system(size: 9, weight: .medium))
                                         .foregroundStyle(.yellow)
                                         .padding(.horizontal, 4)
                                         .padding(.vertical, 1)
                                         .background(Capsule().fill(Color.yellow.opacity(0.15)))
                                 }
                                 if model.isServing == true {
-                                    Text("推理中").font(.system(size: 9, weight: .medium))
+                                    Text(i18n.t(.hub_dash_serving)).font(.system(size: 9, weight: .medium))
                                         .foregroundStyle(.green)
                                         .padding(.horizontal, 4)
                                         .padding(.vertical, 1)
@@ -152,7 +153,7 @@ struct HubDashboardView: View {
 
     private var systemOverview: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            Text("系统概览")
+            Text(i18n.t(.hub_dash_sysOverview))
                 .font(.system(size: theme.headlineSize, weight: .semibold))
                 .foregroundStyle(theme.text)
 
@@ -165,17 +166,17 @@ struct HubDashboardView: View {
                         MetricView(label: "GPU", value: String(format: "%.0f%%", gpu.usage ?? 0), icon: "gpu")
                     }
                     if let mem = mon.memory {
-                        MetricView(label: "内存", value: String(format: "%.1f/%.1f GB", mem.used ?? 0, mem.total ?? 0), icon: "memorychip")
+                        MetricView(label: i18n.t(.hub_dash_memory), value: String(format: "%.1f/%.1f GB", mem.used ?? 0, mem.total ?? 0), icon: "memorychip")
                     }
                     if let disk = mon.disk {
-                        MetricView(label: "磁盘", value: String(format: "%.0f/%.0f GB", disk.used ?? 0, disk.total ?? 0), icon: "harddrive")
+                        MetricView(label: i18n.t(.hub_dash_disk), value: String(format: "%.0f/%.0f GB", disk.used ?? 0, disk.total ?? 0), icon: "harddrive")
                     }
                     if let up = mon.uptime {
-                        MetricView(label: "运行时间", value: up, icon: "clock")
+                        MetricView(label: i18n.t(.hub_dash_uptime), value: up, icon: "clock")
                     }
                 }
             } else {
-                Text("加载中...")
+                Text(i18n.t(.hub_dash_loading))
                     .foregroundStyle(theme.textTertiary)
             }
         }
