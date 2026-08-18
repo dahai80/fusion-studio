@@ -1055,6 +1055,144 @@ enum I18nKey: String, CaseIterable {
     case doc_act_evVerCreate = "doc_act_evVerCreate"
     case doc_act_evWorkflowRun = "doc_act_evWorkflowRun"
     case doc_act_evFileUpload = "doc_act_evFileUpload"
+    case doc_cp_modeChat = "doc_cp_modeChat"
+    case doc_cp_modeCommand = "doc_cp_modeCommand"
+    case doc_cp_modeRag = "doc_cp_modeRag"
+    case doc_cp_modeRewrite = "doc_cp_modeRewrite"
+    case doc_cp_modeTranslate = "doc_cp_modeTranslate"
+    case doc_cp_modeSummarize = "doc_cp_modeSummarize"
+    case doc_cp_modeExpand = "doc_cp_modeExpand"
+    case doc_cp_targetLang = "doc_cp_targetLang"
+    case doc_cp_clearChat = "doc_cp_clearChat"
+    case doc_cp_thinking = "doc_cp_thinking"
+    case doc_cp_phChat = "doc_cp_phChat"
+    case doc_cp_phCommand = "doc_cp_phCommand"
+    case doc_cp_phRewrite = "doc_cp_phRewrite"
+    case doc_cp_phTranslateFmt = "doc_cp_phTranslateFmt"
+    case doc_cp_phSummarize = "doc_cp_phSummarize"
+    case doc_cp_phExpand = "doc_cp_phExpand"
+    case doc_cp_phRag = "doc_cp_phRag"
+    case doc_cp_errCopilotURL = "doc_cp_errCopilotURL"
+    case doc_cp_errCommandURL = "doc_cp_errCommandURL"
+    case doc_cp_errNoData = "doc_cp_errNoData"
+    case doc_cp_emptyResp = "doc_cp_emptyResp"
+    case doc_cp_ragChunksPrefix = "doc_cp_ragChunksPrefix"
+    case doc_cp_ragNoResult = "doc_cp_ragNoResult"
+    case doc_cp_rewriteResultPrefix = "doc_cp_rewriteResultPrefix"
+    case doc_cp_translateResultFmt = "doc_cp_translateResultFmt"
+    case doc_cp_summarizePrefix = "doc_cp_summarizePrefix"
+    case doc_cp_expandPrefix = "doc_cp_expandPrefix"
+    case doc_cp_noResult = "doc_cp_noResult"
+    case doc_cp_errPrefix = "doc_cp_errPrefix"
+    case doc_graph_title = "doc_graph_title"
+    case doc_graph_filterAll = "doc_graph_filterAll"
+    case doc_graph_filterLink = "doc_graph_filterLink"
+    case doc_graph_filterSemantic = "doc_graph_filterSemantic"
+    case doc_graph_filterTag = "doc_graph_filterTag"
+    case doc_graph_searchNode = "doc_graph_searchNode"
+    case doc_graph_refreshHelp = "doc_graph_refreshHelp"
+    case doc_graph_loading = "doc_graph_loading"
+    case doc_graph_linkCountFmt = "doc_graph_linkCountFmt"
+    case doc_graph_openPage = "doc_graph_openPage"
+    case doc_graph_empty = "doc_graph_empty"
+    case doc_graph_emptyHint = "doc_graph_emptyHint"
+    case doc_rag_title = "doc_rag_title"
+    case doc_rag_semanticQuery = "doc_rag_semanticQuery"
+    case doc_rag_queryPlaceholder = "doc_rag_queryPlaceholder"
+    case doc_rag_answer = "doc_rag_answer"
+    case doc_rag_chunksFmt = "doc_rag_chunksFmt"
+    case doc_rag_pageChunks = "doc_rag_pageChunks"
+    case doc_rag_noChunks = "doc_rag_noChunks"
+    case doc_rag_loadChunks = "doc_rag_loadChunks"
+    case doc_rag_indexMgmt = "doc_rag_indexMgmt"
+    case doc_rag_reindexAll = "doc_rag_reindexAll"
+    case doc_rag_reindexPage = "doc_rag_reindexPage"
+    case doc_rag_queryFailFmt = "doc_rag_queryFailFmt"
+    case doc_search_placeholder = "doc_search_placeholder"
+    case doc_search_type = "doc_search_type"
+    case doc_search_typeAll = "doc_search_typeAll"
+    case doc_search_typePage = "doc_search_typePage"
+    case doc_search_typeBook = "doc_search_typeBook"
+    case doc_search_sort = "doc_search_sort"
+    case doc_search_sortRelevance = "doc_search_sortRelevance"
+    case doc_search_sortDate = "doc_search_sortDate"
+    case doc_search_sortTitle = "doc_search_sortTitle"
+    case doc_search_resultFmt = "doc_search_resultFmt"
+    case doc_search_hintKeyword = "doc_search_hintKeyword"
+    case doc_search_noResult = "doc_search_noResult"
+    case doc_tpl_newTitle = "doc_tpl_newTitle"
+    case doc_tpl_name = "doc_tpl_name"
+    case doc_tpl_typeHint = "doc_tpl_typeHint"
+    case doc_tpl_category = "doc_tpl_category"
+    case doc_tpl_create = "doc_tpl_create"
+    case doc_tpl_title = "doc_tpl_title"
+    case doc_tpl_newHelp = "doc_tpl_newHelp"
+    case doc_tpl_empty = "doc_tpl_empty"
+    case doc_tpl_extractVars = "doc_tpl_extractVars"
+    case doc_tpl_delete = "doc_tpl_delete"
+    case doc_tpl_content = "doc_tpl_content"
+    case doc_tpl_variables = "doc_tpl_variables"
+    case doc_tpl_inputVarFmt = "doc_tpl_inputVarFmt"
+    case doc_tpl_useCreate = "doc_tpl_useCreate"
+    case doc_tpl_selDetail = "doc_tpl_selDetail"
+    case doc_ver_title = "doc_ver_title"
+    case doc_ver_snapshot = "doc_ver_snapshot"
+    case doc_ver_snapshotHelp = "doc_ver_snapshotHelp"
+    case doc_ver_compare = "doc_ver_compare"
+    case doc_ver_compareHelp = "doc_ver_compareHelp"
+    case doc_ver_empty = "doc_ver_empty"
+    case doc_ver_versionFmt = "doc_ver_versionFmt"
+    case doc_ver_setV1 = "doc_ver_setV1"
+    case doc_ver_setV2 = "doc_ver_setV2"
+    case doc_ver_restore = "doc_ver_restore"
+    case doc_ver_compareTitle = "doc_ver_compareTitle"
+    case doc_ver_diffFmt = "doc_ver_diffFmt"
+    case doc_office_fmtDocx = "doc_office_fmtDocx"
+    case doc_office_fmtXlsx = "doc_office_fmtXlsx"
+    case doc_office_fmtPptx = "doc_office_fmtPptx"
+    case doc_office_title = "doc_office_title"
+    case doc_office_cliStatus = "doc_office_cliStatus"
+    case doc_office_versionFmt = "doc_office_versionFmt"
+    case doc_office_formatsFmt = "doc_office_formatsFmt"
+    case doc_office_detecting = "doc_office_detecting"
+    case doc_office_create = "doc_office_create"
+    case doc_office_filename = "doc_office_filename"
+    case doc_office_createBtn = "doc_office_createBtn"
+    case doc_office_import = "doc_office_import"
+    case doc_office_filePath = "doc_office_filePath"
+    case doc_office_importBtn = "doc_office_importBtn"
+    case doc_office_export = "doc_office_export"
+    case doc_office_pageId = "doc_office_pageId"
+    case doc_office_format = "doc_office_format"
+    case doc_office_exportBtn = "doc_office_exportBtn"
+    case doc_office_merge = "doc_office_merge"
+    case doc_office_templateName = "doc_office_templateName"
+    case doc_office_dataJson = "doc_office_dataJson"
+    case doc_office_mergeBtn = "doc_office_mergeBtn"
+    case doc_office_cmdTitle = "doc_office_cmdTitle"
+    case doc_office_cmdFile = "doc_office_cmdFile"
+    case doc_office_cmdAction = "doc_office_cmdAction"
+    case doc_office_executeBtn = "doc_office_executeBtn"
+    case doc_office_importDir = "doc_office_importDir"
+    case doc_office_dirPath = "doc_office_dirPath"
+    case doc_wf_newTitle = "doc_wf_newTitle"
+    case doc_wf_name = "doc_wf_name"
+    case doc_wf_desc = "doc_wf_desc"
+    case doc_wf_create = "doc_wf_create"
+    case doc_wf_title = "doc_wf_title"
+    case doc_wf_newHelp = "doc_wf_newHelp"
+    case doc_wf_seedHelp = "doc_wf_seedHelp"
+    case doc_wf_empty = "doc_wf_empty"
+    case doc_wf_delete = "doc_wf_delete"
+    case doc_wf_yamlDef = "doc_wf_yamlDef"
+    case doc_wf_runInput = "doc_wf_runInput"
+    case doc_wf_runBtn = "doc_wf_runBtn"
+    case doc_wf_runHistory = "doc_wf_runHistory"
+    case doc_wf_selDetail = "doc_wf_selDetail"
+    case doc_wf_transitionTitle = "doc_wf_transitionTitle"
+    case doc_wf_queryBtn = "doc_wf_queryBtn"
+    case doc_wf_currentStateFmt = "doc_wf_currentStateFmt"
+    case doc_wf_executeBtn = "doc_wf_executeBtn"
 }
 
 // MARK: - 翻译管理器
@@ -1768,6 +1906,144 @@ let zhCNTranslations: [String: String] = [
     "doc_act_evVerCreate": "🔖 创建版本",
     "doc_act_evWorkflowRun": "🔄 运行工作流",
     "doc_act_evFileUpload": "📎 上传附件",
+    "doc_cp_modeChat": "对话",
+    "doc_cp_modeCommand": "指令",
+    "doc_cp_modeRag": "知识",
+    "doc_cp_modeRewrite": "改写",
+    "doc_cp_modeTranslate": "翻译",
+    "doc_cp_modeSummarize": "摘要",
+    "doc_cp_modeExpand": "扩展",
+    "doc_cp_targetLang": "目标语言",
+    "doc_cp_clearChat": "清空对话",
+    "doc_cp_thinking": "思考中...",
+    "doc_cp_phChat": "输入消息...",
+    "doc_cp_phCommand": "/command ...",
+    "doc_cp_phRewrite": "输入改写指令...",
+    "doc_cp_phTranslateFmt": "输入文本翻译为%@...",
+    "doc_cp_phSummarize": "输入文本生成摘要...",
+    "doc_cp_phExpand": "输入文本扩展内容...",
+    "doc_cp_phRag": "知识检索...",
+    "doc_cp_errCopilotURL": "Copilot URL 不可用",
+    "doc_cp_errCommandURL": "Command URL 不可用",
+    "doc_cp_errNoData": "无响应数据",
+    "doc_cp_emptyResp": "(空响应)",
+    "doc_cp_ragChunksPrefix": "📚 相关知识片段：",
+    "doc_cp_ragNoResult": "无相关结果",
+    "doc_cp_rewriteResultPrefix": "✏️ 改写结果：",
+    "doc_cp_translateResultFmt": "🌐 翻译结果(%@)：",
+    "doc_cp_summarizePrefix": "📋 摘要：",
+    "doc_cp_expandPrefix": "📖 扩展内容：",
+    "doc_cp_noResult": "(无结果)",
+    "doc_cp_errPrefix": "❌ ",
+    "doc_graph_title": "知识图谱",
+    "doc_graph_filterAll": "全部",
+    "doc_graph_filterLink": "链接",
+    "doc_graph_filterSemantic": "语义",
+    "doc_graph_filterTag": "标签",
+    "doc_graph_searchNode": "搜索节点...",
+    "doc_graph_refreshHelp": "刷新图谱",
+    "doc_graph_loading": "加载图谱...",
+    "doc_graph_linkCountFmt": "链接数: %d",
+    "doc_graph_openPage": "打开页面",
+    "doc_graph_empty": "暂无图谱数据",
+    "doc_graph_emptyHint": "创建页面间链接后将自动生成知识图谱",
+    "doc_rag_title": "RAG 知识增强",
+    "doc_rag_semanticQuery": "语义查询",
+    "doc_rag_queryPlaceholder": "输入查询问题...",
+    "doc_rag_answer": "回答",
+    "doc_rag_chunksFmt": "相关片段 (%d)",
+    "doc_rag_pageChunks": "页面索引段落",
+    "doc_rag_noChunks": "暂无索引段落",
+    "doc_rag_loadChunks": "加载段落",
+    "doc_rag_indexMgmt": "索引管理",
+    "doc_rag_reindexAll": "全量重建索引",
+    "doc_rag_reindexPage": "重建当前页索引",
+    "doc_rag_queryFailFmt": "查询失败: %@",
+    "doc_search_placeholder": "搜索文档...",
+    "doc_search_type": "类型",
+    "doc_search_typeAll": "全部",
+    "doc_search_typePage": "页面",
+    "doc_search_typeBook": "书架",
+    "doc_search_sort": "排序",
+    "doc_search_sortRelevance": "相关度",
+    "doc_search_sortDate": "时间",
+    "doc_search_sortTitle": "标题",
+    "doc_search_resultFmt": "%d 结果",
+    "doc_search_hintKeyword": "输入关键词搜索文档",
+    "doc_search_noResult": "无搜索结果",
+    "doc_tpl_newTitle": "新建模板",
+    "doc_tpl_name": "名称",
+    "doc_tpl_typeHint": "类型 (report/letter/...)",
+    "doc_tpl_category": "分类",
+    "doc_tpl_create": "创建",
+    "doc_tpl_title": "模板",
+    "doc_tpl_newHelp": "新建模板",
+    "doc_tpl_empty": "暂无模板",
+    "doc_tpl_extractVars": "提取变量",
+    "doc_tpl_delete": "删除模板",
+    "doc_tpl_content": "模板内容",
+    "doc_tpl_variables": "模板变量",
+    "doc_tpl_inputVarFmt": "输入 %@",
+    "doc_tpl_useCreate": "使用模板创建",
+    "doc_tpl_selDetail": "选择模板查看详情",
+    "doc_ver_title": "版本历史",
+    "doc_ver_snapshot": "快照",
+    "doc_ver_snapshotHelp": "创建版本快照",
+    "doc_ver_compare": "对比",
+    "doc_ver_compareHelp": "对比选中版本",
+    "doc_ver_empty": "暂无版本历史",
+    "doc_ver_versionFmt": "版本 %d",
+    "doc_ver_setV1": "设为 V1 (旧版)",
+    "doc_ver_setV2": "设为 V2 (新版)",
+    "doc_ver_restore": "恢复此版本",
+    "doc_ver_compareTitle": "版本对比",
+    "doc_ver_diffFmt": "V%d → V%d",
+    "doc_office_fmtDocx": "Word 文档",
+    "doc_office_fmtXlsx": "Excel 表格",
+    "doc_office_fmtPptx": "PowerPoint 演示",
+    "doc_office_title": "Office 操控",
+    "doc_office_cliStatus": "OfficeCLI 状态",
+    "doc_office_versionFmt": "版本: %@",
+    "doc_office_formatsFmt": "支持格式: %@",
+    "doc_office_detecting": "检测中...",
+    "doc_office_create": "创建文档",
+    "doc_office_filename": "文件名",
+    "doc_office_createBtn": "创建",
+    "doc_office_import": "导入文档",
+    "doc_office_filePath": "文件路径",
+    "doc_office_importBtn": "导入",
+    "doc_office_export": "导出页面",
+    "doc_office_pageId": "页面 ID",
+    "doc_office_format": "格式",
+    "doc_office_exportBtn": "导出",
+    "doc_office_merge": "模板合并",
+    "doc_office_templateName": "模板名",
+    "doc_office_dataJson": "数据 JSON",
+    "doc_office_mergeBtn": "合并",
+    "doc_office_cmdTitle": "Office 命令",
+    "doc_office_cmdFile": "文件",
+    "doc_office_cmdAction": "命令",
+    "doc_office_executeBtn": "执行",
+    "doc_office_importDir": "批量导入目录",
+    "doc_office_dirPath": "目录路径",
+    "doc_wf_newTitle": "新建工作流",
+    "doc_wf_name": "名称",
+    "doc_wf_desc": "描述",
+    "doc_wf_create": "创建",
+    "doc_wf_title": "工作流",
+    "doc_wf_newHelp": "新建",
+    "doc_wf_seedHelp": "种子工作流",
+    "doc_wf_empty": "暂无工作流",
+    "doc_wf_delete": "删除工作流",
+    "doc_wf_yamlDef": "YAML 定义",
+    "doc_wf_runInput": "运行输入",
+    "doc_wf_runBtn": "执行工作流",
+    "doc_wf_runHistory": "运行记录",
+    "doc_wf_selDetail": "选择工作流查看详情",
+    "doc_wf_transitionTitle": "页面状态转换",
+    "doc_wf_queryBtn": "查询",
+    "doc_wf_currentStateFmt": "当前状态: %@",
+    "doc_wf_executeBtn": "执行",
 ]
 
 let enUSTranslations: [String: String] = [
@@ -2436,6 +2712,144 @@ let enUSTranslations: [String: String] = [
     "doc_act_evVerCreate": "🔖 Created version",
     "doc_act_evWorkflowRun": "🔄 Ran workflow",
     "doc_act_evFileUpload": "📎 Uploaded file",
+    "doc_cp_modeChat": "Chat",
+    "doc_cp_modeCommand": "Command",
+    "doc_cp_modeRag": "Knowledge",
+    "doc_cp_modeRewrite": "Rewrite",
+    "doc_cp_modeTranslate": "Translate",
+    "doc_cp_modeSummarize": "Summarize",
+    "doc_cp_modeExpand": "Expand",
+    "doc_cp_targetLang": "Target Language",
+    "doc_cp_clearChat": "Clear chat",
+    "doc_cp_thinking": "Thinking...",
+    "doc_cp_phChat": "Type a message...",
+    "doc_cp_phCommand": "/command ...",
+    "doc_cp_phRewrite": "Enter rewrite instruction...",
+    "doc_cp_phTranslateFmt": "Enter text to translate to %@...",
+    "doc_cp_phSummarize": "Enter text to summarize...",
+    "doc_cp_phExpand": "Enter text to expand...",
+    "doc_cp_phRag": "Knowledge retrieval...",
+    "doc_cp_errCopilotURL": "Copilot URL unavailable",
+    "doc_cp_errCommandURL": "Command URL unavailable",
+    "doc_cp_errNoData": "No response data",
+    "doc_cp_emptyResp": "(empty response)",
+    "doc_cp_ragChunksPrefix": "📚 Relevant knowledge chunks:",
+    "doc_cp_ragNoResult": "No relevant results",
+    "doc_cp_rewriteResultPrefix": "✏️ Rewrite result: ",
+    "doc_cp_translateResultFmt": "🌐 Translation (%@): ",
+    "doc_cp_summarizePrefix": "📋 Summary: ",
+    "doc_cp_expandPrefix": "📖 Expanded content: ",
+    "doc_cp_noResult": "(no result)",
+    "doc_cp_errPrefix": "❌ ",
+    "doc_graph_title": "Knowledge Graph",
+    "doc_graph_filterAll": "All",
+    "doc_graph_filterLink": "Link",
+    "doc_graph_filterSemantic": "Semantic",
+    "doc_graph_filterTag": "Tag",
+    "doc_graph_searchNode": "Search nodes...",
+    "doc_graph_refreshHelp": "Refresh graph",
+    "doc_graph_loading": "Loading graph...",
+    "doc_graph_linkCountFmt": "Links: %d",
+    "doc_graph_openPage": "Open page",
+    "doc_graph_empty": "No graph data yet",
+    "doc_graph_emptyHint": "Knowledge graph generates automatically after creating links between pages",
+    "doc_rag_title": "RAG Knowledge Enhancement",
+    "doc_rag_semanticQuery": "Semantic Query",
+    "doc_rag_queryPlaceholder": "Enter a query question...",
+    "doc_rag_answer": "Answer",
+    "doc_rag_chunksFmt": "Relevant chunks (%d)",
+    "doc_rag_pageChunks": "Page indexed chunks",
+    "doc_rag_noChunks": "No indexed chunks",
+    "doc_rag_loadChunks": "Load chunks",
+    "doc_rag_indexMgmt": "Index Management",
+    "doc_rag_reindexAll": "Rebuild all indexes",
+    "doc_rag_reindexPage": "Rebuild current page index",
+    "doc_rag_queryFailFmt": "Query failed: %@",
+    "doc_search_placeholder": "Search documents...",
+    "doc_search_type": "Type",
+    "doc_search_typeAll": "All",
+    "doc_search_typePage": "Page",
+    "doc_search_typeBook": "Book",
+    "doc_search_sort": "Sort",
+    "doc_search_sortRelevance": "Relevance",
+    "doc_search_sortDate": "Date",
+    "doc_search_sortTitle": "Title",
+    "doc_search_resultFmt": "%d results",
+    "doc_search_hintKeyword": "Enter keywords to search documents",
+    "doc_search_noResult": "No search results",
+    "doc_tpl_newTitle": "New Template",
+    "doc_tpl_name": "Name",
+    "doc_tpl_typeHint": "Type (report/letter/...)",
+    "doc_tpl_category": "Category",
+    "doc_tpl_create": "Create",
+    "doc_tpl_title": "Templates",
+    "doc_tpl_newHelp": "New template",
+    "doc_tpl_empty": "No templates yet",
+    "doc_tpl_extractVars": "Extract variables",
+    "doc_tpl_delete": "Delete template",
+    "doc_tpl_content": "Template content",
+    "doc_tpl_variables": "Template variables",
+    "doc_tpl_inputVarFmt": "Enter %@",
+    "doc_tpl_useCreate": "Create from template",
+    "doc_tpl_selDetail": "Select a template to view details",
+    "doc_ver_title": "Version History",
+    "doc_ver_snapshot": "Snapshot",
+    "doc_ver_snapshotHelp": "Create version snapshot",
+    "doc_ver_compare": "Compare",
+    "doc_ver_compareHelp": "Compare selected versions",
+    "doc_ver_empty": "No version history yet",
+    "doc_ver_versionFmt": "Version %d",
+    "doc_ver_setV1": "Set as V1 (old)",
+    "doc_ver_setV2": "Set as V2 (new)",
+    "doc_ver_restore": "Restore this version",
+    "doc_ver_compareTitle": "Version Comparison",
+    "doc_ver_diffFmt": "V%d → V%d",
+    "doc_office_fmtDocx": "Word Document",
+    "doc_office_fmtXlsx": "Excel Spreadsheet",
+    "doc_office_fmtPptx": "PowerPoint Presentation",
+    "doc_office_title": "Office Control",
+    "doc_office_cliStatus": "OfficeCLI Status",
+    "doc_office_versionFmt": "Version: %@",
+    "doc_office_formatsFmt": "Supported formats: %@",
+    "doc_office_detecting": "Detecting...",
+    "doc_office_create": "Create Document",
+    "doc_office_filename": "Filename",
+    "doc_office_createBtn": "Create",
+    "doc_office_import": "Import Document",
+    "doc_office_filePath": "File path",
+    "doc_office_importBtn": "Import",
+    "doc_office_export": "Export Page",
+    "doc_office_pageId": "Page ID",
+    "doc_office_format": "Format",
+    "doc_office_exportBtn": "Export",
+    "doc_office_merge": "Template Merge",
+    "doc_office_templateName": "Template name",
+    "doc_office_dataJson": "Data JSON",
+    "doc_office_mergeBtn": "Merge",
+    "doc_office_cmdTitle": "Office Command",
+    "doc_office_cmdFile": "File",
+    "doc_office_cmdAction": "Command",
+    "doc_office_executeBtn": "Execute",
+    "doc_office_importDir": "Batch Import Directory",
+    "doc_office_dirPath": "Directory path",
+    "doc_wf_newTitle": "New Workflow",
+    "doc_wf_name": "Name",
+    "doc_wf_desc": "Description",
+    "doc_wf_create": "Create",
+    "doc_wf_title": "Workflows",
+    "doc_wf_newHelp": "New",
+    "doc_wf_seedHelp": "Seed workflows",
+    "doc_wf_empty": "No workflows yet",
+    "doc_wf_delete": "Delete workflow",
+    "doc_wf_yamlDef": "YAML Definition",
+    "doc_wf_runInput": "Run Input",
+    "doc_wf_runBtn": "Run Workflow",
+    "doc_wf_runHistory": "Run History",
+    "doc_wf_selDetail": "Select a workflow to view details",
+    "doc_wf_transitionTitle": "Page State Transition",
+    "doc_wf_queryBtn": "Query",
+    "doc_wf_currentStateFmt": "Current state: %@",
+    "doc_wf_executeBtn": "Execute",
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -3098,6 +3512,144 @@ let jaJPTranslations: [String: String] = [
     "doc_act_evVerCreate": "🔖 バージョン作成",
     "doc_act_evWorkflowRun": "🔄 ワークフロー実行",
     "doc_act_evFileUpload": "📎 ファイルアップロード",
+    "doc_cp_modeChat": "チャット",
+    "doc_cp_modeCommand": "コマンド",
+    "doc_cp_modeRag": "ナレッジ",
+    "doc_cp_modeRewrite": "書き換え",
+    "doc_cp_modeTranslate": "翻訳",
+    "doc_cp_modeSummarize": "要約",
+    "doc_cp_modeExpand": "拡張",
+    "doc_cp_targetLang": "翻訳先言語",
+    "doc_cp_clearChat": "チャット消去",
+    "doc_cp_thinking": "考え中...",
+    "doc_cp_phChat": "メッセージを入力...",
+    "doc_cp_phCommand": "/command ...",
+    "doc_cp_phRewrite": "書き換え指示を入力...",
+    "doc_cp_phTranslateFmt": "%@に翻訳するテキスト入力...",
+    "doc_cp_phSummarize": "要約するテキスト入力...",
+    "doc_cp_phExpand": "拡張するテキスト入力...",
+    "doc_cp_phRag": "ナレッジ検索...",
+    "doc_cp_errCopilotURL": "Copilot URL が利用不可",
+    "doc_cp_errCommandURL": "Command URL が利用不可",
+    "doc_cp_errNoData": "応答データなし",
+    "doc_cp_emptyResp": "(空の応答)",
+    "doc_cp_ragChunksPrefix": "📚 関連ナレッジ断片：",
+    "doc_cp_ragNoResult": "関連する結果なし",
+    "doc_cp_rewriteResultPrefix": "✏️ 書き換え結果：",
+    "doc_cp_translateResultFmt": "🌐 翻訳結果(%@)：",
+    "doc_cp_summarizePrefix": "📋 要約：",
+    "doc_cp_expandPrefix": "📖 拡張内容：",
+    "doc_cp_noResult": "(結果なし)",
+    "doc_cp_errPrefix": "❌ ",
+    "doc_graph_title": "ナレッジグラフ",
+    "doc_graph_filterAll": "すべて",
+    "doc_graph_filterLink": "リンク",
+    "doc_graph_filterSemantic": "セマンティック",
+    "doc_graph_filterTag": "タグ",
+    "doc_graph_searchNode": "ノードを検索...",
+    "doc_graph_refreshHelp": "グラフ更新",
+    "doc_graph_loading": "グラフを読み込み中...",
+    "doc_graph_linkCountFmt": "リンク数: %d",
+    "doc_graph_openPage": "ページを開く",
+    "doc_graph_empty": "グラフデータはまだありません",
+    "doc_graph_emptyHint": "ページ間リンクを作成するとナレッジグラフが自動生成されます",
+    "doc_rag_title": "RAG ナレッジ強化",
+    "doc_rag_semanticQuery": "セマンティック検索",
+    "doc_rag_queryPlaceholder": "検索質問を入力...",
+    "doc_rag_answer": "回答",
+    "doc_rag_chunksFmt": "関連断片 (%d)",
+    "doc_rag_pageChunks": "ページ索引段落",
+    "doc_rag_noChunks": "索引段落はまだありません",
+    "doc_rag_loadChunks": "段落を読み込む",
+    "doc_rag_indexMgmt": "インデックス管理",
+    "doc_rag_reindexAll": "全インデックス再構築",
+    "doc_rag_reindexPage": "現在のページ索引を再構築",
+    "doc_rag_queryFailFmt": "検索失敗: %@",
+    "doc_search_placeholder": "ドキュメントを検索...",
+    "doc_search_type": "タイプ",
+    "doc_search_typeAll": "すべて",
+    "doc_search_typePage": "ページ",
+    "doc_search_typeBook": "ブック",
+    "doc_search_sort": "並び替え",
+    "doc_search_sortRelevance": "関連度",
+    "doc_search_sortDate": "日時",
+    "doc_search_sortTitle": "タイトル",
+    "doc_search_resultFmt": "%d 件",
+    "doc_search_hintKeyword": "キーワードを入力してドキュメントを検索",
+    "doc_search_noResult": "検索結果なし",
+    "doc_tpl_newTitle": "新規テンプレート",
+    "doc_tpl_name": "名称",
+    "doc_tpl_typeHint": "タイプ (report/letter/...)",
+    "doc_tpl_category": "カテゴリ",
+    "doc_tpl_create": "作成",
+    "doc_tpl_title": "テンプレート",
+    "doc_tpl_newHelp": "新規テンプレート",
+    "doc_tpl_empty": "テンプレートはまだありません",
+    "doc_tpl_extractVars": "変数を抽出",
+    "doc_tpl_delete": "テンプレート削除",
+    "doc_tpl_content": "テンプレート内容",
+    "doc_tpl_variables": "テンプレート変数",
+    "doc_tpl_inputVarFmt": "%@ を入力",
+    "doc_tpl_useCreate": "テンプレートから作成",
+    "doc_tpl_selDetail": "テンプレートを選択して詳細を表示",
+    "doc_ver_title": "バージョン履歴",
+    "doc_ver_snapshot": "スナップショット",
+    "doc_ver_snapshotHelp": "バージョンスナップショット作成",
+    "doc_ver_compare": "比較",
+    "doc_ver_compareHelp": "選択バージョンを比較",
+    "doc_ver_empty": "バージョン履歴はまだありません",
+    "doc_ver_versionFmt": "バージョン %d",
+    "doc_ver_setV1": "V1(旧版)に設定",
+    "doc_ver_setV2": "V2(新版)に設定",
+    "doc_ver_restore": "このバージョンを復元",
+    "doc_ver_compareTitle": "バージョン比較",
+    "doc_ver_diffFmt": "V%d → V%d",
+    "doc_office_fmtDocx": "Word 文書",
+    "doc_office_fmtXlsx": "Excel 表",
+    "doc_office_fmtPptx": "PowerPoint プレゼン",
+    "doc_office_title": "Office 操作",
+    "doc_office_cliStatus": "OfficeCLI ステータス",
+    "doc_office_versionFmt": "バージョン: %@",
+    "doc_office_formatsFmt": "サポート形式: %@",
+    "doc_office_detecting": "検出中...",
+    "doc_office_create": "ドキュメント作成",
+    "doc_office_filename": "ファイル名",
+    "doc_office_createBtn": "作成",
+    "doc_office_import": "ドキュメントインポート",
+    "doc_office_filePath": "ファイルパス",
+    "doc_office_importBtn": "インポート",
+    "doc_office_export": "ページ書き出し",
+    "doc_office_pageId": "ページ ID",
+    "doc_office_format": "形式",
+    "doc_office_exportBtn": "書き出し",
+    "doc_office_merge": "テンプレート結合",
+    "doc_office_templateName": "テンプレート名",
+    "doc_office_dataJson": "データ JSON",
+    "doc_office_mergeBtn": "結合",
+    "doc_office_cmdTitle": "Office コマンド",
+    "doc_office_cmdFile": "ファイル",
+    "doc_office_cmdAction": "コマンド",
+    "doc_office_executeBtn": "実行",
+    "doc_office_importDir": "一括インポートディレクトリ",
+    "doc_office_dirPath": "ディレクトリパス",
+    "doc_wf_newTitle": "新規ワークフロー",
+    "doc_wf_name": "名称",
+    "doc_wf_desc": "説明",
+    "doc_wf_create": "作成",
+    "doc_wf_title": "ワークフロー",
+    "doc_wf_newHelp": "新規",
+    "doc_wf_seedHelp": "シードワークフロー",
+    "doc_wf_empty": "ワークフローはまだありません",
+    "doc_wf_delete": "ワークフロー削除",
+    "doc_wf_yamlDef": "YAML 定義",
+    "doc_wf_runInput": "実行入力",
+    "doc_wf_runBtn": "ワークフロー実行",
+    "doc_wf_runHistory": "実行履歴",
+    "doc_wf_selDetail": "ワークフローを選択して詳細を表示",
+    "doc_wf_transitionTitle": "ページ状態遷移",
+    "doc_wf_queryBtn": "照会",
+    "doc_wf_currentStateFmt": "現在の状態: %@",
+    "doc_wf_executeBtn": "実行",
 ]
 
 let koKRTranslations: [String: String] = [
@@ -3760,6 +4312,144 @@ let koKRTranslations: [String: String] = [
     "doc_act_evVerCreate": "🔖 버전 생성",
     "doc_act_evWorkflowRun": "🔄 워크플로우 실행",
     "doc_act_evFileUpload": "📎 파일 업로드",
+    "doc_cp_modeChat": "대화",
+    "doc_cp_modeCommand": "명령",
+    "doc_cp_modeRag": "지식",
+    "doc_cp_modeRewrite": "수정",
+    "doc_cp_modeTranslate": "번역",
+    "doc_cp_modeSummarize": "요약",
+    "doc_cp_modeExpand": "확장",
+    "doc_cp_targetLang": "대상 언어",
+    "doc_cp_clearChat": "대화 비우기",
+    "doc_cp_thinking": "생각 중...",
+    "doc_cp_phChat": "메시지 입력...",
+    "doc_cp_phCommand": "/command ...",
+    "doc_cp_phRewrite": "수정 지시 입력...",
+    "doc_cp_phTranslateFmt": "%@로 번역할 텍스트 입력...",
+    "doc_cp_phSummarize": "요약할 텍스트 입력...",
+    "doc_cp_phExpand": "확장할 텍스트 입력...",
+    "doc_cp_phRag": "지식 검색...",
+    "doc_cp_errCopilotURL": "Copilot URL 사용 불가",
+    "doc_cp_errCommandURL": "Command URL 사용 불가",
+    "doc_cp_errNoData": "응답 데이터 없음",
+    "doc_cp_emptyResp": "(빈 응답)",
+    "doc_cp_ragChunksPrefix": "📚 관련 지식 조각:",
+    "doc_cp_ragNoResult": "관련 결과 없음",
+    "doc_cp_rewriteResultPrefix": "✏️ 수정 결과: ",
+    "doc_cp_translateResultFmt": "🌐 번역 결과(%@): ",
+    "doc_cp_summarizePrefix": "📋 요약: ",
+    "doc_cp_expandPrefix": "📖 확장 내용: ",
+    "doc_cp_noResult": "(결과 없음)",
+    "doc_cp_errPrefix": "❌ ",
+    "doc_graph_title": "지식 그래프",
+    "doc_graph_filterAll": "전체",
+    "doc_graph_filterLink": "링크",
+    "doc_graph_filterSemantic": "의미",
+    "doc_graph_filterTag": "태그",
+    "doc_graph_searchNode": "노드 검색...",
+    "doc_graph_refreshHelp": "그래프 새로고침",
+    "doc_graph_loading": "그래프 로딩 중...",
+    "doc_graph_linkCountFmt": "링크 수: %d",
+    "doc_graph_openPage": "페이지 열기",
+    "doc_graph_empty": "그래프 데이터가 아직 없습니다",
+    "doc_graph_emptyHint": "페이지 간 링크를 만들면 지식 그래프가 자동 생성됩니다",
+    "doc_rag_title": "RAG 지식 강화",
+    "doc_rag_semanticQuery": "의미 검색",
+    "doc_rag_queryPlaceholder": "질문 입력...",
+    "doc_rag_answer": "답변",
+    "doc_rag_chunksFmt": "관련 조각 (%d)",
+    "doc_rag_pageChunks": "페이지 인덱스 단락",
+    "doc_rag_noChunks": "인덱스 단락이 아직 없습니다",
+    "doc_rag_loadChunks": "단락 불러오기",
+    "doc_rag_indexMgmt": "인덱스 관리",
+    "doc_rag_reindexAll": "전체 인덱스 재구축",
+    "doc_rag_reindexPage": "현재 페이지 인덱스 재구축",
+    "doc_rag_queryFailFmt": "검색 실패: %@",
+    "doc_search_placeholder": "문서 검색...",
+    "doc_search_type": "유형",
+    "doc_search_typeAll": "전체",
+    "doc_search_typePage": "페이지",
+    "doc_search_typeBook": "북",
+    "doc_search_sort": "정렬",
+    "doc_search_sortRelevance": "관련도",
+    "doc_search_sortDate": "날짜",
+    "doc_search_sortTitle": "제목",
+    "doc_search_resultFmt": "%d건",
+    "doc_search_hintKeyword": "키워드 입력해 문서 검색",
+    "doc_search_noResult": "검색 결과 없음",
+    "doc_tpl_newTitle": "새 템플릿",
+    "doc_tpl_name": "이름",
+    "doc_tpl_typeHint": "유형 (report/letter/...)",
+    "doc_tpl_category": "분류",
+    "doc_tpl_create": "만들기",
+    "doc_tpl_title": "템플릿",
+    "doc_tpl_newHelp": "새 템플릿",
+    "doc_tpl_empty": "템플릿이 아직 없습니다",
+    "doc_tpl_extractVars": "변수 추출",
+    "doc_tpl_delete": "템플릿 삭제",
+    "doc_tpl_content": "템플릿 내용",
+    "doc_tpl_variables": "템플릿 변수",
+    "doc_tpl_inputVarFmt": "%@ 입력",
+    "doc_tpl_useCreate": "템플릿으로 만들기",
+    "doc_tpl_selDetail": "템플릿 선택해 상세 보기",
+    "doc_ver_title": "버전 기록",
+    "doc_ver_snapshot": "스냅샷",
+    "doc_ver_snapshotHelp": "버전 스냅샷 생성",
+    "doc_ver_compare": "비교",
+    "doc_ver_compareHelp": "선택 버전 비교",
+    "doc_ver_empty": "버전 기록이 아직 없습니다",
+    "doc_ver_versionFmt": "버전 %d",
+    "doc_ver_setV1": "V1(이전 버전)로 설정",
+    "doc_ver_setV2": "V2(새 버전)로 설정",
+    "doc_ver_restore": "이 버전 복원",
+    "doc_ver_compareTitle": "버전 비교",
+    "doc_ver_diffFmt": "V%d → V%d",
+    "doc_office_fmtDocx": "Word 문서",
+    "doc_office_fmtXlsx": "Excel 스프레드시트",
+    "doc_office_fmtPptx": "PowerPoint 프레젠테이션",
+    "doc_office_title": "Office 제어",
+    "doc_office_cliStatus": "OfficeCLI 상태",
+    "doc_office_versionFmt": "버전: %@",
+    "doc_office_formatsFmt": "지원 형식: %@",
+    "doc_office_detecting": "감지 중...",
+    "doc_office_create": "문서 만들기",
+    "doc_office_filename": "파일명",
+    "doc_office_createBtn": "만들기",
+    "doc_office_import": "문서 가져오기",
+    "doc_office_filePath": "파일 경로",
+    "doc_office_importBtn": "가져오기",
+    "doc_office_export": "페이지 내보내기",
+    "doc_office_pageId": "페이지 ID",
+    "doc_office_format": "형식",
+    "doc_office_exportBtn": "내보내기",
+    "doc_office_merge": "템플릿 병합",
+    "doc_office_templateName": "템플릿명",
+    "doc_office_dataJson": "데이터 JSON",
+    "doc_office_mergeBtn": "병합",
+    "doc_office_cmdTitle": "Office 명령",
+    "doc_office_cmdFile": "파일",
+    "doc_office_cmdAction": "명령",
+    "doc_office_executeBtn": "실행",
+    "doc_office_importDir": "일괄 가져오기 디렉터리",
+    "doc_office_dirPath": "디렉터리 경로",
+    "doc_wf_newTitle": "새 워크플로우",
+    "doc_wf_name": "이름",
+    "doc_wf_desc": "설명",
+    "doc_wf_create": "만들기",
+    "doc_wf_title": "워크플로우",
+    "doc_wf_newHelp": "새로 만들기",
+    "doc_wf_seedHelp": "시드 워크플로우",
+    "doc_wf_empty": "워크플로우가 아직 없습니다",
+    "doc_wf_delete": "워크플로우 삭제",
+    "doc_wf_yamlDef": "YAML 정의",
+    "doc_wf_runInput": "실행 입력",
+    "doc_wf_runBtn": "워크플로우 실행",
+    "doc_wf_runHistory": "실행 기록",
+    "doc_wf_selDetail": "워크플로우 선택해 상세 보기",
+    "doc_wf_transitionTitle": "페이지 상태 전환",
+    "doc_wf_queryBtn": "조회",
+    "doc_wf_currentStateFmt": "현재 상태: %@",
+    "doc_wf_executeBtn": "실행",
 ]
 
 // MARK: - 国际化文本视图

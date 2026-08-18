@@ -10,6 +10,7 @@ private let templateLog = Logger(subsystem: "com.fusion.studio", category: "DocT
 
 struct DocTemplateView: View {
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @ObservedObject var bridge: DocBridge
     @State private var selectedTemplate: DocTemplate?
     @State private var variableInputs: [String: String] = [:]
@@ -38,18 +39,18 @@ struct DocTemplateView: View {
         }
         .sheet(isPresented: $showCreateSheet) {
             VStack(spacing: 12) {
-                Text("新建模板").font(.headline)
-                TextField("名称", text: $newName).textFieldStyle(.roundedBorder)
-                TextField("类型 (report/letter/...)", text: $newType).textFieldStyle(.roundedBorder)
-                TextField("分类", text: $newCategory).textFieldStyle(.roundedBorder)
+                Text(i18n.t(.doc_tpl_newTitle)).font(.headline)
+                TextField(i18n.t(.doc_tpl_name), text: $newName).textFieldStyle(.roundedBorder)
+                TextField(i18n.t(.doc_tpl_typeHint), text: $newType).textFieldStyle(.roundedBorder)
+                TextField(i18n.t(.doc_tpl_category), text: $newCategory).textFieldStyle(.roundedBorder)
                 TextEditor(text: $newContent)
                     .font(.system(.caption, design: .monospaced))
                     .scrollContentBackground(.hidden)
                     .frame(height: 120)
                     .border(Color.gray.opacity(0.3))
                 HStack {
-                    Button("取消") { showCreateSheet = false }
-                    Button("创建") {
+                    Button(i18n.t(.cancel)) { showCreateSheet = false }
+                    Button(i18n.t(.doc_tpl_create)) {
                         guard !newName.isEmpty else { return }
                         bridge.createTemplate(name: newName, type: newType.isEmpty ? nil : newType, content: newContent.isEmpty ? nil : newContent, category: newCategory.isEmpty ? nil : newCategory) { _ in }
                         newName = ""; newType = ""; newContent = ""; newCategory = ""
@@ -65,18 +66,18 @@ struct DocTemplateView: View {
 
     private var templateHeader: some View {
         HStack {
-            Text("模板")
+            Text(i18n.t(.doc_tpl_title))
                 .font(.headline)
                 .foregroundColor(.primary)
             Spacer()
             Button(action: { showCreateSheet = true }) {
                 Image(systemName: "plus")
             }
-            .help("新建模板")
+            .help(i18n.t(.doc_tpl_newHelp))
             Button(action: { bridge.fetchTemplates() }) {
                 Image(systemName: "arrow.clockwise")
             }
-            .help("刷新")
+            .help(i18n.t(.refresh))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -90,7 +91,7 @@ struct DocTemplateView: View {
                     Image(systemName: "doc.badge.gearshape")
                         .font(.system(size: 32))
                         .foregroundColor(.secondary)
-                    Text("暂无模板")
+                    Text(i18n.t(.doc_tpl_empty))
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -123,14 +124,14 @@ struct DocTemplateView: View {
         }
         .tag(tmpl)
         .contextMenu {
-            Button("提取变量") {
+            Button(i18n.t(.doc_tpl_extractVars)) {
                 bridge.fetchTemplateVariables(id: tmpl.id) { result in
                     if case .success(let dict) = result, let vars = dict["variables"] {
                         DispatchQueue.main.async { self.extractedVars = vars }
                     }
                 }
             }
-            Button("删除模板", role: .destructive) {
+            Button(i18n.t(.doc_tpl_delete), role: .destructive) {
                 bridge.deleteTemplate(id: tmpl.id) { _ in }
             }
         }
@@ -158,7 +159,7 @@ struct DocTemplateView: View {
 
                         if let content = tmpl.content {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("模板内容")
+                                Text(i18n.t(.doc_tpl_content))
                                     .font(.caption.weight(.semibold))
                                     .foregroundColor(theme.textSecondary)
                                 Text(content)
@@ -174,7 +175,7 @@ struct DocTemplateView: View {
                         let vars = parseVariables(tmpl.variables)
                         if !vars.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("模板变量")
+                                Text(i18n.t(.doc_tpl_variables))
                                     .font(.caption.weight(.semibold))
                                     .foregroundColor(theme.textSecondary)
                                 ForEach(vars, id: \.self) { v in
@@ -183,7 +184,7 @@ struct DocTemplateView: View {
                                             .font(.system(.caption, design: .monospaced))
                                             .foregroundColor(theme.accent)
                                             .frame(width: 120, alignment: .leading)
-                                        TextField("输入 \(v)", text: bindingFor(v))
+                                        TextField(String(format: i18n.t(.doc_tpl_inputVarFmt), v), text: bindingFor(v))
                                             .textFieldStyle(.roundedBorder)
                                     }
                                 }
@@ -191,7 +192,7 @@ struct DocTemplateView: View {
                         }
 
                         Button(action: { instantiate(tmpl) }) {
-                            Label("使用模板创建", systemImage: "doc.badge.plus")
+                            Label(i18n.t(.doc_tpl_useCreate), systemImage: "doc.badge.plus")
                         }
                         .buttonStyle(.borderedProminent)
                         .disabled(!vars.allSatisfy { variableInputs[$0]?.isEmpty == false })
@@ -205,7 +206,7 @@ struct DocTemplateView: View {
                     Image(systemName: "doc.badge.gearshape")
                         .font(.system(size: 40))
                         .foregroundColor(.secondary)
-                    Text("选择模板查看详情")
+                    Text(i18n.t(.doc_tpl_selDetail))
                         .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

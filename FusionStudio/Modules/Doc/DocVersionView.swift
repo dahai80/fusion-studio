@@ -10,6 +10,7 @@ private let versionLog = Logger(subsystem: "com.fusion.studio", category: "DocVe
 
 struct DocVersionView: View {
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @ObservedObject var bridge: DocBridge
     let pageId: String
     @State private var selectedV1: DocVersion?
@@ -36,21 +37,21 @@ struct DocVersionView: View {
 
     private var versionHeader: some View {
         HStack {
-            Text("版本历史")
+            Text(i18n.t(.doc_ver_title))
                 .font(.headline)
                 .foregroundColor(.primary)
             Spacer()
             Button(action: { createSnapshot() }) {
-                Label("快照", systemImage: "camera")
+                Label(i18n.t(.doc_ver_snapshot), systemImage: "camera")
                     .font(.caption)
             }
-            .help("创建版本快照")
+            .help(i18n.t(.doc_ver_snapshotHelp))
             Button(action: { compareSelected() }) {
-                Label("对比", systemImage: "arrow.left.arrow.right")
+                Label(i18n.t(.doc_ver_compare), systemImage: "arrow.left.arrow.right")
                     .font(.caption)
             }
             .disabled(selectedV1 == nil || selectedV2 == nil)
-            .help("对比选中版本")
+            .help(i18n.t(.doc_ver_compareHelp))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -64,7 +65,7 @@ struct DocVersionView: View {
                     Image(systemName: "clock.arrow.circlepath")
                         .font(.system(size: 32))
                         .foregroundColor(.secondary)
-                    Text("暂无版本历史")
+                    Text(i18n.t(.doc_ver_empty))
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -82,7 +83,7 @@ struct DocVersionView: View {
     private func versionRow(_ version: DocVersion) -> some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text(version.title ?? "版本 \(version.version ?? 0)")
+                Text(version.title ?? String(format: i18n.t(.doc_ver_versionFmt), version.version ?? 0))
                     .font(.subheadline)
                     .foregroundColor(.primary)
                 if let date = version.created_at {
@@ -120,14 +121,14 @@ struct DocVersionView: View {
             selectVersion(version)
         }
         .contextMenu {
-            Button("设为 V1 (旧版)") {
+            Button(i18n.t(.doc_ver_setV1)) {
                 selectedV1 = version
             }
-            Button("设为 V2 (新版)") {
+            Button(i18n.t(.doc_ver_setV2)) {
                 selectedV2 = version
             }
             Divider()
-            Button("恢复此版本") {
+            Button(i18n.t(.doc_ver_restore)) {
                 restoreVersion(version)
             }
         }
@@ -139,11 +140,11 @@ struct DocVersionView: View {
                 Button(action: { showDiff = false; diffResult = nil }) {
                     Image(systemName: "chevron.left")
                 }
-                Text("版本对比")
+                Text(i18n.t(.doc_ver_compareTitle))
                     .font(.headline)
                     .foregroundColor(.primary)
                 Spacer()
-                Text("V\(diffResult?.v1 ?? 0) → V\(diffResult?.v2 ?? 0)")
+                Text(String(format: i18n.t(.doc_ver_diffFmt), diffResult?.v1 ?? 0, diffResult?.v2 ?? 0))
                     .font(.caption)
                     .foregroundColor(theme.textSecondary)
             }

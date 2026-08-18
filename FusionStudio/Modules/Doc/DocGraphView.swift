@@ -10,6 +10,7 @@ private let graphLog = Logger(subsystem: "com.fusion.studio", category: "DocGrap
 
 struct DocGraphView: View {
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @ObservedObject var bridge: DocBridge
     @State private var selectedNode: DocGraphNode?
     @State private var searchText = ""
@@ -35,16 +36,16 @@ struct DocGraphView: View {
 
     private var graphToolbar: some View {
         HStack {
-            Text("知识图谱")
+            Text(i18n.t(.doc_graph_title))
                 .font(.headline)
                 .foregroundColor(.primary)
             Spacer()
 
             HStack(spacing: 4) {
-                FilterChip(label: "全部", isSelected: filterType == "all") { filterType = "all" }
-                FilterChip(label: "链接", isSelected: filterType == "link") { filterType = "link" }
-                FilterChip(label: "语义", isSelected: filterType == "semantic") { filterType = "semantic" }
-                FilterChip(label: "标签", isSelected: filterType == "tag") { filterType = "tag" }
+                FilterChip(label: i18n.t(.doc_graph_filterAll), isSelected: filterType == "all") { filterType = "all" }
+                FilterChip(label: i18n.t(.doc_graph_filterLink), isSelected: filterType == "link") { filterType = "link" }
+                FilterChip(label: i18n.t(.doc_graph_filterSemantic), isSelected: filterType == "semantic") { filterType = "semantic" }
+                FilterChip(label: i18n.t(.doc_graph_filterTag), isSelected: filterType == "tag") { filterType = "tag" }
             }
 
             Divider().frame(height: 16)
@@ -52,7 +53,7 @@ struct DocGraphView: View {
             HStack(spacing: 4) {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.secondary)
-                TextField("搜索节点...", text: $searchText)
+                TextField(i18n.t(.doc_graph_searchNode), text: $searchText)
                     .textFieldStyle(.plain)
                     .frame(width: 120)
             }
@@ -60,7 +61,7 @@ struct DocGraphView: View {
             Button(action: { bridge.fetchGraph() }) {
                 Image(systemName: "arrow.clockwise")
             }
-            .help("刷新图谱")
+            .help(i18n.t(.doc_graph_refreshHelp))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
@@ -76,7 +77,7 @@ struct DocGraphView: View {
                     canvasWithNodes(graph)
                 }
             } else {
-                ProgressView("加载图谱...")
+                ProgressView(i18n.t(.doc_graph_loading))
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -172,11 +173,11 @@ struct DocGraphView: View {
                     }
                 }
                 if let count = node.linkCount {
-                    Text("链接数: \(count)")
+                    Text(String(format: i18n.t(.doc_graph_linkCountFmt), count))
                         .font(.caption)
                         .foregroundColor(theme.textSecondary)
                 }
-                Button("打开页面") {
+                Button(i18n.t(.doc_graph_openPage)) {
                     bridge.fetchPage(id: node.id)
                 }
                 .buttonStyle(.plain)
@@ -196,10 +197,10 @@ struct DocGraphView: View {
             Image(systemName: "point.3.connected.trianglepath.dotted")
                 .font(.system(size: 40))
                 .foregroundColor(.secondary)
-            Text("暂无图谱数据")
+            Text(i18n.t(.doc_graph_empty))
                 .font(.title3)
                 .foregroundColor(.secondary)
-            Text("创建页面间链接后将自动生成知识图谱")
+            Text(i18n.t(.doc_graph_emptyHint))
                 .font(.caption)
                 .foregroundColor(theme.textTertiary)
         }
