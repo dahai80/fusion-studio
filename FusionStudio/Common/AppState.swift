@@ -354,6 +354,34 @@ enum SidebarSection: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    var localizedName: String {
+        let key: I18nKey
+        switch self {
+        case .chats:           key = .secChats
+        case .agent:           key = .secAgent
+        case .projects:        key = .secProjects
+        case .artifacts:       key = .secArtifacts
+        case .code:            key = .secCode
+        case .design:          key = .secDesign
+        case .doc:             key = .secDoc
+        case .rag:             key = .secRag
+        case .aiAgent:         key = .secAIAgent
+        case .cowork:          key = .secCowork
+        case .fsb:             key = .secFsb
+        case .mlx:             key = .secMlx
+        case .science:         key = .secScience
+        case .finance:         key = .secFinance
+        case .health:          key = .secHealth
+        case .cliService:      key = .secCliService
+        case .simulation:      key = .secSimulation
+        case .douyinOperation: key = .secDouyin
+        case .modelHub:        key = .secModelHub
+        case .multiNode:       key = .secMultiNode
+        case .pluginEcosystem: key = .secPlugin
+        }
+        return I18nManager.shared.t(key)
+    }
+
     var icon: String {
         switch self {
         case .chats:     return "message"
