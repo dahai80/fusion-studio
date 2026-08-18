@@ -300,6 +300,453 @@ enum I18nKey: String, CaseIterable {
     case moreModelsLabel = "moreModelsLabel"
     case toggleLightMode = "toggleLightMode"
     case toggleDarkMode = "toggleDarkMode"
+    // Batch 4a — ModelHub views
+    case hub_rpmMustPositive = "hub_rpmMustPositive"
+    case hub_concurrencyMustPositive = "hub_concurrencyMustPositive"
+    case hub_idleTooLowWarn = "hub_idleTooLowWarn"
+    case hub_nDownloading = "hub_nDownloading"
+    case hub_nActiveDeployments = "hub_nActiveDeployments"
+    case hub_nItems = "hub_nItems"
+    case hub_nModels = "hub_nModels"
+    case hub_nRoles = "hub_nRoles"
+    case hub_nReplicas = "hub_nReplicas"
+    case hub_apiKeyCreated = "hub_apiKeyCreated"
+    case hub_apiKeysTitle = "hub_apiKeysTitle"
+    case hub_apiKeysAndModelPerms = "hub_apiKeysAndModelPerms"
+    case hub_apiThrottleConfig = "hub_apiThrottleConfig"
+    case hub_gbMemory = "hub_gbMemory"
+    case hub_kvCacheOpt = "hub_kvCacheOpt"
+    case hub_qpsLimitZero = "hub_qpsLimitZero"
+    case hub_rpmDefault = "hub_rpmDefault"
+    case hub_ttlConfigNote = "hub_ttlConfigNote"
+    case hub_ttlServeParamNote = "hub_ttlServeParamNote"
+    case hub_securityScore = "hub_securityScore"
+    case hub_securityScan = "hub_securityScan"
+    case hub_perModelSettings = "hub_perModelSettings"
+    case hub_autoBenchAfterVersion = "hub_autoBenchAfterVersion"
+    case hub_saveBtn = "hub_saveBtn"
+    case hub_localResourceClusterHint = "hub_localResourceClusterHint"
+    case hub_editRole = "hub_editRole"
+    case hub_editPermission = "hub_editPermission"
+    case hub_editPermissionModel = "hub_editPermissionModel"
+    case hub_concurrencyVal = "hub_concurrencyVal"
+    case hub_concurrencyDefault = "hub_concurrencyDefault"
+    case hub_deployMetrics = "hub_deployMetrics"
+    case hub_auditLog = "hub_auditLog"
+    case hub_testModelCount = "hub_testModelCount"
+    case hub_testStatus = "hub_testStatus"
+    case hub_pinnedNoTTLNote = "hub_pinnedNoTTLNote"
+    case hub_pinnedWhitelist = "hub_pinnedWhitelist"
+    case hub_heldFlat = "hub_heldFlat"
+    case hub_createBtn = "hub_createBtn"
+    case hub_createApiKey = "hub_createApiKey"
+    case hub_createKey = "hub_createKey"
+    case hub_createdAt = "hub_createdAt"
+    case hub_disk = "hub_disk"
+    case hub_storageDetail = "hub_storageDetail"
+    case hub_pendingApproval = "hub_pendingApproval"
+    case hub_perModelThrottle = "hub_perModelThrottle"
+    case hub_noActiveModels = "hub_noActiveModels"
+    case hub_exportCsv = "hub_exportCsv"
+    case hub_waiting = "hub_waiting"
+    case hub_benchThresholdWarn = "hub_benchThresholdWarn"
+    case hub_scheduledBenchNote = "hub_scheduledBenchNote"
+    case hub_scheduledBenchmark = "hub_scheduledBenchmark"
+    case hub_compare = "hub_compare"
+    case hub_compareQuantResults = "hub_compareQuantResults"
+    case hub_benchCompareHint = "hub_benchCompareHint"
+    case hub_compareSelectedN = "hub_compareSelectedN"
+    case hub_layeredQuantHint = "hub_layeredQuantHint"
+    case hub_encryptModelWeights = "hub_encryptModelWeights"
+    case hub_multiNodeSyncHint = "hub_multiNodeSyncHint"
+    case hub_issuesFound = "hub_issuesFound"
+    case hub_idleUnloadHint = "hub_idleUnloadHint"
+    case hub_peakMemory = "hub_peakMemory"
+    case hub_copyAndClose = "hub_copyAndClose"
+    case hub_formatBitsMem = "hub_formatBitsMem"
+    case hub_redBelowThreshold = "hub_redBelowThreshold"
+    case hub_cache = "hub_cache"
+    case hub_yellowNearThreshold = "hub_yellowNearThreshold"
+    case hub_canaryPercent = "hub_canaryPercent"
+    case hub_active = "hub_active"
+    case hub_activeSessions = "hub_activeSessions"
+    case hub_activeModelCountdown = "hub_activeModelCountdown"
+    case hub_clusterSchedConfig = "hub_clusterSchedConfig"
+    case hub_clusterNodeHealth = "hub_clusterNodeHealth"
+    case hub_clusterSharedCache = "hub_clusterSharedCache"
+    case hub_encryption = "hub_encryption"
+    case hub_encryptionMgmt = "hub_encryptionMgmt"
+    case hub_encryptModel = "hub_encryptModel"
+    case hub_loadDetail = "hub_loadDetail"
+    case hub_loading = "hub_loading"
+    case hub_securityScanTargetHint = "hub_securityScanTargetHint"
+    case hub_reject = "hub_reject"
+    case hub_enableCrossNodeRouting = "hub_enableCrossNodeRouting"
+    case hub_startLayeredQuantize = "hub_startLayeredQuantize"
+    case hub_startQuantize = "hub_startQuantize"
+    case hub_startScan = "hub_startScan"
+    case hub_startDownload = "hub_startDownload"
+    case hub_controlModuleModelHint = "hub_controlModuleModelHint"
+    case hub_controlRateConcurrencyHint = "hub_controlRateConcurrencyHint"
+    case hub_quickPresetHint = "hub_quickPresetHint"
+    case hub_typeLabel = "hub_typeLabel"
+    case hub_historyBenchRecords = "hub_historyBenchRecords"
+    case hub_runBenchmarkNow = "hub_runBenchmarkNow"
+    case hub_quantLinkedBench = "hub_quantLinkedBench"
+    case hub_quantPostBench = "hub_quantPostBench"
+    case hub_quantizedModel = "hub_quantizedModel"
+    case hub_quantizeTask = "hub_quantizeTask"
+    case hub_quantTaskBenchResult = "hub_quantTaskBenchResult"
+    case hub_autoBenchAfterQuantize = "hub_autoBenchAfterQuantize"
+    case hub_quantBits = "hub_quantBits"
+    case hub_noRunningQuantTask = "hub_noRunningQuantTask"
+    case hub_autoRefresh10s = "hub_autoRefresh10s"
+    case hub_rpmLabel = "hub_rpmLabel"
+    case hub_rpmLabelColon = "hub_rpmLabelColon"
+    case hub_pinnedWhitelistNote = "hub_pinnedWhitelistNote"
+    case hub_template = "hub_template"
+    case hub_moduleAccessPerm = "hub_moduleAccessPerm"
+    case hub_model = "hub_model"
+    case hub_modelTTL = "hub_modelTTL"
+    case hub_modelApprovalOps = "hub_modelApprovalOps"
+    case hub_modelJoined = "hub_modelJoined"
+    case hub_autoBenchAfterQuantOrDownload = "hub_autoBenchAfterQuantOrDownload"
+    case hub_autoBenchQuantOrDownloadShort = "hub_autoBenchQuantOrDownloadShort"
+    case hub_autoBenchAfterQuantConvert = "hub_autoBenchAfterQuantConvert"
+    case hub_autoBenchAfterVersionLoad = "hub_autoBenchAfterVersionLoad"
+    case hub_defaultThrottlePolicy = "hub_defaultThrottlePolicy"
+    case hub_targetFormat = "hub_targetFormat"
+    case hub_benchIncludedModels = "hub_benchIncludedModels"
+    case hub_memory = "hub_memory"
+    case hub_benchmark = "hub_benchmark"
+    case hub_benchResult = "hub_benchResult"
+    case hub_benchResultColon = "hub_benchResultColon"
+    case hub_benchType = "hub_benchType"
+    case hub_benchTemplate = "hub_benchTemplate"
+    case hub_benchModel = "hub_benchModel"
+    case hub_score = "hub_score"
+    case hub_scoreWarnThreshold = "hub_scoreWarnThreshold"
+    case hub_evalResult = "hub_evalResult"
+    case hub_evaluateQuant = "hub_evaluateQuant"
+    case hub_enableAutoBenchmark = "hub_enableAutoBenchmark"
+    case hub_cleanupSystem = "hub_cleanupSystem"
+    case hub_apiKeyOnceHint = "hub_apiKeyOnceHint"
+    case hub_requestsTotal = "hub_requestsTotal"
+    case hub_requestsPerMin = "hub_requestsPerMin"
+    case hub_selectTenantFirst = "hub_selectTenantFirst"
+    case hub_pleaseSelect = "hub_pleaseSelect"
+    case hub_cancelBtn = "hub_cancelBtn"
+    case hub_unifiedFusionApp = "hub_unifiedFusionApp"
+    case hub_all = "hub_all"
+    case hub_globalModelLoadPolicy = "hub_globalModelLoadPolicy"
+    case hub_globalThreshold = "hub_globalThreshold"
+    case hub_permissionSelect = "hub_permissionSelect"
+    case hub_date = "hub_date"
+    case hub_scanModel = "hub_scanModel"
+    case hub_scanModelSecurity = "hub_scanModelSecurity"
+    case hub_scanDuplicates = "hub_scanDuplicates"
+    case hub_setIdleUnloadCountdown = "hub_setIdleUnloadCountdown"
+    case hub_setThreshold = "hub_setThreshold"
+    case hub_requester = "hub_requester"
+    case hub_requesterShort = "hub_requesterShort"
+    case hub_approval = "hub_approval"
+    case hub_approvalWorkflow = "hub_approvalWorkflow"
+    case hub_approvalProcess = "hub_approvalProcess"
+    case hub_reviewerWithComment = "hub_reviewerWithComment"
+    case hub_approvalDetail = "hub_approvalDetail"
+    case hub_remainingTime = "hub_remainingTime"
+    case hub_failed = "hub_failed"
+    case hub_time = "hub_time"
+    case hub_realtimeMonitor = "hub_realtimeMonitor"
+    case hub_firstToken = "hub_firstToken"
+    case hub_firstTokenSec = "hub_firstTokenSec"
+    case hub_firstTokenLatency = "hub_firstTokenLatency"
+    case hub_refresh = "hub_refresh"
+    case hub_watermarkMgmt = "hub_watermarkMgmt"
+    case hub_add = "hub_add"
+    case hub_addWatermark = "hub_addWatermark"
+    case hub_deactivate = "hub_deactivate"
+    case hub_approve = "hub_approve"
+    case hub_general2 = "hub_general2"
+    case hub_done = "hub_done"
+    case hub_completionTime = "hub_completionTime"
+    case hub_addDigitalWatermarkHint = "hub_addDigitalWatermarkHint"
+    case hub_unconfiguredUsesDefault = "hub_unconfiguredUsesDefault"
+    case hub_noSecurityIssues = "hub_noSecurityIssues"
+    case hub_noClusterNodes = "hub_noClusterNodes"
+    case hub_noModelWillTestAll = "hub_noModelWillTestAll"
+    case hub_issueSummary = "hub_issueSummary"
+    case hub_none = "hub_none"
+    case hub_noPermissionConfig = "hub_noPermissionConfig"
+    case hub_downloadLabel = "hub_downloadLabel"
+    case hub_downloadTask = "hub_downloadTask"
+    case hub_downloadNewModel = "hub_downloadNewModel"
+    case hub_idle = "hub_idle"
+    case hub_idleAfterTTLUnload = "hub_idleAfterTTLUnload"
+    case hub_idleAutoReclaim = "hub_idleAutoReclaim"
+    case hub_auditLogFirstN = "hub_auditLogFirstN"
+    case hub_throttleConfigModel = "hub_throttleConfigModel"
+    case hub_newRole = "hub_newRole"
+    case hub_newBenchmark = "hub_newBenchmark"
+    case hub_newDownload = "hub_newDownload"
+    case hub_newTenant = "hub_newTenant"
+    case hub_performanceBenchmark = "hub_performanceBenchmark"
+    case hub_selectBenchModels = "hub_selectBenchModels"
+    case hub_selectModel = "hub_selectModel"
+    case hub_selectModelPlaceholder = "hub_selectModelPlaceholder"
+    case hub_selectBenchModel = "hub_selectBenchModel"
+    case hub_latencyMs = "hub_latencyMs"
+    case hub_rejected = "hub_rejected"
+    case hub_configuredTTLModels = "hub_configuredTTLModels"
+    case hub_deactivated = "hub_deactivated"
+    case hub_approved = "hub_approved"
+    case hub_selectedNModelsLoading = "hub_selectedNModelsLoading"
+    case hub_hardwareInfo = "hub_hardwareInfo"
+    case hub_permanentResidentNoTTL = "hub_permanentResidentNoTTL"
+    case hub_estimatedReduction = "hub_estimatedReduction"
+    case hub_presetScheme = "hub_presetScheme"
+    case hub_originalVsQuant = "hub_originalVsQuant"
+    case hub_originalModel = "hub_originalModel"
+    case hub_allowedModulesHint = "hub_allowedModulesHint"
+    case hub_allowedModelsHint = "hub_allowedModelsHint"
+    case hub_runningColon = "hub_runningColon"
+    case hub_runBenchmark = "hub_runBenchmark"
+    case hub_running = "hub_running"
+    case hub_noApiKey = "hub_noApiKey"
+    case hub_noAuditLogs = "hub_noAuditLogs"
+    case hub_noPinnedModels = "hub_noPinnedModels"
+    case hub_noActiveDeployments = "hub_noActiveDeployments"
+    case hub_noRoles = "hub_noRoles"
+    case hub_noHistory = "hub_noHistory"
+    case hub_noQuantLinkedBench = "hub_noQuantLinkedBench"
+    case hub_noModels = "hub_noModels"
+    case hub_noModelData = "hub_noModelData"
+    case hub_noBenchRecords = "hub_noBenchRecords"
+    case hub_noBenchData = "hub_noBenchData"
+    case hub_noApprovalRequests = "hub_noApprovalRequests"
+    case hub_noInferenceData = "hub_noInferenceData"
+    case hub_noDownloadTasks = "hub_noDownloadTasks"
+    case hub_noDownloadedModels = "hub_noDownloadedModels"
+    case hub_noTenants = "hub_noTenants"
+    case hub_executionFrequency = "hub_executionFrequency"
+    case hub_qualityChange = "hub_qualityChange"
+    case hub_qualityScore = "hub_qualityScore"
+    case hub_reset = "hub_reset"
+    case hub_attentionQuant = "hub_attentionQuant"
+    case hub_convertQuantize = "hub_convertQuantize"
+    case hub_status = "hub_status"
+    case hub_statusApproval = "hub_statusApproval"
+    case hub_accuracy = "hub_accuracy"
+    case hub_accuracyVal = "hub_accuracyVal"
+    case hub_accuracyWarnThreshold = "hub_accuracyWarnThreshold"
+    case hub_accuracyThresholdSettings = "hub_accuracyThresholdSettings"
+    case hub_custom = "hub_custom"
+    case hub_autoTest = "hub_autoTest"
+    case hub_autoBenchmark = "hub_autoBenchmark"
+    case hub_autoBenchRules = "hub_autoBenchRules"
+    case hub_autoBenchTemplateLabel = "hub_autoBenchTemplateLabel"
+    case hub_tenant = "hub_tenant"
+    case hub_tenantsAndRoles = "hub_tenantsAndRoles"
+    case hub_maxConcurrency = "hub_maxConcurrency"
+    case hub_maxConcurrencyColon = "hub_maxConcurrencyColon"
+    case hub_expired = "hub_expired"
+    case hub_unknownIssue = "hub_unknownIssue"
+    case hub_notYetScanned = "hub_notYetScanned"
+    case hub_noWatermarkInfo = "hub_noWatermarkInfo"
+    case hub_noEncryptionInfo = "hub_noEncryptionInfo"
+    case hub_noApprovalRecords = "hub_noApprovalRecords"
+    case hub_modelId = "hub_modelId"
+    case hub_watermarkStatus = "hub_watermarkStatus"
+    case hub_watermarkId = "hub_watermarkId"
+    case hub_verifyStatus = "hub_verifyStatus"
+    case hub_verified = "hub_verified"
+    case hub_notVerified = "hub_notVerified"
+    case hub_embeddedTime = "hub_embeddedTime"
+    case hub_encryptionStatus = "hub_encryptionStatus"
+    case hub_encryptionAlgorithm = "hub_encryptionAlgorithm"
+    case hub_encryptionTime = "hub_encryptionTime"
+    case hub_watermarkText = "hub_watermarkText"
+    case hub_addBtn = "hub_addBtn"
+    case hub_encryptBtn = "hub_encryptBtn"
+    case hub_modelIdPlaceholder = "hub_modelIdPlaceholder"
+    case hub_downloadUrlPlaceholder = "hub_downloadUrlPlaceholder"
+    case hub_downloadSched = "hub_downloadSched"
+    case hub_computeSchedPolicy = "hub_computeSchedPolicy"
+    case hub_modulePermission = "hub_modulePermission"
+    case hub_apiThrottle = "hub_apiThrottle"
+    case hub_modelTTLTab = "hub_modelTTLTab"
+    case hub_autoBenchmarkTab = "hub_autoBenchmarkTab"
+    case hub_policyAuto = "hub_policyAuto"
+    case hub_policyAutoDesc = "hub_policyAutoDesc"
+    case hub_policyPinned = "hub_policyPinned"
+    case hub_policyPinnedDesc = "hub_policyPinnedDesc"
+    case hub_policyOnDemand = "hub_policyOnDemand"
+    case hub_policyOnDemandDesc = "hub_policyOnDemandDesc"
+    case hub_idlePrefix = "hub_idlePrefix"
+    case hub_editPermissionBtn = "hub_editPermissionBtn"
+    case hub_edit = "hub_edit"
+    case hub_daily = "hub_daily"
+    case hub_weekly = "hub_weekly"
+    case hub_monthly = "hub_monthly"
+    case hub_enabled = "hub_enabled"
+    case hub_notEnabled = "hub_notEnabled"
+    case hub_benchmarkStarted = "hub_benchmarkStarted"
+    case hub_evalTaskCreated = "hub_evalTaskCreated"
+    case hub_quantizeStarted = "hub_quantizeStarted"
+    case hub_layeredQuantizeStarted = "hub_layeredQuantizeStarted"
+    case hub_assessFailed = "hub_assessFailed"
+    case hub_layeredQuantFailed = "hub_layeredQuantFailed"
+    case hub_compareFailed = "hub_compareFailed"
+    case hub_evalStartedForModel = "hub_evalStartedForModel"
+    case hub_evalFailed = "hub_evalFailed"
+    case hub_templateGeneral = "hub_templateGeneral"
+    case hub_templateCode = "hub_templateCode"
+    case hub_templateReasoning = "hub_templateReasoning"
+    case hub_templateMultilingual = "hub_templateMultilingual"
+    case hub_templateVision = "hub_templateVision"
+    case hub_evalTypeAccuracy = "hub_evalTypeAccuracy"
+    case hub_evalTypeAlignment = "hub_evalTypeAlignment"
+    case hub_evalTypeSafety = "hub_evalTypeSafety"
+    case hub_evalTypeCode = "hub_evalTypeCode"
+    case hub_evalTypeReasoning = "hub_evalTypeReasoning"
+    case hub_evalTypeGeneral = "hub_evalTypeGeneral"
+    case hub_evalTypeComprehensive = "hub_evalTypeComprehensive"
+    case hub_unknown = "hub_unknown"
+    case hub_unknownModel = "hub_unknownModel"
+    case hub_operationDeploy = "hub_operationDeploy"
+    case hub_operationDelete = "hub_operationDelete"
+    case hub_operationQuantize = "hub_operationQuantize"
+    case hub_operationExport = "hub_operationExport"
+    case hub_operationServe = "hub_operationServe"
+    case hub_operationDownload = "hub_operationDownload"
+    case hub_operation = "hub_operation"
+    case hub_allSources = "hub_allSources"
+    case hub_sourceLocal = "hub_sourceLocal"
+    case hub_sourceHub = "hub_sourceHub"
+    case hub_sourceCustom = "hub_sourceCustom"
+    case hub_source = "hub_source"
+    case hub_health_healthy = "hub_health_healthy"
+    case hub_health_warning = "hub_health_warning"
+    case hub_health_error = "hub_health_error"
+    case hub_chip = "hub_chip"
+    case hub_cpuCores = "hub_cpuCores"
+    case hub_gpuCores = "hub_gpuCores"
+    case hub_available = "hub_available"
+    case hub_supported = "hub_supported"
+    case hub_neCores = "hub_neCores"
+    case hub_modelName = "hub_modelName"
+    case hub_modelInferenceStats = "hub_modelInferenceStats"
+    case hub_noDownloadTasksShort = "hub_noDownloadTasksShort"
+    case hub_selectTenantViewRoles = "hub_selectTenantViewRoles"
+    case hub_roleList = "hub_roleList"
+    case hub_keyName = "hub_keyName"
+    case hub_tenantName = "hub_tenantName"
+    case hub_defaultRole = "hub_defaultRole"
+    case hub_roleName = "hub_roleName"
+    case hub_approvalCommentOptional = "hub_approvalCommentOptional"
+    case hub_approvalComment = "hub_approvalComment"
+    case hub_roleAdmin = "hub_roleAdmin"
+    case hub_roleMember = "hub_roleMember"
+    case hub_roleGuest = "hub_roleGuest"
+    case hub_roleAdminCaps = "hub_roleAdminCaps"
+    case hub_roleMemberCaps = "hub_roleMemberCaps"
+    case hub_roleGuestCaps = "hub_roleGuestCaps"
+    case hub_copyAndClose2 = "hub_copyAndClose2"
+    case hub_presetChatLabel = "hub_presetChatLabel"
+    case hub_presetCodeLabel = "hub_presetCodeLabel"
+    case hub_presetEmbeddingLabel = "hub_presetEmbeddingLabel"
+    case hub_presetRagLabel = "hub_presetRagLabel"
+    case hub_presetChatMem = "hub_presetChatMem"
+    case hub_presetCodeMem = "hub_presetCodeMem"
+    case hub_presetEmbeddingMem = "hub_presetEmbeddingMem"
+    case hub_presetRagMem = "hub_presetRagMem"
+    case hub_presetChatDesc = "hub_presetChatDesc"
+    case hub_presetCodeDesc = "hub_presetCodeDesc"
+    case hub_presetEmbeddingDesc = "hub_presetEmbeddingDesc"
+    case hub_presetRagDesc = "hub_presetRagDesc"
+    case hub_scenePreset = "hub_scenePreset"
+    case hub_quantConfig = "hub_quantConfig"
+    case hub_layeredQuantize = "hub_layeredQuantize"
+    case hub_quantCompare = "hub_quantCompare"
+    case hub_qualityLabel = "hub_qualityLabel"
+    case hub_speedLabel = "hub_speedLabel"
+    case hub_memoryLabelFmt = "hub_memoryLabelFmt"
+    case hub_firstTokenFmt = "hub_firstTokenFmt"
+    case hub_accuracyFmt = "hub_accuracyFmt"
+    case hub_benchResultPrefix = "hub_benchResultPrefix"
+    case hub_accuracyPrefix = "hub_accuracyPrefix"
+    case hub_firstTokenPrefix = "hub_firstTokenPrefix"
+    case hub_memoryPrefix = "hub_memoryPrefix"
+    case hub_perTokenLatency = "hub_perTokenLatency"
+    case hub_firstTokenLatencyLabel = "hub_firstTokenLatencyLabel"
+    case hub_prefillLatency = "hub_prefillLatency"
+    case hub_decodeLatency = "hub_decodeLatency"
+    case hub_throughputBatch1 = "hub_throughputBatch1"
+    case hub_throughputBatch2 = "hub_throughputBatch2"
+    case hub_throughputBatch4 = "hub_throughputBatch4"
+    case hub_throughputBatch8 = "hub_throughputBatch8"
+    case hub_memoryFootprint = "hub_memoryFootprint"
+    case hub_usedStorageFmt = "hub_usedStorageFmt"
+    case hub_tokensPerSecCol = "hub_tokensPerSecCol"
+    case hub_accuracyCol = "hub_accuracyCol"
+    case hub_scoreCol = "hub_scoreCol"
+    case hub_compareCol = "hub_compareCol"
+    case hub_templateCol = "hub_templateCol"
+    case hub_deployment = "hub_deployment"
+    case hub_newEval = "hub_newEval"
+    case hub_quantColon = "hub_quantColon"
+    case hub_dlColon = "hub_dlColon"
+    case hub_modelColon = "hub_modelColon"
+    case hub_modelColonJoined = "hub_modelColonJoined"
+    case hub_requesterColon = "hub_requesterColon"
+    case hub_reviewerColonComment = "hub_reviewerColonComment"
+    case hub_statusColon = "hub_statusColon"
+    case hub_typeColon = "hub_typeColon"
+    case hub_showingFirstN = "hub_showingFirstN"
+    case hub_nReplicasFmt = "hub_nReplicasFmt"
+    case hub_canaryFmt = "hub_canaryFmt"
+    case hub_nActiveDeploymentsFmt = "hub_nActiveDeploymentsFmt"
+    case hub_nDownloadingFmt = "hub_nDownloadingFmt"
+    case hub_nRolesFmt = "hub_nRolesFmt"
+    case hub_nItemsFmt = "hub_nItemsFmt"
+    case hub_sevCritical = "hub_sevCritical"
+    case hub_sevHigh = "hub_sevHigh"
+    case hub_sevMedium = "hub_sevMedium"
+    case hub_sevLow = "hub_sevLow"
+    case hub_latencyLabel = "hub_latencyLabel"
+    case hub_errorRate = "hub_errorRate"
+    case hub_grayCanary = "hub_grayCanary"
+    case hub_quantLabel = "hub_quantLabel"
+    case hub_runningLabel = "hub_runningLabel"
+    case hub_activeDeploymentsFmt = "hub_activeDeploymentsFmt"
+    case hub_countItemsFmt = "hub_countItemsFmt"
+    case hub_copiesFmt = "hub_copiesFmt"
+    case hub_auditShowingFmt = "hub_auditShowingFmt"
+    case hub_modelSizeFmt = "hub_modelSizeFmt"
+    case hub_csvHeader = "hub_csvHeader"
+    case hub_roleCountFmt = "hub_roleCountFmt"
+    case hub_createdAtFmt = "hub_createdAtFmt"
+    case hub_modelsPermListFmt = "hub_modelsPermListFmt"
+    case hub_modelPermissions = "hub_modelPermissions"
+    case hub_apiKeyCopyOnceWarn = "hub_apiKeyCopyOnceWarn"
+    case hub_requestsTotalFmt = "hub_requestsTotalFmt"
+    case hub_reviewerCommentFmt = "hub_reviewerCommentFmt"
+    case hub_compareSelectedFmt = "hub_compareSelectedFmt"
+    case hub_modelBenchmark = "hub_modelBenchmark"
+    case hub_scoreWarnThresholdFmt = "hub_scoreWarnThresholdFmt"
+    case hub_accuracyFmt2 = "hub_accuracyFmt2"
+    case hub_accuracyWarnThresholdFmt = "hub_accuracyWarnThresholdFmt"
+    case hub_activeDownloadsFmt = "hub_activeDownloadsFmt"
+    case hub_durationHMSFmt = "hub_durationHMSFmt"
+    case hub_durationMSFmt = "hub_durationMSFmt"
+    case hub_durationSFmt = "hub_durationSFmt"
+    case hub_durationZero = "hub_durationZero"
+    case hub_rpmDefaultFmt = "hub_rpmDefaultFmt"
+    case hub_editPermTitleFmt = "hub_editPermTitleFmt"
+    case hub_concurrencyFmt = "hub_concurrencyFmt"
+    case hub_concurrencyDefaultFmt = "hub_concurrencyDefaultFmt"
+    case hub_throttleConfigTitleFmt = "hub_throttleConfigTitleFmt"
+    case hub_selectedModelsLoadingFmt = "hub_selectedModelsLoadingFmt"
 }
 
 // MARK: - 翻译管理器
@@ -420,6 +867,430 @@ let zhCNTranslations: [String: String] = [
     "linkedProjectClear": "关联项目：%@，点击解除", "releaseToAddAttachment": "释放以添加附件", "voiceModeHelp": "语音模式（说完即发送）",
     "selectModel": "选择模型", "slotNotSet": "%@（未设置）", "moreModelsLabel": "More Models",
     "toggleLightMode": "切换到亮色模式", "toggleDarkMode": "切换到暗色模式",
+
+    "hub_rpmMustPositive": "⚠️ RPM 必须 > 0",
+    "hub_concurrencyMustPositive": "⚠️ 并发数必须 > 0",
+    "hub_idleTooLowWarn": "⚠️ 低于 5 分钟可能导致频繁加载/卸载，影响响应速度",
+    "hub_nDownloading": "%@ 个下载中",
+    "hub_nActiveDeployments": "%@ 个活跃部署",
+    "hub_nItems": "%@ 个",
+    "hub_nModels": "%@ 个",
+    "hub_nRoles": "%@ 角色",
+    "hub_nReplicas": "%@ 副本",
+    "hub_apiKeyCreated": "API Key 已创建",
+    "hub_apiKeysTitle": "API 密钥",
+    "hub_apiKeysAndModelPerms": "API 密钥与模型权限",
+    "hub_apiThrottleConfig": "API 限流配置",
+    "hub_gbMemory": "GB 内存",
+    "hub_kvCacheOpt": "KV-Cache 优化",
+    "hub_qpsLimitZero": "QPS 限制 (0=无限)",
+    "hub_rpmDefault": "RPM: %@ (默认)",
+    "hub_ttlConfigNote": "TTL 配置说明",
+    "hub_ttlServeParamNote": "TTL 由模型服务部署时指定 (serve API 的 ttl_seconds 参数)",
+    "hub_securityScore": "安全评分",
+    "hub_securityScan": "安全扫描",
+    "hub_perModelSettings": "按模型设置",
+    "hub_autoBenchAfterVersion": "版本更新后自动评测",
+    "hub_saveBtn": "保存",
+    "hub_localResourceClusterHint": "本机资源不足时自动分配至集群空闲 Mac 执行推理",
+    "hub_editRole": "编辑角色",
+    "hub_editPermission": "编辑权限",
+    "hub_editPermissionModel": "编辑权限 — %@",
+    "hub_concurrencyVal": "并发: %@",
+    "hub_concurrencyDefault": "并发: %@ (默认)",
+    "hub_deployMetrics": "部署指标",
+    "hub_auditLog": "操作日志",
+    "hub_testModelCount": "测试模型数",
+    "hub_testStatus": "测试状态",
+    "hub_pinnedNoTTLNote": "常驻模型 (pinned) 不受 TTL 限制，始终保留在内存中",
+    "hub_pinnedWhitelist": "常驻内存白名单",
+    "hub_heldFlat": "持平",
+    "hub_createBtn": "创建",
+    "hub_createApiKey": "创建 API 密钥",
+    "hub_createKey": "创建密钥",
+    "hub_createdAt": "创建于 %@",
+    "hub_disk": "磁盘",
+    "hub_storageDetail": "存储详情",
+    "hub_pendingApproval": "待审批",
+    "hub_perModelThrottle": "单模型限流配置",
+    "hub_noActiveModels": "当前无活跃模型",
+    "hub_exportCsv": "导出 CSV",
+    "hub_waiting": "等待中",
+    "hub_benchThresholdWarn": "低于阈值的评测结果将标记警告",
+    "hub_scheduledBenchNote": "定时测试将在每日凌晨 3:00 或每周一凌晨 3:00 自动执行",
+    "hub_scheduledBenchmark": "定时基准测试",
+    "hub_compare": "对比",
+    "hub_compareQuantResults": "对比量化结果",
+    "hub_benchCompareHint": "对比模型推理性能：Tokens/s、首 Token 延迟、峰值内存",
+    "hub_compareSelectedN": "对比选中 (%@)",
+    "hub_layeredQuantHint": "对不同层应用不同量化策略，平衡精度与速度",
+    "hub_encryptModelWeights": "对模型权重进行加密保护",
+    "hub_multiNodeSyncHint": "多节点只需下载一次模型文件，自动增量同步",
+    "hub_issuesFound": "发现问题",
+    "hub_idleUnloadHint": "分钟触发模型卸载，释放统一内存",
+    "hub_peakMemory": "峰值内存",
+    "hub_copyAndClose": "复制并关闭",
+    "hub_formatBitsMem": "格式: %@ | %@-bit | %@",
+    "hub_redBelowThreshold": "红色 = 低于阈值",
+    "hub_cache": "缓存",
+    "hub_yellowNearThreshold": "黄色 = 接近阈值",
+    "hub_canaryPercent": "灰度 %@%%",
+    "hub_active": "活跃",
+    "hub_activeSessions": "活跃会话",
+    "hub_activeModelCountdown": "活跃模型倒计时",
+    "hub_clusterSchedConfig": "集群调度配置",
+    "hub_clusterNodeHealth": "集群节点健康状态",
+    "hub_clusterSharedCache": "集群全局共享模型缓存",
+    "hub_encryption": "加密",
+    "hub_encryptionMgmt": "加密管理",
+    "hub_encryptModel": "加密模型",
+    "hub_loadDetail": "加载详情...",
+    "hub_loading": "加载中...",
+    "hub_securityScanTargetHint": "将对指定模型进行安全漏洞扫描",
+    "hub_reject": "拒绝",
+    "hub_enableCrossNodeRouting": "开启跨节点推理路由",
+    "hub_startLayeredQuantize": "开始分层量化",
+    "hub_startQuantize": "开始量化",
+    "hub_startScan": "开始扫描",
+    "hub_startDownload": "开始下载",
+    "hub_controlModuleModelHint": "控制各模块可使用的模型，点击编辑权限修改",
+    "hub_controlRateConcurrencyHint": "控制每个模型的请求速率与并发限制，防止过载",
+    "hub_quickPresetHint": "快速选择适合场景的量化方案",
+    "hub_typeLabel": "类型: %@",
+    "hub_historyBenchRecords": "历史评测记录",
+    "hub_runBenchmarkNow": "立即执行一次基准测试",
+    "hub_quantLinkedBench": "量化关联评测",
+    "hub_quantPostBench": "量化后基准",
+    "hub_quantizedModel": "量化模型",
+    "hub_quantizeTask": "量化任务",
+    "hub_quantTaskBenchResult": "量化任务完成后的自动评测结果",
+    "hub_autoBenchAfterQuantize": "量化完成后自动评测",
+    "hub_quantBits": "量化位数",
+    "hub_noRunningQuantTask": "没有正在运行的量化任务",
+    "hub_autoRefresh10s": "每 10 秒自动刷新",
+    "hub_rpmLabel": "每分钟请求数 (RPM)",
+    "hub_rpmLabelColon": "每分钟请求数 (RPM):",
+    "hub_pinnedWhitelistNote": "名单内模型永久驻留内存，不会被自动卸载",
+    "hub_template": "模板",
+    "hub_moduleAccessPerm": "模块访问权限",
+    "hub_model": "模型",
+    "hub_modelTTL": "模型 TTL (存活时间)",
+    "hub_modelApprovalOps": "模型: %@",
+    "hub_modelJoined": "模型: %@",
+    "hub_autoBenchAfterQuantOrDownload": "模型量化或下载完成后自动运行基准测试，持续追踪性能变化",
+    "hub_autoBenchQuantOrDownloadShort": "模型量化完成后、新模型下载完成后自动触发基准测试",
+    "hub_autoBenchAfterQuantConvert": "模型量化转换成功后，自动运行性能评测",
+    "hub_autoBenchAfterVersionLoad": "模型新版本加载后，自动运行性能评测对比",
+    "hub_defaultThrottlePolicy": "默认限流策略",
+    "hub_targetFormat": "目标格式",
+    "hub_benchIncludedModels": "纳入测试的模型",
+    "hub_memory": "内存",
+    "hub_benchmark": "评测",
+    "hub_benchResult": "评测结果",
+    "hub_benchResultColon": "评测结果:",
+    "hub_benchType": "评测类型",
+    "hub_benchTemplate": "评测模板",
+    "hub_benchModel": "评测模型",
+    "hub_score": "评分",
+    "hub_scoreWarnThreshold": "评分警告阈值: %@",
+    "hub_evalResult": "评估结果",
+    "hub_evaluateQuant": "评估量化",
+    "hub_enableAutoBenchmark": "启用自动基准测试",
+    "hub_cleanupSystem": "清理系统",
+    "hub_apiKeyOnceHint": "请立即复制，此密钥仅显示一次：\n%@",
+    "hub_requestsTotal": "请求: %@",
+    "hub_requestsPerMin": "请求/分",
+    "hub_selectTenantFirst": "请先选择左侧租户",
+    "hub_pleaseSelect": "请选择",
+    "hub_cancelBtn": "取消",
+    "hub_unifiedFusionApp": "全 Fusion 应用统一生效",
+    "hub_all": "全部",
+    "hub_globalModelLoadPolicy": "全局模型加载策略",
+    "hub_globalThreshold": "全局阈值",
+    "hub_permissionSelect": "权限选择",
+    "hub_date": "日期",
+    "hub_scanModel": "扫描模型",
+    "hub_scanModelSecurity": "扫描模型安全",
+    "hub_scanDuplicates": "扫描重复",
+    "hub_setIdleUnloadCountdown": "设置模型自动卸载倒计时，闲置超时后释放统一内存",
+    "hub_setThreshold": "设置阈值",
+    "hub_requester": "申请人: %@",
+    "hub_requesterShort": "申请人: %@",
+    "hub_approval": "审批",
+    "hub_approvalWorkflow": "审批工作流",
+    "hub_approvalProcess": "审批流程",
+    "hub_reviewerWithComment": "审批人: %@%@",
+    "hub_approvalDetail": "审批详情",
+    "hub_remainingTime": "剩余时间",
+    "hub_failed": "失败",
+    "hub_time": "时间",
+    "hub_realtimeMonitor": "实时监控",
+    "hub_firstToken": "首Token",
+    "hub_firstTokenSec": "首Token(s)",
+    "hub_firstTokenLatency": "首Token延迟",
+    "hub_refresh": "刷新",
+    "hub_watermarkMgmt": "水印管理",
+    "hub_add": "添加",
+    "hub_addWatermark": "添加水印",
+    "hub_deactivate": "停用",
+    "hub_approve": "通过",
+    "hub_general2": "通用",
+    "hub_done": "完成",
+    "hub_completionTime": "完成时间",
+    "hub_addDigitalWatermarkHint": "为模型添加数字水印以保护知识产权",
+    "hub_unconfiguredUsesDefault": "未单独配置的模型使用默认策略",
+    "hub_noSecurityIssues": "未发现安全问题",
+    "hub_noClusterNodes": "未检测到集群节点",
+    "hub_noModelWillTestAll": "未选择模型，将测试所有已下载模型",
+    "hub_issueSummary": "问题汇总",
+    "hub_none": "无",
+    "hub_noPermissionConfig": "无权限配置",
+    "hub_downloadLabel": "下载: %@",
+    "hub_downloadTask": "下载任务",
+    "hub_downloadNewModel": "下载新模型",
+    "hub_idle": "闲置",
+    "hub_idleAfterTTLUnload": "闲置超过 TTL 后，模型将自动从内存卸载，释放 GPU 统一内存",
+    "hub_idleAutoReclaim": "闲置自动回收",
+    "hub_auditLogFirstN": "显示前 30 条，共 %@ 条",
+    "hub_throttleConfigModel": "限流配置 — %@",
+    "hub_newRole": "新建角色",
+    "hub_newBenchmark": "新建评测",
+    "hub_newDownload": "新建下载",
+    "hub_newTenant": "新建租户",
+    "hub_performanceBenchmark": "性能评测",
+    "hub_selectBenchModels": "选择基准测试模型",
+    "hub_selectModel": "选择模型",
+    "hub_selectModelPlaceholder": "选择模型...",
+    "hub_selectBenchModel": "选择评测模型",
+    "hub_latencyMs": "延迟(ms)",
+    "hub_rejected": "已拒绝",
+    "hub_configuredTTLModels": "已配置 TTL 的模型",
+    "hub_deactivated": "已停用",
+    "hub_approved": "已通过",
+    "hub_selectedNModelsLoading": "已选 %@ 个模型 (加载中...)",
+    "hub_hardwareInfo": "硬件信息",
+    "hub_permanentResidentNoTTL": "永久驻留 (无 TTL)",
+    "hub_estimatedReduction": "预计缩减",
+    "hub_presetScheme": "预设方案",
+    "hub_originalVsQuant": "原始 vs 量化对比",
+    "hub_originalModel": "原始模型",
+    "hub_allowedModulesHint": "允许模块（留空=全部）",
+    "hub_allowedModelsHint": "允许模型（留空=全部）",
+    "hub_runningColon": "运行: %@",
+    "hub_runBenchmark": "运行评测",
+    "hub_running": "运行中",
+    "hub_noApiKey": "暂无 API 密钥",
+    "hub_noAuditLogs": "暂无操作日志",
+    "hub_noPinnedModels": "暂无常驻模型",
+    "hub_noActiveDeployments": "暂无活跃部署",
+    "hub_noRoles": "暂无角色",
+    "hub_noHistory": "暂无历史记录",
+    "hub_noQuantLinkedBench": "暂无量化关联评测数据",
+    "hub_noModels": "暂无模型",
+    "hub_noModelData": "暂无模型数据",
+    "hub_noBenchRecords": "暂无评测记录",
+    "hub_noBenchData": "暂无评测数据，选择模型并运行评测",
+    "hub_noApprovalRequests": "暂无审批请求",
+    "hub_noInferenceData": "暂无推理数据",
+    "hub_noDownloadTasks": "暂无下载任务",
+    "hub_noDownloadedModels": "暂无已下载模型",
+    "hub_noTenants": "暂无租户",
+    "hub_executionFrequency": "执行频率",
+    "hub_qualityChange": "质量变化: %@",
+    "hub_qualityScore": "质量分",
+    "hub_reset": "重置",
+    "hub_attentionQuant": "注意力层量化",
+    "hub_convertQuantize": "转换 & 量化",
+    "hub_status": "状态",
+    "hub_statusApproval": "状态: %@",
+    "hub_accuracy": "准确率",
+    "hub_accuracyVal": "准确率: %@",
+    "hub_accuracyWarnThreshold": "准确率警告阈值: %@",
+    "hub_accuracyThresholdSettings": "准确率阈值设置",
+    "hub_custom": "自定义",
+    "hub_autoTest": "自动测试",
+    "hub_autoBenchmark": "自动基准测试",
+    "hub_autoBenchRules": "自动评测规则",
+    "hub_autoBenchTemplateLabel": "自动评测模板:",
+    "hub_tenant": "租户",
+    "hub_tenantsAndRoles": "租户与角色",
+    "hub_maxConcurrency": "最大并发数",
+    "hub_maxConcurrencyColon": "最大并发数:",
+    "hub_expired": "已过期",
+    "hub_unknownIssue": "未知问题",
+    "hub_notYetScanned": "尚未进行安全扫描",
+    "hub_noWatermarkInfo": "暂无水印信息",
+    "hub_noEncryptionInfo": "暂无加密信息",
+    "hub_noApprovalRecords": "暂无审批记录",
+    "hub_modelId": "模型ID",
+    "hub_watermarkStatus": "水印状态",
+    "hub_watermarkId": "水印ID",
+    "hub_verifyStatus": "验证状态",
+    "hub_verified": "已验证",
+    "hub_notVerified": "未验证",
+    "hub_embeddedTime": "嵌入时间",
+    "hub_encryptionStatus": "加密状态",
+    "hub_encryptionAlgorithm": "加密算法",
+    "hub_encryptionTime": "加密时间",
+    "hub_watermarkText": "水印文本",
+    "hub_addBtn": "添加",
+    "hub_encryptBtn": "加密",
+    "hub_modelIdPlaceholder": "模型 ID",
+    "hub_downloadUrlPlaceholder": "下载地址 (https://...)",
+    "hub_downloadSched": "下载调度",
+    "hub_computeSchedPolicy": "算力调度策略",
+    "hub_modulePermission": "模块权限",
+    "hub_apiThrottle": "API 限流",
+    "hub_modelTTLTab": "模型 TTL",
+    "hub_autoBenchmarkTab": "自动基准测试",
+    "hub_policyAuto": "智能自动调度",
+    "hub_policyAutoDesc": "根据请求自动加载/卸载，推荐",
+    "hub_policyPinned": "手动固定常驻",
+    "hub_policyPinnedDesc": "模型常驻内存，不自动卸载",
+    "hub_policyOnDemand": "用完即卸载",
+    "hub_policyOnDemandDesc": "每次请求后立即卸载，最省内存",
+    "hub_idlePrefix": "闲置",
+    "hub_editPermissionBtn": "编辑权限",
+    "hub_edit": "编辑",
+    "hub_daily": "每日",
+    "hub_weekly": "每周",
+    "hub_monthly": "每月",
+    "hub_enabled": "已启用",
+    "hub_notEnabled": "未启用",
+    "hub_benchmarkStarted": "评测已启动，稍后查看结果",
+    "hub_evalTaskCreated": "评测任务已创建",
+    "hub_quantizeStarted": "量化任务已启动",
+    "hub_layeredQuantizeStarted": "分层量化任务已启动",
+    "hub_assessFailed": "评估失败: %@",
+    "hub_layeredQuantFailed": "分层量化失败: %@",
+    "hub_compareFailed": "对比失败: %@",
+    "hub_evalStartedForModel": "评测任务已启动: %@",
+    "hub_evalFailed": "评测失败: %@",
+    "hub_templateGeneral": "通用",
+    "hub_templateCode": "代码",
+    "hub_templateReasoning": "推理",
+    "hub_templateMultilingual": "多语言",
+    "hub_templateVision": "视觉",
+    "hub_evalTypeAccuracy": "准确率",
+    "hub_evalTypeAlignment": "对齐度",
+    "hub_evalTypeSafety": "安全性",
+    "hub_evalTypeCode": "代码能力",
+    "hub_evalTypeReasoning": "推理能力",
+    "hub_evalTypeGeneral": "通用",
+    "hub_evalTypeComprehensive": "综合评测",
+    "hub_unknown": "未知",
+    "hub_unknownModel": "未知模型",
+    "hub_operationDeploy": "部署",
+    "hub_operationDelete": "删除",
+    "hub_operationQuantize": "量化",
+    "hub_operationExport": "导出",
+    "hub_operationServe": "上线",
+    "hub_operationDownload": "下载",
+    "hub_operation": "操作",
+    "hub_allSources": "全部来源",
+    "hub_sourceLocal": "本地",
+    "hub_sourceHub": "Hub",
+    "hub_sourceCustom": "自定义",
+    "hub_source": "来源",
+    "hub_health_healthy": "健康",
+    "hub_health_warning": "警告/降级",
+    "hub_health_error": "错误/过载",
+    "hub_chip": "芯片",
+    "hub_cpuCores": "CPU 核心",
+    "hub_gpuCores": "GPU 核心",
+    "hub_available": "可用",
+    "hub_supported": "支持",
+    "hub_neCores": "NE 核心",
+    "hub_modelName": "模型名称",
+    "hub_modelInferenceStats": "模型推理统计",
+    "hub_noDownloadTasksShort": "暂无下载任务",
+    "hub_selectTenantViewRoles": "选择租户查看角色",
+    "hub_roleList": "角色列表",
+    "hub_keyName": "密钥名称",
+    "hub_tenantName": "租户名称",
+    "hub_defaultRole": "默认角色",
+    "hub_roleName": "角色名称",
+    "hub_approvalCommentOptional": "审批意见（可选）",
+    "hub_approvalComment": "审批意见",
+    "hub_roleAdmin": "管理员",
+    "hub_roleMember": "成员",
+    "hub_roleGuest": "访客",
+    "hub_roleAdminCaps": "全部模型 + 全部模块 + 密钥管理 + 系统配置",
+    "hub_roleMemberCaps": "指定模型 + 常规模块 + 无系统配置",
+    "hub_roleGuestCaps": "受限模型 + 仅对话 + 速率限制",
+    "hub_copyAndClose2": "复制并关闭",
+    "hub_presetChatLabel": "对话模型",
+    "hub_presetCodeLabel": "代码模型",
+    "hub_presetEmbeddingLabel": "嵌入模型",
+    "hub_presetRagLabel": "RAG模型",
+    "hub_presetChatMem": "低内存",
+    "hub_presetCodeMem": "均衡",
+    "hub_presetEmbeddingMem": "精度优先",
+    "hub_presetRagMem": "推理优化",
+    "hub_presetChatDesc": "4-bit MLX 量化，适合对话场景，内存占用最低",
+    "hub_presetCodeDesc": "8-bit MLX 量化，代码生成质量与速度均衡",
+    "hub_presetEmbeddingDesc": "FP16 MLX 格式，保持嵌入精度，适合检索场景",
+    "hub_presetRagDesc": "4-bit GGUF 格式，针对 RAG 推理优化，兼容 llama.cpp",
+    "hub_scenePreset": "场景预设",
+    "hub_quantConfig": "量化配置",
+    "hub_layeredQuantize": "分层量化",
+    "hub_quantCompare": "量化对比",
+    "hub_qualityLabel": "质量: %.0f%%",
+    "hub_speedLabel": "速度: %.1f tok/s",
+    "hub_memoryLabelFmt": "内存: %.1f GB",
+    "hub_firstTokenFmt": "首Token: %.2fs",
+    "hub_accuracyFmt": "准确率: %.1f%%",
+    "hub_benchResultPrefix": "评测结果:",
+    "hub_accuracyPrefix": "准确率 %.1f%%",
+    "hub_firstTokenPrefix": "首Token %.2fs",
+    "hub_memoryPrefix": "内存 %.1f GB",
+    "hub_perTokenLatency": "每Token延迟",
+    "hub_firstTokenLatencyLabel": "首Token延迟",
+    "hub_prefillLatency": "Prefill延迟",
+    "hub_decodeLatency": "Decode延迟",
+    "hub_throughputBatch1": "Batch=1 吞吐",
+    "hub_throughputBatch2": "Batch=2 吞吐",
+    "hub_throughputBatch4": "Batch=4 吞吐",
+    "hub_throughputBatch8": "Batch=8 吞吐",
+    "hub_memoryFootprint": "内存占用",
+    "hub_usedStorageFmt": "已使用 %.1f / %.1f GB (%.0f%%)",
+    "hub_tokensPerSecCol": "Tokens/s",
+    "hub_accuracyCol": "准确率",
+    "hub_scoreCol": "评分",
+    "hub_compareCol": "对比",
+    "hub_templateCol": "模板",
+    "hub_deployment": "部署",
+    "hub_newEval": "新建评测",
+    "hub_quantColon": "量化: %@",
+    "hub_dlColon": "下载: %@",
+    "hub_modelColon": "模型: %@",
+    "hub_modelColonJoined": "模型: %@",
+    "hub_requesterColon": "申请人: %@",
+    "hub_reviewerColonComment": "审批人: %@%@",
+    "hub_statusColon": "状态: %@",
+    "hub_typeColon": "类型: %@",
+    "hub_showingFirstN": "显示前 30 条，共 %@ 条",
+    "hub_nReplicasFmt": "%@ 副本",
+    "hub_canaryFmt": "灰度 %@%%",
+    "hub_nActiveDeploymentsFmt": "%@ 个活跃部署",
+    "hub_nDownloadingFmt": "%@ 个下载中",
+    "hub_nRolesFmt": "%@ 角色",
+    "hub_nItemsFmt": "%@ 个",
+    "hub_sevCritical": "严重", "hub_sevHigh": "高危", "hub_sevMedium": "中危", "hub_sevLow": "低危",
+    "hub_latencyLabel": "延迟", "hub_errorRate": "错误率", "hub_grayCanary": "灰度 %@%",
+    "hub_quantLabel": "量化: %@", "hub_runningLabel": "运行: %@", "hub_activeDeploymentsFmt": "%d 个活跃部署",
+    "hub_countItemsFmt": "%d 个", "hub_copiesFmt": "%d 副本", "hub_auditShowingFmt": "显示前 30 条，共 %d 条",
+    "hub_modelSizeFmt": "模型: %.1f GB", "hub_csvHeader": "ID,时间,操作,来源,资源,用户,详情\n",
+    "hub_roleCountFmt": "%d 角色", "hub_createdAtFmt": "创建于 %@", "hub_modelsPermListFmt": "模型: %@",
+    "hub_modelPermissions": "模型权限", "hub_apiKeyCopyOnceWarn": "请立即复制，此密钥仅显示一次：\n%@",
+    "hub_requestsTotalFmt": "请求: %d", "hub_reviewerCommentFmt": "审批人: %@%@",
+    "hub_compareSelectedFmt": "对比选中 (%d)", "hub_modelBenchmark": "模型评测",
+    "hub_scoreWarnThresholdFmt": "评分警告阈值: %@", "hub_accuracyFmt2": "准确率: %@",
+    "hub_accuracyWarnThresholdFmt": "准确率警告阈值: %@", "hub_activeDownloadsFmt": "%d 个下载中",
+    "hub_durationHMSFmt": "%@时%@分%@秒", "hub_durationMSFmt": "%@分%@秒", "hub_durationSFmt": "%@秒",
+    "hub_durationZero": "0秒", "hub_rpmDefaultFmt": "RPM: %d (默认)", "hub_editPermTitleFmt": "编辑权限 — %@",
+    "hub_concurrencyFmt": "并发: %d", "hub_concurrencyDefaultFmt": "并发: %d (默认)",
+    "hub_throttleConfigTitleFmt": "限流配置 — %@", "hub_selectedModelsLoadingFmt": "已选 %d 个模型 (加载中...)",
 ]
 
 let enUSTranslations: [String: String] = [
@@ -495,6 +1366,430 @@ let enUSTranslations: [String: String] = [
     "linkedProjectClear": "Linked project: %@ — click to unlink", "releaseToAddAttachment": "Release to add attachment", "voiceModeHelp": "Voice mode (send on done)",
     "selectModel": "Select model", "slotNotSet": "%@ (not set)", "moreModelsLabel": "More Models",
     "toggleLightMode": "Switch to Light Mode", "toggleDarkMode": "Switch to Dark Mode",
+
+    "hub_rpmMustPositive": "⚠️ RPM must be > 0",
+    "hub_concurrencyMustPositive": "⚠️ Concurrency must be > 0",
+    "hub_idleTooLowWarn": "⚠️ Below 5 minutes may cause frequent load/unload and affect responsiveness",
+    "hub_nDownloading": "%@ downloading",
+    "hub_nActiveDeployments": "%@ active deployments",
+    "hub_nItems": "%@ items",
+    "hub_nModels": "%@ models",
+    "hub_nRoles": "%@ roles",
+    "hub_nReplicas": "%@ replicas",
+    "hub_apiKeyCreated": "API Key Created",
+    "hub_apiKeysTitle": "API Keys",
+    "hub_apiKeysAndModelPerms": "API Keys & Model Permissions",
+    "hub_apiThrottleConfig": "API Rate Limit Config",
+    "hub_gbMemory": "GB Memory",
+    "hub_kvCacheOpt": "KV-Cache Optimization",
+    "hub_qpsLimitZero": "QPS Limit (0=unlimited)",
+    "hub_rpmDefault": "RPM: %@ (default)",
+    "hub_ttlConfigNote": "TTL Configuration Notes",
+    "hub_ttlServeParamNote": "TTL is specified when the model service is deployed (ttl_seconds param of serve API)",
+    "hub_securityScore": "Security Score",
+    "hub_securityScan": "Security Scan",
+    "hub_perModelSettings": "Per-Model Settings",
+    "hub_autoBenchAfterVersion": "Auto-benchmark after version update",
+    "hub_saveBtn": "Save",
+    "hub_localResourceClusterHint": "When local resources are insufficient, auto-assign to idle Mac in cluster for inference",
+    "hub_editRole": "Edit Role",
+    "hub_editPermission": "Edit Permission",
+    "hub_editPermissionModel": "Edit Permission — %@",
+    "hub_concurrencyVal": "Concurrency: %@",
+    "hub_concurrencyDefault": "Concurrency: %@ (default)",
+    "hub_deployMetrics": "Deployment Metrics",
+    "hub_auditLog": "Audit Log",
+    "hub_testModelCount": "Test Model Count",
+    "hub_testStatus": "Test Status",
+    "hub_pinnedNoTTLNote": "Pinned models are not subject to TTL and always remain in memory",
+    "hub_pinnedWhitelist": "Pinned Memory Whitelist",
+    "hub_heldFlat": "Flat",
+    "hub_createBtn": "Create",
+    "hub_createApiKey": "Create API Key",
+    "hub_createKey": "Create Key",
+    "hub_createdAt": "Created at %@",
+    "hub_disk": "Disk",
+    "hub_storageDetail": "Storage Details",
+    "hub_pendingApproval": "Pending Approval",
+    "hub_perModelThrottle": "Per-Model Rate Limit",
+    "hub_noActiveModels": "No active models",
+    "hub_exportCsv": "Export CSV",
+    "hub_waiting": "Waiting",
+    "hub_benchThresholdWarn": "Benchmark results below the threshold will be flagged with a warning",
+    "hub_scheduledBenchNote": "Scheduled tests run automatically at 3:00 AM daily or 3:00 AM every Monday",
+    "hub_scheduledBenchmark": "Scheduled Benchmark",
+    "hub_compare": "Compare",
+    "hub_compareQuantResults": "Compare Quantization Results",
+    "hub_benchCompareHint": "Compare model inference performance: Tokens/s, first-token latency, peak memory",
+    "hub_compareSelectedN": "Compare Selected (%@)",
+    "hub_layeredQuantHint": "Apply different quantization strategies to different layers to balance precision and speed",
+    "hub_encryptModelWeights": "Encrypt and protect model weights",
+    "hub_multiNodeSyncHint": "Multi-node only needs to download model files once, with automatic incremental sync",
+    "hub_issuesFound": "Issues Found",
+    "hub_idleUnloadHint": "minutes triggers model unload, releasing unified memory",
+    "hub_peakMemory": "Peak Memory",
+    "hub_copyAndClose": "Copy & Close",
+    "hub_formatBitsMem": "Format: %@ | %@-bit | %@",
+    "hub_redBelowThreshold": "Red = Below threshold",
+    "hub_cache": "Cache",
+    "hub_yellowNearThreshold": "Yellow = Near threshold",
+    "hub_canaryPercent": "Canary %@%%",
+    "hub_active": "Active",
+    "hub_activeSessions": "Active Sessions",
+    "hub_activeModelCountdown": "Active Model Countdown",
+    "hub_clusterSchedConfig": "Cluster Scheduling Config",
+    "hub_clusterNodeHealth": "Cluster Node Health",
+    "hub_clusterSharedCache": "Cluster-Wide Shared Model Cache",
+    "hub_encryption": "Encryption",
+    "hub_encryptionMgmt": "Encryption Management",
+    "hub_encryptModel": "Encrypt Model",
+    "hub_loadDetail": "Loading details...",
+    "hub_loading": "Loading...",
+    "hub_securityScanTargetHint": "Will scan the specified model for security vulnerabilities",
+    "hub_reject": "Reject",
+    "hub_enableCrossNodeRouting": "Enable Cross-Node Inference Routing",
+    "hub_startLayeredQuantize": "Start Layered Quantization",
+    "hub_startQuantize": "Start Quantization",
+    "hub_startScan": "Start Scan",
+    "hub_startDownload": "Start Download",
+    "hub_controlModuleModelHint": "Control which models each module can use — click Edit Permission to modify",
+    "hub_controlRateConcurrencyHint": "Control rate limit and concurrency per model to prevent overload",
+    "hub_quickPresetHint": "Quickly choose a quantization preset for your scenario",
+    "hub_typeLabel": "Type: %@",
+    "hub_historyBenchRecords": "Benchmark History",
+    "hub_runBenchmarkNow": "Run a benchmark now",
+    "hub_quantLinkedBench": "Quantization-Linked Benchmark",
+    "hub_quantPostBench": "Post-Quantization Baseline",
+    "hub_quantizedModel": "Quantized Model",
+    "hub_quantizeTask": "Quantization Task",
+    "hub_quantTaskBenchResult": "Auto-benchmark results after quantization task completes",
+    "hub_autoBenchAfterQuantize": "Auto-benchmark after quantization",
+    "hub_quantBits": "Quantization Bits",
+    "hub_noRunningQuantTask": "No running quantization tasks",
+    "hub_autoRefresh10s": "Auto-refresh every 10 seconds",
+    "hub_rpmLabel": "Requests per minute (RPM)",
+    "hub_rpmLabelColon": "Requests per minute (RPM):",
+    "hub_pinnedWhitelistNote": "Models in the list stay permanently in memory and are never auto-unloaded",
+    "hub_template": "Template",
+    "hub_moduleAccessPerm": "Module Access Permissions",
+    "hub_model": "Model",
+    "hub_modelTTL": "Model TTL (time-to-live)",
+    "hub_modelApprovalOps": "Model: %@",
+    "hub_modelJoined": "Model: %@",
+    "hub_autoBenchAfterQuantOrDownload": "Auto-run benchmarks after quantization or download to track performance changes",
+    "hub_autoBenchQuantOrDownloadShort": "Auto-trigger benchmark after quantization completes or new model download finishes",
+    "hub_autoBenchAfterQuantConvert": "After quantization conversion succeeds, auto-run performance benchmark",
+    "hub_autoBenchAfterVersionLoad": "After a new model version loads, auto-run performance benchmark comparison",
+    "hub_defaultThrottlePolicy": "Default Rate Limit Policy",
+    "hub_targetFormat": "Target Format",
+    "hub_benchIncludedModels": "Models Included in Test",
+    "hub_memory": "Memory",
+    "hub_benchmark": "Benchmark",
+    "hub_benchResult": "Benchmark Result",
+    "hub_benchResultColon": "Benchmark Result:",
+    "hub_benchType": "Benchmark Type",
+    "hub_benchTemplate": "Benchmark Template",
+    "hub_benchModel": "Benchmark Model",
+    "hub_score": "Score",
+    "hub_scoreWarnThreshold": "Score warning threshold: %@",
+    "hub_evalResult": "Assessment Result",
+    "hub_evaluateQuant": "Assess Quantization",
+    "hub_enableAutoBenchmark": "Enable Auto-Benchmark",
+    "hub_cleanupSystem": "Clean Up System",
+    "hub_apiKeyOnceHint": "Copy now — this key is shown only once:\n%@",
+    "hub_requestsTotal": "Requests: %@",
+    "hub_requestsPerMin": "Req/Min",
+    "hub_selectTenantFirst": "Select a tenant on the left first",
+    "hub_pleaseSelect": "Please select",
+    "hub_cancelBtn": "Cancel",
+    "hub_unifiedFusionApp": "Applies across all Fusion apps",
+    "hub_all": "All",
+    "hub_globalModelLoadPolicy": "Global Model Load Policy",
+    "hub_globalThreshold": "Global Threshold",
+    "hub_permissionSelect": "Permission Selection",
+    "hub_date": "Date",
+    "hub_scanModel": "Scan Model",
+    "hub_scanModelSecurity": "Scan Model Security",
+    "hub_scanDuplicates": "Scan Duplicates",
+    "hub_setIdleUnloadCountdown": "Set model auto-unload countdown — releases unified memory after idle timeout",
+    "hub_setThreshold": "Set Threshold",
+    "hub_requester": "Requester: %@",
+    "hub_requesterShort": "Requester: %@",
+    "hub_approval": "Approval",
+    "hub_approvalWorkflow": "Approval Workflow",
+    "hub_approvalProcess": "Approval Process",
+    "hub_reviewerWithComment": "Reviewer: %@%@",
+    "hub_approvalDetail": "Approval Detail",
+    "hub_remainingTime": "Remaining Time",
+    "hub_failed": "Failed",
+    "hub_time": "Time",
+    "hub_realtimeMonitor": "Realtime Monitor",
+    "hub_firstToken": "First Token",
+    "hub_firstTokenSec": "First Token (s)",
+    "hub_firstTokenLatency": "First-Token Latency",
+    "hub_refresh": "Refresh",
+    "hub_watermarkMgmt": "Watermark Management",
+    "hub_add": "Add",
+    "hub_addWatermark": "Add Watermark",
+    "hub_deactivate": "Deactivate",
+    "hub_approve": "Approve",
+    "hub_general2": "General",
+    "hub_done": "Done",
+    "hub_completionTime": "Completion Time",
+    "hub_addDigitalWatermarkHint": "Add a digital watermark to the model to protect intellectual property",
+    "hub_unconfiguredUsesDefault": "Models without custom config use the default policy",
+    "hub_noSecurityIssues": "No security issues found",
+    "hub_noClusterNodes": "No cluster nodes detected",
+    "hub_noModelWillTestAll": "No model selected — all downloaded models will be tested",
+    "hub_issueSummary": "Issue Summary",
+    "hub_none": "None",
+    "hub_noPermissionConfig": "No permission config",
+    "hub_downloadLabel": "Download: %@",
+    "hub_downloadTask": "Download Tasks",
+    "hub_downloadNewModel": "Download New Model",
+    "hub_idle": "Idle",
+    "hub_idleAfterTTLUnload": "After idle time exceeds TTL, the model is auto-unloaded from memory, releasing GPU unified memory",
+    "hub_idleAutoReclaim": "Idle Auto-Reclaim",
+    "hub_auditLogFirstN": "Showing first 30 of %@ entries",
+    "hub_throttleConfigModel": "Rate Limit Config — %@",
+    "hub_newRole": "New Role",
+    "hub_newBenchmark": "New Benchmark",
+    "hub_newDownload": "New Download",
+    "hub_newTenant": "New Tenant",
+    "hub_performanceBenchmark": "Performance Benchmark",
+    "hub_selectBenchModels": "Select Benchmark Models",
+    "hub_selectModel": "Select Model",
+    "hub_selectModelPlaceholder": "Select model...",
+    "hub_selectBenchModel": "Select Benchmark Model",
+    "hub_latencyMs": "Latency (ms)",
+    "hub_rejected": "Rejected",
+    "hub_configuredTTLModels": "Models with TTL Configured",
+    "hub_deactivated": "Deactivated",
+    "hub_approved": "Approved",
+    "hub_selectedNModelsLoading": "Selected %@ models (loading...)",
+    "hub_hardwareInfo": "Hardware Info",
+    "hub_permanentResidentNoTTL": "Permanent Resident (no TTL)",
+    "hub_estimatedReduction": "Estimated Reduction",
+    "hub_presetScheme": "Preset Scheme",
+    "hub_originalVsQuant": "Original vs Quantized",
+    "hub_originalModel": "Original Model",
+    "hub_allowedModulesHint": "Allowed modules (blank = all)",
+    "hub_allowedModelsHint": "Allowed models (blank = all)",
+    "hub_runningColon": "Running: %@",
+    "hub_runBenchmark": "Run Benchmark",
+    "hub_running": "Running",
+    "hub_noApiKey": "No API keys",
+    "hub_noAuditLogs": "No audit logs",
+    "hub_noPinnedModels": "No pinned models",
+    "hub_noActiveDeployments": "No active deployments",
+    "hub_noRoles": "No roles",
+    "hub_noHistory": "No history",
+    "hub_noQuantLinkedBench": "No quantization-linked benchmark data",
+    "hub_noModels": "No models",
+    "hub_noModelData": "No model data",
+    "hub_noBenchRecords": "No benchmark records",
+    "hub_noBenchData": "No benchmark data — select a model and run a benchmark",
+    "hub_noApprovalRequests": "No approval requests",
+    "hub_noInferenceData": "No inference data",
+    "hub_noDownloadTasks": "No download tasks",
+    "hub_noDownloadedModels": "No downloaded models",
+    "hub_noTenants": "No tenants",
+    "hub_executionFrequency": "Execution Frequency",
+    "hub_qualityChange": "Quality change: %@",
+    "hub_qualityScore": "Quality Score",
+    "hub_reset": "Reset",
+    "hub_attentionQuant": "Attention Layer Quantization",
+    "hub_convertQuantize": "Convert & Quantize",
+    "hub_status": "Status",
+    "hub_statusApproval": "Status: %@",
+    "hub_accuracy": "Accuracy",
+    "hub_accuracyVal": "Accuracy: %@",
+    "hub_accuracyWarnThreshold": "Accuracy warning threshold: %@",
+    "hub_accuracyThresholdSettings": "Accuracy Threshold Settings",
+    "hub_custom": "Custom",
+    "hub_autoTest": "Auto Test",
+    "hub_autoBenchmark": "Auto-Benchmark",
+    "hub_autoBenchRules": "Auto-Benchmark Rules",
+    "hub_autoBenchTemplateLabel": "Auto-benchmark template:",
+    "hub_tenant": "Tenant",
+    "hub_tenantsAndRoles": "Tenants & Roles",
+    "hub_maxConcurrency": "Max Concurrency",
+    "hub_maxConcurrencyColon": "Max Concurrency:",
+    "hub_expired": "Expired",
+    "hub_unknownIssue": "Unknown issue",
+    "hub_notYetScanned": "No security scan yet",
+    "hub_noWatermarkInfo": "No watermark info",
+    "hub_noEncryptionInfo": "No encryption info",
+    "hub_noApprovalRecords": "No approval records",
+    "hub_modelId": "Model ID",
+    "hub_watermarkStatus": "Watermark Status",
+    "hub_watermarkId": "Watermark ID",
+    "hub_verifyStatus": "Verification Status",
+    "hub_verified": "Verified",
+    "hub_notVerified": "Not verified",
+    "hub_embeddedTime": "Embedded Time",
+    "hub_encryptionStatus": "Encryption Status",
+    "hub_encryptionAlgorithm": "Encryption Algorithm",
+    "hub_encryptionTime": "Encryption Time",
+    "hub_watermarkText": "Watermark Text",
+    "hub_addBtn": "Add",
+    "hub_encryptBtn": "Encrypt",
+    "hub_modelIdPlaceholder": "Model ID",
+    "hub_downloadUrlPlaceholder": "Download URL (https://...)",
+    "hub_downloadSched": "Download Scheduling",
+    "hub_computeSchedPolicy": "Compute Scheduling Policy",
+    "hub_modulePermission": "Module Permission",
+    "hub_apiThrottle": "API Rate Limit",
+    "hub_modelTTLTab": "Model TTL",
+    "hub_autoBenchmarkTab": "Auto-Benchmark",
+    "hub_policyAuto": "Smart auto scheduling",
+    "hub_policyAutoDesc": "Auto load/unload based on requests (recommended)",
+    "hub_policyPinned": "Manual pinned",
+    "hub_policyPinnedDesc": "Model stays in memory, never auto-unloaded",
+    "hub_policyOnDemand": "Unload after use",
+    "hub_policyOnDemandDesc": "Unload immediately after each request, saves the most memory",
+    "hub_idlePrefix": "Idle",
+    "hub_editPermissionBtn": "Edit Permission",
+    "hub_edit": "Edit",
+    "hub_daily": "Daily",
+    "hub_weekly": "Weekly",
+    "hub_monthly": "Monthly",
+    "hub_enabled": "Enabled",
+    "hub_notEnabled": "Not enabled",
+    "hub_benchmarkStarted": "Benchmark started — check results later",
+    "hub_evalTaskCreated": "Evaluation task created",
+    "hub_quantizeStarted": "Quantization task started",
+    "hub_layeredQuantizeStarted": "Layered quantization task started",
+    "hub_assessFailed": "Assessment failed: %@",
+    "hub_layeredQuantFailed": "Layered quantization failed: %@",
+    "hub_compareFailed": "Compare failed: %@",
+    "hub_evalStartedForModel": "Benchmark started for %@",
+    "hub_evalFailed": "Benchmark failed: %@",
+    "hub_templateGeneral": "General",
+    "hub_templateCode": "Code",
+    "hub_templateReasoning": "Reasoning",
+    "hub_templateMultilingual": "Multilingual",
+    "hub_templateVision": "Vision",
+    "hub_evalTypeAccuracy": "Accuracy",
+    "hub_evalTypeAlignment": "Alignment",
+    "hub_evalTypeSafety": "Safety",
+    "hub_evalTypeCode": "Code Capability",
+    "hub_evalTypeReasoning": "Reasoning Capability",
+    "hub_evalTypeGeneral": "General",
+    "hub_evalTypeComprehensive": "Comprehensive",
+    "hub_unknown": "Unknown",
+    "hub_unknownModel": "Unknown model",
+    "hub_operationDeploy": "Deploy",
+    "hub_operationDelete": "Delete",
+    "hub_operationQuantize": "Quantize",
+    "hub_operationExport": "Export",
+    "hub_operationServe": "Serve",
+    "hub_operationDownload": "Download",
+    "hub_operation": "Operation",
+    "hub_allSources": "All sources",
+    "hub_sourceLocal": "Local",
+    "hub_sourceHub": "Hub",
+    "hub_sourceCustom": "Custom",
+    "hub_source": "Source",
+    "hub_health_healthy": "Healthy",
+    "hub_health_warning": "Warning/Degraded",
+    "hub_health_error": "Error/Overloaded",
+    "hub_chip": "Chip",
+    "hub_cpuCores": "CPU Cores",
+    "hub_gpuCores": "GPU Cores",
+    "hub_available": "Available",
+    "hub_supported": "Supported",
+    "hub_neCores": "NE Cores",
+    "hub_modelName": "Model Name",
+    "hub_modelInferenceStats": "Model Inference Stats",
+    "hub_noDownloadTasksShort": "No download tasks",
+    "hub_selectTenantViewRoles": "Select tenant to view roles",
+    "hub_roleList": "Role List",
+    "hub_keyName": "Key Name",
+    "hub_tenantName": "Tenant Name",
+    "hub_defaultRole": "Default Role",
+    "hub_roleName": "Role Name",
+    "hub_approvalCommentOptional": "Approval comment (optional)",
+    "hub_approvalComment": "Approval comment",
+    "hub_roleAdmin": "Admin",
+    "hub_roleMember": "Member",
+    "hub_roleGuest": "Guest",
+    "hub_roleAdminCaps": "All models + all modules + key management + system config",
+    "hub_roleMemberCaps": "Specified models + standard modules + no system config",
+    "hub_roleGuestCaps": "Restricted models + chat only + rate limited",
+    "hub_copyAndClose2": "Copy & Close",
+    "hub_presetChatLabel": "Chat Model",
+    "hub_presetCodeLabel": "Code Model",
+    "hub_presetEmbeddingLabel": "Embedding Model",
+    "hub_presetRagLabel": "RAG Model",
+    "hub_presetChatMem": "Low Memory",
+    "hub_presetCodeMem": "Balanced",
+    "hub_presetEmbeddingMem": "Precision First",
+    "hub_presetRagMem": "Inference Optimized",
+    "hub_presetChatDesc": "4-bit MLX quantization, suitable for chat, lowest memory",
+    "hub_presetCodeDesc": "8-bit MLX quantization, balanced code quality and speed",
+    "hub_presetEmbeddingDesc": "FP16 MLX format, preserves embedding precision, suitable for retrieval",
+    "hub_presetRagDesc": "4-bit GGUF format, optimized for RAG inference, llama.cpp compatible",
+    "hub_scenePreset": "Scene Preset",
+    "hub_quantConfig": "Quantization Config",
+    "hub_layeredQuantize": "Layered Quantization",
+    "hub_quantCompare": "Quantization Compare",
+    "hub_qualityLabel": "Quality: %.0f%%",
+    "hub_speedLabel": "Speed: %.1f tok/s",
+    "hub_memoryLabelFmt": "Memory: %.1f GB",
+    "hub_firstTokenFmt": "First Token: %.2fs",
+    "hub_accuracyFmt": "Accuracy: %.1f%%",
+    "hub_benchResultPrefix": "Benchmark result:",
+    "hub_accuracyPrefix": "Accuracy %.1f%%",
+    "hub_firstTokenPrefix": "First Token %.2fs",
+    "hub_memoryPrefix": "Memory %.1f GB",
+    "hub_perTokenLatency": "Per-Token Latency",
+    "hub_firstTokenLatencyLabel": "First-Token Latency",
+    "hub_prefillLatency": "Prefill Latency",
+    "hub_decodeLatency": "Decode Latency",
+    "hub_throughputBatch1": "Batch=1 Throughput",
+    "hub_throughputBatch2": "Batch=2 Throughput",
+    "hub_throughputBatch4": "Batch=4 Throughput",
+    "hub_throughputBatch8": "Batch=8 Throughput",
+    "hub_memoryFootprint": "Memory Footprint",
+    "hub_usedStorageFmt": "Used %.1f / %.1f GB (%.0f%%)",
+    "hub_tokensPerSecCol": "Tokens/s",
+    "hub_accuracyCol": "Accuracy",
+    "hub_scoreCol": "Score",
+    "hub_compareCol": "Compare",
+    "hub_templateCol": "Template",
+    "hub_deployment": "Deployment",
+    "hub_newEval": "New Evaluation",
+    "hub_quantColon": "Quantize: %@",
+    "hub_dlColon": "Download: %@",
+    "hub_modelColon": "Model: %@",
+    "hub_modelColonJoined": "Model: %@",
+    "hub_requesterColon": "Requester: %@",
+    "hub_reviewerColonComment": "Reviewer: %@%@",
+    "hub_statusColon": "Status: %@",
+    "hub_typeColon": "Type: %@",
+    "hub_showingFirstN": "Showing first 30 of %@",
+    "hub_nReplicasFmt": "%@ replicas",
+    "hub_canaryFmt": "Canary %@%%",
+    "hub_nActiveDeploymentsFmt": "%@ active deployments",
+    "hub_nDownloadingFmt": "%@ downloading",
+    "hub_nRolesFmt": "%@ roles",
+    "hub_nItemsFmt": "%@ items",
+    "hub_sevCritical": "Critical", "hub_sevHigh": "High", "hub_sevMedium": "Medium", "hub_sevLow": "Low",
+    "hub_latencyLabel": "Latency", "hub_errorRate": "Error rate", "hub_grayCanary": "Canary %@%",
+    "hub_quantLabel": "Quantize: %@", "hub_runningLabel": "Uptime: %@", "hub_activeDeploymentsFmt": "%d active deployments",
+    "hub_countItemsFmt": "%d items", "hub_copiesFmt": "%d replicas", "hub_auditShowingFmt": "Showing top 30 of %d entries",
+    "hub_modelSizeFmt": "Models: %.1f GB", "hub_csvHeader": "ID,Time,Action,Source,Resource,User,Details\n",
+    "hub_roleCountFmt": "%d roles", "hub_createdAtFmt": "Created %@", "hub_modelsPermListFmt": "Models: %@",
+    "hub_modelPermissions": "Model permissions", "hub_apiKeyCopyOnceWarn": "Copy now — this key is shown only once:\n%@",
+    "hub_requestsTotalFmt": "Requests: %d", "hub_reviewerCommentFmt": "Reviewer: %@%@",
+    "hub_compareSelectedFmt": "Compare selected (%d)", "hub_modelBenchmark": "Model benchmark",
+    "hub_scoreWarnThresholdFmt": "Score warning threshold: %@", "hub_accuracyFmt2": "Accuracy: %@",
+    "hub_accuracyWarnThresholdFmt": "Accuracy warning threshold: %@", "hub_activeDownloadsFmt": "%d downloading",
+    "hub_durationHMSFmt": "%@h %@m %@s", "hub_durationMSFmt": "%@m %@s", "hub_durationSFmt": "%@s",
+    "hub_durationZero": "0s", "hub_rpmDefaultFmt": "RPM: %d (default)", "hub_editPermTitleFmt": "Edit permission — %@",
+    "hub_concurrencyFmt": "Concurrency: %d", "hub_concurrencyDefaultFmt": "Concurrency: %d (default)",
+    "hub_throttleConfigTitleFmt": "Throttle config — %@", "hub_selectedModelsLoadingFmt": "%d models selected (loading...)",
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -564,6 +1859,430 @@ let jaJPTranslations: [String: String] = [
     "linkedProjectClear": "関連プロジェクト：%@ — クリックで解除", "releaseToAddAttachment": "離して添付", "voiceModeHelp": "音声モード（話終わりで送信）",
     "selectModel": "モデルを選択", "slotNotSet": "%@（未設定）", "moreModelsLabel": "More Models",
     "toggleLightMode": "ライトモードへ切替", "toggleDarkMode": "ダークモードへ切替",
+
+    "hub_rpmMustPositive": "⚠️ RPM は > 0 である必要があります",
+    "hub_concurrencyMustPositive": "⚠️ 同時実行数は > 0 である必要があります",
+    "hub_idleTooLowWarn": "⚠️ 5分未満は頻繁なロード/アンロードを招き応答速度に影響します",
+    "hub_nDownloading": "%@ 件ダウンロード中",
+    "hub_nActiveDeployments": "%@ 件のアクティブデプロイ",
+    "hub_nItems": "%@ 件",
+    "hub_nModels": "%@ 件",
+    "hub_nRoles": "%@ ロール",
+    "hub_nReplicas": "%@ レプリカ",
+    "hub_apiKeyCreated": "API Key 作成済み",
+    "hub_apiKeysTitle": "APIキー",
+    "hub_apiKeysAndModelPerms": "APIキーとモデル権限",
+    "hub_apiThrottleConfig": "APIレート制限設定",
+    "hub_gbMemory": "GB メモリ",
+    "hub_kvCacheOpt": "KV-Cache最適化",
+    "hub_qpsLimitZero": "QPS制限 (0=無制限)",
+    "hub_rpmDefault": "RPM: %@ (デフォルト)",
+    "hub_ttlConfigNote": "TTL設定の説明",
+    "hub_ttlServeParamNote": "TTLはモデルサービス デプロイ時に指定 (serve API の ttl_seconds パラメータ)",
+    "hub_securityScore": "セキュリティスコア",
+    "hub_securityScan": "セキュリティスキャン",
+    "hub_perModelSettings": "モデル別設定",
+    "hub_autoBenchAfterVersion": "バージョン更新後に自動ベンチマーク",
+    "hub_saveBtn": "保存",
+    "hub_localResourceClusterHint": "ローカルリソース不足時、クラスタの空き Mac に自動割当てし推論実行",
+    "hub_editRole": "ロール編集",
+    "hub_editPermission": "権限編集",
+    "hub_editPermissionModel": "権限編集 — %@",
+    "hub_concurrencyVal": "同時実行: %@",
+    "hub_concurrencyDefault": "同時実行: %@ (デフォルト)",
+    "hub_deployMetrics": "デプロイ指標",
+    "hub_auditLog": "操作ログ",
+    "hub_testModelCount": "テストモデル数",
+    "hub_testStatus": "テストステータス",
+    "hub_pinnedNoTTLNote": "常駐モデル (pinned) はTTL制限を受けず常にメモリに保持",
+    "hub_pinnedWhitelist": "常駐メモリホワイトリスト",
+    "hub_heldFlat": "横ばい",
+    "hub_createBtn": "作成",
+    "hub_createApiKey": "APIキー作成",
+    "hub_createKey": "キー作成",
+    "hub_createdAt": "作成日時 %@",
+    "hub_disk": "ディスク",
+    "hub_storageDetail": "ストレージ詳細",
+    "hub_pendingApproval": "承認待ち",
+    "hub_perModelThrottle": "モデル別レート制限",
+    "hub_noActiveModels": "アクティブモデルなし",
+    "hub_exportCsv": "CSVエクスポート",
+    "hub_waiting": "待機中",
+    "hub_benchThresholdWarn": "閾値未満のベンチマーク結果は警告表示されます",
+    "hub_scheduledBenchNote": "定期テストは毎日午前3:00または毎週月曜午前3:00に自動実行",
+    "hub_scheduledBenchmark": "定期ベンチマーク",
+    "hub_compare": "比較",
+    "hub_compareQuantResults": "量子化結果を比較",
+    "hub_benchCompareHint": "モデル推論性能を比較: Tokens/s, 初回Token遅延, ピークメモリ",
+    "hub_compareSelectedN": "選択を比較 (%@)",
+    "hub_layeredQuantHint": "異なる層に異なる量子化戦略を適用し精度と速度をバランス",
+    "hub_encryptModelWeights": "モデル重みを暗号化保護",
+    "hub_multiNodeSyncHint": "マルチノードはモデルファイルを1回ダウンロードするだけで自動増分同期",
+    "hub_issuesFound": "問題を発見",
+    "hub_idleUnloadHint": "分でモデルをアンロードしユニファイドメモリを解放",
+    "hub_peakMemory": "ピークメモリ",
+    "hub_copyAndClose": "コピーして閉じる",
+    "hub_formatBitsMem": "形式: %@ | %@-bit | %@",
+    "hub_redBelowThreshold": "赤 = 閾値未満",
+    "hub_cache": "キャッシュ",
+    "hub_yellowNearThreshold": "黄 = 閾値に接近",
+    "hub_canaryPercent": "カナリ %@%%",
+    "hub_active": "アクティブ",
+    "hub_activeSessions": "アクティブセッション",
+    "hub_activeModelCountdown": "アクティブモデル カウントダウン",
+    "hub_clusterSchedConfig": "クラスタスケジュール設定",
+    "hub_clusterNodeHealth": "クラスタノード ヘルス状態",
+    "hub_clusterSharedCache": "クラスタ全体 共有モデルキャッシュ",
+    "hub_encryption": "暗号化",
+    "hub_encryptionMgmt": "暗号化管理",
+    "hub_encryptModel": "モデルを暗号化",
+    "hub_loadDetail": "詳細を読み込み中...",
+    "hub_loading": "読み込み中...",
+    "hub_securityScanTargetHint": "指定モデルのセキュリティ脆弱性をスキャン",
+    "hub_reject": "拒否",
+    "hub_enableCrossNodeRouting": "クロスノード推論ルーティングを有効化",
+    "hub_startLayeredQuantize": "階層別量子化を開始",
+    "hub_startQuantize": "量子化を開始",
+    "hub_startScan": "スキャン開始",
+    "hub_startDownload": "ダウンロード開始",
+    "hub_controlModuleModelHint": "各モジュールが使用可能なモデルを制御、権限編集で変更",
+    "hub_controlRateConcurrencyHint": "モデルごとにリクエスト速率と同時実行制限を制御し過負荷を防止",
+    "hub_quickPresetHint": "シーンに合った量子化プリセットを素早く選択",
+    "hub_typeLabel": "タイプ: %@",
+    "hub_historyBenchRecords": "ベンチマーク履歴",
+    "hub_runBenchmarkNow": "今すぐベンチマークを実行",
+    "hub_quantLinkedBench": "量子化連携ベンチマーク",
+    "hub_quantPostBench": "量子化後ベースライン",
+    "hub_quantizedModel": "量子化モデル",
+    "hub_quantizeTask": "量子化タスク",
+    "hub_quantTaskBenchResult": "量子化タスク完了後の自動ベンチマーク結果",
+    "hub_autoBenchAfterQuantize": "量子化完了後に自動ベンチマーク",
+    "hub_quantBits": "量子化ビット数",
+    "hub_noRunningQuantTask": "実行中の量子化タスクはありません",
+    "hub_autoRefresh10s": "10秒ごとに自動更新",
+    "hub_rpmLabel": "1分あたりリクエスト数 (RPM)",
+    "hub_rpmLabelColon": "1分あたりリクエスト数 (RPM):",
+    "hub_pinnedWhitelistNote": "リスト内のモデルは永続的にメモリに常駐し自動アンロードされない",
+    "hub_template": "テンプレート",
+    "hub_moduleAccessPerm": "モジュールアクセス権限",
+    "hub_model": "モデル",
+    "hub_modelTTL": "モデル TTL (生存時間)",
+    "hub_modelApprovalOps": "モデル: %@",
+    "hub_modelJoined": "モデル: %@",
+    "hub_autoBenchAfterQuantOrDownload": "量子化またはダウンロード完了後に自動ベンチマーク実行で性能変化を追跡",
+    "hub_autoBenchQuantOrDownloadShort": "量子化完了または新モデルダウンロード完了後に自動ベンチマーク",
+    "hub_autoBenchAfterQuantConvert": "量子化変換成功後、自動で性能ベンチマークを実行",
+    "hub_autoBenchAfterVersionLoad": "モデル新バージョンロード後、自動で性能ベンチマーク比較を実行",
+    "hub_defaultThrottlePolicy": "デフォルトレート制限ポリシー",
+    "hub_targetFormat": "ターゲット形式",
+    "hub_benchIncludedModels": "テスト対象モデル",
+    "hub_memory": "メモリ",
+    "hub_benchmark": "ベンチマーク",
+    "hub_benchResult": "ベンチマーク結果",
+    "hub_benchResultColon": "ベンチマーク結果:",
+    "hub_benchType": "ベンチマークタイプ",
+    "hub_benchTemplate": "ベンチマークテンプレート",
+    "hub_benchModel": "ベンチマークモデル",
+    "hub_score": "スコア",
+    "hub_scoreWarnThreshold": "スコア警告閾値: %@",
+    "hub_evalResult": "評価結果",
+    "hub_evaluateQuant": "量子化を評価",
+    "hub_enableAutoBenchmark": "自動ベンチマークを有効化",
+    "hub_cleanupSystem": "システムクリーンアップ",
+    "hub_apiKeyOnceHint": "今すぐコピー — このキーは一度だけ表示されます:\n%@",
+    "hub_requestsTotal": "リクエスト: %@",
+    "hub_requestsPerMin": "リクエスト/分",
+    "hub_selectTenantFirst": "左側のテナントを先に選択してください",
+    "hub_pleaseSelect": "選択してください",
+    "hub_cancelBtn": "キャンセル",
+    "hub_unifiedFusionApp": "全Fusionアプリで統一適用",
+    "hub_all": "すべて",
+    "hub_globalModelLoadPolicy": "グローバルモデル読み込みポリシー",
+    "hub_globalThreshold": "グローバル閾値",
+    "hub_permissionSelect": "権限選択",
+    "hub_date": "日付",
+    "hub_scanModel": "モデルをスキャン",
+    "hub_scanModelSecurity": "モデルセキュリティスキャン",
+    "hub_scanDuplicates": "重複スキャン",
+    "hub_setIdleUnloadCountdown": "モデル自動アンロード カウントダウンを設定、アイドル時間超過でユニファイドメモリ解放",
+    "hub_setThreshold": "閾値設定",
+    "hub_requester": "申請者: %@",
+    "hub_requesterShort": "申請者: %@",
+    "hub_approval": "承認",
+    "hub_approvalWorkflow": "承認ワークフロー",
+    "hub_approvalProcess": "承認プロセス",
+    "hub_reviewerWithComment": "承認者: %@%@",
+    "hub_approvalDetail": "承認詳細",
+    "hub_remainingTime": "残り時間",
+    "hub_failed": "失敗",
+    "hub_time": "時間",
+    "hub_realtimeMonitor": "リアルタイムモニター",
+    "hub_firstToken": "初回Token",
+    "hub_firstTokenSec": "初回Token(s)",
+    "hub_firstTokenLatency": "初回Token遅延",
+    "hub_refresh": "更新",
+    "hub_watermarkMgmt": "透かし管理",
+    "hub_add": "追加",
+    "hub_addWatermark": "透かし追加",
+    "hub_deactivate": "無効化",
+    "hub_approve": "承認",
+    "hub_general2": "一般",
+    "hub_done": "完了",
+    "hub_completionTime": "完了時間",
+    "hub_addDigitalWatermarkHint": "モデルにデジタル透かしを追加し知的財産を保護",
+    "hub_unconfiguredUsesDefault": "個別設定のないモデルはデフォルトポリシーを使用",
+    "hub_noSecurityIssues": "セキュリティ問題は見つかりませんでした",
+    "hub_noClusterNodes": "クラスタノードは検出されませんでした",
+    "hub_noModelWillTestAll": "モデル未選択 — 全ダウンロード済みモデルをテスト",
+    "hub_issueSummary": "問題サマリー",
+    "hub_none": "なし",
+    "hub_noPermissionConfig": "権限設定なし",
+    "hub_downloadLabel": "ダウンロード: %@",
+    "hub_downloadTask": "ダウンロードタスク",
+    "hub_downloadNewModel": "新規モデルダウンロード",
+    "hub_idle": "アイドル",
+    "hub_idleAfterTTLUnload": "アイドル時間がTTLを超えるとモデルは自動的にメモリからアンロードされGPUユニファイドメモリを解放",
+    "hub_idleAutoReclaim": "アイドル自動回収",
+    "hub_auditLogFirstN": "先頭30件を表示、全 %@ 件",
+    "hub_throttleConfigModel": "レート制限設定 — %@",
+    "hub_newRole": "新規ロール",
+    "hub_newBenchmark": "新規ベンチマーク",
+    "hub_newDownload": "新規ダウンロード",
+    "hub_newTenant": "新規テナント",
+    "hub_performanceBenchmark": "性能ベンチマーク",
+    "hub_selectBenchModels": "ベンチマークモデルを選択",
+    "hub_selectModel": "モデルを選択",
+    "hub_selectModelPlaceholder": "モデルを選択...",
+    "hub_selectBenchModel": "ベンチマークモデルを選択",
+    "hub_latencyMs": "遅延(ms)",
+    "hub_rejected": "拒否済み",
+    "hub_configuredTTLModels": "TTL設定済みモデル",
+    "hub_deactivated": "無効化済み",
+    "hub_approved": "承認済み",
+    "hub_selectedNModelsLoading": "選択済み %@ モデル (読み込み中...)",
+    "hub_hardwareInfo": "ハードウェア情報",
+    "hub_permanentResidentNoTTL": "永続常駐 (TTLなし)",
+    "hub_estimatedReduction": "推定削減",
+    "hub_presetScheme": "プリセット方案",
+    "hub_originalVsQuant": "オリジナル vs 量子化比較",
+    "hub_originalModel": "オリジナルモデル",
+    "hub_allowedModulesHint": "許可モジュール（空=すべて）",
+    "hub_allowedModelsHint": "許可モデル（空=すべて）",
+    "hub_runningColon": "稼働: %@",
+    "hub_runBenchmark": "ベンチマーク実行",
+    "hub_running": "実行中",
+    "hub_noApiKey": "APIキーなし",
+    "hub_noAuditLogs": "操作ログなし",
+    "hub_noPinnedModels": "常駐モデルなし",
+    "hub_noActiveDeployments": "アクティブデプロイなし",
+    "hub_noRoles": "ロールなし",
+    "hub_noHistory": "履歴なし",
+    "hub_noQuantLinkedBench": "量子化連携ベンチマークデータなし",
+    "hub_noModels": "モデルなし",
+    "hub_noModelData": "モデルデータなし",
+    "hub_noBenchRecords": "ベンチマーク記録なし",
+    "hub_noBenchData": "ベンチマークデータなし — モデルを選択して実行",
+    "hub_noApprovalRequests": "承認リクエストなし",
+    "hub_noInferenceData": "推論データなし",
+    "hub_noDownloadTasks": "ダウンロードタスクなし",
+    "hub_noDownloadedModels": "ダウンロード済みモデルなし",
+    "hub_noTenants": "テナントなし",
+    "hub_executionFrequency": "実行頻度",
+    "hub_qualityChange": "品質変化: %@",
+    "hub_qualityScore": "品質スコア",
+    "hub_reset": "リセット",
+    "hub_attentionQuant": "アテンション層量子化",
+    "hub_convertQuantize": "変換 & 量子化",
+    "hub_status": "ステータス",
+    "hub_statusApproval": "ステータス: %@",
+    "hub_accuracy": "正解率",
+    "hub_accuracyVal": "正解率: %@",
+    "hub_accuracyWarnThreshold": "正解率警告閾値: %@",
+    "hub_accuracyThresholdSettings": "正解率閾値設定",
+    "hub_custom": "カスタム",
+    "hub_autoTest": "自動テスト",
+    "hub_autoBenchmark": "自動ベンチマーク",
+    "hub_autoBenchRules": "自動ベンチマークルール",
+    "hub_autoBenchTemplateLabel": "自動ベンチマークテンプレート:",
+    "hub_tenant": "テナント",
+    "hub_tenantsAndRoles": "テナントとロール",
+    "hub_maxConcurrency": "最大同時実行数",
+    "hub_maxConcurrencyColon": "最大同時実行数:",
+    "hub_expired": "期限切れ",
+    "hub_unknownIssue": "未知の問題",
+    "hub_notYetScanned": "セキュリティスキャン未実施",
+    "hub_noWatermarkInfo": "透かし情報なし",
+    "hub_noEncryptionInfo": "暗号化情報なし",
+    "hub_noApprovalRecords": "承認記録なし",
+    "hub_modelId": "モデルID",
+    "hub_watermarkStatus": "透かしステータス",
+    "hub_watermarkId": "透かしID",
+    "hub_verifyStatus": "検証ステータス",
+    "hub_verified": "検証済み",
+    "hub_notVerified": "未検証",
+    "hub_embeddedTime": "埋め込み時間",
+    "hub_encryptionStatus": "暗号化ステータス",
+    "hub_encryptionAlgorithm": "暗号化アルゴリズム",
+    "hub_encryptionTime": "暗号化時間",
+    "hub_watermarkText": "透かしテキスト",
+    "hub_addBtn": "追加",
+    "hub_encryptBtn": "暗号化",
+    "hub_modelIdPlaceholder": "モデル ID",
+    "hub_downloadUrlPlaceholder": "ダウンロードURL (https://...)",
+    "hub_downloadSched": "ダウンロードスケジュール",
+    "hub_computeSchedPolicy": "コンピュートスケジュールポリシー",
+    "hub_modulePermission": "モジュール権限",
+    "hub_apiThrottle": "APIレート制限",
+    "hub_modelTTLTab": "モデル TTL",
+    "hub_autoBenchmarkTab": "自動ベンチマーク",
+    "hub_policyAuto": "スマート自動スケジュール",
+    "hub_policyAutoDesc": "リクエストに基づき自動ロード/アンロード（推奨）",
+    "hub_policyPinned": "手動常駐",
+    "hub_policyPinnedDesc": "モデルはメモリに常駐、自動アンロードなし",
+    "hub_policyOnDemand": "使用後即時アンロード",
+    "hub_policyOnDemandDesc": "各リクエスト後に即時アンロード、最もメモリ節約",
+    "hub_idlePrefix": "アイドル",
+    "hub_editPermissionBtn": "権限編集",
+    "hub_edit": "編集",
+    "hub_daily": "毎日",
+    "hub_weekly": "毎週",
+    "hub_monthly": "毎月",
+    "hub_enabled": "有効",
+    "hub_notEnabled": "無効",
+    "hub_benchmarkStarted": "ベンチマーク開始 — 後で結果を確認",
+    "hub_evalTaskCreated": "評価タスクを作成しました",
+    "hub_quantizeStarted": "量子化タスクを開始しました",
+    "hub_layeredQuantizeStarted": "階層別量子化タスクを開始しました",
+    "hub_assessFailed": "評価失敗: %@",
+    "hub_layeredQuantFailed": "階層別量子化失敗: %@",
+    "hub_compareFailed": "比較失敗: %@",
+    "hub_evalStartedForModel": "%@ のベンチマークを開始",
+    "hub_evalFailed": "ベンチマーク失敗: %@",
+    "hub_templateGeneral": "一般",
+    "hub_templateCode": "コード",
+    "hub_templateReasoning": "推論",
+    "hub_templateMultilingual": "多言語",
+    "hub_templateVision": "ビジョン",
+    "hub_evalTypeAccuracy": "正解率",
+    "hub_evalTypeAlignment": "アライメント",
+    "hub_evalTypeSafety": "安全性",
+    "hub_evalTypeCode": "コード能力",
+    "hub_evalTypeReasoning": "推論能力",
+    "hub_evalTypeGeneral": "一般",
+    "hub_evalTypeComprehensive": "総合評価",
+    "hub_unknown": "不明",
+    "hub_unknownModel": "不明なモデル",
+    "hub_operationDeploy": "デプロイ",
+    "hub_operationDelete": "削除",
+    "hub_operationQuantize": "量子化",
+    "hub_operationExport": "エクスポート",
+    "hub_operationServe": "オンライン",
+    "hub_operationDownload": "ダウンロード",
+    "hub_operation": "操作",
+    "hub_allSources": "すべてのソース",
+    "hub_sourceLocal": "ローカル",
+    "hub_sourceHub": "Hub",
+    "hub_sourceCustom": "カスタム",
+    "hub_source": "ソース",
+    "hub_health_healthy": "健康",
+    "hub_health_warning": "警告/劣化",
+    "hub_health_error": "エラー/過負荷",
+    "hub_chip": "チップ",
+    "hub_cpuCores": "CPUコア",
+    "hub_gpuCores": "GPUコア",
+    "hub_available": "利用可能",
+    "hub_supported": "サポート",
+    "hub_neCores": "NEコア",
+    "hub_modelName": "モデル名",
+    "hub_modelInferenceStats": "モデル推論統計",
+    "hub_noDownloadTasksShort": "ダウンロードタスクなし",
+    "hub_selectTenantViewRoles": "テナントを選択してロールを表示",
+    "hub_roleList": "ロール一覧",
+    "hub_keyName": "キー名",
+    "hub_tenantName": "テナント名",
+    "hub_defaultRole": "デフォルトロール",
+    "hub_roleName": "ロール名",
+    "hub_approvalCommentOptional": "承認コメント（任意）",
+    "hub_approvalComment": "承認コメント",
+    "hub_roleAdmin": "管理者",
+    "hub_roleMember": "メンバー",
+    "hub_roleGuest": "ゲスト",
+    "hub_roleAdminCaps": "全モデル + 全モジュール + キー管理 + システム設定",
+    "hub_roleMemberCaps": "指定モデル + 標準モジュール + システム設定なし",
+    "hub_roleGuestCaps": "制限モデル + チャットのみ + 速度制限",
+    "hub_copyAndClose2": "コピーして閉じる",
+    "hub_presetChatLabel": "チャットモデル",
+    "hub_presetCodeLabel": "コードモデル",
+    "hub_presetEmbeddingLabel": "埋め込みモデル",
+    "hub_presetRagLabel": "RAGモデル",
+    "hub_presetChatMem": "低メモリ",
+    "hub_presetCodeMem": "バランス",
+    "hub_presetEmbeddingMem": "精度優先",
+    "hub_presetRagMem": "推論最適化",
+    "hub_presetChatDesc": "4-bit MLX量子化、チャット向け、最低メモリ",
+    "hub_presetCodeDesc": "8-bit MLX量子化、コード品質と速度のバランス",
+    "hub_presetEmbeddingDesc": "FP16 MLX形式、埋め込み精度保持、検索向け",
+    "hub_presetRagDesc": "4-bit GGUF形式、RAG推論最適化、llama.cpp互換",
+    "hub_scenePreset": "シーンプリセット",
+    "hub_quantConfig": "量子化設定",
+    "hub_layeredQuantize": "階層別量子化",
+    "hub_quantCompare": "量子化比較",
+    "hub_qualityLabel": "品質: %.0f%%",
+    "hub_speedLabel": "速度: %.1f tok/s",
+    "hub_memoryLabelFmt": "メモリ: %.1f GB",
+    "hub_firstTokenFmt": "初回Token: %.2fs",
+    "hub_accuracyFmt": "正解率: %.1f%%",
+    "hub_benchResultPrefix": "ベンチマーク結果:",
+    "hub_accuracyPrefix": "正解率 %.1f%%",
+    "hub_firstTokenPrefix": "初回Token %.2fs",
+    "hub_memoryPrefix": "メモリ %.1f GB",
+    "hub_perTokenLatency": "Tokenごと遅延",
+    "hub_firstTokenLatencyLabel": "初回Token遅延",
+    "hub_prefillLatency": "Prefill遅延",
+    "hub_decodeLatency": "Decode遅延",
+    "hub_throughputBatch1": "Batch=1 スループット",
+    "hub_throughputBatch2": "Batch=2 スループット",
+    "hub_throughputBatch4": "Batch=4 スループット",
+    "hub_throughputBatch8": "Batch=8 スループット",
+    "hub_memoryFootprint": "メモリ使用量",
+    "hub_usedStorageFmt": "使用済み %.1f / %.1f GB (%.0f%%)",
+    "hub_tokensPerSecCol": "Tokens/s",
+    "hub_accuracyCol": "正解率",
+    "hub_scoreCol": "スコア",
+    "hub_compareCol": "比較",
+    "hub_templateCol": "テンプレート",
+    "hub_deployment": "デプロイ",
+    "hub_newEval": "新規評価",
+    "hub_quantColon": "量子化: %@",
+    "hub_dlColon": "ダウンロード: %@",
+    "hub_modelColon": "モデル: %@",
+    "hub_modelColonJoined": "モデル: %@",
+    "hub_requesterColon": "申請者: %@",
+    "hub_reviewerColonComment": "承認者: %@%@",
+    "hub_statusColon": "ステータス: %@",
+    "hub_typeColon": "タイプ: %@",
+    "hub_showingFirstN": "先頭30件表示、全 %@ 件",
+    "hub_nReplicasFmt": "%@ レプリカ",
+    "hub_canaryFmt": "カナリ %@%%",
+    "hub_nActiveDeploymentsFmt": "%@ 件のアクティブデプロイ",
+    "hub_nDownloadingFmt": "%@ 件ダウンロード中",
+    "hub_nRolesFmt": "%@ ロール",
+    "hub_nItemsFmt": "%@ 件",
+    "hub_sevCritical": "重大", "hub_sevHigh": "高", "hub_sevMedium": "中", "hub_sevLow": "低",
+    "hub_latencyLabel": "遅延", "hub_errorRate": "エラー率", "hub_grayCanary": "カナリ %@%",
+    "hub_quantLabel": "量子化: %@", "hub_runningLabel": "稼働: %@", "hub_activeDeploymentsFmt": "%d 件のアクティブデプロイ",
+    "hub_countItemsFmt": "%d 件", "hub_copiesFmt": "%d レプリカ", "hub_auditShowingFmt": "上位30件 / 全%d件",
+    "hub_modelSizeFmt": "モデル: %.1f GB", "hub_csvHeader": "ID,時間,操作,来源,リソース,ユーザー,詳細\n",
+    "hub_roleCountFmt": "%d ロール", "hub_createdAtFmt": "作成 %@", "hub_modelsPermListFmt": "モデル: %@",
+    "hub_modelPermissions": "モデル権限", "hub_apiKeyCopyOnceWarn": "今すぐコピー — このキーは一度しか表示されません:\n%@",
+    "hub_requestsTotalFmt": "リクエスト: %d", "hub_reviewerCommentFmt": "承認者: %@%@",
+    "hub_compareSelectedFmt": "選択を比較 (%d)", "hub_modelBenchmark": "モデルベンチマーク",
+    "hub_scoreWarnThresholdFmt": "スコア警告しきい値: %@", "hub_accuracyFmt2": "正確率: %@",
+    "hub_accuracyWarnThresholdFmt": "正確率警告しきい値: %@", "hub_activeDownloadsFmt": "%d 件ダウンロード中",
+    "hub_durationHMSFmt": "%@時間%@分%@秒", "hub_durationMSFmt": "%@分%@秒", "hub_durationSFmt": "%@秒",
+    "hub_durationZero": "0秒", "hub_rpmDefaultFmt": "RPM: %d (デフォルト)", "hub_editPermTitleFmt": "権限編集 — %@",
+    "hub_concurrencyFmt": "同時実行: %d", "hub_concurrencyDefaultFmt": "同時実行: %d (デフォルト)",
+    "hub_throttleConfigTitleFmt": "スロットル設定 — %@", "hub_selectedModelsLoadingFmt": "%d件のモデル選択 (読込中...)",
 ]
 
 let koKRTranslations: [String: String] = [
@@ -633,6 +2352,430 @@ let koKRTranslations: [String: String] = [
     "linkedProjectClear": "연결된 프로젝트: %@ — 클릭하여 해제", "releaseToAddAttachment": "놓아서 첨부", "voiceModeHelp": "음성 모드 (말 끝나면 전송)",
     "selectModel": "모델 선택", "slotNotSet": "%@ (미설정)", "moreModelsLabel": "More Models",
     "toggleLightMode": "라이트 모드로 전환", "toggleDarkMode": "다크 모드로 전환",
+
+    "hub_rpmMustPositive": "⚠️ RPM은 > 0이어야 합니다",
+    "hub_concurrencyMustPositive": "⚠️ 동시실행 수는 > 0이어야 합니다",
+    "hub_idleTooLowWarn": "⚠️ 5분 미만은 잦은 로드/언로드로 응답 속도에 영향을 줍니다",
+    "hub_nDownloading": "%@개 다운로드 중",
+    "hub_nActiveDeployments": "%@개 활성 배포",
+    "hub_nItems": "%@개",
+    "hub_nModels": "%@개",
+    "hub_nRoles": "%@ 역할",
+    "hub_nReplicas": "%@ 복제본",
+    "hub_apiKeyCreated": "API Key 생성됨",
+    "hub_apiKeysTitle": "API 키",
+    "hub_apiKeysAndModelPerms": "API 키와 모델 권한",
+    "hub_apiThrottleConfig": "API 속도 제한 설정",
+    "hub_gbMemory": "GB 메모리",
+    "hub_kvCacheOpt": "KV-Cache 최적화",
+    "hub_qpsLimitZero": "QPS 제한 (0=무제한)",
+    "hub_rpmDefault": "RPM: %@ (기본)",
+    "hub_ttlConfigNote": "TTL 설정 설명",
+    "hub_ttlServeParamNote": "TTL은 모델 서비스 배포 시 지정 (serve API의 ttl_seconds 매개변수)",
+    "hub_securityScore": "보안 점수",
+    "hub_securityScan": "보안 스캔",
+    "hub_perModelSettings": "모델별 설정",
+    "hub_autoBenchAfterVersion": "버전 업데이트 후 자동 벤치마크",
+    "hub_saveBtn": "저장",
+    "hub_localResourceClusterHint": "로컬 자원 부족 시 클러스터 여유 Mac에 자동 할당하여 추론 실행",
+    "hub_editRole": "역할 편집",
+    "hub_editPermission": "권한 편집",
+    "hub_editPermissionModel": "권한 편집 — %@",
+    "hub_concurrencyVal": "동시실행: %@",
+    "hub_concurrencyDefault": "동시실행: %@ (기본)",
+    "hub_deployMetrics": "배포 지표",
+    "hub_auditLog": "감사 로그",
+    "hub_testModelCount": "테스트 모델 수",
+    "hub_testStatus": "테스트 상태",
+    "hub_pinnedNoTTLNote": "상주 모델(pinned)은 TTL 제한을 받지 않고 항상 메모리에 유지",
+    "hub_pinnedWhitelist": "상주 메모리 화이트리스트",
+    "hub_heldFlat": "보합",
+    "hub_createBtn": "생성",
+    "hub_createApiKey": "API 키 생성",
+    "hub_createKey": "키 생성",
+    "hub_createdAt": "생성일 %@",
+    "hub_disk": "디스크",
+    "hub_storageDetail": "저장소 상세",
+    "hub_pendingApproval": "승인 대기",
+    "hub_perModelThrottle": "모델별 속도 제한",
+    "hub_noActiveModels": "활성 모델 없음",
+    "hub_exportCsv": "CSV 내보내기",
+    "hub_waiting": "대기 중",
+    "hub_benchThresholdWarn": "임계값 미만 벤치마크 결과는 경고로 표시됩니다",
+    "hub_scheduledBenchNote": "예약 테스트는 매일 오전 3:00 또는 매주 월요일 오전 3:00에 자동 실행",
+    "hub_scheduledBenchmark": "예약 벤치마크",
+    "hub_compare": "비교",
+    "hub_compareQuantResults": "양자화 결과 비교",
+    "hub_benchCompareHint": "모델 추론 성능 비교: Tokens/s, 첫 Token 지연, 피크 메모리",
+    "hub_compareSelectedN": "선택 비교 (%@)",
+    "hub_layeredQuantHint": "각 레이어에 다른 양자화 전략을 적용해 정밀도와 속도 균형",
+    "hub_encryptModelWeights": "모델 가중치 암호화 보호",
+    "hub_multiNodeSyncHint": "멀티노드는 모델 파일을 한 번만 다운로드하고 자동 증분 동기화",
+    "hub_issuesFound": "문제 발견",
+    "hub_idleUnloadHint": "분 후 모델 언로드, 통합 메모리 해제",
+    "hub_peakMemory": "피크 메모리",
+    "hub_copyAndClose": "복사 후 닫기",
+    "hub_formatBitsMem": "형식: %@ | %@-bit | %@",
+    "hub_redBelowThreshold": "빨강 = 임계값 미만",
+    "hub_cache": "캐시",
+    "hub_yellowNearThreshold": "노랑 = 임계값 근접",
+    "hub_canaryPercent": "카나리 %@%%",
+    "hub_active": "활성",
+    "hub_activeSessions": "활성 세션",
+    "hub_activeModelCountdown": "활성 모델 카운트다운",
+    "hub_clusterSchedConfig": "클러스터 스케줄 설정",
+    "hub_clusterNodeHealth": "클러스터 노드 상태",
+    "hub_clusterSharedCache": "클러스터 전역 공유 모델 캐시",
+    "hub_encryption": "암호화",
+    "hub_encryptionMgmt": "암호화 관리",
+    "hub_encryptModel": "모델 암호화",
+    "hub_loadDetail": "상세 로딩 중...",
+    "hub_loading": "로딩 중...",
+    "hub_securityScanTargetHint": "지정 모델의 보안 취약점 스캔",
+    "hub_reject": "거절",
+    "hub_enableCrossNodeRouting": "교차 노드 추론 라우팅 활성화",
+    "hub_startLayeredQuantize": "계층별 양자화 시작",
+    "hub_startQuantize": "양자화 시작",
+    "hub_startScan": "스캔 시작",
+    "hub_startDownload": "다운로드 시작",
+    "hub_controlModuleModelHint": "각 모듈이 사용할 모델 제어, 권한 편집 클릭하여 변경",
+    "hub_controlRateConcurrencyHint": "모델별 요청 속도와 동시실행 제한으로 과부하 방지",
+    "hub_quickPresetHint": "시나리오에 맞는 양자화 프리셋 빠른 선택",
+    "hub_typeLabel": "유형: %@",
+    "hub_historyBenchRecords": "벤치마크 기록",
+    "hub_runBenchmarkNow": "지금 벤치마크 실행",
+    "hub_quantLinkedBench": "양자화 연계 벤치마크",
+    "hub_quantPostBench": "양자화 후 베이스라인",
+    "hub_quantizedModel": "양자화 모델",
+    "hub_quantizeTask": "양자화 작업",
+    "hub_quantTaskBenchResult": "양자화 작업 완료 후 자동 벤치마크 결과",
+    "hub_autoBenchAfterQuantize": "양자화 완료 후 자동 벤치마크",
+    "hub_quantBits": "양자화 비트 수",
+    "hub_noRunningQuantTask": "실행 중인 양자화 작업 없음",
+    "hub_autoRefresh10s": "10초마다 자동 새로고침",
+    "hub_rpmLabel": "분당 요청 수 (RPM)",
+    "hub_rpmLabelColon": "분당 요청 수 (RPM):",
+    "hub_pinnedWhitelistNote": "목록 내 모델은 영구 메모리 상주, 자동 언로드 안 함",
+    "hub_template": "템플릿",
+    "hub_moduleAccessPerm": "모듈 접근 권한",
+    "hub_model": "모델",
+    "hub_modelTTL": "모델 TTL (생존 시간)",
+    "hub_modelApprovalOps": "모델: %@",
+    "hub_modelJoined": "모델: %@",
+    "hub_autoBenchAfterQuantOrDownload": "양자화 또는 다운로드 후 자동 벤치마크로 성능 변화 추적",
+    "hub_autoBenchQuantOrDownloadShort": "양자화 완료 또는 새 모델 다운로드 완료 시 자동 벤치마크",
+    "hub_autoBenchAfterQuantConvert": "양자화 변환 성공 후 자동 성능 벤치마크 실행",
+    "hub_autoBenchAfterVersionLoad": "모델 새 버전 로드 후 자동 성능 벤치마크 비교",
+    "hub_defaultThrottlePolicy": "기본 속도 제한 정책",
+    "hub_targetFormat": "대상 형식",
+    "hub_benchIncludedModels": "테스트 포함 모델",
+    "hub_memory": "메모리",
+    "hub_benchmark": "벤치마크",
+    "hub_benchResult": "벤치마크 결과",
+    "hub_benchResultColon": "벤치마크 결과:",
+    "hub_benchType": "벤치마크 유형",
+    "hub_benchTemplate": "벤치마크 템플릿",
+    "hub_benchModel": "벤치마크 모델",
+    "hub_score": "점수",
+    "hub_scoreWarnThreshold": "점수 경고 임계값: %@",
+    "hub_evalResult": "평가 결과",
+    "hub_evaluateQuant": "양자화 평가",
+    "hub_enableAutoBenchmark": "자동 벤치마크 활성화",
+    "hub_cleanupSystem": "시스템 정리",
+    "hub_apiKeyOnceHint": "지금 복사 — 이 키는 한 번만 표시됩니다:\n%@",
+    "hub_requestsTotal": "요청: %@",
+    "hub_requestsPerMin": "요청/분",
+    "hub_selectTenantFirst": "왼쪽 테넌트를 먼저 선택하세요",
+    "hub_pleaseSelect": "선택하세요",
+    "hub_cancelBtn": "취소",
+    "hub_unifiedFusionApp": "모든 Fusion 앱에 통일 적용",
+    "hub_all": "전체",
+    "hub_globalModelLoadPolicy": "전역 모델 로드 정책",
+    "hub_globalThreshold": "전역 임계값",
+    "hub_permissionSelect": "권한 선택",
+    "hub_date": "날짜",
+    "hub_scanModel": "모델 스캔",
+    "hub_scanModelSecurity": "모델 보안 스캔",
+    "hub_scanDuplicates": "중복 스캔",
+    "hub_setIdleUnloadCountdown": "모델 자동 언로드 카운트다운 설정, 유휴 시간 초과 시 통합 메모리 해제",
+    "hub_setThreshold": "임계값 설정",
+    "hub_requester": "신청자: %@",
+    "hub_requesterShort": "신청자: %@",
+    "hub_approval": "승인",
+    "hub_approvalWorkflow": "승인 워크플로우",
+    "hub_approvalProcess": "승인 프로세스",
+    "hub_reviewerWithComment": "승인자: %@%@",
+    "hub_approvalDetail": "승인 상세",
+    "hub_remainingTime": "남은 시간",
+    "hub_failed": "실패",
+    "hub_time": "시간",
+    "hub_realtimeMonitor": "실시간 모니터",
+    "hub_firstToken": "첫 Token",
+    "hub_firstTokenSec": "첫 Token(s)",
+    "hub_firstTokenLatency": "첫 Token 지연",
+    "hub_refresh": "새로고침",
+    "hub_watermarkMgmt": "워터마크 관리",
+    "hub_add": "추가",
+    "hub_addWatermark": "워터마크 추가",
+    "hub_deactivate": "비활성화",
+    "hub_approve": "승인",
+    "hub_general2": "일반",
+    "hub_done": "완료",
+    "hub_completionTime": "완료 시간",
+    "hub_addDigitalWatermarkHint": "모델에 디지털 워터마크 추가로 지식재산 보호",
+    "hub_unconfiguredUsesDefault": "개별 설정 없는 모델은 기본 정책 사용",
+    "hub_noSecurityIssues": "보안 문제 없음",
+    "hub_noClusterNodes": "클러스터 노드 없음",
+    "hub_noModelWillTestAll": "모델 미선택 — 모든 다운로드된 모델 테스트",
+    "hub_issueSummary": "문제 요약",
+    "hub_none": "없음",
+    "hub_noPermissionConfig": "권한 설정 없음",
+    "hub_downloadLabel": "다운로드: %@",
+    "hub_downloadTask": "다운로드 작업",
+    "hub_downloadNewModel": "새 모델 다운로드",
+    "hub_idle": "유휴",
+    "hub_idleAfterTTLUnload": "유휴 시간이 TTL을 초과하면 모델은 메모리에서 자동 언로드되어 GPU 통합 메모리 해제",
+    "hub_idleAutoReclaim": "유휴 자동 회수",
+    "hub_auditLogFirstN": "앞 30건 표시, 총 %@건",
+    "hub_throttleConfigModel": "속도 제한 설정 — %@",
+    "hub_newRole": "새 역할",
+    "hub_newBenchmark": "새 벤치마크",
+    "hub_newDownload": "새 다운로드",
+    "hub_newTenant": "새 테넌트",
+    "hub_performanceBenchmark": "성능 벤치마크",
+    "hub_selectBenchModels": "벤치마크 모델 선택",
+    "hub_selectModel": "모델 선택",
+    "hub_selectModelPlaceholder": "모델 선택...",
+    "hub_selectBenchModel": "벤치마크 모델 선택",
+    "hub_latencyMs": "지연(ms)",
+    "hub_rejected": "거절됨",
+    "hub_configuredTTLModels": "TTL 설정된 모델",
+    "hub_deactivated": "비활성화됨",
+    "hub_approved": "승인됨",
+    "hub_selectedNModelsLoading": "선택 %@ 모델 (로딩 중...)",
+    "hub_hardwareInfo": "하드웨어 정보",
+    "hub_permanentResidentNoTTL": "영구 상주 (TTL 없음)",
+    "hub_estimatedReduction": "예상 감소",
+    "hub_presetScheme": "프리셋 방안",
+    "hub_originalVsQuant": "원본 vs 양자화 비교",
+    "hub_originalModel": "원본 모델",
+    "hub_allowedModulesHint": "허용 모듈 (공백=전체)",
+    "hub_allowedModelsHint": "허용 모델 (공백=전체)",
+    "hub_runningColon": "실행: %@",
+    "hub_runBenchmark": "벤치마크 실행",
+    "hub_running": "실행 중",
+    "hub_noApiKey": "API 키 없음",
+    "hub_noAuditLogs": "감사 로그 없음",
+    "hub_noPinnedModels": "상주 모델 없음",
+    "hub_noActiveDeployments": "활성 배포 없음",
+    "hub_noRoles": "역할 없음",
+    "hub_noHistory": "기록 없음",
+    "hub_noQuantLinkedBench": "양자화 연계 벤치마크 데이터 없음",
+    "hub_noModels": "모델 없음",
+    "hub_noModelData": "모델 데이터 없음",
+    "hub_noBenchRecords": "벤치마크 기록 없음",
+    "hub_noBenchData": "벤치마크 데이터 없음 — 모델 선택 후 실행",
+    "hub_noApprovalRequests": "승인 요청 없음",
+    "hub_noInferenceData": "추론 데이터 없음",
+    "hub_noDownloadTasks": "다운로드 작업 없음",
+    "hub_noDownloadedModels": "다운로드된 모델 없음",
+    "hub_noTenants": "테넌트 없음",
+    "hub_executionFrequency": "실행 빈도",
+    "hub_qualityChange": "품질 변화: %@",
+    "hub_qualityScore": "품질 점수",
+    "hub_reset": "재설정",
+    "hub_attentionQuant": "어텐션 레이어 양자화",
+    "hub_convertQuantize": "변환 & 양자화",
+    "hub_status": "상태",
+    "hub_statusApproval": "상태: %@",
+    "hub_accuracy": "정확도",
+    "hub_accuracyVal": "정확도: %@",
+    "hub_accuracyWarnThreshold": "정확도 경고 임계값: %@",
+    "hub_accuracyThresholdSettings": "정확도 임계값 설정",
+    "hub_custom": "사용자 정의",
+    "hub_autoTest": "자동 테스트",
+    "hub_autoBenchmark": "자동 벤치마크",
+    "hub_autoBenchRules": "자동 벤치마크 규칙",
+    "hub_autoBenchTemplateLabel": "자동 벤치마크 템플릿:",
+    "hub_tenant": "테넌트",
+    "hub_tenantsAndRoles": "테넌트와 역할",
+    "hub_maxConcurrency": "최대 동시실행",
+    "hub_maxConcurrencyColon": "최대 동시실행:",
+    "hub_expired": "만료됨",
+    "hub_unknownIssue": "알 수 없는 문제",
+    "hub_notYetScanned": "보안 스캔 미실행",
+    "hub_noWatermarkInfo": "워터마크 정보 없음",
+    "hub_noEncryptionInfo": "암호화 정보 없음",
+    "hub_noApprovalRecords": "승인 기록 없음",
+    "hub_modelId": "모델 ID",
+    "hub_watermarkStatus": "워터마크 상태",
+    "hub_watermarkId": "워터마크 ID",
+    "hub_verifyStatus": "검증 상태",
+    "hub_verified": "검증됨",
+    "hub_notVerified": "미검증",
+    "hub_embeddedTime": "임베드 시간",
+    "hub_encryptionStatus": "암호화 상태",
+    "hub_encryptionAlgorithm": "암호화 알고리즘",
+    "hub_encryptionTime": "암호화 시간",
+    "hub_watermarkText": "워터마크 텍스트",
+    "hub_addBtn": "추가",
+    "hub_encryptBtn": "암호화",
+    "hub_modelIdPlaceholder": "모델 ID",
+    "hub_downloadUrlPlaceholder": "다운로드 URL (https://...)",
+    "hub_downloadSched": "다운로드 스케줄",
+    "hub_computeSchedPolicy": "연산 스케줄 정책",
+    "hub_modulePermission": "모듈 권한",
+    "hub_apiThrottle": "API 속도 제한",
+    "hub_modelTTLTab": "모델 TTL",
+    "hub_autoBenchmarkTab": "자동 벤치마크",
+    "hub_policyAuto": "스마트 자동 스케줄",
+    "hub_policyAutoDesc": "요청에 따라 자동 로드/언로드 (권장)",
+    "hub_policyPinned": "수동 상주",
+    "hub_policyPinnedDesc": "모델 메모리 상주, 자동 언로드 없음",
+    "hub_policyOnDemand": "사용 후 즉시 언로드",
+    "hub_policyOnDemandDesc": "각 요청 후 즉시 언로드, 메모리 최대 절약",
+    "hub_idlePrefix": "유휴",
+    "hub_editPermissionBtn": "권한 편집",
+    "hub_edit": "편집",
+    "hub_daily": "매일",
+    "hub_weekly": "매주",
+    "hub_monthly": "매월",
+    "hub_enabled": "활성화됨",
+    "hub_notEnabled": "비활성화됨",
+    "hub_benchmarkStarted": "벤치마크 시작 — 나중에 결과 확인",
+    "hub_evalTaskCreated": "평가 작업 생성됨",
+    "hub_quantizeStarted": "양자화 작업 시작됨",
+    "hub_layeredQuantizeStarted": "계층별 양자화 작업 시작됨",
+    "hub_assessFailed": "평가 실패: %@",
+    "hub_layeredQuantFailed": "계층별 양자화 실패: %@",
+    "hub_compareFailed": "비교 실패: %@",
+    "hub_evalStartedForModel": "%@ 벤치마크 시작됨",
+    "hub_evalFailed": "벤치마크 실패: %@",
+    "hub_templateGeneral": "일반",
+    "hub_templateCode": "코드",
+    "hub_templateReasoning": "추론",
+    "hub_templateMultilingual": "다국어",
+    "hub_templateVision": "비전",
+    "hub_evalTypeAccuracy": "정확도",
+    "hub_evalTypeAlignment": "정렬도",
+    "hub_evalTypeSafety": "안전성",
+    "hub_evalTypeCode": "코드 능력",
+    "hub_evalTypeReasoning": "추론 능력",
+    "hub_evalTypeGeneral": "일반",
+    "hub_evalTypeComprehensive": "종합 평가",
+    "hub_unknown": "알 수 없음",
+    "hub_unknownModel": "알 수 없는 모델",
+    "hub_operationDeploy": "배포",
+    "hub_operationDelete": "삭제",
+    "hub_operationQuantize": "양자화",
+    "hub_operationExport": "내보내기",
+    "hub_operationServe": "온라인",
+    "hub_operationDownload": "다운로드",
+    "hub_operation": "작업",
+    "hub_allSources": "모든 소스",
+    "hub_sourceLocal": "로컬",
+    "hub_sourceHub": "Hub",
+    "hub_sourceCustom": "사용자 정의",
+    "hub_source": "소스",
+    "hub_health_healthy": "정상",
+    "hub_health_warning": "경고/저하",
+    "hub_health_error": "오류/과부하",
+    "hub_chip": "칩",
+    "hub_cpuCores": "CPU 코어",
+    "hub_gpuCores": "GPU 코어",
+    "hub_available": "사용 가능",
+    "hub_supported": "지원",
+    "hub_neCores": "NE 코어",
+    "hub_modelName": "모델 이름",
+    "hub_modelInferenceStats": "모델 추론 통계",
+    "hub_noDownloadTasksShort": "다운로드 작업 없음",
+    "hub_selectTenantViewRoles": "테넌트 선택하여 역할 표시",
+    "hub_roleList": "역할 목록",
+    "hub_keyName": "키 이름",
+    "hub_tenantName": "테넌트 이름",
+    "hub_defaultRole": "기본 역할",
+    "hub_roleName": "역할 이름",
+    "hub_approvalCommentOptional": "승인 의견 (선택)",
+    "hub_approvalComment": "승인 의견",
+    "hub_roleAdmin": "관리자",
+    "hub_roleMember": "멤버",
+    "hub_roleGuest": "게스트",
+    "hub_roleAdminCaps": "전체 모델 + 전체 모듈 + 키 관리 + 시스템 설정",
+    "hub_roleMemberCaps": "지정 모델 + 일반 모듈 + 시스템 설정 없음",
+    "hub_roleGuestCaps": "제한 모델 + 채팅 전용 + 속도 제한",
+    "hub_copyAndClose2": "복사 후 닫기",
+    "hub_presetChatLabel": "채팅 모델",
+    "hub_presetCodeLabel": "코드 모델",
+    "hub_presetEmbeddingLabel": "임베딩 모델",
+    "hub_presetRagLabel": "RAG 모델",
+    "hub_presetChatMem": "저메모리",
+    "hub_presetCodeMem": "균형",
+    "hub_presetEmbeddingMem": "정밀도 우선",
+    "hub_presetRagMem": "추론 최적화",
+    "hub_presetChatDesc": "4-bit MLX 양자화, 채팅 적합, 최저 메모리",
+    "hub_presetCodeDesc": "8-bit MLX 양자화, 코드 품질과 속도 균형",
+    "hub_presetEmbeddingDesc": "FP16 MLX 형식, 임베딩 정밀도 유지, 검색 적합",
+    "hub_presetRagDesc": "4-bit GGUF 형식, RAG 추론 최적화, llama.cpp 호환",
+    "hub_scenePreset": "시나리오 프리셋",
+    "hub_quantConfig": "양자화 설정",
+    "hub_layeredQuantize": "계층별 양자화",
+    "hub_quantCompare": "양자화 비교",
+    "hub_qualityLabel": "품질: %.0f%%",
+    "hub_speedLabel": "속도: %.1f tok/s",
+    "hub_memoryLabelFmt": "메모리: %.1f GB",
+    "hub_firstTokenFmt": "첫 Token: %.2fs",
+    "hub_accuracyFmt": "정확도: %.1f%%",
+    "hub_benchResultPrefix": "벤치마크 결과:",
+    "hub_accuracyPrefix": "정확도 %.1f%%",
+    "hub_firstTokenPrefix": "첫 Token %.2fs",
+    "hub_memoryPrefix": "메모리 %.1f GB",
+    "hub_perTokenLatency": "Token당 지연",
+    "hub_firstTokenLatencyLabel": "첫 Token 지연",
+    "hub_prefillLatency": "Prefill 지연",
+    "hub_decodeLatency": "Decode 지연",
+    "hub_throughputBatch1": "Batch=1 처리량",
+    "hub_throughputBatch2": "Batch=2 처리량",
+    "hub_throughputBatch4": "Batch=4 처리량",
+    "hub_throughputBatch8": "Batch=8 처리량",
+    "hub_memoryFootprint": "메모리 사용량",
+    "hub_usedStorageFmt": "사용됨 %.1f / %.1f GB (%.0f%%)",
+    "hub_tokensPerSecCol": "Tokens/s",
+    "hub_accuracyCol": "정확도",
+    "hub_scoreCol": "점수",
+    "hub_compareCol": "비교",
+    "hub_templateCol": "템플릿",
+    "hub_deployment": "배포",
+    "hub_newEval": "새 평가",
+    "hub_quantColon": "양자화: %@",
+    "hub_dlColon": "다운로드: %@",
+    "hub_modelColon": "모델: %@",
+    "hub_modelColonJoined": "모델: %@",
+    "hub_requesterColon": "신청자: %@",
+    "hub_reviewerColonComment": "승인자: %@%@",
+    "hub_statusColon": "상태: %@",
+    "hub_typeColon": "유형: %@",
+    "hub_showingFirstN": "앞 30건 표시, 총 %@건",
+    "hub_nReplicasFmt": "%@ 복제본",
+    "hub_canaryFmt": "카나리 %@%%",
+    "hub_nActiveDeploymentsFmt": "%@개 활성 배포",
+    "hub_nDownloadingFmt": "%@개 다운로드 중",
+    "hub_nRolesFmt": "%@ 역할",
+    "hub_nItemsFmt": "%@개",
+    "hub_sevCritical": "치명적", "hub_sevHigh": "높음", "hub_sevMedium": "보통", "hub_sevLow": "낮음",
+    "hub_latencyLabel": "지연", "hub_errorRate": "오류율", "hub_grayCanary": "카나리 %@%",
+    "hub_quantLabel": "양자화: %@", "hub_runningLabel": "가동: %@", "hub_activeDeploymentsFmt": "%d개 활성 배포",
+    "hub_countItemsFmt": "%d개", "hub_copiesFmt": "%d 복제본", "hub_auditShowingFmt": "상위 30건 / 전체 %d건",
+    "hub_modelSizeFmt": "모델: %.1f GB", "hub_csvHeader": "ID,시간,작업,출처,리소스,사용자,상세\n",
+    "hub_roleCountFmt": "%d 역할", "hub_createdAtFmt": "생성 %@", "hub_modelsPermListFmt": "모델: %@",
+    "hub_modelPermissions": "모델 권한", "hub_apiKeyCopyOnceWarn": "지금 복사 — 이 키는 한 번만 표시됩니다:\n%@",
+    "hub_requestsTotalFmt": "요청: %d", "hub_reviewerCommentFmt": "승인자: %@%@",
+    "hub_compareSelectedFmt": "선택 비교 (%d)", "hub_modelBenchmark": "모델 벤치마크",
+    "hub_scoreWarnThresholdFmt": "점수 경고 임계값: %@", "hub_accuracyFmt2": "정확도: %@",
+    "hub_accuracyWarnThresholdFmt": "정확도 경고 임계값: %@", "hub_activeDownloadsFmt": "%d개 다운로드 중",
+    "hub_durationHMSFmt": "%@시 %@분 %@초", "hub_durationMSFmt": "%@분 %@초", "hub_durationSFmt": "%@초",
+    "hub_durationZero": "0초", "hub_rpmDefaultFmt": "RPM: %d (기본값)", "hub_editPermTitleFmt": "권한 편집 — %@",
+    "hub_concurrencyFmt": "동시 실행: %d", "hub_concurrencyDefaultFmt": "동시 실행: %d (기본값)",
+    "hub_throttleConfigTitleFmt": "스로틀 설정 — %@", "hub_selectedModelsLoadingFmt": "%d개 모델 선택 (로딩 중...)",
 ]
 
 // MARK: - 国际化文本视图
