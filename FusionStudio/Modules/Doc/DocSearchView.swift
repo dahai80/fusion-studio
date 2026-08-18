@@ -10,6 +10,7 @@ private let searchLog = Logger(subsystem: "com.fusion.studio", category: "DocSea
 
 struct DocSearchView: View {
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @ObservedObject var bridge: DocBridge
     @State private var query = ""
     @State private var results: [DocSearchResult] = []
@@ -32,7 +33,7 @@ struct DocSearchView: View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
                 .foregroundColor(theme.accent)
-            TextField("搜索文档...", text: $query)
+            TextField(i18n.t(.doc_search_placeholder), text: $query)
                 .textFieldStyle(.plain)
                 .font(.body)
                 .onSubmit { performSearch() }
@@ -55,17 +56,17 @@ struct DocSearchView: View {
 
     private var filterBar: some View {
         HStack(spacing: 8) {
-            Picker("类型", selection: $filterType) {
-                Text("全部").tag(String?.none)
-                Text("页面").tag(String?.some("page"))
-                Text("书架").tag(String?.some("book"))
+            Picker(i18n.t(.doc_search_type), selection: $filterType) {
+                Text(i18n.t(.doc_search_typeAll)).tag(String?.none)
+                Text(i18n.t(.doc_search_typePage)).tag(String?.some("page"))
+                Text(i18n.t(.doc_search_typeBook)).tag(String?.some("book"))
             }
             .frame(width: 100)
 
-            Picker("排序", selection: $sortBy) {
-                Text("相关度").tag("relevance")
-                Text("时间").tag("date")
-                Text("标题").tag("title")
+            Picker(i18n.t(.doc_search_sort), selection: $sortBy) {
+                Text(i18n.t(.doc_search_sortRelevance)).tag("relevance")
+                Text(i18n.t(.doc_search_sortDate)).tag("date")
+                Text(i18n.t(.doc_search_sortTitle)).tag("title")
             }
             .frame(width: 80)
 
@@ -87,7 +88,7 @@ struct DocSearchView: View {
 
             Spacer()
 
-            Text("\(results.count) 结果")
+            Text(String(format: i18n.t(.doc_search_resultFmt), results.count))
                 .font(.caption)
                 .foregroundColor(theme.textSecondary)
         }
@@ -103,7 +104,7 @@ struct DocSearchView: View {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 40))
                         .foregroundColor(.secondary)
-                    Text(query.isEmpty ? "输入关键词搜索文档" : "无搜索结果")
+                    Text(query.isEmpty ? i18n.t(.doc_search_hintKeyword) : i18n.t(.doc_search_noResult))
                         .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

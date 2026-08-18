@@ -10,6 +10,7 @@ private let copilotLog = Logger(subsystem: "com.fusion.studio", category: "DocAI
 
 struct DocAICopilotView: View {
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @ObservedObject var bridge: DocBridge
     @Binding var selectedPageId: String?
     @State private var chatMessages: [CopilotMessage] = []
@@ -26,6 +27,18 @@ struct DocAICopilotView: View {
         case translate = "翻译"
         case summarize = "摘要"
         case expand = "扩展"
+
+        var localLabel: String {
+            switch self {
+            case .chat:      return I18nManager.shared.t(.doc_cp_modeChat)
+            case .command:   return I18nManager.shared.t(.doc_cp_modeCommand)
+            case .rag:       return I18nManager.shared.t(.doc_cp_modeRag)
+            case .rewrite:   return I18nManager.shared.t(.doc_cp_modeRewrite)
+            case .translate: return I18nManager.shared.t(.doc_cp_modeTranslate)
+            case .summarize: return I18nManager.shared.t(.doc_cp_modeSummarize)
+            case .expand:    return I18nManager.shared.t(.doc_cp_modeExpand)
+            }
+        }
     }
 
     struct CopilotMessage: Identifiable {
@@ -49,7 +62,7 @@ struct DocAICopilotView: View {
         HStack(spacing: 0) {
             ForEach(CopilotMode.allCases, id: \.self) { mode in
                 Button(action: { copilotMode = mode }) {
-                    Text(mode.rawValue)
+                    Text(mode.localLabel)
                         .font(.caption)
                         .fontWeight(copilotMode == mode ? .semibold : .regular)
                         .foregroundColor(copilotMode == mode ? theme.accent : theme.textSecondary)
@@ -61,7 +74,7 @@ struct DocAICopilotView: View {
             }
             Spacer()
             if copilotMode == .translate {
-                Picker("目标语言", selection: $targetLang) {
+                Picker(i18n.t(.doc_cp_targetLang), selection: $targetLang) {
                     ForEach(["English", "中文", "日本語", "한국어", "Français", "Deutsch", "Español"], id: \.self) { lang in
                         Text(lang).tag(lang)
                     }
@@ -75,7 +88,7 @@ struct DocAICopilotView: View {
                     .foregroundColor(.secondary)
             }
             .buttonStyle(.plain)
-            .help("清空对话")
+            .help(i18n.t(.doc_cp_clearChat))
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
@@ -93,7 +106,7 @@ struct DocAICopilotView: View {
                         HStack(spacing: 4) {
                             ProgressView()
                                 .scaleEffect(0.6)
-                            Text("思考中...")
+                            Text(i18n.t(.doc_cp_thinking))
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -132,13 +145,13 @@ struct DocAICopilotView: View {
     private var inputBar: some View {
         HStack(alignment: .bottom, spacing: 8) {
             TextField(
-                copilotMode == .chat ? "输入消息..." :
-                copilotMode == .command ? "/command ..." :
-                copilotMode == .rewrite ? "输入改写指令..." :
-                copilotMode == .translate ? "输入文本翻译为\(targetLang)..." :
-                copilotMode == .summarize ? "输入文本生成摘要..." :
-                copilotMode == .expand ? "输入文本扩展内容..." :
-                "? 知识检索...",
+                copilotMode == .chat ? i18n.t(.doc_cp_phChat) :
+                copilotMode == .command ? i18n.t(.doc_cp_phCommand) :
+                copilotMode == .rewrite ? i18n.t(.doc_cp_phRewrite) :
+                copilotMode == .translate ? String(format: i18n.t(.doc_cp_phTranslateFmt), targetLang) :
+                copilotMode == .summarize ? i18n.t(.doc_cp_phSummarize) :
+                copilotMode == .expand ? i18n.t(.doc_cp_phExpand) :
+                i18n.t(.doc_cp_phRag),
                 text: $inputText,
                 axis: .vertical
             )
@@ -189,7 +202,7 @@ struct DocAICopilotView: View {
 
     private func sendChat(_ text: String) {
         guard let url = bridge.copilotCompleteURL() else {
-            appendError("Copilot URL 不可用")
+            appendError(i18n.t(.doc_cp_errCopilotURL))
             return
         }
 
@@ -208,7 +221,7 @@ struct DocAICopilotView: View {
 
     private func sendCommand(_ text: String) {
         guard let url = bridge.copilotCommandURL() else {
-            appendError("Command URL 不可用")
+            appendError(i18n.t(.doc_cp_errCommandURL))
             return
         }
 
@@ -229,7 +242,7 @@ struct DocAICopilotView: View {
                     if let answer = data.answer, !answer.isEmpty {
                         self.chatMessages.append(CopilotMessage(role: "assistant", content: answer))
                     } else if let chunks = data.chunks, !chunks.isEmpty {
-                        var content = "📚 相关知识片段：\n\n"
+                        var content = self.i18n.t(.doc_cp_ragChunksPrefix) + "\n\n"
                         for (i, chunk) in chunks.enumerated() {
                             if let txt = chunk.chunk_text {
                                 content += "\(i + 1). \(String(txt.prefix(200)))\n\n"
@@ -237,7 +250,7 @@ struct DocAICopilotView: View {
                         }
                         self.chatMessages.append(CopilotMessage(role: "assistant", content: content))
                     } else {
-                        self.chatMessages.append(CopilotMessage(role: "assistant", content: "无相关结果"))
+                        self.chatMessages.append(CopilotMessage(role: "assistant", content: self.i18n.t(.doc_cp_ragNoResult)))
                     }
                 case .failure(let err):
                     self.appendError(err.localizedDescription)
@@ -257,7 +270,7 @@ struct DocAICopilotView: View {
                     return
                 }
                 guard let data = data else {
-                    self.appendError("无响应数据")
+                    self.appendError(self.i18n.t(.doc_cp_errNoData))
                     return
                 }
 
@@ -279,7 +292,7 @@ struct DocAICopilotView: View {
                 }
 
                 if accumulated.isEmpty {
-                    accumulated = String(data: data, encoding: .utf8) ?? "(空响应)"
+                    accumulated = String(data: data, encoding: .utf8) ?? self.i18n.t(.doc_cp_emptyResp)
                 }
 
                 self.chatMessages.append(CopilotMessage(role: "assistant", content: accumulated))
@@ -294,8 +307,8 @@ struct DocAICopilotView: View {
                 self.isStreaming = false
                 switch result {
                 case .success(let resp):
-                    let content = resp["result"] ?? resp["text"] ?? "(无结果)"
-                    self.chatMessages.append(CopilotMessage(role: "assistant", content: "✏️ 改写结果：\n\(content)"))
+                    let content = resp["result"] ?? resp["text"] ?? self.i18n.t(.doc_cp_noResult)
+                    self.chatMessages.append(CopilotMessage(role: "assistant", content: self.i18n.t(.doc_cp_rewriteResultPrefix) + "\n\(content)"))
                 case .failure(let err):
                     self.appendError(err.localizedDescription)
                 }
@@ -309,8 +322,8 @@ struct DocAICopilotView: View {
                 self.isStreaming = false
                 switch result {
                 case .success(let resp):
-                    let content = resp["result"] ?? resp["translation"] ?? "(无结果)"
-                    self.chatMessages.append(CopilotMessage(role: "assistant", content: "🌐 翻译结果(\(self.targetLang))：\n\(content)"))
+                    let content = resp["result"] ?? resp["translation"] ?? self.i18n.t(.doc_cp_noResult)
+                    self.chatMessages.append(CopilotMessage(role: "assistant", content: String(format: self.i18n.t(.doc_cp_translateResultFmt), self.targetLang) + "\n\(content)"))
                 case .failure(let err):
                     self.appendError(err.localizedDescription)
                 }
@@ -324,8 +337,8 @@ struct DocAICopilotView: View {
                 self.isStreaming = false
                 switch result {
                 case .success(let resp):
-                    let content = resp["result"] ?? resp["summary"] ?? "(无结果)"
-                    self.chatMessages.append(CopilotMessage(role: "assistant", content: "📋 摘要：\n\(content)"))
+                    let content = resp["result"] ?? resp["summary"] ?? self.i18n.t(.doc_cp_noResult)
+                    self.chatMessages.append(CopilotMessage(role: "assistant", content: self.i18n.t(.doc_cp_summarizePrefix) + "\n\(content)"))
                 case .failure(let err):
                     self.appendError(err.localizedDescription)
                 }
@@ -339,8 +352,8 @@ struct DocAICopilotView: View {
                 self.isStreaming = false
                 switch result {
                 case .success(let resp):
-                    let content = resp["result"] ?? resp["expanded"] ?? "(无结果)"
-                    self.chatMessages.append(CopilotMessage(role: "assistant", content: "📖 扩展内容：\n\(content)"))
+                    let content = resp["result"] ?? resp["expanded"] ?? self.i18n.t(.doc_cp_noResult)
+                    self.chatMessages.append(CopilotMessage(role: "assistant", content: self.i18n.t(.doc_cp_expandPrefix) + "\n\(content)"))
                 case .failure(let err):
                     self.appendError(err.localizedDescription)
                 }
@@ -350,7 +363,7 @@ struct DocAICopilotView: View {
 
     private func appendError(_ message: String) {
         isStreaming = false
-        chatMessages.append(CopilotMessage(role: "assistant", content: "❌ \(message)"))
+        chatMessages.append(CopilotMessage(role: "assistant", content: i18n.t(.doc_cp_errPrefix) + message))
         copilotLog.error("Copilot error: \(message)")
     }
 }

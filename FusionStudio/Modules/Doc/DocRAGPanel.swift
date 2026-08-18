@@ -10,6 +10,7 @@ private let ragLog = Logger(subsystem: "com.fusion.studio", category: "DocRAGPan
 
 struct DocRAGPanel: View {
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @ObservedObject var bridge: DocBridge
     @Binding var selectedPageId: String?
     @State private var ragQuery = ""
@@ -40,7 +41,7 @@ struct DocRAGPanel: View {
         HStack {
             Image(systemName: "books.vertical")
                 .foregroundColor(theme.accent)
-            Text("RAG 知识增强")
+            Text(i18n.t(.doc_rag_title))
                 .font(.headline)
                 .foregroundColor(.primary)
             Spacer()
@@ -52,12 +53,12 @@ struct DocRAGPanel: View {
 
     private var querySection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("语义查询")
+            Text(i18n.t(.doc_rag_semanticQuery))
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(.primary)
 
             HStack(alignment: .bottom, spacing: 8) {
-                TextField("输入查询问题...", text: $ragQuery, axis: .vertical)
+                TextField(i18n.t(.doc_rag_queryPlaceholder), text: $ragQuery, axis: .vertical)
                     .lineLimit(1...4)
                     .textFieldStyle(.plain)
                     .font(.subheadline)
@@ -75,7 +76,7 @@ struct DocRAGPanel: View {
 
             if !ragAnswer.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("回答")
+                    Text(i18n.t(.doc_rag_answer))
                         .font(.caption.weight(.semibold))
                         .foregroundColor(theme.textSecondary)
                     Text(ragAnswer)
@@ -90,7 +91,7 @@ struct DocRAGPanel: View {
 
             if !ragChunks.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("相关片段 (\(ragChunks.count))")
+                    Text(String(format: i18n.t(.doc_rag_chunksFmt), ragChunks.count))
                         .font(.caption.weight(.semibold))
                         .foregroundColor(theme.textSecondary)
                     ForEach(ragChunks.indices, id: \.self) { i in
@@ -109,12 +110,12 @@ struct DocRAGPanel: View {
 
     private func chunkSection(_ pageId: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("页面索引段落")
+            Text(i18n.t(.doc_rag_pageChunks))
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(.primary)
 
             if bridge.chunks.isEmpty {
-                Text("暂无索引段落")
+                Text(i18n.t(.doc_rag_noChunks))
                     .font(.caption)
                     .foregroundColor(.secondary)
             } else {
@@ -135,7 +136,7 @@ struct DocRAGPanel: View {
             Button(action: {
                 bridge.fetchChunks(pageId: pageId) { _ in }
             }) {
-                Label("加载段落", systemImage: "arrow.clockwise")
+                Label(i18n.t(.doc_rag_loadChunks), systemImage: "arrow.clockwise")
             }
             .buttonStyle(.bordered)
             .font(.caption)
@@ -144,7 +145,7 @@ struct DocRAGPanel: View {
 
     private var reindexSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("索引管理")
+            Text(i18n.t(.doc_rag_indexMgmt))
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(.primary)
 
@@ -155,7 +156,7 @@ struct DocRAGPanel: View {
                         DispatchQueue.main.async { self.isReindexing = false }
                     }
                 }) {
-                    Label("全量重建索引", systemImage: "arrow.triangle.2.circlepath")
+                    Label(i18n.t(.doc_rag_reindexAll), systemImage: "arrow.triangle.2.circlepath")
                 }
                 .buttonStyle(.bordered)
                 .font(.caption)
@@ -170,7 +171,7 @@ struct DocRAGPanel: View {
                     Button(action: {
                         bridge.reindexPage(pageId: pid)
                     }) {
-                        Label("重建当前页索引", systemImage: "doc.text.magnifyingglass")
+                        Label(i18n.t(.doc_rag_reindexPage), systemImage: "doc.text.magnifyingglass")
                     }
                     .buttonStyle(.bordered)
                     .font(.caption)
@@ -193,7 +194,7 @@ struct DocRAGPanel: View {
                     self.ragAnswer = data.answer ?? ""
                     self.ragChunks = data.chunks ?? []
                 case .failure(let err):
-                    self.ragAnswer = "查询失败: \(err.localizedDescription)"
+                    self.ragAnswer = String(format: self.i18n.t(.doc_rag_queryFailFmt), err.localizedDescription)
                     self.ragChunks = []
                 }
             }

@@ -10,6 +10,7 @@ private let workflowLog = Logger(subsystem: "com.fusion.studio", category: "DocW
 
 struct DocWorkflowView: View {
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @ObservedObject var bridge: DocBridge
     @State private var selectedWorkflow: DocWorkflow?
     @State private var runs: [DocWorkflowRun] = []
@@ -39,17 +40,17 @@ struct DocWorkflowView: View {
         }
         .sheet(isPresented: $showCreateSheet) {
             VStack(spacing: 12) {
-                Text("新建工作流").font(.headline)
-                TextField("名称", text: $newWfName).textFieldStyle(.roundedBorder)
-                TextField("描述", text: $newWfDesc).textFieldStyle(.roundedBorder)
+                Text(i18n.t(.doc_wf_newTitle)).font(.headline)
+                TextField(i18n.t(.doc_wf_name), text: $newWfName).textFieldStyle(.roundedBorder)
+                TextField(i18n.t(.doc_wf_desc), text: $newWfDesc).textFieldStyle(.roundedBorder)
                 TextEditor(text: $newWfYaml)
                     .font(.system(.caption, design: .monospaced))
                     .scrollContentBackground(.hidden)
                     .frame(height: 120)
                     .border(Color.gray.opacity(0.3))
                 HStack {
-                    Button("取消") { showCreateSheet = false }
-                    Button("创建") {
+                    Button(i18n.t(.cancel)) { showCreateSheet = false }
+                    Button(i18n.t(.doc_wf_create)) {
                         guard !newWfName.isEmpty else { return }
                         bridge.createWorkflow(name: newWfName, description: newWfDesc.isEmpty ? nil : newWfDesc, yamlDef: newWfYaml.isEmpty ? nil : newWfYaml) { _ in }
                         newWfName = ""; newWfDesc = ""; newWfYaml = ""
@@ -65,22 +66,22 @@ struct DocWorkflowView: View {
 
     private var workflowHeader: some View {
         HStack {
-            Text("工作流")
+            Text(i18n.t(.doc_wf_title))
                 .font(.headline)
                 .foregroundColor(.primary)
             Spacer()
             Button(action: { showCreateSheet = true }) {
                 Image(systemName: "plus")
             }
-            .help("新建")
+            .help(i18n.t(.doc_wf_newHelp))
             Button(action: { bridge.seedWorkflows { _ in bridge.fetchWorkflows() } }) {
                 Image(systemName: "leaf.arrow.circlepath")
             }
-            .help("种子工作流")
+            .help(i18n.t(.doc_wf_seedHelp))
             Button(action: { bridge.fetchWorkflows() }) {
                 Image(systemName: "arrow.clockwise")
             }
-            .help("刷新")
+            .help(i18n.t(.refresh))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -94,7 +95,7 @@ struct DocWorkflowView: View {
                     Image(systemName: "arrow.triangle.branch")
                         .font(.system(size: 32))
                         .foregroundColor(.secondary)
-                    Text("暂无工作流")
+                    Text(i18n.t(.doc_wf_empty))
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -128,7 +129,7 @@ struct DocWorkflowView: View {
         }
         .tag(wf)
         .contextMenu {
-            Button("删除工作流", role: .destructive) {
+            Button(i18n.t(.doc_wf_delete), role: .destructive) {
                 bridge.deleteWorkflow(id: wf.id) { _ in }
             }
         }
@@ -150,7 +151,7 @@ struct DocWorkflowView: View {
 
                     if let yaml = wf.yaml_def {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("YAML 定义")
+                            Text(i18n.t(.doc_wf_yamlDef))
                                 .font(.caption.weight(.semibold))
                                 .foregroundColor(theme.textSecondary)
                             ScrollView {
@@ -169,7 +170,7 @@ struct DocWorkflowView: View {
                     Divider()
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("运行输入")
+                        Text(i18n.t(.doc_wf_runInput))
                             .font(.caption.weight(.semibold))
                             .foregroundColor(theme.textSecondary)
                         TextEditor(text: $runInput)
@@ -182,13 +183,13 @@ struct DocWorkflowView: View {
                     }
 
                     Button(action: { runWorkflow(wf) }) {
-                        Label("执行工作流", systemImage: "play.fill")
+                        Label(i18n.t(.doc_wf_runBtn), systemImage: "play.fill")
                     }
                     .buttonStyle(.borderedProminent)
 
                     if !runs.isEmpty {
                         Divider()
-                        Text("运行记录")
+                        Text(i18n.t(.doc_wf_runHistory))
                             .font(.caption.weight(.semibold))
                             .foregroundColor(theme.textSecondary)
                         List(runs) { run in
@@ -218,7 +219,7 @@ struct DocWorkflowView: View {
                     Image(systemName: "arrow.triangle.branch")
                         .font(.system(size: 40))
                         .foregroundColor(.secondary)
-                    Text("选择工作流查看详情")
+                    Text(i18n.t(.doc_wf_selDetail))
                         .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -267,13 +268,13 @@ struct DocWorkflowView: View {
 
     private var pageTransitionSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("页面状态转换")
+            Text(i18n.t(.doc_wf_transitionTitle))
                 .font(.caption.weight(.semibold))
                 .foregroundColor(theme.textSecondary)
             HStack {
-                TextField("页面 ID", text: $transitionPageId)
+                TextField(i18n.t(.doc_office_pageId), text: $transitionPageId)
                     .textFieldStyle(.roundedBorder)
-                Button("查询") {
+                Button(i18n.t(.doc_wf_queryBtn)) {
                     guard !transitionPageId.isEmpty else { return }
                     bridge.fetchPageTransitions(pageId: transitionPageId) { result in
                         if case .success(let ts) = result {
@@ -289,7 +290,7 @@ struct DocWorkflowView: View {
                 .disabled(transitionPageId.isEmpty)
             }
             if let st = pageWfState {
-                Text("当前状态: \(st.current_state ?? "-")")
+                Text(String(format: i18n.t(.doc_wf_currentStateFmt), st.current_state ?? "-"))
                     .font(.caption)
                     .foregroundColor(theme.accent)
             }
@@ -298,7 +299,7 @@ struct DocWorkflowView: View {
                     Text(t.name ?? "").font(.caption)
                     Spacer()
                     Text("→ \(t.target_state ?? "")").font(.caption2).foregroundColor(.secondary)
-                    Button("执行") {
+                    Button(i18n.t(.doc_wf_executeBtn)) {
                         bridge.executeTransition(pageId: transitionPageId, transition: t.name ?? "") { _ in }
                     }
                     .font(.caption2)

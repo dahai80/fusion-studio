@@ -10,6 +10,7 @@ private let officeLog = Logger(subsystem: "com.fusion.studio", category: "DocOff
 
 struct DocOfficeView: View {
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @ObservedObject var bridge: DocBridge
     @State private var docName = ""
     @State private var selectedFormat = "docx"
@@ -24,10 +25,19 @@ struct DocOfficeView: View {
     @State private var previewResult = ""
 
     let formats = [
-        ("docx", "Word 文档", "doc.richtext"),
-        ("xlsx", "Excel 表格", "tablecells"),
-        ("pptx", "PowerPoint 演示", "play.rectangle"),
+        ("docx", "doc_office_fmtDocx", "doc.richtext"),
+        ("xlsx", "doc_office_fmtXlsx", "tablecells"),
+        ("pptx", "doc_office_fmtPptx", "play.rectangle"),
     ]
+
+    private func formatLabel(_ key: String) -> String {
+        switch key {
+        case "doc_office_fmtDocx": return i18n.t(.doc_office_fmtDocx)
+        case "doc_office_fmtXlsx": return i18n.t(.doc_office_fmtXlsx)
+        case "doc_office_fmtPptx": return i18n.t(.doc_office_fmtPptx)
+        default: return key
+        }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -54,7 +64,7 @@ struct DocOfficeView: View {
 
     private var officeHeader: some View {
         HStack {
-            Text("Office 操控")
+            Text(i18n.t(.doc_office_title))
                 .font(.headline)
                 .foregroundColor(.primary)
             Spacer()
@@ -69,7 +79,7 @@ struct DocOfficeView: View {
             HStack {
                 Image(systemName: "desktopcomputer")
                     .foregroundColor(theme.accent)
-                Text("OfficeCLI 状态")
+                Text(i18n.t(.doc_office_cliStatus))
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(.primary)
                 Spacer()
@@ -80,17 +90,17 @@ struct DocOfficeView: View {
 
             if let status = bridge.officeStatus {
                 if let ver = status.version {
-                    Text("版本: \(ver)")
+                    Text(String(format: i18n.t(.doc_office_versionFmt), ver))
                         .font(.caption)
                         .foregroundColor(theme.textSecondary)
                 }
                 if let fmts = status.formats {
-                    Text("支持格式: \(fmts.joined(separator: ", "))")
+                    Text(String(format: i18n.t(.doc_office_formatsFmt), fmts.joined(separator: ", ")))
                         .font(.caption)
                         .foregroundColor(theme.textSecondary)
                 }
             } else {
-                Text("检测中...")
+                Text(i18n.t(.doc_office_detecting))
                     .font(.caption)
                     .foregroundColor(theme.textSecondary)
             }
@@ -102,20 +112,20 @@ struct DocOfficeView: View {
 
     private var createSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("创建文档")
+            Text(i18n.t(.doc_office_create))
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(.primary)
 
             HStack(spacing: 8) {
                 ForEach(formats, id: \.0) { fmt in
-                    formatButton(fmt.0, label: fmt.1, icon: fmt.2)
+                    formatButton(fmt.0, label: formatLabel(fmt.1), icon: fmt.2)
                 }
             }
 
             HStack {
-                TextField("文件名", text: $docName)
+                TextField(i18n.t(.doc_office_filename), text: $docName)
                     .textFieldStyle(.roundedBorder)
-                Button("创建") {
+                Button(i18n.t(.doc_office_createBtn)) {
                     if !docName.isEmpty {
                         bridge.createOfficeDocument(format: selectedFormat, name: docName)
                         officeLog.info("Create office doc: \(docName).\(selectedFormat)")
@@ -147,14 +157,14 @@ struct DocOfficeView: View {
 
     private var importSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("导入文档")
+            Text(i18n.t(.doc_office_import))
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(.primary)
 
             HStack {
-                TextField("文件路径", text: $importPath)
+                TextField(i18n.t(.doc_office_filePath), text: $importPath)
                     .textFieldStyle(.roundedBorder)
-                Button("导入") {
+                Button(i18n.t(.doc_office_importBtn)) {
                     if !importPath.isEmpty {
                         bridge.importOfficeDocument(filePath: importPath)
                         officeLog.info("Import office doc: \(importPath)")
@@ -168,20 +178,20 @@ struct DocOfficeView: View {
 
     private var exportSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("导出页面")
+            Text(i18n.t(.doc_office_export))
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(.primary)
 
             HStack {
-                TextField("页面 ID", text: $exportPageId)
+                TextField(i18n.t(.doc_office_pageId), text: $exportPageId)
                     .textFieldStyle(.roundedBorder)
-                Picker("格式", selection: $exportFormat) {
+                Picker(i18n.t(.doc_office_format), selection: $exportFormat) {
                     ForEach(["docx", "pdf", "html", "md"], id: \.self) { f in
                         Text(f).tag(f)
                     }
                 }
                 .frame(width: 80)
-                Button("导出") {
+                Button(i18n.t(.doc_office_exportBtn)) {
                     if !exportPageId.isEmpty {
                         bridge.exportOffice(pageId: exportPageId, format: exportFormat) { result in
                             if case .success(let resp) = result {
@@ -198,16 +208,16 @@ struct DocOfficeView: View {
 
     private var mergeSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("模板合并")
+            Text(i18n.t(.doc_office_merge))
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(.primary)
 
             HStack {
-                TextField("模板名", text: $mergeTemplate)
+                TextField(i18n.t(.doc_office_templateName), text: $mergeTemplate)
                     .textFieldStyle(.roundedBorder)
-                TextField("数据 JSON", text: $mergeData)
+                TextField(i18n.t(.doc_office_dataJson), text: $mergeData)
                     .textFieldStyle(.roundedBorder)
-                Button("合并") {
+                Button(i18n.t(.doc_office_mergeBtn)) {
                     if !mergeTemplate.isEmpty, let data = try? JSONSerialization.jsonObject(with: Data(mergeData.utf8)) as? [String: Any] {
                         bridge.mergeOffice(template: mergeTemplate, data: data) { result in
                             if case .success(let resp) = result {
@@ -225,16 +235,16 @@ struct DocOfficeView: View {
 
     private var commandSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Office 命令")
+            Text(i18n.t(.doc_office_cmdTitle))
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(.primary)
 
             HStack {
-                TextField("文件", text: $commandFile)
+                TextField(i18n.t(.doc_office_cmdFile), text: $commandFile)
                     .textFieldStyle(.roundedBorder)
-                TextField("命令", text: $commandAction)
+                TextField(i18n.t(.doc_office_cmdAction), text: $commandAction)
                     .textFieldStyle(.roundedBorder)
-                Button("执行") {
+                Button(i18n.t(.doc_office_executeBtn)) {
                     if !commandFile.isEmpty, !commandAction.isEmpty {
                         bridge.executeOfficeCommand(file: commandFile, command: commandAction) { result in
                             if case .success(let resp) = result {
@@ -252,14 +262,14 @@ struct DocOfficeView: View {
 
     private var importDirSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("批量导入目录")
+            Text(i18n.t(.doc_office_importDir))
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(.primary)
 
             HStack {
-                TextField("目录路径", text: $importDirPath)
+                TextField(i18n.t(.doc_office_dirPath), text: $importDirPath)
                     .textFieldStyle(.roundedBorder)
-                Button("导入") {
+                Button(i18n.t(.doc_office_importBtn)) {
                     if !importDirPath.isEmpty {
                         bridge.importOfficeDir(dirPath: importDirPath) { _ in }
                         officeLog.info("Import dir: \(importDirPath)")
