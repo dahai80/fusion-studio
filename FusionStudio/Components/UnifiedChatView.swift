@@ -13,6 +13,7 @@ struct UnifiedChatView: View {
     @EnvironmentObject var streamingBridge: StreamingBridge
     @EnvironmentObject var bridge: AgentBridge
     @EnvironmentObject var ipc: IPCClient
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var inputText: String = ""
     @State private var selectedMode: ChatMode = .simple
@@ -185,7 +186,7 @@ struct UnifiedChatView: View {
                     }
                 }
                 if sessionTemplates.isEmpty {
-                    Text("加载模板中...").font(.caption)
+                    Text(i18n.t(.loadingTemplates)).font(.caption)
                 }
             } label: {
                 Image(systemName: "plus")
@@ -341,7 +342,7 @@ struct UnifiedChatView: View {
                     chatStore.activeSession?.preset = nil
                     chatStore.activeSession?.outputStyle = nil
                 }
-                .help("当前模式：\(preset.label)，点击清除")
+                .help(String(format: i18n.t(.currentModeClear), preset.label))
 
                 // Output style indicator (tap to clear)
                 if activeOutputStyle != nil {
@@ -351,7 +352,7 @@ struct UnifiedChatView: View {
                         .onTapGesture {
                             chatStore.activeSession?.outputStyle = nil
                         }
-                        .help("当前风格：\(activeOutputStyle?.label ?? "")，点击清除")
+                        .help(String(format: i18n.t(.currentStyleClear), activeOutputStyle?.label ?? ""))
                 }
             }
 
@@ -373,7 +374,7 @@ struct UnifiedChatView: View {
                 .onTapGesture {
                     chatStore.activeSession?.projectId = nil
                 }
-                .help("关联项目：\(project.name)，点击解除")
+                .help(String(format: i18n.t(.linkedProjectClear), project.name))
             }
 
             Spacer()
@@ -602,7 +603,7 @@ struct UnifiedChatView: View {
                             HStack(spacing: 6) {
                                 Image(systemName: "plus.circle.fill")
                                     .font(.system(size: 14))
-                                Text("释放以添加附件")
+                                Text(i18n.t(.releaseToAddAttachment))
                                     .font(.system(size: theme.captionSize, weight: .medium))
                             }
                             .foregroundStyle(theme.accent)

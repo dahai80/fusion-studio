@@ -4,6 +4,7 @@ import os.log
 /// 全局设置面板
 struct SettingsView: View {
     @State private var selectedTab: SettingsTab = .general
+    @StateObject private var i18n = I18nManager.shared
     @Environment(\.dismiss) var dismiss
 
     enum SettingsTab: String, CaseIterable {
@@ -29,33 +30,33 @@ struct SettingsView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             GeneralSettingsView()
-                .tabItem { Label("通用", systemImage: "gearshape") }
+                .tabItem { Label(i18n.t(.tab_general), systemImage: "gearshape") }
                 .tag(SettingsTab.general)
 
             ModelSlotsSettingsView()
-                .tabItem { Label("模型档位", systemImage: "circle.grid.2x2.fill") }
+                .tabItem { Label(i18n.t(.tab_modelSlots), systemImage: "circle.grid.2x2.fill") }
                 .tag(SettingsTab.modelSlots)
 
             HardwareSettingsView()
-                .tabItem { Label("硬件加速", systemImage: "cpu") }
+                .tabItem { Label(i18n.t(.tab_hardware), systemImage: "cpu") }
                 .tag(SettingsTab.hardware)
 
             NetworkSettingsView()
-                .tabItem { Label("网络 & 离线", systemImage: "antenna.radiowaves.left.and.right") }
+                .tabItem { Label(i18n.t(.tab_network), systemImage: "antenna.radiowaves.left.and.right") }
                 .tag(SettingsTab.network)
 
             QuantSettingsView()
-                .tabItem { Label("量化预设", systemImage: "dial.medium") }
+                .tabItem { Label(i18n.t(.tab_quant), systemImage: "dial.medium") }
                 .tag(SettingsTab.quant)
 
             WorkspaceSettingsView()
-                .tabItem { Label("工作区", systemImage: "folder") }
+                .tabItem { Label(i18n.t(.tab_workspace), systemImage: "folder") }
                 .tag(SettingsTab.workspace)
         }
         .frame(width: 600, height: 450)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("关闭") { dismiss() }
+                Button(i18n.t(.closeBtn)) { dismiss() }
             }
         }
     }
@@ -74,18 +75,18 @@ struct GeneralSettingsView: View {
 
     var body: some View {
         Form {
-            Section("启动") {
-                Toggle("登录时启动 Fusion Studio", isOn: $launchAtLogin)
-                Toggle("自动启动 fusion-mlx 服务", isOn: $autoStartMLX)
-                Button("重新选择主模型") {
+            Section(i18n.t(.sec_startup)) {
+                Toggle(i18n.t(.launchAtLogin), isOn: $launchAtLogin)
+                Toggle(i18n.t(.autoStartMLX), isOn: $autoStartMLX)
+                Button(i18n.t(.reselectMainModel)) {
                     appState.showWelcome = true
                 }
             }
-            Section("窗口") {
-                Toggle("最小化到菜单栏", isOn: $minimizeToMenuBar)
+            Section(i18n.t(.sec_window)) {
+                Toggle(i18n.t(.minimizeToMenuBar), isOn: $minimizeToMenuBar)
             }
-            Section("语言") {
-                Picker("界面语言", selection: Binding(
+            Section(i18n.t(.sec_language)) {
+                Picker(i18n.t(.interfaceLanguage), selection: Binding(
                     get: { i18n.currentLanguage.rawValue },
                     set: { newVal in
                         if let lang = AppLanguage(rawValue: newVal) {
@@ -109,25 +110,26 @@ struct HardwareSettingsView: View {
     @AppStorage("maxMemory") private var maxMemory = 16.0
     @AppStorage("enableANE") private var enableANE = true
     @AppStorage("enableMetal") private var enableMetal = true
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         Form {
-            Section("硬件偏好") {
-                Picker("首选设备", selection: $preferredDevice) {
-                    Text("自动").tag("auto")
-                    Text("GPU (Metal)").tag("metal")
-                    Text("ANE").tag("ane")
-                    Text("CPU Only").tag("cpu")
+            Section(i18n.t(.sec_hwPref)) {
+                Picker(i18n.t(.preferredDevice), selection: $preferredDevice) {
+                    Text(i18n.t(.dev_auto)).tag("auto")
+                    Text(i18n.t(.dev_metal)).tag("metal")
+                    Text(i18n.t(.dev_ane)).tag("ane")
+                    Text(i18n.t(.dev_cpu)).tag("cpu")
                 }
-                Toggle("启用 Metal 加速", isOn: $enableMetal)
-                Toggle("启用 ANE 加速", isOn: $enableANE)
+                Toggle(i18n.t(.enableMetal), isOn: $enableMetal)
+                Toggle(i18n.t(.enableANE), isOn: $enableANE)
             }
-            Section("内存限制") {
+            Section(i18n.t(.sec_memLimit)) {
                 VStack(alignment: .leading) {
                     Slider(value: $maxMemory, in: 4...64, step: 2) {
-                        Text("最大统一内存: \(Int(maxMemory)) GB")
+                        Text(String(format: i18n.t(.maxUnifiedMemory), Int(maxMemory)))
                     }
-                    Text("fusion-mlx 推理可用最大内存")
+                    Text(i18n.t(.mlxMemoryHint))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -141,22 +143,23 @@ struct NetworkSettingsView: View {
     @AppStorage("offlineMode") private var offlineMode = true
     @AppStorage("allowModelDownload") private var allowModelDownload = true
     @AppStorage("allowUpdateCheck") private var allowUpdateCheck = true
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         Form {
-            Section("离线策略") {
-                Toggle("强制离线模式", isOn: $offlineMode)
-                    .help("开启后，所有网络请求将被拦截")
+            Section(i18n.t(.sec_offlinePolicy)) {
+                Toggle(i18n.t(.forceOffline), isOn: $offlineMode)
+                    .help(i18n.t(.forceOfflineHelp))
                 if offlineMode {
-                    Text("✅ 当前为离线模式，数据不会离开本机")
+                    Text(i18n.t(.offlineActive))
                         .font(.caption)
                         .foregroundColor(.green)
                 }
             }
-            Section("网络权限") {
-                Toggle("允许模型下载", isOn: $allowModelDownload)
+            Section(i18n.t(.sec_netPerms)) {
+                Toggle(i18n.t(.allowModelDownload), isOn: $allowModelDownload)
                     .disabled(offlineMode)
-                Toggle("检查版本更新", isOn: $allowUpdateCheck)
+                Toggle(i18n.t(.checkUpdates), isOn: $allowUpdateCheck)
                     .disabled(offlineMode)
             }
         }
@@ -167,26 +170,27 @@ struct NetworkSettingsView: View {
 struct QuantSettingsView: View {
     @AppStorage("defaultQuant") private var defaultQuant = "4bit"
     @AppStorage("defaultFormat") private var defaultFormat = "mlx"
+    @StateObject private var i18n = I18nManager.shared
 
     let quantOptions = ["2bit", "3bit", "4bit", "5bit", "6bit", "8bit", "fp16"]
     let formatOptions = ["mlx", "gguf", "safetensors"]
 
     var body: some View {
         Form {
-            Section("量化预设") {
-                Picker("默认量化精度", selection: $defaultQuant) {
+            Section(i18n.t(.sec_quantPreset)) {
+                Picker(i18n.t(.defaultQuant), selection: $defaultQuant) {
                     ForEach(quantOptions, id: \.self) { q in
                         Text(q).tag(q)
                     }
                 }
-                Picker("默认模型格式", selection: $defaultFormat) {
+                Picker(i18n.t(.defaultFormat), selection: $defaultFormat) {
                     ForEach(formatOptions, id: \.self) { f in
                         Text(f.uppercased()).tag(f)
                     }
                 }
             }
-            Section("说明") {
-                Text("4bit 是精度与性能的最佳平衡点\n2bit 极端压缩（适合 8GB 内存设备）\n8bit/fp16 最高精度（需要 32GB+ 内存）")
+            Section(i18n.t(.sec_note)) {
+                Text(i18n.t(.quantNote))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -198,25 +202,26 @@ struct QuantSettingsView: View {
 struct WorkspaceSettingsView: View {
     @AppStorage("workspacePath") private var workspacePath = "~/FusionStudio/workspace"
     @State private var showFilePicker = false
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         Form {
-            Section("工作区目录") {
+            Section(i18n.t(.sec_wsDir)) {
                 HStack {
-                    TextField("路径", text: $workspacePath)
+                    TextField(i18n.t(.path), text: $workspacePath)
                         .textFieldStyle(.roundedBorder)
-                    Button("浏览...") {
+                    Button(i18n.t(.browse)) {
                         showFilePicker = true
                     }
                 }
-                Text("所有设计文件、代码工程、仿真场景、模型权重将统一存放于此")
+                Text(i18n.t(.wsHint))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            Section("自动管理") {
-                Toggle("自动创建项目子目录", isOn: .constant(true))
-                Toggle("启用 Git 版本管理", isOn: .constant(false))
-                Toggle("自动本地备份", isOn: .constant(true))
+            Section(i18n.t(.sec_autoMgmt)) {
+                Toggle(i18n.t(.autoProjectSubdir), isOn: .constant(true))
+                Toggle(i18n.t(.enableGit), isOn: .constant(false))
+                Toggle(i18n.t(.autoBackup), isOn: .constant(true))
             }
         }
         .padding()
@@ -238,6 +243,7 @@ struct ModelSlotsSettingsView: View {
     @EnvironmentObject private var bridge: AgentBridge
     @ObservedObject private var config = FusionConfig.shared
     @Environment(\.studioTheme) var theme
+    @StateObject private var i18n = I18nManager.shared
     private let log = Logger(subsystem: "com.fusion.studio", category: "Settings.ModelSlots")
 
     private var chatModels: [MLXModelInfo] {
@@ -269,15 +275,15 @@ struct ModelSlotsSettingsView: View {
 
     var body: some View {
         Form {
-            Section("档位模型（小 / 代码 / 复杂）") {
+            Section(i18n.t(.sec_slotModels)) {
                 if chatModels.isEmpty {
-                    Text("未加载到本地模型，请先启动 fusion-mlx 服务")
+                    Text(i18n.t(.noLocalModels))
                         .font(.caption)
                         .foregroundColor(theme.textTertiary)
                 }
                 ForEach(ModelSlot.allCases) { slot in
                     Picker(selection: slotBinding(slot)) {
-                        Text("未设置").tag("")
+                        Text(i18n.t(.notSet)).tag("")
                         ForEach(chatModels) { m in
                             Text(m.name).tag(m.id)
                         }
@@ -287,7 +293,7 @@ struct ModelSlotsSettingsView: View {
                     .pickerStyle(.menu)
                 }
             }
-            Section("场景默认档位") {
+            Section(i18n.t(.sec_sceneDefault)) {
                 ForEach(ModelScene.allCases) { scene in
                     Picker(selection: sceneSlotBinding(scene)) {
                         ForEach(ModelSlot.allCases) { s in
@@ -299,8 +305,8 @@ struct ModelSlotsSettingsView: View {
                     .pickerStyle(.menu)
                 }
             }
-            Section("说明") {
-                Text("三档模型在所有选模型处顶部展示；More Models 子菜单列出其余本地模型。各场景（对话/代码/Agent/Artifacts）首次默认使用此处设定的档位。")
+            Section(i18n.t(.sec_note)) {
+                Text(i18n.t(.slotNote))
                     .font(.caption)
                     .foregroundColor(theme.textSecondary)
             }

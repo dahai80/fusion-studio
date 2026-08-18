@@ -16,6 +16,7 @@ struct VoiceInputButton: View {
 
     @State private var showVolumeSlider: Bool = false
     @State private var isVoiceMode: Bool = false
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         HStack(spacing: theme.spacingS) {
@@ -90,7 +91,7 @@ struct VoiceInputButton: View {
                 .foregroundStyle(isVoiceMode ? theme.accent : theme.textSecondary)
         }
         .buttonStyle(.plain)
-        .help("语音模式（说完即发送）")
+        .help(i18n.t(.voiceModeHelp))
     }
 
     private func toggleRecording() {

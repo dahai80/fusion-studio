@@ -74,6 +74,7 @@ struct ContentView: View {
 struct WorkspaceArea: View {
     let theme: StudioTheme
     @EnvironmentObject var appState: AppState
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -115,7 +116,7 @@ struct WorkspaceArea: View {
                     .foregroundStyle(theme.textTertiary)
             }
             .buttonStyle(.plain)
-            .help(appState.isDarkMode ? "切换到亮色模式" : "切换到暗色模式")
+            .help(appState.isDarkMode ? i18n.t(.toggleLightMode) : i18n.t(.toggleDarkMode))
 
             Button(action: {
                 withAnimation(theme.springSnappy) {
@@ -127,7 +128,7 @@ struct WorkspaceArea: View {
                     .foregroundStyle(appState.isInspectorVisible ? theme.accent : theme.textTertiary)
             }
             .buttonStyle(.plain)
-            .help("Toggle Inspector")
+            .help(i18n.t(.toggleInspector))
 
 // Replacing MLX bolt button with OfflineModeIndicator for #52
 // Affected API: OfflineModeIndicator (wraps offline check + MLX status)

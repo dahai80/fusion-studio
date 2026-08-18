@@ -13,6 +13,7 @@ struct FusionModelPicker: View {
     var onChange: ((String) -> Void)? = nil
 
     @ObservedObject private var config = FusionConfig.shared
+    @StateObject private var i18n = I18nManager.shared
     @Environment(\.studioTheme) var theme
 
     private let log = Logger(subsystem: "com.fusion.studio", category: "ModelPicker")
@@ -31,10 +32,10 @@ struct FusionModelPicker: View {
     private var displayLabel: String {
         if selection.isEmpty {
             if defaultTag != nil {
-                return "默认（\(config.defaultSlot(for: scene).label)）"
+                return String(format: i18n.t(.defaultModelSlot), config.defaultSlot(for: scene).label)
             }
             let dm = config.defaultModel(for: scene)
-            return dm.isEmpty ? "选择模型" : dm
+            return dm.isEmpty ? i18n.t(.selectModel) : dm
         }
         return selection
     }
@@ -51,7 +52,7 @@ struct FusionModelPicker: View {
                 Button {
                     if !m.isEmpty { pick(m) }
                 } label: {
-                    Label(m.isEmpty ? "\(slot.label)（未设置）" : "\(slot.label) · \(m)",
+                    Label(m.isEmpty ? String(format: i18n.t(.slotNotSet), slot.label) : "\(slot.label) · \(m)",
                           systemImage: chosen ? "checkmark" : slot.icon)
                 }
                 .disabled(m.isEmpty)
@@ -62,17 +63,17 @@ struct FusionModelPicker: View {
                     pick(defaultTag)
                 } label: {
                     if selection.isEmpty {
-                        Label("默认（\(config.defaultSlot(for: scene).label)）", systemImage: "checkmark")
+                        Label(String(format: i18n.t(.defaultModelSlot), config.defaultSlot(for: scene).label), systemImage: "checkmark")
                     } else {
-                        Label("默认（\(config.defaultSlot(for: scene).label)）", systemImage: "circle.dashed")
+                        Label(String(format: i18n.t(.defaultModelSlot), config.defaultSlot(for: scene).label), systemImage: "circle.dashed")
                     }
                 }
             }
             Divider()
             if moreModels.isEmpty {
-                Text("More Models（暂无）")
+                Text(i18n.t(.moreModelsEmpty))
             } else {
-                Menu("More Models") {
+                Menu(i18n.t(.moreModelsLabel)) {
                     ForEach(moreModels) { m in
                         Button {
                             pick(m.id)
