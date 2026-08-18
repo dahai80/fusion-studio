@@ -1,12 +1,26 @@
 // Callers: AIAgentObserverView permissions tab embeds this view.
 // Affected API: IPCClient.permissionList(), permissionUpdate().
-// Data schemas: {permissions: [{tool, level}], denied_tools: [String]}, FUSION.rules frontmatter, SENSITIVE_PATTERNS.
+// Data schemas: permission.list 无 agent_id → {permissions: [{readKnowledge,writeKnowledge,deleteKnowledge,executeCode,accessNetwork,agent_id}], denied_tools: []}；带 agent_id → {permissions: {5 能力开关}, denied_tools: [String], tools: [String]}.
 // User instruction: #47 终端命令权限标签可视化 — Tool permission labels (✅/⏳/🚫), FUSION.rules denied_tools editor, sensitive file highlighting
 
 import SwiftUI
 import os.log
 
 private let permLog = Logger(subsystem: "com.fusion.studio", category: "PermissionTags")
+
+private struct CapabilityDef {
+    let key: String
+    let label: String
+    let icon: String
+}
+
+private let CAPABILITIES: [CapabilityDef] = [
+    .init(key: "readKnowledge", label: "读取知识库", icon: "books.vertical"),
+    .init(key: "writeKnowledge", label: "写入知识库", icon: "square.and.pencil"),
+    .init(key: "deleteKnowledge", label: "删除知识库", icon: "trash"),
+    .init(key: "executeCode", label: "执行代码", icon: "terminal"),
+    .init(key: "accessNetwork", label: "访问网络", icon: "network"),
+]
 
 struct PermissionTagView: View {
     @EnvironmentObject var ipc: IPCClient
@@ -15,7 +29,6 @@ struct PermissionTagView: View {
 
     @State private var permissions: [[String: Any]] = []
     @State private var isLoading = false
-    @State private var editingTool: String?
     @State private var deniedTools: [String] = []
     @State private var showAddDenied = false
     @State private var newDeniedTool = ""
@@ -57,8 +70,8 @@ struct PermissionTagView: View {
     }
 
     private var permissionList: some View {
-        VStack(alignment: .leading, spacing: theme.spacingXS) {
-            Text("工具权限")
+        VStack(alignment: .leading, spacing: theme.spacingS) {
+            Text("能力权限")
                 .font(.system(size: theme.smallTextSize, weight: .medium))
                 .foregroundStyle(theme.textSecondary)
             if permissions.isEmpty {
@@ -75,52 +88,44 @@ struct PermissionTagView: View {
     }
 
     private func permissionRow(_ perm: [String: Any]) -> some View {
-        let tool = perm["tool"] as? String ?? perm["name"] as? String ?? "unknown"
-        let level = perm["level"] as? String ?? perm["status"] as? String ?? "allowed"
-        let (icon, color, label) = permissionVisual(level)
-        return HStack(spacing: theme.spacingS) {
-            Image(systemName: icon)
-                .foregroundStyle(color)
-                .font(.system(size: theme.iconS))
-            Text(tool)
-                .font(.system(size: theme.textSize))
-                .foregroundStyle(theme.text)
-            Spacer()
-            Text(label)
-                .font(.system(size: theme.captionSize, weight: .medium))
-                .foregroundStyle(color)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .background(color.opacity(0.12))
-                .cornerRadius(4)
-            Menu {
-                Button("✅ 允许") { updatePermission(tool: tool, level: "allowed") }
-                Button("⏳ 需确认") { updatePermission(tool: tool, level: "confirm") }
-                Button("🚫 禁止") { updatePermission(tool: tool, level: "denied") }
-            } label: {
-                Image(systemName: "ellipsis.circle")
+        let agentId = perm["agent_id"] as? String ?? ""
+        let agentName = bridge.agents.first { $0.id == agentId }?.name ?? "Agent \(agentId.prefix(8))"
+        return VStack(alignment: .leading, spacing: theme.spacingXS) {
+            HStack(spacing: theme.spacingXS) {
+                Image(systemName: "person.crop.circle")
                     .font(.system(size: theme.iconS))
-                    .foregroundStyle(theme.textTertiary)
+                    .foregroundStyle(theme.accent)
+                Text(agentName)
+                    .font(.system(size: theme.footnoteSize, weight: .medium))
+                    .foregroundStyle(theme.text)
             }
-            .menuStyle(.borderlessButton)
+            FlowLayout(spacing: theme.spacingXS) {
+                ForEach(CAPABILITIES, id: \.key) { cap in
+                    capabilityTag(cap, granted: perm[cap.key] as? Bool ?? false)
+                }
+            }
         }
-        .padding(.horizontal, theme.spacingS)
-        .padding(.vertical, theme.spacingXS)
+        .padding(theme.spacingS)
         .background(theme.surfaceElevated)
         .cornerRadius(theme.cornerRadiusSmall)
     }
 
-    private func permissionVisual(_ level: String) -> (String, Color, String) {
-        switch level {
-        case "allowed", "granted":
-            return ("checkmark.circle.fill", theme.greenDot, "✅ 允许")
-        case "confirm", "pending", "ask":
-            return ("hourglass.circle.fill", theme.amberDot, "⏳ 需确认")
-        case "denied", "blocked":
-            return ("xmark.circle.fill", theme.redDot, "🚫 禁止")
-        default:
-            return ("questionmark.circle", theme.textTertiary, level)
+    private func capabilityTag(_ cap: CapabilityDef, granted: Bool) -> some View {
+        let color = granted ? theme.greenDot : theme.textTertiary
+        return HStack(spacing: 4) {
+            Image(systemName: cap.icon)
+                .font(.system(size: 10))
+            Text(cap.label)
+                .font(.system(size: theme.captionSize))
+            Image(systemName: granted ? "checkmark.circle.fill" : "xmark.circle.fill")
+                .font(.system(size: 10))
+                .foregroundStyle(color)
         }
+        .foregroundStyle(theme.text)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(color.opacity(0.12))
+        .cornerRadius(6)
     }
 
     private var deniedToolsSection: some View {
@@ -225,18 +230,6 @@ struct PermissionTagView: View {
                     isLoading = false
                     permLog.error("Permission load failed: \(error.localizedDescription)")
                 }
-            }
-        }
-    }
-
-    private func updatePermission(tool: String, level: String) {
-        Task {
-            do {
-                _ = try await ipc.permissionUpdate(agentId: "", tool: tool, level: level)
-                permLog.info("Permission updated: \(tool) → \(level)")
-                loadPermissions()
-            } catch {
-                permLog.error("Permission update failed: \(error.localizedDescription)")
             }
         }
     }
