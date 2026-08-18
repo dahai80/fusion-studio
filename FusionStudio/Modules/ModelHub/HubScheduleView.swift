@@ -11,6 +11,7 @@ private let schedLog = Logger(subsystem: "com.fusion.studio", category: "HubSche
 struct HubScheduleView: View {
     @ObservedObject var client: ModelHubAPIClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var selectedTab = 0
     @State private var tasks: [HubDownloadTask] = []
@@ -56,20 +57,24 @@ struct HubScheduleView: View {
     @AppStorage("hubAutoBenchModelIds") private var autoBenchModelIds = ""
     @State private var showAutoBenchModelPicker = false
 
-    private let policies = [
-        ("auto", "智能自动调度", "根据请求自动加载/卸载，推荐"),
-        ("pinned", "手动固定常驻", "模型常驻内存，不自动卸载"),
-        ("on_demand", "用完即卸载", "每次请求后立即卸载，最省内存"),
-    ]
+    private var policies: [(String, String, String)] {
+        [
+            ("auto", i18n.t(.hub_policyAuto), i18n.t(.hub_policyAutoDesc)),
+            ("pinned", i18n.t(.hub_policyPinned), i18n.t(.hub_policyPinnedDesc)),
+            ("on_demand", i18n.t(.hub_policyOnDemand), i18n.t(.hub_policyOnDemandDesc)),
+        ]
+    }
 
-    private let tabItems = [
-        (0, "arrow.down.circle", "下载调度"),
-        (1, "gearshape.2", "算力调度策略"),
-        (2, "lock.shield", "模块权限"),
-        (3, "gauge.with.dots.needle.67percent", "API 限流"),
-        (4, "timer", "模型 TTL"),
-        (5, "speedometer", "自动基准测试"),
-    ]
+    private var tabItems: [(Int, String, String)] {
+        [
+            (0, "arrow.down.circle", i18n.t(.hub_downloadSched)),
+            (1, "gearshape.2", i18n.t(.hub_computeSchedPolicy)),
+            (2, "lock.shield", i18n.t(.hub_modulePermission)),
+            (3, "gauge.with.dots.needle.67percent", i18n.t(.hub_apiThrottle)),
+            (4, "timer", i18n.t(.hub_modelTTLTab)),
+            (5, "speedometer", i18n.t(.hub_autoBenchmark)),
+        ]
+    }
 
     private let fusionModules = [
         "Fusion Chat",
@@ -138,13 +143,13 @@ struct HubScheduleView: View {
 
     private var downloadHeader: some View {
         HStack {
-            Text("下载任务")
+            Text(i18n.t(.hub_downloadTask))
                 .font(.system(size: theme.headlineSize, weight: .bold))
                 .foregroundStyle(theme.text)
             Spacer()
             let active = tasks.filter { $0.status == "downloading" || $0.status == "pending" }.count
             if active > 0 {
-                Text("\(active) 个下载中")
+                Text(String(format: i18n.t(.hub_activeDownloadsFmt), active))
                     .font(.caption)
                     .foregroundStyle(.orange)
                     .padding(.horizontal, 8)
@@ -152,7 +157,7 @@ struct HubScheduleView: View {
                     .background(Color.orange.opacity(0.1))
                     .clipShape(Capsule())
             }
-            Button("新建下载") { showNewDownload = true }
+            Button(i18n.t(.hub_newDownload)) { showNewDownload = true }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
         }
@@ -166,9 +171,9 @@ struct HubScheduleView: View {
             } else if tasks.isEmpty {
                 VStack(spacing: theme.spacingM) {
                     Image(systemName: "arrow.down.circle").font(.system(size: 48)).foregroundStyle(.secondary)
-                    Text("暂无下载任务")
+                    Text(i18n.t(.hub_noDownloadTasks))
                         .foregroundStyle(theme.textSecondary)
-                    Button("下载新模型") { showNewDownload = true }
+                    Button(i18n.t(.hub_downloadNewModel)) { showNewDownload = true }
                         .buttonStyle(.bordered)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -186,12 +191,12 @@ struct HubScheduleView: View {
 
     private var newDownloadSheet: some View {
         VStack(spacing: theme.spacingM) {
-            Text("新建下载").font(.title2).bold()
-            TextField("模型 ID", text: $newModelId).textFieldStyle(.roundedBorder)
-            TextField("下载地址 (https://...)", text: $newSourceUrl).textFieldStyle(.roundedBorder)
+            Text(i18n.t(.hub_newDownload)).font(.title2).bold()
+            TextField(i18n.t(.hub_modelIdPlaceholder), text: $newModelId).textFieldStyle(.roundedBorder)
+            TextField(i18n.t(.hub_downloadUrlPlaceholder), text: $newSourceUrl).textFieldStyle(.roundedBorder)
             HStack {
-                Button("取消") { showNewDownload = false }.buttonStyle(.bordered)
-                Button("开始下载") {
+                Button(i18n.t(.hub_cancelBtn)) { showNewDownload = false }.buttonStyle(.bordered)
+                Button(i18n.t(.hub_startDownload)) {
                     startDownload()
                     showNewDownload = false
                 }
@@ -221,10 +226,10 @@ struct HubScheduleView: View {
     private var globalPolicySection: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: theme.spacingM) {
-                Text("全局模型加载策略")
+                Text(i18n.t(.hub_globalModelLoadPolicy))
                     .font(.system(size: theme.headlineSize, weight: .semibold))
                     .foregroundStyle(theme.text)
-                Text("全 Fusion 应用统一生效")
+                Text(i18n.t(.hub_unifiedFusionApp))
                     .font(.caption)
                     .foregroundStyle(theme.textTertiary)
 
@@ -255,16 +260,16 @@ struct HubScheduleView: View {
     private var pinnedWhitelistSection: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: theme.spacingM) {
-                Text("常驻内存白名单")
+                Text(i18n.t(.hub_pinnedWhitelist))
                     .font(.system(size: theme.headlineSize, weight: .semibold))
                     .foregroundStyle(theme.text)
-                Text("名单内模型永久驻留内存，不会被自动卸载")
+                Text(i18n.t(.hub_pinnedWhitelistNote))
                     .font(.caption)
                     .foregroundStyle(theme.textTertiary)
 
                 let pinned = models.filter { $0.isPinned == true }
                 if pinned.isEmpty {
-                    Text("暂无常驻模型")
+                    Text(i18n.t(.hub_noPinnedModels))
                         .foregroundStyle(theme.textTertiary)
                         .padding(.vertical, theme.spacingS)
                 } else {
@@ -282,7 +287,7 @@ struct HubScheduleView: View {
                     }
                 }
                 if models.isEmpty {
-                    Text("加载中...").foregroundStyle(theme.textTertiary)
+                    Text(i18n.t(.hub_loading)).foregroundStyle(theme.textTertiary)
                 }
             }
             .padding(8)
@@ -292,22 +297,22 @@ struct HubScheduleView: View {
     private var idleTimeoutSection: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: theme.spacingM) {
-                Text("闲置自动回收")
+                Text(i18n.t(.hub_idleAutoReclaim))
                     .font(.system(size: theme.headlineSize, weight: .semibold))
                     .foregroundStyle(theme.text)
 
                 HStack(spacing: theme.spacingS) {
-                    Text("闲置")
+                    Text(i18n.t(.hub_idlePrefix))
                         .foregroundStyle(theme.text)
                     TextField("", value: $idleTimeoutMin, format: .number)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 60)
-                    Text("分钟触发模型卸载，释放统一内存")
+                    Text(i18n.t(.hub_idleUnloadHint))
                         .foregroundStyle(theme.textSecondary)
                 }
 
                 if idleTimeoutMin < 5 {
-                    Text("⚠️ 低于 5 分钟可能导致频繁加载/卸载，影响响应速度")
+                    Text(i18n.t(.hub_idleTooLowWarn))
                         .font(.caption)
                         .foregroundStyle(.orange)
                 }
@@ -319,15 +324,15 @@ struct HubScheduleView: View {
     private var clusterScheduleSection: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: theme.spacingM) {
-                Text("集群调度配置")
+                Text(i18n.t(.hub_clusterSchedConfig))
                     .font(.system(size: theme.headlineSize, weight: .semibold))
                     .foregroundStyle(theme.text)
 
                 Toggle(isOn: $clusterRouteEnabled) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("开启跨节点推理路由")
+                        Text(i18n.t(.hub_enableCrossNodeRouting))
                             .foregroundStyle(theme.text)
-                        Text("本机资源不足时自动分配至集群空闲 Mac 执行推理")
+                        Text(i18n.t(.hub_localResourceClusterHint))
                             .font(.caption)
                             .foregroundStyle(theme.textTertiary)
                     }
@@ -335,9 +340,9 @@ struct HubScheduleView: View {
 
                 Toggle(isOn: $clusterCacheShared) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("集群全局共享模型缓存")
+                        Text(i18n.t(.hub_clusterSharedCache))
                             .foregroundStyle(theme.text)
-                        Text("多节点只需下载一次模型文件，自动增量同步")
+                        Text(i18n.t(.hub_multiNodeSyncHint))
                             .font(.caption)
                             .foregroundStyle(theme.textTertiary)
                     }
@@ -350,12 +355,12 @@ struct HubScheduleView: View {
     private var clusterHealthSection: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: theme.spacingM) {
-                Text("集群节点健康状态")
+                Text(i18n.t(.hub_clusterNodeHealth))
                     .font(.system(size: theme.headlineSize, weight: .semibold))
                     .foregroundStyle(theme.text)
 
                 if clusterNodes.isEmpty {
-                    Text("未检测到集群节点")
+                    Text(i18n.t(.hub_noClusterNodes))
                         .foregroundStyle(theme.textTertiary)
                         .padding(.vertical, theme.spacingS)
                 } else {
@@ -414,10 +419,10 @@ struct HubScheduleView: View {
     private var modulePermHeader: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("模块访问权限")
+                Text(i18n.t(.hub_moduleAccessPerm))
                     .font(.system(size: theme.headlineSize, weight: .bold))
                     .foregroundStyle(theme.text)
-                Text("控制各模块可使用的模型，点击编辑权限修改")
+                Text(i18n.t(.hub_controlModuleModelHint))
                     .font(.caption)
                     .foregroundStyle(theme.textTertiary)
             }
@@ -434,7 +439,7 @@ struct HubScheduleView: View {
                 headerRow
                 Divider()
                 if models.isEmpty {
-                    Text("暂无模型数据")
+                    Text(i18n.t(.hub_noModelData))
                         .foregroundStyle(theme.textTertiary)
                         .padding(.vertical, theme.spacingL)
                         .frame(maxWidth: .infinity)
@@ -458,7 +463,7 @@ struct HubScheduleView: View {
 
     private var headerRow: some View {
         HStack(spacing: 0) {
-            Text("模型")
+            Text(i18n.t(.hub_model))
                 .font(.system(size: theme.textSize, weight: .semibold))
                 .foregroundStyle(theme.textSecondary)
                 .frame(width: 140, alignment: .leading)
@@ -491,7 +496,7 @@ struct HubScheduleView: View {
                     .frame(maxWidth: .infinity)
             }
 
-            Button("编辑权限") {
+            Button(i18n.t(.hub_editPermissionBtn)) {
                 editingModelId = model.id
                 editingModules = Set(model.allowedModules ?? [])
                 showPermEditSheet = true
@@ -506,7 +511,7 @@ struct HubScheduleView: View {
 
     private func permissionEditSheet(model: HubModel) -> some View {
         VStack(spacing: theme.spacingM) {
-            Text("编辑权限 — \(model.displayTitle)")
+            Text(String(format: i18n.t(.hub_editPermTitleFmt), model.displayTitle))
                 .font(.title3).bold()
 
             ForEach(fusionModules, id: \.self) { mod in
@@ -531,11 +536,11 @@ struct HubScheduleView: View {
             }
 
             HStack {
-                Button("取消") {
+                Button(i18n.t(.hub_cancelBtn)) {
                     editingModelId = nil
                     showPermEditSheet = false
                 }.buttonStyle(.bordered)
-                Button("保存") {
+                Button(i18n.t(.hub_saveBtn)) {
                     saveModulePermissions(modelId: model.id)
                 }
                 .buttonStyle(.borderedProminent)
@@ -589,10 +594,10 @@ struct HubScheduleView: View {
     private var throttleHeader: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("API 限流配置")
+                Text(i18n.t(.hub_apiThrottleConfig))
                     .font(.system(size: theme.headlineSize, weight: .bold))
                     .foregroundStyle(theme.text)
-                Text("控制每个模型的请求速率与并发限制，防止过载")
+                Text(i18n.t(.hub_controlRateConcurrencyHint))
                     .font(.caption)
                     .foregroundStyle(theme.textTertiary)
             }
@@ -603,20 +608,20 @@ struct HubScheduleView: View {
     private var throttleGlobalSection: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: theme.spacingM) {
-                Text("默认限流策略")
+                Text(i18n.t(.hub_defaultThrottlePolicy))
                     .font(.system(size: theme.headlineSize, weight: .semibold))
                     .foregroundStyle(theme.text)
 
                 HStack(spacing: theme.spacingL) {
                     HStack(spacing: theme.spacingS) {
-                        Text("每分钟请求数 (RPM):")
+                        Text(i18n.t(.hub_rpmLabelColon))
                             .foregroundStyle(theme.text)
                         TextField("", value: $defaultRPM, format: .number)
                             .textFieldStyle(.roundedBorder)
                             .frame(width: 80)
                     }
                     HStack(spacing: theme.spacingS) {
-                        Text("最大并发数:")
+                        Text(i18n.t(.hub_maxConcurrencyColon))
                             .foregroundStyle(theme.text)
                         TextField("", value: $defaultConcurrent, format: .number)
                             .textFieldStyle(.roundedBorder)
@@ -625,11 +630,11 @@ struct HubScheduleView: View {
                 }
 
                 if defaultRPM <= 0 {
-                    Text("⚠️ RPM 必须 > 0")
+                    Text(i18n.t(.hub_rpmMustPositive))
                         .font(.caption).foregroundStyle(.orange)
                 }
                 if defaultConcurrent <= 0 {
-                    Text("⚠️ 并发数必须 > 0")
+                    Text(i18n.t(.hub_concurrencyMustPositive))
                         .font(.caption).foregroundStyle(.orange)
                 }
             }
@@ -640,15 +645,15 @@ struct HubScheduleView: View {
     private var throttlePerModelSection: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: theme.spacingM) {
-                Text("单模型限流配置")
+                Text(i18n.t(.hub_perModelThrottle))
                     .font(.system(size: theme.headlineSize, weight: .semibold))
                     .foregroundStyle(theme.text)
-                Text("未单独配置的模型使用默认策略")
+                Text(i18n.t(.hub_unconfiguredUsesDefault))
                     .font(.caption)
                     .foregroundStyle(theme.textTertiary)
 
                 if models.isEmpty {
-                    Text("暂无模型")
+                    Text(i18n.t(.hub_noModels))
                         .foregroundStyle(theme.textTertiary)
                         .padding(.vertical, theme.spacingS)
                 } else {
@@ -668,21 +673,21 @@ struct HubScheduleView: View {
                                 Text("RPM: \(c.rpm)")
                                     .font(.caption)
                                     .foregroundStyle(theme.textSecondary)
-                                Text("并发: \(c.concurrent)")
+                                Text(String(format: i18n.t(.hub_concurrencyFmt), c.concurrent))
                                     .font(.caption)
                                     .foregroundStyle(theme.textSecondary)
                             } else {
-                                Text("RPM: \(defaultRPM) (默认)")
+                                Text(String(format: i18n.t(.hub_rpmDefaultFmt), defaultRPM))
                                     .font(.caption)
                                     .foregroundStyle(theme.textTertiary)
-                                Text("并发: \(defaultConcurrent) (默认)")
+                                Text(String(format: i18n.t(.hub_concurrencyDefaultFmt), defaultConcurrent))
                                     .font(.caption)
                                     .foregroundStyle(theme.textTertiary)
                             }
 
                             Spacer()
 
-                            Button(cfg != nil ? "编辑" : "自定义") {
+                            Button(cfg != nil ? i18n.t(.hub_edit) : i18n.t(.hub_sourceCustom)) {
                                 throttleEditModelId = model.id
                                 throttleEditRPM = cfg?.rpm ?? defaultRPM
                                 throttleEditConcurrent = cfg?.concurrent ?? defaultConcurrent
@@ -693,7 +698,7 @@ struct HubScheduleView: View {
                             .controlSize(.mini)
 
                             if cfg != nil {
-                                Button("重置") {
+                                Button(i18n.t(.hub_reset)) {
                                     modelThrottles.removeValue(forKey: model.id)
                                     schedLog.info("Reset throttle for model: \(model.id)")
                                 }
@@ -712,12 +717,12 @@ struct HubScheduleView: View {
 
     private var throttleEditSheet: some View {
         VStack(spacing: theme.spacingM) {
-            Text("限流配置 — \(throttleEditModelId)")
+            Text(String(format: i18n.t(.hub_throttleConfigTitleFmt), throttleEditModelId))
                 .font(.title3).bold()
 
             HStack(spacing: theme.spacingL) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("每分钟请求数 (RPM)")
+                    Text(i18n.t(.hub_rpmLabel))
                         .font(.caption)
                         .foregroundStyle(theme.textTertiary)
                     TextField("", value: $throttleEditRPM, format: .number)
@@ -725,7 +730,7 @@ struct HubScheduleView: View {
                         .frame(width: 120)
                 }
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("最大并发数")
+                    Text(i18n.t(.hub_maxConcurrency))
                         .font(.caption)
                         .foregroundStyle(theme.textTertiary)
                     TextField("", value: $throttleEditConcurrent, format: .number)
@@ -735,8 +740,8 @@ struct HubScheduleView: View {
             }
 
             HStack {
-                Button("取消") { showThrottleEdit = false }.buttonStyle(.bordered)
-                Button("保存") {
+                Button(i18n.t(.hub_cancelBtn)) { showThrottleEdit = false }.buttonStyle(.bordered)
+                Button(i18n.t(.hub_saveBtn)) {
                     modelThrottles[throttleEditModelId] = HubThrottleConfig(
                         modelId: throttleEditModelId,
                         rpm: max(1, throttleEditRPM),
@@ -769,10 +774,10 @@ struct HubScheduleView: View {
     private var ttlHeader: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("模型 TTL (存活时间)")
+                Text(i18n.t(.hub_modelTTL))
                     .font(.system(size: theme.headlineSize, weight: .bold))
                     .foregroundStyle(theme.text)
-                Text("设置模型自动卸载倒计时，闲置超时后释放统一内存")
+                Text(i18n.t(.hub_setIdleUnloadCountdown))
                     .font(.caption)
                     .foregroundStyle(theme.textTertiary)
             }
@@ -783,7 +788,7 @@ struct HubScheduleView: View {
     private var ttlActiveSection: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: theme.spacingM) {
-                Text("活跃模型倒计时")
+                Text(i18n.t(.hub_activeModelCountdown))
                     .font(.system(size: theme.headlineSize, weight: .semibold))
                     .foregroundStyle(theme.text)
 
@@ -793,7 +798,7 @@ struct HubScheduleView: View {
                         Image(systemName: "moon.zzz")
                             .font(.system(size: 36))
                             .foregroundStyle(.secondary)
-                        Text("当前无活跃模型")
+                        Text(i18n.t(.hub_noActiveModels))
                             .foregroundStyle(theme.textTertiary)
                     }
                     .frame(maxWidth: .infinity)
@@ -823,7 +828,7 @@ struct HubScheduleView: View {
                         .font(.caption)
                         .foregroundStyle(theme.textSecondary)
                 } else {
-                    Text("永久驻留 (无 TTL)")
+                    Text(i18n.t(.hub_permanentResidentNoTTL))
                         .font(.caption)
                         .foregroundStyle(.green)
                 }
@@ -834,10 +839,10 @@ struct HubScheduleView: View {
             if let ttl = model.ttlSeconds, ttl > 0 {
                 let remaining = ttlRemainingSeconds(model: model)
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text(remaining > 0 ? formatDuration(remaining) : "已过期")
+                    Text(remaining > 0 ? formatDuration(remaining) : i18n.t(.hub_expired))
                         .font(.system(size: theme.textSize, weight: .semibold, design: .monospaced))
                         .foregroundStyle(remaining > 300 ? theme.accent : remaining > 60 ? .orange : .red)
-                    Text("剩余时间")
+                    Text(i18n.t(.hub_remainingTime))
                         .font(.caption2)
                         .foregroundStyle(theme.textTertiary)
                 }
@@ -861,26 +866,26 @@ struct HubScheduleView: View {
     private var ttlConfigSection: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: theme.spacingM) {
-                Text("TTL 配置说明")
+                Text(i18n.t(.hub_ttlConfigNote))
                     .font(.system(size: theme.headlineSize, weight: .semibold))
                     .foregroundStyle(theme.text)
 
                 VStack(alignment: .leading, spacing: theme.spacingS) {
                     HStack(spacing: theme.spacingS) {
                         Image(systemName: "info.circle").foregroundStyle(theme.accent)
-                        Text("TTL 由模型服务部署时指定 (serve API 的 ttl_seconds 参数)")
+                        Text(i18n.t(.hub_ttlServeParamNote))
                             .foregroundStyle(theme.textSecondary)
                             .font(.system(size: theme.textSize))
                     }
                     HStack(spacing: theme.spacingS) {
                         Image(systemName: "clock").foregroundStyle(.orange)
-                        Text("闲置超过 TTL 后，模型将自动从内存卸载，释放 GPU 统一内存")
+                        Text(i18n.t(.hub_idleAfterTTLUnload))
                             .foregroundStyle(theme.textSecondary)
                             .font(.system(size: theme.textSize))
                     }
                     HStack(spacing: theme.spacingS) {
                         Image(systemName: "pin.fill").foregroundStyle(.green)
-                        Text("常驻模型 (pinned) 不受 TTL 限制，始终保留在内存中")
+                        Text(i18n.t(.hub_pinnedNoTTLNote))
                             .foregroundStyle(theme.textSecondary)
                             .font(.system(size: theme.textSize))
                     }
@@ -889,7 +894,7 @@ struct HubScheduleView: View {
                 let withTTL = models.filter { ($0.ttlSeconds ?? 0) > 0 }
                 if !withTTL.isEmpty {
                     Divider()
-                    Text("已配置 TTL 的模型")
+                    Text(i18n.t(.hub_configuredTTLModels))
                         .font(.system(size: theme.textSize, weight: .medium))
                         .foregroundStyle(theme.text)
 
@@ -913,13 +918,13 @@ struct HubScheduleView: View {
     }
 
     private func formatDuration(_ seconds: Int) -> String {
-        if seconds <= 0 { return "0秒" }
+        if seconds <= 0 { return i18n.t(.hub_durationZero) }
         let h = seconds / 3600
         let m = (seconds % 3600) / 60
         let s = seconds % 60
-        if h > 0 { return "\(h)时\(m)分\(s)秒" }
-        if m > 0 { return "\(m)分\(s)秒" }
-        return "\(s)秒"
+        if h > 0 { return String(format: i18n.t(.hub_durationHMSFmt), h, m, s) }
+        if m > 0 { return String(format: i18n.t(.hub_durationMSFmt), m, s) }
+        return String(format: i18n.t(.hub_durationSFmt), s)
     }
 
     // MARK: - Tab 5: Auto-Bench
@@ -940,10 +945,10 @@ struct HubScheduleView: View {
     private var autoBenchHeader: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("自动基准测试")
+                Text(i18n.t(.hub_autoBenchmarkTab))
                     .font(.system(size: theme.headlineSize, weight: .bold))
                     .foregroundStyle(theme.text)
-                Text("模型量化或下载完成后自动运行基准测试，持续追踪性能变化")
+                Text(i18n.t(.hub_autoBenchAfterQuantOrDownload))
                     .font(.caption)
                     .foregroundStyle(theme.textTertiary)
             }
@@ -956,9 +961,9 @@ struct HubScheduleView: View {
             VStack(alignment: .leading, spacing: theme.spacingM) {
                 Toggle(isOn: $autoBenchEnabled) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("启用自动基准测试")
+                        Text(i18n.t(.hub_enableAutoBenchmark))
                             .foregroundStyle(theme.text)
-                        Text("模型量化完成后、新模型下载完成后自动触发基准测试")
+                        Text(i18n.t(.hub_autoBenchQuantOrDownloadShort))
                             .font(.caption)
                             .foregroundStyle(theme.textTertiary)
                     }
@@ -974,12 +979,12 @@ struct HubScheduleView: View {
     private var autoBenchScheduleSection: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: theme.spacingM) {
-                Text("定时基准测试")
+                Text(i18n.t(.hub_scheduledBenchmark))
                     .font(.system(size: theme.headlineSize, weight: .semibold))
                     .foregroundStyle(theme.text)
 
                 HStack(spacing: theme.spacingM) {
-                    ForEach([("daily", "每日"), ("weekly", "每周"), ("monthly", "每月")], id: \.0) { option in
+                    ForEach([("daily", i18n.t(.hub_daily)), ("weekly", i18n.t(.hub_weekly)), ("monthly", i18n.t(.hub_monthly))], id: \.0) { option in
                         Button(action: { autoBenchSchedule = option.0 }) {
                             HStack(spacing: theme.spacingXS) {
                                 Image(systemName: autoBenchSchedule == option.0 ? "largecircle.fill.circle" : "circle")
@@ -998,7 +1003,7 @@ struct HubScheduleView: View {
                 }
 
                 if autoBenchEnabled {
-                    Text("定时测试将在每日凌晨 3:00 或每周一凌晨 3:00 自动执行")
+                    Text(i18n.t(.hub_scheduledBenchNote))
                         .font(.caption)
                         .foregroundStyle(theme.textTertiary)
                 }
@@ -1011,11 +1016,11 @@ struct HubScheduleView: View {
         GroupBox {
             VStack(alignment: .leading, spacing: theme.spacingM) {
                 HStack {
-                    Text("纳入测试的模型")
+                    Text(i18n.t(.hub_benchIncludedModels))
                         .font(.system(size: theme.headlineSize, weight: .semibold))
                         .foregroundStyle(theme.text)
                     Spacer()
-                    Button("选择模型") {
+                    Button(i18n.t(.hub_selectModel)) {
                         showAutoBenchModelPicker = true
                         schedLog.info("Open auto-bench model picker")
                     }
@@ -1025,13 +1030,13 @@ struct HubScheduleView: View {
 
                 let selectedIds = autoBenchModelIds.split(separator: ",").map { String($0) }
                 if selectedIds.isEmpty || autoBenchModelIds.isEmpty {
-                    Text("未选择模型，将测试所有已下载模型")
+                    Text(i18n.t(.hub_noModelWillTestAll))
                         .foregroundStyle(theme.textTertiary)
                         .font(.system(size: theme.textSize))
                 } else {
                     let selected = models.filter { selectedIds.contains($0.id) }
                     if selected.isEmpty {
-                        Text("已选 \(selectedIds.count) 个模型 (加载中...)")
+                        Text(String(format: i18n.t(.hub_selectedModelsLoadingFmt), selectedIds.count))
                             .foregroundStyle(theme.textTertiary)
                             .font(.system(size: theme.textSize))
                     } else {
@@ -1081,21 +1086,21 @@ struct HubScheduleView: View {
     private var autoBenchStatusSection: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: theme.spacingM) {
-                Text("测试状态")
+                Text(i18n.t(.hub_testStatus))
                     .font(.system(size: theme.headlineSize, weight: .semibold))
                     .foregroundStyle(theme.text)
 
                 HStack(spacing: theme.spacingL) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("自动测试")
+                        Text(i18n.t(.hub_autoTest))
                             .font(.caption)
                             .foregroundStyle(theme.textTertiary)
-                        Text(autoBenchEnabled ? "已启用" : "未启用")
+                        Text(autoBenchEnabled ? i18n.t(.hub_enabled) : i18n.t(.hub_notEnabled))
                             .font(.system(size: theme.textSize, weight: .medium))
                             .foregroundStyle(autoBenchEnabled ? .green : theme.textSecondary)
                     }
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("执行频率")
+                        Text(i18n.t(.hub_executionFrequency))
                             .font(.caption)
                             .foregroundStyle(theme.textTertiary)
                         Text(scheduleLabel(autoBenchSchedule))
@@ -1103,7 +1108,7 @@ struct HubScheduleView: View {
                             .foregroundStyle(theme.text)
                     }
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("测试模型数")
+                        Text(i18n.t(.hub_testModelCount))
                             .font(.caption)
                             .foregroundStyle(theme.textTertiary)
                         let count = autoBenchModelIds.isEmpty ? models.filter { $0.isDownloaded == true }.count : autoBenchModelIds.split(separator: ",").count
@@ -1113,7 +1118,7 @@ struct HubScheduleView: View {
                     }
                 }
 
-                Button("立即执行一次基准测试") {
+                Button(i18n.t(.hub_runBenchmarkNow)) {
                     triggerManualBench()
                 }
                 .buttonStyle(.borderedProminent)
@@ -1126,22 +1131,22 @@ struct HubScheduleView: View {
 
     private func scheduleLabel(_ schedule: String) -> String {
         switch schedule {
-        case "daily": return "每日"
-        case "weekly": return "每周"
-        case "monthly": return "每月"
+        case "daily": return i18n.t(.hub_daily)
+        case "weekly": return i18n.t(.hub_weekly)
+        case "monthly": return i18n.t(.hub_monthly)
         default: return schedule
         }
     }
 
     private var autoBenchModelPickerSheet: some View {
         VStack(spacing: theme.spacingM) {
-            Text("选择基准测试模型").font(.title3).bold()
+            Text(i18n.t(.hub_selectBenchModels)).font(.title3).bold()
 
             let currentSelected = Set(autoBenchModelIds.split(separator: ",").map { String($0) })
             let downloadable = models.filter { $0.isDownloaded == true }
 
             if downloadable.isEmpty {
-                Text("暂无已下载模型")
+                Text(i18n.t(.hub_noDownloadedModels))
                     .foregroundStyle(theme.textTertiary)
             } else {
                 List(downloadable) { model in
@@ -1171,7 +1176,7 @@ struct HubScheduleView: View {
                 .frame(minHeight: 300)
             }
 
-            Button("完成") { showAutoBenchModelPicker = false }
+            Button(i18n.t(.hub_done)) { showAutoBenchModelPicker = false }
                 .buttonStyle(.borderedProminent)
         }
         .padding()

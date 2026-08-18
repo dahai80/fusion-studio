@@ -4,6 +4,7 @@ import os.log
 struct HubSecurityView: View {
     @ObservedObject var client: ModelHubAPIClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @State private var selectedTab = 0
     @State private var scanResult: HubSecurityScanResponse?
     @State private var watermarkInfo: HubWatermarkResponse?
@@ -29,10 +30,10 @@ struct HubSecurityView: View {
 
     private var tabBar: some View {
         HStack(spacing: 0) {
-            secTabItem("安全扫描", index: 0, icon: "shield.checkered")
-            secTabItem("水印管理", index: 1, icon: "drop.fill")
-            secTabItem("加密管理", index: 2, icon: "lock.shield")
-            secTabItem("审批流程", index: 3, icon: "checkmark.seal")
+            secTabItem(i18n.t(.hub_securityScan), index: 0, icon: "shield.checkered")
+            secTabItem(i18n.t(.hub_watermarkMgmt), index: 1, icon: "drop.fill")
+            secTabItem(i18n.t(.hub_encryptionMgmt), index: 2, icon: "lock.shield")
+            secTabItem(i18n.t(.hub_approvalProcess), index: 3, icon: "checkmark.seal")
         }
         .padding(.horizontal, theme.spacingM)
         .padding(.top, theme.spacingS)
@@ -68,17 +69,17 @@ struct HubSecurityView: View {
     private var scanTab: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
             HStack {
-                Text("安全扫描")
+                Text(i18n.t(.hub_securityScan))
                     .font(.system(size: theme.titleSize, weight: .bold)).foregroundStyle(theme.text)
                 Spacer()
-                Button("扫描模型") { showScanSheet = true }
+                Button(i18n.t(.hub_scanModel)) { showScanSheet = true }
                     .buttonStyle(.borderedProminent).controlSize(.small)
-                Button("刷新") { loadScanResult() }
+                Button(i18n.t(.hub_refresh)) { loadScanResult() }
                     .buttonStyle(.bordered).controlSize(.small)
             }
             if loading { ProgressView().padding() }
             else if let result = scanResult { scanResultView(result) }
-            else { secEmpty("shield.checkered", "尚未进行安全扫描") }
+            else { secEmpty("shield.checkered", i18n.t(.hub_notYetScanned)) }
         }
         .padding(theme.spacingL)
         .sheet(isPresented: $showScanSheet) { scanModelSheet }
@@ -92,14 +93,14 @@ struct HubSecurityView: View {
             }
             if let issues = result.issues, !issues.isEmpty {
                 VStack(alignment: .leading, spacing: theme.spacingS) {
-                    Text("发现问题")
+                    Text(i18n.t(.hub_issuesFound))
                         .font(.system(size: theme.textSize, weight: .semibold)).foregroundStyle(theme.text)
                     ForEach(issues) { issue in secIssueRow(issue) }
                 }
             } else {
                 HStack(spacing: 8) {
                     Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                    Text("未发现安全问题").foregroundStyle(theme.textSecondary)
+                    Text(i18n.t(.hub_noSecurityIssues)).foregroundStyle(theme.textSecondary)
                 }
                 .padding(theme.spacingS).frame(maxWidth: .infinity)
                 .background(Color.green.opacity(0.06)).cornerRadius(8)
@@ -122,7 +123,7 @@ struct HubSecurityView: View {
                 Text("\(score)")
                     .font(.system(size: 24, weight: .bold)).foregroundStyle(theme.text)
             }
-            Text("安全评分").font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textSecondary)
+            Text(i18n.t(.hub_securityScore)).font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textSecondary)
         }
         .frame(maxWidth: .infinity).padding(theme.spacingM)
         .background(Color(nsColor: .controlBackgroundColor).opacity(0.3)).cornerRadius(8)
@@ -131,12 +132,12 @@ struct HubSecurityView: View {
     private func secIssueSummary(_ result: HubSecurityScanResponse) -> some View {
         let issues = result.issues ?? []
         return VStack(spacing: 8) {
-            Text("问题汇总").font(.system(size: theme.footnoteSize, weight: .medium)).foregroundStyle(theme.textSecondary)
+            Text(i18n.t(.hub_issueSummary)).font(.system(size: theme.footnoteSize, weight: .medium)).foregroundStyle(theme.textSecondary)
             HStack(spacing: theme.spacingM) {
-                secIssueCount("严重", count: issues.filter { $0.severity == "critical" }.count, color: .red)
-                secIssueCount("高危", count: issues.filter { $0.severity == "high" }.count, color: .orange)
-                secIssueCount("中危", count: issues.filter { $0.severity == "medium" }.count, color: .yellow)
-                secIssueCount("低危", count: issues.filter { $0.severity == "low" }.count, color: .blue)
+                secIssueCount(i18n.t(.hub_sevCritical), count: issues.filter { $0.severity == "critical" }.count, color: .red)
+                secIssueCount(i18n.t(.hub_sevHigh), count: issues.filter { $0.severity == "high" }.count, color: .orange)
+                secIssueCount(i18n.t(.hub_sevMedium), count: issues.filter { $0.severity == "medium" }.count, color: .yellow)
+                secIssueCount(i18n.t(.hub_sevLow), count: issues.filter { $0.severity == "low" }.count, color: .blue)
             }
         }
         .frame(maxWidth: .infinity).padding(theme.spacingM)
@@ -155,7 +156,7 @@ struct HubSecurityView: View {
             Image(systemName: secSeverityIcon(issue.severity))
                 .foregroundStyle(secSeverityColor(issue.severity)).font(.system(size: 14))
             VStack(alignment: .leading, spacing: 2) {
-                Text(issue.type ?? "未知问题").font(.system(size: theme.textSize, weight: .medium)).foregroundStyle(theme.text)
+                Text(issue.type ?? i18n.t(.hub_unknownIssue)).font(.system(size: theme.textSize, weight: .medium)).foregroundStyle(theme.text)
                 if let desc = issue.description {
                     Text(desc).font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textSecondary).lineLimit(2)
                 }
@@ -173,8 +174,8 @@ struct HubSecurityView: View {
 
     private var scanModelSheet: some View {
         VStack(spacing: theme.spacingM) {
-            Text("扫描模型安全").font(.title2).bold()
-            Text("将对指定模型进行安全漏洞扫描").font(.caption).foregroundStyle(theme.textSecondary)
+            Text(i18n.t(.hub_scanModelSecurity)).font(.title2).bold()
+            Text(i18n.t(.hub_securityScanTargetHint)).font(.caption).foregroundStyle(theme.textSecondary)
             SecScanForm(client: client, isPresented: $showScanSheet) { scanResult = $0 }
         }
         .padding().frame(width: 400, height: 300)
@@ -185,32 +186,32 @@ struct HubSecurityView: View {
     private var watermarkTab: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
             HStack {
-                Text("水印管理")
+                Text(i18n.t(.hub_watermarkMgmt))
                     .font(.system(size: theme.titleSize, weight: .bold)).foregroundStyle(theme.text)
                 Spacer()
-                Button("添加水印") { showWatermarkSheet = true }
+                Button(i18n.t(.hub_addWatermark)) { showWatermarkSheet = true }
                     .buttonStyle(.borderedProminent).controlSize(.small)
-                Button("刷新") { loadWatermark() }
+                Button(i18n.t(.hub_refresh)) { loadWatermark() }
                     .buttonStyle(.bordered).controlSize(.small)
             }
             if loading { ProgressView().padding() }
             else if let info = watermarkInfo {
                 VStack(alignment: .leading, spacing: theme.spacingS) {
-                    secConfigRow("模型ID", value: info.modelId ?? "--")
-                    secConfigRow("水印状态", value: info.status ?? "--")
-                    secConfigRow("水印ID", value: info.watermarkId ?? "--")
-                    secConfigRow("验证状态", value: info.verified == true ? "已验证" : "未验证")
-                    secConfigRow("嵌入时间", value: info.embeddedAt ?? "--")
+                    secConfigRow(i18n.t(.hub_modelId), value: info.modelId ?? "--")
+                    secConfigRow(i18n.t(.hub_watermarkStatus), value: info.status ?? "--")
+                    secConfigRow(i18n.t(.hub_watermarkId), value: info.watermarkId ?? "--")
+                    secConfigRow(i18n.t(.hub_verifyStatus), value: info.verified == true ? i18n.t(.hub_verified) : i18n.t(.hub_notVerified))
+                    secConfigRow(i18n.t(.hub_embeddedTime), value: info.embeddedAt ?? "--")
                 }
                 .padding(theme.spacingS)
                 .background(Color(nsColor: .controlBackgroundColor).opacity(0.3)).cornerRadius(8)
-            } else { secEmpty("drop.fill", "暂无水印信息") }
+            } else { secEmpty("drop.fill", i18n.t(.hub_noWatermarkInfo)) }
         }
         .padding(theme.spacingL)
         .sheet(isPresented: $showWatermarkSheet) {
             VStack(spacing: theme.spacingM) {
-                Text("添加水印").font(.title2).bold()
-                Text("为模型添加数字水印以保护知识产权").font(.caption).foregroundStyle(theme.textSecondary)
+                Text(i18n.t(.hub_addWatermark)).font(.title2).bold()
+                Text(i18n.t(.hub_addDigitalWatermarkHint)).font(.caption).foregroundStyle(theme.textSecondary)
                 SecWatermarkForm(client: client, isPresented: $showWatermarkSheet) { loadWatermark() }
             }
             .padding().frame(width: 400, height: 300)
@@ -222,31 +223,31 @@ struct HubSecurityView: View {
     private var encryptionTab: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
             HStack {
-                Text("加密管理")
+                Text(i18n.t(.hub_encryptionMgmt))
                     .font(.system(size: theme.titleSize, weight: .bold)).foregroundStyle(theme.text)
                 Spacer()
-                Button("加密模型") { showEncryptionSheet = true }
+                Button(i18n.t(.hub_encryptModel)) { showEncryptionSheet = true }
                     .buttonStyle(.borderedProminent).controlSize(.small)
-                Button("刷新") { loadEncryption() }
+                Button(i18n.t(.hub_refresh)) { loadEncryption() }
                     .buttonStyle(.bordered).controlSize(.small)
             }
             if loading { ProgressView().padding() }
             else if let info = encryptionInfo {
                 VStack(alignment: .leading, spacing: theme.spacingS) {
-                    secConfigRow("模型ID", value: info.modelId ?? "--")
-                    secConfigRow("加密状态", value: info.status ?? "--")
-                    secConfigRow("加密算法", value: info.algorithm ?? "--")
-                    secConfigRow("加密时间", value: info.encryptedAt ?? "--")
+                    secConfigRow(i18n.t(.hub_modelId), value: info.modelId ?? "--")
+                    secConfigRow(i18n.t(.hub_encryptionStatus), value: info.status ?? "--")
+                    secConfigRow(i18n.t(.hub_encryptionAlgorithm), value: info.algorithm ?? "--")
+                    secConfigRow(i18n.t(.hub_encryptionTime), value: info.encryptedAt ?? "--")
                 }
                 .padding(theme.spacingS)
                 .background(Color(nsColor: .controlBackgroundColor).opacity(0.3)).cornerRadius(8)
-            } else { secEmpty("lock.shield", "暂无加密信息") }
+            } else { secEmpty("lock.shield", i18n.t(.hub_noEncryptionInfo)) }
         }
         .padding(theme.spacingL)
         .sheet(isPresented: $showEncryptionSheet) {
             VStack(spacing: theme.spacingM) {
-                Text("加密模型").font(.title2).bold()
-                Text("对模型权重进行加密保护").font(.caption).foregroundStyle(theme.textSecondary)
+                Text(i18n.t(.hub_encryptModel)).font(.title2).bold()
+                Text(i18n.t(.hub_encryptModelWeights)).font(.caption).foregroundStyle(theme.textSecondary)
                 SecEncryptForm(client: client, isPresented: $showEncryptionSheet) { loadEncryption() }
             }
             .padding().frame(width: 400, height: 300)
@@ -258,25 +259,25 @@ struct HubSecurityView: View {
     private var approvalTab: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
             HStack {
-                Text("审批流程")
+                Text(i18n.t(.hub_approvalProcess))
                     .font(.system(size: theme.titleSize, weight: .bold)).foregroundStyle(theme.text)
                 Spacer()
-                Button("刷新") { loadApprovals() }
+                Button(i18n.t(.hub_refresh)) { loadApprovals() }
                     .buttonStyle(.bordered).controlSize(.small)
             }
             if loading { ProgressView().padding() }
-            else if approvals.isEmpty { secEmpty("checkmark.seal", "暂无审批记录") }
+            else if approvals.isEmpty { secEmpty("checkmark.seal", i18n.t(.hub_noApprovalRecords)) }
             else {
                 List(approvals, id: \.id) { a in
                     HStack(spacing: theme.spacingS) {
                         Image(systemName: secApprovalIcon(a.status))
                             .foregroundStyle(secApprovalColor(a.status)).font(.system(size: 14))
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(a.modelName ?? a.modelId ?? "未知")
+                            Text(a.modelName ?? a.modelId ?? i18n.t(.hub_unknown))
                                 .font(.system(size: theme.textSize, weight: .medium)).foregroundStyle(theme.text)
                             HStack(spacing: 8) {
                                 if let t = a.operation { Text(t).font(.caption).foregroundStyle(.secondary) }
-                                if let r = a.requestedBy { Text("申请人: \(r)").font(.caption).foregroundStyle(.secondary) }
+                                if let r = a.requestedBy { Text(String(format: i18n.t(.hub_requester), r)).font(.caption).foregroundStyle(.secondary) }
                             }
                         }
                         Spacer()
@@ -388,14 +389,15 @@ private struct SecScanForm: View {
     @State private var modelId = ""
     @State private var error: String?
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         VStack(spacing: theme.spacingM) {
-            TextField("模型ID", text: $modelId).textFieldStyle(.roundedBorder)
+            TextField(i18n.t(.hub_modelId), text: $modelId).textFieldStyle(.roundedBorder)
             if let err = error { Text(err).font(.caption).foregroundStyle(.red) }
             HStack {
-                Button("取消") { isPresented = false }.buttonStyle(.bordered)
-                Button("开始扫描") { run() }.buttonStyle(.borderedProminent).disabled(modelId.isEmpty)
+                Button(i18n.t(.hub_cancelBtn)) { isPresented = false }.buttonStyle(.bordered)
+                Button(i18n.t(.hub_startScan)) { run() }.buttonStyle(.borderedProminent).disabled(modelId.isEmpty)
             }
         }
     }
@@ -415,15 +417,16 @@ private struct SecWatermarkForm: View {
     @State private var watermarkText = ""
     @State private var error: String?
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         VStack(spacing: theme.spacingM) {
-            TextField("模型ID", text: $modelId).textFieldStyle(.roundedBorder)
-            TextField("水印文本", text: $watermarkText).textFieldStyle(.roundedBorder)
+            TextField(i18n.t(.hub_modelId), text: $modelId).textFieldStyle(.roundedBorder)
+            TextField(i18n.t(.hub_watermarkText), text: $watermarkText).textFieldStyle(.roundedBorder)
             if let err = error { Text(err).font(.caption).foregroundStyle(.red) }
             HStack {
-                Button("取消") { isPresented = false }.buttonStyle(.bordered)
-                Button("添加") { add() }.buttonStyle(.borderedProminent).disabled(modelId.isEmpty)
+                Button(i18n.t(.hub_cancelBtn)) { isPresented = false }.buttonStyle(.bordered)
+                Button(i18n.t(.hub_add)) { add() }.buttonStyle(.borderedProminent).disabled(modelId.isEmpty)
             }
         }
     }
@@ -445,17 +448,18 @@ private struct SecEncryptForm: View {
     @State private var algorithm = "AES-256"
     @State private var error: String?
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         VStack(spacing: theme.spacingM) {
-            TextField("模型ID", text: $modelId).textFieldStyle(.roundedBorder)
-            Picker("加密算法", selection: $algorithm) {
+            TextField(i18n.t(.hub_modelId), text: $modelId).textFieldStyle(.roundedBorder)
+            Picker(i18n.t(.hub_encryptionAlgorithm), selection: $algorithm) {
                 Text("AES-256").tag("AES-256"); Text("ChaCha20").tag("ChaCha20"); Text("RSA-4096").tag("RSA-4096")
             }
             if let err = error { Text(err).font(.caption).foregroundStyle(.red) }
             HStack {
-                Button("取消") { isPresented = false }.buttonStyle(.bordered)
-                Button("加密") { enc() }.buttonStyle(.borderedProminent).disabled(modelId.isEmpty)
+                Button(i18n.t(.hub_cancelBtn)) { isPresented = false }.buttonStyle(.bordered)
+                Button(i18n.t(.hub_encryption)) { enc() }.buttonStyle(.borderedProminent).disabled(modelId.isEmpty)
             }
         }
     }
@@ -475,22 +479,23 @@ private struct SecApprovalReviewSheet: View {
     @State private var error: String?
     @Environment(\.studioTheme) private var theme
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         VStack(spacing: theme.spacingM) {
-            Text("审批详情").font(.title2).bold()
+            Text(i18n.t(.hub_approvalDetail)).font(.title2).bold()
             VStack(alignment: .leading, spacing: 4) {
-                Text("模型: \(approval.modelName ?? approval.modelId ?? "--")").font(.system(size: theme.textSize))
-                Text("类型: \(approval.operation ?? "--")").font(.caption).foregroundStyle(.secondary)
-                Text("申请人: \(approval.requestedBy ?? "--")").font(.caption).foregroundStyle(.secondary)
-                Text("状态: \(approval.status ?? "--")").font(.caption).foregroundStyle(.secondary)
+                Text(String(format: i18n.t(.hub_modelApprovalOps), approval.modelName ?? approval.modelId ?? "--")).font(.system(size: theme.textSize))
+                Text(String(format: i18n.t(.hub_typeLabel), approval.operation ?? "--")).font(.caption).foregroundStyle(.secondary)
+                Text(String(format: i18n.t(.hub_requester), approval.requestedBy ?? "--")).font(.caption).foregroundStyle(.secondary)
+                Text(String(format: i18n.t(.hub_statusApproval), approval.status ?? "--")).font(.caption).foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            TextField("审批意见", text: $comment).textFieldStyle(.roundedBorder)
+            TextField(i18n.t(.hub_approvalComment), text: $comment).textFieldStyle(.roundedBorder)
             if let err = error { Text(err).font(.caption).foregroundStyle(.red) }
             HStack {
-                Button("拒绝") { review(approved: false) }.buttonStyle(.bordered).foregroundStyle(.red)
-                Button("通过") { review(approved: true) }.buttonStyle(.borderedProminent)
+                Button(i18n.t(.hub_reject)) { review(approved: false) }.buttonStyle(.bordered).foregroundStyle(.red)
+                Button(i18n.t(.hub_approve)) { review(approved: true) }.buttonStyle(.borderedProminent)
             }
         }
         .padding().frame(width: 400, height: 320)

@@ -14,6 +14,7 @@ private let monLog = Logger(subsystem: "com.fusion.studio", category: "HubMonito
 struct HubMonitorView: View {
     @ObservedObject var client: ModelHubAPIClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var monitor: HubMonitorResponse?
     @State private var hardware: HubHardwareResponse?
@@ -63,24 +64,24 @@ struct HubMonitorView: View {
     private var hardwareSection: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: theme.spacingM) {
-                Text("硬件信息")
+                Text(i18n.t(.hub_hardwareInfo))
                     .font(.system(size: theme.headlineSize, weight: .semibold))
                     .foregroundStyle(theme.text)
 
                 if let hw = hardware {
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: theme.spacingS) {
-                        if let chip = hw.chip { HWCard(label: "芯片", value: chip, icon: "cpu") }
-                        if let cores = hw.cpuCores { HWCard(label: "CPU 核心", value: "\(cores)", icon: "cpu") }
-                        if let gpu = hw.gpuCores { HWCard(label: "GPU 核心", value: "\(gpu)", icon: "gpu") }
-                        if let mem = hw.memoryGB { HWCard(label: "内存", value: String(format: "%.0f GB", mem), icon: "memorychip") }
-                        if let disk = hw.diskGB { HWCard(label: "磁盘", value: String(format: "%.0f GB", disk), icon: "harddrive") }
-                        if let free = hw.diskFree { HWCard(label: "可用", value: String(format: "%.0f GB", free), icon: "harddrive") }
-                        if hw.metalSupport == true { HWCard(label: "Metal", value: "支持", icon: "gpu") }
-                        if hw.aneSupport == true { HWCard(label: "ANE", value: "支持", icon: "brain") }
-                        if let ne = hw.neuralEngineCores, ne > 0 { HWCard(label: "NE 核心", value: "\(ne)", icon: "brain") }
+                        if let chip = hw.chip { HWCard(label: i18n.t(.hub_chip), value: chip, icon: "cpu") }
+                        if let cores = hw.cpuCores { HWCard(label: i18n.t(.hub_cpuCores), value: "\(cores)", icon: "cpu") }
+                        if let gpu = hw.gpuCores { HWCard(label: i18n.t(.hub_gpuCores), value: "\(gpu)", icon: "gpu") }
+                        if let mem = hw.memoryGB { HWCard(label: i18n.t(.hub_memory), value: String(format: "%.0f GB", mem), icon: "memorychip") }
+                        if let disk = hw.diskGB { HWCard(label: i18n.t(.hub_disk), value: String(format: "%.0f GB", disk), icon: "harddrive") }
+                        if let free = hw.diskFree { HWCard(label: i18n.t(.hub_available), value: String(format: "%.0f GB", free), icon: "harddrive") }
+                        if hw.metalSupport == true { HWCard(label: "Metal", value: i18n.t(.hub_supported), icon: "gpu") }
+                        if hw.aneSupport == true { HWCard(label: "ANE", value: i18n.t(.hub_supported), icon: "brain") }
+                        if let ne = hw.neuralEngineCores, ne > 0 { HWCard(label: i18n.t(.hub_neCores), value: "\(ne)", icon: "brain") }
                     }
                 } else {
-                    Text("加载中...").foregroundStyle(theme.textTertiary)
+                    Text(i18n.t(.hub_loading)).foregroundStyle(theme.textTertiary)
                 }
             }
             .padding(8)
@@ -92,7 +93,7 @@ struct HubMonitorView: View {
     private var realtimeSection: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: theme.spacingM) {
-                Text("实时监控")
+                Text(i18n.t(.hub_realtimeMonitor))
                     .font(.system(size: theme.headlineSize, weight: .semibold))
                     .foregroundStyle(theme.text)
 
@@ -128,7 +129,7 @@ struct HubMonitorView: View {
                         }
                         if let mem = mon.memory {
                             VStack(spacing: 4) {
-                                Text("内存").font(.caption).foregroundStyle(theme.textTertiary)
+                                Text(i18n.t(.hub_memory)).font(.caption).foregroundStyle(theme.textTertiary)
                                 let used = mem.used ?? 0
                                 let total = mem.total ?? 1
                                 Text(String(format: "%.1f / %.1f GB", used, total))
@@ -144,14 +145,14 @@ struct HubMonitorView: View {
                         }
                         if let disk = mon.disk {
                             VStack(spacing: 4) {
-                                Text("磁盘").font(.caption).foregroundStyle(theme.textTertiary)
+                                Text(i18n.t(.hub_disk)).font(.caption).foregroundStyle(theme.textTertiary)
                                 let used = disk.used ?? 0
                                 let total = disk.total ?? 1
                                 Text(String(format: "%.0f / %.0f GB", used, total))
                                     .font(.system(size: theme.titleSize, weight: .bold))
                                     .foregroundStyle(used / total > 0.9 ? .red : theme.text)
                                 if let modelSize = disk.modelsSize, modelSize > 0 {
-                                    Text(String(format: "模型: %.1f GB", modelSize)).font(.caption).foregroundStyle(.secondary)
+                                    Text(String(format: i18n.t(.hub_modelSizeFmt), modelSize)).font(.caption).foregroundStyle(.secondary)
                                 }
                             }
                             .frame(maxWidth: .infinity)
@@ -160,13 +161,13 @@ struct HubMonitorView: View {
                         }
                     }
                     HStack(spacing: theme.spacingL) {
-                        if let dl = mon.activeDownloads { Label("下载: \(dl)", systemImage: "arrow.down.circle").font(.caption) }
-                        if let qz = mon.activeQuantize { Label("量化: \(qz)", systemImage: "arrow.triangle.2.circlepath").font(.caption) }
-                        if let up = mon.uptime { Label("运行: \(up)", systemImage: "clock").font(.caption) }
+                        if let dl = mon.activeDownloads { Label(String(format: i18n.t(.hub_downloadLabel), dl), systemImage: "arrow.down.circle").font(.caption) }
+                        if let qz = mon.activeQuantize { Label(String(format: i18n.t(.hub_quantLabel), qz), systemImage: "arrow.triangle.2.circlepath").font(.caption) }
+                        if let up = mon.uptime { Label(String(format: i18n.t(.hub_runningLabel), up), systemImage: "clock").font(.caption) }
                     }
                     .foregroundStyle(.secondary)
                 } else {
-                    Text("加载中...").foregroundStyle(theme.textTertiary)
+                    Text(i18n.t(.hub_loading)).foregroundStyle(theme.textTertiary)
                 }
             }
             .padding(8)
@@ -179,12 +180,12 @@ struct HubMonitorView: View {
         GroupBox {
             VStack(alignment: .leading, spacing: theme.spacingM) {
                 HStack {
-                    Text("模型推理统计")
+                    Text(i18n.t(.hub_modelInferenceStats))
                         .font(.system(size: theme.headlineSize, weight: .semibold))
                         .foregroundStyle(theme.text)
                     Spacer()
 
-                    Picker("来源", selection: $sourceFilter) {
+                    Picker(i18n.t(.hub_source), selection: $sourceFilter) {
                         ForEach(sourceOptions, id: \.self) { s in
                             Text(sourceFilterLabel(s)).tag(s)
                         }
@@ -201,7 +202,7 @@ struct HubMonitorView: View {
                 }
 
                 if filteredModelRows.isEmpty {
-                    Text("暂无推理数据").foregroundStyle(theme.textTertiary)
+                    Text(i18n.t(.hub_noInferenceData)).foregroundStyle(theme.textTertiary)
                 } else {
                     modelStatsTableHeader
                     ForEach(filteredModelRows) { row in
@@ -209,7 +210,7 @@ struct HubMonitorView: View {
                     }
                     HStack {
                         Spacer()
-                        Text("每 10 秒自动刷新")
+                        Text(i18n.t(.hub_autoRefresh10s))
                             .font(.caption2)
                             .foregroundStyle(theme.textTertiary)
                     }
@@ -222,17 +223,17 @@ struct HubMonitorView: View {
     private var modelStatsTableHeader: some View {
         HStack(spacing: 0) {
             Text("").frame(width: 16)
-            Text("模型名称")
+            Text(i18n.t(.hub_modelName))
                 .frame(maxWidth: .infinity, alignment: .leading)
-            Text("请求/分")
+            Text(i18n.t(.hub_requestsPerMin))
                 .frame(width: 72, alignment: .trailing)
-            Text("延迟(ms)")
+            Text(i18n.t(.hub_latencyMs))
                 .frame(width: 72, alignment: .trailing)
             Text("Tokens/s")
                 .frame(width: 72, alignment: .trailing)
-            Text("活跃会话")
+            Text(i18n.t(.hub_activeSessions))
                 .frame(width: 72, alignment: .trailing)
-            Text("内存")
+            Text(i18n.t(.hub_memory))
                 .frame(width: 72, alignment: .trailing)
         }
         .font(.caption2)
@@ -281,13 +282,13 @@ struct HubMonitorView: View {
         GroupBox {
             VStack(alignment: .leading, spacing: theme.spacingM) {
                 HStack {
-                    Text("部署指标")
+                    Text(i18n.t(.hub_deployMetrics))
                         .font(.system(size: theme.headlineSize, weight: .semibold))
                         .foregroundStyle(theme.text)
                     Spacer()
 
                     if !activeDeployments.isEmpty {
-                        Text("\(activeDeployments.count) 个活跃部署")
+                        Text(String(format: i18n.t(.hub_activeDeploymentsFmt), activeDeployments.count))
                             .font(.caption)
                             .foregroundStyle(theme.textSecondary)
                     }
@@ -304,7 +305,7 @@ struct HubMonitorView: View {
                     HStack(spacing: theme.spacingS) {
                         Image(systemName: "shippingbox")
                             .foregroundStyle(theme.textTertiary)
-                        Text("暂无活跃部署")
+                        Text(i18n.t(.hub_noActiveDeployments))
                             .foregroundStyle(theme.textTertiary)
                     }
                 } else {
@@ -332,10 +333,10 @@ struct HubMonitorView: View {
                     Text(dep.statusLabel)
                         .font(.caption)
                     if let s = dep.scale {
-                        Text("\(s) 副本").font(.caption)
+                        Text(String(format: i18n.t(.hub_copiesFmt), s)).font(.caption)
                     }
                     if let c = dep.canaryPercent {
-                        Text("灰度 \(c)%").font(.caption)
+                        Text(String(format: i18n.t(.hub_grayCanary), c)).font(.caption)
                     }
                 }
                 .foregroundStyle(theme.textSecondary)
@@ -346,8 +347,8 @@ struct HubMonitorView: View {
             if let metrics = m {
                 HStack(spacing: theme.spacingM) {
                     depMiniMetric("RPS", value: metrics.requestsPerSecond.map { String(format: "%.1f", $0) } ?? "--")
-                    depMiniMetric("延迟", value: metrics.avgLatencyMs.map { String(format: "%.0fms", $0) } ?? "--")
-                    depMiniMetric("错误率", value: metrics.errorRate.map { String(format: "%.1f%%", $0 * 100) } ?? "--")
+                    depMiniMetric(i18n.t(.hub_latencyLabel), value: metrics.avgLatencyMs.map { String(format: "%.0fms", $0) } ?? "--")
+                    depMiniMetric(i18n.t(.hub_errorRate), value: metrics.errorRate.map { String(format: "%.1f%%", $0 * 100) } ?? "--")
                     depMiniMetric("T/s", value: metrics.tokensPerSecond.map { String(format: "%.0f", $0) } ?? "--")
                 }
             } else {
@@ -388,7 +389,7 @@ struct HubMonitorView: View {
     private var storageSection: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: theme.spacingS) {
-                Text("存储详情")
+                Text(i18n.t(.hub_storageDetail))
                     .font(.system(size: theme.headlineSize, weight: .semibold))
                     .foregroundStyle(theme.text)
 
@@ -398,37 +399,37 @@ struct HubMonitorView: View {
                     let usedPct = totalVal > 0 ? usedVal / totalVal : 0
                     ProgressView(value: usedPct)
                         .tint(usedPct > 0.9 ? .red : .accentColor)
-                    Text(String(format: "已使用 %.1f / %.1f GB (%.0f%%)", usedVal, totalVal, usedPct * 100))
+                    Text(String(format: i18n.t(.hub_usedStorageFmt), usedVal, totalVal, usedPct * 100))
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
                     if let models = stor.models {
                         HStack {
-                            Text("模型").frame(width: 60, alignment: .leading)
+                            Text(i18n.t(.hub_model)).frame(width: 60, alignment: .leading)
                             Text(String(format: "%.1f GB", models.size ?? 0))
                             Spacer()
-                            Text("\(models.count ?? 0) 个")
+                            Text(String(format: i18n.t(.hub_countItemsFmt), models.count ?? 0))
                         }
                         .font(.caption)
                     }
                     if let cache = stor.cache {
                         HStack {
-                            Text("缓存").frame(width: 60, alignment: .leading)
+                            Text(i18n.t(.hub_cache)).frame(width: 60, alignment: .leading)
                             Text(String(format: "%.1f GB", cache.size ?? 0))
                             Spacer()
-                            Text("\(cache.count ?? 0) 个")
+                            Text(String(format: i18n.t(.hub_countItemsFmt), cache.count ?? 0))
                         }
                         .font(.caption)
                     }
 
                     HStack {
-                        Button("扫描重复") { Task { await scanDuplicates() } }
+                        Button(i18n.t(.hub_scanDuplicates)) { Task { await scanDuplicates() } }
                             .buttonStyle(.bordered).controlSize(.small)
-                        Button("清理系统") { Task { await cleanupSystem() } }
+                        Button(i18n.t(.hub_cleanupSystem)) { Task { await cleanupSystem() } }
                             .buttonStyle(.bordered).controlSize(.small)
                     }
                 } else {
-                    Text("加载中...").foregroundStyle(theme.textTertiary)
+                    Text(i18n.t(.hub_loading)).foregroundStyle(theme.textTertiary)
                 }
             }
             .padding(8)
@@ -441,20 +442,20 @@ struct HubMonitorView: View {
         GroupBox {
             VStack(alignment: .leading, spacing: theme.spacingS) {
                 HStack {
-                    Text("操作日志")
+                    Text(i18n.t(.hub_auditLog))
                         .font(.system(size: theme.headlineSize, weight: .semibold))
                         .foregroundStyle(theme.text)
                     Spacer()
 
-                    Picker("来源", selection: $auditSourceFilter) {
+                    Picker(i18n.t(.hub_source), selection: $auditSourceFilter) {
                         ForEach(auditSources, id: \.self) { s in
-                            Text(s == "all" ? "全部来源" : s).tag(s)
+                            Text(s == "all" ? i18n.t(.hub_allSources) : s).tag(s)
                         }
                     }
                     .pickerStyle(.menu)
                     .controlSize(.small)
 
-                    Button("导出 CSV") {
+                    Button(i18n.t(.hub_exportCsv)) {
                         exportAuditCSV()
                     }
                     .buttonStyle(.bordered)
@@ -462,7 +463,7 @@ struct HubMonitorView: View {
                 }
 
                 if filteredAuditLogs.isEmpty {
-                    Text("暂无操作日志").foregroundStyle(theme.textTertiary)
+                    Text(i18n.t(.hub_noAuditLogs)).foregroundStyle(theme.textTertiary)
                 } else {
                     ForEach(filteredAuditLogs.prefix(30)) { entry in
                         HStack(spacing: theme.spacingS) {
@@ -481,7 +482,7 @@ struct HubMonitorView: View {
                         }
                     }
                     if auditLogs.count > 30 {
-                        Text("显示前 30 条，共 \(auditLogs.count) 条")
+                        Text(String(format: i18n.t(.hub_auditShowingFmt), auditLogs.count))
                             .font(.caption2)
                             .foregroundStyle(theme.textTertiary)
                     }
@@ -527,9 +528,9 @@ struct HubMonitorView: View {
 
     private func healthLabel(_ health: ModelHealth) -> String {
         switch health {
-        case .healthy: return "健康"
-        case .warning: return "警告/降级"
-        case .error: return "错误/过载"
+        case .healthy: return i18n.t(.hub_health_healthy)
+        case .warning: return i18n.t(.hub_health_warning)
+        case .error: return i18n.t(.hub_health_error)
         }
     }
 
@@ -545,10 +546,10 @@ struct HubMonitorView: View {
 
     private func sourceFilterLabel(_ s: String) -> String {
         switch s {
-        case "all": return "全部来源"
-        case "local": return "本地"
+        case "all": return i18n.t(.hub_allSources)
+        case "local": return i18n.t(.hub_sourceLocal)
         case "hub": return "Hub"
-        case "custom": return "自定义"
+        case "custom": return i18n.t(.hub_custom)
         default: return s
         }
     }
@@ -730,7 +731,7 @@ struct HubMonitorView: View {
 
     private func exportAuditCSV() {
         let logs = filteredAuditLogs
-        var csv = "ID,时间,操作,来源,资源,用户,详情\n"
+        var csv = i18n.t(.hub_csvHeader)
         for entry in logs {
             let fields = [
                 entry.id,

@@ -12,6 +12,7 @@ private let permLog = Logger(subsystem: "com.fusion.studio", category: "HubPermi
 struct HubPermissionView: View {
     @ObservedObject var client: ModelHubAPIClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var apiKeys: [HubAPIKey] = []
     @State private var models: [HubModel] = []
@@ -64,15 +65,15 @@ struct HubPermissionView: View {
 
     // Role-based access (PRD)
     private let roles: [RoleAccess] = [
-        RoleAccess(role: "admin", label: "管理员", icon: "shield.fill", color: .red,
+        RoleAccess(role: "admin", label: I18nManager.shared.t(.hub_roleAdmin), icon: "shield.fill", color: .red,
                    modules: ["chat", "code", "agent", "artifacts", "design", "rag", "sim", "bench"],
-                   capabilities: "全部模型 + 全部模块 + 密钥管理 + 系统配置"),
-        RoleAccess(role: "member", label: "成员", icon: "person.fill", color: .blue,
+                   capabilities: I18nManager.shared.t(.hub_roleAdminCaps)),
+        RoleAccess(role: "member", label: I18nManager.shared.t(.hub_roleMember), icon: "person.fill", color: .blue,
                    modules: ["chat", "code", "agent", "artifacts", "design", "rag"],
-                   capabilities: "指定模型 + 常规模块 + 无系统配置"),
-        RoleAccess(role: "guest", label: "访客", icon: "person.crop.circle", color: .gray,
+                   capabilities: I18nManager.shared.t(.hub_roleMemberCaps)),
+        RoleAccess(role: "guest", label: I18nManager.shared.t(.hub_roleGuest), icon: "person.crop.circle", color: .gray,
                    modules: ["chat"],
-                   capabilities: "受限模型 + 仅对话 + 速率限制"),
+                   capabilities: I18nManager.shared.t(.hub_roleGuestCaps)),
     ]
 
     var body: some View {
@@ -97,8 +98,8 @@ struct HubPermissionView: View {
         .sheet(isPresented: $showCreateRole) {
             createRoleSheet
         }
-        .alert("API Key 已创建", isPresented: .constant(createdRawKey != nil)) {
-            Button("复制并关闭") {
+        .alert(i18n.t(.hub_apiKeyCreated), isPresented: .constant(createdRawKey != nil)) {
+            Button(i18n.t(.hub_copyAndClose)) {
                 if let key = createdRawKey {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(key, forType: .string)
@@ -107,7 +108,7 @@ struct HubPermissionView: View {
             }
         } message: {
             if let key = createdRawKey {
-                Text("请立即复制，此密钥仅显示一次：\n\(key)")
+                Text(String(format: i18n.t(.hub_apiKeyCopyOnceWarn), key))
             } else {
                 Text("")
             }
@@ -116,9 +117,9 @@ struct HubPermissionView: View {
 
     private var tabPicker: some View {
         HStack(spacing: 0) {
-            tabButton(index: 0, icon: "key", title: "API 密钥与模型权限")
-            tabButton(index: 1, icon: "building.2.crop.circle", title: "租户与角色")
-            tabButton(index: 2, icon: "checkmark.shield", title: "审批工作流")
+            tabButton(index: 0, icon: "key", title: i18n.t(.hub_apiKeysAndModelPerms))
+            tabButton(index: 1, icon: "building.2.crop.circle", title: i18n.t(.hub_tenantsAndRoles))
+            tabButton(index: 2, icon: "checkmark.shield", title: i18n.t(.hub_approvalWorkflow))
         }
         .padding(.horizontal, theme.spacingL)
     }
@@ -151,11 +152,11 @@ struct HubPermissionView: View {
     private var keyListPanel: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("API 密钥")
+                Text(i18n.t(.hub_apiKeysTitle))
                     .font(.system(size: theme.headlineSize, weight: .bold))
                     .foregroundStyle(theme.text)
                 Spacer()
-                Button("创建密钥") { showCreateKey = true }
+                Button(i18n.t(.hub_createKey)) { showCreateKey = true }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
             }
@@ -166,7 +167,7 @@ struct HubPermissionView: View {
             if apiKeys.isEmpty {
                 VStack(spacing: theme.spacingM) {
                     Image(systemName: "key").font(.system(size: 36)).foregroundStyle(.secondary)
-                    Text("暂无 API 密钥")
+                    Text(i18n.t(.hub_noApiKey))
                         .foregroundStyle(theme.textSecondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -187,7 +188,7 @@ struct HubPermissionView: View {
     private var modelPermPanel: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("模型权限")
+                Text(i18n.t(.hub_modelPermissions))
                     .font(.system(size: theme.headlineSize, weight: .bold))
                     .foregroundStyle(theme.text)
             }
@@ -196,7 +197,7 @@ struct HubPermissionView: View {
             Divider()
 
             if models.isEmpty {
-                Text("加载中...").foregroundStyle(theme.textTertiary)
+                Text(i18n.t(.hub_loading)).foregroundStyle(theme.textTertiary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List(models) { model in
@@ -223,11 +224,11 @@ struct HubPermissionView: View {
     private var tenantListPanel: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("租户")
+                Text(i18n.t(.hub_tenant))
                     .font(.system(size: theme.headlineSize, weight: .bold))
                     .foregroundStyle(theme.text)
                 Spacer()
-                Button("新建租户") { showCreateTenant = true }
+                Button(i18n.t(.hub_newTenant)) { showCreateTenant = true }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
             }
@@ -240,7 +241,7 @@ struct HubPermissionView: View {
                     Image(systemName: "building.2.crop.circle")
                         .font(.system(size: 36))
                         .foregroundStyle(.secondary)
-                    Text("暂无租户")
+                    Text(i18n.t(.hub_noTenants))
                         .foregroundStyle(theme.textSecondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -265,12 +266,12 @@ struct HubPermissionView: View {
     private var roleDetailPanel: some View {
         VStack(spacing: 0) {
             HStack {
-                Text(selectedTenantId != nil ? "角色列表" : "选择租户查看角色")
+                Text(selectedTenantId != nil ? i18n.t(.hub_roleList) : i18n.t(.hub_selectTenantViewRoles))
                     .font(.system(size: theme.headlineSize, weight: .bold))
                     .foregroundStyle(theme.text)
                 Spacer()
                 if selectedTenantId != nil {
-                    Button("新建角色") {
+                    Button(i18n.t(.hub_newRole)) {
                         newRoleName = ""
                         newRolePermissions = []
                         showCreateRole = true
@@ -289,7 +290,7 @@ struct HubPermissionView: View {
                         Image(systemName: "shield")
                             .font(.system(size: 36))
                             .foregroundStyle(.secondary)
-                        Text("暂无角色")
+                        Text(i18n.t(.hub_noRoles))
                             .foregroundStyle(theme.textSecondary)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -310,7 +311,7 @@ struct HubPermissionView: View {
                     Image(systemName: "arrow.left.circle")
                         .font(.system(size: 36))
                         .foregroundStyle(.secondary)
-                    Text("请先选择左侧租户")
+                    Text(i18n.t(.hub_selectTenantFirst))
                         .foregroundStyle(theme.textSecondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -324,7 +325,7 @@ struct HubPermissionView: View {
     private var approvalPanel: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("审批工作流")
+                Text(i18n.t(.hub_approvalWorkflow))
                     .font(.system(size: theme.headlineSize, weight: .bold))
                     .foregroundStyle(theme.text)
                 Spacer()
@@ -339,7 +340,7 @@ struct HubPermissionView: View {
                     Image(systemName: "checkmark.shield")
                         .font(.system(size: 36))
                         .foregroundStyle(.secondary)
-                    Text("暂无审批请求")
+                    Text(i18n.t(.hub_noApprovalRequests))
                         .foregroundStyle(theme.textSecondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -363,10 +364,10 @@ struct HubPermissionView: View {
 
     private var approvalFilterPicker: some View {
         Picker("", selection: $approvalFilter) {
-            Text("待审批").tag("pending")
-            Text("已通过").tag("approved")
-            Text("已拒绝").tag("rejected")
-            Text("全部").tag("all")
+            Text(i18n.t(.hub_pendingApproval)).tag("pending")
+            Text(i18n.t(.hub_approved)).tag("approved")
+            Text(i18n.t(.hub_rejected)).tag("rejected")
+            Text(i18n.t(.hub_all)).tag("all")
         }
         .pickerStyle(.segmented)
         .frame(width: 320)
@@ -379,13 +380,13 @@ struct HubPermissionView: View {
 
     private var createKeySheet: some View {
         VStack(spacing: theme.spacingM) {
-            Text("创建 API 密钥").font(.title2).bold()
+            Text(i18n.t(.hub_createApiKey)).font(.title2).bold()
 
-            TextField("密钥名称", text: $newKeyName)
+            TextField(i18n.t(.hub_keyName), text: $newKeyName)
                 .textFieldStyle(.roundedBorder)
 
             VStack(alignment: .leading, spacing: theme.spacingXS) {
-                Text("允许模型（留空=全部）").font(.caption).foregroundStyle(.secondary)
+                Text(i18n.t(.hub_allowedModelsHint)).font(.caption).foregroundStyle(.secondary)
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
                         ForEach(models) { m in
@@ -403,7 +404,7 @@ struct HubPermissionView: View {
             }
 
             VStack(alignment: .leading, spacing: theme.spacingXS) {
-                Text("允许模块（留空=全部）").font(.caption).foregroundStyle(.secondary)
+                Text(i18n.t(.hub_allowedModulesHint)).font(.caption).foregroundStyle(.secondary)
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
                         ForEach(HubModelModule.allCases) { mod in
@@ -424,15 +425,15 @@ struct HubPermissionView: View {
             }
 
             HStack {
-                Text("QPS 限制 (0=无限)").font(.caption)
+                Text(i18n.t(.hub_qpsLimitZero)).font(.caption)
                 TextField("", value: $newKeyRateLimit, format: .number)
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 80)
             }
 
             HStack {
-                Button("取消") { showCreateKey = false }.buttonStyle(.bordered)
-                Button("创建") {
+                Button(i18n.t(.hub_cancelBtn)) { showCreateKey = false }.buttonStyle(.bordered)
+                Button(i18n.t(.hub_createBtn)) {
                     createKey()
                     showCreateKey = false
                 }
@@ -448,21 +449,21 @@ struct HubPermissionView: View {
 
     private var createTenantSheet: some View {
         VStack(spacing: theme.spacingM) {
-            Text("新建租户").font(.title2).bold()
+            Text(i18n.t(.hub_newTenant)).font(.title2).bold()
 
-            TextField("租户名称", text: $newTenantName)
+            TextField(i18n.t(.hub_tenantName), text: $newTenantName)
                 .textFieldStyle(.roundedBorder)
 
-            Picker("默认角色", selection: $newTenantRole) {
-                Text("无").tag("")
+            Picker(i18n.t(.hub_defaultRole), selection: $newTenantRole) {
+                Text(i18n.t(.hub_none)).tag("")
                 ForEach(roles) { r in
                     Text(r.label).tag(r.role)
                 }
             }
 
             HStack {
-                Button("取消") { showCreateTenant = false }.buttonStyle(.bordered)
-                Button("创建") {
+                Button(i18n.t(.hub_cancelBtn)) { showCreateTenant = false }.buttonStyle(.bordered)
+                Button(i18n.t(.hub_createBtn)) {
                     createTenant()
                     showCreateTenant = false
                 }
@@ -478,13 +479,13 @@ struct HubPermissionView: View {
 
     private var createRoleSheet: some View {
         VStack(spacing: theme.spacingM) {
-            Text("新建角色").font(.title2).bold()
+            Text(i18n.t(.hub_newRole)).font(.title2).bold()
 
-            TextField("角色名称", text: $newRoleName)
+            TextField(i18n.t(.hub_roleName), text: $newRoleName)
                 .textFieldStyle(.roundedBorder)
 
             VStack(alignment: .leading, spacing: theme.spacingXS) {
-                Text("权限选择").font(.caption).foregroundStyle(.secondary)
+                Text(i18n.t(.hub_permissionSelect)).font(.caption).foregroundStyle(.secondary)
                 ScrollView {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 140))], spacing: 6) {
                         ForEach(permissionOptions, id: \.self) { perm in
@@ -511,8 +512,8 @@ struct HubPermissionView: View {
             }
 
             HStack {
-                Button("取消") { showCreateRole = false }.buttonStyle(.bordered)
-                Button("创建") {
+                Button(i18n.t(.hub_cancelBtn)) { showCreateRole = false }.buttonStyle(.bordered)
+                Button(i18n.t(.hub_createBtn)) {
                     createRole()
                     showCreateRole = false
                 }
@@ -528,13 +529,13 @@ struct HubPermissionView: View {
 
     private func editRoleSheet(_ role: HubRole) -> some View {
         VStack(spacing: theme.spacingM) {
-            Text("编辑角色").font(.title2).bold()
+            Text(i18n.t(.hub_editRole)).font(.title2).bold()
 
-            TextField("角色名称", text: $editRoleName)
+            TextField(i18n.t(.hub_roleName), text: $editRoleName)
                 .textFieldStyle(.roundedBorder)
 
             VStack(alignment: .leading, spacing: theme.spacingXS) {
-                Text("权限选择").font(.caption).foregroundStyle(.secondary)
+                Text(i18n.t(.hub_permissionSelect)).font(.caption).foregroundStyle(.secondary)
                 ScrollView {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 140))], spacing: 6) {
                         ForEach(permissionOptions, id: \.self) { perm in
@@ -561,8 +562,8 @@ struct HubPermissionView: View {
             }
 
             HStack {
-                Button("取消") { editingRole = nil }.buttonStyle(.bordered)
-                Button("保存") {
+                Button(i18n.t(.hub_cancelBtn)) { editingRole = nil }.buttonStyle(.bordered)
+                Button(i18n.t(.hub_saveBtn)) {
                     updateRole(role)
                     editingRole = nil
                 }
@@ -834,6 +835,7 @@ private struct APIKeyRow: View {
     let usage: HubAPIKeyUsageResponse?
     let onDeactivate: () -> Void
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         HStack(spacing: theme.spacingS) {
@@ -846,12 +848,12 @@ private struct APIKeyRow: View {
                 HStack(spacing: 8) {
                     if let prefix = key.prefix { Text(prefix + "...").font(.caption).foregroundStyle(.secondary) }
                     if let qps = key.effectiveQPSLimit, qps > 0 { Text("\(qps) QPS").font(.caption).foregroundStyle(.secondary) }
-                    if key.isActive == true { Text("活跃").font(.caption).foregroundStyle(.green) }
+                    if key.isActive == true { Text(i18n.t(.hub_active)).font(.caption).foregroundStyle(.green) }
                 }
                 if let u = usage {
                     HStack(spacing: 8) {
                         if let current = u.currentQps { Text("QPS: \(String(format: "%.1f", current))").font(.caption2).foregroundStyle(.secondary) }
-                        if let total = u.totalRequests { Text("请求: \(total)").font(.caption2).foregroundStyle(.secondary) }
+                        if let total = u.totalRequests { Text(String(format: i18n.t(.hub_requestsTotalFmt), total)).font(.caption2).foregroundStyle(.secondary) }
                     }
                 }
                 if let mods = key.allowedModules, !mods.isEmpty {
@@ -870,7 +872,7 @@ private struct APIKeyRow: View {
             }
             Spacer()
             if key.isActive == true {
-                Button("停用") { onDeactivate() }
+                Button(i18n.t(.hub_deactivate)) { onDeactivate() }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     .foregroundStyle(.red)
@@ -950,6 +952,7 @@ private struct TenantRow: View {
     let onSelect: () -> Void
     let onDelete: () -> Void
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         HStack(spacing: theme.spacingS) {
@@ -964,15 +967,15 @@ private struct TenantRow: View {
                     Label(tenant.roleLabel, systemImage: "shield")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Label("\(roleCount) 角色", systemImage: "person.2")
+                    Label(String(format: i18n.t(.hub_roleCountFmt), roleCount), systemImage: "person.2")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     if tenant.isActive == true {
-                        Text("活跃").font(.caption2).foregroundStyle(.green)
+                        Text(i18n.t(.hub_active)).font(.caption2).foregroundStyle(.green)
                     }
                 }
                 if let models = tenant.allowedModels, !models.isEmpty {
-                    Text("模型: \(models.joined(separator: ", "))")
+                    Text(String(format: i18n.t(.hub_modelsPermListFmt), models.joined(separator: ", ")))
                         .font(.caption2)
                         .foregroundStyle(theme.textTertiary)
                         .lineLimit(1)
@@ -1000,6 +1003,7 @@ private struct RoleRow: View {
     let onEdit: () -> Void
     let onDelete: () -> Void
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -1011,7 +1015,7 @@ private struct RoleRow: View {
                     .font(.system(size: theme.textSize, weight: .medium))
                     .foregroundStyle(theme.text)
                 if role.isActive == false {
-                    Text("已停用").font(.caption2)
+                    Text(i18n.t(.hub_deactivated)).font(.caption2)
                         .padding(.horizontal, 4).padding(.vertical, 1)
                         .background(.secondary.opacity(0.15))
                         .foregroundStyle(.secondary)
@@ -1046,13 +1050,13 @@ private struct RoleRow: View {
                     }
                 }
             } else {
-                Text("无权限配置")
+                Text(i18n.t(.hub_noPermissionConfig))
                     .font(.caption2)
                     .foregroundStyle(theme.textTertiary)
             }
 
             if let created = role.createdAt {
-                Text("创建于 \(created)")
+                Text(String(format: i18n.t(.hub_createdAtFmt), created))
                     .font(.caption2)
                     .foregroundStyle(theme.textTertiary)
             }
@@ -1069,6 +1073,7 @@ private struct ApprovalRow: View {
     let onApprove: (String?) -> Void
     let onReject: (String?) -> Void
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @State private var localComment = ""
 
     var body: some View {
@@ -1077,7 +1082,7 @@ private struct ApprovalRow: View {
                 statusIcon
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 8) {
-                        Text(approval.modelName ?? approval.modelId ?? "未知模型")
+                        Text(approval.modelName ?? approval.modelId ?? i18n.t(.hub_unknownModel))
                             .font(.system(size: theme.textSize, weight: .medium))
                             .foregroundStyle(theme.text)
                         operationBadge
@@ -1107,11 +1112,11 @@ private struct ApprovalRow: View {
 
             if approval.isPending && actionId == approval.id {
                 VStack(spacing: theme.spacingXS) {
-                    TextField("审批意见（可选）", text: $localComment)
+                    TextField(i18n.t(.hub_approvalCommentOptional), text: $localComment)
                         .textFieldStyle(.roundedBorder)
                         .font(.system(size: theme.footnoteSize))
                     HStack(spacing: 8) {
-                        Button("通过") {
+                        Button(i18n.t(.hub_approve)) {
                             onApprove(localComment.isEmpty ? nil : localComment)
                             localComment = ""
                         }
@@ -1119,7 +1124,7 @@ private struct ApprovalRow: View {
                         .controlSize(.small)
                         .tint(.green)
 
-                        Button("拒绝") {
+                        Button(i18n.t(.hub_reject)) {
                             onReject(localComment.isEmpty ? nil : localComment)
                             localComment = ""
                         }
@@ -1130,7 +1135,7 @@ private struct ApprovalRow: View {
                 }
             } else if approval.isPending {
                 HStack(spacing: 8) {
-                    Button("审批") {
+                    Button(i18n.t(.hub_approval)) {
                         comment = ""
                     }
                     .buttonStyle(.bordered)
@@ -1139,7 +1144,7 @@ private struct ApprovalRow: View {
             }
 
             if let reviewer = approval.reviewedBy {
-                Text("审批人: \(reviewer)\(approval.comment != nil ? " — \(approval.comment!)" : "")")
+                Text(String(format: i18n.t(.hub_reviewerCommentFmt), reviewer, approval.comment != nil ? " — \(approval.comment!)" : ""))
                     .font(.caption2)
                     .foregroundStyle(theme.textTertiary)
             }
@@ -1177,13 +1182,13 @@ private struct ApprovalRow: View {
 
     private var operationLabel: String {
         switch approval.operation {
-        case "deploy": return "部署"
-        case "delete": return "删除"
-        case "quantize": return "量化"
-        case "export": return "导出"
-        case "serve": return "上线"
-        case "download": return "下载"
-        default: return approval.operation ?? "操作"
+        case "deploy": return i18n.t(.hub_deployment)
+        case "delete": return i18n.t(.hub_operationDelete)
+        case "quantize": return i18n.t(.hub_operationQuantize)
+        case "export": return i18n.t(.hub_operationExport)
+        case "serve": return i18n.t(.hub_operationServe)
+        case "download": return i18n.t(.hub_operationDownload)
+        default: return approval.operation ?? i18n.t(.hub_operation)
         }
     }
 
@@ -1210,21 +1215,21 @@ private struct ApprovalRow: View {
         Group {
             switch approval.status {
             case "approved":
-                Text("已通过")
+                Text(i18n.t(.hub_approved))
                     .font(.caption2)
                     .padding(.horizontal, 6).padding(.vertical, 2)
                     .background(.green.opacity(0.15))
                     .foregroundStyle(.green)
                     .clipShape(Capsule())
             case "rejected":
-                Text("已拒绝")
+                Text(i18n.t(.hub_rejected))
                     .font(.caption2)
                     .padding(.horizontal, 6).padding(.vertical, 2)
                     .background(.red.opacity(0.15))
                     .foregroundStyle(.red)
                     .clipShape(Capsule())
             default:
-                Text("待审批")
+                Text(i18n.t(.hub_pendingApproval))
                     .font(.caption2)
                     .padding(.horizontal, 6).padding(.vertical, 2)
                     .background(.orange.opacity(0.15))

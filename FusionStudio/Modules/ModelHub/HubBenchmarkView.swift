@@ -11,6 +11,7 @@ private let benchLog = Logger(subsystem: "com.fusion.studio", category: "HubBenc
 struct HubBenchmarkView: View {
     @ObservedObject var client: ModelHubAPIClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var models: [HubModel] = []
     @State private var benchmarks: [HubBenchmarkEntry] = []
@@ -57,8 +58,8 @@ struct HubBenchmarkView: View {
                 headerSection
 
                 Picker("", selection: $selectedTab) {
-                    Text("性能评测").tag(0)
-                    Text("评测").tag(1)
+                    Text(i18n.t(.hub_performanceBenchmark)).tag(0)
+                    Text(i18n.t(.hub_benchmark)).tag(1)
                 }
                 .pickerStyle(.segmented)
 
@@ -88,26 +89,26 @@ struct HubBenchmarkView: View {
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
             HStack {
-                Text("性能评测")
+                Text(i18n.t(.hub_performanceBenchmark))
                     .font(.system(size: theme.largeTitleSize, weight: .bold))
                     .foregroundStyle(theme.text)
                 Spacer()
                 Button(action: { showThresholdSheet = true }) {
                     HStack(spacing: 4) {
                         Image(systemName: "exclamationmark.triangle")
-                        Text("设置阈值")
+                        Text(i18n.t(.hub_setThreshold))
                     }
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
             }
 
-            Text("对比模型推理性能：Tokens/s、首 Token 延迟、峰值内存")
+            Text(i18n.t(.hub_benchCompareHint))
                 .font(.system(size: theme.textSize))
                 .foregroundStyle(theme.textSecondary)
 
             HStack(spacing: theme.spacingM) {
-                Picker("评测模板", selection: $selectedTemplate) {
+                Picker(i18n.t(.hub_benchTemplate), selection: $selectedTemplate) {
                     ForEach(templates, id: \.self) { t in Text(templateLabel(t)).tag(t) }
                 }
                 .pickerStyle(.menu)
@@ -115,14 +116,14 @@ struct HubBenchmarkView: View {
                 Button(action: runBenchmark) {
                     HStack {
                         if isRunning { ProgressView().controlSize(.small) }
-                        Text("运行评测")
+                        Text(i18n.t(.hub_runBenchmark))
                     }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(selectedModelIds.isEmpty || isRunning)
 
                 if !selectedModelIds.isEmpty {
-                    Button("对比选中 (\(selectedModelIds.count))") {
+                    Button(String(format: i18n.t(.hub_compareSelectedFmt), selectedModelIds.count)) {
                         compareSelected()
                     }
                     .buttonStyle(.bordered)
@@ -142,12 +143,12 @@ struct HubBenchmarkView: View {
     private var modelPickerSection: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: theme.spacingS) {
-                Text("选择评测模型")
+                Text(i18n.t(.hub_selectBenchModel))
                     .font(.system(size: theme.headlineSize, weight: .semibold))
                     .foregroundStyle(theme.text)
 
                 if models.isEmpty {
-                    Text("加载中...").foregroundStyle(theme.textTertiary)
+                    Text(i18n.t(.hub_loading)).foregroundStyle(theme.textTertiary)
                 } else {
                     ForEach(Array(models.filter { $0.isDownloaded == true }), id: \.id) { model in
                         let selected = selectedModelIds.contains(model.id)
@@ -179,16 +180,16 @@ struct HubBenchmarkView: View {
     private var quantizeBenchmarkSection: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: theme.spacingM) {
-                Text("量化关联评测")
+                Text(i18n.t(.hub_quantLinkedBench))
                     .font(.system(size: theme.headlineSize, weight: .semibold))
                     .foregroundStyle(theme.text)
-                Text("量化任务完成后的自动评测结果")
+                Text(i18n.t(.hub_quantTaskBenchResult))
                     .font(.caption)
                     .foregroundStyle(theme.textTertiary)
 
                 let completedWithBench = quantizeTasks.filter { $0.isComplete && $0.benchmarkResult != nil }
                 if completedWithBench.isEmpty {
-                    Text("暂无量化关联评测数据")
+                    Text(i18n.t(.hub_noQuantLinkedBench))
                         .foregroundStyle(theme.textTertiary)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding()
@@ -211,7 +212,7 @@ struct HubBenchmarkView: View {
                                         Text(String(format: "%.1f%%", acc * 100))
                                             .font(.system(size: theme.textSize, weight: .semibold))
                                             .foregroundStyle(acc > 0.9 ? .green : (acc > 0.7 ? .orange : .red))
-                                        Text("准确率").font(.caption2).foregroundStyle(.secondary)
+                                        Text(i18n.t(.hub_accuracyCol)).font(.caption2).foregroundStyle(.secondary)
                                     }
                                 }
                                 if let tps = bench.tokensPerSecond {
@@ -227,7 +228,7 @@ struct HubBenchmarkView: View {
                                         Text(String(format: "%.2fs", ttft))
                                             .font(.system(size: theme.textSize, weight: .medium))
                                             .foregroundStyle(.secondary)
-                                        Text("首Token").font(.caption2).foregroundStyle(.secondary)
+                                        Text(i18n.t(.hub_firstToken)).font(.caption2).foregroundStyle(.secondary)
                                     }
                                 }
                                 if let mem = bench.memoryPeak {
@@ -235,7 +236,7 @@ struct HubBenchmarkView: View {
                                         Text(String(format: "%.1f GB", mem))
                                             .font(.system(size: theme.textSize, weight: .medium))
                                             .foregroundStyle(.orange)
-                                        Text("内存").font(.caption2).foregroundStyle(.secondary)
+                                        Text(i18n.t(.hub_memory)).font(.caption2).foregroundStyle(.secondary)
                                     }
                                 }
                             }
@@ -253,15 +254,15 @@ struct HubBenchmarkView: View {
     private var autoTriggerSection: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: theme.spacingM) {
-                Text("自动评测规则")
+                Text(i18n.t(.hub_autoBenchRules))
                     .font(.system(size: theme.headlineSize, weight: .semibold))
                     .foregroundStyle(theme.text)
 
                 Toggle(isOn: $autoBenchAfterQuantize) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("量化完成后自动评测")
+                        Text(i18n.t(.hub_autoBenchAfterQuantize))
                             .foregroundStyle(theme.text)
-                        Text("模型量化转换成功后，自动运行性能评测")
+                        Text(i18n.t(.hub_autoBenchAfterQuantConvert))
                             .font(.caption)
                             .foregroundStyle(theme.textTertiary)
                     }
@@ -269,16 +270,16 @@ struct HubBenchmarkView: View {
 
                 Toggle(isOn: $autoBenchAfterVersionUpdate) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("版本更新后自动评测")
+                        Text(i18n.t(.hub_autoBenchAfterVersion))
                             .foregroundStyle(theme.text)
-                        Text("模型新版本加载后，自动运行性能评测对比")
+                        Text(i18n.t(.hub_autoBenchAfterVersionLoad))
                             .font(.caption)
                             .foregroundStyle(theme.textTertiary)
                     }
                 }
 
                 HStack(spacing: theme.spacingS) {
-                    Text("自动评测模板:")
+                    Text(i18n.t(.hub_autoBenchTemplateLabel))
                         .font(.caption)
                         .foregroundStyle(theme.textSecondary)
                     Picker("", selection: $autoBenchTemplate) {
@@ -297,12 +298,12 @@ struct HubBenchmarkView: View {
     private var benchmarkResults: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: theme.spacingM) {
-                Text("评测结果")
+                Text(i18n.t(.hub_benchResult))
                     .font(.system(size: theme.headlineSize, weight: .semibold))
                     .foregroundStyle(theme.text)
 
                 if benchmarks.isEmpty {
-                    Text("暂无评测数据，选择模型并运行评测")
+                    Text(i18n.t(.hub_noBenchData))
                         .foregroundStyle(theme.textTertiary)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding()
@@ -317,12 +318,12 @@ struct HubBenchmarkView: View {
     private var benchmarkTable: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
-                Text("模型").frame(width: 180, alignment: .leading)
+                Text(i18n.t(.hub_model)).frame(width: 180, alignment: .leading)
                 Text("Tokens/s").frame(width: 90)
-                Text("首Token延迟").frame(width: 90)
-                Text("峰值内存").frame(width: 90)
-                Text("准确率").frame(width: 80)
-                Text("评分").frame(width: 70)
+                Text(i18n.t(.hub_firstTokenLatencyLabel)).frame(width: 90)
+                Text(i18n.t(.hub_peakMemory)).frame(width: 90)
+                Text(i18n.t(.hub_accuracyCol)).frame(width: 80)
+                Text(i18n.t(.hub_scoreCol)).frame(width: 70)
             }
             .font(.caption).foregroundStyle(theme.textTertiary)
             .padding(.horizontal, 8).padding(.vertical, 4)
@@ -403,7 +404,7 @@ struct HubBenchmarkView: View {
             } else if entry.id == expandedBenchmarkId {
                 HStack(spacing: 4) {
                     ProgressView().controlSize(.small)
-                    Text("加载详情...")
+                    Text(i18n.t(.hub_loadDetail))
                         .font(.caption)
                         .foregroundStyle(theme.textTertiary)
                 }
@@ -427,15 +428,15 @@ struct HubBenchmarkView: View {
             GridItem(.flexible(), spacing: theme.spacingM),
             GridItem(.flexible(), spacing: theme.spacingM),
         ], spacing: theme.spacingS) {
-            detailMetricCard("每Token延迟", value: detail.perTokenLatency, format: "%.2f ms", icon: "clock")
-            detailMetricCard("首Token延迟", value: detail.firstTokenLatency, format: "%.2f ms", icon: "bolt.horizontal")
-            detailMetricCard("Prefill延迟", value: detail.prefillLatency, format: "%.2f ms", icon: "arrow.right.circle")
-            detailMetricCard("Decode延迟", value: detail.decodeLatency, format: "%.2f ms", icon: "text.append")
-            detailMetricCard("Batch=1 吞吐", value: detail.throughputBatch1, format: "%.1f t/s", icon: "1.circle")
-            detailMetricCard("Batch=2 吞吐", value: detail.throughputBatch2, format: "%.1f t/s", icon: "2.circle")
-            detailMetricCard("Batch=4 吞吐", value: detail.throughputBatch4, format: "%.1f t/s", icon: "4.circle")
-            detailMetricCard("Batch=8 吞吐", value: detail.throughputBatch8, format: "%.1f t/s", icon: "8.circle")
-            detailMetricCard("内存占用", value: detail.memoryFootprint, format: "%.1f GB", icon: "memorychip")
+            detailMetricCard(i18n.t(.hub_perTokenLatency), value: detail.perTokenLatency, format: "%.2f ms", icon: "clock")
+            detailMetricCard(i18n.t(.hub_firstTokenLatencyLabel), value: detail.firstTokenLatency, format: "%.2f ms", icon: "bolt.horizontal")
+            detailMetricCard(i18n.t(.hub_prefillLatency), value: detail.prefillLatency, format: "%.2f ms", icon: "arrow.right.circle")
+            detailMetricCard(i18n.t(.hub_decodeLatency), value: detail.decodeLatency, format: "%.2f ms", icon: "text.append")
+            detailMetricCard(i18n.t(.hub_throughputBatch1), value: detail.throughputBatch1, format: "%.1f t/s", icon: "1.circle")
+            detailMetricCard(i18n.t(.hub_throughputBatch2), value: detail.throughputBatch2, format: "%.1f t/s", icon: "2.circle")
+            detailMetricCard(i18n.t(.hub_throughputBatch4), value: detail.throughputBatch4, format: "%.1f t/s", icon: "4.circle")
+            detailMetricCard(i18n.t(.hub_throughputBatch8), value: detail.throughputBatch8, format: "%.1f t/s", icon: "8.circle")
+            detailMetricCard(i18n.t(.hub_memoryFootprint), value: detail.memoryFootprint, format: "%.1f GB", icon: "memorychip")
         }
     }
 
@@ -473,17 +474,17 @@ struct HubBenchmarkView: View {
             GridItem(.flexible(), spacing: theme.spacingM),
         ], spacing: theme.spacingS) {
             detailMetricCard("Tokens/s", value: entry.tokensPerSecond, format: "%.1f", icon: "speedometer")
-            detailMetricCard("首Token延迟", value: entry.timeToFirstToken, format: "%.3f s", icon: "bolt.horizontal")
-            detailMetricCard("峰值内存", value: entry.memoryPeak, format: "%.1f GB", icon: "memorychip")
-            detailMetricCard("准确率", value: entry.accuracy.map { $0 * 100 }, format: "%.1f%%", icon: "checkmark.shield")
-            detailMetricCard("评分", value: entry.score, format: "%.1f", icon: "star")
+            detailMetricCard(i18n.t(.hub_firstTokenLatencyLabel), value: entry.timeToFirstToken, format: "%.3f s", icon: "bolt.horizontal")
+            detailMetricCard(i18n.t(.hub_peakMemory), value: entry.memoryPeak, format: "%.1f GB", icon: "memorychip")
+            detailMetricCard(i18n.t(.hub_accuracyCol), value: entry.accuracy.map { $0 * 100 }, format: "%.1f%%", icon: "checkmark.shield")
+            detailMetricCard(i18n.t(.hub_scoreCol), value: entry.score, format: "%.1f", icon: "star")
             if let completed = entry.completedAt {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 4) {
                         Image(systemName: "calendar")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                        Text("完成时间")
+                        Text(i18n.t(.hub_completionTime))
                             .font(.caption2)
                             .foregroundStyle(theme.textTertiary)
                     }
@@ -504,7 +505,7 @@ struct HubBenchmarkView: View {
         GroupBox {
             VStack(alignment: .leading, spacing: theme.spacingM) {
                 HStack {
-                    Text("历史评测记录")
+                    Text(i18n.t(.hub_historyBenchRecords))
                         .font(.system(size: theme.headlineSize, weight: .semibold))
                         .foregroundStyle(theme.text)
                     Spacer()
@@ -516,7 +517,7 @@ struct HubBenchmarkView: View {
                 }
 
                 if historyBenchmarks.isEmpty {
-                    Text("暂无历史记录")
+                    Text(i18n.t(.hub_noHistory))
                         .foregroundStyle(theme.textTertiary)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding()
@@ -531,13 +532,13 @@ struct HubBenchmarkView: View {
     private var historyTable: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
-                Text("时间").frame(width: 150, alignment: .leading)
-                Text("模型").frame(width: 160, alignment: .leading)
-                Text("模板").frame(width: 80)
+                Text(i18n.t(.hub_time)).frame(width: 150, alignment: .leading)
+                Text(i18n.t(.hub_model)).frame(width: 160, alignment: .leading)
+                Text(i18n.t(.hub_templateCol)).frame(width: 80)
                 Text("Tokens/s").frame(width: 80)
-                Text("准确率").frame(width: 70)
-                Text("评分").frame(width: 60)
-                Text("对比").frame(width: 60)
+                Text(i18n.t(.hub_accuracyCol)).frame(width: 70)
+                Text(i18n.t(.hub_scoreCol)).frame(width: 60)
+                Text(i18n.t(.hub_compareCol)).frame(width: 60)
             }
             .font(.caption).foregroundStyle(theme.textTertiary)
             .padding(.horizontal, 8).padding(.vertical, 4)
@@ -605,7 +606,7 @@ struct HubBenchmarkView: View {
                 }
                 .foregroundStyle(.red)
             } else {
-                Text("持平")
+                Text(i18n.t(.hub_heldFlat))
                     .font(.caption2)
                     .foregroundStyle(theme.textTertiary)
             }
@@ -620,14 +621,14 @@ struct HubBenchmarkView: View {
         GroupBox {
             VStack(alignment: .leading, spacing: theme.spacingM) {
                 HStack {
-                    Text("模型评测")
+                    Text(i18n.t(.hub_modelBenchmark))
                         .font(.system(size: theme.headlineSize, weight: .semibold))
                         .foregroundStyle(theme.text)
                     Spacer()
                     Button(action: { showNewEvalSheet = true }) {
                         HStack(spacing: 4) {
                             Image(systemName: "plus")
-                            Text("新建评测")
+                            Text(i18n.t(.hub_newEval))
                         }
                     }
                     .buttonStyle(.borderedProminent)
@@ -635,7 +636,7 @@ struct HubBenchmarkView: View {
                 }
 
                 if evaluations.isEmpty {
-                    Text("暂无评测记录")
+                    Text(i18n.t(.hub_noBenchRecords))
                         .foregroundStyle(theme.textTertiary)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding()
@@ -653,11 +654,11 @@ struct HubBenchmarkView: View {
     private var evalTable: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
-                Text("模型").frame(width: 180, alignment: .leading)
-                Text("评测类型").frame(width: 120)
-                Text("评分").frame(width: 80)
-                Text("状态").frame(width: 80)
-                Text("日期").frame(width: 120, alignment: .leading)
+                Text(i18n.t(.hub_model)).frame(width: 180, alignment: .leading)
+                Text(i18n.t(.hub_benchType)).frame(width: 120)
+                Text(i18n.t(.hub_scoreCol)).frame(width: 80)
+                Text(i18n.t(.hub_status)).frame(width: 80)
+                Text(i18n.t(.hub_date)).frame(width: 120, alignment: .leading)
             }
             .font(.caption).foregroundStyle(theme.textTertiary)
             .padding(.horizontal, 8).padding(.vertical, 4)
@@ -695,47 +696,47 @@ struct HubBenchmarkView: View {
     private func evalStatusLabel(_ status: String?) -> some View {
         switch status {
         case "completed", "done":
-            Text("完成").foregroundStyle(.green)
+            Text(i18n.t(.hub_done)).foregroundStyle(.green)
         case "running", "in_progress":
             HStack(spacing: 2) {
                 ProgressView().controlSize(.mini)
-                Text("运行中")
+                Text(i18n.t(.hub_running))
             }
             .foregroundStyle(.blue)
         case "failed", "error":
-            Text("失败").foregroundStyle(.red)
+            Text(i18n.t(.hub_failed)).foregroundStyle(.red)
         case "pending", "queued":
-            Text("等待中").foregroundStyle(.orange)
+            Text(i18n.t(.hub_waiting)).foregroundStyle(.orange)
         default:
-            Text(status ?? "未知").foregroundStyle(theme.textTertiary)
+            Text(status ?? i18n.t(.hub_unknown)).foregroundStyle(theme.textTertiary)
         }
     }
 
     private var newEvalSheet: some View {
         VStack(spacing: theme.spacingL) {
-            Text("新建评测")
+            Text(i18n.t(.hub_newEval))
                 .font(.system(size: theme.headlineSize, weight: .bold))
 
             GroupBox {
                 VStack(alignment: .leading, spacing: theme.spacingM) {
-                    Text("选择模型")
+                    Text(i18n.t(.hub_selectModel))
                         .font(.system(size: theme.textSize, weight: .semibold))
                         .foregroundStyle(theme.text)
 
-                    Picker("模型", selection: $evalModelId) {
-                        Text("请选择").tag(nil as String?)
+                    Picker(i18n.t(.hub_model), selection: $evalModelId) {
+                        Text(i18n.t(.hub_pleaseSelect)).tag(nil as String?)
                         ForEach(models.filter { $0.isDownloaded == true }) { model in
                             Text(model.displayTitle).tag(model.id as String?)
                         }
                     }
                     .pickerStyle(.menu)
 
-                    Text("评测模板")
+                    Text(i18n.t(.hub_benchTemplate))
                         .font(.system(size: theme.textSize, weight: .semibold))
                         .foregroundStyle(theme.text)
 
-                    Picker("模板", selection: $evalTemplate) {
-                        Text("通用").tag(nil as String?)
+                    Picker(i18n.t(.hub_templateCol), selection: $evalTemplate) {
+                        Text(i18n.t(.hub_evalTypeGeneral)).tag(nil as String?)
                         ForEach(["accuracy", "alignment", "safety", "code", "reasoning"], id: \.self) { t in
                             Text(evalTypeLabel(t)).tag(t as String?)
                         }
@@ -746,10 +747,10 @@ struct HubBenchmarkView: View {
             }
 
             HStack {
-                Button("取消") { showNewEvalSheet = false }
+                Button(i18n.t(.hub_cancelBtn)) { showNewEvalSheet = false }
                     .buttonStyle(.bordered)
                 Spacer()
-                Button("创建") {
+                Button(i18n.t(.hub_createBtn)) {
                     createEvaluation()
                 }
                 .buttonStyle(.borderedProminent)
@@ -764,24 +765,24 @@ struct HubBenchmarkView: View {
 
     private var thresholdSheet: some View {
         VStack(spacing: theme.spacingL) {
-            Text("准确率阈值设置")
+            Text(i18n.t(.hub_accuracyThresholdSettings))
                 .font(.system(size: theme.headlineSize, weight: .bold))
 
             GroupBox {
                 VStack(alignment: .leading, spacing: theme.spacingM) {
-                    Text("全局阈值")
+                    Text(i18n.t(.hub_globalThreshold))
                         .font(.system(size: theme.textSize, weight: .semibold))
                         .foregroundStyle(theme.text)
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("准确率警告阈值: \(String(format: "%.0f%%", thresholdConfig.accuracyThreshold * 100))")
+                        Text(String(format: i18n.t(.hub_accuracyWarnThresholdFmt), String(format: "%.0f%%", thresholdConfig.accuracyThreshold * 100)))
                             .font(.caption)
                             .foregroundStyle(theme.textSecondary)
                         Slider(value: $thresholdConfig.accuracyThreshold, in: 0...1, step: 0.05)
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("评分警告阈值: \(String(format: "%.0f", thresholdConfig.scoreThreshold))")
+                        Text(String(format: i18n.t(.hub_scoreWarnThresholdFmt), String(format: "%.0f", thresholdConfig.scoreThreshold)))
                             .font(.caption)
                             .foregroundStyle(theme.textSecondary)
                         Slider(value: $thresholdConfig.scoreThreshold, in: 0...100, step: 5)
@@ -789,14 +790,14 @@ struct HubBenchmarkView: View {
 
                     Divider()
 
-                    Text("低于阈值的评测结果将标记警告")
+                    Text(i18n.t(.hub_benchThresholdWarn))
                         .font(.caption)
                         .foregroundStyle(theme.textTertiary)
                     HStack(spacing: theme.spacingS) {
                         Circle().fill(Color.yellow.opacity(0.6)).frame(width: 8, height: 8)
-                        Text("黄色 = 接近阈值").font(.caption2).foregroundStyle(theme.textTertiary)
+                        Text(i18n.t(.hub_yellowNearThreshold)).font(.caption2).foregroundStyle(theme.textTertiary)
                         Circle().fill(Color.red.opacity(0.6)).frame(width: 8, height: 8)
-                        Text("红色 = 低于阈值").font(.caption2).foregroundStyle(theme.textTertiary)
+                        Text(i18n.t(.hub_redBelowThreshold)).font(.caption2).foregroundStyle(theme.textTertiary)
                     }
                 }
                 .padding(8)
@@ -805,7 +806,7 @@ struct HubBenchmarkView: View {
             if !benchmarks.isEmpty {
                 GroupBox {
                     VStack(alignment: .leading, spacing: theme.spacingS) {
-                        Text("按模型设置")
+                        Text(i18n.t(.hub_perModelSettings))
                             .font(.system(size: theme.textSize, weight: .semibold))
                             .foregroundStyle(theme.text)
 
@@ -816,7 +817,7 @@ struct HubBenchmarkView: View {
                                     .font(.system(size: theme.footnoteSize))
                                     .foregroundStyle(theme.text)
                                 Spacer()
-                                Text("准确率: \(String(format: "%.0f%%", thresholdConfig.accuracyThreshold(for: mid) * 100))")
+                                Text(String(format: i18n.t(.hub_accuracyFmt2), String(format: "%.0f%%", thresholdConfig.accuracyThreshold(for: mid) * 100)))
                                     .font(.caption2)
                                     .foregroundStyle(theme.textSecondary)
                             }
@@ -827,12 +828,12 @@ struct HubBenchmarkView: View {
             }
 
             HStack {
-                Button("取消") {
+                Button(i18n.t(.hub_cancelBtn)) {
                     showThresholdSheet = false
                 }
                 .buttonStyle(.bordered)
                 Spacer()
-                Button("保存") {
+                Button(i18n.t(.hub_saveBtn)) {
                     saveThresholdConfig()
                     showThresholdSheet = false
                 }
@@ -955,7 +956,7 @@ struct HubBenchmarkView: View {
                     _ = try await client.triggerBenchmark(modelId: modelId, template: selectedTemplate)
                     benchLog.info("Benchmark triggered: \(modelId)")
                 }
-                successMsg = "评测已启动，稍后查看结果"
+                successMsg = i18n.t(.hub_benchmarkStarted)
                 await loadHistory()
             } catch {
                 lastError = error.localizedDescription
@@ -989,7 +990,7 @@ struct HubBenchmarkView: View {
                 evalModelId = nil
                 evalTemplate = nil
                 await loadEvaluations()
-                successMsg = "评测任务已创建"
+                successMsg = i18n.t(.hub_evalTaskCreated)
             } catch {
                 lastError = error.localizedDescription
                 benchLog.error("Create evaluation failed: \(error.localizedDescription)")
@@ -1001,24 +1002,24 @@ struct HubBenchmarkView: View {
 
     private func templateLabel(_ t: String) -> String {
         switch t {
-        case "general": return "通用"
-        case "code": return "代码"
-        case "reasoning": return "推理"
-        case "multilingual": return "多语言"
-        case "vision": return "视觉"
+        case "general": return i18n.t(.hub_evalTypeGeneral)
+        case "code": return i18n.t(.hub_templateCode)
+        case "reasoning": return i18n.t(.hub_templateReasoning)
+        case "multilingual": return i18n.t(.hub_templateMultilingual)
+        case "vision": return i18n.t(.hub_templateVision)
         default: return t
         }
     }
 
     private func evalTypeLabel(_ t: String?) -> String {
         switch t {
-        case "accuracy": return "准确率"
-        case "alignment": return "对齐度"
-        case "safety": return "安全性"
-        case "code": return "代码能力"
-        case "reasoning": return "推理能力"
-        case "general": return "通用"
-        default: return t ?? "综合评测"
+        case "accuracy": return i18n.t(.hub_accuracyCol)
+        case "alignment": return i18n.t(.hub_evalTypeAlignment)
+        case "safety": return i18n.t(.hub_evalTypeSafety)
+        case "code": return i18n.t(.hub_evalTypeCode)
+        case "reasoning": return i18n.t(.hub_evalTypeReasoning)
+        case "general": return i18n.t(.hub_evalTypeGeneral)
+        default: return t ?? i18n.t(.hub_evalTypeComprehensive)
         }
     }
 }

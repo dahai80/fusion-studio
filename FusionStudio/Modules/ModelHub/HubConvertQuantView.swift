@@ -11,6 +11,7 @@ private let quantLog = Logger(subsystem: "com.fusion.studio", category: "HubConv
 struct HubConvertQuantView: View {
     @ObservedObject var client: ModelHubAPIClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var presets: [HubQuantizePreset] = []
     @State private var runningTasks: [HubQuantizeTask] = []
@@ -68,13 +69,13 @@ struct HubConvertQuantView: View {
     private var configPanel: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: theme.spacingL) {
-                Text("转换 & 量化")
+                Text(i18n.t(.hub_convertQuantize))
                     .font(.system(size: theme.largeTitleSize, weight: .bold))
                     .foregroundStyle(theme.text)
 
-                GroupBox("选择模型") {
-                    Picker("模型", selection: $selectedModelId) {
-                        Text("选择模型...").tag("")
+                GroupBox(i18n.t(.hub_selectModel)) {
+                    Picker(i18n.t(.hub_model), selection: $selectedModelId) {
+                        Text(i18n.t(.hub_selectModelPlaceholder)).tag("")
                         ForEach(localModels) { m in
                             Text(m.displayTitle).tag(m.id)
                         }
@@ -84,10 +85,10 @@ struct HubConvertQuantView: View {
 
                 scenePresetSection
 
-                GroupBox("量化配置") {
+                GroupBox(i18n.t(.hub_quantConfig)) {
                     VStack(alignment: .leading, spacing: theme.spacingM) {
                         HStack {
-                            Text("目标格式").frame(width: 80, alignment: .leading)
+                            Text(i18n.t(.hub_targetFormat)).frame(width: 80, alignment: .leading)
                             Picker("", selection: $selectedFormat) {
                                 ForEach(formatOptions, id: \.self) { f in Text(f.uppercased()).tag(f) }
                             }
@@ -95,7 +96,7 @@ struct HubConvertQuantView: View {
                         }
 
                         HStack {
-                            Text("量化位数").frame(width: 80, alignment: .leading)
+                            Text(i18n.t(.hub_quantBits)).frame(width: 80, alignment: .leading)
                             Picker("", selection: $selectedBits) {
                                 ForEach(bitOptions, id: \.self) { b in Text("\(b)-bit").tag(b) }
                             }
@@ -104,9 +105,9 @@ struct HubConvertQuantView: View {
 
                         if !presets.isEmpty {
                             HStack {
-                                Text("预设方案").frame(width: 80, alignment: .leading)
+                                Text(i18n.t(.hub_presetScheme)).frame(width: 80, alignment: .leading)
                                 Picker("", selection: $selectedPreset) {
-                                    Text("自定义").tag(nil as String?)
+                                    Text(i18n.t(.hub_custom)).tag(nil as String?)
                                     ForEach(presets) { p in
                                         Text(p.name ?? p.id).tag(p.id as String?)
                                     }
@@ -117,7 +118,7 @@ struct HubConvertQuantView: View {
 
                         if let preset = presets.first(where: { $0.id == selectedPreset }) {
                             HStack {
-                                Text("预计缩减").frame(width: 80, alignment: .leading)
+                                Text(i18n.t(.hub_estimatedReduction)).frame(width: 80, alignment: .leading)
                                 if let red = preset.estimatedSizeReduction {
                                     Text(String(format: "%.0f%%", red * 100)).foregroundStyle(.green)
                                 }
@@ -136,7 +137,7 @@ struct HubConvertQuantView: View {
                     Button(action: startQuantize) {
                         HStack {
                             if isStarting { ProgressView().controlSize(.small) }
-                            Text("开始量化")
+                            Text(i18n.t(.hub_startQuantize))
                         }
                         .frame(maxWidth: .infinity)
                     }
@@ -147,7 +148,7 @@ struct HubConvertQuantView: View {
                         HStack {
                             if isEvaluating { ProgressView().controlSize(.small) }
                             Image(systemName: "chart.bar.doc.horizontal")
-                            Text("评测模型")
+                            Text(i18n.t(.hub_benchModel))
                         }
                         .frame(maxWidth: .infinity)
                     }
@@ -181,9 +182,9 @@ struct HubConvertQuantView: View {
     // MARK: - Scene Presets
 
     private var scenePresetSection: some View {
-        GroupBox("场景预设") {
+        GroupBox(i18n.t(.hub_scenePreset)) {
             VStack(alignment: .leading, spacing: theme.spacingM) {
-                Text("快速选择适合场景的量化方案")
+                Text(i18n.t(.hub_quickPresetHint))
                     .font(.caption)
                     .foregroundStyle(theme.textSecondary)
 
@@ -205,7 +206,7 @@ struct HubConvertQuantView: View {
                             Text(sp.description)
                                 .font(.caption)
                                 .foregroundStyle(theme.textSecondary)
-                            Text("格式: \(sp.format.uppercased()) | \(sp.bits)-bit | \(sp.memoryLabel)")
+                            Text(String(format: i18n.t(.hub_formatBitsMem), sp.format.uppercased(), sp.bits, sp.memoryLabel))
                                 .font(.caption2)
                                 .foregroundStyle(theme.textTertiary)
                         }
@@ -249,9 +250,9 @@ struct HubConvertQuantView: View {
     // MARK: - Layered Quantize
 
     private var layeredQuantizeSection: some View {
-        GroupBox("分层量化") {
+        GroupBox(i18n.t(.hub_layeredQuantize)) {
             VStack(alignment: .leading, spacing: theme.spacingM) {
-                Text("对不同层应用不同量化策略，平衡精度与速度")
+                Text(i18n.t(.hub_layeredQuantHint))
                     .font(.caption)
                     .foregroundStyle(theme.textSecondary)
 
@@ -259,7 +260,7 @@ struct HubConvertQuantView: View {
                     HStack(spacing: theme.spacingXS) {
                         Image(systemName: "memorychip")
                             .foregroundStyle(theme.accent)
-                        Text("KV-Cache 优化")
+                        Text(i18n.t(.hub_kvCacheOpt))
                     }
                 }
                 .toggleStyle(.checkbox)
@@ -268,7 +269,7 @@ struct HubConvertQuantView: View {
                     HStack(spacing: theme.spacingXS) {
                         Image(systemName: "eye")
                             .foregroundStyle(theme.accent)
-                        Text("注意力层量化")
+                        Text(i18n.t(.hub_attentionQuant))
                     }
                 }
                 .toggleStyle(.checkbox)
@@ -278,7 +279,7 @@ struct HubConvertQuantView: View {
                         HStack(spacing: theme.spacingXS) {
                             if isAssessing { ProgressView().controlSize(.small) }
                             Image(systemName: "waveform.path.ecg")
-                            Text("评估量化")
+                            Text(i18n.t(.hub_evaluateQuant))
                         }
                     }
                     .buttonStyle(.bordered)
@@ -288,7 +289,7 @@ struct HubConvertQuantView: View {
                         HStack(spacing: theme.spacingXS) {
                             if isLayeredStarting { ProgressView().controlSize(.small) }
                             Image(systemName: "layer.3")
-                            Text("开始分层量化")
+                            Text(i18n.t(.hub_startLayeredQuantize))
                         }
                     }
                     .buttonStyle(.borderedProminent)
@@ -309,7 +310,7 @@ struct HubConvertQuantView: View {
                 Image(systemName: "chart.bar")
                     .font(.caption)
                     .foregroundStyle(theme.accent)
-                Text("评估结果")
+                Text(i18n.t(.hub_evalResult))
                     .font(.system(size: theme.captionSize, weight: .semibold))
                     .foregroundStyle(theme.text)
             }
@@ -320,7 +321,7 @@ struct HubConvertQuantView: View {
                         Text(String(format: "%.0f", score * 100))
                             .font(.system(size: theme.headlineSize, weight: .bold))
                             .foregroundStyle(score > 0.8 ? .green : (score > 0.6 ? .orange : .red))
-                        Text("质量分")
+                        Text(i18n.t(.hub_qualityScore))
                             .font(.caption2)
                             .foregroundStyle(theme.textTertiary)
                     }
@@ -340,7 +341,7 @@ struct HubConvertQuantView: View {
                         Text(String(format: "%.1f", mem))
                             .font(.system(size: theme.headlineSize, weight: .bold))
                             .foregroundStyle(.orange)
-                        Text("GB 内存")
+                        Text(i18n.t(.hub_gbMemory))
                             .font(.caption2)
                             .foregroundStyle(theme.textTertiary)
                     }
@@ -350,7 +351,7 @@ struct HubConvertQuantView: View {
                         Text(String(format: "%.2f", ttft))
                             .font(.system(size: theme.headlineSize, weight: .bold))
                             .foregroundStyle(.purple)
-                        Text("首Token(s)")
+                        Text(i18n.t(.hub_firstTokenSec))
                             .font(.caption2)
                             .foregroundStyle(theme.textTertiary)
                     }
@@ -365,14 +366,14 @@ struct HubConvertQuantView: View {
     // MARK: - Compare Section
 
     private var compareSection: some View {
-        GroupBox("量化对比") {
+        GroupBox(i18n.t(.hub_quantCompare)) {
             VStack(alignment: .leading, spacing: theme.spacingM) {
                 HStack(spacing: theme.spacingM) {
                     Button(action: compareQuantizeResult) {
                         HStack(spacing: theme.spacingXS) {
                             if isComparing { ProgressView().controlSize(.small) }
                             Image(systemName: "arrow.left.arrow.right")
-                            Text("对比量化结果")
+                            Text(i18n.t(.hub_compareQuantResults))
                         }
                     }
                     .buttonStyle(.bordered)
@@ -399,7 +400,7 @@ struct HubConvertQuantView: View {
                 Image(systemName: "chart.bar.doc.horizontal")
                     .font(.caption)
                     .foregroundStyle(theme.accent)
-                Text("原始 vs 量化对比")
+                Text(i18n.t(.hub_originalVsQuant))
                     .font(.system(size: theme.captionSize, weight: .semibold))
                     .foregroundStyle(theme.text)
             }
@@ -409,7 +410,7 @@ struct HubConvertQuantView: View {
 
             HStack(spacing: theme.spacingL) {
                 VStack(alignment: .leading, spacing: theme.spacingXS) {
-                    Text("原始模型")
+                    Text(i18n.t(.hub_originalModel))
                         .font(.caption)
                         .foregroundStyle(theme.textSecondary)
                     benchmarkMetrics(original, color: .secondary)
@@ -423,7 +424,7 @@ struct HubConvertQuantView: View {
                     .foregroundStyle(theme.textTertiary)
 
                 VStack(alignment: .leading, spacing: theme.spacingXS) {
-                    Text("量化模型")
+                    Text(i18n.t(.hub_quantizedModel))
                         .font(.caption)
                         .foregroundStyle(theme.textSecondary)
                     benchmarkMetrics(quantized, color: .green)
@@ -440,7 +441,7 @@ struct HubConvertQuantView: View {
                 HStack(spacing: theme.spacingXS) {
                     Image(systemName: diff >= 0 ? "arrow.up.right" : "arrow.down.right")
                         .foregroundStyle(diff >= 0 ? .green : .red)
-                    Text("质量变化: \(pct)")
+                    Text(String(format: i18n.t(.hub_qualityChange), pct))
                         .font(.caption)
                         .foregroundStyle(diff >= 0 ? .green : .red)
                 }
@@ -454,7 +455,7 @@ struct HubConvertQuantView: View {
                 Image(systemName: "chart.bar")
                     .font(.caption)
                     .foregroundStyle(theme.accent)
-                Text("量化后基准")
+                Text(i18n.t(.hub_quantPostBench))
                     .font(.system(size: theme.captionSize, weight: .semibold))
                     .foregroundStyle(theme.text)
             }
@@ -470,7 +471,7 @@ struct HubConvertQuantView: View {
             if let score = bench.score {
                 HStack(spacing: theme.spacingXS) {
                     Image(systemName: "star").font(.caption2)
-                    Text(String(format: "质量: %.0f%%", score * 100))
+                    Text(String(format: i18n.t(.hub_qualityLabel), score * 100))
                         .font(.caption)
                 }
                 .foregroundStyle(score > 0.8 ? .green : (score > 0.6 ? .orange : .red))
@@ -478,7 +479,7 @@ struct HubConvertQuantView: View {
             if let tps = bench.tokensPerSecond {
                 HStack(spacing: theme.spacingXS) {
                     Image(systemName: "gauge.with.dots.needle.bottom.50percent").font(.caption2)
-                    Text(String(format: "速度: %.1f tok/s", tps))
+                    Text(String(format: i18n.t(.hub_speedLabel), tps))
                         .font(.caption)
                 }
                 .foregroundStyle(.blue)
@@ -486,7 +487,7 @@ struct HubConvertQuantView: View {
             if let mem = bench.memoryPeak {
                 HStack(spacing: theme.spacingXS) {
                     Image(systemName: "memorychip").font(.caption2)
-                    Text(String(format: "内存: %.1f GB", mem))
+                    Text(String(format: i18n.t(.hub_memoryLabelFmt), mem))
                         .font(.caption)
                 }
                 .foregroundStyle(.orange)
@@ -494,7 +495,7 @@ struct HubConvertQuantView: View {
             if let ttft = bench.timeToFirstToken {
                 HStack(spacing: theme.spacingXS) {
                     Image(systemName: "clock").font(.caption2)
-                    Text(String(format: "首Token: %.2fs", ttft))
+                    Text(String(format: i18n.t(.hub_firstTokenFmt), ttft))
                         .font(.caption)
                 }
                 .foregroundStyle(.purple)
@@ -502,7 +503,7 @@ struct HubConvertQuantView: View {
             if let acc = bench.accuracy {
                 HStack(spacing: theme.spacingXS) {
                     Image(systemName: "checkmark.shield").font(.caption2)
-                    Text(String(format: "准确率: %.1f%%", acc * 100))
+                    Text(String(format: i18n.t(.hub_accuracyFmt), acc * 100))
                         .font(.caption)
                 }
                 .foregroundStyle(acc > 0.9 ? .green : (acc > 0.7 ? .orange : .red))
@@ -515,7 +516,7 @@ struct HubConvertQuantView: View {
     private var taskPanel: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("量化任务")
+                Text(i18n.t(.hub_quantizeTask))
                     .font(.system(size: theme.headlineSize, weight: .semibold))
                     .foregroundStyle(theme.text)
                 Spacer()
@@ -531,7 +532,7 @@ struct HubConvertQuantView: View {
             if runningTasks.isEmpty {
                 VStack(spacing: theme.spacingM) {
                     Image(systemName: "checkmark.circle").font(.system(size: 36)).foregroundStyle(.green)
-                    Text("没有正在运行的量化任务")
+                    Text(i18n.t(.hub_noRunningQuantTask))
                         .foregroundStyle(theme.textSecondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -597,7 +598,7 @@ struct HubConvertQuantView: View {
                     bits: selectedBits,
                     preset: selectedPreset
                 )
-                successMsg = "量化任务已启动"
+                successMsg = i18n.t(.hub_quantizeStarted)
                 quantLog.info("Quantize started: \(selectedModelId) \(selectedBits)-bit \(selectedFormat)")
                 await loadRunningTasks()
             } catch {
@@ -618,7 +619,7 @@ struct HubConvertQuantView: View {
                 assessmentResult = result
                 quantLog.info("Quantize assessment done for \(selectedModelId), benchmarks=\(result.benchmarks.count)")
             } catch {
-                layeredErrorMsg = "评估失败: \(error.localizedDescription)"
+                layeredErrorMsg = String(format: i18n.t(.hub_evalFailed), error.localizedDescription)
                 quantLog.error("Assess quantize failed: \(error.localizedDescription)")
             }
             isAssessing = false
@@ -639,11 +640,11 @@ struct HubConvertQuantView: View {
                     kvCacheOptimize: kvCacheOpt,
                     attentionQuantize: attentionQuant
                 )
-                successMsg = "分层量化任务已启动"
+                successMsg = i18n.t(.hub_layeredQuantizeStarted)
                 quantLog.info("Layered quantize started: \(selectedModelId) \(selectedBits)-bit kv=\(kvCacheOpt) attn=\(attentionQuant)")
                 await loadRunningTasks()
             } catch {
-                layeredErrorMsg = "分层量化失败: \(error.localizedDescription)"
+                layeredErrorMsg = String(format: i18n.t(.hub_layeredQuantFailed), error.localizedDescription)
                 quantLog.error("Layered quantize failed: \(error.localizedDescription)")
             }
             isLayeredStarting = false
@@ -660,7 +661,7 @@ struct HubConvertQuantView: View {
                 compareResult = result
                 quantLog.info("Compare quantize done for task \(taskId), benchmarks=\(result.benchmarks.count)")
             } catch {
-                compareErrorMsg = "对比失败: \(error.localizedDescription)"
+                compareErrorMsg = String(format: i18n.t(.hub_compareFailed), error.localizedDescription)
                 quantLog.error("Compare quantize failed: \(error.localizedDescription)")
             }
             isComparing = false
@@ -676,11 +677,11 @@ struct HubConvertQuantView: View {
         Task { @MainActor in
             do {
                 _ = try await client.triggerBenchmark(modelId: modelId)
-                evaluateSuccessMsg = "评测任务已启动: \(modelId)"
+                evaluateSuccessMsg = String(format: i18n.t(.hub_evalStartedForModel), modelId)
                 evaluateModelId = modelId
                 quantLog.info("Evaluation triggered for model \(modelId)")
             } catch {
-                evaluateErrorMsg = "评测失败: \(error.localizedDescription)"
+                evaluateErrorMsg = String(format: i18n.t(.hub_evalFailed), error.localizedDescription)
                 quantLog.error("Evaluate model failed: \(error.localizedDescription)")
             }
             isEvaluating = false
@@ -711,10 +712,10 @@ private enum QuantScenePreset: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .chat: return "对话模型"
-        case .code: return "代码模型"
-        case .embedding: return "嵌入模型"
-        case .rag: return "RAG模型"
+        case .chat: return I18nManager.shared.t(.hub_presetChatLabel)
+        case .code: return I18nManager.shared.t(.hub_presetCodeLabel)
+        case .embedding: return I18nManager.shared.t(.hub_presetEmbeddingLabel)
+        case .rag: return I18nManager.shared.t(.hub_presetRagLabel)
         }
     }
 
@@ -744,19 +745,19 @@ private enum QuantScenePreset: String, CaseIterable, Identifiable {
 
     var memoryLabel: String {
         switch self {
-        case .chat: return "低内存"
-        case .code: return "均衡"
-        case .embedding: return "精度优先"
-        case .rag: return "推理优化"
+        case .chat: return I18nManager.shared.t(.hub_presetChatMem)
+        case .code: return I18nManager.shared.t(.hub_presetCodeMem)
+        case .embedding: return I18nManager.shared.t(.hub_presetEmbeddingMem)
+        case .rag: return I18nManager.shared.t(.hub_presetRagMem)
         }
     }
 
     var description: String {
         switch self {
-        case .chat: return "4-bit MLX 量化，适合对话场景，内存占用最低"
-        case .code: return "8-bit MLX 量化，代码生成质量与速度均衡"
-        case .embedding: return "FP16 MLX 格式，保持嵌入精度，适合检索场景"
-        case .rag: return "4-bit GGUF 格式，针对 RAG 推理优化，兼容 llama.cpp"
+        case .chat: return I18nManager.shared.t(.hub_presetChatDesc)
+        case .code: return I18nManager.shared.t(.hub_presetCodeDesc)
+        case .embedding: return I18nManager.shared.t(.hub_presetEmbeddingDesc)
+        case .rag: return I18nManager.shared.t(.hub_presetRagDesc)
         }
     }
 
@@ -781,6 +782,7 @@ private enum QuantScenePreset: String, CaseIterable, Identifiable {
 private struct QuantTaskRow: View {
     let task: HubQuantizeTask
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
@@ -811,9 +813,9 @@ private struct QuantTaskRow: View {
                 HStack(spacing: theme.spacingM) {
                     Image(systemName: "gauge.with.dots.needle.bottom.50percent")
                         .font(.caption).foregroundStyle(.blue)
-                    Text("评测结果:").font(.caption).foregroundStyle(.secondary)
+                    Text(i18n.t(.hub_benchResultColon)).font(.caption).foregroundStyle(.secondary)
                     if let acc = bench.accuracy {
-                        Text(String(format: "准确率 %.1f%%", acc * 100))
+                        Text(String(format: i18n.t(.hub_accuracyPrefix), acc * 100))
                             .font(.caption)
                             .foregroundStyle(acc > 0.9 ? .green : (acc > 0.7 ? .orange : .red))
                     }
@@ -821,10 +823,10 @@ private struct QuantTaskRow: View {
                         Text(String(format: "%.1f tok/s", tps)).font(.caption).foregroundStyle(.blue)
                     }
                     if let ttft = bench.timeToFirstToken {
-                        Text(String(format: "首Token %.2fs", ttft)).font(.caption).foregroundStyle(.secondary)
+                        Text(String(format: i18n.t(.hub_firstTokenPrefix), ttft)).font(.caption).foregroundStyle(.secondary)
                     }
                     if let mem = bench.memoryPeak {
-                        Text(String(format: "内存 %.1f GB", mem)).font(.caption).foregroundStyle(.orange)
+                        Text(String(format: i18n.t(.hub_memoryPrefix), mem)).font(.caption).foregroundStyle(.orange)
                     }
                 }
                 .padding(.leading, 24)
