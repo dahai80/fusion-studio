@@ -25,17 +25,54 @@ struct FusionSidebarView: View {
             searchBar
             Rectangle().fill(theme.separator).frame(height: 1)
 
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 0) {
-                    newChatButton
+            ScrollViewReader { proxy in
+                ZStack(alignment: .bottomTrailing) {
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 0) {
+                            Color.clear.frame(height: 0).id("sidebarScrollTop")
 
-                    ForEach(SidebarSection.allCases) { section in
-                        sectionGroup(section)
+                            newChatButton
+
+                            ForEach(SidebarSection.allCases) { section in
+                                if section == .aiAgent || section == .mlx {
+                                    Rectangle()
+                                        .fill(theme.separator)
+                                        .frame(height: 1)
+                                        .padding(.vertical, theme.spacingXS)
+                                        .padding(.horizontal, theme.spacingM)
+                                }
+                                sectionGroup(section)
+                            }
+
+                            Spacer(minLength: theme.spacing2XL)
+
+                            recentsSection
+
+                            Color.clear.frame(height: 0).id("sidebarScrollBottom")
+                        }
                     }
 
-                    Spacer(minLength: theme.spacing2XL)
+                    HStack(spacing: 6) {
+                        Button(action: { withAnimation { proxy.scrollTo("sidebarScrollTop", anchor: .top) } }) {
+                            Image(systemName: "chevron.up.circle.fill")
+                                .font(.system(size: 18))
+                                .foregroundStyle(theme.textSecondary)
+                                .background(Circle().fill(.ultraThinMaterial))
+                        }
+                        .buttonStyle(.plain)
+                        .help("上移")
 
-                    recentsSection
+                        Button(action: { withAnimation { proxy.scrollTo("sidebarScrollBottom", anchor: .bottom) } }) {
+                            Image(systemName: "chevron.down.circle.fill")
+                                .font(.system(size: 18))
+                                .foregroundStyle(theme.textSecondary)
+                                .background(Circle().fill(.ultraThinMaterial))
+                        }
+                        .buttonStyle(.plain)
+                        .help("下移")
+                    }
+                    .padding(.trailing, theme.spacingS)
+                    .padding(.bottom, theme.spacingS)
                 }
             }
 

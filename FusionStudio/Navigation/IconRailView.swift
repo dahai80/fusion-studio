@@ -21,12 +21,35 @@ struct IconRailView: View {
 
             newChatButton
 
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 0) {
-                    ForEach(SidebarSection.allCases) { section in
-                        sectionIcon(section)
+            ScrollViewReader { proxy in
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        Color.clear.frame(height: 0).id("railScrollTop")
+                        ForEach(SidebarSection.allCases) { section in
+                            sectionIcon(section)
+                        }
+                        Color.clear.frame(height: 0).id("railScrollBottom")
                     }
                 }
+
+                VStack(spacing: 4) {
+                    Button(action: { withAnimation { proxy.scrollTo("railScrollTop", anchor: .top) } }) {
+                        Image(systemName: "chevron.up.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(theme.textSecondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("上移")
+
+                    Button(action: { withAnimation { proxy.scrollTo("railScrollBottom", anchor: .bottom) } }) {
+                        Image(systemName: "chevron.down.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(theme.textSecondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("下移")
+                }
+                .padding(.vertical, 4)
             }
 
             Spacer()

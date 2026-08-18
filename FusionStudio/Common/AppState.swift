@@ -326,16 +326,20 @@ enum Module: String, CaseIterable, Identifiable {
 }
 
 enum SidebarSection: String, CaseIterable, Identifiable {
+    // 第一部分：核心创作工具
     case chats = "Chats"
+    case agent = "Agent 工作台"
     case projects = "Projects"
     case artifacts = "Artifacts"
     case code = "Code"
     case design = "Design"
+    case doc = "Fusion Doc"
     case rag = "RAG"
-    case agent = "Agent 工作台"
+    // 第二部分：AI 协作
     case aiAgent = "AI 控制台"
     case cowork = "CoWork"
     case fsb = "FSB"
+    // 第三部分：平台与领域
     case mlx = "Fusion-MLX"
     case modelHub = "Model Hub"
     case multiNode = "Multi-Node"
@@ -344,7 +348,6 @@ enum SidebarSection: String, CaseIterable, Identifiable {
     case health = "Health"
     case pluginEcosystem = "Plugin Ecosystem"
     case cliService = "CLI Service"
-    case doc = "Fusion Doc"
     case simulation = "Fusion Simulation"
     case douyinOperation = "抖音运营"
 
