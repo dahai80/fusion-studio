@@ -10,6 +10,7 @@ private let filesLog = Logger(subsystem: "com.fusion.studio", category: "DocFile
 
 struct DocFilesPanel: View {
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @ObservedObject var bridge: DocBridge
     @Binding var selectedPageId: String?
     @State private var uploadName = ""
@@ -39,11 +40,11 @@ struct DocFilesPanel: View {
         HStack {
             Image(systemName: "paperclip")
                 .foregroundColor(theme.accent)
-            Text("附件")
+            Text(i18n.t(.doc_file_title))
                 .font(.headline)
                 .foregroundColor(.primary)
             Spacer()
-            Text("\(bridge.files.count) 文件")
+            Text(String(format: i18n.t(.doc_file_countFmt), bridge.files.count))
                 .font(.caption)
                 .foregroundColor(theme.textSecondary)
         }
@@ -55,7 +56,7 @@ struct DocFilesPanel: View {
     private var fileList: some View {
         Group {
             if bridge.files.isEmpty {
-                Text("暂无附件")
+                Text(i18n.t(.doc_file_empty))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity)
@@ -67,7 +68,7 @@ struct DocFilesPanel: View {
                             .foregroundColor(theme.accent)
                             .font(.caption)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(file.name ?? "未知文件")
+                            Text(file.name ?? i18n.t(.doc_file_unknown))
                                 .font(.subheadline)
                                 .lineLimit(1)
                             if let size = file.size {
@@ -92,11 +93,11 @@ struct DocFilesPanel: View {
 
     private func uploadSection(_ pageId: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("上传附件")
+            Text(i18n.t(.doc_file_upload))
                 .font(.caption.weight(.semibold))
                 .foregroundColor(theme.textSecondary)
             HStack {
-                TextField("文件名", text: $uploadName)
+                TextField(i18n.t(.doc_file_name), text: $uploadName)
                     .textFieldStyle(.roundedBorder)
                     .font(.caption)
             }
@@ -109,7 +110,7 @@ struct DocFilesPanel: View {
                 .cornerRadius(6)
             HStack {
                 Spacer()
-                Button("上传") {
+                Button(i18n.t(.doc_file_uploadBtn)) {
                     uploadFile(pageId)
                 }
                 .buttonStyle(.borderedProminent)
@@ -125,7 +126,7 @@ struct DocFilesPanel: View {
             Image(systemName: "paperclip")
                 .font(.system(size: 40))
                 .foregroundColor(.secondary)
-            Text("选择页面查看附件")
+            Text(i18n.t(.doc_file_selPage))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -10,6 +10,7 @@ private let commentsLog = Logger(subsystem: "com.fusion.studio", category: "DocC
 
 struct DocCommentsView: View {
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @ObservedObject var bridge: DocBridge
     @Binding var selectedPageId: String?
     @State private var newComment = ""
@@ -39,7 +40,7 @@ struct DocCommentsView: View {
         HStack {
             Image(systemName: "bubble.left.and.bubble.right")
                 .foregroundColor(theme.accent)
-            Text("评论")
+            Text(i18n.t(.doc_cmt_title))
                 .font(.headline)
                 .foregroundColor(.primary)
             Spacer()
@@ -59,7 +60,7 @@ struct DocCommentsView: View {
                     commentCard(comment)
                 }
                 if bridge.comments.isEmpty {
-                    Text("暂无评论")
+                    Text(i18n.t(.doc_cmt_empty))
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .frame(maxWidth: .infinity)
@@ -81,7 +82,7 @@ struct DocCommentsView: View {
                     .foregroundColor(theme.textSecondary)
                 Spacer()
                 if comment.parent_id != nil {
-                    Text("回复")
+                    Text(i18n.t(.doc_cmt_reply))
                         .font(.caption2)
                         .foregroundColor(theme.accent)
                 }
@@ -97,7 +98,7 @@ struct DocCommentsView: View {
                 .foregroundColor(.primary)
 
             Button(action: { replyTo = comment.id }) {
-                Text("回复")
+                Text(i18n.t(.doc_cmt_reply))
                     .font(.caption)
                     .foregroundColor(theme.accent)
             }
@@ -112,7 +113,7 @@ struct DocCommentsView: View {
         VStack(spacing: 4) {
             if let parentId = replyTo {
                 HStack {
-                    Text("回复评论")
+                    Text(i18n.t(.doc_cmt_replyLabel))
                         .font(.caption)
                         .foregroundColor(theme.accent)
                     Spacer()
@@ -124,7 +125,7 @@ struct DocCommentsView: View {
                 }
             }
             HStack(alignment: .bottom, spacing: 8) {
-                TextField(replyTo != nil ? "回复评论..." : "添加评论...", text: $newComment, axis: .vertical)
+                TextField(replyTo != nil ? i18n.t(.doc_cmt_replyPlaceholder) : i18n.t(.doc_cmt_addPlaceholder), text: $newComment, axis: .vertical)
                     .lineLimit(1...4)
                     .textFieldStyle(.plain)
                     .font(.subheadline)
@@ -145,7 +146,7 @@ struct DocCommentsView: View {
             Image(systemName: "bubble.left.and.bubble.right")
                 .font(.system(size: 40))
                 .foregroundColor(.secondary)
-            Text("选择页面查看评论")
+            Text(i18n.t(.doc_cmt_selPage))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

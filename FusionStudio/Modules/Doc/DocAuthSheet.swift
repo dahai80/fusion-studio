@@ -11,6 +11,7 @@ private let docAuthLog = Logger(subsystem: "com.fusion.studio", category: "DocAu
 struct DocAuthSheet: View {
     @Environment(\.studioTheme) private var theme
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var i18n = I18nManager.shared
     @ObservedObject var bridge: DocBridge
     @State private var mode: AuthMode = .login
     @State private var username = ""
@@ -26,25 +27,25 @@ struct DocAuthSheet: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("Fusion Doc 认证")
+            Text(i18n.t(.doc_auth_title))
                 .font(.title2)
                 .fontWeight(.semibold)
 
-            Picker("模式", selection: $mode) {
+            Picker(i18n.t(.doc_auth_mode), selection: $mode) {
                 ForEach(AuthMode.allCases, id: \.self) { m in
-                    Text(m.rawValue).tag(m)
+                    Text(m == .login ? i18n.t(.doc_auth_login) : i18n.t(.doc_auth_setup)).tag(m)
                 }
             }
             .pickerStyle(.segmented)
             .frame(width: 240)
 
             VStack(spacing: 10) {
-                TextField("用户名", text: $username)
+                TextField(i18n.t(.doc_auth_username), text: $username)
                     .textFieldStyle(.roundedBorder)
-                SecureField("密码", text: $password)
+                SecureField(i18n.t(.doc_auth_password), text: $password)
                     .textFieldStyle(.roundedBorder)
                 if mode == .setup {
-                    SecureField("确认密码", text: $confirmPassword)
+                    SecureField(i18n.t(.doc_auth_confirmPwd), text: $confirmPassword)
                         .textFieldStyle(.roundedBorder)
                 }
             }
@@ -65,11 +66,11 @@ struct DocAuthSheet: View {
             }
 
             HStack(spacing: 12) {
-                Button("取消") { dismiss() }
+                Button(i18n.t(.cancel)) { dismiss() }
                 Button(action: performAuth) {
                     HStack(spacing: 4) {
                         if isLoading { ProgressView().controlSize(.small) }
-                        Text(mode == .login ? "登录" : "创建管理员")
+                        Text(mode == .login ? i18n.t(.doc_auth_login) : i18n.t(.doc_auth_createAdmin))
                     }
                 }
                 .disabled(!canSubmit || isLoading)
@@ -77,7 +78,7 @@ struct DocAuthSheet: View {
             }
 
             if bridge.isAuthenticated {
-                Label("已认证 ✓", systemImage: "checkmark.circle.fill")
+                Label(i18n.t(.doc_auth_authenticated), systemImage: "checkmark.circle.fill")
                     .font(.subheadline)
                     .foregroundColor(.green)
             }

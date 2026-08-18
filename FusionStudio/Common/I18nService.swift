@@ -995,6 +995,66 @@ enum I18nKey: String, CaseIterable {
     case hub_lvl_l2 = "hub_lvl_l2"
     case hub_lvl_l3 = "hub_lvl_l3"
     case hub_lvl_unknown = "hub_lvl_unknown"
+    case doc_tab_editor = "doc_tab_editor"
+    case doc_tab_graph = "doc_tab_graph"
+    case doc_tab_versions = "doc_tab_versions"
+    case doc_tab_office = "doc_tab_office"
+    case doc_tab_workflow = "doc_tab_workflow"
+    case doc_tab_template = "doc_tab_template"
+    case doc_tab_search = "doc_tab_search"
+    case doc_tab_comments = "doc_tab_comments"
+    case doc_tab_favorites = "doc_tab_favorites"
+    case doc_tab_files = "doc_tab_files"
+    case doc_tab_rag = "doc_tab_rag"
+    case doc_tab_activity = "doc_tab_activity"
+    case doc_aiCopilot = "doc_aiCopilot"
+    case doc_selPageVersions = "doc_selPageVersions"
+    case doc_auth_title = "doc_auth_title"
+    case doc_auth_mode = "doc_auth_mode"
+    case doc_auth_login = "doc_auth_login"
+    case doc_auth_setup = "doc_auth_setup"
+    case doc_auth_username = "doc_auth_username"
+    case doc_auth_password = "doc_auth_password"
+    case doc_auth_confirmPwd = "doc_auth_confirmPwd"
+    case doc_auth_createAdmin = "doc_auth_createAdmin"
+    case doc_auth_authenticated = "doc_auth_authenticated"
+    case doc_cmt_title = "doc_cmt_title"
+    case doc_cmt_empty = "doc_cmt_empty"
+    case doc_cmt_reply = "doc_cmt_reply"
+    case doc_cmt_replyLabel = "doc_cmt_replyLabel"
+    case doc_cmt_replyPlaceholder = "doc_cmt_replyPlaceholder"
+    case doc_cmt_addPlaceholder = "doc_cmt_addPlaceholder"
+    case doc_cmt_selPage = "doc_cmt_selPage"
+    case doc_fav_title = "doc_fav_title"
+    case doc_fav_empty = "doc_fav_empty"
+    case doc_fav_addHint = "doc_fav_addHint"
+    case doc_fav_noTitle = "doc_fav_noTitle"
+    case doc_file_title = "doc_file_title"
+    case doc_file_countFmt = "doc_file_countFmt"
+    case doc_file_empty = "doc_file_empty"
+    case doc_file_unknown = "doc_file_unknown"
+    case doc_file_upload = "doc_file_upload"
+    case doc_file_name = "doc_file_name"
+    case doc_file_uploadBtn = "doc_file_uploadBtn"
+    case doc_file_selPage = "doc_file_selPage"
+    case doc_ws_title = "doc_ws_title"
+    case doc_ws_empty = "doc_ws_empty"
+    case doc_ws_createFirst = "doc_ws_createFirst"
+    case doc_ws_name = "doc_ws_name"
+    case doc_ws_descOptional = "doc_ws_descOptional"
+    case doc_ws_create = "doc_ws_create"
+    case doc_ws_delete = "doc_ws_delete"
+    case doc_act_title = "doc_act_title"
+    case doc_act_empty = "doc_act_empty"
+    case doc_act_evPageCreate = "doc_act_evPageCreate"
+    case doc_act_evPageUpdate = "doc_act_evPageUpdate"
+    case doc_act_evPageDelete = "doc_act_evPageDelete"
+    case doc_act_evCommentCreate = "doc_act_evCommentCreate"
+    case doc_act_evFavAdd = "doc_act_evFavAdd"
+    case doc_act_evFavRemove = "doc_act_evFavRemove"
+    case doc_act_evVerCreate = "doc_act_evVerCreate"
+    case doc_act_evWorkflowRun = "doc_act_evWorkflowRun"
+    case doc_act_evFileUpload = "doc_act_evFileUpload"
 }
 
 // MARK: - 翻译管理器
@@ -1648,6 +1708,66 @@ let zhCNTranslations: [String: String] = [
     "hub_lvl_l2": "L2 主管审批",
     "hub_lvl_l3": "L3 安全审批",
     "hub_lvl_unknown": "未知",
+    "doc_tab_editor": "编辑器",
+    "doc_tab_graph": "知识图谱",
+    "doc_tab_versions": "版本历史",
+    "doc_tab_office": "Office",
+    "doc_tab_workflow": "工作流",
+    "doc_tab_template": "模板",
+    "doc_tab_search": "搜索",
+    "doc_tab_comments": "评论",
+    "doc_tab_favorites": "收藏",
+    "doc_tab_files": "文件",
+    "doc_tab_rag": "RAG",
+    "doc_tab_activity": "动态",
+    "doc_aiCopilot": "AI Copilot",
+    "doc_selPageVersions": "选择页面查看版本历史",
+    "doc_auth_title": "Fusion Doc 认证",
+    "doc_auth_mode": "模式",
+    "doc_auth_login": "登录",
+    "doc_auth_setup": "初始设置",
+    "doc_auth_username": "用户名",
+    "doc_auth_password": "密码",
+    "doc_auth_confirmPwd": "确认密码",
+    "doc_auth_createAdmin": "创建管理员",
+    "doc_auth_authenticated": "已认证 ✓",
+    "doc_cmt_title": "评论",
+    "doc_cmt_empty": "暂无评论",
+    "doc_cmt_reply": "回复",
+    "doc_cmt_replyLabel": "回复评论",
+    "doc_cmt_replyPlaceholder": "回复评论...",
+    "doc_cmt_addPlaceholder": "添加评论...",
+    "doc_cmt_selPage": "选择页面查看评论",
+    "doc_fav_title": "收藏",
+    "doc_fav_empty": "暂无收藏",
+    "doc_fav_addHint": "在页面中点击星标添加收藏",
+    "doc_fav_noTitle": "无标题",
+    "doc_file_title": "附件",
+    "doc_file_countFmt": "%d 文件",
+    "doc_file_empty": "暂无附件",
+    "doc_file_unknown": "未知文件",
+    "doc_file_upload": "上传附件",
+    "doc_file_name": "文件名",
+    "doc_file_uploadBtn": "上传",
+    "doc_file_selPage": "选择页面查看附件",
+    "doc_ws_title": "工作空间",
+    "doc_ws_empty": "暂无工作空间",
+    "doc_ws_createFirst": "创建第一个工作空间",
+    "doc_ws_name": "名称",
+    "doc_ws_descOptional": "描述（可选）",
+    "doc_ws_create": "创建",
+    "doc_ws_delete": "删除",
+    "doc_act_title": "活动日志",
+    "doc_act_empty": "暂无活动记录",
+    "doc_act_evPageCreate": "📄 创建页面",
+    "doc_act_evPageUpdate": "✏️ 更新页面",
+    "doc_act_evPageDelete": "🗑️ 删除页面",
+    "doc_act_evCommentCreate": "💬 添加评论",
+    "doc_act_evFavAdd": "⭐ 添加收藏",
+    "doc_act_evFavRemove": "☆ 取消收藏",
+    "doc_act_evVerCreate": "🔖 创建版本",
+    "doc_act_evWorkflowRun": "🔄 运行工作流",
+    "doc_act_evFileUpload": "📎 上传附件",
 ]
 
 let enUSTranslations: [String: String] = [
@@ -2256,6 +2376,66 @@ let enUSTranslations: [String: String] = [
     "hub_lvl_l2": "L2 Manager Approval",
     "hub_lvl_l3": "L3 Security Approval",
     "hub_lvl_unknown": "Unknown",
+    "doc_tab_editor": "Editor",
+    "doc_tab_graph": "Knowledge Graph",
+    "doc_tab_versions": "Versions",
+    "doc_tab_office": "Office",
+    "doc_tab_workflow": "Workflow",
+    "doc_tab_template": "Templates",
+    "doc_tab_search": "Search",
+    "doc_tab_comments": "Comments",
+    "doc_tab_favorites": "Favorites",
+    "doc_tab_files": "Files",
+    "doc_tab_rag": "RAG",
+    "doc_tab_activity": "Activity",
+    "doc_aiCopilot": "AI Copilot",
+    "doc_selPageVersions": "Select a page to view version history",
+    "doc_auth_title": "Fusion Doc Authentication",
+    "doc_auth_mode": "Mode",
+    "doc_auth_login": "Login",
+    "doc_auth_setup": "Initial Setup",
+    "doc_auth_username": "Username",
+    "doc_auth_password": "Password",
+    "doc_auth_confirmPwd": "Confirm Password",
+    "doc_auth_createAdmin": "Create Admin",
+    "doc_auth_authenticated": "Authenticated ✓",
+    "doc_cmt_title": "Comments",
+    "doc_cmt_empty": "No comments yet",
+    "doc_cmt_reply": "Reply",
+    "doc_cmt_replyLabel": "Reply to comment",
+    "doc_cmt_replyPlaceholder": "Reply to comment...",
+    "doc_cmt_addPlaceholder": "Add a comment...",
+    "doc_cmt_selPage": "Select a page to view comments",
+    "doc_fav_title": "Favorites",
+    "doc_fav_empty": "No favorites yet",
+    "doc_fav_addHint": "Click the star in a page to add a favorite",
+    "doc_fav_noTitle": "Untitled",
+    "doc_file_title": "Attachments",
+    "doc_file_countFmt": "%d files",
+    "doc_file_empty": "No attachments yet",
+    "doc_file_unknown": "Unknown file",
+    "doc_file_upload": "Upload Attachment",
+    "doc_file_name": "Filename",
+    "doc_file_uploadBtn": "Upload",
+    "doc_file_selPage": "Select a page to view attachments",
+    "doc_ws_title": "Workspaces",
+    "doc_ws_empty": "No workspaces yet",
+    "doc_ws_createFirst": "Create your first workspace",
+    "doc_ws_name": "Name",
+    "doc_ws_descOptional": "Description (optional)",
+    "doc_ws_create": "Create",
+    "doc_ws_delete": "Delete",
+    "doc_act_title": "Activity Log",
+    "doc_act_empty": "No activity yet",
+    "doc_act_evPageCreate": "📄 Created page",
+    "doc_act_evPageUpdate": "✏️ Updated page",
+    "doc_act_evPageDelete": "🗑️ Deleted page",
+    "doc_act_evCommentCreate": "💬 Added comment",
+    "doc_act_evFavAdd": "⭐ Added favorite",
+    "doc_act_evFavRemove": "☆ Removed favorite",
+    "doc_act_evVerCreate": "🔖 Created version",
+    "doc_act_evWorkflowRun": "🔄 Ran workflow",
+    "doc_act_evFileUpload": "📎 Uploaded file",
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -2858,6 +3038,66 @@ let jaJPTranslations: [String: String] = [
     "hub_lvl_l2": "L2 管理者承認",
     "hub_lvl_l3": "L3 セキュリティ承認",
     "hub_lvl_unknown": "不明",
+    "doc_tab_editor": "エディタ",
+    "doc_tab_graph": "ナレッジグラフ",
+    "doc_tab_versions": "バージョン履歴",
+    "doc_tab_office": "Office",
+    "doc_tab_workflow": "ワークフロー",
+    "doc_tab_template": "テンプレート",
+    "doc_tab_search": "検索",
+    "doc_tab_comments": "コメント",
+    "doc_tab_favorites": "お気に入り",
+    "doc_tab_files": "ファイル",
+    "doc_tab_rag": "RAG",
+    "doc_tab_activity": "アクティビティ",
+    "doc_aiCopilot": "AI Copilot",
+    "doc_selPageVersions": "ページを選択してバージョン履歴を表示",
+    "doc_auth_title": "Fusion Doc 認証",
+    "doc_auth_mode": "モード",
+    "doc_auth_login": "ログイン",
+    "doc_auth_setup": "初期設定",
+    "doc_auth_username": "ユーザー名",
+    "doc_auth_password": "パスワード",
+    "doc_auth_confirmPwd": "パスワード確認",
+    "doc_auth_createAdmin": "管理者作成",
+    "doc_auth_authenticated": "認証済み ✓",
+    "doc_cmt_title": "コメント",
+    "doc_cmt_empty": "コメントはまだありません",
+    "doc_cmt_reply": "返信",
+    "doc_cmt_replyLabel": "コメントに返信",
+    "doc_cmt_replyPlaceholder": "コメントに返信...",
+    "doc_cmt_addPlaceholder": "コメントを追加...",
+    "doc_cmt_selPage": "ページを選択してコメントを表示",
+    "doc_fav_title": "お気に入り",
+    "doc_fav_empty": "お気に入りはまだありません",
+    "doc_fav_addHint": "ページ内のスターをクリックしてお気に入りに追加",
+    "doc_fav_noTitle": "無題",
+    "doc_file_title": "添付ファイル",
+    "doc_file_countFmt": "%d ファイル",
+    "doc_file_empty": "添付ファイルはまだありません",
+    "doc_file_unknown": "不明なファイル",
+    "doc_file_upload": "添付ファイルをアップロード",
+    "doc_file_name": "ファイル名",
+    "doc_file_uploadBtn": "アップロード",
+    "doc_file_selPage": "ページを選択して添付ファイルを表示",
+    "doc_ws_title": "ワークスペース",
+    "doc_ws_empty": "ワークスペースはまだありません",
+    "doc_ws_createFirst": "最初のワークスペースを作成",
+    "doc_ws_name": "名称",
+    "doc_ws_descOptional": "説明（任意）",
+    "doc_ws_create": "作成",
+    "doc_ws_delete": "削除",
+    "doc_act_title": "アクティビティログ",
+    "doc_act_empty": "アクティビティはまだありません",
+    "doc_act_evPageCreate": "📄 ページ作成",
+    "doc_act_evPageUpdate": "✏️ ページ更新",
+    "doc_act_evPageDelete": "🗑️ ページ削除",
+    "doc_act_evCommentCreate": "💬 コメント追加",
+    "doc_act_evFavAdd": "⭐ お気に入り追加",
+    "doc_act_evFavRemove": "☆ お気に入り解除",
+    "doc_act_evVerCreate": "🔖 バージョン作成",
+    "doc_act_evWorkflowRun": "🔄 ワークフロー実行",
+    "doc_act_evFileUpload": "📎 ファイルアップロード",
 ]
 
 let koKRTranslations: [String: String] = [
@@ -3460,6 +3700,66 @@ let koKRTranslations: [String: String] = [
     "hub_lvl_l2": "L2 관리자 승인",
     "hub_lvl_l3": "L3 보안 승인",
     "hub_lvl_unknown": "알 수 없음",
+    "doc_tab_editor": "에디터",
+    "doc_tab_graph": "지식 그래프",
+    "doc_tab_versions": "버전 기록",
+    "doc_tab_office": "Office",
+    "doc_tab_workflow": "워크플로우",
+    "doc_tab_template": "템플릿",
+    "doc_tab_search": "검색",
+    "doc_tab_comments": "댓글",
+    "doc_tab_favorites": "즐겨찾기",
+    "doc_tab_files": "파일",
+    "doc_tab_rag": "RAG",
+    "doc_tab_activity": "활동",
+    "doc_aiCopilot": "AI Copilot",
+    "doc_selPageVersions": "페이지를 선택해 버전 기록 보기",
+    "doc_auth_title": "Fusion Doc 인증",
+    "doc_auth_mode": "모드",
+    "doc_auth_login": "로그인",
+    "doc_auth_setup": "초기 설정",
+    "doc_auth_username": "사용자명",
+    "doc_auth_password": "비밀번호",
+    "doc_auth_confirmPwd": "비밀번호 확인",
+    "doc_auth_createAdmin": "관리자 생성",
+    "doc_auth_authenticated": "인증됨 ✓",
+    "doc_cmt_title": "댓글",
+    "doc_cmt_empty": "댓글이 아직 없습니다",
+    "doc_cmt_reply": "답글",
+    "doc_cmt_replyLabel": "댓글에 답글",
+    "doc_cmt_replyPlaceholder": "댓글에 답글...",
+    "doc_cmt_addPlaceholder": "댓글 추가...",
+    "doc_cmt_selPage": "페이지를 선택해 댓글 보기",
+    "doc_fav_title": "즐겨찾기",
+    "doc_fav_empty": "즐겨찾기가 아직 없습니다",
+    "doc_fav_addHint": "페이지에서 별을 눌러 즐겨찾기 추가",
+    "doc_fav_noTitle": "제목 없음",
+    "doc_file_title": "첨부파일",
+    "doc_file_countFmt": "%d 파일",
+    "doc_file_empty": "첨부파일이 아직 없습니다",
+    "doc_file_unknown": "알 수 없는 파일",
+    "doc_file_upload": "첨부파일 업로드",
+    "doc_file_name": "파일명",
+    "doc_file_uploadBtn": "업로드",
+    "doc_file_selPage": "페이지를 선택해 첨부파일 보기",
+    "doc_ws_title": "워크스페이스",
+    "doc_ws_empty": "워크스페이스가 아직 없습니다",
+    "doc_ws_createFirst": "첫 워크스페이스 만들기",
+    "doc_ws_name": "이름",
+    "doc_ws_descOptional": "설명（선택）",
+    "doc_ws_create": "만들기",
+    "doc_ws_delete": "삭제",
+    "doc_act_title": "활동 로그",
+    "doc_act_empty": "활동 기록이 아직 없습니다",
+    "doc_act_evPageCreate": "📄 페이지 생성",
+    "doc_act_evPageUpdate": "✏️ 페이지 수정",
+    "doc_act_evPageDelete": "🗑️ 페이지 삭제",
+    "doc_act_evCommentCreate": "💬 댓글 추가",
+    "doc_act_evFavAdd": "⭐ 즐겨찾기 추가",
+    "doc_act_evFavRemove": "☆ 즐겨찾기 해제",
+    "doc_act_evVerCreate": "🔖 버전 생성",
+    "doc_act_evWorkflowRun": "🔄 워크플로우 실행",
+    "doc_act_evFileUpload": "📎 파일 업로드",
 ]
 
 // MARK: - 国际化文本视图

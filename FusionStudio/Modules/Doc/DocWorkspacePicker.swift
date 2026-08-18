@@ -11,6 +11,7 @@ private let docWSLog = Logger(subsystem: "com.fusion.studio", category: "DocWork
 struct DocWorkspacePicker: View {
     @Environment(\.studioTheme) private var theme
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var i18n = I18nManager.shared
     @ObservedObject var bridge: DocBridge
     @State private var showCreate = false
     @State private var newName = ""
@@ -19,7 +20,7 @@ struct DocWorkspacePicker: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("工作空间")
+                Text(i18n.t(.doc_ws_title))
                     .font(.headline)
                 Spacer()
                 Button(action: { showCreate = true }) {
@@ -36,10 +37,10 @@ struct DocWorkspacePicker: View {
                     Image(systemName: "square.stack.3d.up")
                         .font(.system(size: 32))
                         .foregroundColor(.secondary)
-                    Text("暂无工作空间")
+                    Text(i18n.t(.doc_ws_empty))
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    Button("创建第一个工作空间") { showCreate = true }
+                    Button(i18n.t(.doc_ws_createFirst)) { showCreate = true }
                         .font(.caption)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -54,17 +55,17 @@ struct DocWorkspacePicker: View {
             if showCreate {
                 Divider()
                 VStack(spacing: 8) {
-                    TextField("名称", text: $newName)
+                    TextField(i18n.t(.doc_ws_name), text: $newName)
                         .textFieldStyle(.roundedBorder)
-                    TextField("描述（可选）", text: $newDesc)
+                    TextField(i18n.t(.doc_ws_descOptional), text: $newDesc)
                         .textFieldStyle(.roundedBorder)
                     HStack {
-                        Button("取消") {
+                        Button(i18n.t(.cancel)) {
                             showCreate = false
                             newName = ""
                             newDesc = ""
                         }
-                        Button("创建") {
+                        Button(i18n.t(.doc_ws_create)) {
                             createWorkspace()
                         }
                         .disabled(newName.isEmpty)
@@ -106,7 +107,7 @@ struct DocWorkspacePicker: View {
             dismiss()
         }
         .contextMenu {
-            Button("删除", role: .destructive) {
+            Button(i18n.t(.doc_ws_delete), role: .destructive) {
                 bridge.deleteWorkspace(id: ws.id) { _ in
                     docWSLog.info("deleted workspace: \(ws.id)")
                 }
