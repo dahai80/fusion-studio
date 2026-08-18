@@ -1929,6 +1929,21 @@ final class AgentBridge: ObservableObject {
         return updated
     }
 
+    func agentUnpublish(agentId: String) async throws -> AgentModel {
+        guard let client = ipcClient else { throw BridgeError.notConnected }
+        logger.info("agentUnpublish: id=\(agentId)")
+        let result = try await client.agentUnpublish(agentId: agentId)
+        guard let status = result["status"] as? String, status == "draft" else {
+            let msg = (result["message"] as? String) ?? "unpublish failed"
+            throw BridgeError.ipcError(msg)
+        }
+        let updated = try await agentGet(agentId: agentId)
+        if let idx = agents.firstIndex(where: { $0.id == agentId }) {
+            agents[idx] = updated
+        }
+        return updated
+    }
+
     func agentClone(agentId: String) async throws -> AgentModel {
         guard let client = ipcClient else { throw BridgeError.notConnected }
         logger.info("agentClone: id=\(agentId)")
