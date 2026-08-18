@@ -209,6 +209,75 @@ enum Module: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    var localizedName: String {
+        let key: I18nKey
+        switch self {
+        case .dashboard:            key = .mod_dashboard
+        case .design:               key = .mod_design
+        case .code:                 key = .mod_code
+        case .simulation:           key = .mod_simulation
+        case .modelHub:             key = .mod_modelHub
+        case .multimodal:           key = .mod_multimodal
+        case .training:             key = .mod_training
+        case .cli:                  key = .mod_cli
+        case .doc:                  key = .mod_doc
+        case .bench:                key = .mod_bench
+        case .desk:                 key = .mod_desk
+        case .dataTools:            key = .mod_dataTools
+        case .agent:                key = .mod_agent
+        case .plugin:               key = .mod_plugin
+        case .security:             key = .mod_security
+        case .analytics:            key = .mod_analytics
+        case .collab:               key = .mod_collab
+        case .tuning:               key = .mod_tuning
+        case .external:             key = .mod_external
+        case .docgen:               key = .mod_docgen
+        case .clusterOverview:      key = .mod_clusterOverview
+        case .clusterTopology:      key = .mod_clusterTopology
+        case .clusterSync:          key = .mod_clusterSync
+        case .taskMonitor:          key = .mod_taskMonitor
+        case .alertCenter:          key = .mod_alertCenter
+        case .nodeActions:          key = .mod_nodeActions
+        case .submitTask:           key = .mod_submitTask
+        case .taskProgress:         key = .mod_taskProgress
+        case .routingStrategy:      key = .mod_routingStrategy
+        case .kvCache:              key = .mod_kvCache
+        case .serviceWeb:           key = .mod_serviceWeb
+        case .rag:                  key = .mod_rag
+        case .memory:               key = .mod_memory
+        case .planner:              key = .mod_planner
+        case .deploy:               key = .mod_deploy
+        case .operations:           key = .mod_operations
+        case .eduK12:               key = .mod_eduK12
+        case .verification:         key = .mod_verification
+        case .tokenBudget:          key = .mod_tokenBudget
+        case .safety:               key = .mod_safety
+        case .tools:                key = .mod_tools
+        case .agentDashboard:       key = .mod_agentDashboard
+        case .teamCollab:           key = .mod_teamCollab
+        case .chat:                 key = .mod_chat
+        case .fusionProjects:       key = .mod_fusionProjects
+        case .cowork:               key = .mod_cowork
+        case .artifactsRepo:        key = .mod_artifactsRepo
+        case .fsb:                  key = .mod_fsb
+        case .aiAgentDashboard:     key = .mod_aiAgentDashboard
+        case .aiAgentList:          key = .mod_aiAgentList
+        case .aiAgentChat:          key = .mod_aiAgentChat
+        case .aiAgentObserver:      key = .mod_aiAgentObserver
+        case .aiAgentKnowledgeBase: key = .mod_aiAgentKnowledgeBase
+        case .science:              key = .mod_science
+        case .finance:              key = .mod_finance
+        case .health:               key = .mod_health
+        case .pluginConfig:         key = .mod_pluginConfig
+        case .pluginStatus:         key = .mod_pluginStatus
+        case .pluginToken:          key = .mod_pluginToken
+        case .pluginVram:           key = .mod_pluginVram
+        case .pluginLog:            key = .mod_pluginLog
+        case .pluginMcp:            key = .mod_pluginMcp
+        }
+        return I18nManager.shared.t(key)
+    }
+
     var icon: String {
         switch self {
         case .dashboard:  return "square.grid.2x2"

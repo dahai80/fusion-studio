@@ -165,6 +165,70 @@ enum I18nKey: String, CaseIterable {
     case published = "published"
     case hitProduct = "hitProduct"
     case douyinHint = "douyinHint"
+
+    // 模块标签 (Module 62 cases)
+    case mod_dashboard = "mod_dashboard"
+    case mod_design = "mod_design"
+    case mod_code = "mod_code"
+    case mod_simulation = "mod_simulation"
+    case mod_modelHub = "mod_modelHub"
+    case mod_multimodal = "mod_multimodal"
+    case mod_training = "mod_training"
+    case mod_cli = "mod_cli"
+    case mod_doc = "mod_doc"
+    case mod_bench = "mod_bench"
+    case mod_desk = "mod_desk"
+    case mod_dataTools = "mod_dataTools"
+    case mod_agent = "mod_agent"
+    case mod_plugin = "mod_plugin"
+    case mod_security = "mod_security"
+    case mod_analytics = "mod_analytics"
+    case mod_collab = "mod_collab"
+    case mod_tuning = "mod_tuning"
+    case mod_external = "mod_external"
+    case mod_docgen = "mod_docgen"
+    case mod_clusterOverview = "mod_clusterOverview"
+    case mod_clusterTopology = "mod_clusterTopology"
+    case mod_clusterSync = "mod_clusterSync"
+    case mod_taskMonitor = "mod_taskMonitor"
+    case mod_alertCenter = "mod_alertCenter"
+    case mod_nodeActions = "mod_nodeActions"
+    case mod_submitTask = "mod_submitTask"
+    case mod_taskProgress = "mod_taskProgress"
+    case mod_routingStrategy = "mod_routingStrategy"
+    case mod_kvCache = "mod_kvCache"
+    case mod_serviceWeb = "mod_serviceWeb"
+    case mod_rag = "mod_rag"
+    case mod_memory = "mod_memory"
+    case mod_planner = "mod_planner"
+    case mod_deploy = "mod_deploy"
+    case mod_operations = "mod_operations"
+    case mod_eduK12 = "mod_eduK12"
+    case mod_verification = "mod_verification"
+    case mod_tokenBudget = "mod_tokenBudget"
+    case mod_safety = "mod_safety"
+    case mod_tools = "mod_tools"
+    case mod_agentDashboard = "mod_agentDashboard"
+    case mod_teamCollab = "mod_teamCollab"
+    case mod_chat = "mod_chat"
+    case mod_fusionProjects = "mod_fusionProjects"
+    case mod_cowork = "mod_cowork"
+    case mod_artifactsRepo = "mod_artifactsRepo"
+    case mod_fsb = "mod_fsb"
+    case mod_aiAgentDashboard = "mod_aiAgentDashboard"
+    case mod_aiAgentList = "mod_aiAgentList"
+    case mod_aiAgentChat = "mod_aiAgentChat"
+    case mod_aiAgentObserver = "mod_aiAgentObserver"
+    case mod_aiAgentKnowledgeBase = "mod_aiAgentKnowledgeBase"
+    case mod_science = "mod_science"
+    case mod_finance = "mod_finance"
+    case mod_health = "mod_health"
+    case mod_pluginConfig = "mod_pluginConfig"
+    case mod_pluginStatus = "mod_pluginStatus"
+    case mod_pluginToken = "mod_pluginToken"
+    case mod_pluginVram = "mod_pluginVram"
+    case mod_pluginLog = "mod_pluginLog"
+    case mod_pluginMcp = "mod_pluginMcp"
 }
 
 // MARK: - 翻译管理器
@@ -262,6 +326,8 @@ let zhCNTranslations: [String: String] = [
     "openArtifacts": "打开 Artifacts",
     "runDashboard": "运营看板", "pendingPublish": "待发布", "published": "已发布",
     "hitProduct": "爆款", "douyinHint": "点击「运营看板」进入主区操作造片 / 发布 / 评论 / 进化",
+
+    "mod_dashboard": "控制台", "mod_design": "设计", "mod_code": "编码", "mod_simulation": "仿真", "mod_modelHub": "模型", "mod_multimodal": "多模态", "mod_training": "训练", "mod_cli": "命令行", "mod_doc": "文档", "mod_bench": "测评", "mod_desk": "自动化", "mod_dataTools": "数据工具", "mod_agent": "智能体", "mod_plugin": "插件", "mod_security": "安全", "mod_analytics": "分析", "mod_collab": "协作", "mod_tuning": "调优", "mod_external": "外部集成", "mod_docgen": "文档生成", "mod_clusterOverview": "集群总览", "mod_clusterTopology": "拓扑图", "mod_clusterSync": "集群同步", "mod_taskMonitor": "任务监控", "mod_alertCenter": "告警中心", "mod_nodeActions": "节点管理", "mod_submitTask": "提交任务", "mod_taskProgress": "任务详情", "mod_routingStrategy": "路由策略", "mod_kvCache": "KV缓存", "mod_serviceWeb": "服务面板", "mod_rag": "RAG", "mod_memory": "记忆", "mod_planner": "规划", "mod_deploy": "部署", "mod_operations": "运维", "mod_eduK12": "教育", "mod_verification": "验证", "mod_tokenBudget": "预算", "mod_safety": "安全审批", "mod_tools": "工具", "mod_agentDashboard": "Agent监控", "mod_teamCollab": "团队协作", "mod_chat": "对话", "mod_fusionProjects": "项目管理", "mod_cowork": "协作空间", "mod_artifactsRepo": "Artifacts仓库", "mod_fsb": "FSB", "mod_aiAgentDashboard": "AI总览", "mod_aiAgentList": "Agent列表", "mod_aiAgentChat": "AI对话", "mod_aiAgentObserver": "AI监控", "mod_aiAgentKnowledgeBase": "AI知识库", "mod_science": "科研", "mod_finance": "金融", "mod_health": "健康", "mod_pluginConfig": "插件配置", "mod_pluginStatus": "插件状态", "mod_pluginToken": "Token", "mod_pluginVram": "VRAM", "mod_pluginLog": "插件日志", "mod_pluginMcp": "MCP",
 ]
 
 let enUSTranslations: [String: String] = [
@@ -314,6 +380,8 @@ let enUSTranslations: [String: String] = [
     "openArtifacts": "Open Artifacts",
     "runDashboard": "Operations Dashboard", "pendingPublish": "Pending", "published": "Published",
     "hitProduct": "Hits", "douyinHint": "Click \"Operations Dashboard\" to create / publish / comment / evolve",
+
+    "mod_dashboard": "Dashboard", "mod_design": "Design", "mod_code": "Code", "mod_simulation": "Simulation", "mod_modelHub": "Models", "mod_multimodal": "Multimodal", "mod_training": "Training", "mod_cli": "CLI", "mod_doc": "Documents", "mod_bench": "Benchmark", "mod_desk": "Automation", "mod_dataTools": "Data Tools", "mod_agent": "Agents", "mod_plugin": "Plugins", "mod_security": "Security", "mod_analytics": "Analytics", "mod_collab": "Collaboration", "mod_tuning": "Tuning", "mod_external": "Integrations", "mod_docgen": "Doc Generation", "mod_clusterOverview": "Cluster Overview", "mod_clusterTopology": "Topology", "mod_clusterSync": "Cluster Sync", "mod_taskMonitor": "Task Monitor", "mod_alertCenter": "Alert Center", "mod_nodeActions": "Node Mgmt", "mod_submitTask": "Submit Task", "mod_taskProgress": "Task Detail", "mod_routingStrategy": "Routing", "mod_kvCache": "KV Cache", "mod_serviceWeb": "Service Panel", "mod_rag": "RAG", "mod_memory": "Memory", "mod_planner": "Planner", "mod_deploy": "Deploy", "mod_operations": "Operations", "mod_eduK12": "K-12 Education", "mod_verification": "Verification", "mod_tokenBudget": "Token Budget", "mod_safety": "Safety Approval", "mod_tools": "Tools", "mod_agentDashboard": "Agent Monitor", "mod_teamCollab": "Team Collab", "mod_chat": "Chat", "mod_fusionProjects": "Projects", "mod_cowork": "CoWork", "mod_artifactsRepo": "Artifacts", "mod_fsb": "FSB", "mod_aiAgentDashboard": "AI Overview", "mod_aiAgentList": "Agent List", "mod_aiAgentChat": "AI Chat", "mod_aiAgentObserver": "AI Observer", "mod_aiAgentKnowledgeBase": "AI Knowledge Base", "mod_science": "Science", "mod_finance": "Finance", "mod_health": "Health", "mod_pluginConfig": "Plugin Config", "mod_pluginStatus": "Plugin Status", "mod_pluginToken": "Token", "mod_pluginVram": "VRAM", "mod_pluginLog": "Plugin Log", "mod_pluginMcp": "MCP",
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -360,6 +428,8 @@ let jaJPTranslations: [String: String] = [
     "openArtifacts": "Artifactsを開く",
     "runDashboard": "運営ダッシュボード", "pendingPublish": "公開待ち", "published": "公開済み",
     "hitProduct": "ヒット", "douyinHint": "「運営ダッシュボード」で作成 / 公開 / コメント / 進化",
+
+    "mod_dashboard": "ダッシュボード", "mod_design": "デザイン", "mod_code": "コード", "mod_simulation": "シミュレーション", "mod_modelHub": "モデル", "mod_multimodal": "マルチモーダル", "mod_training": "トレーニング", "mod_cli": "コマンドライン", "mod_doc": "ドキュメント", "mod_bench": "ベンチマーク", "mod_desk": "自動化", "mod_dataTools": "データツール", "mod_agent": "エージェント", "mod_plugin": "プラグイン", "mod_security": "セキュリティ", "mod_analytics": "分析", "mod_collab": "コラボレーション", "mod_tuning": "チューニング", "mod_external": "外部連携", "mod_docgen": "ドキュメント生成", "mod_clusterOverview": "クラスタ概要", "mod_clusterTopology": "トポロジー", "mod_clusterSync": "クラスタ同期", "mod_taskMonitor": "タスク監視", "mod_alertCenter": "アラートセンター", "mod_nodeActions": "ノード管理", "mod_submitTask": "タスク送信", "mod_taskProgress": "タスク詳細", "mod_routingStrategy": "ルーティング", "mod_kvCache": "KVキャッシュ", "mod_serviceWeb": "サービスパネル", "mod_rag": "RAG", "mod_memory": "メモリ", "mod_planner": "プランナー", "mod_deploy": "デプロイ", "mod_operations": "運用", "mod_eduK12": "K-12教育", "mod_verification": "検証", "mod_tokenBudget": "トークン予算", "mod_safety": "安全承認", "mod_tools": "ツール", "mod_agentDashboard": "エージェント監視", "mod_teamCollab": "チームコラボ", "mod_chat": "チャット", "mod_fusionProjects": "プロジェクト", "mod_cowork": "コラボスペース", "mod_artifactsRepo": "Artifacts", "mod_fsb": "FSB", "mod_aiAgentDashboard": "AI概要", "mod_aiAgentList": "エージェント一覧", "mod_aiAgentChat": "AIチャット", "mod_aiAgentObserver": "AIオブザーバー", "mod_aiAgentKnowledgeBase": "AIナレッジベース", "mod_science": "サイエンス", "mod_finance": "ファイナンス", "mod_health": "ヘルス", "mod_pluginConfig": "プラグイン設定", "mod_pluginStatus": "プラグイン状態", "mod_pluginToken": "Token", "mod_pluginVram": "VRAM", "mod_pluginLog": "プラグインログ", "mod_pluginMcp": "MCP",
 ]
 
 let koKRTranslations: [String: String] = [
@@ -406,6 +476,8 @@ let koKRTranslations: [String: String] = [
     "openArtifacts": "Artifacts 열기",
     "runDashboard": "운영 대시보드", "pendingPublish": "발행 대기", "published": "발행됨",
     "hitProduct": "히트", "douyinHint": "「운영 대시보드」에서 제작 / 발행 / 댓글 / 진화",
+
+    "mod_dashboard": "대시보드", "mod_design": "디자인", "mod_code": "코드", "mod_simulation": "시뮬레이션", "mod_modelHub": "모델", "mod_multimodal": "멀티모달", "mod_training": "트레이닝", "mod_cli": "명령줄", "mod_doc": "문서", "mod_bench": "벤치마크", "mod_desk": "자동화", "mod_dataTools": "데이터 도구", "mod_agent": "에이전트", "mod_plugin": "플러그인", "mod_security": "보안", "mod_analytics": "분석", "mod_collab": "협업", "mod_tuning": "튜닝", "mod_external": "외부 연동", "mod_docgen": "문서 생성", "mod_clusterOverview": "클러스터 개요", "mod_clusterTopology": "토폴로지", "mod_clusterSync": "클러스터 동기화", "mod_taskMonitor": "태스크 모니터", "mod_alertCenter": "알림 센터", "mod_nodeActions": "노드 관리", "mod_submitTask": "태스크 제출", "mod_taskProgress": "태스크 상세", "mod_routingStrategy": "라우팅", "mod_kvCache": "KV 캐시", "mod_serviceWeb": "서비스 패널", "mod_rag": "RAG", "mod_memory": "메모리", "mod_planner": "플래너", "mod_deploy": "배포", "mod_operations": "운영", "mod_eduK12": "K-12 교육", "mod_verification": "검증", "mod_tokenBudget": "토큰 예산", "mod_safety": "안전 승인", "mod_tools": "도구", "mod_agentDashboard": "에이전트 모니터", "mod_teamCollab": "팀 협업", "mod_chat": "채팅", "mod_fusionProjects": "프로젝트", "mod_cowork": "협업 공간", "mod_artifactsRepo": "Artifacts", "mod_fsb": "FSB", "mod_aiAgentDashboard": "AI 개요", "mod_aiAgentList": "에이전트 목록", "mod_aiAgentChat": "AI 채팅", "mod_aiAgentObserver": "AI 옵저버", "mod_aiAgentKnowledgeBase": "AI 지식베이스", "mod_science": "사이언스", "mod_finance": "파이낸스", "mod_health": "헬스", "mod_pluginConfig": "플러그인 설정", "mod_pluginStatus": "플러그인 상태", "mod_pluginToken": "Token", "mod_pluginVram": "VRAM", "mod_pluginLog": "플러그인 로그", "mod_pluginMcp": "MCP",
 ]
 
 // MARK: - 国际化文本视图

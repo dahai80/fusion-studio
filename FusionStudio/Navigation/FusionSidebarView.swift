@@ -577,7 +577,7 @@ struct FusionSidebarView: View {
                         .frame(width: 20)
                 }
 
-                Text(module.rawValue)
+                Text(module.localizedName)
                     .font(.system(size: theme.textSize, weight: isActive ? .medium : .regular))
                     .foregroundStyle(isActive ? theme.text : theme.textSecondary)
 
