@@ -10,6 +10,7 @@ private let actLog = Logger(subsystem: "com.fusion.studio", category: "DocActivi
 
 struct DocActivityView: View {
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @ObservedObject var bridge: DocBridge
 
     var body: some View {
@@ -28,7 +29,7 @@ struct DocActivityView: View {
         HStack {
             Image(systemName: "clock.arrow.circlepath")
                 .foregroundColor(theme.accent)
-            Text("活动日志")
+            Text(i18n.t(.doc_act_title))
                 .font(.headline)
                 .foregroundColor(.primary)
             Spacer()
@@ -36,7 +37,7 @@ struct DocActivityView: View {
                 Image(systemName: "arrow.clockwise")
             }
             .buttonStyle(.plain)
-            .help("刷新")
+            .help(i18n.t(.refresh))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -50,7 +51,7 @@ struct DocActivityView: View {
                     Image(systemName: "clock")
                         .font(.system(size: 40))
                         .foregroundColor(.secondary)
-                    Text("暂无活动记录")
+                    Text(i18n.t(.doc_act_empty))
                         .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -114,15 +115,15 @@ struct DocActivityView: View {
     }
 
     private func eventLabel(_ event: String) -> String {
-        if event.contains("page.create") { return "📄 创建页面" }
-        if event.contains("page.update") { return "✏️ 更新页面" }
-        if event.contains("page.delete") { return "🗑️ 删除页面" }
-        if event.contains("comment.create") { return "💬 添加评论" }
-        if event.contains("favorite.add") { return "⭐ 添加收藏" }
-        if event.contains("favorite.remove") { return "☆ 取消收藏" }
-        if event.contains("version.create") { return "🔖 创建版本" }
-        if event.contains("workflow.run") { return "🔄 运行工作流" }
-        if event.contains("file.upload") { return "📎 上传附件" }
+        if event.contains("page.create") { return i18n.t(.doc_act_evPageCreate) }
+        if event.contains("page.update") { return i18n.t(.doc_act_evPageUpdate) }
+        if event.contains("page.delete") { return i18n.t(.doc_act_evPageDelete) }
+        if event.contains("comment.create") { return i18n.t(.doc_act_evCommentCreate) }
+        if event.contains("favorite.add") { return i18n.t(.doc_act_evFavAdd) }
+        if event.contains("favorite.remove") { return i18n.t(.doc_act_evFavRemove) }
+        if event.contains("version.create") { return i18n.t(.doc_act_evVerCreate) }
+        if event.contains("workflow.run") { return i18n.t(.doc_act_evWorkflowRun) }
+        if event.contains("file.upload") { return i18n.t(.doc_act_evFileUpload) }
         return event
     }
 }

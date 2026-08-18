@@ -24,6 +24,23 @@ enum DocSubTab: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    var localLabel: String {
+        switch self {
+        case .editor:    return I18nManager.shared.t(.doc_tab_editor)
+        case .graph:     return I18nManager.shared.t(.doc_tab_graph)
+        case .versions:  return I18nManager.shared.t(.doc_tab_versions)
+        case .office:    return I18nManager.shared.t(.doc_tab_office)
+        case .workflow:  return I18nManager.shared.t(.doc_tab_workflow)
+        case .template:  return I18nManager.shared.t(.doc_tab_template)
+        case .search:    return I18nManager.shared.t(.doc_tab_search)
+        case .comments:  return I18nManager.shared.t(.doc_tab_comments)
+        case .favorites: return I18nManager.shared.t(.doc_tab_favorites)
+        case .files:     return I18nManager.shared.t(.doc_tab_files)
+        case .rag:       return I18nManager.shared.t(.doc_tab_rag)
+        case .activity:  return I18nManager.shared.t(.doc_tab_activity)
+        }
+    }
+
     var icon: String {
         switch self {
         case .editor:    return "doc.text"
@@ -44,6 +61,7 @@ enum DocSubTab: String, CaseIterable, Identifiable {
 
 struct DocView: View {
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @StateObject private var bridge = DocBridge()
     @State private var selectedPageId: String?
     @State private var showCopilot = true
@@ -74,7 +92,7 @@ struct DocView: View {
                 Button(action: { showCopilot.toggle() }) {
                     Image(systemName: showCopilot ? "bubble.left.and.bubble.right.fill" : "bubble.left.and.bubble.right")
                 }
-                .help("AI Copilot")
+                .help(i18n.t(.doc_aiCopilot))
             }
         }
         .onAppear {
@@ -91,7 +109,7 @@ struct DocView: View {
                     HStack(spacing: 4) {
                         Image(systemName: tab.icon)
                             .font(.caption)
-                        Text(tab.rawValue)
+                        Text(tab.localLabel)
                             .font(.caption)
                     }
                     .padding(.horizontal, 10)
@@ -119,7 +137,7 @@ struct DocView: View {
             if let pid = selectedPageId {
                 DocVersionView(bridge: bridge, pageId: pid)
             } else {
-                emptyTab("选择页面查看版本历史", icon: "clock.arrow.circlepath")
+                emptyTab(i18n.t(.doc_selPageVersions), icon: "clock.arrow.circlepath")
             }
         case .office:
             DocOfficeView(bridge: bridge)

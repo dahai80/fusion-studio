@@ -10,6 +10,7 @@ private let favLog = Logger(subsystem: "com.fusion.studio", category: "DocFavori
 
 struct DocFavoritesView: View {
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @ObservedObject var bridge: DocBridge
     @Binding var selectedPageId: String?
 
@@ -29,7 +30,7 @@ struct DocFavoritesView: View {
         HStack {
             Image(systemName: "star.fill")
                 .foregroundColor(.yellow)
-            Text("收藏")
+            Text(i18n.t(.doc_fav_title))
                 .font(.headline)
                 .foregroundColor(.primary)
             Spacer()
@@ -49,9 +50,9 @@ struct DocFavoritesView: View {
                     Image(systemName: "star")
                         .font(.system(size: 40))
                         .foregroundColor(.secondary)
-                    Text("暂无收藏")
+                    Text(i18n.t(.doc_fav_empty))
                         .foregroundColor(.secondary)
-                    Text("在页面中点击星标添加收藏")
+                    Text(i18n.t(.doc_fav_addHint))
                         .font(.caption)
                         .foregroundColor(theme.textTertiary)
                 }
@@ -62,7 +63,7 @@ struct DocFavoritesView: View {
                         Image(systemName: "star.fill")
                             .foregroundColor(.yellow)
                             .font(.caption)
-                        Text(fav.title ?? "无标题")
+                        Text(fav.title ?? i18n.t(.doc_fav_noTitle))
                             .font(.subheadline)
                             .lineLimit(1)
                         Spacer()
