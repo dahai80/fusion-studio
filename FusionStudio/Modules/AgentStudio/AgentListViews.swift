@@ -23,6 +23,7 @@ struct AgentListView: View {
                 Group {
                     if let backendAgent = selectedBackendAgent {
                         BackendAgentDetailView(agent: backendAgent, toastManager: toastManager)
+                            .id(backendAgent.id)
                             .onAppear { bridge.currentAgent = backendAgent }
                     } else if let agent = selectedAgent {
                         AgentDetailView(agent: agent, toastManager: toastManager)
