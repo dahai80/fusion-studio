@@ -11,6 +11,7 @@ private let debugLog = Logger(subsystem: "com.fusion.studio", category: "AIAgent
 struct AIAgentDebugView: View {
     @EnvironmentObject var ipc: IPCClient
     @EnvironmentObject var bridge: AgentBridge
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.studioTheme) private var theme
 
     let agentId: String
@@ -102,13 +103,22 @@ struct AIAgentDebugView: View {
                     .foregroundStyle(theme.textTertiary)
             }
             Spacer()
-            HStack(spacing: theme.spacingXS) {
-                Circle()
-                    .fill(isExecuting ? theme.auxiliary : theme.accentSoft)
-                    .frame(width: 8, height: 8)
-                Text(isExecuting ? "执行中" : "就绪")
-                    .font(.system(size: theme.captionSize))
-                    .foregroundStyle(theme.textTertiary)
+            HStack(spacing: theme.spacingS) {
+                HStack(spacing: theme.spacingXS) {
+                    Circle()
+                        .fill(isExecuting ? theme.auxiliary : theme.accentSoft)
+                        .frame(width: 8, height: 8)
+                    Text(isExecuting ? "执行中" : "就绪")
+                        .font(.system(size: theme.captionSize))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                Button(action: { dismiss() }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .buttonStyle(.plain)
+                .help("关闭")
             }
         }
         .padding(.horizontal, theme.spacingL)
