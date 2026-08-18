@@ -12,6 +12,7 @@ private let marketLog = Logger(subsystem: "com.fusion.studio", category: "HubMar
 struct HubMarketView: View {
     @ObservedObject var client: ModelHubAPIClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var searchText = ""
     @State private var searchResults: [HubMarketModel] = []
@@ -34,13 +35,18 @@ struct HubMarketView: View {
     private let tasks = ["all", "text-generation", "code", "vision", "embedding", "audio", "multimodal"]
     private let formats = ["all", "mlx", "safetensors", "gguf", "onnx"]
     private let paramSizes = [
-        ("all", "全部参数量"),
+        ("all", "all"),
         ("tiny", "< 1B"),
         ("small", "1B-7B"),
         ("medium", "7B-13B"),
         ("large", "13B-70B"),
         ("xlarge", "> 70B"),
     ]
+
+    private func paramSizeLabel(_ id: String) -> String {
+        if id == "all" { return i18n.t(.hub_mkt_paramSizeAll) }
+        return paramSizes.first(where: { $0.0 == id })?.1 ?? id
+    }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -73,7 +79,7 @@ struct HubMarketView: View {
     private var searchBar: some View {
         HStack(spacing: theme.spacingS) {
             Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-            TextField("搜索模型...", text: $searchText)
+            TextField(i18n.t(.hub_mkt_searchPlaceholder), text: $searchText)
                 .textFieldStyle(.plain)
                 .onSubmit { performSearch() }
             Button(action: performSearch) {
@@ -89,7 +95,7 @@ struct HubMarketView: View {
     private var filterBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: theme.spacingS) {
-                Picker("来源", selection: $selectedSource) {
+                Picker(i18n.t(.hub_mkt_pickerSource), selection: $selectedSource) {
                     ForEach(sources, id: \.self) { s in
                         Label(sourceLabel(s), systemImage: sourceIcon(s)).tag(s)
                     }
@@ -97,20 +103,20 @@ struct HubMarketView: View {
                 .pickerStyle(.menu)
                 .controlSize(.small)
 
-                Picker("任务", selection: $selectedTask) {
+                Picker(i18n.t(.hub_mkt_pickerTask), selection: $selectedTask) {
                     ForEach(tasks, id: \.self) { t in Text(taskLabel(t)).tag(t) }
                 }
                 .pickerStyle(.menu)
                 .controlSize(.small)
 
-                Picker("格式", selection: $selectedFormat) {
-                    ForEach(formats, id: \.self) { f in Text(f == "all" ? "全部格式" : f.uppercased()).tag(f) }
+                Picker(i18n.t(.hub_mkt_pickerFormat), selection: $selectedFormat) {
+                    ForEach(formats, id: \.self) { f in Text(f == "all" ? i18n.t(.hub_mkt_formatAll) : f.uppercased()).tag(f) }
                 }
                 .pickerStyle(.menu)
                 .controlSize(.small)
 
-                Picker("参数量", selection: $selectedParamSize) {
-                    ForEach(paramSizes, id: \.0) { p in Text(p.1).tag(p.0) }
+                Picker(i18n.t(.hub_mkt_pickerParam), selection: $selectedParamSize) {
+                    ForEach(paramSizes, id: \.0) { p in Text(paramSizeLabel(p.0)).tag(p.0) }
                 }
                 .pickerStyle(.menu)
                 .controlSize(.small)
@@ -123,7 +129,7 @@ struct HubMarketView: View {
                 .controlSize(.small)
 
                 Toggle(isOn: $localOnly) {
-                    Text("仅本地")
+                    Text(i18n.t(.hub_mkt_localOnly))
                         .font(.system(size: 11))
                 }
                 .toggleStyle(.checkbox)
@@ -146,7 +152,7 @@ struct HubMarketView: View {
                 Button(action: loadMore) {
                     HStack {
                         Spacer()
-                        Text("加载更多 (\(searchResults.count)/\(totalResults))")
+                        Text(String(format: i18n.t(.hub_mkt_loadMoreFmt), searchResults.count, totalResults))
                             .font(.system(size: theme.textSize))
                             .foregroundStyle(theme.accent)
                         Spacer()
@@ -162,9 +168,9 @@ struct HubMarketView: View {
     private var emptyState: some View {
         VStack(spacing: theme.spacingM) {
             Image(systemName: "globe").font(.system(size: 48)).foregroundStyle(.secondary)
-            Text("搜索 HuggingFace / ModelScope / 私有仓库模型")
+            Text(i18n.t(.hub_mkt_emptyTitle))
                 .foregroundStyle(theme.textSecondary)
-            Text("支持多源搜索、格式筛选、参数量筛选、任务分类")
+            Text(i18n.t(.hub_mkt_emptyHint))
                 .font(.caption)
                 .foregroundStyle(theme.textTertiary)
         }
@@ -185,18 +191,18 @@ struct HubMarketView: View {
                                 ProgressView().controlSize(.small)
                             } else {
                                 HStack(spacing: theme.spacingS) {
-                                    Button("下载") {
+                                    Button(i18n.t(.hub_mkt_download)) {
                                         startDownload(model)
                                     }
                                     .buttonStyle(.borderedProminent)
                                     if model.format != "mlx" {
-                                        Button("一键转MLX") {
+                                        Button(i18n.t(.hub_mkt_convertMLX)) {
                                             startMLXDownload(model)
                                         }
                                         .buttonStyle(.bordered)
                                         .controlSize(.small)
                                     }
-                                    Button("加入评测") {
+                                    Button(i18n.t(.hub_mkt_addBenchmark)) {
                                         triggerBenchmark(model)
                                     }
                                     .buttonStyle(.bordered)
@@ -211,7 +217,7 @@ struct HubMarketView: View {
                             if let q = model.quantization { HubTagBadge(text: q, color: .orange) }
                             if let t = model.task { HubTagBadge(text: t, color: .green) }
                             if let p = model.parameters { HubTagBadge(text: p, color: .cyan) }
-                            if ragDefaultId == model.id { HubTagBadge(text: "RAG 默认", color: .mint) }
+                            if ragDefaultId == model.id { HubTagBadge(text: i18n.t(.hub_mkt_ragDefault), color: .mint) }
                             if let hint = fusionModuleHint(task: model.task) { HubTagBadge(text: hint, icon: "star.circle", color: .blue) }
                         }
 
@@ -235,7 +241,7 @@ struct HubMarketView: View {
                         if model.task == "embedding" {
                             Button(action: { setRAGDefault(model) }) {
                                 Label(
-                                    ragDefaultId == model.id ? "当前 RAG 默认嵌入模型" : "设为 RAG 默认嵌入模型",
+                                    ragDefaultId == model.id ? i18n.t(.hub_mkt_ragDefaultCurrent) : i18n.t(.hub_mkt_ragDefaultSet),
                                     systemImage: ragDefaultId == model.id ? "checkmark.circle.fill" : "text.badge.star"
                                 )
                                 .font(.system(size: theme.textSize, weight: .medium))
@@ -252,11 +258,11 @@ struct HubMarketView: View {
                         }
 
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: theme.spacingS) {
-                            if !model.sizeFormatted.isEmpty { HubDetailCell(label: "大小", value: model.sizeFormatted) }
-                            if let dl = model.downloads { HubDetailCell(label: "下载量", value: "\(dl)") }
-                            if let lk = model.likes { HubDetailCell(label: "点赞", value: "\(lk)") }
-                            if let lic = model.license { HubDetailCell(label: "许可", value: lic) }
-                            if let auth = model.author { HubDetailCell(label: "作者", value: auth) }
+                            if !model.sizeFormatted.isEmpty { HubDetailCell(label: i18n.t(.hub_mkt_size), value: model.sizeFormatted) }
+                            if let dl = model.downloads { HubDetailCell(label: i18n.t(.hub_mkt_downloads), value: "\(dl)") }
+                            if let lk = model.likes { HubDetailCell(label: i18n.t(.hub_mkt_likes), value: "\(lk)") }
+                            if let lic = model.license { HubDetailCell(label: i18n.t(.hub_mkt_license), value: lic) }
+                            if let auth = model.author { HubDetailCell(label: i18n.t(.hub_mkt_author), value: auth) }
                             if let repo = model.repoId { HubDetailCell(label: "Repo", value: repo) }
                         }
                     }
@@ -265,7 +271,7 @@ struct HubMarketView: View {
             } else {
                 VStack(spacing: theme.spacingM) {
                     Image(systemName: "doc.text.magnifyingglass").font(.system(size: 48)).foregroundStyle(.secondary)
-                    Text("选择模型查看详情")
+                    Text(i18n.t(.hub_mkt_selectModelHint))
                         .foregroundStyle(theme.textSecondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -383,7 +389,7 @@ struct HubMarketView: View {
                 _ = try await client.createDownload(repoId: repoId, source: source, format: format, quantization: quant)
                 marketLog.info("Download started: \(repoId)")
             } catch {
-                lastError = "下载失败: \(error.localizedDescription)"
+                lastError = String(format: i18n.t(.hub_mkt_downloadFailFmt), error.localizedDescription)
                 marketLog.error("Download failed: \(error.localizedDescription)")
             }
             downloadingIds.remove(model.id)
@@ -398,7 +404,7 @@ struct HubMarketView: View {
                 _ = try await client.createDownload(repoId: repoId, source: model.source ?? "huggingface", format: "mlx", quantization: "4bit")
                 marketLog.info("MLX download started: \(repoId)")
             } catch {
-                lastError = "MLX转换下载失败: \(error.localizedDescription)"
+                lastError = String(format: i18n.t(.hub_mkt_mlxFailFmt), error.localizedDescription)
                 marketLog.error("MLX download failed: \(error.localizedDescription)")
             }
             downloadingIds.remove(model.id)
@@ -411,7 +417,7 @@ struct HubMarketView: View {
                 _ = try await client.triggerBenchmark(modelId: model.id)
                 marketLog.info("Benchmark triggered for: \(model.id)")
             } catch {
-                lastError = "评测触发失败: \(error.localizedDescription)"
+                lastError = String(format: i18n.t(.hub_mkt_benchFailFmt), error.localizedDescription)
                 marketLog.error("Benchmark trigger failed: \(error.localizedDescription)")
             }
         }
@@ -432,9 +438,9 @@ struct HubMarketView: View {
         switch s {
         case "huggingface": return "HuggingFace"
         case "modelscope": return "ModelScope"
-        case "local": return "本地"
-        case "private": return "私有仓库"
-        default: return "全部来源"
+        case "local": return i18n.t(.hub_mkt_sourceLocal)
+        case "private": return i18n.t(.hub_mkt_sourcePrivate)
+        default: return i18n.t(.hub_mkt_sourceAll)
         }
     }
 
@@ -460,13 +466,13 @@ struct HubMarketView: View {
 
     private func taskLabel(_ t: String) -> String {
         switch t {
-        case "text-generation": return "文本生成"
-        case "code": return "代码"
-        case "vision": return "视觉"
-        case "embedding": return "嵌入"
-        case "audio": return "音频"
-        case "multimodal": return "多模态"
-        default: return "全部任务"
+        case "text-generation": return i18n.t(.hub_mkt_taskTextGen)
+        case "code": return i18n.t(.hub_mkt_taskCode)
+        case "vision": return i18n.t(.hub_mkt_taskVision)
+        case "embedding": return i18n.t(.hub_mkt_taskEmbedding)
+        case "audio": return i18n.t(.hub_mkt_taskAudio)
+        case "multimodal": return i18n.t(.hub_mkt_taskMultimodal)
+        default: return i18n.t(.hub_mkt_taskAll)
         }
     }
 }
@@ -477,6 +483,7 @@ private struct MarketModelRow: View {
     let isRAGDefault: Bool
     var ratingSummary: HubRatingSummaryResponse?
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         HStack(spacing: theme.spacingS) {
@@ -517,7 +524,7 @@ private struct MarketModelRow: View {
             if isDownloading {
                 ProgressView().controlSize(.small)
             } else {
-                Button("下载") { quickDownload() }
+                Button(i18n.t(.hub_mkt_download)) { quickDownload() }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.mini)
             }
@@ -529,7 +536,7 @@ private struct MarketModelRow: View {
         switch s {
         case "huggingface": return "HF"
         case "modelscope": return "MS"
-        case "local": return "本地"
+        case "local": return i18n.t(.hub_mkt_sourceLocal)
         default: return s
         }
     }

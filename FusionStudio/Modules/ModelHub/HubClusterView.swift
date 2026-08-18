@@ -12,6 +12,7 @@ private let clusterLog = Logger(subsystem: "com.fusion.studio", category: "HubCl
 struct HubClusterView: View {
     @ObservedObject var client: ModelHubAPIClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var nodes: [HubClusterNode] = []
     @State private var topology: HubClusterTopologyResponse?
@@ -47,19 +48,19 @@ struct HubClusterView: View {
     private var nodeListPanel: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("集群节点")
+                Text(i18n.t(.hub_cls_nodes))
                     .font(.system(size: theme.headlineSize, weight: .bold))
                     .foregroundStyle(theme.text)
                 Spacer()
                 let onlineCount = nodes.filter(\.isOnline).count
-                Text("\(onlineCount)/\(nodes.count) 在线")
+                Text(String(format: i18n.t(.hub_cls_onlineFmt), onlineCount, nodes.count))
                     .font(.caption)
                     .foregroundStyle(onlineCount > 0 ? .green : .red)
                 Button(action: { Task { await loadAll() } }) {
                     Image(systemName: "arrow.clockwise")
                 }
                 .buttonStyle(.plain)
-                Button("同步模型") { showSyncSheet = true }
+                Button(i18n.t(.hub_cls_syncModel)) { showSyncSheet = true }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
             }
@@ -72,9 +73,9 @@ struct HubClusterView: View {
             } else if nodes.isEmpty {
                 VStack(spacing: theme.spacingM) {
                     Image(systemName: "server.rack").font(.system(size: 48)).foregroundStyle(.secondary)
-                    Text("暂无集群节点")
+                    Text(i18n.t(.hub_cls_noNodes))
                         .foregroundStyle(theme.textSecondary)
-                    Text("确保多台 Mac 在同一网络并启动 Model Hub 服务")
+                    Text(i18n.t(.hub_cls_noNodesHint))
                         .font(.caption)
                         .foregroundStyle(theme.textTertiary)
                 }
@@ -105,7 +106,7 @@ struct HubClusterView: View {
                 } else {
                     VStack(spacing: theme.spacingM) {
                         Image(systemName: "server.rack").font(.system(size: 48)).foregroundStyle(.secondary)
-                        Text("选择节点查看详情")
+                        Text(i18n.t(.hub_cls_selectNodeHint))
                             .foregroundStyle(theme.textSecondary)
                     }
                     .frame(maxWidth: .infinity)
@@ -135,19 +136,19 @@ struct HubClusterView: View {
                 if let mem = node.memoryGB { HubTagBadge(text: String(format: "%.0f GB", mem), color: .cyan) }
             }
 
-            GroupBox("节点信息") {
+            GroupBox(i18n.t(.hub_cls_nodeInfo)) {
                 VStack(alignment: .leading, spacing: 6) {
                     HubDetailCell(label: "ID", value: node.id)
                     if let host = node.host, let port = node.port {
-                        HubDetailCell(label: "地址", value: "\(host):\(port)")
+                        HubDetailCell(label: i18n.t(.hub_cls_addr), value: "\(host):\(port)")
                     }
                     if let lastSeen = node.lastSeen {
-                        HubDetailCell(label: "最近上线", value: lastSeen)
+                        HubDetailCell(label: i18n.t(.hub_cls_lastSeen), value: lastSeen)
                     }
                 }
             }
 
-            GroupBox("资源使用") {
+            GroupBox(i18n.t(.hub_cls_resourceUsage)) {
                 VStack(spacing: theme.spacingS) {
                     if let cpu = node.cpuUsage {
                         resourceBar(label: "CPU", value: cpu, color: .blue)
@@ -156,13 +157,13 @@ struct HubClusterView: View {
                         resourceBar(label: "GPU", value: gpu, color: .green)
                     }
                     if let memUsed = node.memoryUsed, let memTotal = node.memoryGB {
-                        resourceBar(label: "内存", value: memUsed / memTotal, color: .orange)
+                        resourceBar(label: i18n.t(.hub_cls_memory), value: memUsed / memTotal, color: .orange)
                     }
                 }
             }
 
             if let models = node.models, !models.isEmpty {
-                GroupBox("本地模型 (\(models.count))") {
+                GroupBox(String(format: i18n.t(.hub_cls_localModelsFmt), models.count)) {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 4) {
                             ForEach(models, id: \.self) { m in
@@ -182,35 +183,35 @@ struct HubClusterView: View {
     private var inferenceRouteSection: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: theme.spacingM) {
-                Text("自动调度推理")
+                Text(i18n.t(.hub_cls_autoSchedule))
                     .font(.system(size: theme.headlineSize, weight: .semibold))
                     .foregroundStyle(theme.text)
-                Text("本地优先，集群回退")
+                Text(i18n.t(.hub_cls_localFirst))
                     .font(.caption)
                     .foregroundStyle(theme.textTertiary)
 
-                Picker("模型", selection: $routeModelId) {
-                    Text("选择模型...").tag("")
+                Picker(i18n.t(.hub_cls_model), selection: $routeModelId) {
+                    Text(i18n.t(.hub_cls_selectModelHint)).tag("")
                     ForEach(localModels) { m in
                         Text(m.displayTitle).tag(m.id)
                     }
                 }
                 .pickerStyle(.menu)
 
-                Picker("调度模式", selection: $routeMode) {
+                Picker(i18n.t(.hub_cls_routeMode), selection: $routeMode) {
                     ForEach(routeModes, id: \.self) { m in
                         Text(routeModeLabel(m)).tag(m)
                     }
                 }
                 .pickerStyle(.segmented)
 
-                TextField("输入推理提示词...", text: $routePrompt)
+                TextField(i18n.t(.hub_cls_promptPlaceholder), text: $routePrompt)
                     .textFieldStyle(.roundedBorder)
 
                 Button(action: sendRouteRequest) {
                     HStack {
                         if isRouting { ProgressView().controlSize(.small) }
-                        Text("发送推理请求")
+                        Text(i18n.t(.hub_cls_sendInfer))
                     }
                 }
                 .buttonStyle(.borderedProminent)
@@ -227,14 +228,14 @@ struct HubClusterView: View {
     private var routeResultSection: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: theme.spacingM) {
-                Text("推理结果")
+                Text(i18n.t(.hub_cls_inferResult))
                     .font(.system(size: theme.headlineSize, weight: .semibold))
                     .foregroundStyle(theme.text)
 
                 if let result = routeResult {
                     if let routedTo = result.routedTo {
                         HStack {
-                            Text("路由到:").font(.caption).foregroundStyle(.secondary)
+                            Text(i18n.t(.hub_cls_routedTo)).font(.caption).foregroundStyle(.secondary)
                             Text(routedTo).font(.caption).foregroundStyle(.green)
                             if let mode = result.routeMode {
                                 Text("(\(routeModeLabel(mode)))").font(.caption2).foregroundStyle(.secondary)
@@ -255,7 +256,7 @@ struct HubClusterView: View {
                         }
                     }
                 } else {
-                    Text("发送推理请求后查看结果")
+                    Text(i18n.t(.hub_cls_resultHint))
                         .foregroundStyle(theme.textTertiary)
                 }
             }
@@ -279,20 +280,20 @@ struct HubClusterView: View {
 
     private var syncSheet: some View {
         VStack(spacing: theme.spacingM) {
-            Text("同步模型至集群").font(.title2).bold()
-            Picker("模型", selection: $syncModelId) {
-                Text("选择模型...").tag("")
+            Text(i18n.t(.hub_cls_syncToCluster)).font(.title2).bold()
+            Picker(i18n.t(.hub_cls_model), selection: $syncModelId) {
+                Text(i18n.t(.hub_cls_selectModelHint)).tag("")
                 ForEach(localModels) { m in
                     Text(m.displayTitle).tag(m.id)
                 }
             }
             .pickerStyle(.menu)
-            Text("将指定模型文件同步至所有在线集群节点")
+            Text(i18n.t(.hub_cls_syncHint))
                 .font(.caption)
                 .foregroundStyle(theme.textTertiary)
             HStack {
-                Button("取消") { showSyncSheet = false }.buttonStyle(.bordered)
-                Button("开始同步") {
+                Button(i18n.t(.cancel)) { showSyncSheet = false }.buttonStyle(.bordered)
+                Button(i18n.t(.hub_cls_startSync)) {
                     syncModel()
                     showSyncSheet = false
                 }
@@ -360,9 +361,9 @@ struct HubClusterView: View {
 
     private func routeModeLabel(_ m: String) -> String {
         switch m {
-        case "auto": return "自动"
-        case "local": return "本地优先"
-        case "cluster": return "集群"
+        case "auto": return i18n.t(.hub_cls_modeAuto)
+        case "local": return i18n.t(.hub_cls_modeLocal)
+        case "cluster": return i18n.t(.hub_cls_modeCluster)
         default: return m
         }
     }
@@ -396,6 +397,7 @@ struct HubClusterView: View {
 private struct ClusterNodeRow: View {
     let node: HubClusterNode
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         HStack(spacing: theme.spacingS) {
@@ -408,7 +410,7 @@ private struct ClusterNodeRow: View {
                 HStack(spacing: 8) {
                     if let gpu = node.gpuType { Text(gpu).font(.caption).foregroundStyle(.secondary) }
                     if let mem = node.memoryGB { Text(String(format: "%.0fGB", mem)).font(.caption).foregroundStyle(.secondary) }
-                    if let cnt = node.models?.count { Text("\(cnt) 模型").font(.caption).foregroundStyle(.secondary) }
+                    if let cnt = node.models?.count { Text(String(format: i18n.t(.hub_cls_modelCountFmt), cnt)).font(.caption).foregroundStyle(.secondary) }
                 }
             }
             Spacer()

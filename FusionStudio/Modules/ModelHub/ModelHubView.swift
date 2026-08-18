@@ -76,10 +76,10 @@ struct ModelInfo: Identifiable, Hashable, Codable {
     }
 
     static let presets: [ModelInfo] = [
-        ModelInfo(id: "qwen3.5-9b-4bit", name: "Qwen3.5 9B", path: "", sizeGB: 5.2, quantization: "4bit", format: "mlx", family: "Qwen", parameters: "9B", isDownloaded: false, isActive: false, downloadProgress: 0, description: "通义千问 3.5，9B 参数，4bit 量化", hfRepoId: "mlx-community/Qwen3.5-9B-4bit"),
-        ModelInfo(id: "llama3-8b-4bit", name: "Llama 3 8B", path: "", sizeGB: 4.8, quantization: "4bit", format: "mlx", family: "Llama", parameters: "8B", isDownloaded: false, isActive: false, downloadProgress: 0, description: "Meta Llama 3，8B 参数，4bit 量化", hfRepoId: "mlx-community/Meta-Llama-3-8B-Instruct-4bit"),
-        ModelInfo(id: "deepseek-coder-6.7b-4bit", name: "DeepSeek Coder 6.7B", path: "", sizeGB: 3.9, quantization: "4bit", format: "mlx", family: "DeepSeek", parameters: "6.7B", isDownloaded: false, isActive: false, downloadProgress: 0, description: "DeepSeek 代码专用模型", hfRepoId: "mlx-community/deepseek-coder-6.7b-instruct-4bit"),
-        ModelInfo(id: "qwen2-vl-7b-4bit", name: "Qwen2-VL 7B", path: "", sizeGB: 4.2, quantization: "4bit", format: "mlx", family: "Qwen", parameters: "7B", isDownloaded: false, isActive: false, downloadProgress: 0, description: "Qwen2 视觉语言模型", hfRepoId: "mlx-community/Qwen2-VL-7B-Instruct-4bit"),
+        ModelInfo(id: "qwen3.5-9b-4bit", name: "Qwen3.5 9B", path: "", sizeGB: 5.2, quantization: "4bit", format: "mlx", family: "Qwen", parameters: "9B", isDownloaded: false, isActive: false, downloadProgress: 0, description: "hub_mv_descQwen35", hfRepoId: "mlx-community/Qwen3.5-9B-4bit"),
+        ModelInfo(id: "llama3-8b-4bit", name: "Llama 3 8B", path: "", sizeGB: 4.8, quantization: "4bit", format: "mlx", family: "Llama", parameters: "8B", isDownloaded: false, isActive: false, downloadProgress: 0, description: "hub_mv_descLlama3", hfRepoId: "mlx-community/Meta-Llama-3-8B-Instruct-4bit"),
+        ModelInfo(id: "deepseek-coder-6.7b-4bit", name: "DeepSeek Coder 6.7B", path: "", sizeGB: 3.9, quantization: "4bit", format: "mlx", family: "DeepSeek", parameters: "6.7B", isDownloaded: false, isActive: false, downloadProgress: 0, description: "hub_mv_descDeepseek", hfRepoId: "mlx-community/deepseek-coder-6.7b-instruct-4bit"),
+        ModelInfo(id: "qwen2-vl-7b-4bit", name: "Qwen2-VL 7B", path: "", sizeGB: 4.2, quantization: "4bit", format: "mlx", family: "Qwen", parameters: "7B", isDownloaded: false, isActive: false, downloadProgress: 0, description: "hub_mv_descQwenVL", hfRepoId: "mlx-community/Qwen2-VL-7B-Instruct-4bit"),
     ]
 
     private static func extractFamily(from name: String) -> String {
@@ -120,6 +120,7 @@ struct ModelInfo: Identifiable, Hashable, Codable {
 
 struct ModelHubView: View {
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @EnvironmentObject private var config: FusionConfig
     @EnvironmentObject private var agentBridge: AgentBridge
     @State private var models: [ModelInfo] = []
@@ -157,7 +158,7 @@ struct ModelHubView: View {
                 HStack {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.secondary)
-                    TextField("搜索模型...", text: $searchText)
+                    TextField(i18n.t(.hub_mv_searchPlaceholder), text: $searchText)
                         .textFieldStyle(.plain)
                 }
                 .padding(8)
@@ -169,7 +170,7 @@ struct ModelHubView: View {
                     HStack(spacing: 6) {
                         ForEach(families, id: \.self) { family in
                             let isSelected = selectedFamily == family
-                            Button(family) {
+                            Button(family == "全部" ? i18n.t(.hub_mv_catAll) : family) {
                                 selectedFamily = family
                             }
                             .buttonStyle(.bordered)
@@ -228,7 +229,7 @@ struct ModelHubView: View {
                     Image(systemName: "cpu")
                         .font(.system(size: 48))
                         .foregroundColor(.secondary)
-                    Text("选择一个模型查看详情")
+                    Text(i18n.t(.hub_mv_selectModelHint))
                         .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -237,10 +238,10 @@ struct ModelHubView: View {
         .toolbar {
             ToolbarItemGroup {
                 Button(action: { showDownloadSheet = true }) {
-                    Label("下载模型", systemImage: "icloud.and.arrow.down")
+                    Label(i18n.t(.hub_mv_downloadModel), systemImage: "icloud.and.arrow.down")
                 }
                 Button(action: refreshModels) {
-                    Label("刷新", systemImage: "arrow.clockwise")
+                    Label(i18n.t(.hub_mv_refresh), systemImage: "arrow.clockwise")
                 }
                 .disabled(isRefreshing)
             }
@@ -378,6 +379,7 @@ struct ModelHubView: View {
 
 struct ModelRow: View {
     let model: ModelInfo
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         HStack(spacing: 10) {
@@ -385,7 +387,7 @@ struct ModelRow: View {
                 Circle()
                     .fill(model.isActive ? Color.green : (model.isDownloaded ? Color.blue : Color.gray))
                     .frame(width: 8, height: 8)
-                Text(model.isActive ? "活跃" : (model.isDownloaded ? "就绪" : "未下载"))
+                Text(model.isActive ? i18n.t(.hub_mv_active) : (model.isDownloaded ? i18n.t(.hub_mv_ready) : i18n.t(.hub_mv_notDownloaded)))
                     .font(.system(size: 8))
                     .foregroundColor(.secondary)
             }
@@ -429,6 +431,7 @@ struct ModelDetailView: View {
     @Binding var model: ModelInfo
     let onDelete: () -> Void
     let onActivate: () -> Void
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         ScrollView {
@@ -440,7 +443,7 @@ struct ModelDetailView: View {
                             .bold()
                         Spacer()
                         if model.isActive {
-                            Label("当前使用", systemImage: "checkmark.circle.fill")
+                            Label(i18n.t(.hub_mv_currentUse), systemImage: "checkmark.circle.fill")
                                 .foregroundColor(.green)
                         }
                     }
@@ -460,21 +463,21 @@ struct ModelDetailView: View {
                 HStack(spacing: 12) {
                     if !model.isDownloaded && model.downloadProgress == 0 {
                         Button(action: { onDelete() }) {
-                            Label("下载", systemImage: "icloud.and.arrow.down")
+                            Label(i18n.t(.hub_mv_download), systemImage: "icloud.and.arrow.down")
                         }
                         .buttonStyle(.borderedProminent)
                     }
 
                     if model.isDownloaded && !model.isActive {
                         Button(action: onActivate) {
-                            Label("激活", systemImage: "play.circle")
+                            Label(i18n.t(.hub_mv_activate), systemImage: "play.circle")
                         }
                         .buttonStyle(.borderedProminent)
                     }
 
                     if model.isDownloaded {
                         Button(action: onDelete) {
-                            Label("删除", systemImage: "trash")
+                            Label(i18n.t(.delete), systemImage: "trash")
                                 .foregroundColor(.red)
                         }
                         .buttonStyle(.bordered)
@@ -485,26 +488,26 @@ struct ModelDetailView: View {
                 if model.downloadProgress > 0 && model.downloadProgress < 1 {
                     VStack(alignment: .leading, spacing: 4) {
                         ProgressView(value: model.downloadProgress)
-                        Text("下载中... \(Int(model.downloadProgress * 100))%")
+                        Text(String(format: i18n.t(.hub_mv_downloadingFmt), Int(model.downloadProgress * 100)))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
                     .padding(.horizontal)
                 }
 
-                GroupBox("基本信息") {
+                GroupBox(i18n.t(.hub_mv_basicInfo)) {
                     VStack(alignment: .leading, spacing: 8) {
-                        DetailRow("模型 ID", model.id)
+                        DetailRow(i18n.t(.hub_mv_modelId), model.id)
                         if !model.path.isEmpty {
-                            DetailRow("路径", model.path)
+                            DetailRow(i18n.t(.hub_mv_path), model.path)
                         }
                         if model.sizeGB > 0 {
-                            DetailRow("大小", "\(String(format: "%.1f", model.sizeGB)) GB")
+                            DetailRow(i18n.t(.hub_mv_size), "\(String(format: "%.1f", model.sizeGB)) GB")
                         }
-                        DetailRow("格式", model.format.uppercased())
-                        DetailRow("量化", model.quantization)
-                        DetailRow("家族", model.family)
-                        DetailRow("参数", model.parameters)
+                        DetailRow(i18n.t(.hub_mv_format), model.format.uppercased())
+                        DetailRow(i18n.t(.hub_mv_quant), model.quantization)
+                        DetailRow(i18n.t(.hub_mv_family), model.family)
+                        DetailRow(i18n.t(.hub_mv_params), model.parameters)
                         if !model.hfRepoId.isEmpty {
                             DetailRow("HF Repo", model.hfRepoId)
                         }
@@ -514,8 +517,8 @@ struct ModelDetailView: View {
                 .padding(.horizontal)
 
                 if !model.description.isEmpty {
-                    GroupBox("描述") {
-                        Text(model.description)
+                    GroupBox(i18n.t(.hub_mv_description)) {
+                        Text(localizedDescription(model.description))
                             .font(.body)
                             .padding(8)
                     }
@@ -524,6 +527,13 @@ struct ModelDetailView: View {
             }
             .padding(.vertical)
         }
+    }
+
+    private func localizedDescription(_ s: String) -> String {
+        if s.hasPrefix("hub_"), let key = I18nKey(rawValue: s) {
+            return i18n.t(key)
+        }
+        return s
     }
 }
 
@@ -567,6 +577,7 @@ struct QuantOptionRow: View {
 struct DownloadModelView: View {
     @EnvironmentObject private var config: FusionConfig
     @Environment(\.dismiss) var dismiss
+    @StateObject private var i18n = I18nManager.shared
     @State private var repoId = ""
     @State private var hfToken = ""
     @State private var searchQuery = ""
@@ -578,15 +589,15 @@ struct DownloadModelView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("下载模型")
+            Text(i18n.t(.hub_mv_downloadModel))
                 .font(.title2)
                 .bold()
 
             HStack {
-                TextField("搜索 HuggingFace 模型...", text: $searchQuery)
+                TextField(i18n.t(.hub_mv_searchHF), text: $searchQuery)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit { searchHF() }
-                Button("搜索") { searchHF() }
+                Button(i18n.t(.hub_mv_search)) { searchHF() }
                     .buttonStyle(.bordered)
                     .disabled(searchQuery.isEmpty || isSearching)
             }
@@ -612,7 +623,7 @@ struct DownloadModelView: View {
                             }
                         }
                         Spacer()
-                        Button("下载") {
+                        Button(i18n.t(.hub_mv_download)) {
                             onDownload(hf.repoId)
                             dismiss()
                         }
@@ -626,7 +637,7 @@ struct DownloadModelView: View {
             Divider()
 
             if !recommended.isEmpty {
-                Text("推荐模型")
+                Text(i18n.t(.hub_mv_recommended))
                     .font(.system(size: 13, weight: .semibold))
                     .frame(maxWidth: .infinity, alignment: .leading)
                 List(recommended.prefix(5), id: \.repoId) { hf in
@@ -639,7 +650,7 @@ struct DownloadModelView: View {
                             }
                         }
                         Spacer()
-                        Button("下载") {
+                        Button(i18n.t(.hub_mv_download)) {
                             onDownload(hf.repoId)
                             dismiss()
                         }
@@ -655,17 +666,17 @@ struct DownloadModelView: View {
 
             Divider()
 
-            TextField("或直接输入 HuggingFace repo ID", text: $repoId)
+            TextField(i18n.t(.hub_mv_repoIdHint), text: $repoId)
                 .textFieldStyle(.roundedBorder)
                 .font(.system(size: 12, design: .monospaced))
 
-            SecureField("HF Token (可选)", text: $hfToken)
+            SecureField(i18n.t(.hub_mv_hfTokenOptional), text: $hfToken)
                 .textFieldStyle(.roundedBorder)
 
             HStack {
-                Button("取消") { dismiss() }
+                Button(i18n.t(.cancel)) { dismiss() }
                     .buttonStyle(.bordered)
-                Button("下载") {
+                Button(i18n.t(.hub_mv_download)) {
                     onDownload(repoId)
                     dismiss()
                 }

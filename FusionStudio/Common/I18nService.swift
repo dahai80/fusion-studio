@@ -747,6 +747,254 @@ enum I18nKey: String, CaseIterable {
     case hub_concurrencyDefaultFmt = "hub_concurrencyDefaultFmt"
     case hub_throttleConfigTitleFmt = "hub_throttleConfigTitleFmt"
     case hub_selectedModelsLoadingFmt = "hub_selectedModelsLoadingFmt"
+    case hub_ls_catAll = "hub_ls_catAll"
+    case hub_ls_catChat = "hub_ls_catChat"
+    case hub_ls_catCode = "hub_ls_catCode"
+    case hub_ls_catEmbed = "hub_ls_catEmbed"
+    case hub_ls_catVision = "hub_ls_catVision"
+    case hub_ls_catPrivate = "hub_ls_catPrivate"
+    case hub_ls_catPinned = "hub_ls_catPinned"
+    case hub_ls_catServing = "hub_ls_catServing"
+    case hub_ls_catLLM = "hub_ls_catLLM"
+    case hub_ls_catVLM = "hub_ls_catVLM"
+    case hub_ls_catEmbedM = "hub_ls_catEmbedM"
+    case hub_ls_catCodeM = "hub_ls_catCodeM"
+    case hub_ls_catAudioM = "hub_ls_catAudioM"
+    case hub_ls_catMLX = "hub_ls_catMLX"
+    case hub_ls_catGGUF = "hub_ls_catGGUF"
+    case hub_ls_category = "hub_ls_category"
+    case hub_ls_searchPlaceholder = "hub_ls_searchPlaceholder"
+    case hub_ls_batchMode = "hub_ls_batchMode"
+    case hub_ls_selectedCountFmt = "hub_ls_selectedCountFmt"
+    case hub_ls_selectAll = "hub_ls_selectAll"
+    case hub_ls_batchDelete = "hub_ls_batchDelete"
+    case hub_ls_batchQuantize = "hub_ls_batchQuantize"
+    case hub_ls_syncCluster = "hub_ls_syncCluster"
+    case hub_ls_exportPath = "hub_ls_exportPath"
+    case hub_ls_currentUse = "hub_ls_currentUse"
+    case hub_ls_serving = "hub_ls_serving"
+    case hub_ls_compatFormats = "hub_ls_compatFormats"
+    case hub_ls_unpin = "hub_ls_unpin"
+    case hub_ls_pin = "hub_ls_pin"
+    case hub_ls_stopServe = "hub_ls_stopServe"
+    case hub_ls_startServe = "hub_ls_startServe"
+    case hub_ls_basicInfo = "hub_ls_basicInfo"
+    case hub_ls_path = "hub_ls_path"
+    case hub_ls_source = "hub_ls_source"
+    case hub_ls_engine = "hub_ls_engine"
+    case hub_ls_license = "hub_ls_license"
+    case hub_ls_allowedModules = "hub_ls_allowedModules"
+    case hub_ls_selectModelHint = "hub_ls_selectModelHint"
+    case hub_ls_versionMgmt = "hub_ls_versionMgmt"
+    case hub_ls_versionList = "hub_ls_versionList"
+    case hub_ls_noVersions = "hub_ls_noVersions"
+    case hub_ls_rollback = "hub_ls_rollback"
+    case hub_ls_publish = "hub_ls_publish"
+    case hub_ls_deprecate = "hub_ls_deprecate"
+    case hub_ls_retire = "hub_ls_retire"
+    case hub_ls_resident = "hub_ls_resident"
+    case hub_ls_batchQuantTitle = "hub_ls_batchQuantTitle"
+    case hub_ls_batchQuantHintFmt = "hub_ls_batchQuantHintFmt"
+    case hub_ls_targetFormat = "hub_ls_targetFormat"
+    case hub_ls_quantBits = "hub_ls_quantBits"
+    case hub_ls_startQuantize = "hub_ls_startQuantize"
+    case hub_ls_batchQuantFailFmt = "hub_ls_batchQuantFailFmt"
+    case hub_ls_rollbackFailFmt = "hub_ls_rollbackFailFmt"
+    case hub_ls_syncFailFmt = "hub_ls_syncFailFmt"
+    case hub_ls_startServeFailFmt = "hub_ls_startServeFailFmt"
+    case hub_ls_stopServeFailFmt = "hub_ls_stopServeFailFmt"
+    case hub_ls_publishFailFmt = "hub_ls_publishFailFmt"
+    case hub_ls_deprecateFailFmt = "hub_ls_deprecateFailFmt"
+    case hub_ls_retireFailFmt = "hub_ls_retireFailFmt"
+    case hub_cls_nodes = "hub_cls_nodes"
+    case hub_cls_onlineFmt = "hub_cls_onlineFmt"
+    case hub_cls_syncModel = "hub_cls_syncModel"
+    case hub_cls_noNodes = "hub_cls_noNodes"
+    case hub_cls_noNodesHint = "hub_cls_noNodesHint"
+    case hub_cls_selectNodeHint = "hub_cls_selectNodeHint"
+    case hub_cls_nodeInfo = "hub_cls_nodeInfo"
+    case hub_cls_addr = "hub_cls_addr"
+    case hub_cls_lastSeen = "hub_cls_lastSeen"
+    case hub_cls_resourceUsage = "hub_cls_resourceUsage"
+    case hub_cls_memory = "hub_cls_memory"
+    case hub_cls_localModelsFmt = "hub_cls_localModelsFmt"
+    case hub_cls_autoSchedule = "hub_cls_autoSchedule"
+    case hub_cls_localFirst = "hub_cls_localFirst"
+    case hub_cls_model = "hub_cls_model"
+    case hub_cls_selectModelHint = "hub_cls_selectModelHint"
+    case hub_cls_routeMode = "hub_cls_routeMode"
+    case hub_cls_promptPlaceholder = "hub_cls_promptPlaceholder"
+    case hub_cls_sendInfer = "hub_cls_sendInfer"
+    case hub_cls_inferResult = "hub_cls_inferResult"
+    case hub_cls_routedTo = "hub_cls_routedTo"
+    case hub_cls_resultHint = "hub_cls_resultHint"
+    case hub_cls_syncToCluster = "hub_cls_syncToCluster"
+    case hub_cls_syncHint = "hub_cls_syncHint"
+    case hub_cls_startSync = "hub_cls_startSync"
+    case hub_cls_modeAuto = "hub_cls_modeAuto"
+    case hub_cls_modeLocal = "hub_cls_modeLocal"
+    case hub_cls_modeCluster = "hub_cls_modeCluster"
+    case hub_cls_modelCountFmt = "hub_cls_modelCountFmt"
+    case hub_dash_mlxEngine = "hub_dash_mlxEngine"
+    case hub_dash_clusterMode = "hub_dash_clusterMode"
+    case hub_dash_modelService = "hub_dash_modelService"
+    case hub_dash_localModels = "hub_dash_localModels"
+    case hub_dash_activeModels = "hub_dash_activeModels"
+    case hub_dash_downloading = "hub_dash_downloading"
+    case hub_dash_totalStorage = "hub_dash_totalStorage"
+    case hub_dash_pinned = "hub_dash_pinned"
+    case hub_dash_quantizing = "hub_dash_quantizing"
+    case hub_dash_clusterNodes = "hub_dash_clusterNodes"
+    case hub_dash_totalModels = "hub_dash_totalModels"
+    case hub_dash_quickActions = "hub_dash_quickActions"
+    case hub_dash_searchMarket = "hub_dash_searchMarket"
+    case hub_dash_downloadModel = "hub_dash_downloadModel"
+    case hub_dash_quantizeModel = "hub_dash_quantizeModel"
+    case hub_dash_systemClean = "hub_dash_systemClean"
+    case hub_dash_recentModels = "hub_dash_recentModels"
+    case hub_dash_noModels = "hub_dash_noModels"
+    case hub_dash_resident = "hub_dash_resident"
+    case hub_dash_serving = "hub_dash_serving"
+    case hub_dash_sysOverview = "hub_dash_sysOverview"
+    case hub_dash_memory = "hub_dash_memory"
+    case hub_dash_disk = "hub_dash_disk"
+    case hub_dash_uptime = "hub_dash_uptime"
+    case hub_dash_loading = "hub_dash_loading"
+    case hub_mv_descQwen35 = "hub_mv_descQwen35"
+    case hub_mv_descLlama3 = "hub_mv_descLlama3"
+    case hub_mv_descDeepseek = "hub_mv_descDeepseek"
+    case hub_mv_descQwenVL = "hub_mv_descQwenVL"
+    case hub_mv_catAll = "hub_mv_catAll"
+    case hub_mv_searchPlaceholder = "hub_mv_searchPlaceholder"
+    case hub_mv_selectModelHint = "hub_mv_selectModelHint"
+    case hub_mv_downloadModel = "hub_mv_downloadModel"
+    case hub_mv_refresh = "hub_mv_refresh"
+    case hub_mv_active = "hub_mv_active"
+    case hub_mv_ready = "hub_mv_ready"
+    case hub_mv_notDownloaded = "hub_mv_notDownloaded"
+    case hub_mv_currentUse = "hub_mv_currentUse"
+    case hub_mv_download = "hub_mv_download"
+    case hub_mv_activate = "hub_mv_activate"
+    case hub_mv_downloadingFmt = "hub_mv_downloadingFmt"
+    case hub_mv_basicInfo = "hub_mv_basicInfo"
+    case hub_mv_modelId = "hub_mv_modelId"
+    case hub_mv_path = "hub_mv_path"
+    case hub_mv_size = "hub_mv_size"
+    case hub_mv_format = "hub_mv_format"
+    case hub_mv_quant = "hub_mv_quant"
+    case hub_mv_family = "hub_mv_family"
+    case hub_mv_params = "hub_mv_params"
+    case hub_mv_description = "hub_mv_description"
+    case hub_mv_searchHF = "hub_mv_searchHF"
+    case hub_mv_search = "hub_mv_search"
+    case hub_mv_recommended = "hub_mv_recommended"
+    case hub_mv_repoIdHint = "hub_mv_repoIdHint"
+    case hub_mv_hfTokenOptional = "hub_mv_hfTokenOptional"
+    case hub_dep_stPending = "hub_dep_stPending"
+    case hub_dep_stRunning = "hub_dep_stRunning"
+    case hub_dep_stStopped = "hub_dep_stStopped"
+    case hub_dep_stFailed = "hub_dep_stFailed"
+    case hub_dep_stUnknown = "hub_dep_stUnknown"
+    case hub_dep_management = "hub_dep_management"
+    case hub_dep_empty = "hub_dep_empty"
+    case hub_dep_selectHint = "hub_dep_selectHint"
+    case hub_dep_replicasFmt = "hub_dep_replicasFmt"
+    case hub_dep_canaryFmt = "hub_dep_canaryFmt"
+    case hub_dep_config = "hub_dep_config"
+    case hub_dep_model = "hub_dep_model"
+    case hub_dep_modelName = "hub_dep_modelName"
+    case hub_dep_strategy = "hub_dep_strategy"
+    case hub_dep_replicasCount = "hub_dep_replicasCount"
+    case hub_dep_canaryRatio = "hub_dep_canaryRatio"
+    case hub_dep_createdAt = "hub_dep_createdAt"
+    case hub_dep_updatedAt = "hub_dep_updatedAt"
+    case hub_dep_metrics = "hub_dep_metrics"
+    case hub_dep_reqPerSec = "hub_dep_reqPerSec"
+    case hub_dep_latencyMs = "hub_dep_latencyMs"
+    case hub_dep_errorRate = "hub_dep_errorRate"
+    case hub_dep_refreshMetrics = "hub_dep_refreshMetrics"
+    case hub_dep_actions = "hub_dep_actions"
+    case hub_dep_stopDep = "hub_dep_stopDep"
+    case hub_dep_scale = "hub_dep_scale"
+    case hub_dep_grayRelease = "hub_dep_grayRelease"
+    case hub_dep_deleteDep = "hub_dep_deleteDep"
+    case hub_dep_stopFailFmt = "hub_dep_stopFailFmt"
+    case hub_dep_scaleFailFmt = "hub_dep_scaleFailFmt"
+    case hub_dep_grayFailFmt = "hub_dep_grayFailFmt"
+    case hub_dep_deleteFailFmt = "hub_dep_deleteFailFmt"
+    case hub_dep_metricsFailFmt = "hub_dep_metricsFailFmt"
+    case hub_dep_createDep = "hub_dep_createDep"
+    case hub_dep_modelId = "hub_dep_modelId"
+    case hub_dep_depStrategy = "hub_dep_depStrategy"
+    case hub_dep_replicasStepperFmt = "hub_dep_replicasStepperFmt"
+    case hub_dep_canaryStepperFmt = "hub_dep_canaryStepperFmt"
+    case hub_mkt_searchPlaceholder = "hub_mkt_searchPlaceholder"
+    case hub_mkt_sourceAll = "hub_mkt_sourceAll"
+    case hub_mkt_sourceLocal = "hub_mkt_sourceLocal"
+    case hub_mkt_sourcePrivate = "hub_mkt_sourcePrivate"
+    case hub_mkt_taskAll = "hub_mkt_taskAll"
+    case hub_mkt_taskTextGen = "hub_mkt_taskTextGen"
+    case hub_mkt_taskCode = "hub_mkt_taskCode"
+    case hub_mkt_taskVision = "hub_mkt_taskVision"
+    case hub_mkt_taskEmbedding = "hub_mkt_taskEmbedding"
+    case hub_mkt_taskAudio = "hub_mkt_taskAudio"
+    case hub_mkt_taskMultimodal = "hub_mkt_taskMultimodal"
+    case hub_mkt_formatAll = "hub_mkt_formatAll"
+    case hub_mkt_paramSizeAll = "hub_mkt_paramSizeAll"
+    case hub_mkt_localOnly = "hub_mkt_localOnly"
+    case hub_mkt_loadMoreFmt = "hub_mkt_loadMoreFmt"
+    case hub_mkt_emptyTitle = "hub_mkt_emptyTitle"
+    case hub_mkt_emptyHint = "hub_mkt_emptyHint"
+    case hub_mkt_download = "hub_mkt_download"
+    case hub_mkt_convertMLX = "hub_mkt_convertMLX"
+    case hub_mkt_addBenchmark = "hub_mkt_addBenchmark"
+    case hub_mkt_ragDefault = "hub_mkt_ragDefault"
+    case hub_mkt_ragDefaultCurrent = "hub_mkt_ragDefaultCurrent"
+    case hub_mkt_ragDefaultSet = "hub_mkt_ragDefaultSet"
+    case hub_mkt_size = "hub_mkt_size"
+    case hub_mkt_downloads = "hub_mkt_downloads"
+    case hub_mkt_likes = "hub_mkt_likes"
+    case hub_mkt_license = "hub_mkt_license"
+    case hub_mkt_author = "hub_mkt_author"
+    case hub_mkt_selectModelHint = "hub_mkt_selectModelHint"
+    case hub_mkt_pickerSource = "hub_mkt_pickerSource"
+    case hub_mkt_pickerTask = "hub_mkt_pickerTask"
+    case hub_mkt_pickerFormat = "hub_mkt_pickerFormat"
+    case hub_mkt_pickerParam = "hub_mkt_pickerParam"
+    case hub_mkt_downloadFailFmt = "hub_mkt_downloadFailFmt"
+    case hub_mkt_mlxFailFmt = "hub_mkt_mlxFailFmt"
+    case hub_mkt_benchFailFmt = "hub_mkt_benchFailFmt"
+    case hub_main_secDashboard = "hub_main_secDashboard"
+    case hub_main_secMarket = "hub_main_secMarket"
+    case hub_main_secLocalStorage = "hub_main_secLocalStorage"
+    case hub_main_secConvertQuant = "hub_main_secConvertQuant"
+    case hub_main_secSchedule = "hub_main_secSchedule"
+    case hub_main_secCluster = "hub_main_secCluster"
+    case hub_main_secDeployment = "hub_main_secDeployment"
+    case hub_main_secPermission = "hub_main_secPermission"
+    case hub_main_secMonitor = "hub_main_secMonitor"
+    case hub_main_secBenchmark = "hub_main_secBenchmark"
+    case hub_main_secSecurity = "hub_main_secSecurity"
+    case hub_main_noKeyMsg = "hub_main_noKeyMsg"
+    case hub_main_goCreate = "hub_main_goCreate"
+    case hub_main_connected = "hub_main_connected"
+    case hub_main_disconnected = "hub_main_disconnected"
+    case hub_main_serviceNotConnected = "hub_main_serviceNotConnected"
+    case hub_main_serviceHintFmt = "hub_main_serviceHintFmt"
+    case hub_main_retry = "hub_main_retry"
+    case hub_ver_draft = "hub_ver_draft"
+    case hub_ver_testing = "hub_ver_testing"
+    case hub_ver_published = "hub_ver_published"
+    case hub_ver_deprecated = "hub_ver_deprecated"
+    case hub_ver_retired = "hub_ver_retired"
+    case hub_role_admin = "hub_role_admin"
+    case hub_role_developer = "hub_role_developer"
+    case hub_role_viewer = "hub_role_viewer"
+    case hub_role_custom = "hub_role_custom"
+    case hub_lvl_l1 = "hub_lvl_l1"
+    case hub_lvl_l2 = "hub_lvl_l2"
+    case hub_lvl_l3 = "hub_lvl_l3"
+    case hub_lvl_unknown = "hub_lvl_unknown"
 }
 
 // MARK: - 翻译管理器
@@ -1291,6 +1539,115 @@ let zhCNTranslations: [String: String] = [
     "hub_durationZero": "0秒", "hub_rpmDefaultFmt": "RPM: %d (默认)", "hub_editPermTitleFmt": "编辑权限 — %@",
     "hub_concurrencyFmt": "并发: %d", "hub_concurrencyDefaultFmt": "并发: %d (默认)",
     "hub_throttleConfigTitleFmt": "限流配置 — %@", "hub_selectedModelsLoadingFmt": "已选 %d 个模型 (加载中...)",
+    "hub_ls_catAll": "全部", "hub_ls_catChat": "通用对话", "hub_ls_catCode": "代码专属", "hub_ls_catEmbed": "向量嵌入", "hub_ls_catVision": "图像多模态", "hub_ls_catPrivate": "私有模型", "hub_ls_catPinned": "已固定", "hub_ls_catServing": "推理中", "hub_ls_catLLM": "语言模型", "hub_ls_catVLM": "视觉模型", "hub_ls_catEmbedM": "嵌入模型", "hub_ls_catCodeM": "代码模型", "hub_ls_catAudioM": "音频模型", "hub_ls_catMLX": "MLX格式", "hub_ls_catGGUF": "GGUF格式", "hub_ls_category": "分类", "hub_ls_searchPlaceholder": "搜索本地模型...", "hub_ls_batchMode": "批量模式", "hub_ls_selectedCountFmt": "已选 %d 个", "hub_ls_selectAll": "全选", "hub_ls_batchDelete": "批量删除", "hub_ls_batchQuantize": "批量量化", "hub_ls_syncCluster": "同步至集群", "hub_ls_exportPath": "导出路径", "hub_ls_currentUse": "当前使用", "hub_ls_serving": "推理中", "hub_ls_compatFormats": "兼容格式:", "hub_ls_unpin": "取消置顶", "hub_ls_pin": "置顶", "hub_ls_stopServe": "停止推理", "hub_ls_startServe": "启动推理", "hub_ls_basicInfo": "基本信息", "hub_ls_path": "路径", "hub_ls_source": "来源", "hub_ls_engine": "引擎", "hub_ls_license": "许可", "hub_ls_allowedModules": "允许模块", "hub_ls_selectModelHint": "选择模型查看详情", "hub_ls_versionMgmt": "版本管理", "hub_ls_versionList": "版本列表", "hub_ls_noVersions": "暂无版本信息", "hub_ls_rollback": "回滚", "hub_ls_publish": "发布", "hub_ls_deprecate": "废弃", "hub_ls_retire": "下线", "hub_ls_resident": "常驻", "hub_ls_batchQuantTitle": "批量量化", "hub_ls_batchQuantHintFmt": "将对 %d 个模型执行量化转换", "hub_ls_targetFormat": "目标格式", "hub_ls_quantBits": "量化位数", "hub_ls_startQuantize": "开始量化", "hub_ls_batchQuantFailFmt": "批量量化失败: %@", "hub_ls_rollbackFailFmt": "版本回滚失败: %@", "hub_ls_syncFailFmt": "集群同步失败: %@", "hub_ls_startServeFailFmt": "启动推理失败: %@", "hub_ls_stopServeFailFmt": "停止推理失败: %@", "hub_ls_publishFailFmt": "发布版本失败: %@", "hub_ls_deprecateFailFmt": "废弃版本失败: %@", "hub_ls_retireFailFmt": "下线版本失败: %@",
+    "hub_cls_nodes": "集群节点", "hub_cls_onlineFmt": "%d/%d 在线", "hub_cls_syncModel": "同步模型", "hub_cls_noNodes": "暂无集群节点", "hub_cls_noNodesHint": "确保多台 Mac 在同一网络并启动 Model Hub 服务", "hub_cls_selectNodeHint": "选择节点查看详情", "hub_cls_nodeInfo": "节点信息", "hub_cls_addr": "地址", "hub_cls_lastSeen": "最近上线", "hub_cls_resourceUsage": "资源使用", "hub_cls_memory": "内存", "hub_cls_localModelsFmt": "本地模型 (%d)", "hub_cls_autoSchedule": "自动调度推理", "hub_cls_localFirst": "本地优先，集群回退", "hub_cls_model": "模型", "hub_cls_selectModelHint": "选择模型...", "hub_cls_routeMode": "调度模式", "hub_cls_promptPlaceholder": "输入推理提示词...", "hub_cls_sendInfer": "发送推理请求", "hub_cls_inferResult": "推理结果", "hub_cls_routedTo": "路由到:", "hub_cls_resultHint": "发送推理请求后查看结果", "hub_cls_syncToCluster": "同步模型至集群", "hub_cls_syncHint": "将指定模型文件同步至所有在线集群节点", "hub_cls_startSync": "开始同步", "hub_cls_modeAuto": "自动", "hub_cls_modeLocal": "本地优先", "hub_cls_modeCluster": "集群",
+    "hub_dash_mlxEngine": "MLX推理引擎", "hub_dash_clusterMode": "集群模式", "hub_dash_modelService": "模型服务", "hub_dash_localModels": "本地模型", "hub_dash_activeModels": "活跃模型", "hub_dash_downloading": "下载中", "hub_dash_totalStorage": "总存储", "hub_dash_pinned": "置顶", "hub_dash_quantizing": "量化中", "hub_dash_clusterNodes": "集群节点", "hub_dash_totalModels": "模型总数", "hub_dash_quickActions": "快捷操作", "hub_dash_searchMarket": "搜索市场", "hub_dash_downloadModel": "下载模型", "hub_dash_quantizeModel": "量化模型", "hub_dash_systemClean": "系统清理", "hub_dash_recentModels": "最近模型", "hub_dash_noModels": "暂无模型", "hub_dash_resident": "常驻", "hub_dash_serving": "推理中", "hub_dash_sysOverview": "系统概览", "hub_dash_memory": "内存", "hub_dash_disk": "磁盘", "hub_dash_uptime": "运行时间", "hub_dash_loading": "加载中...",
+    "hub_mv_descQwen35": "通义千问 3.5，9B 参数，4bit 量化", "hub_mv_descLlama3": "Meta Llama 3，8B 参数，4bit 量化", "hub_mv_descDeepseek": "DeepSeek 代码专用模型", "hub_mv_descQwenVL": "Qwen2 视觉语言模型", "hub_mv_catAll": "全部", "hub_mv_searchPlaceholder": "搜索模型...", "hub_mv_selectModelHint": "选择一个模型查看详情", "hub_mv_downloadModel": "下载模型", "hub_mv_refresh": "刷新", "hub_mv_active": "活跃", "hub_mv_ready": "就绪", "hub_mv_notDownloaded": "未下载", "hub_mv_currentUse": "当前使用", "hub_mv_download": "下载", "hub_mv_activate": "激活", "hub_mv_downloadingFmt": "下载中... %d%%", "hub_mv_basicInfo": "基本信息", "hub_mv_modelId": "模型 ID", "hub_mv_path": "路径", "hub_mv_size": "大小", "hub_mv_format": "格式", "hub_mv_quant": "量化", "hub_mv_family": "家族", "hub_mv_params": "参数", "hub_mv_description": "描述", "hub_mv_searchHF": "搜索 HuggingFace 模型...", "hub_mv_search": "搜索", "hub_mv_recommended": "推荐模型", "hub_mv_repoIdHint": "或直接输入 HuggingFace repo ID", "hub_mv_hfTokenOptional": "HF Token (可选)",
+    "hub_dep_stPending": "等待中",
+    "hub_dep_stRunning": "运行中",
+    "hub_dep_stStopped": "已停止",
+    "hub_dep_stFailed": "失败",
+    "hub_dep_stUnknown": "未知",
+    "hub_dep_management": "部署管理",
+    "hub_dep_empty": "暂无部署",
+    "hub_dep_selectHint": "选择一个部署查看详情",
+    "hub_dep_replicasFmt": "%@ 副本",
+    "hub_dep_canaryFmt": "灰度 %d%%",
+    "hub_dep_config": "配置",
+    "hub_dep_model": "模型",
+    "hub_dep_modelName": "模型名称",
+    "hub_dep_strategy": "策略",
+    "hub_dep_replicasCount": "副本数",
+    "hub_dep_canaryRatio": "灰度比例",
+    "hub_dep_createdAt": "创建时间",
+    "hub_dep_updatedAt": "更新时间",
+    "hub_dep_metrics": "指标",
+    "hub_dep_reqPerSec": "请求/秒",
+    "hub_dep_latencyMs": "延迟(ms)",
+    "hub_dep_errorRate": "错误率",
+    "hub_dep_refreshMetrics": "刷新指标",
+    "hub_dep_actions": "操作",
+    "hub_dep_stopDep": "停止部署",
+    "hub_dep_scale": "扩缩容",
+    "hub_dep_grayRelease": "灰度发布",
+    "hub_dep_deleteDep": "删除部署",
+    "hub_dep_stopFailFmt": "停止失败: %@",
+    "hub_dep_scaleFailFmt": "扩缩容失败: %@",
+    "hub_dep_grayFailFmt": "灰度发布失败: %@",
+    "hub_dep_deleteFailFmt": "删除失败: %@",
+    "hub_dep_metricsFailFmt": "获取指标失败: %@",
+    "hub_dep_createDep": "创建部署",
+    "hub_dep_modelId": "模型ID",
+    "hub_dep_depStrategy": "部署策略",
+    "hub_dep_replicasStepperFmt": "副本数: %d",
+    "hub_dep_canaryStepperFmt": "灰度比例: %d%%", "hub_cls_modelCountFmt": "%d 模型",
+    "hub_mkt_searchPlaceholder": "搜索模型...",
+    "hub_mkt_sourceAll": "全部来源",
+    "hub_mkt_sourceLocal": "本地",
+    "hub_mkt_sourcePrivate": "私有仓库",
+    "hub_mkt_taskAll": "全部任务",
+    "hub_mkt_taskTextGen": "文本生成",
+    "hub_mkt_taskCode": "代码",
+    "hub_mkt_taskVision": "视觉",
+    "hub_mkt_taskEmbedding": "嵌入",
+    "hub_mkt_taskAudio": "音频",
+    "hub_mkt_taskMultimodal": "多模态",
+    "hub_mkt_formatAll": "全部格式",
+    "hub_mkt_paramSizeAll": "全部参数量",
+    "hub_mkt_localOnly": "仅本地",
+    "hub_mkt_loadMoreFmt": "加载更多 (%d/%d)",
+    "hub_mkt_emptyTitle": "搜索 HuggingFace / ModelScope / 私有仓库模型",
+    "hub_mkt_emptyHint": "支持多源搜索、格式筛选、参数量筛选、任务分类",
+    "hub_mkt_download": "下载",
+    "hub_mkt_convertMLX": "一键转MLX",
+    "hub_mkt_addBenchmark": "加入评测",
+    "hub_mkt_ragDefault": "RAG 默认",
+    "hub_mkt_ragDefaultCurrent": "当前 RAG 默认嵌入模型",
+    "hub_mkt_ragDefaultSet": "设为 RAG 默认嵌入模型",
+    "hub_mkt_size": "大小",
+    "hub_mkt_downloads": "下载量",
+    "hub_mkt_likes": "点赞",
+    "hub_mkt_license": "许可",
+    "hub_mkt_author": "作者",
+    "hub_mkt_selectModelHint": "选择模型查看详情",
+    "hub_mkt_pickerSource": "来源",
+    "hub_mkt_pickerTask": "任务",
+    "hub_mkt_pickerFormat": "格式",
+    "hub_mkt_pickerParam": "参数量",
+    "hub_mkt_downloadFailFmt": "下载失败: %@",
+    "hub_mkt_mlxFailFmt": "MLX转换下载失败: %@",
+    "hub_mkt_benchFailFmt": "评测触发失败: %@",
+    "hub_main_secDashboard": "总览",
+    "hub_main_secMarket": "模型市场",
+    "hub_main_secLocalStorage": "本地存储",
+    "hub_main_secConvertQuant": "转换量化",
+    "hub_main_secSchedule": "下载调度",
+    "hub_main_secCluster": "集群调度",
+    "hub_main_secDeployment": "部署管理",
+    "hub_main_secPermission": "权限管控",
+    "hub_main_secMonitor": "系统监控",
+    "hub_main_secBenchmark": "性能评测",
+    "hub_main_secSecurity": "安全中心",
+    "hub_main_noKeyMsg": "未配置 API Key，受保护接口将返回 401。请到「权限管控」创建 Key。",
+    "hub_main_goCreate": "前往创建",
+    "hub_main_connected": "已连接",
+    "hub_main_disconnected": "未连接",
+    "hub_main_serviceNotConnected": "Model Hub 服务未连接",
+    "hub_main_serviceHintFmt": "请确认 fusion-model-hub 服务已启动（端口 %d）",
+    "hub_main_retry": "重试连接",
+    "hub_ver_draft": "草稿",
+    "hub_ver_testing": "测试中",
+    "hub_ver_published": "已发布",
+    "hub_ver_deprecated": "已废弃",
+    "hub_ver_retired": "已下线",
+    "hub_role_admin": "管理员",
+    "hub_role_developer": "开发者",
+    "hub_role_viewer": "只读",
+    "hub_role_custom": "自定义",
+    "hub_lvl_l1": "L1 自动审批",
+    "hub_lvl_l2": "L2 主管审批",
+    "hub_lvl_l3": "L3 安全审批",
+    "hub_lvl_unknown": "未知",
 ]
 
 let enUSTranslations: [String: String] = [
@@ -1790,6 +2147,115 @@ let enUSTranslations: [String: String] = [
     "hub_durationZero": "0s", "hub_rpmDefaultFmt": "RPM: %d (default)", "hub_editPermTitleFmt": "Edit permission — %@",
     "hub_concurrencyFmt": "Concurrency: %d", "hub_concurrencyDefaultFmt": "Concurrency: %d (default)",
     "hub_throttleConfigTitleFmt": "Throttle config — %@", "hub_selectedModelsLoadingFmt": "%d models selected (loading...)",
+    "hub_ls_catAll": "All", "hub_ls_catChat": "General Chat", "hub_ls_catCode": "Code", "hub_ls_catEmbed": "Embedding", "hub_ls_catVision": "Vision Multimodal", "hub_ls_catPrivate": "Private", "hub_ls_catPinned": "Pinned", "hub_ls_catServing": "Serving", "hub_ls_catLLM": "Language Model", "hub_ls_catVLM": "Vision Model", "hub_ls_catEmbedM": "Embedding Model", "hub_ls_catCodeM": "Code Model", "hub_ls_catAudioM": "Audio Model", "hub_ls_catMLX": "MLX Format", "hub_ls_catGGUF": "GGUF Format", "hub_ls_category": "Categories", "hub_ls_searchPlaceholder": "Search local models...", "hub_ls_batchMode": "Batch Mode", "hub_ls_selectedCountFmt": "%d selected", "hub_ls_selectAll": "Select All", "hub_ls_batchDelete": "Batch Delete", "hub_ls_batchQuantize": "Batch Quantize", "hub_ls_syncCluster": "Sync to Cluster", "hub_ls_exportPath": "Export Path", "hub_ls_currentUse": "In Use", "hub_ls_serving": "Serving", "hub_ls_compatFormats": "Compatible formats:", "hub_ls_unpin": "Unpin", "hub_ls_pin": "Pin", "hub_ls_stopServe": "Stop Serving", "hub_ls_startServe": "Start Serving", "hub_ls_basicInfo": "Basic Info", "hub_ls_path": "Path", "hub_ls_source": "Source", "hub_ls_engine": "Engine", "hub_ls_license": "License", "hub_ls_allowedModules": "Allowed Modules", "hub_ls_selectModelHint": "Select a model to view details", "hub_ls_versionMgmt": "Version Management", "hub_ls_versionList": "Version List", "hub_ls_noVersions": "No version info", "hub_ls_rollback": "Rollback", "hub_ls_publish": "Publish", "hub_ls_deprecate": "Deprecate", "hub_ls_retire": "Retire", "hub_ls_resident": "Resident", "hub_ls_batchQuantTitle": "Batch Quantize", "hub_ls_batchQuantHintFmt": "Will quantize %d models", "hub_ls_targetFormat": "Target Format", "hub_ls_quantBits": "Quantization Bits", "hub_ls_startQuantize": "Start Quantize", "hub_ls_batchQuantFailFmt": "Batch quantize failed: %@", "hub_ls_rollbackFailFmt": "Version rollback failed: %@", "hub_ls_syncFailFmt": "Cluster sync failed: %@", "hub_ls_startServeFailFmt": "Start serving failed: %@", "hub_ls_stopServeFailFmt": "Stop serving failed: %@", "hub_ls_publishFailFmt": "Publish version failed: %@", "hub_ls_deprecateFailFmt": "Deprecate version failed: %@", "hub_ls_retireFailFmt": "Retire version failed: %@",
+    "hub_cls_nodes": "Cluster Nodes", "hub_cls_onlineFmt": "%d/%d online", "hub_cls_syncModel": "Sync Model", "hub_cls_noNodes": "No cluster nodes", "hub_cls_noNodesHint": "Ensure multiple Macs on same network with Model Hub service running", "hub_cls_selectNodeHint": "Select a node to view details", "hub_cls_nodeInfo": "Node Info", "hub_cls_addr": "Address", "hub_cls_lastSeen": "Last Seen", "hub_cls_resourceUsage": "Resource Usage", "hub_cls_memory": "Memory", "hub_cls_localModelsFmt": "Local Models (%d)", "hub_cls_autoSchedule": "Auto Schedule Inference", "hub_cls_localFirst": "Local first, cluster fallback", "hub_cls_model": "Model", "hub_cls_selectModelHint": "Select model...", "hub_cls_routeMode": "Route Mode", "hub_cls_promptPlaceholder": "Enter inference prompt...", "hub_cls_sendInfer": "Send Inference Request", "hub_cls_inferResult": "Inference Result", "hub_cls_routedTo": "Routed to:", "hub_cls_resultHint": "View result after sending inference request", "hub_cls_syncToCluster": "Sync Model to Cluster", "hub_cls_syncHint": "Sync model files to all online cluster nodes", "hub_cls_startSync": "Start Sync", "hub_cls_modeAuto": "Auto", "hub_cls_modeLocal": "Local First", "hub_cls_modeCluster": "Cluster",
+    "hub_dash_mlxEngine": "MLX Inference Engine", "hub_dash_clusterMode": "Cluster Mode", "hub_dash_modelService": "Model Service", "hub_dash_localModels": "Local Models", "hub_dash_activeModels": "Active Models", "hub_dash_downloading": "Downloading", "hub_dash_totalStorage": "Total Storage", "hub_dash_pinned": "Pinned", "hub_dash_quantizing": "Quantizing", "hub_dash_clusterNodes": "Cluster Nodes", "hub_dash_totalModels": "Total Models", "hub_dash_quickActions": "Quick Actions", "hub_dash_searchMarket": "Search Market", "hub_dash_downloadModel": "Download Model", "hub_dash_quantizeModel": "Quantize Model", "hub_dash_systemClean": "System Cleanup", "hub_dash_recentModels": "Recent Models", "hub_dash_noModels": "No models", "hub_dash_resident": "Resident", "hub_dash_serving": "Serving", "hub_dash_sysOverview": "System Overview", "hub_dash_memory": "Memory", "hub_dash_disk": "Disk", "hub_dash_uptime": "Uptime", "hub_dash_loading": "Loading...",
+    "hub_mv_descQwen35": "Qwen3.5, 9B params, 4bit quant", "hub_mv_descLlama3": "Meta Llama 3, 8B params, 4bit quant", "hub_mv_descDeepseek": "DeepSeek code model", "hub_mv_descQwenVL": "Qwen2 vision-language model", "hub_mv_catAll": "All", "hub_mv_searchPlaceholder": "Search models...", "hub_mv_selectModelHint": "Select a model to view details", "hub_mv_downloadModel": "Download Model", "hub_mv_refresh": "Refresh", "hub_mv_active": "Active", "hub_mv_ready": "Ready", "hub_mv_notDownloaded": "Not Downloaded", "hub_mv_currentUse": "In Use", "hub_mv_download": "Download", "hub_mv_activate": "Activate", "hub_mv_downloadingFmt": "Downloading... %d%%", "hub_mv_basicInfo": "Basic Info", "hub_mv_modelId": "Model ID", "hub_mv_path": "Path", "hub_mv_size": "Size", "hub_mv_format": "Format", "hub_mv_quant": "Quantization", "hub_mv_family": "Family", "hub_mv_params": "Parameters", "hub_mv_description": "Description", "hub_mv_searchHF": "Search HuggingFace models...", "hub_mv_search": "Search", "hub_mv_recommended": "Recommended Models", "hub_mv_repoIdHint": "Or enter HuggingFace repo ID directly", "hub_mv_hfTokenOptional": "HF Token (optional)",
+    "hub_dep_stPending": "Pending",
+    "hub_dep_stRunning": "Running",
+    "hub_dep_stStopped": "Stopped",
+    "hub_dep_stFailed": "Failed",
+    "hub_dep_stUnknown": "Unknown",
+    "hub_dep_management": "Deployment Management",
+    "hub_dep_empty": "No deployments",
+    "hub_dep_selectHint": "Select a deployment to view details",
+    "hub_dep_replicasFmt": "%@ replicas",
+    "hub_dep_canaryFmt": "Canary %d%%",
+    "hub_dep_config": "Configuration",
+    "hub_dep_model": "Model",
+    "hub_dep_modelName": "Model Name",
+    "hub_dep_strategy": "Strategy",
+    "hub_dep_replicasCount": "Replicas",
+    "hub_dep_canaryRatio": "Canary Ratio",
+    "hub_dep_createdAt": "Created",
+    "hub_dep_updatedAt": "Updated",
+    "hub_dep_metrics": "Metrics",
+    "hub_dep_reqPerSec": "Req/s",
+    "hub_dep_latencyMs": "Latency(ms)",
+    "hub_dep_errorRate": "Error Rate",
+    "hub_dep_refreshMetrics": "Refresh Metrics",
+    "hub_dep_actions": "Actions",
+    "hub_dep_stopDep": "Stop",
+    "hub_dep_scale": "Scale",
+    "hub_dep_grayRelease": "Canary Release",
+    "hub_dep_deleteDep": "Delete",
+    "hub_dep_stopFailFmt": "Stop failed: %@",
+    "hub_dep_scaleFailFmt": "Scale failed: %@",
+    "hub_dep_grayFailFmt": "Canary release failed: %@",
+    "hub_dep_deleteFailFmt": "Delete failed: %@",
+    "hub_dep_metricsFailFmt": "Metrics load failed: %@",
+    "hub_dep_createDep": "Create Deployment",
+    "hub_dep_modelId": "Model ID",
+    "hub_dep_depStrategy": "Deployment Strategy",
+    "hub_dep_replicasStepperFmt": "Replicas: %d",
+    "hub_dep_canaryStepperFmt": "Canary Ratio: %d%%", "hub_cls_modelCountFmt": "%d models",
+    "hub_mkt_searchPlaceholder": "Search models...",
+    "hub_mkt_sourceAll": "All Sources",
+    "hub_mkt_sourceLocal": "Local",
+    "hub_mkt_sourcePrivate": "Private Repo",
+    "hub_mkt_taskAll": "All Tasks",
+    "hub_mkt_taskTextGen": "Text Generation",
+    "hub_mkt_taskCode": "Code",
+    "hub_mkt_taskVision": "Vision",
+    "hub_mkt_taskEmbedding": "Embedding",
+    "hub_mkt_taskAudio": "Audio",
+    "hub_mkt_taskMultimodal": "Multimodal",
+    "hub_mkt_formatAll": "All Formats",
+    "hub_mkt_paramSizeAll": "All Sizes",
+    "hub_mkt_localOnly": "Local Only",
+    "hub_mkt_loadMoreFmt": "Load More (%d/%d)",
+    "hub_mkt_emptyTitle": "Search HuggingFace / ModelScope / private repos",
+    "hub_mkt_emptyHint": "Multi-source search, format/size/task filters",
+    "hub_mkt_download": "Download",
+    "hub_mkt_convertMLX": "Convert to MLX",
+    "hub_mkt_addBenchmark": "Add to Benchmark",
+    "hub_mkt_ragDefault": "RAG Default",
+    "hub_mkt_ragDefaultCurrent": "Current RAG default embedding model",
+    "hub_mkt_ragDefaultSet": "Set as RAG default embedding model",
+    "hub_mkt_size": "Size",
+    "hub_mkt_downloads": "Downloads",
+    "hub_mkt_likes": "Likes",
+    "hub_mkt_license": "License",
+    "hub_mkt_author": "Author",
+    "hub_mkt_selectModelHint": "Select a model to view details",
+    "hub_mkt_pickerSource": "Source",
+    "hub_mkt_pickerTask": "Task",
+    "hub_mkt_pickerFormat": "Format",
+    "hub_mkt_pickerParam": "Parameters",
+    "hub_mkt_downloadFailFmt": "Download failed: %@",
+    "hub_mkt_mlxFailFmt": "MLX conversion download failed: %@",
+    "hub_mkt_benchFailFmt": "Benchmark trigger failed: %@",
+    "hub_main_secDashboard": "Dashboard",
+    "hub_main_secMarket": "Market",
+    "hub_main_secLocalStorage": "Local Storage",
+    "hub_main_secConvertQuant": "Convert & Quantize",
+    "hub_main_secSchedule": "Download Schedule",
+    "hub_main_secCluster": "Cluster",
+    "hub_main_secDeployment": "Deployment",
+    "hub_main_secPermission": "Permission",
+    "hub_main_secMonitor": "Monitor",
+    "hub_main_secBenchmark": "Benchmark",
+    "hub_main_secSecurity": "Security",
+    "hub_main_noKeyMsg": "No API Key configured. Protected endpoints will return 401. Go to Permission to create a key.",
+    "hub_main_goCreate": "Create Now",
+    "hub_main_connected": "Connected",
+    "hub_main_disconnected": "Disconnected",
+    "hub_main_serviceNotConnected": "Model Hub service not connected",
+    "hub_main_serviceHintFmt": "Ensure fusion-model-hub service is running (port %d)",
+    "hub_main_retry": "Retry",
+    "hub_ver_draft": "Draft",
+    "hub_ver_testing": "Testing",
+    "hub_ver_published": "Published",
+    "hub_ver_deprecated": "Deprecated",
+    "hub_ver_retired": "Retired",
+    "hub_role_admin": "Admin",
+    "hub_role_developer": "Developer",
+    "hub_role_viewer": "Viewer",
+    "hub_role_custom": "Custom",
+    "hub_lvl_l1": "L1 Auto Approval",
+    "hub_lvl_l2": "L2 Manager Approval",
+    "hub_lvl_l3": "L3 Security Approval",
+    "hub_lvl_unknown": "Unknown",
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -2283,6 +2749,115 @@ let jaJPTranslations: [String: String] = [
     "hub_durationZero": "0秒", "hub_rpmDefaultFmt": "RPM: %d (デフォルト)", "hub_editPermTitleFmt": "権限編集 — %@",
     "hub_concurrencyFmt": "同時実行: %d", "hub_concurrencyDefaultFmt": "同時実行: %d (デフォルト)",
     "hub_throttleConfigTitleFmt": "スロットル設定 — %@", "hub_selectedModelsLoadingFmt": "%d件のモデル選択 (読込中...)",
+    "hub_ls_catAll": "すべて", "hub_ls_catChat": "汎用対話", "hub_ls_catCode": "コード", "hub_ls_catEmbed": "埋め込み", "hub_ls_catVision": "画像マルチモーダル", "hub_ls_catPrivate": "プライベート", "hub_ls_catPinned": "固定済み", "hub_ls_catServing": "推論中", "hub_ls_catLLM": "言語モデル", "hub_ls_catVLM": "ビジョンモデル", "hub_ls_catEmbedM": "埋め込みモデル", "hub_ls_catCodeM": "コードモデル", "hub_ls_catAudioM": "音声モデル", "hub_ls_catMLX": "MLX形式", "hub_ls_catGGUF": "GGUF形式", "hub_ls_category": "カテゴリ", "hub_ls_searchPlaceholder": "ローカルモデルを検索...", "hub_ls_batchMode": "バッチモード", "hub_ls_selectedCountFmt": "%d件選択", "hub_ls_selectAll": "すべて選択", "hub_ls_batchDelete": "一括削除", "hub_ls_batchQuantize": "一括量子化", "hub_ls_syncCluster": "クラスタへ同期", "hub_ls_exportPath": "エクスポートパス", "hub_ls_currentUse": "使用中", "hub_ls_serving": "推論中", "hub_ls_compatFormats": "互換形式:", "hub_ls_unpin": "固定解除", "hub_ls_pin": "固定", "hub_ls_stopServe": "停止", "hub_ls_startServe": "開始", "hub_ls_basicInfo": "基本情報", "hub_ls_path": "パス", "hub_ls_source": "ソース", "hub_ls_engine": "エンジン", "hub_ls_license": "ライセンス", "hub_ls_allowedModules": "許可モジュール", "hub_ls_selectModelHint": "モデルを選択して詳細表示", "hub_ls_versionMgmt": "バージョン管理", "hub_ls_versionList": "バージョン一覧", "hub_ls_noVersions": "バージョン情報なし", "hub_ls_rollback": "ロールバック", "hub_ls_publish": "公開", "hub_ls_deprecate": "廃止", "hub_ls_retire": "提供終了", "hub_ls_resident": "常駐", "hub_ls_batchQuantTitle": "一括量子化", "hub_ls_batchQuantHintFmt": "%d個のモデルを量子化します", "hub_ls_targetFormat": "対象形式", "hub_ls_quantBits": "量子化ビット", "hub_ls_startQuantize": "量子化開始", "hub_ls_batchQuantFailFmt": "一括量子化失敗: %@", "hub_ls_rollbackFailFmt": "バージョン戻し失敗: %@", "hub_ls_syncFailFmt": "クラスタ同期失敗: %@", "hub_ls_startServeFailFmt": "推論開始失敗: %@", "hub_ls_stopServeFailFmt": "推論停止失敗: %@", "hub_ls_publishFailFmt": "バージョン公開失敗: %@", "hub_ls_deprecateFailFmt": "バージョン廃止失敗: %@", "hub_ls_retireFailFmt": "バージョン提供終了失敗: %@",
+    "hub_cls_nodes": "クラスタノード", "hub_cls_onlineFmt": "%d/%d オンライン", "hub_cls_syncModel": "モデル同期", "hub_cls_noNodes": "クラスタノードなし", "hub_cls_noNodesHint": "同じネットワークでModel Hubサービスを起動してください", "hub_cls_selectNodeHint": "ノードを選択して詳細表示", "hub_cls_nodeInfo": "ノード情報", "hub_cls_addr": "アドレス", "hub_cls_lastSeen": "最終オンライン", "hub_cls_resourceUsage": "リソース使用量", "hub_cls_memory": "メモリ", "hub_cls_localModelsFmt": "ローカルモデル (%d)", "hub_cls_autoSchedule": "自動スケジュール推論", "hub_cls_localFirst": "ローカル優先、クラスタフォールバック", "hub_cls_model": "モデル", "hub_cls_selectModelHint": "モデルを選択...", "hub_cls_routeMode": "ルーティングモード", "hub_cls_promptPlaceholder": "推論プロンプトを入力...", "hub_cls_sendInfer": "推論リクエスト送信", "hub_cls_inferResult": "推論結果", "hub_cls_routedTo": "ルーティング先:", "hub_cls_resultHint": "推論リクエスト送信後に結果表示", "hub_cls_syncToCluster": "クラスタへモデル同期", "hub_cls_syncHint": "すべてのオンラインクラスタノードへモデルファイルを同期", "hub_cls_startSync": "同期開始", "hub_cls_modeAuto": "自動", "hub_cls_modeLocal": "ローカル優先", "hub_cls_modeCluster": "クラスタ",
+    "hub_dash_mlxEngine": "MLX推論エンジン", "hub_dash_clusterMode": "クラスタモード", "hub_dash_modelService": "モデルサービス", "hub_dash_localModels": "ローカルモデル", "hub_dash_activeModels": "アクティブモデル", "hub_dash_downloading": "ダウンロード中", "hub_dash_totalStorage": "総ストレージ", "hub_dash_pinned": "固定", "hub_dash_quantizing": "量子化中", "hub_dash_clusterNodes": "クラスタノード", "hub_dash_totalModels": "モデル総数", "hub_dash_quickActions": "クイック操作", "hub_dash_searchMarket": "市場検索", "hub_dash_downloadModel": "モデルダウンロード", "hub_dash_quantizeModel": "モデル量子化", "hub_dash_systemClean": "システムクリーンアップ", "hub_dash_recentModels": "最近のモデル", "hub_dash_noModels": "モデルなし", "hub_dash_resident": "常駐", "hub_dash_serving": "推論中", "hub_dash_sysOverview": "システム概要", "hub_dash_memory": "メモリ", "hub_dash_disk": "ディスク", "hub_dash_uptime": "稼働時間", "hub_dash_loading": "読込中...",
+    "hub_mv_descQwen35": "通義千問 3.5、9Bパラメータ、4bit量子化", "hub_mv_descLlama3": "Meta Llama 3、8Bパラメータ、4bit量子化", "hub_mv_descDeepseek": "DeepSeek コード専用モデル", "hub_mv_descQwenVL": "Qwen2 ビジョン言語モデル", "hub_mv_catAll": "すべて", "hub_mv_searchPlaceholder": "モデルを検索...", "hub_mv_selectModelHint": "モデルを選択して詳細表示", "hub_mv_downloadModel": "モデルダウンロード", "hub_mv_refresh": "更新", "hub_mv_active": "アクティブ", "hub_mv_ready": "準備完了", "hub_mv_notDownloaded": "未ダウンロード", "hub_mv_currentUse": "使用中", "hub_mv_download": "ダウンロード", "hub_mv_activate": "有効化", "hub_mv_downloadingFmt": "ダウンロード中... %d%%", "hub_mv_basicInfo": "基本情報", "hub_mv_modelId": "モデル ID", "hub_mv_path": "パス", "hub_mv_size": "サイズ", "hub_mv_format": "形式", "hub_mv_quant": "量子化", "hub_mv_family": "ファミリ", "hub_mv_params": "パラメータ", "hub_mv_description": "説明", "hub_mv_searchHF": "HuggingFaceモデルを検索...", "hub_mv_search": "検索", "hub_mv_recommended": "おすすめモデル", "hub_mv_repoIdHint": "またはHuggingFace repo IDを直接入力", "hub_mv_hfTokenOptional": "HF Token (任意)",
+    "hub_dep_stPending": "待機中",
+    "hub_dep_stRunning": "実行中",
+    "hub_dep_stStopped": "停止済み",
+    "hub_dep_stFailed": "失敗",
+    "hub_dep_stUnknown": "不明",
+    "hub_dep_management": "デプロイ管理",
+    "hub_dep_empty": "デプロイなし",
+    "hub_dep_selectHint": "詳細を見るにはデプロイを選択",
+    "hub_dep_replicasFmt": "%@ レプリカ",
+    "hub_dep_canaryFmt": "カナリア %d%%",
+    "hub_dep_config": "設定",
+    "hub_dep_model": "モデル",
+    "hub_dep_modelName": "モデル名",
+    "hub_dep_strategy": "戦略",
+    "hub_dep_replicasCount": "レプリカ数",
+    "hub_dep_canaryRatio": "カナリア比率",
+    "hub_dep_createdAt": "作成日時",
+    "hub_dep_updatedAt": "更新日時",
+    "hub_dep_metrics": "メトリクス",
+    "hub_dep_reqPerSec": "要求/秒",
+    "hub_dep_latencyMs": "レイテンシ(ms)",
+    "hub_dep_errorRate": "エラー率",
+    "hub_dep_refreshMetrics": "メトリクス更新",
+    "hub_dep_actions": "操作",
+    "hub_dep_stopDep": "停止",
+    "hub_dep_scale": "スケール",
+    "hub_dep_grayRelease": "カナリアリリース",
+    "hub_dep_deleteDep": "削除",
+    "hub_dep_stopFailFmt": "停止失敗: %@",
+    "hub_dep_scaleFailFmt": "スケール失敗: %@",
+    "hub_dep_grayFailFmt": "カナリアリリース失敗: %@",
+    "hub_dep_deleteFailFmt": "削除失敗: %@",
+    "hub_dep_metricsFailFmt": "メトリクス取得失敗: %@",
+    "hub_dep_createDep": "デプロイ作成",
+    "hub_dep_modelId": "モデルID",
+    "hub_dep_depStrategy": "デプロイ戦略",
+    "hub_dep_replicasStepperFmt": "レプリカ数: %d",
+    "hub_dep_canaryStepperFmt": "カナリア比率: %d%%", "hub_cls_modelCountFmt": "%d モデル",
+    "hub_mkt_searchPlaceholder": "モデルを検索...",
+    "hub_mkt_sourceAll": "すべてのソース",
+    "hub_mkt_sourceLocal": "ローカル",
+    "hub_mkt_sourcePrivate": "プライベートリポジトリ",
+    "hub_mkt_taskAll": "すべてのタスク",
+    "hub_mkt_taskTextGen": "テキスト生成",
+    "hub_mkt_taskCode": "コード",
+    "hub_mkt_taskVision": "ビジョン",
+    "hub_mkt_taskEmbedding": "埋め込み",
+    "hub_mkt_taskAudio": "オーディオ",
+    "hub_mkt_taskMultimodal": "マルチモーダル",
+    "hub_mkt_formatAll": "すべての形式",
+    "hub_mkt_paramSizeAll": "すべてのサイズ",
+    "hub_mkt_localOnly": "ローカルのみ",
+    "hub_mkt_loadMoreFmt": "もっと読み込む (%d/%d)",
+    "hub_mkt_emptyTitle": "HuggingFace / ModelScope / プライベートリポジトリを検索",
+    "hub_mkt_emptyHint": "マルチソース検索・形式・サイズ・タスク絞り込み",
+    "hub_mkt_download": "ダウンロード",
+    "hub_mkt_convertMLX": "MLXに変換",
+    "hub_mkt_addBenchmark": "ベンチマークに追加",
+    "hub_mkt_ragDefault": "RAGデフォルト",
+    "hub_mkt_ragDefaultCurrent": "現在のRAGデフォルト埋め込みモデル",
+    "hub_mkt_ragDefaultSet": "RAGデフォルト埋め込みモデルに設定",
+    "hub_mkt_size": "サイズ",
+    "hub_mkt_downloads": "ダウンロード数",
+    "hub_mkt_likes": "いいね",
+    "hub_mkt_license": "ライセンス",
+    "hub_mkt_author": "作者",
+    "hub_mkt_selectModelHint": "モデルを選択して詳細表示",
+    "hub_mkt_pickerSource": "ソース",
+    "hub_mkt_pickerTask": "タスク",
+    "hub_mkt_pickerFormat": "形式",
+    "hub_mkt_pickerParam": "パラメータ",
+    "hub_mkt_downloadFailFmt": "ダウンロード失敗: %@",
+    "hub_mkt_mlxFailFmt": "MLX変換ダウンロード失敗: %@",
+    "hub_mkt_benchFailFmt": "ベンチマークトリガー失敗: %@",
+    "hub_main_secDashboard": "ダッシュボード",
+    "hub_main_secMarket": "モデル市場",
+    "hub_main_secLocalStorage": "ローカルストレージ",
+    "hub_main_secConvertQuant": "変換・量子化",
+    "hub_main_secSchedule": "ダウンロードスケジュール",
+    "hub_main_secCluster": "クラスタ",
+    "hub_main_secDeployment": "デプロイ",
+    "hub_main_secPermission": "パーミッション",
+    "hub_main_secMonitor": "モニタ",
+    "hub_main_secBenchmark": "ベンチマーク",
+    "hub_main_secSecurity": "セキュリティ",
+    "hub_main_noKeyMsg": "API Key未設定。保護対象エンドポイントは401を返します。パーミッションでKeyを作成してください。",
+    "hub_main_goCreate": "作成へ",
+    "hub_main_connected": "接続済み",
+    "hub_main_disconnected": "未接続",
+    "hub_main_serviceNotConnected": "Model Hubサービス未接続",
+    "hub_main_serviceHintFmt": "fusion-model-hubサービスが起動しているか確認（ポート %d）",
+    "hub_main_retry": "再接続",
+    "hub_ver_draft": "ドラフト",
+    "hub_ver_testing": "テスト中",
+    "hub_ver_published": "公開済み",
+    "hub_ver_deprecated": "非推奨",
+    "hub_ver_retired": "提供終了",
+    "hub_role_admin": "管理者",
+    "hub_role_developer": "開発者",
+    "hub_role_viewer": "閲覧者",
+    "hub_role_custom": "カスタム",
+    "hub_lvl_l1": "L1 自動承認",
+    "hub_lvl_l2": "L2 管理者承認",
+    "hub_lvl_l3": "L3 セキュリティ承認",
+    "hub_lvl_unknown": "不明",
 ]
 
 let koKRTranslations: [String: String] = [
@@ -2776,6 +3351,115 @@ let koKRTranslations: [String: String] = [
     "hub_durationZero": "0초", "hub_rpmDefaultFmt": "RPM: %d (기본값)", "hub_editPermTitleFmt": "권한 편집 — %@",
     "hub_concurrencyFmt": "동시 실행: %d", "hub_concurrencyDefaultFmt": "동시 실행: %d (기본값)",
     "hub_throttleConfigTitleFmt": "스로틀 설정 — %@", "hub_selectedModelsLoadingFmt": "%d개 모델 선택 (로딩 중...)",
+    "hub_ls_catAll": "전체", "hub_ls_catChat": "일반 대화", "hub_ls_catCode": "코드", "hub_ls_catEmbed": "임베딩", "hub_ls_catVision": "이미지 멀티모달", "hub_ls_catPrivate": "프라이빗", "hub_ls_catPinned": "고정됨", "hub_ls_catServing": "추론 중", "hub_ls_catLLM": "언어 모델", "hub_ls_catVLM": "비전 모델", "hub_ls_catEmbedM": "임베딩 모델", "hub_ls_catCodeM": "코드 모델", "hub_ls_catAudioM": "오디오 모델", "hub_ls_catMLX": "MLX 형식", "hub_ls_catGGUF": "GGUF 형식", "hub_ls_category": "카테고리", "hub_ls_searchPlaceholder": "로컬 모델 검색...", "hub_ls_batchMode": "배치 모드", "hub_ls_selectedCountFmt": "%d개 선택", "hub_ls_selectAll": "전체 선택", "hub_ls_batchDelete": "일괄 삭제", "hub_ls_batchQuantize": "일괄 양자화", "hub_ls_syncCluster": "클러스터 동기화", "hub_ls_exportPath": "내보내기 경로", "hub_ls_currentUse": "사용 중", "hub_ls_serving": "추론 중", "hub_ls_compatFormats": "호환 형식:", "hub_ls_unpin": "고정 해제", "hub_ls_pin": "고정", "hub_ls_stopServe": "추론 중지", "hub_ls_startServe": "추론 시작", "hub_ls_basicInfo": "기본 정보", "hub_ls_path": "경로", "hub_ls_source": "소스", "hub_ls_engine": "엔진", "hub_ls_license": "라이선스", "hub_ls_allowedModules": "허용 모듈", "hub_ls_selectModelHint": "모델을 선택해 상세 보기", "hub_ls_versionMgmt": "버전 관리", "hub_ls_versionList": "버전 목록", "hub_ls_noVersions": "버전 정보 없음", "hub_ls_rollback": "롤백", "hub_ls_publish": "게시", "hub_ls_deprecate": "폐기", "hub_ls_retire": "서비스 중단", "hub_ls_resident": "상주", "hub_ls_batchQuantTitle": "일괄 양자화", "hub_ls_batchQuantHintFmt": "%d개 모델 양자화 실행", "hub_ls_targetFormat": "대상 형식", "hub_ls_quantBits": "양자화 비트", "hub_ls_startQuantize": "양자화 시작", "hub_ls_batchQuantFailFmt": "일괄 양자화 실패: %@", "hub_ls_rollbackFailFmt": "버전 롤백 실패: %@", "hub_ls_syncFailFmt": "클러스터 동기화 실패: %@", "hub_ls_startServeFailFmt": "추론 시작 실패: %@", "hub_ls_stopServeFailFmt": "추론 중지 실패: %@", "hub_ls_publishFailFmt": "버전 게시 실패: %@", "hub_ls_deprecateFailFmt": "버전 폐기 실패: %@", "hub_ls_retireFailFmt": "버전 서비스중단 실패: %@",
+    "hub_cls_nodes": "클러스터 노드", "hub_cls_onlineFmt": "%d/%d 온라인", "hub_cls_syncModel": "모델 동기화", "hub_cls_noNodes": "클러스터 노드 없음", "hub_cls_noNodesHint": "같은 네트워크에서 Model Hub 서비스를 실행하세요", "hub_cls_selectNodeHint": "노드를 선택해 상세 보기", "hub_cls_nodeInfo": "노드 정보", "hub_cls_addr": "주소", "hub_cls_lastSeen": "최근 온라인", "hub_cls_resourceUsage": "리소스 사용량", "hub_cls_memory": "메모리", "hub_cls_localModelsFmt": "로컬 모델 (%d)", "hub_cls_autoSchedule": "자동 스케줄 추론", "hub_cls_localFirst": "로컬 우선, 클러스터 폴백", "hub_cls_model": "모델", "hub_cls_selectModelHint": "모델 선택...", "hub_cls_routeMode": "라우팅 모드", "hub_cls_promptPlaceholder": "추론 프롬프트 입력...", "hub_cls_sendInfer": "추론 요청 전송", "hub_cls_inferResult": "추론 결과", "hub_cls_routedTo": "라우팅:", "hub_cls_resultHint": "추론 요청 전송 후 결과 확인", "hub_cls_syncToCluster": "클러스터로 모델 동기화", "hub_cls_syncHint": "모든 온라인 클러스터 노드로 모델 파일 동기화", "hub_cls_startSync": "동기화 시작", "hub_cls_modeAuto": "자동", "hub_cls_modeLocal": "로컬 우선", "hub_cls_modeCluster": "클러스터",
+    "hub_dash_mlxEngine": "MLX 추론 엔진", "hub_dash_clusterMode": "클러스터 모드", "hub_dash_modelService": "모델 서비스", "hub_dash_localModels": "로컬 모델", "hub_dash_activeModels": "활성 모델", "hub_dash_downloading": "다운로드 중", "hub_dash_totalStorage": "총 저장공간", "hub_dash_pinned": "고정", "hub_dash_quantizing": "양자화 중", "hub_dash_clusterNodes": "클러스터 노드", "hub_dash_totalModels": "전체 모델", "hub_dash_quickActions": "빠른 작업", "hub_dash_searchMarket": "마켓 검색", "hub_dash_downloadModel": "모델 다운로드", "hub_dash_quantizeModel": "모델 양자화", "hub_dash_systemClean": "시스템 정리", "hub_dash_recentModels": "최근 모델", "hub_dash_noModels": "모델 없음", "hub_dash_resident": "상주", "hub_dash_serving": "추론 중", "hub_dash_sysOverview": "시스템 개요", "hub_dash_memory": "메모리", "hub_dash_disk": "디스크", "hub_dash_uptime": "가동 시간", "hub_dash_loading": "로딩 중...",
+    "hub_mv_descQwen35": "통의천문 3.5, 9B 파라미터, 4bit 양자화", "hub_mv_descLlama3": "Meta Llama 3, 8B 파라미터, 4bit 양자화", "hub_mv_descDeepseek": "DeepSeek 코드 전용 모델", "hub_mv_descQwenVL": "Qwen2 비전 언어 모델", "hub_mv_catAll": "전체", "hub_mv_searchPlaceholder": "모델 검색...", "hub_mv_selectModelHint": "모델을 선택해 상세 보기", "hub_mv_downloadModel": "모델 다운로드", "hub_mv_refresh": "새로고침", "hub_mv_active": "활성", "hub_mv_ready": "준비", "hub_mv_notDownloaded": "미다운로드", "hub_mv_currentUse": "사용 중", "hub_mv_download": "다운로드", "hub_mv_activate": "활성화", "hub_mv_downloadingFmt": "다운로드 중... %d%%", "hub_mv_basicInfo": "기본 정보", "hub_mv_modelId": "모델 ID", "hub_mv_path": "경로", "hub_mv_size": "크기", "hub_mv_format": "형식", "hub_mv_quant": "양자화", "hub_mv_family": "패밀리", "hub_mv_params": "파라미터", "hub_mv_description": "설명", "hub_mv_searchHF": "HuggingFace 모델 검색...", "hub_mv_search": "검색", "hub_mv_recommended": "추천 모델", "hub_mv_repoIdHint": "또는 HuggingFace repo ID 직접 입력", "hub_mv_hfTokenOptional": "HF Token (선택)",
+    "hub_dep_stPending": "대기 중",
+    "hub_dep_stRunning": "실행 중",
+    "hub_dep_stStopped": "중지됨",
+    "hub_dep_stFailed": "실패",
+    "hub_dep_stUnknown": "알 수 없음",
+    "hub_dep_management": "배포 관리",
+    "hub_dep_empty": "배포 없음",
+    "hub_dep_selectHint": "세부 정보를 보려면 배포 선택",
+    "hub_dep_replicasFmt": "%@ 복제본",
+    "hub_dep_canaryFmt": "카나리 %d%%",
+    "hub_dep_config": "구성",
+    "hub_dep_model": "모델",
+    "hub_dep_modelName": "모델 이름",
+    "hub_dep_strategy": "전략",
+    "hub_dep_replicasCount": "복제본 수",
+    "hub_dep_canaryRatio": "카나리 비율",
+    "hub_dep_createdAt": "생성 시간",
+    "hub_dep_updatedAt": "업데이트 시간",
+    "hub_dep_metrics": "메트릭",
+    "hub_dep_reqPerSec": "요청/초",
+    "hub_dep_latencyMs": "지연(ms)",
+    "hub_dep_errorRate": "오류율",
+    "hub_dep_refreshMetrics": "메트릭 새로고침",
+    "hub_dep_actions": "작업",
+    "hub_dep_stopDep": "중지",
+    "hub_dep_scale": "스케일",
+    "hub_dep_grayRelease": "카나리 릴리스",
+    "hub_dep_deleteDep": "삭제",
+    "hub_dep_stopFailFmt": "중지 실패: %@",
+    "hub_dep_scaleFailFmt": "스케일 실패: %@",
+    "hub_dep_grayFailFmt": "카나리 릴리스 실패: %@",
+    "hub_dep_deleteFailFmt": "삭제 실패: %@",
+    "hub_dep_metricsFailFmt": "메트릭 로드 실패: %@",
+    "hub_dep_createDep": "배포 생성",
+    "hub_dep_modelId": "모델 ID",
+    "hub_dep_depStrategy": "배포 전략",
+    "hub_dep_replicasStepperFmt": "복제본 수: %d",
+    "hub_dep_canaryStepperFmt": "카나리 비율: %d%%", "hub_cls_modelCountFmt": "%d 모델",
+    "hub_mkt_searchPlaceholder": "모델 검색...",
+    "hub_mkt_sourceAll": "모든 소스",
+    "hub_mkt_sourceLocal": "로컬",
+    "hub_mkt_sourcePrivate": "개인 저장소",
+    "hub_mkt_taskAll": "모든 작업",
+    "hub_mkt_taskTextGen": "텍스트 생성",
+    "hub_mkt_taskCode": "코드",
+    "hub_mkt_taskVision": "비전",
+    "hub_mkt_taskEmbedding": "임베딩",
+    "hub_mkt_taskAudio": "오디오",
+    "hub_mkt_taskMultimodal": "멀티모달",
+    "hub_mkt_formatAll": "모든 형식",
+    "hub_mkt_paramSizeAll": "모든 크기",
+    "hub_mkt_localOnly": "로컬만",
+    "hub_mkt_loadMoreFmt": "더 불러오기 (%d/%d)",
+    "hub_mkt_emptyTitle": "HuggingFace / ModelScope / 개인 저장소 검색",
+    "hub_mkt_emptyHint": "다중 소스 검색, 형식/크기/작업 필터",
+    "hub_mkt_download": "다운로드",
+    "hub_mkt_convertMLX": "MLX로 변환",
+    "hub_mkt_addBenchmark": "벤치마크 추가",
+    "hub_mkt_ragDefault": "RAG 기본",
+    "hub_mkt_ragDefaultCurrent": "현재 RAG 기본 임베딩 모델",
+    "hub_mkt_ragDefaultSet": "RAG 기본 임베딩 모델로 설정",
+    "hub_mkt_size": "크기",
+    "hub_mkt_downloads": "다운로드 수",
+    "hub_mkt_likes": "좋아요",
+    "hub_mkt_license": "라이선스",
+    "hub_mkt_author": "작성자",
+    "hub_mkt_selectModelHint": "모델을 선택해 상세 보기",
+    "hub_mkt_pickerSource": "소스",
+    "hub_mkt_pickerTask": "작업",
+    "hub_mkt_pickerFormat": "형식",
+    "hub_mkt_pickerParam": "파라미터",
+    "hub_mkt_downloadFailFmt": "다운로드 실패: %@",
+    "hub_mkt_mlxFailFmt": "MLX 변환 다운로드 실패: %@",
+    "hub_mkt_benchFailFmt": "벤치마크 트리거 실패: %@",
+    "hub_main_secDashboard": "대시보드",
+    "hub_main_secMarket": "모델 마켓",
+    "hub_main_secLocalStorage": "로컬 저장소",
+    "hub_main_secConvertQuant": "변환 및 양자화",
+    "hub_main_secSchedule": "다운로드 스케줄",
+    "hub_main_secCluster": "클러스터",
+    "hub_main_secDeployment": "배포",
+    "hub_main_secPermission": "권한",
+    "hub_main_secMonitor": "모니터",
+    "hub_main_secBenchmark": "벤치마크",
+    "hub_main_secSecurity": "보안 센터",
+    "hub_main_noKeyMsg": "API Key 미설정. 보호된 엔드포인트는 401 반환. 권한에서 Key 생성하세요.",
+    "hub_main_goCreate": "생성하러 가기",
+    "hub_main_connected": "연결됨",
+    "hub_main_disconnected": "연결 안 됨",
+    "hub_main_serviceNotConnected": "Model Hub 서비스 미연결",
+    "hub_main_serviceHintFmt": "fusion-model-hub 서비스 실행 확인 (포트 %d)",
+    "hub_main_retry": "재연결",
+    "hub_ver_draft": "초안",
+    "hub_ver_testing": "테스트 중",
+    "hub_ver_published": "게시됨",
+    "hub_ver_deprecated": "폐기됨",
+    "hub_ver_retired": "단종",
+    "hub_role_admin": "관리자",
+    "hub_role_developer": "개발자",
+    "hub_role_viewer": "조회자",
+    "hub_role_custom": "사용자 정의",
+    "hub_lvl_l1": "L1 자동 승인",
+    "hub_lvl_l2": "L2 관리자 승인",
+    "hub_lvl_l3": "L3 보안 승인",
+    "hub_lvl_unknown": "알 수 없음",
 ]
 
 // MARK: - 国际化文本视图
