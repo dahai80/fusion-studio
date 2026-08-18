@@ -85,6 +85,8 @@ struct AIAgentDebugView: View {
             }
         }
         .background(theme.surfaceElevated)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(minWidth: 720, minHeight: 560)
         .onAppear { loadAgent() }
     }
 
