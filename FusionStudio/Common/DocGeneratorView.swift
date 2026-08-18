@@ -304,6 +304,8 @@ class DocGenerator: ObservableObject {
 
             ### 整理
             - 清理测试/假数据：LogPanelView/CollaborationService/RealTimeService/ProfilerView/AnalyticsDashboardView/AdvancedSettingsView/BenchView 删假数据留空态（等待接通真实后端）；ExternalIntegrationsView 假服务连接/Issues/API 响应替换为真实 URLSession 调用与空态；AgentOrchestrator 内置 5 agent 种子模板保留但假 taskCount 清零
+            - 删死代码：FeaturePlaceholderView（零引用）、Design RAG 兼容 shim（DesignSpecRAGIndexer/ComponentRAGIndexer，RAGEngine 已移除后的日志占位）
+            - 清理过时注释：ModuleDetailView 占位视图 MARK、ModelHubView/DesignWorkflowOrchestrator 历史任务指令残留
 
             ## [0.1.38] - 2026-08-16
 

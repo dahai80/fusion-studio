@@ -1,8 +1,7 @@
 // Callers: DesignView (toolbar buttons), CodeDesignPreviewPanel (sync bar), AppState (module switch notification).
-// Affected API: DesignWorkflowOrchestrator — 7 previously stub steps now have real automation.
+// Affected API: DesignWorkflowOrchestrator — 7-step design automation workflow.
 // Data schemas: WorkflowStep actions use DesignBridge (skillTextToUI, skillImageToUI, clearCanvas, etc.),
 //   NSOpenPanel for file selection, NSPasteboard for screenshot reading.
-// User instruction: "Phase 6 功能增强,立即实施"
 
 import SwiftUI
 import Combine
