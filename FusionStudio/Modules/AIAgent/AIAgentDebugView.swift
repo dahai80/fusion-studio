@@ -23,6 +23,7 @@ struct AIAgentDebugView: View {
     @State private var skillList: [[String: Any]] = []
     @State private var codeTaskInput = ""
     @State private var codeTaskLang = "python"
+    @State private var codeLanguages: [(name: String, tag: String)] = [("Python", "python")]
     @State private var codeTasks: [[String: Any]] = []
     @State private var codeTaskLoading = false
     @State private var historyEntries: [HistoryEntry] = []
@@ -466,10 +467,9 @@ struct AIAgentDebugView: View {
         VStack(spacing: theme.spacingS) {
             HStack(spacing: theme.spacingS) {
                 Picker("语言", selection: $codeTaskLang) {
-                    Text("Python").tag("python")
-                    Text("Swift").tag("swift")
-                    Text("JavaScript").tag("javascript")
-                    Text("Shell").tag("shell")
+                    ForEach(codeLanguages, id: \.tag) { lang in
+                        Text(lang.name).tag(lang.tag)
+                    }
                 }
                 .frame(width: 120)
                 .font(.system(size: theme.captionSize))
@@ -569,6 +569,29 @@ struct AIAgentDebugView: View {
                 debugLog.error("List skills failed: \(error.localizedDescription)")
             }
             await loadCodeTasks()
+            await loadCodeLanguages()
+        }
+    }
+
+    private func loadCodeLanguages() async {
+        do {
+            let result = try await ipc.agentCodeLanguages()
+            let raw = result["languages"] as? [[String: Any]] ?? []
+            var langs: [(name: String, tag: String)] = []
+            for entry in raw {
+                let tag = (entry["language"] as? String) ?? "python"
+                let name = tag.capitalized.replacingOccurrences(of: "Javascript", with: "JavaScript")
+                langs.append((name, tag))
+            }
+            if langs.isEmpty { langs = [("Python", "python")] }
+            await MainActor.run {
+                codeLanguages = langs
+                if !langs.contains(where: { $0.tag == codeTaskLang }) {
+                    codeTaskLang = langs.first?.tag ?? "python"
+                }
+            }
+        } catch {
+            debugLog.error("Load code languages failed: \(error.localizedDescription)")
         }
     }
 
