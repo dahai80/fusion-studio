@@ -15,6 +15,7 @@ struct FusionSidebarView: View {
     @Environment(\.studioTheme) private var theme
     @StateObject private var workspace = ProjectWorkspace.shared
     @StateObject private var agent = CodeAgent.shared
+    @StateObject private var i18n = I18nManager.shared
     @State private var searchText = ""
     // Callers: ContentView, IconRailView. Affected API: SidebarSection.doc, AppState.activeSection.
     // Data schemas: SidebarSection.allCases auto-includes .doc. User instruction: "在左侧菜单增加 fusion doc"
@@ -60,7 +61,7 @@ struct FusionSidebarView: View {
                                 .background(Circle().fill(.ultraThinMaterial))
                         }
                         .buttonStyle(.plain)
-                        .help("上移")
+                        .help(i18n.t(.scrollUp))
 
                         Button(action: { withAnimation { proxy.scrollTo("sidebarScrollBottom", anchor: .bottom) } }) {
                             Image(systemName: "chevron.down.circle.fill")
@@ -69,7 +70,7 @@ struct FusionSidebarView: View {
                                 .background(Circle().fill(.ultraThinMaterial))
                         }
                         .buttonStyle(.plain)
-                        .help("下移")
+                        .help(i18n.t(.scrollDown))
                     }
                     .padding(.trailing, theme.spacingS)
                     .padding(.bottom, theme.spacingS)
@@ -90,7 +91,7 @@ struct FusionSidebarView: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: theme.iconS))
                 .foregroundStyle(theme.textTertiary)
-            TextField("Search...", text: $searchText)
+            TextField(i18n.t(.search), text: $searchText)
                 .textFieldStyle(.plain)
                 .font(.system(size: theme.smallTextSize))
                 .foregroundStyle(theme.text)
@@ -107,7 +108,7 @@ struct FusionSidebarView: View {
                     .foregroundStyle(theme.textTertiary)
             }
             .buttonStyle(.plain)
-            .help("Hide Sidebar (⌘\\)")
+            .help(i18n.t(.hideSidebar))
             .accessibilityIdentifier("sidebar.hide")
         }
         .padding(.horizontal, theme.spacingM)
@@ -129,7 +130,7 @@ struct FusionSidebarView: View {
                     .foregroundStyle(theme.accent)
                     .frame(width: 20)
 
-                Text("New Chat")
+                Text(i18n.t(.newChat))
                     .font(.system(size: theme.textSize, weight: .medium))
                     .foregroundStyle(theme.text)
 
@@ -162,7 +163,7 @@ struct FusionSidebarView: View {
                     .foregroundStyle(theme.textTertiary)
                     .frame(width: 12)
 
-                Text(section.rawValue.uppercased())
+                Text(section.localizedName.uppercased())
                     .font(.system(size: theme.captionSize, weight: .semibold))
                     .foregroundStyle(theme.textTertiary)
                     .kerning(0.5)
@@ -235,7 +236,7 @@ struct FusionSidebarView: View {
         VStack(spacing: 0) {
             let userMsgs = agent.conversation.filter { $0.role == "user" }
             if userMsgs.isEmpty {
-                Text("No conversations yet")
+                Text(i18n.t(.noConversationsYet))
                     .font(.system(size: theme.footnoteSize))
                     .foregroundStyle(theme.textTertiary)
                     .padding(.vertical, theme.spacingS)
@@ -264,7 +265,7 @@ struct FusionSidebarView: View {
                     Image(systemName: "play.rectangle.fill")
                         .font(.system(size: theme.iconS))
                         .foregroundStyle(theme.accent)
-                    Text("运营看板")
+                    Text(i18n.t(.runDashboard))
                         .font(.system(size: theme.textSize, weight: .medium))
                         .foregroundStyle(theme.text)
                     Spacer()
@@ -276,23 +277,23 @@ struct FusionSidebarView: View {
             .buttonStyle(.plain)
             HStack {
                 Image(systemName: "tray").foregroundStyle(theme.amberDot).font(.system(size: 11))
-                Text("待发布").font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textSecondary)
+                Text(i18n.t(.pendingPublish)).font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textSecondary)
                 Spacer()
                 Text("\(douyinBridge.queueCounts.pending)").font(.system(size: theme.footnoteSize, weight: .semibold)).foregroundStyle(theme.text)
             }
             HStack {
                 Image(systemName: "checkmark.circle").foregroundStyle(theme.greenDot).font(.system(size: 11))
-                Text("已发布").font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textSecondary)
+                Text(i18n.t(.published)).font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textSecondary)
                 Spacer()
                 Text("\(douyinBridge.queueCounts.published)").font(.system(size: theme.footnoteSize, weight: .semibold)).foregroundStyle(theme.text)
             }
             HStack {
                 Image(systemName: "flame").foregroundStyle(theme.accent).font(.system(size: 11))
-                Text("爆款").font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textSecondary)
+                Text(i18n.t(.hitProduct)).font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textSecondary)
                 Spacer()
                 Text("\(douyinBridge.winning.hotCount)").font(.system(size: theme.footnoteSize, weight: .semibold)).foregroundStyle(theme.text)
             }
-            Text("点击「运营看板」进入主区操作造片 / 发布 / 评论 / 进化")
+            Text(i18n.t(.douyinHint))
                 .font(.system(size: 11)).foregroundStyle(theme.textTertiary)
                 .padding(.top, theme.spacingS)
         }
@@ -341,7 +342,7 @@ struct FusionSidebarView: View {
                     Image(systemName: "plus.circle")
                         .font(.system(size: theme.iconS))
                         .foregroundStyle(theme.accent)
-                    Text("新建项目")
+                    Text(i18n.t(.newProject))
                         .font(.system(size: theme.textSize))
                         .foregroundStyle(theme.text)
                     Spacer()
@@ -361,7 +362,7 @@ struct FusionSidebarView: View {
                 HStack(spacing: theme.spacingXS) {
                     Image(systemName: "folder.badge.plus")
                         .font(.system(size: theme.iconXS))
-                    Text("Open Local Folder")
+                    Text(i18n.t(.openLocalFolder))
                         .font(.system(size: theme.footnoteSize))
                 }
                 .foregroundStyle(theme.accent)
@@ -409,7 +410,7 @@ struct FusionSidebarView: View {
                         .font(.system(size: theme.iconXS))
                         .foregroundStyle(theme.textTertiary)
                         .frame(width: 20)
-                    Text("No artifacts yet")
+                    Text(i18n.t(.noArtifactsYet))
                         .font(.system(size: theme.footnoteSize))
                         .foregroundStyle(theme.textTertiary)
                     Spacer()
@@ -429,7 +430,7 @@ struct FusionSidebarView: View {
                 HStack(spacing: theme.spacingXS) {
                     Image(systemName: "cube.box")
                         .font(.system(size: theme.iconXS))
-                    Text("Open Artifacts")
+                    Text(i18n.t(.openArtifacts))
                         .font(.system(size: theme.footnoteSize))
                 }
                 .foregroundStyle(theme.accent)
@@ -540,7 +541,7 @@ struct FusionSidebarView: View {
                     Image(systemName: "plus.circle")
                         .font(.system(size: theme.iconS))
                         .foregroundStyle(theme.accent)
-                    Text("新建协作空间")
+                    Text(i18n.t(.newWorkspace))
                         .font(.system(size: theme.textSize))
                         .foregroundStyle(theme.text)
                     Spacer()
@@ -598,7 +599,7 @@ struct FusionSidebarView: View {
         Group {
             if !workspace.recentProjects.isEmpty {
                 VStack(alignment: .leading, spacing: theme.spacingXS) {
-                    Text("RECENTS")
+                    Text(i18n.t(.recents).uppercased())
                         .font(.system(size: theme.captionSize, weight: .semibold))
                         .foregroundStyle(theme.textTertiary)
                         .kerning(0.5)
@@ -668,7 +669,7 @@ struct FusionSidebarView: View {
                         .foregroundStyle(theme.textTertiary)
                 }
                 .buttonStyle(.plain)
-                .help("Download")
+                .help(i18n.t(.download))
             }
             .padding(.horizontal, theme.spacingM)
             .padding(.vertical, theme.spacingS)
@@ -704,7 +705,7 @@ struct FusionSidebarView: View {
                     Image(systemName: "plus.circle")
                         .font(.system(size: theme.iconS))
                         .foregroundStyle(theme.accent)
-                    Text("新建工作台")
+                    Text(i18n.t(.newWorkbench))
                         .font(.system(size: theme.textSize))
                         .foregroundStyle(theme.text)
                     Spacer()

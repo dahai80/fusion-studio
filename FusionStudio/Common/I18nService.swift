@@ -60,6 +60,15 @@ enum I18nKey: String, CaseIterable {
     // 导航
     case dashboard = "dashboard"
     case design = "design"
+    case newChat = "newChat"
+    case toggleSidebar = "toggleSidebar"
+    case hideSidebar = "hideSidebar"
+    case getApps = "getApps"
+    case scrollUp = "scrollUp"
+    case scrollDown = "scrollDown"
+    case settings = "settings"
+    case about = "about"
+    case language = "language"
     case code = "code"
     case simulation = "simulation"
     case modelHub = "modelHub"
@@ -68,8 +77,6 @@ enum I18nKey: String, CaseIterable {
     case kb = "kb"
     case bench = "bench"
     case desk = "desk"
-    case settings = "settings"
-    case about = "about"
 
     // 环境
     case healthCheck = "healthCheck"
@@ -93,7 +100,6 @@ enum I18nKey: String, CaseIterable {
     case hardware = "hardware"
     case network = "network"
     case offlineMode = "offlineMode"
-    case language = "language"
     case workspace = "workspace"
     case autoStart = "autoStart"
     case quantization = "quantization"
@@ -116,6 +122,49 @@ enum I18nKey: String, CaseIterable {
     case moduleKB = "moduleKB"
     case moduleBench = "moduleBench"
     case moduleDesk = "moduleDesk"
+
+    // 导航区段
+    case secChats = "secChats"
+    case secAgent = "secAgent"
+    case secProjects = "secProjects"
+    case secArtifacts = "secArtifacts"
+    case secCode = "secCode"
+    case secDesign = "secDesign"
+    case secDoc = "secDoc"
+    case secRag = "secRag"
+    case secAIAgent = "secAIAgent"
+    case secCowork = "secCowork"
+    case secFsb = "secFsb"
+    case secMlx = "secMlx"
+    case secScience = "secScience"
+    case secFinance = "secFinance"
+    case secHealth = "secHealth"
+    case secCliService = "secCliService"
+    case secSimulation = "secSimulation"
+    case secDouyin = "secDouyin"
+    case secModelHub = "secModelHub"
+    case secMultiNode = "secMultiNode"
+    case secPlugin = "secPlugin"
+
+    // 导航 UI 杂项
+    case newProject = "newProject"
+    case openLocalFolder = "openLocalFolder"
+    case newWorkspace = "newWorkspace"
+    case newWorkbench = "newWorkbench"
+    case noConversationsYet = "noConversationsYet"
+    case noArtifactsYet = "noArtifactsYet"
+    case openArtifacts = "openArtifacts"
+    case recents = "recents"
+    case download = "download"
+    case getHelp = "getHelp"
+    case upgradePlan = "upgradePlan"
+    case learnMore = "learnMore"
+    case logout = "logout"
+    case runDashboard = "runDashboard"
+    case pendingPublish = "pendingPublish"
+    case published = "published"
+    case hitProduct = "hitProduct"
+    case douyinHint = "douyinHint"
 }
 
 // MARK: - 翻译管理器
@@ -192,6 +241,27 @@ let zhCNTranslations: [String: String] = [
     "moduleSimulation": "机器人仿真", "moduleModelHub": "模型管理",
     "moduleCLI": "命令行工具", "moduleDoc": "文档管理",
     "moduleKB": "知识库", "moduleBench": "基准测试", "moduleDesk": "桌面自动化",
+
+    "newChat": "新建对话", "toggleSidebar": "切换侧边栏 (⌘\\)", "hideSidebar": "隐藏侧边栏 (⌘\\)",
+    "getApps": "获取应用与扩展", "scrollUp": "上移", "scrollDown": "下移",
+    "recents": "最近项目", "download": "下载",
+    "getHelp": "获取帮助", "upgradePlan": "升级方案", "learnMore": "了解更多", "logout": "退出登录",
+
+    "secChats": "对话", "secAgent": "Agent 工作台", "secProjects": "项目",
+    "secArtifacts": "Artifacts", "secCode": "编码", "secDesign": "设计",
+    "secDoc": "Fusion Doc", "secRag": "RAG", "secAIAgent": "AI 控制台",
+    "secCowork": "CoWork", "secFsb": "FSB", "secMlx": "Fusion-MLX",
+    "secScience": "科研", "secFinance": "金融", "secHealth": "健康",
+    "secCliService": "CLI Service", "secSimulation": "Fusion Simulation",
+    "secDouyin": "抖音运营", "secModelHub": "Model Hub", "secMultiNode": "Multi-Node",
+    "secPlugin": "Plugin Ecosystem",
+
+    "newProject": "新建项目", "openLocalFolder": "打开本地文件夹",
+    "newWorkspace": "新建协作空间", "newWorkbench": "新建工作台",
+    "noConversationsYet": "暂无对话", "noArtifactsYet": "暂无 Artifacts",
+    "openArtifacts": "打开 Artifacts",
+    "runDashboard": "运营看板", "pendingPublish": "待发布", "published": "已发布",
+    "hitProduct": "爆款", "douyinHint": "点击「运营看板」进入主区操作造片 / 发布 / 评论 / 进化",
 ]
 
 let enUSTranslations: [String: String] = [
@@ -223,6 +293,27 @@ let enUSTranslations: [String: String] = [
     "moduleSimulation": "Robot Simulation", "moduleModelHub": "Model Management",
     "moduleCLI": "Command Line", "moduleDoc": "Document Management",
     "moduleKB": "Knowledge Base", "moduleBench": "Benchmark", "moduleDesk": "Desktop Automation",
+
+    "newChat": "New Chat", "toggleSidebar": "Toggle Sidebar (⌘\\)", "hideSidebar": "Hide Sidebar (⌘\\)",
+    "getApps": "Get App & Extensions", "scrollUp": "Scroll Up", "scrollDown": "Scroll Down",
+    "recents": "Recents", "download": "Download",
+    "getHelp": "Get Help", "upgradePlan": "Upgrade Plan", "learnMore": "Learn More", "logout": "Logout",
+
+    "secChats": "Chats", "secAgent": "Agent Studio", "secProjects": "Projects",
+    "secArtifacts": "Artifacts", "secCode": "Code", "secDesign": "Design",
+    "secDoc": "Fusion Doc", "secRag": "RAG", "secAIAgent": "AI Console",
+    "secCowork": "CoWork", "secFsb": "FSB", "secMlx": "Fusion-MLX",
+    "secScience": "Science", "secFinance": "Finance", "secHealth": "Health",
+    "secCliService": "CLI Service", "secSimulation": "Fusion Simulation",
+    "secDouyin": "Douyin Ops", "secModelHub": "Model Hub", "secMultiNode": "Multi-Node",
+    "secPlugin": "Plugin Ecosystem",
+
+    "newProject": "New Project", "openLocalFolder": "Open Local Folder",
+    "newWorkspace": "New Workspace", "newWorkbench": "New Workbench",
+    "noConversationsYet": "No conversations yet", "noArtifactsYet": "No artifacts yet",
+    "openArtifacts": "Open Artifacts",
+    "runDashboard": "Operations Dashboard", "pendingPublish": "Pending", "published": "Published",
+    "hitProduct": "Hits", "douyinHint": "Click \"Operations Dashboard\" to create / publish / comment / evolve",
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -248,6 +339,27 @@ let jaJPTranslations: [String: String] = [
     "moduleSimulation": "ロボットシミュレーション", "moduleModelHub": "モデル管理",
     "moduleCLI": "コマンドライン", "moduleDoc": "ドキュメント管理",
     "moduleKB": "ナレッジベース", "moduleBench": "ベンチマーク", "moduleDesk": "デスクトップ自動化",
+
+    "newChat": "新規チャット", "toggleSidebar": "サイドバー切替 (⌘\\)", "hideSidebar": "サイドバー非表示 (⌘\\)",
+    "getApps": "アプリと拡張を取得", "scrollUp": "上へ", "scrollDown": "下へ",
+    "recents": "最近", "download": "ダウンロード",
+    "getHelp": "ヘルプ", "upgradePlan": "プランアップグレード", "learnMore": "詳細", "logout": "ログアウト",
+
+    "secChats": "チャット", "secAgent": "Agentワークベンチ", "secProjects": "プロジェクト",
+    "secArtifacts": "Artifacts", "secCode": "コード", "secDesign": "デザイン",
+    "secDoc": "Fusion Doc", "secRag": "RAG", "secAIAgent": "AIコンソール",
+    "secCowork": "CoWork", "secFsb": "FSB", "secMlx": "Fusion-MLX",
+    "secScience": "サイエンス", "secFinance": "ファイナンス", "secHealth": "ヘルス",
+    "secCliService": "CLI Service", "secSimulation": "Fusion Simulation",
+    "secDouyin": "Douyin運営", "secModelHub": "Model Hub", "secMultiNode": "Multi-Node",
+    "secPlugin": "Plugin Ecosystem",
+
+    "newProject": "新規プロジェクト", "openLocalFolder": "ローカルフォルダを開く",
+    "newWorkspace": "新規ワークスペース", "newWorkbench": "新規ワークベンチ",
+    "noConversationsYet": "チャットなし", "noArtifactsYet": "Artifactsなし",
+    "openArtifacts": "Artifactsを開く",
+    "runDashboard": "運営ダッシュボード", "pendingPublish": "公開待ち", "published": "公開済み",
+    "hitProduct": "ヒット", "douyinHint": "「運営ダッシュボード」で作成 / 公開 / コメント / 進化",
 ]
 
 let koKRTranslations: [String: String] = [
@@ -273,6 +385,27 @@ let koKRTranslations: [String: String] = [
     "moduleSimulation": "로봇 시뮬레이션", "moduleModelHub": "모델 관리",
     "moduleCLI": "명령줄", "moduleDoc": "문서 관리",
     "moduleKB": "지식베이스", "moduleBench": "벤치마크", "moduleDesk": "데스크톱 자동화",
+
+    "newChat": "새 채팅", "toggleSidebar": "사이드바 전환 (⌘\\)", "hideSidebar": "사이드바 숨기기 (⌘\\)",
+    "getApps": "앱 및 확장 받기", "scrollUp": "위로", "scrollDown": "아래로",
+    "recents": "최근", "download": "다운로드",
+    "getHelp": "도움말", "upgradePlan": "플랜 업그레이드", "learnMore": "더 보기", "logout": "로그아웃",
+
+    "secChats": "채팅", "secAgent": "Agent 워크벤치", "secProjects": "프로젝트",
+    "secArtifacts": "Artifacts", "secCode": "코드", "secDesign": "디자인",
+    "secDoc": "Fusion Doc", "secRag": "RAG", "secAIAgent": "AI 콘솔",
+    "secCowork": "CoWork", "secFsb": "FSB", "secMlx": "Fusion-MLX",
+    "secScience": "사이언스", "secFinance": "파이낸스", "secHealth": "헬스",
+    "secCliService": "CLI Service", "secSimulation": "Fusion Simulation",
+    "secDouyin": "Douyin 운영", "secModelHub": "Model Hub", "secMultiNode": "Multi-Node",
+    "secPlugin": "Plugin Ecosystem",
+
+    "newProject": "새 프로젝트", "openLocalFolder": "로컬 폴더 열기",
+    "newWorkspace": "새 워크스페이스", "newWorkbench": "새 워크벤치",
+    "noConversationsYet": "대화 없음", "noArtifactsYet": "Artifacts 없음",
+    "openArtifacts": "Artifacts 열기",
+    "runDashboard": "운영 대시보드", "pendingPublish": "발행 대기", "published": "발행됨",
+    "hitProduct": "히트", "douyinHint": "「운영 대시보드」에서 제작 / 발행 / 댓글 / 진화",
 ]
 
 // MARK: - 国际化文本视图

@@ -12,6 +12,7 @@ private let railLog = Logger(subsystem: "com.fusion.studio", category: "IconRail
 struct IconRailView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -39,7 +40,7 @@ struct IconRailView: View {
                             .foregroundStyle(theme.textSecondary)
                     }
                     .buttonStyle(.plain)
-                    .help("上移")
+                    .help(i18n.t(.scrollUp))
 
                     Button(action: { withAnimation { proxy.scrollTo("railScrollBottom", anchor: .bottom) } }) {
                         Image(systemName: "chevron.down.circle.fill")
@@ -47,7 +48,7 @@ struct IconRailView: View {
                             .foregroundStyle(theme.textSecondary)
                     }
                     .buttonStyle(.plain)
-                    .help("下移")
+                    .help(i18n.t(.scrollDown))
                 }
                 .padding(.vertical, 4)
             }
@@ -79,7 +80,7 @@ struct IconRailView: View {
                 .frame(width: 52, height: 48)
         }
         .buttonStyle(.plain)
-        .help("Toggle Sidebar (⌘\\)")
+        .help(i18n.t(.toggleSidebar))
         .accessibilityIdentifier("sidebar.toggle")
     }
 
@@ -96,7 +97,7 @@ struct IconRailView: View {
                 .frame(width: 52, height: 40)
         }
         .buttonStyle(.plain)
-        .help("New Chat")
+        .help(i18n.t(.newChat))
         .accessibilityIdentifier("chat.new")
     }
 
@@ -194,7 +195,7 @@ struct IconRailView: View {
             }
         }
         .buttonStyle(.plain)
-        .help(section.rawValue)
+        .help(section.localizedName)
         .accessibilityIdentifier("nav.\(section.rawValue)")
     }
 
@@ -210,7 +211,7 @@ struct IconRailView: View {
                 .frame(width: 52, height: 36)
         }
         .buttonStyle(.plain)
-        .help("Get App & Extensions")
+        .help(i18n.t(.getApps))
         .accessibilityIdentifier("apps.get")
     }
 
@@ -222,7 +223,7 @@ struct IconRailView: View {
                 .frame(width: 52, height: 36)
         }
         .buttonStyle(.plain)
-        .help("Settings")
+        .help(i18n.t(.settings))
         .accessibilityIdentifier("settings.open")
     }
 
@@ -243,7 +244,7 @@ struct IconRailView: View {
         let menu = NSMenu()
         let target = MenuActionTarget()
 
-        let settingsItem = NSMenuItem(title: "Settings", action: #selector(MenuActionTarget.runClosure), keyEquivalent: ",")
+        let settingsItem = NSMenuItem(title: i18n.t(.settings), action: #selector(MenuActionTarget.runClosure), keyEquivalent: ",")
         settingsItem.target = target
         settingsItem.representedObject = { [self] in
             appState.showSettings = true
@@ -264,13 +265,13 @@ struct IconRailView: View {
             item.state = (lang == currentLang) ? .on : .off
             langMenu.addItem(item)
         }
-        let langItem = NSMenuItem(title: "Language", action: nil, keyEquivalent: "")
+        let langItem = NSMenuItem(title: i18n.t(.language), action: nil, keyEquivalent: "")
         langItem.submenu = langMenu
         menu.addItem(langItem)
 
         menu.addItem(NSMenuItem.separator())
 
-        let helpItem = NSMenuItem(title: "Get Help", action: #selector(MenuActionTarget.runClosure), keyEquivalent: "")
+        let helpItem = NSMenuItem(title: i18n.t(.getHelp), action: #selector(MenuActionTarget.runClosure), keyEquivalent: "")
         helpItem.target = target
         helpItem.representedObject = {
             if let url = URL(string: "https://github.com/dahai80/fusion-studio/issues") {
@@ -279,7 +280,7 @@ struct IconRailView: View {
         }
         menu.addItem(helpItem)
 
-        let upgradeItem = NSMenuItem(title: "Upgrade Plan", action: #selector(MenuActionTarget.runClosure), keyEquivalent: "")
+        let upgradeItem = NSMenuItem(title: i18n.t(.upgradePlan), action: #selector(MenuActionTarget.runClosure), keyEquivalent: "")
         upgradeItem.target = target
         upgradeItem.representedObject = {
             if let url = URL(string: "https://github.com/dahai80/fusion-studio/releases") {
@@ -288,7 +289,7 @@ struct IconRailView: View {
         }
         menu.addItem(upgradeItem)
 
-        let appsItem = NSMenuItem(title: "Get Apps & Extensions", action: #selector(MenuActionTarget.runClosure), keyEquivalent: "")
+        let appsItem = NSMenuItem(title: i18n.t(.getApps), action: #selector(MenuActionTarget.runClosure), keyEquivalent: "")
         appsItem.target = target
         appsItem.representedObject = {
             if let url = URL(string: "https://github.com/dahai80/fusion-studio") {
@@ -297,7 +298,7 @@ struct IconRailView: View {
         }
         menu.addItem(appsItem)
 
-        let learnItem = NSMenuItem(title: "Learn More", action: #selector(MenuActionTarget.runClosure), keyEquivalent: "")
+        let learnItem = NSMenuItem(title: i18n.t(.learnMore), action: #selector(MenuActionTarget.runClosure), keyEquivalent: "")
         learnItem.target = target
         learnItem.representedObject = {
             if let url = URL(string: "https://github.com/dahai80/fusion-studio") {
@@ -309,7 +310,7 @@ struct IconRailView: View {
         menu.addItem(NSMenuItem.separator())
 
         // Logout：本地优先架构无账号登录，置灰
-        let logoutItem = NSMenuItem(title: "Logout", action: nil, keyEquivalent: "")
+        let logoutItem = NSMenuItem(title: i18n.t(.logout), action: nil, keyEquivalent: "")
         logoutItem.isEnabled = false
         menu.addItem(logoutItem)
 
