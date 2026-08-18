@@ -34,7 +34,7 @@ struct FusionSidebarView: View {
                             newChatButton
 
                             ForEach(SidebarSection.allCases) { section in
-                                if section == .aiAgent || section == .mlx {
+                                if section == .aiAgent || section == .mlx || section == .modelHub {
                                     Rectangle()
                                         .fill(theme.separator)
                                         .frame(height: 1)
