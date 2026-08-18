@@ -25,6 +25,7 @@ struct FusionTabBar: View {
     let tabs: [FusionTabItem]
 
     @Environment(\.studioTheme) var theme
+    @StateObject private var i18n = I18nManager.shared
     @State private var indicatorWidth: CGFloat = 0
     @State private var indicatorOffset: CGFloat = 0
     @State private var scrollProxy: ScrollViewProxy?
@@ -107,7 +108,7 @@ struct FusionTabBar: View {
         }
         .buttonStyle(.plain)
         .disabled(disabled)
-        .help(direction == .leading ? "上一个" : "下一个")
+        .help(direction == .leading ? i18n.t(.prevTab) : i18n.t(.nextTab))
     }
 
     private func tabButton(for tab: FusionTabItem, at index: Int) -> some View {
