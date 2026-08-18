@@ -304,6 +304,7 @@ class DocGenerator: ObservableObject {
 
             ### 新增
             - agent 生命周期补充「撤回发布/取消归档」入口：新增 `agent.unpublish` RPC（上游 fusion-agent-studio #159/#160，published/archived → draft），AgentListViews 右键菜单已发布 agent 显示 Unpublish、已归档显示 Restore to Draft
+            - 调试代码任务支持多语言：上游 CodeSandbox 按 LANGUAGES 注册表分发执行（python/shell/bash/javascript/swift/go/cpp/c，编译型用 clang/clang++），新增 `agent.code_languages` RPC 返回环境实际可用语言；AIAgentDebugView 语言选择器改为据 RPC 动态渲染，不再给出会失败的选项（上游 fusion-agent-studio #161/#162）
 
             ### 整理
             - 清理测试/假数据：LogPanelView/CollaborationService/RealTimeService/ProfilerView/AnalyticsDashboardView/AdvancedSettingsView/BenchView 删假数据留空态（等待接通真实后端）；ExternalIntegrationsView 假服务连接/Issues/API 响应替换为真实 URLSession 调用与空态；AgentOrchestrator 内置 5 agent 种子模板保留但假 taskCount 清零
