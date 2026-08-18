@@ -107,7 +107,7 @@ struct AgentListView: View {
                                 agentStudioLog.info("Selected backend agent: \(agent.name)")
                             }
                             .contextMenu {
-                                if agent.status != "published" {
+                                if agent.status != "published" && agent.status != "archived" {
                                     Button {
                                         Task { await publishBackendAgent(agent) }
                                     } label: {
@@ -119,6 +119,18 @@ struct AgentListView: View {
                                         Task { await archiveBackendAgent(agent) }
                                     } label: {
                                         Label("Archive", systemImage: "archivebox")
+                                    }
+                                    Button {
+                                        Task { await unpublishBackendAgent(agent) }
+                                    } label: {
+                                        Label("Unpublish", systemImage: "arrow.down.circle")
+                                    }
+                                }
+                                if agent.status == "archived" {
+                                    Button {
+                                        Task { await unpublishBackendAgent(agent) }
+                                    } label: {
+                                        Label("Restore to Draft", systemImage: "arrow.uturn.backward")
                                     }
                                 }
                                 Button {
@@ -213,6 +225,15 @@ struct AgentListView: View {
             toastManager.show(style: .info, title: "Archived", message: "\(updated.name) archived")
         } catch {
             toastManager.show(style: .error, title: "Archive Failed", message: error.localizedDescription)
+        }
+    }
+
+    private func unpublishBackendAgent(_ agent: AgentModel) async {
+        do {
+            let updated = try await bridge.agentUnpublish(agentId: agent.id)
+            toastManager.show(style: .info, title: "Reverted to Draft", message: "\(updated.name) is now draft")
+        } catch {
+            toastManager.show(style: .error, title: "Unpublish Failed", message: error.localizedDescription)
         }
     }
 

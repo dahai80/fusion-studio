@@ -99,6 +99,10 @@ extension IPCClient {
         return try await call(method: "agent.archive", params: ["agent_id": agentId])
     }
 
+    func agentUnpublish(agentId: String) async throws -> [String: Any] {
+        return try await call(method: "agent.unpublish", params: ["agent_id": agentId])
+    }
+
     func agentHistory(agentId: String, limit: Int = 20) async throws -> [String: Any] {
         return try await call(method: "agent.history", params: ["agent_id": agentId, "limit": limit])
     }
