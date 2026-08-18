@@ -341,15 +341,16 @@ enum SidebarSection: String, CaseIterable, Identifiable {
     case fsb = "FSB"
     // 第三部分：平台与领域
     case mlx = "Fusion-MLX"
-    case modelHub = "Model Hub"
-    case multiNode = "Multi-Node"
     case science = "Science"
     case finance = "Finance"
     case health = "Health"
-    case pluginEcosystem = "Plugin Ecosystem"
     case cliService = "CLI Service"
     case simulation = "Fusion Simulation"
     case douyinOperation = "抖音运营"
+    // 第四部分：平台扩展
+    case modelHub = "Model Hub"
+    case multiNode = "Multi-Node"
+    case pluginEcosystem = "Plugin Ecosystem"
 
     var id: String { rawValue }
 
