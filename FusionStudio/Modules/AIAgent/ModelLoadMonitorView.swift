@@ -11,6 +11,7 @@ private let monitorLog = Logger(subsystem: "com.fusion.studio", category: "Model
 struct ModelLoadMonitorView: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var isConnected = false
     @State private var models: [[String: Any]] = []
@@ -43,11 +44,11 @@ struct ModelLoadMonitorView: View {
 
     private var headerBar: some View {
         HStack {
-            Label("模型负载监控", systemImage: "gauge.with.dots.needle.bottom.50percent")
+            Label(i18n.t(.ai_monitor_title), systemImage: "gauge.with.dots.needle.bottom.50percent")
                 .font(.system(size: theme.textSize, weight: .semibold))
                 .foregroundStyle(theme.text)
             Spacer()
-            Text("每 \(Int(refreshInterval))s 刷新")
+            Text(String(format: i18n.t(.ai_monitor_refreshFmt), Int(refreshInterval)))
                 .font(.system(size: theme.captionSize))
                 .foregroundStyle(theme.textTertiary)
             Button(action: loadStatus) {
@@ -56,7 +57,7 @@ struct ModelLoadMonitorView: View {
                     .foregroundStyle(theme.accent)
             }
             .buttonStyle(.plain)
-            .help("手动刷新")
+            .help(i18n.t(.ai_monitor_manualRefresh))
         }
     }
 
@@ -65,7 +66,7 @@ struct ModelLoadMonitorView: View {
             Circle()
                 .fill(isConnected ? theme.greenDot : theme.redDot)
                 .frame(width: 10, height: 10)
-            Text(isConnected ? "MLX 已连接" : "MLX 未连接")
+            Text(isConnected ? i18n.t(.ai_monitor_connected) : i18n.t(.ai_monitor_disconnected))
                 .font(.system(size: theme.textSize))
                 .foregroundStyle(theme.text)
             if !serverUrl.isEmpty {
@@ -75,7 +76,7 @@ struct ModelLoadMonitorView: View {
             }
             Spacer()
             if !isConnected {
-                Button("启动 MLX") { startMLX() }
+                Button(i18n.t(.ai_monitor_startMlx)) { startMLX() }
                     .buttonStyle(.plain)
                     .font(.system(size: theme.smallTextSize, weight: .medium))
                     .foregroundStyle(.white)
@@ -92,11 +93,11 @@ struct ModelLoadMonitorView: View {
 
     private var modelList: some View {
         VStack(alignment: .leading, spacing: theme.spacingXS) {
-            Text("可用模型")
+            Text(i18n.t(.ai_monitor_availModels))
                 .font(.system(size: theme.smallTextSize, weight: .medium))
                 .foregroundStyle(theme.textSecondary)
             if models.isEmpty {
-                Text("暂无模型")
+                Text(i18n.t(.ai_monitor_noModels))
                     .font(.system(size: theme.smallTextSize))
                     .foregroundStyle(theme.textTertiary)
                     .frame(maxWidth: .infinity)
@@ -138,11 +139,11 @@ struct ModelLoadMonitorView: View {
             }
             Spacer()
             if isLoaded {
-                Text("已加载")
+                Text(i18n.t(.ai_monitor_loaded))
                     .font(.system(size: theme.captionSize, weight: .medium))
                     .foregroundStyle(theme.greenDot)
             } else {
-                Button("加载") { loadModel(id) }
+                Button(i18n.t(.ai_monitor_load)) { loadModel(id) }
                     .buttonStyle(.plain)
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.accent)
@@ -159,7 +160,7 @@ struct ModelLoadMonitorView: View {
             Spacer()
             ProgressView()
                 .scaleEffect(0.8)
-            Text("加载模型状态...")
+            Text(i18n.t(.ai_monitor_loadingStatus))
                 .font(.system(size: theme.smallTextSize))
                 .foregroundStyle(theme.textSecondary)
             Spacer()
@@ -176,7 +177,7 @@ struct ModelLoadMonitorView: View {
                 Text(msg)
                     .font(.system(size: theme.smallTextSize))
                     .foregroundStyle(theme.textSecondary)
-                Button("重试") { loadStatus() }
+                Button(i18n.t(.retry)) { loadStatus() }
                     .buttonStyle(.plain)
                     .font(.system(size: theme.smallTextSize))
                     .foregroundStyle(theme.accent)
@@ -214,7 +215,7 @@ struct ModelLoadMonitorView: View {
                 }
             } catch {
                 await MainActor.run {
-                    errorMessage = "无法获取模型状态: \(error.localizedDescription)"
+                    errorMessage = String(format: i18n.t(.ai_monitor_errFmt), error.localizedDescription)
                     isLoading = false
                     monitorLog.error("Model status failed: \(error.localizedDescription)")
                 }

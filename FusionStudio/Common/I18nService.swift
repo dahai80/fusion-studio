@@ -56,6 +56,10 @@ enum I18nKey: String, CaseIterable {
     case back = "back"
     case next = "next"
     case done = "done"
+    case filter = "filter"
+    case clear = "clear"
+    case retry = "retry"
+    case add = "add"
 
     // 导航
     case dashboard = "dashboard"
@@ -1602,6 +1606,51 @@ enum I18nKey: String, CaseIterable {
     case cw_mkt_typeWorkflow = "cw_mkt_typeWorkflow"
     case cw_mkt_typeArtifact = "cw_mkt_typeArtifact"
     case cw_mkt_install = "cw_mkt_install"
+    case ai_offline_badge = "ai_offline_badge"
+    case ai_offline_helpOff = "ai_offline_helpOff"
+    case ai_offline_helpOn = "ai_offline_helpOn"
+    case ai_offline_netStatus = "ai_offline_netStatus"
+    case ai_offline_offMode = "ai_offline_offMode"
+    case ai_offline_onMode = "ai_offline_onMode"
+    case ai_offline_reasonFmt = "ai_offline_reasonFmt"
+    case ai_offline_disabledTitle = "ai_offline_disabledTitle"
+    case ai_offline_featInfer = "ai_offline_featInfer"
+    case ai_offline_featKb = "ai_offline_featKb"
+    case ai_offline_featCode = "ai_offline_featCode"
+    case ai_offline_manual = "ai_offline_manual"
+    case ai_audit_title = "ai_audit_title"
+    case ai_audit_toolPh = "ai_audit_toolPh"
+    case ai_audit_typePh = "ai_audit_typePh"
+    case ai_audit_sincePh = "ai_audit_sincePh"
+    case ai_audit_sinceHint = "ai_audit_sinceHint"
+    case ai_audit_apply = "ai_audit_apply"
+    case ai_audit_freq = "ai_audit_freq"
+    case ai_audit_empty = "ai_audit_empty"
+    case ai_monitor_title = "ai_monitor_title"
+    case ai_monitor_refreshFmt = "ai_monitor_refreshFmt"
+    case ai_monitor_manualRefresh = "ai_monitor_manualRefresh"
+    case ai_monitor_connected = "ai_monitor_connected"
+    case ai_monitor_disconnected = "ai_monitor_disconnected"
+    case ai_monitor_startMlx = "ai_monitor_startMlx"
+    case ai_monitor_availModels = "ai_monitor_availModels"
+    case ai_monitor_noModels = "ai_monitor_noModels"
+    case ai_monitor_loaded = "ai_monitor_loaded"
+    case ai_monitor_load = "ai_monitor_load"
+    case ai_monitor_loadingStatus = "ai_monitor_loadingStatus"
+    case ai_monitor_errFmt = "ai_monitor_errFmt"
+    case ai_perm_title = "ai_perm_title"
+    case ai_perm_capsTitle = "ai_perm_capsTitle"
+    case ai_perm_empty = "ai_perm_empty"
+    case ai_perm_agentFmt = "ai_perm_agentFmt"
+    case ai_perm_deniedTitle = "ai_perm_deniedTitle"
+    case ai_perm_toolPh = "ai_perm_toolPh"
+    case ai_perm_sensitiveTitle = "ai_perm_sensitiveTitle"
+    case ai_perm_sensitiveTag = "ai_perm_sensitiveTag"
+    case ai_perm_capRead = "ai_perm_capRead"
+    case ai_perm_capWrite = "ai_perm_capWrite"
+    case ai_perm_capDelete = "ai_perm_capDelete"
+    case ai_perm_capCode = "ai_perm_capCode"
+    case ai_perm_capNet = "ai_perm_capNet"
 }
 
 // MARK: - 翻译管理器
@@ -1651,7 +1700,7 @@ class I18nManager: ObservableObject {
 
 let zhCNTranslations: [String: String] = [
     "ok": "确定", "cancel": "取消", "save": "保存", "delete": "删除", "edit": "编辑",
-    "close": "关闭", "search": "搜索", "refresh": "刷新", "loading": "加载中...",
+    "close": "关闭", "search": "搜索", "refresh": "刷新", "loading": "加载中...", "filter": "筛选", "clear": "清除", "retry": "重试", "add": "添加",
     "error": "错误", "success": "成功", "warning": "警告", "info": "信息",
     "confirm": "确认", "back": "返回", "next": "下一步", "done": "完成",
 
@@ -2860,11 +2909,56 @@ let zhCNTranslations: [String: String] = [
     "cw_mkt_typeWorkflow": "工作流",
     "cw_mkt_typeArtifact": "产物模板",
     "cw_mkt_install": "安装",
+    "ai_offline_badge": "离线",
+    "ai_offline_helpOff": "离线模式 — 点击查看详情",
+    "ai_offline_helpOn": "在线模式",
+    "ai_offline_netStatus": "网络状态",
+    "ai_offline_offMode": "离线模式",
+    "ai_offline_onMode": "在线模式",
+    "ai_offline_reasonFmt": "原因: %@",
+    "ai_offline_disabledTitle": "离线模式下不可用的功能:",
+    "ai_offline_featInfer": "模型推理",
+    "ai_offline_featKb": "知识库查询",
+    "ai_offline_featCode": "代码生成",
+    "ai_offline_manual": "用户手动切换",
+    "ai_audit_title": "审计日志",
+    "ai_audit_toolPh": "工具名",
+    "ai_audit_typePh": "操作类型",
+    "ai_audit_sincePh": "起始时间",
+    "ai_audit_sinceHint": "如 2025-01-01",
+    "ai_audit_apply": "应用",
+    "ai_audit_freq": "工具调用频率",
+    "ai_audit_empty": "暂无审计日志",
+    "ai_monitor_title": "模型负载监控",
+    "ai_monitor_refreshFmt": "每 %ds 刷新",
+    "ai_monitor_manualRefresh": "手动刷新",
+    "ai_monitor_connected": "MLX 已连接",
+    "ai_monitor_disconnected": "MLX 未连接",
+    "ai_monitor_startMlx": "启动 MLX",
+    "ai_monitor_availModels": "可用模型",
+    "ai_monitor_noModels": "暂无模型",
+    "ai_monitor_loaded": "已加载",
+    "ai_monitor_load": "加载",
+    "ai_monitor_loadingStatus": "加载模型状态...",
+    "ai_monitor_errFmt": "无法获取模型状态: %@",
+    "ai_perm_title": "权限标签",
+    "ai_perm_capsTitle": "能力权限",
+    "ai_perm_empty": "暂无权限数据",
+    "ai_perm_agentFmt": "Agent %@",
+    "ai_perm_deniedTitle": "FUSION.rules 禁用工具",
+    "ai_perm_toolPh": "工具名",
+    "ai_perm_sensitiveTitle": "敏感文件模式",
+    "ai_perm_sensitiveTag": "敏感",
+    "ai_perm_capRead": "读取知识库",
+    "ai_perm_capWrite": "写入知识库",
+    "ai_perm_capDelete": "删除知识库",
+    "ai_perm_capCode": "执行代码",
+    "ai_perm_capNet": "访问网络",
 ]
 
 let enUSTranslations: [String: String] = [
     "ok": "OK", "cancel": "Cancel", "save": "Save", "delete": "Delete", "edit": "Edit",
-    "close": "Close", "search": "Search", "refresh": "Refresh", "loading": "Loading...",
+    "close": "Close", "search": "Search", "refresh": "Refresh", "loading": "Loading...", "filter": "Filter", "clear": "Clear", "retry": "Retry", "add": "Add",
     "error": "Error", "success": "Success", "warning": "Warning", "info": "Info",
     "confirm": "Confirm", "back": "Back", "next": "Next", "done": "Done",
 
@@ -4073,11 +4167,56 @@ let enUSTranslations: [String: String] = [
     "cw_mkt_typeWorkflow": "Workflow",
     "cw_mkt_typeArtifact": "Artifact template",
     "cw_mkt_install": "Install",
+    "ai_offline_badge": "Offline",
+    "ai_offline_helpOff": "Offline mode — click for details",
+    "ai_offline_helpOn": "Online mode",
+    "ai_offline_netStatus": "Network status",
+    "ai_offline_offMode": "Offline mode",
+    "ai_offline_onMode": "Online mode",
+    "ai_offline_reasonFmt": "Reason: %@",
+    "ai_offline_disabledTitle": "Features unavailable offline:",
+    "ai_offline_featInfer": "Model inference",
+    "ai_offline_featKb": "Knowledge base query",
+    "ai_offline_featCode": "Code generation",
+    "ai_offline_manual": "Manually toggled",
+    "ai_audit_title": "Audit log",
+    "ai_audit_toolPh": "Tool name",
+    "ai_audit_typePh": "Operation type",
+    "ai_audit_sincePh": "Since",
+    "ai_audit_sinceHint": "e.g. 2025-01-01",
+    "ai_audit_apply": "Apply",
+    "ai_audit_freq": "Tool call frequency",
+    "ai_audit_empty": "No audit logs",
+    "ai_monitor_title": "Model load monitor",
+    "ai_monitor_refreshFmt": "Refresh every %ds",
+    "ai_monitor_manualRefresh": "Manual refresh",
+    "ai_monitor_connected": "MLX connected",
+    "ai_monitor_disconnected": "MLX not connected",
+    "ai_monitor_startMlx": "Start MLX",
+    "ai_monitor_availModels": "Available models",
+    "ai_monitor_noModels": "No models",
+    "ai_monitor_loaded": "Loaded",
+    "ai_monitor_load": "Load",
+    "ai_monitor_loadingStatus": "Loading model status...",
+    "ai_monitor_errFmt": "Failed to get model status: %@",
+    "ai_perm_title": "Permission tags",
+    "ai_perm_capsTitle": "Capability permissions",
+    "ai_perm_empty": "No permission data",
+    "ai_perm_agentFmt": "Agent %@",
+    "ai_perm_deniedTitle": "FUSION.rules denied tools",
+    "ai_perm_toolPh": "Tool name",
+    "ai_perm_sensitiveTitle": "Sensitive file patterns",
+    "ai_perm_sensitiveTag": "Sensitive",
+    "ai_perm_capRead": "Read knowledge base",
+    "ai_perm_capWrite": "Write knowledge base",
+    "ai_perm_capDelete": "Delete knowledge base",
+    "ai_perm_capCode": "Execute code",
+    "ai_perm_capNet": "Access network",
 ]
 
 let jaJPTranslations: [String: String] = [
     "ok": "確認", "cancel": "キャンセル", "save": "保存", "delete": "削除", "edit": "編集",
-    "close": "閉じる", "search": "検索", "refresh": "更新", "loading": "読み込み中...",
+    "close": "閉じる", "search": "検索", "refresh": "更新", "loading": "読み込み中...", "filter": "フィルター", "clear": "クリア", "retry": "再試行", "add": "追加",
     "error": "エラー", "success": "成功", "warning": "警告", "info": "情報",
     "confirm": "確認", "back": "戻る", "next": "次へ", "done": "完了",
     "dashboard": "ダッシュボード", "design": "デザイン", "code": "コード", "simulation": "シミュレーション",
@@ -5280,11 +5419,56 @@ let jaJPTranslations: [String: String] = [
     "cw_mkt_typeWorkflow": "ワークフロー",
     "cw_mkt_typeArtifact": "アーティファクトテンプレート",
     "cw_mkt_install": "インストール",
+    "ai_offline_badge": "オフライン",
+    "ai_offline_helpOff": "オフラインモード — 詳細を見るにはクリック",
+    "ai_offline_helpOn": "オンラインモード",
+    "ai_offline_netStatus": "ネットワーク状態",
+    "ai_offline_offMode": "オフラインモード",
+    "ai_offline_onMode": "オンラインモード",
+    "ai_offline_reasonFmt": "原因: %@",
+    "ai_offline_disabledTitle": "オフラインモードで利用不可の機能:",
+    "ai_offline_featInfer": "モデル推論",
+    "ai_offline_featKb": "ナレッジベース照会",
+    "ai_offline_featCode": "コード生成",
+    "ai_offline_manual": "手動切替",
+    "ai_audit_title": "監査ログ",
+    "ai_audit_toolPh": "ツール名",
+    "ai_audit_typePh": "操作タイプ",
+    "ai_audit_sincePh": "開始時刻",
+    "ai_audit_sinceHint": "例 2025-01-01",
+    "ai_audit_apply": "適用",
+    "ai_audit_freq": "ツール呼び出し頻度",
+    "ai_audit_empty": "監査ログなし",
+    "ai_monitor_title": "モデル負荷モニター",
+    "ai_monitor_refreshFmt": "%ds ごとに更新",
+    "ai_monitor_manualRefresh": "手動更新",
+    "ai_monitor_connected": "MLX 接続済み",
+    "ai_monitor_disconnected": "MLX 未接続",
+    "ai_monitor_startMlx": "MLX 開始",
+    "ai_monitor_availModels": "利用可能モデル",
+    "ai_monitor_noModels": "モデルなし",
+    "ai_monitor_loaded": "読込済み",
+    "ai_monitor_load": "読込",
+    "ai_monitor_loadingStatus": "モデル状態読込中...",
+    "ai_monitor_errFmt": "モデル状態取得失敗: %@",
+    "ai_perm_title": "権限タグ",
+    "ai_perm_capsTitle": "機能権限",
+    "ai_perm_empty": "権限データなし",
+    "ai_perm_agentFmt": "Agent %@",
+    "ai_perm_deniedTitle": "FUSION.rules 禁止ツール",
+    "ai_perm_toolPh": "ツール名",
+    "ai_perm_sensitiveTitle": "機密ファイルパターン",
+    "ai_perm_sensitiveTag": "機密",
+    "ai_perm_capRead": "ナレッジベース読取",
+    "ai_perm_capWrite": "ナレッジベース書込",
+    "ai_perm_capDelete": "ナレッジベース削除",
+    "ai_perm_capCode": "コード実行",
+    "ai_perm_capNet": "ネットワークアクセス",
 ]
 
 let koKRTranslations: [String: String] = [
     "ok": "확인", "cancel": "취소", "save": "저장", "delete": "삭제", "edit": "편집",
-    "close": "닫기", "search": "검색", "refresh": "새로고침", "loading": "로딩 중...",
+    "close": "닫기", "search": "검색", "refresh": "새로고침", "loading": "로딩 중...", "filter": "필터", "clear": "지우기", "retry": "재시도", "add": "추가",
     "error": "오류", "success": "성공", "warning": "경고", "info": "정보",
     "confirm": "확인", "back": "뒤로", "next": "다음", "done": "완료",
     "dashboard": "대시보드", "design": "디자인", "code": "코드", "simulation": "시뮬레이션",
@@ -6487,6 +6671,51 @@ let koKRTranslations: [String: String] = [
     "cw_mkt_typeWorkflow": "워크플로우",
     "cw_mkt_typeArtifact": "아티팩트 템플릿",
     "cw_mkt_install": "설치",
+    "ai_offline_badge": "오프라인",
+    "ai_offline_helpOff": "오프라인 모드 — 클릭하여 상세 보기",
+    "ai_offline_helpOn": "온라인 모드",
+    "ai_offline_netStatus": "네트워크 상태",
+    "ai_offline_offMode": "오프라인 모드",
+    "ai_offline_onMode": "온라인 모드",
+    "ai_offline_reasonFmt": "원인: %@",
+    "ai_offline_disabledTitle": "오프라인 모드에서 사용 불가 기능:",
+    "ai_offline_featInfer": "모델 추론",
+    "ai_offline_featKb": "지식 베이스 조회",
+    "ai_offline_featCode": "코드 생성",
+    "ai_offline_manual": "수동 전환",
+    "ai_audit_title": "감사 로그",
+    "ai_audit_toolPh": "도구 이름",
+    "ai_audit_typePh": "작업 유형",
+    "ai_audit_sincePh": "시작 시간",
+    "ai_audit_sinceHint": "예: 2025-01-01",
+    "ai_audit_apply": "적용",
+    "ai_audit_freq": "도구 호출 빈도",
+    "ai_audit_empty": "감사 로그 없음",
+    "ai_monitor_title": "모델 로드 모니터",
+    "ai_monitor_refreshFmt": "%ds마다 새로고침",
+    "ai_monitor_manualRefresh": "수동 새로고침",
+    "ai_monitor_connected": "MLX 연결됨",
+    "ai_monitor_disconnected": "MLX 미연결",
+    "ai_monitor_startMlx": "MLX 시작",
+    "ai_monitor_availModels": "사용 가능 모델",
+    "ai_monitor_noModels": "모델 없음",
+    "ai_monitor_loaded": "로드됨",
+    "ai_monitor_load": "로드",
+    "ai_monitor_loadingStatus": "모델 상태 로드 중...",
+    "ai_monitor_errFmt": "모델 상태 가져오기 실패: %@",
+    "ai_perm_title": "권한 태그",
+    "ai_perm_capsTitle": "기능 권한",
+    "ai_perm_empty": "권한 데이터 없음",
+    "ai_perm_agentFmt": "Agent %@",
+    "ai_perm_deniedTitle": "FUSION.rules 금지 도구",
+    "ai_perm_toolPh": "도구 이름",
+    "ai_perm_sensitiveTitle": "민감 파일 패턴",
+    "ai_perm_sensitiveTag": "민감",
+    "ai_perm_capRead": "지식 베이스 읽기",
+    "ai_perm_capWrite": "지식 베이스 쓰기",
+    "ai_perm_capDelete": "지식 베이스 삭제",
+    "ai_perm_capCode": "코드 실행",
+    "ai_perm_capNet": "네트워크 접근",
 ]
 
 // MARK: - 国际化文本视图
