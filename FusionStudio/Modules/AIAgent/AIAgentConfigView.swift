@@ -16,13 +16,13 @@ enum AgentConfigMode {
 }
 
 enum AgentConfigTab: String, CaseIterable {
-    case basic = "基础信息"
-    case instructions = "系统指令"
-    case soul = "人格 Soul"
-    case knowledge = "知识库"
-    case tools = "工具配置"
-    case advanced = "高级参数"
-    case publish = "发布"
+    case basic = "basic"
+    case instructions = "instructions"
+    case soul = "soul"
+    case knowledge = "knowledge"
+    case tools = "tools"
+    case advanced = "advanced"
+    case publish = "publish"
 
     var icon: String {
         switch self {
@@ -35,6 +35,18 @@ enum AgentConfigTab: String, CaseIterable {
         case .publish: return "arrow.up.circle"
         }
     }
+
+    var localLabel: String {
+        switch self {
+        case .basic: return I18nManager.shared.t(.ai_cfg_tabBasic)
+        case .instructions: return I18nManager.shared.t(.ai_cfg_tabInstructions)
+        case .soul: return I18nManager.shared.t(.ai_cfg_tabSoul)
+        case .knowledge: return I18nManager.shared.t(.ai_cfg_tabKnowledge)
+        case .tools: return I18nManager.shared.t(.ai_cfg_tabTools)
+        case .advanced: return I18nManager.shared.t(.ai_cfg_tabAdvanced)
+        case .publish: return I18nManager.shared.t(.ai_cfg_tabPublish)
+        }
+    }
 }
 
 struct AIAgentConfigView: View {
@@ -42,6 +54,7 @@ struct AIAgentConfigView: View {
     @EnvironmentObject var bridge: AgentBridge
     @Environment(\.studioTheme) private var theme
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var i18n = I18nManager.shared
 
     let mode: AgentConfigMode
     @State private var selectedTab: AgentConfigTab = .basic
@@ -98,26 +111,26 @@ struct AIAgentConfigView: View {
         .onAppear { loadInitialData() }
         .sheet(isPresented: $showAddSkill) {
             VStack(spacing: theme.spacingL) {
-                Text("添加技能")
+                Text(i18n.t(.ai_cfg_skillAddTitle))
                     .font(.system(size: theme.headlineSize, weight: .bold))
                     .foregroundStyle(theme.text)
-                TextField("技能名称", text: $newSkillName)
+                TextField(i18n.t(.ai_cfg_skillNamePh), text: $newSkillName)
                     .textFieldStyle(.plain)
                     .font(.system(size: theme.footnoteSize))
                     .padding(theme.spacingS)
                     .background(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous).fill(theme.surfaceElevated))
                     .overlay(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous).strokeBorder(theme.separator, lineWidth: 1))
-                TextField("技能描述（可选）", text: $newSkillDesc)
+                TextField(i18n.t(.ai_cfg_skillDescPh), text: $newSkillDesc)
                     .textFieldStyle(.plain)
                     .font(.system(size: theme.footnoteSize))
                     .padding(theme.spacingS)
                     .background(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous).fill(theme.surfaceElevated))
                     .overlay(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous).strokeBorder(theme.separator, lineWidth: 1))
                 HStack(spacing: theme.spacingM) {
-                    Button("取消") { showAddSkill = false }
+                    Button(i18n.t(.cancel)) { showAddSkill = false }
                         .buttonStyle(.plain)
                         .foregroundStyle(theme.textSecondary)
-                    Button("添加") { addSkill() }
+                    Button(i18n.t(.add)) { addSkill() }
                         .buttonStyle(.plain)
                         .foregroundStyle(theme.accent)
                         .disabled(newSkillName.isEmpty)
@@ -158,7 +171,7 @@ struct AIAgentConfigView: View {
                         HStack(spacing: theme.spacingXS) {
                             Image(systemName: tab.icon)
                                 .font(.system(size: theme.iconS))
-                            Text(tab.rawValue)
+                            Text(tab.localLabel)
                                 .font(.system(size: theme.footnoteSize, weight: .medium))
                         }
                         .foregroundStyle(selectedTab == tab ? theme.accentText : theme.textSecondary)
@@ -195,8 +208,8 @@ struct AIAgentConfigView: View {
     private var basicInfoTab: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: theme.spacingL) {
-                formGroup("Agent 名称") {
-                    TextField("输入 Agent 名称", text: $agentName)
+                formGroup(i18n.t(.ai_cfg_nameLabel)) {
+                    TextField(i18n.t(.ai_cfg_namePh), text: $agentName)
                         .textFieldStyle(.plain)
                         .font(.system(size: theme.textSize))
                         .padding(theme.spacingS)
@@ -210,8 +223,8 @@ struct AIAgentConfigView: View {
                         )
                 }
 
-                formGroup("简介") {
-                    TextField("描述 Agent 的功能和用途", text: $agentDesc, axis: .vertical)
+                formGroup(i18n.t(.ai_cfg_descLabel)) {
+                    TextField(i18n.t(.ai_cfg_descPh), text: $agentDesc, axis: .vertical)
                         .textFieldStyle(.plain)
                         .font(.system(size: theme.textSize))
                         .lineLimit(3...6)
@@ -226,9 +239,9 @@ struct AIAgentConfigView: View {
                         )
                 }
 
-                formGroup("模型选择") {
-                    Picker("模型", selection: $agentModel) {
-                        Text("选择模型").tag("")
+                formGroup(i18n.t(.ai_cfg_modelLabel)) {
+                    Picker(i18n.t(.ai_cfg_modelPicker), selection: $agentModel) {
+                        Text(i18n.t(.ai_cfg_modelChoose)).tag("")
                         ForEach(availableModels, id: \.self) { model in
                             Text(model).tag(model)
                         }
@@ -237,10 +250,10 @@ struct AIAgentConfigView: View {
                     .frame(maxWidth: 300)
                 }
 
-                formGroup("可见范围") {
+                formGroup(i18n.t(.ai_cfg_visLabel)) {
                     HStack(spacing: theme.spacingL) {
-                        visibilityOption("private", label: "仅本人可见", icon: "lock")
-                        visibilityOption("organization", label: "组织共享", icon: "person.3")
+                        visibilityOption("private", label: i18n.t(.ai_cfg_visPrivate), icon: "lock")
+                        visibilityOption("organization", label: i18n.t(.ai_cfg_visOrg), icon: "person.3")
                     }
                 }
             }
@@ -254,7 +267,7 @@ struct AIAgentConfigView: View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: theme.spacingM) {
-                    Text("编写 Agent 基础角色、行为约束、输出规范")
+                    Text(i18n.t(.ai_cfg_instrHint))
                         .font(.system(size: theme.footnoteSize))
                         .foregroundStyle(theme.textSecondary)
 
@@ -273,18 +286,18 @@ struct AIAgentConfigView: View {
                         )
 
                     HStack {
-                        Text("\(systemInstructions.count) 字符")
+                        Text(String(format: i18n.t(.ai_cfg_charFmt), systemInstructions.count))
                             .font(.system(size: theme.captionSize))
                             .foregroundStyle(theme.textTertiary)
                         Spacer()
-                        Button("保存模板") {
+                        Button(i18n.t(.ai_cfg_instrSaveTpl)) {
                             configLog.info("Save instruction template")
                         }
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.accent)
                         .buttonStyle(.plain)
 
-                        Button("恢复历史版本") {
+                        Button(i18n.t(.ai_cfg_instrRestore)) {
                             configLog.info("Restore instruction snapshot")
                         }
                         .font(.system(size: theme.captionSize))
@@ -303,7 +316,7 @@ struct AIAgentConfigView: View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: theme.spacingM) {
-                    Text("定义 Agent 的人格特质、说话风格、情感偏好")
+                    Text(i18n.t(.ai_cfg_soulHint))
                         .font(.system(size: theme.footnoteSize))
                         .foregroundStyle(theme.textSecondary)
 
@@ -323,17 +336,17 @@ struct AIAgentConfigView: View {
                             )
 
                         HStack {
-                            Text("\(soulContent.count) 字符")
+                            Text(String(format: i18n.t(.ai_cfg_charFmt), soulContent.count))
                                 .font(.system(size: theme.captionSize))
                                 .foregroundStyle(theme.textTertiary)
                             Spacer()
-                            Button("保存 Soul") { saveSoul() }
+                            Button(i18n.t(.ai_cfg_soulSave)) { saveSoul() }
                                 .font(.system(size: theme.captionSize))
                                 .foregroundStyle(theme.accent)
                                 .buttonStyle(.plain)
                         }
                     } else {
-                        Text("创建 Agent 后可编辑 Soul")
+                        Text(i18n.t(.ai_cfg_soulAfterCreate))
                             .font(.system(size: theme.captionSize))
                             .foregroundStyle(theme.textTertiary)
                     }
@@ -349,7 +362,7 @@ struct AIAgentConfigView: View {
     private var knowledgeTab: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: theme.spacingL) {
-                formGroup("绑定知识库 Project") {
+                formGroup(i18n.t(.ai_cfg_kbLabel)) {
                     VStack(alignment: .leading, spacing: theme.spacingS) {
                         ForEach(knowledgeBaseIds, id: \.self) { kbId in
                             HStack {
@@ -372,7 +385,7 @@ struct AIAgentConfigView: View {
                             )
                         }
 
-                        Button("+ 添加知识库") {
+                        Button(i18n.t(.ai_cfg_kbAdd)) {
                             configLog.info("Add knowledge base")
                         }
                         .font(.system(size: theme.footnoteSize))
@@ -381,16 +394,16 @@ struct AIAgentConfigView: View {
                     }
                 }
 
-                formGroup("检索策略") {
+                formGroup(i18n.t(.ai_cfg_ragLabel)) {
                     HStack(spacing: theme.spacingL) {
-                        ragOption("vector", label: "向量检索", icon: "arrow.triangle.2.circlepath")
-                        ragOption("fulltext", label: "全文检索", icon: "doc.text.magnifyingglass")
-                        ragOption("hybrid", label: "混合检索", icon: "arrow.up.arrow.down.circle")
+                        ragOption("vector", label: i18n.t(.ai_cfg_ragVector), icon: "arrow.triangle.2.circlepath")
+                        ragOption("fulltext", label: i18n.t(.ai_cfg_ragFulltext), icon: "doc.text.magnifyingglass")
+                        ragOption("hybrid", label: i18n.t(.ai_cfg_ragHybrid), icon: "arrow.up.arrow.down.circle")
                     }
                 }
 
-                formGroup("自主查询") {
-                    Toggle("允许 Agent 主动查询知识库内容", isOn: $allowAgentQuery)
+                formGroup(i18n.t(.ai_cfg_autoQueryLabel)) {
+                    Toggle(i18n.t(.ai_cfg_autoQueryToggle), isOn: $allowAgentQuery)
                         .font(.system(size: theme.footnoteSize))
                         .toggleStyle(.switch)
                 }
@@ -404,25 +417,25 @@ struct AIAgentConfigView: View {
     private var toolsTab: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: theme.spacingL) {
-                formGroup("内置工具") {
+                formGroup(i18n.t(.ai_cfg_toolsBuiltin)) {
                     VStack(alignment: .leading, spacing: theme.spacingS) {
-                        toolToggle("Web Search 网页搜索", isOn: $webSearchEnabled, icon: "globe")
-                        toolToggle("Deep Research 深度调研模式", isOn: $deepResearchEnabled, icon: "magnifyingglass")
+                        toolToggle(i18n.t(.ai_cfg_toolWebSearch), isOn: $webSearchEnabled, icon: "globe")
+                        toolToggle(i18n.t(.ai_cfg_toolDeepResearch), isOn: $deepResearchEnabled, icon: "magnifyingglass")
                     }
                 }
 
-                formGroup("技能 Skills") {
+                formGroup(i18n.t(.ai_cfg_skillsLabel)) {
                     VStack(alignment: .leading, spacing: theme.spacingS) {
                         if editingAgentId != nil {
                             HStack {
-                                Text("已添加 \(agentSkills.count) 个技能")
+                                Text(String(format: i18n.t(.ai_cfg_skillCountFmt), agentSkills.count))
                                     .font(.system(size: theme.footnoteSize))
                                     .foregroundStyle(theme.textSecondary)
                                 Spacer()
                                 Button(action: { showAddSkill = true }) {
                                     HStack(spacing: 4) {
                                         Image(systemName: "plus")
-                                        Text("添加技能")
+                                        Text(i18n.t(.ai_cfg_skillAddTitle))
                                     }
                                     .font(.system(size: theme.footnoteSize, weight: .medium))
                                 }
@@ -430,7 +443,7 @@ struct AIAgentConfigView: View {
                                 .foregroundStyle(theme.accent)
                             }
                             if agentSkills.isEmpty {
-                                Text("暂无技能，点击「添加技能」为 Agent 增加能力")
+                                Text(i18n.t(.ai_cfg_skillsEmpty))
                                     .font(.system(size: theme.captionSize))
                                     .foregroundStyle(theme.textTertiary)
                             } else {
@@ -457,23 +470,23 @@ struct AIAgentConfigView: View {
                                 }
                             }
                         } else {
-                            Text("创建 Agent 后可管理技能")
+                            Text(i18n.t(.ai_cfg_skillsAfterCreate))
                                 .font(.system(size: theme.captionSize))
                                 .foregroundStyle(theme.textTertiary)
                         }
                     }
                 }
 
-                formGroup("外部连接器 Connectors") {
+                formGroup(i18n.t(.ai_cfg_connLabel)) {
                     VStack(alignment: .leading, spacing: theme.spacingS) {
                         if availableConnectors.isEmpty {
-                            Text("暂无已授权连接器")
+                            Text(i18n.t(.ai_cfg_connEmpty))
                                 .font(.system(size: theme.footnoteSize))
                                 .foregroundStyle(theme.textTertiary)
                         } else {
                             ForEach(Array(availableConnectors.enumerated()), id: \.offset) { _, conn in
                                 let connId = conn["id"] as? String ?? ""
-                                let connName = conn["name"] as? String ?? "Unknown"
+                                let connName = conn["name"] as? String ?? i18n.t(.ai_cfg_connUnknown)
                                 let isConnected = connectorIds.contains(connId)
                                 Toggle(isOn: Binding(
                                     get: { isConnected },
@@ -510,7 +523,7 @@ struct AIAgentConfigView: View {
                                 .font(.system(size: theme.footnoteSize, weight: .medium, design: .monospaced))
                                 .foregroundStyle(theme.text)
                             Spacer()
-                            Text("低=精确 高=创造")
+                            Text(i18n.t(.ai_cfg_tempHint))
                                 .font(.system(size: theme.captionSize))
                                 .foregroundStyle(theme.textTertiary)
                         }
@@ -529,7 +542,7 @@ struct AIAgentConfigView: View {
                     }
                 }
 
-                formGroup("最大输出 Token") {
+                formGroup(i18n.t(.ai_cfg_maxTokenLabel)) {
                     HStack(spacing: theme.spacingS) {
                         TextField("8192", value: $maxTokens, format: .number)
                             .textFieldStyle(.plain)
@@ -550,7 +563,7 @@ struct AIAgentConfigView: View {
                     }
                 }
 
-                formGroup("上下文窗口") {
+                formGroup(i18n.t(.ai_cfg_ctxLabel)) {
                     HStack(spacing: theme.spacingS) {
                         TextField("128000", value: $contextWindow, format: .number)
                             .textFieldStyle(.plain)
@@ -571,9 +584,9 @@ struct AIAgentConfigView: View {
                     }
                 }
 
-                formGroup("输出风格 Style") {
-                    Picker("风格", selection: $styleId) {
-                        Text("默认").tag("")
+                formGroup(i18n.t(.ai_cfg_styleLabel)) {
+                    Picker(i18n.t(.ai_cfg_stylePicker), selection: $styleId) {
+                        Text(i18n.t(.ai_cfg_styleDefault)).tag("")
                         ForEach(Array(availableStyles.enumerated()), id: \.offset) { _, style in
                             Text(style["name"] as? String ?? "").tag(style["id"] as? String ?? "")
                         }
@@ -582,7 +595,7 @@ struct AIAgentConfigView: View {
                     .frame(maxWidth: 300)
                 }
 
-                formGroup("QPS 限流") {
+                formGroup(i18n.t(.ai_cfg_qpsLabel)) {
                     HStack(spacing: theme.spacingS) {
                         TextField("10", value: $rateLimitQps, format: .number)
                             .textFieldStyle(.plain)
@@ -597,7 +610,7 @@ struct AIAgentConfigView: View {
                                 RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
                                     .strokeBorder(theme.separator, lineWidth: 1)
                             )
-                        Text("请求/秒")
+                        Text(i18n.t(.ai_cfg_qpsUnit))
                             .font(.system(size: theme.captionSize))
                             .foregroundStyle(theme.textTertiary)
                     }
@@ -614,7 +627,7 @@ struct AIAgentConfigView: View {
             VStack(alignment: .leading, spacing: theme.spacingL) {
                 configSummaryCard
 
-                formGroup("发布操作") {
+                formGroup(i18n.t(.ai_cfg_pubLabel)) {
                     VStack(alignment: .leading, spacing: theme.spacingM) {
                         if let agentId = editingAgentId {
                             HStack(spacing: theme.spacingM) {
@@ -625,7 +638,7 @@ struct AIAgentConfigView: View {
                                         } else {
                                             Image(systemName: "arrow.up.circle.fill")
                                         }
-                                        Text("发布 Agent")
+                                        Text(i18n.t(.ai_cfg_pubBtn))
                                     }
                                     .font(.system(size: theme.footnoteSize, weight: .medium))
                                     .foregroundStyle(theme.accentText)
@@ -642,7 +655,7 @@ struct AIAgentConfigView: View {
                                 Button(action: { getApiEndpoint(agentId: agentId) }) {
                                     HStack(spacing: theme.spacingXS) {
                                         Image(systemName: "link")
-                                        Text("获取 API 地址")
+                                        Text(i18n.t(.ai_cfg_pubGetApi))
                                     }
                                     .font(.system(size: theme.footnoteSize, weight: .medium))
                                     .foregroundStyle(theme.accent)
@@ -656,7 +669,7 @@ struct AIAgentConfigView: View {
                                 .buttonStyle(.plain)
                             }
                         } else {
-                            Text("请先保存草稿后再发布")
+                            Text(i18n.t(.ai_cfg_pubSaveFirst))
                                 .font(.system(size: theme.footnoteSize))
                                 .foregroundStyle(theme.textTertiary)
                         }
@@ -669,17 +682,17 @@ struct AIAgentConfigView: View {
 
     private var configSummaryCard: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            Text("配置摘要")
+            Text(i18n.t(.ai_cfg_summaryTitle))
                 .font(.system(size: theme.footnoteSize, weight: .semibold))
                 .foregroundStyle(theme.textSecondary)
 
-            summaryRow("名称", value: agentName.isEmpty ? "-" : agentName)
-            summaryRow("模型", value: agentModel.isEmpty ? "-" : agentModel)
-            summaryRow("可见范围", value: agentVisibility == "organization" ? "组织共享" : "仅本人可见")
-            summaryRow("知识库", value: knowledgeBaseIds.isEmpty ? "未绑定" : knowledgeBaseIds.joined(separator: ", "))
-            summaryRow("工具", value: toolSummary)
+            summaryRow(i18n.t(.ai_cfg_sumName), value: agentName.isEmpty ? "-" : agentName)
+            summaryRow(i18n.t(.ai_cfg_sumModel), value: agentModel.isEmpty ? "-" : agentModel)
+            summaryRow(i18n.t(.ai_cfg_sumVis), value: agentVisibility == "organization" ? i18n.t(.ai_cfg_visOrg) : i18n.t(.ai_cfg_visPrivate))
+            summaryRow(i18n.t(.ai_cfg_sumKb), value: knowledgeBaseIds.isEmpty ? i18n.t(.ai_cfg_sumKbUnbound) : knowledgeBaseIds.joined(separator: ", "))
+            summaryRow(i18n.t(.ai_cfg_sumTools), value: toolSummary)
             summaryRow("Temperature", value: String(format: "%.2f", temperature))
-            summaryRow("最大 Token", value: "\(maxTokens)")
+            summaryRow(i18n.t(.ai_cfg_sumMaxToken), value: "\(maxTokens)")
         }
         .padding(theme.spacingL)
         .background(
@@ -696,8 +709,8 @@ struct AIAgentConfigView: View {
         var parts: [String] = []
         if webSearchEnabled { parts.append("Web Search") }
         if deepResearchEnabled { parts.append("Deep Research") }
-        if !connectorIds.isEmpty { parts.append("\(connectorIds.count) 连接器") }
-        return parts.isEmpty ? "未启用" : parts.joined(separator: ", ")
+        if !connectorIds.isEmpty { parts.append(String(format: i18n.t(.ai_cfg_sumConnFmt), connectorIds.count)) }
+        return parts.isEmpty ? i18n.t(.ai_cfg_sumToolsNone) : parts.joined(separator: ", ")
     }
 
     // MARK: - Bottom Bar
@@ -705,7 +718,7 @@ struct AIAgentConfigView: View {
     private var bottomBar: some View {
         HStack {
             if let agentId = editingAgentId {
-                Button("删除 Agent") {
+                Button(i18n.t(.ai_cfg_deleteBtn)) {
                     configLog.info("Delete agent: \(agentId)")
                     Task {
                         do {
@@ -723,7 +736,7 @@ struct AIAgentConfigView: View {
                 .buttonStyle(.plain)
             }
             Spacer()
-            Button("取消") { dismiss() }
+            Button(i18n.t(.cancel)) { dismiss() }
                 .font(.system(size: theme.footnoteSize))
                 .foregroundStyle(theme.textSecondary)
                 .buttonStyle(.plain)
@@ -731,7 +744,7 @@ struct AIAgentConfigView: View {
             Button(action: { saveDraft() }) {
                 HStack(spacing: theme.spacingXS) {
                     if isSaving { ProgressView().scaleEffect(0.6) }
-                    Text("保存草稿")
+                    Text(i18n.t(.ai_cfg_saveDraft))
                 }
                 .font(.system(size: theme.footnoteSize, weight: .medium))
                 .foregroundStyle(theme.accentText)
@@ -836,15 +849,15 @@ struct AIAgentConfigView: View {
 
     private var modeTitle: String {
         switch mode {
-        case .create: return "创建新 Agent"
-        case .edit(let agent): return "编辑 Agent：\(agent.name)"
+        case .create: return i18n.t(.ai_cfg_modeCreate)
+        case .edit(let agent): return String(format: i18n.t(.ai_cfg_modeEditFmt), agent.name)
         }
     }
 
     private var modeSubtitle: String {
         switch mode {
-        case .create: return "配置智能体的基础信息、指令、工具和参数"
-        case .edit: return "修改 Agent 配置后保存或发布"
+        case .create: return i18n.t(.ai_cfg_subCreate)
+        case .edit: return i18n.t(.ai_cfg_subEdit)
         }
     }
 

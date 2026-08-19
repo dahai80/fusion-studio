@@ -13,12 +13,12 @@ private let observerLog = Logger(subsystem: "com.fusion.studio", category: "AIAg
 // Adding ObserverTab cases .permissions and .audit for #47 and #51
 // Affected API: PermissionTagView, AuditLogPanelView
 enum ObserverTab: String, CaseIterable {
-    case usage = "用量统计"
-    case logs = "执行日志"
-    case apikeys = "API 密钥"
-    case connectors = "连接器"
-    case permissions = "权限标签"
-    case audit = "审计日志"
+    case usage = "usage"
+    case logs = "logs"
+    case apikeys = "apikeys"
+    case connectors = "connectors"
+    case permissions = "permissions"
+    case audit = "audit"
 
     var icon: String {
         switch self {
@@ -30,11 +30,23 @@ enum ObserverTab: String, CaseIterable {
         case .audit: return "list.bullet.clipboard"
         }
     }
+
+    var localLabel: String {
+        switch self {
+        case .usage: return I18nManager.shared.t(.ai_obs_tabUsage)
+        case .logs: return I18nManager.shared.t(.ai_obs_tabLogs)
+        case .apikeys: return I18nManager.shared.t(.ai_obs_tabApikeys)
+        case .connectors: return I18nManager.shared.t(.ai_obs_tabConnectors)
+        case .permissions: return I18nManager.shared.t(.ai_obs_tabPermissions)
+        case .audit: return I18nManager.shared.t(.ai_obs_tabAudit)
+        }
+    }
 }
 
 struct AIAgentObserverView: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var selectedTab: ObserverTab = .usage
     @State private var usageData: [String: Any] = [:]
@@ -69,10 +81,10 @@ struct AIAgentObserverView: View {
     private var headerBar: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text("监控与管理")
+                Text(i18n.t(.ai_obs_title))
                     .font(.system(size: theme.titleSize, weight: .bold))
                     .foregroundStyle(theme.text)
-                Text("用量统计 · 执行日志 · API 密钥 · 连接器")
+                Text(i18n.t(.ai_obs_subtitle))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textTertiary)
             }
@@ -96,7 +108,7 @@ struct AIAgentObserverView: View {
                         HStack(spacing: theme.spacingXS) {
                             Image(systemName: tab.icon)
                                 .font(.system(size: theme.iconS))
-                            Text(tab.rawValue)
+                            Text(tab.localLabel)
                                 .font(.system(size: theme.footnoteSize, weight: .medium))
                         }
                         .foregroundStyle(selectedTab == tab ? theme.accentText : theme.textSecondary)
@@ -133,15 +145,15 @@ struct AIAgentObserverView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: theme.spacingL) {
                 HStack(spacing: theme.spacingM) {
-                    usageStatCard("今日请求", value: usageValue("today_requests"), icon: "arrow.up.circle")
-                    usageStatCard("总 Token", value: usageValue("total_tokens"), icon: "number.circle")
-                    usageStatCard("活跃 Agent", value: usageValue("active_agents"), icon: "brain")
-                    usageStatCard("错误率", value: usageValue("error_rate"), icon: "exclamationmark.triangle")
+                    usageStatCard(i18n.t(.ai_obs_statToday), value: usageValue("today_requests"), icon: "arrow.up.circle")
+                    usageStatCard(i18n.t(.ai_obs_statToken), value: usageValue("total_tokens"), icon: "number.circle")
+                    usageStatCard(i18n.t(.ai_obs_statActive), value: usageValue("active_agents"), icon: "brain")
+                    usageStatCard(i18n.t(.ai_obs_statError), value: usageValue("error_rate"), icon: "exclamationmark.triangle")
                 }
 
                 if !alerts.isEmpty {
                     VStack(alignment: .leading, spacing: theme.spacingS) {
-                        Text("告警")
+                        Text(i18n.t(.ai_obs_alerts))
                             .font(.system(size: theme.footnoteSize, weight: .semibold))
                             .foregroundStyle(theme.textSecondary)
 
@@ -198,7 +210,7 @@ struct AIAgentObserverView: View {
 
             Spacer()
 
-            Button("确认") {
+            Button(i18n.t(.confirm)) {
                 acknowledgeAlert(alertId: alertId)
             }
             .font(.system(size: theme.captionSize))
@@ -217,7 +229,7 @@ struct AIAgentObserverView: View {
     private var logsTab: some View {
         VStack(spacing: 0) {
             if executionLogs.isEmpty {
-                emptyState(icon: "list.bullet.rectangle", message: "暂无执行日志")
+                emptyState(icon: "list.bullet.rectangle", message: i18n.t(.ai_obs_logsEmpty))
             } else {
                 ScrollView {
                     LazyVStack(spacing: theme.spacingXS) {
@@ -270,14 +282,14 @@ struct AIAgentObserverView: View {
     private var apiKeysTab: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("API 密钥管理")
+                Text(i18n.t(.ai_obs_apikeysTitle))
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
                     .foregroundStyle(theme.textSecondary)
                 Spacer()
                 Button(action: { createApiKey() }) {
                     HStack(spacing: theme.spacingXS) {
                         Image(systemName: "plus")
-                        Text("创建密钥")
+                        Text(i18n.t(.ai_obs_apikeyCreate))
                     }
                     .font(.system(size: theme.captionSize, weight: .medium))
                     .foregroundStyle(theme.accentText)
@@ -294,7 +306,7 @@ struct AIAgentObserverView: View {
             .padding(.vertical, theme.spacingM)
 
             if apiKeys.isEmpty {
-                emptyState(icon: "key", message: "暂无 API 密钥")
+                emptyState(icon: "key", message: i18n.t(.ai_obs_apikeysEmpty))
             } else {
                 ScrollView {
                     LazyVStack(spacing: theme.spacingS) {
@@ -310,7 +322,7 @@ struct AIAgentObserverView: View {
 
     private func apiKeyRow(_ key: [String: Any]) -> some View {
         let keyId = key["id"] as? String ?? ""
-        let keyName = key["name"] as? String ?? "Unnamed Key"
+        let keyName = key["name"] as? String ?? i18n.t(.ai_obs_unnamedKey)
         let prefix = key["prefix"] as? String ?? "fk-****"
         let createdAt = key["created_at"] as? String ?? ""
 
@@ -327,7 +339,7 @@ struct AIAgentObserverView: View {
                     Text(prefix)
                         .font(.system(size: theme.captionSize, design: .monospaced))
                         .foregroundStyle(theme.textTertiary)
-                    Text("创建于 \(createdAt.prefix(10))")
+                    Text(String(format: i18n.t(.ai_obs_createdFmt), String(createdAt.prefix(10))))
                         .font(.system(size: 10))
                         .foregroundStyle(theme.textTertiary)
                 }
@@ -336,14 +348,14 @@ struct AIAgentObserverView: View {
             Spacer()
 
             Button(action: { rotateApiKey(keyId: keyId) }) {
-                Text("轮换")
+                Text(i18n.t(.ai_obs_rotate))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.accent)
             }
             .buttonStyle(.plain)
 
             Button(action: { revokeApiKey(keyId: keyId) }) {
-                Text("吊销")
+                Text(i18n.t(.ai_obs_revoke))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.accentDestructive)
             }
@@ -361,14 +373,14 @@ struct AIAgentObserverView: View {
     private var connectorsTab: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("外部连接器")
+                Text(i18n.t(.ai_obs_connTitle))
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
                     .foregroundStyle(theme.textSecondary)
                 Spacer()
                 Button(action: { createConnector() }) {
                     HStack(spacing: theme.spacingXS) {
                         Image(systemName: "plus")
-                        Text("添加连接器")
+                        Text(i18n.t(.ai_obs_connAdd))
                     }
                     .font(.system(size: theme.captionSize, weight: .medium))
                     .foregroundStyle(theme.accentText)
@@ -385,7 +397,7 @@ struct AIAgentObserverView: View {
             .padding(.vertical, theme.spacingM)
 
             if connectors.isEmpty {
-                emptyState(icon: "link", message: "暂无已配置的连接器")
+                emptyState(icon: "link", message: i18n.t(.ai_obs_connEmpty))
             } else {
                 ScrollView {
                     LazyVStack(spacing: theme.spacingS) {
@@ -401,7 +413,7 @@ struct AIAgentObserverView: View {
 
     private func connectorRow(_ conn: [String: Any]) -> some View {
         let connId = conn["id"] as? String ?? ""
-        let connName = conn["name"] as? String ?? "Unnamed"
+        let connName = conn["name"] as? String ?? i18n.t(.ai_obs_unnamedConn)
         let connType = conn["type"] as? String ?? "unknown"
         let connStatus = conn["status"] as? String ?? "disconnected"
 
@@ -425,13 +437,13 @@ struct AIAgentObserverView: View {
                 Circle()
                     .fill(connStatus == "connected" ? theme.accent : theme.textTertiary)
                     .frame(width: 8, height: 8)
-                Text(connStatus == "connected" ? "已连接" : "未连接")
+                Text(connStatus == "connected" ? i18n.t(.ai_obs_connConnected) : i18n.t(.ai_obs_connDisconnected))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textTertiary)
             }
 
             if connStatus != "connected" {
-                Button("连接") {
+                Button(i18n.t(.ai_obs_connect)) {
                     connectConnector(connId: connId)
                 }
                 .font(.system(size: theme.captionSize))
