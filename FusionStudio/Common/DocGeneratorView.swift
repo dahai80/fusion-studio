@@ -311,6 +311,15 @@ class DocGenerator: ObservableObject {
             - 删死代码：FeaturePlaceholderView（零引用）、Design RAG 兼容 shim（DesignSpecRAGIndexer/ComponentRAGIndexer，RAGEngine 已移除后的日志占位）
             - 清理过时注释：ModuleDetailView 占位视图 MARK、ModelHubView/DesignWorkflowOrchestrator 历史任务指令残留
 
+            ## [0.1.39] - 2026-08-19
+
+            ### 新增
+            - fusion-trainer RunManager GUI 面板：TrainerView (536 行) + TrainerBridge (377 行) + IPCTrainerMethods，接入 fusion-trainer RunManager；AppState 新增 trainer 状态，Sidebar/IconRail/ModuleDetailView 路由打通；TrainerTests 115 行 (#176, closes #175)
+            - i18n 全量本地化推进至 Projects 模块：Projects ProjectModuleView 18 视图结构全量本地化（Batch 6a, 173 proj_ 键）；Doc 15 视图全量（Batch 5a/5b, 198 doc_ 键）；ModelHub 13 视图全量（Batch 4a/4b, 694 hub_ 键）；设置面板+通用组件+Inspector（Batch 2）；Module 标签 62 模块×4 语言（Batch 3）；导航栏 IconRail+Sidebar（Batch 1）。I18nService 字典 1288 keys × 4 语言（zhCN/enUS/jaJP/koKR）全量平衡
+
+            ### 整理
+            - 分支清理：21 个已合并分支（7 本地 + 14 远程）全部删除，仓库仅留 master
+
             ## [0.1.38] - 2026-08-16
 
             ### 修复
