@@ -6,6 +6,7 @@ private let snapLog = Logger(subsystem: "com.fusion.studio", category: "SessionS
 struct SessionSnapshotView: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     let spaceId: String
     let sessionId: String
@@ -20,13 +21,13 @@ struct SessionSnapshotView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
             HStack {
-                Text("会话快照")
+                Text(i18n.t(.cw_snap_title))
                     .font(.system(size: theme.textSize, weight: .semibold))
                 Spacer()
                 Button(action: { showCreateDialog = true }) {
                     HStack(spacing: 4) {
                         Image(systemName: "plus")
-                        Text("创建快照")
+                        Text(i18n.t(.cw_snap_create))
                     }
                 }
                 .buttonStyle(.borderedProminent)
@@ -41,9 +42,9 @@ struct SessionSnapshotView: View {
                     Image(systemName: "camera")
                         .font(.system(size: 28))
                         .foregroundStyle(theme.textTertiary)
-                    Text("暂无快照")
+                    Text(i18n.t(.cw_snap_empty))
                         .foregroundStyle(theme.textSecondary)
-                    Text("创建快照以保存当前会话状态，可随时回溯或 Fork")
+                    Text(i18n.t(.cw_snap_emptyHint))
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.textTertiary)
                         .multilineTextAlignment(.center)
@@ -61,14 +62,14 @@ struct SessionSnapshotView: View {
         .padding(theme.spacingM)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onAppear { loadSnapshots() }
-        .alert("创建快照", isPresented: $showCreateDialog) {
-            TextField("标签（可选）", text: $newSnapLabel)
-            Button("创建") { createSnapshot() }
-            Button("取消", role: .cancel) { newSnapLabel = "" }
+        .alert(i18n.t(.cw_snap_create), isPresented: $showCreateDialog) {
+            TextField(i18n.t(.cw_snap_labelPh), text: $newSnapLabel)
+            Button(i18n.t(.cw_snap_createBtn)) { createSnapshot() }
+            Button(i18n.t(.cancel), role: .cancel) { newSnapLabel = "" }
         }
-        .alert("Fork 此快照为新会话？", isPresented: $showForkConfirm) {
-            Button("Fork") { forkSnapshot(forkSnapId) }
-            Button("取消", role: .cancel) { forkSnapId = "" }
+        .alert(i18n.t(.cw_snap_forkAlert), isPresented: $showForkConfirm) {
+            Button(i18n.t(.cw_snap_forkAlertBtn)) { forkSnapshot(forkSnapId) }
+            Button(i18n.t(.cancel), role: .cancel) { forkSnapId = "" }
         }
     }
 
@@ -91,7 +92,7 @@ struct SessionSnapshotView: View {
                     Text(ts)
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.textSecondary)
-                    Text("\(msgCount) 条消息")
+                    Text(String(format: i18n.t(.cw_snap_msgFmt), msgCount))
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.textTertiary)
                 }
@@ -105,14 +106,14 @@ struct SessionSnapshotView: View {
                         .font(.system(size: 11))
                 }
                 .buttonStyle(.plain)
-                .help("恢复到此快照")
+                .help(i18n.t(.cw_snap_restoreHelp))
 
                 Button(action: { forkSnapId = snapId; showForkConfirm = true }) {
                     Image(systemName: "arrow.triangle.branch")
                         .font(.system(size: 11))
                 }
                 .buttonStyle(.plain)
-                .help("Fork 为新会话")
+                .help(i18n.t(.cw_snap_forkHelp))
 
                 Button(action: { deleteSnapshot(snapId) }) {
                     Image(systemName: "trash")
@@ -120,7 +121,7 @@ struct SessionSnapshotView: View {
                         .foregroundStyle(.red)
                 }
                 .buttonStyle(.plain)
-                .help("删除快照")
+                .help(i18n.t(.cw_snap_deleteHelp))
             }
         }
         .padding(.vertical, theme.spacingXS)

@@ -1397,6 +1397,19 @@ enum I18nKey: String, CaseIterable {
     case proj_panelAutoScanKb = "proj_panelAutoScanKb"
     case proj_tabSessions = "proj_tabSessions"
     case proj_tabSettings = "proj_tabSettings"
+    case cw_snap_title = "cw_snap_title"
+    case cw_snap_create = "cw_snap_create"
+    case cw_snap_empty = "cw_snap_empty"
+    case cw_snap_emptyHint = "cw_snap_emptyHint"
+    case cw_snap_labelPh = "cw_snap_labelPh"
+    case cw_snap_createBtn = "cw_snap_createBtn"
+    case cw_snap_forkAlert = "cw_snap_forkAlert"
+    case cw_snap_forkBtn = "cw_snap_forkBtn"
+    case cw_snap_msgFmt = "cw_snap_msgFmt"
+    case cw_snap_restoreHelp = "cw_snap_restoreHelp"
+    case cw_snap_forkHelp = "cw_snap_forkHelp"
+    case cw_snap_deleteHelp = "cw_snap_deleteHelp"
+    case cw_snap_forkAlertBtn = "cw_snap_forkAlertBtn"
 }
 
 // MARK: - 翻译管理器
@@ -2450,6 +2463,19 @@ let zhCNTranslations: [String: String] = [
     "proj_panelAutoScanKb": "自动扫描知识库文件",
     "proj_tabSessions": "会话",
     "proj_tabSettings": "设置",
+    "cw_snap_title": "会话快照",
+    "cw_snap_create": "创建快照",
+    "cw_snap_empty": "暂无快照",
+    "cw_snap_emptyHint": "创建快照以保存当前会话状态，可随时回溯或 Fork",
+    "cw_snap_labelPh": "标签（可选）",
+    "cw_snap_createBtn": "创建",
+    "cw_snap_forkAlert": "Fork 此快照为新会话？",
+    "cw_snap_forkBtn": "Fork",
+    "cw_snap_msgFmt": "%d 条消息",
+    "cw_snap_restoreHelp": "恢复到此快照",
+    "cw_snap_forkHelp": "Fork 为新会话",
+    "cw_snap_deleteHelp": "删除快照",
+    "cw_snap_forkAlertBtn": "Fork",
 ]
 
 let enUSTranslations: [String: String] = [
@@ -3458,6 +3484,19 @@ let enUSTranslations: [String: String] = [
     "proj_panelAutoScanKb": "Auto-scan knowledge files",
     "proj_tabSessions": "Sessions",
     "proj_tabSettings": "Settings",
+    "cw_snap_title": "Session Snapshots",
+    "cw_snap_create": "Create Snapshot",
+    "cw_snap_empty": "No snapshots",
+    "cw_snap_emptyHint": "Create a snapshot to save the current session state. Roll back or fork anytime.",
+    "cw_snap_labelPh": "Label (optional)",
+    "cw_snap_createBtn": "Create",
+    "cw_snap_forkAlert": "Fork this snapshot into a new session?",
+    "cw_snap_forkBtn": "Fork",
+    "cw_snap_msgFmt": "%d messages",
+    "cw_snap_restoreHelp": "Restore to this snapshot",
+    "cw_snap_forkHelp": "Fork into a new session",
+    "cw_snap_deleteHelp": "Delete snapshot",
+    "cw_snap_forkAlertBtn": "Fork",
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -4460,6 +4499,19 @@ let jaJPTranslations: [String: String] = [
     "proj_panelAutoScanKb": "ナレッジファイルを自動スキャン",
     "proj_tabSessions": "セッション",
     "proj_tabSettings": "設定",
+    "cw_snap_title": "セッションスナップショット",
+    "cw_snap_create": "スナップショット作成",
+    "cw_snap_empty": "スナップショットなし",
+    "cw_snap_emptyHint": "スナップショットを作成して現在のセッション状態を保存。いつでもロールバックまたはフォーク可能。",
+    "cw_snap_labelPh": "ラベル（任意）",
+    "cw_snap_createBtn": "作成",
+    "cw_snap_forkAlert": "このスナップショットを新規セッションにフォークしますか？",
+    "cw_snap_forkBtn": "フォーク",
+    "cw_snap_msgFmt": "%d 件のメッセージ",
+    "cw_snap_restoreHelp": "このスナップショットに復元",
+    "cw_snap_forkHelp": "新規セッションにフォーク",
+    "cw_snap_deleteHelp": "スナップショット削除",
+    "cw_snap_forkAlertBtn": "フォーク",
 ]
 
 let koKRTranslations: [String: String] = [
@@ -5462,6 +5514,19 @@ let koKRTranslations: [String: String] = [
     "proj_panelAutoScanKb": "지식 파일 자동 스캔",
     "proj_tabSessions": "세션",
     "proj_tabSettings": "설정",
+    "cw_snap_title": "세션 스냅샷",
+    "cw_snap_create": "스냅샷 생성",
+    "cw_snap_empty": "스냅샷 없음",
+    "cw_snap_emptyHint": "스냅샷을 생성해 현재 세션 상태를 저장하세요. 언제든 롤백 또는 포크 가능.",
+    "cw_snap_labelPh": "라벨(선택)",
+    "cw_snap_createBtn": "생성",
+    "cw_snap_forkAlert": "이 스냅샷을 새 세션으로 포크하시겠습니까?",
+    "cw_snap_forkBtn": "포크",
+    "cw_snap_msgFmt": "%d개 메시지",
+    "cw_snap_restoreHelp": "이 스냅샷으로 복원",
+    "cw_snap_forkHelp": "새 세션으로 포크",
+    "cw_snap_deleteHelp": "스냅샷 삭제",
+    "cw_snap_forkAlertBtn": "포크",
 ]
 
 // MARK: - 国际化文本视图
