@@ -2019,6 +2019,100 @@ enum I18nKey: String, CaseIterable {
     case fsb_wb_snapshots = "fsb_wb_snapshots"
     case fsb_wb_sandboxEmpty = "fsb_wb_sandboxEmpty"
     case fsb_wb_sandboxHint = "fsb_wb_sandboxHint"
+    case rag_sec_dashboard = "rag_sec_dashboard"
+    case rag_sec_files = "rag_sec_files"
+    case rag_sec_chat = "rag_sec_chat"
+    case rag_sec_embedConfig = "rag_sec_embedConfig"
+    case rag_sec_searchConfig = "rag_sec_searchConfig"
+    case rag_sec_permissions = "rag_sec_permissions"
+    case rag_sec_vectorOps = "rag_sec_vectorOps"
+    case rag_sec_callLog = "rag_sec_callLog"
+    case rag_sec_benchEval = "rag_sec_benchEval"
+    case rag_currentKb = "rag_currentKb"
+    case rag_all = "rag_all"
+    case rag_tab_bases = "rag_tab_bases"
+    case rag_tab_chat = "rag_tab_chat"
+    case rag_tab_search = "rag_tab_search"
+    case rag_tab_config = "rag_tab_config"
+    case rag_log_title = "rag_log_title"
+    case rag_log_total = "rag_log_total"
+    case rag_log_successRate = "rag_log_successRate"
+    case rag_log_avgLatency = "rag_log_avgLatency"
+    case rag_log_search = "rag_log_search"
+    case rag_log_ask = "rag_log_ask"
+    case rag_log_searchPh = "rag_log_searchPh"
+    case rag_log_opPicker = "rag_log_opPicker"
+    case rag_log_export = "rag_log_export"
+    case rag_log_empty = "rag_log_empty"
+    case rag_log_h_time = "rag_log_h_time"
+    case rag_log_h_kb = "rag_log_h_kb"
+    case rag_log_h_op = "rag_log_h_op"
+    case rag_log_h_query = "rag_log_h_query"
+    case rag_log_h_result = "rag_log_h_result"
+    case rag_log_h_latency = "rag_log_h_latency"
+    case rag_log_h_status = "rag_log_h_status"
+    case rag_log_exportTitle = "rag_log_exportTitle"
+    case rag_log_exportDescFmt = "rag_log_exportDescFmt"
+    case rag_log_exportBtn = "rag_log_exportBtn"
+    case rag_op_all = "rag_op_all"
+    case rag_op_search = "rag_op_search"
+    case rag_op_ask = "rag_op_ask"
+    case rag_op_ingest = "rag_op_ingest"
+    case rag_op_delete = "rag_op_delete"
+    case rag_op_watch = "rag_op_watch"
+    case rag_op_sync = "rag_op_sync"
+    case rag_perm_title = "rag_perm_title"
+    case rag_perm_authStatus = "rag_perm_authStatus"
+    case rag_perm_apiKeyAuth = "rag_perm_apiKeyAuth"
+    case rag_perm_disabled = "rag_perm_disabled"
+    case rag_perm_enabled = "rag_perm_enabled"
+    case rag_perm_activeKeys = "rag_perm_activeKeys"
+    case rag_perm_keyMgmt = "rag_perm_keyMgmt"
+    case rag_perm_createKey = "rag_perm_createKey"
+    case rag_perm_noKey = "rag_perm_noKey"
+    case rag_perm_noKeyHint = "rag_perm_noKeyHint"
+    case rag_perm_h_name = "rag_perm_h_name"
+    case rag_perm_h_hash = "rag_perm_h_hash"
+    case rag_perm_h_createdAt = "rag_perm_h_createdAt"
+    case rag_perm_memberRole = "rag_perm_memberRole"
+    case rag_perm_role_admin = "rag_perm_role_admin"
+    case rag_perm_role_admin_desc = "rag_perm_role_admin_desc"
+    case rag_perm_role_edit = "rag_perm_role_edit"
+    case rag_perm_role_edit_desc = "rag_perm_role_edit_desc"
+    case rag_perm_role_query = "rag_perm_role_query"
+    case rag_perm_role_query_desc = "rag_perm_role_query_desc"
+    case rag_perm_role_api = "rag_perm_role_api"
+    case rag_perm_role_api_desc = "rag_perm_role_api_desc"
+    case rag_perm_audit = "rag_perm_audit"
+    case rag_perm_auditNote = "rag_perm_auditNote"
+    case rag_perm_createTitle = "rag_perm_createTitle"
+    case rag_perm_keyNamePh = "rag_perm_keyNamePh"
+    case rag_perm_keyCreated = "rag_perm_keyCreated"
+    case rag_perm_createBtn = "rag_perm_createBtn"
+    case rag_emb_title = "rag_emb_title"
+    case rag_emb_model = "rag_emb_model"
+    case rag_emb_modelName = "rag_emb_modelName"
+    case rag_emb_runMode = "rag_emb_runMode"
+    case rag_emb_localMlx = "rag_emb_localMlx"
+    case rag_emb_dim768 = "rag_emb_dim768"
+    case rag_emb_multilang = "rag_emb_multilang"
+    case rag_emb_chunkStrategy = "rag_emb_chunkStrategy"
+    case rag_emb_strategyPicker = "rag_emb_strategyPicker"
+    case rag_emb_chunkSize = "rag_emb_chunkSize"
+    case rag_emb_overlap = "rag_emb_overlap"
+    case rag_emb_strategy_semantic = "rag_emb_strategy_semantic"
+    case rag_emb_strategy_fixed = "rag_emb_strategy_fixed"
+    case rag_emb_strategy_code = "rag_emb_strategy_code"
+    case rag_emb_strategy_sentence = "rag_emb_strategy_sentence"
+    case rag_emb_tip_semantic = "rag_emb_tip_semantic"
+    case rag_emb_tip_fixed = "rag_emb_tip_fixed"
+    case rag_emb_tip_code = "rag_emb_tip_code"
+    case rag_emb_tip_sentence = "rag_emb_tip_sentence"
+    case rag_emb_context = "rag_emb_context"
+    case rag_emb_contextToggle = "rag_emb_contextToggle"
+    case rag_emb_contextDesc = "rag_emb_contextDesc"
+    case rag_emb_saved = "rag_emb_saved"
+    case rag_emb_reset = "rag_emb_reset"
     case fsb_cv_node_start = "fsb_cv_node_start"
     case fsb_cv_node_connector = "fsb_cv_node_connector"
     case fsb_cv_node_skill = "fsb_cv_node_skill"
@@ -3728,6 +3822,100 @@ let zhCNTranslations: [String: String] = [
     "fsb_wb_snapshots": "快照",
     "fsb_wb_sandboxEmpty": "上下文沙盒为空",
     "fsb_wb_sandboxHint": "运行工作流后，沙盒将记录\n执行上下文和数据快照",
+    "rag_sec_dashboard": "知识库总览",
+    "rag_sec_files": "文件目录管理",
+    "rag_sec_chat": "RAG 对话",
+    "rag_sec_embedConfig": "嵌入模型配置",
+    "rag_sec_searchConfig": "检索策略配置",
+    "rag_sec_permissions": "权限管控",
+    "rag_sec_vectorOps": "向量库运维",
+    "rag_sec_callLog": "RAG调用日志",
+    "rag_sec_benchEval": "检索性能评测",
+    "rag_currentKb": "当前知识库",
+    "rag_all": "全部",
+    "rag_tab_bases": "知识库",
+    "rag_tab_chat": "对话",
+    "rag_tab_search": "搜索",
+    "rag_tab_config": "配置",
+    "rag_log_title": "RAG 调用日志",
+    "rag_log_total": "总调用",
+    "rag_log_successRate": "成功率",
+    "rag_log_avgLatency": "平均延迟",
+    "rag_log_search": "搜索",
+    "rag_log_ask": "问答",
+    "rag_log_searchPh": "搜索日志...",
+    "rag_log_opPicker": "操作",
+    "rag_log_export": "导出 CSV",
+    "rag_log_empty": "暂无调用日志",
+    "rag_log_h_time": "时间",
+    "rag_log_h_kb": "知识库",
+    "rag_log_h_op": "操作",
+    "rag_log_h_query": "查询",
+    "rag_log_h_result": "结果",
+    "rag_log_h_latency": "延迟",
+    "rag_log_h_status": "状态",
+    "rag_log_exportTitle": "导出 RAG 调用日志",
+    "rag_log_exportDescFmt": "将筛选后的 %d 条日志导出为 CSV 文件",
+    "rag_log_exportBtn": "导出",
+    "rag_op_all": "全部",
+    "rag_op_search": "搜索",
+    "rag_op_ask": "问答",
+    "rag_op_ingest": "导入",
+    "rag_op_delete": "删除",
+    "rag_op_watch": "监控",
+    "rag_op_sync": "同步",
+    "rag_perm_title": "权限管控",
+    "rag_perm_authStatus": "鉴权状态",
+    "rag_perm_apiKeyAuth": "API Key 认证",
+    "rag_perm_disabled": "未启用",
+    "rag_perm_enabled": "已启用",
+    "rag_perm_activeKeys": "活跃密钥",
+    "rag_perm_keyMgmt": "API 密钥管理",
+    "rag_perm_createKey": "创建密钥",
+    "rag_perm_noKey": "暂无 API 密钥",
+    "rag_perm_noKeyHint": "未设置 API Key 时，鉴权功能不启用",
+    "rag_perm_h_name": "名称",
+    "rag_perm_h_hash": "密钥哈希",
+    "rag_perm_h_createdAt": "创建时间",
+    "rag_perm_memberRole": "成员角色",
+    "rag_perm_role_admin": "管理员",
+    "rag_perm_role_admin_desc": "全量读写、密钥管理、删除知识库",
+    "rag_perm_role_edit": "编辑者",
+    "rag_perm_role_edit_desc": "上传文档、修改配置、触发重建索引",
+    "rag_perm_role_query": "查询者",
+    "rag_perm_role_query_desc": "搜索、RAG 问答、只读访问",
+    "rag_perm_role_api": "API 调用",
+    "rag_perm_role_api_desc": "仅通过 API Key 调用搜索/问答接口",
+    "rag_perm_audit": "审计日志",
+    "rag_perm_auditNote": "上游 API 暂未提供审计日志接口，需要提 Issue 追踪",
+    "rag_perm_createTitle": "创建 API 密钥",
+    "rag_perm_keyNamePh": "密钥名称",
+    "rag_perm_keyCreated": "密钥已创建（仅显示一次）",
+    "rag_perm_createBtn": "创建",
+    "rag_emb_title": "嵌入模型配置",
+    "rag_emb_model": "嵌入模型",
+    "rag_emb_modelName": "模型名称",
+    "rag_emb_runMode": "运行方式",
+    "rag_emb_localMlx": "本地 MLX 推理",
+    "rag_emb_dim768": "768 维",
+    "rag_emb_multilang": "多语言",
+    "rag_emb_chunkStrategy": "分块策略",
+    "rag_emb_strategyPicker": "策略",
+    "rag_emb_chunkSize": "分块大小",
+    "rag_emb_overlap": "重叠大小",
+    "rag_emb_strategy_semantic": "语义分块",
+    "rag_emb_strategy_fixed": "固定分块",
+    "rag_emb_strategy_code": "代码分块",
+    "rag_emb_strategy_sentence": "句子分块",
+    "rag_emb_tip_semantic": "按语义边界分块，适合自然语言文档",
+    "rag_emb_tip_fixed": "固定 token 数分块，适合均匀内容",
+    "rag_emb_tip_code": "按 AST 函数/类边界分块，适合代码",
+    "rag_emb_tip_sentence": "按句子边界分块，适合短文本",
+    "rag_emb_context": "上下文增强",
+    "rag_emb_contextToggle": "Contextual Retrieval（上下文检索增强）",
+    "rag_emb_contextDesc": "为每个分块生成上下文摘要，显著提升检索准确率。Fusion-RAG 独有优势：本地 MLX 生成上下文，无需云端 API。",
+    "rag_emb_saved": "✓ 配置已保存",
+    "rag_emb_reset": "恢复默认",
     "fsb_cv_node_start": "开始",
     "fsb_cv_node_connector": "连接器",
     "fsb_cv_node_skill": "技能",
@@ -5392,6 +5580,100 @@ let enUSTranslations: [String: String] = [
     "fsb_wb_snapshots": "Snapshots",
     "fsb_wb_sandboxEmpty": "Context sandbox is empty",
     "fsb_wb_sandboxHint": "After running a workflow, the sandbox records\nexecution context and data snapshots",
+    "rag_sec_dashboard": "Knowledge Base Overview",
+    "rag_sec_files": "File Directory Management",
+    "rag_sec_chat": "RAG Chat",
+    "rag_sec_embedConfig": "Embedding Model Config",
+    "rag_sec_searchConfig": "Retrieval Strategy Config",
+    "rag_sec_permissions": "Permissions",
+    "rag_sec_vectorOps": "Vector DB Ops",
+    "rag_sec_callLog": "RAG Call Log",
+    "rag_sec_benchEval": "Retrieval Bench",
+    "rag_currentKb": "Current KB",
+    "rag_all": "All",
+    "rag_tab_bases": "Knowledge Bases",
+    "rag_tab_chat": "Chat",
+    "rag_tab_search": "Search",
+    "rag_tab_config": "Config",
+    "rag_log_title": "RAG Call Log",
+    "rag_log_total": "Total calls",
+    "rag_log_successRate": "Success rate",
+    "rag_log_avgLatency": "Avg latency",
+    "rag_log_search": "Search",
+    "rag_log_ask": "Q&A",
+    "rag_log_searchPh": "Search logs...",
+    "rag_log_opPicker": "Operation",
+    "rag_log_export": "Export CSV",
+    "rag_log_empty": "No call logs",
+    "rag_log_h_time": "Time",
+    "rag_log_h_kb": "KB",
+    "rag_log_h_op": "Op",
+    "rag_log_h_query": "Query",
+    "rag_log_h_result": "Result",
+    "rag_log_h_latency": "Latency",
+    "rag_log_h_status": "Status",
+    "rag_log_exportTitle": "Export RAG Call Log",
+    "rag_log_exportDescFmt": "Export %d filtered logs to CSV",
+    "rag_log_exportBtn": "Export",
+    "rag_op_all": "All",
+    "rag_op_search": "Search",
+    "rag_op_ask": "Q&A",
+    "rag_op_ingest": "Ingest",
+    "rag_op_delete": "Delete",
+    "rag_op_watch": "Watch",
+    "rag_op_sync": "Sync",
+    "rag_perm_title": "Permissions",
+    "rag_perm_authStatus": "Auth Status",
+    "rag_perm_apiKeyAuth": "API Key Auth",
+    "rag_perm_disabled": "Disabled",
+    "rag_perm_enabled": "Enabled",
+    "rag_perm_activeKeys": "Active keys",
+    "rag_perm_keyMgmt": "API Key Management",
+    "rag_perm_createKey": "Create key",
+    "rag_perm_noKey": "No API keys",
+    "rag_perm_noKeyHint": "Auth disabled when no API Key is set",
+    "rag_perm_h_name": "Name",
+    "rag_perm_h_hash": "Key hash",
+    "rag_perm_h_createdAt": "Created",
+    "rag_perm_memberRole": "Member Roles",
+    "rag_perm_role_admin": "Admin",
+    "rag_perm_role_admin_desc": "Full read/write, key mgmt, delete KB",
+    "rag_perm_role_edit": "Editor",
+    "rag_perm_role_edit_desc": "Upload docs, edit config, reindex",
+    "rag_perm_role_query": "Viewer",
+    "rag_perm_role_query_desc": "Search, RAG Q&A, read-only",
+    "rag_perm_role_api": "API Caller",
+    "rag_perm_role_api_desc": "API Key only: search/Q&A",
+    "rag_perm_audit": "Audit Log",
+    "rag_perm_auditNote": "Upstream API has no audit log endpoint yet; needs an Issue",
+    "rag_perm_createTitle": "Create API Key",
+    "rag_perm_keyNamePh": "Key name",
+    "rag_perm_keyCreated": "Key created (shown once)",
+    "rag_perm_createBtn": "Create",
+    "rag_emb_title": "Embedding Model Config",
+    "rag_emb_model": "Embedding Model",
+    "rag_emb_modelName": "Model name",
+    "rag_emb_runMode": "Runtime",
+    "rag_emb_localMlx": "Local MLX inference",
+    "rag_emb_dim768": "768-dim",
+    "rag_emb_multilang": "Multilingual",
+    "rag_emb_chunkStrategy": "Chunking Strategy",
+    "rag_emb_strategyPicker": "Strategy",
+    "rag_emb_chunkSize": "Chunk size",
+    "rag_emb_overlap": "Overlap",
+    "rag_emb_strategy_semantic": "Semantic",
+    "rag_emb_strategy_fixed": "Fixed",
+    "rag_emb_strategy_code": "Code",
+    "rag_emb_strategy_sentence": "Sentence",
+    "rag_emb_tip_semantic": "Chunk by semantic boundary, for natural language",
+    "rag_emb_tip_fixed": "Fixed token count, for uniform content",
+    "rag_emb_tip_code": "Chunk by AST function/class boundary, for code",
+    "rag_emb_tip_sentence": "Chunk by sentence boundary, for short text",
+    "rag_emb_context": "Context Enhancement",
+    "rag_emb_contextToggle": "Contextual Retrieval (context-aware)",
+    "rag_emb_contextDesc": "Generate context summary per chunk, boosting retrieval accuracy. Fusion-RAG exclusive: local MLX context generation, no cloud API.",
+    "rag_emb_saved": "✓ Config saved",
+    "rag_emb_reset": "Reset to default",
     "fsb_cv_node_start": "Start",
     "fsb_cv_node_connector": "Connector",
     "fsb_cv_node_skill": "Skill",
@@ -7050,6 +7332,100 @@ let jaJPTranslations: [String: String] = [
     "fsb_wb_snapshots": "スナップショット",
     "fsb_wb_sandboxEmpty": "コンテキストサンドボックスが空です",
     "fsb_wb_sandboxHint": "ワークフロー実行後、サンドボックスは\n実行コンテキストとデータスナップショットを記録します",
+    "rag_sec_dashboard": "ナレッジベース概要",
+    "rag_sec_files": "ファイルディレクトリ管理",
+    "rag_sec_chat": "RAG チャット",
+    "rag_sec_embedConfig": "埋め込みモデル設定",
+    "rag_sec_searchConfig": "検索戦略設定",
+    "rag_sec_permissions": "権限管理",
+    "rag_sec_vectorOps": "ベクトルDB運用",
+    "rag_sec_callLog": "RAG呼び出しログ",
+    "rag_sec_benchEval": "検索性能評価",
+    "rag_currentKb": "現在のKB",
+    "rag_all": "すべて",
+    "rag_tab_bases": "ナレッジベース",
+    "rag_tab_chat": "チャット",
+    "rag_tab_search": "検索",
+    "rag_tab_config": "設定",
+    "rag_log_title": "RAG呼び出しログ",
+    "rag_log_total": "総呼び出し",
+    "rag_log_successRate": "成功率",
+    "rag_log_avgLatency": "平均遅延",
+    "rag_log_search": "検索",
+    "rag_log_ask": "Q&A",
+    "rag_log_searchPh": "ログを検索...",
+    "rag_log_opPicker": "操作",
+    "rag_log_export": "CSVエクスポート",
+    "rag_log_empty": "呼び出しログなし",
+    "rag_log_h_time": "時間",
+    "rag_log_h_kb": "KB",
+    "rag_log_h_op": "操作",
+    "rag_log_h_query": "クエリ",
+    "rag_log_h_result": "結果",
+    "rag_log_h_latency": "遅延",
+    "rag_log_h_status": "ステータス",
+    "rag_log_exportTitle": "RAG呼び出しログをエクスポート",
+    "rag_log_exportDescFmt": "絞り込んだ %d 件のログをCSVにエクスポート",
+    "rag_log_exportBtn": "エクスポート",
+    "rag_op_all": "すべて",
+    "rag_op_search": "検索",
+    "rag_op_ask": "Q&A",
+    "rag_op_ingest": "取り込み",
+    "rag_op_delete": "削除",
+    "rag_op_watch": "監視",
+    "rag_op_sync": "同期",
+    "rag_perm_title": "権限管理",
+    "rag_perm_authStatus": "認証ステータス",
+    "rag_perm_apiKeyAuth": "API Key認証",
+    "rag_perm_disabled": "無効",
+    "rag_perm_enabled": "有効",
+    "rag_perm_activeKeys": "有効なキー",
+    "rag_perm_keyMgmt": "API Key管理",
+    "rag_perm_createKey": "キー作成",
+    "rag_perm_noKey": "API Keyなし",
+    "rag_perm_noKeyHint": "API Key未設定時は認証無効",
+    "rag_perm_h_name": "名前",
+    "rag_perm_h_hash": "キーハッシュ",
+    "rag_perm_h_createdAt": "作成日時",
+    "rag_perm_memberRole": "メンバー役割",
+    "rag_perm_role_admin": "管理者",
+    "rag_perm_role_admin_desc": "全件読み書き・キー管理・KB削除",
+    "rag_perm_role_edit": "編集者",
+    "rag_perm_role_edit_desc": "ドキュメント追加・設定編集・再インデックス",
+    "rag_perm_role_query": "閲覧者",
+    "rag_perm_role_query_desc": "検索・RAG Q&A・読み取り専用",
+    "rag_perm_role_api": "API呼び出し",
+    "rag_perm_role_api_desc": "API Keyのみ検索/Q&A呼び出し",
+    "rag_perm_audit": "監査ログ",
+    "rag_perm_auditNote": "上流APIに監査ログAPI未対応、Issue要追跡",
+    "rag_perm_createTitle": "API Key作成",
+    "rag_perm_keyNamePh": "キー名",
+    "rag_perm_keyCreated": "キー作成済み（一度のみ表示）",
+    "rag_perm_createBtn": "作成",
+    "rag_emb_title": "埋め込みモデル設定",
+    "rag_emb_model": "埋め込みモデル",
+    "rag_emb_modelName": "モデル名",
+    "rag_emb_runMode": "実行方式",
+    "rag_emb_localMlx": "ローカルMLX推論",
+    "rag_emb_dim768": "768次元",
+    "rag_emb_multilang": "多言語",
+    "rag_emb_chunkStrategy": "チャンク戦略",
+    "rag_emb_strategyPicker": "戦略",
+    "rag_emb_chunkSize": "チャンクサイズ",
+    "rag_emb_overlap": "オーバーラップ",
+    "rag_emb_strategy_semantic": "セマンティック",
+    "rag_emb_strategy_fixed": "固定",
+    "rag_emb_strategy_code": "コード",
+    "rag_emb_strategy_sentence": "文",
+    "rag_emb_tip_semantic": "意味境界で分割、自然言語向け",
+    "rag_emb_tip_fixed": "固定トークン数、均一コンテンツ向け",
+    "rag_emb_tip_code": "AST関数/クラス境界、コード向け",
+    "rag_emb_tip_sentence": "文境界で分割、短文向け",
+    "rag_emb_context": "コンテキスト強化",
+    "rag_emb_contextToggle": "Contextual Retrieval（コンテキスト検索強化）",
+    "rag_emb_contextDesc": "チャンクごとにコンテキスト要約を生成し検索精度を向上。Fusion-RAG独自：ローカルMLXで生成、クラウドAPI不要。",
+    "rag_emb_saved": "✓ 設定保存済み",
+    "rag_emb_reset": "デフォルトに戻す",
     "fsb_cv_node_start": "開始",
     "fsb_cv_node_connector": "コネクタ",
     "fsb_cv_node_skill": "スキル",
@@ -8708,6 +9084,100 @@ let koKRTranslations: [String: String] = [
     "fsb_wb_snapshots": "스냅샷",
     "fsb_wb_sandboxEmpty": "컨텍스트 샌드박스가 비어 있음",
     "fsb_wb_sandboxHint": "워크플로 실행 후 샌드박스가\n실행 컨텍스트와 데이터 스냅샷을 기록합니다",
+    "rag_sec_dashboard": "지식베이스 개요",
+    "rag_sec_files": "파일 디렉터리 관리",
+    "rag_sec_chat": "RAG 채팅",
+    "rag_sec_embedConfig": "임베딩 모델 설정",
+    "rag_sec_searchConfig": "검색 전략 설정",
+    "rag_sec_permissions": "권한 관리",
+    "rag_sec_vectorOps": "벡터 DB 운영",
+    "rag_sec_callLog": "RAG 호출 로그",
+    "rag_sec_benchEval": "검색 성능 평가",
+    "rag_currentKb": "현재 KB",
+    "rag_all": "전체",
+    "rag_tab_bases": "지식베이스",
+    "rag_tab_chat": "채팅",
+    "rag_tab_search": "검색",
+    "rag_tab_config": "설정",
+    "rag_log_title": "RAG 호출 로그",
+    "rag_log_total": "총 호출",
+    "rag_log_successRate": "성공률",
+    "rag_log_avgLatency": "평균 지연",
+    "rag_log_search": "검색",
+    "rag_log_ask": "Q&A",
+    "rag_log_searchPh": "로그 검색...",
+    "rag_log_opPicker": "작업",
+    "rag_log_export": "CSV 내보내기",
+    "rag_log_empty": "호출 로그 없음",
+    "rag_log_h_time": "시간",
+    "rag_log_h_kb": "KB",
+    "rag_log_h_op": "작업",
+    "rag_log_h_query": "쿼리",
+    "rag_log_h_result": "결과",
+    "rag_log_h_latency": "지연",
+    "rag_log_h_status": "상태",
+    "rag_log_exportTitle": "RAG 호출 로그 내보내기",
+    "rag_log_exportDescFmt": "필터링된 %d건의 로그를 CSV로 내보내기",
+    "rag_log_exportBtn": "내보내기",
+    "rag_op_all": "전체",
+    "rag_op_search": "검색",
+    "rag_op_ask": "Q&A",
+    "rag_op_ingest": "수집",
+    "rag_op_delete": "삭제",
+    "rag_op_watch": "모니터링",
+    "rag_op_sync": "동기화",
+    "rag_perm_title": "권한 관리",
+    "rag_perm_authStatus": "인증 상태",
+    "rag_perm_apiKeyAuth": "API Key 인증",
+    "rag_perm_disabled": "비활성",
+    "rag_perm_enabled": "활성",
+    "rag_perm_activeKeys": "활성 키",
+    "rag_perm_keyMgmt": "API Key 관리",
+    "rag_perm_createKey": "키 생성",
+    "rag_perm_noKey": "API Key 없음",
+    "rag_perm_noKeyHint": "API Key 미설정 시 인증 비활성",
+    "rag_perm_h_name": "이름",
+    "rag_perm_h_hash": "키 해시",
+    "rag_perm_h_createdAt": "생성 시간",
+    "rag_perm_memberRole": "멤버 역할",
+    "rag_perm_role_admin": "관리자",
+    "rag_perm_role_admin_desc": "전체 읽기/쓰기, 키 관리, KB 삭제",
+    "rag_perm_role_edit": "편집자",
+    "rag_perm_role_edit_desc": "문서 업로드, 설정 수정, 재인덱스",
+    "rag_perm_role_query": "조회자",
+    "rag_perm_role_query_desc": "검색, RAG Q&A, 읽기 전용",
+    "rag_perm_role_api": "API 호출",
+    "rag_perm_role_api_desc": "API Key로만 검색/Q&A 호출",
+    "rag_perm_audit": "감사 로그",
+    "rag_perm_auditNote": "업스트림 API에 감사 로그 엔드포인트 없음, Issue 필요",
+    "rag_perm_createTitle": "API Key 생성",
+    "rag_perm_keyNamePh": "키 이름",
+    "rag_perm_keyCreated": "키 생성됨 (한 번만 표시)",
+    "rag_perm_createBtn": "생성",
+    "rag_emb_title": "임베딩 모델 설정",
+    "rag_emb_model": "임베딩 모델",
+    "rag_emb_modelName": "모델 이름",
+    "rag_emb_runMode": "실행 방식",
+    "rag_emb_localMlx": "로컬 MLX 추론",
+    "rag_emb_dim768": "768차원",
+    "rag_emb_multilang": "다국어",
+    "rag_emb_chunkStrategy": "청킹 전략",
+    "rag_emb_strategyPicker": "전략",
+    "rag_emb_chunkSize": "청크 크기",
+    "rag_emb_overlap": "오버랩",
+    "rag_emb_strategy_semantic": "의미론적",
+    "rag_emb_strategy_fixed": "고정",
+    "rag_emb_strategy_code": "코드",
+    "rag_emb_strategy_sentence": "문장",
+    "rag_emb_tip_semantic": "의미 경계로 분할, 자연어 문서용",
+    "rag_emb_tip_fixed": "고정 토큰 수, 균일 콘텐츠용",
+    "rag_emb_tip_code": "AST 함수/클래스 경계, 코드용",
+    "rag_emb_tip_sentence": "문장 경계로 분할, 짧은 텍스트용",
+    "rag_emb_context": "컨텍스트 강화",
+    "rag_emb_contextToggle": "Contextual Retrieval (컨텍스트 검색 강화)",
+    "rag_emb_contextDesc": "각 청크별 컨텍스트 요약 생성으로 검색 정확도 향상. Fusion-RAG 독점: 로컬 MLX 생성, 클라우드 API 불필요.",
+    "rag_emb_saved": "✓ 설정 저장됨",
+    "rag_emb_reset": "기본값 복원",
     "fsb_cv_node_start": "시작",
     "fsb_cv_node_connector": "커넥터",
     "fsb_cv_node_skill": "스킬",

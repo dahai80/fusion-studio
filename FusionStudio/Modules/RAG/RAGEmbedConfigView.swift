@@ -6,6 +6,7 @@ private let embedLog = Logger(subsystem: "com.fusion.studio", category: "RAGEmbe
 struct RAGEmbedConfigView: View {
     @Environment(\.studioTheme) private var theme
     @StateObject private var client = RAGAPIClient.shared
+    @StateObject private var i18n = I18nManager.shared
     @State private var chunkSize: Double = 512
     @State private var chunkOverlap: Double = 64
     @State private var chunkStrategy: String = "semantic"
@@ -19,7 +20,7 @@ struct RAGEmbedConfigView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: theme.spacingL) {
-                Text("嵌入模型配置")
+                Text(i18n.t(.rag_emb_title))
                     .font(.system(size: theme.titleSize, weight: .bold))
                     .foregroundStyle(theme.text)
                 embedModelCard
@@ -34,12 +35,12 @@ struct RAGEmbedConfigView: View {
 
     private var embedModelCard: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            Label("嵌入模型", systemImage: "cpu")
+            Label(i18n.t(.rag_emb_model), systemImage: "cpu")
                 .font(.system(size: theme.textSize, weight: .semibold))
                 .foregroundStyle(theme.text)
             HStack(spacing: theme.spacingM) {
                 VStack(alignment: .leading, spacing: theme.spacingXS) {
-                    Text("模型名称")
+                    Text(i18n.t(.rag_emb_modelName))
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.textTertiary)
                     TextField("BGE-M3", text: $embedModel)
@@ -47,22 +48,22 @@ struct RAGEmbedConfigView: View {
                         .frame(maxWidth: 300)
                 }
                 VStack(alignment: .leading, spacing: theme.spacingXS) {
-                    Text("运行方式")
+                    Text(i18n.t(.rag_emb_runMode))
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.textTertiary)
                     HStack {
                         Image(systemName: "desktopcomputer")
                             .foregroundStyle(.green)
-                        Text("本地 MLX 推理")
+                        Text(i18n.t(.rag_emb_localMlx))
                             .foregroundStyle(theme.text)
                     }
                     .font(.system(size: theme.textSize))
                 }
             }
             HStack(spacing: theme.spacingS) {
-                infoChip("768 维", icon: "square.grid.3x3")
+                infoChip(i18n.t(.rag_emb_dim768), icon: "square.grid.3x3")
                 infoChip("BGE-M3", icon: "memorychip")
-                infoChip("多语言", icon: "globe")
+                infoChip(i18n.t(.rag_emb_multilang), icon: "globe")
             }
         }
         .padding(theme.spacingM)
@@ -72,10 +73,10 @@ struct RAGEmbedConfigView: View {
 
     private var chunkConfigCard: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            Label("分块策略", systemImage: "scissors")
+            Label(i18n.t(.rag_emb_chunkStrategy), systemImage: "scissors")
                 .font(.system(size: theme.textSize, weight: .semibold))
                 .foregroundStyle(theme.text)
-            Picker("策略", selection: $chunkStrategy) {
+            Picker(i18n.t(.rag_emb_strategyPicker), selection: $chunkStrategy) {
                 ForEach(strategies, id: \.self) { s in
                     Text(strategyLabel(s)).tag(s)
                 }
@@ -84,7 +85,7 @@ struct RAGEmbedConfigView: View {
             strategyDescription
             VStack(alignment: .leading, spacing: theme.spacingS) {
                 HStack {
-                    Text("分块大小").font(.system(size: theme.textSize)).foregroundStyle(theme.text)
+                    Text(i18n.t(.rag_emb_chunkSize)).font(.system(size: theme.textSize)).foregroundStyle(theme.text)
                     Spacer()
                     Text("\(Int(chunkSize)) tokens")
                         .font(.system(size: theme.captionSize, weight: .medium))
@@ -99,7 +100,7 @@ struct RAGEmbedConfigView: View {
             }
             VStack(alignment: .leading, spacing: theme.spacingS) {
                 HStack {
-                    Text("重叠大小").font(.system(size: theme.textSize)).foregroundStyle(theme.text)
+                    Text(i18n.t(.rag_emb_overlap)).font(.system(size: theme.textSize)).foregroundStyle(theme.text)
                     Spacer()
                     Text("\(Int(chunkOverlap)) tokens")
                         .font(.system(size: theme.captionSize, weight: .medium))
@@ -117,13 +118,13 @@ struct RAGEmbedConfigView: View {
     private var strategyDescription: some View {
         switch chunkStrategy {
         case "semantic":
-            strategyTip("按语义边界分块，适合自然语言文档", icon: "text.bubble", color: .blue)
+            strategyTip(i18n.t(.rag_emb_tip_semantic), icon: "text.bubble", color: .blue)
         case "fixed":
-            strategyTip("固定 token 数分块，适合均匀内容", icon: "ruler", color: .orange)
+            strategyTip(i18n.t(.rag_emb_tip_fixed), icon: "ruler", color: .orange)
         case "code":
-            strategyTip("按 AST 函数/类边界分块，适合代码", icon: "chevron.left.forwardslash.chevron.right", color: .purple)
+            strategyTip(i18n.t(.rag_emb_tip_code), icon: "chevron.left.forwardslash.chevron.right", color: .purple)
         case "sentence":
-            strategyTip("按句子边界分块，适合短文本", icon: "text.alignleft", color: .green)
+            strategyTip(i18n.t(.rag_emb_tip_sentence), icon: "text.alignleft", color: .green)
         default:
             EmptyView()
         }
@@ -131,14 +132,14 @@ struct RAGEmbedConfigView: View {
 
     private var contextRetrievalCard: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            Label("上下文增强", systemImage: "text.append")
+            Label(i18n.t(.rag_emb_context), systemImage: "text.append")
                 .font(.system(size: theme.textSize, weight: .semibold))
                 .foregroundStyle(theme.text)
-            Toggle("Contextual Retrieval（上下文检索增强）", isOn: $contextualize)
+            Toggle(i18n.t(.rag_emb_contextToggle), isOn: $contextualize)
                 .font(.system(size: theme.textSize))
                 .foregroundStyle(theme.text)
             if contextualize {
-                Text("为每个分块生成上下文摘要，显著提升检索准确率。Fusion-RAG 独有优势：本地 MLX 生成上下文，无需云端 API。")
+                Text(i18n.t(.rag_emb_contextDesc))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textSecondary)
                     .padding(theme.spacingS)
@@ -158,7 +159,7 @@ struct RAGEmbedConfigView: View {
             Button(action: { Task { await saveConfig() } }) {
                 HStack(spacing: theme.spacingXS) {
                     if isSaving { ProgressView().controlSize(.small) }
-                    Text("保存配置")
+                    Text(i18n.t(.save))
                 }
             }
             .disabled(isSaving)
@@ -169,7 +170,7 @@ struct RAGEmbedConfigView: View {
                     .foregroundStyle(msg.hasPrefix("✓") ? .green : .red)
             }
             Spacer()
-            Button("恢复默认") {
+            Button(i18n.t(.rag_emb_reset)) {
                 chunkSize = 512; chunkOverlap = 64; chunkStrategy = "semantic"
                 embedModel = "BGE-M3"; contextualize = true
             }
@@ -207,10 +208,10 @@ struct RAGEmbedConfigView: View {
 
     private func strategyLabel(_ s: String) -> String {
         switch s {
-        case "semantic": return "语义分块"
-        case "fixed": return "固定分块"
-        case "code": return "代码分块"
-        case "sentence": return "句子分块"
+        case "semantic": return i18n.t(.rag_emb_strategy_semantic)
+        case "fixed": return i18n.t(.rag_emb_strategy_fixed)
+        case "code": return i18n.t(.rag_emb_strategy_code)
+        case "sentence": return i18n.t(.rag_emb_strategy_sentence)
         default: return s
         }
     }
@@ -230,7 +231,7 @@ struct RAGEmbedConfigView: View {
             let _ = await client.createBase(name: "default", chunkStrategy: chunkStrategy, embeddingModel: embedModel)
         }
         try? await Task.sleep(nanoseconds: 300_000_000)
-        saveMsg = "✓ 配置已保存"
+        saveMsg = i18n.t(.rag_emb_saved)
         isSaving = false
     }
 }
