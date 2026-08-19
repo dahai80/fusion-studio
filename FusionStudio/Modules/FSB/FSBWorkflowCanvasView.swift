@@ -6,6 +6,7 @@ private let wfLog = Logger(subsystem: "com.fusion.studio", category: "FSB.Workfl
 struct FSBWorkflowCanvasView: View {
     @Environment(\.studioTheme) private var theme
     @ObservedObject var ipc: IPCClient
+    @StateObject private var i18n = I18nManager.shared
 
     let workspaceId: String
     let workflowId: String?
@@ -66,13 +67,13 @@ struct FSBWorkflowCanvasView: View {
 
         var displayName: String {
             switch self {
-            case .START_NODE: return "开始"
-            case .CONNECTOR_NODE: return "连接器"
-            case .SKILL_NODE: return "技能"
-            case .CONDITION_NODE: return "条件"
-            case .APPROVAL_GATE_NODE: return "审批"
-            case .OUTPUT_NODE: return "输出"
-            case .END_NODE: return "结束"
+            case .START_NODE: return I18nManager.shared.t(.fsb_cv_node_start)
+            case .CONNECTOR_NODE: return I18nManager.shared.t(.fsb_cv_node_connector)
+            case .SKILL_NODE: return I18nManager.shared.t(.fsb_cv_node_skill)
+            case .CONDITION_NODE: return I18nManager.shared.t(.fsb_cv_node_condition)
+            case .APPROVAL_GATE_NODE: return I18nManager.shared.t(.fsb_cv_node_approval)
+            case .OUTPUT_NODE: return I18nManager.shared.t(.fsb_cv_node_output)
+            case .END_NODE: return I18nManager.shared.t(.fsb_cv_node_end)
             }
         }
     }
@@ -136,7 +137,7 @@ struct FSBWorkflowCanvasView: View {
     private var canvasToolbar: some View {
         HStack(spacing: theme.spacingM) {
             HStack(spacing: theme.spacingXS) {
-                TextField("工作流名称", text: $workflowName)
+                TextField(i18n.t(.fsb_cv_wfName), text: $workflowName)
                     .textFieldStyle(.plain)
                     .font(.system(size: theme.textSize, weight: .semibold))
                     .foregroundStyle(theme.text)
@@ -156,14 +157,14 @@ struct FSBWorkflowCanvasView: View {
 
             HStack(spacing: theme.spacingS) {
                 Button(action: { autoLayout() }) {
-                    Label("自动布局", systemImage: "rectangle.grid.3x3")
+                    Label(i18n.t(.fsb_cv_autoLayout), systemImage: "rectangle.grid.3x3")
                         .font(.system(size: theme.captionSize))
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
 
                 Button(action: { runTest() }) {
-                    Label(isRunning ? "运行中..." : "测试运行", systemImage: isRunning ? "arrow.trianglehead.2.clockwise" : "play")
+                    Label(isRunning ? i18n.t(.fsb_cv_running) : i18n.t(.fsb_cv_testRun), systemImage: isRunning ? "arrow.trianglehead.2.clockwise" : "play")
                         .font(.system(size: theme.captionSize))
                 }
                 .buttonStyle(.borderedProminent)
@@ -171,7 +172,7 @@ struct FSBWorkflowCanvasView: View {
                 .disabled(isRunning)
 
                 Button(action: { saveWorkflow() }) {
-                    Label(isSaving ? "保存中..." : "保存", systemImage: "square.and.arrow.down")
+                    Label(isSaving ? i18n.t(.fsb_cv_saving) : i18n.t(.save), systemImage: "square.and.arrow.down")
                         .font(.system(size: theme.captionSize))
                 }
                 .buttonStyle(.borderedProminent)
@@ -187,7 +188,7 @@ struct FSBWorkflowCanvasView: View {
 
     private var nodePalette: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("节点类型")
+            Text(i18n.t(.fsb_cv_nodeTypes))
                 .font(.system(size: theme.captionSize, weight: .semibold))
                 .foregroundStyle(theme.textSecondary)
                 .padding(theme.spacingS)
@@ -200,13 +201,13 @@ struct FSBWorkflowCanvasView: View {
             Spacer()
 
             VStack(alignment: .leading, spacing: theme.spacingXS) {
-                Text("提示：拖拽节点到画布")
+                Text(i18n.t(.fsb_cv_hintDrag))
                     .font(.system(size: 11))
                     .foregroundStyle(theme.textTertiary)
-                Text("右键画布添加节点")
+                Text(i18n.t(.fsb_cv_hintRightClick))
                     .font(.system(size: 11))
                     .foregroundStyle(theme.textTertiary)
-                Text("拖拽端口连接节点")
+                Text(i18n.t(.fsb_cv_hintConnect))
                     .font(.system(size: 11))
                     .foregroundStyle(theme.textTertiary)
             }
@@ -458,10 +459,10 @@ struct FSBWorkflowCanvasView: View {
                     }
 
                     VStack(alignment: .leading, spacing: theme.spacingXS) {
-                        Text("名称")
+                        Text(i18n.t(.fsb_ws_name))
                             .font(.system(size: theme.captionSize, weight: .medium))
                             .foregroundStyle(theme.textSecondary)
-                        TextField("节点名称", text: Binding(
+                        TextField(i18n.t(.fsb_cv_nodeName), text: Binding(
                             get: { node.label },
                             set: { v in updateNodeLabel(node.id, label: v) }
                         ))
@@ -492,7 +493,7 @@ struct FSBWorkflowCanvasView: View {
                     Divider()
 
                     Button(role: .destructive, action: { deleteNode(node.id) }) {
-                        Label("删除节点", systemImage: "trash")
+                        Label(i18n.t(.fsb_cv_deleteNode), systemImage: "trash")
                             .font(.system(size: theme.captionSize))
                     }
                     .controlSize(.small)
@@ -507,15 +508,15 @@ struct FSBWorkflowCanvasView: View {
     @ViewBuilder
     private func connectorConfigSection(node: FSBGraphNode) -> some View {
         VStack(alignment: .leading, spacing: theme.spacingXS) {
-            Text("连接器")
+            Text(i18n.t(.fsb_cv_connector))
                 .font(.system(size: theme.captionSize, weight: .medium))
                 .foregroundStyle(theme.textSecondary)
             let currentKey = node.config["connectorKey"] as? String ?? ""
-            Picker("选择连接器", selection: Binding(
+            Picker(i18n.t(.fsb_cv_selectConnector), selection: Binding(
                 get: { currentKey },
                 set: { v in updateNodeConfig(node.id, key: "connectorKey", value: v) }
             )) {
-                Text("未选择").tag("")
+                Text(i18n.t(.fsb_cv_notSelected)).tag("")
                 ForEach(connectors.indices, id: \.self) { idx in
                     let key = connectors[idx]["connectorKey"] as? String ?? ""
                     Text(key).tag(key)
@@ -525,7 +526,7 @@ struct FSBWorkflowCanvasView: View {
             .frame(maxWidth: .infinity)
 
             VStack(alignment: .leading, spacing: theme.spacingXS) {
-                Text("动作")
+                Text(i18n.t(.fsb_cv_action))
                     .font(.system(size: 11))
                     .foregroundStyle(theme.textTertiary)
                 TextField("action key", text: Binding(
@@ -546,15 +547,15 @@ struct FSBWorkflowCanvasView: View {
     @ViewBuilder
     private func skillConfigSection(node: FSBGraphNode) -> some View {
         VStack(alignment: .leading, spacing: theme.spacingXS) {
-            Text("技能")
+            Text(i18n.t(.fsb_cv_skill))
                 .font(.system(size: theme.captionSize, weight: .medium))
                 .foregroundStyle(theme.textSecondary)
             let currentSkillId = node.config["skillId"] as? String ?? ""
-            Picker("选择技能", selection: Binding(
+            Picker(i18n.t(.fsb_cv_selectSkill), selection: Binding(
                 get: { currentSkillId },
                 set: { v in updateNodeConfig(node.id, key: "skillId", value: v) }
             )) {
-                Text("未选择").tag("")
+                Text(i18n.t(.fsb_cv_notSelected)).tag("")
                 ForEach(skills.indices, id: \.self) { idx in
                     let sid = skills[idx]["skillId"] as? String ?? ""
                     let name = skills[idx]["displayName"] as? String ?? skills[idx]["name"] as? String ?? sid
@@ -565,7 +566,7 @@ struct FSBWorkflowCanvasView: View {
             .frame(maxWidth: .infinity)
 
             VStack(alignment: .leading, spacing: theme.spacingXS) {
-                Text("提示词模板")
+                Text(i18n.t(.fsb_cv_promptTpl))
                     .font(.system(size: 11))
                     .foregroundStyle(theme.textTertiary)
                 TextEditor(text: Binding(
@@ -586,7 +587,7 @@ struct FSBWorkflowCanvasView: View {
     @ViewBuilder
     private func conditionConfigSection(node: FSBGraphNode) -> some View {
         VStack(alignment: .leading, spacing: theme.spacingXS) {
-            Text("条件表达式")
+            Text(i18n.t(.fsb_cv_conditionExpr))
                 .font(.system(size: theme.captionSize, weight: .medium))
                 .foregroundStyle(theme.textSecondary)
             TextEditor(text: Binding(
@@ -601,7 +602,7 @@ struct FSBWorkflowCanvasView: View {
                     .fill(theme.surfaceElevated)
             )
 
-            Text("True 分支连向下方节点，False 分支连向右侧节点")
+            Text(i18n.t(.fsb_cv_conditionHint))
                 .font(.system(size: 11))
                 .foregroundStyle(theme.textTertiary)
         }
@@ -610,23 +611,23 @@ struct FSBWorkflowCanvasView: View {
     @ViewBuilder
     private func approvalConfigSection(node: FSBGraphNode) -> some View {
         VStack(alignment: .leading, spacing: theme.spacingXS) {
-            Text("审批配置")
+            Text(i18n.t(.fsb_cv_approvalConfig))
                 .font(.system(size: theme.captionSize, weight: .medium))
                 .foregroundStyle(theme.textSecondary)
 
             let mode = node.config["approvalMode"] as? String ?? "write_only"
-            Picker("审批模式", selection: Binding(
+            Picker(i18n.t(.fsb_cv_approvalMode), selection: Binding(
                 get: { mode },
                 set: { v in updateNodeConfig(node.id, key: "approvalMode", value: v) }
             )) {
-                Text("仅写操作 (推荐)").tag("write_only")
-                Text("全部操作").tag("all")
+                Text(i18n.t(.fsb_cv_writeOnly)).tag("write_only")
+                Text(i18n.t(.fsb_cv_allOps)).tag("all")
             }
             .pickerStyle(.menu)
             .frame(maxWidth: .infinity)
 
             VStack(alignment: .leading, spacing: theme.spacingXS) {
-                Text("审批说明")
+                Text(i18n.t(.fsb_cv_approvalNote))
                     .font(.system(size: 11))
                     .foregroundStyle(theme.textTertiary)
                 TextEditor(text: Binding(
@@ -643,7 +644,7 @@ struct FSBWorkflowCanvasView: View {
             }
 
             let timeout = node.config["timeoutSeconds"] as? Int ?? 3600
-            Stepper("超时: \(timeout)s", value: Binding(
+            Stepper(String(format: i18n.t(.fsb_cv_timeoutFmt), timeout), value: Binding(
                 get: { timeout },
                 set: { v in updateNodeConfig(node.id, key: "timeoutSeconds", value: v) }
             ), in: 60...86400, step: 60)
@@ -654,16 +655,16 @@ struct FSBWorkflowCanvasView: View {
     @ViewBuilder
     private func outputConfigSection(node: FSBGraphNode) -> some View {
         VStack(alignment: .leading, spacing: theme.spacingXS) {
-            Text("输出格式")
+            Text(i18n.t(.fsb_cv_outputFormat))
                 .font(.system(size: theme.captionSize, weight: .medium))
                 .foregroundStyle(theme.textSecondary)
 
             let fmt = node.config["outputFormat"] as? String ?? "text"
-            Picker("格式", selection: Binding(
+            Picker(i18n.t(.fsb_cv_format), selection: Binding(
                 get: { fmt },
                 set: { v in updateNodeConfig(node.id, key: "outputFormat", value: v) }
             )) {
-                Text("纯文本").tag("text")
+                Text(i18n.t(.fsb_cv_plainText)).tag("text")
                 Text("JSON").tag("json")
                 Text("Markdown").tag("markdown")
                 Text("CSV").tag("csv")
@@ -678,11 +679,11 @@ struct FSBWorkflowCanvasView: View {
     private var addNodeSheet: some View {
         VStack(spacing: theme.spacingM) {
             HStack {
-                Text("添加节点")
+                Text(i18n.t(.fsb_cv_addNode))
                     .font(.system(size: theme.textSize, weight: .semibold))
                     .foregroundStyle(theme.text)
                 Spacer()
-                Button("关闭") { showAddNode = false }
+                Button(i18n.t(.close)) { showAddNode = false }
                     .buttonStyle(.plain)
                     .foregroundStyle(theme.textTertiary)
             }
@@ -883,9 +884,9 @@ struct FSBWorkflowCanvasView: View {
 
             guard let wfId = workflowId else {
                 await MainActor.run {
-                    workflowName = "新工作流"
-                    let startNode = FSBGraphNode(type: .START_NODE, label: "开始", position: CGPoint(x: 0, y: 0))
-                    let endNode = FSBGraphNode(type: .END_NODE, label: "结束", position: CGPoint(x: 300, y: 0))
+                    workflowName = I18nManager.shared.t(.fsb_cv_newWorkflow)
+                    let startNode = FSBGraphNode(type: .START_NODE, label: I18nManager.shared.t(.fsb_cv_node_start), position: CGPoint(x: 0, y: 0))
+                    let endNode = FSBGraphNode(type: .END_NODE, label: I18nManager.shared.t(.fsb_cv_node_end), position: CGPoint(x: 300, y: 0))
                     nodes = [startNode, endNode]
                     edges = []
                 }
@@ -907,7 +908,7 @@ struct FSBWorkflowCanvasView: View {
                             FSBGraphNode(
                                 id: n["id"] as? String ?? UUID().uuidString,
                                 type: FSBNodeType(rawValue: n["type"] as? String ?? "SKILL_NODE") ?? .SKILL_NODE,
-                                label: (n["config"] as? [String: Any])?["label"] as? String ?? "未命名",
+                                label: (n["config"] as? [String: Any])?["label"] as? String ?? I18nManager.shared.t(.fsb_unnamed),
                                 position: CGPoint(
                                     x: ((n["config"] as? [String: Any])?["position"] as? [String: Any])?["x"] as? CGFloat ?? CGFloat.random(in: -200...200),
                                     y: ((n["config"] as? [String: Any])?["position"] as? [String: Any])?["y"] as? CGFloat ?? CGFloat.random(in: -100...100)
