@@ -1193,6 +1193,179 @@ enum I18nKey: String, CaseIterable {
     case doc_wf_queryBtn = "doc_wf_queryBtn"
     case doc_wf_currentStateFmt = "doc_wf_currentStateFmt"
     case doc_wf_executeBtn = "doc_wf_executeBtn"
+    case proj_subtitle = "proj_subtitle"
+    case proj_searchPh = "proj_searchPh"
+    case proj_newHelp = "proj_newHelp"
+    case proj_archivedFmt = "proj_archivedFmt"
+    case proj_fileCountFmt = "proj_fileCountFmt"
+    case proj_chatCountFmt = "proj_chatCountFmt"
+    case proj_archivedSuffix = "proj_archivedSuffix"
+    case proj_unarchiveBtn = "proj_unarchiveBtn"
+    case proj_upstreamBanner = "proj_upstreamBanner"
+    case proj_emptyDetail = "proj_emptyDetail"
+    case proj_loadFailFmt = "proj_loadFailFmt"
+    case proj_deleteFailFmt = "proj_deleteFailFmt"
+    case proj_minAgoFmt = "proj_minAgoFmt"
+    case proj_hourAgoFmt = "proj_hourAgoFmt"
+    case proj_dayAgoFmt = "proj_dayAgoFmt"
+    case proj_sortLastUpdated = "proj_sortLastUpdated"
+    case proj_sortDateCreated = "proj_sortDateCreated"
+    case proj_sortAlphabetical = "proj_sortAlphabetical"
+    case proj_menuUnstar = "proj_menuUnstar"
+    case proj_menuStar = "proj_menuStar"
+    case proj_menuRename = "proj_menuRename"
+    case proj_menuDuplicate = "proj_menuDuplicate"
+    case proj_menuExport = "proj_menuExport"
+    case proj_menuArchive = "proj_menuArchive"
+    case proj_menuDelete = "proj_menuDelete"
+    case proj_menuSettings = "proj_menuSettings"
+    case proj_deleteAlertTitle = "proj_deleteAlertTitle"
+    case proj_deleteConfirm = "proj_deleteConfirm"
+    case proj_deleteAlertMsgFmt = "proj_deleteAlertMsgFmt"
+    case proj_deleteAlertMsgFullFmt = "proj_deleteAlertMsgFullFmt"
+    case proj_renameTitle = "proj_renameTitle"
+    case proj_namePh = "proj_namePh"
+    case proj_createTitle = "proj_createTitle"
+    case proj_createNameLabel = "proj_createNameLabel"
+    case proj_createDescLabel = "proj_createDescLabel"
+    case proj_createDescPh = "proj_createDescPh"
+    case proj_createInstructions = "proj_createInstructions"
+    case proj_createCharCountFmt = "proj_createCharCountFmt"
+    case proj_createInstructionsHint = "proj_createInstructionsHint"
+    case proj_createDefaultAgent = "proj_createDefaultAgent"
+    case proj_createNoAgent = "proj_createNoAgent"
+    case proj_createNoAgentShort = "proj_createNoAgentShort"
+    case proj_createGotoAgentStudio = "proj_createGotoAgentStudio"
+    case proj_createPromptMerge = "proj_createPromptMerge"
+    case proj_createMergeAgentFirst = "proj_createMergeAgentFirst"
+    case proj_createMergeProjectOnly = "proj_createMergeProjectOnly"
+    case proj_createRagMode = "proj_createRagMode"
+    case proj_createRagAuto = "proj_createRagAuto"
+    case proj_createRagManual = "proj_createRagManual"
+    case proj_createRagOff = "proj_createRagOff"
+    case proj_createBtn = "proj_createBtn"
+    case proj_editModeMarkdown = "proj_editModeMarkdown"
+    case proj_editModeRichText = "proj_editModeRichText"
+    case proj_dupTitle = "proj_dupTitle"
+    case proj_dupNameLabel = "proj_dupNameLabel"
+    case proj_dupCopySuffix = "proj_dupCopySuffix"
+    case proj_dupScope = "proj_dupScope"
+    case proj_dupScopeInstructionsOnly = "proj_dupScopeInstructionsOnly"
+    case proj_dupScopeWithSnapshots = "proj_dupScopeWithSnapshots"
+    case proj_dupBtn = "proj_dupBtn"
+    case proj_detailArchived = "proj_detailArchived"
+    case proj_detailImportCowork = "proj_detailImportCowork"
+    case proj_tabInstructions = "proj_tabInstructions"
+    case proj_tabKnowledge = "proj_tabKnowledge"
+    case proj_tabChats = "proj_tabChats"
+    case proj_instTitle = "proj_instTitle"
+    case proj_instEmpty = "proj_instEmpty"
+    case proj_instEmptyHint = "proj_instEmptyHint"
+    case proj_instHistoryTitle = "proj_instHistoryTitle"
+    case proj_instHistoryEmpty = "proj_instHistoryEmpty"
+    case proj_instHistoryCurrentFmt = "proj_instHistoryCurrentFmt"
+    case proj_instHistoryCurrentTag = "proj_instHistoryCurrentTag"
+    case proj_instHistoryRestore = "proj_instHistoryRestore"
+    case proj_kbTitle = "proj_kbTitle"
+    case proj_kbFileCountFmt = "proj_kbFileCountFmt"
+    case proj_kbFolder = "proj_kbFolder"
+    case proj_kbAddFile = "proj_kbAddFile"
+    case proj_kbEmpty = "proj_kbEmpty"
+    case proj_kbEmptyHint = "proj_kbEmptyHint"
+    case proj_kbNewFolderAlert = "proj_kbNewFolderAlert"
+    case proj_kbFolderNamePh = "proj_kbFolderNamePh"
+    case proj_kbCreate = "proj_kbCreate"
+    case proj_kbStatusIndexed = "proj_kbStatusIndexed"
+    case proj_kbStatusIndexing = "proj_kbStatusIndexing"
+    case proj_kbStatusFailed = "proj_kbStatusFailed"
+    case proj_kbStatusPending = "proj_kbStatusPending"
+    case proj_kbMenuPreview = "proj_kbMenuPreview"
+    case proj_kbMenuRename = "proj_kbMenuRename"
+    case proj_kbMenuReplace = "proj_kbMenuReplace"
+    case proj_kbMenuMove = "proj_kbMenuMove"
+    case proj_kbMenuRemove = "proj_kbMenuRemove"
+    case proj_chatsTitle = "proj_chatsTitle"
+    case proj_chatsSnapshots = "proj_chatsSnapshots"
+    case proj_chatsSnapMsgCountFmt = "proj_chatsSnapMsgCountFmt"
+    case proj_chatsEmpty = "proj_chatsEmpty"
+    case proj_chatsHint = "proj_chatsHint"
+    case proj_chatsCreateFailFmt = "proj_chatsCreateFailFmt"
+    case proj_chatsSendFailFmt = "proj_chatsSendFailFmt"
+    case proj_chatsNoModel = "proj_chatsNoModel"
+    case proj_chatsReplyFailFmt = "proj_chatsReplyFailFmt"
+    case proj_ragSources = "proj_ragSources"
+    case proj_ragModeLabelFmt = "proj_ragModeLabelFmt"
+    case proj_ragSwitchAuto = "proj_ragSwitchAuto"
+    case proj_ragSwitchManual = "proj_ragSwitchManual"
+    case proj_inputUseDefaultAgent = "proj_inputUseDefaultAgent"
+    case proj_inputGenericChat = "proj_inputGenericChat"
+    case proj_inputPreviewAgent = "proj_inputPreviewAgent"
+    case proj_inputRagLabelFmt = "proj_inputRagLabelFmt"
+    case proj_inputRagAuto = "proj_inputRagAuto"
+    case proj_inputRagManual = "proj_inputRagManual"
+    case proj_inputRagOff = "proj_inputRagOff"
+    case proj_inputAttachTemp = "proj_inputAttachTemp"
+    case proj_inputAttachScreenshot = "proj_inputAttachScreenshot"
+    case proj_inputAttachWebSearch = "proj_inputAttachWebSearch"
+    case proj_inputAttachSkill = "proj_inputAttachSkill"
+    case proj_inputPlaceholder = "proj_inputPlaceholder"
+    case proj_budgetLow = "proj_budgetLow"
+    case proj_chatMenuUnstar = "proj_chatMenuUnstar"
+    case proj_chatMenuStar = "proj_chatMenuStar"
+    case proj_chatMenuRename = "proj_chatMenuRename"
+    case proj_chatMenuFork = "proj_chatMenuFork"
+    case proj_chatMenuSnapshot = "proj_chatMenuSnapshot"
+    case proj_chatMenuMove = "proj_chatMenuMove"
+    case proj_chatMenuRemove = "proj_chatMenuRemove"
+    case proj_chatMenuDelete = "proj_chatMenuDelete"
+    case proj_chatDeleteAlertTitle = "proj_chatDeleteAlertTitle"
+    case proj_agentConfigTitle = "proj_agentConfigTitle"
+    case proj_agentConfigDefault = "proj_agentConfigDefault"
+    case proj_agentConfigPromptMerge = "proj_agentConfigPromptMerge"
+    case proj_ragConfigTitle = "proj_ragConfigTitle"
+    case proj_ragConfigMode = "proj_ragConfigMode"
+    case proj_ragConfigTopKFmt = "proj_ragConfigTopKFmt"
+    case proj_ragConfigThresholdFmt = "proj_ragConfigThresholdFmt"
+    case proj_ragConfigSelectScope = "proj_ragConfigSelectScope"
+    case proj_settingsTitleFmt = "proj_settingsTitleFmt"
+    case proj_settingsBasicInfo = "proj_settingsBasicInfo"
+    case proj_settingsNameLabel = "proj_settingsNameLabel"
+    case proj_settingsDescLabel = "proj_settingsDescLabel"
+    case proj_settingsDescPh = "proj_settingsDescPh"
+    case proj_settingsAgentConfig = "proj_settingsAgentConfig"
+    case proj_settingsPromptMerge = "proj_settingsPromptMerge"
+    case proj_settingsMergeAgentFirst = "proj_settingsMergeAgentFirst"
+    case proj_settingsMergeProjectOnly = "proj_settingsMergeProjectOnly"
+    case proj_settingsRagConfig = "proj_settingsRagConfig"
+    case proj_settingsRagAuto = "proj_settingsRagAuto"
+    case proj_settingsRagManual = "proj_settingsRagManual"
+    case proj_settingsTopK = "proj_settingsTopK"
+    case proj_settingsThreshold = "proj_settingsThreshold"
+    case proj_settingsSaveBtn = "proj_settingsSaveBtn"
+    case proj_previewUnbound = "proj_previewUnbound"
+    case proj_previewRole = "proj_previewRole"
+    case proj_previewActiveConfig = "proj_previewActiveConfig"
+    case proj_previewPromptStrategyFmt = "proj_previewPromptStrategyFmt"
+    case proj_previewPromptAgentFirst = "proj_previewPromptAgentFirst"
+    case proj_previewPromptProjectOnly = "proj_previewPromptProjectOnly"
+    case proj_previewRagModeFmt = "proj_previewRagModeFmt"
+    case proj_previewAccessKb = "proj_previewAccessKb"
+    case proj_previewUnboundHint = "proj_previewUnboundHint"
+    case proj_previewGotoAgentStudio = "proj_previewGotoAgentStudio"
+    case proj_coworkTitle = "proj_coworkTitle"
+    case proj_coworkTarget = "proj_coworkTarget"
+    case proj_coworkTargetPlaceholder = "proj_coworkTargetPlaceholder"
+    case proj_coworkSyncContent = "proj_coworkSyncContent"
+    case proj_coworkSyncKnowledge = "proj_coworkSyncKnowledge"
+    case proj_coworkSyncSnapshots = "proj_coworkSyncSnapshots"
+    case proj_coworkWarning = "proj_coworkWarning"
+    case proj_coworkConfirm = "proj_coworkConfirm"
+    case proj_ragScopeTitle = "proj_ragScopeTitle"
+    case proj_ragScopeMode = "proj_ragScopeMode"
+    case proj_ragScopeAuto = "proj_ragScopeAuto"
+    case proj_ragScopeManual = "proj_ragScopeManual"
+    case proj_ragScopeSpecify = "proj_ragScopeSpecify"
+    case proj_ragScopeConfirm = "proj_ragScopeConfirm"
 }
 
 // MARK: - 翻译管理器
@@ -2044,6 +2217,179 @@ let zhCNTranslations: [String: String] = [
     "doc_wf_queryBtn": "查询",
     "doc_wf_currentStateFmt": "当前状态: %@",
     "doc_wf_executeBtn": "执行",
+    "proj_subtitle": "管理你的 AI 项目、指令和知识库",
+    "proj_searchPh": "搜索项目",
+    "proj_newHelp": "新建项目",
+    "proj_archivedFmt": "Archived (%d)",
+    "proj_fileCountFmt": "%d 文件",
+    "proj_chatCountFmt": "%d 会话",
+    "proj_archivedSuffix": "（归档）",
+    "proj_unarchiveBtn": "取消归档",
+    "proj_upstreamBanner": "部分服务不可用",
+    "proj_emptyDetail": "选择一个项目查看详情",
+    "proj_loadFailFmt": "加载失败: %@",
+    "proj_deleteFailFmt": "删除失败: %@",
+    "proj_minAgoFmt": "%d分钟前",
+    "proj_hourAgoFmt": "%d小时前",
+    "proj_dayAgoFmt": "%d天前",
+    "proj_sortLastUpdated": "最近更新",
+    "proj_sortDateCreated": "创建时间",
+    "proj_sortAlphabetical": "名称排序",
+    "proj_menuUnstar": "取消收藏",
+    "proj_menuStar": "收藏项目",
+    "proj_menuRename": "重命名",
+    "proj_menuDuplicate": "复制项目",
+    "proj_menuExport": "导出项目",
+    "proj_menuArchive": "归档项目",
+    "proj_menuDelete": "删除项目",
+    "proj_menuSettings": "项目设置",
+    "proj_deleteAlertTitle": "⚠️ 删除项目",
+    "proj_deleteConfirm": "确认删除",
+    "proj_deleteAlertMsgFmt": "确定要永久删除项目「%@」？此操作不可恢复。",
+    "proj_deleteAlertMsgFullFmt": "确定要永久删除项目「%@」？\n· 项目指令及所有版本快照\n· 知识库全部文件（%d 个文件）\n· 项目内所有会话（%d 个会话）\n此操作不可恢复。",
+    "proj_renameTitle": "重命名项目",
+    "proj_namePh": "项目名称",
+    "proj_createTitle": "Create New Project",
+    "proj_createNameLabel": "Project name *",
+    "proj_createDescLabel": "Description",
+    "proj_createDescPh": "描述（可选）",
+    "proj_createInstructions": "项目指令",
+    "proj_createCharCountFmt": "字数：%d/%d",
+    "proj_createInstructionsHint": "在这里定义角色、输出规范、业务约束，所有对话自动继承",
+    "proj_createDefaultAgent": "默认智能体",
+    "proj_createNoAgent": "不绑定（纯模型对话）",
+    "proj_createNoAgentShort": "不绑定",
+    "proj_createGotoAgentStudio": "前往 Agent Studio 创建新智能体",
+    "proj_createPromptMerge": "Prompt 合并策略",
+    "proj_createMergeAgentFirst": "Agent Prompt 优先（推荐）",
+    "proj_createMergeProjectOnly": "仅使用项目 Instructions",
+    "proj_createRagMode": "RAG 检索模式",
+    "proj_createRagAuto": "AUTO（智能检索）",
+    "proj_createRagManual": "MANUAL（手动指定）",
+    "proj_createRagOff": "OFF（关闭）",
+    "proj_createBtn": "Create Project",
+    "proj_editModeMarkdown": "Markdown",
+    "proj_editModeRichText": "富文本",
+    "proj_dupTitle": "Duplicate Project",
+    "proj_dupNameLabel": "New project name",
+    "proj_dupCopySuffix": " (副本)",
+    "proj_dupScope": "复制范围",
+    "proj_dupScopeInstructionsOnly": "仅复制项目指令 + 知识库文件（推荐）",
+    "proj_dupScopeWithSnapshots": "复制指令 + 知识库 + 全部会话快照",
+    "proj_dupBtn": "Duplicate",
+    "proj_detailArchived": "已归档",
+    "proj_detailImportCowork": "导入CoWork",
+    "proj_tabInstructions": "指令",
+    "proj_tabKnowledge": "知识库",
+    "proj_tabChats": "会话",
+    "proj_instTitle": "项目指令",
+    "proj_instEmpty": "暂无项目指令",
+    "proj_instEmptyHint": "点击编辑按钮添加指令，所有对话将自动继承",
+    "proj_instHistoryTitle": "📋 Instructions 版本历史",
+    "proj_instHistoryEmpty": "暂无版本记录",
+    "proj_instHistoryCurrentFmt": "V%d",
+    "proj_instHistoryCurrentTag": "（当前版本）",
+    "proj_instHistoryRestore": "恢复",
+    "proj_kbTitle": "知识库",
+    "proj_kbFileCountFmt": "%d 文件",
+    "proj_kbFolder": "文件夹",
+    "proj_kbAddFile": "添加文件",
+    "proj_kbEmpty": "暂无知识库文件",
+    "proj_kbEmptyHint": "上传文档帮助 AI 更好理解你的项目",
+    "proj_kbNewFolderAlert": "新建文件夹",
+    "proj_kbFolderNamePh": "文件夹名称",
+    "proj_kbCreate": "创建",
+    "proj_kbStatusIndexed": "已索引",
+    "proj_kbStatusIndexing": "索引中",
+    "proj_kbStatusFailed": "解析失败",
+    "proj_kbStatusPending": "待索引",
+    "proj_kbMenuPreview": "Preview",
+    "proj_kbMenuRename": "Rename",
+    "proj_kbMenuReplace": "Replace file",
+    "proj_kbMenuMove": "Move to folder...",
+    "proj_kbMenuRemove": "Remove from knowledge",
+    "proj_chatsTitle": "会话",
+    "proj_chatsSnapshots": "Snapshots",
+    "proj_chatsSnapMsgCountFmt": "%d条消息",
+    "proj_chatsEmpty": "选择或创建一个会话",
+    "proj_chatsHint": "提示",
+    "proj_chatsCreateFailFmt": "创建会话失败：%@\n请确认 fusion-projects 服务已启动。",
+    "proj_chatsSendFailFmt": "发送失败：%@",
+    "proj_chatsNoModel": "未选择对话模型，请在顶部模型选择器选一个模型后再发送",
+    "proj_chatsReplyFailFmt": "AI 回复失败：%@",
+    "proj_ragSources": "参考来源：",
+    "proj_ragModeLabelFmt": "检索模式: %@",
+    "proj_ragSwitchAuto": "切换为 AUTO",
+    "proj_ragSwitchManual": "切换为 MANUAL",
+    "proj_inputUseDefaultAgent": "使用项目默认智能体",
+    "proj_inputGenericChat": "通用对话（不绑定Agent）",
+    "proj_inputPreviewAgent": "预览当前Agent",
+    "proj_inputRagLabelFmt": "RAG: %@",
+    "proj_inputRagAuto": "AUTO（智能检索）",
+    "proj_inputRagManual": "MANUAL（手动指定）",
+    "proj_inputRagOff": "OFF（关闭检索）",
+    "proj_inputAttachTemp": "临时附件",
+    "proj_inputAttachScreenshot": "截图",
+    "proj_inputAttachWebSearch": "WebSearch",
+    "proj_inputAttachSkill": "技能工具",
+    "proj_inputPlaceholder": "输入消息…",
+    "proj_budgetLow": "⚠️ 预算不足",
+    "proj_chatMenuUnstar": "取消收藏",
+    "proj_chatMenuStar": "收藏会话",
+    "proj_chatMenuRename": "Rename chat",
+    "proj_chatMenuFork": "Fork chat",
+    "proj_chatMenuSnapshot": "Create snapshot",
+    "proj_chatMenuMove": "Move to another project",
+    "proj_chatMenuRemove": "Remove from project",
+    "proj_chatMenuDelete": "Delete chat",
+    "proj_chatDeleteAlertTitle": "删除会话？",
+    "proj_agentConfigTitle": "智能体配置",
+    "proj_agentConfigDefault": "默认智能体",
+    "proj_agentConfigPromptMerge": "Prompt 合并策略",
+    "proj_ragConfigTitle": "RAG 配置",
+    "proj_ragConfigMode": "检索模式",
+    "proj_ragConfigTopKFmt": "Top-K: %d",
+    "proj_ragConfigThresholdFmt": "相似度阈值: %@",
+    "proj_ragConfigSelectScope": "选择检索范围",
+    "proj_settingsTitleFmt": "⚙️ Project Settings — %@",
+    "proj_settingsBasicInfo": "项目信息",
+    "proj_settingsNameLabel": "项目名称",
+    "proj_settingsDescLabel": "描述",
+    "proj_settingsDescPh": "描述",
+    "proj_settingsAgentConfig": "智能体配置",
+    "proj_settingsPromptMerge": "Prompt 合并策略",
+    "proj_settingsMergeAgentFirst": "Agent Prompt 优先（推荐）\nAgent 人设 + 项目业务规则组合注入",
+    "proj_settingsMergeProjectOnly": "仅使用项目 Instructions\n忽略 Agent 内置 Prompt，完全项目自定义",
+    "proj_settingsRagConfig": "RAG 配置",
+    "proj_settingsRagAuto": "AUTO（智能检索 — 对标 Claude Projects）",
+    "proj_settingsRagManual": "MANUAL（手动指定文件夹/文件检索）",
+    "proj_settingsTopK": "TopK",
+    "proj_settingsThreshold": "相似度阈值",
+    "proj_settingsSaveBtn": "保存设置",
+    "proj_previewUnbound": "未绑定",
+    "proj_previewRole": "角色简介",
+    "proj_previewActiveConfig": "当前生效配置",
+    "proj_previewPromptStrategyFmt": "· Prompt策略：%@",
+    "proj_previewPromptAgentFirst": "Agent优先",
+    "proj_previewPromptProjectOnly": "仅项目Instructions",
+    "proj_previewRagModeFmt": "· RAG模式：%@ (TopK=%d, 阈值=%@)",
+    "proj_previewAccessKb": "· 允许访问本项目知识库",
+    "proj_previewUnboundHint": "未绑定智能体，将使用纯模型对话",
+    "proj_previewGotoAgentStudio": "前往 Agent Studio 修改",
+    "proj_coworkTitle": "导入到 CoWork 空间",
+    "proj_coworkTarget": "目标 CoWork 空间",
+    "proj_coworkTargetPlaceholder": "（CoWork 空间列表）",
+    "proj_coworkSyncContent": "同步内容",
+    "proj_coworkSyncKnowledge": "知识库全部文件",
+    "proj_coworkSyncSnapshots": "选中会话快照",
+    "proj_coworkWarning": "知识库文件将复制到 CoWork 空间，后续变更不会自动同步",
+    "proj_coworkConfirm": "确认导入",
+    "proj_ragScopeTitle": "🔍 检索范围设置",
+    "proj_ragScopeMode": "检索模式",
+    "proj_ragScopeAuto": "AUTO（智能全局检索）",
+    "proj_ragScopeManual": "MANUAL（手动指定范围）",
+    "proj_ragScopeSpecify": "指定检索范围",
+    "proj_ragScopeConfirm": "确认",
 ]
 
 let enUSTranslations: [String: String] = [
@@ -2850,6 +3196,179 @@ let enUSTranslations: [String: String] = [
     "doc_wf_queryBtn": "Query",
     "doc_wf_currentStateFmt": "Current state: %@",
     "doc_wf_executeBtn": "Execute",
+    "proj_subtitle": "Manage your AI projects, instructions and knowledge base",
+    "proj_searchPh": "Search projects",
+    "proj_newHelp": "New project",
+    "proj_archivedFmt": "Archived (%d)",
+    "proj_fileCountFmt": "%d files",
+    "proj_chatCountFmt": "%d chats",
+    "proj_archivedSuffix": " (Archived)",
+    "proj_unarchiveBtn": "Unarchive",
+    "proj_upstreamBanner": "Some services unavailable",
+    "proj_emptyDetail": "Select a project to view details",
+    "proj_loadFailFmt": "Load failed: %@",
+    "proj_deleteFailFmt": "Delete failed: %@",
+    "proj_minAgoFmt": "%dm ago",
+    "proj_hourAgoFmt": "%dh ago",
+    "proj_dayAgoFmt": "%dd ago",
+    "proj_sortLastUpdated": "Last Updated",
+    "proj_sortDateCreated": "Date Created",
+    "proj_sortAlphabetical": "Alphabetical",
+    "proj_menuUnstar": "Unstar",
+    "proj_menuStar": "Star project",
+    "proj_menuRename": "Rename",
+    "proj_menuDuplicate": "Duplicate project",
+    "proj_menuExport": "Export project",
+    "proj_menuArchive": "Archive project",
+    "proj_menuDelete": "Delete project",
+    "proj_menuSettings": "Project settings",
+    "proj_deleteAlertTitle": "⚠️ Delete project",
+    "proj_deleteConfirm": "Confirm delete",
+    "proj_deleteAlertMsgFmt": "Are you sure you want to permanently delete project \"%@\"? This cannot be undone.",
+    "proj_deleteAlertMsgFullFmt": "Permanently delete project \"%@\"?\n· Project instructions and all version snapshots\n· All knowledge files (%d files)\n· All chats (%d chats)\nThis cannot be undone.",
+    "proj_renameTitle": "Rename project",
+    "proj_namePh": "Project name",
+    "proj_createTitle": "Create New Project",
+    "proj_createNameLabel": "Project name *",
+    "proj_createDescLabel": "Description",
+    "proj_createDescPh": "Description (optional)",
+    "proj_createInstructions": "Project instructions",
+    "proj_createCharCountFmt": "Chars: %d/%d",
+    "proj_createInstructionsHint": "Define roles, output specs, business constraints here. All chats inherit them.",
+    "proj_createDefaultAgent": "Default agent",
+    "proj_createNoAgent": "None (pure model chat)",
+    "proj_createNoAgentShort": "None",
+    "proj_createGotoAgentStudio": "Go to Agent Studio to create a new agent",
+    "proj_createPromptMerge": "Prompt merge strategy",
+    "proj_createMergeAgentFirst": "Agent Prompt first (recommended)",
+    "proj_createMergeProjectOnly": "Use project instructions only",
+    "proj_createRagMode": "RAG retrieval mode",
+    "proj_createRagAuto": "AUTO (smart retrieval)",
+    "proj_createRagManual": "MANUAL (manual)",
+    "proj_createRagOff": "OFF (disabled)",
+    "proj_createBtn": "Create Project",
+    "proj_editModeMarkdown": "Markdown",
+    "proj_editModeRichText": "Rich text",
+    "proj_dupTitle": "Duplicate Project",
+    "proj_dupNameLabel": "New project name",
+    "proj_dupCopySuffix": " (Copy)",
+    "proj_dupScope": "Duplicate scope",
+    "proj_dupScopeInstructionsOnly": "Instructions + knowledge files only (recommended)",
+    "proj_dupScopeWithSnapshots": "Instructions + knowledge + all chat snapshots",
+    "proj_dupBtn": "Duplicate",
+    "proj_detailArchived": "Archived",
+    "proj_detailImportCowork": "Import CoWork",
+    "proj_tabInstructions": "Instructions",
+    "proj_tabKnowledge": "Knowledge",
+    "proj_tabChats": "Chats",
+    "proj_instTitle": "Project instructions",
+    "proj_instEmpty": "No project instructions",
+    "proj_instEmptyHint": "Click edit to add instructions. All chats inherit them.",
+    "proj_instHistoryTitle": "📋 Instructions version history",
+    "proj_instHistoryEmpty": "No version history",
+    "proj_instHistoryCurrentFmt": "V%d",
+    "proj_instHistoryCurrentTag": " (current)",
+    "proj_instHistoryRestore": "Restore",
+    "proj_kbTitle": "Knowledge base",
+    "proj_kbFileCountFmt": "%d files",
+    "proj_kbFolder": "Folder",
+    "proj_kbAddFile": "Add file",
+    "proj_kbEmpty": "No knowledge files",
+    "proj_kbEmptyHint": "Upload documents to help AI understand your project",
+    "proj_kbNewFolderAlert": "New folder",
+    "proj_kbFolderNamePh": "Folder name",
+    "proj_kbCreate": "Create",
+    "proj_kbStatusIndexed": "Indexed",
+    "proj_kbStatusIndexing": "Indexing",
+    "proj_kbStatusFailed": "Parse failed",
+    "proj_kbStatusPending": "Pending",
+    "proj_kbMenuPreview": "Preview",
+    "proj_kbMenuRename": "Rename",
+    "proj_kbMenuReplace": "Replace file",
+    "proj_kbMenuMove": "Move to folder...",
+    "proj_kbMenuRemove": "Remove from knowledge",
+    "proj_chatsTitle": "Chats",
+    "proj_chatsSnapshots": "Snapshots",
+    "proj_chatsSnapMsgCountFmt": "%d messages",
+    "proj_chatsEmpty": "Select or create a chat",
+    "proj_chatsHint": "Notice",
+    "proj_chatsCreateFailFmt": "Failed to create chat: %@\nEnsure fusion-projects service is running.",
+    "proj_chatsSendFailFmt": "Send failed: %@",
+    "proj_chatsNoModel": "No chat model selected. Pick one in the top model picker before sending.",
+    "proj_chatsReplyFailFmt": "AI reply failed: %@",
+    "proj_ragSources": "Sources: ",
+    "proj_ragModeLabelFmt": "Retrieval: %@",
+    "proj_ragSwitchAuto": "Switch to AUTO",
+    "proj_ragSwitchManual": "Switch to MANUAL",
+    "proj_inputUseDefaultAgent": "Use project default agent",
+    "proj_inputGenericChat": "Generic chat (no agent)",
+    "proj_inputPreviewAgent": "Preview current agent",
+    "proj_inputRagLabelFmt": "RAG: %@",
+    "proj_inputRagAuto": "AUTO (smart)",
+    "proj_inputRagManual": "MANUAL (manual)",
+    "proj_inputRagOff": "OFF (off)",
+    "proj_inputAttachTemp": "Temporary attachment",
+    "proj_inputAttachScreenshot": "Screenshot",
+    "proj_inputAttachWebSearch": "WebSearch",
+    "proj_inputAttachSkill": "Skill tools",
+    "proj_inputPlaceholder": "Type a message…",
+    "proj_budgetLow": "⚠️ Budget low",
+    "proj_chatMenuUnstar": "Unstar",
+    "proj_chatMenuStar": "Star chat",
+    "proj_chatMenuRename": "Rename chat",
+    "proj_chatMenuFork": "Fork chat",
+    "proj_chatMenuSnapshot": "Create snapshot",
+    "proj_chatMenuMove": "Move to another project",
+    "proj_chatMenuRemove": "Remove from project",
+    "proj_chatMenuDelete": "Delete chat",
+    "proj_chatDeleteAlertTitle": "Delete chat?",
+    "proj_agentConfigTitle": "Agent configuration",
+    "proj_agentConfigDefault": "Default agent",
+    "proj_agentConfigPromptMerge": "Prompt merge strategy",
+    "proj_ragConfigTitle": "RAG configuration",
+    "proj_ragConfigMode": "Retrieval mode",
+    "proj_ragConfigTopKFmt": "Top-K: %d",
+    "proj_ragConfigThresholdFmt": "Similarity threshold: %@",
+    "proj_ragConfigSelectScope": "Select retrieval scope",
+    "proj_settingsTitleFmt": "⚙️ Project Settings — %@",
+    "proj_settingsBasicInfo": "Project info",
+    "proj_settingsNameLabel": "Project name",
+    "proj_settingsDescLabel": "Description",
+    "proj_settingsDescPh": "Description",
+    "proj_settingsAgentConfig": "Agent configuration",
+    "proj_settingsPromptMerge": "Prompt merge strategy",
+    "proj_settingsMergeAgentFirst": "Agent Prompt first (recommended)\nAgent persona + project business rules combined",
+    "proj_settingsMergeProjectOnly": "Use project instructions only\nIgnore built-in agent prompt, fully project-customized",
+    "proj_settingsRagConfig": "RAG configuration",
+    "proj_settingsRagAuto": "AUTO (smart retrieval — like Claude Projects)",
+    "proj_settingsRagManual": "MANUAL (manual folder/file retrieval)",
+    "proj_settingsTopK": "TopK",
+    "proj_settingsThreshold": "Similarity threshold",
+    "proj_settingsSaveBtn": "Save settings",
+    "proj_previewUnbound": "Unbound",
+    "proj_previewRole": "Role profile",
+    "proj_previewActiveConfig": "Active configuration",
+    "proj_previewPromptStrategyFmt": "· Prompt strategy: %@",
+    "proj_previewPromptAgentFirst": "Agent first",
+    "proj_previewPromptProjectOnly": "Project instructions only",
+    "proj_previewRagModeFmt": "· RAG mode: %@ (TopK=%d, threshold=%@)",
+    "proj_previewAccessKb": "· Can access this project's knowledge base",
+    "proj_previewUnboundHint": "No agent bound. Pure model chat will be used.",
+    "proj_previewGotoAgentStudio": "Go to Agent Studio to edit",
+    "proj_coworkTitle": "Import to CoWork space",
+    "proj_coworkTarget": "Target CoWork space",
+    "proj_coworkTargetPlaceholder": "(CoWork space list)",
+    "proj_coworkSyncContent": "Sync content",
+    "proj_coworkSyncKnowledge": "All knowledge files",
+    "proj_coworkSyncSnapshots": "Selected chat snapshots",
+    "proj_coworkWarning": "Knowledge files will be copied to CoWork space. Later changes won't auto-sync.",
+    "proj_coworkConfirm": "Confirm import",
+    "proj_ragScopeTitle": "🔍 Retrieval scope settings",
+    "proj_ragScopeMode": "Retrieval mode",
+    "proj_ragScopeAuto": "AUTO (smart global retrieval)",
+    "proj_ragScopeManual": "MANUAL (manual scope)",
+    "proj_ragScopeSpecify": "Specify retrieval scope",
+    "proj_ragScopeConfirm": "Confirm",
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -3650,6 +4169,179 @@ let jaJPTranslations: [String: String] = [
     "doc_wf_queryBtn": "照会",
     "doc_wf_currentStateFmt": "現在の状態: %@",
     "doc_wf_executeBtn": "実行",
+    "proj_subtitle": "AIプロジェクト・指示・ナレッジベースを管理",
+    "proj_searchPh": "プロジェクトを検索",
+    "proj_newHelp": "新規プロジェクト",
+    "proj_archivedFmt": "アーカイブ (%d)",
+    "proj_fileCountFmt": "%d ファイル",
+    "proj_chatCountFmt": "%d チャット",
+    "proj_archivedSuffix": "（アーカイブ）",
+    "proj_unarchiveBtn": "アーカイブ解除",
+    "proj_upstreamBanner": "一部サービス利用不可",
+    "proj_emptyDetail": "プロジェクトを選択して詳細を表示",
+    "proj_loadFailFmt": "読み込み失敗: %@",
+    "proj_deleteFailFmt": "削除失敗: %@",
+    "proj_minAgoFmt": "%d分前",
+    "proj_hourAgoFmt": "%d時間前",
+    "proj_dayAgoFmt": "%d日前",
+    "proj_sortLastUpdated": "最近更新",
+    "proj_sortDateCreated": "作成日時",
+    "proj_sortAlphabetical": "名前順",
+    "proj_menuUnstar": "お気に入り解除",
+    "proj_menuStar": "プロジェクトをお気に入り",
+    "proj_menuRename": "名前変更",
+    "proj_menuDuplicate": "プロジェクトを複製",
+    "proj_menuExport": "プロジェクトをエクスポート",
+    "proj_menuArchive": "プロジェクトをアーカイブ",
+    "proj_menuDelete": "プロジェクトを削除",
+    "proj_menuSettings": "プロジェクト設定",
+    "proj_deleteAlertTitle": "⚠️ プロジェクトを削除",
+    "proj_deleteConfirm": "削除を確認",
+    "proj_deleteAlertMsgFmt": "プロジェクト「%@」を完全に削除しますか？この操作は取り消せません。",
+    "proj_deleteAlertMsgFullFmt": "プロジェクト「%@」を完全に削除しますか？\n· プロジェクト指示と全バージョンスナップショット\n· ナレッジベース全ファイル（%d ファイル）\n· プロジェクト内全会話（%d チャット）\nこの操作は取り消せません。",
+    "proj_renameTitle": "プロジェクト名変更",
+    "proj_namePh": "プロジェクト名",
+    "proj_createTitle": "新規プロジェクト作成",
+    "proj_createNameLabel": "プロジェクト名 *",
+    "proj_createDescLabel": "説明",
+    "proj_createDescPh": "説明（任意）",
+    "proj_createInstructions": "プロジェクト指示",
+    "proj_createCharCountFmt": "文字数：%d/%d",
+    "proj_createInstructionsHint": "ここでロール・出力仕様・業務制約を定義。全チャットに自動継承。",
+    "proj_createDefaultAgent": "デフォルトエージェント",
+    "proj_createNoAgent": "バインドなし（純モデル対話）",
+    "proj_createNoAgentShort": "バインドなし",
+    "proj_createGotoAgentStudio": "Agent Studio で新規エージェント作成",
+    "proj_createPromptMerge": "Prompt マージ戦略",
+    "proj_createMergeAgentFirst": "Agent Prompt 優先（推奨）",
+    "proj_createMergeProjectOnly": "プロジェクト Instructions のみ使用",
+    "proj_createRagMode": "RAG 検索モード",
+    "proj_createRagAuto": "AUTO（スマート検索）",
+    "proj_createRagManual": "MANUAL（手動指定）",
+    "proj_createRagOff": "OFF（無効）",
+    "proj_createBtn": "プロジェクト作成",
+    "proj_editModeMarkdown": "Markdown",
+    "proj_editModeRichText": "リッチテキスト",
+    "proj_dupTitle": "プロジェクト複製",
+    "proj_dupNameLabel": "新プロジェクト名",
+    "proj_dupCopySuffix": " (コピー)",
+    "proj_dupScope": "複製範囲",
+    "proj_dupScopeInstructionsOnly": "プロジェクト指示 + ナレッジファイルのみ（推奨）",
+    "proj_dupScopeWithSnapshots": "指示 + ナレッジ + 全チャットスナップショット",
+    "proj_dupBtn": "複製",
+    "proj_detailArchived": "アーカイブ済み",
+    "proj_detailImportCowork": "CoWorkにインポート",
+    "proj_tabInstructions": "指示",
+    "proj_tabKnowledge": "ナレッジベース",
+    "proj_tabChats": "チャット",
+    "proj_instTitle": "プロジェクト指示",
+    "proj_instEmpty": "プロジェクト指示なし",
+    "proj_instEmptyHint": "編集ボタンで指示を追加。全チャットに自動継承。",
+    "proj_instHistoryTitle": "📋 Instructions バージョン履歴",
+    "proj_instHistoryEmpty": "バージョン履歴なし",
+    "proj_instHistoryCurrentFmt": "V%d",
+    "proj_instHistoryCurrentTag": "（現在のバージョン）",
+    "proj_instHistoryRestore": "復元",
+    "proj_kbTitle": "ナレッジベース",
+    "proj_kbFileCountFmt": "%d ファイル",
+    "proj_kbFolder": "フォルダ",
+    "proj_kbAddFile": "ファイル追加",
+    "proj_kbEmpty": "ナレッジファイルなし",
+    "proj_kbEmptyHint": "ドキュメントをアップロードしてAIの理解を支援",
+    "proj_kbNewFolderAlert": "新規フォルダ",
+    "proj_kbFolderNamePh": "フォルダ名",
+    "proj_kbCreate": "作成",
+    "proj_kbStatusIndexed": "索引済み",
+    "proj_kbStatusIndexing": "索引中",
+    "proj_kbStatusFailed": "解析失敗",
+    "proj_kbStatusPending": "索引待ち",
+    "proj_kbMenuPreview": "プレビュー",
+    "proj_kbMenuRename": "名前変更",
+    "proj_kbMenuReplace": "ファイル差替",
+    "proj_kbMenuMove": "フォルダに移動...",
+    "proj_kbMenuRemove": "ナレッジから削除",
+    "proj_chatsTitle": "チャット",
+    "proj_chatsSnapshots": "スナップショット",
+    "proj_chatsSnapMsgCountFmt": "%dメッセージ",
+    "proj_chatsEmpty": "チャットを選択または作成",
+    "proj_chatsHint": "通知",
+    "proj_chatsCreateFailFmt": "チャット作成失敗：%@\nfusion-projects サービスの起動を確認。",
+    "proj_chatsSendFailFmt": "送信失敗：%@",
+    "proj_chatsNoModel": "対話モデル未選択。上部モデル選択で選んでから送信。",
+    "proj_chatsReplyFailFmt": "AI応答失敗：%@",
+    "proj_ragSources": "参照元：",
+    "proj_ragModeLabelFmt": "検索モード: %@",
+    "proj_ragSwitchAuto": "AUTOに切替",
+    "proj_ragSwitchManual": "MANUALに切替",
+    "proj_inputUseDefaultAgent": "プロジェクトデフォルトエージェントを使用",
+    "proj_inputGenericChat": "汎用対話（Agent非バインド）",
+    "proj_inputPreviewAgent": "現在のAgentをプレビュー",
+    "proj_inputRagLabelFmt": "RAG: %@",
+    "proj_inputRagAuto": "AUTO（スマート）",
+    "proj_inputRagManual": "MANUAL（手動）",
+    "proj_inputRagOff": "OFF（無効）",
+    "proj_inputAttachTemp": "一時添付",
+    "proj_inputAttachScreenshot": "スクリーンショット",
+    "proj_inputAttachWebSearch": "WebSearch",
+    "proj_inputAttachSkill": "スキルツール",
+    "proj_inputPlaceholder": "メッセージを入力…",
+    "proj_budgetLow": "⚠️ 予算不足",
+    "proj_chatMenuUnstar": "お気に入り解除",
+    "proj_chatMenuStar": "チャットをお気に入り",
+    "proj_chatMenuRename": "チャット名変更",
+    "proj_chatMenuFork": "チャットをフォーク",
+    "proj_chatMenuSnapshot": "スナップショット作成",
+    "proj_chatMenuMove": "別プロジェクトに移動",
+    "proj_chatMenuRemove": "プロジェクトから削除",
+    "proj_chatMenuDelete": "チャットを削除",
+    "proj_chatDeleteAlertTitle": "チャットを削除？",
+    "proj_agentConfigTitle": "エージェント設定",
+    "proj_agentConfigDefault": "デフォルトエージェント",
+    "proj_agentConfigPromptMerge": "Prompt マージ戦略",
+    "proj_ragConfigTitle": "RAG設定",
+    "proj_ragConfigMode": "検索モード",
+    "proj_ragConfigTopKFmt": "Top-K: %d",
+    "proj_ragConfigThresholdFmt": "類似度しきい値: %@",
+    "proj_ragConfigSelectScope": "検索範囲を選択",
+    "proj_settingsTitleFmt": "⚙️ プロジェクト設定 — %@",
+    "proj_settingsBasicInfo": "プロジェクト情報",
+    "proj_settingsNameLabel": "プロジェクト名",
+    "proj_settingsDescLabel": "説明",
+    "proj_settingsDescPh": "説明",
+    "proj_settingsAgentConfig": "エージェント設定",
+    "proj_settingsPromptMerge": "Prompt マージ戦略",
+    "proj_settingsMergeAgentFirst": "Agent Prompt 優先（推奨）\nAgent ペルソナ + プロジェクト業務ルール統合",
+    "proj_settingsMergeProjectOnly": "プロジェクト Instructions のみ\nAgent 内蔵 Prompt を無視、完全プロジェクト独自",
+    "proj_settingsRagConfig": "RAG設定",
+    "proj_settingsRagAuto": "AUTO（スマート検索 — Claude Projects 対抗）",
+    "proj_settingsRagManual": "MANUAL（手動フォルダ/ファイル検索）",
+    "proj_settingsTopK": "TopK",
+    "proj_settingsThreshold": "類似度しきい値",
+    "proj_settingsSaveBtn": "設定を保存",
+    "proj_previewUnbound": "バインドなし",
+    "proj_previewRole": "ロール概要",
+    "proj_previewActiveConfig": "現在の有効設定",
+    "proj_previewPromptStrategyFmt": "· Prompt戦略：%@",
+    "proj_previewPromptAgentFirst": "Agent優先",
+    "proj_previewPromptProjectOnly": "プロジェクトInstructionsのみ",
+    "proj_previewRagModeFmt": "· RAGモード：%@ (TopK=%d, しきい値=%@)",
+    "proj_previewAccessKb": "· このプロジェクトのナレッジベースにアクセス可能",
+    "proj_previewUnboundHint": "エージェント未バインド。純モデル対話を使用。",
+    "proj_previewGotoAgentStudio": "Agent Studio で編集",
+    "proj_coworkTitle": "CoWork スペースにインポート",
+    "proj_coworkTarget": "ターゲット CoWork スペース",
+    "proj_coworkTargetPlaceholder": "（CoWork スペースリスト）",
+    "proj_coworkSyncContent": "同期内容",
+    "proj_coworkSyncKnowledge": "ナレッジ全ファイル",
+    "proj_coworkSyncSnapshots": "選択チャットスナップショット",
+    "proj_coworkWarning": "ナレッジファイルはCoWorkスペースにコピーされ、以降の変更は自動同期されません。",
+    "proj_coworkConfirm": "インポート確認",
+    "proj_ragScopeTitle": "🔍 検索範囲設定",
+    "proj_ragScopeMode": "検索モード",
+    "proj_ragScopeAuto": "AUTO（スマート全体検索）",
+    "proj_ragScopeManual": "MANUAL（手動範囲指定）",
+    "proj_ragScopeSpecify": "検索範囲を指定",
+    "proj_ragScopeConfirm": "確認",
 ]
 
 let koKRTranslations: [String: String] = [
@@ -4450,6 +5142,179 @@ let koKRTranslations: [String: String] = [
     "doc_wf_queryBtn": "조회",
     "doc_wf_currentStateFmt": "현재 상태: %@",
     "doc_wf_executeBtn": "실행",
+    "proj_subtitle": "AI 프로젝트·지시·지식베이스 관리",
+    "proj_searchPh": "프로젝트 검색",
+    "proj_newHelp": "새 프로젝트",
+    "proj_archivedFmt": "보관됨 (%d)",
+    "proj_fileCountFmt": "%d 파일",
+    "proj_chatCountFmt": "%d 채팅",
+    "proj_archivedSuffix": " (보관됨)",
+    "proj_unarchiveBtn": "보관 해제",
+    "proj_upstreamBanner": "일부 서비스 사용 불가",
+    "proj_emptyDetail": "프로젝트를 선택해 상세 보기",
+    "proj_loadFailFmt": "로드 실패: %@",
+    "proj_deleteFailFmt": "삭제 실패: %@",
+    "proj_minAgoFmt": "%d분 전",
+    "proj_hourAgoFmt": "%d시간 전",
+    "proj_dayAgoFmt": "%d일 전",
+    "proj_sortLastUpdated": "최근 업데이트",
+    "proj_sortDateCreated": "생성 시간",
+    "proj_sortAlphabetical": "이름순",
+    "proj_menuUnstar": "즐겨찾기 해제",
+    "proj_menuStar": "프로젝트 즐겨찾기",
+    "proj_menuRename": "이름 변경",
+    "proj_menuDuplicate": "프로젝트 복제",
+    "proj_menuExport": "프로젝트 내보내기",
+    "proj_menuArchive": "프로젝트 보관",
+    "proj_menuDelete": "프로젝트 삭제",
+    "proj_menuSettings": "프로젝트 설정",
+    "proj_deleteAlertTitle": "⚠️ 프로젝트 삭제",
+    "proj_deleteConfirm": "삭제 확인",
+    "proj_deleteAlertMsgFmt": "프로젝트 \"%@\"를 영구 삭제하시겠습니까? 되돌릴 수 없습니다.",
+    "proj_deleteAlertMsgFullFmt": "프로젝트 \"%@\"를 영구 삭제하시겠습니까?\n· 프로젝트 지시와 모든 버전 스냅샷\n· 지식베이스 전체 파일(%d 파일)\n· 프로젝트 내 전체 채팅(%d 채팅)\n되돌릴 수 없습니다.",
+    "proj_renameTitle": "프로젝트 이름 변경",
+    "proj_namePh": "프로젝트 이름",
+    "proj_createTitle": "새 프로젝트 만들기",
+    "proj_createNameLabel": "프로젝트 이름 *",
+    "proj_createDescLabel": "설명",
+    "proj_createDescPh": "설명 (선택)",
+    "proj_createInstructions": "프로젝트 지시",
+    "proj_createCharCountFmt": "글자 수: %d/%d",
+    "proj_createInstructionsHint": "여기서 역할·출력 사양·비즈니스 제약 정의. 모든 채팅에 자동 상속.",
+    "proj_createDefaultAgent": "기본 에이전트",
+    "proj_createNoAgent": "바인딩 안 함 (순수 모델 대화)",
+    "proj_createNoAgentShort": "바인딩 안 함",
+    "proj_createGotoAgentStudio": "Agent Studio에서 새 에이전트 만들기",
+    "proj_createPromptMerge": "Prompt 병합 전략",
+    "proj_createMergeAgentFirst": "Agent Prompt 우선 (권장)",
+    "proj_createMergeProjectOnly": "프로젝트 Instructions만 사용",
+    "proj_createRagMode": "RAG 검색 모드",
+    "proj_createRagAuto": "AUTO (스마트 검색)",
+    "proj_createRagManual": "MANUAL (수동 지정)",
+    "proj_createRagOff": "OFF (사용 안 함)",
+    "proj_createBtn": "프로젝트 만들기",
+    "proj_editModeMarkdown": "Markdown",
+    "proj_editModeRichText": "리치 텍스트",
+    "proj_dupTitle": "프로젝트 복제",
+    "proj_dupNameLabel": "새 프로젝트 이름",
+    "proj_dupCopySuffix": " (사본)",
+    "proj_dupScope": "복제 범위",
+    "proj_dupScopeInstructionsOnly": "지시 + 지식베이스 파일만 (권장)",
+    "proj_dupScopeWithSnapshots": "지시 + 지식베이스 + 모든 채팅 스냅샷",
+    "proj_dupBtn": "복제",
+    "proj_detailArchived": "보관됨",
+    "proj_detailImportCowork": "CoWork 가져오기",
+    "proj_tabInstructions": "지시",
+    "proj_tabKnowledge": "지식베이스",
+    "proj_tabChats": "채팅",
+    "proj_instTitle": "프로젝트 지시",
+    "proj_instEmpty": "프로젝트 지시 없음",
+    "proj_instEmptyHint": "편집 버튼으로 지시 추가. 모든 채팅에 자동 상속.",
+    "proj_instHistoryTitle": "📋 Instructions 버전 기록",
+    "proj_instHistoryEmpty": "버전 기록 없음",
+    "proj_instHistoryCurrentFmt": "V%d",
+    "proj_instHistoryCurrentTag": " (현재 버전)",
+    "proj_instHistoryRestore": "복원",
+    "proj_kbTitle": "지식베이스",
+    "proj_kbFileCountFmt": "%d 파일",
+    "proj_kbFolder": "폴더",
+    "proj_kbAddFile": "파일 추가",
+    "proj_kbEmpty": "지식베이스 파일 없음",
+    "proj_kbEmptyHint": "문서 업로드로 AI가 프로젝트를 더 잘 이해하도록",
+    "proj_kbNewFolderAlert": "새 폴더",
+    "proj_kbFolderNamePh": "폴더 이름",
+    "proj_kbCreate": "만들기",
+    "proj_kbStatusIndexed": "인덱싱됨",
+    "proj_kbStatusIndexing": "인덱싱 중",
+    "proj_kbStatusFailed": "파싱 실패",
+    "proj_kbStatusPending": "인덱싱 대기",
+    "proj_kbMenuPreview": "미리보기",
+    "proj_kbMenuRename": "이름 변경",
+    "proj_kbMenuReplace": "파일 교체",
+    "proj_kbMenuMove": "폴더로 이동...",
+    "proj_kbMenuRemove": "지식베이스에서 제거",
+    "proj_chatsTitle": "채팅",
+    "proj_chatsSnapshots": "스냅샷",
+    "proj_chatsSnapMsgCountFmt": "%d 메시지",
+    "proj_chatsEmpty": "채팅을 선택하거나 만드세요",
+    "proj_chatsHint": "알림",
+    "proj_chatsCreateFailFmt": "채팅 생성 실패: %@\nfusion-projects 서비스 실행을 확인하세요.",
+    "proj_chatsSendFailFmt": "전송 실패: %@",
+    "proj_chatsNoModel": "대화 모델 미선택. 상단 모델 선택기에서 선택 후 전송.",
+    "proj_chatsReplyFailFmt": "AI 응답 실패: %@",
+    "proj_ragSources": "출처: ",
+    "proj_ragModeLabelFmt": "검색 모드: %@",
+    "proj_ragSwitchAuto": "AUTO로 전환",
+    "proj_ragSwitchManual": "MANUAL로 전환",
+    "proj_inputUseDefaultAgent": "프로젝트 기본 에이전트 사용",
+    "proj_inputGenericChat": "일반 대화 (에이전트 바인딩 없음)",
+    "proj_inputPreviewAgent": "현재 에이전트 미리보기",
+    "proj_inputRagLabelFmt": "RAG: %@",
+    "proj_inputRagAuto": "AUTO (스마트)",
+    "proj_inputRagManual": "MANUAL (수동)",
+    "proj_inputRagOff": "OFF (끄기)",
+    "proj_inputAttachTemp": "임시 첨부",
+    "proj_inputAttachScreenshot": "스크린샷",
+    "proj_inputAttachWebSearch": "WebSearch",
+    "proj_inputAttachSkill": "스킬 도구",
+    "proj_inputPlaceholder": "메시지 입력…",
+    "proj_budgetLow": "⚠️ 예산 부족",
+    "proj_chatMenuUnstar": "즐겨찾기 해제",
+    "proj_chatMenuStar": "채팅 즐겨찾기",
+    "proj_chatMenuRename": "채팅 이름 변경",
+    "proj_chatMenuFork": "채팅 포크",
+    "proj_chatMenuSnapshot": "스냅샷 만들기",
+    "proj_chatMenuMove": "다른 프로젝트로 이동",
+    "proj_chatMenuRemove": "프로젝트에서 제거",
+    "proj_chatMenuDelete": "채팅 삭제",
+    "proj_chatDeleteAlertTitle": "채팅 삭제?",
+    "proj_agentConfigTitle": "에이전트 설정",
+    "proj_agentConfigDefault": "기본 에이전트",
+    "proj_agentConfigPromptMerge": "Prompt 병합 전략",
+    "proj_ragConfigTitle": "RAG 설정",
+    "proj_ragConfigMode": "검색 모드",
+    "proj_ragConfigTopKFmt": "Top-K: %d",
+    "proj_ragConfigThresholdFmt": "유사도 임계값: %@",
+    "proj_ragConfigSelectScope": "검색 범위 선택",
+    "proj_settingsTitleFmt": "⚙️ 프로젝트 설정 — %@",
+    "proj_settingsBasicInfo": "프로젝트 정보",
+    "proj_settingsNameLabel": "프로젝트 이름",
+    "proj_settingsDescLabel": "설명",
+    "proj_settingsDescPh": "설명",
+    "proj_settingsAgentConfig": "에이전트 설정",
+    "proj_settingsPromptMerge": "Prompt 병합 전략",
+    "proj_settingsMergeAgentFirst": "Agent Prompt 우선 (권장)\n에이전트 페르소나 + 프로젝트 비즈니스 규칙 결합",
+    "proj_settingsMergeProjectOnly": "프로젝트 Instructions만\n에이전트 내장 Prompt 무시, 완전 프로젝트 맞춤",
+    "proj_settingsRagConfig": "RAG 설정",
+    "proj_settingsRagAuto": "AUTO (스마트 검색 — Claude Projects 대응)",
+    "proj_settingsRagManual": "MANUAL (수동 폴더/파일 검색)",
+    "proj_settingsTopK": "TopK",
+    "proj_settingsThreshold": "유사도 임계값",
+    "proj_settingsSaveBtn": "설정 저장",
+    "proj_previewUnbound": "바인딩 없음",
+    "proj_previewRole": "역할 소개",
+    "proj_previewActiveConfig": "현재 적용 설정",
+    "proj_previewPromptStrategyFmt": "· Prompt 전략: %@",
+    "proj_previewPromptAgentFirst": "에이전트 우선",
+    "proj_previewPromptProjectOnly": "프로젝트 Instructions만",
+    "proj_previewRagModeFmt": "· RAG 모드: %@ (TopK=%d, 임계값=%@)",
+    "proj_previewAccessKb": "· 이 프로젝트 지식베이스 접근 가능",
+    "proj_previewUnboundHint": "에이전트 미바인딩. 순수 모델 대화 사용.",
+    "proj_previewGotoAgentStudio": "Agent Studio에서 편집",
+    "proj_coworkTitle": "CoWork 스페이스로 가져오기",
+    "proj_coworkTarget": "대상 CoWork 스페이스",
+    "proj_coworkTargetPlaceholder": "(CoWork 스페이스 목록)",
+    "proj_coworkSyncContent": "동기화 내용",
+    "proj_coworkSyncKnowledge": "지식베이스 전체 파일",
+    "proj_coworkSyncSnapshots": "선택한 채팅 스냅샷",
+    "proj_coworkWarning": "지식베이스 파일은 CoWork 스페이스로 복사되며, 이후 변경사항은 자동 동기화되지 않습니다.",
+    "proj_coworkConfirm": "가져오기 확인",
+    "proj_ragScopeTitle": "🔍 검색 범위 설정",
+    "proj_ragScopeMode": "검색 모드",
+    "proj_ragScopeAuto": "AUTO (스마트 전역 검색)",
+    "proj_ragScopeManual": "MANUAL (수동 범위 지정)",
+    "proj_ragScopeSpecify": "검색 범위 지정",
+    "proj_ragScopeConfirm": "확인",
 ]
 
 // MARK: - 国际化文本视图
