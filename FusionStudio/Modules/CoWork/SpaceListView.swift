@@ -8,6 +8,7 @@ private let spaceLog = Logger(subsystem: "com.fusion.studio", category: "CoWork.
 struct SpaceListView: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var spaces: [CoworkSpace] = []
     @State private var isLoading = false
@@ -24,6 +25,15 @@ struct SpaceListView: View {
         case created = "我创建的"
         case joined = "我加入的"
         case archived = "已归档"
+
+        var localLabel: String {
+            switch self {
+            case .all: return I18nManager.shared.t(.cw_filter_all)
+            case .created: return I18nManager.shared.t(.cw_filter_created)
+            case .joined: return I18nManager.shared.t(.cw_filter_joined)
+            case .archived: return I18nManager.shared.t(.cw_filter_archived)
+            }
+        }
     }
 
     var body: some View {
@@ -42,7 +52,7 @@ struct SpaceListView: View {
 
     private var spaceListPanel: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ScreenHeader(eyebrow: "Fusion Studio", title: "CoWork", subtitle: "协作空间 — 团队对话、共享 Agent、工作流协同")
+            ScreenHeader(eyebrow: "Fusion Studio", title: "CoWork", subtitle: i18n.t(.cw_list_subtitle))
                 .padding(.bottom, theme.spacingS)
 
             HStack(spacing: theme.spacingS) {
@@ -50,7 +60,7 @@ struct SpaceListView: View {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: theme.iconS))
                         .foregroundStyle(theme.textTertiary)
-                    TextField("搜索空间...", text: $searchText)
+                    TextField(i18n.t(.cw_list_searchPh), text: $searchText)
                         .textFieldStyle(.plain)
                         .font(.system(size: theme.textSize))
                 }
@@ -65,14 +75,14 @@ struct SpaceListView: View {
                         .foregroundStyle(theme.accent)
                 }
                 .buttonStyle(.plain)
-                .help("新建协作空间")
+                .help(i18n.t(.cw_list_newHelp))
                 Button(action: { showMarketplace = true }) {
                     Image(systemName: "bag")
                         .font(.system(size: theme.iconM))
                         .foregroundStyle(theme.textTertiary)
                 }
                 .buttonStyle(.plain)
-                .help("工作流/模板市场")
+                .help(i18n.t(.cw_list_marketHelp))
             }
             .padding(.horizontal, theme.spacingM)
             .padding(.bottom, theme.spacingS)
@@ -80,7 +90,7 @@ struct SpaceListView: View {
             HStack(spacing: 0) {
                 ForEach(SpaceFilterStatus.allCases, id: \.self) { status in
                     Button(action: { filterStatus = status }) {
-                        Text(status.rawValue)
+                        Text(status.localLabel)
                             .font(.system(size: theme.footnoteSize, weight: filterStatus == status ? .semibold : .regular))
                             .foregroundStyle(filterStatus == status ? theme.accent : theme.textSecondary)
                             .padding(.horizontal, theme.spacingM)
@@ -132,15 +142,15 @@ struct SpaceListView: View {
                 Image(systemName: "sparkles")
                     .font(.system(size: theme.iconM))
                     .foregroundStyle(theme.accent)
-                Text("开始你的第一个协作空间")
+                Text(i18n.t(.cw_list_onboardingTitle))
                     .font(.system(size: theme.textSize, weight: .semibold))
                     .foregroundStyle(theme.text)
             }
-            Text("CoWork 让团队实时对话、共享 Agent、协同工作流。支持离线空间、深度研究、桌面共享等差异化能力。")
+            Text(i18n.t(.cw_list_onboardingBody))
                 .font(.system(size: theme.footnoteSize))
                 .foregroundStyle(theme.textSecondary)
             Button(action: { showCreateDialog = true }) {
-                Label("创建协作空间", systemImage: "plus.circle.fill")
+                Label(i18n.t(.cw_list_createLabel), systemImage: "plus.circle.fill")
                     .font(.system(size: theme.footnoteSize, weight: .medium))
             }
             .buttonStyle(.plain)
@@ -189,7 +199,7 @@ struct SpaceListView: View {
                             .foregroundStyle(isActive ? theme.accent : theme.text)
                             .lineLimit(1)
                         if space.isArchived {
-                            Text("已归档")
+                            Text(i18n.t(.cw_list_archivedTag))
                                 .font(.system(size: 9, weight: .medium))
                                 .foregroundStyle(theme.accentDestructive)
                                 .padding(.horizontal, 4)
@@ -253,10 +263,10 @@ struct SpaceListView: View {
             Image(systemName: "person.2.square.stack")
                 .font(.system(size: 40))
                 .foregroundStyle(theme.textTertiary)
-            Text("选择一个协作空间")
+            Text(i18n.t(.cw_list_emptyTitle))
                 .font(.system(size: theme.textSize))
                 .foregroundStyle(theme.textSecondary)
-            Text("或创建新空间开始协作")
+            Text(i18n.t(.cw_list_emptyHint))
                 .font(.system(size: theme.footnoteSize))
                 .foregroundStyle(theme.textTertiary)
         }
@@ -281,7 +291,7 @@ struct SpaceListView: View {
             } catch {
                 spaceLog.error("space.list failed: \(error.localizedDescription)")
                 await MainActor.run {
-                    errorMessage = "加载失败: \(error.localizedDescription)"
+                    errorMessage = String(format: i18n.t(.cw_list_loadFail), error.localizedDescription)
                     isLoading = false
                 }
             }
@@ -295,6 +305,7 @@ struct SpaceCreateDialog: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var name = ""
     @State private var description = ""
@@ -309,21 +320,21 @@ struct SpaceCreateDialog: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: theme.spacingL) {
-                Text("新建协作空间")
+                Text(i18n.t(.cw_create_title))
                     .font(.system(size: theme.headlineSize, weight: .bold))
 
                 VStack(alignment: .leading, spacing: theme.spacingS) {
-                    Text("基本信息")
+                    Text(i18n.t(.cw_create_basic))
                         .font(.system(size: theme.footnoteSize, weight: .semibold))
                         .foregroundStyle(theme.textSecondary)
-                    TextField("空间名称", text: $name)
+                    TextField(i18n.t(.cw_create_namePh), text: $name)
                         .textFieldStyle(.roundedBorder)
-                    TextField("描述（可选）", text: $description)
+                    TextField(i18n.t(.cw_create_descPh), text: $description)
                         .textFieldStyle(.roundedBorder)
                 }
 
                 VStack(alignment: .leading, spacing: theme.spacingS) {
-                    Text("协作模式")
+                    Text(i18n.t(.cw_create_mode))
                         .font(.system(size: theme.footnoteSize, weight: .semibold))
                         .foregroundStyle(theme.textSecondary)
                     HStack(spacing: theme.spacingM) {
@@ -358,34 +369,34 @@ struct SpaceCreateDialog: View {
                 }
 
                 VStack(alignment: .leading, spacing: theme.spacingS) {
-                    Text("知识库绑定")
+                    Text(i18n.t(.cw_create_kb))
                         .font(.system(size: theme.footnoteSize, weight: .semibold))
                         .foregroundStyle(theme.textSecondary)
-                    TextField("KB 路径（可选，如项目目录）", text: $kbPath)
+                    TextField(i18n.t(.cw_create_kbPh), text: $kbPath)
                         .textFieldStyle(.roundedBorder)
                 }
 
                 VStack(alignment: .leading, spacing: theme.spacingS) {
-                    Text("空间能力")
+                    Text(i18n.t(.cw_create_ability))
                         .font(.system(size: theme.footnoteSize, weight: .semibold))
                         .foregroundStyle(theme.textSecondary)
 
                     VStack(spacing: theme.spacingXS) {
-                        toolToggle("联网搜索", icon: "globe", isOn: $config.enableWebSearch)
-                        toolToggle("深度研究", icon: "telescope", isOn: $config.enableDeepResearch)
-                        toolToggle("桌面操控", icon: "desktopcomputer", isOn: $config.enableComputerUse)
-                        toolToggle("成员上传", icon: "arrow.up.doc", isOn: $config.allowMemberUpload)
-                        toolToggle("成员自建Agent", icon: "brain.head.profile", isOn: $config.allowMemberAgent)
-                        toolToggle("成员运行工作流", icon: "arrow.triangle.branch", isOn: $config.allowMemberWorkflow)
+                        toolToggle(i18n.t(.cw_create_webSearch), icon: "globe", isOn: $config.enableWebSearch)
+                        toolToggle(i18n.t(.cw_create_deepResearch), icon: "telescope", isOn: $config.enableDeepResearch)
+                        toolToggle(i18n.t(.cw_create_computerUse), icon: "desktopcomputer", isOn: $config.enableComputerUse)
+                        toolToggle(i18n.t(.cw_create_memberUpload), icon: "arrow.up.doc", isOn: $config.allowMemberUpload)
+                        toolToggle(i18n.t(.cw_create_memberAgent), icon: "brain.head.profile", isOn: $config.allowMemberAgent)
+                        toolToggle(i18n.t(.cw_create_memberWorkflow), icon: "arrow.triangle.branch", isOn: $config.allowMemberWorkflow)
                     }
                 }
 
                 VStack(alignment: .leading, spacing: theme.spacingS) {
-                    Text("高级设置")
+                    Text(i18n.t(.cw_create_advanced))
                         .font(.system(size: theme.footnoteSize, weight: .semibold))
                         .foregroundStyle(theme.textSecondary)
                     HStack {
-                        Text("最大成员数")
+                        Text(i18n.t(.cw_create_maxMembers))
                             .font(.system(size: theme.captionSize))
                         Spacer()
                         Stepper(value: $config.maxMembers, in: 2...50) {
@@ -397,10 +408,10 @@ struct SpaceCreateDialog: View {
                 }
 
                 HStack {
-                    Button("取消") { dismiss() }
+                    Button(i18n.t(.cancel)) { dismiss() }
                         .keyboardShortcut(.cancelAction)
                     Spacer()
-                    Button("创建") { createSpace() }
+                    Button(i18n.t(.cw_create_btn)) { createSpace() }
                         .keyboardShortcut(.defaultAction)
                         .disabled(name.isEmpty || isCreating)
                 }
@@ -441,17 +452,17 @@ struct SpaceCreateDialog: View {
 
     private func collabModeLabel(_ mode: CollabMode) -> String {
         switch mode {
-        case .local: return "本机"
-        case .p2p: return "局域网"
-        case .gateway: return "远程"
+        case .local: return i18n.t(.cw_create_modeLocal)
+        case .p2p: return i18n.t(.cw_create_modeP2p)
+        case .gateway: return i18n.t(.cw_create_modeGateway)
         }
     }
 
     private func collabModeDesc(_ mode: CollabMode) -> String {
         switch mode {
-        case .local: return "单机离线协作"
-        case .p2p: return "Bonjour 局域网发现"
-        case .gateway: return "通过 Fusion Gateway"
+        case .local: return i18n.t(.cw_create_modeLocalDesc)
+        case .p2p: return i18n.t(.cw_create_modeP2pDesc)
+        case .gateway: return i18n.t(.cw_create_modeGatewayDesc)
         }
     }
 
@@ -483,6 +494,7 @@ struct SpaceCreateDialog: View {
 struct SpaceMainView: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     let spaceId: String
     @State private var space: CoworkSpace?
@@ -502,6 +514,20 @@ struct SpaceMainView: View {
         case snapshots = "快照"
         case desktop = "桌面"
         case settings = "设置"
+
+        var localLabel: String {
+            switch self {
+            case .members: return I18nManager.shared.t(.cw_side_members)
+            case .files: return I18nManager.shared.t(.cw_side_files)
+            case .knowledge: return I18nManager.shared.t(.cw_side_knowledge)
+            case .agents: return I18nManager.shared.t(.cw_side_agents)
+            case .artifacts: return I18nManager.shared.t(.cw_side_artifacts)
+            case .workflows: return I18nManager.shared.t(.cw_side_workflows)
+            case .snapshots: return I18nManager.shared.t(.cw_side_snapshots)
+            case .desktop: return I18nManager.shared.t(.cw_side_desktop)
+            case .settings: return I18nManager.shared.t(.cw_side_settings)
+            }
+        }
 
         var icon: String {
             switch self {
@@ -537,7 +563,7 @@ struct SpaceMainView: View {
                     }
                 }
             } else {
-                Text("加载中...")
+                Text(i18n.t(.cw_main_loading))
                     .foregroundStyle(theme.textSecondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -561,12 +587,12 @@ struct SpaceMainView: View {
                         .foregroundStyle(theme.textSecondary)
                         .lineLimit(1)
                     if s.config.enableDeepResearch {
-                        Label("深度研究", systemImage: "telescope")
+                        Label(i18n.t(.cw_main_deepResearch), systemImage: "telescope")
                             .font(.system(size: 9))
                             .foregroundStyle(theme.accent)
                     }
                     if s.config.enableComputerUse {
-                        Label("桌面操控", systemImage: "desktopcomputer")
+                        Label(i18n.t(.cw_main_computerUse), systemImage: "desktopcomputer")
                             .font(.system(size: 9))
                             .foregroundStyle(theme.accent)
                     }
@@ -595,10 +621,10 @@ struct SpaceMainView: View {
                 SpaceNotificationPopover()
             }
             Menu {
-                Button("创建快照") { createSnapshot() }
+                Button(i18n.t(.cw_main_createSnap)) { createSnapshot() }
                 if s.isOwner || s.ownerId == "local_user" {
                     Divider()
-                    Button("归档空间", role: .destructive) { archiveSpace() }
+                    Button(i18n.t(.cw_main_archive), role: .destructive) { archiveSpace() }
                 }
             } label: {
                 Image(systemName: "ellipsis.circle")
@@ -615,7 +641,7 @@ struct SpaceMainView: View {
         HStack(spacing: theme.spacingS) {
             Image(systemName: "lock.fill")
                 .foregroundStyle(theme.accentDestructive)
-            Text("此空间已归档 — 只读模式")
+            Text(i18n.t(.cw_main_archivedBanner))
                 .font(.system(size: theme.footnoteSize, weight: .medium))
                 .foregroundStyle(theme.accentDestructive)
             Spacer()
@@ -634,7 +660,7 @@ struct SpaceMainView: View {
                             .font(.system(size: theme.iconS))
                             .foregroundStyle(activeSidebarSection == section ? theme.accent : theme.textTertiary)
                             .frame(width: 20)
-                        Text(section.rawValue)
+                        Text(section.localLabel)
                             .font(.system(size: theme.footnoteSize, weight: activeSidebarSection == section ? .semibold : .regular))
                             .foregroundStyle(activeSidebarSection == section ? theme.accent : theme.textSecondary)
                         Spacer()
@@ -765,6 +791,7 @@ struct SpaceMainView: View {
 struct SpaceSharedChat: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     let spaceId: String
     let space: CoworkSpace
@@ -815,10 +842,10 @@ struct SpaceSharedChat: View {
             Image(systemName: "bubble.left.and.bubble.right")
                 .font(.system(size: 30))
                 .foregroundStyle(theme.textTertiary)
-            Text("空间对话")
+            Text(i18n.t(.cw_chat_emptyTitle))
                 .font(.system(size: theme.textSize, weight: .medium))
                 .foregroundStyle(theme.textSecondary)
-            Text("发送第一条消息，或 @Agent 开始协作")
+            Text(i18n.t(.cw_chat_emptyHint))
                 .font(.system(size: theme.footnoteSize))
                 .foregroundStyle(theme.textTertiary)
         }
@@ -877,7 +904,7 @@ struct SpaceSharedChat: View {
                     HStack(spacing: 4) {
                         ProgressView()
                             .controlSize(.mini)
-                        Text("思考中...")
+                        Text(i18n.t(.cw_chat_thinking))
                             .font(.system(size: 9, weight: .medium))
                             .foregroundStyle(theme.textTertiary)
                     }
@@ -952,7 +979,7 @@ struct SpaceSharedChat: View {
                     HStack(spacing: 3) {
                         Image(systemName: "doc.on.doc")
                             .font(.system(size: 9))
-                        Text("复制")
+                        Text(i18n.t(.cw_chat_copy))
                             .font(.system(size: 9))
                     }
                     .foregroundStyle(theme.textTertiary)
@@ -963,7 +990,7 @@ struct SpaceSharedChat: View {
                         HStack(spacing: 3) {
                             Image(systemName: "arrow.clockwise")
                                 .font(.system(size: 9))
-                            Text("重试")
+                            Text(i18n.t(.cw_chat_retry))
                                 .font(.system(size: 9))
                         }
                         .foregroundStyle(theme.textTertiary)
@@ -1024,20 +1051,20 @@ struct SpaceSharedChat: View {
             HStack(alignment: .bottom, spacing: theme.spacingS) {
                 Menu {
                     Button(action: { }) {
-                        Label("附件", systemImage: "paperclip")
+                        Label(i18n.t(.cw_chat_attach), systemImage: "paperclip")
                     }
                     if space.config.enableDeepResearch {
                         Button(action: { showDeepResearch = true }) {
-                            Label("深度研究", systemImage: "telescope")
+                            Label(i18n.t(.cw_create_deepResearch), systemImage: "telescope")
                         }
                     }
                     if space.config.enableWebSearch {
                         Button(action: { inputText += " /web " }) {
-                            Label("联网搜索", systemImage: "globe")
+                            Label(i18n.t(.cw_create_webSearch), systemImage: "globe")
                         }
                     }
                     Button(action: { }) {
-                        Label("截图", systemImage: "camera")
+                        Label(i18n.t(.cw_chat_screenshot), systemImage: "camera")
                     }
                 } label: {
                     Image(systemName: "plus.circle")
@@ -1049,7 +1076,7 @@ struct SpaceSharedChat: View {
 
                 if !availableAgents.isEmpty {
                     Menu {
-                        Button("无 (直接发送)") { selectedAgentId = nil }
+                        Button(i18n.t(.cw_chat_noAgent)) { selectedAgentId = nil }
                         Divider()
                         ForEach(availableAgents) { agent in
                             Button(action: { selectedAgentId = agent.id }) {
@@ -1103,7 +1130,7 @@ struct SpaceSharedChat: View {
                     }
                 }
 
-                TextField("输入消息，@Agent 协作...", text: $inputText, axis: .vertical)
+                TextField(i18n.t(.cw_chat_inputPh), text: $inputText, axis: .vertical)
                     .lineLimit(1...5)
                     .textFieldStyle(.plain)
                     .font(.system(size: theme.textSize))
@@ -1164,7 +1191,7 @@ struct SpaceSharedChat: View {
                         } else if event.isError {
                             spaceLog.error("stream error: \(event.content)")
                             if streamingContent.isEmpty {
-                                streamingContent = "错误: \(event.content)"
+                                streamingContent = String(format: i18n.t(.cw_chat_streamErr), event.content)
                             }
                             finalizeStreaming()
                         } else if event.isThinking {
@@ -1180,7 +1207,7 @@ struct SpaceSharedChat: View {
             } catch {
                 spaceLog.error("spaceChatStreamEvents failed: \(error.localizedDescription)")
                 await MainActor.run {
-                    streamingContent = "发送失败: \(error.localizedDescription)"
+                    streamingContent = String(format: i18n.t(.cw_chat_sendFail), error.localizedDescription)
                     finalizeStreaming()
                 }
             }
@@ -1247,9 +1274,9 @@ struct SpaceSharedChat: View {
 
     private var relayPickerView: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            Text("Agent 接力")
+            Text(i18n.t(.cw_chat_relay))
                 .font(.system(size: theme.footnoteSize, weight: .semibold))
-            Text("选择多个 Agent 依次处理消息")
+            Text(i18n.t(.cw_chat_relayHint))
                 .font(.system(size: 9))
                 .foregroundStyle(theme.textTertiary)
             ForEach(availableAgents) { agent in
@@ -1281,11 +1308,11 @@ struct SpaceSharedChat: View {
             }
             if !relayAgentIds.isEmpty {
                 HStack {
-                    Button("清除") { relayAgentIds = [] }
+                    Button(i18n.t(.cw_chat_relayClear)) { relayAgentIds = [] }
                         .buttonStyle(.plain)
                         .font(.system(size: 9))
                     Spacer()
-                    Button("完成") { showRelayPicker = false }
+                    Button(i18n.t(.cw_chat_relayDone)) { showRelayPicker = false }
                         .buttonStyle(.borderedProminent)
                         .controlSize(.small)
                 }
@@ -1323,8 +1350,8 @@ struct SpaceSharedChat: View {
                 await MainActor.run {
                     let errMsg = SpaceMessage(
                         spaceId: spaceId, senderId: "system",
-                        senderName: "系统", senderType: "system",
-                        content: "接力失败: \(error.localizedDescription)"
+                        senderName: i18n.t(.cw_system_name), senderType: "system",
+                        content: String(format: i18n.t(.cw_chat_relayFail), error.localizedDescription)
                     )
                     messages.append(errMsg)
                     isRelaying = false
@@ -1344,6 +1371,7 @@ struct SpaceCommentThread: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var i18n = I18nManager.shared
 
     let spaceId: String
     let messageId: String
@@ -1355,7 +1383,7 @@ struct SpaceCommentThread: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("批注")
+                Text(i18n.t(.cw_comment_title))
                     .font(.system(size: theme.headlineSize, weight: .bold))
                 Spacer()
                 Button(action: { dismiss() }) {
@@ -1381,10 +1409,10 @@ struct SpaceCommentThread: View {
 
             Divider()
             HStack(spacing: theme.spacingS) {
-                TextField("添加批注...", text: $newComment)
+                TextField(i18n.t(.cw_comment_addPh), text: $newComment)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit { addComment() }
-                Button("发送") { addComment() }
+                Button(i18n.t(.cw_comment_send)) { addComment() }
                     .disabled(newComment.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .padding(theme.spacingL)
@@ -1451,6 +1479,7 @@ struct SpaceCommentThread: View {
 struct SpaceMemberPanel: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     let spaceId: String
     @State private var members: [SpaceMember] = []
@@ -1466,7 +1495,7 @@ struct SpaceMemberPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("成员")
+                Text(i18n.t(.cw_member_title))
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
                     .foregroundStyle(theme.textSecondary)
                 Spacer()
@@ -1501,7 +1530,7 @@ struct SpaceMemberPanel: View {
             Divider().padding(.vertical, theme.spacingXS)
 
             HStack {
-                Text("局域网发现")
+                Text(i18n.t(.cw_member_lanDiscovery))
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
                     .foregroundStyle(theme.textSecondary)
                 Spacer()
@@ -1509,7 +1538,7 @@ struct SpaceMemberPanel: View {
                     HStack(spacing: 2) {
                         Image(systemName: "antenna.radiowaves.left.and.right")
                             .font(.system(size: 9))
-                        Text(isScanning ? "扫描中..." : "扫描")
+                        Text(isScanning ? i18n.t(.cw_member_scanning) : i18n.t(.cw_member_scan))
                             .font(.system(size: 9))
                     }
                 }
@@ -1539,20 +1568,29 @@ struct SpaceMemberPanel: View {
             }
         }
         .onAppear { loadMembers() }
-        .alert("邀请成员", isPresented: $showInviteDialog) {
-            Picker("角色", selection: $inviteRole) {
+        .alert(i18n.t(.cw_member_inviteTitle), isPresented: $showInviteDialog) {
+            Picker(i18n.t(.cw_member_inviteRole), selection: $inviteRole) {
                 ForEach(SpaceRole.allCases, id: \.self) { role in
-                    Text(role.rawValue).tag(role)
+                    Text(roleLabel(role)).tag(role)
                 }
             }
-            Stepper("最大使用次数: \(inviteMaxUses)", value: $inviteMaxUses, in: 0...100)
-            Stepper("过期时间(小时): \(inviteExpiresHours)", value: $inviteExpiresHours, in: 0...168)
-            Button("生成邀请链接") { generateInvite() }
-            Button("取消", role: .cancel) { }
+            Stepper(String(format: i18n.t(.cw_member_inviteMaxUses), inviteMaxUses), value: $inviteMaxUses, in: 0...100)
+            Stepper(String(format: i18n.t(.cw_member_inviteExpires), inviteExpiresHours), value: $inviteExpiresHours, in: 0...168)
+            Button(i18n.t(.cw_member_inviteGen)) { generateInvite() }
+            Button(i18n.t(.cancel), role: .cancel) { }
         } message: {
             if !inviteCode.isEmpty {
-                Text("邀请码: \(inviteCode)")
+                Text(String(format: i18n.t(.cw_member_inviteCode), inviteCode))
             }
+        }
+    }
+
+    private func roleLabel(_ role: SpaceRole) -> String {
+        switch role {
+        case .owner: return i18n.t(.cw_role_owner)
+        case .admin: return i18n.t(.cw_role_admin)
+        case .member: return i18n.t(.cw_role_member)
+        case .viewer: return i18n.t(.cw_role_viewer)
         }
     }
 
@@ -1568,7 +1606,7 @@ struct SpaceMemberPanel: View {
                 Text(member.displayLabel)
                     .font(.system(size: theme.captionSize, weight: .medium))
                     .lineLimit(1)
-                Text(member.role.rawValue)
+                Text(roleLabel(member.role))
                     .font(.system(size: 9))
                     .foregroundStyle(theme.textTertiary)
             }
@@ -1576,10 +1614,10 @@ struct SpaceMemberPanel: View {
             if member.role != .owner {
                 Menu {
                     ForEach(SpaceRole.allCases, id: \.self) { role in
-                        Button(role.rawValue) { updateRole(member, newRole: role) }
+                        Button(roleLabel(role)) { updateRole(member, newRole: role) }
                     }
                     Divider()
-                    Button("移除", role: .destructive) { removeMember(member) }
+                    Button(i18n.t(.cw_member_remove), role: .destructive) { removeMember(member) }
                 } label: {
                     Image(systemName: "ellipsis")
                         .font(.system(size: 8))
@@ -1668,6 +1706,7 @@ struct SpaceMemberPanel: View {
 struct SpaceFilesPanel: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     let spaceId: String
     @State private var files: [SpaceAttachment] = []
@@ -1676,7 +1715,7 @@ struct SpaceFilesPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("文件")
+                Text(i18n.t(.cw_files_title))
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
                     .foregroundStyle(theme.textSecondary)
                 Spacer()
@@ -1696,7 +1735,7 @@ struct SpaceFilesPanel: View {
                     Image(systemName: "folder")
                         .font(.system(size: 20))
                         .foregroundStyle(theme.textTertiary)
-                    Text("暂无文件")
+                    Text(i18n.t(.cw_files_empty))
                         .font(.system(size: 9))
                         .foregroundStyle(theme.textTertiary)
                 }
@@ -1750,6 +1789,7 @@ struct SpaceFilesPanel: View {
 struct SpaceAgentPanel: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     let spaceId: String
     @State private var agents: [SpaceAgent] = []
@@ -1767,7 +1807,7 @@ struct SpaceAgentPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("Agent")
+                Text(i18n.t(.cw_agent_title))
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
                     .foregroundStyle(theme.textSecondary)
                 Spacer()
@@ -1792,10 +1832,10 @@ struct SpaceAgentPanel: View {
                     Image(systemName: "brain.head.profile")
                         .font(.system(size: 20))
                         .foregroundStyle(theme.textTertiary)
-                    Text("暂无共享 Agent")
+                    Text(i18n.t(.cw_agent_empty))
                         .font(.system(size: 9))
                         .foregroundStyle(theme.textTertiary)
-                    Button("添加 Agent") {
+                    Button(i18n.t(.cw_agent_add)) {
                         showEditor = true; editAgentId = nil; editName = ""; editPrompt = ""
                     }
                     .font(.system(size: 9))
@@ -1845,7 +1885,7 @@ struct SpaceAgentPanel: View {
             }
             Spacer()
             Menu {
-                Button("编辑") {
+                Button(i18n.t(.cw_agent_edit)) {
                     editAgentId = agent.id
                     editName = agent.name
                     editPrompt = agent.systemPrompt
@@ -1853,9 +1893,9 @@ struct SpaceAgentPanel: View {
                     editModel = agent.model
                     showEditor = true
                 }
-                Button("复制到项目") { }
+                Button(i18n.t(.cw_agent_copyToProject)) { }
                 Divider()
-                Button("移除", role: .destructive) { removeAgent(agent) }
+                Button(i18n.t(.cw_agent_remove), role: .destructive) { removeAgent(agent) }
             } label: {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 8))
@@ -1869,27 +1909,27 @@ struct SpaceAgentPanel: View {
 
     private var agentEditorSheet: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            Text(editAgentId == nil ? "添加 Agent" : "编辑 Agent")
+            Text(editAgentId == nil ? i18n.t(.cw_agent_addTitle) : i18n.t(.cw_agent_editTitle))
                 .font(.system(size: theme.headlineSize, weight: .bold))
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("名称").font(.system(size: theme.captionSize)).foregroundStyle(theme.textSecondary)
-                TextField("Agent 名称", text: $editName)
+                Text(i18n.t(.cw_agent_name)).font(.system(size: theme.captionSize)).foregroundStyle(theme.textSecondary)
+                TextField(i18n.t(.cw_agent_namePh), text: $editName)
                     .textFieldStyle(.roundedBorder)
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("模型").font(.system(size: theme.captionSize)).foregroundStyle(theme.textSecondary)
-                TextField("模型（留空使用默认）", text: $editModel)
+                Text(i18n.t(.cw_agent_model)).font(.system(size: theme.captionSize)).foregroundStyle(theme.textSecondary)
+                TextField(i18n.t(.cw_agent_modelPh), text: $editModel)
                     .textFieldStyle(.roundedBorder)
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("权限").font(.system(size: theme.captionSize)).foregroundStyle(theme.textSecondary)
+                Text(i18n.t(.cw_agent_perm)).font(.system(size: theme.captionSize)).foregroundStyle(theme.textSecondary)
                 Picker("", selection: $editPerm) {
-                    Text("全部成员可用").tag("all_member")
-                    Text("仅管理员").tag("admin_only")
-                    Text("指定成员").tag("custom")
+                    Text(i18n.t(.cw_agent_permAll)).tag("all_member")
+                    Text(i18n.t(.cw_agent_permAdmin)).tag("admin_only")
+                    Text(i18n.t(.cw_agent_permCustom)).tag("custom")
                 }
                 .pickerStyle(.radioGroup)
                 .font(.system(size: theme.captionSize))
@@ -1907,9 +1947,9 @@ struct SpaceAgentPanel: View {
 
             Spacer(minLength: 0)
             HStack {
-                Button("取消") { showEditor = false }
+                Button(i18n.t(.cancel)) { showEditor = false }
                 Spacer()
-                Button("保存") { saveAgent() }
+                Button(i18n.t(.save)) { saveAgent() }
                     .disabled(editName.isEmpty || isSaving)
             }
         }
@@ -1919,9 +1959,9 @@ struct SpaceAgentPanel: View {
 
     private func permLabel(_ perm: String) -> String {
         switch perm {
-        case "all_member": return "全部成员"
-        case "admin_only": return "仅管理员"
-        case "custom": return "自定义"
+        case "all_member": return i18n.t(.cw_agent_permAllLabel)
+        case "admin_only": return i18n.t(.cw_agent_permAdmin)
+        case "custom": return i18n.t(.cw_agent_permCustomLabel)
         default: return perm
         }
     }
@@ -1983,6 +2023,7 @@ struct SpaceAgentPanel: View {
 struct SpaceSnapshotPanel: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     let spaceId: String
     @State private var snapshots: [SpaceSnapshot] = []
@@ -1996,7 +2037,7 @@ struct SpaceSnapshotPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("快照")
+                Text(i18n.t(.cw_snap2_title))
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
                     .foregroundStyle(theme.textSecondary)
                 Spacer()
@@ -2021,7 +2062,7 @@ struct SpaceSnapshotPanel: View {
                     Image(systemName: "camera")
                         .font(.system(size: 20))
                         .foregroundStyle(theme.textTertiary)
-                    Text("暂无快照")
+                    Text(i18n.t(.cw_snap2_empty))
                         .font(.system(size: 9))
                         .foregroundStyle(theme.textTertiary)
                 }
@@ -2039,15 +2080,15 @@ struct SpaceSnapshotPanel: View {
             }
         }
         .onAppear { loadSnapshots() }
-        .alert("创建快照", isPresented: $showCreate) {
-            TextField("名称", text: $snapName)
-            Button("创建") { createSnapshot() }
-            Button("取消", role: .cancel) { }
+        .alert(i18n.t(.cw_snap2_createTitle), isPresented: $showCreate) {
+            TextField(i18n.t(.cw_snap2_namePh), text: $snapName)
+            Button(i18n.t(.cw_snap2_createTitle)) { createSnapshot() }
+            Button(i18n.t(.cancel), role: .cancel) { }
         }
-        .alert("Fork 快照", isPresented: $showForkDialog) {
-            TextField("新空间名称", text: $forkName)
-            Button("Fork") { forkSnapshot() }
-            Button("取消", role: .cancel) { }
+        .alert(i18n.t(.cw_snap2_forkTitle), isPresented: $showForkDialog) {
+            TextField(i18n.t(.cw_snap2_forkSpacePh), text: $forkName)
+            Button(i18n.t(.cw_snap2_forkTitle)) { forkSnapshot() }
+            Button(i18n.t(.cancel), role: .cancel) { }
         }
     }
 
@@ -2069,14 +2110,14 @@ struct SpaceSnapshotPanel: View {
             }
             Spacer()
             Menu {
-                Button("恢复此快照") { restoreSnapshot(snap.id) }
-                Button("Fork 为新空间") {
+                Button(i18n.t(.cw_snap2_restore)) { restoreSnapshot(snap.id) }
+                Button(i18n.t(.cw_snap2_forkNew)) {
                     forkSnapId = snap.id
                     forkName = snap.name + " (Fork)"
                     showForkDialog = true
                 }
                 Divider()
-                Button("删除", role: .destructive) { deleteSnapshot(snap.id) }
+                Button(i18n.t(.delete), role: .destructive) { deleteSnapshot(snap.id) }
             } label: {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 8))
@@ -2160,6 +2201,7 @@ struct SpaceSnapshotPanel: View {
 struct SpaceArtifactPanel: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     let spaceId: String
     @Binding var selectedArtifact: SpaceArtifact?
@@ -2176,7 +2218,7 @@ struct SpaceArtifactPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("产物")
+                Text(i18n.t(.cw_art_title))
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
                     .foregroundStyle(theme.textSecondary)
                 Spacer()
@@ -2228,17 +2270,17 @@ struct SpaceArtifactPanel: View {
             }
         }
         .onAppear { loadArtifacts() }
-        .alert("创建产物", isPresented: $showCreateDialog) {
-            TextField("名称", text: $newArtName)
-            Picker("类型", selection: $newArtKind) {
-                Text("代码").tag("code")
-                Text("文档").tag("doc")
-                Text("可视化").tag("visualization")
-                Text("数据").tag("data")
+        .alert(i18n.t(.cw_art_createTitle), isPresented: $showCreateDialog) {
+            TextField(i18n.t(.cw_snap2_namePh), text: $newArtName)
+            Picker(i18n.t(.cw_art_kindPicker), selection: $newArtKind) {
+                Text(i18n.t(.cw_art_kindCode)).tag("code")
+                Text(i18n.t(.cw_art_kindDoc)).tag("doc")
+                Text(i18n.t(.cw_art_kindViz)).tag("visualization")
+                Text(i18n.t(.cw_art_kindData)).tag("data")
             }
-            TextField("描述（可选）", text: $newArtDesc)
-            Button("创建") { createArtifact() }
-            Button("取消", role: .cancel) { }
+            TextField(i18n.t(.cw_create_descPh), text: $newArtDesc)
+            Button(i18n.t(.cw_create_btn)) { createArtifact() }
+            Button(i18n.t(.cancel), role: .cancel) { }
         }
     }
 
@@ -2249,11 +2291,11 @@ struct SpaceArtifactPanel: View {
 
     private func kindLabel(_ kind: String) -> String {
         switch kind {
-        case "all": return "全部"
-        case "code": return "代码"
-        case "doc": return "文档"
-        case "visualization": return "可视化"
-        case "data": return "数据"
+        case "all": return i18n.t(.cw_art_kindAll)
+        case "code": return i18n.t(.cw_art_kindCode)
+        case "doc": return i18n.t(.cw_art_kindDoc)
+        case "visualization": return i18n.t(.cw_art_kindViz)
+        case "data": return i18n.t(.cw_art_kindData)
         default: return kind
         }
     }
@@ -2278,7 +2320,7 @@ struct SpaceArtifactPanel: View {
                     Text(art.name)
                         .font(.system(size: theme.captionSize, weight: .medium))
                         .lineLimit(1)
-                    Text(art.kind)
+                    Text(kindLabel(art.kind))
                         .font(.system(size: 9))
                         .foregroundStyle(theme.textTertiary)
                 }
@@ -2333,6 +2375,7 @@ struct SpaceArtifactPanel: View {
 struct SpaceWorkflowPanel: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     let spaceId: String
     @State private var workflows: [SpaceWorkflow] = []
@@ -2345,7 +2388,7 @@ struct SpaceWorkflowPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("工作流")
+                Text(i18n.t(.cw_wf_title))
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
                     .foregroundStyle(theme.textSecondary)
                 Spacer()
@@ -2370,10 +2413,10 @@ struct SpaceWorkflowPanel: View {
                     Image(systemName: "arrow.triangle.branch")
                         .font(.system(size: 20))
                         .foregroundStyle(theme.textTertiary)
-                    Text("暂无工作流")
+                    Text(i18n.t(.cw_wf_empty))
                         .font(.system(size: 9))
                         .foregroundStyle(theme.textTertiary)
-                    Button("创建工作流") { showCreateDialog = true }
+                    Button(i18n.t(.cw_wf_create)) { showCreateDialog = true }
                         .font(.system(size: 9))
                         .buttonStyle(.plain)
                         .foregroundStyle(theme.accent)
@@ -2394,7 +2437,7 @@ struct SpaceWorkflowPanel: View {
             Spacer()
             if let wf = selectedWorkflow {
                 VStack(alignment: .leading, spacing: theme.spacingXS) {
-                    Text("DAG: \(wf.name)")
+                    Text(String(format: i18n.t(.cw_snap2_dagName), wf.name))
                         .font(.system(size: 9, weight: .semibold))
                         .foregroundStyle(theme.textTertiary)
                     WorkflowDagCanvas(nodeCount: wf.nodeCount, status: wf.status)
@@ -2412,16 +2455,16 @@ struct SpaceWorkflowPanel: View {
 
     private var workflowCreateSheet: some View {
         VStack(spacing: theme.spacingM) {
-            Text("创建工作流")
+            Text(i18n.t(.cw_wf_createTitle))
                 .font(.system(size: theme.bodySize, weight: .semibold))
-            TextField("工作流名称", text: $newWorkflowName)
+            TextField(i18n.t(.cw_wf_namePh), text: $newWorkflowName)
                 .textFieldStyle(.roundedBorder)
-            TextField("描述 (可选)", text: $newWorkflowDesc)
+            TextField(i18n.t(.cw_wf_descPh), text: $newWorkflowDesc)
                 .textFieldStyle(.roundedBorder)
             HStack {
-                Button("取消") { showCreateDialog = false }
+                Button(i18n.t(.cancel)) { showCreateDialog = false }
                     .buttonStyle(.bordered)
-                Button("创建") {
+                Button(i18n.t(.cw_create_btn)) {
                     createWorkflow()
                     showCreateDialog = false
                 }
@@ -2443,7 +2486,7 @@ struct SpaceWorkflowPanel: View {
                     .font(.system(size: theme.captionSize, weight: .medium))
                 HStack(spacing: theme.spacingXS) {
                     workflowStatusBadge(wf.status)
-                    Text("\(wf.nodeCount) 节点")
+                    Text(String(format: i18n.t(.cw_wf_nodeCount), wf.nodeCount))
                         .font(.system(size: 9))
                         .foregroundStyle(theme.textTertiary)
                 }
@@ -2481,9 +2524,19 @@ struct SpaceWorkflowPanel: View {
         }
         HStack(spacing: 2) {
             Circle().fill(color).frame(width: 5, height: 5)
-            Text(status)
+            Text(statusLabel(status))
                 .font(.system(size: 9))
                 .foregroundStyle(color)
+        }
+    }
+
+    private func statusLabel(_ status: String) -> String {
+        switch status {
+        case "running": return i18n.t(.cw_wf_status_running)
+        case "completed": return i18n.t(.cw_wf_status_completed)
+        case "failed": return i18n.t(.cw_wf_status_failed)
+        case "idle": return i18n.t(.cw_wf_status_idle)
+        default: return status
         }
     }
 
