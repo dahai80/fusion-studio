@@ -177,6 +177,11 @@ struct IconRailView: View {
                 // Callers: IconRailView rail button tap. Affected API: selectedSheet routing for douyin section. Phase 4 GUI。
                 case .douyinOperation:
                     appState.selectedSheet = .douyinOperationSheet
+                // Callers: IconRailView rail button tap. Affected API: selectedModule/.selectedSheet routing for trainer section.
+                // Data schemas: SidebarSection.trainer → Module.trainer → ProductSheet.trainerSheet. User instruction: "continue Task" — Task #5 (#175)
+                case .trainer:
+                    appState.selectedModule = .trainer
+                    appState.selectedSheet = .trainerSheet
                 }
             }
             railLog.info("Section selected: \(section.rawValue)")
