@@ -1651,6 +1651,79 @@ enum I18nKey: String, CaseIterable {
     case ai_perm_capDelete = "ai_perm_capDelete"
     case ai_perm_capCode = "ai_perm_capCode"
     case ai_perm_capNet = "ai_perm_capNet"
+    case ai_review_title = "ai_review_title"
+    case ai_review_export = "ai_review_export"
+    case ai_review_sevCritical = "ai_review_sevCritical"
+    case ai_review_sevWarning = "ai_review_sevWarning"
+    case ai_review_sevInfo = "ai_review_sevInfo"
+    case ai_review_empty = "ai_review_empty"
+    case ai_review_exportTitle = "ai_review_exportTitle"
+    case ai_review_copy = "ai_review_copy"
+    case ai_dash_title = "ai_dash_title"
+    case ai_dash_subtitle = "ai_dash_subtitle"
+    case ai_dash_statToday = "ai_dash_statToday"
+    case ai_dash_statToken = "ai_dash_statToken"
+    case ai_dash_statActive = "ai_dash_statActive"
+    case ai_dash_statError = "ai_dash_statError"
+    case ai_dash_quickTitle = "ai_dash_quickTitle"
+    case ai_dash_qaCreate = "ai_dash_qaCreate"
+    case ai_dash_qaKb = "ai_dash_qaKb"
+    case ai_dash_qaConnector = "ai_dash_qaConnector"
+    case ai_dash_qaApiDoc = "ai_dash_qaApiDoc"
+    case ai_dash_recentTitle = "ai_dash_recentTitle"
+    case ai_dash_recentViewAll = "ai_dash_recentViewAll"
+    case ai_dash_empty = "ai_dash_empty"
+    case ai_dash_alertTitle = "ai_dash_alertTitle"
+    case ai_dash_alertEmpty = "ai_dash_alertEmpty"
+    case ai_dash_alertUnknown = "ai_dash_alertUnknown"
+    case ai_list_create = "ai_list_create"
+    case ai_list_searchPh = "ai_list_searchPh"
+    case ai_list_delTitle = "ai_list_delTitle"
+    case ai_list_delMsgFmt = "ai_list_delMsgFmt"
+    case ai_list_filterFmt = "ai_list_filterFmt"
+    case ai_list_hName = "ai_list_hName"
+    case ai_list_hStatus = "ai_list_hStatus"
+    case ai_list_hModel = "ai_list_hModel"
+    case ai_list_hKb = "ai_list_hKb"
+    case ai_list_hUpdated = "ai_list_hUpdated"
+    case ai_list_hAction = "ai_list_hAction"
+    case ai_list_empty = "ai_list_empty"
+    case ai_list_emptyHint = "ai_list_emptyHint"
+    case ai_list_actDebug = "ai_list_actDebug"
+    case ai_list_actEdit = "ai_list_actEdit"
+    case ai_list_actClone = "ai_list_actClone"
+    case ai_list_actArchive = "ai_list_actArchive"
+    case ai_list_actDelete = "ai_list_actDelete"
+    case ai_list_scopeAll = "ai_list_scopeAll"
+    case ai_list_scopeDraft = "ai_list_scopeDraft"
+    case ai_list_scopePublished = "ai_list_scopePublished"
+    case ai_list_sortUpdated = "ai_list_sortUpdated"
+    case ai_list_sortCreated = "ai_list_sortCreated"
+    case ai_list_sortName = "ai_list_sortName"
+    case ai_kb_title = "ai_kb_title"
+    case ai_kb_searchPh = "ai_kb_searchPh"
+    case ai_kb_newBtn = "ai_kb_newBtn"
+    case ai_kb_unnamed = "ai_kb_unnamed"
+    case ai_kb_createdFmt = "ai_kb_createdFmt"
+    case ai_kb_detail = "ai_kb_detail"
+    case ai_kb_statusActive = "ai_kb_statusActive"
+    case ai_kb_empty = "ai_kb_empty"
+    case ai_kb_emptyHint = "ai_kb_emptyHint"
+    case ai_kb_sheetTitle = "ai_kb_sheetTitle"
+    case ai_kb_sheetName = "ai_kb_sheetName"
+    case ai_kb_sheetNamePh = "ai_kb_sheetNamePh"
+    case ai_kb_sheetDesc = "ai_kb_sheetDesc"
+    case ai_kb_sheetCreate = "ai_kb_sheetCreate"
+    case ai_kb_detTitle = "ai_kb_detTitle"
+    case ai_kb_detTabFiles = "ai_kb_detTabFiles"
+    case ai_kb_detTabInstruction = "ai_kb_detTabInstruction"
+    case ai_kb_detTabAgents = "ai_kb_detTabAgents"
+    case ai_kb_filesEmpty = "ai_kb_filesEmpty"
+    case ai_kb_artRemove = "ai_kb_artRemove"
+    case ai_kb_instrTitle = "ai_kb_instrTitle"
+    case ai_kb_instrSave = "ai_kb_instrSave"
+    case ai_kb_agentsTitle = "ai_kb_agentsTitle"
+    case ai_kb_agentsEmpty = "ai_kb_agentsEmpty"
 }
 
 // MARK: - 翻译管理器
@@ -2954,6 +3027,79 @@ let zhCNTranslations: [String: String] = [
     "ai_perm_capDelete": "删除知识库",
     "ai_perm_capCode": "执行代码",
     "ai_perm_capNet": "访问网络",
+    "ai_review_title": "Diff 审查",
+    "ai_review_export": "导出 review.md",
+    "ai_review_sevCritical": "严重",
+    "ai_review_sevWarning": "警告",
+    "ai_review_sevInfo": "信息",
+    "ai_review_empty": "暂无 Diff 数据",
+    "ai_review_exportTitle": "导出 review.md",
+    "ai_review_copy": "复制到剪贴板",
+    "ai_dash_title": "控制台总览",
+    "ai_dash_subtitle": "Agent 管理控制台 — 全局数据看板与快捷入口",
+    "ai_dash_statToday": "今日请求",
+    "ai_dash_statToken": "Token 消耗",
+    "ai_dash_statActive": "活跃 Agent",
+    "ai_dash_statError": "异常请求",
+    "ai_dash_quickTitle": "快捷入口",
+    "ai_dash_qaCreate": "创建新 Agent",
+    "ai_dash_qaKb": "新建知识库",
+    "ai_dash_qaConnector": "管理连接器",
+    "ai_dash_qaApiDoc": "API 文档",
+    "ai_dash_recentTitle": "最近 Agent",
+    "ai_dash_recentViewAll": "查看全部",
+    "ai_dash_empty": "暂无 Agent，点击上方创建",
+    "ai_dash_alertTitle": "告警通知",
+    "ai_dash_alertEmpty": "一切正常，无告警",
+    "ai_dash_alertUnknown": "未知告警",
+    "ai_list_create": "创建 Agent",
+    "ai_list_searchPh": "搜索 Agent 名称...",
+    "ai_list_delTitle": "确认删除",
+    "ai_list_delMsgFmt": "确定要删除 Agent「%@」吗？此操作不可撤销。",
+    "ai_list_filterFmt": "筛选: %@",
+    "ai_list_hName": "Agent 名称",
+    "ai_list_hStatus": "状态",
+    "ai_list_hModel": "模型",
+    "ai_list_hKb": "关联知识库",
+    "ai_list_hUpdated": "最后更新",
+    "ai_list_hAction": "操作",
+    "ai_list_empty": "暂无 Agent",
+    "ai_list_emptyHint": "点击「创建 Agent」开始构建智能体",
+    "ai_list_actDebug": "调试",
+    "ai_list_actEdit": "编辑",
+    "ai_list_actClone": "复制",
+    "ai_list_actArchive": "归档",
+    "ai_list_actDelete": "删除",
+    "ai_list_scopeAll": "全部",
+    "ai_list_scopeDraft": "草稿",
+    "ai_list_scopePublished": "已发布",
+    "ai_list_sortUpdated": "最近更新",
+    "ai_list_sortCreated": "创建时间",
+    "ai_list_sortName": "名称",
+    "ai_kb_title": "知识库管理",
+    "ai_kb_searchPh": "搜索项目...",
+    "ai_kb_newBtn": "新建项目",
+    "ai_kb_unnamed": "未命名",
+    "ai_kb_createdFmt": "创建于 %@",
+    "ai_kb_detail": "详情",
+    "ai_kb_statusActive": "活跃",
+    "ai_kb_empty": "暂无知识库项目",
+    "ai_kb_emptyHint": "创建项目，上传文档，为 Agent 提供知识支撑",
+    "ai_kb_sheetTitle": "新建知识库项目",
+    "ai_kb_sheetName": "项目名称",
+    "ai_kb_sheetNamePh": "输入项目名称",
+    "ai_kb_sheetDesc": "项目描述",
+    "ai_kb_sheetCreate": "创建",
+    "ai_kb_detTitle": "项目详情",
+    "ai_kb_detTabFiles": "文件",
+    "ai_kb_detTabInstruction": "指令",
+    "ai_kb_detTabAgents": "关联Agent",
+    "ai_kb_filesEmpty": "暂无文件",
+    "ai_kb_artRemove": "移除",
+    "ai_kb_instrTitle": "项目指令",
+    "ai_kb_instrSave": "保存指令",
+    "ai_kb_agentsTitle": "绑定此知识库的 Agent",
+    "ai_kb_agentsEmpty": "暂无 Agent 绑定此知识库",
 ]
 
 let enUSTranslations: [String: String] = [
@@ -4212,6 +4358,79 @@ let enUSTranslations: [String: String] = [
     "ai_perm_capDelete": "Delete knowledge base",
     "ai_perm_capCode": "Execute code",
     "ai_perm_capNet": "Access network",
+    "ai_review_title": "Diff Review",
+    "ai_review_export": "Export review.md",
+    "ai_review_sevCritical": "Critical",
+    "ai_review_sevWarning": "Warning",
+    "ai_review_sevInfo": "Info",
+    "ai_review_empty": "No Diff data",
+    "ai_review_exportTitle": "Export review.md",
+    "ai_review_copy": "Copy to clipboard",
+    "ai_dash_title": "Console Overview",
+    "ai_dash_subtitle": "Agent management console — global dashboard and quick access",
+    "ai_dash_statToday": "Today's requests",
+    "ai_dash_statToken": "Token usage",
+    "ai_dash_statActive": "Active agents",
+    "ai_dash_statError": "Error requests",
+    "ai_dash_quickTitle": "Quick access",
+    "ai_dash_qaCreate": "Create new agent",
+    "ai_dash_qaKb": "New knowledge base",
+    "ai_dash_qaConnector": "Manage connectors",
+    "ai_dash_qaApiDoc": "API docs",
+    "ai_dash_recentTitle": "Recent agents",
+    "ai_dash_recentViewAll": "View all",
+    "ai_dash_empty": "No agents yet, click above to create",
+    "ai_dash_alertTitle": "Alerts",
+    "ai_dash_alertEmpty": "All clear, no alerts",
+    "ai_dash_alertUnknown": "Unknown alert",
+    "ai_list_create": "Create agent",
+    "ai_list_searchPh": "Search agent name...",
+    "ai_list_delTitle": "Confirm delete",
+    "ai_list_delMsgFmt": "Are you sure you want to delete agent \"%@\"? This cannot be undone.",
+    "ai_list_filterFmt": "Filter: %@",
+    "ai_list_hName": "Agent name",
+    "ai_list_hStatus": "Status",
+    "ai_list_hModel": "Model",
+    "ai_list_hKb": "Knowledge base",
+    "ai_list_hUpdated": "Last updated",
+    "ai_list_hAction": "Actions",
+    "ai_list_empty": "No agents",
+    "ai_list_emptyHint": "Click \"Create agent\" to start building",
+    "ai_list_actDebug": "Debug",
+    "ai_list_actEdit": "Edit",
+    "ai_list_actClone": "Clone",
+    "ai_list_actArchive": "Archive",
+    "ai_list_actDelete": "Delete",
+    "ai_list_scopeAll": "All",
+    "ai_list_scopeDraft": "Draft",
+    "ai_list_scopePublished": "Published",
+    "ai_list_sortUpdated": "Last updated",
+    "ai_list_sortCreated": "Created time",
+    "ai_list_sortName": "Name",
+    "ai_kb_title": "Knowledge base management",
+    "ai_kb_searchPh": "Search projects...",
+    "ai_kb_newBtn": "New project",
+    "ai_kb_unnamed": "Untitled",
+    "ai_kb_createdFmt": "Created on %@",
+    "ai_kb_detail": "Details",
+    "ai_kb_statusActive": "Active",
+    "ai_kb_empty": "No knowledge base projects",
+    "ai_kb_emptyHint": "Create a project, upload documents to provide knowledge for agents",
+    "ai_kb_sheetTitle": "New knowledge base project",
+    "ai_kb_sheetName": "Project name",
+    "ai_kb_sheetNamePh": "Enter project name",
+    "ai_kb_sheetDesc": "Project description",
+    "ai_kb_sheetCreate": "Create",
+    "ai_kb_detTitle": "Project details",
+    "ai_kb_detTabFiles": "Files",
+    "ai_kb_detTabInstruction": "Instructions",
+    "ai_kb_detTabAgents": "Linked agents",
+    "ai_kb_filesEmpty": "No files",
+    "ai_kb_artRemove": "Remove",
+    "ai_kb_instrTitle": "Project instructions",
+    "ai_kb_instrSave": "Save instructions",
+    "ai_kb_agentsTitle": "Agents linked to this knowledge base",
+    "ai_kb_agentsEmpty": "No agents linked to this knowledge base",
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -5464,6 +5683,79 @@ let jaJPTranslations: [String: String] = [
     "ai_perm_capDelete": "ナレッジベース削除",
     "ai_perm_capCode": "コード実行",
     "ai_perm_capNet": "ネットワークアクセス",
+    "ai_review_title": "Diff レビュー",
+    "ai_review_export": "review.md をエクスポート",
+    "ai_review_sevCritical": "重大",
+    "ai_review_sevWarning": "警告",
+    "ai_review_sevInfo": "情報",
+    "ai_review_empty": "Diff データなし",
+    "ai_review_exportTitle": "review.md をエクスポート",
+    "ai_review_copy": "クリップボードにコピー",
+    "ai_dash_title": "コンソール概要",
+    "ai_dash_subtitle": "Agent 管理コンソール — グローバルダッシュボードとクイックアクセス",
+    "ai_dash_statToday": "本日のリクエスト",
+    "ai_dash_statToken": "Token 消費",
+    "ai_dash_statActive": "アクティブ Agent",
+    "ai_dash_statError": "エラーリクエスト",
+    "ai_dash_quickTitle": "クイックアクセス",
+    "ai_dash_qaCreate": "新規 Agent 作成",
+    "ai_dash_qaKb": "新規ナレッジベース",
+    "ai_dash_qaConnector": "コネクタ管理",
+    "ai_dash_qaApiDoc": "API ドキュメント",
+    "ai_dash_recentTitle": "最近の Agent",
+    "ai_dash_recentViewAll": "すべて表示",
+    "ai_dash_empty": "Agent なし、上部をクリックして作成",
+    "ai_dash_alertTitle": "アラート通知",
+    "ai_dash_alertEmpty": "すべて正常、アラートなし",
+    "ai_dash_alertUnknown": "不明なアラート",
+    "ai_list_create": "Agent 作成",
+    "ai_list_searchPh": "Agent 名を検索...",
+    "ai_list_delTitle": "削除確認",
+    "ai_list_delMsgFmt": "Agent「%@」を削除しますか？この操作は取り消せません。",
+    "ai_list_filterFmt": "フィルター: %@",
+    "ai_list_hName": "Agent 名",
+    "ai_list_hStatus": "ステータス",
+    "ai_list_hModel": "モデル",
+    "ai_list_hKb": "ナレッジベース",
+    "ai_list_hUpdated": "最終更新",
+    "ai_list_hAction": "操作",
+    "ai_list_empty": "Agent なし",
+    "ai_list_emptyHint": "「Agent 作成」をクリックして構築開始",
+    "ai_list_actDebug": "デバッグ",
+    "ai_list_actEdit": "編集",
+    "ai_list_actClone": "複製",
+    "ai_list_actArchive": "アーカイブ",
+    "ai_list_actDelete": "削除",
+    "ai_list_scopeAll": "すべて",
+    "ai_list_scopeDraft": "下書き",
+    "ai_list_scopePublished": "公開済み",
+    "ai_list_sortUpdated": "最近の更新",
+    "ai_list_sortCreated": "作成日時",
+    "ai_list_sortName": "名前",
+    "ai_kb_title": "ナレッジベース管理",
+    "ai_kb_searchPh": "プロジェクトを検索...",
+    "ai_kb_newBtn": "新規プロジェクト",
+    "ai_kb_unnamed": "無題",
+    "ai_kb_createdFmt": "%@ に作成",
+    "ai_kb_detail": "詳細",
+    "ai_kb_statusActive": "アクティブ",
+    "ai_kb_empty": "ナレッジベースプロジェクトなし",
+    "ai_kb_emptyHint": "プロジェクトを作成し、ドキュメントをアップロードして Agent に知識を提供",
+    "ai_kb_sheetTitle": "新規ナレッジベースプロジェクト",
+    "ai_kb_sheetName": "プロジェクト名",
+    "ai_kb_sheetNamePh": "プロジェクト名を入力",
+    "ai_kb_sheetDesc": "プロジェクト説明",
+    "ai_kb_sheetCreate": "作成",
+    "ai_kb_detTitle": "プロジェクト詳細",
+    "ai_kb_detTabFiles": "ファイル",
+    "ai_kb_detTabInstruction": "指示",
+    "ai_kb_detTabAgents": "関連 Agent",
+    "ai_kb_filesEmpty": "ファイルなし",
+    "ai_kb_artRemove": "削除",
+    "ai_kb_instrTitle": "プロジェクト指示",
+    "ai_kb_instrSave": "指示を保存",
+    "ai_kb_agentsTitle": "このナレッジベースに紐づく Agent",
+    "ai_kb_agentsEmpty": "このナレッジベースに紐づく Agent なし",
 ]
 
 let koKRTranslations: [String: String] = [
@@ -6716,6 +7008,79 @@ let koKRTranslations: [String: String] = [
     "ai_perm_capDelete": "지식 베이스 삭제",
     "ai_perm_capCode": "코드 실행",
     "ai_perm_capNet": "네트워크 접근",
+    "ai_review_title": "Diff 리뷰",
+    "ai_review_export": "review.md 내보내기",
+    "ai_review_sevCritical": "심각",
+    "ai_review_sevWarning": "경고",
+    "ai_review_sevInfo": "정보",
+    "ai_review_empty": "Diff 데이터 없음",
+    "ai_review_exportTitle": "review.md 내보내기",
+    "ai_review_copy": "클립보드에 복사",
+    "ai_dash_title": "콘솔 개요",
+    "ai_dash_subtitle": "Agent 관리 콘솔 — 글로벌 대시보드 및 빠른 접근",
+    "ai_dash_statToday": "오늘 요청",
+    "ai_dash_statToken": "Token 사용량",
+    "ai_dash_statActive": "활성 Agent",
+    "ai_dash_statError": "오류 요청",
+    "ai_dash_quickTitle": "빠른 접근",
+    "ai_dash_qaCreate": "새 Agent 만들기",
+    "ai_dash_qaKb": "새 지식 베이스",
+    "ai_dash_qaConnector": "커넥터 관리",
+    "ai_dash_qaApiDoc": "API 문서",
+    "ai_dash_recentTitle": "최근 Agent",
+    "ai_dash_recentViewAll": "전체 보기",
+    "ai_dash_empty": "Agent 없음, 위를 클릭하여 생성",
+    "ai_dash_alertTitle": "알림",
+    "ai_dash_alertEmpty": "모두 정상, 알림 없음",
+    "ai_dash_alertUnknown": "알 수 없는 알림",
+    "ai_list_create": "Agent 생성",
+    "ai_list_searchPh": "Agent 이름 검색...",
+    "ai_list_delTitle": "삭제 확인",
+    "ai_list_delMsgFmt": "Agent \"%@\"를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+    "ai_list_filterFmt": "필터: %@",
+    "ai_list_hName": "Agent 이름",
+    "ai_list_hStatus": "상태",
+    "ai_list_hModel": "모델",
+    "ai_list_hKb": "지식 베이스",
+    "ai_list_hUpdated": "최종 업데이트",
+    "ai_list_hAction": "작업",
+    "ai_list_empty": "Agent 없음",
+    "ai_list_emptyHint": "\"Agent 생성\"을 클릭하여 구축 시작",
+    "ai_list_actDebug": "디버그",
+    "ai_list_actEdit": "편집",
+    "ai_list_actClone": "복제",
+    "ai_list_actArchive": "보관",
+    "ai_list_actDelete": "삭제",
+    "ai_list_scopeAll": "전체",
+    "ai_list_scopeDraft": "초안",
+    "ai_list_scopePublished": "게시됨",
+    "ai_list_sortUpdated": "최근 업데이트",
+    "ai_list_sortCreated": "생성 시간",
+    "ai_list_sortName": "이름",
+    "ai_kb_title": "지식 베이스 관리",
+    "ai_kb_searchPh": "프로젝트 검색...",
+    "ai_kb_newBtn": "새 프로젝트",
+    "ai_kb_unnamed": "제목 없음",
+    "ai_kb_createdFmt": "%@에 생성",
+    "ai_kb_detail": "세부 정보",
+    "ai_kb_statusActive": "활성",
+    "ai_kb_empty": "지식 베이스 프로젝트 없음",
+    "ai_kb_emptyHint": "프로젝트를 만들고 문서를 업로드하여 Agent에 지식 제공",
+    "ai_kb_sheetTitle": "새 지식 베이스 프로젝트",
+    "ai_kb_sheetName": "프로젝트 이름",
+    "ai_kb_sheetNamePh": "프로젝트 이름 입력",
+    "ai_kb_sheetDesc": "프로젝트 설명",
+    "ai_kb_sheetCreate": "만들기",
+    "ai_kb_detTitle": "프로젝트 세부 정보",
+    "ai_kb_detTabFiles": "파일",
+    "ai_kb_detTabInstruction": "지침",
+    "ai_kb_detTabAgents": "연결된 Agent",
+    "ai_kb_filesEmpty": "파일 없음",
+    "ai_kb_artRemove": "제거",
+    "ai_kb_instrTitle": "프로젝트 지침",
+    "ai_kb_instrSave": "지침 저장",
+    "ai_kb_agentsTitle": "이 지식 베이스에 연결된 Agent",
+    "ai_kb_agentsEmpty": "이 지식 베이스에 연결된 Agent 없음",
 ]
 
 // MARK: - 国际化文本视图

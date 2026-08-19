@@ -11,6 +11,7 @@ private let reviewLog = Logger(subsystem: "com.fusion.studio", category: "DiffRe
 struct DiffReviewExportView: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var diffEntries: [[String: Any]] = []
     @State private var isLoading = false
@@ -38,13 +39,13 @@ struct DiffReviewExportView: View {
 
     private var headerBar: some View {
         HStack {
-            Label("Diff 审查", systemImage: "text.badge.checkmark")
+            Label(i18n.t(.ai_review_title), systemImage: "text.badge.checkmark")
                 .font(.system(size: theme.textSize, weight: .semibold))
                 .foregroundStyle(theme.text)
             Spacer()
             if !diffEntries.isEmpty {
                 Button(action: exportToMarkdown) {
-                    Label("导出 review.md", systemImage: "square.and.arrow.down")
+                    Label(i18n.t(.ai_review_export), systemImage: "square.and.arrow.down")
                         .font(.system(size: theme.smallTextSize))
                 }
                 .buttonStyle(.plain)
@@ -58,9 +59,9 @@ struct DiffReviewExportView: View {
         let warning = diffEntries.filter { ($0["severity"] as? String ?? "") == "warning" }.count
         let info = diffEntries.filter { ($0["severity"] as? String ?? "") == "info" }.count
         return HStack(spacing: theme.spacingL) {
-            severityBadge(count: critical, label: "严重", color: theme.redDot)
-            severityBadge(count: warning, label: "警告", color: theme.amberDot)
-            severityBadge(count: info, label: "信息", color: theme.accent)
+            severityBadge(count: critical, label: i18n.t(.ai_review_sevCritical), color: theme.redDot)
+            severityBadge(count: warning, label: i18n.t(.ai_review_sevWarning), color: theme.amberDot)
+            severityBadge(count: info, label: i18n.t(.ai_review_sevInfo), color: theme.accent)
         }
         .padding(theme.spacingS)
         .background(theme.surfaceElevated)
@@ -171,7 +172,7 @@ struct DiffReviewExportView: View {
             Image(systemName: "doc.text.magnifyingglass")
                 .font(.system(size: 24))
                 .foregroundStyle(theme.textTertiary)
-            Text("暂无 Diff 数据")
+            Text(i18n.t(.ai_review_empty))
                 .font(.system(size: theme.smallTextSize))
                 .foregroundStyle(theme.textSecondary)
         }
@@ -181,13 +182,13 @@ struct DiffReviewExportView: View {
 
     private var exportSheet: some View {
         VStack(spacing: theme.spacingM) {
-            Text("导出 review.md")
+            Text(i18n.t(.ai_review_exportTitle))
                 .font(.system(size: theme.headlineSize, weight: .semibold))
             TextEditor(text: .constant(exportText))
                 .font(.system(size: theme.smallTextSize, design: .monospaced))
                 .frame(minHeight: 300)
             HStack {
-                Button("复制到剪贴板") {
+                Button(i18n.t(.ai_review_copy)) {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(exportText, forType: .string)
                     reviewLog.info("Review exported to clipboard")
@@ -199,7 +200,7 @@ struct DiffReviewExportView: View {
                 .background(theme.accent)
                 .cornerRadius(8)
                 Spacer()
-                Button("关闭") { showExportSheet = false }
+                Button(i18n.t(.close)) { showExportSheet = false }
                     .buttonStyle(.plain)
                     .foregroundStyle(theme.textSecondary)
             }
@@ -218,9 +219,9 @@ struct DiffReviewExportView: View {
 
     private func severityLabel(_ s: String) -> String {
         switch s {
-        case "critical": return "严重"
-        case "warning": return "警告"
-        default: return "信息"
+        case "critical": return I18nManager.shared.t(.ai_review_sevCritical)
+        case "warning": return I18nManager.shared.t(.ai_review_sevWarning)
+        default: return I18nManager.shared.t(.ai_review_sevInfo)
         }
     }
 

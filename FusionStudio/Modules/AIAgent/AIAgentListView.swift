@@ -4,9 +4,9 @@ import os.log
 private let listLog = Logger(subsystem: "com.fusion.studio", category: "AIAgent.List")
 
 enum AgentFilterScope: String, CaseIterable {
-    case all = "全部"
-    case draft = "草稿"
-    case published = "已发布"
+    case all = "all"
+    case draft = "draft"
+    case published = "published"
 
     var predicate: (AgentModel) -> Bool {
         switch self {
@@ -15,18 +15,35 @@ enum AgentFilterScope: String, CaseIterable {
         case .published: return { $0.status == "published" }
         }
     }
+
+    var localLabel: String {
+        switch self {
+        case .all: return I18nManager.shared.t(.ai_list_scopeAll)
+        case .draft: return I18nManager.shared.t(.ai_list_scopeDraft)
+        case .published: return I18nManager.shared.t(.ai_list_scopePublished)
+        }
+    }
 }
 
 enum AgentSortField: String, CaseIterable {
-    case updatedAt = "最近更新"
-    case createdAt = "创建时间"
-    case name = "名称"
+    case updatedAt = "updatedAt"
+    case createdAt = "createdAt"
+    case name = "name"
+
+    var localLabel: String {
+        switch self {
+        case .updatedAt: return I18nManager.shared.t(.ai_list_sortUpdated)
+        case .createdAt: return I18nManager.shared.t(.ai_list_sortCreated)
+        case .name: return I18nManager.shared.t(.ai_list_sortName)
+        }
+    }
 }
 
 struct AIAgentListView: View {
     @EnvironmentObject var ipc: IPCClient
     @EnvironmentObject var bridge: AgentBridge
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var searchText = ""
     @State private var filterScope: AgentFilterScope = .all
@@ -55,13 +72,13 @@ struct AIAgentListView: View {
         .sheet(item: $editAgent) { agent in
             AIAgentConfigView(mode: .edit(agent))
         }
-        .alert("确认删除", isPresented: $showDeleteConfirm) {
-            Button("取消", role: .cancel) {}
-            Button("删除", role: .destructive) {
+        .alert(i18n.t(.ai_list_delTitle), isPresented: $showDeleteConfirm) {
+            Button(i18n.t(.cancel), role: .cancel) {}
+            Button(i18n.t(.delete), role: .destructive) {
                 if let agent = agentToDelete { deleteAgent(agent) }
             }
         } message: {
-            Text("确定要删除 Agent「\(agentToDelete?.name ?? "")」吗？此操作不可撤销。")
+            Text(String(format: i18n.t(.ai_list_delMsgFmt), agentToDelete?.name ?? ""))
         }
     }
 
@@ -70,7 +87,7 @@ struct AIAgentListView: View {
             Button(action: { showCreateSheet = true }) {
                 HStack(spacing: theme.spacingXS) {
                     Image(systemName: "plus.circle.fill")
-                    Text("创建 Agent")
+                    Text(i18n.t(.ai_list_create))
                 }
                 .font(.system(size: theme.footnoteSize, weight: .medium))
                 .foregroundStyle(theme.accentText)
@@ -87,7 +104,7 @@ struct AIAgentListView: View {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: theme.iconS))
                     .foregroundStyle(theme.textTertiary)
-                TextField("搜索 Agent 名称...", text: $searchText)
+                TextField(i18n.t(.ai_list_searchPh), text: $searchText)
                     .textFieldStyle(.plain)
                     .font(.system(size: theme.footnoteSize))
             }
@@ -113,14 +130,14 @@ struct AIAgentListView: View {
             ForEach(AgentFilterScope.allCases, id: \.self) { scope in
                 Button(action: { filterScope = scope }) {
                     HStack {
-                        Text(scope.rawValue)
+                        Text(scope.localLabel)
                         if filterScope == scope { Image(systemName: "checkmark") }
                     }
                 }
             }
         } label: {
             HStack(spacing: theme.spacingXS) {
-                Text("筛选: \(filterScope.rawValue)")
+                Text(String(format: i18n.t(.ai_list_filterFmt), filterScope.localLabel))
                     .font(.system(size: theme.captionSize))
                 Image(systemName: "chevron.down")
                     .font(.system(size: 10))
@@ -134,7 +151,7 @@ struct AIAgentListView: View {
             ForEach(AgentSortField.allCases, id: \.self) { field in
                 Button(action: { sortField = field }) {
                     HStack {
-                        Text(field.rawValue)
+                        Text(field.localLabel)
                         if sortField == field { Image(systemName: "checkmark") }
                     }
                 }
@@ -143,7 +160,7 @@ struct AIAgentListView: View {
             HStack(spacing: theme.spacingXS) {
                 Image(systemName: "arrow.up.arrow.down")
                     .font(.system(size: theme.iconS))
-                Text(sortField.rawValue)
+                Text(sortField.localLabel)
                     .font(.system(size: theme.captionSize))
             }
             .foregroundStyle(theme.textSecondary)
@@ -171,12 +188,12 @@ struct AIAgentListView: View {
 
     private var tableHeader: some View {
         HStack(spacing: 0) {
-            headerCell("Agent 名称", width: 200)
-            headerCell("状态", width: 80)
-            headerCell("模型", width: 160)
-            headerCell("关联知识库", width: 150)
-            headerCell("最后更新", width: 120)
-            headerCell("操作", width: 200)
+            headerCell(i18n.t(.ai_list_hName), width: 200)
+            headerCell(i18n.t(.ai_list_hStatus), width: 80)
+            headerCell(i18n.t(.ai_list_hModel), width: 160)
+            headerCell(i18n.t(.ai_list_hKb), width: 150)
+            headerCell(i18n.t(.ai_list_hUpdated), width: 120)
+            headerCell(i18n.t(.ai_list_hAction), width: 200)
         }
         .padding(.vertical, theme.spacingS)
     }
@@ -224,11 +241,11 @@ struct AIAgentListView: View {
                 .frame(width: 120, alignment: .leading)
 
             HStack(spacing: theme.spacingS) {
-                actionButton("调试", icon: "ladybug") { debugAgent = agent }
-                actionButton("编辑", icon: "pencil") { editAgent = agent }
-                actionButton("复制", icon: "doc.on.doc") { cloneAgent(agent) }
-                actionButton("归档", icon: "archivebox") { archiveAgent(agent) }
-                actionButton("删除", icon: "trash", color: theme.accentDestructive) {
+                actionButton(i18n.t(.ai_list_actDebug), icon: "ladybug") { debugAgent = agent }
+                actionButton(i18n.t(.ai_list_actEdit), icon: "pencil") { editAgent = agent }
+                actionButton(i18n.t(.ai_list_actClone), icon: "doc.on.doc") { cloneAgent(agent) }
+                actionButton(i18n.t(.ai_list_actArchive), icon: "archivebox") { archiveAgent(agent) }
+                actionButton(i18n.t(.ai_list_actDelete), icon: "trash", color: theme.accentDestructive) {
                     agentToDelete = agent
                     showDeleteConfirm = true
                 }
@@ -245,10 +262,10 @@ struct AIAgentListView: View {
             Image(systemName: "person.2.crop.square.stack")
                 .font(.system(size: 40))
                 .foregroundStyle(theme.textTertiary)
-            Text("暂无 Agent")
+            Text(i18n.t(.ai_list_empty))
                 .font(.system(size: theme.textSize, weight: .medium))
                 .foregroundStyle(theme.textSecondary)
-            Text("点击「创建 Agent」开始构建智能体")
+            Text(i18n.t(.ai_list_emptyHint))
                 .font(.system(size: theme.footnoteSize))
                 .foregroundStyle(theme.textTertiary)
         }
