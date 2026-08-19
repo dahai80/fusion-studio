@@ -6,6 +6,7 @@ private let permLog = Logger(subsystem: "com.fusion.studio", category: "RAGPermi
 struct RAGPermissionsView: View {
     @Environment(\.studioTheme) private var theme
     @StateObject private var client = RAGAPIClient.shared
+    @StateObject private var i18n = I18nManager.shared
     @State private var apiKeys: [KBAPIKeyInfo] = []
     @State private var isLoading = false
     @State private var showCreateKey = false
@@ -16,7 +17,7 @@ struct RAGPermissionsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: theme.spacingL) {
-                Text("权限管控")
+                Text(i18n.t(.rag_perm_title))
                     .font(.system(size: theme.titleSize, weight: .bold))
                     .foregroundStyle(theme.text)
                 authStatusCard
@@ -32,19 +33,19 @@ struct RAGPermissionsView: View {
 
     private var authStatusCard: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            Label("鉴权状态", systemImage: "lock.shield")
+            Label(i18n.t(.rag_perm_authStatus), systemImage: "lock.shield")
                 .font(.system(size: theme.textSize, weight: .semibold))
                 .foregroundStyle(theme.text)
             HStack(spacing: theme.spacingM) {
                 VStack(alignment: .leading, spacing: theme.spacingXS) {
-                    Text("API Key 认证").font(.system(size: theme.textSize)).foregroundStyle(theme.text)
-                    Text(apiKeys.isEmpty ? "未启用" : "已启用")
+                    Text(i18n.t(.rag_perm_apiKeyAuth)).font(.system(size: theme.textSize)).foregroundStyle(theme.text)
+                    Text(apiKeys.isEmpty ? i18n.t(.rag_perm_disabled) : i18n.t(.rag_perm_enabled))
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(apiKeys.isEmpty ? .orange : .green)
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: theme.spacingXS) {
-                    Text("活跃密钥").font(.system(size: theme.captionSize)).foregroundStyle(theme.textTertiary)
+                    Text(i18n.t(.rag_perm_activeKeys)).font(.system(size: theme.captionSize)).foregroundStyle(theme.textTertiary)
                     Text("\(apiKeys.count)")
                         .font(.system(size: theme.titleSize, weight: .bold)).foregroundStyle(theme.accent)
                 }
@@ -57,11 +58,11 @@ struct RAGPermissionsView: View {
     private var apiKeyCard: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
             HStack {
-                Label("API 密钥管理", systemImage: "key")
+                Label(i18n.t(.rag_perm_keyMgmt), systemImage: "key")
                     .font(.system(size: theme.textSize, weight: .semibold)).foregroundStyle(theme.text)
                 Spacer()
                 Button(action: { showCreateKey = true }) {
-                    Label("创建密钥", systemImage: "plus").font(.system(size: theme.textSize))
+                    Label(i18n.t(.rag_perm_createKey), systemImage: "plus").font(.system(size: theme.textSize))
                 }
                 .buttonStyle(.bordered).controlSize(.small)
             }
@@ -70,17 +71,17 @@ struct RAGPermissionsView: View {
             } else if apiKeys.isEmpty {
                 VStack(spacing: theme.spacingS) {
                     Image(systemName: "key.slash").font(.system(size: 32)).foregroundStyle(theme.textTertiary)
-                    Text("暂无 API 密钥").font(.system(size: theme.textSize)).foregroundStyle(theme.textTertiary)
-                    Text("未设置 API Key 时，鉴权功能不启用")
+                    Text(i18n.t(.rag_perm_noKey)).font(.system(size: theme.textSize)).foregroundStyle(theme.textTertiary)
+                    Text(i18n.t(.rag_perm_noKeyHint))
                         .font(.system(size: theme.captionSize)).foregroundStyle(theme.textTertiary)
                 }
                 .frame(maxWidth: .infinity).padding(.vertical, theme.spacingL)
             } else {
                 VStack(spacing: 0) {
                     HStack(spacing: theme.spacingS) {
-                        Text("名称").frame(maxWidth: .infinity, alignment: .leading)
-                        Text("密钥哈希").frame(width: 150)
-                        Text("创建时间").frame(width: 150)
+                        Text(i18n.t(.rag_perm_h_name)).frame(maxWidth: .infinity, alignment: .leading)
+                        Text(i18n.t(.rag_perm_h_hash)).frame(width: 150)
+                        Text(i18n.t(.rag_perm_h_createdAt)).frame(width: 150)
                         Text("").frame(width: 80)
                     }
                     .font(.system(size: theme.captionSize, weight: .semibold)).foregroundStyle(theme.textTertiary)
@@ -116,13 +117,13 @@ struct RAGPermissionsView: View {
 
     private var memberRoleCard: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            Label("成员角色", systemImage: "person.2")
+            Label(i18n.t(.rag_perm_memberRole), systemImage: "person.2")
                 .font(.system(size: theme.textSize, weight: .semibold)).foregroundStyle(theme.text)
             VStack(spacing: theme.spacingS) {
-                roleRow("管理员", desc: "全量读写、密钥管理、删除知识库", icon: "crown.fill", color: .orange)
-                roleRow("编辑者", desc: "上传文档、修改配置、触发重建索引", icon: "pencil.circle.fill", color: .blue)
-                roleRow("查询者", desc: "搜索、RAG 问答、只读访问", icon: "magnifyingglass", color: .green)
-                roleRow("API 调用", desc: "仅通过 API Key 调用搜索/问答接口", icon: "link", color: .purple)
+                roleRow(i18n.t(.rag_perm_role_admin), desc: i18n.t(.rag_perm_role_admin_desc), icon: "crown.fill", color: .orange)
+                roleRow(i18n.t(.rag_perm_role_edit), desc: i18n.t(.rag_perm_role_edit_desc), icon: "pencil.circle.fill", color: .blue)
+                roleRow(i18n.t(.rag_perm_role_query), desc: i18n.t(.rag_perm_role_query_desc), icon: "magnifyingglass", color: .green)
+                roleRow(i18n.t(.rag_perm_role_api), desc: i18n.t(.rag_perm_role_api_desc), icon: "link", color: .purple)
             }
         }
         .padding(theme.spacingM).background(cardBg).overlay(cardStroke)
@@ -143,11 +144,11 @@ struct RAGPermissionsView: View {
 
     private var auditNote: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            Label("审计日志", systemImage: "list.bullet.rectangle")
+            Label(i18n.t(.rag_perm_audit), systemImage: "list.bullet.rectangle")
                 .font(.system(size: theme.textSize, weight: .semibold)).foregroundStyle(theme.text)
             HStack(spacing: theme.spacingXS) {
                 Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange)
-                Text("上游 API 暂未提供审计日志接口，需要提 Issue 追踪")
+                Text(i18n.t(.rag_perm_auditNote))
                     .font(.system(size: theme.captionSize)).foregroundStyle(theme.textSecondary)
             }
             .padding(theme.spacingS)
@@ -158,11 +159,11 @@ struct RAGPermissionsView: View {
 
     private var createKeySheet: some View {
         VStack(spacing: theme.spacingM) {
-            Text("创建 API 密钥").font(.headline)
-            TextField("密钥名称", text: $newKeyName).textFieldStyle(.roundedBorder)
+            Text(i18n.t(.rag_perm_createTitle)).font(.headline)
+            TextField(i18n.t(.rag_perm_keyNamePh), text: $newKeyName).textFieldStyle(.roundedBorder)
             if let key = createdKey {
                 VStack(alignment: .leading, spacing: theme.spacingXS) {
-                    Text("密钥已创建（仅显示一次）")
+                    Text(i18n.t(.rag_perm_keyCreated))
                         .font(.system(size: theme.captionSize)).foregroundStyle(.orange)
                     HStack {
                         Text(key).font(.system(size: theme.captionSize, design: .monospaced))
@@ -182,12 +183,12 @@ struct RAGPermissionsView: View {
                 }
             }
             HStack {
-                Button("关闭") {
+                Button(i18n.t(.close)) {
                     showCreateKey = false; newKeyName = ""; createdKey = nil; showCopied = false
                 }
                 Spacer()
                 if createdKey == nil {
-                    Button("创建") { Task { await createKey() } }
+                    Button(i18n.t(.rag_perm_createBtn)) { Task { await createKey() } }
                         .disabled(newKeyName.isEmpty).buttonStyle(.borderedProminent)
                 }
             }

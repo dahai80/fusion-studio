@@ -4,17 +4,31 @@ import os
 private let ragLog = Logger(subsystem: "com.fusion.studio", category: "RAGMainView")
 
 enum RAGSection: String, CaseIterable, Identifiable {
-    case dashboard = "知识库总览"
-    case files = "文件目录管理"
-    case chat = "RAG 对话"
-    case embedConfig = "嵌入模型配置"
-    case searchConfig = "检索策略配置"
-    case permissions = "权限管控"
-    case vectorOps = "向量库运维"
-    case callLog = "RAG调用日志"
-    case benchEval = "检索性能评测"
+    case dashboard
+    case files
+    case chat
+    case embedConfig
+    case searchConfig
+    case permissions
+    case vectorOps
+    case callLog
+    case benchEval
 
     var id: String { rawValue }
+
+    var localLabel: String {
+        switch self {
+        case .dashboard:    return I18nManager.shared.t(.rag_sec_dashboard)
+        case .files:        return I18nManager.shared.t(.rag_sec_files)
+        case .chat:         return I18nManager.shared.t(.rag_sec_chat)
+        case .embedConfig:  return I18nManager.shared.t(.rag_sec_embedConfig)
+        case .searchConfig: return I18nManager.shared.t(.rag_sec_searchConfig)
+        case .permissions:  return I18nManager.shared.t(.rag_sec_permissions)
+        case .vectorOps:    return I18nManager.shared.t(.rag_sec_vectorOps)
+        case .callLog:      return I18nManager.shared.t(.rag_sec_callLog)
+        case .benchEval:    return I18nManager.shared.t(.rag_sec_benchEval)
+        }
+    }
 
     var icon: String {
         switch self {
@@ -35,6 +49,7 @@ struct RAGMainView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.studioTheme) private var theme
     @StateObject private var client = RAGAPIClient.shared
+    @StateObject private var i18n = I18nManager.shared
     @State private var selectedSection: RAGSection = .dashboard
     @State private var selectedKBId: String = ""
 
@@ -97,7 +112,7 @@ struct RAGMainView: View {
                         .foregroundStyle(isActive ? theme.accent : theme.textTertiary)
                         .frame(width: 20)
                 }
-                Text(section.rawValue)
+                Text(section.localLabel)
                     .font(.system(size: theme.textSize, weight: isActive ? .medium : .regular))
                     .foregroundStyle(isActive ? theme.text : theme.textSecondary)
                 Spacer()
@@ -115,7 +130,7 @@ struct RAGMainView: View {
 
     private var kbPickerBar: some View {
         VStack(spacing: theme.spacingXS) {
-            Text("当前知识库")
+            Text(i18n.t(.rag_currentKb))
                 .font(.system(size: theme.captionSize, weight: .semibold))
                 .foregroundStyle(theme.textTertiary)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -171,7 +186,7 @@ struct KBPickerView: View {
 
     var body: some View {
         Picker("", selection: $selectedKBId) {
-            Text("全部").tag("")
+            Text(I18nManager.shared.t(.rag_all)).tag("")
             ForEach(client.knowledgeBases) { kb in
                 Text(kb.name).tag(kb.id)
             }

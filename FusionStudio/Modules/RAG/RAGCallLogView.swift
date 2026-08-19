@@ -19,6 +19,7 @@ struct RAGCallEntry: Identifiable {
 struct RAGCallLogView: View {
     @Environment(\.studioTheme) private var theme
     @ObservedObject var client: RAGAPIClient
+    @StateObject private var i18n = I18nManager.shared
     @State private var entries: [RAGCallEntry] = []
     @State private var isLoading = false
     @State private var searchText = ""
@@ -27,15 +28,24 @@ struct RAGCallLogView: View {
     @Binding var selectedKbId: String
 
     let operations = ["all", "search", "ask", "ingest", "delete", "watch", "sync"]
-    let opLabels: [String: String] = [
-        "all": "全部", "search": "搜索", "ask": "问答",
-        "ingest": "导入", "delete": "删除", "watch": "监控", "sync": "同步"
-    ]
+
+    private func opLabel(_ op: String) -> String {
+        switch op {
+        case "all": return i18n.t(.rag_op_all)
+        case "search": return i18n.t(.rag_op_search)
+        case "ask": return i18n.t(.rag_op_ask)
+        case "ingest": return i18n.t(.rag_op_ingest)
+        case "delete": return i18n.t(.rag_op_delete)
+        case "watch": return i18n.t(.rag_op_watch)
+        case "sync": return i18n.t(.rag_op_sync)
+        default: return op
+        }
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: theme.spacingL) {
-                Text("RAG 调用日志")
+                Text(i18n.t(.rag_log_title))
                     .font(.system(size: theme.titleSize, weight: .bold))
                     .foregroundStyle(theme.text)
                 statsBar
@@ -55,11 +65,11 @@ struct RAGCallLogView: View {
             let avgLatency = total > 0 ? entries.map(\.latencyMs).reduce(0, +) / Double(total) : 0
             let searchCount = entries.filter { $0.operation == "search" }.count
             let askCount = entries.filter { $0.operation == "ask" }.count
-            miniStat("总调用", value: "\(total)", icon: "number", color: .blue)
-            miniStat("成功率", value: String(format: "%.1f%%", successRate), icon: "checkmark.circle", color: .green)
-            miniStat("平均延迟", value: String(format: "%.0fms", avgLatency), icon: "clock", color: .orange)
-            miniStat("搜索", value: "\(searchCount)", icon: "magnifyingglass", color: .purple)
-            miniStat("问答", value: "\(askCount)", icon: "bubble.left.and.bubble.right", color: .cyan)
+            miniStat(i18n.t(.rag_log_total), value: "\(total)", icon: "number", color: .blue)
+            miniStat(i18n.t(.rag_log_successRate), value: String(format: "%.1f%%", successRate), icon: "checkmark.circle", color: .green)
+            miniStat(i18n.t(.rag_log_avgLatency), value: String(format: "%.0fms", avgLatency), icon: "clock", color: .orange)
+            miniStat(i18n.t(.rag_log_search), value: "\(searchCount)", icon: "magnifyingglass", color: .purple)
+            miniStat(i18n.t(.rag_log_ask), value: "\(askCount)", icon: "bubble.left.and.bubble.right", color: .cyan)
         }
     }
 
@@ -75,9 +85,9 @@ struct RAGCallLogView: View {
 
     private var toolbar: some View {
         HStack(spacing: theme.spacingS) {
-            TextField("搜索日志...", text: $searchText).textFieldStyle(.roundedBorder).frame(maxWidth: 200)
-            Picker("操作", selection: $filterOp) {
-                ForEach(operations, id: \.self) { op in Text(opLabels[op] ?? op).tag(op) }
+            TextField(i18n.t(.rag_log_searchPh), text: $searchText).textFieldStyle(.roundedBorder).frame(maxWidth: 200)
+            Picker(i18n.t(.rag_log_opPicker), selection: $filterOp) {
+                ForEach(operations, id: \.self) { op in Text(opLabel(op)).tag(op) }
             }
             .frame(width: 100).labelsHidden()
             Spacer()
@@ -85,7 +95,7 @@ struct RAGCallLogView: View {
                 Image(systemName: "arrow.clockwise").font(.system(size: theme.iconS)).foregroundStyle(theme.textTertiary)
             }.buttonStyle(.plain)
             Button(action: { showExportSheet = true }) {
-                Label("导出 CSV", systemImage: "square.and.arrow.down").font(.system(size: theme.textSize))
+                Label(i18n.t(.rag_log_export), systemImage: "square.and.arrow.down").font(.system(size: theme.textSize))
             }
             .buttonStyle(.bordered).controlSize(.small)
         }
@@ -111,7 +121,7 @@ struct RAGCallLogView: View {
             if filteredEntries.isEmpty {
                 VStack(spacing: theme.spacingS) {
                     Image(systemName: "list.bullet.rectangle").font(.system(size: 32)).foregroundStyle(theme.textTertiary)
-                    Text("暂无调用日志").foregroundStyle(theme.textTertiary)
+                    Text(i18n.t(.rag_log_empty)).foregroundStyle(theme.textTertiary)
                 }
                 .frame(maxWidth: .infinity).padding(.vertical, theme.spacing2XL)
             } else {
@@ -127,13 +137,13 @@ struct RAGCallLogView: View {
 
     private var logTableHeader: some View {
         HStack(spacing: theme.spacingS) {
-            Text("时间").frame(width: 140)
-            Text("知识库").frame(width: 100)
-            Text("操作").frame(width: 60)
-            Text("查询").frame(maxWidth: .infinity, alignment: .leading)
-            Text("结果").frame(width: 50)
-            Text("延迟").frame(width: 60)
-            Text("状态").frame(width: 50)
+            Text(i18n.t(.rag_log_h_time)).frame(width: 140)
+            Text(i18n.t(.rag_log_h_kb)).frame(width: 100)
+            Text(i18n.t(.rag_log_h_op)).frame(width: 60)
+            Text(i18n.t(.rag_log_h_query)).frame(maxWidth: .infinity, alignment: .leading)
+            Text(i18n.t(.rag_log_h_result)).frame(width: 50)
+            Text(i18n.t(.rag_log_h_latency)).frame(width: 60)
+            Text(i18n.t(.rag_log_h_status)).frame(width: 50)
         }
         .font(.system(size: theme.captionSize, weight: .semibold)).foregroundStyle(theme.textTertiary)
         .padding(.horizontal, theme.spacingM).padding(.vertical, theme.spacingS)
@@ -169,7 +179,7 @@ struct RAGCallLogView: View {
             case "watch": return .orange; case "sync": return .cyan; default: return .gray
             }
         }()
-        return Text(opLabels[op] ?? op)
+        return Text(opLabel(op))
             .font(.system(size: 8, weight: .medium)).foregroundStyle(color)
             .padding(.horizontal, 6).padding(.vertical, 2)
             .background(Capsule().fill(color.opacity(0.12)))
@@ -177,12 +187,12 @@ struct RAGCallLogView: View {
 
     private var exportSheet: some View {
         VStack(spacing: theme.spacingM) {
-            Text("导出 RAG 调用日志").font(.headline)
-            Text("将筛选后的 \(filteredEntries.count) 条日志导出为 CSV 文件").foregroundStyle(.secondary)
+            Text(i18n.t(.rag_log_exportTitle)).font(.headline)
+            Text(String(format: i18n.t(.rag_log_exportDescFmt), filteredEntries.count)).foregroundStyle(.secondary)
             HStack {
-                Button("取消") { showExportSheet = false }
+                Button(i18n.t(.cancel)) { showExportSheet = false }
                 Spacer()
-                Button("导出") { exportCSV(); showExportSheet = false }
+                Button(i18n.t(.rag_log_exportBtn)) { exportCSV(); showExportSheet = false }
                     .buttonStyle(.borderedProminent)
             }
         }

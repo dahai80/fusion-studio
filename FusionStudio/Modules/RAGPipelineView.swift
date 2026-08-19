@@ -10,10 +10,19 @@ struct RAGPipelineView: View {
     @State private var selectedTab: RAGTab = .bases
 
     enum RAGTab: String, CaseIterable {
-        case bases  = "知识库"
-        case chat   = "对话"
-        case search = "搜索"
-        case config = "配置"
+        case bases
+        case chat
+        case search
+        case config
+
+        var localLabel: String {
+            switch self {
+            case .bases:  return I18nManager.shared.t(.rag_tab_bases)
+            case .chat:   return I18nManager.shared.t(.rag_tab_chat)
+            case .search: return I18nManager.shared.t(.rag_tab_search)
+            case .config: return I18nManager.shared.t(.rag_tab_config)
+            }
+        }
 
         var icon: String {
             switch self {
@@ -29,7 +38,7 @@ struct RAGPipelineView: View {
         VStack(spacing: 0) {
             Picker("", selection: $selectedTab) {
                 ForEach(RAGTab.allCases, id: \.self) { tab in
-                    Label(tab.rawValue, systemImage: tab.icon).tag(tab)
+                    Label(tab.localLabel, systemImage: tab.icon).tag(tab)
                 }
             }
             .pickerStyle(.segmented)
