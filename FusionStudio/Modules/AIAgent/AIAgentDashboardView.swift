@@ -8,6 +8,7 @@ struct AIAgentDashboardView: View {
     @EnvironmentObject var bridge: AgentBridge
     @EnvironmentObject var appState: AppState
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var overview: [String: Any]?
     @State private var isLoading = true
@@ -19,8 +20,8 @@ struct AIAgentDashboardView: View {
             VStack(alignment: .leading, spacing: 0) {
                 ScreenHeader(
                     eyebrow: "Fusion Agent Studio",
-                    title: "控制台总览",
-                    subtitle: "Agent 管理控制台 — 全局数据看板与快捷入口"
+                    title: i18n.t(.ai_dash_title),
+                    subtitle: i18n.t(.ai_dash_subtitle)
                 )
 
                 statCardsRow
@@ -50,25 +51,25 @@ struct AIAgentDashboardView: View {
     private var statCardsRow: some View {
         HStack(spacing: theme.spacingM) {
             StatCardView(
-                title: "今日请求",
+                title: i18n.t(.ai_dash_statToday),
                 value: "\(intField("today_requests"))",
                 icon: "arrow.up.arrow.down",
                 color: theme.accent
             )
             StatCardView(
-                title: "Token 消耗",
+                title: i18n.t(.ai_dash_statToken),
                 value: formatTokenCount(intField("total_tokens")),
                 icon: "bolt.horizontal",
                 color: theme.auxiliary
             )
             StatCardView(
-                title: "活跃 Agent",
+                title: i18n.t(.ai_dash_statActive),
                 value: "\(intField("active_agents"))",
                 icon: "person.2.fill",
                 color: theme.accentSecondary
             )
             StatCardView(
-                title: "异常请求",
+                title: i18n.t(.ai_dash_statError),
                 value: "\(intField("error_requests"))",
                 icon: "exclamationmark.triangle",
                 color: theme.accentDestructive
@@ -78,31 +79,31 @@ struct AIAgentDashboardView: View {
 
     private var quickActionsRow: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            Text("快捷入口")
+            Text(i18n.t(.ai_dash_quickTitle))
                 .font(.system(size: theme.footnoteSize, weight: .semibold))
                 .foregroundStyle(theme.textSecondary)
 
             HStack(spacing: theme.spacingM) {
                 QuickActionCard(
-                    title: "创建新 Agent",
+                    title: i18n.t(.ai_dash_qaCreate),
                     icon: "plus.circle.fill",
                     color: theme.accent
                 ) { createNewAgent() }
 
                 QuickActionCard(
-                    title: "新建知识库",
+                    title: i18n.t(.ai_dash_qaKb),
                     icon: "books.vertical.fill",
                     color: theme.auxiliary
                 ) { appState.selectedModule = .aiAgentList }
 
                 QuickActionCard(
-                    title: "管理连接器",
+                    title: i18n.t(.ai_dash_qaConnector),
                     icon: "link.circle.fill",
                     color: theme.accentSecondary
                 ) { appState.selectedModule = .aiAgentObserver }
 
                 QuickActionCard(
-                    title: "API 文档",
+                    title: i18n.t(.ai_dash_qaApiDoc),
                     icon: "doc.text.fill",
                     color: theme.textTertiary
                 ) { dashLog.info("navigate to api docs") }
@@ -113,11 +114,11 @@ struct AIAgentDashboardView: View {
     private var recentAgentsSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
             HStack {
-                Text("最近 Agent")
+                Text(i18n.t(.ai_dash_recentTitle))
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
                     .foregroundStyle(theme.textSecondary)
                 Spacer()
-                Button("查看全部") {
+                Button(i18n.t(.ai_dash_recentViewAll)) {
                     appState.selectedModule = .aiAgentList
                 }
                 .font(.system(size: theme.captionSize))
@@ -142,7 +143,7 @@ struct AIAgentDashboardView: View {
             Image(systemName: "person.2")
                 .font(.system(size: theme.iconXL))
                 .foregroundStyle(theme.textTertiary)
-            Text("暂无 Agent，点击上方创建")
+            Text(i18n.t(.ai_dash_empty))
                 .font(.system(size: theme.footnoteSize))
                 .foregroundStyle(theme.textSecondary)
         }
@@ -156,7 +157,7 @@ struct AIAgentDashboardView: View {
 
     private var alertsSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            Text("告警通知")
+            Text(i18n.t(.ai_dash_alertTitle))
                 .font(.system(size: theme.footnoteSize, weight: .semibold))
                 .foregroundStyle(theme.textSecondary)
 
@@ -165,7 +166,7 @@ struct AIAgentDashboardView: View {
                 HStack(spacing: theme.spacingS) {
                     Image(systemName: "checkmark.circle")
                         .foregroundStyle(theme.accent)
-                    Text("一切正常，无告警")
+                    Text(i18n.t(.ai_dash_alertEmpty))
                         .font(.system(size: theme.footnoteSize))
                         .foregroundStyle(theme.textSecondary)
                 }
@@ -342,13 +343,14 @@ private struct AgentSummaryRow: View {
 
 private struct AlertRow: View {
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     let alert: [String: Any]
 
     var body: some View {
         HStack(spacing: theme.spacingS) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(theme.accentDestructive)
-            Text(alert["message"] as? String ?? "未知告警")
+            Text(alert["message"] as? String ?? i18n.t(.ai_dash_alertUnknown))
                 .font(.system(size: theme.footnoteSize))
                 .foregroundStyle(theme.text)
             Spacer()

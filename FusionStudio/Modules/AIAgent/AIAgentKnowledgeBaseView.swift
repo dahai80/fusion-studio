@@ -13,6 +13,7 @@ struct AIAgentKnowledgeBaseView: View {
     @EnvironmentObject var ipc: IPCClient
     @EnvironmentObject var bridge: AgentBridge
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var projects: [[String: Any]] = []
     @State private var isLoading = true
@@ -27,7 +28,7 @@ struct AIAgentKnowledgeBaseView: View {
             Rectangle().fill(theme.separator).frame(height: 1)
             if isLoading {
                 Spacer()
-                ProgressView("加载中...")
+                ProgressView(i18n.t(.loading))
                 Spacer()
             } else if filteredProjects.isEmpty {
                 Spacer()
@@ -53,14 +54,14 @@ struct AIAgentKnowledgeBaseView: View {
 
     private var headerBar: some View {
         HStack(spacing: theme.spacingM) {
-            Text("知识库管理")
+            Text(i18n.t(.ai_kb_title))
                 .font(.system(size: theme.titleSize, weight: .bold))
                 .foregroundStyle(theme.text)
             Spacer()
             HStack(spacing: theme.spacingS) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(theme.textTertiary)
-                TextField("搜索项目...", text: $searchText)
+                TextField(i18n.t(.ai_kb_searchPh), text: $searchText)
                     .textFieldStyle(.plain)
                     .font(.system(size: theme.textSize))
                     .foregroundStyle(theme.text)
@@ -73,7 +74,7 @@ struct AIAgentKnowledgeBaseView: View {
             Button(action: { showCreateSheet = true }) {
                 HStack(spacing: theme.spacingXS) {
                     Image(systemName: "plus")
-                    Text("新建项目")
+                    Text(i18n.t(.ai_kb_newBtn))
                 }
                 .font(.system(size: theme.footnoteSize, weight: .medium))
                 .foregroundStyle(theme.accentText)
@@ -102,7 +103,7 @@ struct AIAgentKnowledgeBaseView: View {
 
     private func projectRow(_ project: [String: Any]) -> some View {
         let pid = project["id"] as? String ?? ""
-        let name = project["name"] as? String ?? "未命名"
+        let name = project["name"] as? String ?? i18n.t(.ai_kb_unnamed)
         let desc = project["description"] as? String ?? ""
         let status = project["status"] as? String ?? "active"
         let createdAt = project["created_at"] as? Double ?? 0
@@ -124,7 +125,7 @@ struct AIAgentKnowledgeBaseView: View {
                         .foregroundStyle(theme.textSecondary)
                         .lineLimit(2)
                 }
-                Text("创建于 \(formatTimestamp(createdAt))")
+                Text(String(format: i18n.t(.ai_kb_createdFmt), formatTimestamp(createdAt)))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textTertiary)
             }
@@ -132,7 +133,7 @@ struct AIAgentKnowledgeBaseView: View {
             Spacer()
 
             HStack(spacing: theme.spacingS) {
-                Button("详情") {
+                Button(i18n.t(.ai_kb_detail)) {
                     selectedProjectId = pid
                     showDetail = true
                 }
@@ -140,7 +141,7 @@ struct AIAgentKnowledgeBaseView: View {
                 .foregroundStyle(theme.accent)
                 .buttonStyle(.plain)
 
-                Button("删除") {
+                Button(i18n.t(.delete)) {
                     deleteProject(id: pid)
                 }
                 .font(.system(size: theme.captionSize))
@@ -159,7 +160,7 @@ struct AIAgentKnowledgeBaseView: View {
 
     private func statusBadge(_ status: String) -> some View {
         let color = status == "active" ? theme.accent : theme.textTertiary
-        return Text(status == "active" ? "活跃" : status)
+        return Text(status == "active" ? i18n.t(.ai_kb_statusActive) : status)
             .font(.system(size: theme.captionSize, weight: .medium))
             .foregroundStyle(color)
             .padding(.horizontal, theme.spacingS)
@@ -173,10 +174,10 @@ struct AIAgentKnowledgeBaseView: View {
             Image(systemName: "books.vertical")
                 .font(.system(size: 40))
                 .foregroundStyle(theme.textTertiary)
-            Text("暂无知识库项目")
+            Text(i18n.t(.ai_kb_empty))
                 .font(.system(size: theme.textSize))
                 .foregroundStyle(theme.textSecondary)
-            Text("创建项目，上传文档，为 Agent 提供知识支撑")
+            Text(i18n.t(.ai_kb_emptyHint))
                 .font(.system(size: theme.captionSize))
                 .foregroundStyle(theme.textTertiary)
         }
@@ -245,6 +246,7 @@ struct AIAgentKnowledgeBaseView: View {
 private struct CreateProjectSheet: View {
     @Environment(\.studioTheme) private var theme
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var i18n = I18nManager.shared
 
     let onCreate: (String, String) -> Void
 
@@ -253,15 +255,15 @@ private struct CreateProjectSheet: View {
 
     var body: some View {
         VStack(spacing: theme.spacingL) {
-            Text("新建知识库项目")
+            Text(i18n.t(.ai_kb_sheetTitle))
                 .font(.system(size: theme.headlineSize, weight: .bold))
                 .foregroundStyle(theme.text)
 
             VStack(alignment: .leading, spacing: theme.spacingS) {
-                Text("项目名称")
+                Text(i18n.t(.ai_kb_sheetName))
                     .font(.system(size: theme.footnoteSize, weight: .medium))
                     .foregroundStyle(theme.textSecondary)
-                TextField("输入项目名称", text: $name)
+                TextField(i18n.t(.ai_kb_sheetNamePh), text: $name)
                     .textFieldStyle(.plain)
                     .padding(theme.spacingS)
                     .background(theme.surfaceElevated)
@@ -271,7 +273,7 @@ private struct CreateProjectSheet: View {
             }
 
             VStack(alignment: .leading, spacing: theme.spacingS) {
-                Text("项目描述")
+                Text(i18n.t(.ai_kb_sheetDesc))
                     .font(.system(size: theme.footnoteSize, weight: .medium))
                     .foregroundStyle(theme.textSecondary)
                 TextEditor(text: $description)
@@ -284,12 +286,12 @@ private struct CreateProjectSheet: View {
             }
 
             HStack(spacing: theme.spacingM) {
-                Button("取消") { dismiss() }
+                Button(i18n.t(.cancel)) { dismiss() }
                     .font(.system(size: theme.footnoteSize))
                     .foregroundStyle(theme.textSecondary)
                     .buttonStyle(.plain)
                 Spacer()
-                Button("创建") {
+                Button(i18n.t(.ai_kb_sheetCreate)) {
                     guard !name.isEmpty else { return }
                     onCreate(name, description)
                     dismiss()
@@ -319,6 +321,7 @@ private struct KBProjectDetailView: View {
     @EnvironmentObject var bridge: AgentBridge
     @Environment(\.studioTheme) private var theme
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var i18n = I18nManager.shared
 
     let projectId: String
 
@@ -329,9 +332,17 @@ private struct KBProjectDetailView: View {
     @State private var activeTab: DetailTab = .files
 
     enum DetailTab: String, CaseIterable {
-        case files = "文件"
-        case instruction = "指令"
-        case agents = "关联Agent"
+        case files = "files"
+        case instruction = "instruction"
+        case agents = "agents"
+
+        var localLabel: String {
+            switch self {
+            case .files: return I18nManager.shared.t(.ai_kb_detTabFiles)
+            case .instruction: return I18nManager.shared.t(.ai_kb_detTabInstruction)
+            case .agents: return I18nManager.shared.t(.ai_kb_detTabAgents)
+            }
+        }
     }
 
     var body: some View {
@@ -341,7 +352,7 @@ private struct KBProjectDetailView: View {
             Rectangle().fill(theme.separator).frame(height: 1)
             if isLoading {
                 Spacer()
-                ProgressView("加载中...")
+                ProgressView(i18n.t(.loading))
                 Spacer()
             } else {
                 tabContent
@@ -355,7 +366,7 @@ private struct KBProjectDetailView: View {
     private var detailHeader: some View {
         HStack(spacing: theme.spacingM) {
             VStack(alignment: .leading, spacing: theme.spacingXS) {
-                Text(project?["name"] as? String ?? "项目详情")
+                Text(project?["name"] as? String ?? i18n.t(.ai_kb_detTitle))
                     .font(.system(size: theme.headlineSize, weight: .bold))
                     .foregroundStyle(theme.text)
                 Text(project?["description"] as? String ?? "")
@@ -363,7 +374,7 @@ private struct KBProjectDetailView: View {
                     .foregroundStyle(theme.textSecondary)
             }
             Spacer()
-            Button("关闭") { dismiss() }
+            Button(i18n.t(.close)) { dismiss() }
                 .font(.system(size: theme.footnoteSize))
                 .foregroundStyle(theme.textSecondary)
                 .buttonStyle(.plain)
@@ -375,7 +386,7 @@ private struct KBProjectDetailView: View {
     private var tabPicker: some View {
         HStack(spacing: 0) {
             ForEach(DetailTab.allCases, id: \.self) { tab in
-                Button(tab.rawValue) {
+                Button(tab.localLabel) {
                     activeTab = tab
                 }
                 .font(.system(size: theme.footnoteSize, weight: activeTab == tab ? .semibold : .regular))
@@ -406,7 +417,7 @@ private struct KBProjectDetailView: View {
                     Image(systemName: "doc.text")
                         .font(.system(size: 32))
                         .foregroundStyle(theme.textTertiary)
-                    Text("暂无文件")
+                    Text(i18n.t(.ai_kb_filesEmpty))
                         .font(.system(size: theme.textSize))
                         .foregroundStyle(theme.textSecondary)
                 }
@@ -424,7 +435,7 @@ private struct KBProjectDetailView: View {
 
     private func artifactRow(_ artifact: [String: Any]) -> some View {
         let aid = artifact["id"] as? String ?? ""
-        let title = artifact["title"] as? String ?? artifact["filename"] as? String ?? "未命名"
+        let title = artifact["title"] as? String ?? artifact["filename"] as? String ?? i18n.t(.ai_kb_unnamed)
         let type = artifact["type"] as? String ?? "text"
 
         return HStack(spacing: theme.spacingM) {
@@ -440,7 +451,7 @@ private struct KBProjectDetailView: View {
                     .foregroundStyle(theme.textTertiary)
             }
             Spacer()
-            Button("移除") {
+            Button(i18n.t(.ai_kb_artRemove)) {
                 removeArtifact(id: aid)
             }
             .font(.system(size: theme.captionSize))
@@ -452,7 +463,7 @@ private struct KBProjectDetailView: View {
 
     private var instructionTab: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            Text("项目指令")
+            Text(i18n.t(.ai_kb_instrTitle))
                 .font(.system(size: theme.footnoteSize, weight: .semibold))
                 .foregroundStyle(theme.textSecondary)
 
@@ -466,7 +477,7 @@ private struct KBProjectDetailView: View {
 
             HStack {
                 Spacer()
-                Button("保存指令") {
+                Button(i18n.t(.ai_kb_instrSave)) {
                     saveInstruction()
                 }
                 .font(.system(size: theme.footnoteSize, weight: .medium))
@@ -484,7 +495,7 @@ private struct KBProjectDetailView: View {
 
     private var agentsTab: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            Text("绑定此知识库的 Agent")
+            Text(i18n.t(.ai_kb_agentsTitle))
                 .font(.system(size: theme.footnoteSize, weight: .semibold))
                 .foregroundStyle(theme.textSecondary)
 
@@ -499,7 +510,7 @@ private struct KBProjectDetailView: View {
                     Image(systemName: "person.2")
                         .font(.system(size: 32))
                         .foregroundStyle(theme.textTertiary)
-                    Text("暂无 Agent 绑定此知识库")
+                    Text(i18n.t(.ai_kb_agentsEmpty))
                         .font(.system(size: theme.textSize))
                         .foregroundStyle(theme.textSecondary)
                 }
