@@ -1770,6 +1770,107 @@ enum I18nKey: String, CaseIterable {
     case ai_debug_tabChat = "ai_debug_tabChat"
     case ai_debug_tabLogs = "ai_debug_tabLogs"
     case ai_debug_tabTasks = "ai_debug_tabTasks"
+    case ai_obs_tabUsage = "ai_obs_tabUsage"
+    case ai_obs_tabLogs = "ai_obs_tabLogs"
+    case ai_obs_tabApikeys = "ai_obs_tabApikeys"
+    case ai_obs_tabConnectors = "ai_obs_tabConnectors"
+    case ai_obs_tabPermissions = "ai_obs_tabPermissions"
+    case ai_obs_tabAudit = "ai_obs_tabAudit"
+    case ai_obs_title = "ai_obs_title"
+    case ai_obs_subtitle = "ai_obs_subtitle"
+    case ai_obs_statToday = "ai_obs_statToday"
+    case ai_obs_statToken = "ai_obs_statToken"
+    case ai_obs_statActive = "ai_obs_statActive"
+    case ai_obs_statError = "ai_obs_statError"
+    case ai_obs_alerts = "ai_obs_alerts"
+    case ai_obs_logsEmpty = "ai_obs_logsEmpty"
+    case ai_obs_apikeysTitle = "ai_obs_apikeysTitle"
+    case ai_obs_apikeyCreate = "ai_obs_apikeyCreate"
+    case ai_obs_apikeysEmpty = "ai_obs_apikeysEmpty"
+    case ai_obs_createdFmt = "ai_obs_createdFmt"
+    case ai_obs_rotate = "ai_obs_rotate"
+    case ai_obs_revoke = "ai_obs_revoke"
+    case ai_obs_connTitle = "ai_obs_connTitle"
+    case ai_obs_connAdd = "ai_obs_connAdd"
+    case ai_obs_connEmpty = "ai_obs_connEmpty"
+    case ai_obs_connConnected = "ai_obs_connConnected"
+    case ai_obs_connDisconnected = "ai_obs_connDisconnected"
+    case ai_obs_connect = "ai_obs_connect"
+    case ai_obs_unnamedKey = "ai_obs_unnamedKey"
+    case ai_obs_unnamedConn = "ai_obs_unnamedConn"
+    case ai_cfg_tabBasic = "ai_cfg_tabBasic"
+    case ai_cfg_tabInstructions = "ai_cfg_tabInstructions"
+    case ai_cfg_tabSoul = "ai_cfg_tabSoul"
+    case ai_cfg_tabKnowledge = "ai_cfg_tabKnowledge"
+    case ai_cfg_tabTools = "ai_cfg_tabTools"
+    case ai_cfg_tabAdvanced = "ai_cfg_tabAdvanced"
+    case ai_cfg_tabPublish = "ai_cfg_tabPublish"
+    case ai_cfg_skillAddTitle = "ai_cfg_skillAddTitle"
+    case ai_cfg_skillNamePh = "ai_cfg_skillNamePh"
+    case ai_cfg_skillDescPh = "ai_cfg_skillDescPh"
+    case ai_cfg_modeCreate = "ai_cfg_modeCreate"
+    case ai_cfg_modeEditFmt = "ai_cfg_modeEditFmt"
+    case ai_cfg_subCreate = "ai_cfg_subCreate"
+    case ai_cfg_subEdit = "ai_cfg_subEdit"
+    case ai_cfg_nameLabel = "ai_cfg_nameLabel"
+    case ai_cfg_namePh = "ai_cfg_namePh"
+    case ai_cfg_descLabel = "ai_cfg_descLabel"
+    case ai_cfg_descPh = "ai_cfg_descPh"
+    case ai_cfg_modelLabel = "ai_cfg_modelLabel"
+    case ai_cfg_modelPicker = "ai_cfg_modelPicker"
+    case ai_cfg_modelChoose = "ai_cfg_modelChoose"
+    case ai_cfg_visLabel = "ai_cfg_visLabel"
+    case ai_cfg_visPrivate = "ai_cfg_visPrivate"
+    case ai_cfg_visOrg = "ai_cfg_visOrg"
+    case ai_cfg_instrHint = "ai_cfg_instrHint"
+    case ai_cfg_charFmt = "ai_cfg_charFmt"
+    case ai_cfg_instrSaveTpl = "ai_cfg_instrSaveTpl"
+    case ai_cfg_instrRestore = "ai_cfg_instrRestore"
+    case ai_cfg_soulHint = "ai_cfg_soulHint"
+    case ai_cfg_soulSave = "ai_cfg_soulSave"
+    case ai_cfg_soulAfterCreate = "ai_cfg_soulAfterCreate"
+    case ai_cfg_kbLabel = "ai_cfg_kbLabel"
+    case ai_cfg_kbAdd = "ai_cfg_kbAdd"
+    case ai_cfg_ragLabel = "ai_cfg_ragLabel"
+    case ai_cfg_ragVector = "ai_cfg_ragVector"
+    case ai_cfg_ragFulltext = "ai_cfg_ragFulltext"
+    case ai_cfg_ragHybrid = "ai_cfg_ragHybrid"
+    case ai_cfg_autoQueryLabel = "ai_cfg_autoQueryLabel"
+    case ai_cfg_autoQueryToggle = "ai_cfg_autoQueryToggle"
+    case ai_cfg_toolsBuiltin = "ai_cfg_toolsBuiltin"
+    case ai_cfg_toolWebSearch = "ai_cfg_toolWebSearch"
+    case ai_cfg_toolDeepResearch = "ai_cfg_toolDeepResearch"
+    case ai_cfg_skillsLabel = "ai_cfg_skillsLabel"
+    case ai_cfg_skillCountFmt = "ai_cfg_skillCountFmt"
+    case ai_cfg_skillsEmpty = "ai_cfg_skillsEmpty"
+    case ai_cfg_skillsAfterCreate = "ai_cfg_skillsAfterCreate"
+    case ai_cfg_connLabel = "ai_cfg_connLabel"
+    case ai_cfg_connEmpty = "ai_cfg_connEmpty"
+    case ai_cfg_connUnknown = "ai_cfg_connUnknown"
+    case ai_cfg_tempHint = "ai_cfg_tempHint"
+    case ai_cfg_maxTokenLabel = "ai_cfg_maxTokenLabel"
+    case ai_cfg_ctxLabel = "ai_cfg_ctxLabel"
+    case ai_cfg_styleLabel = "ai_cfg_styleLabel"
+    case ai_cfg_stylePicker = "ai_cfg_stylePicker"
+    case ai_cfg_styleDefault = "ai_cfg_styleDefault"
+    case ai_cfg_qpsLabel = "ai_cfg_qpsLabel"
+    case ai_cfg_qpsUnit = "ai_cfg_qpsUnit"
+    case ai_cfg_pubLabel = "ai_cfg_pubLabel"
+    case ai_cfg_pubBtn = "ai_cfg_pubBtn"
+    case ai_cfg_pubGetApi = "ai_cfg_pubGetApi"
+    case ai_cfg_pubSaveFirst = "ai_cfg_pubSaveFirst"
+    case ai_cfg_summaryTitle = "ai_cfg_summaryTitle"
+    case ai_cfg_sumName = "ai_cfg_sumName"
+    case ai_cfg_sumModel = "ai_cfg_sumModel"
+    case ai_cfg_sumVis = "ai_cfg_sumVis"
+    case ai_cfg_sumKb = "ai_cfg_sumKb"
+    case ai_cfg_sumKbUnbound = "ai_cfg_sumKbUnbound"
+    case ai_cfg_sumTools = "ai_cfg_sumTools"
+    case ai_cfg_sumMaxToken = "ai_cfg_sumMaxToken"
+    case ai_cfg_sumConnFmt = "ai_cfg_sumConnFmt"
+    case ai_cfg_sumToolsNone = "ai_cfg_sumToolsNone"
+    case ai_cfg_deleteBtn = "ai_cfg_deleteBtn"
+    case ai_cfg_saveDraft = "ai_cfg_saveDraft"
 }
 
 // MARK: - 翻译管理器
@@ -3192,6 +3293,107 @@ let zhCNTranslations: [String: String] = [
     "ai_debug_tabChat": "对话测试",
     "ai_debug_tabLogs": "执行日志",
     "ai_debug_tabTasks": "代码任务",
+    "ai_obs_tabUsage": "用量统计",
+    "ai_obs_tabLogs": "执行日志",
+    "ai_obs_tabApikeys": "API 密钥",
+    "ai_obs_tabConnectors": "连接器",
+    "ai_obs_tabPermissions": "权限标签",
+    "ai_obs_tabAudit": "审计日志",
+    "ai_obs_title": "监控与管理",
+    "ai_obs_subtitle": "用量统计 · 执行日志 · API 密钥 · 连接器",
+    "ai_obs_statToday": "今日请求",
+    "ai_obs_statToken": "总 Token",
+    "ai_obs_statActive": "活跃 Agent",
+    "ai_obs_statError": "错误率",
+    "ai_obs_alerts": "告警",
+    "ai_obs_logsEmpty": "暂无执行日志",
+    "ai_obs_apikeysTitle": "API 密钥管理",
+    "ai_obs_apikeyCreate": "创建密钥",
+    "ai_obs_apikeysEmpty": "暂无 API 密钥",
+    "ai_obs_createdFmt": "创建于 %@",
+    "ai_obs_rotate": "轮换",
+    "ai_obs_revoke": "吊销",
+    "ai_obs_connTitle": "外部连接器",
+    "ai_obs_connAdd": "添加连接器",
+    "ai_obs_connEmpty": "暂无已配置的连接器",
+    "ai_obs_connConnected": "已连接",
+    "ai_obs_connDisconnected": "未连接",
+    "ai_obs_connect": "连接",
+    "ai_obs_unnamedKey": "未命名密钥",
+    "ai_obs_unnamedConn": "未命名",
+    "ai_cfg_tabBasic": "基础信息",
+    "ai_cfg_tabInstructions": "系统指令",
+    "ai_cfg_tabSoul": "人格 Soul",
+    "ai_cfg_tabKnowledge": "知识库",
+    "ai_cfg_tabTools": "工具配置",
+    "ai_cfg_tabAdvanced": "高级参数",
+    "ai_cfg_tabPublish": "发布",
+    "ai_cfg_skillAddTitle": "添加技能",
+    "ai_cfg_skillNamePh": "技能名称",
+    "ai_cfg_skillDescPh": "技能描述（可选）",
+    "ai_cfg_modeCreate": "创建新 Agent",
+    "ai_cfg_modeEditFmt": "编辑 Agent：%@",
+    "ai_cfg_subCreate": "配置智能体的基础信息、指令、工具和参数",
+    "ai_cfg_subEdit": "修改 Agent 配置后保存或发布",
+    "ai_cfg_nameLabel": "Agent 名称",
+    "ai_cfg_namePh": "输入 Agent 名称",
+    "ai_cfg_descLabel": "简介",
+    "ai_cfg_descPh": "描述 Agent 的功能和用途",
+    "ai_cfg_modelLabel": "模型选择",
+    "ai_cfg_modelPicker": "模型",
+    "ai_cfg_modelChoose": "选择模型",
+    "ai_cfg_visLabel": "可见范围",
+    "ai_cfg_visPrivate": "仅本人可见",
+    "ai_cfg_visOrg": "组织共享",
+    "ai_cfg_instrHint": "编写 Agent 基础角色、行为约束、输出规范",
+    "ai_cfg_charFmt": "%d 字符",
+    "ai_cfg_instrSaveTpl": "保存模板",
+    "ai_cfg_instrRestore": "恢复历史版本",
+    "ai_cfg_soulHint": "定义 Agent 的人格特质、说话风格、情感偏好",
+    "ai_cfg_soulSave": "保存 Soul",
+    "ai_cfg_soulAfterCreate": "创建 Agent 后可编辑 Soul",
+    "ai_cfg_kbLabel": "绑定知识库 Project",
+    "ai_cfg_kbAdd": "+ 添加知识库",
+    "ai_cfg_ragLabel": "检索策略",
+    "ai_cfg_ragVector": "向量检索",
+    "ai_cfg_ragFulltext": "全文检索",
+    "ai_cfg_ragHybrid": "混合检索",
+    "ai_cfg_autoQueryLabel": "自主查询",
+    "ai_cfg_autoQueryToggle": "允许 Agent 主动查询知识库内容",
+    "ai_cfg_toolsBuiltin": "内置工具",
+    "ai_cfg_toolWebSearch": "网页搜索",
+    "ai_cfg_toolDeepResearch": "深度调研模式",
+    "ai_cfg_skillsLabel": "技能 Skills",
+    "ai_cfg_skillCountFmt": "已添加 %d 个技能",
+    "ai_cfg_skillsEmpty": "暂无技能，点击「添加技能」为 Agent 增加能力",
+    "ai_cfg_skillsAfterCreate": "创建 Agent 后可管理技能",
+    "ai_cfg_connLabel": "外部连接器 Connectors",
+    "ai_cfg_connEmpty": "暂无已授权连接器",
+    "ai_cfg_connUnknown": "未知",
+    "ai_cfg_tempHint": "低=精确 高=创造",
+    "ai_cfg_maxTokenLabel": "最大输出 Token",
+    "ai_cfg_ctxLabel": "上下文窗口",
+    "ai_cfg_styleLabel": "输出风格 Style",
+    "ai_cfg_stylePicker": "风格",
+    "ai_cfg_styleDefault": "默认",
+    "ai_cfg_qpsLabel": "QPS 限流",
+    "ai_cfg_qpsUnit": "请求/秒",
+    "ai_cfg_pubLabel": "发布操作",
+    "ai_cfg_pubBtn": "发布 Agent",
+    "ai_cfg_pubGetApi": "获取 API 地址",
+    "ai_cfg_pubSaveFirst": "请先保存草稿后再发布",
+    "ai_cfg_summaryTitle": "配置摘要",
+    "ai_cfg_sumName": "名称",
+    "ai_cfg_sumModel": "模型",
+    "ai_cfg_sumVis": "可见范围",
+    "ai_cfg_sumKb": "知识库",
+    "ai_cfg_sumKbUnbound": "未绑定",
+    "ai_cfg_sumTools": "工具",
+    "ai_cfg_sumMaxToken": "最大 Token",
+    "ai_cfg_sumConnFmt": "%d 连接器",
+    "ai_cfg_sumToolsNone": "未启用",
+    "ai_cfg_deleteBtn": "删除 Agent",
+    "ai_cfg_saveDraft": "保存草稿",
 ]
 
 let enUSTranslations: [String: String] = [
@@ -4569,6 +4771,107 @@ let enUSTranslations: [String: String] = [
     "ai_debug_tabChat": "Chat test",
     "ai_debug_tabLogs": "Execution logs",
     "ai_debug_tabTasks": "Code tasks",
+    "ai_obs_tabUsage": "Usage",
+    "ai_obs_tabLogs": "Execution Logs",
+    "ai_obs_tabApikeys": "API Keys",
+    "ai_obs_tabConnectors": "Connectors",
+    "ai_obs_tabPermissions": "Permission Tags",
+    "ai_obs_tabAudit": "Audit Logs",
+    "ai_obs_title": "Monitoring & Management",
+    "ai_obs_subtitle": "Usage · Logs · API Keys · Connectors",
+    "ai_obs_statToday": "Today's Requests",
+    "ai_obs_statToken": "Total Tokens",
+    "ai_obs_statActive": "Active Agents",
+    "ai_obs_statError": "Error Rate",
+    "ai_obs_alerts": "Alerts",
+    "ai_obs_logsEmpty": "No execution logs",
+    "ai_obs_apikeysTitle": "API Key Management",
+    "ai_obs_apikeyCreate": "Create Key",
+    "ai_obs_apikeysEmpty": "No API keys",
+    "ai_obs_createdFmt": "Created %@",
+    "ai_obs_rotate": "Rotate",
+    "ai_obs_revoke": "Revoke",
+    "ai_obs_connTitle": "External Connectors",
+    "ai_obs_connAdd": "Add Connector",
+    "ai_obs_connEmpty": "No connectors configured",
+    "ai_obs_connConnected": "Connected",
+    "ai_obs_connDisconnected": "Disconnected",
+    "ai_obs_connect": "Connect",
+    "ai_obs_unnamedKey": "Unnamed Key",
+    "ai_obs_unnamedConn": "Unnamed",
+    "ai_cfg_tabBasic": "Basic Info",
+    "ai_cfg_tabInstructions": "System Instructions",
+    "ai_cfg_tabSoul": "Soul",
+    "ai_cfg_tabKnowledge": "Knowledge Base",
+    "ai_cfg_tabTools": "Tools",
+    "ai_cfg_tabAdvanced": "Advanced",
+    "ai_cfg_tabPublish": "Publish",
+    "ai_cfg_skillAddTitle": "Add Skill",
+    "ai_cfg_skillNamePh": "Skill name",
+    "ai_cfg_skillDescPh": "Skill description (optional)",
+    "ai_cfg_modeCreate": "Create New Agent",
+    "ai_cfg_modeEditFmt": "Edit Agent: %@",
+    "ai_cfg_subCreate": "Configure the agent's basic info, instructions, tools and params",
+    "ai_cfg_subEdit": "Modify agent config then save or publish",
+    "ai_cfg_nameLabel": "Agent Name",
+    "ai_cfg_namePh": "Enter agent name",
+    "ai_cfg_descLabel": "Description",
+    "ai_cfg_descPh": "Describe the agent's function and purpose",
+    "ai_cfg_modelLabel": "Model Selection",
+    "ai_cfg_modelPicker": "Model",
+    "ai_cfg_modelChoose": "Select model",
+    "ai_cfg_visLabel": "Visibility",
+    "ai_cfg_visPrivate": "Private",
+    "ai_cfg_visOrg": "Organization",
+    "ai_cfg_instrHint": "Write the agent's base role, behavior constraints, output specs",
+    "ai_cfg_charFmt": "%d chars",
+    "ai_cfg_instrSaveTpl": "Save Template",
+    "ai_cfg_instrRestore": "Restore Version",
+    "ai_cfg_soulHint": "Define the agent's personality, speaking style, emotion preferences",
+    "ai_cfg_soulSave": "Save Soul",
+    "ai_cfg_soulAfterCreate": "Edit Soul after creating the agent",
+    "ai_cfg_kbLabel": "Bind Knowledge Base Project",
+    "ai_cfg_kbAdd": "+ Add Knowledge Base",
+    "ai_cfg_ragLabel": "Retrieval Strategy",
+    "ai_cfg_ragVector": "Vector",
+    "ai_cfg_ragFulltext": "Full-text",
+    "ai_cfg_ragHybrid": "Hybrid",
+    "ai_cfg_autoQueryLabel": "Auto Query",
+    "ai_cfg_autoQueryToggle": "Allow agent to query knowledge base proactively",
+    "ai_cfg_toolsBuiltin": "Built-in Tools",
+    "ai_cfg_toolWebSearch": "Web Search",
+    "ai_cfg_toolDeepResearch": "Deep Research",
+    "ai_cfg_skillsLabel": "Skills",
+    "ai_cfg_skillCountFmt": "%d skills added",
+    "ai_cfg_skillsEmpty": "No skills yet. Click Add Skill to add capabilities",
+    "ai_cfg_skillsAfterCreate": "Manage skills after creating the agent",
+    "ai_cfg_connLabel": "External Connectors",
+    "ai_cfg_connEmpty": "No authorized connectors",
+    "ai_cfg_connUnknown": "Unknown",
+    "ai_cfg_tempHint": "Low=precise, High=creative",
+    "ai_cfg_maxTokenLabel": "Max Output Tokens",
+    "ai_cfg_ctxLabel": "Context Window",
+    "ai_cfg_styleLabel": "Output Style",
+    "ai_cfg_stylePicker": "Style",
+    "ai_cfg_styleDefault": "Default",
+    "ai_cfg_qpsLabel": "QPS Rate Limit",
+    "ai_cfg_qpsUnit": "req/s",
+    "ai_cfg_pubLabel": "Publish Actions",
+    "ai_cfg_pubBtn": "Publish Agent",
+    "ai_cfg_pubGetApi": "Get API Endpoint",
+    "ai_cfg_pubSaveFirst": "Save draft before publishing",
+    "ai_cfg_summaryTitle": "Config Summary",
+    "ai_cfg_sumName": "Name",
+    "ai_cfg_sumModel": "Model",
+    "ai_cfg_sumVis": "Visibility",
+    "ai_cfg_sumKb": "Knowledge Base",
+    "ai_cfg_sumKbUnbound": "Unbound",
+    "ai_cfg_sumTools": "Tools",
+    "ai_cfg_sumMaxToken": "Max Tokens",
+    "ai_cfg_sumConnFmt": "%d connectors",
+    "ai_cfg_sumToolsNone": "Disabled",
+    "ai_cfg_deleteBtn": "Delete Agent",
+    "ai_cfg_saveDraft": "Save Draft",
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -5940,6 +6243,107 @@ let jaJPTranslations: [String: String] = [
     "ai_debug_tabChat": "チャットテスト",
     "ai_debug_tabLogs": "実行ログ",
     "ai_debug_tabTasks": "コードタスク",
+    "ai_obs_tabUsage": "使用量",
+    "ai_obs_tabLogs": "実行ログ",
+    "ai_obs_tabApikeys": "APIキー",
+    "ai_obs_tabConnectors": "コネクタ",
+    "ai_obs_tabPermissions": "権限タグ",
+    "ai_obs_tabAudit": "監査ログ",
+    "ai_obs_title": "監視と管理",
+    "ai_obs_subtitle": "使用量 · 実行ログ · APIキー · コネクタ",
+    "ai_obs_statToday": "今日のリクエスト",
+    "ai_obs_statToken": "合計トークン",
+    "ai_obs_statActive": "アクティブ Agent",
+    "ai_obs_statError": "エラー率",
+    "ai_obs_alerts": "アラート",
+    "ai_obs_logsEmpty": "実行ログなし",
+    "ai_obs_apikeysTitle": "APIキー管理",
+    "ai_obs_apikeyCreate": "キー作成",
+    "ai_obs_apikeysEmpty": "APIキーなし",
+    "ai_obs_createdFmt": "作成 %@",
+    "ai_obs_rotate": "ローテーション",
+    "ai_obs_revoke": "取り消し",
+    "ai_obs_connTitle": "外部コネクタ",
+    "ai_obs_connAdd": "コネクタ追加",
+    "ai_obs_connEmpty": "設定済みコネクタなし",
+    "ai_obs_connConnected": "接続済み",
+    "ai_obs_connDisconnected": "未接続",
+    "ai_obs_connect": "接続",
+    "ai_obs_unnamedKey": "無名キー",
+    "ai_obs_unnamedConn": "無名",
+    "ai_cfg_tabBasic": "基本情報",
+    "ai_cfg_tabInstructions": "システム指示",
+    "ai_cfg_tabSoul": "人格 Soul",
+    "ai_cfg_tabKnowledge": "ナレッジベース",
+    "ai_cfg_tabTools": "ツール設定",
+    "ai_cfg_tabAdvanced": "詳細パラメータ",
+    "ai_cfg_tabPublish": "公開",
+    "ai_cfg_skillAddTitle": "スキル追加",
+    "ai_cfg_skillNamePh": "スキル名",
+    "ai_cfg_skillDescPh": "スキルの説明（任意）",
+    "ai_cfg_modeCreate": "新規 Agent 作成",
+    "ai_cfg_modeEditFmt": "Agentを編集：%@",
+    "ai_cfg_subCreate": "Agentの基本情報・指示・ツール・パラメータを設定",
+    "ai_cfg_subEdit": "Agent設定を変更して保存または公開",
+    "ai_cfg_nameLabel": "Agent名",
+    "ai_cfg_namePh": "Agent名を入力",
+    "ai_cfg_descLabel": "概要",
+    "ai_cfg_descPh": "Agentの機能と用途を記述",
+    "ai_cfg_modelLabel": "モデル選択",
+    "ai_cfg_modelPicker": "モデル",
+    "ai_cfg_modelChoose": "モデルを選択",
+    "ai_cfg_visLabel": "公開範囲",
+    "ai_cfg_visPrivate": "非公開",
+    "ai_cfg_visOrg": "組織共有",
+    "ai_cfg_instrHint": "Agentの基本ロール・行動制約・出力仕様を記述",
+    "ai_cfg_charFmt": "%d 文字",
+    "ai_cfg_instrSaveTpl": "テンプレート保存",
+    "ai_cfg_instrRestore": "履歴を復元",
+    "ai_cfg_soulHint": "Agentの人格・話し方・感情の好みを定義",
+    "ai_cfg_soulSave": "Soulを保存",
+    "ai_cfg_soulAfterCreate": "Agent作成後にSoulを編集可能",
+    "ai_cfg_kbLabel": "ナレッジベースProjectを紐付け",
+    "ai_cfg_kbAdd": "+ ナレッジベース追加",
+    "ai_cfg_ragLabel": "検索戦略",
+    "ai_cfg_ragVector": "ベクトル検索",
+    "ai_cfg_ragFulltext": "全文検索",
+    "ai_cfg_ragHybrid": "ハイブリッド検索",
+    "ai_cfg_autoQueryLabel": "自動クエリ",
+    "ai_cfg_autoQueryToggle": "Agentが自律的にナレッジベースを検索することを許可",
+    "ai_cfg_toolsBuiltin": "組み込みツール",
+    "ai_cfg_toolWebSearch": "ウェブ検索",
+    "ai_cfg_toolDeepResearch": "ディープリサーチ",
+    "ai_cfg_skillsLabel": "スキル Skills",
+    "ai_cfg_skillCountFmt": "%d個のスキルを追加",
+    "ai_cfg_skillsEmpty": "スキルなし。「スキル追加」をクリックして機能を追加",
+    "ai_cfg_skillsAfterCreate": "Agent作成後にスキルを管理可能",
+    "ai_cfg_connLabel": "外部コネクタ Connectors",
+    "ai_cfg_connEmpty": "認可済みコネクタなし",
+    "ai_cfg_connUnknown": "不明",
+    "ai_cfg_tempHint": "低=正確 高=創造的",
+    "ai_cfg_maxTokenLabel": "最大出力トークン",
+    "ai_cfg_ctxLabel": "コンテキストウィンドウ",
+    "ai_cfg_styleLabel": "出力スタイル Style",
+    "ai_cfg_stylePicker": "スタイル",
+    "ai_cfg_styleDefault": "デフォルト",
+    "ai_cfg_qpsLabel": "QPS制限",
+    "ai_cfg_qpsUnit": "リクエスト/秒",
+    "ai_cfg_pubLabel": "公開操作",
+    "ai_cfg_pubBtn": "Agentを公開",
+    "ai_cfg_pubGetApi": "APIエンドポイントを取得",
+    "ai_cfg_pubSaveFirst": "公開前に下書きを保存してください",
+    "ai_cfg_summaryTitle": "設定サマリー",
+    "ai_cfg_sumName": "名前",
+    "ai_cfg_sumModel": "モデル",
+    "ai_cfg_sumVis": "公開範囲",
+    "ai_cfg_sumKb": "ナレッジベース",
+    "ai_cfg_sumKbUnbound": "未紐付け",
+    "ai_cfg_sumTools": "ツール",
+    "ai_cfg_sumMaxToken": "最大トークン",
+    "ai_cfg_sumConnFmt": "%dコネクタ",
+    "ai_cfg_sumToolsNone": "無効",
+    "ai_cfg_deleteBtn": "Agentを削除",
+    "ai_cfg_saveDraft": "下書き保存",
 ]
 
 let koKRTranslations: [String: String] = [
@@ -7311,6 +7715,107 @@ let koKRTranslations: [String: String] = [
     "ai_debug_tabChat": "채팅 테스트",
     "ai_debug_tabLogs": "실행 로그",
     "ai_debug_tabTasks": "코드 작업",
+    "ai_obs_tabUsage": "사용량",
+    "ai_obs_tabLogs": "실행 로그",
+    "ai_obs_tabApikeys": "API 키",
+    "ai_obs_tabConnectors": "커넥터",
+    "ai_obs_tabPermissions": "권한 태그",
+    "ai_obs_tabAudit": "감사 로그",
+    "ai_obs_title": "모니터링 및 관리",
+    "ai_obs_subtitle": "사용량 · 로그 · API 키 · 커넥터",
+    "ai_obs_statToday": "오늘 요청",
+    "ai_obs_statToken": "총 토큰",
+    "ai_obs_statActive": "활성 Agent",
+    "ai_obs_statError": "오류율",
+    "ai_obs_alerts": "알림",
+    "ai_obs_logsEmpty": "실행 로그 없음",
+    "ai_obs_apikeysTitle": "API 키 관리",
+    "ai_obs_apikeyCreate": "키 생성",
+    "ai_obs_apikeysEmpty": "API 키 없음",
+    "ai_obs_createdFmt": "생성 %@",
+    "ai_obs_rotate": "교체",
+    "ai_obs_revoke": "폐기",
+    "ai_obs_connTitle": "외부 커넥터",
+    "ai_obs_connAdd": "커넥터 추가",
+    "ai_obs_connEmpty": "구성된 커넥터 없음",
+    "ai_obs_connConnected": "연결됨",
+    "ai_obs_connDisconnected": "연결 안 됨",
+    "ai_obs_connect": "연결",
+    "ai_obs_unnamedKey": "이름 없는 키",
+    "ai_obs_unnamedConn": "이름 없음",
+    "ai_cfg_tabBasic": "기본 정보",
+    "ai_cfg_tabInstructions": "시스템 명령",
+    "ai_cfg_tabSoul": "인격 Soul",
+    "ai_cfg_tabKnowledge": "지식 베이스",
+    "ai_cfg_tabTools": "도구 설정",
+    "ai_cfg_tabAdvanced": "고급 매개변수",
+    "ai_cfg_tabPublish": "게시",
+    "ai_cfg_skillAddTitle": "스킬 추가",
+    "ai_cfg_skillNamePh": "스킬 이름",
+    "ai_cfg_skillDescPh": "스킬 설명（선택）",
+    "ai_cfg_modeCreate": "새 Agent 만들기",
+    "ai_cfg_modeEditFmt": "Agent 편집: %@",
+    "ai_cfg_subCreate": "에이전트의 기본 정보, 명령, 도구, 매개변수 설정",
+    "ai_cfg_subEdit": "Agent 설정 수정 후 저장 또는 게시",
+    "ai_cfg_nameLabel": "Agent 이름",
+    "ai_cfg_namePh": "Agent 이름 입력",
+    "ai_cfg_descLabel": "소개",
+    "ai_cfg_descPh": "Agent의 기능과 용도 설명",
+    "ai_cfg_modelLabel": "모델 선택",
+    "ai_cfg_modelPicker": "모델",
+    "ai_cfg_modelChoose": "모델 선택",
+    "ai_cfg_visLabel": "공개 범위",
+    "ai_cfg_visPrivate": "비공개",
+    "ai_cfg_visOrg": "조직 공유",
+    "ai_cfg_instrHint": "Agent의 기본 역할, 행동 제약, 출력 사양 작성",
+    "ai_cfg_charFmt": "%d자",
+    "ai_cfg_instrSaveTpl": "템플릿 저장",
+    "ai_cfg_instrRestore": "이전 버전 복원",
+    "ai_cfg_soulHint": "Agent의 인격, 말투, 감정 선호도 정의",
+    "ai_cfg_soulSave": "Soul 저장",
+    "ai_cfg_soulAfterCreate": "Agent 생성 후 Soul 편집 가능",
+    "ai_cfg_kbLabel": "지식 베이스 Project 연결",
+    "ai_cfg_kbAdd": "+ 지식 베이스 추가",
+    "ai_cfg_ragLabel": "검색 전략",
+    "ai_cfg_ragVector": "벡터 검색",
+    "ai_cfg_ragFulltext": "전문 검색",
+    "ai_cfg_ragHybrid": "하이브리드 검색",
+    "ai_cfg_autoQueryLabel": "자동 쿼리",
+    "ai_cfg_autoQueryToggle": "Agent가 자율적으로 지식 베이스를 쿼리하도록 허용",
+    "ai_cfg_toolsBuiltin": "내장 도구",
+    "ai_cfg_toolWebSearch": "웹 검색",
+    "ai_cfg_toolDeepResearch": "딥 리서치",
+    "ai_cfg_skillsLabel": "스킬 Skills",
+    "ai_cfg_skillCountFmt": "스킬 %d개 추가",
+    "ai_cfg_skillsEmpty": "스킬 없음. 스킬 추가를 클릭해 기능 추가",
+    "ai_cfg_skillsAfterCreate": "Agent 생성 후 스킬 관리 가능",
+    "ai_cfg_connLabel": "외부 커넥터 Connectors",
+    "ai_cfg_connEmpty": "인증된 커넥터 없음",
+    "ai_cfg_connUnknown": "알 수 없음",
+    "ai_cfg_tempHint": "낮음=정확, 높음=창의적",
+    "ai_cfg_maxTokenLabel": "최대 출력 토큰",
+    "ai_cfg_ctxLabel": "컨텍스트 윈도우",
+    "ai_cfg_styleLabel": "출력 스타일 Style",
+    "ai_cfg_stylePicker": "스타일",
+    "ai_cfg_styleDefault": "기본",
+    "ai_cfg_qpsLabel": "QPS 제한",
+    "ai_cfg_qpsUnit": "요청/초",
+    "ai_cfg_pubLabel": "게시 작업",
+    "ai_cfg_pubBtn": "Agent 게시",
+    "ai_cfg_pubGetApi": "API 엔드포인트 가져오기",
+    "ai_cfg_pubSaveFirst": "게시 전 초안을 먼저 저장하세요",
+    "ai_cfg_summaryTitle": "설정 요약",
+    "ai_cfg_sumName": "이름",
+    "ai_cfg_sumModel": "모델",
+    "ai_cfg_sumVis": "공개 범위",
+    "ai_cfg_sumKb": "지식 베이스",
+    "ai_cfg_sumKbUnbound": "연결 안 됨",
+    "ai_cfg_sumTools": "도구",
+    "ai_cfg_sumMaxToken": "최대 토큰",
+    "ai_cfg_sumConnFmt": "커넥터 %d개",
+    "ai_cfg_sumToolsNone": "비활성화",
+    "ai_cfg_deleteBtn": "Agent 삭제",
+    "ai_cfg_saveDraft": "초안 저장",
 ]
 
 // MARK: - 国际化文本视图
