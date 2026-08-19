@@ -136,6 +136,11 @@ struct ModuleDetailView: View {
                 PluginLogViewer()
             case .pluginMcp:
                 PluginMcpView()
+            // Callers: ModuleDetailView switch on appState.selectedModule.
+            // Affected API: .trainer renders TrainerView (RunManager GUI via trainer.* IPC).
+            // Data schemas: TrainerRun/TrainerPreset/TrainerDataset/TrainerAdapter. User instruction: "continue Task" — Task #5 (#175)
+            case .trainer:
+                TrainerView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -42,6 +42,11 @@ struct FusionStudioApp: App {
     // Data schemas: DouyinOperationBridge (ObservableObject) -> DouyinQueueCounts/WinningPatterns/StatsSnapshot. Phase 4 GUI。
     @StateObject private var douyinOperationBridge = DouyinOperationBridge()
 
+    // Callers: FusionStudioApp body, TrainerView (@EnvironmentObject).
+    // Affected API: trainerBridge injected via .environmentObject; trainer.* IPC via IPCClient → fusion-agent-studio TrainerDispatcher → fusion-trainer RunManager.
+    // Data schemas: TrainerRun/TrainerPreset/TrainerDataset/TrainerAdapter/TrainerProgressEvent. User instruction: "continue Task" — Task #5 (#175)
+    @StateObject private var trainerBridge = TrainerBridge()
+
     init() {
         // Dock 图标延后到 onAppear 中设置，init 阶段 NSApp 尚未就绪
     }
@@ -76,6 +81,7 @@ struct FusionStudioApp: App {
                 .environmentObject(simulationBridge)
                 .environmentObject(healthBridge)
                 .environmentObject(douyinOperationBridge)
+                .environmentObject(trainerBridge)
                 .studioThemed()
                 .onAppear {
                     // 启动时检测并按需自动启动上游关键服务（mlx -> agent-studio -> artifacts-engine）。
@@ -100,6 +106,7 @@ struct FusionStudioApp: App {
                     chatStore.setAgentBridge(agentBridge)
                     chatStore.setFusionCodeBridge(FusionCodeBridge.shared)
                     deskBridge.setIPCClient(ipcClient)
+                    trainerBridge.setIPCClient(ipcClient)
                     ArtifactSidebarCache.shared.configure(ipcClient: ipcClient)
                     Task {
                         await performStartupHealthCheck()

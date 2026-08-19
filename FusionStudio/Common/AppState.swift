@@ -69,6 +69,7 @@ enum ProductSheet: String, CaseIterable, Identifiable {
     // Data schemas: enum case. User instruction: "在左侧菜单增加 fusion simulation"
     case simulationSheet = "Fusion Simulation"
     case douyinOperationSheet = "抖音运营"
+    case trainerSheet = "Fusion Trainer"
 
     var id: String { rawValue }
 
@@ -93,6 +94,7 @@ enum ProductSheet: String, CaseIterable, Identifiable {
         case .docSheet:       "doc.text"
         case .simulationSheet: "cube.transparent"
         case .douyinOperationSheet: "play.rectangle.fill"
+        case .trainerSheet: "graduationcap.fill"
         }
     }
 
@@ -136,6 +138,8 @@ enum ProductSheet: String, CaseIterable, Identifiable {
             return [.simulation]
         case .douyinOperationSheet:
             return []
+        case .trainerSheet:
+            return [.trainer]
         }
     }
 }
@@ -206,6 +210,9 @@ enum Module: String, CaseIterable, Identifiable {
     case pluginVram = "VRAM"
     case pluginLog = "插件日志"
     case pluginMcp = "MCP"
+    // Callers: ModuleDetailView, FusionSidebarView. Affected API: trainer.* IPC via TrainerBridge.
+    // Data schemas: TrainerRun/TrainerPreset/TrainerAdapter. User instruction: "continue Task" — fusion-trainer RunManager GUI panel (#175)
+    case trainer = "训练管理"
 
     var id: String { rawValue }
 
@@ -274,6 +281,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .pluginVram:           key = .mod_pluginVram
         case .pluginLog:            key = .mod_pluginLog
         case .pluginMcp:            key = .mod_pluginMcp
+        case .trainer:              key = .mod_trainer
         }
         return I18nManager.shared.t(key)
     }
@@ -342,6 +350,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .pluginVram: return "memorychip"
         case .pluginLog: return "list.bullet.rectangle"
         case .pluginMcp: return "link"
+        case .trainer:   return "graduationcap.fill"
         }
     }
 
@@ -390,6 +399,8 @@ enum Module: String, CaseIterable, Identifiable {
             return .simulationSheet
         case .pluginConfig, .pluginStatus, .pluginToken, .pluginVram, .pluginLog, .pluginMcp:
             return .agentStudio
+        case .trainer:
+            return .trainerSheet
         }
     }
 }
@@ -420,6 +431,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
     case modelHub = "Model Hub"
     case multiNode = "Multi-Node"
     case pluginEcosystem = "Plugin Ecosystem"
+    case trainer = "Fusion Trainer"
 
     var id: String { rawValue }
 
@@ -447,6 +459,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .modelHub:        key = .secModelHub
         case .multiNode:       key = .secMultiNode
         case .pluginEcosystem: key = .secPlugin
+        case .trainer:         key = .secTrainer
         }
         return I18nManager.shared.t(key)
     }
@@ -474,6 +487,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .doc:       return "doc.text"
         case .simulation: return "cube.transparent"
         case .douyinOperation: return "play.rectangle.fill"
+        case .trainer: return "graduationcap.fill"
         }
     }
 
@@ -500,6 +514,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .pluginEcosystem: return [.pluginConfig, .pluginStatus, .pluginToken, .pluginVram, .pluginLog, .pluginMcp]
         case .cliService: return [.cli]
         case .douyinOperation: return []
+        case .trainer: return [.trainer]
         }
     }
 }

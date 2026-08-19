@@ -203,6 +203,11 @@ struct SectionContentView: View {
             // Data schemas: SidebarSection.douyinOperation. User instruction: ~/operation/reconstruct-operation.md Phase 4。
             case .douyinOperation:
                 DouyinOperationView()
+            // Callers: ContentView switch on appState.activeSection.
+            // Affected API: renders TrainerView for .trainer section (RunManager GUI via trainer.* IPC).
+            // Data schemas: SidebarSection.trainer → Module.trainer. User instruction: "continue Task" — Task #5 (#175)
+            case .trainer:
+                TrainerView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

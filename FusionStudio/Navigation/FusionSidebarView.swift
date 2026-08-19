@@ -229,6 +229,10 @@ struct FusionSidebarView: View {
         // Callers: FusionSidebarView sectionGroup via SidebarSection.allCases. Phase 4 GUI。
         case .douyinOperation:
             douyinSidebarContent
+        // Callers: FusionSidebarView sectionContent. Affected API: trainer section → moduleListContent(.trainer).
+        // Data schemas: SidebarSection.trainer → Module.trainer. User instruction: "continue Task" — Task #5 (#175)
+        case .trainer:
+            moduleListContent(.trainer)
         }
     }
 
