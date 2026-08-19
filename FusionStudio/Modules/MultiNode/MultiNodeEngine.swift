@@ -20,15 +20,27 @@ class MultiNodeEngine: ObservableObject {
     @Published var lastError: String?
 
     private let baseURL: String
+    private let agentBaseURL: String
+    private let authToken: String
     private let session: URLSession
     private var pollTimers: [Timer] = []
 
-    init(baseURL: String = "http://127.0.0.1:9753") {
-        self.baseURL = baseURL
+    init(baseURL: String? = nil, agentBaseURL: String? = nil, authToken: String? = nil) {
+        let cfg = FusionConfig.shared
+        self.baseURL = baseURL ?? cfg.multiNodeBaseURL
+        self.agentBaseURL = agentBaseURL ?? cfg.multiNodeAgentBaseURL
+        self.authToken = authToken ?? cfg.multiNodeResolvedToken
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 5
         config.timeoutIntervalForResource = 8
         self.session = URLSession(configuration: config)
+    }
+
+    /// 给 URLRequest 附加 Bearer token（cluster 鉴权，参照 ModelHubAPIClient 模式）。
+    private func authHeaders(_ request: inout URLRequest) {
+        if !authToken.isEmpty {
+            request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
+        }
     }
 
     // MARK: - Polling
@@ -264,7 +276,9 @@ class MultiNodeEngine: ObservableObject {
 
     func exportLogs() async throws -> Data {
         let url = URL(string: "\(baseURL)/api/v1/observability/logs/export")!
-        let (data, _) = try await session.data(from: url)
+        var request = URLRequest(url: url)
+        authHeaders(&request)
+        let (data, _) = try await session.data(for: request)
         return data
     }
 
@@ -303,17 +317,18 @@ class MultiNodeEngine: ObservableObject {
         }
     }
 
-    func triggerIncrementalSync(modelName: String, sourceHost: String, sourcePort: Int = 11452, completion: @escaping (Result<[String: Any], Error>) -> Void) {
+    func triggerIncrementalSync(modelName: String, sourceHost: String, sourcePort: Int? = nil, completion: @escaping (Result<[String: Any], Error>) -> Void) {
         guard let url = URL(string: "\(baseURL)/api/sync/incremental") else {
             completion(.failure(EngineError.invalidURL)); return
         }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        authHeaders(&request)
         let body: [String: Any] = [
             "model_name": modelName,
             "source_host": sourceHost,
-            "source_port": sourcePort,
+            "source_port": sourcePort ?? FusionConfig.shared.multiNodePort,
         ]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         session.dataTask(with: request) { data, _, error in
@@ -358,13 +373,15 @@ class MultiNodeEngine: ObservableObject {
         get("/api/kv/find/\(modelName)") { result in completion(result) }
     }
 
-    // MARK: - Agent Server (port 9755)
+    // MARK: - Agent Server (port = cfg.multiNodeAgentPort, 默认 11445)
 
-    func fetchAgentKVStats(agentURL: String = "http://127.0.0.1:9755", completion: @escaping (Result<KVStatsResponse, Error>) -> Void) {
-        guard let url = URL(string: "\(agentURL)/api/kv/stats") else {
+    func fetchAgentKVStats(completion: @escaping (Result<KVStatsResponse, Error>) -> Void) {
+        guard let url = URL(string: "\(agentBaseURL)/api/kv/stats") else {
             completion(.failure(EngineError.invalidURL)); return
         }
-        session.dataTask(with: url) { data, _, error in
+        var req = URLRequest(url: url)
+        authHeaders(&req)
+        session.dataTask(with: req) { data, _, error in
             if let err = error { completion(.failure(err)); return }
             guard let data = data else { completion(.failure(EngineError.noData)); return }
             do {
@@ -376,11 +393,13 @@ class MultiNodeEngine: ObservableObject {
         }.resume()
     }
 
-    func fetchAgentHardware(agentURL: String = "http://127.0.0.1:9755", completion: @escaping (Result<AgentHardwareInfo, Error>) -> Void) {
-        guard let url = URL(string: "\(agentURL)/api/hardware") else {
+    func fetchAgentHardware(completion: @escaping (Result<AgentHardwareInfo, Error>) -> Void) {
+        guard let url = URL(string: "\(agentBaseURL)/api/hardware") else {
             completion(.failure(EngineError.invalidURL)); return
         }
-        session.dataTask(with: url) { data, _, error in
+        var req = URLRequest(url: url)
+        authHeaders(&req)
+        session.dataTask(with: req) { data, _, error in
             if let err = error { completion(.failure(err)); return }
             guard let data = data else { completion(.failure(EngineError.noData)); return }
             do {
@@ -392,11 +411,13 @@ class MultiNodeEngine: ObservableObject {
         }.resume()
     }
 
-    func checkAgentHealth(agentURL: String = "http://127.0.0.1:9755", completion: @escaping (Result<Bool, Error>) -> Void) {
-        guard let url = URL(string: "\(agentURL)/api/health") else {
+    func checkAgentHealth(completion: @escaping (Result<Bool, Error>) -> Void) {
+        guard let url = URL(string: "\(agentBaseURL)/api/health") else {
             completion(.failure(EngineError.invalidURL)); return
         }
-        session.dataTask(with: url) { data, _, error in
+        var req = URLRequest(url: url)
+        authHeaders(&req)
+        session.dataTask(with: req) { data, _, error in
             if let err = error { completion(.failure(err)); return }
             guard let data = data else { completion(.failure(EngineError.noData)); return }
             do {
@@ -412,13 +433,14 @@ class MultiNodeEngine: ObservableObject {
         }.resume()
     }
 
-    func agentKVLookup(modelName: String, promptHash: String, agentURL: String = "http://127.0.0.1:9755", completion: @escaping (Result<KVCacheEntry, Error>) -> Void) {
-        guard let url = URL(string: "\(agentURL)/api/kv/lookup") else {
+    func agentKVLookup(modelName: String, promptHash: String, completion: @escaping (Result<KVCacheEntry, Error>) -> Void) {
+        guard let url = URL(string: "\(agentBaseURL)/api/kv/lookup") else {
             completion(.failure(EngineError.invalidURL)); return
         }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        authHeaders(&req)
         let body = ["model_name": modelName, "prompt_hash": promptHash]
         req.httpBody = try? JSONSerialization.data(withJSONObject: body)
         session.dataTask(with: req) { data, _, error in
@@ -433,13 +455,14 @@ class MultiNodeEngine: ObservableObject {
         }.resume()
     }
 
-    func agentKVTransfer(cacheId: String, targetNode: String, agentURL: String = "http://127.0.0.1:9755", completion: @escaping (Result<Bool, Error>) -> Void) {
-        guard let url = URL(string: "\(agentURL)/api/kv/transfer") else {
+    func agentKVTransfer(cacheId: String, targetNode: String, completion: @escaping (Result<Bool, Error>) -> Void) {
+        guard let url = URL(string: "\(agentBaseURL)/api/kv/transfer") else {
             completion(.failure(EngineError.invalidURL)); return
         }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        authHeaders(&req)
         let body = ["cache_id": cacheId, "target_node": targetNode]
         req.httpBody = try? JSONSerialization.data(withJSONObject: body)
         session.dataTask(with: req) { data, _, error in
@@ -454,13 +477,14 @@ class MultiNodeEngine: ObservableObject {
         }.resume()
     }
 
-    func agentKVWarm(modelName: String, prompts: [String], agentURL: String = "http://127.0.0.1:9755", completion: @escaping (Result<Int, Error>) -> Void) {
-        guard let url = URL(string: "\(agentURL)/api/kv/warm") else {
+    func agentKVWarm(modelName: String, prompts: [String], completion: @escaping (Result<Int, Error>) -> Void) {
+        guard let url = URL(string: "\(agentBaseURL)/api/kv/warm") else {
             completion(.failure(EngineError.invalidURL)); return
         }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        authHeaders(&req)
         let body: [String: Any] = ["model_name": modelName, "prompts": prompts]
         req.httpBody = try? JSONSerialization.data(withJSONObject: body)
         session.dataTask(with: req) { data, _, error in
@@ -485,7 +509,9 @@ class MultiNodeEngine: ObservableObject {
         guard let url = URL(string: "\(baseURL)\(path)") else {
             completion(.failure(EngineError.invalidURL)); return
         }
-        session.dataTask(with: url) { data, response, error in
+        var request = URLRequest(url: url)
+        authHeaders(&request)
+        session.dataTask(with: request) { data, response, error in
             if let err = error {
                 completion(.failure(err)); return
             }
@@ -509,6 +535,7 @@ class MultiNodeEngine: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        authHeaders(&request)
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (data, _) = try await session.data(for: request)
         return (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
@@ -521,6 +548,7 @@ class MultiNodeEngine: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "PUT"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        authHeaders(&request)
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (data, _) = try await session.data(for: request)
         return (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
@@ -532,6 +560,7 @@ class MultiNodeEngine: ObservableObject {
         }
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
+        authHeaders(&request)
         _ = try await session.data(for: request)
     }
 

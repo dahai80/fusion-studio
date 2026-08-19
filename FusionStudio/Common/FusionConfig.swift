@@ -163,6 +163,24 @@ class FusionConfig: ObservableObject {
     @AppStorage("fusionBenchPort") var fusionBenchPort = 11450
     @AppStorage("agentStudioHttpPort") var agentStudioHttpPort = 11453
     @AppStorage("multiNodePort") var multiNodePort = 11452
+    // Multi-Node Agent 端口（NodeAgent /api/* 数据端点）。对齐 fusion-multi-node 默认 11445。
+    @AppStorage("multiNodeAgentPort") var multiNodeAgentPort = 11445
+    // 可选：手动覆盖 cluster token（留空则读取 ~/.fusion/multi-node/.cluster_token）。
+    @AppStorage("multiNodeClusterToken") var multiNodeClusterToken = ""
+
+    /// Multi-Node Master 服务地址（FastAPI MasterServer，需 Bearer token）。
+    var multiNodeBaseURL: String { "http://\(modelHubHost):\(multiNodePort)" }
+    /// Multi-Node Agent 服务地址（FastAPI AgentServer，需 Bearer token）。
+    var multiNodeAgentBaseURL: String { "http://127.0.0.1:\(multiNodeAgentPort)" }
+
+    /// 读取 cluster token：优先手动覆盖，否则读 ~/.fusion/multi-node/.cluster_token（0600）。
+    var multiNodeResolvedToken: String {
+        if !multiNodeClusterToken.isEmpty { return multiNodeClusterToken }
+        let path = (NSHomeDirectory() as NSString).appendingPathComponent(".fusion/multi-node/.cluster_token")
+        return (try? String(contentsOfFile: path, encoding: .utf8))?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
+
     // Callers: UpstreamServiceManager (health endpoint), ScienceBridge. Affected API: scienceBaseURL.
     // Data: @AppStorage host/port. fix: fusion-science start.sh 默认端口 11462（非 8200），对齐上游。
     @AppStorage("scienceHost") var scienceHost = "127.0.0.1"
