@@ -11,7 +11,7 @@ private let mnLog = Logger(subsystem: "com.fusion.studio", category: "MultiNode"
 extension IPCClient {
 
     private var multiNodeBaseURL: String {
-        "http://\(FusionConfig.shared.modelHubHost):11452"
+        FusionConfig.shared.multiNodeBaseURL
     }
 
     private func mnRequest(_ method: String, path: String, body: [String: Any]? = nil, timeout: TimeInterval = 15) async throws -> [String: Any] {
@@ -22,6 +22,10 @@ extension IPCClient {
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = timeout
+        let token = FusionConfig.shared.multiNodeResolvedToken
+        if !token.isEmpty {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
         if let body = body {
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
         }
@@ -277,6 +281,10 @@ extension IPCClient {
         guard let url = comps.url else { throw IPCError.invalidRequest }
         var request = URLRequest(url: url)
         request.timeoutInterval = 30
+        let token = FusionConfig.shared.multiNodeResolvedToken
+        if !token.isEmpty {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, http.statusCode >= 200, http.statusCode < 300 else {
             throw IPCError.invalidResponse

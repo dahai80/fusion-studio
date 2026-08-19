@@ -28,8 +28,8 @@ struct ServiceWebView: View {
             case .masterDocs:
                 ServiceWebEmbed(
                     title: "Master API Docs",
-                    url: "http://127.0.0.1:9753/docs",
-                    description: "FastAPI 自动文档 — 需启动 fusion-multi-node Master 服务 (端口 9753)"
+                    url: "http://\(FusionConfig.shared.modelHubHost):\(FusionConfig.shared.multiNodePort)/docs",
+                    description: "FastAPI 自动文档 — 需启动 fusion-multi-node Master 服务 (端口 \(FusionConfig.shared.multiNodePort))"
                 )
             case .benchSite:
                 ServiceWebEmbed(
