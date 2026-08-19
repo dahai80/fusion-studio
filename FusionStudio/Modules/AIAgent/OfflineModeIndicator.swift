@@ -12,6 +12,7 @@ struct OfflineModeIndicator: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var isOffline = false
     @State private var offlineReason: String?
@@ -24,7 +25,7 @@ struct OfflineModeIndicator: View {
                     .font(.system(size: theme.iconS))
                     .foregroundStyle(isOffline ? theme.redDot : theme.greenDot)
                 if isOffline {
-                    Text("离线")
+                    Text(i18n.t(.ai_offline_badge))
                         .font(.system(size: theme.captionSize, weight: .medium))
                         .foregroundStyle(theme.redDot)
                 }
@@ -35,7 +36,7 @@ struct OfflineModeIndicator: View {
             .cornerRadius(4)
         }
         .buttonStyle(.plain)
-        .help(isOffline ? "离线模式 — 点击查看详情" : "在线模式")
+        .help(isOffline ? i18n.t(.ai_offline_helpOff) : i18n.t(.ai_offline_helpOn))
         .popover(isPresented: $showPopover) {
             offlinePopover
         }
@@ -45,13 +46,13 @@ struct OfflineModeIndicator: View {
     private var offlinePopover: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
             HStack {
-                Label("网络状态", systemImage: isOffline ? "wifi.slash" : "wifi")
+                Label(i18n.t(.ai_offline_netStatus), systemImage: isOffline ? "wifi.slash" : "wifi")
                     .font(.system(size: theme.textSize, weight: .semibold))
                     .foregroundStyle(theme.text)
                 Spacer()
             }
             HStack {
-                Text(isOffline ? "离线模式" : "在线模式")
+                Text(isOffline ? i18n.t(.ai_offline_offMode) : i18n.t(.ai_offline_onMode))
                     .font(.system(size: theme.textSize))
                     .foregroundStyle(isOffline ? theme.redDot : theme.greenDot)
                 Spacer()
@@ -63,18 +64,18 @@ struct OfflineModeIndicator: View {
                 .scaleEffect(0.8)
             }
             if let reason = offlineReason {
-                Text("原因: \(reason)")
+                Text(String(format: i18n.t(.ai_offline_reasonFmt), reason))
                     .font(.system(size: theme.smallTextSize))
                     .foregroundStyle(theme.textSecondary)
             }
             if isOffline {
                 VStack(alignment: .leading, spacing: theme.spacingXS) {
-                    Text("离线模式下不可用的功能:")
+                    Text(i18n.t(.ai_offline_disabledTitle))
                         .font(.system(size: theme.smallTextSize, weight: .medium))
                         .foregroundStyle(theme.textSecondary)
-                    disabledFeatureRow("模型推理")
-                    disabledFeatureRow("知识库查询")
-                    disabledFeatureRow("代码生成")
+                    disabledFeatureRow(i18n.t(.ai_offline_featInfer))
+                    disabledFeatureRow(i18n.t(.ai_offline_featKb))
+                    disabledFeatureRow(i18n.t(.ai_offline_featCode))
                 }
             }
         }
@@ -118,7 +119,7 @@ struct OfflineModeIndicator: View {
                 _ = try await ipc.offlineSet(enabled: enabled)
                 await MainActor.run {
                     isOffline = enabled
-                    offlineReason = enabled ? "用户手动切换" : nil
+                    offlineReason = enabled ? i18n.t(.ai_offline_manual) : nil
                     offlineLog.info("Offline toggled: \(enabled)")
                 }
             } catch {

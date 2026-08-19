@@ -15,17 +15,18 @@ private struct CapabilityDef {
 }
 
 private let CAPABILITIES: [CapabilityDef] = [
-    .init(key: "readKnowledge", label: "读取知识库", icon: "books.vertical"),
-    .init(key: "writeKnowledge", label: "写入知识库", icon: "square.and.pencil"),
-    .init(key: "deleteKnowledge", label: "删除知识库", icon: "trash"),
-    .init(key: "executeCode", label: "执行代码", icon: "terminal"),
-    .init(key: "accessNetwork", label: "访问网络", icon: "network"),
+    .init(key: "readKnowledge", label: "ai_perm_capRead", icon: "books.vertical"),
+    .init(key: "writeKnowledge", label: "ai_perm_capWrite", icon: "square.and.pencil"),
+    .init(key: "deleteKnowledge", label: "ai_perm_capDelete", icon: "trash"),
+    .init(key: "executeCode", label: "ai_perm_capCode", icon: "terminal"),
+    .init(key: "accessNetwork", label: "ai_perm_capNet", icon: "network"),
 ]
 
 struct PermissionTagView: View {
     @EnvironmentObject var ipc: IPCClient
     @EnvironmentObject var bridge: AgentBridge
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var permissions: [[String: Any]] = []
     @State private var isLoading = false
@@ -56,7 +57,7 @@ struct PermissionTagView: View {
 
     private var headerBar: some View {
         HStack {
-            Label("权限标签", systemImage: "lock.shield")
+            Label(i18n.t(.ai_perm_title), systemImage: "lock.shield")
                 .font(.system(size: theme.textSize, weight: .semibold))
                 .foregroundStyle(theme.text)
             Spacer()
@@ -71,11 +72,11 @@ struct PermissionTagView: View {
 
     private var permissionList: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            Text("能力权限")
+            Text(i18n.t(.ai_perm_capsTitle))
                 .font(.system(size: theme.smallTextSize, weight: .medium))
                 .foregroundStyle(theme.textSecondary)
             if permissions.isEmpty {
-                Text("暂无权限数据")
+                Text(i18n.t(.ai_perm_empty))
                     .font(.system(size: theme.smallTextSize))
                     .foregroundStyle(theme.textTertiary)
                     .padding(.vertical, 12)
@@ -89,7 +90,7 @@ struct PermissionTagView: View {
 
     private func permissionRow(_ perm: [String: Any]) -> some View {
         let agentId = perm["agent_id"] as? String ?? ""
-        let agentName = bridge.agents.first { $0.id == agentId }?.name ?? "Agent \(agentId.prefix(8))"
+        let agentName = bridge.agents.first { $0.id == agentId }?.name ?? String(format: I18nManager.shared.t(.ai_perm_agentFmt), String(agentId.prefix(8)))
         return VStack(alignment: .leading, spacing: theme.spacingXS) {
             HStack(spacing: theme.spacingXS) {
                 Image(systemName: "person.crop.circle")
@@ -115,7 +116,7 @@ struct PermissionTagView: View {
         return HStack(spacing: 4) {
             Image(systemName: cap.icon)
                 .font(.system(size: 10))
-            Text(cap.label)
+            Text(I18nManager.shared.t(cap.label))
                 .font(.system(size: theme.captionSize))
             Image(systemName: granted ? "checkmark.circle.fill" : "xmark.circle.fill")
                 .font(.system(size: 10))
@@ -131,7 +132,7 @@ struct PermissionTagView: View {
     private var deniedToolsSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingXS) {
             HStack {
-                Text("FUSION.rules 禁用工具")
+                Text(i18n.t(.ai_perm_deniedTitle))
                     .font(.system(size: theme.smallTextSize, weight: .medium))
                     .foregroundStyle(theme.textSecondary)
                 Spacer()
@@ -165,10 +166,10 @@ struct PermissionTagView: View {
             }
             if showAddDenied {
                 HStack {
-                    TextField("工具名", text: $newDeniedTool)
+                    TextField(i18n.t(.ai_perm_toolPh), text: $newDeniedTool)
                         .textFieldStyle(.roundedBorder)
                         .font(.system(size: theme.smallTextSize))
-                    Button("添加") {
+                    Button(i18n.t(.add)) {
                         if !newDeniedTool.isEmpty {
                             deniedTools.append(newDeniedTool)
                             newDeniedTool = ""
@@ -186,7 +187,7 @@ struct PermissionTagView: View {
 
     private var sensitiveFilesSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingXS) {
-            Text("敏感文件模式")
+            Text(i18n.t(.ai_perm_sensitiveTitle))
                 .font(.system(size: theme.smallTextSize, weight: .medium))
                 .foregroundStyle(theme.textSecondary)
             ForEach(Array(sensitivePatterns.enumerated()), id: \.offset) { idx, pattern in
@@ -198,7 +199,7 @@ struct PermissionTagView: View {
                         .font(.system(size: theme.smallTextSize))
                         .foregroundStyle(theme.text)
                     Spacer()
-                    Text("敏感")
+                    Text(i18n.t(.ai_perm_sensitiveTag))
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.amberDot)
                         .padding(.horizontal, 6)

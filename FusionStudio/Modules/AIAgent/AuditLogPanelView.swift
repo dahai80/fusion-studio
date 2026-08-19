@@ -11,6 +11,7 @@ private let auditLog = Logger(subsystem: "com.fusion.studio", category: "AuditLo
 struct AuditLogPanelView: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var entries: [[String: Any]] = []
     @State private var isLoading = false
@@ -38,7 +39,7 @@ struct AuditLogPanelView: View {
 
     private var headerBar: some View {
         HStack {
-            Label("审计日志", systemImage: "list.bullet.clipboard")
+            Label(i18n.t(.ai_audit_title), systemImage: "list.bullet.clipboard")
                 .font(.system(size: theme.textSize, weight: .semibold))
                 .foregroundStyle(theme.text)
             Spacer()
@@ -48,7 +49,7 @@ struct AuditLogPanelView: View {
                     .foregroundStyle(showFilters ? theme.accent : theme.textTertiary)
             }
             .buttonStyle(.plain)
-            .help("筛选")
+            .help(i18n.t(.filter))
             Button(action: loadAudit) {
                 Image(systemName: "arrow.clockwise")
                     .font(.system(size: theme.iconS))
@@ -62,24 +63,24 @@ struct AuditLogPanelView: View {
         Group {
             if showFilters {
                 HStack(spacing: theme.spacingS) {
-                    TextField("工具名", text: $filterTool)
+                    TextField(i18n.t(.ai_audit_toolPh), text: $filterTool)
                         .textFieldStyle(.roundedBorder)
                         .font(.system(size: theme.smallTextSize))
                         .frame(width: 120)
-                    TextField("操作类型", text: $filterType)
+                    TextField(i18n.t(.ai_audit_typePh), text: $filterType)
                         .textFieldStyle(.roundedBorder)
                         .font(.system(size: theme.smallTextSize))
                         .frame(width: 120)
-                    TextField("起始时间", text: $filterSince)
+                    TextField(i18n.t(.ai_audit_sincePh), text: $filterSince)
                         .textFieldStyle(.roundedBorder)
                         .font(.system(size: theme.smallTextSize))
                         .frame(width: 140)
-                        .help("如 2025-01-01")
-                    Button("应用") { loadAudit() }
+                        .help(i18n.t(.ai_audit_sinceHint))
+                    Button(i18n.t(.ai_audit_apply)) { loadAudit() }
                         .buttonStyle(.plain)
                         .font(.system(size: theme.smallTextSize))
                         .foregroundStyle(theme.accent)
-                    Button("清除") {
+                    Button(i18n.t(.clear)) {
                         filterTool = ""; filterType = ""; filterSince = ""
                         loadAudit()
                     }
@@ -101,7 +102,7 @@ struct AuditLogPanelView: View {
             .prefix(8)
         let maxCount = toolCounts.first?.value ?? 1
         return VStack(alignment: .leading, spacing: theme.spacingXS) {
-            Text("工具调用频率")
+            Text(i18n.t(.ai_audit_freq))
                 .font(.system(size: theme.smallTextSize, weight: .medium))
                 .foregroundStyle(theme.textSecondary)
             ForEach(Array(toolCounts.enumerated()), id: \.offset) { idx, item in
@@ -185,7 +186,7 @@ struct AuditLogPanelView: View {
             Image(systemName: "doc.text.magnifyingglass")
                 .font(.system(size: 24))
                 .foregroundStyle(theme.textTertiary)
-            Text("暂无审计日志")
+            Text(i18n.t(.ai_audit_empty))
                 .font(.system(size: theme.smallTextSize))
                 .foregroundStyle(theme.textSecondary)
         }
