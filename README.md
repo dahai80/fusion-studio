@@ -4,7 +4,7 @@
   <img src="https://img.shields.io/badge/Swift-5.9-red" alt="Swift">
   <img src="https://img.shields.io/badge/Rust-2021-purple" alt="Rust">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License">
-  <img src="https://img.shields.io/badge/status-V0.1.22-yellow" alt="V0.1.22">
+  <img src="https://img.shields.io/badge/status-V0.1.39-yellow" alt="V0.1.39">
   <img src="https://img.shields.io/badge/modules-27-success" alt="27 Modules">
 </div>
 
@@ -536,6 +536,18 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 ---
 
 ## 📋 Changelog
+
+### v0.1.39 — Trainer GUI + Projects/Doc 全量本地化 (2026-08-19)
+
+合并 PR #176 (closes #175) 与 i18n Batch 2/3/4a/4b/5a/5b/6a 共 7 个 PR，全量本地化推进至 Projects 模块：
+
+- **fusion-trainer RunManager GUI 面板** (PR #176, closes #175)：TrainerView (536 行) + TrainerBridge (377 行) + IPCTrainerMethods (72 行) + TrainerTests (115 行)；接入 fusion-trainer RunManager，Sidebar/IconRail/ModuleDetailView 路由打通；AppState 新增 trainer 状态。
+- **i18n 全量本地化** (Batch 2 → 6a，PR #170/#169/#171/#172/#173/#174/#177)：
+  - 设置面板+通用组件+Inspector (Batch 2)、Module 标签 62 模块×4 语言 (Batch 3)、ModelHub 13 视图全量 (Batch 4a/4b)、Doc 15 视图全量 (Batch 5a/5b)、Projects ProjectModuleView 18 视图结构全量 (Batch 6a)
+  - I18nService 字典 1288 keys × 4 语言（zhCN/enUS/jaJP/koKR）全量平衡：694 `hub_` + 198 `doc_` + 173 `proj_` + 通用键
+  - 稳定标识符（category/section/Codable rawValue）保留原值，仅显示层本地化
+- **CI 全绿**：Swift Build & Test / Rust Check / Code Quality / Security Audit 4/4 pass
+- **分支清理**：21 个已合并分支（7 本地 + 14 远程）全部删除，仓库仅留 master
 
 ### v0.1.33 — Security 中心全量重构：6 原生 tab 接入 fusion-security (2026-08-07)
 
