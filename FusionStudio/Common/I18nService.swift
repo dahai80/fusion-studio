@@ -1978,6 +1978,85 @@ enum I18nKey: String, CaseIterable {
     case fsb_dlg_reject = "fsb_dlg_reject"
     case fsb_dlg_processing = "fsb_dlg_processing"
     case fsb_dlg_approve = "fsb_dlg_approve"
+    case fsb_wb_sec_connectors = "fsb_wb_sec_connectors"
+    case fsb_wb_sec_skills = "fsb_wb_sec_skills"
+    case fsb_wb_sec_workflows = "fsb_wb_sec_workflows"
+    case fsb_wb_sec_variables = "fsb_wb_sec_variables"
+    case fsb_wb_sec_templates = "fsb_wb_sec_templates"
+    case fsb_wb_tab_approval = "fsb_wb_tab_approval"
+    case fsb_wb_tab_scheduled = "fsb_wb_tab_scheduled"
+    case fsb_wb_tab_history = "fsb_wb_tab_history"
+    case fsb_wb_tab_sandbox = "fsb_wb_tab_sandbox"
+    case fsb_wb_workspace = "fsb_wb_workspace"
+    case fsb_wb_connected = "fsb_wb_connected"
+    case fsb_wb_noConnector = "fsb_wb_noConnector"
+    case fsb_wb_available = "fsb_wb_available"
+    case fsb_wb_disconnect = "fsb_wb_disconnect"
+    case fsb_wb_connect = "fsb_wb_connect"
+    case fsb_wb_skillList = "fsb_wb_skillList"
+    case fsb_wb_noSkill = "fsb_wb_noSkill"
+    case fsb_wb_test = "fsb_wb_test"
+    case fsb_wb_wfList = "fsb_wb_wfList"
+    case fsb_wb_noWorkflow = "fsb_wb_noWorkflow"
+    case fsb_wb_createWf = "fsb_wb_createWf"
+    case fsb_wb_run = "fsb_wb_run"
+    case fsb_wb_schedule = "fsb_wb_schedule"
+    case fsb_wb_variables = "fsb_wb_variables"
+    case fsb_wb_noVariable = "fsb_wb_noVariable"
+    case fsb_wb_templates = "fsb_wb_templates"
+    case fsb_wb_newWf = "fsb_wb_newWf"
+    case fsb_wb_createFirstWf = "fsb_wb_createFirstWf"
+    case fsb_wb_nodeCountFmt = "fsb_wb_nodeCountFmt"
+    case fsb_wb_taskCenter = "fsb_wb_taskCenter"
+    case fsb_wb_noApproval = "fsb_wb_noApproval"
+    case fsb_wb_approvalReq = "fsb_wb_approvalReq"
+    case fsb_wb_approve = "fsb_wb_approve"
+    case fsb_wb_deny = "fsb_wb_deny"
+    case fsb_wb_noScheduled = "fsb_wb_noScheduled"
+    case fsb_wb_noHistory = "fsb_wb_noHistory"
+    case fsb_wb_inputData = "fsb_wb_inputData"
+    case fsb_wb_sandboxVars = "fsb_wb_sandboxVars"
+    case fsb_wb_snapshots = "fsb_wb_snapshots"
+    case fsb_wb_sandboxEmpty = "fsb_wb_sandboxEmpty"
+    case fsb_wb_sandboxHint = "fsb_wb_sandboxHint"
+    case fsb_cv_node_start = "fsb_cv_node_start"
+    case fsb_cv_node_connector = "fsb_cv_node_connector"
+    case fsb_cv_node_skill = "fsb_cv_node_skill"
+    case fsb_cv_node_condition = "fsb_cv_node_condition"
+    case fsb_cv_node_approval = "fsb_cv_node_approval"
+    case fsb_cv_node_output = "fsb_cv_node_output"
+    case fsb_cv_node_end = "fsb_cv_node_end"
+    case fsb_cv_wfName = "fsb_cv_wfName"
+    case fsb_cv_autoLayout = "fsb_cv_autoLayout"
+    case fsb_cv_running = "fsb_cv_running"
+    case fsb_cv_testRun = "fsb_cv_testRun"
+    case fsb_cv_saving = "fsb_cv_saving"
+    case fsb_cv_nodeTypes = "fsb_cv_nodeTypes"
+    case fsb_cv_hintDrag = "fsb_cv_hintDrag"
+    case fsb_cv_hintRightClick = "fsb_cv_hintRightClick"
+    case fsb_cv_hintConnect = "fsb_cv_hintConnect"
+    case fsb_cv_nodeName = "fsb_cv_nodeName"
+    case fsb_cv_deleteNode = "fsb_cv_deleteNode"
+    case fsb_cv_connector = "fsb_cv_connector"
+    case fsb_cv_selectConnector = "fsb_cv_selectConnector"
+    case fsb_cv_notSelected = "fsb_cv_notSelected"
+    case fsb_cv_action = "fsb_cv_action"
+    case fsb_cv_skill = "fsb_cv_skill"
+    case fsb_cv_selectSkill = "fsb_cv_selectSkill"
+    case fsb_cv_promptTpl = "fsb_cv_promptTpl"
+    case fsb_cv_conditionExpr = "fsb_cv_conditionExpr"
+    case fsb_cv_conditionHint = "fsb_cv_conditionHint"
+    case fsb_cv_approvalConfig = "fsb_cv_approvalConfig"
+    case fsb_cv_approvalMode = "fsb_cv_approvalMode"
+    case fsb_cv_writeOnly = "fsb_cv_writeOnly"
+    case fsb_cv_allOps = "fsb_cv_allOps"
+    case fsb_cv_approvalNote = "fsb_cv_approvalNote"
+    case fsb_cv_timeoutFmt = "fsb_cv_timeoutFmt"
+    case fsb_cv_outputFormat = "fsb_cv_outputFormat"
+    case fsb_cv_format = "fsb_cv_format"
+    case fsb_cv_plainText = "fsb_cv_plainText"
+    case fsb_cv_addNode = "fsb_cv_addNode"
+    case fsb_cv_newWorkflow = "fsb_cv_newWorkflow"
 }
 
 // MARK: - 翻译管理器
@@ -3608,6 +3687,85 @@ let zhCNTranslations: [String: String] = [
     "fsb_dlg_reject": "拒绝",
     "fsb_dlg_processing": "处理中...",
     "fsb_dlg_approve": "批准",
+    "fsb_wb_sec_connectors": "连接器",
+    "fsb_wb_sec_skills": "技能",
+    "fsb_wb_sec_workflows": "工作流",
+    "fsb_wb_sec_variables": "变量",
+    "fsb_wb_sec_templates": "模板",
+    "fsb_wb_tab_approval": "待审批",
+    "fsb_wb_tab_scheduled": "定时任务",
+    "fsb_wb_tab_history": "执行历史",
+    "fsb_wb_tab_sandbox": "上下文沙盒",
+    "fsb_wb_workspace": "工作台",
+    "fsb_wb_connected": "已连接",
+    "fsb_wb_noConnector": "暂无连接器",
+    "fsb_wb_available": "可用连接器",
+    "fsb_wb_disconnect": "断开",
+    "fsb_wb_connect": "连接",
+    "fsb_wb_skillList": "技能列表",
+    "fsb_wb_noSkill": "暂无技能",
+    "fsb_wb_test": "测试",
+    "fsb_wb_wfList": "工作流列表",
+    "fsb_wb_noWorkflow": "暂无工作流",
+    "fsb_wb_createWf": "创建工作流",
+    "fsb_wb_run": "运行",
+    "fsb_wb_schedule": "排期",
+    "fsb_wb_variables": "变量",
+    "fsb_wb_noVariable": "暂无变量",
+    "fsb_wb_templates": "模板",
+    "fsb_wb_newWf": "新建工作流",
+    "fsb_wb_createFirstWf": "创建你的第一个工作流",
+    "fsb_wb_nodeCountFmt": "%d 节点",
+    "fsb_wb_taskCenter": "任务中心",
+    "fsb_wb_noApproval": "无待审批任务",
+    "fsb_wb_approvalReq": "审批请求",
+    "fsb_wb_approve": "批准",
+    "fsb_wb_deny": "拒绝",
+    "fsb_wb_noScheduled": "无定时任务",
+    "fsb_wb_noHistory": "暂无执行记录",
+    "fsb_wb_inputData": "输入数据",
+    "fsb_wb_sandboxVars": "沙盒变量",
+    "fsb_wb_snapshots": "快照",
+    "fsb_wb_sandboxEmpty": "上下文沙盒为空",
+    "fsb_wb_sandboxHint": "运行工作流后，沙盒将记录\n执行上下文和数据快照",
+    "fsb_cv_node_start": "开始",
+    "fsb_cv_node_connector": "连接器",
+    "fsb_cv_node_skill": "技能",
+    "fsb_cv_node_condition": "条件",
+    "fsb_cv_node_approval": "审批",
+    "fsb_cv_node_output": "输出",
+    "fsb_cv_node_end": "结束",
+    "fsb_cv_wfName": "工作流名称",
+    "fsb_cv_autoLayout": "自动布局",
+    "fsb_cv_running": "运行中...",
+    "fsb_cv_testRun": "测试运行",
+    "fsb_cv_saving": "保存中...",
+    "fsb_cv_nodeTypes": "节点类型",
+    "fsb_cv_hintDrag": "提示：拖拽节点到画布",
+    "fsb_cv_hintRightClick": "右键画布添加节点",
+    "fsb_cv_hintConnect": "拖拽端口连接节点",
+    "fsb_cv_nodeName": "节点名称",
+    "fsb_cv_deleteNode": "删除节点",
+    "fsb_cv_connector": "连接器",
+    "fsb_cv_selectConnector": "选择连接器",
+    "fsb_cv_notSelected": "未选择",
+    "fsb_cv_action": "动作",
+    "fsb_cv_skill": "技能",
+    "fsb_cv_selectSkill": "选择技能",
+    "fsb_cv_promptTpl": "提示词模板",
+    "fsb_cv_conditionExpr": "条件表达式",
+    "fsb_cv_conditionHint": "True 分支连向下方节点，False 分支连向右侧节点",
+    "fsb_cv_approvalConfig": "审批配置",
+    "fsb_cv_approvalMode": "审批模式",
+    "fsb_cv_writeOnly": "仅写操作 (推荐)",
+    "fsb_cv_allOps": "全部操作",
+    "fsb_cv_approvalNote": "审批说明",
+    "fsb_cv_timeoutFmt": "超时: %ds",
+    "fsb_cv_outputFormat": "输出格式",
+    "fsb_cv_format": "格式",
+    "fsb_cv_plainText": "纯文本",
+    "fsb_cv_addNode": "添加节点",
+    "fsb_cv_newWorkflow": "新工作流",
 ]
 
 let enUSTranslations: [String: String] = [
@@ -5193,6 +5351,85 @@ let enUSTranslations: [String: String] = [
     "fsb_dlg_reject": "Reject",
     "fsb_dlg_processing": "Processing...",
     "fsb_dlg_approve": "Approve",
+    "fsb_wb_sec_connectors": "Connectors",
+    "fsb_wb_sec_skills": "Skills",
+    "fsb_wb_sec_workflows": "Workflows",
+    "fsb_wb_sec_variables": "Variables",
+    "fsb_wb_sec_templates": "Templates",
+    "fsb_wb_tab_approval": "Pending",
+    "fsb_wb_tab_scheduled": "Scheduled",
+    "fsb_wb_tab_history": "History",
+    "fsb_wb_tab_sandbox": "Context Sandbox",
+    "fsb_wb_workspace": "Workbench",
+    "fsb_wb_connected": "Connected",
+    "fsb_wb_noConnector": "No connectors",
+    "fsb_wb_available": "Available connectors",
+    "fsb_wb_disconnect": "Disconnect",
+    "fsb_wb_connect": "Connect",
+    "fsb_wb_skillList": "Skills",
+    "fsb_wb_noSkill": "No skills",
+    "fsb_wb_test": "Test",
+    "fsb_wb_wfList": "Workflows",
+    "fsb_wb_noWorkflow": "No workflows",
+    "fsb_wb_createWf": "Create workflow",
+    "fsb_wb_run": "Run",
+    "fsb_wb_schedule": "Schedule",
+    "fsb_wb_variables": "Variables",
+    "fsb_wb_noVariable": "No variables",
+    "fsb_wb_templates": "Templates",
+    "fsb_wb_newWf": "New workflow",
+    "fsb_wb_createFirstWf": "Create your first workflow",
+    "fsb_wb_nodeCountFmt": "%d nodes",
+    "fsb_wb_taskCenter": "Task center",
+    "fsb_wb_noApproval": "No pending approvals",
+    "fsb_wb_approvalReq": "Approval request",
+    "fsb_wb_approve": "Approve",
+    "fsb_wb_deny": "Deny",
+    "fsb_wb_noScheduled": "No scheduled tasks",
+    "fsb_wb_noHistory": "No execution history",
+    "fsb_wb_inputData": "Input data",
+    "fsb_wb_sandboxVars": "Sandbox variables",
+    "fsb_wb_snapshots": "Snapshots",
+    "fsb_wb_sandboxEmpty": "Context sandbox is empty",
+    "fsb_wb_sandboxHint": "After running a workflow, the sandbox records\nexecution context and data snapshots",
+    "fsb_cv_node_start": "Start",
+    "fsb_cv_node_connector": "Connector",
+    "fsb_cv_node_skill": "Skill",
+    "fsb_cv_node_condition": "Condition",
+    "fsb_cv_node_approval": "Approval",
+    "fsb_cv_node_output": "Output",
+    "fsb_cv_node_end": "End",
+    "fsb_cv_wfName": "Workflow name",
+    "fsb_cv_autoLayout": "Auto layout",
+    "fsb_cv_running": "Running...",
+    "fsb_cv_testRun": "Test run",
+    "fsb_cv_saving": "Saving...",
+    "fsb_cv_nodeTypes": "Node types",
+    "fsb_cv_hintDrag": "Tip: drag nodes to canvas",
+    "fsb_cv_hintRightClick": "Right-click canvas to add node",
+    "fsb_cv_hintConnect": "Drag ports to connect nodes",
+    "fsb_cv_nodeName": "Node name",
+    "fsb_cv_deleteNode": "Delete node",
+    "fsb_cv_connector": "Connector",
+    "fsb_cv_selectConnector": "Select connector",
+    "fsb_cv_notSelected": "Not selected",
+    "fsb_cv_action": "Action",
+    "fsb_cv_skill": "Skill",
+    "fsb_cv_selectSkill": "Select skill",
+    "fsb_cv_promptTpl": "Prompt template",
+    "fsb_cv_conditionExpr": "Condition expression",
+    "fsb_cv_conditionHint": "True branch goes down, False branch goes right",
+    "fsb_cv_approvalConfig": "Approval config",
+    "fsb_cv_approvalMode": "Approval mode",
+    "fsb_cv_writeOnly": "Write-only (recommended)",
+    "fsb_cv_allOps": "All operations",
+    "fsb_cv_approvalNote": "Approval note",
+    "fsb_cv_timeoutFmt": "Timeout: %ds",
+    "fsb_cv_outputFormat": "Output format",
+    "fsb_cv_format": "Format",
+    "fsb_cv_plainText": "Plain text",
+    "fsb_cv_addNode": "Add node",
+    "fsb_cv_newWorkflow": "New workflow",
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -6772,6 +7009,85 @@ let jaJPTranslations: [String: String] = [
     "fsb_dlg_reject": "拒否",
     "fsb_dlg_processing": "処理中...",
     "fsb_dlg_approve": "承認",
+    "fsb_wb_sec_connectors": "コネクタ",
+    "fsb_wb_sec_skills": "スキル",
+    "fsb_wb_sec_workflows": "ワークフロー",
+    "fsb_wb_sec_variables": "変数",
+    "fsb_wb_sec_templates": "テンプレート",
+    "fsb_wb_tab_approval": "承認待ち",
+    "fsb_wb_tab_scheduled": "スケジュール",
+    "fsb_wb_tab_history": "実行履歴",
+    "fsb_wb_tab_sandbox": "コンテキストサンドボックス",
+    "fsb_wb_workspace": "ワークベンチ",
+    "fsb_wb_connected": "接続済み",
+    "fsb_wb_noConnector": "コネクタなし",
+    "fsb_wb_available": "利用可能なコネクタ",
+    "fsb_wb_disconnect": "切断",
+    "fsb_wb_connect": "接続",
+    "fsb_wb_skillList": "スキル一覧",
+    "fsb_wb_noSkill": "スキルなし",
+    "fsb_wb_test": "テスト",
+    "fsb_wb_wfList": "ワークフロー一覧",
+    "fsb_wb_noWorkflow": "ワークフローなし",
+    "fsb_wb_createWf": "ワークフロー作成",
+    "fsb_wb_run": "実行",
+    "fsb_wb_schedule": "スケジュール",
+    "fsb_wb_variables": "変数",
+    "fsb_wb_noVariable": "変数なし",
+    "fsb_wb_templates": "テンプレート",
+    "fsb_wb_newWf": "新規ワークフロー",
+    "fsb_wb_createFirstWf": "最初のワークフローを作成",
+    "fsb_wb_nodeCountFmt": "%d ノード",
+    "fsb_wb_taskCenter": "タスクセンター",
+    "fsb_wb_noApproval": "承認待ちタスクなし",
+    "fsb_wb_approvalReq": "承認リクエスト",
+    "fsb_wb_approve": "承認",
+    "fsb_wb_deny": "拒否",
+    "fsb_wb_noScheduled": "スケジュールタスクなし",
+    "fsb_wb_noHistory": "実行履歴なし",
+    "fsb_wb_inputData": "入力データ",
+    "fsb_wb_sandboxVars": "サンドボックス変数",
+    "fsb_wb_snapshots": "スナップショット",
+    "fsb_wb_sandboxEmpty": "コンテキストサンドボックスが空です",
+    "fsb_wb_sandboxHint": "ワークフロー実行後、サンドボックスは\n実行コンテキストとデータスナップショットを記録します",
+    "fsb_cv_node_start": "開始",
+    "fsb_cv_node_connector": "コネクタ",
+    "fsb_cv_node_skill": "スキル",
+    "fsb_cv_node_condition": "条件",
+    "fsb_cv_node_approval": "承認",
+    "fsb_cv_node_output": "出力",
+    "fsb_cv_node_end": "終了",
+    "fsb_cv_wfName": "ワークフロー名",
+    "fsb_cv_autoLayout": "自動レイアウト",
+    "fsb_cv_running": "実行中...",
+    "fsb_cv_testRun": "テスト実行",
+    "fsb_cv_saving": "保存中...",
+    "fsb_cv_nodeTypes": "ノードタイプ",
+    "fsb_cv_hintDrag": "ヒント：ノードをキャンバスへドラッグ",
+    "fsb_cv_hintRightClick": "右クリックでノードを追加",
+    "fsb_cv_hintConnect": "ポートをドラッグして接続",
+    "fsb_cv_nodeName": "ノード名",
+    "fsb_cv_deleteNode": "ノード削除",
+    "fsb_cv_connector": "コネクタ",
+    "fsb_cv_selectConnector": "コネクタを選択",
+    "fsb_cv_notSelected": "未選択",
+    "fsb_cv_action": "アクション",
+    "fsb_cv_skill": "スキル",
+    "fsb_cv_selectSkill": "スキルを選択",
+    "fsb_cv_promptTpl": "プロンプトテンプレート",
+    "fsb_cv_conditionExpr": "条件式",
+    "fsb_cv_conditionHint": "True 分岐は下へ、False 分岐は右へ",
+    "fsb_cv_approvalConfig": "承認設定",
+    "fsb_cv_approvalMode": "承認モード",
+    "fsb_cv_writeOnly": "書き込みのみ (推奨)",
+    "fsb_cv_allOps": "すべての操作",
+    "fsb_cv_approvalNote": "承認メモ",
+    "fsb_cv_timeoutFmt": "タイムアウト: %ds",
+    "fsb_cv_outputFormat": "出力形式",
+    "fsb_cv_format": "形式",
+    "fsb_cv_plainText": "プレーンテキスト",
+    "fsb_cv_addNode": "ノード追加",
+    "fsb_cv_newWorkflow": "新規ワークフロー",
 ]
 
 let koKRTranslations: [String: String] = [
@@ -8351,6 +8667,85 @@ let koKRTranslations: [String: String] = [
     "fsb_dlg_reject": "거절",
     "fsb_dlg_processing": "처리 중...",
     "fsb_dlg_approve": "승인",
+    "fsb_wb_sec_connectors": "커넥터",
+    "fsb_wb_sec_skills": "스킬",
+    "fsb_wb_sec_workflows": "워크플로",
+    "fsb_wb_sec_variables": "변수",
+    "fsb_wb_sec_templates": "템플릿",
+    "fsb_wb_tab_approval": "승인 대기",
+    "fsb_wb_tab_scheduled": "예약 작업",
+    "fsb_wb_tab_history": "실행 기록",
+    "fsb_wb_tab_sandbox": "컨텍스트 샌드박스",
+    "fsb_wb_workspace": "워크벤치",
+    "fsb_wb_connected": "연결됨",
+    "fsb_wb_noConnector": "커넥터 없음",
+    "fsb_wb_available": "사용 가능한 커넥터",
+    "fsb_wb_disconnect": "연결 해제",
+    "fsb_wb_connect": "연결",
+    "fsb_wb_skillList": "스킬 목록",
+    "fsb_wb_noSkill": "스킬 없음",
+    "fsb_wb_test": "테스트",
+    "fsb_wb_wfList": "워크플로 목록",
+    "fsb_wb_noWorkflow": "워크플로 없음",
+    "fsb_wb_createWf": "워크플로 생성",
+    "fsb_wb_run": "실행",
+    "fsb_wb_schedule": "예약",
+    "fsb_wb_variables": "변수",
+    "fsb_wb_noVariable": "변수 없음",
+    "fsb_wb_templates": "템플릿",
+    "fsb_wb_newWf": "새 워크플로",
+    "fsb_wb_createFirstWf": "첫 워크플로를 생성하세요",
+    "fsb_wb_nodeCountFmt": "%d 노드",
+    "fsb_wb_taskCenter": "작업 센터",
+    "fsb_wb_noApproval": "승인 대기 작업 없음",
+    "fsb_wb_approvalReq": "승인 요청",
+    "fsb_wb_approve": "승인",
+    "fsb_wb_deny": "거절",
+    "fsb_wb_noScheduled": "예약 작업 없음",
+    "fsb_wb_noHistory": "실행 기록 없음",
+    "fsb_wb_inputData": "입력 데이터",
+    "fsb_wb_sandboxVars": "샌드박스 변수",
+    "fsb_wb_snapshots": "스냅샷",
+    "fsb_wb_sandboxEmpty": "컨텍스트 샌드박스가 비어 있음",
+    "fsb_wb_sandboxHint": "워크플로 실행 후 샌드박스가\n실행 컨텍스트와 데이터 스냅샷을 기록합니다",
+    "fsb_cv_node_start": "시작",
+    "fsb_cv_node_connector": "커넥터",
+    "fsb_cv_node_skill": "스킬",
+    "fsb_cv_node_condition": "조건",
+    "fsb_cv_node_approval": "승인",
+    "fsb_cv_node_output": "출력",
+    "fsb_cv_node_end": "종료",
+    "fsb_cv_wfName": "워크플로 이름",
+    "fsb_cv_autoLayout": "자동 레이아웃",
+    "fsb_cv_running": "실행 중...",
+    "fsb_cv_testRun": "테스트 실행",
+    "fsb_cv_saving": "저장 중...",
+    "fsb_cv_nodeTypes": "노드 유형",
+    "fsb_cv_hintDrag": "팁: 노드를 캔버스로 드래그",
+    "fsb_cv_hintRightClick": "우클릭으로 노드 추가",
+    "fsb_cv_hintConnect": "포트를 드래그해 연결",
+    "fsb_cv_nodeName": "노드 이름",
+    "fsb_cv_deleteNode": "노드 삭제",
+    "fsb_cv_connector": "커넥터",
+    "fsb_cv_selectConnector": "커넥터 선택",
+    "fsb_cv_notSelected": "미선택",
+    "fsb_cv_action": "액션",
+    "fsb_cv_skill": "스킬",
+    "fsb_cv_selectSkill": "스킬 선택",
+    "fsb_cv_promptTpl": "프롬프트 템플릿",
+    "fsb_cv_conditionExpr": "조건식",
+    "fsb_cv_conditionHint": "True 분기는 아래로, False 분기는 오른쪽으로",
+    "fsb_cv_approvalConfig": "승인 설정",
+    "fsb_cv_approvalMode": "승인 모드",
+    "fsb_cv_writeOnly": "쓰기 전용 (권장)",
+    "fsb_cv_allOps": "모든 작업",
+    "fsb_cv_approvalNote": "승인 메모",
+    "fsb_cv_timeoutFmt": "시간 초과: %ds",
+    "fsb_cv_outputFormat": "출력 형식",
+    "fsb_cv_format": "형식",
+    "fsb_cv_plainText": "일반 텍스트",
+    "fsb_cv_addNode": "노드 추가",
+    "fsb_cv_newWorkflow": "새 워크플로",
 ]
 
 // MARK: - 国际化文本视图

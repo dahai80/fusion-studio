@@ -6,6 +6,7 @@ private let fsbLog = Logger(subsystem: "com.fusion.studio", category: "FSB.Workb
 struct FSBWorkbenchView: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     let workspaceId: String
     let onBack: () -> Void
@@ -30,18 +31,37 @@ struct FSBWorkbenchView: View {
     @State private var rightPanelTab: RightPanelTab = .approval
 
     enum WorkbenchSection: String, CaseIterable {
-        case connectors = "连接器"
-        case skills = "技能"
-        case workflows = "工作流"
-        case variables = "变量"
-        case templates = "模板"
+        case connectors = "connectors"
+        case skills = "skills"
+        case workflows = "workflows"
+        case variables = "variables"
+        case templates = "templates"
+
+        var localLabel: String {
+            switch self {
+            case .connectors: return I18nManager.shared.t(.fsb_wb_sec_connectors)
+            case .skills: return I18nManager.shared.t(.fsb_wb_sec_skills)
+            case .workflows: return I18nManager.shared.t(.fsb_wb_sec_workflows)
+            case .variables: return I18nManager.shared.t(.fsb_wb_sec_variables)
+            case .templates: return I18nManager.shared.t(.fsb_wb_sec_templates)
+            }
+        }
     }
 
     enum RightPanelTab: String, CaseIterable {
-        case approval = "待审批"
-        case scheduled = "定时任务"
-        case history = "执行历史"
-        case sandbox = "上下文沙盒"
+        case approval = "approval"
+        case scheduled = "scheduled"
+        case history = "history"
+        case sandbox = "sandbox"
+
+        var localLabel: String {
+            switch self {
+            case .approval: return I18nManager.shared.t(.fsb_wb_tab_approval)
+            case .scheduled: return I18nManager.shared.t(.fsb_wb_tab_scheduled)
+            case .history: return I18nManager.shared.t(.fsb_wb_tab_history)
+            case .sandbox: return I18nManager.shared.t(.fsb_wb_tab_sandbox)
+            }
+        }
     }
 
     var body: some View {
@@ -87,7 +107,7 @@ struct FSBWorkbenchView: View {
                         .foregroundStyle(theme.accent)
                 }
                 .buttonStyle(.plain)
-                Text(workspace["title"] as? String ?? "工作台")
+                Text(workspace["title"] as? String ?? i18n.t(.fsb_wb_workspace))
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
                     .foregroundStyle(theme.text)
                     .lineLimit(1)
@@ -118,7 +138,7 @@ struct FSBWorkbenchView: View {
             HStack(spacing: 0) {
                 ForEach(WorkbenchSection.allCases, id: \.self) { section in
                     Button(action: { selectedSection = section }) {
-                        Text(section.rawValue)
+                        Text(section.localLabel)
                             .font(.system(size: theme.captionSize, weight: selectedSection == section ? .semibold : .regular))
                             .foregroundStyle(selectedSection == section ? theme.accent : theme.textSecondary)
                             .padding(.horizontal, theme.spacingS)
@@ -138,7 +158,7 @@ struct FSBWorkbenchView: View {
     private var connectorsContent: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
             HStack {
-                Text("已连接")
+                Text(i18n.t(.fsb_wb_connected))
                     .font(.system(size: theme.captionSize, weight: .semibold))
                     .foregroundStyle(theme.textSecondary)
                 Spacer()
@@ -151,7 +171,7 @@ struct FSBWorkbenchView: View {
             }
 
             if connectors.isEmpty {
-                Text("暂无连接器")
+                Text(i18n.t(.fsb_wb_noConnector))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textTertiary)
                     .frame(maxWidth: .infinity)
@@ -163,7 +183,7 @@ struct FSBWorkbenchView: View {
             }
 
             Divider()
-            Text("可用连接器")
+            Text(i18n.t(.fsb_wb_available))
                 .font(.system(size: theme.captionSize, weight: .semibold))
                 .foregroundStyle(theme.textSecondary)
 
@@ -196,10 +216,10 @@ struct FSBWorkbenchView: View {
             Spacer()
             Menu {
                 Button(action: { refreshConnector(connId) }) {
-                    Label("刷新", systemImage: "arrow.clockwise")
+                    Label(i18n.t(.refresh), systemImage: "arrow.clockwise")
                 }
                 Button(action: { disconnectConnector(connId) }) {
-                    Label("断开", systemImage: "xmark.circle")
+                    Label(i18n.t(.fsb_wb_disconnect), systemImage: "xmark.circle")
                 }
             } label: {
                 Image(systemName: "ellipsis")
@@ -241,7 +261,7 @@ struct FSBWorkbenchView: View {
             Spacer()
             if !isConnected {
                 Button(action: { showConnectorDialog = true }) {
-                    Text("连接")
+                    Text(i18n.t(.fsb_wb_connect))
                         .font(.system(size: 11))
                         .foregroundStyle(theme.accent)
                 }
@@ -254,7 +274,7 @@ struct FSBWorkbenchView: View {
     private var skillsContent: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
             HStack {
-                Text("技能列表")
+                Text(i18n.t(.fsb_wb_skillList))
                     .font(.system(size: theme.captionSize, weight: .semibold))
                     .foregroundStyle(theme.textSecondary)
                 Spacer()
@@ -267,7 +287,7 @@ struct FSBWorkbenchView: View {
             }
 
             if skills.isEmpty {
-                Text("暂无技能")
+                Text(i18n.t(.fsb_wb_noSkill))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textTertiary)
                     .frame(maxWidth: .infinity)
@@ -284,7 +304,7 @@ struct FSBWorkbenchView: View {
     @ViewBuilder
     private func skillRow(skill: [String: Any]) -> some View {
         let skillId = skill["skillId"] as? String ?? ""
-        let name = skill["displayName"] as? String ?? skill["name"] as? String ?? "未命名"
+        let name = skill["displayName"] as? String ?? skill["name"] as? String ?? i18n.t(.fsb_unnamed)
         let type = skill["type"] as? String ?? "prompt"
         let enabled = skill["enabled"] as? Bool ?? true
         let typeIcon = type == "prompt" ? "text.bubble" : (type == "function" ? "gearshape" : "network")
@@ -310,10 +330,10 @@ struct FSBWorkbenchView: View {
             .buttonStyle(.plain)
             Menu {
                 Button(action: { testSkill(skillId: skillId) }) {
-                    Label("测试", systemImage: "play")
+                    Label(i18n.t(.fsb_wb_test), systemImage: "play")
                 }
                 Button(role: .destructive, action: { deleteSkill(skillId: skillId) }) {
-                    Label("删除", systemImage: "trash")
+                    Label(i18n.t(.delete), systemImage: "trash")
                 }
             } label: {
                 Image(systemName: "ellipsis")
@@ -332,7 +352,7 @@ struct FSBWorkbenchView: View {
     private var workflowsContent: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
             HStack {
-                Text("工作流列表")
+                Text(i18n.t(.fsb_wb_wfList))
                     .font(.system(size: theme.captionSize, weight: .semibold))
                     .foregroundStyle(theme.textSecondary)
                 Spacer()
@@ -352,7 +372,7 @@ struct FSBWorkbenchView: View {
                     Image(systemName: "flowchart")
                         .font(.system(size: 24))
                         .foregroundStyle(theme.textTertiary)
-                    Text("暂无工作流")
+                    Text(i18n.t(.fsb_wb_noWorkflow))
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.textTertiary)
                     Button(action: {
@@ -361,7 +381,7 @@ struct FSBWorkbenchView: View {
                     }) {
                         HStack(spacing: 4) {
                             Image(systemName: "plus")
-                            Text("创建工作流")
+                            Text(i18n.t(.fsb_wb_createWf))
                         }
                     }
                     .buttonStyle(.borderedProminent)
@@ -381,7 +401,7 @@ struct FSBWorkbenchView: View {
     @ViewBuilder
     private func workflowRow(wf: [String: Any]) -> some View {
         let wfId = wf["wfId"] as? String ?? wf["id"] as? String ?? ""
-        let name = wf["displayName"] as? String ?? wf["name"] as? String ?? "未命名"
+        let name = wf["displayName"] as? String ?? wf["name"] as? String ?? i18n.t(.fsb_unnamed)
         let enabled = wf["enabled"] as? Bool ?? true
         let slashCmd = wf["slashCommand"] as? String ?? ""
         let schedule = wf["schedule"] as? [String: Any] ?? [:]
@@ -415,20 +435,20 @@ struct FSBWorkbenchView: View {
                     editingWorkflowId = wfId
                     showWorkflowEditor = true
                 }) {
-                    Label("编辑", systemImage: "pencil")
+                    Label(i18n.t(.edit), systemImage: "pencil")
                 }
                 Button(action: { runWorkflow(wfId: wfId) }) {
-                    Label("运行", systemImage: "play")
+                    Label(i18n.t(.fsb_wb_run), systemImage: "play")
                 }
                 Button(action: {
                     scheduleWfId = wfId
                     showScheduleDialog = true
                 }) {
-                    Label("排期", systemImage: "clock")
+                    Label(i18n.t(.fsb_wb_schedule), systemImage: "clock")
                 }
                 Divider()
                 Button(role: .destructive, action: { deleteWorkflow(wfId: wfId) }) {
-                    Label("删除", systemImage: "trash")
+                    Label(i18n.t(.delete), systemImage: "trash")
                 }
             } label: {
                 Image(systemName: "ellipsis")
@@ -447,7 +467,7 @@ struct FSBWorkbenchView: View {
     private var variablesContent: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
             HStack {
-                Text("变量")
+                Text(i18n.t(.fsb_wb_variables))
                     .font(.system(size: theme.captionSize, weight: .semibold))
                     .foregroundStyle(theme.textSecondary)
                 Spacer()
@@ -460,7 +480,7 @@ struct FSBWorkbenchView: View {
             }
 
             if variables.isEmpty {
-                Text("暂无变量")
+                Text(i18n.t(.fsb_wb_noVariable))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textTertiary)
                     .frame(maxWidth: .infinity)
@@ -508,7 +528,7 @@ struct FSBWorkbenchView: View {
     private var templatesContent: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
             HStack {
-                Text("模板")
+                Text(i18n.t(.fsb_wb_templates))
                     .font(.system(size: theme.captionSize, weight: .semibold))
                     .foregroundStyle(theme.textSecondary)
                 Spacer()
@@ -535,7 +555,7 @@ struct FSBWorkbenchView: View {
 
     private var centerHeader: some View {
         HStack {
-            Text(workspace["title"] as? String ?? "工作台")
+            Text(workspace["title"] as? String ?? i18n.t(.fsb_wb_workspace))
                 .font(.system(size: theme.textSize, weight: .bold))
                 .foregroundStyle(theme.text)
             Spacer()
@@ -556,7 +576,7 @@ struct FSBWorkbenchView: View {
             }) {
                 HStack(spacing: 4) {
                     Image(systemName: "plus")
-                    Text("新建工作流")
+                    Text(i18n.t(.fsb_wb_newWf))
                 }
             }
             .buttonStyle(.borderedProminent)
@@ -571,7 +591,7 @@ struct FSBWorkbenchView: View {
             Image(systemName: "flowchart")
                 .font(.system(size: 48))
                 .foregroundStyle(theme.textTertiary)
-            Text("创建你的第一个工作流")
+            Text(i18n.t(.fsb_wb_createFirstWf))
                 .font(.system(size: theme.textSize))
                 .foregroundStyle(theme.textSecondary)
             Button(action: {
@@ -580,7 +600,7 @@ struct FSBWorkbenchView: View {
             }) {
                 HStack(spacing: 4) {
                     Image(systemName: "plus")
-                    Text("新建工作流")
+                    Text(i18n.t(.fsb_wb_newWf))
                 }
             }
             .buttonStyle(.borderedProminent)
@@ -605,7 +625,7 @@ struct FSBWorkbenchView: View {
     @ViewBuilder
     private func workflowCard(wf: [String: Any]) -> some View {
         let wfId = wf["wfId"] as? String ?? wf["id"] as? String ?? ""
-        let name = wf["displayName"] as? String ?? wf["name"] as? String ?? "未命名"
+        let name = wf["displayName"] as? String ?? wf["name"] as? String ?? i18n.t(.fsb_unnamed)
         let desc = wf["description"] as? String ?? ""
         let enabled = wf["enabled"] as? Bool ?? true
         let slashCmd = wf["slashCommand"] as? String ?? ""
@@ -634,7 +654,7 @@ struct FSBWorkbenchView: View {
                     .lineLimit(2)
             }
             HStack(spacing: theme.spacingM) {
-                Label("\(nodeCount) 节点", systemImage: "circle.grid.3x3")
+                Label(String(format: i18n.t(.fsb_wb_nodeCountFmt), nodeCount), systemImage: "circle.grid.3x3")
                 if !slashCmd.isEmpty {
                     Text("/\(slashCmd)")
                         .font(.system(size: theme.captionSize, design: .monospaced))
@@ -652,7 +672,7 @@ struct FSBWorkbenchView: View {
                 Button(action: { runWorkflow(wfId: wfId) }) {
                     HStack(spacing: 4) {
                         Image(systemName: "play")
-                        Text("运行")
+                        Text(i18n.t(.fsb_wb_run))
                     }
                 }
                 .buttonStyle(.bordered)
@@ -663,7 +683,7 @@ struct FSBWorkbenchView: View {
                 }) {
                     HStack(spacing: 4) {
                         Image(systemName: "pencil")
-                        Text("编辑")
+                        Text(i18n.t(.edit))
                     }
                 }
                 .buttonStyle(.bordered)
@@ -695,7 +715,7 @@ struct FSBWorkbenchView: View {
     private var rightPanelHeader: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("任务中心")
+                Text(i18n.t(.fsb_wb_taskCenter))
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
                     .foregroundStyle(theme.text)
                 Spacer()
@@ -705,7 +725,7 @@ struct FSBWorkbenchView: View {
             HStack(spacing: 0) {
                 ForEach(RightPanelTab.allCases, id: \.self) { tab in
                     Button(action: { rightPanelTab = tab }) {
-                        Text(tab.rawValue)
+                        Text(tab.localLabel)
                             .font(.system(size: theme.captionSize, weight: rightPanelTab == tab ? .semibold : .regular))
                             .foregroundStyle(rightPanelTab == tab ? theme.accent : theme.textSecondary)
                             .padding(.vertical, theme.spacingXS)
@@ -742,7 +762,7 @@ struct FSBWorkbenchView: View {
                     Image(systemName: "checkmark.shield")
                         .font(.system(size: 24))
                         .foregroundStyle(theme.textTertiary)
-                    Text("无待审批任务")
+                    Text(i18n.t(.fsb_wb_noApproval))
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.textTertiary)
                 }
@@ -760,7 +780,7 @@ struct FSBWorkbenchView: View {
     @ViewBuilder
     private func approvalTaskRow(task: [String: Any]) -> some View {
         let taskId = task["taskId"] as? String ?? ""
-        let title = task["title"] as? String ?? "审批请求"
+        let title = task["title"] as? String ?? i18n.t(.fsb_wb_approvalReq)
         let status = task["status"] as? String ?? "pending"
 
         VStack(alignment: .leading, spacing: theme.spacingXS) {
@@ -778,13 +798,13 @@ struct FSBWorkbenchView: View {
             }
             HStack(spacing: theme.spacingS) {
                 Button(action: { approveTask(taskId) }) {
-                    Text("批准")
+                    Text(i18n.t(.fsb_wb_approve))
                         .font(.system(size: 11))
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.mini)
                 Button(action: { denyTask(taskId) }) {
-                    Text("拒绝")
+                    Text(i18n.t(.fsb_wb_deny))
                         .font(.system(size: 11))
                 }
                 .controlSize(.mini)
@@ -792,7 +812,7 @@ struct FSBWorkbenchView: View {
                     approvalTask = task
                     showApprovalDialog = true
                 }) {
-                    Text("编辑")
+                    Text(i18n.t(.edit))
                         .font(.system(size: 11))
                 }
                 .controlSize(.mini)
@@ -816,7 +836,7 @@ struct FSBWorkbenchView: View {
                     Image(systemName: "clock")
                         .font(.system(size: 24))
                         .foregroundStyle(theme.textTertiary)
-                    Text("无定时任务")
+                    Text(i18n.t(.fsb_wb_noScheduled))
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.textTertiary)
                 }
@@ -869,7 +889,7 @@ struct FSBWorkbenchView: View {
                     Image(systemName: "clock.arrow.circlepath")
                         .font(.system(size: 24))
                         .foregroundStyle(theme.textTertiary)
-                    Text("暂无执行记录")
+                    Text(i18n.t(.fsb_wb_noHistory))
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.textTertiary)
                 }
@@ -944,7 +964,7 @@ struct FSBWorkbenchView: View {
                 Group {
                     if !inputData.isEmpty {
                         VStack(alignment: .leading, spacing: theme.spacingXS) {
-                            Text("输入数据")
+                            Text(i18n.t(.fsb_wb_inputData))
                                 .font(.system(size: theme.captionSize, weight: .semibold))
                                 .foregroundStyle(theme.textSecondary)
                             ForEach(Array(inputData.keys), id: \.self) { key in
@@ -964,7 +984,7 @@ struct FSBWorkbenchView: View {
 
                     if !sandboxVars.isEmpty {
                         VStack(alignment: .leading, spacing: theme.spacingXS) {
-                            Text("沙盒变量")
+                            Text(i18n.t(.fsb_wb_sandboxVars))
                                 .font(.system(size: theme.captionSize, weight: .semibold))
                                 .foregroundStyle(theme.textSecondary)
                             ForEach(Array(sandboxVars.keys), id: \.self) { key in
@@ -984,7 +1004,7 @@ struct FSBWorkbenchView: View {
 
                     if !snapshots.isEmpty {
                         VStack(alignment: .leading, spacing: theme.spacingXS) {
-                            Text("快照")
+                            Text(i18n.t(.fsb_wb_snapshots))
                                 .font(.system(size: theme.captionSize, weight: .semibold))
                                 .foregroundStyle(theme.textSecondary)
                             ForEach(Array(snapshots.keys), id: \.self) { key in
@@ -1000,10 +1020,10 @@ struct FSBWorkbenchView: View {
                     Image(systemName: "lock.shield")
                         .font(.system(size: 24))
                         .foregroundStyle(theme.textTertiary)
-                    Text("上下文沙盒为空")
+                    Text(i18n.t(.fsb_wb_sandboxEmpty))
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.textTertiary)
-                    Text("运行工作流后，沙盒将记录\n执行上下文和数据快照")
+                    Text(i18n.t(.fsb_wb_sandboxHint))
                         .font(.system(size: 11))
                         .foregroundStyle(theme.textTertiary)
                         .multilineTextAlignment(.center)
