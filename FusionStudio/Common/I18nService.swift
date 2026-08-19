@@ -1410,6 +1410,143 @@ enum I18nKey: String, CaseIterable {
     case cw_snap_forkHelp = "cw_snap_forkHelp"
     case cw_snap_deleteHelp = "cw_snap_deleteHelp"
     case cw_snap_forkAlertBtn = "cw_snap_forkAlertBtn"
+    case cw_list_subtitle = "cw_list_subtitle"
+    case cw_list_searchPh = "cw_list_searchPh"
+    case cw_list_newHelp = "cw_list_newHelp"
+    case cw_list_marketHelp = "cw_list_marketHelp"
+    case cw_filter_all = "cw_filter_all"
+    case cw_filter_created = "cw_filter_created"
+    case cw_filter_joined = "cw_filter_joined"
+    case cw_filter_archived = "cw_filter_archived"
+    case cw_list_onboardingTitle = "cw_list_onboardingTitle"
+    case cw_list_onboardingBody = "cw_list_onboardingBody"
+    case cw_list_createLabel = "cw_list_createLabel"
+    case cw_list_archivedTag = "cw_list_archivedTag"
+    case cw_list_emptyTitle = "cw_list_emptyTitle"
+    case cw_list_emptyHint = "cw_list_emptyHint"
+    case cw_list_loadFail = "cw_list_loadFail"
+    case cw_create_title = "cw_create_title"
+    case cw_create_basic = "cw_create_basic"
+    case cw_create_namePh = "cw_create_namePh"
+    case cw_create_descPh = "cw_create_descPh"
+    case cw_create_mode = "cw_create_mode"
+    case cw_create_modeLocal = "cw_create_modeLocal"
+    case cw_create_modeP2p = "cw_create_modeP2p"
+    case cw_create_modeGateway = "cw_create_modeGateway"
+    case cw_create_modeLocalDesc = "cw_create_modeLocalDesc"
+    case cw_create_modeP2pDesc = "cw_create_modeP2pDesc"
+    case cw_create_modeGatewayDesc = "cw_create_modeGatewayDesc"
+    case cw_create_kb = "cw_create_kb"
+    case cw_create_kbPh = "cw_create_kbPh"
+    case cw_create_ability = "cw_create_ability"
+    case cw_create_webSearch = "cw_create_webSearch"
+    case cw_create_deepResearch = "cw_create_deepResearch"
+    case cw_create_computerUse = "cw_create_computerUse"
+    case cw_create_memberUpload = "cw_create_memberUpload"
+    case cw_create_memberAgent = "cw_create_memberAgent"
+    case cw_create_memberWorkflow = "cw_create_memberWorkflow"
+    case cw_create_advanced = "cw_create_advanced"
+    case cw_create_maxMembers = "cw_create_maxMembers"
+    case cw_create_btn = "cw_create_btn"
+    case cw_main_loading = "cw_main_loading"
+    case cw_main_deepResearch = "cw_main_deepResearch"
+    case cw_main_computerUse = "cw_main_computerUse"
+    case cw_main_createSnap = "cw_main_createSnap"
+    case cw_main_archive = "cw_main_archive"
+    case cw_main_archivedBanner = "cw_main_archivedBanner"
+    case cw_side_members = "cw_side_members"
+    case cw_side_files = "cw_side_files"
+    case cw_side_knowledge = "cw_side_knowledge"
+    case cw_side_agents = "cw_side_agents"
+    case cw_side_artifacts = "cw_side_artifacts"
+    case cw_side_workflows = "cw_side_workflows"
+    case cw_side_snapshots = "cw_side_snapshots"
+    case cw_side_desktop = "cw_side_desktop"
+    case cw_side_settings = "cw_side_settings"
+    case cw_chat_emptyTitle = "cw_chat_emptyTitle"
+    case cw_chat_emptyHint = "cw_chat_emptyHint"
+    case cw_chat_thinking = "cw_chat_thinking"
+    case cw_chat_copy = "cw_chat_copy"
+    case cw_chat_retry = "cw_chat_retry"
+    case cw_chat_attach = "cw_chat_attach"
+    case cw_chat_screenshot = "cw_chat_screenshot"
+    case cw_chat_noAgent = "cw_chat_noAgent"
+    case cw_chat_inputPh = "cw_chat_inputPh"
+    case cw_chat_relay = "cw_chat_relay"
+    case cw_chat_relayHint = "cw_chat_relayHint"
+    case cw_chat_relayClear = "cw_chat_relayClear"
+    case cw_chat_relayDone = "cw_chat_relayDone"
+    case cw_chat_streamErr = "cw_chat_streamErr"
+    case cw_chat_sendFail = "cw_chat_sendFail"
+    case cw_chat_relayFail = "cw_chat_relayFail"
+    case cw_system_name = "cw_system_name"
+    case cw_comment_title = "cw_comment_title"
+    case cw_comment_addPh = "cw_comment_addPh"
+    case cw_comment_send = "cw_comment_send"
+    case cw_member_title = "cw_member_title"
+    case cw_member_lanDiscovery = "cw_member_lanDiscovery"
+    case cw_member_scanning = "cw_member_scanning"
+    case cw_member_scan = "cw_member_scan"
+    case cw_member_inviteTitle = "cw_member_inviteTitle"
+    case cw_member_inviteRole = "cw_member_inviteRole"
+    case cw_member_inviteMaxUses = "cw_member_inviteMaxUses"
+    case cw_member_inviteExpires = "cw_member_inviteExpires"
+    case cw_member_inviteGen = "cw_member_inviteGen"
+    case cw_member_inviteCode = "cw_member_inviteCode"
+    case cw_member_remove = "cw_member_remove"
+    case cw_role_owner = "cw_role_owner"
+    case cw_role_admin = "cw_role_admin"
+    case cw_role_member = "cw_role_member"
+    case cw_role_viewer = "cw_role_viewer"
+    case cw_files_title = "cw_files_title"
+    case cw_files_empty = "cw_files_empty"
+    case cw_agent_title = "cw_agent_title"
+    case cw_agent_empty = "cw_agent_empty"
+    case cw_agent_add = "cw_agent_add"
+    case cw_agent_edit = "cw_agent_edit"
+    case cw_agent_copyToProject = "cw_agent_copyToProject"
+    case cw_agent_remove = "cw_agent_remove"
+    case cw_agent_addTitle = "cw_agent_addTitle"
+    case cw_agent_editTitle = "cw_agent_editTitle"
+    case cw_agent_name = "cw_agent_name"
+    case cw_agent_namePh = "cw_agent_namePh"
+    case cw_agent_model = "cw_agent_model"
+    case cw_agent_modelPh = "cw_agent_modelPh"
+    case cw_agent_perm = "cw_agent_perm"
+    case cw_agent_permAll = "cw_agent_permAll"
+    case cw_agent_permAdmin = "cw_agent_permAdmin"
+    case cw_agent_permCustom = "cw_agent_permCustom"
+    case cw_agent_permAllLabel = "cw_agent_permAllLabel"
+    case cw_agent_permCustomLabel = "cw_agent_permCustomLabel"
+    case cw_snap2_title = "cw_snap2_title"
+    case cw_snap2_empty = "cw_snap2_empty"
+    case cw_snap2_createTitle = "cw_snap2_createTitle"
+    case cw_snap2_namePh = "cw_snap2_namePh"
+    case cw_snap2_forkTitle = "cw_snap2_forkTitle"
+    case cw_snap2_forkSpacePh = "cw_snap2_forkSpacePh"
+    case cw_snap2_restore = "cw_snap2_restore"
+    case cw_snap2_forkNew = "cw_snap2_forkNew"
+    case cw_snap2_msgCount = "cw_snap2_msgCount"
+    case cw_snap2_dagName = "cw_snap2_dagName"
+    case cw_art_title = "cw_art_title"
+    case cw_art_kindAll = "cw_art_kindAll"
+    case cw_art_kindCode = "cw_art_kindCode"
+    case cw_art_kindDoc = "cw_art_kindDoc"
+    case cw_art_kindViz = "cw_art_kindViz"
+    case cw_art_kindData = "cw_art_kindData"
+    case cw_art_createTitle = "cw_art_createTitle"
+    case cw_art_kindPicker = "cw_art_kindPicker"
+    case cw_wf_title = "cw_wf_title"
+    case cw_wf_empty = "cw_wf_empty"
+    case cw_wf_create = "cw_wf_create"
+    case cw_wf_createTitle = "cw_wf_createTitle"
+    case cw_wf_namePh = "cw_wf_namePh"
+    case cw_wf_descPh = "cw_wf_descPh"
+    case cw_wf_nodeCount = "cw_wf_nodeCount"
+    case cw_wf_status_running = "cw_wf_status_running"
+    case cw_wf_status_completed = "cw_wf_status_completed"
+    case cw_wf_status_failed = "cw_wf_status_failed"
+    case cw_wf_status_idle = "cw_wf_status_idle"
 }
 
 // MARK: - 翻译管理器
@@ -2466,6 +2603,143 @@ let zhCNTranslations: [String: String] = [
     "cw_snap_title": "会话快照",
     "cw_snap_create": "创建快照",
     "cw_snap_empty": "暂无快照",
+    "cw_list_subtitle": "协作空间 — 团队对话、共享 Agent、工作流协同",
+    "cw_list_searchPh": "搜索空间...",
+    "cw_list_newHelp": "新建协作空间",
+    "cw_list_marketHelp": "工作流/模板市场",
+    "cw_filter_all": "全部",
+    "cw_filter_created": "我创建的",
+    "cw_filter_joined": "我加入的",
+    "cw_filter_archived": "已归档",
+    "cw_list_onboardingTitle": "开始你的第一个协作空间",
+    "cw_list_onboardingBody": "CoWork 让团队实时对话、共享 Agent、协同工作流。支持离线空间、深度研究、桌面共享等差异化能力。",
+    "cw_list_createLabel": "创建协作空间",
+    "cw_list_archivedTag": "已归档",
+    "cw_list_emptyTitle": "选择一个协作空间",
+    "cw_list_emptyHint": "或创建新空间开始协作",
+    "cw_list_loadFail": "加载失败: %@",
+    "cw_create_title": "新建协作空间",
+    "cw_create_basic": "基本信息",
+    "cw_create_namePh": "空间名称",
+    "cw_create_descPh": "描述（可选）",
+    "cw_create_mode": "协作模式",
+    "cw_create_modeLocal": "本机",
+    "cw_create_modeP2p": "局域网",
+    "cw_create_modeGateway": "远程",
+    "cw_create_modeLocalDesc": "单机离线协作",
+    "cw_create_modeP2pDesc": "Bonjour 局域网发现",
+    "cw_create_modeGatewayDesc": "通过 Fusion Gateway",
+    "cw_create_kb": "知识库绑定",
+    "cw_create_kbPh": "KB 路径（可选，如项目目录）",
+    "cw_create_ability": "空间能力",
+    "cw_create_webSearch": "联网搜索",
+    "cw_create_deepResearch": "深度研究",
+    "cw_create_computerUse": "桌面操控",
+    "cw_create_memberUpload": "成员上传",
+    "cw_create_memberAgent": "成员自建Agent",
+    "cw_create_memberWorkflow": "成员运行工作流",
+    "cw_create_advanced": "高级设置",
+    "cw_create_maxMembers": "最大成员数",
+    "cw_create_btn": "创建",
+    "cw_main_loading": "加载中...",
+    "cw_main_deepResearch": "深度研究",
+    "cw_main_computerUse": "桌面操控",
+    "cw_main_createSnap": "创建快照",
+    "cw_main_archive": "归档空间",
+    "cw_main_archivedBanner": "此空间已归档 — 只读模式",
+    "cw_side_members": "成员",
+    "cw_side_files": "文件",
+    "cw_side_knowledge": "知识库",
+    "cw_side_agents": "Agent",
+    "cw_side_artifacts": "产物",
+    "cw_side_workflows": "工作流",
+    "cw_side_snapshots": "快照",
+    "cw_side_desktop": "桌面",
+    "cw_side_settings": "设置",
+    "cw_chat_emptyTitle": "空间对话",
+    "cw_chat_emptyHint": "发送第一条消息，或 @Agent 开始协作",
+    "cw_chat_thinking": "思考中...",
+    "cw_chat_copy": "复制",
+    "cw_chat_retry": "重试",
+    "cw_chat_attach": "附件",
+    "cw_chat_screenshot": "截图",
+    "cw_chat_noAgent": "无 (直接发送)",
+    "cw_chat_inputPh": "输入消息，@Agent 协作...",
+    "cw_chat_relay": "Agent 接力",
+    "cw_chat_relayHint": "选择多个 Agent 依次处理消息",
+    "cw_chat_relayClear": "清除",
+    "cw_chat_relayDone": "完成",
+    "cw_chat_streamErr": "错误: %@",
+    "cw_chat_sendFail": "发送失败: %@",
+    "cw_chat_relayFail": "接力失败: %@",
+    "cw_system_name": "系统",
+    "cw_comment_title": "批注",
+    "cw_comment_addPh": "添加批注...",
+    "cw_comment_send": "发送",
+    "cw_member_title": "成员",
+    "cw_member_lanDiscovery": "局域网发现",
+    "cw_member_scanning": "扫描中...",
+    "cw_member_scan": "扫描",
+    "cw_member_inviteTitle": "邀请成员",
+    "cw_member_inviteRole": "角色",
+    "cw_member_inviteMaxUses": "最大使用次数: %d",
+    "cw_member_inviteExpires": "过期时间(小时): %d",
+    "cw_member_inviteGen": "生成邀请链接",
+    "cw_member_inviteCode": "邀请码: %@",
+    "cw_member_remove": "移除",
+    "cw_role_owner": "所有者",
+    "cw_role_admin": "管理员",
+    "cw_role_member": "成员",
+    "cw_role_viewer": "观察者",
+    "cw_files_title": "文件",
+    "cw_files_empty": "暂无文件",
+    "cw_agent_title": "Agent",
+    "cw_agent_empty": "暂无共享 Agent",
+    "cw_agent_add": "添加 Agent",
+    "cw_agent_edit": "编辑",
+    "cw_agent_copyToProject": "复制到项目",
+    "cw_agent_remove": "移除",
+    "cw_agent_addTitle": "添加 Agent",
+    "cw_agent_editTitle": "编辑 Agent",
+    "cw_agent_name": "名称",
+    "cw_agent_namePh": "Agent 名称",
+    "cw_agent_model": "模型",
+    "cw_agent_modelPh": "模型（留空使用默认）",
+    "cw_agent_perm": "权限",
+    "cw_agent_permAll": "全部成员可用",
+    "cw_agent_permAdmin": "仅管理员",
+    "cw_agent_permCustom": "指定成员",
+    "cw_agent_permAllLabel": "全部成员",
+    "cw_agent_permCustomLabel": "自定义",
+    "cw_snap2_title": "快照",
+    "cw_snap2_empty": "暂无快照",
+    "cw_snap2_createTitle": "创建快照",
+    "cw_snap2_namePh": "名称",
+    "cw_snap2_forkTitle": "Fork 快照",
+    "cw_snap2_forkSpacePh": "新空间名称",
+    "cw_snap2_restore": "恢复此快照",
+    "cw_snap2_forkNew": "Fork 为新空间",
+    "cw_snap2_msgCount": "%d 条消息",
+    "cw_snap2_dagName": "DAG: %@",
+    "cw_art_title": "产物",
+    "cw_art_kindAll": "全部",
+    "cw_art_kindCode": "代码",
+    "cw_art_kindDoc": "文档",
+    "cw_art_kindViz": "可视化",
+    "cw_art_kindData": "数据",
+    "cw_art_createTitle": "创建产物",
+    "cw_art_kindPicker": "类型",
+    "cw_wf_title": "工作流",
+    "cw_wf_empty": "暂无工作流",
+    "cw_wf_create": "创建工作流",
+    "cw_wf_createTitle": "创建工作流",
+    "cw_wf_namePh": "工作流名称",
+    "cw_wf_descPh": "描述 (可选)",
+    "cw_wf_nodeCount": "%d 节点",
+    "cw_wf_status_running": "运行中",
+    "cw_wf_status_completed": "已完成",
+    "cw_wf_status_failed": "失败",
+    "cw_wf_status_idle": "空闲",
     "cw_snap_emptyHint": "创建快照以保存当前会话状态，可随时回溯或 Fork",
     "cw_snap_labelPh": "标签（可选）",
     "cw_snap_createBtn": "创建",
@@ -3487,6 +3761,143 @@ let enUSTranslations: [String: String] = [
     "cw_snap_title": "Session Snapshots",
     "cw_snap_create": "Create Snapshot",
     "cw_snap_empty": "No snapshots",
+    "cw_list_subtitle": "Collaboration space — team chat, shared agents, workflow coordination",
+    "cw_list_searchPh": "Search spaces...",
+    "cw_list_newHelp": "New collaboration space",
+    "cw_list_marketHelp": "Workflow / template marketplace",
+    "cw_filter_all": "All",
+    "cw_filter_created": "Created by me",
+    "cw_filter_joined": "Joined by me",
+    "cw_filter_archived": "Archived",
+    "cw_list_onboardingTitle": "Start your first collaboration space",
+    "cw_list_onboardingBody": "CoWork lets teams chat in real time, share agents, and coordinate workflows. Supports offline spaces, deep research, desktop sharing and more.",
+    "cw_list_createLabel": "Create collaboration space",
+    "cw_list_archivedTag": "Archived",
+    "cw_list_emptyTitle": "Select a collaboration space",
+    "cw_list_emptyHint": "Or create a new space to start collaborating",
+    "cw_list_loadFail": "Load failed: %@",
+    "cw_create_title": "New collaboration space",
+    "cw_create_basic": "Basic info",
+    "cw_create_namePh": "Space name",
+    "cw_create_descPh": "Description (optional)",
+    "cw_create_mode": "Collaboration mode",
+    "cw_create_modeLocal": "Local",
+    "cw_create_modeP2p": "LAN",
+    "cw_create_modeGateway": "Remote",
+    "cw_create_modeLocalDesc": "Single-machine offline collaboration",
+    "cw_create_modeP2pDesc": "Bonjour LAN discovery",
+    "cw_create_modeGatewayDesc": "Via Fusion Gateway",
+    "cw_create_kb": "Knowledge base binding",
+    "cw_create_kbPh": "KB path (optional, e.g. project dir)",
+    "cw_create_ability": "Space capabilities",
+    "cw_create_webSearch": "Web search",
+    "cw_create_deepResearch": "Deep research",
+    "cw_create_computerUse": "Desktop control",
+    "cw_create_memberUpload": "Member uploads",
+    "cw_create_memberAgent": "Member-created agents",
+    "cw_create_memberWorkflow": "Member-run workflows",
+    "cw_create_advanced": "Advanced settings",
+    "cw_create_maxMembers": "Max members",
+    "cw_create_btn": "Create",
+    "cw_main_loading": "Loading...",
+    "cw_main_deepResearch": "Deep research",
+    "cw_main_computerUse": "Desktop control",
+    "cw_main_createSnap": "Create snapshot",
+    "cw_main_archive": "Archive space",
+    "cw_main_archivedBanner": "This space is archived — read-only",
+    "cw_side_members": "Members",
+    "cw_side_files": "Files",
+    "cw_side_knowledge": "Knowledge base",
+    "cw_side_agents": "Agent",
+    "cw_side_artifacts": "Artifacts",
+    "cw_side_workflows": "Workflows",
+    "cw_side_snapshots": "Snapshots",
+    "cw_side_desktop": "Desktop",
+    "cw_side_settings": "Settings",
+    "cw_chat_emptyTitle": "Space chat",
+    "cw_chat_emptyHint": "Send the first message, or @Agent to start collaborating",
+    "cw_chat_thinking": "Thinking...",
+    "cw_chat_copy": "Copy",
+    "cw_chat_retry": "Retry",
+    "cw_chat_attach": "Attachment",
+    "cw_chat_screenshot": "Screenshot",
+    "cw_chat_noAgent": "None (send directly)",
+    "cw_chat_inputPh": "Type a message, @Agent to collaborate...",
+    "cw_chat_relay": "Agent relay",
+    "cw_chat_relayHint": "Select multiple agents to process the message in turn",
+    "cw_chat_relayClear": "Clear",
+    "cw_chat_relayDone": "Done",
+    "cw_chat_streamErr": "Error: %@",
+    "cw_chat_sendFail": "Send failed: %@",
+    "cw_chat_relayFail": "Relay failed: %@",
+    "cw_system_name": "System",
+    "cw_comment_title": "Comments",
+    "cw_comment_addPh": "Add a comment...",
+    "cw_comment_send": "Send",
+    "cw_member_title": "Members",
+    "cw_member_lanDiscovery": "LAN discovery",
+    "cw_member_scanning": "Scanning...",
+    "cw_member_scan": "Scan",
+    "cw_member_inviteTitle": "Invite member",
+    "cw_member_inviteRole": "Role",
+    "cw_member_inviteMaxUses": "Max uses: %d",
+    "cw_member_inviteExpires": "Expires (hours): %d",
+    "cw_member_inviteGen": "Generate invite link",
+    "cw_member_inviteCode": "Invite code: %@",
+    "cw_member_remove": "Remove",
+    "cw_role_owner": "Owner",
+    "cw_role_admin": "Admin",
+    "cw_role_member": "Member",
+    "cw_role_viewer": "Viewer",
+    "cw_files_title": "Files",
+    "cw_files_empty": "No files",
+    "cw_agent_title": "Agent",
+    "cw_agent_empty": "No shared agents",
+    "cw_agent_add": "Add agent",
+    "cw_agent_edit": "Edit",
+    "cw_agent_copyToProject": "Copy to project",
+    "cw_agent_remove": "Remove",
+    "cw_agent_addTitle": "Add agent",
+    "cw_agent_editTitle": "Edit agent",
+    "cw_agent_name": "Name",
+    "cw_agent_namePh": "Agent name",
+    "cw_agent_model": "Model",
+    "cw_agent_modelPh": "Model (leave empty for default)",
+    "cw_agent_perm": "Permission",
+    "cw_agent_permAll": "Available to all members",
+    "cw_agent_permAdmin": "Admin only",
+    "cw_agent_permCustom": "Custom members",
+    "cw_agent_permAllLabel": "All members",
+    "cw_agent_permCustomLabel": "Custom",
+    "cw_snap2_title": "Snapshots",
+    "cw_snap2_empty": "No snapshots",
+    "cw_snap2_createTitle": "Create snapshot",
+    "cw_snap2_namePh": "Name",
+    "cw_snap2_forkTitle": "Fork snapshot",
+    "cw_snap2_forkSpacePh": "New space name",
+    "cw_snap2_restore": "Restore this snapshot",
+    "cw_snap2_forkNew": "Fork to new space",
+    "cw_snap2_msgCount": "%d messages",
+    "cw_snap2_dagName": "DAG: %@",
+    "cw_art_title": "Artifacts",
+    "cw_art_kindAll": "All",
+    "cw_art_kindCode": "Code",
+    "cw_art_kindDoc": "Doc",
+    "cw_art_kindViz": "Visualization",
+    "cw_art_kindData": "Data",
+    "cw_art_createTitle": "Create artifact",
+    "cw_art_kindPicker": "Type",
+    "cw_wf_title": "Workflows",
+    "cw_wf_empty": "No workflows",
+    "cw_wf_create": "Create workflow",
+    "cw_wf_createTitle": "Create workflow",
+    "cw_wf_namePh": "Workflow name",
+    "cw_wf_descPh": "Description (optional)",
+    "cw_wf_nodeCount": "%d nodes",
+    "cw_wf_status_running": "Running",
+    "cw_wf_status_completed": "Completed",
+    "cw_wf_status_failed": "Failed",
+    "cw_wf_status_idle": "Idle",
     "cw_snap_emptyHint": "Create a snapshot to save the current session state. Roll back or fork anytime.",
     "cw_snap_labelPh": "Label (optional)",
     "cw_snap_createBtn": "Create",
@@ -4502,6 +4913,143 @@ let jaJPTranslations: [String: String] = [
     "cw_snap_title": "セッションスナップショット",
     "cw_snap_create": "スナップショット作成",
     "cw_snap_empty": "スナップショットなし",
+    "cw_list_subtitle": "コラボ空間 — チームチャット、共有エージェント、ワークフロー連携",
+    "cw_list_searchPh": "空間を検索...",
+    "cw_list_newHelp": "新規コラボ空間",
+    "cw_list_marketHelp": "ワークフロー/テンプレート市場",
+    "cw_filter_all": "すべて",
+    "cw_filter_created": "自分が作成",
+    "cw_filter_joined": "参加中",
+    "cw_filter_archived": "アーカイブ済",
+    "cw_list_onboardingTitle": "最初のコラボ空間を始める",
+    "cw_list_onboardingBody": "CoWork はチームのリアルタイムチャット、エージェント共有、ワークフロー連携を実現。オフライン空間、深い研究、デスクトップ共有などをサポート。",
+    "cw_list_createLabel": "コラボ空間を作成",
+    "cw_list_archivedTag": "アーカイブ済",
+    "cw_list_emptyTitle": "コラボ空間を選択",
+    "cw_list_emptyHint": "または新規空間を作成して開始",
+    "cw_list_loadFail": "読み込み失敗: %@",
+    "cw_create_title": "新規コラボ空間",
+    "cw_create_basic": "基本情報",
+    "cw_create_namePh": "空間名",
+    "cw_create_descPh": "説明（任意）",
+    "cw_create_mode": "コラボモード",
+    "cw_create_modeLocal": "ローカル",
+    "cw_create_modeP2p": "LAN",
+    "cw_create_modeGateway": "リモート",
+    "cw_create_modeLocalDesc": "単体オフライン協業",
+    "cw_create_modeP2pDesc": "Bonjour LAN 探索",
+    "cw_create_modeGatewayDesc": "Fusion Gateway 経由",
+    "cw_create_kb": "ナレッジベース連携",
+    "cw_create_kbPh": "KB パス（任意、例: プロジェクトディレクトリ）",
+    "cw_create_ability": "空間機能",
+    "cw_create_webSearch": "ウェブ検索",
+    "cw_create_deepResearch": "深い研究",
+    "cw_create_computerUse": "デスクトップ操作",
+    "cw_create_memberUpload": "メンバーのアップロード",
+    "cw_create_memberAgent": "メンバーのエージェント作成",
+    "cw_create_memberWorkflow": "メンバーのワークフロー実行",
+    "cw_create_advanced": "詳細設定",
+    "cw_create_maxMembers": "最大メンバー数",
+    "cw_create_btn": "作成",
+    "cw_main_loading": "読み込み中...",
+    "cw_main_deepResearch": "深い研究",
+    "cw_main_computerUse": "デスクトップ操作",
+    "cw_main_createSnap": "スナップショット作成",
+    "cw_main_archive": "空間をアーカイブ",
+    "cw_main_archivedBanner": "この空間はアーカイブ済み — 読み取り専用",
+    "cw_side_members": "メンバー",
+    "cw_side_files": "ファイル",
+    "cw_side_knowledge": "ナレッジベース",
+    "cw_side_agents": "エージェント",
+    "cw_side_artifacts": "アーティファクト",
+    "cw_side_workflows": "ワークフロー",
+    "cw_side_snapshots": "スナップショット",
+    "cw_side_desktop": "デスクトップ",
+    "cw_side_settings": "設定",
+    "cw_chat_emptyTitle": "空間チャット",
+    "cw_chat_emptyHint": "最初のメッセージを送信、または @Agent で協業開始",
+    "cw_chat_thinking": "考え中...",
+    "cw_chat_copy": "コピー",
+    "cw_chat_retry": "再試行",
+    "cw_chat_attach": "添付",
+    "cw_chat_screenshot": "スクリーンショット",
+    "cw_chat_noAgent": "なし（直接送信）",
+    "cw_chat_inputPh": "メッセージを入力、@Agent で協業...",
+    "cw_chat_relay": "エージェントリレー",
+    "cw_chat_relayHint": "複数エージェントを選び順番にメッセージを処理",
+    "cw_chat_relayClear": "クリア",
+    "cw_chat_relayDone": "完了",
+    "cw_chat_streamErr": "エラー: %@",
+    "cw_chat_sendFail": "送信失敗: %@",
+    "cw_chat_relayFail": "リレー失敗: %@",
+    "cw_system_name": "システム",
+    "cw_comment_title": "コメント",
+    "cw_comment_addPh": "コメントを追加...",
+    "cw_comment_send": "送信",
+    "cw_member_title": "メンバー",
+    "cw_member_lanDiscovery": "LAN 探索",
+    "cw_member_scanning": "スキャン中...",
+    "cw_member_scan": "スキャン",
+    "cw_member_inviteTitle": "メンバー招待",
+    "cw_member_inviteRole": "ロール",
+    "cw_member_inviteMaxUses": "最大使用回数: %d",
+    "cw_member_inviteExpires": "有効期限(時間): %d",
+    "cw_member_inviteGen": "招待リンクを生成",
+    "cw_member_inviteCode": "招待コード: %@",
+    "cw_member_remove": "削除",
+    "cw_role_owner": "オーナー",
+    "cw_role_admin": "管理者",
+    "cw_role_member": "メンバー",
+    "cw_role_viewer": "閲覧者",
+    "cw_files_title": "ファイル",
+    "cw_files_empty": "ファイルなし",
+    "cw_agent_title": "エージェント",
+    "cw_agent_empty": "共有エージェントなし",
+    "cw_agent_add": "エージェントを追加",
+    "cw_agent_edit": "編集",
+    "cw_agent_copyToProject": "プロジェクトにコピー",
+    "cw_agent_remove": "削除",
+    "cw_agent_addTitle": "エージェントを追加",
+    "cw_agent_editTitle": "エージェントを編集",
+    "cw_agent_name": "名前",
+    "cw_agent_namePh": "エージェント名",
+    "cw_agent_model": "モデル",
+    "cw_agent_modelPh": "モデル（空欄でデフォルト）",
+    "cw_agent_perm": "権限",
+    "cw_agent_permAll": "全メンバー利用可能",
+    "cw_agent_permAdmin": "管理者のみ",
+    "cw_agent_permCustom": "指定メンバー",
+    "cw_agent_permAllLabel": "全メンバー",
+    "cw_agent_permCustomLabel": "カスタム",
+    "cw_snap2_title": "スナップショット",
+    "cw_snap2_empty": "スナップショットなし",
+    "cw_snap2_createTitle": "スナップショット作成",
+    "cw_snap2_namePh": "名前",
+    "cw_snap2_forkTitle": "スナップショットをフォーク",
+    "cw_snap2_forkSpacePh": "新規空間名",
+    "cw_snap2_restore": "このスナップショットを復元",
+    "cw_snap2_forkNew": "新規空間にフォーク",
+    "cw_snap2_msgCount": "%d 件のメッセージ",
+    "cw_snap2_dagName": "DAG: %@",
+    "cw_art_title": "アーティファット",
+    "cw_art_kindAll": "すべて",
+    "cw_art_kindCode": "コード",
+    "cw_art_kindDoc": "ドキュメント",
+    "cw_art_kindViz": "可視化",
+    "cw_art_kindData": "データ",
+    "cw_art_createTitle": "アーティファット作成",
+    "cw_art_kindPicker": "タイプ",
+    "cw_wf_title": "ワークフロー",
+    "cw_wf_empty": "ワークフローなし",
+    "cw_wf_create": "ワークフロー作成",
+    "cw_wf_createTitle": "ワークフロー作成",
+    "cw_wf_namePh": "ワークフロー名",
+    "cw_wf_descPh": "説明（任意）",
+    "cw_wf_nodeCount": "%d ノード",
+    "cw_wf_status_running": "実行中",
+    "cw_wf_status_completed": "完了",
+    "cw_wf_status_failed": "失敗",
+    "cw_wf_status_idle": "アイドル",
     "cw_snap_emptyHint": "スナップショットを作成して現在のセッション状態を保存。いつでもロールバックまたはフォーク可能。",
     "cw_snap_labelPh": "ラベル（任意）",
     "cw_snap_createBtn": "作成",
@@ -5517,6 +6065,143 @@ let koKRTranslations: [String: String] = [
     "cw_snap_title": "세션 스냅샷",
     "cw_snap_create": "스냅샷 생성",
     "cw_snap_empty": "스냅샷 없음",
+    "cw_list_subtitle": "협업 공간 — 팀 채팅, 공유 에이전트, 워크플로 조정",
+    "cw_list_searchPh": "공간 검색...",
+    "cw_list_newHelp": "새 협업 공간",
+    "cw_list_marketHelp": "워크플로/템플릿 마켓",
+    "cw_filter_all": "전체",
+    "cw_filter_created": "내가 생성",
+    "cw_filter_joined": "참여 중",
+    "cw_filter_archived": "보관됨",
+    "cw_list_onboardingTitle": "첫 협업 공간 시작",
+    "cw_list_onboardingBody": "CoWork는 팀의 실시간 채팅, 에이전트 공유, 워크플로 조정을 지원. 오프라인 공간, 심층 연구, 데스크톱 공유 등 차별화 기능.",
+    "cw_list_createLabel": "협업 공간 만들기",
+    "cw_list_archivedTag": "보관됨",
+    "cw_list_emptyTitle": "협업 공간 선택",
+    "cw_list_emptyHint": "또는 새 공간을 만들어 시작",
+    "cw_list_loadFail": "로드 실패: %@",
+    "cw_create_title": "새 협업 공간",
+    "cw_create_basic": "기본 정보",
+    "cw_create_namePh": "공간 이름",
+    "cw_create_descPh": "설명（선택）",
+    "cw_create_mode": "협업 모드",
+    "cw_create_modeLocal": "로컬",
+    "cw_create_modeP2p": "LAN",
+    "cw_create_modeGateway": "원격",
+    "cw_create_modeLocalDesc": "단일 오프라인 협업",
+    "cw_create_modeP2pDesc": "Bonjour LAN 탐색",
+    "cw_create_modeGatewayDesc": "Fusion Gateway 경유",
+    "cw_create_kb": "지식베이스 연동",
+    "cw_create_kbPh": "KB 경로（선택, 예: 프로젝트 디렉터리）",
+    "cw_create_ability": "공간 기능",
+    "cw_create_webSearch": "웹 검색",
+    "cw_create_deepResearch": "심층 연구",
+    "cw_create_computerUse": "데스크톱 제어",
+    "cw_create_memberUpload": "멤버 업로드",
+    "cw_create_memberAgent": "멤버 에이전트 생성",
+    "cw_create_memberWorkflow": "멤버 워크플로 실행",
+    "cw_create_advanced": "고급 설정",
+    "cw_create_maxMembers": "최대 멤버 수",
+    "cw_create_btn": "만들기",
+    "cw_main_loading": "로드 중...",
+    "cw_main_deepResearch": "심층 연구",
+    "cw_main_computerUse": "데스크톱 제어",
+    "cw_main_createSnap": "스냅샷 만들기",
+    "cw_main_archive": "공간 보관",
+    "cw_main_archivedBanner": "이 공간은 보관됨 — 읽기 전용",
+    "cw_side_members": "멤버",
+    "cw_side_files": "파일",
+    "cw_side_knowledge": "지식베이스",
+    "cw_side_agents": "에이전트",
+    "cw_side_artifacts": "아티팩트",
+    "cw_side_workflows": "워크플로",
+    "cw_side_snapshots": "스냅샷",
+    "cw_side_desktop": "데스크톱",
+    "cw_side_settings": "설정",
+    "cw_chat_emptyTitle": "공간 채팅",
+    "cw_chat_emptyHint": "첫 메시지를 보내거나 @Agent 로 협업 시작",
+    "cw_chat_thinking": "생각 중...",
+    "cw_chat_copy": "복사",
+    "cw_chat_retry": "재시도",
+    "cw_chat_attach": "첨부",
+    "cw_chat_screenshot": "스크린샷",
+    "cw_chat_noAgent": "없음（직접 전송）",
+    "cw_chat_inputPh": "메시지 입력, @Agent 로 협업...",
+    "cw_chat_relay": "에이전트 릴레이",
+    "cw_chat_relayHint": "여러 에이전트를 선택해 순차적으로 메시지 처리",
+    "cw_chat_relayClear": "초기화",
+    "cw_chat_relayDone": "완료",
+    "cw_chat_streamErr": "오류: %@",
+    "cw_chat_sendFail": "전송 실패: %@",
+    "cw_chat_relayFail": "릴레이 실패: %@",
+    "cw_system_name": "시스템",
+    "cw_comment_title": "댓글",
+    "cw_comment_addPh": "댓글 추가...",
+    "cw_comment_send": "전송",
+    "cw_member_title": "멤버",
+    "cw_member_lanDiscovery": "LAN 탐색",
+    "cw_member_scanning": "스캔 중...",
+    "cw_member_scan": "스캔",
+    "cw_member_inviteTitle": "멤버 초대",
+    "cw_member_inviteRole": "역할",
+    "cw_member_inviteMaxUses": "최대 사용 횟수: %d",
+    "cw_member_inviteExpires": "만료(시간): %d",
+    "cw_member_inviteGen": "초대 링크 생성",
+    "cw_member_inviteCode": "초대 코드: %@",
+    "cw_member_remove": "제거",
+    "cw_role_owner": "소유자",
+    "cw_role_admin": "관리자",
+    "cw_role_member": "멤버",
+    "cw_role_viewer": "관찰자",
+    "cw_files_title": "파일",
+    "cw_files_empty": "파일 없음",
+    "cw_agent_title": "에이전트",
+    "cw_agent_empty": "공유 에이전트 없음",
+    "cw_agent_add": "에이전트 추가",
+    "cw_agent_edit": "편집",
+    "cw_agent_copyToProject": "프로젝트로 복사",
+    "cw_agent_remove": "제거",
+    "cw_agent_addTitle": "에이전트 추가",
+    "cw_agent_editTitle": "에이전트 편집",
+    "cw_agent_name": "이름",
+    "cw_agent_namePh": "에이전트 이름",
+    "cw_agent_model": "모델",
+    "cw_agent_modelPh": "모델（빈칸 시 기본값）",
+    "cw_agent_perm": "권한",
+    "cw_agent_permAll": "모든 멤버 사용 가능",
+    "cw_agent_permAdmin": "관리자만",
+    "cw_agent_permCustom": "지정 멤버",
+    "cw_agent_permAllLabel": "전체 멤버",
+    "cw_agent_permCustomLabel": "사용자 지정",
+    "cw_snap2_title": "스냅샷",
+    "cw_snap2_empty": "스냅샷 없음",
+    "cw_snap2_createTitle": "스냅샷 만들기",
+    "cw_snap2_namePh": "이름",
+    "cw_snap2_forkTitle": "스냅샷 포크",
+    "cw_snap2_forkSpacePh": "새 공간 이름",
+    "cw_snap2_restore": "이 스냅샷 복원",
+    "cw_snap2_forkNew": "새 공간으로 포크",
+    "cw_snap2_msgCount": "%d개 메시지",
+    "cw_snap2_dagName": "DAG: %@",
+    "cw_art_title": "아티팩트",
+    "cw_art_kindAll": "전체",
+    "cw_art_kindCode": "코드",
+    "cw_art_kindDoc": "문서",
+    "cw_art_kindViz": "시각화",
+    "cw_art_kindData": "데이터",
+    "cw_art_createTitle": "아티팩트 만들기",
+    "cw_art_kindPicker": "유형",
+    "cw_wf_title": "워크플로",
+    "cw_wf_empty": "워크플로 없음",
+    "cw_wf_create": "워크플로 만들기",
+    "cw_wf_createTitle": "워크플로 만들기",
+    "cw_wf_namePh": "워크플로 이름",
+    "cw_wf_descPh": "설명（선택）",
+    "cw_wf_nodeCount": "%d개 노드",
+    "cw_wf_status_running": "실행 중",
+    "cw_wf_status_completed": "완료",
+    "cw_wf_status_failed": "실패",
+    "cw_wf_status_idle": "유휴",
     "cw_snap_emptyHint": "스냅샷을 생성해 현재 세션 상태를 저장하세요. 언제든 롤백 또는 포크 가능.",
     "cw_snap_labelPh": "라벨(선택)",
     "cw_snap_createBtn": "생성",
