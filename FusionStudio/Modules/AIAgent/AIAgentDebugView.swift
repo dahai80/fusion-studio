@@ -13,6 +13,7 @@ struct AIAgentDebugView: View {
     @EnvironmentObject var bridge: AgentBridge
     @Environment(\.dismiss) private var dismiss
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     let agentId: String
     @State private var agent: AgentModel?
@@ -31,14 +32,21 @@ struct AIAgentDebugView: View {
     @State private var historyLoading = false
 
     enum DebugTab: String, CaseIterable {
-        case chat = "对话测试"
-        case logs = "执行日志"
-        case tasks = "代码任务"
+        case chat = "chat"
+        case logs = "logs"
+        case tasks = "tasks"
         var icon: String {
             switch self {
             case .chat: return "bubble.left.and.bubble.right"
             case .logs: return "list.bullet.rectangle"
             case .tasks: return "terminal"
+            }
+        }
+        var localLabel: String {
+            switch self {
+            case .chat: return I18nManager.shared.t(.ai_debug_tabChat)
+            case .logs: return I18nManager.shared.t(.ai_debug_tabLogs)
+            case .tasks: return I18nManager.shared.t(.ai_debug_tabTasks)
             }
         }
     }
@@ -95,10 +103,10 @@ struct AIAgentDebugView: View {
     private var headerBar: some View {
         HStack(spacing: theme.spacingM) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("调试面板")
+                Text(i18n.t(.ai_debug_title))
                     .font(.system(size: theme.titleSize, weight: .bold))
                     .foregroundStyle(theme.text)
-                Text(agent?.name ?? "Agent \(agentId.prefix(8))")
+                Text(agent?.name ?? String(format: i18n.t(.ai_debug_agentFmt), String(agentId.prefix(8))))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textTertiary)
             }
@@ -108,7 +116,7 @@ struct AIAgentDebugView: View {
                     Circle()
                         .fill(isExecuting ? theme.auxiliary : theme.accentSoft)
                         .frame(width: 8, height: 8)
-                    Text(isExecuting ? "执行中" : "就绪")
+                    Text(isExecuting ? i18n.t(.ai_debug_executing) : i18n.t(.ai_debug_ready))
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.textTertiary)
                 }
@@ -118,7 +126,7 @@ struct AIAgentDebugView: View {
                         .foregroundStyle(theme.textTertiary)
                 }
                 .buttonStyle(.plain)
-                .help("关闭")
+                .help(i18n.t(.close))
             }
         }
         .padding(.horizontal, theme.spacingL)
@@ -132,7 +140,7 @@ struct AIAgentDebugView: View {
                     HStack(spacing: theme.spacingXS) {
                         Image(systemName: tab.icon)
                             .font(.system(size: theme.iconS))
-                        Text(tab.rawValue)
+                        Text(tab.localLabel)
                             .font(.system(size: theme.footnoteSize, weight: .medium))
                     }
                     .foregroundStyle(activeTab == tab ? theme.accentText : theme.textSecondary)
@@ -195,10 +203,10 @@ struct AIAgentDebugView: View {
             Image(systemName: "bubble.left.and.bubble.right")
                 .font(.system(size: 40))
                 .foregroundStyle(theme.textTertiary)
-            Text("发送消息测试 Agent 响应")
+            Text(i18n.t(.ai_debug_chatEmpty))
                 .font(.system(size: theme.footnoteSize))
                 .foregroundStyle(theme.textTertiary)
-            Text("调试模式下可实时查看执行步骤和工具调用")
+            Text(i18n.t(.ai_debug_chatEmptyHint))
                 .font(.system(size: theme.captionSize))
                 .foregroundStyle(theme.textTertiary)
         }
@@ -232,7 +240,7 @@ struct AIAgentDebugView: View {
 
     private var inputBar: some View {
         HStack(spacing: theme.spacingS) {
-            TextField("输入测试消息...", text: $chatInput, axis: .vertical)
+            TextField(i18n.t(.ai_debug_inputPh), text: $chatInput, axis: .vertical)
                 .textFieldStyle(.plain)
                 .font(.system(size: theme.textSize))
                 .lineLimit(1...4)
@@ -263,7 +271,7 @@ struct AIAgentDebugView: View {
     private var logsPanel: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("当前会话日志")
+                Text(i18n.t(.ai_debug_logsTitle))
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
                     .foregroundStyle(theme.text)
                 Spacer()
@@ -271,7 +279,7 @@ struct AIAgentDebugView: View {
                     HStack(spacing: 4) {
                         if historyLoading { ProgressView().controlSize(.small) }
                         Image(systemName: "clock.arrow.circlepath")
-                        Text("加载历史")
+                        Text(i18n.t(.ai_debug_loadHistory))
                     }
                     .font(.system(size: theme.captionSize))
                 }
@@ -305,10 +313,10 @@ struct AIAgentDebugView: View {
             Image(systemName: "list.bullet.rectangle")
                 .font(.system(size: 40))
                 .foregroundStyle(theme.textTertiary)
-            Text("执行日志为空")
+            Text(i18n.t(.ai_debug_logsEmpty))
                 .font(.system(size: theme.footnoteSize))
                 .foregroundStyle(theme.textTertiary)
-            Text("发送测试消息后，执行步骤将出现在这里")
+            Text(i18n.t(.ai_debug_logsEmptyHint))
                 .font(.system(size: theme.captionSize))
                 .foregroundStyle(theme.textTertiary)
         }
@@ -452,10 +460,10 @@ struct AIAgentDebugView: View {
                     Image(systemName: "terminal")
                         .font(.system(size: 40))
                         .foregroundStyle(theme.textTertiary)
-                    Text("暂无代码任务")
+                    Text(i18n.t(.ai_debug_tasksEmpty))
                         .font(.system(size: theme.footnoteSize))
                         .foregroundStyle(theme.textTertiary)
-                    Text("提交代码让 Agent 执行并查看结果")
+                    Text(i18n.t(.ai_debug_tasksEmptyHint))
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.textTertiary)
                 }
@@ -476,7 +484,7 @@ struct AIAgentDebugView: View {
     private var taskSubmitBar: some View {
         VStack(spacing: theme.spacingS) {
             HStack(spacing: theme.spacingS) {
-                Picker("语言", selection: $codeTaskLang) {
+                Picker(i18n.t(.ai_debug_lang), selection: $codeTaskLang) {
                     ForEach(codeLanguages, id: \.tag) { lang in
                         Text(lang.name).tag(lang.tag)
                     }
@@ -487,7 +495,7 @@ struct AIAgentDebugView: View {
                 Button(action: submitCodeTask) {
                     HStack(spacing: 4) {
                         Image(systemName: "play.fill")
-                        Text("提交")
+                        Text(i18n.t(.ai_debug_submit))
                     }
                     .font(.system(size: theme.footnoteSize, weight: .medium))
                 }
@@ -657,7 +665,7 @@ struct AIAgentDebugView: View {
         isExecuting = true
 
         let startTime = Date()
-        addLog(step: "receive", detail: "收到用户消息：\(text.prefix(50))", duration: "0ms")
+        addLog(step: "receive", detail: String(format: i18n.t(.ai_debug_logReceiveFmt), String(text.prefix(50))), duration: "0ms")
 
         var streamMsg = DebugMessage(role: "assistant", content: "", timestamp: Date(), isStreaming: true)
         messages.append(streamMsg)
@@ -673,10 +681,10 @@ struct AIAgentDebugView: View {
                 let responseContent = result["response"] as? String
                     ?? result["output"] as? String
                     ?? result["content"] as? String
-                    ?? "（无响应内容）"
+                    ?? i18n.t(.ai_debug_noResponse)
 
                 let elapsed = String(format: "%.0fms", Date().timeIntervalSince(startTime) * 1000)
-                addLog(step: "execute", detail: "Agent 执行完成", duration: elapsed)
+                addLog(step: "execute", detail: i18n.t(.ai_debug_logExecDone), duration: elapsed)
 
                 await MainActor.run {
                     messages[streamIdx].content = responseContent
@@ -687,7 +695,7 @@ struct AIAgentDebugView: View {
                 if let toolCalls = result["tool_calls"] as? [[String: Any]] {
                     for call in toolCalls {
                         let name = call["name"] as? String ?? "unknown"
-                        addLog(step: "tool_call", detail: "调用工具：\(name)", duration: "-")
+                        addLog(step: "tool_call", detail: String(format: i18n.t(.ai_debug_logToolFmt), name), duration: "-")
                     }
                 }
             } catch {
@@ -700,10 +708,10 @@ struct AIAgentDebugView: View {
                     let content = fallback["response"] as? String
                         ?? fallback["output"] as? String
                         ?? fallback["content"] as? String
-                        ?? "（无响应内容）"
+                        ?? i18n.t(.ai_debug_noResponse)
 
                     let elapsed = String(format: "%.0fms", Date().timeIntervalSince(startTime) * 1000)
-                    addLog(step: "execute", detail: "Agent 执行完成(fallback)", duration: elapsed)
+                    addLog(step: "execute", detail: i18n.t(.ai_debug_logExecFallback), duration: elapsed)
 
                     await MainActor.run {
                         messages[streamIdx].content = content
@@ -712,9 +720,9 @@ struct AIAgentDebugView: View {
                     }
                 } catch {
                     let elapsed = String(format: "%.0fms", Date().timeIntervalSince(startTime) * 1000)
-                    addLog(step: "error", detail: "执行失败：\(error.localizedDescription)", duration: elapsed)
+                    addLog(step: "error", detail: String(format: i18n.t(.ai_debug_logFailFmt), error.localizedDescription), duration: elapsed)
                     await MainActor.run {
-                        messages[streamIdx].content = "执行失败：\(error.localizedDescription)"
+                        messages[streamIdx].content = String(format: i18n.t(.ai_debug_logFailFmt), error.localizedDescription)
                         messages[streamIdx].isStreaming = false
                         isExecuting = false
                     }

@@ -1724,6 +1724,52 @@ enum I18nKey: String, CaseIterable {
     case ai_kb_instrSave = "ai_kb_instrSave"
     case ai_kb_agentsTitle = "ai_kb_agentsTitle"
     case ai_kb_agentsEmpty = "ai_kb_agentsEmpty"
+    case ai_chat_welcomeTitle = "ai_chat_welcomeTitle"
+    case ai_chat_welcomeHint = "ai_chat_welcomeHint"
+    case ai_chat_noAgent = "ai_chat_noAgent"
+    case ai_chat_streaming = "ai_chat_streaming"
+    case ai_chat_qaSummarize = "ai_chat_qaSummarize"
+    case ai_chat_qaCode = "ai_chat_qaCode"
+    case ai_chat_qaData = "ai_chat_qaData"
+    case ai_chat_qaTranslate = "ai_chat_qaTranslate"
+    case ai_chat_qaWrite = "ai_chat_qaWrite"
+    case ai_chat_inputPh = "ai_chat_inputPh"
+    case ai_chat_toolbox = "ai_chat_toolbox"
+    case ai_chat_toolWebSearch = "ai_chat_toolWebSearch"
+    case ai_chat_toolResearch = "ai_chat_toolResearch"
+    case ai_chat_toolCode = "ai_chat_toolCode"
+    case ai_chat_toolKb = "ai_chat_toolKb"
+    case ai_chat_pickTitle = "ai_chat_pickTitle"
+    case ai_chat_pickEmpty = "ai_chat_pickEmpty"
+    case ai_chat_noResponse = "ai_chat_noResponse"
+    case ai_chat_rtTitle = "ai_chat_rtTitle"
+    case ai_chat_rtMaxTokens = "ai_chat_rtMaxTokens"
+    case ai_chat_rtApply = "ai_chat_rtApply"
+    case ai_chat_reqFailedFmt = "ai_chat_reqFailedFmt"
+    case ai_debug_title = "ai_debug_title"
+    case ai_debug_agentFmt = "ai_debug_agentFmt"
+    case ai_debug_executing = "ai_debug_executing"
+    case ai_debug_ready = "ai_debug_ready"
+    case ai_debug_chatEmpty = "ai_debug_chatEmpty"
+    case ai_debug_chatEmptyHint = "ai_debug_chatEmptyHint"
+    case ai_debug_inputPh = "ai_debug_inputPh"
+    case ai_debug_logsTitle = "ai_debug_logsTitle"
+    case ai_debug_loadHistory = "ai_debug_loadHistory"
+    case ai_debug_logsEmpty = "ai_debug_logsEmpty"
+    case ai_debug_logsEmptyHint = "ai_debug_logsEmptyHint"
+    case ai_debug_tasksEmpty = "ai_debug_tasksEmpty"
+    case ai_debug_tasksEmptyHint = "ai_debug_tasksEmptyHint"
+    case ai_debug_lang = "ai_debug_lang"
+    case ai_debug_submit = "ai_debug_submit"
+    case ai_debug_logReceiveFmt = "ai_debug_logReceiveFmt"
+    case ai_debug_noResponse = "ai_debug_noResponse"
+    case ai_debug_logExecDone = "ai_debug_logExecDone"
+    case ai_debug_logToolFmt = "ai_debug_logToolFmt"
+    case ai_debug_logExecFallback = "ai_debug_logExecFallback"
+    case ai_debug_logFailFmt = "ai_debug_logFailFmt"
+    case ai_debug_tabChat = "ai_debug_tabChat"
+    case ai_debug_tabLogs = "ai_debug_tabLogs"
+    case ai_debug_tabTasks = "ai_debug_tabTasks"
 }
 
 // MARK: - 翻译管理器
@@ -3100,6 +3146,52 @@ let zhCNTranslations: [String: String] = [
     "ai_kb_instrSave": "保存指令",
     "ai_kb_agentsTitle": "绑定此知识库的 Agent",
     "ai_kb_agentsEmpty": "暂无 Agent 绑定此知识库",
+    "ai_chat_welcomeTitle": "开始与 Agent 对话",
+    "ai_chat_welcomeHint": "选择一个 Agent，输入消息即可开始",
+    "ai_chat_noAgent": "暂无可用 Agent，请先创建",
+    "ai_chat_streaming": "生成中...",
+    "ai_chat_qaSummarize": "总结文档",
+    "ai_chat_qaCode": "代码生成",
+    "ai_chat_qaData": "数据分析",
+    "ai_chat_qaTranslate": "翻译",
+    "ai_chat_qaWrite": "创意写作",
+    "ai_chat_inputPh": "输入消息...",
+    "ai_chat_toolbox": "工具箱",
+    "ai_chat_toolWebSearch": "网页搜索",
+    "ai_chat_toolResearch": "深度调研",
+    "ai_chat_toolCode": "代码执行",
+    "ai_chat_toolKb": "知识库查询",
+    "ai_chat_pickTitle": "选择 Agent",
+    "ai_chat_pickEmpty": "暂无可用 Agent",
+    "ai_chat_noResponse": "（无响应）",
+    "ai_chat_rtTitle": "运行时配置",
+    "ai_chat_rtMaxTokens": "最大 Token",
+    "ai_chat_rtApply": "应用到当前会话",
+    "ai_chat_reqFailedFmt": "请求失败：%@",
+    "ai_debug_title": "调试面板",
+    "ai_debug_agentFmt": "Agent %@",
+    "ai_debug_executing": "执行中",
+    "ai_debug_ready": "就绪",
+    "ai_debug_chatEmpty": "发送消息测试 Agent 响应",
+    "ai_debug_chatEmptyHint": "调试模式下可实时查看执行步骤和工具调用",
+    "ai_debug_inputPh": "输入测试消息...",
+    "ai_debug_logsTitle": "当前会话日志",
+    "ai_debug_loadHistory": "加载历史",
+    "ai_debug_logsEmpty": "执行日志为空",
+    "ai_debug_logsEmptyHint": "发送测试消息后，执行步骤将出现在这里",
+    "ai_debug_tasksEmpty": "暂无代码任务",
+    "ai_debug_tasksEmptyHint": "提交代码让 Agent 执行并查看结果",
+    "ai_debug_lang": "语言",
+    "ai_debug_submit": "提交",
+    "ai_debug_logReceiveFmt": "收到用户消息：%@",
+    "ai_debug_noResponse": "（无响应内容）",
+    "ai_debug_logExecDone": "Agent 执行完成",
+    "ai_debug_logToolFmt": "调用工具：%@",
+    "ai_debug_logExecFallback": "Agent 执行完成(fallback)",
+    "ai_debug_logFailFmt": "执行失败：%@",
+    "ai_debug_tabChat": "对话测试",
+    "ai_debug_tabLogs": "执行日志",
+    "ai_debug_tabTasks": "代码任务",
 ]
 
 let enUSTranslations: [String: String] = [
@@ -4431,6 +4523,52 @@ let enUSTranslations: [String: String] = [
     "ai_kb_instrSave": "Save instructions",
     "ai_kb_agentsTitle": "Agents linked to this knowledge base",
     "ai_kb_agentsEmpty": "No agents linked to this knowledge base",
+    "ai_chat_welcomeTitle": "Start chatting with Agent",
+    "ai_chat_welcomeHint": "Select an Agent and type a message to begin",
+    "ai_chat_noAgent": "No agents available, please create one first",
+    "ai_chat_streaming": "Generating...",
+    "ai_chat_qaSummarize": "Summarize document",
+    "ai_chat_qaCode": "Generate code",
+    "ai_chat_qaData": "Data analysis",
+    "ai_chat_qaTranslate": "Translate",
+    "ai_chat_qaWrite": "Creative writing",
+    "ai_chat_inputPh": "Type a message...",
+    "ai_chat_toolbox": "Toolbox",
+    "ai_chat_toolWebSearch": "Web search",
+    "ai_chat_toolResearch": "Deep research",
+    "ai_chat_toolCode": "Code execution",
+    "ai_chat_toolKb": "Knowledge query",
+    "ai_chat_pickTitle": "Select Agent",
+    "ai_chat_pickEmpty": "No agents available",
+    "ai_chat_noResponse": "(No response)",
+    "ai_chat_rtTitle": "Runtime config",
+    "ai_chat_rtMaxTokens": "Max tokens",
+    "ai_chat_rtApply": "Apply to current session",
+    "ai_chat_reqFailedFmt": "Request failed: %@",
+    "ai_debug_title": "Debug panel",
+    "ai_debug_agentFmt": "Agent %@",
+    "ai_debug_executing": "Executing",
+    "ai_debug_ready": "Ready",
+    "ai_debug_chatEmpty": "Send a message to test Agent response",
+    "ai_debug_chatEmptyHint": "Debug mode shows execution steps and tool calls in real time",
+    "ai_debug_inputPh": "Type a test message...",
+    "ai_debug_logsTitle": "Current session logs",
+    "ai_debug_loadHistory": "Load history",
+    "ai_debug_logsEmpty": "Execution logs empty",
+    "ai_debug_logsEmptyHint": "Execution steps will appear here after sending a test message",
+    "ai_debug_tasksEmpty": "No code tasks",
+    "ai_debug_tasksEmptyHint": "Submit code for Agent to execute and view results",
+    "ai_debug_lang": "Language",
+    "ai_debug_submit": "Submit",
+    "ai_debug_logReceiveFmt": "Received user message: %@",
+    "ai_debug_noResponse": "(No response content)",
+    "ai_debug_logExecDone": "Agent execution complete",
+    "ai_debug_logToolFmt": "Tool call: %@",
+    "ai_debug_logExecFallback": "Agent execution complete (fallback)",
+    "ai_debug_logFailFmt": "Execution failed: %@",
+    "ai_debug_tabChat": "Chat test",
+    "ai_debug_tabLogs": "Execution logs",
+    "ai_debug_tabTasks": "Code tasks",
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -5756,6 +5894,52 @@ let jaJPTranslations: [String: String] = [
     "ai_kb_instrSave": "指示を保存",
     "ai_kb_agentsTitle": "このナレッジベースに紐づく Agent",
     "ai_kb_agentsEmpty": "このナレッジベースに紐づく Agent なし",
+    "ai_chat_welcomeTitle": "Agent との会話を開始",
+    "ai_chat_welcomeHint": "Agent を選択し、メッセージを入力して開始",
+    "ai_chat_noAgent": "利用可能な Agent なし、先に作成してください",
+    "ai_chat_streaming": "生成中...",
+    "ai_chat_qaSummarize": "ドキュメント要約",
+    "ai_chat_qaCode": "コード生成",
+    "ai_chat_qaData": "データ分析",
+    "ai_chat_qaTranslate": "翻訳",
+    "ai_chat_qaWrite": "クリエイティブライティング",
+    "ai_chat_inputPh": "メッセージを入力...",
+    "ai_chat_toolbox": "ツールボックス",
+    "ai_chat_toolWebSearch": "ウェブ検索",
+    "ai_chat_toolResearch": "深い調査",
+    "ai_chat_toolCode": "コード実行",
+    "ai_chat_toolKb": "ナレッジベースクエリ",
+    "ai_chat_pickTitle": "Agent を選択",
+    "ai_chat_pickEmpty": "利用可能な Agent なし",
+    "ai_chat_noResponse": "（応答なし）",
+    "ai_chat_rtTitle": "ランタイム設定",
+    "ai_chat_rtMaxTokens": "最大 Token",
+    "ai_chat_rtApply": "現在のセッションに適用",
+    "ai_chat_reqFailedFmt": "リクエスト失敗：%@",
+    "ai_debug_title": "デバッグパネル",
+    "ai_debug_agentFmt": "Agent %@",
+    "ai_debug_executing": "実行中",
+    "ai_debug_ready": "準備完了",
+    "ai_debug_chatEmpty": "メッセージを送信して Agent 応答をテスト",
+    "ai_debug_chatEmptyHint": "デバッグモードでは実行ステップとツール呼び出しをリアルタイム表示",
+    "ai_debug_inputPh": "テストメッセージを入力...",
+    "ai_debug_logsTitle": "現在のセッションログ",
+    "ai_debug_loadHistory": "履歴を読み込み",
+    "ai_debug_logsEmpty": "実行ログが空です",
+    "ai_debug_logsEmptyHint": "テストメッセージ送信後、実行ステップがここに表示されます",
+    "ai_debug_tasksEmpty": "コードタスクなし",
+    "ai_debug_tasksEmptyHint": "コードを提出して Agent に実行させ結果を確認",
+    "ai_debug_lang": "言語",
+    "ai_debug_submit": "提出",
+    "ai_debug_logReceiveFmt": "ユーザーメッセージ受信：%@",
+    "ai_debug_noResponse": "（応答内容なし）",
+    "ai_debug_logExecDone": "Agent 実行完了",
+    "ai_debug_logToolFmt": "ツール呼び出し：%@",
+    "ai_debug_logExecFallback": "Agent 実行完了(fallback)",
+    "ai_debug_logFailFmt": "実行失敗：%@",
+    "ai_debug_tabChat": "チャットテスト",
+    "ai_debug_tabLogs": "実行ログ",
+    "ai_debug_tabTasks": "コードタスク",
 ]
 
 let koKRTranslations: [String: String] = [
@@ -7081,6 +7265,52 @@ let koKRTranslations: [String: String] = [
     "ai_kb_instrSave": "지침 저장",
     "ai_kb_agentsTitle": "이 지식 베이스에 연결된 Agent",
     "ai_kb_agentsEmpty": "이 지식 베이스에 연결된 Agent 없음",
+    "ai_chat_welcomeTitle": "Agent 와 대화 시작",
+    "ai_chat_welcomeHint": "Agent 를 선택하고 메시지를 입력하여 시작",
+    "ai_chat_noAgent": "사용 가능한 Agent 없음, 먼저 생성하세요",
+    "ai_chat_streaming": "생성 중...",
+    "ai_chat_qaSummarize": "문서 요약",
+    "ai_chat_qaCode": "코드 생성",
+    "ai_chat_qaData": "데이터 분석",
+    "ai_chat_qaTranslate": "번역",
+    "ai_chat_qaWrite": "창의적 글쓰기",
+    "ai_chat_inputPh": "메시지 입력...",
+    "ai_chat_toolbox": "도구 상자",
+    "ai_chat_toolWebSearch": "웹 검색",
+    "ai_chat_toolResearch": "심층 조사",
+    "ai_chat_toolCode": "코드 실행",
+    "ai_chat_toolKb": "지식 베이스 쿼리",
+    "ai_chat_pickTitle": "Agent 선택",
+    "ai_chat_pickEmpty": "사용 가능한 Agent 없음",
+    "ai_chat_noResponse": "(응답 없음)",
+    "ai_chat_rtTitle": "런타임 설정",
+    "ai_chat_rtMaxTokens": "최대 Token",
+    "ai_chat_rtApply": "현재 세션에 적용",
+    "ai_chat_reqFailedFmt": "요청 실패: %@",
+    "ai_debug_title": "디버그 패널",
+    "ai_debug_agentFmt": "Agent %@",
+    "ai_debug_executing": "실행 중",
+    "ai_debug_ready": "준비 완료",
+    "ai_debug_chatEmpty": "메시지를 보내 Agent 응답 테스트",
+    "ai_debug_chatEmptyHint": "디버그 모드는 실행 단계와 도구 호출을 실시간으로 표시",
+    "ai_debug_inputPh": "테스트 메시지 입력...",
+    "ai_debug_logsTitle": "현재 세션 로그",
+    "ai_debug_loadHistory": "기록 불러오기",
+    "ai_debug_logsEmpty": "실행 로그 비어 있음",
+    "ai_debug_logsEmptyHint": "테스트 메시지 전송 후 실행 단계가 여기에 표시됩니다",
+    "ai_debug_tasksEmpty": "코드 작업 없음",
+    "ai_debug_tasksEmptyHint": "코드를 제출해 Agent 가 실행하고 결과 확인",
+    "ai_debug_lang": "언어",
+    "ai_debug_submit": "제출",
+    "ai_debug_logReceiveFmt": "사용자 메시지 수신: %@",
+    "ai_debug_noResponse": "(응답 내용 없음)",
+    "ai_debug_logExecDone": "Agent 실행 완료",
+    "ai_debug_logToolFmt": "도구 호출: %@",
+    "ai_debug_logExecFallback": "Agent 실행 완료(fallback)",
+    "ai_debug_logFailFmt": "실행 실패: %@",
+    "ai_debug_tabChat": "채팅 테스트",
+    "ai_debug_tabLogs": "실행 로그",
+    "ai_debug_tabTasks": "코드 작업",
 ]
 
 // MARK: - 国际化文本视图

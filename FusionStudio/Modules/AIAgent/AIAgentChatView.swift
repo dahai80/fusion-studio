@@ -12,6 +12,7 @@ struct AIAgentChatView: View {
     @EnvironmentObject var ipc: IPCClient
     @EnvironmentObject var bridge: AgentBridge
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var selectedAgentId: String = ""
     @State private var chatInput = ""
@@ -155,16 +156,16 @@ struct AIAgentChatView: View {
                 .font(.system(size: 48))
                 .foregroundStyle(theme.accentSoft)
             VStack(spacing: theme.spacingXS) {
-                Text("开始与 Agent 对话")
+                Text(i18n.t(.ai_chat_welcomeTitle))
                     .font(.system(size: theme.headlineSize, weight: .bold))
                     .foregroundStyle(theme.text)
-                Text("选择一个 Agent，输入消息即可开始")
+                Text(i18n.t(.ai_chat_welcomeHint))
                     .font(.system(size: theme.footnoteSize))
                     .foregroundStyle(theme.textTertiary)
             }
 
             if bridge.agents.isEmpty {
-                Text("暂无可用 Agent，请先创建")
+                Text(i18n.t(.ai_chat_noAgent))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textTertiary)
             } else {
@@ -238,7 +239,7 @@ struct AIAgentChatView: View {
                         .font(.system(size: 10))
                         .foregroundStyle(theme.textTertiary)
                     if msg.isStreaming {
-                        Text("生成中...")
+                        Text(i18n.t(.ai_chat_streaming))
                             .font(.system(size: 10))
                             .foregroundStyle(theme.auxiliary)
                     }
@@ -286,11 +287,11 @@ struct AIAgentChatView: View {
     private var quickActionButtons: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: theme.spacingS) {
-                quickAction("总结文档", icon: "doc.text")
-                quickAction("代码生成", icon: "chevron.left.forwardslash.chevron.right")
-                quickAction("数据分析", icon: "chart.bar")
-                quickAction("翻译", icon: "globe")
-                quickAction("创意写作", icon: "pencil.and.outline")
+                quickAction(i18n.t(.ai_chat_qaSummarize), icon: "doc.text")
+                quickAction(i18n.t(.ai_chat_qaCode), icon: "chevron.left.forwardslash.chevron.right")
+                quickAction(i18n.t(.ai_chat_qaData), icon: "chart.bar")
+                quickAction(i18n.t(.ai_chat_qaTranslate), icon: "globe")
+                quickAction(i18n.t(.ai_chat_qaWrite), icon: "pencil.and.outline")
             }
             .padding(.horizontal, theme.spacingL)
             .padding(.vertical, theme.spacingS)
@@ -339,7 +340,7 @@ struct AIAgentChatView: View {
             }
             .buttonStyle(.plain)
 
-            TextField("输入消息...", text: $chatInput, axis: .vertical)
+            TextField(i18n.t(.ai_chat_inputPh), text: $chatInput, axis: .vertical)
                 .textFieldStyle(.plain)
                 .font(.system(size: theme.textSize))
                 .lineLimit(1...6)
@@ -371,15 +372,15 @@ struct AIAgentChatView: View {
 
     private var toolboxMenu: some View {
         VStack(alignment: .leading, spacing: theme.spacingXS) {
-            Text("工具箱")
+            Text(i18n.t(.ai_chat_toolbox))
                 .font(.system(size: theme.footnoteSize, weight: .bold))
                 .foregroundStyle(theme.text)
                 .padding(.bottom, theme.spacingXS)
 
-            toolboxToggle("网页搜索", icon: "globe", isOn: $webSearchEnabled)
-            toolboxToggle("深度调研", icon: "magnifyingglass", isOn: $deepResearchEnabled)
-            toolboxToggle("代码执行", icon: "terminal", isOn: $codeExecutionEnabled)
-            toolboxToggle("知识库查询", icon: "books.vertical", isOn: $knowledgeQueryEnabled)
+            toolboxToggle(i18n.t(.ai_chat_toolWebSearch), icon: "globe", isOn: $webSearchEnabled)
+            toolboxToggle(i18n.t(.ai_chat_toolResearch), icon: "magnifyingglass", isOn: $deepResearchEnabled)
+            toolboxToggle(i18n.t(.ai_chat_toolCode), icon: "terminal", isOn: $codeExecutionEnabled)
+            toolboxToggle(i18n.t(.ai_chat_toolKb), icon: "books.vertical", isOn: $knowledgeQueryEnabled)
         }
         .padding(theme.spacingM)
         .frame(width: 200)
@@ -409,13 +410,13 @@ struct AIAgentChatView: View {
 
     private var agentPickerSheet: some View {
         VStack(spacing: 0) {
-            Text("选择 Agent")
+            Text(i18n.t(.ai_chat_pickTitle))
                 .font(.system(size: theme.headlineSize, weight: .bold))
                 .foregroundStyle(theme.text)
                 .padding(theme.spacingL)
 
             if bridge.agents.isEmpty {
-                Text("暂无可用 Agent")
+                Text(i18n.t(.ai_chat_pickEmpty))
                     .font(.system(size: theme.footnoteSize))
                     .foregroundStyle(theme.textTertiary)
                     .padding(theme.spacing2XL)
@@ -471,7 +472,7 @@ struct AIAgentChatView: View {
     }
 
     private var currentAgentName: String {
-        bridge.agents.first { $0.id == selectedAgentId }?.name ?? "选择 Agent"
+        bridge.agents.first { $0.id == selectedAgentId }?.name ?? i18n.t(.ai_chat_pickTitle)
     }
 
     private var currentAgentModel: String {
@@ -515,7 +516,7 @@ struct AIAgentChatView: View {
                 let fullContent = result["response"] as? String
                     ?? result["output"] as? String
                     ?? result["content"] as? String
-                    ?? "（无响应）"
+                    ?? i18n.t(.ai_chat_noResponse)
 
                 await MainActor.run {
                     messages[assistantIdx].content = fullContent
@@ -533,7 +534,7 @@ struct AIAgentChatView: View {
                     let content = fallback["response"] as? String
                         ?? fallback["output"] as? String
                         ?? fallback["content"] as? String
-                        ?? "（无响应）"
+                        ?? i18n.t(.ai_chat_noResponse)
 
                     await MainActor.run {
                         messages[assistantIdx].content = content
@@ -543,7 +544,7 @@ struct AIAgentChatView: View {
                 } catch {
                     chatLog.error("Sync execute also failed: \(error.localizedDescription)")
                     await MainActor.run {
-                        messages[assistantIdx].content = "请求失败：\(error.localizedDescription)"
+                        messages[assistantIdx].content = String(format: i18n.t(.ai_chat_reqFailedFmt), error.localizedDescription)
                         messages[assistantIdx].isStreaming = false
                         isStreaming = false
                     }
@@ -559,7 +560,7 @@ struct AIAgentChatView: View {
 
     private var runtimeConfigPopover: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            Text("运行时配置")
+            Text(i18n.t(.ai_chat_rtTitle))
                 .font(.system(size: theme.footnoteSize, weight: .bold))
                 .foregroundStyle(theme.text)
 
@@ -577,7 +578,7 @@ struct AIAgentChatView: View {
             }
 
             VStack(alignment: .leading, spacing: theme.spacingXS) {
-                Text("最大 Token")
+                Text(i18n.t(.ai_chat_rtMaxTokens))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textSecondary)
                 TextField("4096", value: $rtMaxTokens, format: .number)
@@ -589,7 +590,7 @@ struct AIAgentChatView: View {
                     .overlay(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous).strokeBorder(theme.separator, lineWidth: 1))
             }
 
-            Button("应用到当前会话") { applyRuntimeConfig() }
+            Button(i18n.t(.ai_chat_rtApply)) { applyRuntimeConfig() }
                 .font(.system(size: theme.captionSize, weight: .medium))
                 .foregroundStyle(theme.accent)
                 .buttonStyle(.plain)
