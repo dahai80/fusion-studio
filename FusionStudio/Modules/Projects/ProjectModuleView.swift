@@ -8,6 +8,7 @@ private let projLog = Logger(subsystem: "com.fusion.studio", category: "ProjectM
 struct ProjectModuleView: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var projects: [FusionProject] = []
     @State private var archivedProjects: [FusionProject] = []
@@ -57,7 +58,7 @@ struct ProjectModuleView: View {
     private var projectListView: some View {
         VStack(alignment: .leading, spacing: 0) {
             ScreenHeader(eyebrow: "Fusion Studio", title: "Projects",
-                         subtitle: "管理你的 AI 项目、指令和知识库")
+                         subtitle: i18n.t(.proj_subtitle))
                 .padding(.bottom, theme.spacingS)
 
             // Search + Sort + New
@@ -66,7 +67,7 @@ struct ProjectModuleView: View {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: theme.iconXS))
                         .foregroundStyle(theme.textTertiary)
-                    TextField("搜索项目", text: $searchText)
+                    TextField(i18n.t(.proj_searchPh), text: $searchText)
                         .textFieldStyle(.plain)
                         .font(.system(size: theme.footnoteSize))
                 }
@@ -79,7 +80,7 @@ struct ProjectModuleView: View {
                     ForEach(ProjectModuleSort.allCases, id: \.self) { opt in
                         Button(action: { sortOption = opt }) {
                             HStack {
-                                Text(opt.rawValue)
+                                Text(opt.localLabel)
                                 if sortOption == opt { Image(systemName: "checkmark") }
                             }
                         }
@@ -97,7 +98,7 @@ struct ProjectModuleView: View {
                         .foregroundStyle(theme.accent)
                 }
                 .buttonStyle(.plain)
-                .help("新建项目")
+                .help(i18n.t(.proj_newHelp))
             }
             .padding(.horizontal, theme.spacingM)
             .padding(.bottom, theme.spacingS)
@@ -129,7 +130,7 @@ struct ProjectModuleView: View {
                             HStack {
                                 Rectangle().fill(theme.textTertiary.opacity(0.2))
                                     .frame(height: 1)
-                                Text("Archived (\(archivedProjects.count))")
+                                Text(String(format: i18n.t(.proj_archivedFmt), archivedProjects.count))
                                     .font(.system(size: theme.captionSize))
                                     .foregroundStyle(theme.textTertiary)
                                 Rectangle().fill(theme.textTertiary.opacity(0.2))
@@ -179,8 +180,8 @@ struct ProjectModuleView: View {
                     }
 
                     HStack(spacing: theme.spacingS) {
-                        Label("\(project.fileCount) 文件", systemImage: "doc")
-                        Label("\(project.chatCount) 会话", systemImage: "bubble.left")
+                        Label(String(format: i18n.t(.proj_fileCountFmt), project.fileCount), systemImage: "doc")
+                        Label(String(format: i18n.t(.proj_chatCountFmt), project.chatCount), systemImage: "bubble.left")
                         if let agent = project.agentName {
                             Label(agent, systemImage: "robot")
                         }
@@ -218,19 +219,19 @@ struct ProjectModuleView: View {
                 .frame(width: 20)
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(project.name + "（归档）")
+                Text(project.name + i18n.t(.proj_archivedSuffix))
                     .font(.system(size: theme.textSize, weight: .medium))
                     .foregroundStyle(theme.textSecondary)
                     .lineLimit(1)
                 HStack(spacing: theme.spacingS) {
-                    Label("\(project.fileCount) 文件", systemImage: "doc")
-                    Label("\(project.chatCount) 会话", systemImage: "bubble.left")
+                    Label(String(format: i18n.t(.proj_fileCountFmt), project.fileCount), systemImage: "doc")
+                    Label(String(format: i18n.t(.proj_chatCountFmt), project.chatCount), systemImage: "bubble.left")
                 }
                 .font(.system(size: 9, design: .monospaced))
                 .foregroundStyle(theme.textQuaternary)
             }
             Spacer()
-            Button("取消归档") {
+            Button(i18n.t(.proj_unarchiveBtn)) {
                 Task { await unarchiveProject(project.id) }
             }
             .font(.system(size: theme.captionSize))
@@ -254,7 +255,7 @@ struct ProjectModuleView: View {
             HStack(spacing: theme.spacingXS) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
-                Text("部分服务不可用")
+                Text(i18n.t(.proj_upstreamBanner))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(.orange)
             }
@@ -273,7 +274,7 @@ struct ProjectModuleView: View {
             Image(systemName: "folder.badge.gearshape")
                 .font(.system(size: 40))
                 .foregroundStyle(theme.textTertiary)
-            Text("选择一个项目查看详情")
+            Text(i18n.t(.proj_emptyDetail))
                 .font(.system(size: theme.textSize))
                 .foregroundStyle(theme.textSecondary)
         }
@@ -323,7 +324,7 @@ struct ProjectModuleView: View {
             } catch {
                 projLog.error("project.list failed: \(error.localizedDescription)")
                 await MainActor.run {
-                    errorMessage = "加载失败: \(error.localizedDescription)"
+                    errorMessage = String(format: i18n.t(.proj_loadFailFmt), error.localizedDescription)
                     isLoading = false
                 }
             }
@@ -388,7 +389,7 @@ struct ProjectModuleView: View {
         } catch {
             projLog.error("deleteProjectCard failed: \(error.localizedDescription)")
             await MainActor.run {
-                errorMessage = "删除失败: \(error.localizedDescription)"
+                errorMessage = String(format: i18n.t(.proj_deleteFailFmt), error.localizedDescription)
             }
         }
     }
@@ -405,9 +406,9 @@ struct ProjectModuleView: View {
 
     private func relativeTime(_ date: Date) -> String {
         let interval = Date().timeIntervalSince(date)
-        if interval < 3600 { return "\(Int(interval / 60))分钟前" }
-        if interval < 86400 { return "\(Int(interval / 3600))小时前" }
-        if interval < 604800 { return "\(Int(interval / 3600))天前" }
+        if interval < 3600 { return String(format: i18n.t(.proj_minAgoFmt), Int(interval / 60)) }
+        if interval < 86400 { return String(format: i18n.t(.proj_hourAgoFmt), Int(interval / 3600)) }
+        if interval < 604800 { return String(format: i18n.t(.proj_dayAgoFmt), Int(interval / 3600)) }
         let formatter = DateFormatter()
         formatter.dateStyle = .short
         return formatter.string(from: date)
@@ -420,6 +421,14 @@ private enum ProjectModuleSort: String, CaseIterable {
     case lastUpdated = "最近更新"
     case dateCreated = "创建时间"
     case alphabetical = "名称排序"
+
+    var localLabel: String {
+        switch self {
+        case .lastUpdated: return I18nManager.shared.t(.proj_sortLastUpdated)
+        case .dateCreated: return I18nManager.shared.t(.proj_sortDateCreated)
+        case .alphabetical: return I18nManager.shared.t(.proj_sortAlphabetical)
+        }
+    }
 
     func sort(_ projects: [FusionProject]) -> [FusionProject] {
         switch self {
@@ -442,6 +451,7 @@ private struct ProjectCardMenu: View {
 
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @State private var showDeleteConfirm = false
     @State private var showDuplicateDialog = false
     @State private var showRenameDialog = false
@@ -450,34 +460,34 @@ private struct ProjectCardMenu: View {
     var body: some View {
         Menu {
             Button(action: { onAction(.star, project) }) {
-                Label(project.isStarred ? "取消收藏" : "收藏项目",
+                Label(project.isStarred ? i18n.t(.proj_menuUnstar) : i18n.t(.proj_menuStar),
                       systemImage: project.isStarred ? "star.slash" : "star")
             }
             Button(action: { renameText = project.name; showRenameDialog = true }) {
-                Label("重命名", systemImage: "pencil")
+                Label(i18n.t(.proj_menuRename), systemImage: "pencil")
             }
             Button(action: { showDuplicateDialog = true }) {
-                Label("复制项目", systemImage: "doc.on.doc")
+                Label(i18n.t(.proj_menuDuplicate), systemImage: "doc.on.doc")
             }
             Button(action: { onAction(.export, project) }) {
-                Label("导出项目", systemImage: "square.and.arrow.up")
+                Label(i18n.t(.proj_menuExport), systemImage: "square.and.arrow.up")
             }
             Divider()
             if project.isArchived {
                 Button(action: { onAction(.unarchive, project) }) {
-                    Label("取消归档", systemImage: "archivebox")
+                    Label(i18n.t(.proj_unarchiveBtn), systemImage: "archivebox")
                 }
             } else {
                 Button(action: { onAction(.archive, project) }) {
-                    Label("归档项目", systemImage: "archivebox")
+                    Label(i18n.t(.proj_menuArchive), systemImage: "archivebox")
                 }
             }
             Button(role: .destructive, action: { showDeleteConfirm = true }) {
-                Label("删除项目", systemImage: "trash")
+                Label(i18n.t(.proj_menuDelete), systemImage: "trash")
             }
             Divider()
             Button(action: { onAction(.settings, project) }) {
-                Label("项目设置", systemImage: "gearshape")
+                Label(i18n.t(.proj_menuSettings), systemImage: "gearshape")
             }
         } label: {
             Image(systemName: "ellipsis")
@@ -487,13 +497,13 @@ private struct ProjectCardMenu: View {
                 .contentShape(Rectangle())
         }
         .menuStyle(.borderlessButton)
-        .alert("⚠️ 删除项目", isPresented: $showDeleteConfirm) {
-            Button("取消", role: .cancel) {}
-            Button("确认删除", role: .destructive) {
+        .alert(i18n.t(.proj_deleteAlertTitle), isPresented: $showDeleteConfirm) {
+            Button(i18n.t(.cancel), role: .cancel) {}
+            Button(i18n.t(.proj_deleteConfirm), role: .destructive) {
                 onAction(.delete, project)
             }
         } message: {
-            Text("确定要永久删除项目「\(project.name)」？此操作不可恢复。")
+            Text(String(format: i18n.t(.proj_deleteAlertMsgFmt), project.name))
         }
         .sheet(isPresented: $showDuplicateDialog) {
             // GUI-6: Duplicate Dialog
@@ -501,14 +511,14 @@ private struct ProjectCardMenu: View {
         }
         .sheet(isPresented: $showRenameDialog) {
             VStack(spacing: theme.spacingM) {
-                Text("重命名项目")
+                Text(i18n.t(.proj_renameTitle))
                     .font(.system(size: theme.headlineSize, weight: .bold))
-                TextField("项目名称", text: $renameText)
+                TextField(i18n.t(.proj_namePh), text: $renameText)
                     .textFieldStyle(.roundedBorder)
                 HStack {
-                    Button("取消") { showRenameDialog = false }
+                    Button(i18n.t(.cancel)) { showRenameDialog = false }
                     Spacer()
-                    Button("保存") {
+                    Button(i18n.t(.save)) {
                         Task { await renameProject() }
                         showRenameDialog = false
                     }
@@ -535,6 +545,7 @@ private struct ProjectCardMenu: View {
 struct ProjectCreateDialog: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @Environment(\.dismiss) private var dismiss
 
     @State private var name = ""
@@ -553,43 +564,43 @@ struct ProjectCreateDialog: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            Text("Create New Project")
+            Text(i18n.t(.proj_createTitle))
                 .font(.system(size: theme.headlineSize, weight: .bold))
 
             // Name
             VStack(alignment: .leading, spacing: 4) {
-                Text("Project name *")
+                Text(i18n.t(.proj_createNameLabel))
                     .font(.system(size: theme.captionSize, weight: .medium))
                     .foregroundStyle(theme.textSecondary)
-                TextField("项目名称", text: $name)
+                TextField(i18n.t(.proj_namePh), text: $name)
                     .textFieldStyle(.roundedBorder)
             }
 
             // Description
             VStack(alignment: .leading, spacing: 4) {
-                Text("Description")
+                Text(i18n.t(.proj_createDescLabel))
                     .font(.system(size: theme.captionSize, weight: .medium))
                     .foregroundStyle(theme.textSecondary)
-                TextField("描述（可选）", text: $description)
+                TextField(i18n.t(.proj_createDescPh), text: $description)
                     .textFieldStyle(.roundedBorder)
             }
 
             // Instructions
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text("项目指令")
+                    Text(i18n.t(.proj_createInstructions))
                         .font(.system(size: theme.captionSize, weight: .medium))
                         .foregroundStyle(theme.textSecondary)
                     Spacer()
                     ForEach(InstructionEditMode.allCases, id: \.self) { mode in
                         Button(action: { editMode = mode }) {
-                            Text(mode.rawValue)
+                            Text(mode.localLabel)
                                 .font(.system(size: 9, weight: editMode == mode ? .bold : .regular))
                                 .foregroundStyle(editMode == mode ? theme.accent : theme.textTertiary)
                         }
                         .buttonStyle(.plain)
                     }
-                    Text("字数：\(instructions.count)/\(maxChars)")
+                    Text(String(format: i18n.t(.proj_createCharCountFmt), instructions.count, maxChars))
                         .font(.system(size: 9, design: .monospaced))
                         .foregroundStyle(instructions.count > maxChars ? .red : theme.textTertiary)
                 }
@@ -599,28 +610,28 @@ struct ProjectCreateDialog: View {
                     .padding(4)
                     .background(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
                         .stroke(theme.textTertiary.opacity(0.2)))
-                Text("在这里定义角色、输出规范、业务约束，所有对话自动继承")
+                Text(i18n.t(.proj_createInstructionsHint))
                     .font(.system(size: 9))
                     .foregroundStyle(theme.textQuaternary)
             }
 
             // Default Agent
             VStack(alignment: .leading, spacing: 4) {
-                Text("默认智能体")
+                Text(i18n.t(.proj_createDefaultAgent))
                     .font(.system(size: theme.captionSize, weight: .medium))
                     .foregroundStyle(theme.textSecondary)
                 Menu {
-                    Button("不绑定（纯模型对话）") { selectedAgentId = nil }
+                    Button(i18n.t(.proj_createNoAgent)) { selectedAgentId = nil }
                     Divider()
                     ForEach(availableAgents) { agent in
                         Button(agent.name) { selectedAgentId = agent.id }
                     }
                     Divider()
-                    Button("前往 Agent Studio 创建新智能体") { }
+                    Button(i18n.t(.proj_createGotoAgentStudio)) { }
                 } label: {
                     HStack {
                         Image(systemName: "robot")
-                        Text(selectedAgentId.flatMap { id in availableAgents.first(where: { $0.id == id })?.name } ?? "不绑定")
+                        Text(selectedAgentId.flatMap { id in availableAgents.first(where: { $0.id == id })?.name } ?? i18n.t(.proj_createNoAgentShort))
                         Spacer()
                         Image(systemName: "chevron.down")
                     }
@@ -635,12 +646,12 @@ struct ProjectCreateDialog: View {
 
             // Prompt merge mode
             VStack(alignment: .leading, spacing: 4) {
-                Text("Prompt 合并策略")
+                Text(i18n.t(.proj_createPromptMerge))
                     .font(.system(size: theme.captionSize, weight: .medium))
                     .foregroundStyle(theme.textSecondary)
                 Picker("", selection: $promptMergeMode) {
-                    Text("Agent Prompt 优先（推荐）").tag(PromptMergeMode.AGENT_FIRST)
-                    Text("仅使用项目 Instructions").tag(PromptMergeMode.PROJECT_ONLY)
+                    Text(i18n.t(.proj_createMergeAgentFirst)).tag(PromptMergeMode.AGENT_FIRST)
+                    Text(i18n.t(.proj_createMergeProjectOnly)).tag(PromptMergeMode.PROJECT_ONLY)
                 }
                 .pickerStyle(.radioGroup)
                 .font(.system(size: theme.captionSize))
@@ -648,13 +659,13 @@ struct ProjectCreateDialog: View {
 
             // RAG Mode
             VStack(alignment: .leading, spacing: 4) {
-                Text("RAG 检索模式")
+                Text(i18n.t(.proj_createRagMode))
                     .font(.system(size: theme.captionSize, weight: .medium))
                     .foregroundStyle(theme.textSecondary)
                 Picker("", selection: $ragMode) {
-                    Text("AUTO（智能检索）").tag(RAGMode.AUTO)
-                    Text("MANUAL（手动指定）").tag(RAGMode.MANUAL)
-                    Text("OFF（关闭）").tag(RAGMode.OFF)
+                    Text(i18n.t(.proj_createRagAuto)).tag(RAGMode.AUTO)
+                    Text(i18n.t(.proj_createRagManual)).tag(RAGMode.MANUAL)
+                    Text(i18n.t(.proj_createRagOff)).tag(RAGMode.OFF)
                 }
                 .pickerStyle(.radioGroup)
                 .font(.system(size: theme.captionSize))
@@ -663,10 +674,10 @@ struct ProjectCreateDialog: View {
             Spacer(minLength: 0)
 
             HStack {
-                Button("Cancel") { dismiss() }
+                Button(i18n.t(.cancel)) { dismiss() }
                     .keyboardShortcut(.cancelAction)
                 Spacer()
-                Button("Create Project") { createProject() }
+                Button(i18n.t(.proj_createBtn)) { createProject() }
                     .keyboardShortcut(.defaultAction)
                     .disabled(name.isEmpty || isCreating)
             }
@@ -714,6 +725,13 @@ struct ProjectCreateDialog: View {
 private enum InstructionEditMode: String, CaseIterable {
     case markdown = "Markdown"
     case richText = "富文本"
+
+    var localLabel: String {
+        switch self {
+        case .markdown: return I18nManager.shared.t(.proj_editModeMarkdown)
+        case .richText: return I18nManager.shared.t(.proj_editModeRichText)
+        }
+    }
 }
 
 // MARK: - GUI-6: Duplicate Dialog
@@ -721,6 +739,7 @@ private enum InstructionEditMode: String, CaseIterable {
 private struct ProjectDuplicateDialog: View {
     let project: FusionProject
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var ipc: IPCClient
 
@@ -730,29 +749,29 @@ private struct ProjectDuplicateDialog: View {
 
     init(project: FusionProject) {
         self.project = project
-        _newName = State(initialValue: project.name + " (副本)")
+        _newName = State(initialValue: project.name + I18nManager.shared.t(.proj_dupCopySuffix))
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            Text("Duplicate Project")
+            Text(i18n.t(.proj_dupTitle))
                 .font(.system(size: theme.headlineSize, weight: .bold))
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("New project name")
+                Text(i18n.t(.proj_dupNameLabel))
                     .font(.system(size: theme.captionSize, weight: .medium))
                     .foregroundStyle(theme.textSecondary)
-                TextField("项目名称", text: $newName)
+                TextField(i18n.t(.proj_namePh), text: $newName)
                     .textFieldStyle(.roundedBorder)
             }
 
-            Text("复制范围")
+            Text(i18n.t(.proj_dupScope))
                 .font(.system(size: theme.captionSize, weight: .medium))
                 .foregroundStyle(theme.textSecondary)
 
             Picker("", selection: $includeSessions) {
-                Text("仅复制项目指令 + 知识库文件（推荐）").tag(false)
-                Text("复制指令 + 知识库 + 全部会话快照").tag(true)
+                Text(i18n.t(.proj_dupScopeInstructionsOnly)).tag(false)
+                Text(i18n.t(.proj_dupScopeWithSnapshots)).tag(true)
             }
             .pickerStyle(.radioGroup)
             .font(.system(size: theme.captionSize))
@@ -760,9 +779,9 @@ private struct ProjectDuplicateDialog: View {
             Spacer(minLength: 0)
 
             HStack {
-                Button("Cancel") { dismiss() }
+                Button(i18n.t(.cancel)) { dismiss() }
                 Spacer()
-                Button("Duplicate") { duplicateProject() }
+                Button(i18n.t(.proj_dupBtn)) { duplicateProject() }
                     .disabled(newName.isEmpty || isDuplicating)
             }
         }
@@ -790,6 +809,7 @@ private struct ProjectDuplicateDialog: View {
 struct ProjectDetailView: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     let project: FusionProject
     @State private var activeTab: ProjectDetailTab = .instructions
@@ -804,9 +824,9 @@ struct ProjectDetailView: View {
 
         var item: FusionTabItem {
             switch self {
-            case .instructions: return FusionTabItem(title: "指令", icon: "text.alignleft")
-            case .knowledge:    return FusionTabItem(title: "知识库", icon: "folder.badge.gearshape")
-            case .chats:        return FusionTabItem(title: "会话", icon: "bubble.left.and.bubble.right")
+            case .instructions: return FusionTabItem(title: I18nManager.shared.t(.proj_tabInstructions), icon: "text.alignleft")
+            case .knowledge:    return FusionTabItem(title: I18nManager.shared.t(.proj_tabKnowledge), icon: "folder.badge.gearshape")
+            case .chats:        return FusionTabItem(title: I18nManager.shared.t(.proj_tabChats), icon: "bubble.left.and.bubble.right")
             }
         }
     }
@@ -864,7 +884,7 @@ struct ProjectDetailView: View {
                     .foregroundStyle(theme.text)
                     .lineLimit(1)
                 if project.isArchived {
-                    Text("已归档")
+                    Text(i18n.t(.proj_detailArchived))
                         .font(.system(size: 9, weight: .medium))
                         .foregroundStyle(.orange)
                 }
@@ -907,7 +927,7 @@ struct ProjectDetailView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "arrow.triangle.2.circlepath")
                         .font(.system(size: theme.iconXS))
-                    Text("导入CoWork")
+                    Text(i18n.t(.proj_detailImportCowork))
                         .font(.system(size: theme.footnoteSize))
                 }
                 .foregroundStyle(theme.textSecondary)
@@ -943,6 +963,7 @@ struct ProjectDetailView: View {
 private struct ProjectGlobalMenu: View {
     let project: FusionProject
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @EnvironmentObject var ipc: IPCClient
     @State private var showDeleteConfirm = false
     @State private var showDuplicateDialog = false
@@ -950,30 +971,30 @@ private struct ProjectGlobalMenu: View {
     var body: some View {
         Menu {
             Button(action: { toggleStar() }) {
-                Label(project.isStarred ? "取消收藏" : "收藏项目",
+                Label(project.isStarred ? i18n.t(.proj_menuUnstar) : i18n.t(.proj_menuStar),
                       systemImage: project.isStarred ? "star.slash" : "star")
             }
             Button(action: { }) {
-                Label("重命名", systemImage: "pencil")
+                Label(i18n.t(.proj_menuRename), systemImage: "pencil")
             }
             Button(action: { showDuplicateDialog = true }) {
-                Label("复制项目", systemImage: "doc.on.doc")
+                Label(i18n.t(.proj_menuDuplicate), systemImage: "doc.on.doc")
             }
             Button(action: { exportProject() }) {
-                Label("导出项目", systemImage: "square.and.arrow.up")
+                Label(i18n.t(.proj_menuExport), systemImage: "square.and.arrow.up")
             }
             if project.isArchived {
                 Button(action: { unarchiveProject() }) {
-                    Label("取消归档", systemImage: "archivebox")
+                    Label(i18n.t(.proj_unarchiveBtn), systemImage: "archivebox")
                 }
             } else {
                 Button(action: { archiveProject() }) {
-                    Label("归档项目", systemImage: "archivebox")
+                    Label(i18n.t(.proj_menuArchive), systemImage: "archivebox")
                 }
             }
             Divider()
             Button(role: .destructive, action: { showDeleteConfirm = true }) {
-                Label("删除项目", systemImage: "trash")
+                Label(i18n.t(.proj_menuDelete), systemImage: "trash")
             }
         } label: {
             Image(systemName: "ellipsis.circle")
@@ -982,11 +1003,11 @@ private struct ProjectGlobalMenu: View {
         }
         .menuStyle(.borderlessButton)
         // GUI-20: Delete confirmation
-        .alert("⚠️ 删除项目", isPresented: $showDeleteConfirm) {
-            Button("取消", role: .cancel) {}
-            Button("确认删除", role: .destructive) { deleteProject() }
+        .alert(i18n.t(.proj_deleteAlertTitle), isPresented: $showDeleteConfirm) {
+            Button(i18n.t(.cancel), role: .cancel) {}
+            Button(i18n.t(.proj_deleteConfirm), role: .destructive) { deleteProject() }
         } message: {
-            Text("确定要永久删除项目「\(project.name)」？\n· 项目指令及所有版本快照\n· 知识库全部文件（\(project.fileCount) 个文件）\n· 项目内所有会话（\(project.chatCount) 个会话）\n此操作不可恢复。")
+            Text(String(format: i18n.t(.proj_deleteAlertMsgFullFmt), project.name, project.fileCount, project.chatCount))
         }
         .sheet(isPresented: $showDuplicateDialog) {
             ProjectDuplicateDialog(project: project)
@@ -1034,6 +1055,7 @@ private struct ProjectGlobalMenu: View {
 struct ProjectInstructionsPanel: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     let projectId: String
     @State private var instructions: String = ""
@@ -1053,17 +1075,17 @@ struct ProjectInstructionsPanel: View {
                 HStack {
                     Image(systemName: "text.alignleft")
                         .foregroundStyle(theme.accent)
-                    Text("项目指令")
+                    Text(i18n.t(.proj_instTitle))
                         .font(.system(size: theme.textSize, weight: .semibold))
                     Spacer()
                     if isEditing {
-                        Button("保存") {
+                        Button(i18n.t(.save)) {
                             saveInstructions()
                         }
                         .buttonStyle(.plain)
                         .foregroundStyle(theme.accent)
                         .disabled(isSaving)
-                        Button("取消") {
+                        Button(i18n.t(.cancel)) {
                             isEditing = false
                             editedText = instructions
                         }
@@ -1089,14 +1111,14 @@ struct ProjectInstructionsPanel: View {
                     HStack {
                         ForEach(InstructionEditMode.allCases, id: \.self) { mode in
                             Button(action: { editMode = mode }) {
-                                Text(mode.rawValue)
+                                Text(mode.localLabel)
                                     .font(.system(size: 9, weight: editMode == mode ? .bold : .regular))
                                     .foregroundStyle(editMode == mode ? theme.accent : theme.textTertiary)
                             }
                             .buttonStyle(.plain)
                         }
                         Spacer()
-                        Text("字数：\(editedText.count)/\(maxChars)")
+                        Text(String(format: i18n.t(.proj_createCharCountFmt), editedText.count, maxChars))
                             .font(.system(size: 9, design: .monospaced))
                             .foregroundStyle(editedText.count > maxChars ? .red : theme.textTertiary)
                     }
@@ -1116,10 +1138,10 @@ struct ProjectInstructionsPanel: View {
                             Image(systemName: "text.alignleft")
                                 .font(.system(size: 20))
                                 .foregroundStyle(theme.textQuaternary)
-                            Text("暂无项目指令")
+                            Text(i18n.t(.proj_instEmpty))
                                 .font(.system(size: theme.footnoteSize))
                                 .foregroundStyle(theme.textTertiary)
-                            Text("点击编辑按钮添加指令，所有对话将自动继承")
+                            Text(i18n.t(.proj_instEmptyHint))
                                 .font(.system(size: 9))
                                 .foregroundStyle(theme.textQuaternary)
                         }
@@ -1204,13 +1226,14 @@ private struct InstructionVersionHistory: View {
     let projectId: String
     let snapshots: [InstructionSnapshot]
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var ipc: IPCClient
 
     var body: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
             HStack {
-                Text("📋 Instructions 版本历史")
+                Text(i18n.t(.proj_instHistoryTitle))
                     .font(.system(size: theme.headlineSize, weight: .bold))
                 Spacer()
                 Button(action: { dismiss() }) {
@@ -1221,7 +1244,7 @@ private struct InstructionVersionHistory: View {
             }
 
             if snapshots.isEmpty {
-                Text("暂无版本记录")
+                Text(i18n.t(.proj_instHistoryEmpty))
                     .foregroundStyle(theme.textTertiary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -1233,13 +1256,13 @@ private struct InstructionVersionHistory: View {
                                     HStack {
                                         Text(idx == 0 ? "●" : "○")
                                             .foregroundStyle(idx == 0 ? theme.accent : theme.textTertiary)
-                                        Text("V\(snapshots.count - idx)")
+                                        Text(String(format: i18n.t(.proj_instHistoryCurrentFmt), snapshots.count - idx))
                                             .font(.system(size: theme.footnoteSize, weight: .medium))
                                         Text("— \(relativeTime(snap.createdAt))")
                                             .font(.system(size: theme.captionSize))
                                             .foregroundStyle(theme.textTertiary)
                                         if idx == 0 {
-                                            Text("（当前版本）")
+                                            Text(i18n.t(.proj_instHistoryCurrentTag))
                                                 .font(.system(size: 9))
                                                 .foregroundStyle(theme.accent)
                                         }
@@ -1251,7 +1274,7 @@ private struct InstructionVersionHistory: View {
                                 }
                                 Spacer()
                                 if idx != 0 {
-                                    Button("恢复") {
+                                    Button(i18n.t(.proj_instHistoryRestore)) {
                                         restoreSnapshot(snap)
                                     }
                                     .font(.system(size: theme.captionSize))
@@ -1278,7 +1301,7 @@ private struct InstructionVersionHistory: View {
 
             HStack {
                 Spacer()
-                Button("Close") { dismiss() }
+                Button(i18n.t(.close)) { dismiss() }
             }
         }
         .padding(theme.spacingL)
@@ -1310,8 +1333,8 @@ private struct InstructionVersionHistory: View {
 
     private func relativeTime(_ date: Date) -> String {
         let interval = Date().timeIntervalSince(date)
-        if interval < 3600 { return "\(Int(interval / 60))分钟前" }
-        if interval < 86400 { return "\(Int(interval / 3600))小时前" }
+        if interval < 3600 { return String(format: i18n.t(.proj_minAgoFmt), Int(interval / 60)) }
+        if interval < 86400 { return String(format: i18n.t(.proj_hourAgoFmt), Int(interval / 3600)) }
         let formatter = DateFormatter()
         formatter.dateStyle = .short
         return formatter.string(from: date)
@@ -1323,6 +1346,7 @@ private struct InstructionVersionHistory: View {
 struct KnowledgeBaseTreeView: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     let projectId: String
     @State private var folders: [KnowledgeFolder] = []
@@ -1340,9 +1364,9 @@ struct KnowledgeBaseTreeView: View {
                 HStack {
                     Image(systemName: "folder.badge.gearshape")
                         .foregroundStyle(theme.accent)
-                    Text("知识库")
+                    Text(i18n.t(.proj_kbTitle))
                         .font(.system(size: theme.textSize, weight: .semibold))
-                    Text("\(files.count) 文件")
+                    Text(String(format: i18n.t(.proj_kbFileCountFmt), files.count))
                         .font(.system(size: theme.captionSize, design: .monospaced))
                         .foregroundStyle(theme.textTertiary)
                     Spacer()
@@ -1350,7 +1374,7 @@ struct KnowledgeBaseTreeView: View {
                     Button(action: { showAddFolderDialog = true }) {
                         HStack(spacing: 4) {
                             Image(systemName: "folder.badge.plus")
-                            Text("文件夹")
+                            Text(i18n.t(.proj_kbFolder))
                         }
                         .font(.system(size: theme.captionSize))
                     }
@@ -1360,7 +1384,7 @@ struct KnowledgeBaseTreeView: View {
                     Button(action: { showAddFilePicker = true }) {
                         HStack(spacing: 4) {
                             Image(systemName: "plus.circle")
-                            Text("添加文件")
+                            Text(i18n.t(.proj_kbAddFile))
                         }
                         .font(.system(size: theme.captionSize))
                     }
@@ -1391,10 +1415,10 @@ struct KnowledgeBaseTreeView: View {
                       allowsMultipleSelection: true) { result in
             handleFileImport(result)
         }
-        .alert("新建文件夹", isPresented: $showAddFolderDialog) {
-            TextField("文件夹名称", text: $newFolderName)
-            Button("取消", role: .cancel) { newFolderName = "" }
-            Button("创建") {
+        .alert(i18n.t(.proj_kbNewFolderAlert), isPresented: $showAddFolderDialog) {
+            TextField(i18n.t(.proj_kbFolderNamePh), text: $newFolderName)
+            Button(i18n.t(.cancel), role: .cancel) { newFolderName = "" }
+            Button(i18n.t(.proj_kbCreate)) {
                 createFolder()
                 newFolderName = ""
             }
@@ -1410,9 +1434,9 @@ struct KnowledgeBaseTreeView: View {
             Image(systemName: "doc.text.magnifyingglass")
                 .font(.system(size: 24))
                 .foregroundStyle(theme.textQuaternary)
-            Text("暂无知识库文件")
+            Text(i18n.t(.proj_kbEmpty))
                 .foregroundStyle(theme.textTertiary)
-            Text("上传文档帮助 AI 更好理解你的项目")
+            Text(i18n.t(.proj_kbEmptyHint))
                 .font(.system(size: 9))
                 .foregroundStyle(theme.textQuaternary)
         }
@@ -1506,28 +1530,28 @@ struct KnowledgeBaseTreeView: View {
             HStack(spacing: 2) {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(.green)
-                Text("已索引")
+                Text(i18n.t(.proj_kbStatusIndexed))
                     .foregroundStyle(.green)
             }
         case "indexing":
             HStack(spacing: 2) {
                 ProgressView()
                     .scaleEffect(0.5)
-                Text("索引中")
+                Text(i18n.t(.proj_kbStatusIndexing))
                     .foregroundStyle(.orange)
             }
         case "failed":
             HStack(spacing: 2) {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundStyle(.red)
-                Text("解析失败")
+                Text(i18n.t(.proj_kbStatusFailed))
                     .foregroundStyle(.red)
             }
         default:
             HStack(spacing: 2) {
                 Image(systemName: "clock")
                     .foregroundStyle(theme.textQuaternary)
-                Text("待索引")
+                Text(i18n.t(.proj_kbStatusPending))
                     .foregroundStyle(theme.textQuaternary)
             }
         }
@@ -1608,24 +1632,25 @@ private struct KnowledgeFileMenu: View {
     let projectId: String
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         Menu {
             Button(action: { previewFile() }) {
-                Label("Preview", systemImage: "eye")
+                Label(i18n.t(.proj_kbMenuPreview), systemImage: "eye")
             }
             Button(action: {}) {
-                Label("Rename", systemImage: "pencil")
+                Label(i18n.t(.proj_kbMenuRename), systemImage: "pencil")
             }
             Button(action: {}) {
-                Label("Replace file", systemImage: "arrow.2.circlepath")
+                Label(i18n.t(.proj_kbMenuReplace), systemImage: "arrow.2.circlepath")
             }
             Button(action: {}) {
-                Label("Move to folder...", systemImage: "folder")
+                Label(i18n.t(.proj_kbMenuMove), systemImage: "folder")
             }
             Divider()
             Button(role: .destructive, action: { removeFile() }) {
-                Label("Remove from knowledge", systemImage: "trash")
+                Label(i18n.t(.proj_kbMenuRemove), systemImage: "trash")
             }
         } label: {
             Image(systemName: "ellipsis")
@@ -1656,6 +1681,7 @@ struct ProjectChatsPanel: View {
     @EnvironmentObject var ipc: IPCClient
     @EnvironmentObject var agentBridge: AgentBridge
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     let projectId: String
     @State private var chats: [ProjectChat] = []
@@ -1685,7 +1711,7 @@ struct ProjectChatsPanel: View {
                 HStack {
                     Image(systemName: "bubble.left.and.bubble.right")
                         .foregroundStyle(theme.accent)
-                    Text("会话")
+                    Text(i18n.t(.proj_chatsTitle))
                         .font(.system(size: theme.textSize, weight: .semibold))
                     Text("\(chats.count)")
                         .font(.system(size: theme.captionSize, design: .monospaced))
@@ -1715,7 +1741,7 @@ struct ProjectChatsPanel: View {
                     HStack {
                         Image(systemName: "camera")
                             .font(.system(size: theme.iconXS))
-                        Text("Snapshots")
+                        Text(i18n.t(.proj_chatsSnapshots))
                             .font(.system(size: theme.captionSize, weight: .medium))
                         Spacer()
                     }
@@ -1731,7 +1757,7 @@ struct ProjectChatsPanel: View {
                                 .font(.system(size: theme.footnoteSize))
                                 .foregroundStyle(theme.textSecondary)
                             Spacer()
-                            Text("\(snap.messageCount)条消息")
+                            Text(String(format: i18n.t(.proj_chatsSnapMsgCountFmt), snap.messageCount))
                                 .font(.system(size: 8))
                                 .foregroundStyle(theme.textQuaternary)
                         }
@@ -1754,7 +1780,7 @@ struct ProjectChatsPanel: View {
                         Image(systemName: "bubble.left.and.text.bubble.right")
                             .font(.system(size: 32))
                             .foregroundStyle(theme.textQuaternary)
-                        Text("选择或创建一个会话")
+                        Text(i18n.t(.proj_chatsEmpty))
                             .foregroundStyle(theme.textTertiary)
                     }
                     Spacer()
@@ -1767,8 +1793,8 @@ struct ProjectChatsPanel: View {
             loadSnapshots()
             refreshBudget()
         }
-        .alert("提示", isPresented: $showError, presenting: errorMessage) { _ in
-            Button("好的", role: .cancel) {}
+        .alert(i18n.t(.proj_chatsHint), isPresented: $showError, presenting: errorMessage) { _ in
+            Button(i18n.t(.ok), role: .cancel) {}
         } message: { msg in
             Text(msg)
         }
@@ -1858,7 +1884,7 @@ struct ProjectChatsPanel: View {
                         HStack(spacing: 4) {
                             Image(systemName: "paperclip")
                                 .font(.system(size: 8))
-                            Text("参考来源：")
+                            Text(i18n.t(.proj_ragSources))
                         }
                         .font(.system(size: 8))
                         .foregroundStyle(theme.textTertiary)
@@ -1870,12 +1896,12 @@ struct ProjectChatsPanel: View {
                         }
 
                         HStack(spacing: 4) {
-                            Text("检索模式: \(ragMode.rawValue)")
+                            Text(String(format: i18n.t(.proj_ragModeLabelFmt), ragMode.rawValue))
                             if ragMode == .MANUAL {
-                                Button("切换为 AUTO") { ragMode = .AUTO }
+                                Button(i18n.t(.proj_ragSwitchAuto)) { ragMode = .AUTO }
                                     .font(.system(size: 8))
                             } else if ragMode == .AUTO {
-                                Button("切换为 MANUAL") { ragMode = .MANUAL }
+                                Button(i18n.t(.proj_ragSwitchManual)) { ragMode = .MANUAL }
                                     .font(.system(size: 8))
                             }
                         }
@@ -1908,10 +1934,10 @@ struct ProjectChatsPanel: View {
             HStack(spacing: theme.spacingS) {
                 // Agent selector (GUI-10) + config button
                 Menu {
-                    Button("使用项目默认智能体") { }
-                    Button("通用对话（不绑定Agent）") { }
+                    Button(i18n.t(.proj_inputUseDefaultAgent)) { }
+                    Button(i18n.t(.proj_inputGenericChat)) { }
                     Divider()
-                    Button("预览当前Agent") { }
+                    Button(i18n.t(.proj_inputPreviewAgent)) { }
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "robot")
@@ -1935,14 +1961,14 @@ struct ProjectChatsPanel: View {
 
                 // RAG mode (GUI-17)
                 Menu {
-                    Button("AUTO（智能检索）") { ragMode = .AUTO }
-                    Button("MANUAL（手动指定）") { ragMode = .MANUAL; showRAGScopeSelector = true }
-                    Button("OFF（关闭检索）") { ragMode = .OFF }
+                    Button(i18n.t(.proj_inputRagAuto)) { ragMode = .AUTO }
+                    Button(i18n.t(.proj_inputRagManual)) { ragMode = .MANUAL; showRAGScopeSelector = true }
+                    Button(i18n.t(.proj_inputRagOff)) { ragMode = .OFF }
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: theme.iconXS))
-                        Text("RAG: \(ragMode.rawValue)")
+                        Text(String(format: i18n.t(.proj_inputRagLabelFmt), ragMode.rawValue))
                             .font(.system(size: theme.captionSize))
                         Image(systemName: "chevron.down")
                             .font(.system(size: 7))
@@ -1961,10 +1987,10 @@ struct ProjectChatsPanel: View {
 
                 // Attachments dropdown
                 Menu {
-                    Button("临时附件") { }
-                    Button("截图") { }
-                    Button("WebSearch") { }
-                    Button("技能工具") { }
+                    Button(i18n.t(.proj_inputAttachTemp)) { }
+                    Button(i18n.t(.proj_inputAttachScreenshot)) { }
+                    Button(i18n.t(.proj_inputAttachWebSearch)) { }
+                    Button(i18n.t(.proj_inputAttachSkill)) { }
                 } label: {
                     Image(systemName: "plus.circle")
                         .font(.system(size: theme.iconS))
@@ -1975,7 +2001,7 @@ struct ProjectChatsPanel: View {
                 // Input field — 多行输入框，占两行高度
                 SendableTextEditor(
                     text: $inputText,
-                    placeholder: "输入消息…",
+                    placeholder: i18n.t(.proj_inputPlaceholder),
                     font: .systemFont(ofSize: theme.footnoteSize),
                     textColor: NSColor.labelColor,
                     placeholderColor: NSColor.tertiaryLabelColor,
@@ -2038,7 +2064,7 @@ struct ProjectChatsPanel: View {
                 .font(.system(size: 10, design: .monospaced))
                 .foregroundStyle(ratio > 0.9 ? theme.accentDestructive : theme.textTertiary)
             if ratio > 0.9 {
-                Text("⚠️ 预算不足")
+                Text(i18n.t(.proj_budgetLow))
                     .font(.system(size: 9, weight: .medium))
                     .foregroundStyle(theme.accentDestructive)
             }
@@ -2120,7 +2146,7 @@ struct ProjectChatsPanel: View {
             } catch {
                 projLog.error("createNewChat failed: \(error.localizedDescription)")
                 await MainActor.run {
-                    self.errorMessage = "创建会话失败：\(error.localizedDescription)\n请确认 fusion-projects 服务已启动。"
+                    self.errorMessage = String(format: i18n.t(.proj_chatsCreateFailFmt), error.localizedDescription)
                     self.showError = true
                 }
             }
@@ -2165,7 +2191,7 @@ struct ProjectChatsPanel: View {
             } catch {
                 projLog.error("sendMessage failed: \(error.localizedDescription)")
                 await MainActor.run {
-                    self.errorMessage = "发送失败：\(error.localizedDescription)"
+                    self.errorMessage = String(format: i18n.t(.proj_chatsSendFailFmt), error.localizedDescription)
                     self.showError = true
                 }
             }
@@ -2181,7 +2207,7 @@ struct ProjectChatsPanel: View {
         if model.isEmpty {
             projLog.error("generateReply: no model selected, cannot infer")
             await MainActor.run {
-                self.errorMessage = "未选择对话模型，请在顶部模型选择器选一个模型后再发送"
+                self.errorMessage = i18n.t(.proj_chatsNoModel)
                 self.showError = true
             }
             return
@@ -2198,7 +2224,7 @@ struct ProjectChatsPanel: View {
         } catch {
             projLog.error("generateReply infer failed: \(error.localizedDescription)")
             await MainActor.run {
-                self.errorMessage = "AI 回复失败：\(error.localizedDescription)"
+                self.errorMessage = String(format: i18n.t(.proj_chatsReplyFailFmt), error.localizedDescription)
                 self.showError = true
             }
         }
@@ -2212,35 +2238,36 @@ private struct ChatContextMenu: View {
     let projectId: String
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @State private var showDeleteConfirm = false
 
     var body: some View {
         Menu {
             Button(action: { toggleStar() }) {
-                Label(chat.isStarred ? "取消收藏" : "收藏会话",
+                Label(chat.isStarred ? i18n.t(.proj_chatMenuUnstar) : i18n.t(.proj_chatMenuStar),
                       systemImage: chat.isStarred ? "star.slash" : "star")
             }
             Button(action: {}) {
-                Label("Rename chat", systemImage: "pencil")
+                Label(i18n.t(.proj_chatMenuRename), systemImage: "pencil")
             }
             Divider()
             // GUI-7: Fork & Snapshot (Fusion unique)
             Button(action: { forkChat() }) {
-                Label("Fork chat", systemImage: "arrow.triangle.branch")
+                Label(i18n.t(.proj_chatMenuFork), systemImage: "arrow.triangle.branch")
             }
             Button(action: { createSnapshot() }) {
-                Label("Create snapshot", systemImage: "camera")
+                Label(i18n.t(.proj_chatMenuSnapshot), systemImage: "camera")
             }
             Divider()
             Button(action: {}) {
-                Label("Move to another project", systemImage: "arrow.right.doc")
+                Label(i18n.t(.proj_chatMenuMove), systemImage: "arrow.right.doc")
             }
             Button(action: {}) {
-                Label("Remove from project", systemImage: "doc.text.magnifyingglass")
+                Label(i18n.t(.proj_chatMenuRemove), systemImage: "doc.text.magnifyingglass")
             }
             Divider()
             Button(role: .destructive, action: { showDeleteConfirm = true }) {
-                Label("Delete chat", systemImage: "trash")
+                Label(i18n.t(.proj_chatMenuDelete), systemImage: "trash")
             }
         } label: {
             Image(systemName: "ellipsis")
@@ -2248,9 +2275,9 @@ private struct ChatContextMenu: View {
                 .foregroundStyle(theme.textTertiary)
         }
         .menuStyle(.borderlessButton)
-        .alert("删除会话？", isPresented: $showDeleteConfirm) {
-            Button("取消", role: .cancel) {}
-            Button("删除", role: .destructive) { deleteChat() }
+        .alert(i18n.t(.proj_chatDeleteAlertTitle), isPresented: $showDeleteConfirm) {
+            Button(i18n.t(.cancel), role: .cancel) {}
+            Button(i18n.t(.delete), role: .destructive) { deleteChat() }
         }
     }
 
@@ -2287,6 +2314,7 @@ struct AgentConfigSheet: View {
     let projectId: String
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @Environment(\.dismiss) private var dismiss
 
     @State private var selectedAgentId: String?
@@ -2296,15 +2324,15 @@ struct AgentConfigSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: theme.spacingL) {
-            Text("智能体配置")
+            Text(i18n.t(.proj_agentConfigTitle))
                 .font(.system(size: theme.headlineSize, weight: .bold))
 
             VStack(alignment: .leading, spacing: theme.spacingS) {
-                Text("默认智能体")
+                Text(i18n.t(.proj_agentConfigDefault))
                     .font(.system(size: theme.captionSize, weight: .medium))
                     .foregroundStyle(theme.textSecondary)
                 Menu {
-                    Button("不绑定（纯模型对话）") { selectedAgentId = nil }
+                    Button(i18n.t(.proj_createNoAgent)) { selectedAgentId = nil }
                     Divider()
                     ForEach(availableAgents) { agent in
                         Button(agent.name) { selectedAgentId = agent.id }
@@ -2324,12 +2352,12 @@ struct AgentConfigSheet: View {
             }
 
             VStack(alignment: .leading, spacing: theme.spacingS) {
-                Text("Prompt 合并策略")
+                Text(i18n.t(.proj_agentConfigPromptMerge))
                     .font(.system(size: theme.captionSize, weight: .medium))
                     .foregroundStyle(theme.textSecondary)
                 Picker("", selection: $promptMergeMode) {
-                    Text("Agent Prompt 优先（推荐）").tag(PromptMergeMode.AGENT_FIRST)
-                    Text("仅使用项目 Instructions").tag(PromptMergeMode.PROJECT_ONLY)
+                    Text(i18n.t(.proj_createMergeAgentFirst)).tag(PromptMergeMode.AGENT_FIRST)
+                    Text(i18n.t(.proj_createMergeProjectOnly)).tag(PromptMergeMode.PROJECT_ONLY)
                 }
                 .pickerStyle(.radioGroup)
                 .font(.system(size: theme.captionSize))
@@ -2339,10 +2367,10 @@ struct AgentConfigSheet: View {
 
             HStack {
                 Spacer()
-                Button("取消") { dismiss() }
+                Button(i18n.t(.cancel)) { dismiss() }
                     .buttonStyle(.plain)
                     .foregroundStyle(theme.textSecondary)
-                Button("保存") { saveConfig() }
+                Button(i18n.t(.save)) { saveConfig() }
                     .buttonStyle(.plain)
                     .foregroundStyle(.white)
                     .padding(.horizontal, theme.spacingL)
@@ -2357,7 +2385,7 @@ struct AgentConfigSheet: View {
     }
 
     private var agentDisplayName: String {
-        selectedAgentId.flatMap { id in availableAgents.first(where: { $0.id == id })?.name } ?? "不绑定"
+        selectedAgentId.flatMap { id in availableAgents.first(where: { $0.id == id })?.name } ?? i18n.t(.proj_createNoAgentShort)
     }
 
     private func loadAgents() {
@@ -2396,6 +2424,7 @@ struct RAGConfigSheet: View {
     @Binding var ragMode: RAGMode
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @Environment(\.dismiss) private var dismiss
 
     @State private var ragTopK: Int = 5
@@ -2405,17 +2434,17 @@ struct RAGConfigSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: theme.spacingL) {
-            Text("RAG 配置")
+            Text(i18n.t(.proj_ragConfigTitle))
                 .font(.system(size: theme.headlineSize, weight: .bold))
 
             VStack(alignment: .leading, spacing: theme.spacingS) {
-                Text("检索模式")
+                Text(i18n.t(.proj_ragConfigMode))
                     .font(.system(size: theme.captionSize, weight: .medium))
                     .foregroundStyle(theme.textSecondary)
                 Picker("", selection: $ragMode) {
-                    Text("AUTO（智能检索）").tag(RAGMode.AUTO)
-                    Text("MANUAL（手动指定）").tag(RAGMode.MANUAL)
-                    Text("OFF（关闭检索）").tag(RAGMode.OFF)
+                    Text(i18n.t(.proj_createRagAuto)).tag(RAGMode.AUTO)
+                    Text(i18n.t(.proj_createRagManual)).tag(RAGMode.MANUAL)
+                    Text(i18n.t(.proj_inputRagOff)).tag(RAGMode.OFF)
                 }
                 .pickerStyle(.segmented)
                 .font(.system(size: theme.captionSize))
@@ -2424,7 +2453,7 @@ struct RAGConfigSheet: View {
             if ragMode != .OFF {
                 VStack(alignment: .leading, spacing: theme.spacingS) {
                     HStack {
-                        Text("Top-K: \(ragTopK)")
+                        Text(String(format: i18n.t(.proj_ragConfigTopKFmt), ragTopK))
                             .font(.system(size: theme.captionSize, weight: .medium))
                             .foregroundStyle(theme.textSecondary)
                         Spacer()
@@ -2438,7 +2467,7 @@ struct RAGConfigSheet: View {
 
                 VStack(alignment: .leading, spacing: theme.spacingS) {
                     HStack {
-                        Text("相似度阈值: \(String(format: "%.2f", ragThreshold))")
+                        Text(String(format: i18n.t(.proj_ragConfigThresholdFmt), String(format: "%.2f", ragThreshold)))
                             .font(.system(size: theme.captionSize, weight: .medium))
                             .foregroundStyle(theme.textSecondary)
                         Spacer()
@@ -2450,7 +2479,7 @@ struct RAGConfigSheet: View {
 
             if ragMode == .MANUAL {
                 Button(action: { showScopeSelector = true }) {
-                    Label("选择检索范围", systemImage: "folder.badge.plus")
+                    Label(i18n.t(.proj_ragConfigSelectScope), systemImage: "folder.badge.plus")
                 }
                 .font(.system(size: theme.footnoteSize))
                 .buttonStyle(.plain)
@@ -2461,10 +2490,10 @@ struct RAGConfigSheet: View {
 
             HStack {
                 Spacer()
-                Button("取消") { dismiss() }
+                Button(i18n.t(.cancel)) { dismiss() }
                     .buttonStyle(.plain)
                     .foregroundStyle(theme.textSecondary)
-                Button("保存") { saveConfig() }
+                Button(i18n.t(.save)) { saveConfig() }
                     .buttonStyle(.plain)
                     .foregroundStyle(.white)
                     .padding(.horizontal, theme.spacingL)
@@ -2516,6 +2545,7 @@ struct ProjectSettingsPanel: View {
     let project: FusionProject
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @Environment(\.dismiss) private var dismiss
 
     @State private var name: String
@@ -2541,25 +2571,25 @@ struct ProjectSettingsPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: theme.spacingL) {
-            Text("⚙️ Project Settings — \(project.name)")
+            Text(String(format: i18n.t(.proj_settingsTitleFmt), project.name))
                 .font(.system(size: theme.headlineSize, weight: .bold))
 
             // Basic info
             VStack(alignment: .leading, spacing: theme.spacingS) {
-                Text("项目信息")
+                Text(i18n.t(.proj_settingsBasicInfo))
                     .font(.system(size: theme.textSize, weight: .semibold))
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("项目名称")
+                    Text(i18n.t(.proj_settingsNameLabel))
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.textSecondary)
-                    TextField("项目名称", text: $name)
+                    TextField(i18n.t(.proj_namePh), text: $name)
                         .textFieldStyle(.roundedBorder)
                 }
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("描述")
+                    Text(i18n.t(.proj_settingsDescLabel))
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.textSecondary)
-                    TextField("描述", text: $desc)
+                    TextField(i18n.t(.proj_settingsDescPh), text: $desc)
                         .textFieldStyle(.roundedBorder)
                 }
             }
@@ -2568,15 +2598,15 @@ struct ProjectSettingsPanel: View {
 
             // Agent config
             VStack(alignment: .leading, spacing: theme.spacingS) {
-                Text("智能体配置")
+                Text(i18n.t(.proj_settingsAgentConfig))
                     .font(.system(size: theme.textSize, weight: .semibold))
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("默认智能体")
+                    Text(i18n.t(.proj_agentConfigDefault))
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.textSecondary)
                     Menu {
-                        Button("不绑定（纯模型对话）") { selectedAgentId = nil }
+                        Button(i18n.t(.proj_createNoAgent)) { selectedAgentId = nil }
                         Divider()
                         ForEach(availableAgents) { agent in
                             Button(agent.name) { selectedAgentId = agent.id }
@@ -2595,12 +2625,12 @@ struct ProjectSettingsPanel: View {
                     .menuStyle(.borderlessButton)
                 }
 
-                Text("Prompt 合并策略")
+                Text(i18n.t(.proj_settingsPromptMerge))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textSecondary)
                 Picker("", selection: $promptMergeMode) {
-                    Text("Agent Prompt 优先（推荐）\nAgent 人设 + 项目业务规则组合注入").tag(PromptMergeMode.AGENT_FIRST)
-                    Text("仅使用项目 Instructions\n忽略 Agent 内置 Prompt，完全项目自定义").tag(PromptMergeMode.PROJECT_ONLY)
+                    Text(i18n.t(.proj_settingsMergeAgentFirst)).tag(PromptMergeMode.AGENT_FIRST)
+                    Text(i18n.t(.proj_settingsMergeProjectOnly)).tag(PromptMergeMode.PROJECT_ONLY)
                 }
                 .pickerStyle(.radioGroup)
                 .font(.system(size: theme.captionSize))
@@ -2610,20 +2640,20 @@ struct ProjectSettingsPanel: View {
 
             // RAG config
             VStack(alignment: .leading, spacing: theme.spacingS) {
-                Text("RAG 配置")
+                Text(i18n.t(.proj_settingsRagConfig))
                     .font(.system(size: theme.textSize, weight: .semibold))
 
-                Picker("检索模式", selection: $ragMode) {
-                    Text("AUTO（智能检索 — 对标 Claude Projects）").tag(RAGMode.AUTO)
-                    Text("MANUAL（手动指定文件夹/文件检索）").tag(RAGMode.MANUAL)
-                    Text("OFF").tag(RAGMode.OFF)
+                Picker(i18n.t(.proj_ragConfigMode), selection: $ragMode) {
+                    Text(i18n.t(.proj_settingsRagAuto)).tag(RAGMode.AUTO)
+                    Text(i18n.t(.proj_settingsRagManual)).tag(RAGMode.MANUAL)
+                    Text(i18n.t(.proj_createRagOff)).tag(RAGMode.OFF)
                 }
                 .pickerStyle(.radioGroup)
                 .font(.system(size: theme.captionSize))
 
                 HStack(spacing: theme.spacingM) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("TopK")
+                        Text(i18n.t(.proj_settingsTopK))
                         Picker("", selection: $ragTopK) {
                             ForEach(1...20, id: \.self) { k in
                                 Text("\(k)").tag(k)
@@ -2632,7 +2662,7 @@ struct ProjectSettingsPanel: View {
                         .frame(width: 80)
                     }
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("相似度阈值")
+                        Text(i18n.t(.proj_settingsThreshold))
                         Picker("", selection: $ragThreshold) {
                             ForEach(Array(stride(from: 0.1, through: 0.99, by: 0.05)), id: \.self) { v in
                                 Text(String(format: "%.2f", v)).tag(v)
@@ -2648,8 +2678,8 @@ struct ProjectSettingsPanel: View {
 
             HStack {
                 Spacer()
-                Button("取消") { dismiss() }
-                Button("保存设置") { saveSettings() }
+                Button(i18n.t(.cancel)) { dismiss() }
+                Button(i18n.t(.proj_settingsSaveBtn)) { saveSettings() }
                     .disabled(isSaving)
             }
         }
@@ -2659,7 +2689,7 @@ struct ProjectSettingsPanel: View {
     }
 
     private var agentDisplayName: String {
-        selectedAgentId.flatMap { id in availableAgents.first(where: { $0.id == id })?.name } ?? "不绑定"
+        selectedAgentId.flatMap { id in availableAgents.first(where: { $0.id == id })?.name } ?? i18n.t(.proj_createNoAgentShort)
     }
 
     private func loadAgents() {
@@ -2701,6 +2731,7 @@ struct ProjectSettingsPanel: View {
 private struct ProjectAgentPreview: View {
     let project: FusionProject
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -2709,7 +2740,7 @@ private struct ProjectAgentPreview: View {
                 Image(systemName: "robot")
                     .font(.system(size: theme.iconL))
                     .foregroundStyle(theme.accent)
-                Text(project.agentName ?? "未绑定")
+                Text(project.agentName ?? i18n.t(.proj_previewUnbound))
                     .font(.system(size: theme.headlineSize, weight: .bold))
                 Spacer()
                 Button(action: { dismiss() }) {
@@ -2723,7 +2754,7 @@ private struct ProjectAgentPreview: View {
                 VStack(alignment: .leading, spacing: theme.spacingS) {
                     if let prompt = binding.agentPrompt {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("角色简介")
+                            Text(i18n.t(.proj_previewRole))
                                 .font(.system(size: theme.captionSize, weight: .medium))
                                 .foregroundStyle(theme.textSecondary)
                             Text(String(prompt.prefix(200)))
@@ -2733,28 +2764,28 @@ private struct ProjectAgentPreview: View {
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("当前生效配置")
+                        Text(i18n.t(.proj_previewActiveConfig))
                             .font(.system(size: theme.captionSize, weight: .medium))
                             .foregroundStyle(theme.textSecondary)
-                        Text("· Prompt策略：\(binding.mergeMode == .AGENT_FIRST ? "Agent优先" : "仅项目Instructions")")
-                        Text("· RAG模式：\(project.ragMode.rawValue) (TopK=\(project.ragTopK), 阈值=\(project.ragThreshold))")
-                        Text("· 允许访问本项目知识库")
+                        Text(String(format: i18n.t(.proj_previewPromptStrategyFmt), binding.mergeMode == .AGENT_FIRST ? i18n.t(.proj_previewPromptAgentFirst) : i18n.t(.proj_previewPromptProjectOnly)))
+                        Text(String(format: i18n.t(.proj_previewRagModeFmt), project.ragMode.rawValue, project.ragTopK, String(project.ragThreshold)))
+                        Text(i18n.t(.proj_previewAccessKb))
                     }
                     .font(.system(size: theme.footnoteSize))
                     .foregroundStyle(theme.textSecondary)
                 }
             } else {
-                Text("未绑定智能体，将使用纯模型对话")
+                Text(i18n.t(.proj_previewUnboundHint))
                     .foregroundStyle(theme.textTertiary)
             }
 
             Spacer(minLength: 0)
 
             HStack {
-                Button("前往 Agent Studio 修改") { }
+                Button(i18n.t(.proj_previewGotoAgentStudio)) { }
                     .font(.system(size: theme.footnoteSize))
                 Spacer()
-                Button("关闭") { dismiss() }
+                Button(i18n.t(.close)) { dismiss() }
             }
         }
         .padding(theme.spacingL)
@@ -2767,6 +2798,7 @@ private struct ProjectAgentPreview: View {
 private struct CoWorkImportDialog: View {
     let project: FusionProject
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var ipc: IPCClient
 
@@ -2778,7 +2810,7 @@ private struct CoWorkImportDialog: View {
     var body: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
             HStack {
-                Text("导入到 CoWork 空间")
+                Text(i18n.t(.proj_coworkTitle))
                     .font(.system(size: theme.headlineSize, weight: .bold))
                 Spacer()
                 Button(action: { dismiss() }) {
@@ -2789,25 +2821,25 @@ private struct CoWorkImportDialog: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("目标 CoWork 空间")
+                Text(i18n.t(.proj_coworkTarget))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textSecondary)
-                Text("（CoWork 空间列表）")
+                Text(i18n.t(.proj_coworkTargetPlaceholder))
                     .font(.system(size: theme.footnoteSize))
                     .foregroundStyle(theme.textTertiary)
             }
 
-            Text("同步内容")
+            Text(i18n.t(.proj_coworkSyncContent))
                 .font(.system(size: theme.captionSize, weight: .medium))
                 .foregroundStyle(theme.textSecondary)
 
-            Toggle("知识库全部文件", isOn: $includeKnowledge)
-            Toggle("选中会话快照", isOn: $includeSnapshots)
+            Toggle(i18n.t(.proj_coworkSyncKnowledge), isOn: $includeKnowledge)
+            Toggle(i18n.t(.proj_coworkSyncSnapshots), isOn: $includeSnapshots)
 
             HStack {
                 Image(systemName: "exclamationmark.triangle")
                     .foregroundStyle(.orange)
-                Text("知识库文件将复制到 CoWork 空间，后续变更不会自动同步")
+                Text(i18n.t(.proj_coworkWarning))
                     .font(.system(size: 9))
                     .foregroundStyle(.orange)
             }
@@ -2816,8 +2848,8 @@ private struct CoWorkImportDialog: View {
 
             HStack {
                 Spacer()
-                Button("Cancel") { dismiss() }
-                Button("确认导入") { importToCoWork() }
+                Button(i18n.t(.cancel)) { dismiss() }
+                Button(i18n.t(.proj_coworkConfirm)) { importToCoWork() }
                     .disabled(isImporting)
             }
         }
@@ -2853,6 +2885,7 @@ private struct RAGScopeSelector: View {
     let projectId: String
     @Binding var ragMode: RAGMode
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var ipc: IPCClient
 
@@ -2864,7 +2897,7 @@ private struct RAGScopeSelector: View {
     var body: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
             HStack {
-                Text("🔍 检索范围设置")
+                Text(i18n.t(.proj_ragScopeTitle))
                     .font(.system(size: theme.headlineSize, weight: .bold))
                 Spacer()
                 Button(action: { dismiss() }) {
@@ -2874,15 +2907,15 @@ private struct RAGScopeSelector: View {
                 .buttonStyle(.plain)
             }
 
-            Picker("检索模式", selection: $ragMode) {
-                Text("AUTO（智能全局检索）").tag(RAGMode.AUTO)
-                Text("MANUAL（手动指定范围）").tag(RAGMode.MANUAL)
+            Picker(i18n.t(.proj_ragScopeMode), selection: $ragMode) {
+                Text(i18n.t(.proj_ragScopeAuto)).tag(RAGMode.AUTO)
+                Text(i18n.t(.proj_ragScopeManual)).tag(RAGMode.MANUAL)
             }
             .pickerStyle(.radioGroup)
             .font(.system(size: theme.captionSize))
 
             if ragMode == .MANUAL {
-                Text("指定检索范围")
+                Text(i18n.t(.proj_ragScopeSpecify))
                     .font(.system(size: theme.captionSize, weight: .medium))
                     .foregroundStyle(theme.textSecondary)
 
@@ -2933,8 +2966,8 @@ private struct RAGScopeSelector: View {
 
             HStack {
                 Spacer()
-                Button("取消") { dismiss() }
-                Button("确认") {
+                Button(i18n.t(.cancel)) { dismiss() }
+                Button(i18n.t(.proj_ragScopeConfirm)) {
                     saveRAGConfig()
                     dismiss()
                 }
