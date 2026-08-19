@@ -1547,6 +1547,61 @@ enum I18nKey: String, CaseIterable {
     case cw_wf_status_completed = "cw_wf_status_completed"
     case cw_wf_status_failed = "cw_wf_status_failed"
     case cw_wf_status_idle = "cw_wf_status_idle"
+    case cw_desk_title = "cw_desk_title"
+    case cw_desk_role = "cw_desk_role"
+    case cw_desk_roleObserver = "cw_desk_roleObserver"
+    case cw_desk_roleController = "cw_desk_roleController"
+    case cw_desk_roleApprover = "cw_desk_roleApprover"
+    case cw_desk_notSharing = "cw_desk_notSharing"
+    case cw_desk_controlReq = "cw_desk_controlReq"
+    case cw_desk_approve = "cw_desk_approve"
+    case cw_desk_reject = "cw_desk_reject"
+    case cw_desk_auditLog = "cw_desk_auditLog"
+    case cw_desk_sharing = "cw_desk_sharing"
+    case cw_set_title = "cw_set_title"
+    case cw_set_streamResp = "cw_set_streamResp"
+    case cw_research_running = "cw_research_running"
+    case cw_research_queryPh = "cw_research_queryPh"
+    case cw_research_depth = "cw_research_depth"
+    case cw_research_depthShallow = "cw_research_depthShallow"
+    case cw_research_depthMedium = "cw_research_depthMedium"
+    case cw_research_depthDeep = "cw_research_depthDeep"
+    case cw_research_start = "cw_research_start"
+    case cw_research_multiAgent = "cw_research_multiAgent"
+    case cw_research_autoSelect = "cw_research_autoSelect"
+    case cw_research_agentCountFmt = "cw_research_agentCountFmt"
+    case cw_research_zeroToken = "cw_research_zeroToken"
+    case cw_research_runningProgress = "cw_research_runningProgress"
+    case cw_research_desc = "cw_research_desc"
+    case cw_research_vsClaude = "cw_research_vsClaude"
+    case cw_research_track = "cw_research_track"
+    case cw_research_agentProgress = "cw_research_agentProgress"
+    case cw_research_noResult = "cw_research_noResult"
+    case cw_research_failFmt = "cw_research_failFmt"
+    case cw_research_done = "cw_research_done"
+    case cw_research_runningStatus = "cw_research_runningStatus"
+    case cw_preview_empty = "cw_preview_empty"
+    case cw_notif_title = "cw_notif_title"
+    case cw_notif_markAll = "cw_notif_markAll"
+    case cw_notif_empty = "cw_notif_empty"
+    case cw_kb_title = "cw_kb_title"
+    case cw_kb_unbound = "cw_kb_unbound"
+    case cw_kb_bindHint = "cw_kb_bindHint"
+    case cw_kb_bind = "cw_kb_bind"
+    case cw_kb_statsFmt = "cw_kb_statsFmt"
+    case cw_kb_searchPh = "cw_kb_searchPh"
+    case cw_kb_results = "cw_kb_results"
+    case cw_kb_ragAnswer = "cw_kb_ragAnswer"
+    case cw_kb_upload = "cw_kb_upload"
+    case cw_kb_uploadTitle = "cw_kb_uploadTitle"
+    case cw_kb_pathPh = "cw_kb_pathPh"
+    case cw_kb_uploadBtn = "cw_kb_uploadBtn"
+    case cw_kb_docFmt = "cw_kb_docFmt"
+    case cw_mkt_title = "cw_mkt_title"
+    case cw_mkt_type = "cw_mkt_type"
+    case cw_mkt_typeWorkflow = "cw_mkt_typeWorkflow"
+    case cw_mkt_typeArtifact = "cw_mkt_typeArtifact"
+    case cw_mkt_install = "cw_mkt_install"
 }
 
 // MARK: - 翻译管理器
@@ -2750,6 +2805,61 @@ let zhCNTranslations: [String: String] = [
     "cw_snap_forkHelp": "Fork 为新会话",
     "cw_snap_deleteHelp": "删除快照",
     "cw_snap_forkAlertBtn": "Fork",
+    "cw_desk_title": "桌面",
+    "cw_desk_role": "角色",
+    "cw_desk_roleObserver": "观察者",
+    "cw_desk_roleController": "控制者",
+    "cw_desk_roleApprover": "审批者",
+    "cw_desk_notSharing": "桌面共享未开启",
+    "cw_desk_controlReq": "控制请求",
+    "cw_desk_approve": "批准",
+    "cw_desk_reject": "拒绝",
+    "cw_desk_auditLog": "操作记录",
+    "cw_desk_sharing": "共享中",
+    "cw_set_title": "设置",
+    "cw_set_streamResp": "流式响应",
+    "cw_research_running": "进行中...",
+    "cw_research_queryPh": "输入研究问题...",
+    "cw_research_depth": "深度",
+    "cw_research_depthShallow": "浅",
+    "cw_research_depthMedium": "中",
+    "cw_research_depthDeep": "深",
+    "cw_research_start": "开始研究",
+    "cw_research_multiAgent": "多Agent并行",
+    "cw_research_autoSelect": "自动选择",
+    "cw_research_agentCountFmt": "%d Agents",
+    "cw_research_zeroToken": "零Token成本 · 本地推理",
+    "cw_research_runningProgress": "深度研究进行中...",
+    "cw_research_desc": "深度研究利用多Agent并行推理，自动完成复杂调研",
+    "cw_research_vsClaude": "相比 Claude CoWork：零 Token 成本 · 本地模型推理 · 可选多Agent并行",
+    "cw_research_track": "研究路径",
+    "cw_research_agentProgress": "Agent 研究进度",
+    "cw_research_noResult": "研究完成，无结果文本",
+    "cw_research_failFmt": "研究失败: %@",
+    "cw_research_done": "完成",
+    "cw_research_runningStatus": "研究中...",
+    "cw_preview_empty": "暂无预览内容",
+    "cw_notif_title": "通知",
+    "cw_notif_markAll": "全部已读",
+    "cw_notif_empty": "暂无通知",
+    "cw_kb_title": "知识库",
+    "cw_kb_unbound": "知识库未绑定",
+    "cw_kb_bindHint": "绑定知识库后，Agent 对话将自动检索相关文档",
+    "cw_kb_bind": "绑定知识库",
+    "cw_kb_statsFmt": "%d 文档, %d 分块",
+    "cw_kb_searchPh": "搜索知识库...",
+    "cw_kb_results": "搜索结果",
+    "cw_kb_ragAnswer": "RAG 回答",
+    "cw_kb_upload": "上传文档",
+    "cw_kb_uploadTitle": "上传文档到知识库",
+    "cw_kb_pathPh": "文件路径",
+    "cw_kb_uploadBtn": "上传",
+    "cw_kb_docFmt": "文档 %d",
+    "cw_mkt_title": "市场",
+    "cw_mkt_type": "类型",
+    "cw_mkt_typeWorkflow": "工作流",
+    "cw_mkt_typeArtifact": "产物模板",
+    "cw_mkt_install": "安装",
 ]
 
 let enUSTranslations: [String: String] = [
@@ -3908,6 +4018,61 @@ let enUSTranslations: [String: String] = [
     "cw_snap_forkHelp": "Fork into a new session",
     "cw_snap_deleteHelp": "Delete snapshot",
     "cw_snap_forkAlertBtn": "Fork",
+    "cw_desk_title": "Desktop",
+    "cw_desk_role": "Role",
+    "cw_desk_roleObserver": "Observer",
+    "cw_desk_roleController": "Controller",
+    "cw_desk_roleApprover": "Approver",
+    "cw_desk_notSharing": "Desktop sharing off",
+    "cw_desk_controlReq": "Control requests",
+    "cw_desk_approve": "Approve",
+    "cw_desk_reject": "Reject",
+    "cw_desk_auditLog": "Audit log",
+    "cw_desk_sharing": "Sharing",
+    "cw_set_title": "Settings",
+    "cw_set_streamResp": "Stream response",
+    "cw_research_running": "In progress...",
+    "cw_research_queryPh": "Enter research question...",
+    "cw_research_depth": "Depth",
+    "cw_research_depthShallow": "Shallow",
+    "cw_research_depthMedium": "Medium",
+    "cw_research_depthDeep": "Deep",
+    "cw_research_start": "Start research",
+    "cw_research_multiAgent": "Multi-agent parallel",
+    "cw_research_autoSelect": "Auto select",
+    "cw_research_agentCountFmt": "%d Agents",
+    "cw_research_zeroToken": "Zero token cost · local inference",
+    "cw_research_runningProgress": "Deep research in progress...",
+    "cw_research_desc": "Deep research uses multi-agent parallel reasoning to automate complex investigations",
+    "cw_research_vsClaude": "Compared to Claude CoWork: zero token cost · local model inference · optional multi-agent parallel",
+    "cw_research_track": "Research path",
+    "cw_research_agentProgress": "Agent research progress",
+    "cw_research_noResult": "Research complete, no result text",
+    "cw_research_failFmt": "Research failed: %@",
+    "cw_research_done": "Done",
+    "cw_research_runningStatus": "Researching...",
+    "cw_preview_empty": "No preview content",
+    "cw_notif_title": "Notifications",
+    "cw_notif_markAll": "Mark all read",
+    "cw_notif_empty": "No notifications",
+    "cw_kb_title": "Knowledge base",
+    "cw_kb_unbound": "Knowledge base not bound",
+    "cw_kb_bindHint": "After binding, agent chat auto-retrieves related docs",
+    "cw_kb_bind": "Bind knowledge base",
+    "cw_kb_statsFmt": "%d docs, %d chunks",
+    "cw_kb_searchPh": "Search knowledge base...",
+    "cw_kb_results": "Search results",
+    "cw_kb_ragAnswer": "RAG answer",
+    "cw_kb_upload": "Upload document",
+    "cw_kb_uploadTitle": "Upload document to knowledge base",
+    "cw_kb_pathPh": "File path",
+    "cw_kb_uploadBtn": "Upload",
+    "cw_kb_docFmt": "Document %d",
+    "cw_mkt_title": "Marketplace",
+    "cw_mkt_type": "Type",
+    "cw_mkt_typeWorkflow": "Workflow",
+    "cw_mkt_typeArtifact": "Artifact template",
+    "cw_mkt_install": "Install",
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -5060,6 +5225,61 @@ let jaJPTranslations: [String: String] = [
     "cw_snap_forkHelp": "新規セッションにフォーク",
     "cw_snap_deleteHelp": "スナップショット削除",
     "cw_snap_forkAlertBtn": "フォーク",
+    "cw_desk_title": "デスクトップ",
+    "cw_desk_role": "ロール",
+    "cw_desk_roleObserver": "観察者",
+    "cw_desk_roleController": "操作者",
+    "cw_desk_roleApprover": "承認者",
+    "cw_desk_notSharing": "デスクトップ共有オフ",
+    "cw_desk_controlReq": "操作リクエスト",
+    "cw_desk_approve": "承認",
+    "cw_desk_reject": "拒否",
+    "cw_desk_auditLog": "操作ログ",
+    "cw_desk_sharing": "共有中",
+    "cw_set_title": "設定",
+    "cw_set_streamResp": "ストリーム応答",
+    "cw_research_running": "進行中...",
+    "cw_research_queryPh": "研究質問を入力...",
+    "cw_research_depth": "深さ",
+    "cw_research_depthShallow": "浅",
+    "cw_research_depthMedium": "中",
+    "cw_research_depthDeep": "深",
+    "cw_research_start": "研究開始",
+    "cw_research_multiAgent": "マルチエージェント並列",
+    "cw_research_autoSelect": "自動選択",
+    "cw_research_agentCountFmt": "%d Agents",
+    "cw_research_zeroToken": "トークンコストゼロ · ローカル推論",
+    "cw_research_runningProgress": "深度研究進行中...",
+    "cw_research_desc": "深度研究はマルチエージェント並列推論で複雑な調査を自動化",
+    "cw_research_vsClaude": "Claude CoWork と比較: トークンコストゼロ · ローカルモデル推論 · マルチエージェント並列オプション",
+    "cw_research_track": "研究パス",
+    "cw_research_agentProgress": "エージェント研究進捗",
+    "cw_research_noResult": "研究完了、結果テキストなし",
+    "cw_research_failFmt": "研究失敗: %@",
+    "cw_research_done": "完了",
+    "cw_research_runningStatus": "研究中...",
+    "cw_preview_empty": "プレビュー内容なし",
+    "cw_notif_title": "通知",
+    "cw_notif_markAll": "すべて既読",
+    "cw_notif_empty": "通知なし",
+    "cw_kb_title": "ナレッジベース",
+    "cw_kb_unbound": "ナレッジベース未バインド",
+    "cw_kb_bindHint": "バインド後、エージェント対話が関連ドキュメントを自動検索",
+    "cw_kb_bind": "ナレッジベースをバインド",
+    "cw_kb_statsFmt": "%d 文書, %d チャンク",
+    "cw_kb_searchPh": "ナレッジベースを検索...",
+    "cw_kb_results": "検索結果",
+    "cw_kb_ragAnswer": "RAG 回答",
+    "cw_kb_upload": "ドキュメントをアップロード",
+    "cw_kb_uploadTitle": "ドキュメントをナレッジベースにアップロード",
+    "cw_kb_pathPh": "ファイルパス",
+    "cw_kb_uploadBtn": "アップロード",
+    "cw_kb_docFmt": "文書 %d",
+    "cw_mkt_title": "マーケットプレース",
+    "cw_mkt_type": "タイプ",
+    "cw_mkt_typeWorkflow": "ワークフロー",
+    "cw_mkt_typeArtifact": "アーティファクトテンプレート",
+    "cw_mkt_install": "インストール",
 ]
 
 let koKRTranslations: [String: String] = [
@@ -6212,6 +6432,61 @@ let koKRTranslations: [String: String] = [
     "cw_snap_forkHelp": "새 세션으로 포크",
     "cw_snap_deleteHelp": "스냅샷 삭제",
     "cw_snap_forkAlertBtn": "포크",
+    "cw_desk_title": "데스크톱",
+    "cw_desk_role": "역할",
+    "cw_desk_roleObserver": "관찰자",
+    "cw_desk_roleController": "제어자",
+    "cw_desk_roleApprover": "승인자",
+    "cw_desk_notSharing": "데스크톱 공유 꺼짐",
+    "cw_desk_controlReq": "제어 요청",
+    "cw_desk_approve": "승인",
+    "cw_desk_reject": "거절",
+    "cw_desk_auditLog": "작업 기록",
+    "cw_desk_sharing": "공유 중",
+    "cw_set_title": "설정",
+    "cw_set_streamResp": "스트리밍 응답",
+    "cw_research_running": "진행 중...",
+    "cw_research_queryPh": "연구 질문 입력...",
+    "cw_research_depth": "깊이",
+    "cw_research_depthShallow": "얕게",
+    "cw_research_depthMedium": "중간",
+    "cw_research_depthDeep": "깊게",
+    "cw_research_start": "연구 시작",
+    "cw_research_multiAgent": "다중 에이전트 병렬",
+    "cw_research_autoSelect": "자동 선택",
+    "cw_research_agentCountFmt": "%d Agents",
+    "cw_research_zeroToken": "토큰 비용 제로 · 로컬 추론",
+    "cw_research_runningProgress": "심층 연구 진행 중...",
+    "cw_research_desc": "심층 연구는 다중 에이전트 병렬 추론으로 복잡한 조사를 자동화",
+    "cw_research_vsClaude": "Claude CoWork 대비: 토큰 비용 제로 · 로컬 모델 추론 · 다중 에이전트 병렬 선택",
+    "cw_research_track": "연구 경로",
+    "cw_research_agentProgress": "에이전트 연구 진행",
+    "cw_research_noResult": "연구 완료, 결과 텍스트 없음",
+    "cw_research_failFmt": "연구 실패: %@",
+    "cw_research_done": "완료",
+    "cw_research_runningStatus": "연구 중...",
+    "cw_preview_empty": "미리보기 내용 없음",
+    "cw_notif_title": "알림",
+    "cw_notif_markAll": "모두 읽음",
+    "cw_notif_empty": "알림 없음",
+    "cw_kb_title": "지식 베이스",
+    "cw_kb_unbound": "지식 베이스 미연결",
+    "cw_kb_bindHint": "연결 후 에이전트 대화가 관련 문서를 자동 검색",
+    "cw_kb_bind": "지식 베이스 연결",
+    "cw_kb_statsFmt": "%d 문서, %d 청크",
+    "cw_kb_searchPh": "지식 베이스 검색...",
+    "cw_kb_results": "검색 결과",
+    "cw_kb_ragAnswer": "RAG 답변",
+    "cw_kb_upload": "문서 업로드",
+    "cw_kb_uploadTitle": "지식 베이스에 문서 업로드",
+    "cw_kb_pathPh": "파일 경로",
+    "cw_kb_uploadBtn": "업로드",
+    "cw_kb_docFmt": "문서 %d",
+    "cw_mkt_title": "마켓플레이스",
+    "cw_mkt_type": "유형",
+    "cw_mkt_typeWorkflow": "워크플로우",
+    "cw_mkt_typeArtifact": "아티팩트 템플릿",
+    "cw_mkt_install": "설치",
 ]
 
 // MARK: - 国际化文本视图
