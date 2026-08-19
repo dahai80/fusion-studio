@@ -2696,6 +2696,7 @@ struct WorkflowDagCanvas: View {
 struct SpaceDesktopPanel: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     let spaceId: String
     @State private var isSharing = false
@@ -2706,14 +2707,14 @@ struct SpaceDesktopPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("桌面")
+                Text(i18n.t(.cw_desk_title))
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
                     .foregroundStyle(theme.textSecondary)
                 Spacer()
-                Picker("角色", selection: $role) {
-                    Text("观察者").tag("observer")
-                    Text("控制者").tag("controller")
-                    Text("审批者").tag("approver")
+                Picker(i18n.t(.cw_desk_role), selection: $role) {
+                    Text(i18n.t(.cw_desk_roleObserver)).tag("observer")
+                    Text(i18n.t(.cw_desk_roleController)).tag("controller")
+                    Text(i18n.t(.cw_desk_roleApprover)).tag("approver")
                 }
                 .frame(width: 100)
                 .font(.system(size: 9))
@@ -2734,7 +2735,7 @@ struct SpaceDesktopPanel: View {
                     Image(systemName: "desktopcomputer")
                         .font(.system(size: 20))
                         .foregroundStyle(theme.textTertiary)
-                    Text("桌面共享未开启")
+                    Text(i18n.t(.cw_desk_notSharing))
                         .font(.system(size: 9))
                         .foregroundStyle(theme.textTertiary)
                 }
@@ -2744,7 +2745,7 @@ struct SpaceDesktopPanel: View {
 
             if !controlRequests.isEmpty {
                 Divider().padding(.vertical, theme.spacingXS)
-                Text("控制请求")
+                Text(i18n.t(.cw_desk_controlReq))
                     .font(.system(size: 9, weight: .semibold))
                     .foregroundStyle(theme.textSecondary)
                     .padding(.horizontal, theme.spacingM)
@@ -2753,11 +2754,11 @@ struct SpaceDesktopPanel: View {
                         Text(controlRequests[idx]["user_id"] as? String ?? "")
                             .font(.system(size: 9))
                         Spacer()
-                        Button("批准") { approveControl(controlRequests[idx]) }
+                        Button(i18n.t(.cw_desk_approve)) { approveControl(controlRequests[idx]) }
                             .font(.system(size: 9))
                             .foregroundStyle(Color.green)
                             .buttonStyle(.plain)
-                        Button("拒绝") { rejectControl(controlRequests[idx]) }
+                        Button(i18n.t(.cw_desk_reject)) { rejectControl(controlRequests[idx]) }
                             .font(.system(size: 9))
                             .foregroundStyle(Color.red)
                             .buttonStyle(.plain)
@@ -2769,7 +2770,7 @@ struct SpaceDesktopPanel: View {
 
             if !auditLog.isEmpty {
                 Divider().padding(.vertical, theme.spacingXS)
-                Text("操作记录")
+                Text(i18n.t(.cw_desk_auditLog))
                     .font(.system(size: 9, weight: .semibold))
                     .foregroundStyle(theme.textSecondary)
                     .padding(.horizontal, theme.spacingM)
@@ -2803,16 +2804,25 @@ struct SpaceDesktopPanel: View {
                     .foregroundStyle(theme.textTertiary)
             }
             HStack(spacing: theme.spacingXS) {
-                Label("共享中", systemImage: "circle.fill")
+                Label(i18n.t(.cw_desk_sharing), systemImage: "circle.fill")
                     .font(.system(size: 9, weight: .medium))
                     .foregroundStyle(Color.green)
-                Text(role)
+                Text(deskRoleLabel(role))
                     .font(.system(size: 9))
                     .foregroundStyle(theme.textTertiary)
             }
         }
         .padding(.horizontal, theme.spacingM)
         .padding(.top, theme.spacingS)
+    }
+
+    private func deskRoleLabel(_ raw: String) -> String {
+        switch raw {
+        case "observer": return i18n.t(.cw_desk_roleObserver)
+        case "controller": return i18n.t(.cw_desk_roleController)
+        case "approver": return i18n.t(.cw_desk_roleApprover)
+        default: return raw
+        }
     }
 
     private func toggleShare() {
@@ -2863,6 +2873,7 @@ struct SpaceDesktopPanel: View {
 struct SpaceSettingsPanel: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     let spaceId: String
     let space: CoworkSpace?
@@ -2873,11 +2884,11 @@ struct SpaceSettingsPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("设置")
+                Text(i18n.t(.cw_set_title))
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
                     .foregroundStyle(theme.textSecondary)
                 Spacer()
-                Button("保存") { saveConfig() }
+                Button(i18n.t(.save)) { saveConfig() }
                     .font(.system(size: theme.footnoteSize, weight: .medium))
                     .foregroundStyle(theme.accent)
                     .disabled(isSaving)
@@ -2887,15 +2898,15 @@ struct SpaceSettingsPanel: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: theme.spacingS) {
-                    toolToggle("联网搜索", icon: "globe", isOn: $config.enableWebSearch)
-                    toolToggle("深度研究", icon: "telescope", isOn: $config.enableDeepResearch)
-                    toolToggle("桌面操控", icon: "desktopcomputer", isOn: $config.enableComputerUse)
-                    toolToggle("成员上传", icon: "arrow.up.doc", isOn: $config.allowMemberUpload)
-                    toolToggle("成员自建Agent", icon: "brain.head.profile", isOn: $config.allowMemberAgent)
-                    toolToggle("成员运行工作流", icon: "arrow.triangle.branch", isOn: $config.allowMemberWorkflow)
+                    toolToggle(i18n.t(.cw_create_webSearch), icon: "globe", isOn: $config.enableWebSearch)
+                    toolToggle(i18n.t(.cw_create_deepResearch), icon: "telescope", isOn: $config.enableDeepResearch)
+                    toolToggle(i18n.t(.cw_create_computerUse), icon: "desktopcomputer", isOn: $config.enableComputerUse)
+                    toolToggle(i18n.t(.cw_create_memberUpload), icon: "arrow.up.doc", isOn: $config.allowMemberUpload)
+                    toolToggle(i18n.t(.cw_create_memberAgent), icon: "brain.head.profile", isOn: $config.allowMemberAgent)
+                    toolToggle(i18n.t(.cw_create_memberWorkflow), icon: "arrow.triangle.branch", isOn: $config.allowMemberWorkflow)
 
                     HStack {
-                        Text("最大成员数")
+                        Text(i18n.t(.cw_create_maxMembers))
                             .font(.system(size: theme.captionSize))
                         Spacer()
                         Stepper(value: $config.maxMembers, in: 2...50) {
@@ -2907,7 +2918,7 @@ struct SpaceSettingsPanel: View {
                     .padding(.horizontal, theme.spacingM)
 
                     HStack {
-                        Text("流式响应")
+                        Text(i18n.t(.cw_set_streamResp))
                             .font(.system(size: theme.captionSize))
                         Spacer()
                         Toggle("", isOn: $config.streamResponse)
@@ -2962,6 +2973,7 @@ struct SpaceDeepResearchView: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var i18n = I18nManager.shared
 
     let spaceId: String
 
@@ -2978,13 +2990,13 @@ struct SpaceDeepResearchView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
             HStack {
-                Text("深度研究")
+                Text(i18n.t(.cw_main_deepResearch))
                     .font(.system(size: theme.headlineSize, weight: .bold))
                 Spacer()
                 if isRunning {
                     HStack(spacing: 4) {
                         ProgressView().controlSize(.small)
-                        Text("进行中...")
+                        Text(i18n.t(.cw_research_running))
                             .font(.system(size: 9))
                             .foregroundStyle(theme.accent)
                     }
@@ -2997,15 +3009,15 @@ struct SpaceDeepResearchView: View {
             }
 
             HStack(spacing: theme.spacingS) {
-                TextField("输入研究问题...", text: $query)
+                TextField(i18n.t(.cw_research_queryPh), text: $query)
                     .textFieldStyle(.roundedBorder)
-                Picker("深度", selection: $depth) {
-                    Text("浅").tag(1)
-                    Text("中").tag(2)
-                    Text("深").tag(3)
+                Picker(i18n.t(.cw_research_depth), selection: $depth) {
+                    Text(i18n.t(.cw_research_depthShallow)).tag(1)
+                    Text(i18n.t(.cw_research_depthMedium)).tag(2)
+                    Text(i18n.t(.cw_research_depthDeep)).tag(3)
                 }
                 .frame(width: 80)
-                Button("开始研究") { startResearch() }
+                Button(i18n.t(.cw_research_start)) { startResearch() }
                     .disabled(query.isEmpty || isRunning)
             }
 
@@ -3014,7 +3026,7 @@ struct SpaceDeepResearchView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "cpu")
                             .font(.system(size: theme.iconXS))
-                        Text("多Agent并行")
+                        Text(i18n.t(.cw_research_multiAgent))
                             .font(.system(size: theme.captionSize))
                     }
                 }
@@ -3041,7 +3053,7 @@ struct SpaceDeepResearchView: View {
                         HStack(spacing: 2) {
                             Image(systemName: "brain.head.profile")
                                 .font(.system(size: 9))
-                            Text(selectedAgentIds.isEmpty ? "自动选择" : "\(selectedAgentIds.count) Agents")
+                            Text(selectedAgentIds.isEmpty ? i18n.t(.cw_research_autoSelect) : String(format: i18n.t(.cw_research_agentCountFmt), selectedAgentIds.count))
                                 .font(.system(size: 9))
                         }
                         .padding(.horizontal, 6)
@@ -3052,7 +3064,7 @@ struct SpaceDeepResearchView: View {
                     }
                 }
                 Spacer()
-                Text("零Token成本 · 本地推理")
+                Text(i18n.t(.cw_research_zeroToken))
                     .font(.system(size: 9))
                     .foregroundStyle(theme.textTertiary)
             }
@@ -3062,7 +3074,7 @@ struct SpaceDeepResearchView: View {
             } else if isRunning {
                 VStack(spacing: theme.spacingS) {
                     ProgressView()
-                    Text("深度研究进行中...")
+                    Text(i18n.t(.cw_research_runningProgress))
                         .font(.system(size: theme.footnoteSize))
                         .foregroundStyle(theme.textSecondary)
                 }
@@ -3083,11 +3095,11 @@ struct SpaceDeepResearchView: View {
                     Image(systemName: "telescope")
                         .font(.system(size: 30))
                         .foregroundStyle(theme.textTertiary)
-                    Text("深度研究利用多Agent并行推理，自动完成复杂调研")
+                    Text(i18n.t(.cw_research_desc))
                         .font(.system(size: theme.footnoteSize))
                         .foregroundStyle(theme.textSecondary)
                         .multilineTextAlignment(.center)
-                    Text("相比 Claude CoWork：零 Token 成本 · 本地模型推理 · 可选多Agent并行")
+                    Text(i18n.t(.cw_research_vsClaude))
                         .font(.system(size: 9))
                         .foregroundStyle(theme.accent)
                         .multilineTextAlignment(.center)
@@ -3102,7 +3114,7 @@ struct SpaceDeepResearchView: View {
 
     private var researchTrackSummary: some View {
         VStack(alignment: .leading, spacing: theme.spacingXS) {
-            Text("研究路径")
+            Text(i18n.t(.cw_research_track))
                 .font(.system(size: theme.footnoteSize, weight: .semibold))
                 .foregroundStyle(theme.textSecondary)
             ForEach(agentTracks.filter { !$0.result.isEmpty }) { track in
@@ -3123,7 +3135,7 @@ struct SpaceDeepResearchView: View {
 
     private var multiAgentProgressView: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            Text("Agent 研究进度")
+            Text(i18n.t(.cw_research_agentProgress))
                 .font(.system(size: theme.footnoteSize, weight: .semibold))
                 .foregroundStyle(theme.textSecondary)
             ForEach(agentTracks) { track in
@@ -3177,13 +3189,13 @@ struct SpaceDeepResearchView: View {
                 let r = try await ipc.spaceDeepResearch(spaceId: spaceId, query: query, depth: depth)
                 await MainActor.run {
                     result = r
-                    resultText = r["summary"] as? String ?? r["content"] as? String ?? "研究完成，无结果文本"
+                    resultText = r["summary"] as? String ?? r["content"] as? String ?? i18n.t(.cw_research_noResult)
                     isRunning = false
                 }
             } catch {
                 spaceLog.error("deep.research failed: \(error.localizedDescription)")
                 await MainActor.run {
-                    resultText = "研究失败: \(error.localizedDescription)"
+                    resultText = String(format: i18n.t(.cw_research_failFmt), error.localizedDescription)
                     isRunning = false
                 }
             }
@@ -3210,7 +3222,7 @@ struct SpaceDeepResearchView: View {
                         let content = resp?["content"] as? String ?? resp?["response"] as? String ?? ""
                         agentTracks[idx].result = content
                         agentTracks[idx].isComplete = true
-                        agentTracks[idx].status = "完成"
+                        agentTracks[idx].status = i18n.t(.cw_research_done)
                     }
                 }
             }
@@ -3231,7 +3243,7 @@ private struct ResearchAgentTrack: Identifiable {
     let id = UUID().uuidString
     let agentId: String
     let agentName: String
-    var status: String = "研究中..."
+    var status: String = I18nManager.shared.t(.cw_research_runningStatus)
     var result: String = ""
     var isComplete: Bool = false
 }
@@ -3360,6 +3372,7 @@ struct MarkdownContentView: View {
 
 struct ArtifactPreviewView: View {
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     let artifact: SpaceArtifact
     let onClose: () -> Void
@@ -3397,7 +3410,7 @@ struct ArtifactPreviewView: View {
                     Image(systemName: "shippingbox")
                         .font(.system(size: 30))
                         .foregroundStyle(theme.textTertiary)
-                    Text("暂无预览内容")
+                    Text(i18n.t(.cw_preview_empty))
                         .font(.system(size: theme.footnoteSize))
                         .foregroundStyle(theme.textTertiary)
                 }
@@ -3466,10 +3479,10 @@ struct ArtifactPreviewView: View {
 
     private func kindLabel(_ kind: String) -> String {
         switch kind {
-        case "code": return "代码"
-        case "doc": return "文档"
-        case "visualization": return "可视化"
-        case "data": return "数据"
+        case "code": return i18n.t(.cw_art_kindCode)
+        case "doc": return i18n.t(.cw_art_kindDoc)
+        case "visualization": return i18n.t(.cw_art_kindViz)
+        case "data": return i18n.t(.cw_art_kindData)
         default: return kind
         }
     }
@@ -3484,13 +3497,14 @@ typealias SpaceAgentView = SpaceAgentPanel
 struct SpaceNotificationPopover: View {
     @Environment(\.studioTheme) private var theme
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var i18n = I18nManager.shared
     private let spaceManager = CoworkSpaceManager.shared
     @State private var notifications: [SpaceNotification] = []
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("通知")
+                Text(i18n.t(.cw_notif_title))
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
                 let unread = notifications.filter { !$0.isRead }.count
                 if unread > 0 {
@@ -3503,7 +3517,7 @@ struct SpaceNotificationPopover: View {
                         .clipShape(Capsule())
                 }
                 Spacer()
-                Button("全部已读") { markAllRead() }
+                Button(i18n.t(.cw_notif_markAll)) { markAllRead() }
                     .font(.system(size: 9))
                     .buttonStyle(.plain)
                     .foregroundStyle(theme.accent)
@@ -3518,7 +3532,7 @@ struct SpaceNotificationPopover: View {
                     Image(systemName: "bell.slash")
                         .font(.system(size: 16))
                         .foregroundStyle(theme.textTertiary)
-                    Text("暂无通知")
+                    Text(i18n.t(.cw_notif_empty))
                         .font(.system(size: 9))
                         .foregroundStyle(theme.textTertiary)
                 }
@@ -3605,6 +3619,7 @@ struct SpaceNotificationPopover: View {
 struct SpaceKnowledgePanel: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     let spaceId: String
     @State private var knowledgeStatus: SpaceKnowledgeStatus?
@@ -3620,7 +3635,7 @@ struct SpaceKnowledgePanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("知识库")
+                Text(i18n.t(.cw_kb_title))
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
                     .foregroundStyle(theme.textSecondary)
                 Spacer()
@@ -3652,16 +3667,16 @@ struct SpaceKnowledgePanel: View {
             Image(systemName: "books.vertical")
                 .font(.system(size: 28))
                 .foregroundStyle(theme.textTertiary)
-            Text("知识库未绑定")
+            Text(i18n.t(.cw_kb_unbound))
                 .font(.system(size: theme.captionSize, weight: .medium))
                 .foregroundStyle(theme.textSecondary)
-            Text("绑定知识库后，Agent 对话将自动检索相关文档")
+            Text(i18n.t(.cw_kb_bindHint))
                 .font(.system(size: 9))
                 .foregroundStyle(theme.textTertiary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, theme.spacingL)
             Button(action: { bindKB() }) {
-                Label("绑定知识库", systemImage: "link")
+                Label(i18n.t(.cw_kb_bind), systemImage: "link")
                     .font(.system(size: theme.captionSize, weight: .medium))
             }
             .buttonStyle(.borderedProminent)
@@ -3678,7 +3693,7 @@ struct SpaceKnowledgePanel: View {
                         Image(systemName: "doc.text")
                             .font(.system(size: theme.iconS))
                             .foregroundStyle(theme.textTertiary)
-                        Text("\(ks.documentCount) 文档, \(ks.chunkCount) 分块")
+                        Text(String(format: i18n.t(.cw_kb_statsFmt), ks.documentCount, ks.chunkCount))
                             .font(.system(size: 9, design: .monospaced))
                             .foregroundStyle(theme.textTertiary)
                         Spacer()
@@ -3695,7 +3710,7 @@ struct SpaceKnowledgePanel: View {
                 Divider().padding(.horizontal, theme.spacingM)
 
                 HStack(spacing: theme.spacingS) {
-                    TextField("搜索知识库...", text: $searchQuery)
+                    TextField(i18n.t(.cw_kb_searchPh), text: $searchQuery)
                         .textFieldStyle(.roundedBorder)
                         .font(.system(size: theme.captionSize))
                         .onSubmit { searchKB() }
@@ -3715,13 +3730,13 @@ struct SpaceKnowledgePanel: View {
 
                 if !searchResults.isEmpty {
                     VStack(alignment: .leading, spacing: theme.spacingXS) {
-                        Text("搜索结果")
+                        Text(i18n.t(.cw_kb_results))
                             .font(.system(size: 9, weight: .semibold))
                             .foregroundStyle(theme.textTertiary)
                             .padding(.horizontal, theme.spacingM)
                         ForEach(Array(searchResults.enumerated()), id: \.offset) { idx, result in
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(result["title"] as? String ?? "文档 \(idx + 1)")
+                                Text(result["title"] as? String ?? String(format: i18n.t(.cw_kb_docFmt), idx + 1))
                                     .font(.system(size: theme.captionSize, weight: .medium))
                                     .lineLimit(1)
                                 Text(result["content"] as? String ?? "")
@@ -3737,7 +3752,7 @@ struct SpaceKnowledgePanel: View {
 
                 if let answer = answerResult {
                     VStack(alignment: .leading, spacing: theme.spacingXS) {
-                        Text("RAG 回答")
+                        Text(i18n.t(.cw_kb_ragAnswer))
                             .font(.system(size: 9, weight: .semibold))
                             .foregroundStyle(theme.textTertiary)
                             .padding(.horizontal, theme.spacingM)
@@ -3751,7 +3766,7 @@ struct SpaceKnowledgePanel: View {
                 Divider().padding(.horizontal, theme.spacingM)
 
                 Button(action: { showUploadDialog = true }) {
-                    Label("上传文档", systemImage: "plus.circle")
+                    Label(i18n.t(.cw_kb_upload), systemImage: "plus.circle")
                         .font(.system(size: theme.captionSize))
                 }
                 .buttonStyle(.plain)
@@ -3766,14 +3781,14 @@ struct SpaceKnowledgePanel: View {
 
     private var uploadSheet: some View {
         VStack(spacing: theme.spacingM) {
-            Text("上传文档到知识库")
+            Text(i18n.t(.cw_kb_uploadTitle))
                 .font(.system(size: theme.bodySize, weight: .semibold))
-            TextField("文件路径", text: $uploadPath)
+            TextField(i18n.t(.cw_kb_pathPh), text: $uploadPath)
                 .textFieldStyle(.roundedBorder)
             HStack {
-                Button("取消") { showUploadDialog = false }
+                Button(i18n.t(.cancel)) { showUploadDialog = false }
                     .buttonStyle(.bordered)
-                Button("上传") {
+                Button(i18n.t(.cw_kb_uploadBtn)) {
                     uploadDocument()
                     showUploadDialog = false
                 }
@@ -3851,6 +3866,7 @@ struct SpaceKnowledgePanel: View {
 struct SpaceMarketplaceView: View {
     @Environment(\.studioTheme) private var theme
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var selectedTab = 0
     @State private var workflows: [MarketplaceItem] = []
@@ -3859,7 +3875,7 @@ struct SpaceMarketplaceView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("市场")
+                Text(i18n.t(.cw_mkt_title))
                     .font(.system(size: theme.headlineSize, weight: .bold))
                     .foregroundStyle(theme.text)
                 Spacer()
@@ -3871,9 +3887,9 @@ struct SpaceMarketplaceView: View {
             }
             .padding(theme.spacingM)
 
-            Picker("类型", selection: $selectedTab) {
-                Text("工作流").tag(0)
-                Text("产物模板").tag(1)
+            Picker(i18n.t(.cw_mkt_type), selection: $selectedTab) {
+                Text(i18n.t(.cw_mkt_typeWorkflow)).tag(0)
+                Text(i18n.t(.cw_mkt_typeArtifact)).tag(1)
             }
             .pickerStyle(.segmented)
             .padding(.horizontal, theme.spacingM)
@@ -3921,7 +3937,7 @@ struct SpaceMarketplaceView: View {
                     .font(.system(size: 9))
                     .foregroundStyle(theme.textTertiary)
                 Spacer()
-                Button("安装") { }
+                Button(i18n.t(.cw_mkt_install)) { }
                     .font(.system(size: 9, weight: .medium))
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
