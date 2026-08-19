@@ -1871,6 +1871,113 @@ enum I18nKey: String, CaseIterable {
     case ai_cfg_sumToolsNone = "ai_cfg_sumToolsNone"
     case ai_cfg_deleteBtn = "ai_cfg_deleteBtn"
     case ai_cfg_saveDraft = "ai_cfg_saveDraft"
+    case fsb_ws_renameAlertTitle = "fsb_ws_renameAlertTitle"
+    case fsb_ws_name = "fsb_ws_name"
+    case fsb_ws_exportTitle = "fsb_ws_exportTitle"
+    case fsb_ws_copyClipboard = "fsb_ws_copyClipboard"
+    case fsb_ws_emptyWorkspaces = "fsb_ws_emptyWorkspaces"
+    case fsb_ws_noMatch = "fsb_ws_noMatch"
+    case fsb_ws_createWs = "fsb_ws_createWs"
+    case fsb_ws_headerTitle = "fsb_ws_headerTitle"
+    case fsb_ws_newWs = "fsb_ws_newWs"
+    case fsb_ws_listView = "fsb_ws_listView"
+    case fsb_ws_gridView = "fsb_ws_gridView"
+    case fsb_ws_searchPh = "fsb_ws_searchPh"
+    case fsb_unnamed = "fsb_unnamed"
+    case fsb_ws_connWfFmt = "fsb_ws_connWfFmt"
+    case fsb_ws_open = "fsb_ws_open"
+    case fsb_ws_rename = "fsb_ws_rename"
+    case fsb_ws_duplicate = "fsb_ws_duplicate"
+    case fsb_ws_export = "fsb_ws_export"
+    case fsb_ws_subtitle = "fsb_ws_subtitle"
+    case fsb_ws_serviceDown = "fsb_ws_serviceDown"
+    case fsb_ws_usageGuide = "fsb_ws_usageGuide"
+    case fsb_ws_namePh = "fsb_ws_namePh"
+    case fsb_ws_descOpt = "fsb_ws_descOpt"
+    case fsb_ws_descPh = "fsb_ws_descPh"
+    case fsb_ws_bindProjectOpt = "fsb_ws_bindProjectOpt"
+    case fsb_ws_projectIdPh = "fsb_ws_projectIdPh"
+    case fsb_ws_bindAgentOpt = "fsb_ws_bindAgentOpt"
+    case fsb_ws_importTemplate = "fsb_ws_importTemplate"
+    case fsb_ws_createBtn = "fsb_ws_createBtn"
+    case fsb_ws_builtinTemplates = "fsb_ws_builtinTemplates"
+    case fsb_tpl_crm_name = "fsb_tpl_crm_name"
+    case fsb_tpl_crm_short = "fsb_tpl_crm_short"
+    case fsb_tpl_crm_desc = "fsb_tpl_crm_desc"
+    case fsb_tpl_inventory_name = "fsb_tpl_inventory_name"
+    case fsb_tpl_inventory_short = "fsb_tpl_inventory_short"
+    case fsb_tpl_inventory_desc = "fsb_tpl_inventory_desc"
+    case fsb_tpl_finance_name = "fsb_tpl_finance_name"
+    case fsb_tpl_finance_short = "fsb_tpl_finance_short"
+    case fsb_tpl_finance_desc = "fsb_tpl_finance_desc"
+    case fsb_tpl_email_name = "fsb_tpl_email_name"
+    case fsb_tpl_email_short = "fsb_tpl_email_short"
+    case fsb_tpl_email_desc = "fsb_tpl_email_desc"
+    case fsb_tpl_social_name = "fsb_tpl_social_name"
+    case fsb_tpl_social_short = "fsb_tpl_social_short"
+    case fsb_tpl_social_desc = "fsb_tpl_social_desc"
+    case fsb_tpl_ticket_name = "fsb_tpl_ticket_name"
+    case fsb_tpl_ticket_short = "fsb_tpl_ticket_short"
+    case fsb_tpl_ticket_desc = "fsb_tpl_ticket_desc"
+    case fsb_ob_welcome_title = "fsb_ob_welcome_title"
+    case fsb_ob_welcome_desc = "fsb_ob_welcome_desc"
+    case fsb_ob_connectors_title = "fsb_ob_connectors_title"
+    case fsb_ob_connectors_desc = "fsb_ob_connectors_desc"
+    case fsb_ob_skills_title = "fsb_ob_skills_title"
+    case fsb_ob_skills_desc = "fsb_ob_skills_desc"
+    case fsb_ob_workflow_title = "fsb_ob_workflow_title"
+    case fsb_ob_workflow_desc = "fsb_ob_workflow_desc"
+    case fsb_ob_start_title = "fsb_ob_start_title"
+    case fsb_ob_start_desc = "fsb_ob_start_desc"
+    case fsb_ob_prev = "fsb_ob_prev"
+    case fsb_dlg_addConnector = "fsb_dlg_addConnector"
+    case fsb_dlg_connecting = "fsb_dlg_connecting"
+    case fsb_dlg_connect = "fsb_dlg_connect"
+    case fsb_dlg_selectConnector = "fsb_dlg_selectConnector"
+    case fsb_dlg_connector = "fsb_dlg_connector"
+    case fsb_dlg_selectPh = "fsb_dlg_selectPh"
+    case fsb_dlg_supportFmt = "fsb_dlg_supportFmt"
+    case fsb_dlg_authMethod = "fsb_dlg_authMethod"
+    case fsb_dlg_auth = "fsb_dlg_auth"
+    case fsb_dlg_noAuth = "fsb_dlg_noAuth"
+    case fsb_dlg_enterApiKey = "fsb_dlg_enterApiKey"
+    case fsb_dlg_scopesHint = "fsb_dlg_scopesHint"
+    case fsb_dlg_createSkill = "fsb_dlg_createSkill"
+    case fsb_dlg_saving = "fsb_dlg_saving"
+    case fsb_dlg_create = "fsb_dlg_create"
+    case fsb_dlg_skillName = "fsb_dlg_skillName"
+    case fsb_dlg_displayName = "fsb_dlg_displayName"
+    case fsb_dlg_mySkill = "fsb_dlg_mySkill"
+    case fsb_dlg_type = "fsb_dlg_type"
+    case fsb_dlg_prompt = "fsb_dlg_prompt"
+    case fsb_dlg_function = "fsb_dlg_function"
+    case fsb_dlg_chain = "fsb_dlg_chain"
+    case fsb_dlg_definition = "fsb_dlg_definition"
+    case fsb_dlg_inputSchema = "fsb_dlg_inputSchema"
+    case fsb_dlg_outputFormat = "fsb_dlg_outputFormat"
+    case fsb_dlg_plainText = "fsb_dlg_plainText"
+    case fsb_dlg_setSchedule = "fsb_dlg_setSchedule"
+    case fsb_dlg_triggerMethod = "fsb_dlg_triggerMethod"
+    case fsb_dlg_manual = "fsb_dlg_manual"
+    case fsb_dlg_cron = "fsb_dlg_cron"
+    case fsb_dlg_eventDriven = "fsb_dlg_eventDriven"
+    case fsb_dlg_manualOnly = "fsb_dlg_manualOnly"
+    case fsb_dlg_cronExpr = "fsb_dlg_cronExpr"
+    case fsb_dlg_commonPresets = "fsb_dlg_commonPresets"
+    case fsb_dlg_preset_weekday9 = "fsb_dlg_preset_weekday9"
+    case fsb_dlg_preset_hourly = "fsb_dlg_preset_hourly"
+    case fsb_dlg_preset_daily8 = "fsb_dlg_preset_daily8"
+    case fsb_dlg_preset_monday9 = "fsb_dlg_preset_monday9"
+    case fsb_dlg_preset_month1 = "fsb_dlg_preset_month1"
+    case fsb_dlg_eventTrigger = "fsb_dlg_eventTrigger"
+    case fsb_dlg_eventPh = "fsb_dlg_eventPh"
+    case fsb_dlg_eventHint = "fsb_dlg_eventHint"
+    case fsb_dlg_approvalRequest = "fsb_dlg_approvalRequest"
+    case fsb_dlg_requestContent = "fsb_dlg_requestContent"
+    case fsb_dlg_editContent = "fsb_dlg_editContent"
+    case fsb_dlg_reject = "fsb_dlg_reject"
+    case fsb_dlg_processing = "fsb_dlg_processing"
+    case fsb_dlg_approve = "fsb_dlg_approve"
 }
 
 // MARK: - 翻译管理器
@@ -3394,6 +3501,113 @@ let zhCNTranslations: [String: String] = [
     "ai_cfg_sumToolsNone": "未启用",
     "ai_cfg_deleteBtn": "删除 Agent",
     "ai_cfg_saveDraft": "保存草稿",
+    "fsb_ws_renameAlertTitle": "重命名工作台",
+    "fsb_ws_name": "名称",
+    "fsb_ws_exportTitle": "导出工作台",
+    "fsb_ws_copyClipboard": "复制到剪贴板",
+    "fsb_ws_emptyWorkspaces": "暂无工作台",
+    "fsb_ws_noMatch": "没有匹配的工作台",
+    "fsb_ws_createWs": "创建工作台",
+    "fsb_ws_headerTitle": "FSB 工作台",
+    "fsb_ws_newWs": "新建工作台",
+    "fsb_ws_listView": "列表视图",
+    "fsb_ws_gridView": "网格视图",
+    "fsb_ws_searchPh": "搜索工作台...",
+    "fsb_unnamed": "未命名",
+    "fsb_ws_connWfFmt": "%d连·%d流",
+    "fsb_ws_open": "打开",
+    "fsb_ws_rename": "重命名",
+    "fsb_ws_duplicate": "复制",
+    "fsb_ws_export": "导出",
+    "fsb_ws_subtitle": "跨 SaaS 智能业务工作台",
+    "fsb_ws_serviceDown": "FSB 服务未启动",
+    "fsb_ws_usageGuide": "使用指南",
+    "fsb_ws_namePh": "例如：客户管理系统",
+    "fsb_ws_descOpt": "描述（可选）",
+    "fsb_ws_descPh": "工作台用途说明",
+    "fsb_ws_bindProjectOpt": "绑定项目（可选）",
+    "fsb_ws_projectIdPh": "项目 ID",
+    "fsb_ws_bindAgentOpt": "绑定 Agent（可选）",
+    "fsb_ws_importTemplate": "从模板导入",
+    "fsb_ws_createBtn": "创建",
+    "fsb_ws_builtinTemplates": "内置模板",
+    "fsb_tpl_crm_name": "客户关系管理",
+    "fsb_tpl_crm_short": "CRM",
+    "fsb_tpl_crm_desc": "管理客户信息、跟进记录、销售漏斗",
+    "fsb_tpl_inventory_name": "库存管理",
+    "fsb_tpl_inventory_short": "库存",
+    "fsb_tpl_inventory_desc": "商品库存跟踪、补货提醒、出入库记录",
+    "fsb_tpl_finance_name": "财务记账",
+    "fsb_tpl_finance_short": "财务",
+    "fsb_tpl_finance_desc": "收支记录、发票管理、财务报表生成",
+    "fsb_tpl_email_name": "邮件营销",
+    "fsb_tpl_email_short": "营销",
+    "fsb_tpl_email_desc": "邮件模板、受众分组、发送排期、效果分析",
+    "fsb_tpl_social_name": "社交媒体管理",
+    "fsb_tpl_social_short": "社媒",
+    "fsb_tpl_social_desc": "多平台发布、排期、互动监控、数据分析",
+    "fsb_tpl_ticket_name": "工单系统",
+    "fsb_tpl_ticket_short": "工单",
+    "fsb_tpl_ticket_desc": "客户工单、分配、SLA 跟踪、满意度调查",
+    "fsb_ob_welcome_title": "欢迎使用 FSB",
+    "fsb_ob_welcome_desc": "Fusion Small Business 是一个跨 SaaS 的智能业务自动化工作台。\n无需编程，通过可视化工作流连接你的业务工具。",
+    "fsb_ob_connectors_title": "连接器",
+    "fsb_ob_connectors_desc": "连接你已有的 SaaS 工具：\nGoogle Workspace、Shopify、QuickBooks、Stripe 等。\n读操作自动执行，写操作需审批。",
+    "fsb_ob_skills_title": "技能",
+    "fsb_ob_skills_desc": "内置 15+ 智能技能：\n邮件摘要、数据提取、报表生成、翻译等。\n可自定义 Prompt 技能和 API 调用技能。",
+    "fsb_ob_workflow_title": "工作流",
+    "fsb_ob_workflow_desc": "可视化编排工作流：\n拖拽节点构建 DAG，条件分支，审批关卡。\n支持定时触发、事件触发、外部 API 触发。",
+    "fsb_ob_start_title": "开始使用",
+    "fsb_ob_start_desc": "创建一个工作台，选择模板或从零开始。\n所有数据本地运行，隐私安全。",
+    "fsb_ob_prev": "上一步",
+    "fsb_dlg_addConnector": "添加连接器",
+    "fsb_dlg_connecting": "连接中...",
+    "fsb_dlg_connect": "连接",
+    "fsb_dlg_selectConnector": "选择连接器",
+    "fsb_dlg_connector": "连接器",
+    "fsb_dlg_selectPh": "请选择...",
+    "fsb_dlg_supportFmt": "支持: %@",
+    "fsb_dlg_authMethod": "认证方式",
+    "fsb_dlg_auth": "认证",
+    "fsb_dlg_noAuth": "无认证",
+    "fsb_dlg_enterApiKey": "输入 API Key",
+    "fsb_dlg_scopesHint": "Scopes (逗号分隔)",
+    "fsb_dlg_createSkill": "创建技能",
+    "fsb_dlg_saving": "保存中...",
+    "fsb_dlg_create": "创建",
+    "fsb_dlg_skillName": "技能名称",
+    "fsb_dlg_displayName": "显示名称",
+    "fsb_dlg_mySkill": "我的技能",
+    "fsb_dlg_type": "类型",
+    "fsb_dlg_prompt": "提示词",
+    "fsb_dlg_function": "函数",
+    "fsb_dlg_chain": "链式",
+    "fsb_dlg_definition": "定义",
+    "fsb_dlg_inputSchema": "输入 Schema (JSON)",
+    "fsb_dlg_outputFormat": "输出格式",
+    "fsb_dlg_plainText": "纯文本",
+    "fsb_dlg_setSchedule": "设置排期",
+    "fsb_dlg_triggerMethod": "触发方式",
+    "fsb_dlg_manual": "手动",
+    "fsb_dlg_cron": "定时 (Cron)",
+    "fsb_dlg_eventDriven": "事件驱动",
+    "fsb_dlg_manualOnly": "仅在工作台手动触发运行",
+    "fsb_dlg_cronExpr": "Cron 表达式",
+    "fsb_dlg_commonPresets": "常用预设",
+    "fsb_dlg_preset_weekday9": "工作日9点",
+    "fsb_dlg_preset_hourly": "每小时",
+    "fsb_dlg_preset_daily8": "每天8点",
+    "fsb_dlg_preset_monday9": "每周一9点",
+    "fsb_dlg_preset_month1": "每月1号",
+    "fsb_dlg_eventTrigger": "事件触发器",
+    "fsb_dlg_eventPh": "如: data.updated, order.created",
+    "fsb_dlg_eventHint": "支持事件类型: 数据变更、新记录、状态更新等",
+    "fsb_dlg_approvalRequest": "审批请求",
+    "fsb_dlg_requestContent": "请求内容",
+    "fsb_dlg_editContent": "修改内容 (可选)",
+    "fsb_dlg_reject": "拒绝",
+    "fsb_dlg_processing": "处理中...",
+    "fsb_dlg_approve": "批准",
 ]
 
 let enUSTranslations: [String: String] = [
@@ -4872,6 +5086,113 @@ let enUSTranslations: [String: String] = [
     "ai_cfg_sumToolsNone": "Disabled",
     "ai_cfg_deleteBtn": "Delete Agent",
     "ai_cfg_saveDraft": "Save Draft",
+    "fsb_ws_renameAlertTitle": "Rename Workspace",
+    "fsb_ws_name": "Name",
+    "fsb_ws_exportTitle": "Export Workspace",
+    "fsb_ws_copyClipboard": "Copy to Clipboard",
+    "fsb_ws_emptyWorkspaces": "No workspaces",
+    "fsb_ws_noMatch": "No matching workspaces",
+    "fsb_ws_createWs": "Create Workspace",
+    "fsb_ws_headerTitle": "FSB Workbench",
+    "fsb_ws_newWs": "New Workspace",
+    "fsb_ws_listView": "List View",
+    "fsb_ws_gridView": "Grid View",
+    "fsb_ws_searchPh": "Search workspaces...",
+    "fsb_unnamed": "Unnamed",
+    "fsb_ws_connWfFmt": "%d conn · %d wf",
+    "fsb_ws_open": "Open",
+    "fsb_ws_rename": "Rename",
+    "fsb_ws_duplicate": "Duplicate",
+    "fsb_ws_export": "Export",
+    "fsb_ws_subtitle": "Cross-SaaS smart business workbench",
+    "fsb_ws_serviceDown": "FSB service not running",
+    "fsb_ws_usageGuide": "User Guide",
+    "fsb_ws_namePh": "e.g. Customer Management System",
+    "fsb_ws_descOpt": "Description (optional)",
+    "fsb_ws_descPh": "Describe the workspace purpose",
+    "fsb_ws_bindProjectOpt": "Bind project (optional)",
+    "fsb_ws_projectIdPh": "Project ID",
+    "fsb_ws_bindAgentOpt": "Bind agent (optional)",
+    "fsb_ws_importTemplate": "Import from template",
+    "fsb_ws_createBtn": "Create",
+    "fsb_ws_builtinTemplates": "Built-in templates",
+    "fsb_tpl_crm_name": "Customer Relationship Management",
+    "fsb_tpl_crm_short": "CRM",
+    "fsb_tpl_crm_desc": "Manage customers, follow-ups, sales pipeline",
+    "fsb_tpl_inventory_name": "Inventory Management",
+    "fsb_tpl_inventory_short": "Inventory",
+    "fsb_tpl_inventory_desc": "Track stock, restock alerts, in/out records",
+    "fsb_tpl_finance_name": "Finance & Bookkeeping",
+    "fsb_tpl_finance_short": "Finance",
+    "fsb_tpl_finance_desc": "Income/expense, invoices, financial reports",
+    "fsb_tpl_email_name": "Email Marketing",
+    "fsb_tpl_email_short": "Marketing",
+    "fsb_tpl_email_desc": "Email templates, segments, scheduling, analytics",
+    "fsb_tpl_social_name": "Social Media Management",
+    "fsb_tpl_social_short": "Social",
+    "fsb_tpl_social_desc": "Multi-platform publish, schedule, engagement, analytics",
+    "fsb_tpl_ticket_name": "Ticket System",
+    "fsb_tpl_ticket_short": "Tickets",
+    "fsb_tpl_ticket_desc": "Tickets, assignment, SLA tracking, surveys",
+    "fsb_ob_welcome_title": "Welcome to FSB",
+    "fsb_ob_welcome_desc": "Fusion Small Business is a cross-SaaS smart business automation workbench.\nNo coding needed — connect your tools via visual workflows.",
+    "fsb_ob_connectors_title": "Connectors",
+    "fsb_ob_connectors_desc": "Connect your existing SaaS tools:\nGoogle Workspace, Shopify, QuickBooks, Stripe, etc.\nReads run automatically; writes need approval.",
+    "fsb_ob_skills_title": "Skills",
+    "fsb_ob_skills_desc": "15+ built-in skills:\nEmail summaries, data extraction, report generation, translation, etc.\nCustomize prompt skills and API-call skills.",
+    "fsb_ob_workflow_title": "Workflows",
+    "fsb_ob_workflow_desc": "Build workflows visually:\nDrag nodes to form a DAG, conditional branches, approval gates.\nSchedule, event, and external API triggers.",
+    "fsb_ob_start_title": "Get Started",
+    "fsb_ob_start_desc": "Create a workspace from a template or from scratch.\nAll data runs locally — private and secure.",
+    "fsb_ob_prev": "Previous",
+    "fsb_dlg_addConnector": "Add Connector",
+    "fsb_dlg_connecting": "Connecting...",
+    "fsb_dlg_connect": "Connect",
+    "fsb_dlg_selectConnector": "Select connector",
+    "fsb_dlg_connector": "Connector",
+    "fsb_dlg_selectPh": "Select...",
+    "fsb_dlg_supportFmt": "Supports: %@",
+    "fsb_dlg_authMethod": "Auth method",
+    "fsb_dlg_auth": "Auth",
+    "fsb_dlg_noAuth": "No auth",
+    "fsb_dlg_enterApiKey": "Enter API Key",
+    "fsb_dlg_scopesHint": "Scopes (comma-separated)",
+    "fsb_dlg_createSkill": "Create Skill",
+    "fsb_dlg_saving": "Saving...",
+    "fsb_dlg_create": "Create",
+    "fsb_dlg_skillName": "Skill name",
+    "fsb_dlg_displayName": "Display name",
+    "fsb_dlg_mySkill": "My Skill",
+    "fsb_dlg_type": "Type",
+    "fsb_dlg_prompt": "Prompt",
+    "fsb_dlg_function": "Function",
+    "fsb_dlg_chain": "Chain",
+    "fsb_dlg_definition": "Definition",
+    "fsb_dlg_inputSchema": "Input Schema (JSON)",
+    "fsb_dlg_outputFormat": "Output format",
+    "fsb_dlg_plainText": "Plain text",
+    "fsb_dlg_setSchedule": "Set schedule",
+    "fsb_dlg_triggerMethod": "Trigger method",
+    "fsb_dlg_manual": "Manual",
+    "fsb_dlg_cron": "Scheduled (Cron)",
+    "fsb_dlg_eventDriven": "Event-driven",
+    "fsb_dlg_manualOnly": "Only triggered manually in workspace",
+    "fsb_dlg_cronExpr": "Cron expression",
+    "fsb_dlg_commonPresets": "Common presets",
+    "fsb_dlg_preset_weekday9": "Weekdays 9AM",
+    "fsb_dlg_preset_hourly": "Every hour",
+    "fsb_dlg_preset_daily8": "Daily 8AM",
+    "fsb_dlg_preset_monday9": "Every Monday 9AM",
+    "fsb_dlg_preset_month1": "1st of month",
+    "fsb_dlg_eventTrigger": "Event trigger",
+    "fsb_dlg_eventPh": "e.g. data.updated, order.created",
+    "fsb_dlg_eventHint": "Supported events: data change, new record, status update, etc.",
+    "fsb_dlg_approvalRequest": "Approval request",
+    "fsb_dlg_requestContent": "Request content",
+    "fsb_dlg_editContent": "Edit content (optional)",
+    "fsb_dlg_reject": "Reject",
+    "fsb_dlg_processing": "Processing...",
+    "fsb_dlg_approve": "Approve",
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -6344,6 +6665,113 @@ let jaJPTranslations: [String: String] = [
     "ai_cfg_sumToolsNone": "無効",
     "ai_cfg_deleteBtn": "Agentを削除",
     "ai_cfg_saveDraft": "下書き保存",
+    "fsb_ws_renameAlertTitle": "ワークスペース名変更",
+    "fsb_ws_name": "名前",
+    "fsb_ws_exportTitle": "ワークスペースをエクスポート",
+    "fsb_ws_copyClipboard": "クリップボードにコピー",
+    "fsb_ws_emptyWorkspaces": "ワークスペースがありません",
+    "fsb_ws_noMatch": "一致するワークスペースがありません",
+    "fsb_ws_createWs": "ワークスペース作成",
+    "fsb_ws_headerTitle": "FSB ワークベンチ",
+    "fsb_ws_newWs": "新規ワークスペース",
+    "fsb_ws_listView": "リスト表示",
+    "fsb_ws_gridView": "グリッド表示",
+    "fsb_ws_searchPh": "ワークスペースを検索...",
+    "fsb_unnamed": "無題",
+    "fsb_ws_connWfFmt": "%d連·%dフロー",
+    "fsb_ws_open": "開く",
+    "fsb_ws_rename": "名前変更",
+    "fsb_ws_duplicate": "複製",
+    "fsb_ws_export": "エクスポート",
+    "fsb_ws_subtitle": "クロスSaaSスマート業務ワークベンチ",
+    "fsb_ws_serviceDown": "FSBサービス未起動",
+    "fsb_ws_usageGuide": "使い方ガイド",
+    "fsb_ws_namePh": "例：顧客管理システム",
+    "fsb_ws_descOpt": "説明（任意）",
+    "fsb_ws_descPh": "ワークスペースの用途を説明",
+    "fsb_ws_bindProjectOpt": "プロジェクト連携（任意）",
+    "fsb_ws_projectIdPh": "プロジェクトID",
+    "fsb_ws_bindAgentOpt": "Agent連携（任意）",
+    "fsb_ws_importTemplate": "テンプレートからインポート",
+    "fsb_ws_createBtn": "作成",
+    "fsb_ws_builtinTemplates": "組み込みテンプレート",
+    "fsb_tpl_crm_name": "顧客関係管理",
+    "fsb_tpl_crm_short": "CRM",
+    "fsb_tpl_crm_desc": "顧客情報・フォローアップ・セールスパイプライン管理",
+    "fsb_tpl_inventory_name": "在庫管理",
+    "fsb_tpl_inventory_short": "在庫",
+    "fsb_tpl_inventory_desc": "商品在庫追跡・補充提醒・出入庫記録",
+    "fsb_tpl_finance_name": "財務記帳",
+    "fsb_tpl_finance_short": "財務",
+    "fsb_tpl_finance_desc": "収支記録・請求書管理・財務レポート生成",
+    "fsb_tpl_email_name": "メールマーケティング",
+    "fsb_tpl_email_short": "マーケティング",
+    "fsb_tpl_email_desc": "メールテンプレート・受众分组・送信スケジュール・効果分析",
+    "fsb_tpl_social_name": "ソーシャルメディア管理",
+    "fsb_tpl_social_short": "ソーシャル",
+    "fsb_tpl_social_desc": "マルチプラットフォーム公開・スケジュール・インタラクション監視・データ分析",
+    "fsb_tpl_ticket_name": "チケットシステム",
+    "fsb_tpl_ticket_short": "チケット",
+    "fsb_tpl_ticket_desc": "顧客チケット・割当・SLA追跡・満足度調査",
+    "fsb_ob_welcome_title": "FSBへようこそ",
+    "fsb_ob_welcome_desc": "Fusion Small BusinessはクロスSaaSのスマート業務自動化ワークベンチです。\nプログラミング不要、ビジュアルワークフローで業務ツールを連携。",
+    "fsb_ob_connectors_title": "コネクタ",
+    "fsb_ob_connectors_desc": "既存のSaaSツールを連携：\nGoogle Workspace、Shopify、QuickBooks、Stripeなど。\n読み取りは自動実行、書き込みは承認が必要。",
+    "fsb_ob_skills_title": "スキル",
+    "fsb_ob_skills_desc": "15以上のスマートスキル内蔵：\nメール要約・データ抽出・レポート生成・翻訳など。\nプロンプトスキルとAPI呼び出しスキルをカスタマイズ可能。",
+    "fsb_ob_workflow_title": "ワークフロー",
+    "fsb_ob_workflow_desc": "ビジュアルでワークフローを編成：\nドラッグでノードを組みDAG構築、条件分岐、承認ゲート。\nスケジュール・イベント・外部APIトリガー対応。",
+    "fsb_ob_start_title": "始める",
+    "fsb_ob_start_desc": "ワークスペースを作成、テンプレート選択またはゼロから。\nすべてのデータはローカル実行、プライバシー保護。",
+    "fsb_ob_prev": "前へ",
+    "fsb_dlg_addConnector": "コネクタ追加",
+    "fsb_dlg_connecting": "接続中...",
+    "fsb_dlg_connect": "接続",
+    "fsb_dlg_selectConnector": "コネクタを選択",
+    "fsb_dlg_connector": "コネクタ",
+    "fsb_dlg_selectPh": "選択してください...",
+    "fsb_dlg_supportFmt": "対応: %@",
+    "fsb_dlg_authMethod": "認証方式",
+    "fsb_dlg_auth": "認証",
+    "fsb_dlg_noAuth": "認証なし",
+    "fsb_dlg_enterApiKey": "API Keyを入力",
+    "fsb_dlg_scopesHint": "Scopes（カンマ区切り）",
+    "fsb_dlg_createSkill": "スキル作成",
+    "fsb_dlg_saving": "保存中...",
+    "fsb_dlg_create": "作成",
+    "fsb_dlg_skillName": "スキル名",
+    "fsb_dlg_displayName": "表示名",
+    "fsb_dlg_mySkill": "マイスキル",
+    "fsb_dlg_type": "タイプ",
+    "fsb_dlg_prompt": "プロンプト",
+    "fsb_dlg_function": "関数",
+    "fsb_dlg_chain": "チェーン",
+    "fsb_dlg_definition": "定義",
+    "fsb_dlg_inputSchema": "入力 Schema (JSON)",
+    "fsb_dlg_outputFormat": "出力フォーマット",
+    "fsb_dlg_plainText": "プレーンテキスト",
+    "fsb_dlg_setSchedule": "スケジュール設定",
+    "fsb_dlg_triggerMethod": "トリガー方式",
+    "fsb_dlg_manual": "手動",
+    "fsb_dlg_cron": "スケジュール (Cron)",
+    "fsb_dlg_eventDriven": "イベント駆動",
+    "fsb_dlg_manualOnly": "ワークスペースで手動実行のみ",
+    "fsb_dlg_cronExpr": "Cron式",
+    "fsb_dlg_commonPresets": "よく使うプリセット",
+    "fsb_dlg_preset_weekday9": "平日9時",
+    "fsb_dlg_preset_hourly": "毎時",
+    "fsb_dlg_preset_daily8": "毎日8時",
+    "fsb_dlg_preset_monday9": "毎週月曜9時",
+    "fsb_dlg_preset_month1": "毎月1日",
+    "fsb_dlg_eventTrigger": "イベントトリガー",
+    "fsb_dlg_eventPh": "例: data.updated, order.created",
+    "fsb_dlg_eventHint": "対応イベント: データ変更・新規レコード・ステータス更新など",
+    "fsb_dlg_approvalRequest": "承認リクエスト",
+    "fsb_dlg_requestContent": "リクエスト内容",
+    "fsb_dlg_editContent": "編集内容（任意）",
+    "fsb_dlg_reject": "拒否",
+    "fsb_dlg_processing": "処理中...",
+    "fsb_dlg_approve": "承認",
 ]
 
 let koKRTranslations: [String: String] = [
@@ -7816,6 +8244,113 @@ let koKRTranslations: [String: String] = [
     "ai_cfg_sumToolsNone": "비활성화",
     "ai_cfg_deleteBtn": "Agent 삭제",
     "ai_cfg_saveDraft": "초안 저장",
+    "fsb_ws_renameAlertTitle": "워크스페이스 이름 변경",
+    "fsb_ws_name": "이름",
+    "fsb_ws_exportTitle": "워크스페이스 내보내기",
+    "fsb_ws_copyClipboard": "클립보드에 복사",
+    "fsb_ws_emptyWorkspaces": "워크스페이스 없음",
+    "fsb_ws_noMatch": "일치하는 워크스페이스 없음",
+    "fsb_ws_createWs": "워크스페이스 생성",
+    "fsb_ws_headerTitle": "FSB 워크벤치",
+    "fsb_ws_newWs": "새 워크스페이스",
+    "fsb_ws_listView": "목록 보기",
+    "fsb_ws_gridView": "그리드 보기",
+    "fsb_ws_searchPh": "워크스페이스 검색...",
+    "fsb_unnamed": "이름 없음",
+    "fsb_ws_connWfFmt": "%d연결·%d흐름",
+    "fsb_ws_open": "열기",
+    "fsb_ws_rename": "이름 변경",
+    "fsb_ws_duplicate": "복제",
+    "fsb_ws_export": "내보내기",
+    "fsb_ws_subtitle": "크로스 SaaS 스마트 비즈니스 워크벤치",
+    "fsb_ws_serviceDown": "FSB 서비스 미실행",
+    "fsb_ws_usageGuide": "사용 가이드",
+    "fsb_ws_namePh": "예: 고객 관리 시스템",
+    "fsb_ws_descOpt": "설명 (선택)",
+    "fsb_ws_descPh": "워크스페이스 용도 설명",
+    "fsb_ws_bindProjectOpt": "프로젝트 연결 (선택)",
+    "fsb_ws_projectIdPh": "프로젝트 ID",
+    "fsb_ws_bindAgentOpt": "Agent 연결 (선택)",
+    "fsb_ws_importTemplate": "템플릿에서 가져오기",
+    "fsb_ws_createBtn": "생성",
+    "fsb_ws_builtinTemplates": "내장 템플릿",
+    "fsb_tpl_crm_name": "고객 관계 관리",
+    "fsb_tpl_crm_short": "CRM",
+    "fsb_tpl_crm_desc": "고객 정보, 후속 기록, 영업 파이프라인 관리",
+    "fsb_tpl_inventory_name": "재고 관리",
+    "fsb_tpl_inventory_short": "재고",
+    "fsb_tpl_inventory_desc": "재고 추적, 보충 알림, 입출고 기록",
+    "fsb_tpl_finance_name": "재무 기장",
+    "fsb_tpl_finance_short": "재무",
+    "fsb_tpl_finance_desc": "수입/지출, 청구서, 재무 보고서",
+    "fsb_tpl_email_name": "이메일 마케팅",
+    "fsb_tpl_email_short": "마케팅",
+    "fsb_tpl_email_desc": "이메일 템플릿, 대상 그룹, 발송 예약, 효과 분석",
+    "fsb_tpl_social_name": "소셜 미디어 관리",
+    "fsb_tpl_social_short": "소셜",
+    "fsb_tpl_social_desc": "멀티 플랫폼 게시, 예약, 상호작용 모니터링, 데이터 분석",
+    "fsb_tpl_ticket_name": "티켓 시스템",
+    "fsb_tpl_ticket_short": "티켓",
+    "fsb_tpl_ticket_desc": "고객 티켓, 할당, SLA 추적, 만족도 조사",
+    "fsb_ob_welcome_title": "FSB에 오신 것을 환영합니다",
+    "fsb_ob_welcome_desc": "Fusion Small Business는 크로스 SaaS 스마트 비즈니스 자동화 워크벤치입니다.\n코딩 없이 시각적 워크플로로 비즈니스 도구를 연결하세요.",
+    "fsb_ob_connectors_title": "커넥터",
+    "fsb_ob_connectors_desc": "기존 SaaS 도구를 연결하세요:\nGoogle Workspace, Shopify, QuickBooks, Stripe 등.\n읽기는 자동 실행, 쓰기는 승인 필요.",
+    "fsb_ob_skills_title": "스킬",
+    "fsb_ob_skills_desc": "15개 이상의 스마트 스킬 내장:\n이메일 요약, 데이터 추출, 보고서 생성, 번역 등.\n프롬프트 스킬과 API 호출 스킬을 사용자 정의.",
+    "fsb_ob_workflow_title": "워크플로",
+    "fsb_ob_workflow_desc": "시각적으로 워크플로를 구성하세요:\n드래그로 노드를 연결해 DAG 구성, 조건 분기, 승인 게이트.\n예약, 이벤트, 외부 API 트리거 지원.",
+    "fsb_ob_start_title": "시작하기",
+    "fsb_ob_start_desc": "워크스페이스를 생성하세요. 템플릿 선택 또는 처음부터.\n모든 데이터는 로컬 실행, 프라이버시 보장.",
+    "fsb_ob_prev": "이전",
+    "fsb_dlg_addConnector": "커넥터 추가",
+    "fsb_dlg_connecting": "연결 중...",
+    "fsb_dlg_connect": "연결",
+    "fsb_dlg_selectConnector": "커넥터 선택",
+    "fsb_dlg_connector": "커넥터",
+    "fsb_dlg_selectPh": "선택...",
+    "fsb_dlg_supportFmt": "지원: %@",
+    "fsb_dlg_authMethod": "인증 방식",
+    "fsb_dlg_auth": "인증",
+    "fsb_dlg_noAuth": "인증 없음",
+    "fsb_dlg_enterApiKey": "API Key 입력",
+    "fsb_dlg_scopesHint": "Scopes (쉼표 구분)",
+    "fsb_dlg_createSkill": "스킬 생성",
+    "fsb_dlg_saving": "저장 중...",
+    "fsb_dlg_create": "생성",
+    "fsb_dlg_skillName": "스킬 이름",
+    "fsb_dlg_displayName": "표시 이름",
+    "fsb_dlg_mySkill": "내 스킬",
+    "fsb_dlg_type": "유형",
+    "fsb_dlg_prompt": "프롬프트",
+    "fsb_dlg_function": "함수",
+    "fsb_dlg_chain": "체인",
+    "fsb_dlg_definition": "정의",
+    "fsb_dlg_inputSchema": "입력 Schema (JSON)",
+    "fsb_dlg_outputFormat": "출력 형식",
+    "fsb_dlg_plainText": "일반 텍스트",
+    "fsb_dlg_setSchedule": "스케줄 설정",
+    "fsb_dlg_triggerMethod": "트리거 방식",
+    "fsb_dlg_manual": "수동",
+    "fsb_dlg_cron": "예약 (Cron)",
+    "fsb_dlg_eventDriven": "이벤트 구동",
+    "fsb_dlg_manualOnly": "워크스페이스에서 수동 실행만",
+    "fsb_dlg_cronExpr": "Cron 식",
+    "fsb_dlg_commonPresets": "자주 쓰는 프리셋",
+    "fsb_dlg_preset_weekday9": "평일 9시",
+    "fsb_dlg_preset_hourly": "매시",
+    "fsb_dlg_preset_daily8": "매일 8시",
+    "fsb_dlg_preset_monday9": "매주 월 9시",
+    "fsb_dlg_preset_month1": "매월 1일",
+    "fsb_dlg_eventTrigger": "이벤트 트리거",
+    "fsb_dlg_eventPh": "예: data.updated, order.created",
+    "fsb_dlg_eventHint": "지원 이벤트: 데이터 변경, 신규 레코드, 상태 업데이트 등",
+    "fsb_dlg_approvalRequest": "승인 요청",
+    "fsb_dlg_requestContent": "요청 내용",
+    "fsb_dlg_editContent": "편집 내용 (선택)",
+    "fsb_dlg_reject": "거절",
+    "fsb_dlg_processing": "처리 중...",
+    "fsb_dlg_approve": "승인",
 ]
 
 // MARK: - 国际化文本视图
