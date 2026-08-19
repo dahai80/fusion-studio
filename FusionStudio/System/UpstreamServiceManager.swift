@@ -184,12 +184,6 @@ final class UpstreamServiceManager: ObservableObject {
                             repoPathRaw: "~/fusion/fusion-design",
                             healthKind: .httpGet, healthEndpoint: "",
                             status: .notApplicable, message: "CLI 工具-无需启动"),
-            UpstreamService(id: "fusion-cowork",
-                            displayName: "Fusion-Cowork 协作",
-                            icon: "desktopcomputer",
-                            isCritical: false, startOrder: 5,
-                            repoPathRaw: "~/fusion/fusion-cowork",
-                            healthKind: .socket, healthEndpoint: "/tmp/fusion-cowork.sock"),
             UpstreamService(id: "fusion-model-hub",
                             displayName: "Fusion Model Hub",
                             icon: "shippingbox",
@@ -353,7 +347,7 @@ final class UpstreamServiceManager: ObservableObject {
                 continue
             }
             // .socket 健康探测自足：UDS connect 成功即存活，不依赖 start.sh
-            // （fusion-cowork 无 start.sh，但 desk_rpc 由 fusion-studio start.sh 拉起）
+            // （fusion-cowork 根目录已内置 start.sh，v0.2.12 起托管 desk_rpc + HTTP 11438）
             if svc.healthKind == .socket {
                 let healthy = await probeHealth(svc)
                 if healthy {
