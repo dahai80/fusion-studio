@@ -1368,6 +1368,35 @@ enum I18nKey: String, CaseIterable {
     case proj_ragScopeManual = "proj_ragScopeManual"
     case proj_ragScopeSpecify = "proj_ragScopeSpecify"
     case proj_ragScopeConfirm = "proj_ragScopeConfirm"
+    case proj_panelTitle = "proj_panelTitle"
+    case proj_panelSort = "proj_panelSort"
+    case proj_panelNew = "proj_panelNew"
+    case proj_emptyTitle = "proj_emptyTitle"
+    case proj_emptyHint = "proj_emptyHint"
+    case proj_panelNewProject = "proj_panelNewProject"
+    case proj_tokensFmt = "proj_tokensFmt"
+    case proj_panelKbEmpty = "proj_panelKbEmpty"
+    case proj_panelAutoScan = "proj_panelAutoScan"
+    case proj_panelCustomInst = "proj_panelCustomInst"
+    case proj_panelChatHistory = "proj_panelChatHistory"
+    case proj_panelNewChat = "proj_panelNewChat"
+    case proj_sessionsFmt = "proj_sessionsFmt"
+    case proj_panelChatEmpty = "proj_panelChatEmpty"
+    case proj_panelStartConv = "proj_panelStartConv"
+    case proj_msgsFmt = "proj_msgsFmt"
+    case proj_panelSelect = "proj_panelSelect"
+    case proj_panelOpenFolder = "proj_panelOpenFolder"
+    case proj_panelOpen = "proj_panelOpen"
+    case proj_panelAddKbFiles = "proj_panelAddKbFiles"
+    case proj_panelDefaultModel = "proj_panelDefaultModel"
+    case proj_panelModelPh = "proj_panelModelPh"
+    case proj_panelDefault = "proj_panelDefault"
+    case proj_panelTempFmt = "proj_panelTempFmt"
+    case proj_panelMaxTokensFmt = "proj_panelMaxTokensFmt"
+    case proj_panelAutoLoadClaude = "proj_panelAutoLoadClaude"
+    case proj_panelAutoScanKb = "proj_panelAutoScanKb"
+    case proj_tabSessions = "proj_tabSessions"
+    case proj_tabSettings = "proj_tabSettings"
 }
 
 // MARK: - 翻译管理器
@@ -2392,6 +2421,35 @@ let zhCNTranslations: [String: String] = [
     "proj_ragScopeManual": "MANUAL（手动指定范围）",
     "proj_ragScopeSpecify": "指定检索范围",
     "proj_ragScopeConfirm": "确认",
+    "proj_panelTitle": "项目",
+    "proj_panelSort": "排序：",
+    "proj_panelNew": "新建",
+    "proj_emptyTitle": "想开始一个项目吗？",
+    "proj_emptyHint": "在一个空间内上传素材、设置自定义指令并整理对话。",
+    "proj_panelNewProject": "新建项目",
+    "proj_tokensFmt": "%d tokens",
+    "proj_panelKbEmpty": "暂无知识库文件",
+    "proj_panelAutoScan": "自动扫描",
+    "proj_panelCustomInst": "自定义指令",
+    "proj_panelChatHistory": "聊天记录",
+    "proj_panelNewChat": "新建会话",
+    "proj_sessionsFmt": "%d 个会话",
+    "proj_panelChatEmpty": "暂无会话",
+    "proj_panelStartConv": "开始对话",
+    "proj_msgsFmt": "%d 条消息",
+    "proj_panelSelect": "选择一个项目",
+    "proj_panelOpenFolder": "打开项目文件夹",
+    "proj_panelOpen": "打开",
+    "proj_panelAddKbFiles": "添加知识库文件",
+    "proj_panelDefaultModel": "默认模型",
+    "proj_panelModelPh": "例如 qwen3-9b",
+    "proj_panelDefault": "默认",
+    "proj_panelTempFmt": "温度: %@",
+    "proj_panelMaxTokensFmt": "最大 Tokens: %d",
+    "proj_panelAutoLoadClaude": "自动加载 CLAUDE.md",
+    "proj_panelAutoScanKb": "自动扫描知识库文件",
+    "proj_tabSessions": "会话",
+    "proj_tabSettings": "设置",
 ]
 
 let enUSTranslations: [String: String] = [
@@ -3371,6 +3429,35 @@ let enUSTranslations: [String: String] = [
     "proj_ragScopeManual": "MANUAL (manual scope)",
     "proj_ragScopeSpecify": "Specify retrieval scope",
     "proj_ragScopeConfirm": "Confirm",
+    "proj_panelTitle": "Projects",
+    "proj_panelSort": "Sort:",
+    "proj_panelNew": "New",
+    "proj_emptyTitle": "Looking to start a project?",
+    "proj_emptyHint": "Upload materials, set custom instructions, and organize conversations in one space.",
+    "proj_panelNewProject": "New Project",
+    "proj_tokensFmt": "%d tokens",
+    "proj_panelKbEmpty": "No knowledge files yet",
+    "proj_panelAutoScan": "Auto Scan",
+    "proj_panelCustomInst": "Custom Instructions",
+    "proj_panelChatHistory": "Chat History",
+    "proj_panelNewChat": "New Chat",
+    "proj_sessionsFmt": "%d sessions",
+    "proj_panelChatEmpty": "No chat sessions yet",
+    "proj_panelStartConv": "Start a Conversation",
+    "proj_msgsFmt": "%d msgs",
+    "proj_panelSelect": "Select a project",
+    "proj_panelOpenFolder": "Open Project Folder",
+    "proj_panelOpen": "Open",
+    "proj_panelAddKbFiles": "Add Knowledge Files",
+    "proj_panelDefaultModel": "Default Model",
+    "proj_panelModelPh": "e.g. qwen3-9b",
+    "proj_panelDefault": "Default",
+    "proj_panelTempFmt": "Temperature: %@",
+    "proj_panelMaxTokensFmt": "Max Tokens: %d",
+    "proj_panelAutoLoadClaude": "Auto-load CLAUDE.md",
+    "proj_panelAutoScanKb": "Auto-scan knowledge files",
+    "proj_tabSessions": "Sessions",
+    "proj_tabSettings": "Settings",
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -4344,6 +4431,35 @@ let jaJPTranslations: [String: String] = [
     "proj_ragScopeManual": "MANUAL（手動範囲指定）",
     "proj_ragScopeSpecify": "検索範囲を指定",
     "proj_ragScopeConfirm": "確認",
+    "proj_panelTitle": "プロジェクト",
+    "proj_panelSort": "並び替え:",
+    "proj_panelNew": "新規",
+    "proj_emptyTitle": "プロジェクトを始めますか？",
+    "proj_emptyHint": "素材のアップロード、カスタム指示の設定、会話の整理を一か所で。",
+    "proj_panelNewProject": "新規プロジェクト",
+    "proj_tokensFmt": "%d トークン",
+    "proj_panelKbEmpty": "ナレッジファイルはまだありません",
+    "proj_panelAutoScan": "自動スキャン",
+    "proj_panelCustomInst": "カスタム指示",
+    "proj_panelChatHistory": "チャット履歴",
+    "proj_panelNewChat": "新規チャット",
+    "proj_sessionsFmt": "%d セッション",
+    "proj_panelChatEmpty": "チャットセッションはまだありません",
+    "proj_panelStartConv": "会話を始める",
+    "proj_msgsFmt": "%d 件のメッセージ",
+    "proj_panelSelect": "プロジェクトを選択",
+    "proj_panelOpenFolder": "プロジェクトフォルダを開く",
+    "proj_panelOpen": "開く",
+    "proj_panelAddKbFiles": "ナレッジファイルを追加",
+    "proj_panelDefaultModel": "デフォルトモデル",
+    "proj_panelModelPh": "例: qwen3-9b",
+    "proj_panelDefault": "デフォルト",
+    "proj_panelTempFmt": "温度: %@",
+    "proj_panelMaxTokensFmt": "最大トークン: %d",
+    "proj_panelAutoLoadClaude": "CLAUDE.md を自動読み込み",
+    "proj_panelAutoScanKb": "ナレッジファイルを自動スキャン",
+    "proj_tabSessions": "セッション",
+    "proj_tabSettings": "設定",
 ]
 
 let koKRTranslations: [String: String] = [
@@ -5317,6 +5433,35 @@ let koKRTranslations: [String: String] = [
     "proj_ragScopeManual": "MANUAL (수동 범위 지정)",
     "proj_ragScopeSpecify": "검색 범위 지정",
     "proj_ragScopeConfirm": "확인",
+    "proj_panelTitle": "프로젝트",
+    "proj_panelSort": "정렬:",
+    "proj_panelNew": "새로 만들기",
+    "proj_emptyTitle": "프로젝트를 시작하시겠습니까?",
+    "proj_emptyHint": "한 공간에서 자료 업로드, 사용자 지정 지시 설정, 대화 정리.",
+    "proj_panelNewProject": "새 프로젝트",
+    "proj_tokensFmt": "%d 토큰",
+    "proj_panelKbEmpty": "지식 파일이 아직 없습니다",
+    "proj_panelAutoScan": "자동 스캔",
+    "proj_panelCustomInst": "사용자 지정 지시",
+    "proj_panelChatHistory": "채팅 기록",
+    "proj_panelNewChat": "새 채팅",
+    "proj_sessionsFmt": "%d 세션",
+    "proj_panelChatEmpty": "채팅 세션이 아직 없습니다",
+    "proj_panelStartConv": "대화 시작",
+    "proj_msgsFmt": "%d개 메시지",
+    "proj_panelSelect": "프로젝트 선택",
+    "proj_panelOpenFolder": "프로젝트 폴더 열기",
+    "proj_panelOpen": "열기",
+    "proj_panelAddKbFiles": "지식 파일 추가",
+    "proj_panelDefaultModel": "기본 모델",
+    "proj_panelModelPh": "예: qwen3-9b",
+    "proj_panelDefault": "기본값",
+    "proj_panelTempFmt": "온도: %@",
+    "proj_panelMaxTokensFmt": "최대 토큰: %d",
+    "proj_panelAutoLoadClaude": "CLAUDE.md 자동 로드",
+    "proj_panelAutoScanKb": "지식 파일 자동 스캔",
+    "proj_tabSessions": "세션",
+    "proj_tabSettings": "설정",
 ]
 
 // MARK: - 国际化文本视图

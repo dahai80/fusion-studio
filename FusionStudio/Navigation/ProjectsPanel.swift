@@ -12,6 +12,14 @@ enum ProjectSortOption: String, CaseIterable {
     case lastUpdated = "Last Updated"
     case dateCreated = "Date Created"
     case alphabetical = "Alphabetical"
+
+    var localLabel: String {
+        switch self {
+        case .lastUpdated: return I18nManager.shared.t(.proj_sortLastUpdated)
+        case .dateCreated: return I18nManager.shared.t(.proj_sortDateCreated)
+        case .alphabetical: return I18nManager.shared.t(.proj_sortAlphabetical)
+        }
+    }
 }
 
 enum ProjectDetailTab: String, CaseIterable {
@@ -19,10 +27,20 @@ enum ProjectDetailTab: String, CaseIterable {
     case instructions = "Instructions"
     case sessions = "Sessions"
     case settings = "Settings"
+
+    var localLabel: String {
+        switch self {
+        case .knowledge: return I18nManager.shared.t(.proj_tabKnowledge)
+        case .instructions: return I18nManager.shared.t(.proj_tabInstructions)
+        case .sessions: return I18nManager.shared.t(.proj_tabSessions)
+        case .settings: return I18nManager.shared.t(.proj_tabSettings)
+        }
+    }
 }
 
 struct ProjectsPanel: View {
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @StateObject private var pm = FusionProjectManager.shared
     @State private var searchText = ""
     @State private var sortOption: ProjectSortOption = .dateCreated
@@ -88,7 +106,7 @@ struct ProjectsPanel: View {
 
     private var headerBar: some View {
         HStack(spacing: theme.spacingS) {
-            Text("Projects")
+            Text(i18n.t(.proj_panelTitle))
                 .font(.system(size: theme.titleSize, weight: .semibold))
                 .foregroundStyle(theme.text)
 
@@ -105,17 +123,17 @@ struct ProjectsPanel: View {
                 ForEach(ProjectSortOption.allCases, id: \.self) { option in
                     Button(action: { sortOption = option }) {
                         HStack {
-                            Text(option.rawValue)
+                            Text(option.localLabel)
                             if sortOption == option { Image(systemName: "checkmark") }
                         }
                     }
                 }
             } label: {
                 HStack(spacing: 4) {
-                    Text("Sort:")
+                    Text(i18n.t(.proj_panelSort))
                         .font(.system(size: theme.footnoteSize))
                         .foregroundStyle(theme.textTertiary)
-                    Text(sortOption.rawValue)
+                    Text(sortOption.localLabel)
                         .font(.system(size: theme.footnoteSize, weight: .medium))
                         .foregroundStyle(theme.text)
                     Image(systemName: "chevron.down")
@@ -128,7 +146,7 @@ struct ProjectsPanel: View {
                 HStack(spacing: 4) {
                     Image(systemName: "plus")
                         .font(.system(size: theme.iconXS))
-                    Text("New")
+                    Text(i18n.t(.proj_panelNew))
                         .font(.system(size: theme.footnoteSize, weight: .medium))
                 }
                 .foregroundStyle(theme.accent)
@@ -145,10 +163,10 @@ struct ProjectsPanel: View {
             Image(systemName: "folder.badge.plus")
                 .font(.system(size: 48))
                 .foregroundStyle(theme.textTertiary)
-            Text("Looking to start a project?")
+            Text(i18n.t(.proj_emptyTitle))
                 .font(.system(size: theme.textSize, weight: .semibold))
                 .foregroundStyle(theme.text)
-            Text("Upload materials, set custom instructions, and organize conversations in one space.")
+            Text(i18n.t(.proj_emptyHint))
                 .font(.system(size: theme.footnoteSize))
                 .foregroundStyle(theme.textSecondary)
                 .multilineTextAlignment(.center)
@@ -156,7 +174,7 @@ struct ProjectsPanel: View {
             Button(action: { openLocalFolder() }) {
                 HStack(spacing: theme.spacingXS) {
                     Image(systemName: "plus")
-                    Text("New Project")
+                    Text(i18n.t(.proj_panelNewProject))
                         .font(.system(size: theme.textSize, weight: .medium))
                 }
                 .foregroundStyle(.white)
@@ -219,7 +237,7 @@ struct ProjectsPanel: View {
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.textTertiary)
                     if project.hasKnowledge {
-                        Text("\(project.knowledgeFiles.count) files")
+                        Text(String(format: i18n.t(.proj_fileCountFmt), project.knowledgeFiles.count))
                             .font(.system(size: 9, design: .monospaced))
                             .foregroundStyle(theme.textQuaternary)
                     }
@@ -233,14 +251,14 @@ struct ProjectsPanel: View {
         .background(pm.activeProject?.id == project.id ? theme.accent.opacity(0.05) : Color.clear)
         .contextMenu {
             Button(action: { pm.openProject(project); showDetail = true; instructionText = project.customInstructions }) {
-                Label("Open", systemImage: "folder")
+                Label(i18n.t(.proj_panelOpen), systemImage: "folder")
             }
             Button(action: { duplicateProject(project) }) {
-                Label("Duplicate", systemImage: "doc.on.doc")
+                Label(i18n.t(.proj_menuDuplicate), systemImage: "doc.on.doc")
             }
             Divider()
             Button(role: .destructive, action: { deleteProject(project) }) {
-                Label("Delete", systemImage: "trash")
+                Label(i18n.t(.proj_menuDelete), systemImage: "trash")
             }
         }
     }
@@ -296,7 +314,7 @@ struct ProjectsPanel: View {
                     HStack(spacing: 4) {
                         Image(systemName: tabIcon(tab))
                             .font(.system(size: theme.iconXS))
-                        Text(tab.rawValue)
+                        Text(tab.localLabel)
                             .font(.system(size: theme.footnoteSize, weight: detailTab == tab ? .medium : .regular))
                     }
                     .foregroundStyle(detailTab == tab ? theme.accent : theme.textTertiary)
@@ -326,11 +344,11 @@ struct ProjectsPanel: View {
     private func knowledgeTab(_ project: FusionProject) -> some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
             HStack {
-                Text("Knowledge Base")
+                Text(i18n.t(.proj_kbTitle))
                     .font(.system(size: theme.textSize, weight: .semibold))
                     .foregroundStyle(theme.text)
                 Spacer()
-                Text("\(project.totalKnowledgeTokens) tokens")
+                Text(String(format: i18n.t(.proj_tokensFmt), project.totalKnowledgeTokens))
                     .font(.system(size: theme.captionSize, design: .monospaced))
                     .foregroundStyle(theme.textTertiary)
             }
@@ -340,7 +358,7 @@ struct ProjectsPanel: View {
                     Image(systemName: "doc.text.magnifyingglass")
                         .font(.system(size: 32))
                         .foregroundStyle(theme.textTertiary)
-                    Text("No knowledge files yet")
+                    Text(i18n.t(.proj_panelKbEmpty))
                         .font(.system(size: theme.footnoteSize))
                         .foregroundStyle(theme.textSecondary)
                 }
@@ -356,7 +374,7 @@ struct ProjectsPanel: View {
                 Button(action: { addKnowledgeFile() }) {
                     HStack(spacing: 4) {
                         Image(systemName: "plus")
-                        Text("Add File")
+                        Text(i18n.t(.proj_kbAddFile))
                     }
                     .font(.system(size: theme.footnoteSize, weight: .medium))
                     .foregroundStyle(theme.accent)
@@ -366,7 +384,7 @@ struct ProjectsPanel: View {
                 Button(action: { scanKnowledge() }) {
                     HStack(spacing: 4) {
                         Image(systemName: "magnifyingglass")
-                        Text("Auto Scan")
+                        Text(i18n.t(.proj_panelAutoScan))
                     }
                     .font(.system(size: theme.footnoteSize, weight: .medium))
                     .foregroundStyle(theme.accent)
@@ -388,7 +406,7 @@ struct ProjectsPanel: View {
                     .font(.system(size: theme.footnoteSize, weight: .medium))
                     .foregroundStyle(theme.text)
                     .lineLimit(1)
-                Text("\(file.tokenCount) tokens")
+                Text(String(format: i18n.t(.proj_tokensFmt), file.tokenCount))
                     .font(.system(size: 9, design: .monospaced))
                     .foregroundStyle(theme.textQuaternary)
             }
@@ -410,7 +428,7 @@ struct ProjectsPanel: View {
 
     private func instructionsTab(_ project: FusionProject) -> some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            Text("Custom Instructions")
+            Text(i18n.t(.proj_panelCustomInst))
                 .font(.system(size: theme.textSize, weight: .semibold))
                 .foregroundStyle(theme.text)
 
@@ -424,14 +442,14 @@ struct ProjectsPanel: View {
                     .stroke(theme.textTertiary.opacity(0.2), lineWidth: 1))
 
             HStack {
-                Text("\(estimateTokenCount(instructionText)) tokens")
+                Text(String(format: i18n.t(.proj_tokensFmt), estimateTokenCount(instructionText)))
                     .font(.system(size: 9, design: .monospaced))
                     .foregroundStyle(theme.textQuaternary)
                 Spacer()
                 Button(action: { saveInstructions() }) {
                     HStack(spacing: 4) {
                         Image(systemName: "checkmark")
-                        Text("Save")
+                        Text(i18n.t(.save))
                     }
                     .font(.system(size: theme.footnoteSize, weight: .medium))
                     .foregroundStyle(.white)
@@ -453,14 +471,14 @@ struct ProjectsPanel: View {
     private func sessionsTab(_ project: FusionProject) -> some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
             HStack {
-                Text("Chat History")
+                Text(i18n.t(.proj_panelChatHistory))
                     .font(.system(size: theme.textSize, weight: .semibold))
                     .foregroundStyle(theme.text)
                 Spacer()
                 Button(action: { createNewChat(project) }) {
                     HStack(spacing: 4) {
                         Image(systemName: "plus")
-                        Text("New Chat")
+                        Text(i18n.t(.proj_panelNewChat))
                     }
                     .font(.system(size: theme.footnoteSize, weight: .medium))
                     .foregroundStyle(.white)
@@ -469,7 +487,7 @@ struct ProjectsPanel: View {
                     .background(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous).fill(theme.accent))
                 }
                 .buttonStyle(.plain)
-                Text("\(project.chats.count) sessions")
+                Text(String(format: i18n.t(.proj_sessionsFmt), project.chats.count))
                     .font(.system(size: theme.captionSize, design: .monospaced))
                     .foregroundStyle(theme.textTertiary)
             }
@@ -479,13 +497,13 @@ struct ProjectsPanel: View {
                     Image(systemName: "bubble.left.and.bubble.right")
                         .font(.system(size: 32))
                         .foregroundStyle(theme.textTertiary)
-                    Text("No chat sessions yet")
+                    Text(i18n.t(.proj_panelChatEmpty))
                         .font(.system(size: theme.footnoteSize))
                         .foregroundStyle(theme.textSecondary)
                     Button(action: { createNewChat(project) }) {
                         HStack(spacing: 4) {
                             Image(systemName: "plus.circle")
-                            Text("Start a Conversation")
+                            Text(i18n.t(.proj_panelStartConv))
                         }
                         .font(.system(size: theme.footnoteSize, weight: .medium))
                         .foregroundStyle(theme.accent)
@@ -509,7 +527,7 @@ struct ProjectsPanel: View {
         Task {
             do {
                 let model = project.settings.defaultModel.isEmpty ? nil : project.settings.defaultModel
-                _ = try await pm.createChat(projectId: project.id, title: "New Chat", model: model)
+                _ = try await pm.createChat(projectId: project.id, title: I18nManager.shared.t(.proj_panelNewChat), model: model)
                 projectsLog.info("New chat created in project: \(project.name)")
             } catch {
                 projectsLog.error("Create chat failed: \(error.localizedDescription)")
@@ -529,9 +547,9 @@ struct ProjectsPanel: View {
                     .foregroundStyle(theme.text)
                     .lineLimit(1)
                 HStack(spacing: theme.spacingXS) {
-                    Text("\(session.messageCount) msgs")
+                    Text(String(format: i18n.t(.proj_msgsFmt), session.messageCount))
                     Text("·")
-                    Text("\(session.tokenUsage) tokens")
+                    Text(String(format: i18n.t(.proj_tokensFmt), session.tokenUsage))
                 }
                 .font(.system(size: 9, design: .monospaced))
                 .foregroundStyle(theme.textQuaternary)
@@ -569,7 +587,7 @@ struct ProjectsPanel: View {
             Image(systemName: "arrow.left")
                 .font(.system(size: 32))
                 .foregroundStyle(theme.textTertiary)
-            Text("Select a project")
+            Text(i18n.t(.proj_panelSelect))
                 .font(.system(size: theme.textSize, weight: .medium))
                 .foregroundStyle(theme.textSecondary)
             Spacer()
@@ -584,8 +602,8 @@ struct ProjectsPanel: View {
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
-        panel.title = "Open Project Folder"
-        panel.prompt = "Open"
+        panel.title = i18n.t(.proj_panelOpenFolder)
+        panel.prompt = i18n.t(.proj_panelOpen)
 
         guard panel.runModal() == .OK, let url = panel.url else { return }
         let project = pm.createProject(name: url.lastPathComponent, rootPath: url.path)
@@ -602,7 +620,7 @@ struct ProjectsPanel: View {
         panel.canChooseFiles = true
         panel.canChooseDirectories = false
         panel.allowsMultipleSelection = true
-        panel.title = "Add Knowledge Files"
+        panel.title = i18n.t(.proj_panelAddKbFiles)
 
         guard panel.runModal() == .OK else { return }
         guard let project = pm.activeProject else { return }
@@ -654,7 +672,7 @@ struct ProjectsPanel: View {
     private func duplicateProject(_ project: FusionProject) {
         Task {
             do {
-                _ = try await pm.duplicateProjectBackend(project.id, name: "\(project.name) Copy")
+                _ = try await pm.duplicateProjectBackend(project.id, name: project.name + I18nManager.shared.t(.proj_dupCopySuffix))
                 projectsLog.info("Project duplicated: \(project.name)")
             } catch {
                 projectsLog.error("Duplicate failed: \(error.localizedDescription)")
@@ -666,9 +684,9 @@ struct ProjectsPanel: View {
 
     private func relativeTime(_ date: Date) -> String {
         let interval = Date().timeIntervalSince(date)
-        if interval < 3600 { return "\(Int(interval / 60))m ago" }
-        if interval < 86400 { return "\(Int(interval / 3600))h ago" }
-        if interval < 604800 { return "\(Int(interval / 86400))d ago" }
+        if interval < 3600 { return String(format: i18n.t(.proj_minAgoFmt), Int(interval / 60)) }
+        if interval < 86400 { return String(format: i18n.t(.proj_hourAgoFmt), Int(interval / 3600)) }
+        if interval < 604800 { return String(format: i18n.t(.proj_dayAgoFmt), Int(interval / 86400)) }
         let formatter = DateFormatter()
         formatter.dateStyle = .short
         return formatter.string(from: date)
@@ -691,6 +709,7 @@ private struct SettingsTabContent: View {
     let theme: StudioTheme
 
     @EnvironmentObject var agentBridge: AgentBridge
+    @StateObject private var i18n = I18nManager.shared
     @State private var defaultModel: String
     @State private var temperature: Double
     @State private var maxTokens: Int
@@ -709,21 +728,21 @@ private struct SettingsTabContent: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            Text("Project Settings")
+            Text(i18n.t(.proj_menuSettings))
                 .font(.system(size: theme.textSize, weight: .semibold))
                 .foregroundStyle(theme.text)
 
             VStack(alignment: .leading, spacing: theme.spacingS) {
-                Text("Default Model")
+                Text(i18n.t(.proj_panelDefaultModel))
                     .font(.system(size: theme.footnoteSize))
                     .foregroundStyle(theme.textSecondary)
                 if agentBridge.models.isEmpty {
-                TextField("e.g. qwen3-9b", text: $defaultModel)
+                TextField(i18n.t(.proj_panelModelPh), text: $defaultModel)
                     .textFieldStyle(.roundedBorder)
                     .font(.system(size: theme.footnoteSize))
                 } else {
-                Picker("Default Model", selection: $defaultModel) {
-                    Text("Default").tag("")
+                Picker(i18n.t(.proj_panelDefaultModel), selection: $defaultModel) {
+                    Text(i18n.t(.proj_panelDefault)).tag("")
                     ForEach(agentBridge.models, id: \.id) { m in
                         Text(m.id).tag(m.id)
                     }
@@ -734,14 +753,14 @@ private struct SettingsTabContent: View {
             }
 
             VStack(alignment: .leading, spacing: theme.spacingS) {
-                Text("Temperature: \(String(format: "%.1f", temperature))")
+                Text(String(format: i18n.t(.proj_panelTempFmt), String(format: "%.1f", temperature)))
                     .font(.system(size: theme.footnoteSize))
                     .foregroundStyle(theme.textSecondary)
                 Slider(value: $temperature, in: 0...2, step: 0.1)
             }
 
             VStack(alignment: .leading, spacing: theme.spacingS) {
-                Text("Max Tokens: \(maxTokens)")
+                Text(String(format: i18n.t(.proj_panelMaxTokensFmt), maxTokens))
                     .font(.system(size: theme.footnoteSize))
                     .foregroundStyle(theme.textSecondary)
                 Stepper(value: $maxTokens, in: 256...8192, step: 256) {
@@ -750,18 +769,18 @@ private struct SettingsTabContent: View {
                 }
             }
 
-            Toggle("Auto-load CLAUDE.md", isOn: $autoLoadClaudeMd)
+            Toggle(i18n.t(.proj_panelAutoLoadClaude), isOn: $autoLoadClaudeMd)
                 .font(.system(size: theme.footnoteSize))
                 .foregroundStyle(theme.text)
 
-            Toggle("Auto-scan knowledge files", isOn: $autoScanKnowledge)
+            Toggle(i18n.t(.proj_panelAutoScanKb), isOn: $autoScanKnowledge)
                 .font(.system(size: theme.footnoteSize))
                 .foregroundStyle(theme.text)
 
             Button(action: { saveSettings() }) {
                 HStack(spacing: 4) {
                     Image(systemName: "checkmark")
-                    Text("Save Settings")
+                    Text(i18n.t(.proj_settingsSaveBtn))
                 }
                 .font(.system(size: theme.footnoteSize, weight: .medium))
                 .foregroundStyle(.white)
