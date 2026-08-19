@@ -7,6 +7,7 @@ struct FSBConnectorDialog: View {
     @Environment(\.studioTheme) private var theme
     @ObservedObject var ipc: IPCClient
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var i18n = I18nManager.shared
 
     let workspaceId: String
     let connectorMeta: [[String: Any]]
@@ -24,7 +25,7 @@ struct FSBConnectorDialog: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            dialogHeader(title: "添加连接器")
+            dialogHeader(title: i18n.t(.fsb_dlg_addConnector))
             Divider()
 
             ScrollView {
@@ -49,7 +50,7 @@ struct FSBConnectorDialog: View {
 
             Divider()
             dialogFooter(
-                primaryTitle: isConnecting ? "连接中..." : "连接",
+                primaryTitle: isConnecting ? i18n.t(.fsb_dlg_connecting) : i18n.t(.fsb_dlg_connect),
                 primaryDisabled: selectedKey.isEmpty || isConnecting,
                 onPrimary: connectConnector
             )
@@ -59,11 +60,11 @@ struct FSBConnectorDialog: View {
 
     private var connectorPicker: some View {
         VStack(alignment: .leading, spacing: theme.spacingXS) {
-            Text("选择连接器")
+            Text(i18n.t(.fsb_dlg_selectConnector))
                 .font(.system(size: theme.footnoteSize, weight: .medium))
                 .foregroundStyle(theme.text)
-            Picker("连接器", selection: $selectedKey) {
-                Text("请选择...").tag("")
+            Picker(i18n.t(.fsb_dlg_connector), selection: $selectedKey) {
+                Text(i18n.t(.fsb_dlg_selectPh)).tag("")
                 ForEach(connectorMeta.indices, id: \.self) { idx in
                     let key = connectorMeta[idx]["connectorKey"] as? String ?? ""
                     let display = connectorMeta[idx]["displayName"] as? String ?? key
@@ -81,7 +82,7 @@ struct FSBConnectorDialog: View {
                         .foregroundStyle(theme.textSecondary)
                 }
                 if let authTypes = meta?["supportedAuthTypes"] as? [String] {
-                    Text("支持: \(authTypes.joined(separator: ", "))")
+                    Text(String(format: i18n.t(.fsb_dlg_supportFmt), authTypes.joined(separator: ", ")))
                         .font(.system(size: 11))
                         .foregroundStyle(theme.textTertiary)
                 }
@@ -91,13 +92,13 @@ struct FSBConnectorDialog: View {
 
     private var authTypeSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingXS) {
-            Text("认证方式")
+            Text(i18n.t(.fsb_dlg_authMethod))
                 .font(.system(size: theme.footnoteSize, weight: .medium))
                 .foregroundStyle(theme.text)
-            Picker("认证", selection: $authType) {
+            Picker(i18n.t(.fsb_dlg_auth), selection: $authType) {
                 Text("OAuth 2.0").tag("oauth2")
                 Text("API Key").tag("api_key")
-                Text("无认证").tag("none")
+                Text(i18n.t(.fsb_dlg_noAuth)).tag("none")
             }
             .pickerStyle(.segmented)
         }
@@ -106,7 +107,7 @@ struct FSBConnectorDialog: View {
     private var apiKeyFields: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
             fieldLabel("API Key")
-            SecureField("输入 API Key", text: $apiKey)
+            SecureField(i18n.t(.fsb_dlg_enterApiKey), text: $apiKey)
                 .textFieldStyle(.plain)
                 .padding(theme.spacingS)
                 .background(fieldBg)
@@ -137,7 +138,7 @@ struct FSBConnectorDialog: View {
                 .background(fieldBg)
                 .overlay(fieldBorder)
 
-            fieldLabel("Scopes (逗号分隔)")
+            fieldLabel(i18n.t(.fsb_dlg_scopesHint))
             TextField("read,write", text: $scopes)
                 .textFieldStyle(.plain)
                 .padding(theme.spacingS)
@@ -217,7 +218,7 @@ struct FSBConnectorDialog: View {
 
     @ViewBuilder private func dialogFooter(primaryTitle: String, primaryDisabled: Bool = false, onPrimary: @escaping () -> Void) -> some View {
         HStack {
-            Button("取消") { dismiss() }
+            Button(i18n.t(.cancel)) { dismiss() }
                 .buttonStyle(.bordered)
                 .controlSize(.regular)
             Spacer()
@@ -236,6 +237,7 @@ struct FSBSkillDialog: View {
     @Environment(\.studioTheme) private var theme
     @ObservedObject var ipc: IPCClient
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var i18n = I18nManager.shared
 
     let workspaceId: String
     let onDone: () -> Void
@@ -251,12 +253,12 @@ struct FSBSkillDialog: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            dialogHeader(title: "创建技能")
+            dialogHeader(title: i18n.t(.fsb_dlg_createSkill))
             Divider()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: theme.spacingM) {
-                    fieldLabel("技能名称")
+                    fieldLabel(i18n.t(.fsb_dlg_skillName))
                     TextField("skill_name", text: $skillName)
                         .textFieldStyle(.plain)
                         .font(.system(size: theme.captionSize, design: .monospaced))
@@ -264,22 +266,22 @@ struct FSBSkillDialog: View {
                         .background(fieldBg)
                         .overlay(fieldBorder)
 
-                    fieldLabel("显示名称")
-                    TextField("我的技能", text: $displayName)
+                    fieldLabel(i18n.t(.fsb_dlg_displayName))
+                    TextField(i18n.t(.fsb_dlg_mySkill), text: $displayName)
                         .textFieldStyle(.plain)
                         .padding(theme.spacingS)
                         .background(fieldBg)
                         .overlay(fieldBorder)
 
-                    fieldLabel("类型")
-                    Picker("类型", selection: $skillType) {
-                        Text("提示词").tag("prompt")
-                        Text("函数").tag("function")
-                        Text("链式").tag("chain")
+                    fieldLabel(i18n.t(.fsb_dlg_type))
+                    Picker(i18n.t(.fsb_dlg_type), selection: $skillType) {
+                        Text(i18n.t(.fsb_dlg_prompt)).tag("prompt")
+                        Text(i18n.t(.fsb_dlg_function)).tag("function")
+                        Text(i18n.t(.fsb_dlg_chain)).tag("chain")
                     }
                     .pickerStyle(.segmented)
 
-                    fieldLabel("定义")
+                    fieldLabel(i18n.t(.fsb_dlg_definition))
                     TextEditor(text: $definition)
                         .font(.system(size: theme.captionSize, design: .monospaced))
                         .frame(height: 120)
@@ -287,7 +289,7 @@ struct FSBSkillDialog: View {
                         .background(fieldBg)
                         .overlay(fieldBorder)
 
-                    fieldLabel("输入 Schema (JSON)")
+                    fieldLabel(i18n.t(.fsb_dlg_inputSchema))
                     TextEditor(text: $inputSchema)
                         .font(.system(size: theme.captionSize, design: .monospaced))
                         .frame(height: 80)
@@ -295,9 +297,9 @@ struct FSBSkillDialog: View {
                         .background(fieldBg)
                         .overlay(fieldBorder)
 
-                    fieldLabel("输出格式")
-                    Picker("输出格式", selection: $outputFormat) {
-                        Text("纯文本").tag("text")
+                    fieldLabel(i18n.t(.fsb_dlg_outputFormat))
+                    Picker(i18n.t(.fsb_dlg_outputFormat), selection: $outputFormat) {
+                        Text(i18n.t(.fsb_dlg_plainText)).tag("text")
                         Text("JSON").tag("json")
                         Text("Markdown").tag("markdown")
                     }
@@ -314,7 +316,7 @@ struct FSBSkillDialog: View {
 
             Divider()
             dialogFooter(
-                primaryTitle: isSaving ? "保存中..." : "创建",
+                primaryTitle: isSaving ? i18n.t(.fsb_dlg_saving) : i18n.t(.fsb_dlg_create),
                 primaryDisabled: skillName.isEmpty || isSaving,
                 onPrimary: createSkill
             )
@@ -389,7 +391,7 @@ struct FSBSkillDialog: View {
 
     @ViewBuilder private func dialogFooter(primaryTitle: String, primaryDisabled: Bool = false, onPrimary: @escaping () -> Void) -> some View {
         HStack {
-            Button("取消") { dismiss() }
+            Button(i18n.t(.cancel)) { dismiss() }
                 .buttonStyle(.bordered)
                 .controlSize(.regular)
             Spacer()
@@ -408,6 +410,7 @@ struct FSBScheduleDialog: View {
     @Environment(\.studioTheme) private var theme
     @ObservedObject var ipc: IPCClient
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var i18n = I18nManager.shared
 
     let workspaceId: String
     let wfId: String
@@ -419,25 +422,25 @@ struct FSBScheduleDialog: View {
     @State private var isSaving = false
     @State private var errorMessage: String? = nil
 
-    private let cronPresets: [(String, String)] = [
-        ("工作日9点", "0 9 * * 1-5"),
-        ("每小时", "0 * * * *"),
-        ("每天8点", "0 8 * * *"),
-        ("每周一9点", "0 9 * * 1"),
-        ("每月1号", "0 9 1 * *"),
+    private let cronPresets: [(labelKey: I18nKey, expr: String)] = [
+        (.fsb_dlg_preset_weekday9, "0 9 * * 1-5"),
+        (.fsb_dlg_preset_hourly, "0 * * * *"),
+        (.fsb_dlg_preset_daily8, "0 8 * * *"),
+        (.fsb_dlg_preset_monday9, "0 9 * * 1"),
+        (.fsb_dlg_preset_month1, "0 9 1 * *"),
     ]
 
     var body: some View {
         VStack(spacing: 0) {
-            dialogHeader(title: "设置排期")
+            dialogHeader(title: i18n.t(.fsb_dlg_setSchedule))
             Divider()
 
             VStack(alignment: .leading, spacing: theme.spacingM) {
-                fieldLabel("触发方式")
-                Picker("触发方式", selection: $scheduleType) {
-                    Text("手动").tag("manual")
-                    Text("定时 (Cron)").tag("cron")
-                    Text("事件驱动").tag("event")
+                fieldLabel(i18n.t(.fsb_dlg_triggerMethod))
+                Picker(i18n.t(.fsb_dlg_triggerMethod), selection: $scheduleType) {
+                    Text(i18n.t(.fsb_dlg_manual)).tag("manual")
+                    Text(i18n.t(.fsb_dlg_cron)).tag("cron")
+                    Text(i18n.t(.fsb_dlg_eventDriven)).tag("event")
                 }
                 .pickerStyle(.segmented)
 
@@ -446,7 +449,7 @@ struct FSBScheduleDialog: View {
                 } else if scheduleType == "event" {
                     eventSection
                 } else {
-                    Text("仅在工作台手动触发运行")
+                    Text(i18n.t(.fsb_dlg_manualOnly))
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.textTertiary)
                         .padding(theme.spacingS)
@@ -463,7 +466,7 @@ struct FSBScheduleDialog: View {
             Spacer()
             Divider()
             dialogFooter(
-                primaryTitle: isSaving ? "保存中..." : "保存",
+                primaryTitle: isSaving ? i18n.t(.fsb_dlg_saving) : i18n.t(.save),
                 primaryDisabled: isSaving,
                 onPrimary: saveSchedule
             )
@@ -473,7 +476,7 @@ struct FSBScheduleDialog: View {
 
     private var cronSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            fieldLabel("Cron 表达式")
+            fieldLabel(i18n.t(.fsb_dlg_cronExpr))
             TextField("0 9 * * 1-5", text: $cronExpr)
                 .textFieldStyle(.plain)
                 .font(.system(size: theme.footnoteSize, design: .monospaced))
@@ -481,15 +484,15 @@ struct FSBScheduleDialog: View {
                 .background(fieldBg)
                 .overlay(fieldBorder)
 
-            fieldLabel("常用预设")
+            fieldLabel(i18n.t(.fsb_dlg_commonPresets))
             ForEach(cronPresets.indices, id: \.self) { idx in
-                Button(action: { cronExpr = cronPresets[idx].1 }) {
+                Button(action: { cronExpr = cronPresets[idx].expr }) {
                     HStack {
-                        Text(cronPresets[idx].0)
+                        Text(i18n.t(cronPresets[idx].labelKey))
                             .font(.system(size: theme.captionSize))
                             .foregroundStyle(theme.text)
                         Spacer()
-                        Text(cronPresets[idx].1)
+                        Text(cronPresets[idx].expr)
                             .font(.system(size: theme.captionSize, design: .monospaced))
                             .foregroundStyle(theme.textTertiary)
                     }
@@ -506,15 +509,15 @@ struct FSBScheduleDialog: View {
 
     private var eventSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            fieldLabel("事件触发器")
-            TextField("如: data.updated, order.created", text: $eventTrigger)
+            fieldLabel(i18n.t(.fsb_dlg_eventTrigger))
+            TextField(i18n.t(.fsb_dlg_eventPh), text: $eventTrigger)
                 .textFieldStyle(.plain)
                 .font(.system(size: theme.footnoteSize))
                 .padding(theme.spacingS)
                 .background(fieldBg)
                 .overlay(fieldBorder)
 
-            Text("支持事件类型: 数据变更、新记录、状态更新等")
+            Text(i18n.t(.fsb_dlg_eventHint))
                 .font(.system(size: 11))
                 .foregroundStyle(theme.textTertiary)
         }
@@ -581,7 +584,7 @@ struct FSBScheduleDialog: View {
 
     @ViewBuilder private func dialogFooter(primaryTitle: String, primaryDisabled: Bool = false, onPrimary: @escaping () -> Void) -> some View {
         HStack {
-            Button("取消") { dismiss() }
+            Button(i18n.t(.cancel)) { dismiss() }
                 .buttonStyle(.bordered)
                 .controlSize(.regular)
             Spacer()
@@ -600,6 +603,7 @@ struct FSBApprovalDialog: View {
     @Environment(\.studioTheme) private var theme
     @ObservedObject var ipc: IPCClient
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var i18n = I18nManager.shared
 
     let workspaceId: String
     let task: [String: Any]
@@ -611,11 +615,11 @@ struct FSBApprovalDialog: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            dialogHeader(title: "审批请求")
+            dialogHeader(title: i18n.t(.fsb_dlg_approvalRequest))
             Divider()
 
             VStack(alignment: .leading, spacing: theme.spacingM) {
-                let taskTitle = task["title"] as? String ?? "审批请求"
+                let taskTitle = task["title"] as? String ?? i18n.t(.fsb_dlg_approvalRequest)
                 let content = task["content"] as? String ?? ""
                 let status = task["status"] as? String ?? "pending"
 
@@ -637,7 +641,7 @@ struct FSBApprovalDialog: View {
 
                 if !content.isEmpty {
                     VStack(alignment: .leading, spacing: theme.spacingXS) {
-                        fieldLabel("请求内容")
+                        fieldLabel(i18n.t(.fsb_dlg_requestContent))
                         Text(content)
                             .font(.system(size: theme.footnoteSize))
                             .foregroundStyle(theme.text)
@@ -648,7 +652,7 @@ struct FSBApprovalDialog: View {
                     }
                 }
 
-                fieldLabel("修改内容 (可选)")
+                fieldLabel(i18n.t(.fsb_dlg_editContent))
                 TextEditor(text: $editContent)
                     .font(.system(size: theme.footnoteSize))
                     .frame(height: 80)
@@ -668,14 +672,14 @@ struct FSBApprovalDialog: View {
             Divider()
 
             HStack(spacing: theme.spacingM) {
-                Button("取消") { dismiss() }
+                Button(i18n.t(.cancel)) { dismiss() }
                     .buttonStyle(.bordered)
                     .controlSize(.regular)
                 Spacer()
                 Button(role: .destructive, action: { denyApproval() }) {
                     HStack(spacing: 4) {
                         Image(systemName: "xmark")
-                        Text("拒绝")
+                        Text(i18n.t(.fsb_dlg_reject))
                     }
                 }
                 .buttonStyle(.bordered)
@@ -685,7 +689,7 @@ struct FSBApprovalDialog: View {
                 Button(action: { approveWithEdit() }) {
                     HStack(spacing: 4) {
                         Image(systemName: "checkmark")
-                        Text(isProcessing ? "处理中..." : "批准")
+                        Text(isProcessing ? i18n.t(.fsb_dlg_processing) : i18n.t(.fsb_dlg_approve))
                     }
                 }
                 .buttonStyle(.borderedProminent)

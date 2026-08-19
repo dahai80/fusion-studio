@@ -7,6 +7,7 @@ struct FSBWorkspaceView: View {
     @EnvironmentObject var ipc: IPCClient
     @EnvironmentObject var appState: AppState
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var workspaces: [[String: Any]] = []
     @State private var isLoading = false
@@ -44,25 +45,25 @@ struct FSBWorkspaceView: View {
                 }
             )
         }
-        .alert("重命名工作台", isPresented: $showRenameDialog) {
-            TextField("名称", text: $renameWsName)
-            Button("确认") { renameWorkspace() }
-            Button("取消", role: .cancel) {}
+        .alert(i18n.t(.fsb_ws_renameAlertTitle), isPresented: $showRenameDialog) {
+            TextField(i18n.t(.fsb_ws_name), text: $renameWsName)
+            Button(i18n.t(.confirm)) { renameWorkspace() }
+            Button(i18n.t(.cancel), role: .cancel) {}
         }
         .sheet(isPresented: $showExportSheet) {
             VStack(spacing: theme.spacingM) {
-                Text("导出工作台")
+                Text(i18n.t(.fsb_ws_exportTitle))
                     .font(.system(size: theme.headlineSize, weight: .bold))
                 TextEditor(text: .constant(exportData))
                     .font(.system(size: theme.captionSize, design: .monospaced))
                     .frame(minWidth: 500, minHeight: 300)
                 HStack {
-                    Button("复制到剪贴板") {
+                    Button(i18n.t(.fsb_ws_copyClipboard)) {
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(exportData, forType: .string)
                     }
                     .buttonStyle(.borderedProminent)
-                    Button("关闭") { showExportSheet = false }
+                    Button(i18n.t(.close)) { showExportSheet = false }
                 }
             }
             .padding(theme.spacingL)
@@ -87,14 +88,14 @@ struct FSBWorkspaceView: View {
                     Image(systemName: "storefront")
                         .font(.system(size: 32))
                         .foregroundStyle(theme.textTertiary)
-                    Text(searchText.isEmpty ? "暂无工作台" : "没有匹配的工作台")
+                    Text(searchText.isEmpty ? i18n.t(.fsb_ws_emptyWorkspaces) : i18n.t(.fsb_ws_noMatch))
                         .foregroundStyle(theme.textSecondary)
                         .font(.system(size: theme.textSize))
                     if searchText.isEmpty {
                         Button(action: { showCreateDialog = true }) {
                             HStack(spacing: 4) {
                                 Image(systemName: "plus")
-                                Text("创建工作台")
+                                Text(i18n.t(.fsb_ws_createWs))
                             }
                         }
                         .buttonStyle(.borderedProminent)
@@ -118,7 +119,7 @@ struct FSBWorkspaceView: View {
         HStack(spacing: theme.spacingS) {
             Image(systemName: "storefront")
                 .foregroundStyle(theme.accent)
-            Text("FSB 工作台")
+            Text(i18n.t(.fsb_ws_headerTitle))
                 .font(.system(size: theme.textSize, weight: .bold))
                 .foregroundStyle(theme.text)
             Spacer()
@@ -127,13 +128,13 @@ struct FSBWorkspaceView: View {
                     .foregroundStyle(theme.accent)
             }
             .buttonStyle(.plain)
-            .help("新建工作台")
+            .help(i18n.t(.fsb_ws_newWs))
             Button(action: { isGridView.toggle() }) {
                 Image(systemName: isGridView ? "list.bullet" : "square.grid.2x2")
                     .foregroundStyle(theme.textSecondary)
             }
             .buttonStyle(.plain)
-            .help(isGridView ? "列表视图" : "网格视图")
+            .help(isGridView ? i18n.t(.fsb_ws_listView) : i18n.t(.fsb_ws_gridView))
         }
         .padding(.horizontal, theme.spacingM)
         .padding(.vertical, theme.spacingS)
@@ -143,7 +144,7 @@ struct FSBWorkspaceView: View {
         HStack(spacing: theme.spacingS) {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(theme.textTertiary)
-            TextField("搜索工作台...", text: $searchText)
+            TextField(i18n.t(.fsb_ws_searchPh), text: $searchText)
                 .textFieldStyle(.plain)
                 .font(.system(size: theme.footnoteSize))
             if !searchText.isEmpty {
@@ -191,7 +192,7 @@ struct FSBWorkspaceView: View {
     @ViewBuilder
     private func workspaceGridCard(ws: [String: Any]) -> some View {
         let wsId = ws["wsId"] as? String ?? ws["id"] as? String ?? ""
-        let title = ws["title"] as? String ?? ws["name"] as? String ?? "未命名"
+        let title = ws["title"] as? String ?? ws["name"] as? String ?? i18n.t(.fsb_unnamed)
         let desc = ws["description"] as? String ?? ""
         let connectorCount = (ws["connectorIds"] as? [String])?.count ?? 0
         let skillCount = (ws["skillIds"] as? [String])?.count ?? 0
@@ -238,7 +239,7 @@ struct FSBWorkspaceView: View {
     @ViewBuilder
     private func workspaceListRow(ws: [String: Any]) -> some View {
         let wsId = ws["wsId"] as? String ?? ws["id"] as? String ?? ""
-        let title = ws["title"] as? String ?? ws["name"] as? String ?? "未命名"
+        let title = ws["title"] as? String ?? ws["name"] as? String ?? i18n.t(.fsb_unnamed)
         let desc = ws["description"] as? String ?? ""
         let connectorCount = (ws["connectorIds"] as? [String])?.count ?? 0
         let wfCount = (ws["workflowIds"] as? [String])?.count ?? 0
@@ -258,7 +259,7 @@ struct FSBWorkspaceView: View {
                             .foregroundStyle(theme.textSecondary)
                             .lineLimit(1)
                     }
-                    Text("\(connectorCount)连·\(wfCount)流")
+                    Text(String(format: i18n.t(.fsb_ws_connWfFmt), connectorCount, wfCount))
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.textTertiary)
                 }
@@ -275,25 +276,25 @@ struct FSBWorkspaceView: View {
     private func wsContextMenu(wsId: String, ws: [String: Any]) -> some View {
         Menu {
             Button(action: { selectedWsId = wsId }) {
-                Label("打开", systemImage: "arrow.right.circle")
+                Label(i18n.t(.fsb_ws_open), systemImage: "arrow.right.circle")
             }
             Button(action: {
                 renameWsId = wsId
                 renameWsName = ws["title"] as? String ?? ws["name"] as? String ?? ""
                 showRenameDialog = true
             }) {
-                Label("重命名", systemImage: "pencil")
+                Label(i18n.t(.fsb_ws_rename), systemImage: "pencil")
             }
             Button(action: { duplicateWorkspace(wsId) }) {
-                Label("复制", systemImage: "doc.on.doc")
+                Label(i18n.t(.fsb_ws_duplicate), systemImage: "doc.on.doc")
             }
             Divider()
             Button(action: { exportWorkspace(wsId) }) {
-                Label("导出", systemImage: "square.and.arrow.up")
+                Label(i18n.t(.fsb_ws_export), systemImage: "square.and.arrow.up")
             }
             Divider()
             Button(role: .destructive, action: { deleteWorkspace(wsId) }) {
-                Label("删除", systemImage: "trash")
+                Label(i18n.t(.delete), systemImage: "trash")
             }
         } label: {
             Image(systemName: "ellipsis")
@@ -313,12 +314,12 @@ struct FSBWorkspaceView: View {
                 Text("Fusion Small Business")
                     .font(.system(size: theme.headlineSize, weight: .bold))
                     .foregroundStyle(theme.text)
-                Text("跨 SaaS 智能业务工作台")
+                Text(i18n.t(.fsb_ws_subtitle))
                     .font(.system(size: theme.textSize))
                     .foregroundStyle(theme.textSecondary)
             }
             if !fsbAvailable {
-                Label("FSB 服务未启动", systemImage: "exclamationmark.triangle")
+                Label(i18n.t(.fsb_ws_serviceDown), systemImage: "exclamationmark.triangle")
                     .foregroundStyle(.orange)
                     .font(.system(size: theme.footnoteSize))
             }
@@ -326,14 +327,14 @@ struct FSBWorkspaceView: View {
                 Button(action: { showCreateDialog = true }) {
                     HStack(spacing: 4) {
                         Image(systemName: "plus")
-                        Text("创建工作台")
+                        Text(i18n.t(.fsb_ws_createWs))
                     }
                 }
                 .buttonStyle(.borderedProminent)
                 Button(action: { showOnboarding = true }) {
                     HStack(spacing: 4) {
                         Image(systemName: "book")
-                        Text("使用指南")
+                        Text(i18n.t(.fsb_ws_usageGuide))
                     }
                 }
                 .buttonStyle(.bordered)
@@ -456,6 +457,7 @@ struct FSBWorkspaceView: View {
 struct FSBCreateWorkspaceDialog: View {
     @Environment(\.studioTheme) private var theme
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var i18n = I18nManager.shared
 
     let ipc: IPCClient
     let onCreate: (String, String, String?) -> Void
@@ -468,36 +470,36 @@ struct FSBCreateWorkspaceDialog: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            Text("新建工作台")
+            Text(i18n.t(.fsb_ws_newWs))
                 .font(.system(size: theme.headlineSize, weight: .bold))
                 .foregroundStyle(theme.text)
 
             VStack(alignment: .leading, spacing: theme.spacingS) {
-                Text("名称")
+                Text(i18n.t(.fsb_ws_name))
                     .font(.system(size: theme.captionSize, weight: .medium))
                     .foregroundStyle(theme.textSecondary)
-                TextField("例如：客户管理系统", text: $title)
+                TextField(i18n.t(.fsb_ws_namePh), text: $title)
                     .textFieldStyle(.roundedBorder)
             }
 
             VStack(alignment: .leading, spacing: theme.spacingS) {
-                Text("描述（可选）")
+                Text(i18n.t(.fsb_ws_descOpt))
                     .font(.system(size: theme.captionSize, weight: .medium))
                     .foregroundStyle(theme.textSecondary)
-                TextField("工作台用途说明", text: $description)
+                TextField(i18n.t(.fsb_ws_descPh), text: $description)
                     .textFieldStyle(.roundedBorder)
             }
 
             VStack(alignment: .leading, spacing: theme.spacingS) {
-                Text("绑定项目（可选）")
+                Text(i18n.t(.fsb_ws_bindProjectOpt))
                     .font(.system(size: theme.captionSize, weight: .medium))
                     .foregroundStyle(theme.textSecondary)
-                TextField("项目 ID", text: $projectId)
+                TextField(i18n.t(.fsb_ws_projectIdPh), text: $projectId)
                     .textFieldStyle(.roundedBorder)
             }
 
             VStack(alignment: .leading, spacing: theme.spacingS) {
-                Text("绑定 Agent（可选）")
+                Text(i18n.t(.fsb_ws_bindAgentOpt))
                     .font(.system(size: theme.captionSize, weight: .medium))
                     .foregroundStyle(theme.textSecondary)
                 TextField("Agent ID", text: $bindAgentId)
@@ -508,15 +510,15 @@ struct FSBCreateWorkspaceDialog: View {
                 Button(action: { showTemplateImport = true }) {
                     HStack(spacing: 4) {
                         Image(systemName: "doc.badge.plus")
-                        Text("从模板导入")
+                        Text(i18n.t(.fsb_ws_importTemplate))
                     }
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 Spacer()
-                Button("取消") { dismiss() }
+                Button(i18n.t(.cancel)) { dismiss() }
                     .controlSize(.small)
-                Button("创建") {
+                Button(i18n.t(.fsb_ws_createBtn)) {
                     onCreate(title, description, projectId.isEmpty ? nil : projectId)
                     dismiss()
                 }
@@ -527,7 +529,7 @@ struct FSBCreateWorkspaceDialog: View {
 
             if showTemplateImport {
                 Divider()
-                Text("内置模板")
+                Text(i18n.t(.fsb_ws_builtinTemplates))
                     .font(.system(size: theme.captionSize, weight: .medium))
                     .foregroundStyle(theme.textSecondary)
                 FSBTemplateGallery { templateName in
@@ -543,31 +545,32 @@ struct FSBCreateWorkspaceDialog: View {
 
 struct FSBTemplateGallery: View {
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     let onSelect: (String) -> Void
 
-    private let templates = [
-        ("客户关系管理", "CRM", "管理客户信息、跟进记录、销售漏斗", "person.2"),
-        ("库存管理", "库存", "商品库存跟踪、补货提醒、出入库记录", "archivebox"),
-        ("财务记账", "财务", "收支记录、发票管理、财务报表生成", "chart.bar"),
-        ("邮件营销", "营销", "邮件模板、受众分组、发送排期、效果分析", "envelope"),
-        ("社交媒体管理", "社媒", "多平台发布、排期、互动监控、数据分析", "shareplay"),
-        ("工单系统", "工单", "客户工单、分配、SLA 跟踪、满意度调查", "ticket"),
+    private let templates: [(nameKey: I18nKey, shortKey: I18nKey, descKey: I18nKey, icon: String)] = [
+        (.fsb_tpl_crm_name, .fsb_tpl_crm_short, .fsb_tpl_crm_desc, "person.2"),
+        (.fsb_tpl_inventory_name, .fsb_tpl_inventory_short, .fsb_tpl_inventory_desc, "archivebox"),
+        (.fsb_tpl_finance_name, .fsb_tpl_finance_short, .fsb_tpl_finance_desc, "chart.bar"),
+        (.fsb_tpl_email_name, .fsb_tpl_email_short, .fsb_tpl_email_desc, "envelope"),
+        (.fsb_tpl_social_name, .fsb_tpl_social_short, .fsb_tpl_social_desc, "shareplay"),
+        (.fsb_tpl_ticket_name, .fsb_tpl_ticket_short, .fsb_tpl_ticket_desc, "ticket"),
     ]
 
     var body: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: theme.spacingS) {
-            ForEach(templates, id: \.0) { tpl in
-                Button(action: { onSelect(tpl.0) }) {
+            ForEach(templates, id: \.nameKey) { tpl in
+                Button(action: { onSelect(i18n.t(tpl.nameKey)) }) {
                     VStack(alignment: .leading, spacing: theme.spacingXS) {
                         HStack {
-                            Image(systemName: tpl.3)
+                            Image(systemName: tpl.icon)
                                 .foregroundStyle(theme.accent)
-                            Text(tpl.1)
+                            Text(i18n.t(tpl.shortKey))
                                 .font(.system(size: theme.captionSize, weight: .semibold))
                                 .foregroundStyle(theme.text)
                         }
-                        Text(tpl.2)
+                        Text(i18n.t(tpl.descKey))
                             .font(.system(size: 11))
                             .foregroundStyle(theme.textTertiary)
                             .lineLimit(2)
@@ -589,27 +592,28 @@ struct FSBTemplateGallery: View {
 struct FSBOnboardingDialog: View {
     @Environment(\.studioTheme) private var theme
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var step = 0
 
-    private let steps = [
-        ("欢迎使用 FSB", "Fusion Small Business 是一个跨 SaaS 的智能业务自动化工作台。\n无需编程，通过可视化工作流连接你的业务工具。", "storefront"),
-        ("连接器", "连接你已有的 SaaS 工具：\nGoogle Workspace、Shopify、QuickBooks、Stripe 等。\n读操作自动执行，写操作需审批。", "plug"),
-        ("技能", "内置 15+ 智能技能：\n邮件摘要、数据提取、报表生成、翻译等。\n可自定义 Prompt 技能和 API 调用技能。", "star"),
-        ("工作流", "可视化编排工作流：\n拖拽节点构建 DAG，条件分支，审批关卡。\n支持定时触发、事件触发、外部 API 触发。", "flowchart"),
-        ("开始使用", "创建一个工作台，选择模板或从零开始。\n所有数据本地运行，隐私安全。", "rocket"),
+    private let steps: [(titleKey: I18nKey, descKey: I18nKey, icon: String)] = [
+        (.fsb_ob_welcome_title, .fsb_ob_welcome_desc, "storefront"),
+        (.fsb_ob_connectors_title, .fsb_ob_connectors_desc, "plug"),
+        (.fsb_ob_skills_title, .fsb_ob_skills_desc, "star"),
+        (.fsb_ob_workflow_title, .fsb_ob_workflow_desc, "flowchart"),
+        (.fsb_ob_start_title, .fsb_ob_start_desc, "rocket"),
     ]
 
     var body: some View {
         VStack(spacing: theme.spacingL) {
             Spacer()
-            Image(systemName: steps[step].2)
+            Image(systemName: steps[step].icon)
                 .font(.system(size: 48))
                 .foregroundStyle(theme.accent)
-            Text(steps[step].0)
+            Text(i18n.t(steps[step].titleKey))
                 .font(.system(size: theme.headlineSize, weight: .bold))
                 .foregroundStyle(theme.text)
-            Text(steps[step].1)
+            Text(i18n.t(steps[step].descKey))
                 .font(.system(size: theme.textSize))
                 .foregroundStyle(theme.textSecondary)
                 .multilineTextAlignment(.center)
@@ -617,7 +621,7 @@ struct FSBOnboardingDialog: View {
             Spacer()
             HStack {
                 if step > 0 {
-                    Button("上一步") { step -= 1 }
+                    Button(i18n.t(.fsb_ob_prev)) { step -= 1 }
                         .buttonStyle(.bordered)
                 }
                 Spacer()
@@ -630,10 +634,10 @@ struct FSBOnboardingDialog: View {
                 }
                 Spacer()
                 if step < steps.count - 1 {
-                    Button("下一步") { step += 1 }
+                    Button(i18n.t(.next)) { step += 1 }
                         .buttonStyle(.borderedProminent)
                 } else {
-                    Button("开始使用") { dismiss() }
+                    Button(i18n.t(.fsb_ob_start_title)) { dismiss() }
                         .buttonStyle(.borderedProminent)
                 }
             }
