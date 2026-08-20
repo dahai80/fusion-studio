@@ -2885,6 +2885,101 @@ enum I18nKey: String, CaseIterable {
     case art_cv_create = "art_cv_create"
     case art_cv_sections = "art_cv_sections"
     case art_cv_toc = "art_cv_toc"
+    case desk_tab_templates = "desk_tab_templates"
+    case desk_tab_workflows = "desk_tab_workflows"
+    case desk_tab_agents = "desk_tab_agents"
+    case desk_tab_sessions = "desk_tab_sessions"
+    case desk_tab_permissions = "desk_tab_permissions"
+    case desk_tab_mlx = "desk_tab_mlx"
+    case desk_tab_system = "desk_tab_system"
+    case desk_tab_events = "desk_tab_events"
+    case desk_close = "desk_close"
+    case desk_loading = "desk_loading"
+    case desk_name = "desk_name"
+    case desk_category = "desk_category"
+    case desk_description = "desk_description"
+    case desk_create = "desk_create"
+    case desk_cancel = "desk_cancel"
+    case desk_save = "desk_save"
+    case desk_edit = "desk_edit"
+    case desk_delete = "desk_delete"
+    case desk_status = "desk_status"
+    case desk_refresh = "desk_refresh"
+    case desk_svc_notConnected = "desk_svc_notConnected"
+    case desk_svc_notConnectedHint = "desk_svc_notConnectedHint"
+    case desk_reconnect = "desk_reconnect"
+    case desk_svc_notReady = "desk_svc_notReady"
+    case desk_searchTemplates = "desk_searchTemplates"
+    case desk_tpl_count = "desk_tpl_count"
+    case desk_noTemplates = "desk_noTemplates"
+    case desk_tpl_detail = "desk_tpl_detail"
+    case desk_steps = "desk_steps"
+    case desk_tpl_runResult = "desk_tpl_runResult"
+    case desk_tpl_runFail = "desk_tpl_runFail"
+    case desk_wf_promptPlaceholder = "desk_wf_promptPlaceholder"
+    case desk_wf_count = "desk_wf_count"
+    case desk_wf_execStatus = "desk_wf_execStatus"
+    case desk_noWorkflows = "desk_noWorkflows"
+    case desk_wf_execStatusTitle = "desk_wf_execStatusTitle"
+    case desk_wf_noRunning = "desk_wf_noRunning"
+    case desk_wf_currentNode = "desk_wf_currentNode"
+    case desk_agent_taskPlaceholder = "desk_agent_taskPlaceholder"
+    case desk_submit = "desk_submit"
+    case desk_agent_count = "desk_agent_count"
+    case desk_noAgents = "desk_noAgents"
+    case desk_agent_id = "desk_agent_id"
+    case desk_agent_taskSubmitted = "desk_agent_taskSubmitted"
+    case desk_agent_viewStatus = "desk_agent_viewStatus"
+    case desk_agent_status = "desk_agent_status"
+    case desk_agent_progress = "desk_agent_progress"
+    case desk_session_new = "desk_session_new"
+    case desk_session_count = "desk_session_count"
+    case desk_noSessions = "desk_noSessions"
+    case desk_session_steps = "desk_session_steps"
+    case desk_session_fork = "desk_session_fork"
+    case desk_session_edit = "desk_session_edit"
+    case desk_session_namePlaceholder = "desk_session_namePlaceholder"
+    case desk_session_detail = "desk_session_detail"
+    case desk_session_stepCount = "desk_session_stepCount"
+    case desk_perm_rules = "desk_perm_rules"
+    case desk_perm_checkTool = "desk_perm_checkTool"
+    case desk_perm_check = "desk_perm_check"
+    case desk_perm_resetAll = "desk_perm_resetAll"
+    case desk_perm_checkResult = "desk_perm_checkResult"
+    case desk_perm_allowed = "desk_perm_allowed"
+    case desk_perm_denied = "desk_perm_denied"
+    case desk_perm_noRules = "desk_perm_noRules"
+    case desk_perm_scope = "desk_perm_scope"
+    case desk_perm_toggle = "desk_perm_toggle"
+    case desk_mlx_status = "desk_mlx_status"
+    case desk_mlx_running = "desk_mlx_running"
+    case desk_mlx_stopped = "desk_mlx_stopped"
+    case desk_mlx_noModels = "desk_mlx_noModels"
+    case desk_mlx_modelList = "desk_mlx_modelList"
+    case desk_mlx_modelCount = "desk_mlx_modelCount"
+    case desk_mlx_runningTitle = "desk_mlx_runningTitle"
+    case desk_mlx_stoppedTitle = "desk_mlx_stoppedTitle"
+    case desk_mlx_manageHint = "desk_mlx_manageHint"
+    case desk_sys_info = "desk_sys_info"
+    case desk_sys_platform = "desk_sys_platform"
+    case desk_sys_cpuCores = "desk_sys_cpuCores"
+    case desk_sys_memoryTotal = "desk_sys_memoryTotal"
+    case desk_sys_memoryUsed = "desk_sys_memoryUsed"
+    case desk_sys_diskFree = "desk_sys_diskFree"
+    case desk_sys_nodeCategories = "desk_sys_nodeCategories"
+    case desk_sys_nodeList = "desk_sys_nodeList"
+    case desk_sys_loading = "desk_sys_loading"
+    case desk_sys_nodeDetail = "desk_sys_nodeDetail"
+    case desk_sys_inputs = "desk_sys_inputs"
+    case desk_sys_outputs = "desk_sys_outputs"
+    case desk_evt_stream = "desk_evt_stream"
+    case desk_evt_polling = "desk_evt_polling"
+    case desk_evt_subscribed = "desk_evt_subscribed"
+    case desk_evt_count = "desk_evt_count"
+    case desk_evt_stopPoll = "desk_evt_stopPoll"
+    case desk_evt_startPoll = "desk_evt_startPoll"
+    case desk_noEvents = "desk_noEvents"
+    case desk_evt_source = "desk_evt_source"
 }
 
 // MARK: - 翻译管理器
@@ -5422,6 +5517,101 @@ let zhCNTranslations: [String: String] = [
     "art_cv_create": "创建",
     "art_cv_sections": "%d 章节",
     "art_cv_toc": "章节目录",
+    "desk_tab_templates": "模板",
+    "desk_tab_workflows": "工作流",
+    "desk_tab_agents": "智能体",
+    "desk_tab_sessions": "会话",
+    "desk_tab_permissions": "权限",
+    "desk_tab_mlx": "MLX",
+    "desk_tab_system": "系统",
+    "desk_tab_events": "事件",
+    "desk_close": "关闭",
+    "desk_loading": "加载中...",
+    "desk_name": "名称",
+    "desk_category": "分类",
+    "desk_description": "描述",
+    "desk_create": "创建",
+    "desk_cancel": "取消",
+    "desk_save": "保存",
+    "desk_edit": "编辑",
+    "desk_delete": "删除",
+    "desk_status": "状态",
+    "desk_refresh": "刷新",
+    "desk_svc_notConnected": "Fusion-CoWork 服务未连接",
+    "desk_svc_notConnectedHint": "请启动 fusion-cowork 服务后重试（终端运行 ./start.sh start，或在 设置→上游服务 中启动）",
+    "desk_reconnect": "重新连接",
+    "desk_svc_notReady": "服务未就绪",
+    "desk_searchTemplates": "搜索模板...",
+    "desk_tpl_count": "%d 个模板",
+    "desk_noTemplates": "暂无模板",
+    "desk_tpl_detail": "模板详情",
+    "desk_steps": "步骤",
+    "desk_tpl_runResult": "模板 %@: %@",
+    "desk_tpl_runFail": "模板 %@: 执行失败",
+    "desk_wf_promptPlaceholder": "输入自然语言创建工作流...",
+    "desk_wf_count": "%d 个工作流",
+    "desk_wf_execStatus": "执行状态",
+    "desk_noWorkflows": "暂无工作流，输入提示语创建",
+    "desk_wf_execStatusTitle": "工作流执行状态",
+    "desk_wf_noRunning": "当前无执行中的工作流",
+    "desk_wf_currentNode": "当前节点: %@",
+    "desk_agent_taskPlaceholder": "提交任务给智能体...",
+    "desk_submit": "提交",
+    "desk_agent_count": "%d 个智能体",
+    "desk_noAgents": "暂无智能体",
+    "desk_agent_id": "ID: %@",
+    "desk_agent_taskSubmitted": "任务 %@ 已提交",
+    "desk_agent_viewStatus": "查看状态",
+    "desk_agent_status": "状态: %@",
+    "desk_agent_progress": "进度: %@",
+    "desk_session_new": "新建会话",
+    "desk_session_count": "%d 个会话",
+    "desk_noSessions": "暂无会话",
+    "desk_session_steps": "步骤: %d",
+    "desk_session_fork": "分叉",
+    "desk_session_edit": "编辑会话",
+    "desk_session_namePlaceholder": "会话名称",
+    "desk_session_detail": "会话详情",
+    "desk_session_stepCount": "步骤数",
+    "desk_perm_rules": "权限规则",
+    "desk_perm_checkTool": "检查工具",
+    "desk_perm_check": "检查",
+    "desk_perm_resetAll": "重置全部",
+    "desk_perm_checkResult": "工具 %@: %@",
+    "desk_perm_allowed": "允许",
+    "desk_perm_denied": "拒绝",
+    "desk_perm_noRules": "暂无权限规则",
+    "desk_perm_scope": "范围: %@",
+    "desk_perm_toggle": "切换",
+    "desk_mlx_status": "Fusion-MLX 状态",
+    "desk_mlx_running": "运行中",
+    "desk_mlx_stopped": "已停止",
+    "desk_mlx_noModels": "无可用模型",
+    "desk_mlx_modelList": "模型列表",
+    "desk_mlx_modelCount": "%d 个模型",
+    "desk_mlx_runningTitle": "Fusion-MLX 运行中",
+    "desk_mlx_stoppedTitle": "Fusion-MLX 未启动",
+    "desk_mlx_manageHint": "请通过 UpstreamServiceManager 管理 MLX 生命周期",
+    "desk_sys_info": "系统信息",
+    "desk_sys_platform": "平台",
+    "desk_sys_cpuCores": "CPU 核心数",
+    "desk_sys_memoryTotal": "内存总量",
+    "desk_sys_memoryUsed": "内存使用",
+    "desk_sys_diskFree": "磁盘剩余",
+    "desk_sys_nodeCategories": "节点分类",
+    "desk_sys_nodeList": "节点列表",
+    "desk_sys_loading": "系统信息加载中...",
+    "desk_sys_nodeDetail": "节点详情",
+    "desk_sys_inputs": "输入参数",
+    "desk_sys_outputs": "输出",
+    "desk_evt_stream": "事件流",
+    "desk_evt_polling": "轮询中",
+    "desk_evt_subscribed": "已订阅",
+    "desk_evt_count": "%d 个事件",
+    "desk_evt_stopPoll": "停止轮询",
+    "desk_evt_startPoll": "开始轮询",
+    "desk_noEvents": "暂无事件",
+    "desk_evt_source": "来源: %@",
 ]
 
 let enUSTranslations: [String: String] = [
@@ -7914,6 +8104,101 @@ let enUSTranslations: [String: String] = [
     "art_cv_create": "Create",
     "art_cv_sections": "%d sections",
     "art_cv_toc": "Table of Contents",
+    "desk_tab_templates": "Templates",
+    "desk_tab_workflows": "Workflows",
+    "desk_tab_agents": "Agents",
+    "desk_tab_sessions": "Sessions",
+    "desk_tab_permissions": "Permissions",
+    "desk_tab_mlx": "MLX",
+    "desk_tab_system": "System",
+    "desk_tab_events": "Events",
+    "desk_close": "Close",
+    "desk_loading": "Loading...",
+    "desk_name": "Name",
+    "desk_category": "Category",
+    "desk_description": "Description",
+    "desk_create": "Create",
+    "desk_cancel": "Cancel",
+    "desk_save": "Save",
+    "desk_edit": "Edit",
+    "desk_delete": "Delete",
+    "desk_status": "Status",
+    "desk_refresh": "Refresh",
+    "desk_svc_notConnected": "Fusion-CoWork service not connected",
+    "desk_svc_notConnectedHint": "Please start the fusion-cowork service and retry (run ./start.sh start in terminal, or start in Settings → Upstream Services)",
+    "desk_reconnect": "Reconnect",
+    "desk_svc_notReady": "Service not ready",
+    "desk_searchTemplates": "Search templates...",
+    "desk_tpl_count": "%d templates",
+    "desk_noTemplates": "No templates",
+    "desk_tpl_detail": "Template detail",
+    "desk_steps": "Steps",
+    "desk_tpl_runResult": "Template %@: %@",
+    "desk_tpl_runFail": "Template %@: failed",
+    "desk_wf_promptPlaceholder": "Enter natural language to create a workflow...",
+    "desk_wf_count": "%d workflows",
+    "desk_wf_execStatus": "Execution status",
+    "desk_noWorkflows": "No workflows, enter a prompt to create",
+    "desk_wf_execStatusTitle": "Workflow execution status",
+    "desk_wf_noRunning": "No running workflows",
+    "desk_wf_currentNode": "Current node: %@",
+    "desk_agent_taskPlaceholder": "Submit task to agent...",
+    "desk_submit": "Submit",
+    "desk_agent_count": "%d agents",
+    "desk_noAgents": "No agents",
+    "desk_agent_id": "ID: %@",
+    "desk_agent_taskSubmitted": "Task %@ submitted",
+    "desk_agent_viewStatus": "View status",
+    "desk_agent_status": "Status: %@",
+    "desk_agent_progress": "Progress: %@",
+    "desk_session_new": "New session",
+    "desk_session_count": "%d sessions",
+    "desk_noSessions": "No sessions",
+    "desk_session_steps": "Steps: %d",
+    "desk_session_fork": "Fork",
+    "desk_session_edit": "Edit session",
+    "desk_session_namePlaceholder": "Session name",
+    "desk_session_detail": "Session detail",
+    "desk_session_stepCount": "Step count",
+    "desk_perm_rules": "Permission rules",
+    "desk_perm_checkTool": "Check tool",
+    "desk_perm_check": "Check",
+    "desk_perm_resetAll": "Reset all",
+    "desk_perm_checkResult": "Tool %@: %@",
+    "desk_perm_allowed": "Allowed",
+    "desk_perm_denied": "Denied",
+    "desk_perm_noRules": "No permission rules",
+    "desk_perm_scope": "Scope: %@",
+    "desk_perm_toggle": "Toggle",
+    "desk_mlx_status": "Fusion-MLX status",
+    "desk_mlx_running": "Running",
+    "desk_mlx_stopped": "Stopped",
+    "desk_mlx_noModels": "No models available",
+    "desk_mlx_modelList": "Model list",
+    "desk_mlx_modelCount": "%d models",
+    "desk_mlx_runningTitle": "Fusion-MLX running",
+    "desk_mlx_stoppedTitle": "Fusion-MLX not started",
+    "desk_mlx_manageHint": "Manage MLX lifecycle via UpstreamServiceManager",
+    "desk_sys_info": "System info",
+    "desk_sys_platform": "Platform",
+    "desk_sys_cpuCores": "CPU cores",
+    "desk_sys_memoryTotal": "Memory total",
+    "desk_sys_memoryUsed": "Memory used",
+    "desk_sys_diskFree": "Disk free",
+    "desk_sys_nodeCategories": "Node categories",
+    "desk_sys_nodeList": "Node list",
+    "desk_sys_loading": "Loading system info...",
+    "desk_sys_nodeDetail": "Node detail",
+    "desk_sys_inputs": "Input parameters",
+    "desk_sys_outputs": "Output",
+    "desk_evt_stream": "Event stream",
+    "desk_evt_polling": "Polling",
+    "desk_evt_subscribed": "Subscribed",
+    "desk_evt_count": "%d events",
+    "desk_evt_stopPoll": "Stop polling",
+    "desk_evt_startPoll": "Start polling",
+    "desk_noEvents": "No events",
+    "desk_evt_source": "Source: %@",
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -10400,6 +10685,101 @@ let jaJPTranslations: [String: String] = [
     "art_cv_create": "作成",
     "art_cv_sections": "%d セクション",
     "art_cv_toc": "目次",
+    "desk_tab_templates": "テンプレート",
+    "desk_tab_workflows": "ワークフロー",
+    "desk_tab_agents": "エージェント",
+    "desk_tab_sessions": "セッション",
+    "desk_tab_permissions": "権限",
+    "desk_tab_mlx": "MLX",
+    "desk_tab_system": "システム",
+    "desk_tab_events": "イベント",
+    "desk_close": "閉じる",
+    "desk_loading": "読み込み中...",
+    "desk_name": "名称",
+    "desk_category": "分類",
+    "desk_description": "説明",
+    "desk_create": "作成",
+    "desk_cancel": "キャンセル",
+    "desk_save": "保存",
+    "desk_edit": "編集",
+    "desk_delete": "削除",
+    "desk_status": "ステータス",
+    "desk_refresh": "更新",
+    "desk_svc_notConnected": "Fusion-CoWork サービス未接続",
+    "desk_svc_notConnectedHint": "fusion-cowork サービスを起動して再試行してください（ターミナルで ./start.sh start を実行、または 設定→アップストリームサービス で起動）",
+    "desk_reconnect": "再接続",
+    "desk_svc_notReady": "サービス未準備",
+    "desk_searchTemplates": "テンプレートを検索...",
+    "desk_tpl_count": "%d テンプレート",
+    "desk_noTemplates": "テンプレートなし",
+    "desk_tpl_detail": "テンプレート詳細",
+    "desk_steps": "手順",
+    "desk_tpl_runResult": "テンプレート %@: %@",
+    "desk_tpl_runFail": "テンプレート %@: 実行失敗",
+    "desk_wf_promptPlaceholder": "自然言語でワークフローを作成...",
+    "desk_wf_count": "%d ワークフロー",
+    "desk_wf_execStatus": "実行状態",
+    "desk_noWorkflows": "ワークフローなし、プロンプトを入力して作成",
+    "desk_wf_execStatusTitle": "ワークフロー実行状態",
+    "desk_wf_noRunning": "実行中のワークフローなし",
+    "desk_wf_currentNode": "現在のノード: %@",
+    "desk_agent_taskPlaceholder": "エージェントにタスクを送信...",
+    "desk_submit": "送信",
+    "desk_agent_count": "%d エージェント",
+    "desk_noAgents": "エージェントなし",
+    "desk_agent_id": "ID: %@",
+    "desk_agent_taskSubmitted": "タスク %@ 送信済み",
+    "desk_agent_viewStatus": "ステータスを表示",
+    "desk_agent_status": "ステータス: %@",
+    "desk_agent_progress": "進捗: %@",
+    "desk_session_new": "新規セッション",
+    "desk_session_count": "%d セッション",
+    "desk_noSessions": "セッションなし",
+    "desk_session_steps": "手順: %d",
+    "desk_session_fork": "分岐",
+    "desk_session_edit": "セッションを編集",
+    "desk_session_namePlaceholder": "セッション名",
+    "desk_session_detail": "セッション詳細",
+    "desk_session_stepCount": "手順数",
+    "desk_perm_rules": "権限ルール",
+    "desk_perm_checkTool": "ツールを確認",
+    "desk_perm_check": "確認",
+    "desk_perm_resetAll": "すべてリセット",
+    "desk_perm_checkResult": "ツール %@: %@",
+    "desk_perm_allowed": "許可",
+    "desk_perm_denied": "拒否",
+    "desk_perm_noRules": "権限ルールなし",
+    "desk_perm_scope": "範囲: %@",
+    "desk_perm_toggle": "切り替え",
+    "desk_mlx_status": "Fusion-MLX ステータス",
+    "desk_mlx_running": "実行中",
+    "desk_mlx_stopped": "停止",
+    "desk_mlx_noModels": "モデルなし",
+    "desk_mlx_modelList": "モデルリスト",
+    "desk_mlx_modelCount": "%d モ델",
+    "desk_mlx_runningTitle": "Fusion-MLX 実行中",
+    "desk_mlx_stoppedTitle": "Fusion-MLX 未起動",
+    "desk_mlx_manageHint": "UpstreamServiceManager で MLX ライフサイクルを管理",
+    "desk_sys_info": "システム情報",
+    "desk_sys_platform": "プラットフォーム",
+    "desk_sys_cpuCores": "CPU コア数",
+    "desk_sys_memoryTotal": "メモリ合計",
+    "desk_sys_memoryUsed": "メモリ使用量",
+    "desk_sys_diskFree": "ディスク空き",
+    "desk_sys_nodeCategories": "ノード分類",
+    "desk_sys_nodeList": "ノードリスト",
+    "desk_sys_loading": "システム情報読み込み中...",
+    "desk_sys_nodeDetail": "ノード詳細",
+    "desk_sys_inputs": "入力パラメータ",
+    "desk_sys_outputs": "出力",
+    "desk_evt_stream": "イベントストリーム",
+    "desk_evt_polling": "ポーリング中",
+    "desk_evt_subscribed": "購読済み",
+    "desk_evt_count": "%d イベント",
+    "desk_evt_stopPoll": "ポーリング停止",
+    "desk_evt_startPoll": "ポーリング開始",
+    "desk_noEvents": "イベントなし",
+    "desk_evt_source": "送信元: %@",
 ]
 
 let koKRTranslations: [String: String] = [
@@ -12886,6 +13266,101 @@ let koKRTranslations: [String: String] = [
     "art_cv_create": "생성",
     "art_cv_sections": "%d 섹션",
     "art_cv_toc": "목차",
+    "desk_tab_templates": "템플릿",
+    "desk_tab_workflows": "워크플로",
+    "desk_tab_agents": "에이전트",
+    "desk_tab_sessions": "세션",
+    "desk_tab_permissions": "권한",
+    "desk_tab_mlx": "MLX",
+    "desk_tab_system": "시스템",
+    "desk_tab_events": "이벤트",
+    "desk_close": "닫기",
+    "desk_loading": "로딩 중...",
+    "desk_name": "이름",
+    "desk_category": "분류",
+    "desk_description": "설명",
+    "desk_create": "만들기",
+    "desk_cancel": "취소",
+    "desk_save": "저장",
+    "desk_edit": "편집",
+    "desk_delete": "삭제",
+    "desk_status": "상태",
+    "desk_refresh": "새로고침",
+    "desk_svc_notConnected": "Fusion-CoWork 서비스 미연결",
+    "desk_svc_notConnectedHint": "fusion-cowork 서비스를 시작한 후 재시도하세요 (터미널에서 ./start.sh start 실행, 또는 설정→업스트림 서비스에서 시작)",
+    "desk_reconnect": "다시 연결",
+    "desk_svc_notReady": "서비스 미준비",
+    "desk_searchTemplates": "템플릿 검색...",
+    "desk_tpl_count": "%d 템플릿",
+    "desk_noTemplates": "템플릿 없음",
+    "desk_tpl_detail": "템플릿 상세",
+    "desk_steps": "단계",
+    "desk_tpl_runResult": "템플릿 %@: %@",
+    "desk_tpl_runFail": "템플릿 %@: 실행 실패",
+    "desk_wf_promptPlaceholder": "자연어로 워크플로 생성...",
+    "desk_wf_count": "%d 워크플로",
+    "desk_wf_execStatus": "실행 상태",
+    "desk_noWorkflows": "워크플로 없음, 프롬프트 입력하여 생성",
+    "desk_wf_execStatusTitle": "워크플로 실행 상태",
+    "desk_wf_noRunning": "실행 중인 워크플로 없음",
+    "desk_wf_currentNode": "현재 노드: %@",
+    "desk_agent_taskPlaceholder": "에이전트에 작업 제출...",
+    "desk_submit": "제출",
+    "desk_agent_count": "%d 에이전트",
+    "desk_noAgents": "에이전트 없음",
+    "desk_agent_id": "ID: %@",
+    "desk_agent_taskSubmitted": "작업 %@ 제출됨",
+    "desk_agent_viewStatus": "상태 보기",
+    "desk_agent_status": "상태: %@",
+    "desk_agent_progress": "진행률: %@",
+    "desk_session_new": "새 세션",
+    "desk_session_count": "%d 세션",
+    "desk_noSessions": "세션 없음",
+    "desk_session_steps": "단계: %d",
+    "desk_session_fork": "분기",
+    "desk_session_edit": "세션 편집",
+    "desk_session_namePlaceholder": "세션 이름",
+    "desk_session_detail": "세션 상세",
+    "desk_session_stepCount": "단계 수",
+    "desk_perm_rules": "권한 규칙",
+    "desk_perm_checkTool": "도구 확인",
+    "desk_perm_check": "확인",
+    "desk_perm_resetAll": "모두 재설정",
+    "desk_perm_checkResult": "도구 %@: %@",
+    "desk_perm_allowed": "허용",
+    "desk_perm_denied": "거부",
+    "desk_perm_noRules": "권한 규칙 없음",
+    "desk_perm_scope": "범위: %@",
+    "desk_perm_toggle": "전환",
+    "desk_mlx_status": "Fusion-MLX 상태",
+    "desk_mlx_running": "실행 중",
+    "desk_mlx_stopped": "중지됨",
+    "desk_mlx_noModels": "사용 가능한 모델 없음",
+    "desk_mlx_modelList": "모델 목록",
+    "desk_mlx_modelCount": "%d 모델",
+    "desk_mlx_runningTitle": "Fusion-MLX 실행 중",
+    "desk_mlx_stoppedTitle": "Fusion-MLX 미시작",
+    "desk_mlx_manageHint": "UpstreamServiceManager로 MLX 라이프사이클 관리",
+    "desk_sys_info": "시스템 정보",
+    "desk_sys_platform": "플랫폼",
+    "desk_sys_cpuCores": "CPU 코어 수",
+    "desk_sys_memoryTotal": "메모리 총량",
+    "desk_sys_memoryUsed": "메모리 사용량",
+    "desk_sys_diskFree": "디스크 여유",
+    "desk_sys_nodeCategories": "노드 분류",
+    "desk_sys_nodeList": "노드 목록",
+    "desk_sys_loading": "시스템 정보 로딩 중...",
+    "desk_sys_nodeDetail": "노드 상세",
+    "desk_sys_inputs": "입력 매개변수",
+    "desk_sys_outputs": "출력",
+    "desk_evt_stream": "이벤트 스트림",
+    "desk_evt_polling": "폴링 중",
+    "desk_evt_subscribed": "구독됨",
+    "desk_evt_count": "%d 이벤트",
+    "desk_evt_stopPoll": "폴링 중지",
+    "desk_evt_startPoll": "폴링 시작",
+    "desk_noEvents": "이벤트 없음",
+    "desk_evt_source": "출처: %@",
 ]
 
 // MARK: - 国际化文本视图

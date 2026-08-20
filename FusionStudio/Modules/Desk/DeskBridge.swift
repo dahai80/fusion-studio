@@ -168,7 +168,7 @@ final class DeskBridge: ObservableObject {
         } catch {
             if rpcAvail.handleRPCError(error, method: "desk.health") {
                 isConnected = false
-                lastError = "服务未就绪"
+                lastError = I18nManager.shared.t(.desk_svc_notReady)
                 unavailableMethods = rpcAvail.unavailableMethods
             } else {
                 isConnected = false
