@@ -7,6 +7,7 @@ struct ArtifactShareDialog: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var i18n = I18nManager.shared
 
     let artifactId: String
     let artifactName: String
@@ -19,8 +20,12 @@ struct ArtifactShareDialog: View {
     @State private var shares: [[String: Any]] = []
     @State private var isLoadingShares = false
 
-    private let permissionOptions = [("view", "仅查看"), ("comment", "可评论"), ("edit", "可编辑")]
-    private let expiryOptions = [("1h", "1 小时"), ("1d", "1 天"), ("7d", "7 天"), ("30d", "30 天"), ("never", "永不过期")]
+    private var permissionOptions: [(String, String)] {
+        [("view", i18n.t(.art_sd_permView)), ("comment", i18n.t(.art_sd_permComment)), ("edit", i18n.t(.art_sd_permEdit))]
+    }
+    private var expiryOptions: [(String, String)] {
+        [("1h", i18n.t(.art_sd_exp1h)), ("1d", i18n.t(.art_sd_exp1d)), ("7d", i18n.t(.art_sd_exp7d)), ("30d", i18n.t(.art_sd_exp30d)), ("never", i18n.t(.art_sd_expNever))]
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -49,7 +54,7 @@ struct ArtifactShareDialog: View {
     private var headerBar: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text("分享 Artifact")
+                Text(i18n.t(.art_sd_title))
                     .font(.system(size: theme.textSize, weight: .bold))
                     .foregroundStyle(theme.text)
                 Text(artifactName)
@@ -70,7 +75,7 @@ struct ArtifactShareDialog: View {
     private var createSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
             VStack(alignment: .leading, spacing: theme.spacingS) {
-                Text("权限")
+                Text(i18n.t(.art_sd_permission))
                     .font(.system(size: theme.footnoteSize, weight: .medium))
                     .foregroundStyle(theme.textSecondary)
                 HStack(spacing: theme.spacingS) {
@@ -92,7 +97,7 @@ struct ArtifactShareDialog: View {
             }
 
             VStack(alignment: .leading, spacing: theme.spacingS) {
-                Text("有效期")
+                Text(i18n.t(.art_sd_expiry))
                     .font(.system(size: theme.footnoteSize, weight: .medium))
                     .foregroundStyle(theme.textSecondary)
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -121,13 +126,13 @@ struct ArtifactShareDialog: View {
                     Button(action: generateShareLink) {
                         HStack(spacing: 4) {
                             if isGenerating { ProgressView().controlSize(.small) }
-                            Text("生成分享链接")
+                            Text(i18n.t(.art_sd_generate))
                         }
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(isGenerating)
                 } else {
-                    Button("完成") { dismiss() }
+                    Button(i18n.t(.art_sd_done)) { dismiss() }
                         .buttonStyle(.borderedProminent)
                 }
             }
@@ -136,11 +141,11 @@ struct ArtifactShareDialog: View {
 
     private var linkResult: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            Text("分享链接")
+            Text(i18n.t(.art_sd_shareLink))
                 .font(.system(size: theme.footnoteSize, weight: .medium))
                 .foregroundStyle(theme.textSecondary)
             HStack(spacing: theme.spacingS) {
-                TextField("分享链接", text: .constant(shareLink))
+                TextField(i18n.t(.art_sd_shareLink), text: .constant(shareLink))
                     .textFieldStyle(.plain)
                     .font(.system(size: theme.footnoteSize, design: .monospaced))
                     .foregroundStyle(theme.text)
@@ -159,7 +164,7 @@ struct ArtifactShareDialog: View {
 
     private var existingShares: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            Text("已有分享 (\(shares.count))")
+            Text(String(format: i18n.t(.art_sd_existingShares), shares.count))
                 .font(.system(size: theme.footnoteSize, weight: .medium))
                 .foregroundStyle(theme.textSecondary)
 
@@ -172,7 +177,7 @@ struct ArtifactShareDialog: View {
     private func shareRow(_ s: [String: Any]) -> some View {
         let shareId = s["share_id"] as? String ?? s["id"] as? String ?? ""
         let perm = s["permission"] as? String ?? "view"
-        let expiresAt = s["expires_at"] as? String ?? "永不过期"
+        let expiresAt = s["expires_at"] as? String ?? i18n.t(.art_sd_expNever)
         let createdAt = s["created_at"] as? String ?? ""
         let isActive = s["is_active"] as? Bool ?? true
 
@@ -192,8 +197,8 @@ struct ArtifactShareDialog: View {
                             .font(.system(size: theme.captionSize))
                             .foregroundStyle(theme.textTertiary)
                     }
-                    if expiresAt != "永不过期" {
-                        Text("过期: \(formatTimestamp(expiresAt))")
+                    if expiresAt != i18n.t(.art_sd_expNever) {
+                        Text(String(format: i18n.t(.art_sd_expires), formatTimestamp(expiresAt)))
                             .font(.system(size: theme.captionSize))
                             .foregroundStyle(theme.textTertiary)
                     }
@@ -201,7 +206,7 @@ struct ArtifactShareDialog: View {
             }
             Spacer()
             Button(action: { revokeShare(shareId) }) {
-                Text("撤销")
+                Text(i18n.t(.art_sd_revoke))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.accentDestructive)
             }
@@ -214,9 +219,9 @@ struct ArtifactShareDialog: View {
 
     private func permLabel(_ p: String) -> String {
         switch p {
-        case "view": return "仅查看"
-        case "comment": return "可评论"
-        case "edit": return "可编辑"
+        case "view": return i18n.t(.art_sd_permView)
+        case "comment": return i18n.t(.art_sd_permComment)
+        case "edit": return i18n.t(.art_sd_permEdit)
         default: return p
         }
     }

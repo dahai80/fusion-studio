@@ -6,6 +6,7 @@ private let tagLog = Logger(subsystem: "com.fusion.studio", category: "Artifacts
 struct ArtifactTagFolderPopover: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     let artifactId: String
     @State private var currentTags: [String] = []
@@ -27,7 +28,7 @@ struct ArtifactTagFolderPopover: View {
 
     private var tagSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            Text("标签")
+            Text(i18n.t(.art_tf_tags))
                 .font(.system(size: theme.footnoteSize, weight: .semibold))
                 .foregroundStyle(theme.textSecondary)
 
@@ -53,7 +54,7 @@ struct ArtifactTagFolderPopover: View {
             }
 
             HStack(spacing: theme.spacingXS) {
-                TextField("添加标签", text: $newTag)
+                TextField(i18n.t(.art_tf_addTag), text: $newTag)
                     .textFieldStyle(.plain)
                     .font(.system(size: theme.footnoteSize))
                     .onSubmit { addTag() }
@@ -73,7 +74,7 @@ struct ArtifactTagFolderPopover: View {
 
     private var folderSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            Text("文件夹")
+            Text(i18n.t(.art_tf_folders))
                 .font(.system(size: theme.footnoteSize, weight: .semibold))
                 .foregroundStyle(theme.textSecondary)
 
@@ -85,7 +86,7 @@ struct ArtifactTagFolderPopover: View {
                 }
 
                 if folders.isEmpty {
-                    Text("无可用文件夹")
+                    Text(i18n.t(.art_tf_noFolders))
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.textTertiary)
                 }

@@ -20,6 +20,7 @@ struct ArtifactCanvasView: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var i18n = I18nManager.shared
 
     let artifactId: String
     @State private var artifact: [String: Any]?
@@ -89,16 +90,16 @@ struct ArtifactCanvasView: View {
         .sheet(isPresented: $showSnapshotSheet) {
             snapshotSheet
         }
-        .alert("重命名", isPresented: $showRenameAlert) {
-            TextField("新名称", text: $renameText)
-            Button("确认") { performRename() }
-            Button("取消", role: .cancel) { }
+        .alert(i18n.t(.art_cv_rename), isPresented: $showRenameAlert) {
+            TextField(i18n.t(.art_cv_newName), text: $renameText)
+            Button(i18n.t(.art_cv_confirm)) { performRename() }
+            Button(i18n.t(.art_cv_cancel), role: .cancel) { }
         }
-        .alert("确认删除？", isPresented: $showDeleteConfirm) {
-            Button("删除", role: .destructive) { performDelete() }
-            Button("取消", role: .cancel) { }
+        .alert(i18n.t(.art_cv_deleteConfirm), isPresented: $showDeleteConfirm) {
+            Button(i18n.t(.art_cv_delete), role: .destructive) { performDelete() }
+            Button(i18n.t(.art_cv_cancel), role: .cancel) { }
         } message: {
-            Text("此操作将移入回收站，可恢复")
+            Text(i18n.t(.art_cv_deleteMsg))
         }
     }
 
@@ -107,18 +108,18 @@ struct ArtifactCanvasView: View {
             Image(systemName: "exclamationmark.circle")
                 .font(.system(size: theme.iconS))
                 .foregroundStyle(.orange)
-            Text("有未保存的更改")
+            Text(i18n.t(.art_cv_unsaved))
                 .font(.system(size: theme.captionSize))
                 .foregroundStyle(theme.textSecondary)
             Spacer()
-            Button("放弃") {
+            Button(i18n.t(.art_cv_discard)) {
                 codeContent = content
                 hasUnsavedChanges = false
             }
             .font(.system(size: theme.captionSize))
             .buttonStyle(.plain)
             .foregroundStyle(theme.textTertiary)
-            Button("保存") { saveContent() }
+            Button(i18n.t(.art_cv_save)) { saveContent() }
                 .font(.system(size: theme.captionSize, weight: .medium))
                 .buttonStyle(.plain)
                 .foregroundStyle(theme.accent)
@@ -234,7 +235,7 @@ struct ArtifactCanvasView: View {
                     Image(systemName: "eye.slash")
                         .font(.system(size: 30))
                         .foregroundStyle(theme.textTertiary)
-                    Text("无预览内容")
+                    Text(i18n.t(.art_cv_noPreview))
                         .foregroundStyle(theme.textSecondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -280,7 +281,7 @@ struct ArtifactCanvasView: View {
                     .padding(.horizontal, theme.spacingS)
                     .padding(.vertical, theme.spacingXS)
                     .background(RoundedRectangle(cornerRadius: 3, style: .continuous).fill(theme.accent.opacity(0.1)))
-                Text("\(codeContent.count) 字符")
+                Text(String(format: i18n.t(.art_cv_chars), codeContent.count))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textTertiary)
                 Spacer()
@@ -305,7 +306,7 @@ struct ArtifactCanvasView: View {
 
             HStack(spacing: theme.spacingM) {
                 if hasUnsavedChanges {
-                    Button("放弃更改") {
+                    Button(i18n.t(.art_cv_discardChanges)) {
                         codeContent = content
                         hasUnsavedChanges = false
                     }
@@ -318,7 +319,7 @@ struct ArtifactCanvasView: View {
                     ProgressView()
                         .scaleEffect(0.7)
                 }
-                Button("保存") { saveContent() }
+                Button(i18n.t(.art_cv_save)) { saveContent() }
                     .font(.system(size: theme.footnoteSize, weight: .medium))
                     .buttonStyle(.plain)
                     .disabled(isSaving || !hasUnsavedChanges)
@@ -332,20 +333,20 @@ struct ArtifactCanvasView: View {
 
     private var snapshotSheet: some View {
         VStack(spacing: theme.spacingM) {
-            Text("创建版本快照")
+            Text(i18n.t(.art_cv_createSnapshot))
                 .font(.system(size: theme.textSize, weight: .semibold))
                 .foregroundStyle(theme.text)
 
-            TextField("快照标签（可选）", text: $snapshotLabel)
+            TextField(i18n.t(.art_cv_snapshotLabel), text: $snapshotLabel)
                 .textFieldStyle(.roundedBorder)
                 .font(.system(size: theme.textSize))
 
             HStack {
-                Button("取消") { showSnapshotSheet = false }
+                Button(i18n.t(.art_cv_cancel)) { showSnapshotSheet = false }
                     .buttonStyle(.plain)
                     .foregroundStyle(theme.textSecondary)
                 Spacer()
-                Button("创建") { createSnapshot() }
+                Button(i18n.t(.art_cv_create)) { createSnapshot() }
                     .buttonStyle(.plain)
                     .foregroundStyle(.white)
                     .padding(.horizontal, theme.spacingL)
@@ -456,7 +457,7 @@ struct ArtifactCanvasView: View {
         Task {
             do {
                 let name = artifact?["name"] as? String ?? "Untitled"
-                _ = try await ipc.artifactDuplicate(artifactId: artifactId, newName: name + " (副本)")
+                _ = try await ipc.artifactDuplicate(artifactId: artifactId, newName: name + I18nManager.shared.t(.art_pc_copySuffix))
                 canvasLog.info("artifact duplicated: \(artifactId)")
             } catch {
                 canvasLog.error("duplicate failed: \(error.localizedDescription)")
@@ -509,7 +510,7 @@ struct ArtifactCanvasView: View {
                 .foregroundStyle(ratio > 0.9 ? theme.accentDestructive : theme.textTertiary)
             Spacer()
             if !sections.isEmpty {
-                Text("\(sections.count) 章节")
+                Text(String(format: i18n.t(.art_cv_sections), sections.count))
                     .font(.system(size: 10))
                     .foregroundStyle(theme.textTertiary)
             }
@@ -523,7 +524,7 @@ struct ArtifactCanvasView: View {
 
     private var sectionSidebar: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("章节目录")
+            Text(i18n.t(.art_cv_toc))
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(theme.textSecondary)
                 .padding(.horizontal, 10)
