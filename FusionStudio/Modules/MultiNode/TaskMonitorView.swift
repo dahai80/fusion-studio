@@ -7,6 +7,7 @@ struct TaskMonitorView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var engine: MultiNodeEngine
     @Environment(\.studioTheme) var theme
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var selectedTab: TaskTab = .all
     @State private var searchText = ""
@@ -16,16 +17,24 @@ struct TaskMonitorView: View {
     @State private var isMigrating = false
 
     enum TaskTab: String, CaseIterable {
-        case all = "全部"
-        case running = "运行中"
-        case completed = "已完成"
-        case failed = "失败"
+        case all
+        case running
+        case completed
+        case failed
+        var localLabel: String {
+            switch self {
+            case .all: return I18nManager.shared.t(.mn_task_tab_all)
+            case .running: return I18nManager.shared.t(.mn_task_tab_running)
+            case .completed: return I18nManager.shared.t(.mn_task_tab_completed)
+            case .failed: return I18nManager.shared.t(.mn_task_tab_failed)
+            }
+        }
     }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                ScreenHeader(eyebrow: "Multi-Node", title: "任务监控", subtitle: "实时跟踪任务执行状态与进度")
+                ScreenHeader(eyebrow: "Multi-Node", title: i18n.t(.mn_task_title), subtitle: i18n.t(.mn_task_subtitle))
 
                 tabBar
                 metricsStrip
@@ -43,32 +52,32 @@ struct TaskMonitorView: View {
 
     private var migrateSheet: some View {
         VStack(spacing: theme.spacingL) {
-            Text("迁移任务")
+            Text(i18n.t(.mn_task_migrateTitle))
                 .font(.system(size: theme.bodySize, weight: .bold))
                 .foregroundStyle(theme.text)
 
-            StudioRow(label: "任务ID") {
+            StudioRow(label: i18n.t(.mn_task_taskId)) {
                 Text(migrateTaskId)
                     .font(.system(size: theme.smallTextSize, design: .monospaced))
                     .foregroundStyle(theme.textSecondary)
             }
 
-            StudioRow(label: "目标节点") {
+            StudioRow(label: i18n.t(.mn_task_targetNode)) {
                 Menu {
-                    Button("请选择") { migrateTargetNode = "" }
+                    Button(i18n.t(.mn_task_selectNode)) { migrateTargetNode = "" }
                     nodeMenuItems
                 } label: {
-                    Text(migrateTargetNode.isEmpty ? "请选择" : migrateTargetNode)
+                    Text(migrateTargetNode.isEmpty ? i18n.t(.mn_task_selectNode) : migrateTargetNode)
                         .font(.system(size: theme.smallTextSize, design: .monospaced))
                         .foregroundStyle(theme.textSecondary)
                 }
             }
 
             HStack(spacing: theme.spacingM) {
-                FusionButton("取消", icon: "xmark", style: .secondary, size: .regular) {
+                FusionButton(i18n.t(.cancel), icon: "xmark", style: .secondary, size: .regular) {
                     showMigrateSheet = false
                 }
-                FusionButton("确认迁移", icon: "arrow.right.circle", style: .primary, size: .regular,
+                FusionButton(i18n.t(.mn_task_confirmMigrate), icon: "arrow.right.circle", style: .primary, size: .regular,
                     isLoading: isMigrating, isDisabled: migrateTargetNode.isEmpty) {
                     performMigration()
                 }
@@ -101,7 +110,7 @@ struct TaskMonitorView: View {
                 Button {
                     withAnimation(theme.springDefault) { selectedTab = tab }
                 } label: {
-                    Text(tab.rawValue)
+                    Text(tab.localLabel)
                         .font(.system(size: theme.smallTextSize, weight: tab == selectedTab ? .semibold : .regular))
                         .foregroundStyle(tab == selectedTab ? theme.accent : theme.textSecondary)
                         .padding(.horizontal, theme.spacingL)
@@ -139,9 +148,9 @@ struct TaskMonitorView: View {
 
     private var metricsStrip: some View {
         HStack(spacing: theme.spacingM) {
-            MetricStripCard(icon: "list.bullet.clipboard", label: "总任务", value: "\(engine.tasks.count)", subtitle: "全部任务")
-            MetricStripCard(icon: "play.circle", label: "运行中", value: "\(engine.tasks.filter { $0.status == .running }.count)", subtitle: "正在执行", dotColor: theme.greenDot)
-            MetricStripCard(icon: "exclamationmark.triangle", label: "失败", value: "\(engine.tasks.filter { $0.status == .failed }.count)", subtitle: "需要关注", dotColor: theme.redDot)
+            MetricStripCard(icon: "list.bullet.clipboard", label: i18n.t(.mn_task_total), value: "\(engine.tasks.count)", subtitle: i18n.t(.mn_task_allTasks))
+            MetricStripCard(icon: "play.circle", label: i18n.t(.mn_task_running), value: "\(engine.tasks.filter { $0.status == .running }.count)", subtitle: i18n.t(.mn_task_executing), dotColor: theme.greenDot)
+            MetricStripCard(icon: "exclamationmark.triangle", label: i18n.t(.mn_task_failed), value: "\(engine.tasks.filter { $0.status == .failed }.count)", subtitle: i18n.t(.mn_task_needsAttention), dotColor: theme.redDot)
         }
         .padding(.horizontal, theme.spacingL)
         .padding(.bottom, theme.spacingM)
@@ -149,11 +158,11 @@ struct TaskMonitorView: View {
 
     private var taskListSection: some View {
         ListGroup {
-            StudioSectionHeader(title: "任务列表 (\(filteredTasks.count))")
+            StudioSectionHeader(title: String(format: i18n.t(.mn_task_listTitleFmt), filteredTasks.count))
 
             HStack(spacing: theme.spacingS) {
                 Image(systemName: "magnifyingglass").foregroundStyle(theme.textTertiary)
-                TextField("搜索任务...", text: $searchText)
+                TextField(i18n.t(.mn_task_searchPh), text: $searchText)
                     .textFieldStyle(.plain)
                     .font(.system(size: theme.smallTextSize))
             }
@@ -167,20 +176,20 @@ struct TaskMonitorView: View {
                 }
                 .contextMenu {
                     if task.status == .running {
-                        Button("取消任务") {
+                        Button(i18n.t(.mn_task_cancelTask)) {
                             Task { try? await engine.cancelTask(taskId: task.id) }
                         }
-                        Button("降级任务") {
+                        Button(i18n.t(.mn_task_degradeTask)) {
                             Task { try? await engine.degradeTask(taskId: task.id) }
                         }
-                        Button("迁移任务") {
+                        Button(i18n.t(.mn_task_migrateTask)) {
                             migrateTaskId = task.id
                             migrateTargetNode = ""
                             showMigrateSheet = true
                         }
                     }
                     if task.status == .failed {
-                        Button("重试") {
+                        Button(i18n.t(.retry)) {
                             Task {
                                 _ = try? await engine.submitTask(
                                     name: task.name, mode: task.mode,
@@ -198,7 +207,7 @@ struct TaskMonitorView: View {
             }
 
             if filteredTasks.isEmpty {
-                Text("暂无\(selectedTab.rawValue)任务")
+                Text(String(format: i18n.t(.mn_task_emptyFmt), selectedTab.localLabel))
                     .font(.system(size: theme.textSize))
                     .foregroundStyle(theme.textTertiary)
                     .frame(maxWidth: .infinity, alignment: .center)

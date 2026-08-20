@@ -595,8 +595,8 @@ enum EngineError: Error, LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .invalidURL: return "无效 URL"
-        case .noData: return "无数据返回"
+        case .invalidURL: return I18nManager.shared.t(.mn_err_invalidURL)
+        case .noData: return I18nManager.shared.t(.mn_err_noData)
         }
     }
 }

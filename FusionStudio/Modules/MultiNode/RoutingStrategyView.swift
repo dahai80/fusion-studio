@@ -11,6 +11,7 @@ private let routingLog = Logger(subsystem: "com.fusion.studio", category: "Routi
 struct RoutingStrategyView: View {
     @EnvironmentObject var engine: MultiNodeEngine
     @Environment(\.studioTheme) var theme
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var summary: RoutingSummary?
     @State private var selectedStrategy = "least_loaded"
@@ -23,7 +24,7 @@ struct RoutingStrategyView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                ScreenHeader(eyebrow: "Multi-Node", title: "路由策略", subtitle: "配置集群任务路由策略与负载均衡")
+                ScreenHeader(eyebrow: "Multi-Node", title: i18n.t(.mn_route_title), subtitle: i18n.t(.mn_route_subtitle))
 
                 strategySection
                 loadSection
@@ -40,9 +41,9 @@ struct RoutingStrategyView: View {
 
     private var strategySection: some View {
         ListGroup {
-            StudioSectionHeader(title: "当前策略")
+            StudioSectionHeader(title: i18n.t(.mn_route_currentTitle))
 
-            StudioRow(label: "路由策略", sublabel: strategyDescription(selectedStrategy)) {
+            StudioRow(label: i18n.t(.mn_route_strategy), sublabel: strategyDescription(selectedStrategy)) {
                 Picker("", selection: $selectedStrategy) {
                     ForEach(strategies, id: \.self) { s in
                         Text(s).tag(s)
@@ -65,10 +66,10 @@ struct RoutingStrategyView: View {
             }
 
             HStack(spacing: theme.spacingM) {
-                FusionButton("应用策略", icon: "arrow.triangle.branch", style: .primary, size: .small, isLoading: isApplying, isDisabled: isApplying) {
+                FusionButton(i18n.t(.mn_route_applyBtn), icon: "arrow.triangle.branch", style: .primary, size: .small, isLoading: isApplying, isDisabled: isApplying) {
                     applyStrategy()
                 }
-                FusionButton("刷新", icon: "arrow.clockwise", style: .secondary, size: .small, isLoading: false, isDisabled: false) {
+                FusionButton(i18n.t(.refresh), icon: "arrow.clockwise", style: .secondary, size: .small, isLoading: false, isDisabled: false) {
                     loadSummary()
                 }
             }
@@ -81,7 +82,7 @@ struct RoutingStrategyView: View {
         Group {
             if let nodes = summary?.nodes, !nodes.isEmpty {
                 ListGroup {
-                    StudioSectionHeader(title: "节点负载分布")
+                    StudioSectionHeader(title: i18n.t(.mn_route_loadTitle))
                     ForEach(nodes) { node in
                         HStack(spacing: theme.spacingM) {
                             VStack(alignment: .leading, spacing: 2) {
@@ -107,7 +108,7 @@ struct RoutingStrategyView: View {
 
                     if let avg = summary?.avgLoad {
                         HStack {
-                            Text("平均负载")
+                            Text(i18n.t(.mn_route_avgLoad))
                                 .font(.system(size: theme.footnoteSize, weight: .medium))
                                 .foregroundStyle(theme.textSecondary)
                             Spacer()
@@ -125,10 +126,10 @@ struct RoutingStrategyView: View {
 
     private func strategyDescription(_ s: String) -> String {
         switch s {
-        case "least_loaded": return "优先分配给负载最低的节点"
-        case "round_robin": return "轮流分配到各节点"
-        case "random": return "随机选择节点"
-        case "capability_aware": return "根据节点能力和任务需求匹配"
+        case "least_loaded": return i18n.t(.mn_route_desc_least_loaded)
+        case "round_robin": return i18n.t(.mn_route_desc_round_robin)
+        case "random": return i18n.t(.mn_route_desc_random)
+        case "capability_aware": return i18n.t(.mn_route_desc_capability_aware)
         default: return s
         }
     }
@@ -164,7 +165,7 @@ struct RoutingStrategyView: View {
                 try await engine.setRoutingStrategy(selectedStrategy)
                 await MainActor.run {
                     isApplying = false
-                    message = "策略已更新为 \(selectedStrategy)"
+                    message = String(format: i18n.t(.mn_route_updatedFmt), selectedStrategy)
                     isError = false
                     loadSummary()
                 }

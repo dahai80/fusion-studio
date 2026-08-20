@@ -6,6 +6,7 @@ private let syncLog = Logger(subsystem: "com.fusion.studio", category: "ClusterS
 struct ClusterSyncView: View {
     @EnvironmentObject var engine: MultiNodeEngine
     @Environment(\.studioTheme) var theme
+    @StateObject private var i18n = I18nManager.shared
     @State private var modelNameInput = ""
     @State private var sourceHostInput = "127.0.0.1"
     @State private var sourcePortInput = "11452"
@@ -17,7 +18,7 @@ struct ClusterSyncView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                ScreenHeader(eyebrow: "Multi-Node", title: "集群同步", subtitle: "模型增量同步与集群分区状态")
+                ScreenHeader(eyebrow: "Multi-Node", title: i18n.t(.mn_sync_title), subtitle: i18n.t(.mn_sync_subtitle))
 
                 syncStatusSection
                 incrementalSyncSection
@@ -32,7 +33,7 @@ struct ClusterSyncView: View {
 
     private var syncStatusSection: some View {
         ListGroup {
-            StudioSectionHeader(title: "分区状态")
+            StudioSectionHeader(title: i18n.t(.mn_sync_partitionState))
 
             HStack(spacing: theme.spacingM) {
                 partitionStateCard
@@ -45,7 +46,7 @@ struct ClusterSyncView: View {
             if let status = engine.clusterSyncStatus,
                let partition = status.partition,
                let nodes = partition.nodes, !nodes.isEmpty {
-                StudioSectionHeader(title: "分区节点")
+                StudioSectionHeader(title: i18n.t(.mn_sync_partitionNodes))
                 ForEach(Array(nodes.keys).sorted(), id: \.self) { nodeId in
                     HStack(spacing: theme.spacingM) {
                         Circle()
@@ -73,7 +74,7 @@ struct ClusterSyncView: View {
         let state = status?.partitionState ?? "unknown"
         let color: Color = state == "connected" ? theme.greenDot : (state == "partitioned" ? theme.redDot : theme.amberDot)
         return VStack(alignment: .leading, spacing: theme.spacingXS) {
-            Text("分区状态")
+            Text(i18n.t(.mn_sync_partitionState))
                 .font(.system(size: theme.captionSize, weight: .medium))
                 .foregroundStyle(theme.textSecondary)
             Text(state)
@@ -89,10 +90,10 @@ struct ClusterSyncView: View {
     private var degradedCard: some View {
         let isDegraded = engine.clusterSyncStatus?.isDegraded ?? false
         return VStack(alignment: .leading, spacing: theme.spacingXS) {
-            Text("是否降级")
+            Text(i18n.t(.mn_sync_isDegraded))
                 .font(.system(size: theme.captionSize, weight: .medium))
                 .foregroundStyle(theme.textSecondary)
-            Text(isDegraded ? "降级中" : "正常")
+            Text(isDegraded ? i18n.t(.mn_sync_degraded) : i18n.t(.mn_sync_normal))
                 .font(.system(size: theme.textSize, weight: .bold, design: .rounded))
                 .foregroundStyle(isDegraded ? theme.redDot : theme.greenDot)
         }
@@ -105,10 +106,10 @@ struct ClusterSyncView: View {
     private var syncAvailableCard: some View {
         let available = engine.clusterSyncStatus?.syncAvailable ?? false
         return VStack(alignment: .leading, spacing: theme.spacingXS) {
-            Text("同步可用")
+            Text(i18n.t(.mn_sync_syncAvailable))
                 .font(.system(size: theme.captionSize, weight: .medium))
                 .foregroundStyle(theme.textSecondary)
-            Text(available ? "可用" : "不可用")
+            Text(available ? i18n.t(.mn_sync_available) : i18n.t(.mn_sync_unavailable))
                 .font(.system(size: theme.textSize, weight: .bold, design: .rounded))
                 .foregroundStyle(available ? theme.greenDot : theme.textTertiary)
         }
@@ -120,14 +121,14 @@ struct ClusterSyncView: View {
 
     private var incrementalSyncSection: some View {
         ListGroup {
-            StudioSectionHeader(title: "增量同步")
+            StudioSectionHeader(title: i18n.t(.mn_sync_incrementalTitle))
 
             HStack(spacing: theme.spacingM) {
                 VStack(alignment: .leading, spacing: theme.spacingXS) {
-                    Text("模型名称")
+                    Text(i18n.t(.mn_sync_modelName))
                         .font(.system(size: theme.captionSize, weight: .medium))
                         .foregroundStyle(theme.textSecondary)
-                    TextField("例: Qwen2.5-7B-Instruct", text: $modelNameInput)
+                    TextField(i18n.t(.mn_sync_modelPh), text: $modelNameInput)
                         .textFieldStyle(.plain)
                         .font(.system(size: theme.textSize))
                         .padding(theme.spacingS)
@@ -136,7 +137,7 @@ struct ClusterSyncView: View {
                 }
 
                 VStack(alignment: .leading, spacing: theme.spacingXS) {
-                    Text("源节点 Host")
+                    Text(i18n.t(.mn_sync_sourceHost))
                         .font(.system(size: theme.captionSize, weight: .medium))
                         .foregroundStyle(theme.textSecondary)
                     TextField("127.0.0.1", text: $sourceHostInput)
@@ -148,7 +149,7 @@ struct ClusterSyncView: View {
                 }
 
                 VStack(alignment: .leading, spacing: theme.spacingXS) {
-                    Text("源端口")
+                    Text(i18n.t(.mn_sync_sourcePort))
                         .font(.system(size: theme.captionSize, weight: .medium))
                         .foregroundStyle(theme.textSecondary)
                     TextField("11452", text: $sourcePortInput)
@@ -160,7 +161,7 @@ struct ClusterSyncView: View {
                         .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
                 }
 
-                FusionButton(isSyncing ? "同步中..." : "触发同步", style: .primary, size: .regular) {
+                FusionButton(isSyncing ? i18n.t(.mn_sync_syncing) : i18n.t(.mn_sync_triggerBtn), style: .primary, size: .regular) {
                     triggerSync()
                 }
                 .disabled(isSyncing || modelNameInput.isEmpty)
@@ -179,17 +180,17 @@ struct ClusterSyncView: View {
 
     private var modelManifestSection: some View {
         ListGroup {
-            StudioSectionHeader(title: "模型 Manifest")
+            StudioSectionHeader(title: i18n.t(.mn_sync_manifestTitle))
 
             HStack(spacing: theme.spacingM) {
-                TextField("输入模型名称查看 Manifest", text: $modelNameInput)
+                TextField(i18n.t(.mn_sync_manifestPh), text: $modelNameInput)
                     .textFieldStyle(.plain)
                     .font(.system(size: theme.textSize))
                     .padding(theme.spacingS)
                     .background(theme.surfaceSecondary)
                     .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
 
-                FusionButton("查看", style: .secondary, size: .small) {
+                FusionButton(i18n.t(.mn_sync_viewBtn), style: .secondary, size: .small) {
                     fetchManifest()
                 }
                 .disabled(modelNameInput.isEmpty)
@@ -274,13 +275,13 @@ struct ClusterSyncView: View {
                     let synced = json["synced"] as? Int ?? 0
                     let status = json["status"] as? String ?? ""
                     if status == "up_to_date" {
-                        syncResult = "模型 \(modelNameInput) 已是最新"
+                        syncResult = String(format: i18n.t(.mn_sync_upToDateFmt), modelNameInput)
                     } else {
-                        syncResult = "同步完成: \(synced) 个文件已更新"
+                        syncResult = String(format: i18n.t(.mn_sync_syncDoneFmt), synced)
                     }
                     syncLog.info("Incremental sync result: \(json)")
                 case .failure(let err):
-                    syncResult = "同步失败: \(err.localizedDescription)"
+                    syncResult = String(format: i18n.t(.mn_sync_syncFailFmt), err.localizedDescription)
                     syncLog.error("Incremental sync failed: \(err.localizedDescription)")
                 }
             }
