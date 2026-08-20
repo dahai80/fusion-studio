@@ -27,19 +27,19 @@ enum LintRuleOption: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .contrastCheck: return "对比度检查"
-        case .unlabeledInput: return "无标签输入"
-        case .textEffects: return "文字特效"
-        case .abnormalRotation: return "异常旋转"
-        case .emptyEffects: return "空特效"
-        case .tokenInconsistency: return "Token 不一致"
-        case .unnamedNode: return "未命名节点"
-        case .textOverflow: return "文字溢出"
-        case .overlappingNodes: return "节点重叠"
-        case .hardcodedSpacing: return "硬编码间距"
-        case .hardcodedFontSize: return "硬编码字号"
-        case .missingInteractionState: return "缺少交互状态"
-        case .layoutInconsistency: return "布局不一致"
+        case .contrastCheck: return I18nManager.shared.t(.design_lint_rule_contrastCheck)
+        case .unlabeledInput: return I18nManager.shared.t(.design_lint_rule_unlabeledInput)
+        case .textEffects: return I18nManager.shared.t(.design_lint_rule_textEffects)
+        case .abnormalRotation: return I18nManager.shared.t(.design_lint_rule_abnormalRotation)
+        case .emptyEffects: return I18nManager.shared.t(.design_lint_rule_emptyEffects)
+        case .tokenInconsistency: return I18nManager.shared.t(.design_lint_rule_tokenInconsistency)
+        case .unnamedNode: return I18nManager.shared.t(.design_lint_rule_unnamedNode)
+        case .textOverflow: return I18nManager.shared.t(.design_lint_rule_textOverflow)
+        case .overlappingNodes: return I18nManager.shared.t(.design_lint_rule_overlappingNodes)
+        case .hardcodedSpacing: return I18nManager.shared.t(.design_lint_rule_hardcodedSpacing)
+        case .hardcodedFontSize: return I18nManager.shared.t(.design_lint_rule_hardcodedFontSize)
+        case .missingInteractionState: return I18nManager.shared.t(.design_lint_rule_missingInteractionState)
+        case .layoutInconsistency: return I18nManager.shared.t(.design_lint_rule_layoutInconsistency)
         }
     }
 
@@ -151,6 +151,7 @@ class DesignLintRuleStore: ObservableObject {
 struct DesignLintPanel: View {
     @EnvironmentObject var designBridge: DesignBridge
     @Environment(\.studioTheme) var theme
+    @StateObject private var i18n = I18nManager.shared
     @State private var violations: [LintViolation] = []
     @State private var stats: LintStats?
     @State private var isRunning = false
@@ -161,14 +162,14 @@ struct DesignLintPanel: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("规范检查")
+                Text(i18n.t(.design_lint_title))
                     .font(.system(size: theme.titleSize, weight: .bold))
                     .foregroundStyle(theme.text)
                 Spacer()
-                FusionButton("规则锁定", icon: "lock.shield", style: .ghost, size: .small) {
+                FusionButton(i18n.t(.design_lint_ruleLock), icon: "lock.shield", style: .ghost, size: .small) {
                     showRuleLockSheet = true
                 }
-                FusionButton("运行 Lint", icon: "play.fill", style: .primary, size: .small) {
+                FusionButton(i18n.t(.design_lint_run), icon: "play.fill", style: .primary, size: .small) {
                     runLint()
                 }
                 .disabled(isRunning)
@@ -193,7 +194,7 @@ struct DesignLintPanel: View {
                     Image(systemName: "checkmark.shield")
                         .font(.system(size: 32))
                         .foregroundStyle(.green)
-                    Text("无违规")
+                    Text(i18n.t(.design_lint_noViolation))
                         .font(.system(size: theme.textSize))
                         .foregroundStyle(theme.textSecondary)
                 }
@@ -213,19 +214,19 @@ struct DesignLintPanel: View {
             if let s = stats {
                 HStack(spacing: theme.spacingXS) {
                     Circle().fill(.red).frame(width: 8, height: 8)
-                    Text("\(s.errors) 错误").font(.system(size: theme.captionSize)).foregroundStyle(theme.textSecondary)
+                    Text(String(format: i18n.t(.design_lint_errCountFmt), s.errors)).font(.system(size: theme.captionSize)).foregroundStyle(theme.textSecondary)
                 }
                 HStack(spacing: theme.spacingXS) {
                     Circle().fill(.orange).frame(width: 8, height: 8)
-                    Text("\(s.warnings) 警告").font(.system(size: theme.captionSize)).foregroundStyle(theme.textSecondary)
+                    Text(String(format: i18n.t(.design_lint_warnCountFmt), s.warnings)).font(.system(size: theme.captionSize)).foregroundStyle(theme.textSecondary)
                 }
                 HStack(spacing: theme.spacingXS) {
                     Circle().fill(.blue).frame(width: 8, height: 8)
-                    Text("\(s.infos) 提示").font(.system(size: theme.captionSize)).foregroundStyle(theme.textSecondary)
+                    Text(String(format: i18n.t(.design_lint_infoCountFmt), s.infos)).font(.system(size: theme.captionSize)).foregroundStyle(theme.textSecondary)
                 }
             }
             Spacer()
-            Text("\(violations.count) 条违规")
+            Text(String(format: i18n.t(.design_lint_violationCountFmt), violations.count))
                 .font(.system(size: theme.captionSize, weight: .medium))
                 .foregroundStyle(theme.textTertiary)
         }
@@ -260,7 +261,7 @@ struct DesignLintPanel: View {
                         .foregroundStyle(theme.textSecondary)
                 }
                 if !v.node_id.isEmpty {
-                    Text("节点: \(v.node_id)")
+                    Text(String(format: i18n.t(.design_lint_nodeFmt), v.node_id))
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.textTertiary)
                 }
@@ -281,7 +282,7 @@ struct DesignLintPanel: View {
 
     private func runLint() {
         guard let docJSON = designBridge.lastRenderedDocumentJSON, !docJSON.isEmpty else {
-            errorMessage = "请先生成设计文档"
+            errorMessage = I18nManager.shared.t(.design_lint_genDocFirst)
             return
         }
         isRunning = true
@@ -297,7 +298,7 @@ struct DesignLintPanel: View {
             )
             DispatchQueue.main.async {
                 if issues.isEmpty && (designBridge.lastRenderedDocumentJSON ?? "").isEmpty {
-                    self.errorMessage = "Lint 未返回结果"
+                    self.errorMessage = I18nManager.shared.t(.design_lint_noResult)
                 } else {
                     let filtered = issues.filter { !ruleStore.isLocked($0.rule) }
                     let mapped = filtered.map { issue -> LintViolation in
@@ -331,19 +332,20 @@ struct DesignLintPanel: View {
 struct DesignLintRuleLockSheet: View {
     @Environment(\.studioTheme) var theme
     @Environment(\.dismiss) var dismiss
+    @StateObject private var i18n = I18nManager.shared
     @ObservedObject var ruleStore = DesignLintRuleStore.shared
 
     var body: some View {
         VStack(spacing: theme.spacingM) {
             HStack {
-                Text("设计规则锁定")
+                Text(i18n.t(.design_lint_lockTitle))
                     .font(.system(size: theme.titleSize, weight: .bold))
                     .foregroundStyle(theme.text)
                 Spacer()
-                FusionButton("完成", style: .ghost) { dismiss() }
+                FusionButton(i18n.t(.design_lint_done), style: .ghost) { dismiss() }
             }
 
-            Text("锁定的规则在 Lint 时将被忽略，违规不会显示")
+            Text(i18n.t(.design_lint_lockHint))
                 .font(.system(size: theme.footnoteSize))
                 .foregroundStyle(theme.textSecondary)
 
@@ -373,12 +375,12 @@ struct DesignLintRuleLockSheet: View {
             }
 
             HStack {
-                Text("\(ruleStore.lockedRules.count) 条规则已锁定")
+                Text(String(format: i18n.t(.design_lint_lockedCountFmt), ruleStore.lockedRules.count))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textTertiary)
                 Spacer()
                 if !ruleStore.lockedRules.isEmpty {
-                    FusionButton("全部解锁", style: .ghost, size: .small) {
+                    FusionButton(i18n.t(.design_lint_unlockAll), style: .ghost, size: .small) {
                         ruleStore.lockedRules.removeAll()
                         ruleStore.saveLockedRules()
                     }
