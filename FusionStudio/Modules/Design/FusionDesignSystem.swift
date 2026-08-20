@@ -23,9 +23,9 @@ enum ComponentSize: String, Codable, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .small: return "小"
-        case .medium: return "中"
-        case .large: return "大"
+        case .small: return I18nManager.shared.t(.design_ds_sizeSM)
+        case .medium: return I18nManager.shared.t(.design_ds_sizeMD)
+        case .large: return I18nManager.shared.t(.design_ds_sizeLG)
         }
     }
 }
@@ -59,6 +59,21 @@ struct DesignComponent: Codable, Identifiable {
         self.htmlTemplate = htmlTemplate
         self.tags = tags
     }
+
+    var localDescription: String {
+        switch name {
+        case "Button": return I18nManager.shared.t(.design_ds_desc_button)
+        case "Card": return I18nManager.shared.t(.design_ds_desc_card)
+        case "Input": return I18nManager.shared.t(.design_ds_desc_input)
+        case "Select": return I18nManager.shared.t(.design_ds_desc_select)
+        case "Modal": return I18nManager.shared.t(.design_ds_desc_modal)
+        case "Navigation": return I18nManager.shared.t(.design_ds_desc_nav)
+        case "Table": return I18nManager.shared.t(.design_ds_desc_table)
+        case "Chart": return I18nManager.shared.t(.design_ds_desc_chart)
+        case "Form": return I18nManager.shared.t(.design_ds_desc_form)
+        default: return description
+        }
+    }
 }
 
 enum ComponentCategory: String, Codable, CaseIterable, Identifiable {
@@ -73,6 +88,20 @@ enum ComponentCategory: String, Codable, CaseIterable, Identifiable {
     case form = "表单"
 
     var id: String { rawValue }
+
+    var localLabel: String {
+        switch self {
+        case .button: return I18nManager.shared.t(.design_ds_cat_button)
+        case .card: return I18nManager.shared.t(.design_ds_cat_card)
+        case .input: return I18nManager.shared.t(.design_ds_cat_input)
+        case .select: return I18nManager.shared.t(.design_ds_cat_select)
+        case .modal: return I18nManager.shared.t(.design_ds_cat_modal)
+        case .navigation: return I18nManager.shared.t(.design_ds_cat_nav)
+        case .table: return I18nManager.shared.t(.design_ds_cat_table)
+        case .chart: return I18nManager.shared.t(.design_ds_cat_chart)
+        case .form: return I18nManager.shared.t(.design_ds_cat_form)
+        }
+    }
 
     var icon: String {
         switch self {
@@ -513,6 +542,7 @@ class FusionDesignSystem: ObservableObject {
 
 struct DesignComponentLibraryView: View {
     @StateObject private var designSystem = FusionDesignSystem.shared
+    @StateObject private var i18n = I18nManager.shared
     @Environment(\.studioTheme) var theme
 
     var body: some View {
@@ -531,14 +561,14 @@ struct DesignComponentLibraryView: View {
         HStack(spacing: theme.spacingS) {
             Image(systemName: "square.grid.3x3")
                 .foregroundColor(theme.accent)
-            Text("组件库")
+            Text(i18n.t(.design_ds_compLibrary))
                 .font(.system(size: theme.bodySize, weight: .semibold))
                 .foregroundColor(theme.text)
             Spacer()
             HStack(spacing: theme.spacingXS) {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(theme.textTertiary)
-                TextField("搜索组件...", text: $designSystem.searchQuery)
+                TextField(i18n.t(.design_ds_searchCompPh), text: $designSystem.searchQuery)
                     .textFieldStyle(.plain)
                     .font(.system(size: theme.captionSize))
                     .foregroundColor(theme.text)
@@ -559,7 +589,7 @@ struct DesignComponentLibraryView: View {
                 HStack(spacing: theme.spacingXS) {
                     Image(systemName: "square.grid.2x2")
                         .font(.system(size: 11))
-                    Text("全部")
+                    Text(i18n.t(.design_ds_catAll))
                         .font(.system(size: theme.captionSize))
                 }
                 .foregroundColor(designSystem.selectedCategory == nil ? theme.accentText : theme.textSecondary)
@@ -575,7 +605,7 @@ struct DesignComponentLibraryView: View {
                     HStack(spacing: theme.spacingXS) {
                         Image(systemName: cat.icon)
                             .font(.system(size: 11))
-                        Text(cat.rawValue)
+                        Text(cat.localLabel)
                             .font(.system(size: theme.captionSize))
                         Spacer()
                         Text("\(designSystem.components(in: cat).count)")
@@ -594,7 +624,7 @@ struct DesignComponentLibraryView: View {
             Spacer()
 
             VStack(alignment: .leading, spacing: theme.spacingXS) {
-                Text("模板")
+                Text(i18n.t(.design_ds_template))
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundColor(theme.textTertiary)
                     .textCase(.uppercase)
@@ -646,7 +676,7 @@ struct ComponentCard: View {
                 Spacer()
             }
 
-            Text(component.description)
+            Text(component.localDescription)
                 .font(.system(size: theme.captionSize))
                 .foregroundColor(theme.textSecondary)
                 .lineLimit(2)

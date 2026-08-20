@@ -2557,6 +2557,87 @@ enum I18nKey: String, CaseIterable {
     case design_tpl_multiVariants = "design_tpl_multiVariants"
     case design_tpl_specDoc = "design_tpl_specDoc"
     case design_tpl_pageFlow = "design_tpl_pageFlow"
+    case design_ds_compLibrary = "design_ds_compLibrary"
+    case design_ds_searchCompPh = "design_ds_searchCompPh"
+    case design_ds_catAll = "design_ds_catAll"
+    case design_ds_template = "design_ds_template"
+    case design_ds_sizeSM = "design_ds_sizeSM"
+    case design_ds_sizeMD = "design_ds_sizeMD"
+    case design_ds_sizeLG = "design_ds_sizeLG"
+    case design_ds_cat_button = "design_ds_cat_button"
+    case design_ds_cat_card = "design_ds_cat_card"
+    case design_ds_cat_input = "design_ds_cat_input"
+    case design_ds_cat_select = "design_ds_cat_select"
+    case design_ds_cat_modal = "design_ds_cat_modal"
+    case design_ds_cat_nav = "design_ds_cat_nav"
+    case design_ds_cat_table = "design_ds_cat_table"
+    case design_ds_cat_chart = "design_ds_cat_chart"
+    case design_ds_cat_form = "design_ds_cat_form"
+    case design_ds_desc_button = "design_ds_desc_button"
+    case design_ds_desc_card = "design_ds_desc_card"
+    case design_ds_desc_input = "design_ds_desc_input"
+    case design_ds_desc_select = "design_ds_desc_select"
+    case design_ds_desc_modal = "design_ds_desc_modal"
+    case design_ds_desc_nav = "design_ds_desc_nav"
+    case design_ds_desc_table = "design_ds_desc_table"
+    case design_ds_desc_chart = "design_ds_desc_chart"
+    case design_ds_desc_form = "design_ds_desc_form"
+    case design_lint_title = "design_lint_title"
+    case design_lint_ruleLock = "design_lint_ruleLock"
+    case design_lint_run = "design_lint_run"
+    case design_lint_genDocFirst = "design_lint_genDocFirst"
+    case design_lint_noResult = "design_lint_noResult"
+    case design_lint_noViolation = "design_lint_noViolation"
+    case design_lint_errCountFmt = "design_lint_errCountFmt"
+    case design_lint_warnCountFmt = "design_lint_warnCountFmt"
+    case design_lint_infoCountFmt = "design_lint_infoCountFmt"
+    case design_lint_violationCountFmt = "design_lint_violationCountFmt"
+    case design_lint_nodeFmt = "design_lint_nodeFmt"
+    case design_lint_rule_contrastCheck = "design_lint_rule_contrastCheck"
+    case design_lint_rule_unlabeledInput = "design_lint_rule_unlabeledInput"
+    case design_lint_rule_textEffects = "design_lint_rule_textEffects"
+    case design_lint_rule_abnormalRotation = "design_lint_rule_abnormalRotation"
+    case design_lint_rule_emptyEffects = "design_lint_rule_emptyEffects"
+    case design_lint_rule_tokenInconsistency = "design_lint_rule_tokenInconsistency"
+    case design_lint_rule_unnamedNode = "design_lint_rule_unnamedNode"
+    case design_lint_rule_textOverflow = "design_lint_rule_textOverflow"
+    case design_lint_rule_overlappingNodes = "design_lint_rule_overlappingNodes"
+    case design_lint_rule_hardcodedSpacing = "design_lint_rule_hardcodedSpacing"
+    case design_lint_rule_hardcodedFontSize = "design_lint_rule_hardcodedFontSize"
+    case design_lint_rule_missingInteractionState = "design_lint_rule_missingInteractionState"
+    case design_lint_rule_layoutInconsistency = "design_lint_rule_layoutInconsistency"
+    case design_lint_lockTitle = "design_lint_lockTitle"
+    case design_lint_done = "design_lint_done"
+    case design_lint_lockHint = "design_lint_lockHint"
+    case design_lint_lockedCountFmt = "design_lint_lockedCountFmt"
+    case design_lint_unlockAll = "design_lint_unlockAll"
+    case design_eco_tabSync = "design_eco_tabSync"
+    case design_eco_tabTpl = "design_eco_tabTpl"
+    case design_eco_syncToCode = "design_eco_syncToCode"
+    case design_eco_compName = "design_eco_compName"
+    case design_eco_syncing = "design_eco_syncing"
+    case design_eco_syncCode = "design_eco_syncCode"
+    case design_eco_watchCode = "design_eco_watchCode"
+    case design_eco_checking = "design_eco_checking"
+    case design_eco_checkChange = "design_eco_checkChange"
+    case design_eco_noMutation = "design_eco_noMutation"
+    case design_eco_applyCanvas = "design_eco_applyCanvas"
+    case design_eco_saveAsTpl = "design_eco_saveAsTpl"
+    case design_eco_tplNamePh = "design_eco_tplNamePh"
+    case design_eco_tplTagsPh = "design_eco_tplTagsPh"
+    case design_eco_tplCatPh = "design_eco_tplCatPh"
+    case design_eco_save = "design_eco_save"
+    case design_eco_searchTpl = "design_eco_searchTpl"
+    case design_eco_searchPh = "design_eco_searchPh"
+    case design_eco_search = "design_eco_search"
+    case design_eco_noMatchTpl = "design_eco_noMatchTpl"
+    case design_eco_load = "design_eco_load"
+    case design_eco_syncDone = "design_eco_syncDone"
+    case design_eco_syncFailFmt = "design_eco_syncFailFmt"
+    case design_eco_appliedFmt = "design_eco_appliedFmt"
+    case design_eco_tplSavedFmt = "design_eco_tplSavedFmt"
+    case design_eco_tplSaveFailFmt = "design_eco_tplSaveFailFmt"
+    case design_eco_tplLoadedFmt = "design_eco_tplLoadedFmt"
 }
 
 // MARK: - 翻译管理器
@@ -4766,6 +4847,87 @@ let zhCNTranslations: [String: String] = [
     "design_tpl_multiVariants": "多方案",
     "design_tpl_specDoc": "规范文档",
     "design_tpl_pageFlow": "页面流",
+    "design_ds_compLibrary": "组件库",
+    "design_ds_searchCompPh": "搜索组件...",
+    "design_ds_catAll": "全部",
+    "design_ds_template": "模板",
+    "design_ds_sizeSM": "小",
+    "design_ds_sizeMD": "中",
+    "design_ds_sizeLG": "大",
+    "design_ds_cat_button": "按钮",
+    "design_ds_cat_card": "卡片",
+    "design_ds_cat_input": "输入",
+    "design_ds_cat_select": "选择",
+    "design_ds_cat_modal": "弹窗",
+    "design_ds_cat_nav": "导航",
+    "design_ds_cat_table": "表格",
+    "design_ds_cat_chart": "图表",
+    "design_ds_cat_form": "表单",
+    "design_ds_desc_button": "操作按钮组件，支持多种样式变体和尺寸",
+    "design_ds_desc_card": "内容卡片组件，支持标准/描边/特色样式",
+    "design_ds_desc_input": "文本输入组件，支持多种输入类型",
+    "design_ds_desc_select": "下拉选择组件，支持单选/多选",
+    "design_ds_desc_modal": "弹窗组件，支持信息/确认/表单模式",
+    "design_ds_desc_nav": "导航组件，支持顶栏/侧边栏/标签页",
+    "design_ds_desc_table": "数据表格组件，支持基础/可排序/分页",
+    "design_ds_desc_chart": "图表组件，支持折线/柱状/饼图",
+    "design_ds_desc_form": "表单组件，支持登录/注册/联系表单",
+    "design_lint_title": "规范检查",
+    "design_lint_ruleLock": "规则锁定",
+    "design_lint_run": "运行 Lint",
+    "design_lint_genDocFirst": "请先生成设计文档",
+    "design_lint_noResult": "Lint 未返回结果",
+    "design_lint_noViolation": "无违规",
+    "design_lint_errCountFmt": "%d 错误",
+    "design_lint_warnCountFmt": "%d 警告",
+    "design_lint_infoCountFmt": "%d 提示",
+    "design_lint_violationCountFmt": "%d 条违规",
+    "design_lint_nodeFmt": "节点: %@",
+    "design_lint_rule_contrastCheck": "对比度检查",
+    "design_lint_rule_unlabeledInput": "无标签输入",
+    "design_lint_rule_textEffects": "文字特效",
+    "design_lint_rule_abnormalRotation": "异常旋转",
+    "design_lint_rule_emptyEffects": "空特效",
+    "design_lint_rule_tokenInconsistency": "Token 不一致",
+    "design_lint_rule_unnamedNode": "未命名节点",
+    "design_lint_rule_textOverflow": "文字溢出",
+    "design_lint_rule_overlappingNodes": "节点重叠",
+    "design_lint_rule_hardcodedSpacing": "硬编码间距",
+    "design_lint_rule_hardcodedFontSize": "硬编码字号",
+    "design_lint_rule_missingInteractionState": "缺少交互状态",
+    "design_lint_rule_layoutInconsistency": "布局不一致",
+    "design_lint_lockTitle": "设计规则锁定",
+    "design_lint_done": "完成",
+    "design_lint_lockHint": "锁定的规则在 Lint 时将被忽略，违规不会显示",
+    "design_lint_lockedCountFmt": "%d 条规则已锁定",
+    "design_lint_unlockAll": "全部解锁",
+    "design_eco_tabSync": "代码同步",
+    "design_eco_tabTpl": "模板库",
+    "design_eco_syncToCode": "正向同步 → Fusion Code",
+    "design_eco_compName": "组件名",
+    "design_eco_syncing": "同步中...",
+    "design_eco_syncCode": "同步代码",
+    "design_eco_watchCode": "反向监听 ← Fusion Code",
+    "design_eco_checking": "检查中...",
+    "design_eco_checkChange": "检查变更",
+    "design_eco_noMutation": "无待处理样式变更",
+    "design_eco_applyCanvas": "应用到画布",
+    "design_eco_saveAsTpl": "保存当前设计为模板",
+    "design_eco_tplNamePh": "模板名称",
+    "design_eco_tplTagsPh": "标签(逗号分隔)",
+    "design_eco_tplCatPh": "分类",
+    "design_eco_save": "保存",
+    "design_eco_searchTpl": "检索模板",
+    "design_eco_searchPh": "搜索名称/标签/分类",
+    "design_eco_search": "搜索",
+    "design_eco_noMatchTpl": "无匹配模板",
+    "design_eco_load": "加载",
+    "design_eco_syncDone": "代码同步完成",
+    "design_eco_syncFailFmt": "同步失败: %@",
+    "design_eco_appliedFmt": "已应用 %d 个样式变更",
+    "design_eco_tplSavedFmt": "模板 '%@' 已保存",
+    "design_eco_tplSaveFailFmt": "保存模板失败: %@",
+    "design_eco_tplLoadedFmt": "已加载模板 '%@'",
 ]
 
 let enUSTranslations: [String: String] = [
@@ -6930,6 +7092,87 @@ let enUSTranslations: [String: String] = [
     "design_tpl_multiVariants": "Multi Variants",
     "design_tpl_specDoc": "Spec Document",
     "design_tpl_pageFlow": "Page Flow",
+    "design_ds_compLibrary": "Component Library",
+    "design_ds_searchCompPh": "Search components...",
+    "design_ds_catAll": "All",
+    "design_ds_template": "Templates",
+    "design_ds_sizeSM": "S",
+    "design_ds_sizeMD": "M",
+    "design_ds_sizeLG": "L",
+    "design_ds_cat_button": "Button",
+    "design_ds_cat_card": "Card",
+    "design_ds_cat_input": "Input",
+    "design_ds_cat_select": "Select",
+    "design_ds_cat_modal": "Modal",
+    "design_ds_cat_nav": "Navigation",
+    "design_ds_cat_table": "Table",
+    "design_ds_cat_chart": "Chart",
+    "design_ds_cat_form": "Form",
+    "design_ds_desc_button": "Action button component supporting multiple style variants and sizes",
+    "design_ds_desc_card": "Content card component supporting standard/outlined/featured styles",
+    "design_ds_desc_input": "Text input component supporting multiple input types",
+    "design_ds_desc_select": "Dropdown select component supporting single/multi-select",
+    "design_ds_desc_modal": "Modal component supporting info/confirm/form modes",
+    "design_ds_desc_nav": "Navigation component supporting top bar/sidebar/tabs",
+    "design_ds_desc_table": "Data table component supporting basic/sortable/pagination",
+    "design_ds_desc_chart": "Chart component supporting line/bar/pie",
+    "design_ds_desc_form": "Form component supporting login/register/contact forms",
+    "design_lint_title": "Lint Check",
+    "design_lint_ruleLock": "Rule Lock",
+    "design_lint_run": "Run Lint",
+    "design_lint_genDocFirst": "Please generate a design document first",
+    "design_lint_noResult": "Lint returned no results",
+    "design_lint_noViolation": "No violations",
+    "design_lint_errCountFmt": "%d errors",
+    "design_lint_warnCountFmt": "%d warnings",
+    "design_lint_infoCountFmt": "%d info",
+    "design_lint_violationCountFmt": "%d violations",
+    "design_lint_nodeFmt": "Node: %@",
+    "design_lint_rule_contrastCheck": "Contrast check",
+    "design_lint_rule_unlabeledInput": "Unlabeled input",
+    "design_lint_rule_textEffects": "Text effects",
+    "design_lint_rule_abnormalRotation": "Abnormal rotation",
+    "design_lint_rule_emptyEffects": "Empty effects",
+    "design_lint_rule_tokenInconsistency": "Token inconsistency",
+    "design_lint_rule_unnamedNode": "Unnamed node",
+    "design_lint_rule_textOverflow": "Text overflow",
+    "design_lint_rule_overlappingNodes": "Overlapping nodes",
+    "design_lint_rule_hardcodedSpacing": "Hardcoded spacing",
+    "design_lint_rule_hardcodedFontSize": "Hardcoded font size",
+    "design_lint_rule_missingInteractionState": "Missing interaction state",
+    "design_lint_rule_layoutInconsistency": "Layout inconsistency",
+    "design_lint_lockTitle": "Design Rule Lock",
+    "design_lint_done": "Done",
+    "design_lint_lockHint": "Locked rules are ignored during Lint and violations will not be shown",
+    "design_lint_lockedCountFmt": "%d rules locked",
+    "design_lint_unlockAll": "Unlock all",
+    "design_eco_tabSync": "Code Sync",
+    "design_eco_tabTpl": "Templates",
+    "design_eco_syncToCode": "Forward Sync → Fusion Code",
+    "design_eco_compName": "Component name",
+    "design_eco_syncing": "Syncing...",
+    "design_eco_syncCode": "Sync code",
+    "design_eco_watchCode": "Reverse Watch ← Fusion Code",
+    "design_eco_checking": "Checking...",
+    "design_eco_checkChange": "Check changes",
+    "design_eco_noMutation": "No pending style changes",
+    "design_eco_applyCanvas": "Apply to canvas",
+    "design_eco_saveAsTpl": "Save current design as template",
+    "design_eco_tplNamePh": "Template name",
+    "design_eco_tplTagsPh": "Tags (comma-separated)",
+    "design_eco_tplCatPh": "Category",
+    "design_eco_save": "Save",
+    "design_eco_searchTpl": "Search templates",
+    "design_eco_searchPh": "Search name/tags/category",
+    "design_eco_search": "Search",
+    "design_eco_noMatchTpl": "No matching templates",
+    "design_eco_load": "Load",
+    "design_eco_syncDone": "Code sync completed",
+    "design_eco_syncFailFmt": "Sync failed: %@",
+    "design_eco_appliedFmt": "Applied %d style changes",
+    "design_eco_tplSavedFmt": "Template '%@' saved",
+    "design_eco_tplSaveFailFmt": "Failed to save template: %@",
+    "design_eco_tplLoadedFmt": "Template '%@' loaded",
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -9088,6 +9331,87 @@ let jaJPTranslations: [String: String] = [
     "design_tpl_multiVariants": "複数バリエーション",
     "design_tpl_specDoc": "仕様書",
     "design_tpl_pageFlow": "ページフロー",
+    "design_ds_compLibrary": "コンポーネントライブラリ",
+    "design_ds_searchCompPh": "コンポーネントを検索...",
+    "design_ds_catAll": "すべて",
+    "design_ds_template": "テンプレート",
+    "design_ds_sizeSM": "小",
+    "design_ds_sizeMD": "中",
+    "design_ds_sizeLG": "大",
+    "design_ds_cat_button": "ボタン",
+    "design_ds_cat_card": "カード",
+    "design_ds_cat_input": "入力",
+    "design_ds_cat_select": "選択",
+    "design_ds_cat_modal": "モーダル",
+    "design_ds_cat_nav": "ナビゲーション",
+    "design_ds_cat_table": "テーブル",
+    "design_ds_cat_chart": "チャート",
+    "design_ds_cat_form": "フォーム",
+    "design_ds_desc_button": "複数のスタイルバリアントとサイズをサポートするアクションボタンコンポーネント",
+    "design_ds_desc_card": "標準/アウトライン/フィーチャースタイルをサポートするコンテンツカードコンポーネント",
+    "design_ds_desc_input": "複数の入力タイプをサポートするテキスト入力コンポーネント",
+    "design_ds_desc_select": "単一/複数選択をサポートするドロップダウン選択コンポーネント",
+    "design_ds_desc_modal": "情報/確認/フォームモードをサポートするモーダルコンポーネント",
+    "design_ds_desc_nav": "トップバー/サイドバー/タブをサポートするナビゲーションコンポーネント",
+    "design_ds_desc_table": "基本/ソート可能/ページネーションをサポートするデータテーブルコンポーネント",
+    "design_ds_desc_chart": "折れ線/棒/円グラフをサポートするチャートコンポーネント",
+    "design_ds_desc_form": "ログイン/登録/問い合わせフォームをサポートするフォームコンポーネント",
+    "design_lint_title": "リントチェック",
+    "design_lint_ruleLock": "ルールロック",
+    "design_lint_run": "リント実行",
+    "design_lint_genDocFirst": "先に設計ドキュメントを生成してください",
+    "design_lint_noResult": "リントが結果を返しませんでした",
+    "design_lint_noViolation": "違反なし",
+    "design_lint_errCountFmt": "%d エラー",
+    "design_lint_warnCountFmt": "%d 警告",
+    "design_lint_infoCountFmt": "%d 情報",
+    "design_lint_violationCountFmt": "%d 件の違反",
+    "design_lint_nodeFmt": "ノード: %@",
+    "design_lint_rule_contrastCheck": "コントラストチェック",
+    "design_lint_rule_unlabeledInput": "ラベルなし入力",
+    "design_lint_rule_textEffects": "テキスト効果",
+    "design_lint_rule_abnormalRotation": "異常な回転",
+    "design_lint_rule_emptyEffects": "空の効果",
+    "design_lint_rule_tokenInconsistency": "Tokenの不一致",
+    "design_lint_rule_unnamedNode": "名前なしノード",
+    "design_lint_rule_textOverflow": "テキストオーバーフロー",
+    "design_lint_rule_overlappingNodes": "ノードの重なり",
+    "design_lint_rule_hardcodedSpacing": "ハードコードされたスペーシング",
+    "design_lint_rule_hardcodedFontSize": "ハードコードされたフォントサイズ",
+    "design_lint_rule_missingInteractionState": "インタラクション状態の欠如",
+    "design_lint_rule_layoutInconsistency": "レイアウトの不一致",
+    "design_lint_lockTitle": "設計ルールロック",
+    "design_lint_done": "完了",
+    "design_lint_lockHint": "ロックされたルールはリント時に無視され、違反は表示されません",
+    "design_lint_lockedCountFmt": "%d 件のルールがロック済み",
+    "design_lint_unlockAll": "すべてロック解除",
+    "design_eco_tabSync": "コード同期",
+    "design_eco_tabTpl": "テンプレートライブラリ",
+    "design_eco_syncToCode": "フォワード同期 → Fusion Code",
+    "design_eco_compName": "コンポーネント名",
+    "design_eco_syncing": "同期中...",
+    "design_eco_syncCode": "コードを同期",
+    "design_eco_watchCode": "リバース監視 ← Fusion Code",
+    "design_eco_checking": "確認中...",
+    "design_eco_checkChange": "変更を確認",
+    "design_eco_noMutation": "保留中のスタイル変更なし",
+    "design_eco_applyCanvas": "キャンバスに適用",
+    "design_eco_saveAsTpl": "現在の設計をテンプレートとして保存",
+    "design_eco_tplNamePh": "テンプレート名",
+    "design_eco_tplTagsPh": "タグ(カンマ区切り)",
+    "design_eco_tplCatPh": "カテゴリ",
+    "design_eco_save": "保存",
+    "design_eco_searchTpl": "テンプレート検索",
+    "design_eco_searchPh": "名前/タグ/カテゴリを検索",
+    "design_eco_search": "検索",
+    "design_eco_noMatchTpl": "一致するテンプレートなし",
+    "design_eco_load": "読み込み",
+    "design_eco_syncDone": "コード同期が完了しました",
+    "design_eco_syncFailFmt": "同期失敗: %@",
+    "design_eco_appliedFmt": "%d 件のスタイル変更を適用",
+    "design_eco_tplSavedFmt": "テンプレート '%@' を保存しました",
+    "design_eco_tplSaveFailFmt": "テンプレートの保存に失敗: %@",
+    "design_eco_tplLoadedFmt": "テンプレート '%@' を読み込みました",
 ]
 
 let koKRTranslations: [String: String] = [
@@ -11246,6 +11570,87 @@ let koKRTranslations: [String: String] = [
     "design_tpl_multiVariants": "다중 변형",
     "design_tpl_specDoc": "사양 문서",
     "design_tpl_pageFlow": "페이지 흐름",
+    "design_ds_compLibrary": "컴포넌트 라이브러리",
+    "design_ds_searchCompPh": "컴포넌트 검색...",
+    "design_ds_catAll": "전체",
+    "design_ds_template": "템플릿",
+    "design_ds_sizeSM": "소",
+    "design_ds_sizeMD": "중",
+    "design_ds_sizeLG": "대",
+    "design_ds_cat_button": "버튼",
+    "design_ds_cat_card": "카드",
+    "design_ds_cat_input": "입력",
+    "design_ds_cat_select": "선택",
+    "design_ds_cat_modal": "모달",
+    "design_ds_cat_nav": "내비게이션",
+    "design_ds_cat_table": "테이블",
+    "design_ds_cat_chart": "차트",
+    "design_ds_cat_form": "폼",
+    "design_ds_desc_button": "다양한 스타일 변형과 크기를 지원하는 액션 버튼 컴포넌트",
+    "design_ds_desc_card": "표준/아웃라인/피처드 스타일을 지원하는 콘텐츠 카드 컴포넌트",
+    "design_ds_desc_input": "다양한 입력 타입을 지원하는 텍스트 입력 컴포넌트",
+    "design_ds_desc_select": "단일/다중 선택을 지원하는 드롭다운 선택 컴포넌트",
+    "design_ds_desc_modal": "정보/확인/폼 모드를 지원하는 모달 컴포넌트",
+    "design_ds_desc_nav": "상단 바/사이드바/탭을 지원하는 내비게이션 컴포넌트",
+    "design_ds_desc_table": "기본/정렬/페이지네이션을 지원하는 데이터 테이블 컴포넌트",
+    "design_ds_desc_chart": "선형/막대/파이 차트를 지원하는 차트 컴포넌트",
+    "design_ds_desc_form": "로그イン/가입/문의 폼을 지원하는 폼 컴포넌트",
+    "design_lint_title": "린트 검사",
+    "design_lint_ruleLock": "규칙 잠금",
+    "design_lint_run": "린트 실행",
+    "design_lint_genDocFirst": "먼저 설계 문서를 생성하세요",
+    "design_lint_noResult": "린트가 결과를 반환하지 않았습니다",
+    "design_lint_noViolation": "위반 없음",
+    "design_lint_errCountFmt": "%d 오류",
+    "design_lint_warnCountFmt": "%d 경고",
+    "design_lint_infoCountFmt": "%d 정보",
+    "design_lint_violationCountFmt": "%d건 위반",
+    "design_lint_nodeFmt": "노드: %@",
+    "design_lint_rule_contrastCheck": "대비 검사",
+    "design_lint_rule_unlabeledInput": "라벨 없는 입력",
+    "design_lint_rule_textEffects": "텍스트 효과",
+    "design_lint_rule_abnormalRotation": "비정상 회전",
+    "design_lint_rule_emptyEffects": "빈 효과",
+    "design_lint_rule_tokenInconsistency": "Token 불일치",
+    "design_lint_rule_unnamedNode": "이름 없는 노드",
+    "design_lint_rule_textOverflow": "텍스트 오버플로우",
+    "design_lint_rule_overlappingNodes": "노드 겹침",
+    "design_lint_rule_hardcodedSpacing": "하드코딩된 간격",
+    "design_lint_rule_hardcodedFontSize": "하드코딩된 글꼴 크기",
+    "design_lint_rule_missingInteractionState": "상호작용 상태 누락",
+    "design_lint_rule_layoutInconsistency": "레이아웃 불일치",
+    "design_lint_lockTitle": "설계 규칙 잠금",
+    "design_lint_done": "완료",
+    "design_lint_lockHint": "잠긴 규칙은 린트 시 무視되며 위반은 표시되지 않습니다",
+    "design_lint_lockedCountFmt": "%d건 규칙 잠김",
+    "design_lint_unlockAll": "모두 잠금 해제",
+    "design_eco_tabSync": "코드 동기화",
+    "design_eco_tabTpl": "템플릿 라이브러리",
+    "design_eco_syncToCode": "정방향 동기화 → Fusion Code",
+    "design_eco_compName": "컴포넌트 이름",
+    "design_eco_syncing": "동기화 중...",
+    "design_eco_syncCode": "코드 동기화",
+    "design_eco_watchCode": "역방향 감시 ← Fusion Code",
+    "design_eco_checking": "확인 중...",
+    "design_eco_checkChange": "변경 확인",
+    "design_eco_noMutation": "대기 중인 스타일 변경 없음",
+    "design_eco_applyCanvas": "캔버스에 적용",
+    "design_eco_saveAsTpl": "현재 설계를 템플릿으로 저장",
+    "design_eco_tplNamePh": "템플릿 이름",
+    "design_eco_tplTagsPh": "태그(쉼표 구분)",
+    "design_eco_tplCatPh": "카테고리",
+    "design_eco_save": "저장",
+    "design_eco_searchTpl": "템플릿 검색",
+    "design_eco_searchPh": "이름/태그/카테고리 검색",
+    "design_eco_search": "검색",
+    "design_eco_noMatchTpl": "일치하는 템플릿 없음",
+    "design_eco_load": "불러오기",
+    "design_eco_syncDone": "코드 동기화 완료",
+    "design_eco_syncFailFmt": "동기화 실패: %@",
+    "design_eco_appliedFmt": "%d건 스타일 변경 적용",
+    "design_eco_tplSavedFmt": "템플릿 '%@' 저장됨",
+    "design_eco_tplSaveFailFmt": "템플릿 저장 실패: %@",
+    "design_eco_tplLoadedFmt": "템플릿 '%@' 불러옴",
 ]
 
 // MARK: - 国际化文本视图

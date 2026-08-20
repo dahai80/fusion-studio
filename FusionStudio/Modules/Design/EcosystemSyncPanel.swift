@@ -50,8 +50,8 @@ enum EcosystemTab: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .sync: return "代码同步"
-        case .templates: return "模板库"
+        case .sync: return I18nManager.shared.t(.design_eco_tabSync)
+        case .templates: return I18nManager.shared.t(.design_eco_tabTpl)
         }
     }
 
@@ -66,6 +66,7 @@ enum EcosystemTab: String, CaseIterable, Identifiable {
 struct EcosystemSyncPanel: View {
     @Environment(\.studioTheme) var theme
     @EnvironmentObject var designBridge: DesignBridge
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var selectedTab: EcosystemTab = .sync
     @State private var componentName: String = "MyComponent"
@@ -141,12 +142,12 @@ struct EcosystemSyncPanel: View {
 
     private var syncToCodeSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            Label("正向同步 → Fusion Code", systemImage: "arrow.right.doc.on.clipboard")
+            Label(i18n.t(.design_eco_syncToCode), systemImage: "arrow.right.doc.on.clipboard")
                 .font(.system(size: theme.footnoteSize, weight: .semibold))
                 .foregroundStyle(theme.text)
 
             HStack(spacing: theme.spacingS) {
-                Text("组件名")
+                Text(i18n.t(.design_eco_compName))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textTertiary)
                 TextField("MyComponent", text: $componentName)
@@ -167,7 +168,7 @@ struct EcosystemSyncPanel: View {
                             Image(systemName: "arrow.right.doc.on.clipboard")
                                 .font(.system(size: 9))
                         }
-                        Text(isSyncing ? "同步中..." : "同步代码")
+                        Text(isSyncing ? i18n.t(.design_eco_syncing) : i18n.t(.design_eco_syncCode))
                             .font(.system(size: theme.captionSize, weight: .medium))
                     }
                     .foregroundStyle(theme.accentText)
@@ -193,7 +194,7 @@ struct EcosystemSyncPanel: View {
     private var watchCodeChangesSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
             HStack {
-                Label("反向监听 ← Fusion Code", systemImage: "arrow.left.doc.on.clipboard")
+                Label(i18n.t(.design_eco_watchCode), systemImage: "arrow.left.doc.on.clipboard")
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
                     .foregroundStyle(theme.text)
                 Spacer()
@@ -205,7 +206,7 @@ struct EcosystemSyncPanel: View {
                             Image(systemName: "arrow.counterclockwise")
                                 .font(.system(size: 9))
                         }
-                        Text(isWatching ? "检查中..." : "检查变更")
+                        Text(isWatching ? i18n.t(.design_eco_checking) : i18n.t(.design_eco_checkChange))
                             .font(.system(size: theme.captionSize, weight: .medium))
                     }
                     .foregroundStyle(theme.textSecondary)
@@ -218,7 +219,7 @@ struct EcosystemSyncPanel: View {
             }
 
             if pendingMutations.isEmpty {
-                Text("无待处理样式变更")
+                Text(i18n.t(.design_eco_noMutation))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textTertiary)
             } else {
@@ -239,7 +240,7 @@ struct EcosystemSyncPanel: View {
                         HStack(spacing: 3) {
                             Image(systemName: "checkmark.circle")
                                 .font(.system(size: 9))
-                            Text("应用到画布")
+                            Text(i18n.t(.design_eco_applyCanvas))
                                 .font(.system(size: 9, weight: .medium))
                         }
                         .foregroundStyle(theme.accentText)
@@ -269,12 +270,12 @@ struct EcosystemSyncPanel: View {
 
     private var saveTemplateSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            Label("保存当前设计为模板", systemImage: "square.and.arrow.down")
+            Label(i18n.t(.design_eco_saveAsTpl), systemImage: "square.and.arrow.down")
                 .font(.system(size: theme.footnoteSize, weight: .semibold))
                 .foregroundStyle(theme.text)
 
             HStack(spacing: theme.spacingS) {
-                TextField("模板名称", text: $templateName)
+                TextField(i18n.t(.design_eco_tplNamePh), text: $templateName)
                     .textFieldStyle(.plain)
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.text)
@@ -283,7 +284,7 @@ struct EcosystemSyncPanel: View {
                     .background(theme.groupBg)
                     .cornerRadius(theme.cornerRadiusSmall)
 
-                TextField("标签(逗号分隔)", text: $templateTags)
+                TextField(i18n.t(.design_eco_tplTagsPh), text: $templateTags)
                     .textFieldStyle(.plain)
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.text)
@@ -293,7 +294,7 @@ struct EcosystemSyncPanel: View {
                     .background(theme.groupBg)
                     .cornerRadius(theme.cornerRadiusSmall)
 
-                TextField("分类", text: $templateCategory)
+                TextField(i18n.t(.design_eco_tplCatPh), text: $templateCategory)
                     .textFieldStyle(.plain)
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.text)
@@ -311,7 +312,7 @@ struct EcosystemSyncPanel: View {
                             Image(systemName: "square.and.arrow.down")
                                 .font(.system(size: 9))
                         }
-                        Text("保存")
+                        Text(i18n.t(.design_eco_save))
                             .font(.system(size: theme.captionSize, weight: .medium))
                     }
                     .foregroundStyle(theme.accentText)
@@ -329,12 +330,12 @@ struct EcosystemSyncPanel: View {
 
     private var searchTemplateSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            Label("检索模板", systemImage: "magnifyingglass")
+            Label(i18n.t(.design_eco_searchTpl), systemImage: "magnifyingglass")
                 .font(.system(size: theme.footnoteSize, weight: .semibold))
                 .foregroundStyle(theme.text)
 
             HStack(spacing: theme.spacingS) {
-                TextField("搜索名称/标签/分类", text: $templateSearchQuery)
+                TextField(i18n.t(.design_eco_searchPh), text: $templateSearchQuery)
                     .textFieldStyle(.plain)
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.text)
@@ -352,7 +353,7 @@ struct EcosystemSyncPanel: View {
                             Image(systemName: "magnifyingglass")
                                 .font(.system(size: 9))
                         }
-                        Text("搜索")
+                        Text(i18n.t(.design_eco_search))
                             .font(.system(size: theme.captionSize, weight: .medium))
                     }
                     .foregroundStyle(theme.textSecondary)
@@ -365,7 +366,7 @@ struct EcosystemSyncPanel: View {
             }
 
             if templateResults.isEmpty && !isSearching {
-                Text("无匹配模板")
+                Text(i18n.t(.design_eco_noMatchTpl))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textTertiary)
             } else {
@@ -397,7 +398,7 @@ struct EcosystemSyncPanel: View {
             }
             Spacer()
             Button(action: { loadTemplate(tmpl) }) {
-                Text("加载")
+                Text(i18n.t(.design_eco_load))
                     .font(.system(size: 9, weight: .medium))
                     .foregroundStyle(theme.accent)
             }
@@ -444,10 +445,10 @@ struct EcosystemSyncPanel: View {
             DispatchQueue.main.async {
                 if result.exitCode == 0 {
                     self.syncResult = result.output.trimmingCharacters(in: .whitespacesAndNewlines)
-                    self.successMessage = "代码同步完成"
+                    self.successMessage = I18nManager.shared.t(.design_eco_syncDone)
                     ecoLog.info("Sync to code completed via unified bridge")
                 } else {
-                    self.errorMessage = "同步失败: \(result.error.prefix(200))"
+                    self.errorMessage = String(format: I18nManager.shared.t(.design_eco_syncFailFmt), String(result.error.prefix(200)))
                 }
                 self.isSyncing = false
             }
@@ -496,7 +497,7 @@ struct EcosystemSyncPanel: View {
         }
         let count = pendingMutations.count
         pendingMutations = []
-        successMessage = "已应用 \(count) 个样式变更"
+        successMessage = String(format: I18nManager.shared.t(.design_eco_appliedFmt), count)
     }
 
     private func saveTemplate() {
@@ -528,7 +529,7 @@ struct EcosystemSyncPanel: View {
                 try jsonData.write(to: file)
 
                 DispatchQueue.main.async {
-                    self.successMessage = "模板 '\(self.templateName)' 已保存"
+                    self.successMessage = String(format: I18nManager.shared.t(.design_eco_tplSavedFmt), self.templateName)
                     self.templateName = ""
                     self.templateTags = ""
                     self.templateCategory = ""
@@ -536,7 +537,7 @@ struct EcosystemSyncPanel: View {
                 }
             } catch {
                 DispatchQueue.main.async {
-                    self.errorMessage = "保存模板失败: \(error.localizedDescription)"
+                    self.errorMessage = String(format: I18nManager.shared.t(.design_eco_tplSaveFailFmt), error.localizedDescription)
                 }
             }
 
@@ -581,7 +582,7 @@ struct EcosystemSyncPanel: View {
 
     private func loadTemplate(_ tmpl: TemplateInfo) {
         designBridge.loadDocumentJSON(tmpl.document_json)
-        successMessage = "已加载模板 '\(tmpl.name)'"
+        successMessage = String(format: I18nManager.shared.t(.design_eco_tplLoadedFmt), tmpl.name)
     }
 
     private func ecosystemBaseDir() -> URL {
