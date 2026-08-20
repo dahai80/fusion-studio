@@ -32,6 +32,7 @@ struct DiffResult {
 struct ArtifactVersionDiffView: View {
     @Environment(\.studioTheme) private var theme
     @EnvironmentObject var ipcClient: IPCClient
+    @StateObject private var i18n = I18nManager.shared
 
     let leftVersionId: Int
     let rightVersionId: Int
@@ -90,7 +91,7 @@ struct ArtifactVersionDiffView: View {
             }
             Spacer()
             Button(action: exportDiffReview) {
-                Label("导出审查", systemImage: "square.and.arrow.down")
+                Label(i18n.t(.design_avd_exportReview), systemImage: "square.and.arrow.down")
                     .font(.system(size: theme.smallTextSize))
             }
             .buttonStyle(.plain)

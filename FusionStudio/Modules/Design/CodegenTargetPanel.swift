@@ -56,6 +56,7 @@ enum CodegenTarget: String, CaseIterable, Identifiable {
 struct CodegenTargetPanel: View {
     @Environment(\.studioTheme) var theme
     @EnvironmentObject var designBridge: DesignBridge
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var selectedTarget: CodegenTarget = .html
     @State private var componentName: String = "MyComponent"
@@ -79,7 +80,7 @@ struct CodegenTargetPanel: View {
 
     private var targetPicker: some View {
         VStack(alignment: .leading, spacing: theme.spacingXS) {
-            Text("导出目标")
+            Text(i18n.t(.design_cg_targetLabel))
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundColor(theme.textTertiary)
                 .textCase(.uppercase)
@@ -116,7 +117,7 @@ struct CodegenTargetPanel: View {
         HStack(spacing: theme.spacingS) {
             if selectedTarget == .reactTailwind || selectedTarget == .swiftUI {
                 HStack(spacing: 4) {
-                    Text("组件名")
+                    Text(i18n.t(.design_cg_componentName))
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.textTertiary)
                     TextField("MyComponent", text: $componentName)
@@ -143,7 +144,7 @@ struct CodegenTargetPanel: View {
                         Image(systemName: "chevron.left.forwardslash.chevron.right")
                             .font(.system(size: 10))
                     }
-                    Text(isGenerating ? "生成中..." : "生成代码")
+                    Text(isGenerating ? i18n.t(.design_cg_generating) : i18n.t(.design_cg_generate))
                         .font(.system(size: theme.captionSize, weight: .medium))
                 }
                 .foregroundStyle(theme.accentText)
@@ -162,7 +163,7 @@ struct CodegenTargetPanel: View {
                     HStack(spacing: 3) {
                         Image(systemName: showCopiedToast ? "checkmark" : "doc.on.doc")
                             .font(.system(size: 10))
-                        Text(showCopiedToast ? "已复制" : "复制")
+                        Text(showCopiedToast ? i18n.t(.design_cg_copied) : i18n.t(.design_cg_copy))
                             .font(.system(size: theme.captionSize, weight: .medium))
                     }
                     .foregroundStyle(theme.textSecondary)
@@ -207,7 +208,7 @@ struct CodegenTargetPanel: View {
                     Image(systemName: "chevron.left.forwardslash.chevron.right")
                         .font(.system(size: theme.iconL))
                         .foregroundStyle(theme.textTertiary)
-                    Text("选择导出目标\n点击生成代码")
+                    Text(i18n.t(.design_cg_emptyHint))
                         .font(.system(size: theme.footnoteSize))
                         .foregroundStyle(theme.textSecondary)
                         .multilineTextAlignment(.center)
@@ -222,7 +223,7 @@ struct CodegenTargetPanel: View {
                                 .font(.system(size: 9, weight: .semibold, design: .monospaced))
                                 .foregroundStyle(theme.textTertiary)
                             Spacer()
-                            Text("\(generatedCode.count) 字符")
+                            Text("\(generatedCode.count) \(i18n.t(.design_cg_charCount))")
                                 .font(.system(size: 9, design: .monospaced))
                                 .foregroundStyle(theme.textTertiary)
                         }
@@ -258,7 +259,7 @@ struct CodegenTargetPanel: View {
                     self.generatedCode = result.output
                     codegenLog.info("Codegen completed: \(result.output.count) chars, target=\(self.selectedTarget.rawValue)")
                 } else {
-                    self.errorMessage = "代码生成失败: \(result.error.prefix(200))"
+                    self.errorMessage = String(format: i18n.t(.design_cg_genFailFmt), String(result.error.prefix(200)))
                 }
                 self.isGenerating = false
             }

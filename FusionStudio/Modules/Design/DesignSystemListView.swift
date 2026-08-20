@@ -16,6 +16,24 @@ struct DesignSystemInfo: Identifiable {
     let cliId: String
     let tokenCount: Int
 
+    var localName: String {
+        switch id {
+        case "apple-hig": return I18nManager.shared.t(.design_ds_name_appleHIG)
+        case "minimal-dashboard": return I18nManager.shared.t(.design_ds_name_adminMinimal)
+        case "robot-sim": return I18nManager.shared.t(.design_ds_name_robotSim)
+        default: return name
+        }
+    }
+
+    var localDescription: String {
+        switch id {
+        case "apple-hig": return I18nManager.shared.t(.design_ds_desc_appleHIG)
+        case "minimal-dashboard": return I18nManager.shared.t(.design_ds_desc_adminMinimal)
+        case "robot-sim": return I18nManager.shared.t(.design_ds_desc_robotSim)
+        default: return I18nManager.shared.t(.design_ds_customDesc)
+        }
+    }
+
     static let builtIn: [DesignSystemInfo] = [
         DesignSystemInfo(id: "apple-hig", name: "Apple HIG", description: "Apple Human Interface Guidelines", icon: "apple.logo", cliId: "apple-hig", tokenCount: 28),
         DesignSystemInfo(id: "minimal-dashboard", name: "极简后台", description: "极简风格后台管理", icon: "rectangle.split.3x1", cliId: "minimal-dashboard", tokenCount: 22),
@@ -26,6 +44,7 @@ struct DesignSystemInfo: Identifiable {
 struct DesignSystemListView: View {
     @Environment(\.studioTheme) var theme
     @EnvironmentObject var designBridge: DesignBridge
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var activeSystemId: String = "apple-hig"
     @State private var availableSystems: [DesignSystemInfo] = DesignSystemInfo.builtIn
@@ -44,7 +63,7 @@ struct DesignSystemListView: View {
 
     private var header: some View {
         HStack {
-            Text("设计系统")
+            Text(i18n.t(.design_ds_title))
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundColor(theme.textTertiary)
                 .textCase(.uppercase)
@@ -59,7 +78,7 @@ struct DesignSystemListView: View {
                         Image(systemName: "arrow.clockwise")
                             .font(.system(size: 9))
                     }
-                    Text("刷新")
+                    Text(i18n.t(.design_ds_refresh))
                         .font(.system(size: 9, weight: .medium))
                 }
                 .foregroundStyle(theme.accent)
@@ -100,10 +119,10 @@ struct DesignSystemListView: View {
                     )
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(sys.name)
+                    Text(sys.localName)
                         .font(.system(size: theme.footnoteSize, weight: isActive ? .semibold : .medium))
                         .foregroundStyle(theme.text)
-                    Text(sys.description)
+                    Text(sys.localDescription)
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.textTertiary)
                 }
@@ -158,7 +177,7 @@ struct DesignSystemListView: View {
     private var activeSystemFooter: some View {
         HStack(spacing: theme.spacingXS) {
             Circle().fill(theme.greenDot).frame(width: 6, height: 6)
-            Text("当前激活: \(activeSystemName)")
+            Text(String(format: i18n.t(.design_ds_activeFmt), activeSystemName))
                 .font(.system(size: theme.captionSize, weight: .medium))
                 .foregroundStyle(theme.textSecondary)
             Spacer()
@@ -166,7 +185,7 @@ struct DesignSystemListView: View {
                 HStack(spacing: 3) {
                     Image(systemName: "paintbrush.fill")
                         .font(.system(size: 9))
-                    Text("应用到画布")
+                    Text(i18n.t(.design_ds_applyToCanvas))
                         .font(.system(size: 9, weight: .medium))
                 }
                 .foregroundStyle(theme.accentText)
@@ -184,7 +203,7 @@ struct DesignSystemListView: View {
     }
 
     private var activeSystemName: String {
-        availableSystems.first(where: { $0.cliId == activeSystemId })?.name ?? activeSystemId
+        availableSystems.first(where: { $0.cliId == activeSystemId })?.localName ?? activeSystemId
     }
 
     private func activateSystem(_ sys: DesignSystemInfo) {
@@ -193,7 +212,7 @@ struct DesignSystemListView: View {
             activeSystemId = sys.cliId
             dsListLog.info("Activated design system: \(sys.cliId)")
         } else {
-            errorMessage = "激活失败: \(result.error.prefix(200))"
+            errorMessage = String(format: i18n.t(.design_ds_activateFailFmt), String(result.error.prefix(200)))
             dsListLog.error("Activate failed: \(result.error)")
         }
     }
@@ -216,7 +235,7 @@ struct DesignSystemListView: View {
             availableSystems = systems
             dsListLog.info("Refreshed design systems: \(ids)")
         } else {
-            errorMessage = "获取设计系统列表失败: \(result.error.prefix(200))"
+            errorMessage = String(format: i18n.t(.design_ds_listFailFmt), String(result.error.prefix(200)))
         }
         isRefreshing = false
     }

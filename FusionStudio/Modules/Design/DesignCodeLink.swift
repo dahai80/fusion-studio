@@ -112,7 +112,7 @@ class DesignCodeLink: ObservableObject {
 
                 if let lastDesign = lastDesignWriteTime[artifactName],
                    Date().timeIntervalSince(lastDesign) < 10.0 {
-                    conflictMessage = "文件与设计存在近时修改，已采用文件版本: \(fileName)"
+                    conflictMessage = String(format: I18nManager.shared.t(.design_cl_conflictFmt), fileName)
                     Task {
                         try? await Task.sleep(nanoseconds: 4_000_000_000)
                         conflictMessage = nil

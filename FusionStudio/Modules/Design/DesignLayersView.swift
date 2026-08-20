@@ -22,6 +22,7 @@ struct DesignLayersView: View {
     @Binding var selectedNodeID: String?
     @EnvironmentObject var designBridge: DesignBridge
     @Environment(\.studioTheme) var theme
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var expandedNodes: Set<String> = []
     @State private var flatNodes: [LayerNode] = []
@@ -65,11 +66,11 @@ struct DesignLayersView: View {
         HStack(spacing: theme.spacingS) {
             Image(systemName: "square.3.layers.3d")
                 .foregroundColor(theme.accent)
-            Text("图层")
+            Text(i18n.t(.design_ly_title))
                 .font(.system(size: theme.bodySize, weight: .semibold))
                 .foregroundColor(theme.text)
             Spacer()
-            Text("\(flatNodes.count) 个元素")
+            Text(String(format: i18n.t(.design_ly_countFmt), flatNodes.count))
                 .font(.system(size: theme.captionSize))
                 .foregroundColor(theme.textTertiary)
             Button(action: {
@@ -91,10 +92,10 @@ struct DesignLayersView: View {
             Image(systemName: "square.stack.3d.up.slash")
                 .font(.system(size: 32))
                 .foregroundColor(theme.textTertiary)
-            Text("暂无图层")
+            Text(i18n.t(.design_ly_empty))
                 .font(.system(size: theme.captionSize))
                 .foregroundColor(theme.textTertiary)
-            Text("使用 AI 对话生成设计后\n图层将在此处显示")
+            Text(i18n.t(.design_ly_emptyHint))
                 .font(.system(size: 10))
                 .foregroundColor(theme.textTertiary)
                 .multilineTextAlignment(.center)
