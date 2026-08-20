@@ -10,17 +10,25 @@ private let webLog = Logger(subsystem: "com.fusion.studio", category: "ServiceWe
 
 struct ServiceWebView: View {
     @Environment(\.studioTheme) var theme
+    @StateObject private var i18n = I18nManager.shared
     @State private var selectedTab: WebTab = .masterDocs
 
     enum WebTab: String, CaseIterable {
         case masterDocs = "Master API"
         case benchSite = "Benchmark"
         case securityDashboard = "Security"
+        var localLabel: String {
+            switch self {
+            case .masterDocs: return I18nManager.shared.t(.mn_web_tab_docs)
+            case .benchSite: return I18nManager.shared.t(.mn_web_tab_bench)
+            case .securityDashboard: return I18nManager.shared.t(.mn_web_tab_security)
+            }
+        }
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ScreenHeader(eyebrow: "Multi-Node", title: "服务面板", subtitle: "通过 WebView 嵌入外部服务界面")
+            ScreenHeader(eyebrow: "Multi-Node", title: i18n.t(.mn_web_title), subtitle: i18n.t(.mn_web_subtitle))
 
             tabBar
 
@@ -29,19 +37,19 @@ struct ServiceWebView: View {
                 ServiceWebEmbed(
                     title: "Master API Docs",
                     url: "http://\(FusionConfig.shared.modelHubHost):\(FusionConfig.shared.multiNodePort)/docs",
-                    description: "FastAPI 自动文档 — 需启动 fusion-multi-node Master 服务 (端口 \(FusionConfig.shared.multiNodePort))"
+                    description: String(format: i18n.t(.mn_web_docsDescFmt), FusionConfig.shared.multiNodePort)
                 )
             case .benchSite:
                 ServiceWebEmbed(
                     title: "Fusion-Bench",
                     url: "http://localhost:3000",
-                    description: "基准测试面板 — 需启动 fusion-bench bench-site (端口 3000, npm run dev)"
+                    description: i18n.t(.mn_web_benchDesc)
                 )
             case .securityDashboard:
                 ServiceWebEmbed(
                     title: "Fusion-Security",
                     url: "http://localhost:3000",
-                    description: "安全审计面板 — 需启动 fusion-security 前端 (端口 3000)"
+                    description: i18n.t(.mn_web_securityDesc)
                 )
             }
         }
@@ -54,7 +62,7 @@ struct ServiceWebView: View {
                 Button {
                     withAnimation(theme.springDefault) { selectedTab = tab }
                 } label: {
-                    Text(tab.rawValue)
+                    Text(tab.localLabel)
                         .font(.system(size: theme.smallTextSize, weight: tab == selectedTab ? .semibold : .regular))
                         .foregroundStyle(tab == selectedTab ? theme.accent : theme.textSecondary)
                         .padding(.horizontal, theme.spacingL)
@@ -78,6 +86,7 @@ struct ServiceWebEmbed: View {
     let url: String
     let description: String
     @Environment(\.studioTheme) var theme
+    @StateObject private var i18n = I18nManager.shared
     @State private var isLoading = true
     @State private var loadError: String?
 
@@ -88,7 +97,7 @@ struct ServiceWebEmbed: View {
             if isLoading {
                 VStack(spacing: 12) {
                     ProgressView().controlSize(.large)
-                    Text("正在连接 \(title)...")
+                    Text(String(format: i18n.t(.mn_web_connectingFmt), title))
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -99,7 +108,7 @@ struct ServiceWebEmbed: View {
                     Image(systemName: "exclamationmark.triangle")
                         .font(.system(size: 36))
                         .foregroundColor(.orange)
-                    Text("无法加载 \(title)")
+                    Text(String(format: i18n.t(.mn_web_loadFailFmt), title))
                         .font(.title2)
                         .bold()
                     Text(error)
@@ -110,7 +119,7 @@ struct ServiceWebEmbed: View {
                     Text(description)
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    FusionButton("重试", style: .secondary, size: .small, isLoading: false, isDisabled: false) {
+                    FusionButton(i18n.t(.mn_web_retryBtn), style: .secondary, size: .small, isLoading: false, isDisabled: false) {
                         loadError = nil
                         isLoading = true
                     }
