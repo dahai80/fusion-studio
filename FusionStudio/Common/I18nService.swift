@@ -2980,6 +2980,111 @@ enum I18nKey: String, CaseIterable {
     case desk_evt_startPoll = "desk_evt_startPoll"
     case desk_noEvents = "desk_noEvents"
     case desk_evt_source = "desk_evt_source"
+    case dy_tab_inventory = "dy_tab_inventory"
+    case dy_tab_produce = "dy_tab_produce"
+    case dy_tab_publish = "dy_tab_publish"
+    case dy_tab_plan = "dy_tab_plan"
+    case dy_tab_comment = "dy_tab_comment"
+    case dy_tab_evolve = "dy_tab_evolve"
+    case dy_tab_stats = "dy_tab_stats"
+    case dy_queue_pending = "dy_queue_pending"
+    case dy_queue_published = "dy_queue_published"
+    case dy_queue_failed = "dy_queue_failed"
+    case dy_queue_refresh = "dy_queue_refresh"
+    case dy_inv_pending_queue = "dy_inv_pending_queue"
+    case dy_inv_pending_empty = "dy_inv_pending_empty"
+    case dy_inv_published_recent = "dy_inv_published_recent"
+    case dy_inv_published_empty = "dy_inv_published_empty"
+    case dy_inv_failed_queue = "dy_inv_failed_queue"
+    case dy_inv_variant_label = "dy_inv_variant_label"
+    case dy_prod_title = "dy_prod_title"
+    case dy_prod_desc = "dy_prod_desc"
+    case dy_prod_topic_label = "dy_prod_topic_label"
+    case dy_prod_topic_ph = "dy_prod_topic_ph"
+    case dy_prod_variant_label = "dy_prod_variant_label"
+    case dy_prod_hint_a = "dy_prod_hint_a"
+    case dy_prod_hint_b = "dy_prod_hint_b"
+    case dy_prod_hint_c = "dy_prod_hint_c"
+    case dy_prod_start = "dy_prod_start"
+    case dy_pub_title = "dy_pub_title"
+    case dy_pub_desc = "dy_pub_desc"
+    case dy_pub_dryrun_toggle = "dy_pub_dryrun_toggle"
+    case dy_pub_dryrun_btn = "dy_pub_dryrun_btn"
+    case dy_pub_real_btn = "dy_pub_real_btn"
+    case dy_pub_real_warn = "dy_pub_real_warn"
+    case dy_plan_title = "dy_plan_title"
+    case dy_plan_desc = "dy_plan_desc"
+    case dy_plan_expr_label = "dy_plan_expr_label"
+    case dy_plan_expr_default = "dy_plan_expr_default"
+    case dy_plan_dryrun_toggle = "dy_plan_dryrun_toggle"
+    case dy_plan_real_warn = "dy_plan_real_warn"
+    case dy_plan_register = "dy_plan_register"
+    case dy_plan_refresh = "dy_plan_refresh"
+    case dy_plan_empty = "dy_plan_empty"
+    case dy_plan_registered = "dy_plan_registered"
+    case dy_plan_history = "dy_plan_history"
+    case dy_cron_next = "dy_cron_next"
+    case dy_cron_last = "dy_cron_last"
+    case dy_cron_params = "dy_cron_params"
+    case dy_cron_cancel = "dy_cron_cancel"
+    case dy_comment_title = "dy_comment_title"
+    case dy_comment_desc = "dy_comment_desc"
+    case dy_comment_start = "dy_comment_start"
+    case dy_comment_replied_title = "dy_comment_replied_title"
+    case dy_evolve_title = "dy_evolve_title"
+    case dy_evolve_desc = "dy_evolve_desc"
+    case dy_evolve_run = "dy_evolve_run"
+    case dy_evolve_repair_title = "dy_evolve_repair_title"
+    case dy_evolve_repair_desc = "dy_evolve_repair_desc"
+    case dy_evolve_repair_scan = "dy_evolve_repair_scan"
+    case dy_win_title = "dy_win_title"
+    case dy_win_summary = "dy_win_summary"
+    case dy_win_title_formula = "dy_win_title_formula"
+    case dy_win_hot_topic = "dy_win_hot_topic"
+    case dy_win_hot_hook = "dy_win_hot_hook"
+    case dy_win_lose = "dy_win_lose"
+    case dy_stats_title = "dy_stats_title"
+    case dy_stats_desc = "dy_stats_desc"
+    case dy_stats_empty = "dy_stats_empty"
+    case dy_stats_detail_title = "dy_stats_detail_title"
+    case dy_stats_total_plays = "dy_stats_total_plays"
+    case dy_stats_total_likes = "dy_stats_total_likes"
+    case dy_stats_total_comments = "dy_stats_total_comments"
+    case dy_stats_total_shares = "dy_stats_total_shares"
+    case dy_stats_count = "dy_stats_count"
+    case dy_stats_avg_plays = "dy_stats_avg_plays"
+    case dy_stats_avg_ir = "dy_stats_avg_ir"
+    case dy_stats_hot_count = "dy_stats_hot_count"
+    case dy_stats_dist_hot = "dy_stats_dist_hot"
+    case dy_stats_dist_mid = "dy_stats_dist_mid"
+    case dy_stats_dist_cold = "dy_stats_dist_cold"
+    case dy_stats_variant_dist = "dy_stats_variant_dist"
+    case dy_stats_variant_count = "dy_stats_variant_count"
+    case dy_stats_row_plays = "dy_stats_row_plays"
+    case dy_stats_row_likes = "dy_stats_row_likes"
+    case dy_stats_row_comments = "dy_stats_row_comments"
+    case dy_stats_row_shares = "dy_stats_row_shares"
+    case dy_stats_row_ir = "dy_stats_row_ir"
+    case dy_action_running = "dy_action_running"
+    case dy_action_produce = "dy_action_produce"
+    case dy_action_publish = "dy_action_publish"
+    case dy_action_comment_reply = "dy_action_comment_reply"
+    case dy_action_evolve = "dy_action_evolve"
+    case dy_action_repair = "dy_action_repair"
+    case dy_err_ops_not_found = "dy_err_ops_not_found"
+    case dy_err_ipc_disconnected = "dy_err_ipc_disconnected"
+    case dy_err_ipc_register = "dy_err_ipc_register"
+    case dy_res_done = "dy_res_done"
+    case dy_res_status = "dy_res_status"
+    case dy_res_plan_registered = "dy_res_plan_registered"
+    case dy_res_register_failed = "dy_res_register_failed"
+    case dy_err_rungraph = "dy_err_rungraph"
+    case dy_err_graph_missing = "dy_err_graph_missing"
+    case dy_err_graph_parse = "dy_err_graph_parse"
+    case dy_err_graph_no_id = "dy_err_graph_no_id"
+    case dy_err_register = "dy_err_register"
+    case dy_err_unregister = "dy_err_unregister"
+    case dy_cron_name = "dy_cron_name"
 }
 
 // MARK: - 翻译管理器
@@ -5612,6 +5717,111 @@ let zhCNTranslations: [String: String] = [
     "desk_evt_startPoll": "开始轮询",
     "desk_noEvents": "暂无事件",
     "desk_evt_source": "来源: %@",
+    "dy_tab_inventory": "库存",
+    "dy_tab_produce": "造片",
+    "dy_tab_publish": "发布",
+    "dy_tab_plan": "计划",
+    "dy_tab_comment": "评论",
+    "dy_tab_evolve": "进化",
+    "dy_tab_stats": "统计",
+    "dy_queue_pending": "待发布",
+    "dy_queue_published": "已发布",
+    "dy_queue_failed": "失败",
+    "dy_queue_refresh": "刷新数据",
+    "dy_inv_pending_queue": "待发布队列",
+    "dy_inv_pending_empty": "暂无待发布视频，去「造片」补充库存",
+    "dy_inv_published_recent": "已发布（最近 20 条）",
+    "dy_inv_published_empty": "暂无已发布视频",
+    "dy_inv_failed_queue": "失败队列",
+    "dy_inv_variant_label": "variant %@",
+    "dy_prod_title": "一键造片",
+    "dy_prod_desc": "调 agent-studio 跑 Graph C（script→img→tts→compose→enqueue），单轮造 1 条入待发布队列。",
+    "dy_prod_topic_label": "选题（留空则自动 topic_gen）",
+    "dy_prod_topic_ph": "如：如果你掉进黑洞会发生什么",
+    "dy_prod_variant_label": "钩子变体",
+    "dy_prod_hint_a": "%@：数字+反常：首句用一个极端数字搭配反常识结论",
+    "dy_prod_hint_b": "%@：提问+代入：首句用第二人称提问把观众代入场景",
+    "dy_prod_hint_c": "%@：悬念+冲突：首句抛出一个待解的悬念冲突",
+    "dy_prod_start": "开始造片",
+    "dy_pub_title": "库存发布",
+    "dy_pub_desc": "调 agent-studio 跑 Graph D（dequeue→gate_stock→publish→archive），从待发布队列取 1 条发布。",
+    "dy_pub_dryrun_toggle": "Dry-run（不真实发布，停在发布前）",
+    "dy_pub_dryrun_btn": "Dry-run 发布",
+    "dy_pub_real_btn": "真实发布",
+    "dy_pub_real_warn": "⚠️ 真实发布会上传视频到抖音账号，请确认库存与登录态。",
+    "dy_plan_title": "高峰时段发布计划",
+    "dy_plan_desc": "注册 cron 计划，每天高峰窗口（12-13 / 19-21）自动跑 Graph D 从库存取片发布，无需人工点按钮。底层为 agent-studio cron 运行时（PR #140）。",
+    "dy_plan_expr_label": "Cron 表达式（分 时 日 月 周）",
+    "dy_plan_expr_default": "默认 `5 12,19 * * *` = 每天 12:05 与 19:05 各触发一次（高峰窗口开场后 5 分钟）。",
+    "dy_plan_dryrun_toggle": "Dry-run（不真实发布，验证计划触发）",
+    "dy_plan_real_warn": "⚠️ 真实计划会在高峰时段自动上传视频到抖音，请确认库存与登录态。",
+    "dy_plan_register": "注册发布计划",
+    "dy_plan_refresh": "刷新",
+    "dy_plan_empty": "暂无发布计划，注册后将在此显示下次触发时间与执行历史",
+    "dy_plan_registered": "已注册计划",
+    "dy_plan_history": "执行历史",
+    "dy_cron_next": "下次: %@",
+    "dy_cron_last": "上次: %@",
+    "dy_cron_params": "参数: %@",
+    "dy_cron_cancel": "取消计划",
+    "dy_comment_title": "评论回复",
+    "dy_comment_desc": "调 agent-studio 跑 Graph B（fetch→gate→draft→reply），抓取新评论并批量回复，幂等。",
+    "dy_comment_start": "开始评论回复",
+    "dy_comment_replied_title": "已回复评论 ID",
+    "dy_evolve_title": "进化分析",
+    "dy_evolve_desc": "调 agent-studio 跑 Graph E（snapshot→rank→analyze→repair_scan），更新爆款模式与差片扫描。",
+    "dy_evolve_run": "运行进化闭环",
+    "dy_evolve_repair_title": "差片修复重发",
+    "dy_evolve_repair_desc": "调 agent-studio 跑 Graph F（scan→gate→retitle），对差片换标题重入队列。",
+    "dy_evolve_repair_scan": "扫描并修复",
+    "dy_win_title": "爆款模式（winning_patterns）",
+    "dy_win_summary": "样本 %d · 爆款 %d · 更新于 %@",
+    "dy_win_title_formula": "标题公式",
+    "dy_win_hot_topic": "✅ 爆款选题",
+    "dy_win_hot_hook": "✅ 爆款钩子",
+    "dy_win_lose": "❌ 失败模式",
+    "dy_stats_title": "统计报表 · 全貌",
+    "dy_stats_desc": "账号整体表现概览：汇总指标 + 表现分布 + 钩子变体对比。",
+    "dy_stats_empty": "暂无统计快照，先运行「进化分析」抓取 snapshot",
+    "dy_stats_detail_title": "逐视频细节（按播放降序，优秀在前）",
+    "dy_stats_total_plays": "总播放",
+    "dy_stats_total_likes": "总点赞",
+    "dy_stats_total_comments": "总评论",
+    "dy_stats_total_shares": "总分享",
+    "dy_stats_count": "作品数",
+    "dy_stats_avg_plays": "均播放",
+    "dy_stats_avg_ir": "均互动率",
+    "dy_stats_hot_count": "爆款数",
+    "dy_stats_dist_hot": "爆款 %d",
+    "dy_stats_dist_mid": "平稳 %d",
+    "dy_stats_dist_cold": "差片 %d",
+    "dy_stats_variant_dist": "钩子变体样本分布",
+    "dy_stats_variant_count": "%@：%d 条",
+    "dy_stats_row_plays": "播放 %d",
+    "dy_stats_row_likes": "赞 %d",
+    "dy_stats_row_comments": "评 %d",
+    "dy_stats_row_shares": "转 %d",
+    "dy_stats_row_ir": "互动率 %.2f%%",
+    "dy_action_running": "执行中…",
+    "dy_action_produce": "造片",
+    "dy_action_publish": "发布",
+    "dy_action_comment_reply": "评论回复",
+    "dy_action_evolve": "进化分析",
+    "dy_action_repair": "差片修复",
+    "dy_err_ops_not_found": "未找到 %@，请确认 fusion-operation 已运行并产出 out/ 数据",
+    "dy_err_ipc_disconnected": "IPC 未连接，无法调用 agent-studio",
+    "dy_err_ipc_register": "IPC 未连接，无法注册发布计划",
+    "dy_res_done": "执行完成，共 %d 个事件",
+    "dy_res_status": "执行状态: %@",
+    "dy_res_plan_registered": "发布计划已注册，等待高峰时段自动触发",
+    "dy_res_register_failed": "注册失败",
+    "dy_err_rungraph": "runGraph %@ 失败: %@",
+    "dy_err_graph_missing": "Graph 文件不存在: %@",
+    "dy_err_graph_parse": "Graph JSON 解析失败: %@",
+    "dy_err_graph_no_id": "graph.create 未返回 graph_id",
+    "dy_err_register": "注册发布计划失败: %@",
+    "dy_err_unregister": "取消计划失败: %@",
+    "dy_cron_name": "抖音高峰发布计划",
 ]
 
 let enUSTranslations: [String: String] = [
@@ -8199,6 +8409,111 @@ let enUSTranslations: [String: String] = [
     "desk_evt_startPoll": "Start polling",
     "desk_noEvents": "No events",
     "desk_evt_source": "Source: %@",
+    "dy_tab_inventory": "Inventory",
+    "dy_tab_produce": "Produce",
+    "dy_tab_publish": "Publish",
+    "dy_tab_plan": "Schedule",
+    "dy_tab_comment": "Comments",
+    "dy_tab_evolve": "Evolve",
+    "dy_tab_stats": "Stats",
+    "dy_queue_pending": "Pending",
+    "dy_queue_published": "Published",
+    "dy_queue_failed": "Failed",
+    "dy_queue_refresh": "Refresh",
+    "dy_inv_pending_queue": "Pending Queue",
+    "dy_inv_pending_empty": "No pending videos. Use \"Produce\" to add stock.",
+    "dy_inv_published_recent": "Published (last 20)",
+    "dy_inv_published_empty": "No published videos",
+    "dy_inv_failed_queue": "Failed Queue",
+    "dy_inv_variant_label": "variant %@",
+    "dy_prod_title": "One-Click Produce",
+    "dy_prod_desc": "Run Graph C via agent-studio (script→img→tts→compose→enqueue). Produces 1 video into the pending queue.",
+    "dy_prod_topic_label": "Topic (blank = auto topic_gen)",
+    "dy_prod_topic_ph": "e.g. What happens if you fall into a black hole",
+    "dy_prod_variant_label": "Hook Variant",
+    "dy_prod_hint_a": "%@: Number+Counterintuitive — open with an extreme number plus a counterintuitive claim",
+    "dy_prod_hint_b": "%@: Question+Immersion — open with a second-person question to pull the viewer in",
+    "dy_prod_hint_c": "%@: Suspense+Conflict — open with an unresolved suspense conflict",
+    "dy_prod_start": "Start Produce",
+    "dy_pub_title": "Stock Publish",
+    "dy_pub_desc": "Run Graph D via agent-studio (dequeue→gate_stock→publish→archive). Publishes 1 item from the pending queue.",
+    "dy_pub_dryrun_toggle": "Dry-run (no real publish, stops before upload)",
+    "dy_pub_dryrun_btn": "Dry-run Publish",
+    "dy_pub_real_btn": "Real Publish",
+    "dy_pub_real_warn": "⚠️ Real publish uploads video to your Douyin account. Confirm stock and login state.",
+    "dy_plan_title": "Peak-Hour Publish Schedule",
+    "dy_plan_desc": "Register a cron plan to auto-run Graph D during peak windows (12-13 / 19-21) and publish from stock — no manual clicks. Backed by agent-studio cron runtime (PR #140).",
+    "dy_plan_expr_label": "Cron expression (min hour day month weekday)",
+    "dy_plan_expr_default": "Default `5 12,19 * * *` = triggers at 12:05 and 19:05 daily (5 min after each peak window opens).",
+    "dy_plan_dryrun_toggle": "Dry-run (no real publish, verifies trigger)",
+    "dy_plan_real_warn": "⚠️ A real plan auto-uploads video to Douyin during peak hours. Confirm stock and login state.",
+    "dy_plan_register": "Register Plan",
+    "dy_plan_refresh": "Refresh",
+    "dy_plan_empty": "No publish plans. After registering, next trigger time and execution history show here.",
+    "dy_plan_registered": "Registered Plans",
+    "dy_plan_history": "Execution History",
+    "dy_cron_next": "Next: %@",
+    "dy_cron_last": "Last: %@",
+    "dy_cron_params": "Params: %@",
+    "dy_cron_cancel": "Cancel Plan",
+    "dy_comment_title": "Comment Reply",
+    "dy_comment_desc": "Run Graph B via agent-studio (fetch→gate→draft→reply). Fetches new comments and bulk-replies, idempotent.",
+    "dy_comment_start": "Start Comment Reply",
+    "dy_comment_replied_title": "Replied Comment IDs",
+    "dy_evolve_title": "Evolve Analysis",
+    "dy_evolve_desc": "Run Graph E via agent-studio (snapshot→rank→analyze→repair_scan). Updates winning patterns and scans weak videos.",
+    "dy_evolve_run": "Run Evolve Loop",
+    "dy_evolve_repair_title": "Weak Video Repair & Resend",
+    "dy_evolve_repair_desc": "Run Graph F via agent-studio (scan→gate→retitle). Retitles weak videos and re-queues them.",
+    "dy_evolve_repair_scan": "Scan & Repair",
+    "dy_win_title": "Winning Patterns",
+    "dy_win_summary": "Samples %d · Hot %d · Updated %@",
+    "dy_win_title_formula": "Title Formula",
+    "dy_win_hot_topic": "✅ Hot Topic",
+    "dy_win_hot_hook": "✅ Hot Hook",
+    "dy_win_lose": "❌ Losing Pattern",
+    "dy_stats_title": "Stats Report · Overview",
+    "dy_stats_desc": "Account performance overview: aggregate metrics + performance distribution + hook variant comparison.",
+    "dy_stats_empty": "No stats snapshots. Run \"Evolve Analysis\" first to capture a snapshot.",
+    "dy_stats_detail_title": "Per-Video Detail (by plays desc, best first)",
+    "dy_stats_total_plays": "Total Plays",
+    "dy_stats_total_likes": "Total Likes",
+    "dy_stats_total_comments": "Total Comments",
+    "dy_stats_total_shares": "Total Shares",
+    "dy_stats_count": "Videos",
+    "dy_stats_avg_plays": "Avg Plays",
+    "dy_stats_avg_ir": "Avg IR",
+    "dy_stats_hot_count": "Hot Count",
+    "dy_stats_dist_hot": "Hot %d",
+    "dy_stats_dist_mid": "Steady %d",
+    "dy_stats_dist_cold": "Weak %d",
+    "dy_stats_variant_dist": "Hook Variant Sample Distribution",
+    "dy_stats_variant_count": "%@: %d items",
+    "dy_stats_row_plays": "Plays %d",
+    "dy_stats_row_likes": "Likes %d",
+    "dy_stats_row_comments": "Comments %d",
+    "dy_stats_row_shares": "Shares %d",
+    "dy_stats_row_ir": "IR %.2f%%",
+    "dy_action_running": "Running…",
+    "dy_action_produce": "Producing",
+    "dy_action_publish": "Publishing",
+    "dy_action_comment_reply": "Comment Reply",
+    "dy_action_evolve": "Evolve Analysis",
+    "dy_action_repair": "Weak Video Repair",
+    "dy_err_ops_not_found": "Not found: %@. Ensure fusion-operation has run and produced out/ data.",
+    "dy_err_ipc_disconnected": "IPC not connected. Cannot call agent-studio.",
+    "dy_err_ipc_register": "IPC not connected. Cannot register publish plan.",
+    "dy_res_done": "Completed: %d events",
+    "dy_res_status": "Status: %@",
+    "dy_res_plan_registered": "Publish plan registered. Awaiting peak-hour auto-trigger.",
+    "dy_res_register_failed": "Registration failed",
+    "dy_err_rungraph": "runGraph %@ failed: %@",
+    "dy_err_graph_missing": "Graph file missing: %@",
+    "dy_err_graph_parse": "Graph JSON parse failed: %@",
+    "dy_err_graph_no_id": "graph.create returned no graph_id",
+    "dy_err_register": "Register publish plan failed: %@",
+    "dy_err_unregister": "Cancel plan failed: %@",
+    "dy_cron_name": "Douyin Peak-Hour Publish Plan",
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -10780,6 +11095,111 @@ let jaJPTranslations: [String: String] = [
     "desk_evt_startPoll": "ポーリング開始",
     "desk_noEvents": "イベントなし",
     "desk_evt_source": "送信元: %@",
+    "dy_tab_inventory": "在庫",
+    "dy_tab_produce": "製作",
+    "dy_tab_publish": "公開",
+    "dy_tab_plan": "スケジュール",
+    "dy_tab_comment": "コメント",
+    "dy_tab_evolve": "進化",
+    "dy_tab_stats": "統計",
+    "dy_queue_pending": "公開待ち",
+    "dy_queue_published": "公開済み",
+    "dy_queue_failed": "失敗",
+    "dy_queue_refresh": "更新",
+    "dy_inv_pending_queue": "公開待ちキュー",
+    "dy_inv_pending_empty": "公開待ち動画なし。「製作」で在庫補充。",
+    "dy_inv_published_recent": "公開済み（直近20件）",
+    "dy_inv_published_empty": "公開済み動画なし",
+    "dy_inv_failed_queue": "失敗キュー",
+    "dy_inv_variant_label": "variant %@",
+    "dy_prod_title": "ワンクリック製作",
+    "dy_prod_desc": "agent-studio で Graph C（script→img→tts→compose→enqueue）を実行し、1本を公開待ちキューへ。",
+    "dy_prod_topic_label": "お題（空欄で topic_gen 自動生成）",
+    "dy_prod_topic_ph": "例：ブラックホールに落ちたらどうなる？",
+    "dy_prod_variant_label": "フックバリアント",
+    "dy_prod_hint_a": "%@：数字+逆説 — 冒頭に極端な数字と逆説的結論",
+    "dy_prod_hint_b": "%@：質問+没入 — 冒頭に二人称の質問で視聴者を引き込む",
+    "dy_prod_hint_c": "%@：サスペンス+葛藤 — 冒頭に未解決のサスペンス葛藤",
+    "dy_prod_start": "製作開始",
+    "dy_pub_title": "在庫公開",
+    "dy_pub_desc": "agent-studio で Graph D（dequeue→gate_stock→publish→archive）を実行し、公開待ちキューから1件を公開。",
+    "dy_pub_dryrun_toggle": "Dry-run（実際に公開せず、公開直前で停止）",
+    "dy_pub_dryrun_btn": "Dry-run 公開",
+    "dy_pub_real_btn": "本番公開",
+    "dy_pub_real_warn": "⚠️ 本番公開は動画を抖音アカウントへアップロードします。在庫とログイン状態を確認。",
+    "dy_plan_title": "ピーク時間公開スケジュール",
+    "dy_plan_desc": "cron 計画を登録し、毎日ピーク帯（12-13 / 19-21）に Graph D を自動実行して在庫から公開。手動不要。基盤は agent-studio cron ランタイム（PR #140）。",
+    "dy_plan_expr_label": "Cron 式（分 時 日 月 曜）",
+    "dy_plan_expr_default": "デフォルト `5 12,19 * * *` = 毎日 12:05 と 19:05 に各1回トリガー（ピーク帯開始5分後）。",
+    "dy_plan_dryrun_toggle": "Dry-run（実際に公開せず、トリガー検証）",
+    "dy_plan_real_warn": "⚠️ 本番計画はピーク帯に自動で動画を抖音へアップロードします。在庫とログイン状態を確認。",
+    "dy_plan_register": "計画登録",
+    "dy_plan_refresh": "更新",
+    "dy_plan_empty": "公開計画なし。登録後、次回トリガー時刻と実行履歴がここに表示。",
+    "dy_plan_registered": "登録済み計画",
+    "dy_plan_history": "実行履歴",
+    "dy_cron_next": "次回: %@",
+    "dy_cron_last": "前回: %@",
+    "dy_cron_params": "パラメータ: %@",
+    "dy_cron_cancel": "計画キャンセル",
+    "dy_comment_title": "コメント返信",
+    "dy_comment_desc": "agent-studio で Graph B（fetch→gate→draft→reply）を実行し、新着コメントを取得して一括返信。冪等。",
+    "dy_comment_start": "コメント返信開始",
+    "dy_comment_replied_title": "返信済みコメント ID",
+    "dy_evolve_title": "進化分析",
+    "dy_evolve_desc": "agent-studio で Graph E（snapshot→rank→analyze→repair_scan）を実行し、バズりパターン更新と失敗動画スキャン。",
+    "dy_evolve_run": "進化ループ実行",
+    "dy_evolve_repair_title": "失敗動画修復・再送",
+    "dy_evolve_repair_desc": "agent-studio で Graph F（scan→gate→retitle）を実行し、失敗動画のタイトル変更・再キュー投入。",
+    "dy_evolve_repair_scan": "スキャン＆修復",
+    "dy_win_title": "バズりパターン（winning_patterns）",
+    "dy_win_summary": "サンプル %d · バズり %d · 更新 %@",
+    "dy_win_title_formula": "タイトル公式",
+    "dy_win_hot_topic": "✅ バズりお題",
+    "dy_win_hot_hook": "✅ バズりフック",
+    "dy_win_lose": "❌ 失敗パターン",
+    "dy_stats_title": "統計レポート · 全貌",
+    "dy_stats_desc": "アカウント全体パフォーマンス概要：集計指標 + パフォーマンス分布 + フックバリアント比較。",
+    "dy_stats_empty": "統計スナップショットなし。先に「進化分析」を実行してスナップショット取得。",
+    "dy_stats_detail_title": "動画別詳細（再生降順、優秀優先）",
+    "dy_stats_total_plays": "総再生",
+    "dy_stats_total_likes": "総いいね",
+    "dy_stats_total_comments": "総コメント",
+    "dy_stats_total_shares": "総シェア",
+    "dy_stats_count": "作品数",
+    "dy_stats_avg_plays": "平均再生",
+    "dy_stats_avg_ir": "平均互動率",
+    "dy_stats_hot_count": "バズり数",
+    "dy_stats_dist_hot": "バズり %d",
+    "dy_stats_dist_mid": "安定 %d",
+    "dy_stats_dist_cold": "失敗 %d",
+    "dy_stats_variant_dist": "フックバリアント サンプル分布",
+    "dy_stats_variant_count": "%@：%d件",
+    "dy_stats_row_plays": "再生 %d",
+    "dy_stats_row_likes": "いいね %d",
+    "dy_stats_row_comments": "コメント %d",
+    "dy_stats_row_shares": "シェア %d",
+    "dy_stats_row_ir": "互動率 %.2f%%",
+    "dy_action_running": "実行中…",
+    "dy_action_produce": "製作中",
+    "dy_action_publish": "公開中",
+    "dy_action_comment_reply": "コメント返信",
+    "dy_action_evolve": "進化分析",
+    "dy_action_repair": "失敗動画修復",
+    "dy_err_ops_not_found": "見つかりません: %@。fusion-operation が実行済みで out/ データがあるか確認。",
+    "dy_err_ipc_disconnected": "IPC 未接続。agent-studio を呼び出せません。",
+    "dy_err_ipc_register": "IPC 未接続。公開計画を登録できません。",
+    "dy_res_done": "実行完了、%d イベント",
+    "dy_res_status": "実行ステータス: %@",
+    "dy_res_plan_registered": "公開計画を登録しました。ピーク帯の自動トリガーを待機。",
+    "dy_res_register_failed": "登録失敗",
+    "dy_err_rungraph": "runGraph %@ 失敗: %@",
+    "dy_err_graph_missing": "Graph ファイルなし: %@",
+    "dy_err_graph_parse": "Graph JSON 解析失敗: %@",
+    "dy_err_graph_no_id": "graph.create が graph_id を返しませんでした",
+    "dy_err_register": "公開計画登録失敗: %@",
+    "dy_err_unregister": "計画キャンセル失敗: %@",
+    "dy_cron_name": "抖音ピーク時間公開計画",
 ]
 
 let koKRTranslations: [String: String] = [
@@ -13361,6 +13781,111 @@ let koKRTranslations: [String: String] = [
     "desk_evt_startPoll": "폴링 시작",
     "desk_noEvents": "이벤트 없음",
     "desk_evt_source": "출처: %@",
+    "dy_tab_inventory": "재고",
+    "dy_tab_produce": "제작",
+    "dy_tab_publish": "게시",
+    "dy_tab_plan": "스케줄",
+    "dy_tab_comment": "댓글",
+    "dy_tab_evolve": "진화",
+    "dy_tab_stats": "통계",
+    "dy_queue_pending": "게시 대기",
+    "dy_queue_published": "게시 완료",
+    "dy_queue_failed": "실패",
+    "dy_queue_refresh": "새로고침",
+    "dy_inv_pending_queue": "게시 대기 큐",
+    "dy_inv_pending_empty": "대기 중인 영상 없음. 「제작」에서 재고 보충.",
+    "dy_inv_published_recent": "게시 완료 (최근 20개)",
+    "dy_inv_published_empty": "게시된 영상 없음",
+    "dy_inv_failed_queue": "실패 큐",
+    "dy_inv_variant_label": "variant %@",
+    "dy_prod_title": "원클릭 제작",
+    "dy_prod_desc": "agent-studio로 Graph C(script→img→tts→compose→enqueue) 실행, 1편을 게시 대기 큐에 추가.",
+    "dy_prod_topic_label": "주제 (빈칸 = 자동 topic_gen)",
+    "dy_prod_topic_ph": "예: 블랙홀에 빠지면 어떻게 될까",
+    "dy_prod_variant_label": "훅 변형",
+    "dy_prod_hint_a": "%@: 숫자+역설 — 첫 문장에 극단적 숫자와 상식 반대 결론",
+    "dy_prod_hint_b": "%@: 질문+몰입 — 첫 문장에 이인칭 질문으로 시청자 몰입",
+    "dy_prod_hint_c": "%@: 서스펜스+갈등 — 첫 문장에 미해결 서스펜스 갈등",
+    "dy_prod_start": "제작 시작",
+    "dy_pub_title": "재고 게시",
+    "dy_pub_desc": "agent-studio로 Graph D(dequeue→gate_stock→publish→archive) 실행, 게시 대기 큐에서 1건 게시.",
+    "dy_pub_dryrun_toggle": "Dry-run (실제 게시 안 함, 게시 직전 정지)",
+    "dy_pub_dryrun_btn": "Dry-run 게시",
+    "dy_pub_real_btn": "실제 게시",
+    "dy_pub_real_warn": "⚠️ 실제 게시는 영상을抖音 계정에 업로드합니다. 재고와 로그인 상태 확인.",
+    "dy_plan_title": "피크 시간대 게시 스케줄",
+    "dy_plan_desc": "cron 계획을 등록해 매일 피크 시간대(12-13 / 19-21)에 Graph D 자동 실행, 재고에서 게시. 수동 클릭 불필요. 기반은 agent-studio cron 런타임(PR #140).",
+    "dy_plan_expr_label": "Cron 표현식 (분 시 일 월 요일)",
+    "dy_plan_expr_default": "기본 `5 12,19 * * *` = 매일 12:05와 19:05 각 1회 트리거 (피크 시간대 시작 5분 후).",
+    "dy_plan_dryrun_toggle": "Dry-run (실제 게시 안 함, 트리거 검증)",
+    "dy_plan_real_warn": "⚠️ 실제 계획은 피크 시간대에 자동으로 영상을抖音에 업로드합니다. 재고와 로그인 상태 확인.",
+    "dy_plan_register": "계획 등록",
+    "dy_plan_refresh": "새로고침",
+    "dy_plan_empty": "게시 계획 없음. 등록 후 다음 트리거 시간과 실행 이력 표시.",
+    "dy_plan_registered": "등록된 계획",
+    "dy_plan_history": "실행 이력",
+    "dy_cron_next": "다음: %@",
+    "dy_cron_last": "이전: %@",
+    "dy_cron_params": "매개변수: %@",
+    "dy_cron_cancel": "계획 취소",
+    "dy_comment_title": "댓글 답장",
+    "dy_comment_desc": "agent-studio로 Graph B(fetch→gate→draft→reply) 실행, 새 댓글을 가져와 일괄 답장. 멱등.",
+    "dy_comment_start": "댓글 답장 시작",
+    "dy_comment_replied_title": "답장한 댓글 ID",
+    "dy_evolve_title": "진화 분석",
+    "dy_evolve_desc": "agent-studio로 Graph E(snapshot→rank→analyze→repair_scan) 실행, 히트 패턴 갱신과 저조 영상 스캔.",
+    "dy_evolve_run": "진화 루프 실행",
+    "dy_evolve_repair_title": "저조 영상 수리 재전송",
+    "dy_evolve_repair_desc": "agent-studio로 Graph F(scan→gate→retitle) 실행, 저조 영상 제목 변경 후 큐 재투입.",
+    "dy_evolve_repair_scan": "스캔 및 수리",
+    "dy_win_title": "히트 패턴 (winning_patterns)",
+    "dy_win_summary": "샘플 %d · 히트 %d · 갱신 %@",
+    "dy_win_title_formula": "제목 공식",
+    "dy_win_hot_topic": "✅ 히트 주제",
+    "dy_win_hot_hook": "✅ 히트 훅",
+    "dy_win_lose": "❌ 실패 패턴",
+    "dy_stats_title": "통계 리포트 · 전체",
+    "dy_stats_desc": "계정 전체 성과 개요: 집계 지표 + 성과 분포 + 훅 변형 비교.",
+    "dy_stats_empty": "통계 스냅샷 없음. 먼저「진화 분석」실행해 스냅샷 확보.",
+    "dy_stats_detail_title": "영상별 상세 (재생 내림차순, 우수 먼저)",
+    "dy_stats_total_plays": "총 재생",
+    "dy_stats_total_likes": "총 좋아요",
+    "dy_stats_total_comments": "총 댓글",
+    "dy_stats_total_shares": "총 공유",
+    "dy_stats_count": "영상 수",
+    "dy_stats_avg_plays": "평균 재생",
+    "dy_stats_avg_ir": "평균 상호작용률",
+    "dy_stats_hot_count": "히트 수",
+    "dy_stats_dist_hot": "히트 %d",
+    "dy_stats_dist_mid": "안정 %d",
+    "dy_stats_dist_cold": "저조 %d",
+    "dy_stats_variant_dist": "훅 변형 샘플 분포",
+    "dy_stats_variant_count": "%@: %d개",
+    "dy_stats_row_plays": "재생 %d",
+    "dy_stats_row_likes": "좋아요 %d",
+    "dy_stats_row_comments": "댓글 %d",
+    "dy_stats_row_shares": "공유 %d",
+    "dy_stats_row_ir": "상호작용률 %.2f%%",
+    "dy_action_running": "실행 중…",
+    "dy_action_produce": "제작 중",
+    "dy_action_publish": "게시 중",
+    "dy_action_comment_reply": "댓글 답장",
+    "dy_action_evolve": "진화 분석",
+    "dy_action_repair": "저조 영상 수리",
+    "dy_err_ops_not_found": "찾을 수 없음: %@. fusion-operation이 실행되어 out/ 데이터가 있는지 확인.",
+    "dy_err_ipc_disconnected": "IPC 미연결. agent-studio 호출 불가.",
+    "dy_err_ipc_register": "IPC 미연결. 게시 계획 등록 불가.",
+    "dy_res_done": "실행 완료, %d 이벤트",
+    "dy_res_status": "실행 상태: %@",
+    "dy_res_plan_registered": "게시 계획 등록 완료. 피크 시간대 자동 트리거 대기.",
+    "dy_res_register_failed": "등록 실패",
+    "dy_err_rungraph": "runGraph %@ 실패: %@",
+    "dy_err_graph_missing": "Graph 파일 없음: %@",
+    "dy_err_graph_parse": "Graph JSON 파싱 실패: %@",
+    "dy_err_graph_no_id": "graph.create가 graph_id를 반환하지 않음",
+    "dy_err_register": "게시 계획 등록 실패: %@",
+    "dy_err_unregister": "계획 취소 실패: %@",
+    "dy_cron_name": "抖音 피크 시간대 게시 계획",
 ]
 
 // MARK: - 国际化文本视图

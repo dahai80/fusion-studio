@@ -163,7 +163,7 @@ class DouyinOperationBridge: ObservableObject {
             let connected = self.fileManager.fileExists(atPath: self.opsDir)
             var err: String?
             if !connected {
-                err = "未找到 \(self.opsDir)，请确认 fusion-operation 已运行并产出 out/ 数据"
+                err = String(format: I18nManager.shared.t(.dy_err_ops_not_found), self.opsDir)
             }
 
             DispatchQueue.main.async {
@@ -272,7 +272,7 @@ class DouyinOperationBridge: ObservableObject {
         ipc: IPCClient?
     ) {
         guard let ipc = ipc else {
-            publishError("IPC 未连接，无法调用 agent-studio")
+            publishError(I18nManager.shared.t(.dy_err_ipc_disconnected))
             return
         }
         DispatchQueue.main.async {
@@ -297,7 +297,7 @@ class DouyinOperationBridge: ObservableObject {
                     status: status,
                     eventCount: events.count,
                     success: ok,
-                    message: ok ? "执行完成，共 \(events.count) 个事件" : "执行状态: \(status)"
+                    message: ok ? String(format: I18nManager.shared.t(.dy_res_done), events.count) : String(format: I18nManager.shared.t(.dy_res_status), status)
                 )
                 DispatchQueue.main.async {
                     self.lastRunResult = result
@@ -307,7 +307,7 @@ class DouyinOperationBridge: ObservableObject {
                 }
                 douyinBridgeLog.info("runGraph done: \(graphName, privacy: .public) status=\(status, privacy: .public) events=\(events.count)")
             } catch {
-                self.publishError("runGraph \(graphName) 失败: \(error.localizedDescription)")
+                self.publishError(String(format: I18nManager.shared.t(.dy_err_rungraph), graphName, error.localizedDescription))
             }
         }
     }
@@ -319,11 +319,11 @@ class DouyinOperationBridge: ObservableObject {
         let path = graphPath(graphName)
         guard let data = readFile(path) else {
             throw NSError(domain: "DouyinOperationBridge", code: 1,
-                          userInfo: [NSLocalizedDescriptionKey: "Graph 文件不存在: \(path)"])
+                          userInfo: [NSLocalizedDescriptionKey: String(format: I18nManager.shared.t(.dy_err_graph_missing), path)])
         }
         guard let graphData = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw NSError(domain: "DouyinOperationBridge", code: 2,
-                          userInfo: [NSLocalizedDescriptionKey: "Graph JSON 解析失败: \(path)"])
+                          userInfo: [NSLocalizedDescriptionKey: String(format: I18nManager.shared.t(.dy_err_graph_parse), path)])
         }
         let resp = try await ipc.call(method: "graph.create", params: [
             "name": graphName,
@@ -331,7 +331,7 @@ class DouyinOperationBridge: ObservableObject {
         ])
         guard let graphId = resp["graph_id"] as? String, !graphId.isEmpty else {
             throw NSError(domain: "DouyinOperationBridge", code: 3,
-                          userInfo: [NSLocalizedDescriptionKey: "graph.create 未返回 graph_id"])
+                          userInfo: [NSLocalizedDescriptionKey: I18nManager.shared.t(.dy_err_graph_no_id)])
         }
         graphIdCache[graphName] = graphId
         douyinBridgeLog.info("ensureGraph created: \(graphName, privacy: .public) -> \(graphId, privacy: .public)")
@@ -344,25 +344,25 @@ class DouyinOperationBridge: ObservableObject {
         var vars: [String: Any] = ["hook_variant": hookVariant]
         if !topic.isEmpty { vars["topic"] = topic }
         runGraph(graphName: "douyin_batch_produce", variables: vars,
-                 actionLabel: "造片（\(hookVariant)）", ipc: ipc)
+                 actionLabel: "produce", ipc: ipc)
     }
 
     func publishFromQueue(dryRun: Bool, ipc: IPCClient?) {
         runGraph(graphName: "douyin_queue_publish",
                  variables: ["dry_run": dryRun ? "true" : "false"],
-                 actionLabel: dryRun ? "发布(dry_run)" : "真实发布", ipc: ipc)
+                 actionLabel: "publish", ipc: ipc)
     }
 
     func replyComments(ipc: IPCClient?) {
-        runGraph(graphName: "douyin_comment_reply", actionLabel: "评论回复", ipc: ipc)
+        runGraph(graphName: "douyin_comment_reply", actionLabel: "comment_reply", ipc: ipc)
     }
 
     func evolve(ipc: IPCClient?) {
-        runGraph(graphName: "douyin_evolve", actionLabel: "进化分析", ipc: ipc)
+        runGraph(graphName: "douyin_evolve", actionLabel: "evolve", ipc: ipc)
     }
 
     func repairPublish(ipc: IPCClient?) {
-        runGraph(graphName: "douyin_repair_publish", actionLabel: "差片修复", ipc: ipc)
+        runGraph(graphName: "douyin_repair_publish", actionLabel: "repair", ipc: ipc)
     }
 
     // MARK: - 发布计划（cron 调度，agent-studio issue #139 → PR #140）
@@ -378,7 +378,7 @@ class DouyinOperationBridge: ObservableObject {
 
     func registerPublishPlan(expression: String, dryRun: Bool, ipc: IPCClient?) {
         guard let ipc = ipc else {
-            publishError("IPC 未连接，无法注册发布计划")
+            publishError(I18nManager.shared.t(.dy_err_ipc_register))
             return
         }
         DispatchQueue.main.async {
@@ -393,7 +393,7 @@ class DouyinOperationBridge: ObservableObject {
                 let jobId = Self.cronIdPrefix + expression.replacingOccurrences(of: " ", with: "_")
                 let resp = try await ipc.call(method: "cron.register", params: [
                     "id": jobId,
-                    "name": "抖音高峰发布计划",
+                    "name": I18nManager.shared.t(.dy_cron_name),
                     "expression": expression,
                     "graph_id": graphId,
                     "input_data": inputData,
@@ -408,12 +408,12 @@ class DouyinOperationBridge: ObservableObject {
                         status: ok ? "registered" : "failed",
                         eventCount: 0,
                         success: ok,
-                        message: ok ? "发布计划已注册，等待高峰时段自动触发" : "注册失败"
+                        message: ok ? I18nManager.shared.t(.dy_res_plan_registered) : I18nManager.shared.t(.dy_res_register_failed)
                     )
                     self.refreshCron(ipc: ipc)
                 }
             } catch {
-                self.publishError("注册发布计划失败: \(error.localizedDescription)")
+                self.publishError(String(format: I18nManager.shared.t(.dy_err_register), error.localizedDescription))
             }
         }
     }
@@ -430,7 +430,7 @@ class DouyinOperationBridge: ObservableObject {
                     self.refreshCron(ipc: ipc)
                 }
             } catch {
-                self.publishError("取消计划失败: \(error.localizedDescription)")
+                self.publishError(String(format: I18nManager.shared.t(.dy_err_unregister), error.localizedDescription))
             }
         }
     }
