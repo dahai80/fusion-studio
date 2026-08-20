@@ -7,6 +7,7 @@ struct RAGFilesView: View {
     let selectedKBId: String
     @Environment(\.studioTheme) private var theme
     @StateObject private var client = RAGAPIClient.shared
+    @StateObject private var i18n = I18nManager.shared
     @State private var documents: [KBDocument] = []
     @State private var watches: [KBWatchInfo] = []
     @State private var isLoading = false
@@ -40,18 +41,18 @@ struct RAGFilesView: View {
 
     private var toolbar: some View {
         HStack(spacing: theme.spacingS) {
-            TextField("搜索文件...", text: $searchQuery)
+            TextField(i18n.t(.rag_file_searchPh), text: $searchQuery)
                 .textFieldStyle(.roundedBorder)
                 .frame(maxWidth: 240)
             Spacer()
             Button(action: { showWatch = true }) {
-                Label("监控", systemImage: "eye")
+                Label(i18n.t(.rag_file_watchBtn), systemImage: "eye")
                     .font(.system(size: theme.textSize))
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
             Button(action: { showAddFile = true }) {
-                Label("添加文件", systemImage: "doc.badge.plus")
+                Label(i18n.t(.rag_file_addFileBtn), systemImage: "doc.badge.plus")
                     .font(.system(size: theme.textSize))
             }
             .buttonStyle(.bordered)
@@ -69,10 +70,10 @@ struct RAGFilesView: View {
             Image(systemName: "doc.text.magnifyingglass")
                 .font(.system(size: 40))
                 .foregroundStyle(theme.textTertiary)
-            Text(selectedKBId.isEmpty ? "请先选择知识库" : "暂无文档")
+            Text(selectedKBId.isEmpty ? i18n.t(.rag_file_selectKbHint) : i18n.t(.rag_file_emptyDoc))
                 .foregroundStyle(theme.textTertiary)
             if !selectedKBId.isEmpty {
-                Button("添加文件") { showAddFile = true }
+                Button(i18n.t(.rag_file_addFileBtn)) { showAddFile = true }
                     .buttonStyle(.borderedProminent)
             }
         }
@@ -111,12 +112,12 @@ struct RAGFilesView: View {
 
     private var docTableHeader: some View {
         HStack(spacing: theme.spacingS) {
-            Text("文件名")
+            Text(i18n.t(.rag_file_h_name))
                 .frame(maxWidth: .infinity, alignment: .leading)
-            Text("类型").frame(width: 60)
-            Text("大小").frame(width: 70)
-            Text("分块").frame(width: 50)
-            Text("状态").frame(width: 60)
+            Text(i18n.t(.rag_file_h_type)).frame(width: 60)
+            Text(i18n.t(.rag_file_h_size)).frame(width: 70)
+            Text(i18n.t(.rag_file_h_chunk)).frame(width: 50)
+            Text(i18n.t(.rag_file_h_status)).frame(width: 60)
             Text("").frame(width: 60)
         }
         .font(.system(size: theme.captionSize, weight: .semibold))
@@ -151,7 +152,7 @@ struct RAGFilesView: View {
                 .frame(width: 50)
             HStack(spacing: 4) {
                 Circle().fill(Color.green).frame(width: 6, height: 6)
-                Text("已索引")
+                Text(i18n.t(.rag_file_indexed))
                     .font(.system(size: 8))
                     .foregroundStyle(.green)
             }
@@ -171,13 +172,13 @@ struct RAGFilesView: View {
     private var watchSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
             HStack {
-                Text("文件监控")
+                Text(i18n.t(.rag_file_watchLabel))
                     .font(.system(size: theme.textSize, weight: .semibold))
                     .foregroundStyle(theme.text)
                 Spacer()
             }
             if watches.isEmpty {
-                Text("无活跃监控")
+                Text(i18n.t(.rag_file_watchEmpty))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textTertiary)
             } else {
@@ -201,21 +202,21 @@ struct RAGFilesView: View {
         HStack(spacing: theme.spacingS) {
             Image(systemName: "eye")
                 .foregroundStyle(theme.accent)
-            Text("监控 \(w.fileCount) 个文件")
+            Text(String(format: i18n.t(.rag_file_watchFileFmt), w.fileCount))
                 .font(.system(size: theme.captionSize))
                 .foregroundStyle(theme.text)
             if w.changesDetected > 0 {
-                Text("\(w.changesDetected) 次变更")
+                Text(String(format: i18n.t(.rag_file_changesFmt), w.changesDetected))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(.orange)
             }
             Spacer()
             if let last = w.lastReindex {
-                Text("上次重建: \(last)")
+                Text(String(format: i18n.t(.rag_file_lastReindexFmt), last))
                     .font(.system(size: 8))
                     .foregroundStyle(theme.textTertiary)
             }
-            Button("停止") {
+            Button(i18n.t(.rag_file_stopBtn)) {
                 Task {
                     guard !selectedKBId.isEmpty else { return }
                     let ok = await client.unwatchFiles(kbId: selectedKBId, watchId: w.id)
@@ -230,13 +231,13 @@ struct RAGFilesView: View {
 
     private var addFileSheet: some View {
         VStack(spacing: theme.spacingM) {
-            Text("添加文件").font(.headline)
-            TextField("文件路径（逗号分隔多个）", text: $addFilePath)
+            Text(i18n.t(.rag_file_addFileTitle)).font(.headline)
+            TextField(i18n.t(.rag_file_addFilePathPh), text: $addFilePath)
                 .textFieldStyle(.roundedBorder)
             HStack {
-                Button("取消") { showAddFile = false; addFilePath = "" }
+                Button(i18n.t(.cancel)) { showAddFile = false; addFilePath = "" }
                 Spacer()
-                Button("添加") { Task { await addFiles() } }
+                Button(i18n.t(.rag_file_addBtn)) { Task { await addFiles() } }
                     .disabled(addFilePath.isEmpty || selectedKBId.isEmpty)
                     .buttonStyle(.borderedProminent)
             }
@@ -247,17 +248,17 @@ struct RAGFilesView: View {
 
     private var addWatchSheet: some View {
         VStack(spacing: theme.spacingM) {
-            Text("设置文件监控").font(.headline)
-            TextField("文件路径（逗号分隔）", text: $watchPaths)
+            Text(i18n.t(.rag_file_watchTitle)).font(.headline)
+            TextField(i18n.t(.rag_file_watchPathPh), text: $watchPaths)
                 .textFieldStyle(.roundedBorder)
             HStack {
-                Text("轮询间隔(秒)")
+                Text(i18n.t(.rag_file_pollInterval))
                 Stepper("\(watchInterval)s", value: $watchInterval, in: 10...300, step: 10)
             }
             HStack {
-                Button("取消") { showWatch = false }
+                Button(i18n.t(.cancel)) { showWatch = false }
                 Spacer()
-                Button("开始监控") { Task { await startWatch() } }
+                Button(i18n.t(.rag_file_startWatchBtn)) { Task { await startWatch() } }
                     .disabled(watchPaths.isEmpty || selectedKBId.isEmpty)
                     .buttonStyle(.borderedProminent)
             }

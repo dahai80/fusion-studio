@@ -2113,6 +2113,155 @@ enum I18nKey: String, CaseIterable {
     case rag_emb_contextDesc = "rag_emb_contextDesc"
     case rag_emb_saved = "rag_emb_saved"
     case rag_emb_reset = "rag_emb_reset"
+    case rag_vec_title = "rag_vec_title"
+    case rag_vec_syncAlertTitle = "rag_vec_syncAlertTitle"
+    case rag_vec_syncAlertBtn = "rag_vec_syncAlertBtn"
+    case rag_vec_syncAlertMsg = "rag_vec_syncAlertMsg"
+    case rag_vec_createSnapTitle = "rag_vec_createSnapTitle"
+    case rag_vec_snapDescPh = "rag_vec_snapDescPh"
+    case rag_vec_create = "rag_vec_create"
+    case rag_vec_svcLabel = "rag_vec_svcLabel"
+    case rag_vec_embEngine = "rag_vec_embEngine"
+    case rag_vec_avail = "rag_vec_avail"
+    case rag_vec_unavail = "rag_vec_unavail"
+    case rag_vec_kbCount = "rag_vec_kbCount"
+    case rag_vec_vecStatsLabel = "rag_vec_vecStatsLabel"
+    case rag_vec_docCount = "rag_vec_docCount"
+    case rag_vec_chunkCount = "rag_vec_chunkCount"
+    case rag_vec_vecCount = "rag_vec_vecCount"
+    case rag_vec_fileCount = "rag_vec_fileCount"
+    case rag_vec_selectKbHint = "rag_vec_selectKbHint"
+    case rag_vec_opsLabel = "rag_vec_opsLabel"
+    case rag_vec_opSync = "rag_vec_opSync"
+    case rag_vec_opSyncDesc = "rag_vec_opSyncDesc"
+    case rag_vec_opSnap = "rag_vec_opSnap"
+    case rag_vec_opSnapDesc = "rag_vec_opSnapDesc"
+    case rag_vec_opHealth = "rag_vec_opHealth"
+    case rag_vec_opHealthDesc = "rag_vec_opHealthDesc"
+    case rag_vec_opRefresh = "rag_vec_opRefresh"
+    case rag_vec_opRefreshDesc = "rag_vec_opRefreshDesc"
+    case rag_vec_snapLabel = "rag_vec_snapLabel"
+    case rag_vec_snapCountFmt = "rag_vec_snapCountFmt"
+    case rag_vec_snapEmpty = "rag_vec_snapEmpty"
+    case rag_vec_snapNote = "rag_vec_snapNote"
+    case rag_vec_snapFallback = "rag_vec_snapFallback"
+    case rag_vec_rollback = "rag_vec_rollback"
+    case rag_vec_syncing = "rag_vec_syncing"
+    case rag_vec_syncDoneFmt = "rag_vec_syncDoneFmt"
+    case rag_vec_syncFail = "rag_vec_syncFail"
+    case rag_vec_creatingSnap = "rag_vec_creatingSnap"
+    case rag_vec_snapDoneFmt = "rag_vec_snapDoneFmt"
+    case rag_vec_snapFail = "rag_vec_snapFail"
+    case rag_vec_rollingBack = "rag_vec_rollingBack"
+    case rag_vec_rollbackDoneFmt = "rag_vec_rollbackDoneFmt"
+    case rag_vec_rollbackFail = "rag_vec_rollbackFail"
+    case rag_vec_svcHealthy = "rag_vec_svcHealthy"
+    case rag_vec_svcUnhealthy = "rag_vec_svcUnhealthy"
+    case rag_dash_kbTitle = "rag_dash_kbTitle"
+    case rag_dash_newBtn = "rag_dash_newBtn"
+    case rag_dash_svcHealthy = "rag_dash_svcHealthy"
+    case rag_dash_svcUnhealthy = "rag_dash_svcUnhealthy"
+    case rag_dash_kbCountFmt = "rag_dash_kbCountFmt"
+    case rag_dash_emptyTitle = "rag_dash_emptyTitle"
+    case rag_dash_createKb = "rag_dash_createKb"
+    case rag_dash_namePh = "rag_dash_namePh"
+    case rag_dash_descPh = "rag_dash_descPh"
+    case rag_dash_chunkStrategyPh = "rag_dash_chunkStrategyPh"
+    case rag_dash_embedModelPh = "rag_dash_embedModelPh"
+    case rag_dash_create = "rag_dash_create"
+    case rag_dash_scanTitle = "rag_dash_scanTitle"
+    case rag_dash_kbPrefix = "rag_dash_kbPrefix"
+    case rag_dash_dirPathPh = "rag_dash_dirPathPh"
+    case rag_dash_scanBtn = "rag_dash_scanBtn"
+    case rag_dash_statFile = "rag_dash_statFile"
+    case rag_dash_statChunk = "rag_dash_statChunk"
+    case rag_dash_statVec = "rag_dash_statVec"
+    case rag_dash_enterBtn = "rag_dash_enterBtn"
+    case rag_dash_importBtn = "rag_dash_importBtn"
+    case rag_dash_chatMenu = "rag_dash_chatMenu"
+    case rag_dash_scanMenu = "rag_dash_scanMenu"
+    case rag_file_searchPh = "rag_file_searchPh"
+    case rag_file_watchBtn = "rag_file_watchBtn"
+    case rag_file_addFileBtn = "rag_file_addFileBtn"
+    case rag_file_selectKbHint = "rag_file_selectKbHint"
+    case rag_file_emptyDoc = "rag_file_emptyDoc"
+    case rag_file_h_name = "rag_file_h_name"
+    case rag_file_h_type = "rag_file_h_type"
+    case rag_file_h_size = "rag_file_h_size"
+    case rag_file_h_chunk = "rag_file_h_chunk"
+    case rag_file_h_status = "rag_file_h_status"
+    case rag_file_indexed = "rag_file_indexed"
+    case rag_file_watchLabel = "rag_file_watchLabel"
+    case rag_file_watchEmpty = "rag_file_watchEmpty"
+    case rag_file_watchFileFmt = "rag_file_watchFileFmt"
+    case rag_file_changesFmt = "rag_file_changesFmt"
+    case rag_file_lastReindexFmt = "rag_file_lastReindexFmt"
+    case rag_file_stopBtn = "rag_file_stopBtn"
+    case rag_file_addFileTitle = "rag_file_addFileTitle"
+    case rag_file_addFilePathPh = "rag_file_addFilePathPh"
+    case rag_file_addBtn = "rag_file_addBtn"
+    case rag_file_watchTitle = "rag_file_watchTitle"
+    case rag_file_watchPathPh = "rag_file_watchPathPh"
+    case rag_file_pollInterval = "rag_file_pollInterval"
+    case rag_file_startWatchBtn = "rag_file_startWatchBtn"
+    case rag_srch_title = "rag_srch_title"
+    case rag_srch_presetLabel = "rag_srch_presetLabel"
+    case rag_srch_preset_general = "rag_srch_preset_general"
+    case rag_srch_preset_code = "rag_srch_preset_code"
+    case rag_srch_preset_design = "rag_srch_preset_design"
+    case rag_srch_presetDesc_general = "rag_srch_presetDesc_general"
+    case rag_srch_presetDesc_code = "rag_srch_presetDesc_code"
+    case rag_srch_presetDesc_design = "rag_srch_presetDesc_design"
+    case rag_srch_weightLabel = "rag_srch_weightLabel"
+    case rag_srch_hybridToggle = "rag_srch_hybridToggle"
+    case rag_srch_sparseLabel = "rag_srch_sparseLabel"
+    case rag_srch_denseLabel = "rag_srch_denseLabel"
+    case rag_srch_alphaLabel = "rag_srch_alphaLabel"
+    case rag_srch_rerankToggle = "rag_srch_rerankToggle"
+    case rag_srch_rerankTip = "rag_srch_rerankTip"
+    case rag_srch_paramsLabel = "rag_srch_paramsLabel"
+    case rag_srch_topKLabel = "rag_srch_topKLabel"
+    case rag_srch_thresholdLabel = "rag_srch_thresholdLabel"
+    case rag_srch_rewriteCard = "rag_srch_rewriteCard"
+    case rag_srch_rewriteModePicker = "rag_srch_rewriteModePicker"
+    case rag_srch_rewriteDesc_none = "rag_srch_rewriteDesc_none"
+    case rag_srch_rewriteDesc_expand = "rag_srch_rewriteDesc_expand"
+    case rag_srch_rewriteDesc_decompose = "rag_srch_rewriteDesc_decompose"
+    case rag_srch_rewriteDesc_hyde = "rag_srch_rewriteDesc_hyde"
+    case rag_srch_testLabel = "rag_srch_testLabel"
+    case rag_srch_testQueryPh = "rag_srch_testQueryPh"
+    case rag_srch_testBtn = "rag_srch_testBtn"
+    case rag_srch_rw_none = "rag_srch_rw_none"
+    case rag_srch_rw_expand = "rag_srch_rw_expand"
+    case rag_srch_rw_decompose = "rag_srch_rw_decompose"
+    case rag_srch_rw_hyde = "rag_srch_rw_hyde"
+    case rag_bench_title = "rag_bench_title"
+    case rag_bench_adv_local = "rag_bench_adv_local"
+    case rag_bench_adv_ast = "rag_bench_adv_ast"
+    case rag_bench_adv_rrf = "rag_bench_adv_rrf"
+    case rag_bench_adv_context = "rag_bench_adv_context"
+    case rag_bench_adv_sync = "rag_bench_adv_sync"
+    case rag_bench_adv_snap = "rag_bench_adv_snap"
+    case rag_bench_presetLabel = "rag_bench_presetLabel"
+    case rag_bench_preset_standard = "rag_bench_preset_standard"
+    case rag_bench_preset_code = "rag_bench_preset_code"
+    case rag_bench_preset_design = "rag_bench_preset_design"
+    case rag_bench_customQueryLabel = "rag_bench_customQueryLabel"
+    case rag_bench_customEmpty = "rag_bench_customEmpty"
+    case rag_bench_addQueryTitle = "rag_bench_addQueryTitle"
+    case rag_bench_queryPh = "rag_bench_queryPh"
+    case rag_bench_expectedPh = "rag_bench_expectedPh"
+    case rag_bench_addBtn = "rag_bench_addBtn"
+    case rag_bench_runBtn = "rag_bench_runBtn"
+    case rag_bench_hitRateFmt = "rag_bench_hitRateFmt"
+    case rag_bench_clearResultsBtn = "rag_bench_clearResultsBtn"
+    case rag_bench_resultsLabel = "rag_bench_resultsLabel"
+    case rag_bench_resultsEmpty = "rag_bench_resultsEmpty"
+    case rag_bench_miniHit = "rag_bench_miniHit"
+    case rag_bench_miniLatency = "rag_bench_miniLatency"
+    case rag_bench_miniTopScore = "rag_bench_miniTopScore"
+    case rag_bench_historyLabel = "rag_bench_historyLabel"
+    case rag_bench_historyEmpty = "rag_bench_historyEmpty"
     case fsb_cv_node_start = "fsb_cv_node_start"
     case fsb_cv_node_connector = "fsb_cv_node_connector"
     case fsb_cv_node_skill = "fsb_cv_node_skill"
@@ -3916,6 +4065,155 @@ let zhCNTranslations: [String: String] = [
     "rag_emb_contextDesc": "为每个分块生成上下文摘要，显著提升检索准确率。Fusion-RAG 独有优势：本地 MLX 生成上下文，无需云端 API。",
     "rag_emb_saved": "✓ 配置已保存",
     "rag_emb_reset": "恢复默认",
+    "rag_vec_title": "向量库运维",
+    "rag_vec_syncAlertTitle": "确认增量同步",
+    "rag_vec_syncAlertBtn": "同步",
+    "rag_vec_syncAlertMsg": "将对知识库目录执行增量同步，检测文件变更并重新索引。确定继续？",
+    "rag_vec_createSnapTitle": "创建版本快照",
+    "rag_vec_snapDescPh": "快照描述（可选）",
+    "rag_vec_create": "创建",
+    "rag_vec_svcLabel": "服务状态",
+    "rag_vec_embEngine": "嵌入引擎",
+    "rag_vec_avail": "可用",
+    "rag_vec_unavail": "不可用",
+    "rag_vec_kbCount": "知识库数",
+    "rag_vec_vecStatsLabel": "向量统计",
+    "rag_vec_docCount": "文档数",
+    "rag_vec_chunkCount": "分块数",
+    "rag_vec_vecCount": "向量数",
+    "rag_vec_fileCount": "文件数",
+    "rag_vec_selectKbHint": "请先选择知识库",
+    "rag_vec_opsLabel": "运维操作",
+    "rag_vec_opSync": "增量同步",
+    "rag_vec_opSyncDesc": "检测文件变更并重新索引",
+    "rag_vec_opSnap": "创建快照",
+    "rag_vec_opSnapDesc": "保存当前知识库状态到版本快照",
+    "rag_vec_opHealth": "健康检查",
+    "rag_vec_opHealthDesc": "检查向量存储和嵌入服务状态",
+    "rag_vec_opRefresh": "刷新统计",
+    "rag_vec_opRefreshDesc": "重新获取知识库统计信息",
+    "rag_vec_snapLabel": "版本快照",
+    "rag_vec_snapCountFmt": "%d 个快照",
+    "rag_vec_snapEmpty": "暂无快照，点击「创建快照」保存当前知识库状态",
+    "rag_vec_snapNote": "版本快照是 Fusion-RAG 相对 Claude RAG 的关键竞争力：支持时间点回滚、增量对比、数据恢复。",
+    "rag_vec_snapFallback": "快照",
+    "rag_vec_rollback": "回滚",
+    "rag_vec_syncing": "同步中...",
+    "rag_vec_syncDoneFmt": "✓ 同步完成: %d 文件已更新",
+    "rag_vec_syncFail": "✗ 同步失败",
+    "rag_vec_creatingSnap": "创建快照中...",
+    "rag_vec_snapDoneFmt": "✓ 快照已创建: %@",
+    "rag_vec_snapFail": "✗ 快照创建失败",
+    "rag_vec_rollingBack": "回滚中...",
+    "rag_vec_rollbackDoneFmt": "✓ 已回滚到快照 %@",
+    "rag_vec_rollbackFail": "✗ 回滚失败",
+    "rag_vec_svcHealthy": "✓ 服务健康",
+    "rag_vec_svcUnhealthy": "✗ 服务异常",
+    "rag_dash_kbTitle": "知识库",
+    "rag_dash_newBtn": "新建",
+    "rag_dash_svcHealthy": "Fusion-RAG 服务正常",
+    "rag_dash_svcUnhealthy": "Fusion-RAG 服务不可用",
+    "rag_dash_kbCountFmt": "%d 个知识库",
+    "rag_dash_emptyTitle": "暂无知识库",
+    "rag_dash_createKb": "创建知识库",
+    "rag_dash_namePh": "名称",
+    "rag_dash_descPh": "描述",
+    "rag_dash_chunkStrategyPh": "分块策略",
+    "rag_dash_embedModelPh": "嵌入模型",
+    "rag_dash_create": "创建",
+    "rag_dash_scanTitle": "扫描目录导入",
+    "rag_dash_kbPrefix": "知识库: %@",
+    "rag_dash_dirPathPh": "目录路径",
+    "rag_dash_scanBtn": "开始扫描",
+    "rag_dash_statFile": "文件",
+    "rag_dash_statChunk": "分块",
+    "rag_dash_statVec": "向量",
+    "rag_dash_enterBtn": "进入",
+    "rag_dash_importBtn": "导入",
+    "rag_dash_chatMenu": "RAG 对话",
+    "rag_dash_scanMenu": "扫描目录",
+    "rag_file_searchPh": "搜索文件...",
+    "rag_file_watchBtn": "监控",
+    "rag_file_addFileBtn": "添加文件",
+    "rag_file_selectKbHint": "请先选择知识库",
+    "rag_file_emptyDoc": "暂无文档",
+    "rag_file_h_name": "文件名",
+    "rag_file_h_type": "类型",
+    "rag_file_h_size": "大小",
+    "rag_file_h_chunk": "分块",
+    "rag_file_h_status": "状态",
+    "rag_file_indexed": "已索引",
+    "rag_file_watchLabel": "文件监控",
+    "rag_file_watchEmpty": "无活跃监控",
+    "rag_file_watchFileFmt": "监控 %d 个文件",
+    "rag_file_changesFmt": "%d 次变更",
+    "rag_file_lastReindexFmt": "上次重建: %@",
+    "rag_file_stopBtn": "停止",
+    "rag_file_addFileTitle": "添加文件",
+    "rag_file_addFilePathPh": "文件路径（逗号分隔多个）",
+    "rag_file_addBtn": "添加",
+    "rag_file_watchTitle": "设置文件监控",
+    "rag_file_watchPathPh": "文件路径（逗号分隔）",
+    "rag_file_pollInterval": "轮询间隔(秒)",
+    "rag_file_startWatchBtn": "开始监控",
+    "rag_srch_title": "检索策略配置",
+    "rag_srch_presetLabel": "场景预设",
+    "rag_srch_preset_general": "通用",
+    "rag_srch_preset_code": "代码",
+    "rag_srch_preset_design": "设计",
+    "rag_srch_presetDesc_general": "通用场景：均衡稀疏+稠密检索，适合文档问答",
+    "rag_srch_presetDesc_code": "代码场景：提升稀疏权重（BM25 精确匹配函数名），开启查询分解",
+    "rag_srch_presetDesc_design": "设计场景：提升稠密权重（语义理解设计描述），开启查询扩展",
+    "rag_srch_weightLabel": "检索权重",
+    "rag_srch_hybridToggle": "混合检索（BM25 + 向量 RRF）",
+    "rag_srch_sparseLabel": "稀疏检索（BM25）",
+    "rag_srch_denseLabel": "稠密检索（向量）",
+    "rag_srch_alphaLabel": "混合 Alpha（RRF 权重）",
+    "rag_srch_rerankToggle": "重排序（Rerank）",
+    "rag_srch_rerankTip": "重排序使用 BGE-Reranker 对初步结果二次打分，显著提升 Top-5 准确率",
+    "rag_srch_paramsLabel": "检索参数",
+    "rag_srch_topKLabel": "Top-K 返回数",
+    "rag_srch_thresholdLabel": "相似度阈值",
+    "rag_srch_rewriteCard": "查询改写",
+    "rag_srch_rewriteModePicker": "改写模式",
+    "rag_srch_rewriteDesc_none": "不进行查询改写，直接使用原始查询",
+    "rag_srch_rewriteDesc_expand": "查询扩展：生成同义表述增加召回率",
+    "rag_srch_rewriteDesc_decompose": "查询分解：将复杂查询拆解为子问题分别检索",
+    "rag_srch_rewriteDesc_hyde": "HyDE：先用 LLM 生成假设性答案，再用假设答案检索",
+    "rag_srch_testLabel": "检索测试",
+    "rag_srch_testQueryPh": "输入测试查询...",
+    "rag_srch_testBtn": "测试",
+    "rag_srch_rw_none": "无",
+    "rag_srch_rw_expand": "扩展",
+    "rag_srch_rw_decompose": "分解",
+    "rag_srch_rw_hyde": "HyDE",
+    "rag_bench_title": "检索性能评测",
+    "rag_bench_adv_local": "本地离线向量",
+    "rag_bench_adv_ast": "代码 AST 解析",
+    "rag_bench_adv_rrf": "混合检索 RRF",
+    "rag_bench_adv_context": "Contextual Retrieval",
+    "rag_bench_adv_sync": "增量同步",
+    "rag_bench_adv_snap": "版本快照",
+    "rag_bench_presetLabel": "评测预设",
+    "rag_bench_preset_standard": "标准评测",
+    "rag_bench_preset_code": "代码检索",
+    "rag_bench_preset_design": "设计检索",
+    "rag_bench_customQueryLabel": "自定义评测集",
+    "rag_bench_customEmpty": "点击 + 添加评测查询和期望文档",
+    "rag_bench_addQueryTitle": "添加评测查询",
+    "rag_bench_queryPh": "查询文本",
+    "rag_bench_expectedPh": "期望包含的文档名",
+    "rag_bench_addBtn": "添加",
+    "rag_bench_runBtn": "运行评测",
+    "rag_bench_hitRateFmt": "Top-5 命中率: %@",
+    "rag_bench_clearResultsBtn": "清除结果",
+    "rag_bench_resultsLabel": "评测结果",
+    "rag_bench_resultsEmpty": "点击「运行评测」开始",
+    "rag_bench_miniHit": "命中",
+    "rag_bench_miniLatency": "平均延迟",
+    "rag_bench_miniTopScore": "最高分",
+    "rag_bench_historyLabel": "历史评测记录",
+    "rag_bench_historyEmpty": "暂无历史评测记录",
     "fsb_cv_node_start": "开始",
     "fsb_cv_node_connector": "连接器",
     "fsb_cv_node_skill": "技能",
@@ -5674,6 +5972,155 @@ let enUSTranslations: [String: String] = [
     "rag_emb_contextDesc": "Generate context summary per chunk, boosting retrieval accuracy. Fusion-RAG exclusive: local MLX context generation, no cloud API.",
     "rag_emb_saved": "✓ Config saved",
     "rag_emb_reset": "Reset to default",
+    "rag_vec_title": "Vector Store Ops",
+    "rag_vec_syncAlertTitle": "Confirm Incremental Sync",
+    "rag_vec_syncAlertBtn": "Sync",
+    "rag_vec_syncAlertMsg": "Incremental sync will run on the knowledge base directory, detecting file changes and re-indexing. Continue?",
+    "rag_vec_createSnapTitle": "Create Version Snapshot",
+    "rag_vec_snapDescPh": "Snapshot description (optional)",
+    "rag_vec_create": "Create",
+    "rag_vec_svcLabel": "Service Status",
+    "rag_vec_embEngine": "Embedding Engine",
+    "rag_vec_avail": "Available",
+    "rag_vec_unavail": "Unavailable",
+    "rag_vec_kbCount": "Knowledge Bases",
+    "rag_vec_vecStatsLabel": "Vector Stats",
+    "rag_vec_docCount": "Documents",
+    "rag_vec_chunkCount": "Chunks",
+    "rag_vec_vecCount": "Vectors",
+    "rag_vec_fileCount": "Files",
+    "rag_vec_selectKbHint": "Please select a knowledge base first",
+    "rag_vec_opsLabel": "Operations",
+    "rag_vec_opSync": "Incremental Sync",
+    "rag_vec_opSyncDesc": "Detect file changes and re-index",
+    "rag_vec_opSnap": "Create Snapshot",
+    "rag_vec_opSnapDesc": "Save current KB state to a version snapshot",
+    "rag_vec_opHealth": "Health Check",
+    "rag_vec_opHealthDesc": "Check vector store and embedding service status",
+    "rag_vec_opRefresh": "Refresh Stats",
+    "rag_vec_opRefreshDesc": "Re-fetch KB statistics",
+    "rag_vec_snapLabel": "Version Snapshots",
+    "rag_vec_snapCountFmt": "%d snapshots",
+    "rag_vec_snapEmpty": "No snapshots yet. Click 「Create Snapshot」 to save current KB state",
+    "rag_vec_snapNote": "Version snapshots are a key competitive advantage of Fusion-RAG over Claude RAG: point-in-time rollback, incremental diff, data recovery.",
+    "rag_vec_snapFallback": "Snapshot",
+    "rag_vec_rollback": "Rollback",
+    "rag_vec_syncing": "Syncing...",
+    "rag_vec_syncDoneFmt": "✓ Sync complete: %d files updated",
+    "rag_vec_syncFail": "✗ Sync failed",
+    "rag_vec_creatingSnap": "Creating snapshot...",
+    "rag_vec_snapDoneFmt": "✓ Snapshot created: %@",
+    "rag_vec_snapFail": "✗ Snapshot creation failed",
+    "rag_vec_rollingBack": "Rolling back...",
+    "rag_vec_rollbackDoneFmt": "✓ Rolled back to snapshot %@",
+    "rag_vec_rollbackFail": "✗ Rollback failed",
+    "rag_vec_svcHealthy": "✓ Service healthy",
+    "rag_vec_svcUnhealthy": "✗ Service unhealthy",
+    "rag_dash_kbTitle": "Knowledge Bases",
+    "rag_dash_newBtn": "New",
+    "rag_dash_svcHealthy": "Fusion-RAG service normal",
+    "rag_dash_svcUnhealthy": "Fusion-RAG service unavailable",
+    "rag_dash_kbCountFmt": "%d knowledge bases",
+    "rag_dash_emptyTitle": "No knowledge bases",
+    "rag_dash_createKb": "Create Knowledge Base",
+    "rag_dash_namePh": "Name",
+    "rag_dash_descPh": "Description",
+    "rag_dash_chunkStrategyPh": "Chunk Strategy",
+    "rag_dash_embedModelPh": "Embedding Model",
+    "rag_dash_create": "Create",
+    "rag_dash_scanTitle": "Scan Directory Import",
+    "rag_dash_kbPrefix": "Knowledge base: %@",
+    "rag_dash_dirPathPh": "Directory path",
+    "rag_dash_scanBtn": "Start Scan",
+    "rag_dash_statFile": "Files",
+    "rag_dash_statChunk": "Chunks",
+    "rag_dash_statVec": "Vectors",
+    "rag_dash_enterBtn": "Enter",
+    "rag_dash_importBtn": "Import",
+    "rag_dash_chatMenu": "RAG Chat",
+    "rag_dash_scanMenu": "Scan Directory",
+    "rag_file_searchPh": "Search files...",
+    "rag_file_watchBtn": "Watch",
+    "rag_file_addFileBtn": "Add File",
+    "rag_file_selectKbHint": "Please select a knowledge base first",
+    "rag_file_emptyDoc": "No documents",
+    "rag_file_h_name": "File Name",
+    "rag_file_h_type": "Type",
+    "rag_file_h_size": "Size",
+    "rag_file_h_chunk": "Chunks",
+    "rag_file_h_status": "Status",
+    "rag_file_indexed": "Indexed",
+    "rag_file_watchLabel": "File Watch",
+    "rag_file_watchEmpty": "No active watches",
+    "rag_file_watchFileFmt": "Watching %d files",
+    "rag_file_changesFmt": "%d changes",
+    "rag_file_lastReindexFmt": "Last reindex: %@",
+    "rag_file_stopBtn": "Stop",
+    "rag_file_addFileTitle": "Add File",
+    "rag_file_addFilePathPh": "File paths (comma-separated)",
+    "rag_file_addBtn": "Add",
+    "rag_file_watchTitle": "Set File Watch",
+    "rag_file_watchPathPh": "File paths (comma-separated)",
+    "rag_file_pollInterval": "Poll interval (sec)",
+    "rag_file_startWatchBtn": "Start Watch",
+    "rag_srch_title": "Search Strategy Config",
+    "rag_srch_presetLabel": "Scenario Presets",
+    "rag_srch_preset_general": "General",
+    "rag_srch_preset_code": "Code",
+    "rag_srch_preset_design": "Design",
+    "rag_srch_presetDesc_general": "General: balanced sparse+dense retrieval, suited for document Q&A",
+    "rag_srch_presetDesc_code": "Code: higher sparse weight (BM25 exact function-name match), enable query decomposition",
+    "rag_srch_presetDesc_design": "Design: higher dense weight (semantic understanding of design descriptions), enable query expansion",
+    "rag_srch_weightLabel": "Retrieval Weights",
+    "rag_srch_hybridToggle": "Hybrid retrieval (BM25 + vector RRF)",
+    "rag_srch_sparseLabel": "Sparse retrieval (BM25)",
+    "rag_srch_denseLabel": "Dense retrieval (vector)",
+    "rag_srch_alphaLabel": "Hybrid Alpha (RRF weight)",
+    "rag_srch_rerankToggle": "Rerank",
+    "rag_srch_rerankTip": "Rerank uses BGE-Reranker to re-score initial results, significantly boosting Top-5 accuracy",
+    "rag_srch_paramsLabel": "Retrieval Params",
+    "rag_srch_topKLabel": "Top-K results",
+    "rag_srch_thresholdLabel": "Similarity threshold",
+    "rag_srch_rewriteCard": "Query Rewrite",
+    "rag_srch_rewriteModePicker": "Rewrite mode",
+    "rag_srch_rewriteDesc_none": "No query rewrite; use the raw query directly",
+    "rag_srch_rewriteDesc_expand": "Query expansion: generate synonyms to increase recall",
+    "rag_srch_rewriteDesc_decompose": "Query decomposition: split complex queries into sub-questions and retrieve separately",
+    "rag_srch_rewriteDesc_hyde": "HyDE: generate a hypothetical answer with LLM first, then retrieve using it",
+    "rag_srch_testLabel": "Search Test",
+    "rag_srch_testQueryPh": "Enter test query...",
+    "rag_srch_testBtn": "Test",
+    "rag_srch_rw_none": "None",
+    "rag_srch_rw_expand": "Expand",
+    "rag_srch_rw_decompose": "Decompose",
+    "rag_srch_rw_hyde": "HyDE",
+    "rag_bench_title": "Retrieval Performance Eval",
+    "rag_bench_adv_local": "Local offline vectors",
+    "rag_bench_adv_ast": "Code AST parsing",
+    "rag_bench_adv_rrf": "Hybrid retrieval RRF",
+    "rag_bench_adv_context": "Contextual Retrieval",
+    "rag_bench_adv_sync": "Incremental Sync",
+    "rag_bench_adv_snap": "Version Snapshots",
+    "rag_bench_presetLabel": "Eval Presets",
+    "rag_bench_preset_standard": "Standard",
+    "rag_bench_preset_code": "Code Retrieval",
+    "rag_bench_preset_design": "Design Retrieval",
+    "rag_bench_customQueryLabel": "Custom Eval Set",
+    "rag_bench_customEmpty": "Click + to add eval queries and expected docs",
+    "rag_bench_addQueryTitle": "Add Eval Query",
+    "rag_bench_queryPh": "Query text",
+    "rag_bench_expectedPh": "Expected document name",
+    "rag_bench_addBtn": "Add",
+    "rag_bench_runBtn": "Run Eval",
+    "rag_bench_hitRateFmt": "Top-5 hit rate: %@",
+    "rag_bench_clearResultsBtn": "Clear Results",
+    "rag_bench_resultsLabel": "Eval Results",
+    "rag_bench_resultsEmpty": "Click 「Run Eval」 to start",
+    "rag_bench_miniHit": "Hits",
+    "rag_bench_miniLatency": "Avg latency",
+    "rag_bench_miniTopScore": "Top score",
+    "rag_bench_historyLabel": "Eval History",
+    "rag_bench_historyEmpty": "No eval history",
     "fsb_cv_node_start": "Start",
     "fsb_cv_node_connector": "Connector",
     "fsb_cv_node_skill": "Skill",
@@ -7426,6 +7873,155 @@ let jaJPTranslations: [String: String] = [
     "rag_emb_contextDesc": "チャンクごとにコンテキスト要約を生成し検索精度を向上。Fusion-RAG独自：ローカルMLXで生成、クラウドAPI不要。",
     "rag_emb_saved": "✓ 設定保存済み",
     "rag_emb_reset": "デフォルトに戻す",
+    "rag_vec_title": "ベクトルストア運用",
+    "rag_vec_syncAlertTitle": "増分同期を確認",
+    "rag_vec_syncAlertBtn": "同期",
+    "rag_vec_syncAlertMsg": "知識ベースディレクトリに対して増分同期を実行し、ファイル変更を検出して再インデックスします。続行しますか？",
+    "rag_vec_createSnapTitle": "バージョンスナップショット作成",
+    "rag_vec_snapDescPh": "スナップショットの説明（任意）",
+    "rag_vec_create": "作成",
+    "rag_vec_svcLabel": "サービス状態",
+    "rag_vec_embEngine": "埋め込みエンジン",
+    "rag_vec_avail": "利用可能",
+    "rag_vec_unavail": "利用不可",
+    "rag_vec_kbCount": "知識ベース数",
+    "rag_vec_vecStatsLabel": "ベクトル統計",
+    "rag_vec_docCount": "ドキュメント数",
+    "rag_vec_chunkCount": "チャンク数",
+    "rag_vec_vecCount": "ベクトル数",
+    "rag_vec_fileCount": "ファイル数",
+    "rag_vec_selectKbHint": "まず知識ベースを選択してください",
+    "rag_vec_opsLabel": "運用操作",
+    "rag_vec_opSync": "増分同期",
+    "rag_vec_opSyncDesc": "ファイル変更を検出して再インデックス",
+    "rag_vec_opSnap": "スナップショット作成",
+    "rag_vec_opSnapDesc": "現在の知識ベース状態をバージョンスナップショットに保存",
+    "rag_vec_opHealth": "ヘルスチェック",
+    "rag_vec_opHealthDesc": "ベクトルストアと埋め込みサービスの状態を確認",
+    "rag_vec_opRefresh": "統計を更新",
+    "rag_vec_opRefreshDesc": "知識ベースの統計情報を再取得",
+    "rag_vec_snapLabel": "バージョンスナップショット",
+    "rag_vec_snapCountFmt": "%d 件のスナップショット",
+    "rag_vec_snapEmpty": "スナップショットがありません。「スナップショット作成」をクリックして現在の知識ベース状態を保存してください",
+    "rag_vec_snapNote": "バージョンスナップショットは Fusion-RAG が Claude RAG に対する主要な競争優位性です：時点ロールバック、増分比較、データ復元をサポート。",
+    "rag_vec_snapFallback": "スナップショット",
+    "rag_vec_rollback": "ロールバック",
+    "rag_vec_syncing": "同期中...",
+    "rag_vec_syncDoneFmt": "✓ 同期完了: %d ファイルを更新",
+    "rag_vec_syncFail": "✗ 同期失敗",
+    "rag_vec_creatingSnap": "スナップショット作成中...",
+    "rag_vec_snapDoneFmt": "✓ スナップショット作成: %@",
+    "rag_vec_snapFail": "✗ スナップショット作成失敗",
+    "rag_vec_rollingBack": "ロールバック中...",
+    "rag_vec_rollbackDoneFmt": "✓ スナップショット %@ にロールバック",
+    "rag_vec_rollbackFail": "✗ ロールバック失敗",
+    "rag_vec_svcHealthy": "✓ サービス正常",
+    "rag_vec_svcUnhealthy": "✗ サービス異常",
+    "rag_dash_kbTitle": "知識ベース",
+    "rag_dash_newBtn": "新規",
+    "rag_dash_svcHealthy": "Fusion-RAG サービス正常",
+    "rag_dash_svcUnhealthy": "Fusion-RAG サービス利用不可",
+    "rag_dash_kbCountFmt": "%d 件の知識ベース",
+    "rag_dash_emptyTitle": "知識ベースがありません",
+    "rag_dash_createKb": "知識ベース作成",
+    "rag_dash_namePh": "名前",
+    "rag_dash_descPh": "説明",
+    "rag_dash_chunkStrategyPh": "チャンク戦略",
+    "rag_dash_embedModelPh": "埋め込みモデル",
+    "rag_dash_create": "作成",
+    "rag_dash_scanTitle": "ディレクトリスキャン読み込み",
+    "rag_dash_kbPrefix": "知識ベース: %@",
+    "rag_dash_dirPathPh": "ディレクトリパス",
+    "rag_dash_scanBtn": "スキャン開始",
+    "rag_dash_statFile": "ファイル",
+    "rag_dash_statChunk": "チャンク",
+    "rag_dash_statVec": "ベクトル",
+    "rag_dash_enterBtn": "開く",
+    "rag_dash_importBtn": "読み込み",
+    "rag_dash_chatMenu": "RAG チャット",
+    "rag_dash_scanMenu": "ディレクトリスキャン",
+    "rag_file_searchPh": "ファイルを検索...",
+    "rag_file_watchBtn": "監視",
+    "rag_file_addFileBtn": "ファイル追加",
+    "rag_file_selectKbHint": "まず知識ベースを選択してください",
+    "rag_file_emptyDoc": "ドキュメントがありません",
+    "rag_file_h_name": "ファイル名",
+    "rag_file_h_type": "種類",
+    "rag_file_h_size": "サイズ",
+    "rag_file_h_chunk": "チャンク",
+    "rag_file_h_status": "状態",
+    "rag_file_indexed": "インデックス済み",
+    "rag_file_watchLabel": "ファイル監視",
+    "rag_file_watchEmpty": "アクティブな監視なし",
+    "rag_file_watchFileFmt": "%d 件のファイルを監視",
+    "rag_file_changesFmt": "%d 件の変更",
+    "rag_file_lastReindexFmt": "最終再構築: %@",
+    "rag_file_stopBtn": "停止",
+    "rag_file_addFileTitle": "ファイル追加",
+    "rag_file_addFilePathPh": "ファイルパス（複数はカンマ区切り）",
+    "rag_file_addBtn": "追加",
+    "rag_file_watchTitle": "ファイル監視を設定",
+    "rag_file_watchPathPh": "ファイルパス（カンマ区切り）",
+    "rag_file_pollInterval": "ポーリング間隔(秒)",
+    "rag_file_startWatchBtn": "監視開始",
+    "rag_srch_title": "検索戦略設定",
+    "rag_srch_presetLabel": "シナリオプリセット",
+    "rag_srch_preset_general": "汎用",
+    "rag_srch_preset_code": "コード",
+    "rag_srch_preset_design": "デザイン",
+    "rag_srch_presetDesc_general": "汎用：スパース+デンス検索のバランス、ドキュメントQ&Aに適",
+    "rag_srch_presetDesc_code": "コード：スパース重みを向上（BM25 関数名の完全一致）、クエリ分解を有効化",
+    "rag_srch_presetDesc_design": "デザイン：デンス重みを向上（設計記述の意味理解）、クエリ拡張を有効化",
+    "rag_srch_weightLabel": "検索重み",
+    "rag_srch_hybridToggle": "ハイブリッド検索（BM25 + ベクトル RRF）",
+    "rag_srch_sparseLabel": "スパース検索（BM25）",
+    "rag_srch_denseLabel": "デンス検索（ベクトル）",
+    "rag_srch_alphaLabel": "ハイブリッド Alpha（RRF 重み）",
+    "rag_srch_rerankToggle": "再ランキング（Rerank）",
+    "rag_srch_rerankTip": "再ランキングは BGE-Reranker で初期結果を再スコアリングし、Top-5 精度を大幅に向上",
+    "rag_srch_paramsLabel": "検索パラメータ",
+    "rag_srch_topKLabel": "Top-K 返却数",
+    "rag_srch_thresholdLabel": "類似度しきい値",
+    "rag_srch_rewriteCard": "クエリ書き換え",
+    "rag_srch_rewriteModePicker": "書き換えモード",
+    "rag_srch_rewriteDesc_none": "クエリ書き換えなし、元のクエリをそのまま使用",
+    "rag_srch_rewriteDesc_expand": "クエリ拡張：同義表現を生成して再現率を向上",
+    "rag_srch_rewriteDesc_decompose": "クエリ分解：複雑なクエリをサブ質問に分割して個別検索",
+    "rag_srch_rewriteDesc_hyde": "HyDE：まず LLM で仮想的な回答を生成し、その回答で検索",
+    "rag_srch_testLabel": "検索テスト",
+    "rag_srch_testQueryPh": "テストクエリを入力...",
+    "rag_srch_testBtn": "テスト",
+    "rag_srch_rw_none": "なし",
+    "rag_srch_rw_expand": "拡張",
+    "rag_srch_rw_decompose": "分解",
+    "rag_srch_rw_hyde": "HyDE",
+    "rag_bench_title": "検索性能評価",
+    "rag_bench_adv_local": "ローカルオフラインベクトル",
+    "rag_bench_adv_ast": "コード AST 解析",
+    "rag_bench_adv_rrf": "ハイブリッド検索 RRF",
+    "rag_bench_adv_context": "Contextual Retrieval",
+    "rag_bench_adv_sync": "増分同期",
+    "rag_bench_adv_snap": "バージョンスナップショット",
+    "rag_bench_presetLabel": "評価プリセット",
+    "rag_bench_preset_standard": "標準評価",
+    "rag_bench_preset_code": "コード検索",
+    "rag_bench_preset_design": "デザイン検索",
+    "rag_bench_customQueryLabel": "カスタム評価セット",
+    "rag_bench_customEmpty": "+ をクリックして評価クエリと期待ドキュメントを追加",
+    "rag_bench_addQueryTitle": "評価クエリ追加",
+    "rag_bench_queryPh": "クエリテキスト",
+    "rag_bench_expectedPh": "期待されるドキュメント名",
+    "rag_bench_addBtn": "追加",
+    "rag_bench_runBtn": "評価実行",
+    "rag_bench_hitRateFmt": "Top-5 命中率: %@",
+    "rag_bench_clearResultsBtn": "結果を消去",
+    "rag_bench_resultsLabel": "評価結果",
+    "rag_bench_resultsEmpty": "「評価実行」をクリックして開始",
+    "rag_bench_miniHit": "命中",
+    "rag_bench_miniLatency": "平均レイテンシ",
+    "rag_bench_miniTopScore": "最高スコア",
+    "rag_bench_historyLabel": "評価履歴",
+    "rag_bench_historyEmpty": "評価履歴がありません",
     "fsb_cv_node_start": "開始",
     "fsb_cv_node_connector": "コネクタ",
     "fsb_cv_node_skill": "スキル",
@@ -9178,6 +9774,155 @@ let koKRTranslations: [String: String] = [
     "rag_emb_contextDesc": "각 청크별 컨텍스트 요약 생성으로 검색 정확도 향상. Fusion-RAG 독점: 로컬 MLX 생성, 클라우드 API 불필요.",
     "rag_emb_saved": "✓ 설정 저장됨",
     "rag_emb_reset": "기본값 복원",
+    "rag_vec_title": "벡터 스토어 운영",
+    "rag_vec_syncAlertTitle": "증분 동기화 확인",
+    "rag_vec_syncAlertBtn": "동기화",
+    "rag_vec_syncAlertMsg": "지식 베이스 디렉토리에 증분 동기화를 실행하여 파일 변경을 감지하고 다시 인덱싱합니다. 계속하시겠습니까?",
+    "rag_vec_createSnapTitle": "버전 스냅샷 생성",
+    "rag_vec_snapDescPh": "스냅샷 설명（선택）",
+    "rag_vec_create": "생성",
+    "rag_vec_svcLabel": "서비스 상태",
+    "rag_vec_embEngine": "임베딩 엔진",
+    "rag_vec_avail": "사용 가능",
+    "rag_vec_unavail": "사용 불가",
+    "rag_vec_kbCount": "지식 베이스 수",
+    "rag_vec_vecStatsLabel": "벡터 통계",
+    "rag_vec_docCount": "문서 수",
+    "rag_vec_chunkCount": "청크 수",
+    "rag_vec_vecCount": "벡터 수",
+    "rag_vec_fileCount": "파일 수",
+    "rag_vec_selectKbHint": "먼저 지식 베이스를 선택하세요",
+    "rag_vec_opsLabel": "운영 작업",
+    "rag_vec_opSync": "증분 동기화",
+    "rag_vec_opSyncDesc": "파일 변경 감지 후 재인덱싱",
+    "rag_vec_opSnap": "스냅샷 생성",
+    "rag_vec_opSnapDesc": "현재 지식 베이스 상태를 버전 스냅샷에 저장",
+    "rag_vec_opHealth": "헬스 체크",
+    "rag_vec_opHealthDesc": "벡터 스토어 및 임베딩 서비스 상태 확인",
+    "rag_vec_opRefresh": "통계 새로고침",
+    "rag_vec_opRefreshDesc": "지식 베이스 통계 정보 재조회",
+    "rag_vec_snapLabel": "버전 스냅샷",
+    "rag_vec_snapCountFmt": "%d개 스냅샷",
+    "rag_vec_snapEmpty": "스냅샷이 없습니다.「스냅샷 생성」을 클릭하여 현재 지식 베이스 상태를 저장하세요",
+    "rag_vec_snapNote": "버전 스냅샷은 Fusion-RAG가 Claude RAG 대비 핵심 경쟁력입니다: 시점 롤백, 증분 비교, 데이터 복구 지원.",
+    "rag_vec_snapFallback": "스냅샷",
+    "rag_vec_rollback": "롤백",
+    "rag_vec_syncing": "동기화 중...",
+    "rag_vec_syncDoneFmt": "✓ 동기화 완료: %d 파일 업데이트",
+    "rag_vec_syncFail": "✗ 동기화 실패",
+    "rag_vec_creatingSnap": "스냅샷 생성 중...",
+    "rag_vec_snapDoneFmt": "✓ 스냅샷 생성됨: %@",
+    "rag_vec_snapFail": "✗ 스냅샷 생성 실패",
+    "rag_vec_rollingBack": "롤백 중...",
+    "rag_vec_rollbackDoneFmt": "✓ 스냅샷 %@(으)로 롤백",
+    "rag_vec_rollbackFail": "✗ 롤백 실패",
+    "rag_vec_svcHealthy": "✓ 서비스 정상",
+    "rag_vec_svcUnhealthy": "✗ 서비스 이상",
+    "rag_dash_kbTitle": "지식 베이스",
+    "rag_dash_newBtn": "새로 만들기",
+    "rag_dash_svcHealthy": "Fusion-RAG 서비스 정상",
+    "rag_dash_svcUnhealthy": "Fusion-RAG 서비스 사용 불가",
+    "rag_dash_kbCountFmt": "%d개 지식 베이스",
+    "rag_dash_emptyTitle": "지식 베이스 없음",
+    "rag_dash_createKb": "지식 베이스 생성",
+    "rag_dash_namePh": "이름",
+    "rag_dash_descPh": "설명",
+    "rag_dash_chunkStrategyPh": "청크 전략",
+    "rag_dash_embedModelPh": "임베딩 모델",
+    "rag_dash_create": "생성",
+    "rag_dash_scanTitle": "디렉토리 스캔 가져오기",
+    "rag_dash_kbPrefix": "지식 베이스: %@",
+    "rag_dash_dirPathPh": "디렉토리 경로",
+    "rag_dash_scanBtn": "스캔 시작",
+    "rag_dash_statFile": "파일",
+    "rag_dash_statChunk": "청크",
+    "rag_dash_statVec": "벡터",
+    "rag_dash_enterBtn": "열기",
+    "rag_dash_importBtn": "가져오기",
+    "rag_dash_chatMenu": "RAG 채팅",
+    "rag_dash_scanMenu": "디렉토리 스캔",
+    "rag_file_searchPh": "파일 검색...",
+    "rag_file_watchBtn": "모니터링",
+    "rag_file_addFileBtn": "파일 추가",
+    "rag_file_selectKbHint": "먼저 지식 베이스를 선택하세요",
+    "rag_file_emptyDoc": "문서 없음",
+    "rag_file_h_name": "파일명",
+    "rag_file_h_type": "유형",
+    "rag_file_h_size": "크기",
+    "rag_file_h_chunk": "청크",
+    "rag_file_h_status": "상태",
+    "rag_file_indexed": "인덱싱됨",
+    "rag_file_watchLabel": "파일 모니터링",
+    "rag_file_watchEmpty": "활성 모니터링 없음",
+    "rag_file_watchFileFmt": "%d개 파일 모니터링",
+    "rag_file_changesFmt": "%d회 변경",
+    "rag_file_lastReindexFmt": "마지막 재구축: %@",
+    "rag_file_stopBtn": "중지",
+    "rag_file_addFileTitle": "파일 추가",
+    "rag_file_addFilePathPh": "파일 경로（쉼표로 여러 개 구분）",
+    "rag_file_addBtn": "추가",
+    "rag_file_watchTitle": "파일 모니터링 설정",
+    "rag_file_watchPathPh": "파일 경로（쉼표 구분）",
+    "rag_file_pollInterval": "폴링 간격(초)",
+    "rag_file_startWatchBtn": "모니터링 시작",
+    "rag_srch_title": "검색 전략 설정",
+    "rag_srch_presetLabel": "시나리오 프리셋",
+    "rag_srch_preset_general": "일반",
+    "rag_srch_preset_code": "코드",
+    "rag_srch_preset_design": "디자인",
+    "rag_srch_presetDesc_general": "일반: 희소+밀집 검색 균형, 문서 Q&A에 적합",
+    "rag_srch_presetDesc_code": "코드: 희소 가중치 향상（BM25 정확한 함수명 매치）, 쿼리 분해 활성화",
+    "rag_srch_presetDesc_design": "디자인: 밀집 가중치 향상（설명 의미 이해）, 쿼리 확장 활성화",
+    "rag_srch_weightLabel": "검색 가중치",
+    "rag_srch_hybridToggle": "하이브리드 검색（BM25 + 벡터 RRF）",
+    "rag_srch_sparseLabel": "희소 검색（BM25）",
+    "rag_srch_denseLabel": "밀집 검索（벡터）",
+    "rag_srch_alphaLabel": "하이브리드 Alpha（RRF 가중치）",
+    "rag_srch_rerankToggle": "재랭킹（Rerank）",
+    "rag_srch_rerankTip": "재랭킹은 BGE-Reranker로 초기 결과를 재점수화하여 Top-5 정확도를 크게 향상",
+    "rag_srch_paramsLabel": "검색 매개변수",
+    "rag_srch_topKLabel": "Top-K 반환 수",
+    "rag_srch_thresholdLabel": "유사도 임계값",
+    "rag_srch_rewriteCard": "쿼리 재작성",
+    "rag_srch_rewriteModePicker": "재작성 모드",
+    "rag_srch_rewriteDesc_none": "쿼리 재작성 없음, 원본 쿼리 그대로 사용",
+    "rag_srch_rewriteDesc_expand": "쿼리 확장: 동의 표현 생성으로 재현율 향상",
+    "rag_srch_rewriteDesc_decompose": "쿼리 분해: 복잡한 쿼리를 하위 질문으로 분할해 개별 검색",
+    "rag_srch_rewriteDesc_hyde": "HyDE: 먼저 LLM으로 가정 답변을 생성한 뒤 그 답변으로 검색",
+    "rag_srch_testLabel": "검색 테스트",
+    "rag_srch_testQueryPh": "테스트 쿼리 입력...",
+    "rag_srch_testBtn": "테스트",
+    "rag_srch_rw_none": "없음",
+    "rag_srch_rw_expand": "확장",
+    "rag_srch_rw_decompose": "분해",
+    "rag_srch_rw_hyde": "HyDE",
+    "rag_bench_title": "검색 성능 평가",
+    "rag_bench_adv_local": "로컬 오프라인 벡터",
+    "rag_bench_adv_ast": "코드 AST 파싱",
+    "rag_bench_adv_rrf": "하이브리드 검색 RRF",
+    "rag_bench_adv_context": "Contextual Retrieval",
+    "rag_bench_adv_sync": "증분 동기화",
+    "rag_bench_adv_snap": "버전 스냅샷",
+    "rag_bench_presetLabel": "평가 프리셋",
+    "rag_bench_preset_standard": "표준 평가",
+    "rag_bench_preset_code": "코드 검색",
+    "rag_bench_preset_design": "디자인 검색",
+    "rag_bench_customQueryLabel": "커스텀 평가 세트",
+    "rag_bench_customEmpty": "+를 클릭해 평가 쿼리와 기대 문서를 추가",
+    "rag_bench_addQueryTitle": "평가 쿼리 추가",
+    "rag_bench_queryPh": "쿼리 텍스트",
+    "rag_bench_expectedPh": "기대 문서명",
+    "rag_bench_addBtn": "추가",
+    "rag_bench_runBtn": "평가 실행",
+    "rag_bench_hitRateFmt": "Top-5 적중률: %@",
+    "rag_bench_clearResultsBtn": "결과 지우기",
+    "rag_bench_resultsLabel": "평가 결과",
+    "rag_bench_resultsEmpty": "「평가 실행」을 클릭해 시작",
+    "rag_bench_miniHit": "적중",
+    "rag_bench_miniLatency": "평균 레이턴시",
+    "rag_bench_miniTopScore": "최고 점수",
+    "rag_bench_historyLabel": "평가 기록",
+    "rag_bench_historyEmpty": "평가 기록 없음",
     "fsb_cv_node_start": "시작",
     "fsb_cv_node_connector": "커넥터",
     "fsb_cv_node_skill": "스킬",

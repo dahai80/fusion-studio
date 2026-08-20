@@ -9,6 +9,7 @@ struct RAGDashboardView: View {
     var onChat: ((String) -> Void)? = nil
     @Environment(\.studioTheme) private var theme
     @StateObject private var client = RAGAPIClient.shared
+    @StateObject private var i18n = I18nManager.shared
     @State private var showCreate = false
     @State private var newName = ""
     @State private var newDesc = ""
@@ -28,7 +29,7 @@ struct RAGDashboardView: View {
                 serviceStatusBanner
 
                 HStack {
-                    Text("知识库")
+                    Text(i18n.t(.rag_dash_kbTitle))
                         .font(.system(size: theme.titleSize, weight: .bold))
                         .foregroundStyle(theme.text)
                     Spacer()
@@ -38,11 +39,11 @@ struct RAGDashboardView: View {
                             .foregroundStyle(theme.textTertiary)
                     }
                     .buttonStyle(.plain)
-                    .help("刷新")
+                    .help(i18n.t(.refresh))
                     Button(action: { showCreate = true }) {
                         HStack(spacing: theme.spacingXS) {
                             Image(systemName: "plus")
-                            Text("新建")
+                            Text(i18n.t(.rag_dash_newBtn))
                         }
                         .font(.system(size: theme.textSize, weight: .medium))
                     }
@@ -74,11 +75,11 @@ struct RAGDashboardView: View {
             Circle()
                 .fill(serviceHealthy ? .green : .red)
                 .frame(width: 8, height: 8)
-            Text(serviceHealthy ? "Fusion-RAG 服务正常" : "Fusion-RAG 服务不可用")
+            Text(serviceHealthy ? i18n.t(.rag_dash_svcHealthy) : i18n.t(.rag_dash_svcUnhealthy))
                 .font(.system(size: theme.footnoteSize, weight: .medium))
                 .foregroundStyle(serviceHealthy ? .green : .red)
             Spacer()
-            Text(client.knowledgeBases.count.description + " 个知识库")
+            Text(String(format: i18n.t(.rag_dash_kbCountFmt), client.knowledgeBases.count))
                 .font(.system(size: theme.footnoteSize))
                 .foregroundStyle(theme.textTertiary)
         }
@@ -94,10 +95,10 @@ struct RAGDashboardView: View {
             Image(systemName: "books.vertical")
                 .font(.system(size: 48))
                 .foregroundStyle(theme.textTertiary)
-            Text("暂无知识库")
+            Text(i18n.t(.rag_dash_emptyTitle))
                 .font(.system(size: theme.textSize))
                 .foregroundStyle(theme.textTertiary)
-            Button("创建知识库") { showCreate = true }
+            Button(i18n.t(.rag_dash_createKb)) { showCreate = true }
                 .buttonStyle(.borderedProminent)
         }
         .frame(maxWidth: .infinity)
@@ -142,24 +143,24 @@ struct RAGDashboardView: View {
 
     private var createSheet: some View {
         VStack(spacing: theme.spacingM) {
-            Text("创建知识库").font(.headline)
-            TextField("名称", text: $newName)
+            Text(i18n.t(.rag_dash_createKb)).font(.headline)
+            TextField(i18n.t(.rag_dash_namePh), text: $newName)
                 .textFieldStyle(.roundedBorder)
-            TextField("描述", text: $newDesc)
+            TextField(i18n.t(.rag_dash_descPh), text: $newDesc)
                 .textFieldStyle(.roundedBorder)
-            Picker("分块策略", selection: $newChunkStrategy) {
+            Picker(i18n.t(.rag_dash_chunkStrategyPh), selection: $newChunkStrategy) {
                 ForEach(chunkStrategies, id: \.self) { Text($0).tag($0) }
             }
-            TextField("嵌入模型", text: $newEmbedModel)
+            TextField(i18n.t(.rag_dash_embedModelPh), text: $newEmbedModel)
                 .textFieldStyle(.roundedBorder)
             HStack {
-                Button("取消") {
+                Button(i18n.t(.cancel)) {
                     showCreate = false
                     newName = ""
                     newDesc = ""
                 }
                 Spacer()
-                Button("创建") {
+                Button(i18n.t(.rag_dash_create)) {
                     guard !newName.isEmpty else { return }
                     Task {
                         if let _ = await client.createBase(
@@ -183,17 +184,17 @@ struct RAGDashboardView: View {
 
     private var scanDirSheet: some View {
         VStack(spacing: theme.spacingM) {
-            Text("扫描目录导入").font(.headline)
+            Text(i18n.t(.rag_dash_scanTitle)).font(.headline)
             if !scanKBId.isEmpty {
-                Text("知识库: \(client.knowledgeBases.first(where: { $0.id == scanKBId })?.name ?? scanKBId)")
+                Text(String(format: i18n.t(.rag_dash_kbPrefix), client.knowledgeBases.first(where: { $0.id == scanKBId })?.name ?? scanKBId))
                     .foregroundStyle(.secondary)
             }
-            TextField("目录路径", text: $scanDirPath)
+            TextField(i18n.t(.rag_dash_dirPathPh), text: $scanDirPath)
                 .textFieldStyle(.roundedBorder)
             HStack {
-                Button("取消") { showScanDir = false }
+                Button(i18n.t(.cancel)) { showScanDir = false }
                 Spacer()
-                Button("开始扫描") {
+                Button(i18n.t(.rag_dash_scanBtn)) {
                     guard !scanKBId.isEmpty, !scanDirPath.isEmpty else { return }
                     Task {
                         let _ = await client.scanDirectory(kbId: scanKBId, dirPath: scanDirPath)
@@ -232,6 +233,7 @@ struct KBCardView: View {
     let onChat: () -> Void
 
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
@@ -259,10 +261,10 @@ struct KBCardView: View {
             Divider()
 
             HStack(spacing: theme.spacingM) {
-                statBadge(icon: "doc", label: "文件", value: stats?.documents ?? kb.fileCount ?? 0)
-                statBadge(icon: "square.grid.2x2", label: "分块", value: stats?.chunks ?? kb.chunkCount ?? 0)
+                statBadge(icon: "doc", label: i18n.t(.rag_dash_statFile), value: stats?.documents ?? kb.fileCount ?? 0)
+                statBadge(icon: "square.grid.2x2", label: i18n.t(.rag_dash_statChunk), value: stats?.chunks ?? kb.chunkCount ?? 0)
                 if let vectors = stats?.vectors {
-                    statBadge(icon: "arrow.triangle.2.circlepath", label: "向量", value: vectors)
+                    statBadge(icon: "arrow.triangle.2.circlepath", label: i18n.t(.rag_dash_statVec), value: vectors)
                 }
                 Spacer()
             }
@@ -280,14 +282,14 @@ struct KBCardView: View {
 
             HStack(spacing: theme.spacingS) {
                 Button(action: onEnter) {
-                    Label("进入", systemImage: "arrow.right.circle")
+                    Label(i18n.t(.rag_dash_enterBtn), systemImage: "arrow.right.circle")
                         .font(.system(size: theme.captionSize, weight: .medium))
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
 
                 Button(action: onScan) {
-                    Label("导入", systemImage: "folder.badge.plus")
+                    Label(i18n.t(.rag_dash_importBtn), systemImage: "folder.badge.plus")
                         .font(.system(size: theme.captionSize))
                 }
                 .buttonStyle(.bordered)
@@ -297,14 +299,14 @@ struct KBCardView: View {
 
                 Menu {
                     Button(action: onChat) {
-                        Label("RAG 对话", systemImage: "bubble.left.and.bubble.right")
+                        Label(i18n.t(.rag_dash_chatMenu), systemImage: "bubble.left.and.bubble.right")
                     }
                     Button(action: onScan) {
-                        Label("扫描目录", systemImage: "folder.badge.plus")
+                        Label(i18n.t(.rag_dash_scanMenu), systemImage: "folder.badge.plus")
                     }
                     Divider()
                     Button(action: onDelete, label: {
-                        Label("删除", systemImage: "trash")
+                        Label(i18n.t(.delete), systemImage: "trash")
                     })
                 } label: {
                     Image(systemName: "ellipsis.circle")
