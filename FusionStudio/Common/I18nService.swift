@@ -2402,6 +2402,89 @@ enum I18nKey: String, CaseIterable {
     case mn_alert_ackBtn = "mn_alert_ackBtn"
     case mn_err_invalidURL = "mn_err_invalidURL"
     case mn_err_noData = "mn_err_noData"
+    case mn_overview_title = "mn_overview_title"
+    case mn_overview_subtitle = "mn_overview_subtitle"
+    case mn_overview_disconnectedFmt = "mn_overview_disconnectedFmt"
+    case mn_overview_metricNodes = "mn_overview_metricNodes"
+    case mn_overview_metricTotal = "mn_overview_metricTotal"
+    case mn_overview_metricOnline = "mn_overview_metricOnline"
+    case mn_overview_metricOnlineRun = "mn_overview_metricOnlineRun"
+    case mn_overview_metricActiveTasks = "mn_overview_metricActiveTasks"
+    case mn_overview_metricExecuting = "mn_overview_metricExecuting"
+    case mn_overview_metricClusterMem = "mn_overview_metricClusterMem"
+    case mn_overview_metricTotalMemFmt = "mn_overview_metricTotalMemFmt"
+    case mn_overview_submitTaskBtn = "mn_overview_submitTaskBtn"
+    case mn_overview_searchPh = "mn_overview_searchPh"
+    case mn_overview_nodeListFmt = "mn_overview_nodeListFmt"
+    case mn_overview_viewMetrics = "mn_overview_viewMetrics"
+    case mn_overview_removeNode = "mn_overview_removeNode"
+    case mn_overview_degradedFmt = "mn_overview_degradedFmt"
+    case mn_overview_normalFmt = "mn_overview_normalFmt"
+    case mn_overview_detailLink = "mn_overview_detailLink"
+    case mn_submit_title = "mn_submit_title"
+    case mn_submit_subtitle = "mn_submit_subtitle"
+    case mn_submit_configTitle = "mn_submit_configTitle"
+    case mn_submit_taskNameLabel = "mn_submit_taskNameLabel"
+    case mn_submit_taskNameSub = "mn_submit_taskNameSub"
+    case mn_submit_taskNamePh = "mn_submit_taskNamePh"
+    case mn_submit_execModeLabel = "mn_submit_execModeLabel"
+    case mn_submit_execModeSub = "mn_submit_execModeSub"
+    case mn_submit_modelLabel = "mn_submit_modelLabel"
+    case mn_submit_modelSub = "mn_submit_modelSub"
+    case mn_submit_modelPh = "mn_submit_modelPh"
+    case mn_submit_priorityLabel = "mn_submit_priorityLabel"
+    case mn_submit_prioritySub = "mn_submit_prioritySub"
+    case mn_submit_capabilityLabel = "mn_submit_capabilityLabel"
+    case mn_submit_capabilitySub = "mn_submit_capabilitySub"
+    case mn_submit_capabilityPh = "mn_submit_capabilityPh"
+    case mn_submit_submitBtn = "mn_submit_submitBtn"
+    case mn_submit_successFmt = "mn_submit_successFmt"
+    case mn_node_title = "mn_node_title"
+    case mn_node_subtitle = "mn_node_subtitle"
+    case mn_node_autoscalerTitle = "mn_node_autoscalerTitle"
+    case mn_node_mgmtTitle = "mn_node_mgmtTitle"
+    case mn_node_removeBtn = "mn_node_removeBtn"
+    case mn_node_emptyNodes = "mn_node_emptyNodes"
+    case mn_node_minNodes = "mn_node_minNodes"
+    case mn_node_maxNodes = "mn_node_maxNodes"
+    case mn_node_scaleUpThreshold = "mn_node_scaleUpThreshold"
+    case mn_node_scaleDownThreshold = "mn_node_scaleDownThreshold"
+    case mn_node_cooldownLabel = "mn_node_cooldownLabel"
+    case mn_node_strategyLabel = "mn_node_strategyLabel"
+    case mn_node_applying = "mn_node_applying"
+    case mn_node_applyBtn = "mn_node_applyBtn"
+    case mn_progress_title = "mn_progress_title"
+    case mn_progress_subtitle = "mn_progress_subtitle"
+    case mn_progress_selectTaskTitle = "mn_progress_selectTaskTitle"
+    case mn_progress_taskPicker = "mn_progress_taskPicker"
+    case mn_progress_inspectorSelect = "mn_progress_inspectorSelect"
+    case mn_progress_loadDetailsBtn = "mn_progress_loadDetailsBtn"
+    case mn_progress_execProgressTitle = "mn_progress_execProgressTitle"
+    case mn_progress_remainingFmt = "mn_progress_remainingFmt"
+    case mn_progress_timelineTitle = "mn_progress_timelineTitle"
+    case mn_progress_subTasksFmt = "mn_progress_subTasksFmt"
+    case mn_progress_emptyHint = "mn_progress_emptyHint"
+    case mn_progress_loadFailFmt = "mn_progress_loadFailFmt"
+    case mn_web_title = "mn_web_title"
+    case mn_web_subtitle = "mn_web_subtitle"
+    case mn_web_tab_docs = "mn_web_tab_docs"
+    case mn_web_tab_bench = "mn_web_tab_bench"
+    case mn_web_tab_security = "mn_web_tab_security"
+    case mn_web_docsDescFmt = "mn_web_docsDescFmt"
+    case mn_web_benchDesc = "mn_web_benchDesc"
+    case mn_web_securityDesc = "mn_web_securityDesc"
+    case mn_web_connectingFmt = "mn_web_connectingFmt"
+    case mn_web_loadFailFmt = "mn_web_loadFailFmt"
+    case mn_web_retryBtn = "mn_web_retryBtn"
+    case mn_topo_title = "mn_topo_title"
+    case mn_topo_subtitle = "mn_topo_subtitle"
+    case mn_topo_legendOnline = "mn_topo_legendOnline"
+    case mn_topo_legendBusy = "mn_topo_legendBusy"
+    case mn_topo_legendOffline = "mn_topo_legendOffline"
+    case mn_topo_legendFault = "mn_topo_legendFault"
+    case mn_topo_statsFmt = "mn_topo_statsFmt"
+    case mn_node_statusA11yFmt = "mn_node_statusA11yFmt"
+    case mn_task_degradedFmt = "mn_task_degradedFmt"
 }
 
 // MARK: - 翻译管理器
@@ -4456,6 +4539,89 @@ let zhCNTranslations: [String: String] = [
     "mn_alert_ackBtn": "确认",
     "mn_err_invalidURL": "无效 URL",
     "mn_err_noData": "无数据返回",
+    "mn_overview_title": "集群总览",
+    "mn_overview_subtitle": "实时监控集群节点状态与资源",
+    "mn_overview_disconnectedFmt": "Multi-Node 服务未连接 — 请确认服务已启动 (port %d)",
+    "mn_overview_metricNodes": "节点",
+    "mn_overview_metricTotal": "总计",
+    "mn_overview_metricOnline": "在线",
+    "mn_overview_metricOnlineRun": "在线运行",
+    "mn_overview_metricActiveTasks": "活跃任务",
+    "mn_overview_metricExecuting": "正在执行",
+    "mn_overview_metricClusterMem": "集群内存",
+    "mn_overview_metricTotalMemFmt": "共 %@GB",
+    "mn_overview_submitTaskBtn": "提交任务",
+    "mn_overview_searchPh": "搜索节点...",
+    "mn_overview_nodeListFmt": "节点列表 (%d)",
+    "mn_overview_viewMetrics": "查看指标",
+    "mn_overview_removeNode": "移除节点",
+    "mn_overview_degradedFmt": "集群处于降级状态 — 分区: %@",
+    "mn_overview_normalFmt": "集群同步正常 — 分区: %@",
+    "mn_overview_detailLink": "详情",
+    "mn_submit_title": "提交任务",
+    "mn_submit_subtitle": "向集群提交新的推理或计算任务",
+    "mn_submit_configTitle": "任务配置",
+    "mn_submit_taskNameLabel": "任务名称",
+    "mn_submit_taskNameSub": "用于标识任务的描述性名称",
+    "mn_submit_taskNamePh": "例: llama-inference-batch",
+    "mn_submit_execModeLabel": "执行模式",
+    "mn_submit_execModeSub": "pipeline=流水线, data_parallel=数据并行, inference=单节点推理",
+    "mn_submit_modelLabel": "模型名称",
+    "mn_submit_modelSub": "目标推理模型",
+    "mn_submit_modelPh": "例: mlx-community/Llama-3.2-1B",
+    "mn_submit_priorityLabel": "优先级",
+    "mn_submit_prioritySub": "1=最低, 10=最高",
+    "mn_submit_capabilityLabel": "所需能力",
+    "mn_submit_capabilitySub": "可选: 如 gpu, high_memory 等",
+    "mn_submit_capabilityPh": "可选",
+    "mn_submit_submitBtn": "提交",
+    "mn_submit_successFmt": "任务已提交 (ID: %@)",
+    "mn_node_title": "节点操作",
+    "mn_node_subtitle": "弹性伸缩配置与节点管理",
+    "mn_node_autoscalerTitle": "Autoscaler 弹性配置",
+    "mn_node_mgmtTitle": "节点管理",
+    "mn_node_removeBtn": "移除",
+    "mn_node_emptyNodes": "暂无节点",
+    "mn_node_minNodes": "最小节点",
+    "mn_node_maxNodes": "最大节点",
+    "mn_node_scaleUpThreshold": "扩容阈值",
+    "mn_node_scaleDownThreshold": "缩容阈值",
+    "mn_node_cooldownLabel": "冷却时间 (s)",
+    "mn_node_strategyLabel": "策略",
+    "mn_node_applying": "应用中...",
+    "mn_node_applyBtn": "应用配置",
+    "mn_progress_title": "任务详情",
+    "mn_progress_subtitle": "查看任务进度、时间线和子任务状态",
+    "mn_progress_selectTaskTitle": "选择任务",
+    "mn_progress_taskPicker": "任务",
+    "mn_progress_inspectorSelect": "从 Inspector 选择",
+    "mn_progress_loadDetailsBtn": "加载详情",
+    "mn_progress_execProgressTitle": "执行进度",
+    "mn_progress_remainingFmt": "剩余 %@",
+    "mn_progress_timelineTitle": "时间线",
+    "mn_progress_subTasksFmt": "子任务 (%d)",
+    "mn_progress_emptyHint": "请从任务监控面板选择任务，或在上方下拉选择",
+    "mn_progress_loadFailFmt": "进度加载失败: %@",
+    "mn_web_title": "服务面板",
+    "mn_web_subtitle": "通过 WebView 嵌入外部服务界面",
+    "mn_web_tab_docs": "Master API",
+    "mn_web_tab_bench": "Benchmark",
+    "mn_web_tab_security": "Security",
+    "mn_web_docsDescFmt": "FastAPI 自动文档 — 需启动 fusion-multi-node Master 服务 (端口 %d)",
+    "mn_web_benchDesc": "基准测试面板 — 需启动 fusion-bench bench-site (端口 3000, npm run dev)",
+    "mn_web_securityDesc": "安全审计面板 — 需启动 fusion-security 前端 (端口 3000)",
+    "mn_web_connectingFmt": "正在连接 %@...",
+    "mn_web_loadFailFmt": "无法加载 %@",
+    "mn_web_retryBtn": "重试",
+    "mn_topo_title": "拓扑图",
+    "mn_topo_subtitle": "可视化 Master-Worker 连接关系",
+    "mn_topo_legendOnline": "在线",
+    "mn_topo_legendBusy": "忙碌",
+    "mn_topo_legendOffline": "离线",
+    "mn_topo_legendFault": "故障",
+    "mn_topo_statsFmt": "%d 节点 · 在线率 %d%%",
+    "mn_node_statusA11yFmt": "节点%@",
+    "mn_task_degradedFmt": "降级: %@→%@",
 ]
 
 let enUSTranslations: [String: String] = [
@@ -6465,6 +6631,89 @@ let enUSTranslations: [String: String] = [
     "mn_alert_ackBtn": "Acknowledge",
     "mn_err_invalidURL": "Invalid URL",
     "mn_err_noData": "No data returned",
+    "mn_overview_title": "Cluster Overview",
+    "mn_overview_subtitle": "Monitor cluster node status and resources in real time",
+    "mn_overview_disconnectedFmt": "Multi-Node service not connected — ensure the service is running (port %d)",
+    "mn_overview_metricNodes": "Nodes",
+    "mn_overview_metricTotal": "Total",
+    "mn_overview_metricOnline": "Online",
+    "mn_overview_metricOnlineRun": "Running online",
+    "mn_overview_metricActiveTasks": "Active Tasks",
+    "mn_overview_metricExecuting": "Executing",
+    "mn_overview_metricClusterMem": "Cluster Memory",
+    "mn_overview_metricTotalMemFmt": "Total %@GB",
+    "mn_overview_submitTaskBtn": "Submit Task",
+    "mn_overview_searchPh": "Search nodes...",
+    "mn_overview_nodeListFmt": "Node List (%d)",
+    "mn_overview_viewMetrics": "View Metrics",
+    "mn_overview_removeNode": "Remove Node",
+    "mn_overview_degradedFmt": "Cluster is degraded — partition: %@",
+    "mn_overview_normalFmt": "Cluster sync normal — partition: %@",
+    "mn_overview_detailLink": "Details",
+    "mn_submit_title": "Submit Task",
+    "mn_submit_subtitle": "Submit a new inference or compute task to the cluster",
+    "mn_submit_configTitle": "Task Configuration",
+    "mn_submit_taskNameLabel": "Task Name",
+    "mn_submit_taskNameSub": "Descriptive name to identify the task",
+    "mn_submit_taskNamePh": "e.g. llama-inference-batch",
+    "mn_submit_execModeLabel": "Execution Mode",
+    "mn_submit_execModeSub": "pipeline=pipeline, data_parallel=data parallel, inference=single-node inference",
+    "mn_submit_modelLabel": "Model Name",
+    "mn_submit_modelSub": "Target inference model",
+    "mn_submit_modelPh": "e.g. mlx-community/Llama-3.2-1B",
+    "mn_submit_priorityLabel": "Priority",
+    "mn_submit_prioritySub": "1=lowest, 10=highest",
+    "mn_submit_capabilityLabel": "Required Capability",
+    "mn_submit_capabilitySub": "Optional: e.g. gpu, high_memory",
+    "mn_submit_capabilityPh": "Optional",
+    "mn_submit_submitBtn": "Submit",
+    "mn_submit_successFmt": "Task submitted (ID: %@)",
+    "mn_node_title": "Node Actions",
+    "mn_node_subtitle": "Elastic scaling config and node management",
+    "mn_node_autoscalerTitle": "Autoscaler Elastic Config",
+    "mn_node_mgmtTitle": "Node Management",
+    "mn_node_removeBtn": "Remove",
+    "mn_node_emptyNodes": "No nodes",
+    "mn_node_minNodes": "Min Nodes",
+    "mn_node_maxNodes": "Max Nodes",
+    "mn_node_scaleUpThreshold": "Scale-Up Threshold",
+    "mn_node_scaleDownThreshold": "Scale-Down Threshold",
+    "mn_node_cooldownLabel": "Cooldown (s)",
+    "mn_node_strategyLabel": "Strategy",
+    "mn_node_applying": "Applying...",
+    "mn_node_applyBtn": "Apply Config",
+    "mn_progress_title": "Task Details",
+    "mn_progress_subtitle": "View task progress, timeline and subtask status",
+    "mn_progress_selectTaskTitle": "Select Task",
+    "mn_progress_taskPicker": "Task",
+    "mn_progress_inspectorSelect": "Select from Inspector",
+    "mn_progress_loadDetailsBtn": "Load Details",
+    "mn_progress_execProgressTitle": "Execution Progress",
+    "mn_progress_remainingFmt": "Remaining %@",
+    "mn_progress_timelineTitle": "Timeline",
+    "mn_progress_subTasksFmt": "Subtasks (%d)",
+    "mn_progress_emptyHint": "Select a task from the task monitor panel, or choose from the dropdown above",
+    "mn_progress_loadFailFmt": "Failed to load progress: %@",
+    "mn_web_title": "Service Panel",
+    "mn_web_subtitle": "Embed external service UI via WebView",
+    "mn_web_tab_docs": "Master API",
+    "mn_web_tab_bench": "Benchmark",
+    "mn_web_tab_security": "Security",
+    "mn_web_docsDescFmt": "FastAPI auto docs — requires fusion-multi-node Master service (port %d)",
+    "mn_web_benchDesc": "Benchmark panel — requires fusion-bench bench-site (port 3000, npm run dev)",
+    "mn_web_securityDesc": "Security audit panel — requires fusion-security frontend (port 3000)",
+    "mn_web_connectingFmt": "Connecting to %@...",
+    "mn_web_loadFailFmt": "Failed to load %@",
+    "mn_web_retryBtn": "Retry",
+    "mn_topo_title": "Topology",
+    "mn_topo_subtitle": "Visualize Master-Worker connections",
+    "mn_topo_legendOnline": "Online",
+    "mn_topo_legendBusy": "Busy",
+    "mn_topo_legendOffline": "Offline",
+    "mn_topo_legendFault": "Fault",
+    "mn_topo_statsFmt": "%d nodes · %d%% online",
+    "mn_node_statusA11yFmt": "Node %@",
+    "mn_task_degradedFmt": "Degraded: %@→%@",
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -8468,6 +8717,89 @@ let jaJPTranslations: [String: String] = [
     "mn_alert_ackBtn": "確認",
     "mn_err_invalidURL": "無効な URL",
     "mn_err_noData": "データが返されませんでした",
+    "mn_overview_title": "クラスター概要",
+    "mn_overview_subtitle": "クラスターノードの状態とリソースをリアルタイム監視",
+    "mn_overview_disconnectedFmt": "Multi-Node サービス未接続 — サービス起動を確認 (port %d)",
+    "mn_overview_metricNodes": "ノード",
+    "mn_overview_metricTotal": "合計",
+    "mn_overview_metricOnline": "オンライン",
+    "mn_overview_metricOnlineRun": "オンライン実行",
+    "mn_overview_metricActiveTasks": "アクティブタスク",
+    "mn_overview_metricExecuting": "実行中",
+    "mn_overview_metricClusterMem": "クラスターメモリ",
+    "mn_overview_metricTotalMemFmt": "合計 %@GB",
+    "mn_overview_submitTaskBtn": "タスク送信",
+    "mn_overview_searchPh": "ノードを検索...",
+    "mn_overview_nodeListFmt": "ノードリスト (%d)",
+    "mn_overview_viewMetrics": "メトリクス表示",
+    "mn_overview_removeNode": "ノード削除",
+    "mn_overview_degradedFmt": "クラスターは劣化状態 — パーティション: %@",
+    "mn_overview_normalFmt": "クラスター同期正常 — パーティション: %@",
+    "mn_overview_detailLink": "詳細",
+    "mn_submit_title": "タスク送信",
+    "mn_submit_subtitle": "クラスタに新しい推論または計算タスクを送信",
+    "mn_submit_configTitle": "タスク設定",
+    "mn_submit_taskNameLabel": "タスク名",
+    "mn_submit_taskNameSub": "タスクを識別するための説明的な名前",
+    "mn_submit_taskNamePh": "例: llama-inference-batch",
+    "mn_submit_execModeLabel": "実行モード",
+    "mn_submit_execModeSub": "pipeline=パイプライン, data_parallel=データ並列, inference=単一ノード推論",
+    "mn_submit_modelLabel": "モデル名",
+    "mn_submit_modelSub": "対象推論モデル",
+    "mn_submit_modelPh": "例: mlx-community/Llama-3.2-1B",
+    "mn_submit_priorityLabel": "優先度",
+    "mn_submit_prioritySub": "1=最低, 10=最高",
+    "mn_submit_capabilityLabel": "必要な能力",
+    "mn_submit_capabilitySub": "任意: 例 gpu, high_memory など",
+    "mn_submit_capabilityPh": "任意",
+    "mn_submit_submitBtn": "送信",
+    "mn_submit_successFmt": "タスク送信済み (ID: %@)",
+    "mn_node_title": "ノード操作",
+    "mn_node_subtitle": "弾力性スケーリング設定とノード管理",
+    "mn_node_autoscalerTitle": "Autoscaler 弾力性設定",
+    "mn_node_mgmtTitle": "ノード管理",
+    "mn_node_removeBtn": "削除",
+    "mn_node_emptyNodes": "ノードなし",
+    "mn_node_minNodes": "最小ノード",
+    "mn_node_maxNodes": "最大ノード",
+    "mn_node_scaleUpThreshold": "スケールアップしきい値",
+    "mn_node_scaleDownThreshold": "スケールダウンしきい値",
+    "mn_node_cooldownLabel": "クールダウン (s)",
+    "mn_node_strategyLabel": "戦略",
+    "mn_node_applying": "適用中...",
+    "mn_node_applyBtn": "設定を適用",
+    "mn_progress_title": "タスク詳細",
+    "mn_progress_subtitle": "タスクの進捗、タイムライン、サブタスク状態を表示",
+    "mn_progress_selectTaskTitle": "タスク選択",
+    "mn_progress_taskPicker": "タスク",
+    "mn_progress_inspectorSelect": "Inspector から選択",
+    "mn_progress_loadDetailsBtn": "詳細を読み込み",
+    "mn_progress_execProgressTitle": "実行進捗",
+    "mn_progress_remainingFmt": "残り %@",
+    "mn_progress_timelineTitle": "タイムライン",
+    "mn_progress_subTasksFmt": "サブタスク (%d)",
+    "mn_progress_emptyHint": "タスクモニターパネルからタスクを選択、または上のドロップダウンから選択",
+    "mn_progress_loadFailFmt": "進捗の読み込み失敗: %@",
+    "mn_web_title": "サービスパネル",
+    "mn_web_subtitle": "WebView で外部サービス画面を埋め込み",
+    "mn_web_tab_docs": "Master API",
+    "mn_web_tab_bench": "ベンチマーク",
+    "mn_web_tab_security": "セキュリティ",
+    "mn_web_docsDescFmt": "FastAPI 自動ドキュメント — fusion-multi-node Master サービス起動が必要 (ポート %d)",
+    "mn_web_benchDesc": "ベンチマークパネル — fusion-bench bench-site 起動が必要 (ポート 3000, npm run dev)",
+    "mn_web_securityDesc": "セキュリティ監査パネル — fusion-security フロントエンド起動が必要 (ポート 3000)",
+    "mn_web_connectingFmt": "%@ に接続中...",
+    "mn_web_loadFailFmt": "%@ を読み込めません",
+    "mn_web_retryBtn": "再試行",
+    "mn_topo_title": "トポロジー",
+    "mn_topo_subtitle": "Master-Worker 接続関係を可視化",
+    "mn_topo_legendOnline": "オンライン",
+    "mn_topo_legendBusy": "ビジー",
+    "mn_topo_legendOffline": "オフライン",
+    "mn_topo_legendFault": "障害",
+    "mn_topo_statsFmt": "%d ノード · オンライン率 %d%%",
+    "mn_node_statusA11yFmt": "ノード%@",
+    "mn_task_degradedFmt": "ダウングレード: %@→%@",
 ]
 
 let koKRTranslations: [String: String] = [
@@ -10471,6 +10803,89 @@ let koKRTranslations: [String: String] = [
     "mn_alert_ackBtn": "확인",
     "mn_err_invalidURL": "잘못된 URL",
     "mn_err_noData": "반환된 데이터 없음",
+    "mn_overview_title": "클러스터 개요",
+    "mn_overview_subtitle": "클러스터 노드 상태와 리소스 실시간 모니터링",
+    "mn_overview_disconnectedFmt": "Multi-Node 서비스 미연결 — 서비스 실행 확인 (port %d)",
+    "mn_overview_metricNodes": "노드",
+    "mn_overview_metricTotal": "합계",
+    "mn_overview_metricOnline": "온라인",
+    "mn_overview_metricOnlineRun": "온라인 실행",
+    "mn_overview_metricActiveTasks": "활성 작업",
+    "mn_overview_metricExecuting": "실행 중",
+    "mn_overview_metricClusterMem": "클러스터 메모리",
+    "mn_overview_metricTotalMemFmt": "합계 %@GB",
+    "mn_overview_submitTaskBtn": "작업 제출",
+    "mn_overview_searchPh": "노드 검색...",
+    "mn_overview_nodeListFmt": "노드 목록 (%d)",
+    "mn_overview_viewMetrics": "메트릭스 보기",
+    "mn_overview_removeNode": "노드 제거",
+    "mn_overview_degradedFmt": "클러스터 성능 저하 상태 — 파티션: %@",
+    "mn_overview_normalFmt": "클러스터 동기 정상 — 파티션: %@",
+    "mn_overview_detailLink": "상세",
+    "mn_submit_title": "작업 제출",
+    "mn_submit_subtitle": "클러스터에 새 추론 또는 계산 작업 제출",
+    "mn_submit_configTitle": "작업 설정",
+    "mn_submit_taskNameLabel": "작업 이름",
+    "mn_submit_taskNameSub": "작업을 식별하는 설명 이름",
+    "mn_submit_taskNamePh": "예: llama-inference-batch",
+    "mn_submit_execModeLabel": "실행 모드",
+    "mn_submit_execModeSub": "pipeline=파이프라인, data_parallel=데이터 병렬, inference=단일 노드 추론",
+    "mn_submit_modelLabel": "모델 이름",
+    "mn_submit_modelSub": "대상 추론 모델",
+    "mn_submit_modelPh": "예: mlx-community/Llama-3.2-1B",
+    "mn_submit_priorityLabel": "우선순위",
+    "mn_submit_prioritySub": "1=최저, 10=최고",
+    "mn_submit_capabilityLabel": "필요 역량",
+    "mn_submit_capabilitySub": "선택: 예 gpu, high_memory 등",
+    "mn_submit_capabilityPh": "선택",
+    "mn_submit_submitBtn": "제출",
+    "mn_submit_successFmt": "작업 제출됨 (ID: %@)",
+    "mn_node_title": "노드 작업",
+    "mn_node_subtitle": "탄성 스케일링 설정과 노드 관리",
+    "mn_node_autoscalerTitle": "Autoscaler 탄성 설정",
+    "mn_node_mgmtTitle": "노드 관리",
+    "mn_node_removeBtn": "제거",
+    "mn_node_emptyNodes": "노드 없음",
+    "mn_node_minNodes": "최소 노드",
+    "mn_node_maxNodes": "최대 노드",
+    "mn_node_scaleUpThreshold": "스케일업 임계값",
+    "mn_node_scaleDownThreshold": "스케일다운 임계값",
+    "mn_node_cooldownLabel": "쿨다운 (s)",
+    "mn_node_strategyLabel": "전략",
+    "mn_node_applying": "적용 중...",
+    "mn_node_applyBtn": "설정 적용",
+    "mn_progress_title": "작업 상세",
+    "mn_progress_subtitle": "작업 진행률, 타임라인, 하위 작업 상태 보기",
+    "mn_progress_selectTaskTitle": "작업 선택",
+    "mn_progress_taskPicker": "작업",
+    "mn_progress_inspectorSelect": "Inspector에서 선택",
+    "mn_progress_loadDetailsBtn": "상세 불러오기",
+    "mn_progress_execProgressTitle": "실행 진행률",
+    "mn_progress_remainingFmt": "남은 시간 %@",
+    "mn_progress_timelineTitle": "타임라인",
+    "mn_progress_subTasksFmt": "하위 작업 (%d)",
+    "mn_progress_emptyHint": "작업 모니터 패널에서 작업을 선택하거나 위 드롭다운에서 선택",
+    "mn_progress_loadFailFmt": "진행률 로드 실패: %@",
+    "mn_web_title": "서비스 패널",
+    "mn_web_subtitle": "WebView로 외부 서비스 UI 임베드",
+    "mn_web_tab_docs": "Master API",
+    "mn_web_tab_bench": "벤치마크",
+    "mn_web_tab_security": "보안",
+    "mn_web_docsDescFmt": "FastAPI 자동 문서 — fusion-multi-node Master 서비스 실행 필요 (포트 %d)",
+    "mn_web_benchDesc": "벤치마크 패널 — fusion-bench bench-site 실행 필요 (포트 3000, npm run dev)",
+    "mn_web_securityDesc": "보안 감사 패널 — fusion-security 프론트엔드 실행 필요 (포트 3000)",
+    "mn_web_connectingFmt": "%@ 에 연결 중...",
+    "mn_web_loadFailFmt": "%@ 로드 실패",
+    "mn_web_retryBtn": "재시도",
+    "mn_topo_title": "토폴로지",
+    "mn_topo_subtitle": "Master-Worker 연결 관계 시각화",
+    "mn_topo_legendOnline": "온라인",
+    "mn_topo_legendBusy": "사용 중",
+    "mn_topo_legendOffline": "오프라인",
+    "mn_topo_legendFault": "장애",
+    "mn_topo_statsFmt": "%d 노드 · 온라인율 %d%%",
+    "mn_node_statusA11yFmt": "노드 %@",
+    "mn_task_degradedFmt": "다운그레이드: %@→%@",
 ]
 
 // MARK: - 国际化文本视图

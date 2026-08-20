@@ -12,6 +12,7 @@ struct SubmitTaskView: View {
     @EnvironmentObject var engine: MultiNodeEngine
     @Environment(\.studioTheme) var theme
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var taskName = ""
     @State private var taskMode = "pipeline"
@@ -28,7 +29,7 @@ struct SubmitTaskView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                ScreenHeader(eyebrow: "Multi-Node", title: "提交任务", subtitle: "向集群提交新的推理或计算任务")
+                ScreenHeader(eyebrow: "Multi-Node", title: i18n.t(.mn_submit_title), subtitle: i18n.t(.mn_submit_subtitle))
 
                 formSection
                 actionSection
@@ -40,16 +41,16 @@ struct SubmitTaskView: View {
 
     private var formSection: some View {
         ListGroup {
-            StudioSectionHeader(title: "任务配置")
+            StudioSectionHeader(title: i18n.t(.mn_submit_configTitle))
 
-            StudioRow(label: "任务名称", sublabel: "用于标识任务的描述性名称") {
-                TextField("例: llama-inference-batch", text: $taskName)
+            StudioRow(label: i18n.t(.mn_submit_taskNameLabel), sublabel: i18n.t(.mn_submit_taskNameSub)) {
+                TextField(i18n.t(.mn_submit_taskNamePh), text: $taskName)
                     .textFieldStyle(.plain)
                     .font(.system(size: theme.smallTextSize))
                     .frame(maxWidth: 200)
             }
 
-            StudioRow(label: "执行模式", sublabel: "pipeline=流水线, data_parallel=数据并行, inference=单节点推理") {
+            StudioRow(label: i18n.t(.mn_submit_execModeLabel), sublabel: i18n.t(.mn_submit_execModeSub)) {
                 Picker("", selection: $taskMode) {
                     ForEach(modes, id: \.self) { m in
                         Text(m).tag(m)
@@ -59,14 +60,14 @@ struct SubmitTaskView: View {
                 .frame(maxWidth: 200)
             }
 
-            StudioRow(label: "模型名称", sublabel: "目标推理模型") {
-                TextField("例: mlx-community/Llama-3.2-1B", text: $modelName)
+            StudioRow(label: i18n.t(.mn_submit_modelLabel), sublabel: i18n.t(.mn_submit_modelSub)) {
+                TextField(i18n.t(.mn_submit_modelPh), text: $modelName)
                     .textFieldStyle(.plain)
                     .font(.system(size: theme.smallTextSize, design: .monospaced))
                     .frame(maxWidth: 200)
             }
 
-            StudioRow(label: "优先级", sublabel: "1=最低, 10=最高") {
+            StudioRow(label: i18n.t(.mn_submit_priorityLabel), sublabel: i18n.t(.mn_submit_prioritySub)) {
                 Picker("", selection: $priority) {
                     ForEach(priorities, id: \.self) { p in
                         Text("\(p)").tag(p)
@@ -76,8 +77,8 @@ struct SubmitTaskView: View {
                 .frame(maxWidth: 80)
             }
 
-            StudioRow(label: "所需能力", sublabel: "可选: 如 gpu, high_memory 等", isLast: true) {
-                TextField("可选", text: $requiredCapability)
+            StudioRow(label: i18n.t(.mn_submit_capabilityLabel), sublabel: i18n.t(.mn_submit_capabilitySub), isLast: true) {
+                TextField(i18n.t(.mn_submit_capabilityPh), text: $requiredCapability)
                     .textFieldStyle(.plain)
                     .font(.system(size: theme.smallTextSize))
                     .frame(maxWidth: 200)
@@ -108,10 +109,10 @@ struct SubmitTaskView: View {
             }
 
             HStack(spacing: theme.spacingM) {
-                FusionButton("提交", icon: "paperplane.fill", style: .primary, size: .regular, isLoading: isSubmitting, isDisabled: !canSubmit) {
+                FusionButton(i18n.t(.mn_submit_submitBtn), icon: "paperplane.fill", style: .primary, size: .regular, isLoading: isSubmitting, isDisabled: !canSubmit) {
                     submitTask()
                 }
-                FusionButton("取消", style: .ghost, size: .regular, isLoading: false, isDisabled: false) {
+                FusionButton(i18n.t(.cancel), style: .ghost, size: .regular, isLoading: false, isDisabled: false) {
                     dismiss()
                 }
             }
@@ -145,7 +146,7 @@ struct SubmitTaskView: View {
                 submitLog.info("Task submitted successfully: \(result)")
                 await MainActor.run {
                     isSubmitting = false
-                    successMessage = "任务已提交 (ID: \(result["task_id"] as? String ?? "unknown"))"
+                    successMessage = String(format: i18n.t(.mn_submit_successFmt), result["task_id"] as? String ?? "unknown")
                 }
             } catch {
                 submitLog.error("Task submission failed: \(error.localizedDescription)")

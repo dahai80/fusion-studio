@@ -7,6 +7,7 @@ struct ClusterTopologyView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var engine: MultiNodeEngine
     @Environment(\.studioTheme) var theme
+    @StateObject private var i18n = I18nManager.shared
     @State private var nodePositions: [String: CGPoint] = [:]
     @State private var dragOffset: [String: CGSize] = [:]
 
@@ -15,7 +16,7 @@ struct ClusterTopologyView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ScreenHeader(eyebrow: "Multi-Node", title: "拓扑图", subtitle: "可视化 Master-Worker 连接关系")
+            ScreenHeader(eyebrow: "Multi-Node", title: i18n.t(.mn_topo_title), subtitle: i18n.t(.mn_topo_subtitle))
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             GeometryReader { geo in
@@ -150,20 +151,20 @@ struct ClusterTopologyView: View {
 
     private var legendBar: some View {
         HStack(spacing: theme.spacingXL) {
-            Label("在线", systemImage: "circle.fill")
+            Label(i18n.t(.mn_topo_legendOnline), systemImage: "circle.fill")
                 .font(.system(size: theme.captionSize))
                 .foregroundStyle(theme.greenDot)
-            Label("忙碌", systemImage: "circle.fill")
+            Label(i18n.t(.mn_topo_legendBusy), systemImage: "circle.fill")
                 .font(.system(size: theme.captionSize))
                 .foregroundStyle(theme.amberDot)
-            Label("离线", systemImage: "circle.fill")
+            Label(i18n.t(.mn_topo_legendOffline), systemImage: "circle.fill")
                 .font(.system(size: theme.captionSize))
                 .foregroundStyle(theme.textTertiary)
-            Label("故障", systemImage: "circle.fill")
+            Label(i18n.t(.mn_topo_legendFault), systemImage: "circle.fill")
                 .font(.system(size: theme.captionSize))
                 .foregroundStyle(theme.redDot)
             Spacer()
-            Text("\(engine.nodes.count) 节点 · 在线率 \(onlineRate)%")
+            Text(String(format: i18n.t(.mn_topo_statsFmt), engine.nodes.count, onlineRate))
                 .font(.system(size: theme.captionSize))
                 .foregroundStyle(theme.textTertiary)
                 .monospacedDigit()

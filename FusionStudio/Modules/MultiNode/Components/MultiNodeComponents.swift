@@ -43,6 +43,7 @@ struct NodeRow: View {
     let isSelected: Bool
     let onSelect: () -> Void
     @Environment(\.studioTheme) var theme
+    @StateObject private var i18n = I18nManager.shared
 
     private var statusColor: Color {
         switch node.status {
@@ -57,7 +58,7 @@ struct NodeRow: View {
         HStack(spacing: theme.spacingM) {
             Circle().fill(statusColor)
                 .frame(width: 8, height: 8)
-                .accessibilityLabel("节点\(node.status.rawValue)")
+                .accessibilityLabel(String(format: i18n.t(.mn_node_statusA11yFmt), node.status.rawValue))
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: theme.spacingS) {
@@ -147,6 +148,7 @@ struct TaskRow: View {
     let isSelected: Bool
     let onSelect: () -> Void
     @Environment(\.studioTheme) var theme
+    @StateObject private var i18n = I18nManager.shared
 
     private var statusPillStatus: StatusPill.Status {
         switch task.status {
@@ -185,7 +187,7 @@ struct TaskRow: View {
                             .lineLimit(1)
                     }
                     if let degraded = task.degradedFromModel {
-                        Text("降级: \(degraded)→\(task.modelName)")
+                        Text(String(format: i18n.t(.mn_task_degradedFmt), degraded, task.modelName))
                             .font(.system(size: theme.captionSize))
                             .foregroundStyle(theme.amberDot)
                     }

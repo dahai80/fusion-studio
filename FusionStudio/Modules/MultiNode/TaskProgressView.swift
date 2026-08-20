@@ -12,6 +12,7 @@ struct TaskProgressView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var engine: MultiNodeEngine
     @Environment(\.studioTheme) var theme
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var selectedTaskId: String = ""
     @State private var progress: TaskProgress?
@@ -22,7 +23,7 @@ struct TaskProgressView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                ScreenHeader(eyebrow: "Multi-Node", title: "任务详情", subtitle: "查看任务进度、时间线和子任务状态")
+                ScreenHeader(eyebrow: "Multi-Node", title: i18n.t(.mn_progress_title), subtitle: i18n.t(.mn_progress_subtitle))
 
                 taskPicker
                 if let taskId = currentTaskId {
@@ -45,10 +46,10 @@ struct TaskProgressView: View {
 
     private var taskPicker: some View {
         ListGroup {
-            StudioSectionHeader(title: "选择任务")
+            StudioSectionHeader(title: i18n.t(.mn_progress_selectTaskTitle))
             HStack(spacing: theme.spacingM) {
-                Picker("任务", selection: $selectedTaskId) {
-                    Text("从 Inspector 选择").tag("")
+                Picker(i18n.t(.mn_progress_taskPicker), selection: $selectedTaskId) {
+                    Text(i18n.t(.mn_progress_inspectorSelect)).tag("")
                     ForEach(engine.tasks) { task in
                         Text("\(task.id) — \(task.name)").tag(task.id)
                     }
@@ -56,7 +57,7 @@ struct TaskProgressView: View {
                 .pickerStyle(.menu)
                 .frame(maxWidth: 300)
 
-                FusionButton("加载详情", icon: "arrow.clockwise", style: .secondary, size: .small, isLoading: isLoading, isDisabled: currentTaskId == nil) {
+                FusionButton(i18n.t(.mn_progress_loadDetailsBtn), icon: "arrow.clockwise", style: .secondary, size: .small, isLoading: isLoading, isDisabled: currentTaskId == nil) {
                     loadDetails()
                 }
             }
@@ -93,7 +94,7 @@ struct TaskProgressView: View {
 
     private func progressBarSection(_ prog: TaskProgress) -> some View {
         ListGroup {
-            StudioSectionHeader(title: "执行进度")
+            StudioSectionHeader(title: i18n.t(.mn_progress_execProgressTitle))
 
             VStack(spacing: theme.spacingM) {
                 ProgressView(value: prog.progress)
@@ -107,7 +108,7 @@ struct TaskProgressView: View {
                         Label(formatDuration(elapsed), systemImage: "clock")
                     }
                     if let remaining = prog.remainingSeconds {
-                        Label("剩余 \(formatDuration(remaining))", systemImage: "hourglass")
+                        Label(String(format: i18n.t(.mn_progress_remainingFmt), formatDuration(remaining)), systemImage: "hourglass")
                     }
                 }
                 .font(.system(size: theme.footnoteSize))
@@ -120,7 +121,7 @@ struct TaskProgressView: View {
 
     private func timelineSection(_ tl: TaskTimeline) -> some View {
         ListGroup {
-            StudioSectionHeader(title: "时间线")
+            StudioSectionHeader(title: i18n.t(.mn_progress_timelineTitle))
 
             ForEach(tl.events) { event in
                 HStack(alignment: .top, spacing: theme.spacingM) {
@@ -156,7 +157,7 @@ struct TaskProgressView: View {
         Group {
             if let subs = task.subTasks, !subs.isEmpty {
                 ListGroup {
-                    StudioSectionHeader(title: "子任务 (\(subs.count))")
+                    StudioSectionHeader(title: String(format: i18n.t(.mn_progress_subTasksFmt), subs.count))
                     ForEach(subs, id: \.subTaskId) { sub in
                         HStack(spacing: theme.spacingM) {
                             subStatusDot(sub.status)
@@ -192,7 +193,7 @@ struct TaskProgressView: View {
                 Image(systemName: "list.bullet.clipboard")
                     .font(.system(size: 32))
                     .foregroundStyle(theme.textTertiary)
-                Text("请从任务监控面板选择任务，或在上方下拉选择")
+                Text(i18n.t(.mn_progress_emptyHint))
                     .font(.system(size: theme.textSize))
                     .foregroundStyle(theme.textTertiary)
             }
@@ -231,7 +232,7 @@ struct TaskProgressView: View {
                     progressLog.info("Task progress loaded: \(prog.progress)")
                 case .failure(let err):
                     progressLog.error("Task progress failed: \(err.localizedDescription)")
-                    self.error = "进度加载失败: \(err.localizedDescription)"
+                    self.error = String(format: i18n.t(.mn_progress_loadFailFmt), err.localizedDescription)
                 }
                 self.isLoading = false
             }

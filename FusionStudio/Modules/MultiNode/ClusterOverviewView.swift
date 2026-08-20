@@ -7,12 +7,13 @@ struct ClusterOverviewView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var engine: MultiNodeEngine
     @Environment(\.studioTheme) var theme
+    @StateObject private var i18n = I18nManager.shared
     @State private var searchText = ""
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                ScreenHeader(eyebrow: "Multi-Node", title: "集群总览", subtitle: "实时监控集群节点状态与资源")
+                ScreenHeader(eyebrow: "Multi-Node", title: i18n.t(.mn_overview_title), subtitle: i18n.t(.mn_overview_subtitle))
 
                 UpstreamServiceStatusBanner(serviceId: "multi-node")
 
@@ -22,7 +23,7 @@ struct ClusterOverviewView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundColor(.orange)
-                        Text("Multi-Node 服务未连接 — 请确认服务已启动 (port \(FusionConfig.shared.multiNodePort))")
+                        Text(String(format: i18n.t(.mn_overview_disconnectedFmt), FusionConfig.shared.multiNodePort))
                             .font(.system(size: theme.footnoteSize))
                             .foregroundColor(.secondary)
                         if let err = engine.lastError {
@@ -51,10 +52,10 @@ struct ClusterOverviewView: View {
 
     private var metricsStrip: some View {
         HStack(spacing: theme.spacingM) {
-            MetricStripCard(icon: "server.rack", label: "节点", value: "\(engine.clusterStats.totalNodes)", subtitle: "总计", dotColor: theme.accent)
-            MetricStripCard(icon: "checkmark.circle", label: "在线", value: "\(engine.clusterStats.onlineNodes)", subtitle: "在线运行", dotColor: theme.greenDot)
-            MetricStripCard(icon: "list.bullet.clipboard", label: "活跃任务", value: "\(engine.clusterStats.activeTasks)", subtitle: "正在执行")
-            MetricStripCard(icon: "memorychip", label: "集群内存", value: String(format: "%.0fGB", engine.clusterStats.availableMemoryGB), subtitle: String(format: "共 %.0fGB", engine.clusterStats.totalMemoryGB))
+            MetricStripCard(icon: "server.rack", label: i18n.t(.mn_overview_metricNodes), value: "\(engine.clusterStats.totalNodes)", subtitle: i18n.t(.mn_overview_metricTotal), dotColor: theme.accent)
+            MetricStripCard(icon: "checkmark.circle", label: i18n.t(.mn_overview_metricOnline), value: "\(engine.clusterStats.onlineNodes)", subtitle: i18n.t(.mn_overview_metricOnlineRun), dotColor: theme.greenDot)
+            MetricStripCard(icon: "list.bullet.clipboard", label: i18n.t(.mn_overview_metricActiveTasks), value: "\(engine.clusterStats.activeTasks)", subtitle: i18n.t(.mn_overview_metricExecuting))
+            MetricStripCard(icon: "memorychip", label: i18n.t(.mn_overview_metricClusterMem), value: String(format: "%.0fGB", engine.clusterStats.availableMemoryGB), subtitle: String(format: i18n.t(.mn_overview_metricTotalMemFmt), String(format: "%.0f", engine.clusterStats.totalMemoryGB)))
         }
         .padding(.horizontal, theme.spacingL)
         .padding(.bottom, theme.spacingL)
@@ -62,7 +63,7 @@ struct ClusterOverviewView: View {
 
     private var actionBar: some View {
         HStack(spacing: theme.spacingM) {
-            FusionButton("提交任务", style: .primary, size: .small) {
+            FusionButton(i18n.t(.mn_overview_submitTaskBtn), style: .primary, size: .small) {
                 appState.inspectorContext = .custom(title: "Submit Task")
             }
             FusionButton("Autoscaler", style: .secondary, size: .small) {
@@ -72,7 +73,7 @@ struct ClusterOverviewView: View {
             HStack(spacing: theme.spacingS) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(theme.textTertiary)
-                TextField("搜索节点...", text: $searchText)
+                TextField(i18n.t(.mn_overview_searchPh), text: $searchText)
                     .textFieldStyle(.plain)
                     .font(.system(size: theme.smallTextSize))
             }
@@ -97,15 +98,15 @@ struct ClusterOverviewView: View {
 
     private var nodeListSection: some View {
         ListGroup {
-            StudioSectionHeader(title: "节点列表 (\(filteredNodes.count))")
+            StudioSectionHeader(title: String(format: i18n.t(.mn_overview_nodeListFmt), filteredNodes.count))
             ForEach(filteredNodes) { node in
                 NodeRow(node: node, nodeLoad: engine.nodeLoads[node.id], isSelected: selectedNodeId == node.id) {
                     appState.inspectorContext = .node(id: node.id)
                     appState.isInspectorVisible = true
                 }
                 .contextMenu {
-                    Button("查看指标") { engine.fetchNodeMetrics(nodeId: node.id) }
-                    Button("移除节点", role: .destructive) {
+                    Button(i18n.t(.mn_overview_viewMetrics)) { engine.fetchNodeMetrics(nodeId: node.id) }
+                    Button(i18n.t(.mn_overview_removeNode), role: .destructive) {
                         Task { try? await engine.removeNode(nodeId: node.id) }
                     }
                 }
@@ -130,13 +131,13 @@ struct ClusterOverviewView: View {
                     Image(systemName: status.isDegraded ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
                         .foregroundColor(status.isDegraded ? .orange : .green)
                     Text(status.isDegraded
-                         ? "集群处于降级状态 — 分区: \(status.partitionState)"
-                         : "集群同步正常 — 分区: \(status.partitionState)")
+                         ? String(format: i18n.t(.mn_overview_degradedFmt), status.partitionState)
+                         : String(format: i18n.t(.mn_overview_normalFmt), status.partitionState))
                         .font(.system(size: theme.footnoteSize))
                         .foregroundColor(.secondary)
                     Spacer()
                     NavigationLink(value: Module.clusterSync) {
-                        Text("详情")
+                        Text(i18n.t(.mn_overview_detailLink))
                             .font(.system(size: theme.captionSize, weight: .medium))
                             .foregroundStyle(theme.accent)
                     }
