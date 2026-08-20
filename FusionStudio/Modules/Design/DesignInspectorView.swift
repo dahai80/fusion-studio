@@ -23,6 +23,17 @@ enum InspectorSection: String, CaseIterable, Identifiable {
         case .effects: return "sparkles"
         }
     }
+
+    var localLabel: String {
+        switch self {
+        case .layout: return I18nManager.shared.t(.design_ins_sec_layout)
+        case .spacing: return I18nManager.shared.t(.design_ins_sec_spacing)
+        case .typography: return I18nManager.shared.t(.design_ins_sec_typography)
+        case .colors: return I18nManager.shared.t(.design_ins_sec_colors)
+        case .borders: return I18nManager.shared.t(.design_ins_sec_borders)
+        case .effects: return I18nManager.shared.t(.design_ins_sec_effects)
+        }
+    }
 }
 
 enum LayoutMode: String, CaseIterable, Identifiable {
@@ -54,11 +65,11 @@ enum JustifyContent: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .start: return "起始"
-        case .center: return "居中"
-        case .end: return "末尾"
-        case .between: return "两端对齐"
-        case .around: return "均匀分布"
+        case .start: return I18nManager.shared.t(.design_ins_alignStart)
+        case .center: return I18nManager.shared.t(.design_ins_alignCenter)
+        case .end: return I18nManager.shared.t(.design_ins_alignEnd)
+        case .between: return I18nManager.shared.t(.design_ins_justifyBetween)
+        case .around: return I18nManager.shared.t(.design_ins_justifyAround)
         }
     }
 }
@@ -73,10 +84,10 @@ enum AlignItems: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .start: return "起始"
-        case .center: return "居中"
-        case .end: return "末尾"
-        case .stretch: return "拉伸"
+        case .start: return I18nManager.shared.t(.design_ins_alignStart)
+        case .center: return I18nManager.shared.t(.design_ins_alignCenter)
+        case .end: return I18nManager.shared.t(.design_ins_alignEnd)
+        case .stretch: return I18nManager.shared.t(.design_ins_alignStretch)
         }
     }
 }
@@ -260,6 +271,16 @@ enum StylePreset: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    var localLabel: String {
+        switch self {
+        case .card: return I18nManager.shared.t(.design_ins_preset_card)
+        case .button: return I18nManager.shared.t(.design_ins_preset_button)
+        case .inputField: return I18nManager.shared.t(.design_ins_preset_inputField)
+        case .navBar: return I18nManager.shared.t(.design_ins_preset_navBar)
+        case .heroSection: return I18nManager.shared.t(.design_ins_preset_heroSection)
+        }
+    }
+
     var properties: StyleProperties {
         switch self {
         case .card:
@@ -309,6 +330,7 @@ enum StylePreset: String, CaseIterable, Identifiable {
 
 struct DesignInspectorView: View {
     @StateObject private var state = DesignInspectorState.shared
+    @StateObject private var i18n = I18nManager.shared
     @Environment(\.studioTheme) var theme
     @EnvironmentObject var appState: AppState
 
@@ -362,7 +384,7 @@ struct DesignInspectorView: View {
         HStack(spacing: theme.spacingS) {
             Image(systemName: "slider.horizontal.3")
                 .foregroundColor(theme.accent)
-            Text("样式检查器")
+            Text(i18n.t(.design_ins_title))
                 .font(.system(size: theme.bodySize, weight: .semibold))
                 .foregroundColor(theme.text)
             Spacer()
@@ -388,7 +410,7 @@ struct DesignInspectorView: View {
 
     private var presetPicker: some View {
         VStack(alignment: .leading, spacing: theme.spacingXS) {
-            Text("样式预设")
+            Text(i18n.t(.design_ins_presetLabel))
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundColor(theme.textTertiary)
                 .textCase(.uppercase)
@@ -397,7 +419,7 @@ struct DesignInspectorView: View {
                 HStack(spacing: theme.spacingXS) {
                     ForEach(StylePreset.allCases) { preset in
                         Button(action: { state.applyPreset(preset) }) {
-                            Text(preset.rawValue)
+                            Text(preset.localLabel)
                                 .font(.system(size: theme.captionSize))
                                 .foregroundColor(theme.accentText)
                                 .padding(.horizontal, theme.spacingS)
@@ -425,7 +447,7 @@ struct DesignInspectorView: View {
                     Image(systemName: section.icon)
                         .font(.system(size: 10))
                         .foregroundColor(theme.accent)
-                    Text(section.rawValue)
+                    Text(section.localLabel)
                         .font(.system(size: theme.captionSize, weight: .semibold))
                         .foregroundColor(theme.text)
                     Spacer()
@@ -451,7 +473,7 @@ struct DesignInspectorView: View {
 
     private var layoutSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            propertyRow("布局模式") {
+            propertyRow(i18n.t(.design_ins_layoutMode)) {
                 Picker("", selection: $state.properties.layoutMode) {
                     ForEach(LayoutMode.allCases) { m in Text(m.rawValue).tag(m) }
                 }
@@ -459,31 +481,31 @@ struct DesignInspectorView: View {
                 .frame(maxWidth: 200)
             }
             if state.properties.layoutMode == .flex {
-                propertyRow("方向") {
+                propertyRow(i18n.t(.design_ins_direction)) {
                     Picker("", selection: $state.properties.flexDirection) {
                         ForEach(FlexDirection.allCases) { d in Text(d.rawValue).tag(d) }
                     }
                     .pickerStyle(.segmented)
                 }
-                propertyRow("主轴") {
+                propertyRow(i18n.t(.design_ins_mainAxis)) {
                     Picker("", selection: $state.properties.justifyContent) {
                         ForEach(JustifyContent.allCases) { j in Text(j.displayName).tag(j) }
                     }
                     .pickerStyle(.segmented)
                 }
-                propertyRow("交叉轴") {
+                propertyRow(i18n.t(.design_ins_crossAxis)) {
                     Picker("", selection: $state.properties.alignItems) {
                         ForEach(AlignItems.allCases) { a in Text(a.displayName).tag(a) }
                     }
                     .pickerStyle(.segmented)
                 }
             }
-            propertyRow("宽度") {
+            propertyRow(i18n.t(.design_ins_width)) {
                 textField("auto", text: $state.properties.width) {
                     state.pushSizeToCanvas()
                 }
             }
-            propertyRow("高度") {
+            propertyRow(i18n.t(.design_ins_height)) {
                 textField("auto", text: $state.properties.height) {
                     state.pushSizeToCanvas()
                 }
@@ -495,15 +517,15 @@ struct DesignInspectorView: View {
 
     private var spacingSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            Text("内边距 (Padding)")
+            Text(i18n.t(.design_ins_padding))
                 .font(.system(size: 10, weight: .medium))
                 .foregroundColor(theme.textTertiary)
             boxValueEditor($state.properties.padding)
-            Text("外边距 (Margin)")
+            Text(i18n.t(.design_ins_margin))
                 .font(.system(size: 10, weight: .medium))
                 .foregroundColor(theme.textTertiary)
             boxValueEditor($state.properties.margin)
-            propertyRow("间距 (Gap)") { textField("0", text: $state.properties.gap) }
+            propertyRow(i18n.t(.design_ins_gap)) { textField("0", text: $state.properties.gap) }
         }
         .padding(.horizontal, theme.spacingM)
         .padding(.vertical, theme.spacingXS)
@@ -511,9 +533,9 @@ struct DesignInspectorView: View {
 
     private var typographySection: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            propertyRow("字体") { textField("system-ui", text: $state.properties.fontFamily) }
-            propertyRow("字号") { textField("14px", text: $state.properties.fontSize) }
-            propertyRow("字重") {
+            propertyRow(i18n.t(.design_ins_fontFamily)) { textField("system-ui", text: $state.properties.fontFamily) }
+            propertyRow(i18n.t(.design_ins_fontSize)) { textField("14px", text: $state.properties.fontSize) }
+            propertyRow(i18n.t(.design_ins_fontWeight)) {
                 Picker("", selection: $state.properties.fontWeight) {
                     ForEach(["100","200","300","400","500","600","700","800","900"], id: \.self) { w in
                         Text(w).tag(w)
@@ -522,8 +544,8 @@ struct DesignInspectorView: View {
                 .pickerStyle(.segmented)
                 .frame(maxWidth: 260)
             }
-            propertyRow("行高") { textField("1.5", text: $state.properties.lineHeight) }
-            propertyRow("对齐") {
+            propertyRow(i18n.t(.design_ins_lineHeight)) { textField("1.5", text: $state.properties.lineHeight) }
+            propertyRow(i18n.t(.design_ins_textAlign)) {
                 Picker("", selection: $state.properties.textAlign) {
                     ForEach(["left","center","right","justify"], id: \.self) { a in Text(a).tag(a) }
                 }
@@ -536,8 +558,8 @@ struct DesignInspectorView: View {
 
     private var colorsSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            colorRow("文字颜色", text: $state.properties.color)
-            colorRow("背景颜色", text: $state.properties.backgroundColor)
+            colorRow(i18n.t(.design_ins_textColor), text: $state.properties.color)
+            colorRow(i18n.t(.design_ins_bgColor), text: $state.properties.backgroundColor)
         }
         .padding(.horizontal, theme.spacingM)
         .padding(.vertical, theme.spacingXS)
@@ -545,9 +567,9 @@ struct DesignInspectorView: View {
 
     private var bordersSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            colorRow("边框颜色", text: $state.properties.borderColor)
-            propertyRow("边框宽度") { textField("0", text: $state.properties.borderWidth) }
-            propertyRow("圆角") { textField("8px", text: $state.properties.borderRadius) }
+            colorRow(i18n.t(.design_ins_borderColor), text: $state.properties.borderColor)
+            propertyRow(i18n.t(.design_ins_borderWidth)) { textField("0", text: $state.properties.borderWidth) }
+            propertyRow(i18n.t(.design_ins_borderRadius)) { textField("8px", text: $state.properties.borderRadius) }
         }
         .padding(.horizontal, theme.spacingM)
         .padding(.vertical, theme.spacingXS)
@@ -555,9 +577,9 @@ struct DesignInspectorView: View {
 
     private var effectsSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            propertyRow("透明度") { textField("1", text: $state.properties.opacity) }
-            propertyRow("阴影") { textField("none", text: $state.properties.boxShadow) }
-            propertyRow("溢出") {
+            propertyRow(i18n.t(.design_ins_opacity)) { textField("1", text: $state.properties.opacity) }
+            propertyRow(i18n.t(.design_ins_shadow)) { textField("none", text: $state.properties.boxShadow) }
+            propertyRow(i18n.t(.design_ins_overflow)) {
                 Picker("", selection: $state.properties.overflow) {
                     ForEach(["visible","hidden","scroll","auto"], id: \.self) { o in Text(o).tag(o) }
                 }
@@ -571,7 +593,7 @@ struct DesignInspectorView: View {
     private var cssOutputBar: some View {
         VStack(alignment: .leading, spacing: theme.spacingXS) {
             HStack {
-                Text("CSS 输出")
+                Text(i18n.t(.design_ins_cssOutput))
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundColor(theme.textTertiary)
                     .textCase(.uppercase)

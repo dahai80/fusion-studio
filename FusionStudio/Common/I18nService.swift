@@ -2691,6 +2691,58 @@ enum I18nKey: String, CaseIterable {
     case design_wf_noFileSelected = "design_wf_noFileSelected"
     case design_wf_panelTitle = "design_wf_panelTitle"
     case design_wf_cancelBtn = "design_wf_cancelBtn"
+    case design_ins_sec_layout = "design_ins_sec_layout"
+    case design_ins_sec_spacing = "design_ins_sec_spacing"
+    case design_ins_sec_typography = "design_ins_sec_typography"
+    case design_ins_sec_colors = "design_ins_sec_colors"
+    case design_ins_sec_borders = "design_ins_sec_borders"
+    case design_ins_sec_effects = "design_ins_sec_effects"
+    case design_ins_alignStart = "design_ins_alignStart"
+    case design_ins_alignCenter = "design_ins_alignCenter"
+    case design_ins_alignEnd = "design_ins_alignEnd"
+    case design_ins_justifyBetween = "design_ins_justifyBetween"
+    case design_ins_justifyAround = "design_ins_justifyAround"
+    case design_ins_alignStretch = "design_ins_alignStretch"
+    case design_ins_preset_card = "design_ins_preset_card"
+    case design_ins_preset_button = "design_ins_preset_button"
+    case design_ins_preset_inputField = "design_ins_preset_inputField"
+    case design_ins_preset_navBar = "design_ins_preset_navBar"
+    case design_ins_preset_heroSection = "design_ins_preset_heroSection"
+    case design_ins_title = "design_ins_title"
+    case design_ins_presetLabel = "design_ins_presetLabel"
+    case design_ins_layoutMode = "design_ins_layoutMode"
+    case design_ins_direction = "design_ins_direction"
+    case design_ins_mainAxis = "design_ins_mainAxis"
+    case design_ins_crossAxis = "design_ins_crossAxis"
+    case design_ins_width = "design_ins_width"
+    case design_ins_height = "design_ins_height"
+    case design_ins_padding = "design_ins_padding"
+    case design_ins_margin = "design_ins_margin"
+    case design_ins_gap = "design_ins_gap"
+    case design_ins_fontFamily = "design_ins_fontFamily"
+    case design_ins_fontSize = "design_ins_fontSize"
+    case design_ins_fontWeight = "design_ins_fontWeight"
+    case design_ins_lineHeight = "design_ins_lineHeight"
+    case design_ins_textAlign = "design_ins_textAlign"
+    case design_ins_textColor = "design_ins_textColor"
+    case design_ins_bgColor = "design_ins_bgColor"
+    case design_ins_borderColor = "design_ins_borderColor"
+    case design_ins_borderWidth = "design_ins_borderWidth"
+    case design_ins_borderRadius = "design_ins_borderRadius"
+    case design_ins_opacity = "design_ins_opacity"
+    case design_ins_shadow = "design_ins_shadow"
+    case design_ins_overflow = "design_ins_overflow"
+    case design_ins_cssOutput = "design_ins_cssOutput"
+    case design_tok_preset_appleHIG = "design_tok_preset_appleHIG"
+    case design_tok_preset_adminMinimal = "design_tok_preset_adminMinimal"
+    case design_tok_preset_robotSim = "design_tok_preset_robotSim"
+    case design_tok_cat_colors = "design_tok_cat_colors"
+    case design_tok_cat_spacing = "design_tok_cat_spacing"
+    case design_tok_cat_typography = "design_tok_cat_typography"
+    case design_tok_cat_radius = "design_tok_cat_radius"
+    case design_tok_cat_shadows = "design_tok_cat_shadows"
+    case design_tok_cat_animation = "design_tok_cat_animation"
+    case design_tok_designSpec = "design_tok_designSpec"
 }
 
 // MARK: - 翻译管理器
@@ -5034,6 +5086,58 @@ let zhCNTranslations: [String: String] = [
     "design_wf_noFileSelected": "无已选文件，请先选择代码文件",
     "design_wf_panelTitle": "设计工作流",
     "design_wf_cancelBtn": "取消工作流",
+    "design_ins_sec_layout": "布局",
+    "design_ins_sec_spacing": "间距",
+    "design_ins_sec_typography": "排版",
+    "design_ins_sec_colors": "颜色",
+    "design_ins_sec_borders": "边框",
+    "design_ins_sec_effects": "效果",
+    "design_ins_alignStart": "起始",
+    "design_ins_alignCenter": "居中",
+    "design_ins_alignEnd": "末尾",
+    "design_ins_justifyBetween": "两端对齐",
+    "design_ins_justifyAround": "均匀分布",
+    "design_ins_alignStretch": "拉伸",
+    "design_ins_preset_card": "卡片",
+    "design_ins_preset_button": "按钮",
+    "design_ins_preset_inputField": "输入框",
+    "design_ins_preset_navBar": "导航栏",
+    "design_ins_preset_heroSection": "Hero 区域",
+    "design_ins_title": "样式检查器",
+    "design_ins_presetLabel": "样式预设",
+    "design_ins_layoutMode": "布局模式",
+    "design_ins_direction": "方向",
+    "design_ins_mainAxis": "主轴",
+    "design_ins_crossAxis": "交叉轴",
+    "design_ins_width": "宽度",
+    "design_ins_height": "高度",
+    "design_ins_padding": "内边距 (Padding)",
+    "design_ins_margin": "外边距 (Margin)",
+    "design_ins_gap": "间距 (Gap)",
+    "design_ins_fontFamily": "字体",
+    "design_ins_fontSize": "字号",
+    "design_ins_fontWeight": "字重",
+    "design_ins_lineHeight": "行高",
+    "design_ins_textAlign": "对齐",
+    "design_ins_textColor": "文字颜色",
+    "design_ins_bgColor": "背景颜色",
+    "design_ins_borderColor": "边框颜色",
+    "design_ins_borderWidth": "边框宽度",
+    "design_ins_borderRadius": "圆角",
+    "design_ins_opacity": "透明度",
+    "design_ins_shadow": "阴影",
+    "design_ins_overflow": "溢出",
+    "design_ins_cssOutput": "CSS 输出",
+    "design_tok_preset_appleHIG": "Apple HIG",
+    "design_tok_preset_adminMinimal": "极简后台",
+    "design_tok_preset_robotSim": "机器人仿真",
+    "design_tok_cat_colors": "颜色",
+    "design_tok_cat_spacing": "间距",
+    "design_tok_cat_typography": "排版",
+    "design_tok_cat_radius": "圆角",
+    "design_tok_cat_shadows": "阴影",
+    "design_tok_cat_animation": "动画",
+    "design_tok_designSpec": "设计规范",
 ]
 
 let enUSTranslations: [String: String] = [
@@ -7332,6 +7436,58 @@ let enUSTranslations: [String: String] = [
     "design_wf_noFileSelected": "No file selected, choose a code file first",
     "design_wf_panelTitle": "Design Workflow",
     "design_wf_cancelBtn": "Cancel Workflow",
+    "design_ins_sec_layout": "Layout",
+    "design_ins_sec_spacing": "Spacing",
+    "design_ins_sec_typography": "Typography",
+    "design_ins_sec_colors": "Colors",
+    "design_ins_sec_borders": "Borders",
+    "design_ins_sec_effects": "Effects",
+    "design_ins_alignStart": "Start",
+    "design_ins_alignCenter": "Center",
+    "design_ins_alignEnd": "End",
+    "design_ins_justifyBetween": "Space Between",
+    "design_ins_justifyAround": "Space Around",
+    "design_ins_alignStretch": "Stretch",
+    "design_ins_preset_card": "Card",
+    "design_ins_preset_button": "Button",
+    "design_ins_preset_inputField": "Input Field",
+    "design_ins_preset_navBar": "Nav Bar",
+    "design_ins_preset_heroSection": "Hero Section",
+    "design_ins_title": "Style Inspector",
+    "design_ins_presetLabel": "Style Presets",
+    "design_ins_layoutMode": "Layout Mode",
+    "design_ins_direction": "Direction",
+    "design_ins_mainAxis": "Main Axis",
+    "design_ins_crossAxis": "Cross Axis",
+    "design_ins_width": "Width",
+    "design_ins_height": "Height",
+    "design_ins_padding": "Padding",
+    "design_ins_margin": "Margin",
+    "design_ins_gap": "Gap",
+    "design_ins_fontFamily": "Font",
+    "design_ins_fontSize": "Font Size",
+    "design_ins_fontWeight": "Font Weight",
+    "design_ins_lineHeight": "Line Height",
+    "design_ins_textAlign": "Alignment",
+    "design_ins_textColor": "Text Color",
+    "design_ins_bgColor": "Background Color",
+    "design_ins_borderColor": "Border Color",
+    "design_ins_borderWidth": "Border Width",
+    "design_ins_borderRadius": "Corner Radius",
+    "design_ins_opacity": "Opacity",
+    "design_ins_shadow": "Shadow",
+    "design_ins_overflow": "Overflow",
+    "design_ins_cssOutput": "CSS Output",
+    "design_tok_preset_appleHIG": "Apple HIG",
+    "design_tok_preset_adminMinimal": "Minimal Admin",
+    "design_tok_preset_robotSim": "Robot Simulation",
+    "design_tok_cat_colors": "Colors",
+    "design_tok_cat_spacing": "Spacing",
+    "design_tok_cat_typography": "Typography",
+    "design_tok_cat_radius": "Corner Radius",
+    "design_tok_cat_shadows": "Shadows",
+    "design_tok_cat_animation": "Animation",
+    "design_tok_designSpec": "Design Spec",
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -9624,6 +9780,58 @@ let jaJPTranslations: [String: String] = [
     "design_wf_noFileSelected": "ファイルが選択されていません。先にコードファイルを選択してください",
     "design_wf_panelTitle": "デザインワークフロー",
     "design_wf_cancelBtn": "ワークフローをキャンセル",
+    "design_ins_sec_layout": "レイアウト",
+    "design_ins_sec_spacing": "間隔",
+    "design_ins_sec_typography": "タイポグラフィ",
+    "design_ins_sec_colors": "カラー",
+    "design_ins_sec_borders": "ボーダー",
+    "design_ins_sec_effects": "エフェクト",
+    "design_ins_alignStart": "開始",
+    "design_ins_alignCenter": "中央",
+    "design_ins_alignEnd": "末尾",
+    "design_ins_justifyBetween": "両端揃え",
+    "design_ins_justifyAround": "均等配置",
+    "design_ins_alignStretch": "伸縮",
+    "design_ins_preset_card": "カード",
+    "design_ins_preset_button": "ボタン",
+    "design_ins_preset_inputField": "入力フィールド",
+    "design_ins_preset_navBar": "ナビバー",
+    "design_ins_preset_heroSection": "ヒーローセクション",
+    "design_ins_title": "スタイルインスペクタ",
+    "design_ins_presetLabel": "スタイルプリセット",
+    "design_ins_layoutMode": "レイアウトモード",
+    "design_ins_direction": "方向",
+    "design_ins_mainAxis": "主軸",
+    "design_ins_crossAxis": "交差軸",
+    "design_ins_width": "幅",
+    "design_ins_height": "高さ",
+    "design_ins_padding": "パディング",
+    "design_ins_margin": "マージン",
+    "design_ins_gap": "ギャップ",
+    "design_ins_fontFamily": "フォント",
+    "design_ins_fontSize": "フォントサイズ",
+    "design_ins_fontWeight": "フォントの太さ",
+    "design_ins_lineHeight": "行の高さ",
+    "design_ins_textAlign": "整列",
+    "design_ins_textColor": "文字色",
+    "design_ins_bgColor": "背景色",
+    "design_ins_borderColor": "ボーダー色",
+    "design_ins_borderWidth": "ボーダー幅",
+    "design_ins_borderRadius": "角丸",
+    "design_ins_opacity": "不透明度",
+    "design_ins_shadow": "シャドウ",
+    "design_ins_overflow": "オーバーフロー",
+    "design_ins_cssOutput": "CSS出力",
+    "design_tok_preset_appleHIG": "Apple HIG",
+    "design_tok_preset_adminMinimal": "ミニマル管理",
+    "design_tok_preset_robotSim": "ロボットシミュレーション",
+    "design_tok_cat_colors": "カラー",
+    "design_tok_cat_spacing": "間隔",
+    "design_tok_cat_typography": "タイポグラフィ",
+    "design_tok_cat_radius": "角丸",
+    "design_tok_cat_shadows": "シャドウ",
+    "design_tok_cat_animation": "アニメーション",
+    "design_tok_designSpec": "デザイン仕様",
 ]
 
 let koKRTranslations: [String: String] = [
@@ -11916,6 +12124,58 @@ let koKRTranslations: [String: String] = [
     "design_wf_noFileSelected": "선택된 파일이 없습니다. 먼저 코드 파일을 선택하세요",
     "design_wf_panelTitle": "디자인 워크플로",
     "design_wf_cancelBtn": "워크플로 취소",
+    "design_ins_sec_layout": "레이아웃",
+    "design_ins_sec_spacing": "간격",
+    "design_ins_sec_typography": "타이포그래피",
+    "design_ins_sec_colors": "색상",
+    "design_ins_sec_borders": "테두리",
+    "design_ins_sec_effects": "효과",
+    "design_ins_alignStart": "시작",
+    "design_ins_alignCenter": "중앙",
+    "design_ins_alignEnd": "끝",
+    "design_ins_justifyBetween": "양끝 정렬",
+    "design_ins_justifyAround": "균등 배치",
+    "design_ins_alignStretch": "늘림",
+    "design_ins_preset_card": "카드",
+    "design_ins_preset_button": "버튼",
+    "design_ins_preset_inputField": "입력 필드",
+    "design_ins_preset_navBar": "내비게이션 바",
+    "design_ins_preset_heroSection": "히어로 섹션",
+    "design_ins_title": "스타일 검사기",
+    "design_ins_presetLabel": "스타일 프리셋",
+    "design_ins_layoutMode": "레이아웃 모드",
+    "design_ins_direction": "방향",
+    "design_ins_mainAxis": "주축",
+    "design_ins_crossAxis": "교차축",
+    "design_ins_width": "너비",
+    "design_ins_height": "높이",
+    "design_ins_padding": "패딩",
+    "design_ins_margin": "마진",
+    "design_ins_gap": "갭",
+    "design_ins_fontFamily": "글꼴",
+    "design_ins_fontSize": "글자 크기",
+    "design_ins_fontWeight": "글자 굵기",
+    "design_ins_lineHeight": "줄 높이",
+    "design_ins_textAlign": "정렬",
+    "design_ins_textColor": "문자 색상",
+    "design_ins_bgColor": "배경색",
+    "design_ins_borderColor": "테두리 색상",
+    "design_ins_borderWidth": "테두리 두께",
+    "design_ins_borderRadius": "모서리 둥글기",
+    "design_ins_opacity": "불투명도",
+    "design_ins_shadow": "그림자",
+    "design_ins_overflow": "오버플로",
+    "design_ins_cssOutput": "CSS 출력",
+    "design_tok_preset_appleHIG": "Apple HIG",
+    "design_tok_preset_adminMinimal": "미니멀 관리",
+    "design_tok_preset_robotSim": "로봇 시뮬레이션",
+    "design_tok_cat_colors": "색상",
+    "design_tok_cat_spacing": "간격",
+    "design_tok_cat_typography": "타이포그래피",
+    "design_tok_cat_radius": "모서리 둥글기",
+    "design_tok_cat_shadows": "그림자",
+    "design_tok_cat_animation": "애니메이션",
+    "design_tok_designSpec": "디자인 사양",
 ]
 
 // MARK: - 国际化文本视图
