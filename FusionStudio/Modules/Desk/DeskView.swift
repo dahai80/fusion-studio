@@ -6,16 +6,29 @@
 import SwiftUI
 
 enum DeskTab: String, CaseIterable, Identifiable {
-    case templates  = "模板"
-    case workflows  = "工作流"
-    case agents     = "智能体"
-    case sessions   = "会话"
-    case permissions = "权限"
+    case templates  = "templates"
+    case workflows  = "workflows"
+    case agents     = "agents"
+    case sessions   = "sessions"
+    case permissions = "permissions"
     case mlx        = "MLX"
-    case system     = "系统"
-    case events     = "事件"
+    case system     = "system"
+    case events     = "events"
 
     var id: String { rawValue }
+
+    var labelKey: I18nKey {
+        switch self {
+        case .templates:   return .desk_tab_templates
+        case .workflows:   return .desk_tab_workflows
+        case .agents:      return .desk_tab_agents
+        case .sessions:    return .desk_tab_sessions
+        case .permissions: return .desk_tab_permissions
+        case .mlx:         return .desk_tab_mlx
+        case .system:      return .desk_tab_system
+        case .events:      return .desk_tab_events
+        }
+    }
 
     var icon: String {
         switch self {
@@ -36,6 +49,7 @@ enum DeskTab: String, CaseIterable, Identifiable {
 struct DeskView: View {
     @EnvironmentObject var bridge: DeskBridge
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @State private var selectedTab: DeskTab = .templates
 
     var body: some View {
@@ -61,7 +75,7 @@ struct DeskView: View {
                         HStack(spacing: 6) {
                             Image(systemName: tab.icon)
                                 .font(.system(size: 11))
-                            Text(tab.rawValue)
+                            Text(i18n.t(tab.labelKey))
                                 .font(.system(size: 12, weight: .medium))
                         }
                         .foregroundStyle(selectedTab == tab ? theme.accentText : theme.textSecondary)
@@ -90,15 +104,15 @@ struct DeskView: View {
                 Image(systemName: "exclamationmark.triangle")
                     .font(.system(size: 40))
                     .foregroundColor(.orange)
-                Text("Fusion-CoWork 服务未连接")
+                Text(i18n.t(.desk_svc_notConnected))
                     .font(.title3)
                     .foregroundColor(theme.text)
-                Text("请启动 fusion-cowork 服务后重试（终端运行 ./start.sh start，或在 设置→上游服务 中启动）")
+                Text(i18n.t(.desk_svc_notConnectedHint))
                     .font(.subheadline)
                     .foregroundColor(theme.textSecondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
-                Button("重新连接") {
+                Button(i18n.t(.desk_reconnect)) {
                     Task { await bridge.loadAll() }
                 }
                 .buttonStyle(.borderedProminent)
@@ -127,6 +141,7 @@ struct DeskView: View {
 struct DeskTemplateTab: View {
     @EnvironmentObject var bridge: DeskBridge
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @State private var searchText = ""
     @State private var runningTemplateId: String?
     @State private var runResult: String?
@@ -142,10 +157,10 @@ struct DeskTemplateTab: View {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(theme.textTertiary)
-                TextField("搜索模板...", text: $searchText)
+                TextField(i18n.t(.desk_searchTemplates), text: $searchText)
                     .textFieldStyle(.plain)
                 Spacer()
-                Text("\(bridge.templates.count) 个模板")
+                Text(String(format: i18n.t(.desk_tpl_count), bridge.templates.count))
                     .font(.caption)
                     .foregroundColor(theme.textTertiary)
                 Button(action: { Task { await bridge.loadTemplates() } }) {
@@ -160,10 +175,10 @@ struct DeskTemplateTab: View {
             Divider()
 
             if bridge.isLoading {
-                ProgressView("加载中...")
+                ProgressView(i18n.t(.desk_loading))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if filteredTemplates.isEmpty {
-                deskEmptyState(icon: "square.stack", text: "暂无模板")
+                deskEmptyState(icon: "square.stack", text: i18n.t(.desk_noTemplates))
             } else {
                 ScrollView {
                     LazyVStack(spacing: 8) {
@@ -225,7 +240,7 @@ struct DeskTemplateTab: View {
                         .font(.caption)
                         .foregroundColor(theme.textSecondary)
                     Spacer()
-                    Button("关闭") { runResult = nil }
+                    Button(i18n.t(.desk_close)) { runResult = nil }
                         .buttonStyle(.borderless)
                         .controlSize(.small)
                 }
@@ -242,25 +257,25 @@ struct DeskTemplateTab: View {
     private var templateDetailSheet: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("模板详情")
+                Text(i18n.t(.desk_tpl_detail))
                     .font(.title3)
                     .foregroundColor(theme.text)
                 Spacer()
-                Button("关闭") { showDetail = false }
+                Button(i18n.t(.desk_close)) { showDetail = false }
                     .buttonStyle(.borderless)
             }
 
             if let detail = bridge.selectedTemplateDetail {
                 Group {
-                    LabeledContent("名称", value: detail.name)
-                    LabeledContent("分类", value: detail.category)
-                    LabeledContent("描述", value: detail.description)
+                    LabeledContent(i18n.t(.desk_name), value: detail.name)
+                    LabeledContent(i18n.t(.desk_category), value: detail.category)
+                    LabeledContent(i18n.t(.desk_description), value: detail.description)
                 }
                 .font(.subheadline)
 
                 if !detail.steps.isEmpty {
                     Divider()
-                    Text("步骤")
+                    Text(i18n.t(.desk_steps))
                         .font(.headline)
                         .foregroundColor(theme.text)
                     ForEach(detail.steps.indices, id: \.self) { i in
@@ -283,7 +298,7 @@ struct DeskTemplateTab: View {
                     }
                 }
             } else {
-                ProgressView("加载中...")
+                ProgressView(i18n.t(.desk_loading))
             }
             Spacer()
         }
@@ -306,9 +321,9 @@ struct DeskTemplateTab: View {
             runningTemplateId = nil
             if let r = result {
                 let status = r["status"] as? String ?? "unknown"
-                runResult = "模板 \(tpl.name): \(status)"
+                runResult = String(format: i18n.t(.desk_tpl_runResult), tpl.name, status)
             } else {
-                runResult = "模板 \(tpl.name): 执行失败"
+                runResult = String(format: i18n.t(.desk_tpl_runFail), tpl.name)
             }
         }
     }
@@ -319,18 +334,19 @@ struct DeskTemplateTab: View {
 struct DeskWorkflowTab: View {
     @EnvironmentObject var bridge: DeskBridge
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @State private var promptText = ""
     @State private var showExecStatus = false
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
-                TextField("输入自然语言创建工作流...", text: $promptText)
+                TextField(i18n.t(.desk_wf_promptPlaceholder), text: $promptText)
                     .textFieldStyle(.plain)
                     .onSubmit { createWorkflow() }
 
                 Button(action: createWorkflow) {
-                    Label("创建", systemImage: "plus")
+                    Label(i18n.t(.desk_create), systemImage: "plus")
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
@@ -338,11 +354,11 @@ struct DeskWorkflowTab: View {
 
                 Spacer()
 
-                Text("\(bridge.workflows.count) 个工作流")
+                Text(String(format: i18n.t(.desk_wf_count), bridge.workflows.count))
                     .font(.caption)
                     .foregroundColor(theme.textTertiary)
 
-                Button("执行状态") {
+                Button(i18n.t(.desk_wf_execStatus)) {
                     Task {
                         await bridge.getWorkflowStatus()
                         showExecStatus = true
@@ -363,9 +379,9 @@ struct DeskWorkflowTab: View {
             Divider()
 
             if bridge.isLoading {
-                ProgressView("加载中...").frame(maxWidth: .infinity, maxHeight: .infinity)
+                ProgressView(i18n.t(.desk_loading)).frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if bridge.workflows.isEmpty {
-                deskEmptyState(icon: "arrow.triangle.branch", text: "暂无工作流，输入提示语创建")
+                deskEmptyState(icon: "arrow.triangle.branch", text: i18n.t(.desk_noWorkflows))
             } else {
                 List(bridge.workflows) { wf in
                     HStack(spacing: 12) {
@@ -410,21 +426,21 @@ struct DeskWorkflowTab: View {
     private var workflowExecStatusSheet: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("工作流执行状态")
+                Text(i18n.t(.desk_wf_execStatusTitle))
                     .font(.title3)
                     .foregroundColor(theme.text)
                 Spacer()
-                Button("刷新") {
+                Button(i18n.t(.desk_refresh)) {
                     Task { await bridge.getWorkflowStatus() }
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
-                Button("关闭") { showExecStatus = false }
+                Button(i18n.t(.desk_close)) { showExecStatus = false }
                     .buttonStyle(.borderless)
             }
 
             if bridge.workflowExecStatuses.isEmpty {
-                Text("当前无执行中的工作流")
+                Text(i18n.t(.desk_wf_noRunning))
                     .foregroundColor(theme.textSecondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -444,7 +460,7 @@ struct DeskWorkflowTab: View {
                                 .cornerRadius(4)
                         }
                         if !ex.currentNode.isEmpty {
-                            Text("当前节点: \(ex.currentNode)")
+                            Text(String(format: i18n.t(.desk_wf_currentNode), ex.currentNode))
                                 .font(.caption)
                                 .foregroundColor(theme.textTertiary)
                         }
@@ -493,6 +509,7 @@ struct DeskWorkflowTab: View {
 struct DeskAgentTab: View {
     @EnvironmentObject var bridge: DeskBridge
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @State private var taskInput = ""
     @State private var submittedTaskId: String?
     @State private var agentStatusDetail: [String: Any]?
@@ -500,12 +517,12 @@ struct DeskAgentTab: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
-                TextField("提交任务给智能体...", text: $taskInput)
+                TextField(i18n.t(.desk_agent_taskPlaceholder), text: $taskInput)
                     .textFieldStyle(.plain)
                     .onSubmit { submitTask() }
 
                 Button(action: submitTask) {
-                    Label("提交", systemImage: "paperplane")
+                    Label(i18n.t(.desk_submit), systemImage: "paperplane")
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
@@ -513,7 +530,7 @@ struct DeskAgentTab: View {
 
                 Spacer()
 
-                Text("\(bridge.agents.count) 个智能体")
+                Text(String(format: i18n.t(.desk_agent_count), bridge.agents.count))
                     .font(.caption)
                     .foregroundColor(theme.textTertiary)
 
@@ -529,7 +546,7 @@ struct DeskAgentTab: View {
             Divider()
 
             if bridge.agents.isEmpty {
-                deskEmptyState(icon: "person.2.fill", text: "暂无智能体")
+                deskEmptyState(icon: "person.2.fill", text: i18n.t(.desk_noAgents))
             } else {
                 List(bridge.agents) { agent in
                     HStack(spacing: 12) {
@@ -541,7 +558,7 @@ struct DeskAgentTab: View {
                             Text(agent.name)
                                 .font(.headline)
                                 .foregroundColor(theme.text)
-                            Text("ID: \(agent.id)")
+                            Text(String(format: i18n.t(.desk_agent_id), agent.id))
                                 .font(.caption)
                                 .foregroundColor(theme.textTertiary)
                         }
@@ -576,16 +593,16 @@ struct DeskAgentTab: View {
                 HStack {
                     ProgressView()
                         .controlSize(.small)
-                    Text("任务 \(tid) 已提交")
+                    Text(String(format: i18n.t(.desk_agent_taskSubmitted), tid))
                         .font(.caption)
                         .foregroundColor(theme.textSecondary)
                     Spacer()
-                    Button("查看状态") {
+                    Button(i18n.t(.desk_agent_viewStatus)) {
                         Task { checkAgentStatus(tid) }
                     }
                     .buttonStyle(.borderless)
                     .controlSize(.small)
-                    Button("关闭") { submittedTaskId = nil }
+                    Button(i18n.t(.desk_close)) { submittedTaskId = nil }
                         .buttonStyle(.borderless)
                         .controlSize(.small)
                 }
@@ -599,17 +616,17 @@ struct DeskAgentTab: View {
                     Image(systemName: "info.circle")
                         .foregroundColor(theme.accent)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("状态: \(status["status"] as? String ?? "unknown")")
+                        Text(String(format: i18n.t(.desk_agent_status), status["status"] as? String ?? "unknown"))
                             .font(.caption)
                             .foregroundColor(theme.text)
                         if let progress = status["progress"] as? Double {
-                            Text("进度: \(String(format: "%.0f%%", progress * 100))")
+                            Text(String(format: i18n.t(.desk_agent_progress), String(format: "%.0f%%", progress * 100)))
                                 .font(.caption2)
                                 .foregroundColor(theme.textTertiary)
                         }
                     }
                     Spacer()
-                    Button("关闭") { agentStatusDetail = nil }
+                    Button(i18n.t(.desk_close)) { agentStatusDetail = nil }
                         .buttonStyle(.borderless)
                         .controlSize(.small)
                 }
@@ -654,6 +671,7 @@ struct DeskAgentTab: View {
 struct DeskSessionTab: View {
     @EnvironmentObject var bridge: DeskBridge
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @State private var newSessionName = ""
     @State private var showCreateSession = false
     @State private var showEditSession = false
@@ -667,12 +685,12 @@ struct DeskSessionTab: View {
             HStack(spacing: 8) {
                 Spacer()
                 Button(action: { showCreateSession = true }) {
-                    Label("新建会话", systemImage: "plus")
+                    Label(i18n.t(.desk_session_new), systemImage: "plus")
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
 
-                Text("\(bridge.sessions.count) 个会话")
+                Text(String(format: i18n.t(.desk_session_count), bridge.sessions.count))
                     .font(.caption)
                     .foregroundColor(theme.textTertiary)
 
@@ -688,7 +706,7 @@ struct DeskSessionTab: View {
             Divider()
 
             if bridge.sessions.isEmpty {
-                deskEmptyState(icon: "clock.arrow.circlepath", text: "暂无会话")
+                deskEmptyState(icon: "clock.arrow.circlepath", text: i18n.t(.desk_noSessions))
             } else {
                 List(bridge.sessions) { session in
                     HStack(spacing: 12) {
@@ -701,7 +719,7 @@ struct DeskSessionTab: View {
                                 .font(.headline)
                                 .foregroundColor(theme.text)
                             HStack(spacing: 8) {
-                                Text("步骤: \(session.steps)")
+                                Text(String(format: i18n.t(.desk_session_steps), session.steps))
                                     .font(.caption)
                                     .foregroundColor(theme.textTertiary)
                                 if let updated = session.updatedAt {
@@ -728,16 +746,16 @@ struct DeskSessionTab: View {
                         .controlSize(.small)
 
                         Menu {
-                            Button("编辑") {
+                            Button(i18n.t(.desk_edit)) {
                                 editingSessionId = session.id
                                 editSessionName = session.name
                                 editSessionDesc = ""
                                 showEditSession = true
                             }
-                            Button("分叉") {
+                            Button(i18n.t(.desk_session_fork)) {
                                 Task { await bridge.forkSession(sessionId: session.id) }
                             }
-                            Button("删除", role: .destructive) {
+                            Button(i18n.t(.desk_delete), role: .destructive) {
                                 Task { await bridge.deleteSession(sessionId: session.id) }
                             }
                         } label: {
@@ -750,21 +768,21 @@ struct DeskSessionTab: View {
                 }
             }
         }
-        .alert("新建会话", isPresented: $showCreateSession) {
-            TextField("会话名称", text: $newSessionName)
-            Button("取消", role: .cancel) { newSessionName = "" }
-            Button("创建") {
+        .alert(i18n.t(.desk_session_new), isPresented: $showCreateSession) {
+            TextField(i18n.t(.desk_session_namePlaceholder), text: $newSessionName)
+            Button(i18n.t(.desk_cancel), role: .cancel) { newSessionName = "" }
+            Button(i18n.t(.desk_create)) {
                 guard !newSessionName.isEmpty else { return }
                 let name = newSessionName
                 newSessionName = ""
                 Task { await bridge.createSession(name: name) }
             }
         }
-        .alert("编辑会话", isPresented: $showEditSession) {
-            TextField("名称", text: $editSessionName)
-            TextField("描述", text: $editSessionDesc)
-            Button("取消", role: .cancel) {}
-            Button("保存") {
+        .alert(i18n.t(.desk_session_edit), isPresented: $showEditSession) {
+            TextField(i18n.t(.desk_name), text: $editSessionName)
+            TextField(i18n.t(.desk_description), text: $editSessionDesc)
+            Button(i18n.t(.desk_cancel), role: .cancel) {}
+            Button(i18n.t(.desk_save)) {
                 guard let sid = editingSessionId, !editSessionName.isEmpty else { return }
                 var updates: [String: Any] = ["name": editSessionName]
                 if !editSessionDesc.isEmpty {
@@ -784,20 +802,20 @@ struct DeskSessionTab: View {
     private var sessionDetailSheet: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("会话详情")
+                Text(i18n.t(.desk_session_detail))
                     .font(.title3)
                     .foregroundColor(theme.text)
                 Spacer()
-                Button("关闭") { sessionDetail = nil }
+                Button(i18n.t(.desk_close)) { sessionDetail = nil }
                     .buttonStyle(.borderless)
             }
 
             if let s = sessionDetail {
                 Group {
                     LabeledContent("ID", value: s.id)
-                    LabeledContent("名称", value: s.name)
-                    LabeledContent("状态", value: s.status)
-                    LabeledContent("步骤数", value: "\(s.steps)")
+                    LabeledContent(i18n.t(.desk_name), value: s.name)
+                    LabeledContent(i18n.t(.desk_status), value: s.status)
+                    LabeledContent(i18n.t(.desk_session_stepCount), value: "\(s.steps)")
                 }
                 .font(.subheadline)
             }
@@ -820,24 +838,25 @@ struct DeskSessionTab: View {
 struct DeskPermissionTab: View {
     @EnvironmentObject var bridge: DeskBridge
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @State private var checkToolName = ""
     @State private var showCheckResult = false
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
-                Text("权限规则")
+                Text(i18n.t(.desk_perm_rules))
                     .font(.headline)
                     .foregroundColor(theme.text)
 
                 Spacer()
 
                 HStack(spacing: 4) {
-                    TextField("检查工具", text: $checkToolName)
+                    TextField(i18n.t(.desk_perm_checkTool), text: $checkToolName)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 120)
                         .controlSize(.small)
-                    Button("检查") {
+                    Button(i18n.t(.desk_perm_check)) {
                         guard !checkToolName.isEmpty else { return }
                         Task {
                             await bridge.checkPermission(toolName: checkToolName)
@@ -848,7 +867,7 @@ struct DeskPermissionTab: View {
                     .controlSize(.small)
                 }
 
-                Button("重置全部") {
+                Button(i18n.t(.desk_perm_resetAll)) {
                     Task { await bridge.resetPermissions() }
                 }
                 .buttonStyle(.bordered)
@@ -871,11 +890,11 @@ struct DeskPermissionTab: View {
                     let allowed = result["allowed"] as? Bool ?? false
                     Image(systemName: allowed ? "checkmark.circle.fill" : "xmark.circle.fill")
                         .foregroundColor(allowed ? .green : .red)
-                    Text("工具 \(checkToolName): \(allowed ? "允许" : "拒绝")")
+                    Text(String(format: i18n.t(.desk_perm_checkResult), checkToolName, allowed ? i18n.t(.desk_perm_allowed) : i18n.t(.desk_perm_denied)))
                         .font(.caption)
                         .foregroundColor(theme.text)
                     Spacer()
-                    Button("关闭") { showCheckResult = false }
+                    Button(i18n.t(.desk_close)) { showCheckResult = false }
                         .buttonStyle(.borderless)
                         .controlSize(.small)
                 }
@@ -885,7 +904,7 @@ struct DeskPermissionTab: View {
             }
 
             if bridge.permissions.isEmpty {
-                deskEmptyState(icon: "lock.shield", text: "暂无权限规则")
+                deskEmptyState(icon: "lock.shield", text: i18n.t(.desk_perm_noRules))
             } else {
                 List(bridge.permissions) { rule in
                     HStack(spacing: 12) {
@@ -897,14 +916,14 @@ struct DeskPermissionTab: View {
                             Text(rule.toolName)
                                 .font(.headline)
                                 .foregroundColor(theme.text)
-                            Text("范围: \(rule.scope)")
+                            Text(String(format: i18n.t(.desk_perm_scope), rule.scope))
                                 .font(.caption)
                                 .foregroundColor(theme.textTertiary)
                         }
 
                         Spacer()
 
-                        Text(rule.allowed ? "允许" : "拒绝")
+                        Text(rule.allowed ? i18n.t(.desk_perm_allowed) : i18n.t(.desk_perm_denied))
                             .font(.caption2)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
@@ -912,7 +931,7 @@ struct DeskPermissionTab: View {
                             .foregroundColor(rule.allowed ? .green : .red)
                             .cornerRadius(4)
 
-                        Button("切换") {
+                        Button(i18n.t(.desk_perm_toggle)) {
                             Task {
                                 if rule.allowed {
                                     await bridge.denyPermission(toolName: rule.toolName, scope: rule.scope)
@@ -936,12 +955,13 @@ struct DeskPermissionTab: View {
 struct DeskMLXTab: View {
     @EnvironmentObject var bridge: DeskBridge
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Fusion-MLX 状态")
+                    Text(i18n.t(.desk_mlx_status))
                         .font(.headline)
                         .foregroundColor(theme.text)
                     if let status = bridge.mlxStatus {
@@ -949,7 +969,7 @@ struct DeskMLXTab: View {
                             Circle()
                                 .fill(status.status == "running" ? Color.green : Color.red)
                                 .frame(width: 8, height: 8)
-                            Text(status.status == "running" ? "运行中" : "已停止")
+                            Text(status.status == "running" ? i18n.t(.desk_mlx_running) : i18n.t(.desk_mlx_stopped))
                                 .font(.subheadline)
                                 .foregroundColor(theme.textSecondary)
                         }
@@ -970,12 +990,12 @@ struct DeskMLXTab: View {
                             }
                         }
                         if bridge.mlxModels.isEmpty {
-                            Text("无可用模型")
+                            Text(i18n.t(.desk_mlx_noModels))
                         }
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "list.bullet")
-                            Text(bridge.mlxModels.isEmpty ? "模型列表" : "\(bridge.mlxModels.count) 个模型")
+                            Text(bridge.mlxModels.isEmpty ? i18n.t(.desk_mlx_modelList) : String(format: i18n.t(.desk_mlx_modelCount), bridge.mlxModels.count))
                         }
                         .font(.caption)
                     }
@@ -1005,7 +1025,7 @@ struct DeskMLXTab: View {
                     Image(systemName: "cpu")
                         .font(.system(size: 48))
                         .foregroundColor(.green)
-                    Text("Fusion-MLX 运行中")
+                    Text(i18n.t(.desk_mlx_runningTitle))
                         .font(.title3)
                         .foregroundColor(theme.text)
                 }
@@ -1014,10 +1034,10 @@ struct DeskMLXTab: View {
                     Image(systemName: "moon.zzz")
                         .font(.system(size: 48))
                         .foregroundColor(theme.textTertiary)
-                    Text("Fusion-MLX 未启动")
+                    Text(i18n.t(.desk_mlx_stoppedTitle))
                         .font(.title3)
                         .foregroundColor(theme.textSecondary)
-                    Text("请通过 UpstreamServiceManager 管理 MLX 生命周期")
+                    Text(i18n.t(.desk_mlx_manageHint))
                         .font(.subheadline)
                         .foregroundColor(theme.textTertiary)
                 }
@@ -1033,12 +1053,13 @@ struct DeskMLXTab: View {
 struct DeskSystemTab: View {
     @EnvironmentObject var bridge: DeskBridge
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @State private var showNodeDetail = false
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
-                Text("系统信息")
+                Text(i18n.t(.desk_sys_info))
                     .font(.headline)
                     .foregroundColor(theme.text)
                 Spacer()
@@ -1061,17 +1082,17 @@ struct DeskSystemTab: View {
             if let info = bridge.systemInfo {
                 ScrollView {
                     VStack(spacing: 12) {
-                        infoRow(icon: "desktopcomputer", label: "平台", value: info.platform)
+                        infoRow(icon: "desktopcomputer", label: i18n.t(.desk_sys_platform), value: info.platform)
                         infoRow(icon: "chevron.left.forwardslash.chevron.right", label: "Python", value: info.python)
-                        infoRow(icon: "cpu", label: "CPU 核心数", value: "\(info.cpuCount)")
-                        infoRow(icon: "memorychip", label: "内存总量", value: "\(String(format: "%.1f", info.memoryTotalGB)) GB")
-                        infoRow(icon: "gauge", label: "内存使用", value: "\(String(format: "%.1f", info.memoryUsedPct))%")
-                        infoRow(icon: "internaldrive", label: "磁盘剩余", value: "\(String(format: "%.1f", info.diskFreeGB)) GB")
+                        infoRow(icon: "cpu", label: i18n.t(.desk_sys_cpuCores), value: "\(info.cpuCount)")
+                        infoRow(icon: "memorychip", label: i18n.t(.desk_sys_memoryTotal), value: "\(String(format: "%.1f", info.memoryTotalGB)) GB")
+                        infoRow(icon: "gauge", label: i18n.t(.desk_sys_memoryUsed), value: "\(String(format: "%.1f", info.memoryUsedPct))%")
+                        infoRow(icon: "internaldrive", label: i18n.t(.desk_sys_diskFree), value: "\(String(format: "%.1f", info.diskFreeGB)) GB")
 
                         Divider()
 
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("节点分类")
+                            Text(i18n.t(.desk_sys_nodeCategories))
                                 .font(.headline)
                                 .foregroundColor(theme.text)
                             ForEach(bridge.nodeCategories.sorted(by: { $0.key < $1.key }), id: \.key) { cat, count in
@@ -1093,7 +1114,7 @@ struct DeskSystemTab: View {
                         Divider()
 
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("节点列表")
+                            Text(i18n.t(.desk_sys_nodeList))
                                 .font(.headline)
                                 .foregroundColor(theme.text)
                             ForEach(bridge.nodes) { node in
@@ -1123,7 +1144,7 @@ struct DeskSystemTab: View {
                     .padding(12)
                 }
             } else {
-                deskEmptyState(icon: "desktopcomputer", text: "系统信息加载中...")
+                deskEmptyState(icon: "desktopcomputer", text: i18n.t(.desk_sys_loading))
             }
         }
         .sheet(isPresented: $showNodeDetail) {
@@ -1134,25 +1155,25 @@ struct DeskSystemTab: View {
     private var nodeDetailSheet: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("节点详情")
+                Text(i18n.t(.desk_sys_nodeDetail))
                     .font(.title3)
                     .foregroundColor(theme.text)
                 Spacer()
-                Button("关闭") { showNodeDetail = false }
+                Button(i18n.t(.desk_close)) { showNodeDetail = false }
                     .buttonStyle(.borderless)
             }
 
             if let detail = bridge.selectedNodeDetail {
                 Group {
-                    LabeledContent("名称", value: detail.name)
-                    LabeledContent("分类", value: detail.category)
-                    LabeledContent("描述", value: detail.description)
+                    LabeledContent(i18n.t(.desk_name), value: detail.name)
+                    LabeledContent(i18n.t(.desk_category), value: detail.category)
+                    LabeledContent(i18n.t(.desk_description), value: detail.description)
                 }
                 .font(.subheadline)
 
                 if !detail.inputs.isEmpty {
                     Divider()
-                    Text("输入参数")
+                    Text(i18n.t(.desk_sys_inputs))
                         .font(.headline)
                         .foregroundColor(theme.text)
                     ForEach(Array(detail.inputs.sorted(by: { $0.key < $1.key })), id: \.key) { key, val in
@@ -1169,7 +1190,7 @@ struct DeskSystemTab: View {
 
                 if !detail.outputs.isEmpty {
                     Divider()
-                    Text("输出")
+                    Text(i18n.t(.desk_sys_outputs))
                         .font(.headline)
                         .foregroundColor(theme.text)
                     ForEach(Array(detail.outputs.sorted(by: { $0.key < $1.key })), id: \.key) { key, val in
@@ -1184,7 +1205,7 @@ struct DeskSystemTab: View {
                     }
                 }
             } else {
-                ProgressView("加载中...")
+                ProgressView(i18n.t(.desk_loading))
             }
             Spacer()
         }
@@ -1225,13 +1246,14 @@ struct DeskSystemTab: View {
 struct DeskEventsTab: View {
     @EnvironmentObject var bridge: DeskBridge
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @State private var isPolling = false
     @State private var pollTimer: Timer?
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
-                Text("事件流")
+                Text(i18n.t(.desk_evt_stream))
                     .font(.headline)
                     .foregroundColor(theme.text)
 
@@ -1242,17 +1264,17 @@ struct DeskEventsTab: View {
                         Circle()
                             .fill(isPolling ? Color.green : Color.orange)
                             .frame(width: 6, height: 6)
-                        Text(isPolling ? "轮询中" : "已订阅")
+                        Text(isPolling ? i18n.t(.desk_evt_polling) : i18n.t(.desk_evt_subscribed))
                             .font(.caption)
                             .foregroundColor(theme.textTertiary)
                     }
                 }
 
-                Text("\(bridge.recentEvents.count) 个事件")
+                Text(String(format: i18n.t(.desk_evt_count), bridge.recentEvents.count))
                     .font(.caption)
                     .foregroundColor(theme.textTertiary)
 
-                Button(isPolling ? "停止轮询" : "开始轮询") {
+                Button(isPolling ? i18n.t(.desk_evt_stopPoll) : i18n.t(.desk_evt_startPoll)) {
                     togglePolling()
                 }
                 .buttonStyle(.bordered)
@@ -1270,7 +1292,7 @@ struct DeskEventsTab: View {
             Divider()
 
             if bridge.recentEvents.isEmpty {
-                deskEmptyState(icon: "bell.badge", text: "暂无事件")
+                deskEmptyState(icon: "bell.badge", text: i18n.t(.desk_noEvents))
             } else {
                 List(bridge.recentEvents) { evt in
                     HStack(spacing: 12) {
@@ -1282,7 +1304,7 @@ struct DeskEventsTab: View {
                             Text(evt.type)
                                 .font(.headline)
                                 .foregroundColor(theme.text)
-                            Text("来源: \(evt.source)")
+                            Text(String(format: i18n.t(.desk_evt_source), evt.source))
                                 .font(.caption)
                                 .foregroundColor(theme.textTertiary)
                         }
