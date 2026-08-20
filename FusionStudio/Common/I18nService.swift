@@ -2638,6 +2638,59 @@ enum I18nKey: String, CaseIterable {
     case design_eco_tplSavedFmt = "design_eco_tplSavedFmt"
     case design_eco_tplSaveFailFmt = "design_eco_tplSaveFailFmt"
     case design_eco_tplLoadedFmt = "design_eco_tplLoadedFmt"
+    case design_theme_modeSystem = "design_theme_modeSystem"
+    case design_theme_modeLight = "design_theme_modeLight"
+    case design_theme_modeDark = "design_theme_modeDark"
+    case design_theme_modeCustom = "design_theme_modeCustom"
+    case design_theme_title = "design_theme_title"
+    case design_theme_modeLabel = "design_theme_modeLabel"
+    case design_theme_customAccent = "design_theme_customAccent"
+    case design_theme_accentBlue = "design_theme_accentBlue"
+    case design_theme_accentRed = "design_theme_accentRed"
+    case design_theme_accentGreen = "design_theme_accentGreen"
+    case design_theme_accentOrange = "design_theme_accentOrange"
+    case design_theme_accentPurple = "design_theme_accentPurple"
+    case design_theme_accentPink = "design_theme_accentPink"
+    case design_theme_preview = "design_theme_preview"
+    case design_theme_previewLight = "design_theme_previewLight"
+    case design_theme_previewDark = "design_theme_previewDark"
+    case design_theme_reset = "design_theme_reset"
+    case design_wf_recipe_designToCode = "design_wf_recipe_designToCode"
+    case design_wf_recipe_codeToDesign = "design_wf_recipe_codeToDesign"
+    case design_wf_recipe_screenshot = "design_wf_recipe_screenshot"
+    case design_wf_recipe_designToCodeDesc = "design_wf_recipe_designToCodeDesc"
+    case design_wf_recipe_codeToDesignDesc = "design_wf_recipe_codeToDesignDesc"
+    case design_wf_recipe_screenshotDesc = "design_wf_recipe_screenshotDesc"
+    case design_wf_step_createDesign = "design_wf_step_createDesign"
+    case design_wf_step_previewDesign = "design_wf_step_previewDesign"
+    case design_wf_step_exportToCode = "design_wf_step_exportToCode"
+    case design_wf_step_openInEditor = "design_wf_step_openInEditor"
+    case design_wf_step_selectCodeFile = "design_wf_step_selectCodeFile"
+    case design_wf_step_importToDesign = "design_wf_step_importToDesign"
+    case design_wf_step_editDesign = "design_wf_step_editDesign"
+    case design_wf_step_syncBack = "design_wf_step_syncBack"
+    case design_wf_step_captureScreenshot = "design_wf_step_captureScreenshot"
+    case design_wf_step_analyzeScreenshot = "design_wf_step_analyzeScreenshot"
+    case design_wf_step_generateDesign = "design_wf_step_generateDesign"
+    case design_wf_startFmt = "design_wf_startFmt"
+    case design_wf_cancelled = "design_wf_cancelled"
+    case design_wf_doneFmt = "design_wf_doneFmt"
+    case design_wf_execFmt = "design_wf_execFmt"
+    case design_wf_ssSaved = "design_wf_ssSaved"
+    case design_wf_canvasCleared = "design_wf_canvasCleared"
+    case design_wf_previewing = "design_wf_previewing"
+    case design_wf_editHint = "design_wf_editHint"
+    case design_wf_generating = "design_wf_generating"
+    case design_wf_analyzing = "design_wf_analyzing"
+    case design_wf_noScreenshot = "design_wf_noScreenshot"
+    case design_wf_selectCodeFile = "design_wf_selectCodeFile"
+    case design_wf_selectedFmt = "design_wf_selectedFmt"
+    case design_wf_notSelected = "design_wf_notSelected"
+    case design_wf_importedFmt = "design_wf_importedFmt"
+    case design_wf_importedDoc = "design_wf_importedDoc"
+    case design_wf_noFileSelected = "design_wf_noFileSelected"
+    case design_wf_panelTitle = "design_wf_panelTitle"
+    case design_wf_cancelBtn = "design_wf_cancelBtn"
 }
 
 // MARK: - 翻译管理器
@@ -4928,6 +4981,59 @@ let zhCNTranslations: [String: String] = [
     "design_eco_tplSavedFmt": "模板 '%@' 已保存",
     "design_eco_tplSaveFailFmt": "保存模板失败: %@",
     "design_eco_tplLoadedFmt": "已加载模板 '%@'",
+    "design_theme_modeSystem": "跟随系统",
+    "design_theme_modeLight": "浅色",
+    "design_theme_modeDark": "深色",
+    "design_theme_modeCustom": "自定义",
+    "design_theme_title": "主题切换",
+    "design_theme_modeLabel": "外观模式",
+    "design_theme_customAccent": "自定义强调色",
+    "design_theme_accentBlue": "蓝",
+    "design_theme_accentRed": "红",
+    "design_theme_accentGreen": "绿",
+    "design_theme_accentOrange": "橙",
+    "design_theme_accentPurple": "紫",
+    "design_theme_accentPink": "粉",
+    "design_theme_preview": "预览",
+    "design_theme_previewLight": "浅色",
+    "design_theme_previewDark": "深色",
+    "design_theme_reset": "重置为默认",
+    "design_wf_recipe_designToCode": "Design → Code",
+    "design_wf_recipe_codeToDesign": "Code → Design",
+    "design_wf_recipe_screenshot": "Screenshot → Design → Code",
+    "design_wf_recipe_designToCodeDesc": "在 Design 模块创建设计，导出为代码文件",
+    "design_wf_recipe_codeToDesignDesc": "导入现有代码到 Design 模块进行可视化编辑",
+    "design_wf_recipe_screenshotDesc": "截取屏幕截图，AI 生成设计，导出为代码",
+    "design_wf_step_createDesign": "创建设计",
+    "design_wf_step_previewDesign": "预览设计",
+    "design_wf_step_exportToCode": "导出为代码",
+    "design_wf_step_openInEditor": "在编辑器中打开",
+    "design_wf_step_selectCodeFile": "选择代码文件",
+    "design_wf_step_importToDesign": "导入到设计",
+    "design_wf_step_editDesign": "编辑设计",
+    "design_wf_step_syncBack": "同步回文件",
+    "design_wf_step_captureScreenshot": "截取屏幕截图",
+    "design_wf_step_analyzeScreenshot": "分析截图",
+    "design_wf_step_generateDesign": "生成设计",
+    "design_wf_startFmt": "开始工作流: %@",
+    "design_wf_cancelled": "工作流已取消",
+    "design_wf_doneFmt": "✅ 工作流完成: %@",
+    "design_wf_execFmt": "执行: %@",
+    "design_wf_ssSaved": "截图已保存到剪贴板，请粘贴到 Design 聊天中",
+    "design_wf_canvasCleared": "画布已清空，请在聊天中描述您的设计",
+    "design_wf_previewing": "正在预览设计...",
+    "design_wf_editHint": "请在聊天中描述修改需求",
+    "design_wf_generating": "AI 正在生成设计...",
+    "design_wf_analyzing": "正在分析截图并生成设计...",
+    "design_wf_noScreenshot": "剪贴板无截图，请先截图 (⌘⇧4)",
+    "design_wf_selectCodeFile": "选择代码文件",
+    "design_wf_selectedFmt": "已选择: %@",
+    "design_wf_notSelected": "未选择文件",
+    "design_wf_importedFmt": "已导入: %@",
+    "design_wf_importedDoc": "已导入文档",
+    "design_wf_noFileSelected": "无已选文件，请先选择代码文件",
+    "design_wf_panelTitle": "设计工作流",
+    "design_wf_cancelBtn": "取消工作流",
 ]
 
 let enUSTranslations: [String: String] = [
@@ -7173,6 +7279,59 @@ let enUSTranslations: [String: String] = [
     "design_eco_tplSavedFmt": "Template '%@' saved",
     "design_eco_tplSaveFailFmt": "Failed to save template: %@",
     "design_eco_tplLoadedFmt": "Template '%@' loaded",
+    "design_theme_modeSystem": "System",
+    "design_theme_modeLight": "Light",
+    "design_theme_modeDark": "Dark",
+    "design_theme_modeCustom": "Custom",
+    "design_theme_title": "Theme",
+    "design_theme_modeLabel": "Appearance",
+    "design_theme_customAccent": "Custom Accent",
+    "design_theme_accentBlue": "Blue",
+    "design_theme_accentRed": "Red",
+    "design_theme_accentGreen": "Green",
+    "design_theme_accentOrange": "Orange",
+    "design_theme_accentPurple": "Purple",
+    "design_theme_accentPink": "Pink",
+    "design_theme_preview": "Preview",
+    "design_theme_previewLight": "Light",
+    "design_theme_previewDark": "Dark",
+    "design_theme_reset": "Reset to Default",
+    "design_wf_recipe_designToCode": "Design → Code",
+    "design_wf_recipe_codeToDesign": "Code → Design",
+    "design_wf_recipe_screenshot": "Screenshot → Design → Code",
+    "design_wf_recipe_designToCodeDesc": "Create design in Design module, export to code files",
+    "design_wf_recipe_codeToDesignDesc": "Import existing code into Design module for visual editing",
+    "design_wf_recipe_screenshotDesc": "Capture screenshot, AI-generate design, export to code",
+    "design_wf_step_createDesign": "Create Design",
+    "design_wf_step_previewDesign": "Preview Design",
+    "design_wf_step_exportToCode": "Export to Code",
+    "design_wf_step_openInEditor": "Open in Editor",
+    "design_wf_step_selectCodeFile": "Select Code File",
+    "design_wf_step_importToDesign": "Import to Design",
+    "design_wf_step_editDesign": "Edit Design",
+    "design_wf_step_syncBack": "Sync Back to File",
+    "design_wf_step_captureScreenshot": "Capture Screenshot",
+    "design_wf_step_analyzeScreenshot": "Analyze Screenshot",
+    "design_wf_step_generateDesign": "Generate Design",
+    "design_wf_startFmt": "Starting workflow: %@",
+    "design_wf_cancelled": "Workflow cancelled",
+    "design_wf_doneFmt": "✅ Workflow complete: %@",
+    "design_wf_execFmt": "Executing: %@",
+    "design_wf_ssSaved": "Screenshot saved to clipboard, paste into Design chat",
+    "design_wf_canvasCleared": "Canvas cleared, describe your design in chat",
+    "design_wf_previewing": "Previewing design...",
+    "design_wf_editHint": "Describe your edit needs in chat",
+    "design_wf_generating": "AI is generating design...",
+    "design_wf_analyzing": "Analyzing screenshot and generating design...",
+    "design_wf_noScreenshot": "No screenshot in clipboard, capture one first (⌘⇧4)",
+    "design_wf_selectCodeFile": "Select Code File",
+    "design_wf_selectedFmt": "Selected: %@",
+    "design_wf_notSelected": "No file selected",
+    "design_wf_importedFmt": "Imported: %@",
+    "design_wf_importedDoc": "Document imported",
+    "design_wf_noFileSelected": "No file selected, choose a code file first",
+    "design_wf_panelTitle": "Design Workflow",
+    "design_wf_cancelBtn": "Cancel Workflow",
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -9412,6 +9571,59 @@ let jaJPTranslations: [String: String] = [
     "design_eco_tplSavedFmt": "テンプレート '%@' を保存しました",
     "design_eco_tplSaveFailFmt": "テンプレートの保存に失敗: %@",
     "design_eco_tplLoadedFmt": "テンプレート '%@' を読み込みました",
+    "design_theme_modeSystem": "システムに従う",
+    "design_theme_modeLight": "ライト",
+    "design_theme_modeDark": "ダーク",
+    "design_theme_modeCustom": "カスタム",
+    "design_theme_title": "テーマ切替",
+    "design_theme_modeLabel": "外観モード",
+    "design_theme_customAccent": "カスタムアクセント",
+    "design_theme_accentBlue": "青",
+    "design_theme_accentRed": "赤",
+    "design_theme_accentGreen": "緑",
+    "design_theme_accentOrange": "オレンジ",
+    "design_theme_accentPurple": "紫",
+    "design_theme_accentPink": "ピンク",
+    "design_theme_preview": "プレビュー",
+    "design_theme_previewLight": "ライト",
+    "design_theme_previewDark": "ダーク",
+    "design_theme_reset": "デフォルトにリセット",
+    "design_wf_recipe_designToCode": "Design → Code",
+    "design_wf_recipe_codeToDesign": "Code → Design",
+    "design_wf_recipe_screenshot": "Screenshot → Design → Code",
+    "design_wf_recipe_designToCodeDesc": "Design モジュールでデザインを作成しコードファイルへエクスポート",
+    "design_wf_recipe_codeToDesignDesc": "既存コードを Design モジュールへ取り込みビジュアル編集",
+    "design_wf_recipe_screenshotDesc": "スクリーンショットを撮影し AI でデザイン生成しコードへエクスポート",
+    "design_wf_step_createDesign": "デザイン作成",
+    "design_wf_step_previewDesign": "デザインプレビュー",
+    "design_wf_step_exportToCode": "コードへエクスポート",
+    "design_wf_step_openInEditor": "エディタで開く",
+    "design_wf_step_selectCodeFile": "コードファイルを選択",
+    "design_wf_step_importToDesign": "デザインへ取り込み",
+    "design_wf_step_editDesign": "デザイン編集",
+    "design_wf_step_syncBack": "ファイルへ同期",
+    "design_wf_step_captureScreenshot": "スクリーンショット撮影",
+    "design_wf_step_analyzeScreenshot": "スクリーンショット分析",
+    "design_wf_step_generateDesign": "デザイン生成",
+    "design_wf_startFmt": "ワークフローを開始: %@",
+    "design_wf_cancelled": "ワークフローはキャンセルされました",
+    "design_wf_doneFmt": "✅ ワークフロー完了: %@",
+    "design_wf_execFmt": "実行中: %@",
+    "design_wf_ssSaved": "スクリーンショットをクリップボードに保存しました。Design チャットに貼り付けしてください",
+    "design_wf_canvasCleared": "キャンバスをクリアしました。チャットでデザインを説明してください",
+    "design_wf_previewing": "デザインをプレビュー中...",
+    "design_wf_editHint": "チャットで編集内容を説明してください",
+    "design_wf_generating": "AI がデザインを生成中...",
+    "design_wf_analyzing": "スクリーンショットを分析しデザインを生成中...",
+    "design_wf_noScreenshot": "クリップボードにスクリーンショットがありません。先に撮影してください (⌘⇧4)",
+    "design_wf_selectCodeFile": "コードファイルを選択",
+    "design_wf_selectedFmt": "選択済み: %@",
+    "design_wf_notSelected": "ファイルが選択されていません",
+    "design_wf_importedFmt": "取り込み済み: %@",
+    "design_wf_importedDoc": "ドキュメントを取り込みました",
+    "design_wf_noFileSelected": "ファイルが選択されていません。先にコードファイルを選択してください",
+    "design_wf_panelTitle": "デザインワークフロー",
+    "design_wf_cancelBtn": "ワークフローをキャンセル",
 ]
 
 let koKRTranslations: [String: String] = [
@@ -11651,6 +11863,59 @@ let koKRTranslations: [String: String] = [
     "design_eco_tplSavedFmt": "템플릿 '%@' 저장됨",
     "design_eco_tplSaveFailFmt": "템플릿 저장 실패: %@",
     "design_eco_tplLoadedFmt": "템플릿 '%@' 불러옴",
+    "design_theme_modeSystem": "시스템 따름",
+    "design_theme_modeLight": "라이트",
+    "design_theme_modeDark": "다ーク",
+    "design_theme_modeCustom": "사용자 지정",
+    "design_theme_title": "테마 전환",
+    "design_theme_modeLabel": "외관 모드",
+    "design_theme_customAccent": "사용자 지정 강조색",
+    "design_theme_accentBlue": "파랑",
+    "design_theme_accentRed": "빨강",
+    "design_theme_accentGreen": "초록",
+    "design_theme_accentOrange": "주황",
+    "design_theme_accentPurple": "보라",
+    "design_theme_accentPink": "분홍",
+    "design_theme_preview": "미리보기",
+    "design_theme_previewLight": "라이트",
+    "design_theme_previewDark": "다ーク",
+    "design_theme_reset": "기본값으로 재설정",
+    "design_wf_recipe_designToCode": "Design → Code",
+    "design_wf_recipe_codeToDesign": "Code → Design",
+    "design_wf_recipe_screenshot": "Screenshot → Design → Code",
+    "design_wf_recipe_designToCodeDesc": "Design 모듈에서 디자인을 생성하여 코드 파일로 내보내기",
+    "design_wf_recipe_codeToDesignDesc": "기존 코드를 Design 모듈로 가져와 시각적 편집",
+    "design_wf_recipe_screenshotDesc": "스크린샷을 캡처하고 AI로 디자인을 생성하여 코드로 내보내기",
+    "design_wf_step_createDesign": "디자인 생성",
+    "design_wf_step_previewDesign": "디자인 미리보기",
+    "design_wf_step_exportToCode": "코드로 내보내기",
+    "design_wf_step_openInEditor": "에디터에서 열기",
+    "design_wf_step_selectCodeFile": "코드 파일 선택",
+    "design_wf_step_importToDesign": "디자인으로 가져오기",
+    "design_wf_step_editDesign": "디자인 편집",
+    "design_wf_step_syncBack": "파일로 동기화",
+    "design_wf_step_captureScreenshot": "스크린샷 캡처",
+    "design_wf_step_analyzeScreenshot": "스크린샷 분석",
+    "design_wf_step_generateDesign": "디자인 생성",
+    "design_wf_startFmt": "워크플로 시작: %@",
+    "design_wf_cancelled": "워크플로가 취소되었습니다",
+    "design_wf_doneFmt": "✅ 워크플로 완료: %@",
+    "design_wf_execFmt": "실행 중: %@",
+    "design_wf_ssSaved": "스크린샷이 클립보드에 저장되었습니다. Design 채팅에 붙여넣으세요",
+    "design_wf_canvasCleared": "캔버스가 비워졌습니다. 채팅에서 디자인을 설명하세요",
+    "design_wf_previewing": "디자인 미리보는 중...",
+    "design_wf_editHint": "채팅에서 수정 요청을 설명하세요",
+    "design_wf_generating": "AI가 디자인 생성 중...",
+    "design_wf_analyzing": "스크린샷을 분석하고 디자인을 생성하는 중...",
+    "design_wf_noScreenshot": "클립보드에 스크린샷이 없습니다. 먼저 캡처하세요 (⌘⇧4)",
+    "design_wf_selectCodeFile": "코드 파일 선택",
+    "design_wf_selectedFmt": "선택됨: %@",
+    "design_wf_notSelected": "파일이 선택되지 않았습니다",
+    "design_wf_importedFmt": "가져옴: %@",
+    "design_wf_importedDoc": "문서를 가져왔습니다",
+    "design_wf_noFileSelected": "선택된 파일이 없습니다. 먼저 코드 파일을 선택하세요",
+    "design_wf_panelTitle": "디자인 워크플로",
+    "design_wf_cancelBtn": "워크플로 취소",
 ]
 
 // MARK: - 国际化文本视图

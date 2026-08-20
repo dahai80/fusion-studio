@@ -11,6 +11,15 @@ enum AppThemeMode: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    var localLabel: String {
+        switch self {
+        case .system: return I18nManager.shared.t(.design_theme_modeSystem)
+        case .light: return I18nManager.shared.t(.design_theme_modeLight)
+        case .dark: return I18nManager.shared.t(.design_theme_modeDark)
+        case .custom: return I18nManager.shared.t(.design_theme_modeCustom)
+        }
+    }
+
     var icon: String {
         switch self {
         case .system: return "circle.lefthalf.filled"
@@ -69,6 +78,7 @@ extension Notification.Name {
 
 struct ThemeSwitcherView: View {
     @StateObject private var state = ThemeSwitcherState.shared
+    @StateObject private var i18n = I18nManager.shared
     @Environment(\.studioTheme) var theme
 
     var body: some View {
@@ -93,7 +103,7 @@ struct ThemeSwitcherView: View {
         HStack(spacing: theme.spacingS) {
             Image(systemName: "circle.lefthalf.filled")
                 .foregroundColor(theme.accent)
-            Text("主题切换")
+            Text(i18n.t(.design_theme_title))
                 .font(.system(size: theme.bodySize, weight: .semibold))
                 .foregroundColor(theme.text)
             Spacer()
@@ -104,7 +114,7 @@ struct ThemeSwitcherView: View {
 
     private var modePicker: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            Text("外观模式")
+            Text(i18n.t(.design_theme_modeLabel))
                 .font(.system(size: theme.captionSize, weight: .semibold))
                 .foregroundColor(theme.textSecondary)
 
@@ -120,7 +130,7 @@ struct ThemeSwitcherView: View {
                                     .font(.system(size: 14))
                                     .foregroundColor(state.mode == m ? theme.accent : theme.textSecondary)
                             }
-                            Text(m.rawValue)
+                            Text(m.localLabel)
                                 .font(.system(size: 10))
                                 .foregroundColor(state.mode == m ? theme.accentText : theme.textTertiary)
                         }
@@ -138,7 +148,7 @@ struct ThemeSwitcherView: View {
 
     private var customAccentSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            Text("自定义强调色")
+            Text(i18n.t(.design_theme_customAccent))
                 .font(.system(size: theme.captionSize, weight: .semibold))
                 .foregroundColor(theme.textSecondary)
 
@@ -154,12 +164,12 @@ struct ThemeSwitcherView: View {
                     .frame(width: 100)
 
                 HStack(spacing: theme.spacingXS) {
-                    accentSwatch("#007AFF", label: "蓝")
-                    accentSwatch("#FF3B30", label: "红")
-                    accentSwatch("#34C759", label: "绿")
-                    accentSwatch("#FF9500", label: "橙")
-                    accentSwatch("#AF52DE", label: "紫")
-                    accentSwatch("#FF2D55", label: "粉")
+                    accentSwatch("#007AFF", label: i18n.t(.design_theme_accentBlue))
+                    accentSwatch("#FF3B30", label: i18n.t(.design_theme_accentRed))
+                    accentSwatch("#34C759", label: i18n.t(.design_theme_accentGreen))
+                    accentSwatch("#FF9500", label: i18n.t(.design_theme_accentOrange))
+                    accentSwatch("#AF52DE", label: i18n.t(.design_theme_accentPurple))
+                    accentSwatch("#FF2D55", label: i18n.t(.design_theme_accentPink))
                 }
             }
         }
@@ -181,13 +191,13 @@ struct ThemeSwitcherView: View {
 
     private var previewSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            Text("预览")
+            Text(i18n.t(.design_theme_preview))
                 .font(.system(size: theme.captionSize, weight: .semibold))
                 .foregroundColor(theme.textSecondary)
 
             HStack(spacing: theme.spacingS) {
-                previewCard("浅色", isLight: true)
-                previewCard("深色", isLight: false)
+                previewCard(i18n.t(.design_theme_previewLight), isLight: true)
+                previewCard(i18n.t(.design_theme_previewDark), isLight: false)
             }
         }
     }
@@ -216,7 +226,7 @@ struct ThemeSwitcherView: View {
             HStack(spacing: theme.spacingXS) {
                 Image(systemName: "arrow.counterclockwise")
                     .font(.system(size: 11))
-                Text("重置为默认")
+                Text(i18n.t(.design_theme_reset))
                     .font(.system(size: theme.captionSize))
             }
             .foregroundColor(theme.textSecondary)

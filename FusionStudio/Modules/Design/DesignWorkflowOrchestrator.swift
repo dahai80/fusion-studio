@@ -34,6 +34,22 @@ enum WorkflowRecipe: String, CaseIterable {
         }
     }
 
+    var localLabel: String {
+        switch self {
+        case .designToCode: return I18nManager.shared.t(.design_wf_recipe_designToCode)
+        case .codeToDesign: return I18nManager.shared.t(.design_wf_recipe_codeToDesign)
+        case .screenshotToDesignToCode: return I18nManager.shared.t(.design_wf_recipe_screenshot)
+        }
+    }
+
+    var localDescription: String {
+        switch self {
+        case .designToCode: return I18nManager.shared.t(.design_wf_recipe_designToCodeDesc)
+        case .codeToDesign: return I18nManager.shared.t(.design_wf_recipe_codeToDesignDesc)
+        case .screenshotToDesignToCode: return I18nManager.shared.t(.design_wf_recipe_screenshotDesc)
+        }
+    }
+
     var description: String {
         switch self {
         case .designToCode: return "Create design in Design module, export to code files"
@@ -71,6 +87,22 @@ enum WorkflowStep: String {
         case .generateDesign: return "wand.and.stars"
         }
     }
+
+    var localLabel: String {
+        switch self {
+        case .createDesign: return I18nManager.shared.t(.design_wf_step_createDesign)
+        case .previewDesign: return I18nManager.shared.t(.design_wf_step_previewDesign)
+        case .exportToCode: return I18nManager.shared.t(.design_wf_step_exportToCode)
+        case .openInEditor: return I18nManager.shared.t(.design_wf_step_openInEditor)
+        case .selectCodeFile: return I18nManager.shared.t(.design_wf_step_selectCodeFile)
+        case .importToDesign: return I18nManager.shared.t(.design_wf_step_importToDesign)
+        case .editDesign: return I18nManager.shared.t(.design_wf_step_editDesign)
+        case .syncBack: return I18nManager.shared.t(.design_wf_step_syncBack)
+        case .captureScreenshot: return I18nManager.shared.t(.design_wf_step_captureScreenshot)
+        case .analyzeScreenshot: return I18nManager.shared.t(.design_wf_step_analyzeScreenshot)
+        case .generateDesign: return I18nManager.shared.t(.design_wf_step_generateDesign)
+        }
+    }
 }
 
 @MainActor
@@ -103,7 +135,7 @@ class DesignWorkflowOrchestrator: ObservableObject {
         currentStepIndex = 0
         stepHistory = []
         isRunning = true
-        statusMessage = "开始工作流: \(recipe.rawValue)"
+        statusMessage = String(format: I18nManager.shared.t(.design_wf_startFmt), recipe.rawValue)
         workflowLog.info("Workflow started: \(recipe.rawValue)")
         executeCurrentStep(designBridge: designBridge)
     }
@@ -112,7 +144,7 @@ class DesignWorkflowOrchestrator: ObservableObject {
         activeRecipe = nil
         currentStepIndex = 0
         isRunning = false
-        statusMessage = "工作流已取消"
+        statusMessage = I18nManager.shared.t(.design_wf_cancelled)
         workflowLog.info("Workflow cancelled")
     }
 
@@ -124,7 +156,7 @@ class DesignWorkflowOrchestrator: ObservableObject {
         self.currentStepIndex += 1
         if self.currentStepIndex >= recipe.steps.count {
             self.isRunning = false
-            self.statusMessage = "✅ 工作流完成: \(recipe.rawValue)"
+            self.statusMessage = String(format: I18nManager.shared.t(.design_wf_doneFmt), recipe.rawValue)
             workflowLog.info("Workflow completed: \(recipe.rawValue)")
         } else {
             executeCurrentStep(designBridge: designBridge)
@@ -133,7 +165,7 @@ class DesignWorkflowOrchestrator: ObservableObject {
 
     private func executeCurrentStep(designBridge: DesignBridge) {
         guard let step = currentStep else { return }
-        statusMessage = "执行: \(step.rawValue)"
+        statusMessage = String(format: I18nManager.shared.t(.design_wf_execFmt), step.rawValue)
         workflowLog.info("Step \(self.currentStepIndex + 1): \(step.rawValue)")
 
         switch step {
@@ -156,28 +188,28 @@ class DesignWorkflowOrchestrator: ObservableObject {
             task.launchPath = "/usr/sbin/screencapture"
             task.arguments = ["-i", "-c"]
             task.launch()
-            statusMessage = "截图已保存到剪贴板，请粘贴到 Design 聊天中"
+            statusMessage = I18nManager.shared.t(.design_wf_ssSaved)
             workflowLog.info("Screenshot captured")
 
         case .createDesign:
             designBridge.clearCanvas()
-            statusMessage = "画布已清空，请在聊天中描述您的设计"
+            statusMessage = I18nManager.shared.t(.design_wf_canvasCleared)
             NotificationCenter.default.post(name: .focusDesignChat, object: nil)
             advanceStep(designBridge: designBridge)
 
         case .previewDesign:
-            statusMessage = "正在预览设计..."
+            statusMessage = I18nManager.shared.t(.design_wf_previewing)
             advanceStep(designBridge: designBridge)
 
         case .editDesign:
             NotificationCenter.default.post(name: .focusDesignChat, object: nil)
-            statusMessage = "请在聊天中描述修改需求"
+            statusMessage = I18nManager.shared.t(.design_wf_editHint)
             advanceStep(designBridge: designBridge)
 
         case .generateDesign:
             let prompt = "设计一个现代深色主题页面"
             designBridge.skillTextToUI(prompt: prompt)
-            statusMessage = "AI 正在生成设计..."
+            statusMessage = I18nManager.shared.t(.design_wf_generating)
             advanceStep(designBridge: designBridge)
 
         case .analyzeScreenshot:
@@ -185,27 +217,27 @@ class DesignWorkflowOrchestrator: ObservableObject {
                 let tmpPath = NSTemporaryDirectory() + "fd_screenshot.png"
                 try? clipImage.write(to: URL(fileURLWithPath: tmpPath))
                 designBridge.skillImageToUI(imagePath: tmpPath, hint: "根据截图重新生成 UI 设计")
-                statusMessage = "正在分析截图并生成设计..."
+                statusMessage = I18nManager.shared.t(.design_wf_analyzing)
                 try? FileManager.default.removeItem(atPath: tmpPath)
             } else {
-                statusMessage = "剪贴板无截图，请先截图 (⌘⇧4)"
+                statusMessage = I18nManager.shared.t(.design_wf_noScreenshot)
                 workflowLog.warning("No screenshot in clipboard for analyzeScreenshot step")
             }
             advanceStep(designBridge: designBridge)
 
         case .selectCodeFile:
             let panel = NSOpenPanel()
-            panel.title = "选择代码文件"
+            panel.title = I18nManager.shared.t(.design_wf_selectCodeFile)
             panel.canChooseDirectories = false
             panel.canChooseFiles = true
             panel.allowsMultipleSelection = false
             panel.allowedContentTypes = [.html, .svg]
             if panel.runModal() == .OK, let url = panel.url {
                 selectedFilePath = url.path
-                statusMessage = "已选择: \(url.lastPathComponent)"
+                statusMessage = String(format: I18nManager.shared.t(.design_wf_selectedFmt), url.lastPathComponent)
                 workflowLog.info("Selected file: \(url.path)")
             } else {
-                statusMessage = "未选择文件"
+                statusMessage = I18nManager.shared.t(.design_wf_notSelected)
             }
             advanceStep(designBridge: designBridge)
 
@@ -214,16 +246,16 @@ class DesignWorkflowOrchestrator: ObservableObject {
                 if let content = try? String(contentsOfFile: path, encoding: .utf8), !content.isEmpty {
                     if path.hasSuffix(".html"), let docJSON = designBridge.parseHtmlViaCLI(content) {
                         designBridge.loadDocumentJSON(docJSON)
-                        statusMessage = "已导入: \(URL(fileURLWithPath: path).lastPathComponent)"
+                        statusMessage = String(format: I18nManager.shared.t(.design_wf_importedFmt), URL(fileURLWithPath: path).lastPathComponent)
                         workflowLog.info("Imported HTML file to design: \(path)")
                     } else {
                         designBridge.loadDocumentJSON(content)
-                        statusMessage = "已导入文档"
+                        statusMessage = I18nManager.shared.t(.design_wf_importedDoc)
                         workflowLog.info("Imported file to design: \(path)")
                     }
                 }
             } else {
-                statusMessage = "无已选文件，请先选择代码文件"
+                statusMessage = I18nManager.shared.t(.design_wf_noFileSelected)
                 workflowLog.warning("No file selected for importToDesign step")
             }
             advanceStep(designBridge: designBridge)
@@ -240,10 +272,11 @@ struct WorkflowRecipePicker: View {
     @Environment(\.studioTheme) private var theme
     @EnvironmentObject var designBridge: DesignBridge
     @ObservedObject var orchestrator = DesignWorkflowOrchestrator.shared
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            Text("设计工作流")
+            Text(i18n.t(.design_wf_panelTitle))
                 .font(.system(size: theme.footnoteSize, weight: .semibold))
                 .foregroundStyle(theme.text)
 
@@ -257,10 +290,10 @@ struct WorkflowRecipePicker: View {
                             .foregroundStyle(theme.accent)
                             .frame(width: 24)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(recipe.rawValue)
+                            Text(recipe.localLabel)
                                 .font(.system(size: theme.footnoteSize, weight: .medium))
                                 .foregroundStyle(theme.text)
-                            Text(recipe.description)
+                            Text(recipe.localDescription)
                                 .font(.system(size: theme.captionSize))
                                 .foregroundStyle(theme.textSecondary)
                                 .lineLimit(1)
@@ -288,7 +321,7 @@ struct WorkflowRecipePicker: View {
     private var workflowProgress: some View {
         VStack(alignment: .leading, spacing: theme.spacingXS) {
             HStack {
-                Text(orchestrator.activeRecipe?.rawValue ?? "")
+                Text(orchestrator.activeRecipe?.localLabel ?? "")
                     .font(.system(size: theme.captionSize, weight: .medium))
                     .foregroundStyle(theme.text)
                 Spacer()
@@ -304,7 +337,7 @@ struct WorkflowRecipePicker: View {
                 HStack(spacing: 4) {
                     Image(systemName: step.icon)
                         .font(.system(size: 9))
-                    Text(step.rawValue)
+                    Text(step.localLabel)
                         .font(.system(size: 9))
                 }
                 .foregroundStyle(theme.textSecondary)
@@ -317,7 +350,7 @@ struct WorkflowRecipePicker: View {
                     .lineLimit(2)
             }
 
-            Button("取消工作流") {
+            Button(i18n.t(.design_wf_cancelBtn)) {
                 orchestrator.cancel()
             }
             .font(.system(size: 9))
