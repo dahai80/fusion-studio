@@ -37,7 +37,7 @@ class PluginBridge: ObservableObject {
     private let session: URLSession
 
     init(baseURL: String? = nil) {
-        self.baseURL = baseURL ?? "http://\(FusionConfig.shared.mlxHost):\(FusionConfig.shared.mlxPort)"
+        self.baseURL = baseURL ?? "http://\(FusionConfig.shared.coworkHost):\(FusionConfig.shared.coworkMcpPort)"
         let cfg = URLSessionConfiguration.default
         cfg.timeoutIntervalForRequest = 8
         cfg.timeoutIntervalForResource = 30

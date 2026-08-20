@@ -93,7 +93,7 @@ struct DeskView: View {
                 Text("Fusion-CoWork 服务未连接")
                     .font(.title3)
                     .foregroundColor(theme.text)
-                Text("请启动 fusion-cowork 服务后重试（需在 fusion-cowork 根目录创建 start.sh）")
+                Text("请启动 fusion-cowork 服务后重试（终端运行 ./start.sh start，或在 设置→上游服务 中启动）")
                     .font(.subheadline)
                     .foregroundColor(theme.textSecondary)
                     .multilineTextAlignment(.center)

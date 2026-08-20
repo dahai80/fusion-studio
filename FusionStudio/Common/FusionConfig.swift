@@ -152,6 +152,7 @@ class FusionConfig: ObservableObject {
     @AppStorage("upstreamAutoStartCritical") var upstreamAutoStartCritical = true
 
     // MARK: - Upstream Service Ports
+    @AppStorage("coworkHost") var coworkHost = "127.0.0.1"
     @AppStorage("coworkSyncPort") var coworkSyncPort = 11437
     @AppStorage("coworkMcpPort") var coworkMcpPort = 11438
     @AppStorage("modelHubHost") var modelHubHost = "127.0.0.1"
@@ -352,6 +353,7 @@ class FusionConfig: ObservableObject {
         fusionCodePort = 11441
         upstreamAutoStartCritical = true
 
+        coworkHost = "127.0.0.1"
         coworkSyncPort = 11437
         coworkMcpPort = 11438
         modelHubHost = "127.0.0.1"
