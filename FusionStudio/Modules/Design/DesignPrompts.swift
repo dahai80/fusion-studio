@@ -19,6 +19,32 @@ struct DesignQuickTemplate: Identifiable {
         self.prompt = prompt
         self.group = group
     }
+
+    var localName: String {
+        switch id {
+        case "login": return I18nManager.shared.t(.design_tpl_login)
+        case "dashboard": return I18nManager.shared.t(.design_tpl_dashboard)
+        case "landing": return I18nManager.shared.t(.design_tpl_landing)
+        case "settings": return I18nManager.shared.t(.design_tpl_settings)
+        case "chat": return I18nManager.shared.t(.design_tpl_chat)
+        case "profile": return I18nManager.shared.t(.design_tpl_profile)
+        case "card": return I18nManager.shared.t(.design_tpl_card)
+        case "form": return I18nManager.shared.t(.design_tpl_form)
+        case "table": return I18nManager.shared.t(.design_tpl_table)
+        case "nav": return I18nManager.shared.t(.design_tpl_nav)
+        case "modal": return I18nManager.shared.t(.design_tpl_modal)
+        case "buttons": return I18nManager.shared.t(.design_tpl_buttons)
+        case "skill-text-to-ui": return I18nManager.shared.t(.design_tpl_textToUI)
+        case "skill-image-to-ui": return I18nManager.shared.t(.design_tpl_imageToUI)
+        case "skill-partial-edit": return I18nManager.shared.t(.design_tpl_partialEdit)
+        case "skill-local-edit": return I18nManager.shared.t(.design_tpl_localEdit)
+        case "skill-sim-panel": return I18nManager.shared.t(.design_tpl_simPanel)
+        case "skill-multi-variants": return I18nManager.shared.t(.design_tpl_multiVariants)
+        case "skill-spec-doc": return I18nManager.shared.t(.design_tpl_specDoc)
+        case "skill-page-flow": return I18nManager.shared.t(.design_tpl_pageFlow)
+        default: return name
+        }
+    }
 }
 
 enum DesignPrompts {

@@ -2485,6 +2485,78 @@ enum I18nKey: String, CaseIterable {
     case mn_topo_statsFmt = "mn_topo_statsFmt"
     case mn_node_statusA11yFmt = "mn_node_statusA11yFmt"
     case mn_task_degradedFmt = "mn_task_degradedFmt"
+    case design_swiftUITitle = "design_swiftUITitle"
+    case design_codegenTitle = "design_codegenTitle"
+    case design_copy = "design_copy"
+    case design_close = "design_close"
+    case design_helpPageMgmt = "design_helpPageMgmt"
+    case design_helpCopyCode = "design_helpCopyCode"
+    case design_helpExportCode = "design_helpExportCode"
+    case design_helpClear = "design_helpClear"
+    case design_welcomeDesc = "design_welcomeDesc"
+    case design_inputPh = "design_inputPh"
+    case design_emptyTitle = "design_emptyTitle"
+    case design_emptyDesc = "design_emptyDesc"
+    case design_clearInput = "design_clearInput"
+    case design_clearConv = "design_clearConv"
+    case design_copyCurrentCode = "design_copyCurrentCode"
+    case design_helpSave = "design_helpSave"
+    case design_helpCopy = "design_helpCopy"
+    case design_helpHistory = "design_helpHistory"
+    case design_helpSwiftUI = "design_helpSwiftUI"
+    case design_helpStop = "design_helpStop"
+    case design_helpSend = "design_helpSend"
+    case design_roleUser = "design_roleUser"
+    case design_roleDesigner = "design_roleDesigner"
+    case design_parsedFmt = "design_parsedFmt"
+    case design_noVersions = "design_noVersions"
+    case design_rollback = "design_rollback"
+    case design_errMLXNotRunning = "design_errMLXNotRunning"
+    case design_errNoModel = "design_errNoModel"
+    case design_marqueeFmt = "design_marqueeFmt"
+    case design_previewFmt = "design_previewFmt"
+    case design_previewHint = "design_previewHint"
+    case design_reject = "design_reject"
+    case design_accept = "design_accept"
+    case design_pages = "design_pages"
+    case design_newPage = "design_newPage"
+    case design_noPages = "design_noPages"
+    case design_deletePage = "design_deletePage"
+    case design_batchExport = "design_batchExport"
+    case design_exporting = "design_exporting"
+    case design_selectFormat = "design_selectFormat"
+    case design_skillUseFmt = "design_skillUseFmt"
+    case design_stepConnecting = "design_stepConnecting"
+    case design_stepGenerating = "design_stepGenerating"
+    case design_stepStreaming = "design_stepStreaming"
+    case design_stepRendering = "design_stepRendering"
+    case design_stepConnShort = "design_stepConnShort"
+    case design_stepGenShort = "design_stepGenShort"
+    case design_stepStreamShort = "design_stepStreamShort"
+    case design_stepRenderShort = "design_stepRenderShort"
+    case design_grp_pages = "design_grp_pages"
+    case design_grp_components = "design_grp_components"
+    case design_grp_skills = "design_grp_skills"
+    case design_tpl_login = "design_tpl_login"
+    case design_tpl_dashboard = "design_tpl_dashboard"
+    case design_tpl_landing = "design_tpl_landing"
+    case design_tpl_settings = "design_tpl_settings"
+    case design_tpl_chat = "design_tpl_chat"
+    case design_tpl_profile = "design_tpl_profile"
+    case design_tpl_card = "design_tpl_card"
+    case design_tpl_form = "design_tpl_form"
+    case design_tpl_table = "design_tpl_table"
+    case design_tpl_nav = "design_tpl_nav"
+    case design_tpl_modal = "design_tpl_modal"
+    case design_tpl_buttons = "design_tpl_buttons"
+    case design_tpl_textToUI = "design_tpl_textToUI"
+    case design_tpl_imageToUI = "design_tpl_imageToUI"
+    case design_tpl_partialEdit = "design_tpl_partialEdit"
+    case design_tpl_localEdit = "design_tpl_localEdit"
+    case design_tpl_simPanel = "design_tpl_simPanel"
+    case design_tpl_multiVariants = "design_tpl_multiVariants"
+    case design_tpl_specDoc = "design_tpl_specDoc"
+    case design_tpl_pageFlow = "design_tpl_pageFlow"
 }
 
 // MARK: - 翻译管理器
@@ -4622,6 +4694,78 @@ let zhCNTranslations: [String: String] = [
     "mn_topo_statsFmt": "%d 节点 · 在线率 %d%%",
     "mn_node_statusA11yFmt": "节点%@",
     "mn_task_degradedFmt": "降级: %@→%@",
+    "design_swiftUITitle": "SwiftUI 导出",
+    "design_codegenTitle": "代码导出",
+    "design_copy": "复制",
+    "design_close": "关闭",
+    "design_helpPageMgmt": "页面管理",
+    "design_helpCopyCode": "复制代码 (⇧⌘C)",
+    "design_helpExportCode": "导出代码 (⇧⌘E)",
+    "design_helpClear": "清空对话",
+    "design_welcomeDesc": "描述你想设计的界面，AI 将为你生成可交互的代码",
+    "design_inputPh": "描述你想设计的界面...",
+    "design_emptyTitle": "描述你想设计的界面",
+    "design_emptyDesc": "AI 将为你生成可交互的 HTML 代码，右侧实时预览",
+    "design_clearInput": "清空输入",
+    "design_clearConv": "清空对话",
+    "design_copyCurrentCode": "复制当前代码",
+    "design_helpSave": "保存",
+    "design_helpCopy": "复制代码",
+    "design_helpHistory": "历史",
+    "design_helpSwiftUI": "导出 SwiftUI",
+    "design_helpStop": "停止",
+    "design_helpSend": "发送",
+    "design_roleUser": "你",
+    "design_roleDesigner": "设计师",
+    "design_parsedFmt": "已解析: %@",
+    "design_noVersions": "暂无版本记录",
+    "design_rollback": "回退",
+    "design_errMLXNotRunning": "MLX 服务未运行，请先在 MLX 面板启动服务后再发送",
+    "design_errNoModel": "未选择对话模型，请在顶部模型选择器选一个模型后再发送",
+    "design_marqueeFmt": "已框选 %d 个节点",
+    "design_previewFmt": "预览: %@",
+    "design_previewHint": "AI 建议的更改，确认后写入画布",
+    "design_reject": "拒绝",
+    "design_accept": "确认",
+    "design_pages": "页面",
+    "design_newPage": "新建页面",
+    "design_noPages": "暂无页面，生成设计后自动创建",
+    "design_deletePage": "删除页面",
+    "design_batchExport": "批量导出",
+    "design_exporting": "正在导出...",
+    "design_selectFormat": "选择导出格式",
+    "design_skillUseFmt": "使用%@技能: %@",
+    "design_stepConnecting": "连接中...",
+    "design_stepGenerating": "推理中...",
+    "design_stepStreaming": "生成中...",
+    "design_stepRendering": "渲染画布...",
+    "design_stepConnShort": "连接",
+    "design_stepGenShort": "推理",
+    "design_stepStreamShort": "生成",
+    "design_stepRenderShort": "渲染",
+    "design_grp_pages": "页面",
+    "design_grp_components": "组件",
+    "design_grp_skills": "AI 技能",
+    "design_tpl_login": "登录页",
+    "design_tpl_dashboard": "仪表盘",
+    "design_tpl_landing": "落地页",
+    "design_tpl_settings": "设置页",
+    "design_tpl_chat": "聊天界面",
+    "design_tpl_profile": "个人主页",
+    "design_tpl_card": "卡片组件",
+    "design_tpl_form": "表单",
+    "design_tpl_table": "数据表格",
+    "design_tpl_nav": "导航栏",
+    "design_tpl_modal": "弹窗/对话框",
+    "design_tpl_buttons": "按钮组",
+    "design_tpl_textToUI": "文生 UI",
+    "design_tpl_imageToUI": "图生 UI",
+    "design_tpl_partialEdit": "局部编辑",
+    "design_tpl_localEdit": "精准修改",
+    "design_tpl_simPanel": "相似面板",
+    "design_tpl_multiVariants": "多方案",
+    "design_tpl_specDoc": "规范文档",
+    "design_tpl_pageFlow": "页面流",
 ]
 
 let enUSTranslations: [String: String] = [
@@ -6714,6 +6858,78 @@ let enUSTranslations: [String: String] = [
     "mn_topo_statsFmt": "%d nodes · %d%% online",
     "mn_node_statusA11yFmt": "Node %@",
     "mn_task_degradedFmt": "Degraded: %@→%@",
+    "design_swiftUITitle": "SwiftUI Export",
+    "design_codegenTitle": "Code Export",
+    "design_copy": "Copy",
+    "design_close": "Close",
+    "design_helpPageMgmt": "Page Management",
+    "design_helpCopyCode": "Copy Code (⇧⌘C)",
+    "design_helpExportCode": "Export Code (⇧⌘E)",
+    "design_helpClear": "Clear Conversation",
+    "design_welcomeDesc": "Describe the interface you want and AI generates interactive code",
+    "design_inputPh": "Describe the interface you want...",
+    "design_emptyTitle": "Describe the interface you want",
+    "design_emptyDesc": "AI generates interactive HTML code with live preview on the right",
+    "design_clearInput": "Clear Input",
+    "design_clearConv": "Clear Conversation",
+    "design_copyCurrentCode": "Copy Current Code",
+    "design_helpSave": "Save",
+    "design_helpCopy": "Copy Code",
+    "design_helpHistory": "History",
+    "design_helpSwiftUI": "Export SwiftUI",
+    "design_helpStop": "Stop",
+    "design_helpSend": "Send",
+    "design_roleUser": "You",
+    "design_roleDesigner": "Designer",
+    "design_parsedFmt": "Parsed: %@",
+    "design_noVersions": "No version history",
+    "design_rollback": "Rollback",
+    "design_errMLXNotRunning": "MLX service is not running, start it in the MLX panel before sending",
+    "design_errNoModel": "No chat model selected, pick one in the top model selector before sending",
+    "design_marqueeFmt": "%d nodes selected",
+    "design_previewFmt": "Preview: %@",
+    "design_previewHint": "AI-suggested changes, confirm to apply to canvas",
+    "design_reject": "Reject",
+    "design_accept": "Accept",
+    "design_pages": "Pages",
+    "design_newPage": "New Page",
+    "design_noPages": "No pages yet, auto-created after generating a design",
+    "design_deletePage": "Delete Page",
+    "design_batchExport": "Batch Export",
+    "design_exporting": "Exporting...",
+    "design_selectFormat": "Select Export Format",
+    "design_skillUseFmt": "Use %@ skill: %@",
+    "design_stepConnecting": "Connecting...",
+    "design_stepGenerating": "Inferring...",
+    "design_stepStreaming": "Generating...",
+    "design_stepRendering": "Rendering canvas...",
+    "design_stepConnShort": "Connect",
+    "design_stepGenShort": "Infer",
+    "design_stepStreamShort": "Generate",
+    "design_stepRenderShort": "Render",
+    "design_grp_pages": "Pages",
+    "design_grp_components": "Components",
+    "design_grp_skills": "AI Skills",
+    "design_tpl_login": "Login Page",
+    "design_tpl_dashboard": "Dashboard",
+    "design_tpl_landing": "Landing Page",
+    "design_tpl_settings": "Settings Page",
+    "design_tpl_chat": "Chat UI",
+    "design_tpl_profile": "Profile Page",
+    "design_tpl_card": "Card Component",
+    "design_tpl_form": "Form",
+    "design_tpl_table": "Data Table",
+    "design_tpl_nav": "Navigation",
+    "design_tpl_modal": "Modal/Dialog",
+    "design_tpl_buttons": "Buttons",
+    "design_tpl_textToUI": "Text to UI",
+    "design_tpl_imageToUI": "Image to UI",
+    "design_tpl_partialEdit": "Partial Edit",
+    "design_tpl_localEdit": "Precise Edit",
+    "design_tpl_simPanel": "Similar Panel",
+    "design_tpl_multiVariants": "Multi Variants",
+    "design_tpl_specDoc": "Spec Document",
+    "design_tpl_pageFlow": "Page Flow",
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -8800,6 +9016,78 @@ let jaJPTranslations: [String: String] = [
     "mn_topo_statsFmt": "%d ノード · オンライン率 %d%%",
     "mn_node_statusA11yFmt": "ノード%@",
     "mn_task_degradedFmt": "ダウングレード: %@→%@",
+    "design_swiftUITitle": "SwiftUI エクスポート",
+    "design_codegenTitle": "コードエクスポート",
+    "design_copy": "コピー",
+    "design_close": "閉じる",
+    "design_helpPageMgmt": "ページ管理",
+    "design_helpCopyCode": "コードをコピー (⇧⌘C)",
+    "design_helpExportCode": "コードをエクスポート (⇧⌘E)",
+    "design_helpClear": "会話をクリア",
+    "design_welcomeDesc": "デザインしたい画面を記述すると、AIがインタラクティブなコードを生成します",
+    "design_inputPh": "デザインしたい画面を記述...",
+    "design_emptyTitle": "デザインしたい画面を記述",
+    "design_emptyDesc": "AIがインタラクティブなHTMLコードを生成し、右側にリアルタイムプレビュー",
+    "design_clearInput": "入力をクリア",
+    "design_clearConv": "会話をクリア",
+    "design_copyCurrentCode": "現在のコードをコピー",
+    "design_helpSave": "保存",
+    "design_helpCopy": "コードをコピー",
+    "design_helpHistory": "履歴",
+    "design_helpSwiftUI": "SwiftUIをエクスポート",
+    "design_helpStop": "停止",
+    "design_helpSend": "送信",
+    "design_roleUser": "あなた",
+    "design_roleDesigner": "デザイナー",
+    "design_parsedFmt": "解析済み: %@",
+    "design_noVersions": "バージョン履歴なし",
+    "design_rollback": "ロールバック",
+    "design_errMLXNotRunning": "MLXサービスが実行されていません。MLXパネルでサービスを開始してから送信してください",
+    "design_errNoModel": "対話モデルが選択されていません。上部のモデルセレクターでモデルを選択してから送信してください",
+    "design_marqueeFmt": "%d 個のノードを選択",
+    "design_previewFmt": "プレビュー: %@",
+    "design_previewHint": "AI提案の変更、確認後にキャンバスに書き込み",
+    "design_reject": "拒否",
+    "design_accept": "確認",
+    "design_pages": "ページ",
+    "design_newPage": "新規ページ",
+    "design_noPages": "ページなし、デザイン生成後に自動作成",
+    "design_deletePage": "ページを削除",
+    "design_batchExport": "一括エクスポート",
+    "design_exporting": "エクスポート中...",
+    "design_selectFormat": "エクスポート形式を選択",
+    "design_skillUseFmt": "%@スキルを使用: %@",
+    "design_stepConnecting": "接続中...",
+    "design_stepGenerating": "推論中...",
+    "design_stepStreaming": "生成中...",
+    "design_stepRendering": "キャンバスをレンダリング...",
+    "design_stepConnShort": "接続",
+    "design_stepGenShort": "推論",
+    "design_stepStreamShort": "生成",
+    "design_stepRenderShort": "レンダリング",
+    "design_grp_pages": "ページ",
+    "design_grp_components": "コンポーネント",
+    "design_grp_skills": "AIスキル",
+    "design_tpl_login": "ログインページ",
+    "design_tpl_dashboard": "ダッシュボード",
+    "design_tpl_landing": "ランディングページ",
+    "design_tpl_settings": "設定ページ",
+    "design_tpl_chat": "チャット画面",
+    "design_tpl_profile": "プロフィールページ",
+    "design_tpl_card": "カードコンポーネント",
+    "design_tpl_form": "フォーム",
+    "design_tpl_table": "データテーブル",
+    "design_tpl_nav": "ナビゲーション",
+    "design_tpl_modal": "モーダル/ダイアログ",
+    "design_tpl_buttons": "ボタングループ",
+    "design_tpl_textToUI": "テキストからUI",
+    "design_tpl_imageToUI": "画像からUI",
+    "design_tpl_partialEdit": "部分編集",
+    "design_tpl_localEdit": "精密編集",
+    "design_tpl_simPanel": "類似パネル",
+    "design_tpl_multiVariants": "複数バリエーション",
+    "design_tpl_specDoc": "仕様書",
+    "design_tpl_pageFlow": "ページフロー",
 ]
 
 let koKRTranslations: [String: String] = [
@@ -10886,6 +11174,78 @@ let koKRTranslations: [String: String] = [
     "mn_topo_statsFmt": "%d 노드 · 온라인율 %d%%",
     "mn_node_statusA11yFmt": "노드 %@",
     "mn_task_degradedFmt": "다운그레이드: %@→%@",
+    "design_swiftUITitle": "SwiftUI 내보내기",
+    "design_codegenTitle": "코드 내보내기",
+    "design_copy": "복사",
+    "design_close": "닫기",
+    "design_helpPageMgmt": "페이지 관리",
+    "design_helpCopyCode": "코드 복사 (⇧⌘C)",
+    "design_helpExportCode": "코드 내보내기 (⇧⌘E)",
+    "design_helpClear": "대화 비우기",
+    "design_welcomeDesc": "디자인할 화면을 설명하면 AI가 인터랙티브 코드를 생성합니다",
+    "design_inputPh": "디자인할 화면을 설명...",
+    "design_emptyTitle": "디자인할 화면을 설명",
+    "design_emptyDesc": "AI가 인터랙티브 HTML 코드를 생성하고 우측에 실시간 미리보기",
+    "design_clearInput": "입력 비우기",
+    "design_clearConv": "대화 비우기",
+    "design_copyCurrentCode": "현재 코드 복사",
+    "design_helpSave": "저장",
+    "design_helpCopy": "코드 복사",
+    "design_helpHistory": "기록",
+    "design_helpSwiftUI": "SwiftUI 내보내기",
+    "design_helpStop": "정지",
+    "design_helpSend": "전송",
+    "design_roleUser": "나",
+    "design_roleDesigner": "디자이너",
+    "design_parsedFmt": "파싱됨: %@",
+    "design_noVersions": "버전 기록 없음",
+    "design_rollback": "롤백",
+    "design_errMLXNotRunning": "MLX 서비스가 실행 중이 아닙니다. MLX 패널에서 서비스를 시작한 후 전송하세요",
+    "design_errNoModel": "대화 모델이 선택되지 않았습니다. 상단 모델 선택기에서 모델을 선택한 후 전송하세요",
+    "design_marqueeFmt": "%d개 노드 선택됨",
+    "design_previewFmt": "미리보기: %@",
+    "design_previewHint": "AI 제안 변경, 확인 후 캔버스에 적용",
+    "design_reject": "거부",
+    "design_accept": "확인",
+    "design_pages": "페이지",
+    "design_newPage": "새 페이지",
+    "design_noPages": "페이지 없음, 디자인 생성 후 자동 생성",
+    "design_deletePage": "페이지 삭제",
+    "design_batchExport": "일괄 내보내기",
+    "design_exporting": "내보내는 중...",
+    "design_selectFormat": "내보내기 형식 선택",
+    "design_skillUseFmt": "%@ 스킬 사용: %@",
+    "design_stepConnecting": "연결 중...",
+    "design_stepGenerating": "추론 중...",
+    "design_stepStreaming": "생성 중...",
+    "design_stepRendering": "캔버스 렌더링...",
+    "design_stepConnShort": "연결",
+    "design_stepGenShort": "추론",
+    "design_stepStreamShort": "생성",
+    "design_stepRenderShort": "렌더링",
+    "design_grp_pages": "페이지",
+    "design_grp_components": "컴포넌트",
+    "design_grp_skills": "AI 스킬",
+    "design_tpl_login": "로그인 페이지",
+    "design_tpl_dashboard": "대시보드",
+    "design_tpl_landing": "랜딩 페이지",
+    "design_tpl_settings": "설정 페이지",
+    "design_tpl_chat": "채팅 화면",
+    "design_tpl_profile": "프로필 페이지",
+    "design_tpl_card": "카드 컴포넌트",
+    "design_tpl_form": "폼",
+    "design_tpl_table": "데이터 테이블",
+    "design_tpl_nav": "내비게이션",
+    "design_tpl_modal": "모달/다이얼로그",
+    "design_tpl_buttons": "버튼 그룹",
+    "design_tpl_textToUI": "텍스트를 UI로",
+    "design_tpl_imageToUI": "이미지를 UI로",
+    "design_tpl_partialEdit": "부분 편집",
+    "design_tpl_localEdit": "정밀 수정",
+    "design_tpl_simPanel": "유사 패널",
+    "design_tpl_multiVariants": "다중 변형",
+    "design_tpl_specDoc": "사양 문서",
+    "design_tpl_pageFlow": "페이지 흐름",
 ]
 
 // MARK: - 国际化文本视图
