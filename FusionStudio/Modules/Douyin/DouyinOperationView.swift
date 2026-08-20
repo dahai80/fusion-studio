@@ -14,6 +14,8 @@ struct DouyinOperationView: View {
     @EnvironmentObject var ipc: IPCClient
     @EnvironmentObject var upstream: UpstreamServiceManager
 
+    @StateObject private var i18n = I18nManager.shared
+
     @State private var selectedTab = 0
     @State private var produceTopic = ""
     @State private var produceVariant = "A"
@@ -23,20 +25,22 @@ struct DouyinOperationView: View {
 
     private let variants = ["A", "B", "C"]
     // 钩子变体说明, 与 mlx_script.py VARIANT_HOOK 同源. 用户选择时知道每个变体代表什么钩子风格.
-    private let variantHints: [String: String] = [
-        "A": "数字+反常：首句用一个极端数字搭配反常识结论",
-        "B": "提问+代入：首句用第二人称提问把观众代入场景",
-        "C": "悬念+冲突：首句抛出一个待解的悬念冲突",
+    private let variantHints: [String: I18nKey] = [
+        "A": .dy_prod_hint_a,
+        "B": .dy_prod_hint_b,
+        "C": .dy_prod_hint_c,
     ]
-    private let tabs = [
-        FusionTabItem(title: "库存", icon: "shippingbox"),
-        FusionTabItem(title: "造片", icon: "film.stack"),
-        FusionTabItem(title: "发布", icon: "paperplane"),
-        FusionTabItem(title: "计划", icon: "clock.badge"),
-        FusionTabItem(title: "评论", icon: "bubble.left.and.bubble.right"),
-        FusionTabItem(title: "进化", icon: "chart.line.uptrend.xyaxis"),
-        FusionTabItem(title: "统计", icon: "chart.bar"),
-    ]
+    private var tabs: [FusionTabItem] {
+        [
+            FusionTabItem(title: i18n.t(.dy_tab_inventory), icon: "shippingbox"),
+            FusionTabItem(title: i18n.t(.dy_tab_produce), icon: "film.stack"),
+            FusionTabItem(title: i18n.t(.dy_tab_publish), icon: "paperplane"),
+            FusionTabItem(title: i18n.t(.dy_tab_plan), icon: "clock.badge"),
+            FusionTabItem(title: i18n.t(.dy_tab_comment), icon: "bubble.left.and.bubble.right"),
+            FusionTabItem(title: i18n.t(.dy_tab_evolve), icon: "chart.line.uptrend.xyaxis"),
+            FusionTabItem(title: i18n.t(.dy_tab_stats), icon: "chart.bar"),
+        ]
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -84,9 +88,9 @@ struct DouyinOperationView: View {
 
     private var queueOverviewBar: some View {
         HStack(spacing: theme.spacingM) {
-            queueBadge("待发布", count: bridge.queueCounts.pending, color: theme.amberDot, icon: "tray")
-            queueBadge("已发布", count: bridge.queueCounts.published, color: theme.greenDot, icon: "checkmark.circle")
-            queueBadge("失败", count: bridge.queueCounts.failed, color: theme.redDot, icon: "exclamationmark.triangle")
+            queueBadge(i18n.t(.dy_queue_pending), count: bridge.queueCounts.pending, color: theme.amberDot, icon: "tray")
+            queueBadge(i18n.t(.dy_queue_published), count: bridge.queueCounts.published, color: theme.greenDot, icon: "checkmark.circle")
+            queueBadge(i18n.t(.dy_queue_failed), count: bridge.queueCounts.failed, color: theme.redDot, icon: "exclamationmark.triangle")
             Spacer()
             if let err = bridge.lastError {
                 Text(err).font(.system(size: 11)).foregroundStyle(theme.accentDestructive).lineLimit(1).help(err)
@@ -96,7 +100,7 @@ struct DouyinOperationView: View {
             } label: {
                 Image(systemName: "arrow.clockwise")
             }
-            .buttonStyle(.borderless).help("刷新数据")
+            .buttonStyle(.borderless).help(i18n.t(.dy_queue_refresh))
         }
         .padding(.horizontal, theme.spacingL)
         .padding(.vertical, theme.spacingS)
@@ -115,18 +119,18 @@ struct DouyinOperationView: View {
 
     private var inventoryPanel: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            sectionLabel("待发布队列", icon: "tray.fill")
+            sectionLabel(i18n.t(.dy_inv_pending_queue), icon: "tray.fill")
             if bridge.pendingItems.isEmpty {
-                emptyHint("暂无待发布视频，去「造片」补充库存")
+                emptyHint(i18n.t(.dy_inv_pending_empty))
             } else {
                 ForEach(bridge.pendingItems) { item in
                     queueItemRow(item)
                 }
             }
 
-            sectionLabel("已发布（最近 20 条）", icon: "checkmark.circle.fill")
+            sectionLabel(i18n.t(.dy_inv_published_recent), icon: "checkmark.circle.fill")
             if bridge.publishedItems.isEmpty {
-                emptyHint("暂无已发布视频")
+                emptyHint(i18n.t(.dy_inv_published_empty))
             } else {
                 ForEach(bridge.publishedItems) { item in
                     queueItemRow(item)
@@ -134,7 +138,7 @@ struct DouyinOperationView: View {
             }
 
             if !bridge.failedItems.isEmpty {
-                sectionLabel("失败队列", icon: "exclamationmark.triangle.fill")
+                sectionLabel(i18n.t(.dy_inv_failed_queue), icon: "exclamationmark.triangle.fill")
                 ForEach(bridge.failedItems) { item in
                     queueItemRow(item)
                 }
@@ -150,7 +154,7 @@ struct DouyinOperationView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.title).font(.system(size: 13, weight: .medium)).foregroundStyle(theme.text).lineLimit(2)
                 HStack(spacing: 8) {
-                    Text("variant \(item.hookVariant)").font(.system(size: 10)).foregroundStyle(theme.accent)
+                    Text(String(format: i18n.t(.dy_inv_variant_label), item.hookVariant)).font(.system(size: 10)).foregroundStyle(theme.accent)
                     Text(item.status).font(.system(size: 10)).foregroundStyle(theme.textTertiary)
                 }
             }
@@ -166,34 +170,34 @@ struct DouyinOperationView: View {
 
     private var producePanel: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            sectionLabel("一键造片", icon: "film.stack.fill")
-            Text("调 agent-studio 跑 Graph C（script→img→tts→compose→enqueue），单轮造 1 条入待发布队列。")
+            sectionLabel(i18n.t(.dy_prod_title), icon: "film.stack.fill")
+            Text(i18n.t(.dy_prod_desc))
                 .font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textSecondary)
 
             VStack(alignment: .leading, spacing: theme.spacingS) {
-                Text("选题（留空则自动 topic_gen）").font(.system(size: 11)).foregroundStyle(theme.textSecondary)
-                TextField("如：如果你掉进黑洞会发生什么", text: $produceTopic)
+                Text(i18n.t(.dy_prod_topic_label)).font(.system(size: 11)).foregroundStyle(theme.textSecondary)
+                TextField(i18n.t(.dy_prod_topic_ph), text: $produceTopic)
                     .textFieldStyle(.roundedBorder)
                     .font(.system(size: theme.footnoteSize))
             }
 
             HStack(spacing: theme.spacingS) {
-                Text("钩子变体").font(.system(size: 11)).foregroundStyle(theme.textSecondary)
+                Text(i18n.t(.dy_prod_variant_label)).font(.system(size: 11)).foregroundStyle(theme.textSecondary)
                 Picker("Variant", selection: $produceVariant) {
                     ForEach(variants, id: \.self) { Text($0).tag($0) }
                 }.pickerStyle(.segmented).frame(width: 200)
             }
             VStack(alignment: .leading, spacing: 2) {
                 ForEach(variants, id: \.self) { v in
-                    Text("\(v)：\(variantHints[v] ?? "")")
+                    Text(String(format: i18n.t(variantHints[v] ?? .dy_prod_hint_a), v))
                         .font(.system(size: 11))
                         .foregroundStyle(produceVariant == v ? theme.accent : theme.textTertiary)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            FusionButton("开始造片", icon: "wand.and.stars", style: .primary, size: .small,
-                         isLoading: bridge.isLoading && bridge.runningAction.hasPrefix("造片")) {
+            FusionButton(i18n.t(.dy_prod_start), icon: "wand.and.stars", style: .primary, size: .small,
+                         isLoading: bridge.isLoading && bridge.runningAction.hasPrefix("produce")) {
                 bridge.produceOne(topic: produceTopic, hookVariant: produceVariant, ipc: ipc)
             }
 
@@ -207,24 +211,24 @@ struct DouyinOperationView: View {
 
     private var publishPanel: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            sectionLabel("库存发布", icon: "paperplane.fill")
-            Text("调 agent-studio 跑 Graph D（dequeue→gate_stock→publish→archive），从待发布队列取 1 条发布。")
+            sectionLabel(i18n.t(.dy_pub_title), icon: "paperplane.fill")
+            Text(i18n.t(.dy_pub_desc))
                 .font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textSecondary)
 
-            Toggle("Dry-run（不真实发布，停在发布前）", isOn: $publishDryRun)
+            Toggle(i18n.t(.dy_pub_dryrun_toggle), isOn: $publishDryRun)
                 .font(.system(size: theme.footnoteSize))
 
             HStack(spacing: theme.spacingS) {
-                FusionButton(publishDryRun ? "Dry-run 发布" : "真实发布",
+                FusionButton(publishDryRun ? i18n.t(.dy_pub_dryrun_btn) : i18n.t(.dy_pub_real_btn),
                              icon: publishDryRun ? "eye" : "paperplane",
                              style: publishDryRun ? .secondary : .primary, size: .small,
-                             isLoading: bridge.isLoading && bridge.runningAction.hasPrefix("发布")) {
+                             isLoading: bridge.isLoading && bridge.runningAction.hasPrefix("publish")) {
                     bridge.publishFromQueue(dryRun: publishDryRun, ipc: ipc)
                 }
             }
 
             if !publishDryRun {
-                Text("⚠️ 真实发布会上传视频到抖音账号，请确认库存与登录态。")
+                Text(i18n.t(.dy_pub_real_warn))
                     .font(.system(size: 11)).foregroundStyle(theme.accentDestructive)
             }
             if let r = bridge.lastRunResult, bridge.runningAction.isEmpty {
@@ -237,33 +241,33 @@ struct DouyinOperationView: View {
 
     private var schedulePanel: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            sectionLabel("高峰时段发布计划", icon: "clock.badge.fill")
-            Text("注册 cron 计划，每天高峰窗口（12-13 / 19-21）自动跑 Graph D 从库存取片发布，无需人工点按钮。底层为 agent-studio cron 运行时（PR #140）。")
+            sectionLabel(i18n.t(.dy_plan_title), icon: "clock.badge.fill")
+            Text(i18n.t(.dy_plan_desc))
                 .font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textSecondary)
 
             VStack(alignment: .leading, spacing: theme.spacingS) {
-                Text("Cron 表达式（分 时 日 月 周）").font(.system(size: 11)).foregroundStyle(theme.textSecondary)
+                Text(i18n.t(.dy_plan_expr_label)).font(.system(size: 11)).foregroundStyle(theme.textSecondary)
                 TextField("5 12,19 * * *", text: $planExpression)
                     .textFieldStyle(.roundedBorder)
                     .font(.system(size: theme.footnoteSize, design: .monospaced))
-                Text("默认 `5 12,19 * * *` = 每天 12:05 与 19:05 各触发一次（高峰窗口开场后 5 分钟）。")
+                Text(i18n.t(.dy_plan_expr_default))
                     .font(.system(size: 10)).foregroundStyle(theme.textTertiary)
             }
 
-            Toggle("Dry-run（不真实发布，验证计划触发）", isOn: $planDryRun)
+            Toggle(i18n.t(.dy_plan_dryrun_toggle), isOn: $planDryRun)
                 .font(.system(size: theme.footnoteSize))
             if !planDryRun {
-                Text("⚠️ 真实计划会在高峰时段自动上传视频到抖音，请确认库存与登录态。")
+                Text(i18n.t(.dy_plan_real_warn))
                     .font(.system(size: 11)).foregroundStyle(theme.accentDestructive)
             }
 
             HStack(spacing: theme.spacingS) {
-                FusionButton("注册发布计划", icon: "clock.badge.plus", style: .primary, size: .small,
+                FusionButton(i18n.t(.dy_plan_register), icon: "clock.badge.plus", style: .primary, size: .small,
                              isLoading: bridge.cronLoading) {
                     bridge.registerPublishPlan(expression: planExpression, dryRun: planDryRun, ipc: ipc)
                 }
                 if !bridge.cronJobs.isEmpty {
-                    FusionButton("刷新", icon: "arrow.clockwise", style: .secondary, size: .small) {
+                    FusionButton(i18n.t(.dy_plan_refresh), icon: "arrow.clockwise", style: .secondary, size: .small) {
                         bridge.refreshCron(ipc: ipc)
                     }
                 }
@@ -274,15 +278,15 @@ struct DouyinOperationView: View {
             }
 
             if bridge.cronJobs.isEmpty {
-                emptyHint("暂无发布计划，注册后将在此显示下次触发时间与执行历史")
+                emptyHint(i18n.t(.dy_plan_empty))
             } else {
-                sectionLabel("已注册计划", icon: "clock.fill")
+                sectionLabel(i18n.t(.dy_plan_registered), icon: "clock.fill")
                 ForEach(bridge.cronJobs) { job in
                     cronJobRow(job)
                 }
 
                 if !bridge.cronExecutions.isEmpty {
-                    sectionLabel("执行历史", icon: "list.bullet.rectangle")
+                    sectionLabel(i18n.t(.dy_plan_history), icon: "list.bullet.rectangle")
                     ForEach(bridge.cronExecutions) { exe in
                         cronExecutionRow(exe)
                     }
@@ -301,16 +305,16 @@ struct DouyinOperationView: View {
             }
             HStack(spacing: 8) {
                 if job.nextRun > 0 {
-                    Label("下次: \(formatEpoch(job.nextRun))", systemImage: "arrow.clockwise")
+                    Label(String(format: i18n.t(.dy_cron_next), formatEpoch(job.nextRun)), systemImage: "arrow.clockwise")
                 }
                 if job.lastRun > 0 {
-                    Label("上次: \(formatEpoch(job.lastRun))", systemImage: "checkmark")
+                    Label(String(format: i18n.t(.dy_cron_last), formatEpoch(job.lastRun)), systemImage: "checkmark")
                 }
             }.font(.system(size: 10)).foregroundStyle(theme.textTertiary)
             if !job.inputData.isEmpty {
-                Text("参数: \(job.inputData)").font(.system(size: 10, design: .monospaced)).foregroundStyle(theme.textTertiary)
+                Text(String(format: i18n.t(.dy_cron_params), job.inputData)).font(.system(size: 10, design: .monospaced)).foregroundStyle(theme.textTertiary)
             }
-            FusionButton("取消计划", icon: "trash", style: .secondary, size: .small,
+            FusionButton(i18n.t(.dy_cron_cancel), icon: "trash", style: .secondary, size: .small,
                          isLoading: bridge.cronLoading) {
                 bridge.unregisterPlan(jobId: job.id, ipc: ipc)
             }
@@ -357,17 +361,17 @@ struct DouyinOperationView: View {
 
     private var commentPanel: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            sectionLabel("评论回复", icon: "bubble.left.and.bubble.right.fill")
-            Text("调 agent-studio 跑 Graph B（fetch→gate→draft→reply），抓取新评论并批量回复，幂等。")
+            sectionLabel(i18n.t(.dy_comment_title), icon: "bubble.left.and.bubble.right.fill")
+            Text(i18n.t(.dy_comment_desc))
                 .font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textSecondary)
 
-            FusionButton("开始评论回复", icon: "text.bubble", style: .primary, size: .small,
-                         isLoading: bridge.isLoading && bridge.runningAction == "评论回复") {
+            FusionButton(i18n.t(.dy_comment_start), icon: "text.bubble", style: .primary, size: .small,
+                         isLoading: bridge.isLoading && bridge.runningAction == "comment_reply") {
                 bridge.replyComments(ipc: ipc)
             }
 
             if !bridge.repliedIds.isEmpty {
-                sectionLabel("已回复评论 ID", icon: "checkmark.bubble")
+                sectionLabel(i18n.t(.dy_comment_replied_title), icon: "checkmark.bubble")
                 ForEach(bridge.repliedIds, id: \.self) { id in
                     Text(id).font(.system(size: 11, design: .monospaced)).foregroundStyle(theme.textSecondary)
                 }
@@ -382,20 +386,20 @@ struct DouyinOperationView: View {
 
     private var evolvePanel: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            sectionLabel("进化分析", icon: "chart.line.uptrend.xyaxis")
-            Text("调 agent-studio 跑 Graph E（snapshot→rank→analyze→repair_scan），更新爆款模式与差片扫描。")
+            sectionLabel(i18n.t(.dy_evolve_title), icon: "chart.line.uptrend.xyaxis")
+            Text(i18n.t(.dy_evolve_desc))
                 .font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textSecondary)
 
-            FusionButton("运行进化闭环", icon: "arrow.triangle.2.circlepath", style: .primary, size: .small,
-                         isLoading: bridge.isLoading && bridge.runningAction == "进化分析") {
+            FusionButton(i18n.t(.dy_evolve_run), icon: "arrow.triangle.2.circlepath", style: .primary, size: .small,
+                         isLoading: bridge.isLoading && bridge.runningAction == "evolve") {
                 bridge.evolve(ipc: ipc)
             }
 
-            sectionLabel("差片修复重发", icon: "wrench.adjustable")
-            Text("调 agent-studio 跑 Graph F（scan→gate→retitle），对差片换标题重入队列。")
+            sectionLabel(i18n.t(.dy_evolve_repair_title), icon: "wrench.adjustable")
+            Text(i18n.t(.dy_evolve_repair_desc))
                 .font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textSecondary)
-            FusionButton("扫描并修复", icon: "wrench.and.screwdriver", style: .secondary, size: .small,
-                         isLoading: bridge.isLoading && bridge.runningAction == "差片修复") {
+            FusionButton(i18n.t(.dy_evolve_repair_scan), icon: "wrench.and.screwdriver", style: .secondary, size: .small,
+                         isLoading: bridge.isLoading && bridge.runningAction == "repair") {
                 bridge.repairPublish(ipc: ipc)
             }
 
@@ -409,21 +413,21 @@ struct DouyinOperationView: View {
 
     private var winningPatternsSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            sectionLabel("爆款模式（winning_patterns）", icon: "flame.fill")
-            Text("样本 \(bridge.winning.samples) · 爆款 \(bridge.winning.hotCount) · 更新于 \(bridge.winning.updatedAt)")
+            sectionLabel(i18n.t(.dy_win_title), icon: "flame.fill")
+            Text(String(format: i18n.t(.dy_win_summary), bridge.winning.samples, bridge.winning.hotCount, bridge.winning.updatedAt))
                 .font(.system(size: 11)).foregroundStyle(theme.textTertiary)
 
             if !bridge.winning.titleFormula.isEmpty {
-                patternRow("标题公式", bridge.winning.titleFormula)
+                patternRow(i18n.t(.dy_win_title_formula), bridge.winning.titleFormula)
             }
             ForEach(Array(bridge.winning.winningTopics.enumerated()), id: \.offset) { _, t in
-                patternRow("✅ 爆款选题", t)
+                patternRow(i18n.t(.dy_win_hot_topic), t)
             }
             ForEach(Array(bridge.winning.winningHooks.enumerated()), id: \.offset) { _, t in
-                patternRow("✅ 爆款钩子", t)
+                patternRow(i18n.t(.dy_win_hot_hook), t)
             }
             ForEach(Array(bridge.winning.losingPatterns.enumerated()), id: \.offset) { _, t in
-                patternRow("❌ 失败模式", t)
+                patternRow(i18n.t(.dy_win_lose), t)
             }
         }
     }
@@ -445,12 +449,12 @@ struct DouyinOperationView: View {
     private var statsPanel: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
             // ---- 第一部分：全貌摘要 ----
-            sectionLabel("统计报表 · 全貌", icon: "chart.bar.fill")
-            Text("账号整体表现概览：汇总指标 + 表现分布 + 钩子变体对比。")
+            sectionLabel(i18n.t(.dy_stats_title), icon: "chart.bar.fill")
+            Text(i18n.t(.dy_stats_desc))
                 .font(.system(size: 11)).foregroundStyle(theme.textTertiary)
 
             if bridge.statsSnapshots.isEmpty {
-                emptyHint("暂无统计快照，先运行「进化分析」抓取 snapshot")
+                emptyHint(i18n.t(.dy_stats_empty))
             } else {
                 statsSummary
                 statsVariantDistribution
@@ -458,7 +462,7 @@ struct DouyinOperationView: View {
 
             // ---- 第二部分：逐视频细节排行 ----
             if !bridge.statsSnapshots.isEmpty {
-                sectionLabel("逐视频细节（按播放降序，优秀在前）", icon: "list.number")
+                sectionLabel(i18n.t(.dy_stats_detail_title), icon: "list.number")
                 ForEach(Array(bridge.statsSnapshots.prefix(20))) { snap in
                     statsRow(snap)
                 }
@@ -480,22 +484,22 @@ struct DouyinOperationView: View {
         return VStack(alignment: .leading, spacing: theme.spacingS) {
             // 汇总指标卡片
             HStack(spacing: theme.spacingS) {
-                statsMetricCard("总播放", "\(totalPlays)", theme.accent)
-                statsMetricCard("总点赞", "\(totalLikes)", theme.greenDot)
-                statsMetricCard("总评论", "\(totalComments)", theme.textSecondary)
-                statsMetricCard("总分享", "\(totalShares)", theme.textSecondary)
+                statsMetricCard(i18n.t(.dy_stats_total_plays), "\(totalPlays)", theme.accent)
+                statsMetricCard(i18n.t(.dy_stats_total_likes), "\(totalLikes)", theme.greenDot)
+                statsMetricCard(i18n.t(.dy_stats_total_comments), "\(totalComments)", theme.textSecondary)
+                statsMetricCard(i18n.t(.dy_stats_total_shares), "\(totalShares)", theme.textSecondary)
             }
             HStack(spacing: theme.spacingS) {
-                statsMetricCard("作品数", "\(snaps.count)", theme.text)
-                statsMetricCard("均播放", String(format: "%.0f", avgPlays), theme.text)
-                statsMetricCard("均互动率", String(format: "%.2f%%", avgIR * 100), theme.accent)
-                statsMetricCard("爆款数", "\(hot)", theme.greenDot)
+                statsMetricCard(i18n.t(.dy_stats_count), "\(snaps.count)", theme.text)
+                statsMetricCard(i18n.t(.dy_stats_avg_plays), String(format: "%.0f", avgPlays), theme.text)
+                statsMetricCard(i18n.t(.dy_stats_avg_ir), String(format: "%.2f%%", avgIR * 100), theme.accent)
+                statsMetricCard(i18n.t(.dy_stats_hot_count), "\(hot)", theme.greenDot)
             }
             // 表现分布
             HStack(spacing: theme.spacingM) {
-                Label("爆款 \(hot)", systemImage: "flame.fill").foregroundStyle(theme.greenDot)
-                Label("平稳 \(mid)", systemImage: "minus.circle").foregroundStyle(theme.textSecondary)
-                Label("差片 \(cold)", systemImage: "snowflake").foregroundStyle(theme.amberDot)
+                Label(String(format: i18n.t(.dy_stats_dist_hot), hot), systemImage: "flame.fill").foregroundStyle(theme.greenDot)
+                Label(String(format: i18n.t(.dy_stats_dist_mid), mid), systemImage: "minus.circle").foregroundStyle(theme.textSecondary)
+                Label(String(format: i18n.t(.dy_stats_dist_cold), cold), systemImage: "snowflake").foregroundStyle(theme.amberDot)
             }.font(.system(size: 11))
         }
     }
@@ -517,10 +521,10 @@ struct DouyinOperationView: View {
         let hasVariant = counts.values.contains { $0 > 0 }
         if hasVariant {
             VStack(alignment: .leading, spacing: theme.spacingXS) {
-                Text("钩子变体样本分布").font(.system(size: 11, weight: .medium)).foregroundStyle(theme.textSecondary)
+                Text(i18n.t(.dy_stats_variant_dist)).font(.system(size: 11, weight: .medium)).foregroundStyle(theme.textSecondary)
                 HStack(spacing: theme.spacingM) {
                     ForEach(["A", "B", "C"], id: \.self) { v in
-                        Text("\(v)：\(counts[v] ?? 0) 条")
+                        Text(String(format: i18n.t(.dy_stats_variant_count), v, counts[v] ?? 0))
                             .font(.system(size: 11)).foregroundStyle(theme.textTertiary)
                     }
                 }
@@ -543,11 +547,11 @@ struct DouyinOperationView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(snap.title).font(.system(size: 12, weight: .medium)).foregroundStyle(theme.text).lineLimit(2)
                 HStack(spacing: 8) {
-                    Text("播放 \(snap.plays)").foregroundStyle(theme.text)
-                    Text("赞 \(snap.likes)").foregroundStyle(theme.textSecondary)
-                    Text("评 \(snap.comments)").foregroundStyle(theme.textSecondary)
-                    Text("转 \(snap.shares)").foregroundStyle(theme.textSecondary)
-                    Text(String(format: "互动率 %.2f%%", snap.interactionRate * 100))
+                    Text(String(format: i18n.t(.dy_stats_row_plays), snap.plays)).foregroundStyle(theme.text)
+                    Text(String(format: i18n.t(.dy_stats_row_likes), snap.likes)).foregroundStyle(theme.textSecondary)
+                    Text(String(format: i18n.t(.dy_stats_row_comments), snap.comments)).foregroundStyle(theme.textSecondary)
+                    Text(String(format: i18n.t(.dy_stats_row_shares), snap.shares)).foregroundStyle(theme.textSecondary)
+                    Text(String(format: i18n.t(.dy_stats_row_ir), snap.interactionRate * 100))
                         .foregroundStyle(theme.accent)
                 }.font(.system(size: 10))
             }
@@ -569,7 +573,7 @@ struct DouyinOperationView: View {
         HStack(spacing: theme.spacingM) {
             if bridge.isLoading {
                 ProgressView().controlSize(.small)
-                Text(bridge.runningAction.isEmpty ? "执行中…" : bridge.runningAction)
+                Text(bridge.runningAction.isEmpty ? i18n.t(.dy_action_running) : localizedActionLabel(bridge.runningAction))
                     .font(.system(size: 11)).foregroundStyle(theme.textSecondary)
             }
             Spacer()
@@ -606,5 +610,16 @@ struct DouyinOperationView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(theme.surfaceSecondary)
         .cornerRadius(6)
+    }
+
+    private func localizedActionLabel(_ action: String) -> String {
+        if action.hasPrefix("produce") { return i18n.t(.dy_action_produce) }
+        if action.hasPrefix("publish") { return i18n.t(.dy_action_publish) }
+        switch action {
+        case "comment_reply": return i18n.t(.dy_action_comment_reply)
+        case "evolve": return i18n.t(.dy_action_evolve)
+        case "repair": return i18n.t(.dy_action_repair)
+        default: return action
+        }
     }
 }
