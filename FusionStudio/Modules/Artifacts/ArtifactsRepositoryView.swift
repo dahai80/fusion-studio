@@ -15,9 +15,9 @@ enum ArtifactSortField: String, CaseIterable {
 
     var label: String {
         switch self {
-        case .updatedAt: return "最近更新"
-        case .createdAt: return "创建时间"
-        case .name: return "名称"
+        case .updatedAt: return I18nManager.shared.t(.art_rv_sortUpdated)
+        case .createdAt: return I18nManager.shared.t(.art_rv_sortCreated)
+        case .name: return I18nManager.shared.t(.art_rv_sortName)
         }
     }
 }
@@ -30,10 +30,10 @@ enum ArtifactFilterScope: String, CaseIterable {
 
     var label: String {
         switch self {
-        case .all: return "全部"
-        case .mine: return "我的"
-        case .starred: return "星标"
-        case .pinned: return "置顶"
+        case .all: return I18nManager.shared.t(.art_rv_scopeAll)
+        case .mine: return I18nManager.shared.t(.art_rv_scopeMine)
+        case .starred: return I18nManager.shared.t(.art_rv_scopeStarred)
+        case .pinned: return I18nManager.shared.t(.art_rv_scopePinned)
         }
     }
 
@@ -50,6 +50,7 @@ enum ArtifactFilterScope: String, CaseIterable {
 struct ArtifactsRepositoryView: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var artifacts: [[String: Any]] = []
     @State private var isLoading = false
@@ -73,7 +74,7 @@ struct ArtifactsRepositoryView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ScreenHeader(eyebrow: "Fusion Studio", title: "Artifacts", subtitle: "全局产物仓库 — 跨会话管理所有 Artifacts")
+            ScreenHeader(eyebrow: "Fusion Studio", title: "Artifacts", subtitle: i18n.t(.art_rv_subtitle))
                 .padding(.bottom, theme.spacingS)
 
             filterBar
@@ -97,10 +98,10 @@ struct ArtifactsRepositoryView: View {
             ArtifactRecycleBinView()
                 .frame(minWidth: 500, minHeight: 400)
         }
-        .alert("新建文件夹", isPresented: $showCreateFolder) {
-            TextField("文件夹名称", text: $newFolderName)
-            Button("创建") { createFolder() }
-            Button("取消", role: .cancel) { }
+        .alert(i18n.t(.art_rv_newFolder), isPresented: $showCreateFolder) {
+            TextField(i18n.t(.art_rv_folderName), text: $newFolderName)
+            Button(i18n.t(.art_rv_create)) { createFolder() }
+            Button(i18n.t(.art_cv_cancel), role: .cancel) { }
         }
     }
 
@@ -109,7 +110,7 @@ struct ArtifactsRepositoryView: View {
             HStack(spacing: theme.spacingS) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(theme.textTertiary)
-                TextField("搜索产物…", text: $searchText)
+                TextField(i18n.t(.art_rv_search), text: $searchText)
                     .textFieldStyle(.plain)
                     .font(.system(size: theme.textSize))
             }
@@ -124,7 +125,7 @@ struct ArtifactsRepositoryView: View {
                 HStack(spacing: theme.spacingXS) {
                     ForEach(typeFilters, id: \.self) { t in
                         Button(action: { selectedType = t }) {
-                            Text(t == "all" ? "全部" : t.capitalized)
+                            Text(t == "all" ? i18n.t(.art_rv_typeAll) : t.capitalized)
                                 .font(.system(size: theme.captionSize, weight: .medium))
                                 .foregroundStyle(selectedType == t ? theme.accentText : theme.textSecondary)
                                 .padding(.horizontal, theme.spacingS)
@@ -178,7 +179,7 @@ struct ArtifactsRepositoryView: View {
                     .foregroundStyle(theme.textTertiary)
             }
             .buttonStyle(.plain)
-            .help("回收站")
+            .help(i18n.t(.art_rv_recycle))
 
             Button(action: { loadAll() }) {
                 Image(systemName: "arrow.clockwise")
@@ -216,7 +217,7 @@ struct ArtifactsRepositoryView: View {
     private var folderSidebar: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("文件夹")
+                Text(i18n.t(.art_rv_folders))
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
                     .foregroundStyle(theme.textSecondary)
                 Spacer()
@@ -236,7 +237,7 @@ struct ArtifactsRepositoryView: View {
                 HStack(spacing: theme.spacingS) {
                     Image(systemName: "tray.full")
                         .font(.system(size: theme.iconS))
-                    Text("全部产物")
+                    Text(i18n.t(.art_rv_allArtifacts))
                         .font(.system(size: theme.footnoteSize))
                     Spacer()
                 }
@@ -281,8 +282,8 @@ struct ArtifactsRepositoryView: View {
             loadArtifacts()
         }
         .contextMenu {
-            Button("重命名") { renameFolder(fid, currentName: name) }
-            Button("删除", role: .destructive) { deleteFolder(fid) }
+            Button(i18n.t(.art_rv_rename)) { renameFolder(fid, currentName: name) }
+            Button(i18n.t(.art_rv_delete), role: .destructive) { deleteFolder(fid) }
         }
     }
 
@@ -341,7 +342,7 @@ struct ArtifactsRepositoryView: View {
                 .font(.system(size: theme.footnoteSize))
                 .foregroundStyle(theme.textSecondary)
             Spacer()
-            Button("重试") { loadArtifacts() }
+            Button(i18n.t(.art_rv_retry)) { loadArtifacts() }
                 .font(.system(size: theme.footnoteSize))
         }
         .padding(theme.spacingM)
@@ -411,7 +412,7 @@ struct ArtifactsRepositoryView: View {
             Image(systemName: "cube.box")
                 .font(.system(size: 30))
                 .foregroundStyle(theme.textTertiary)
-            Text("暂无产物")
+            Text(i18n.t(.art_rv_empty))
                 .foregroundStyle(theme.textSecondary)
         }
         .frame(maxWidth: .infinity)
@@ -546,20 +547,20 @@ struct ArtifactsRepositoryView: View {
 
     private func artifactMenu(aid: String, name: String, starred: Bool) -> some View {
         Menu {
-            Button("打开") {
+            Button(i18n.t(.art_rv_open)) {
                 selectedArtifactId = aid
                 showCanvas = true
             }
-            Button("重命名") { renameArtifact(aid, currentName: name) }
-            Button(starred ? "取消星标" : "星标") { toggleStar(aid, starred: starred) }
+            Button(i18n.t(.art_rv_rename)) { renameArtifact(aid, currentName: name) }
+            Button(starred ? i18n.t(.art_rv_unstar) : i18n.t(.art_rv_star)) { toggleStar(aid, starred: starred) }
             Divider()
-            Button("复制内容") { copyContent(aid) }
-            Button("下载") { downloadArtifact(aid) }
-            Button("复制") { duplicateArtifact(aid, name: name) }
+            Button(i18n.t(.art_rv_copyContent)) { copyContent(aid) }
+            Button(i18n.t(.art_rv_download)) { downloadArtifact(aid) }
+            Button(i18n.t(.art_rv_copy)) { duplicateArtifact(aid, name: name) }
             Divider()
-            Button("移至项目KB") { moveToProjectKb(aid) }
+            Button(i18n.t(.art_rv_moveToKb)) { moveToProjectKb(aid) }
             Divider()
-            Button("删除", role: .destructive) { deleteArtifact(aid) }
+            Button(i18n.t(.art_rv_delete), role: .destructive) { deleteArtifact(aid) }
         } label: {
             Image(systemName: "ellipsis")
                 .font(.system(size: theme.iconS))
@@ -625,7 +626,7 @@ struct ArtifactsRepositoryView: View {
             } catch {
                 artRepoLog.error("list_all failed: \(error.localizedDescription)")
                 await MainActor.run {
-                    errorMessage = "加载失败: \(error.localizedDescription)"
+                    errorMessage = String(format: I18nManager.shared.t(.art_rv_loadFail), error.localizedDescription)
                     isLoading = false
                 }
             }
@@ -694,7 +695,7 @@ struct ArtifactsRepositoryView: View {
     private func renameArtifact(_ aid: String, currentName: String) {
         Task {
             do {
-                _ = try await ipc.artifactRename(artifactId: aid, newName: currentName + " (copy)")
+                _ = try await ipc.artifactRename(artifactId: aid, newName: currentName + I18nManager.shared.t(.art_pc_copySuffix))
                 loadArtifacts()
             } catch {
                 artRepoLog.error("rename failed: \(error.localizedDescription)")
@@ -741,7 +742,7 @@ struct ArtifactsRepositoryView: View {
     private func duplicateArtifact(_ aid: String, name: String) {
         Task {
             do {
-                _ = try await ipc.artifactDuplicate(artifactId: aid, newName: name + " (副本)")
+                _ = try await ipc.artifactDuplicate(artifactId: aid, newName: name + I18nManager.shared.t(.art_pc_copySuffix))
                 artRepoLog.info("duplicated: \(aid)")
                 loadArtifacts()
             } catch {
@@ -785,6 +786,7 @@ struct ArtifactsRepositoryView: View {
 struct ArtifactRecycleBinView: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @Environment(\.dismiss) private var dismiss
 
     @State private var artifacts: [[String: Any]] = []
@@ -793,11 +795,11 @@ struct ArtifactRecycleBinView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("回收站")
+                Text(i18n.t(.art_rb_title))
                     .font(.system(size: theme.textSize, weight: .semibold))
                     .foregroundStyle(theme.text)
                 Spacer()
-                Button("清空过期") { purgeExpired() }
+                Button(i18n.t(.art_rb_purge)) { purgeExpired() }
                     .font(.system(size: theme.footnoteSize))
                     .buttonStyle(.plain)
                     .foregroundStyle(theme.accentDestructive)
@@ -819,7 +821,7 @@ struct ArtifactRecycleBinView: View {
                     Image(systemName: "trash")
                         .font(.system(size: 30))
                         .foregroundStyle(theme.textTertiary)
-                    Text("回收站为空")
+                    Text(i18n.t(.art_rb_empty))
                         .foregroundStyle(theme.textSecondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -849,7 +851,7 @@ struct ArtifactRecycleBinView: View {
                     .foregroundStyle(theme.textTertiary)
             }
             Spacer()
-            Button("恢复") { restoreArtifact(aid) }
+            Button(i18n.t(.art_rb_restore)) { restoreArtifact(aid) }
                 .font(.system(size: theme.footnoteSize))
                 .buttonStyle(.plain)
                 .foregroundStyle(theme.accent)

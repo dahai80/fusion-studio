@@ -2789,6 +2789,102 @@ enum I18nKey: String, CaseIterable {
     case design_ae_exportFmt = "design_ae_exportFmt"
     case design_cl_conflictFmt = "design_cl_conflictFmt"
     case design_si_selectScreenshot = "design_si_selectScreenshot"
+    case art_pc_open = "art_pc_open"
+    case art_pc_copy = "art_pc_copy"
+    case art_pc_versionHistory = "art_pc_versionHistory"
+    case art_pc_share = "art_pc_share"
+    case art_pc_unpin = "art_pc_unpin"
+    case art_pc_pin = "art_pc_pin"
+    case art_pc_duplicate = "art_pc_duplicate"
+    case art_pc_moveToKb = "art_pc_moveToKb"
+    case art_pc_delete = "art_pc_delete"
+    case art_pc_copySuffix = "art_pc_copySuffix"
+    case art_sd_title = "art_sd_title"
+    case art_sd_permission = "art_sd_permission"
+    case art_sd_permView = "art_sd_permView"
+    case art_sd_permComment = "art_sd_permComment"
+    case art_sd_permEdit = "art_sd_permEdit"
+    case art_sd_expiry = "art_sd_expiry"
+    case art_sd_exp1h = "art_sd_exp1h"
+    case art_sd_exp1d = "art_sd_exp1d"
+    case art_sd_exp7d = "art_sd_exp7d"
+    case art_sd_exp30d = "art_sd_exp30d"
+    case art_sd_expNever = "art_sd_expNever"
+    case art_sd_generate = "art_sd_generate"
+    case art_sd_done = "art_sd_done"
+    case art_sd_shareLink = "art_sd_shareLink"
+    case art_sd_existingShares = "art_sd_existingShares"
+    case art_sd_expires = "art_sd_expires"
+    case art_sd_revoke = "art_sd_revoke"
+    case art_tf_tags = "art_tf_tags"
+    case art_tf_addTag = "art_tf_addTag"
+    case art_tf_folders = "art_tf_folders"
+    case art_tf_noFolders = "art_tf_noFolders"
+    case art_vh_rollbackConfirm = "art_vh_rollbackConfirm"
+    case art_vh_rollback = "art_vh_rollback"
+    case art_vh_cancel = "art_vh_cancel"
+    case art_vh_rollbackMsg = "art_vh_rollbackMsg"
+    case art_vh_createSnapshot = "art_vh_createSnapshot"
+    case art_vh_snapshotName = "art_vh_snapshotName"
+    case art_vh_create = "art_vh_create"
+    case art_vh_title = "art_vh_title"
+    case art_vh_empty = "art_vh_empty"
+    case art_vh_current = "art_vh_current"
+    case art_vh_chars = "art_vh_chars"
+    case art_vh_diffCurrent = "art_vh_diffCurrent"
+    case art_vh_incremental = "art_vh_incremental"
+    case art_vh_noDiff = "art_vh_noDiff"
+    case art_vh_diffFail = "art_vh_diffFail"
+    case art_rv_sortUpdated = "art_rv_sortUpdated"
+    case art_rv_sortCreated = "art_rv_sortCreated"
+    case art_rv_sortName = "art_rv_sortName"
+    case art_rv_scopeAll = "art_rv_scopeAll"
+    case art_rv_scopeMine = "art_rv_scopeMine"
+    case art_rv_scopeStarred = "art_rv_scopeStarred"
+    case art_rv_scopePinned = "art_rv_scopePinned"
+    case art_rv_subtitle = "art_rv_subtitle"
+    case art_rv_newFolder = "art_rv_newFolder"
+    case art_rv_folderName = "art_rv_folderName"
+    case art_rv_create = "art_rv_create"
+    case art_rv_search = "art_rv_search"
+    case art_rv_typeAll = "art_rv_typeAll"
+    case art_rv_recycle = "art_rv_recycle"
+    case art_rv_folders = "art_rv_folders"
+    case art_rv_allArtifacts = "art_rv_allArtifacts"
+    case art_rv_rename = "art_rv_rename"
+    case art_rv_delete = "art_rv_delete"
+    case art_rv_retry = "art_rv_retry"
+    case art_rv_empty = "art_rv_empty"
+    case art_rv_open = "art_rv_open"
+    case art_rv_unstar = "art_rv_unstar"
+    case art_rv_star = "art_rv_star"
+    case art_rv_copyContent = "art_rv_copyContent"
+    case art_rv_download = "art_rv_download"
+    case art_rv_copy = "art_rv_copy"
+    case art_rv_moveToKb = "art_rv_moveToKb"
+    case art_rv_loadFail = "art_rv_loadFail"
+    case art_rb_title = "art_rb_title"
+    case art_rb_purge = "art_rb_purge"
+    case art_rb_empty = "art_rb_empty"
+    case art_rb_restore = "art_rb_restore"
+    case art_cv_rename = "art_cv_rename"
+    case art_cv_newName = "art_cv_newName"
+    case art_cv_confirm = "art_cv_confirm"
+    case art_cv_cancel = "art_cv_cancel"
+    case art_cv_deleteConfirm = "art_cv_deleteConfirm"
+    case art_cv_delete = "art_cv_delete"
+    case art_cv_deleteMsg = "art_cv_deleteMsg"
+    case art_cv_unsaved = "art_cv_unsaved"
+    case art_cv_discard = "art_cv_discard"
+    case art_cv_save = "art_cv_save"
+    case art_cv_noPreview = "art_cv_noPreview"
+    case art_cv_chars = "art_cv_chars"
+    case art_cv_discardChanges = "art_cv_discardChanges"
+    case art_cv_createSnapshot = "art_cv_createSnapshot"
+    case art_cv_snapshotLabel = "art_cv_snapshotLabel"
+    case art_cv_create = "art_cv_create"
+    case art_cv_sections = "art_cv_sections"
+    case art_cv_toc = "art_cv_toc"
 }
 
 // MARK: - 翻译管理器
@@ -5230,6 +5326,102 @@ let zhCNTranslations: [String: String] = [
     "design_ae_exportFmt": "导出 %d 格式",
     "design_cl_conflictFmt": "文件与设计存在近时修改，已采用文件版本: %@",
     "design_si_selectScreenshot": "选择截图文件",
+    "art_pc_open": "打开",
+    "art_pc_copy": "复制",
+    "art_pc_versionHistory": "版本历史",
+    "art_pc_share": "分享",
+    "art_pc_unpin": "取消置顶",
+    "art_pc_pin": "置顶",
+    "art_pc_duplicate": "复制为副本",
+    "art_pc_moveToKb": "移至项目KB",
+    "art_pc_delete": "删除",
+    "art_pc_copySuffix": " (副本)",
+    "art_sd_title": "分享 Artifact",
+    "art_sd_permission": "权限",
+    "art_sd_permView": "仅查看",
+    "art_sd_permComment": "可评论",
+    "art_sd_permEdit": "可编辑",
+    "art_sd_expiry": "有效期",
+    "art_sd_exp1h": "1 小时",
+    "art_sd_exp1d": "1 天",
+    "art_sd_exp7d": "7 天",
+    "art_sd_exp30d": "30 天",
+    "art_sd_expNever": "永不过期",
+    "art_sd_generate": "生成分享链接",
+    "art_sd_done": "完成",
+    "art_sd_shareLink": "分享链接",
+    "art_sd_existingShares": "已有分享 (%d)",
+    "art_sd_expires": "过期: %@",
+    "art_sd_revoke": "撤销",
+    "art_tf_tags": "标签",
+    "art_tf_addTag": "添加标签",
+    "art_tf_folders": "文件夹",
+    "art_tf_noFolders": "无可用文件夹",
+    "art_vh_rollbackConfirm": "确认回滚？",
+    "art_vh_rollback": "回滚",
+    "art_vh_cancel": "取消",
+    "art_vh_rollbackMsg": "将回滚到版本 v%d，当前版本将保存为命名快照",
+    "art_vh_createSnapshot": "创建快照",
+    "art_vh_snapshotName": "快照名称",
+    "art_vh_create": "创建",
+    "art_vh_title": "版本历史",
+    "art_vh_empty": "暂无版本记录",
+    "art_vh_current": "当前",
+    "art_vh_chars": "%d 字符",
+    "art_vh_diffCurrent": "对比当前版本",
+    "art_vh_incremental": "增量变更",
+    "art_vh_noDiff": "无差异",
+    "art_vh_diffFail": "对比加载失败: %@",
+    "art_rv_sortUpdated": "最近更新",
+    "art_rv_sortCreated": "创建时间",
+    "art_rv_sortName": "名称",
+    "art_rv_scopeAll": "全部",
+    "art_rv_scopeMine": "我的",
+    "art_rv_scopeStarred": "星标",
+    "art_rv_scopePinned": "置顶",
+    "art_rv_subtitle": "全局产物仓库 — 跨会话管理所有 Artifacts",
+    "art_rv_newFolder": "新建文件夹",
+    "art_rv_folderName": "文件夹名称",
+    "art_rv_create": "创建",
+    "art_rv_search": "搜索产物…",
+    "art_rv_typeAll": "全部",
+    "art_rv_recycle": "回收站",
+    "art_rv_folders": "文件夹",
+    "art_rv_allArtifacts": "全部产物",
+    "art_rv_rename": "重命名",
+    "art_rv_delete": "删除",
+    "art_rv_retry": "重试",
+    "art_rv_empty": "暂无产物",
+    "art_rv_open": "打开",
+    "art_rv_unstar": "取消星标",
+    "art_rv_star": "星标",
+    "art_rv_copyContent": "复制内容",
+    "art_rv_download": "下载",
+    "art_rv_copy": "复制",
+    "art_rv_moveToKb": "移至项目KB",
+    "art_rv_loadFail": "加载失败: %@",
+    "art_rb_title": "回收站",
+    "art_rb_purge": "清空过期",
+    "art_rb_empty": "回收站为空",
+    "art_rb_restore": "恢复",
+    "art_cv_rename": "重命名",
+    "art_cv_newName": "新名称",
+    "art_cv_confirm": "确认",
+    "art_cv_cancel": "取消",
+    "art_cv_deleteConfirm": "确认删除？",
+    "art_cv_delete": "删除",
+    "art_cv_deleteMsg": "此操作将移入回收站，可恢复",
+    "art_cv_unsaved": "有未保存的更改",
+    "art_cv_discard": "放弃",
+    "art_cv_save": "保存",
+    "art_cv_noPreview": "无预览内容",
+    "art_cv_chars": "%d 字符",
+    "art_cv_discardChanges": "放弃更改",
+    "art_cv_createSnapshot": "创建版本快照",
+    "art_cv_snapshotLabel": "快照标签（可选）",
+    "art_cv_create": "创建",
+    "art_cv_sections": "%d 章节",
+    "art_cv_toc": "章节目录",
 ]
 
 let enUSTranslations: [String: String] = [
@@ -7626,6 +7818,102 @@ let enUSTranslations: [String: String] = [
     "design_ae_exportFmt": "Export %d format(s)",
     "design_cl_conflictFmt": "File and design both modified recently; using file version: %@",
     "design_si_selectScreenshot": "Select Screenshot File",
+    "art_pc_open": "Open",
+    "art_pc_copy": "Copy",
+    "art_pc_versionHistory": "Version History",
+    "art_pc_share": "Share",
+    "art_pc_unpin": "Unpin",
+    "art_pc_pin": "Pin",
+    "art_pc_duplicate": "Duplicate",
+    "art_pc_moveToKb": "Move to Project KB",
+    "art_pc_delete": "Delete",
+    "art_pc_copySuffix": " (Copy)",
+    "art_sd_title": "Share Artifact",
+    "art_sd_permission": "Permission",
+    "art_sd_permView": "View only",
+    "art_sd_permComment": "Can comment",
+    "art_sd_permEdit": "Can edit",
+    "art_sd_expiry": "Expiry",
+    "art_sd_exp1h": "1 hour",
+    "art_sd_exp1d": "1 day",
+    "art_sd_exp7d": "7 days",
+    "art_sd_exp30d": "30 days",
+    "art_sd_expNever": "Never",
+    "art_sd_generate": "Generate Share Link",
+    "art_sd_done": "Done",
+    "art_sd_shareLink": "Share Link",
+    "art_sd_existingShares": "Existing Shares (%d)",
+    "art_sd_expires": "Expires: %@",
+    "art_sd_revoke": "Revoke",
+    "art_tf_tags": "Tags",
+    "art_tf_addTag": "Add tag",
+    "art_tf_folders": "Folders",
+    "art_tf_noFolders": "No folders available",
+    "art_vh_rollbackConfirm": "Confirm rollback?",
+    "art_vh_rollback": "Rollback",
+    "art_vh_cancel": "Cancel",
+    "art_vh_rollbackMsg": "Roll back to v%d; current version saved as named snapshot",
+    "art_vh_createSnapshot": "Create Snapshot",
+    "art_vh_snapshotName": "Snapshot name",
+    "art_vh_create": "Create",
+    "art_vh_title": "Version History",
+    "art_vh_empty": "No version history",
+    "art_vh_current": "Current",
+    "art_vh_chars": "%d chars",
+    "art_vh_diffCurrent": "Compare with current",
+    "art_vh_incremental": "Incremental changes",
+    "art_vh_noDiff": "No diff",
+    "art_vh_diffFail": "Diff load failed: %@",
+    "art_rv_sortUpdated": "Recently updated",
+    "art_rv_sortCreated": "Created time",
+    "art_rv_sortName": "Name",
+    "art_rv_scopeAll": "All",
+    "art_rv_scopeMine": "Mine",
+    "art_rv_scopeStarred": "Starred",
+    "art_rv_scopePinned": "Pinned",
+    "art_rv_subtitle": "Global artifact repository — manage all artifacts across sessions",
+    "art_rv_newFolder": "New Folder",
+    "art_rv_folderName": "Folder name",
+    "art_rv_create": "Create",
+    "art_rv_search": "Search artifacts…",
+    "art_rv_typeAll": "All",
+    "art_rv_recycle": "Recycle Bin",
+    "art_rv_folders": "Folders",
+    "art_rv_allArtifacts": "All Artifacts",
+    "art_rv_rename": "Rename",
+    "art_rv_delete": "Delete",
+    "art_rv_retry": "Retry",
+    "art_rv_empty": "No artifacts",
+    "art_rv_open": "Open",
+    "art_rv_unstar": "Unstar",
+    "art_rv_star": "Star",
+    "art_rv_copyContent": "Copy Content",
+    "art_rv_download": "Download",
+    "art_rv_copy": "Duplicate",
+    "art_rv_moveToKb": "Move to Project KB",
+    "art_rv_loadFail": "Load failed: %@",
+    "art_rb_title": "Recycle Bin",
+    "art_rb_purge": "Purge expired",
+    "art_rb_empty": "Recycle bin is empty",
+    "art_rb_restore": "Restore",
+    "art_cv_rename": "Rename",
+    "art_cv_newName": "New name",
+    "art_cv_confirm": "Confirm",
+    "art_cv_cancel": "Cancel",
+    "art_cv_deleteConfirm": "Confirm delete?",
+    "art_cv_delete": "Delete",
+    "art_cv_deleteMsg": "This moves to recycle bin and can be restored",
+    "art_cv_unsaved": "Unsaved changes",
+    "art_cv_discard": "Discard",
+    "art_cv_save": "Save",
+    "art_cv_noPreview": "No preview content",
+    "art_cv_chars": "%d chars",
+    "art_cv_discardChanges": "Discard changes",
+    "art_cv_createSnapshot": "Create version snapshot",
+    "art_cv_snapshotLabel": "Snapshot label (optional)",
+    "art_cv_create": "Create",
+    "art_cv_sections": "%d sections",
+    "art_cv_toc": "Table of Contents",
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -10016,6 +10304,102 @@ let jaJPTranslations: [String: String] = [
     "design_ae_exportFmt": "%d 形式をエクスポート",
     "design_cl_conflictFmt": "ファイルとデザインが同時に変更されたため、ファイル版を採用: %@",
     "design_si_selectScreenshot": "スクリーンショットファイルを選択",
+    "art_pc_open": "開く",
+    "art_pc_copy": "コピー",
+    "art_pc_versionHistory": "バージョン履歴",
+    "art_pc_share": "共有",
+    "art_pc_unpin": "ピン留め解除",
+    "art_pc_pin": "ピン留め",
+    "art_pc_duplicate": "複製",
+    "art_pc_moveToKb": "プロジェクトKBへ移動",
+    "art_pc_delete": "削除",
+    "art_pc_copySuffix": " (コピー)",
+    "art_sd_title": "アーティファクトを共有",
+    "art_sd_permission": "権限",
+    "art_sd_permView": "閲覧のみ",
+    "art_sd_permComment": "コメント可",
+    "art_sd_permEdit": "編集可",
+    "art_sd_expiry": "有効期限",
+    "art_sd_exp1h": "1 時間",
+    "art_sd_exp1d": "1 日",
+    "art_sd_exp7d": "7 日",
+    "art_sd_exp30d": "30 日",
+    "art_sd_expNever": "期限なし",
+    "art_sd_generate": "共有リンク生成",
+    "art_sd_done": "完了",
+    "art_sd_shareLink": "共有リンク",
+    "art_sd_existingShares": "既存の共有 (%d)",
+    "art_sd_expires": "期限: %@",
+    "art_sd_revoke": "取り消し",
+    "art_tf_tags": "タグ",
+    "art_tf_addTag": "タグ追加",
+    "art_tf_folders": "フォルダ",
+    "art_tf_noFolders": "フォルダがありません",
+    "art_vh_rollbackConfirm": "ロールバックを確認？",
+    "art_vh_rollback": "ロールバック",
+    "art_vh_cancel": "キャンセル",
+    "art_vh_rollbackMsg": "バージョン v%d にロールバック、現在のバージョンは名前付きスナップショットとして保存",
+    "art_vh_createSnapshot": "スナップショット作成",
+    "art_vh_snapshotName": "スナップショット名",
+    "art_vh_create": "作成",
+    "art_vh_title": "バージョン履歴",
+    "art_vh_empty": "バージョン履歴なし",
+    "art_vh_current": "現在",
+    "art_vh_chars": "%d 文字",
+    "art_vh_diffCurrent": "現在のバージョンと比較",
+    "art_vh_incremental": "差分変更",
+    "art_vh_noDiff": "差分なし",
+    "art_vh_diffFail": "差分読込失敗: %@",
+    "art_rv_sortUpdated": "最近更新",
+    "art_rv_sortCreated": "作成時間",
+    "art_rv_sortName": "名称",
+    "art_rv_scopeAll": "すべて",
+    "art_rv_scopeMine": "自分の",
+    "art_rv_scopeStarred": "スター付き",
+    "art_rv_scopePinned": "ピン留め",
+    "art_rv_subtitle": "グローバルアーティファクトリポジトリ — セッションをまたぐアーティファクト管理",
+    "art_rv_newFolder": "新規フォルダ",
+    "art_rv_folderName": "フォルダ名",
+    "art_rv_create": "作成",
+    "art_rv_search": "アーティファクトを検索…",
+    "art_rv_typeAll": "すべて",
+    "art_rv_recycle": "ごみ箱",
+    "art_rv_folders": "フォルダ",
+    "art_rv_allArtifacts": "すべてのアーティファクト",
+    "art_rv_rename": "名前変更",
+    "art_rv_delete": "削除",
+    "art_rv_retry": "再試行",
+    "art_rv_empty": "アーティファクトなし",
+    "art_rv_open": "開く",
+    "art_rv_unstar": "スター解除",
+    "art_rv_star": "スター",
+    "art_rv_copyContent": "内容コピー",
+    "art_rv_download": "ダウンロード",
+    "art_rv_copy": "複製",
+    "art_rv_moveToKb": "プロジェクトKBへ移動",
+    "art_rv_loadFail": "読込失敗: %@",
+    "art_rb_title": "ごみ箱",
+    "art_rb_purge": "期限切れ削除",
+    "art_rb_empty": "ごみ箱は空です",
+    "art_rb_restore": "復元",
+    "art_cv_rename": "名前変更",
+    "art_cv_newName": "新しい名前",
+    "art_cv_confirm": "確認",
+    "art_cv_cancel": "キャンセル",
+    "art_cv_deleteConfirm": "削除を確認？",
+    "art_cv_delete": "削除",
+    "art_cv_deleteMsg": "ごみ箱へ移動、復元可能",
+    "art_cv_unsaved": "未保存の変更あり",
+    "art_cv_discard": "破棄",
+    "art_cv_save": "保存",
+    "art_cv_noPreview": "プレビューなし",
+    "art_cv_chars": "%d 文字",
+    "art_cv_discardChanges": "変更を破棄",
+    "art_cv_createSnapshot": "バージョンスナップショット作成",
+    "art_cv_snapshotLabel": "スナップショットラベル（任意）",
+    "art_cv_create": "作成",
+    "art_cv_sections": "%d セクション",
+    "art_cv_toc": "目次",
 ]
 
 let koKRTranslations: [String: String] = [
@@ -12406,6 +12790,102 @@ let koKRTranslations: [String: String] = [
     "design_ae_exportFmt": "%d 형식 내보내기",
     "design_cl_conflictFmt": "파일과 디자인이 최근 변경되어 파일 버전 채택: %@",
     "design_si_selectScreenshot": "스크린샷 파일 선택",
+    "art_pc_open": "열기",
+    "art_pc_copy": "복사",
+    "art_pc_versionHistory": "버전 이력",
+    "art_pc_share": "공유",
+    "art_pc_unpin": "고정 해제",
+    "art_pc_pin": "고정",
+    "art_pc_duplicate": "복제",
+    "art_pc_moveToKb": "프로젝트 KB로 이동",
+    "art_pc_delete": "삭제",
+    "art_pc_copySuffix": " (사본)",
+    "art_sd_title": "아티팩트 공유",
+    "art_sd_permission": "권한",
+    "art_sd_permView": "보기 전용",
+    "art_sd_permComment": "댓글 가능",
+    "art_sd_permEdit": "편집 가능",
+    "art_sd_expiry": "유효기간",
+    "art_sd_exp1h": "1시간",
+    "art_sd_exp1d": "1일",
+    "art_sd_exp7d": "7일",
+    "art_sd_exp30d": "30일",
+    "art_sd_expNever": "만료 없음",
+    "art_sd_generate": "공유 링크 생성",
+    "art_sd_done": "완료",
+    "art_sd_shareLink": "공유 링크",
+    "art_sd_existingShares": "기존 공유 (%d)",
+    "art_sd_expires": "만료: %@",
+    "art_sd_revoke": "철회",
+    "art_tf_tags": "태그",
+    "art_tf_addTag": "태그 추가",
+    "art_tf_folders": "폴더",
+    "art_tf_noFolders": "사용 가능한 폴더 없음",
+    "art_vh_rollbackConfirm": "롤백 확인?",
+    "art_vh_rollback": "롤백",
+    "art_vh_cancel": "취소",
+    "art_vh_rollbackMsg": "v%d로 롤백, 현재 버전은 명명된 스냅샷으로 저장",
+    "art_vh_createSnapshot": "스냅샷 생성",
+    "art_vh_snapshotName": "스냅샷 이름",
+    "art_vh_create": "생성",
+    "art_vh_title": "버전 이력",
+    "art_vh_empty": "버전 이력 없음",
+    "art_vh_current": "현재",
+    "art_vh_chars": "%d자",
+    "art_vh_diffCurrent": "현재 버전과 비교",
+    "art_vh_incremental": "증분 변경",
+    "art_vh_noDiff": "차이 없음",
+    "art_vh_diffFail": "diff 로드 실패: %@",
+    "art_rv_sortUpdated": "최근 업데이트",
+    "art_rv_sortCreated": "생성 시간",
+    "art_rv_sortName": "이름",
+    "art_rv_scopeAll": "전체",
+    "art_rv_scopeMine": "내 것",
+    "art_rv_scopeStarred": "별표",
+    "art_rv_scopePinned": "고정됨",
+    "art_rv_subtitle": "전역 아티팩트 저장소 — 세션 간 모든 아티팩트 관리",
+    "art_rv_newFolder": "새 폴더",
+    "art_rv_folderName": "폴더 이름",
+    "art_rv_create": "생성",
+    "art_rv_search": "아티팩트 검색…",
+    "art_rv_typeAll": "전체",
+    "art_rv_recycle": "휴지통",
+    "art_rv_folders": "폴더",
+    "art_rv_allArtifacts": "모든 아티팩트",
+    "art_rv_rename": "이름 변경",
+    "art_rv_delete": "삭제",
+    "art_rv_retry": "재시도",
+    "art_rv_empty": "아티팩트 없음",
+    "art_rv_open": "열기",
+    "art_rv_unstar": "별표 해제",
+    "art_rv_star": "별표",
+    "art_rv_copyContent": "내용 복사",
+    "art_rv_download": "다운로드",
+    "art_rv_copy": "복제",
+    "art_rv_moveToKb": "프로젝트 KB로 이동",
+    "art_rv_loadFail": "로드 실패: %@",
+    "art_rb_title": "휴지통",
+    "art_rb_purge": "만료 항목 비우기",
+    "art_rb_empty": "휴지통이 비어 있음",
+    "art_rb_restore": "복원",
+    "art_cv_rename": "이름 변경",
+    "art_cv_newName": "새 이름",
+    "art_cv_confirm": "확인",
+    "art_cv_cancel": "취소",
+    "art_cv_deleteConfirm": "삭제 확인?",
+    "art_cv_delete": "삭제",
+    "art_cv_deleteMsg": "휴지통으로 이동, 복원 가능",
+    "art_cv_unsaved": "저장되지 않은 변경사항",
+    "art_cv_discard": "버리기",
+    "art_cv_save": "저장",
+    "art_cv_noPreview": "미리보기 없음",
+    "art_cv_chars": "%d자",
+    "art_cv_discardChanges": "변경사항 버리기",
+    "art_cv_createSnapshot": "버전 스냅샷 생성",
+    "art_cv_snapshotLabel": "스냅샷 라벨(선택)",
+    "art_cv_create": "생성",
+    "art_cv_sections": "%d 섹션",
+    "art_cv_toc": "목차",
 ]
 
 // MARK: - 国际化文本视图

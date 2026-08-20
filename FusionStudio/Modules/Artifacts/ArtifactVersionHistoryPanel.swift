@@ -6,6 +6,7 @@ private let verLog = Logger(subsystem: "com.fusion.studio", category: "Artifacts
 struct ArtifactVersionHistoryPanel: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     let artifactId: String
     @State private var versions: [[String: Any]] = []
@@ -39,31 +40,31 @@ struct ArtifactVersionHistoryPanel: View {
         }
         .frame(minWidth: 500, minHeight: 400)
         .onAppear { loadVersions() }
-        .alert("确认回滚？", isPresented: $showRollbackConfirm) {
-            Button("回滚") { performRollback() }
-            Button("取消", role: .cancel) { }
+        .alert(i18n.t(.art_vh_rollbackConfirm), isPresented: $showRollbackConfirm) {
+            Button(i18n.t(.art_vh_rollback)) { performRollback() }
+            Button(i18n.t(.art_vh_cancel), role: .cancel) { }
         } message: {
             if let v = rollbackTarget {
-                Text("将回滚到版本 v\(v)，当前版本将保存为命名快照")
+                Text(String(format: i18n.t(.art_vh_rollbackMsg), v))
             }
         }
-        .alert("创建快照", isPresented: $showCreateSnapshot) {
-            TextField("快照名称", text: $snapshotLabel)
-            Button("创建") { createSnapshot() }
-            Button("取消", role: .cancel) { }
+        .alert(i18n.t(.art_vh_createSnapshot), isPresented: $showCreateSnapshot) {
+            TextField(i18n.t(.art_vh_snapshotName), text: $snapshotLabel)
+            Button(i18n.t(.art_vh_create)) { createSnapshot() }
+            Button(i18n.t(.art_vh_cancel), role: .cancel) { }
         }
     }
 
     private var headerBar: some View {
         HStack(spacing: theme.spacingM) {
-            Text("版本历史")
+            Text(i18n.t(.art_vh_title))
                 .font(.system(size: theme.textSize, weight: .semibold))
                 .foregroundStyle(theme.text)
 
             Spacer()
 
             Button(action: { showCreateSnapshot = true }) {
-                Label("创建快照", systemImage: "bookmark")
+                Label(i18n.t(.art_vh_createSnapshot), systemImage: "bookmark")
             }
             .font(.system(size: theme.footnoteSize))
             .buttonStyle(.plain)
@@ -85,7 +86,7 @@ struct ArtifactVersionHistoryPanel: View {
             Image(systemName: "clock")
                 .font(.system(size: 30))
                 .foregroundStyle(theme.textTertiary)
-            Text("暂无版本记录")
+            Text(i18n.t(.art_vh_empty))
                 .font(.system(size: theme.footnoteSize))
                 .foregroundStyle(theme.textSecondary)
         }
@@ -132,7 +133,7 @@ struct ArtifactVersionHistoryPanel: View {
                             .foregroundStyle(theme.accent)
                     }
                     if isCurrent {
-                        Text("当前")
+                        Text(i18n.t(.art_vh_current))
                             .font(.system(size: theme.captionSize, weight: .medium))
                             .foregroundStyle(theme.accentText)
                             .padding(.horizontal, theme.spacingXS)
@@ -147,7 +148,7 @@ struct ArtifactVersionHistoryPanel: View {
                     if charCount > 0 {
                         Text("·")
                             .foregroundStyle(theme.textTertiary)
-                        Text("\(charCount) 字符")
+                        Text(String(format: i18n.t(.art_vh_chars), charCount))
                             .font(.system(size: theme.captionSize))
                             .foregroundStyle(theme.textTertiary)
                     }
@@ -163,9 +164,9 @@ struct ArtifactVersionHistoryPanel: View {
                         .foregroundStyle(theme.textTertiary)
                 }
                 .buttonStyle(.plain)
-                .help("对比当前版本")
+                .help(i18n.t(.art_vh_diffCurrent))
 
-                Button("回滚") {
+                Button(i18n.t(.art_vh_rollback)) {
                     rollbackTarget = ver
                     showRollbackConfirm = true
                 }
@@ -191,7 +192,7 @@ struct ArtifactVersionHistoryPanel: View {
             Rectangle().fill(theme.separator).frame(height: 1)
 
             HStack {
-                Text("增量变更")
+                Text(i18n.t(.art_vh_incremental))
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
                     .foregroundStyle(theme.text)
                 if let base = diffBaseVersion, let target = diffTargetVersion {
@@ -311,7 +312,7 @@ struct ArtifactVersionHistoryPanel: View {
                     "from_version": targetVer,
                     "to_version": currentVer
                 ])
-                let diff = r["diff"] as? String ?? r["unified_diff"] as? String ?? "无差异"
+                let diff = r["diff"] as? String ?? r["unified_diff"] as? String ?? I18nManager.shared.t(.art_vh_noDiff)
                 await MainActor.run {
                     diffContent = diff
                     showDiff = true
@@ -319,7 +320,7 @@ struct ArtifactVersionHistoryPanel: View {
             } catch {
                 verLog.error("version diff failed: \(error.localizedDescription)")
                 await MainActor.run {
-                    diffContent = "对比加载失败: \(error.localizedDescription)"
+                    diffContent = String(format: I18nManager.shared.t(.art_vh_diffFail), error.localizedDescription)
                     showDiff = true
                 }
             }

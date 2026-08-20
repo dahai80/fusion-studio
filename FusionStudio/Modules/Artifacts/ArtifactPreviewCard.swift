@@ -6,6 +6,7 @@ private let artCardLog = Logger(subsystem: "com.fusion.studio", category: "Artif
 struct ArtifactPreviewCard: View {
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     let artifactId: String
     let name: String
@@ -238,10 +239,10 @@ struct ArtifactPreviewCard: View {
     private var actionBar: some View {
         HStack(spacing: theme.spacingS) {
             Button(action: { showCanvas = true }) {
-                Label("打开", systemImage: "arrow.up.right.and.arrow.down")
+                Label(i18n.t(.art_pc_open), systemImage: "arrow.up.right.and.arrow.down")
             }
             Button(action: { copyContent() }) {
-                Label("复制", systemImage: "doc.on.doc")
+                Label(i18n.t(.art_pc_copy), systemImage: "doc.on.doc")
             }
             Spacer()
             Button(action: { showVersionHistory = true }) {
@@ -250,7 +251,7 @@ struct ArtifactPreviewCard: View {
                     .foregroundStyle(theme.textTertiary)
             }
             .buttonStyle(.plain)
-            .help("版本历史")
+            .help(i18n.t(.art_pc_versionHistory))
 
             Button(action: { showShare = true }) {
                 Image(systemName: "square.and.arrow.up")
@@ -258,15 +259,15 @@ struct ArtifactPreviewCard: View {
                     .foregroundStyle(theme.textTertiary)
             }
             .buttonStyle(.plain)
-            .help("分享")
+            .help(i18n.t(.art_pc_share))
 
             Menu {
-                Button(isPinned ? "取消置顶" : "置顶") { togglePin() }
-                Button("复制为副本") { duplicateArtifact() }
+                Button(isPinned ? i18n.t(.art_pc_unpin) : i18n.t(.art_pc_pin)) { togglePin() }
+                Button(i18n.t(.art_pc_duplicate)) { duplicateArtifact() }
                 Divider()
-                Button("移至项目KB") { moveToProjectKb() }
+                Button(i18n.t(.art_pc_moveToKb)) { moveToProjectKb() }
                 Divider()
-                Button("删除", role: .destructive) { deleteArtifact() }
+                Button(i18n.t(.art_pc_delete), role: .destructive) { deleteArtifact() }
             } label: {
                 Image(systemName: "ellipsis")
                     .font(.system(size: theme.iconS))
@@ -359,7 +360,7 @@ struct ArtifactPreviewCard: View {
     private func duplicateArtifact() {
         Task {
             do {
-                _ = try await ipc.artifactDuplicate(artifactId: artifactId, newName: name + " (副本)")
+                _ = try await ipc.artifactDuplicate(artifactId: artifactId, newName: name + I18nManager.shared.t(.art_pc_copySuffix))
                 artCardLog.info("duplicated: \(artifactId)")
             } catch {
                 artCardLog.error("duplicate failed: \(error.localizedDescription)")
