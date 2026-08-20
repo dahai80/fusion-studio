@@ -236,6 +236,7 @@ struct MultiFormatExportSheet: View {
     @Environment(\.studioTheme) var theme
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var designBridge: DesignBridge
+    @StateObject private var i18n = I18nManager.shared
     @State private var selectedFormats: Set<ExportFormatOption> = [.html]
     @State private var exportResults: [ExportResult] = []
     @State private var isExporting = false
@@ -245,7 +246,7 @@ struct MultiFormatExportSheet: View {
 
     var body: some View {
         VStack(spacing: theme.spacingM) {
-            Text("多格式导出")
+            Text(i18n.t(.design_ae_multiFormat))
                 .font(.system(size: theme.titleSize, weight: .bold))
                 .foregroundStyle(theme.text)
 
@@ -302,8 +303,8 @@ struct MultiFormatExportSheet: View {
             }
 
             HStack(spacing: theme.spacingM) {
-                FusionButton("取消", style: .ghost) { dismiss() }
-                FusionButton("导出 \(selectedFormats.count) 格式", icon: "square.and.arrow.up", style: .primary) {
+                FusionButton(i18n.t(.design_ae_cancel), style: .ghost) { dismiss() }
+                FusionButton(String(format: i18n.t(.design_ae_exportFmt), selectedFormats.count), icon: "square.and.arrow.up", style: .primary) {
                     exportAll()
                 }
                 .disabled(selectedFormats.isEmpty || isExporting)

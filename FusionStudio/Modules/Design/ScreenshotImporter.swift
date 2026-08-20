@@ -126,7 +126,7 @@ struct ScreenshotImporter {
 
     static func openPanel() -> [NSImage] {
         let panel = NSOpenPanel()
-        panel.title = "选择截图文件"
+        panel.title = I18nManager.shared.t(.design_si_selectScreenshot)
         panel.canChooseDirectories = false
         panel.canChooseFiles = true
         panel.allowsMultipleSelection = true

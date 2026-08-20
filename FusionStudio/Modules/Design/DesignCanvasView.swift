@@ -554,20 +554,20 @@ struct DesignCanvasView: NSViewRepresentable {
             let nodeID = bridge.selectedNodeID
 
             if let nid = nodeID, !nid.isEmpty {
-                menu.addItem(withTitle: "复制节点", action: #selector(duplicateNodeAction), keyEquivalent: "d")
-                menu.addItem(withTitle: "删除节点", action: #selector(deleteNodeAction), keyEquivalent: "\\")
+                menu.addItem(withTitle: I18nManager.shared.t(.design_cv_menu_duplicate), action: #selector(duplicateNodeAction), keyEquivalent: "d")
+                menu.addItem(withTitle: I18nManager.shared.t(.design_cv_menu_delete), action: #selector(deleteNodeAction), keyEquivalent: "\\")
                 menu.addItem(NSMenuItem.separator())
-                menu.addItem(withTitle: "锁定/解锁", action: #selector(toggleLockAction), keyEquivalent: "l")
-                menu.addItem(withTitle: "隐藏/显示", action: #selector(toggleVisibilityAction), keyEquivalent: "h")
+                menu.addItem(withTitle: I18nManager.shared.t(.design_cv_menu_toggleLock), action: #selector(toggleLockAction), keyEquivalent: "l")
+                menu.addItem(withTitle: I18nManager.shared.t(.design_cv_menu_toggleVisibility), action: #selector(toggleVisibilityAction), keyEquivalent: "h")
                 menu.addItem(NSMenuItem.separator())
-                menu.addItem(withTitle: "局部重绘", action: #selector(partialRepaintAction), keyEquivalent: "")
+                menu.addItem(withTitle: I18nManager.shared.t(.design_cv_menu_partialRepaint), action: #selector(partialRepaintAction), keyEquivalent: "")
                 menu.addItem(NSMenuItem.separator())
-                menu.addItem(withTitle: "置顶", action: #selector(bringToFrontAction), keyEquivalent: "")
-                menu.addItem(withTitle: "置底", action: #selector(sendToBackAction), keyEquivalent: "")
+                menu.addItem(withTitle: I18nManager.shared.t(.design_cv_menu_bringToFront), action: #selector(bringToFrontAction), keyEquivalent: "")
+                menu.addItem(withTitle: I18nManager.shared.t(.design_cv_menu_sendToBack), action: #selector(sendToBackAction), keyEquivalent: "")
             } else {
-                menu.addItem(withTitle: "全选", action: #selector(selectAllAction), keyEquivalent: "a")
-                menu.addItem(withTitle: "缩放适配", action: #selector(fitZoomAction), keyEquivalent: "0")
-                menu.addItem(withTitle: "粘贴", action: #selector(pasteAction), keyEquivalent: "v")
+                menu.addItem(withTitle: I18nManager.shared.t(.design_cv_menu_selectAll), action: #selector(selectAllAction), keyEquivalent: "a")
+                menu.addItem(withTitle: I18nManager.shared.t(.design_cv_menu_fitZoom), action: #selector(fitZoomAction), keyEquivalent: "0")
+                menu.addItem(withTitle: I18nManager.shared.t(.design_cv_menu_paste), action: #selector(pasteAction), keyEquivalent: "v")
             }
         }
 

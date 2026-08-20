@@ -2743,6 +2743,52 @@ enum I18nKey: String, CaseIterable {
     case design_tok_cat_shadows = "design_tok_cat_shadows"
     case design_tok_cat_animation = "design_tok_cat_animation"
     case design_tok_designSpec = "design_tok_designSpec"
+    case design_cv_menu_duplicate = "design_cv_menu_duplicate"
+    case design_cv_menu_delete = "design_cv_menu_delete"
+    case design_cv_menu_toggleLock = "design_cv_menu_toggleLock"
+    case design_cv_menu_toggleVisibility = "design_cv_menu_toggleVisibility"
+    case design_cv_menu_partialRepaint = "design_cv_menu_partialRepaint"
+    case design_cv_menu_bringToFront = "design_cv_menu_bringToFront"
+    case design_cv_menu_sendToBack = "design_cv_menu_sendToBack"
+    case design_cv_menu_selectAll = "design_cv_menu_selectAll"
+    case design_cv_menu_fitZoom = "design_cv_menu_fitZoom"
+    case design_cv_menu_paste = "design_cv_menu_paste"
+    case design_cg_targetLabel = "design_cg_targetLabel"
+    case design_cg_componentName = "design_cg_componentName"
+    case design_cg_generating = "design_cg_generating"
+    case design_cg_generate = "design_cg_generate"
+    case design_cg_copied = "design_cg_copied"
+    case design_cg_copy = "design_cg_copy"
+    case design_cg_emptyHint = "design_cg_emptyHint"
+    case design_cg_charCount = "design_cg_charCount"
+    case design_cg_genFailFmt = "design_cg_genFailFmt"
+    case design_cg_desc_html = "design_cg_desc_html"
+    case design_cg_desc_react = "design_cg_desc_react"
+    case design_cg_desc_tailwind = "design_cg_desc_tailwind"
+    case design_cg_desc_swiftui = "design_cg_desc_swiftui"
+    case design_ds_title = "design_ds_title"
+    case design_ds_refresh = "design_ds_refresh"
+    case design_ds_activeFmt = "design_ds_activeFmt"
+    case design_ds_applyToCanvas = "design_ds_applyToCanvas"
+    case design_ds_activateFailFmt = "design_ds_activateFailFmt"
+    case design_ds_listFailFmt = "design_ds_listFailFmt"
+    case design_ds_name_appleHIG = "design_ds_name_appleHIG"
+    case design_ds_name_adminMinimal = "design_ds_name_adminMinimal"
+    case design_ds_name_robotSim = "design_ds_name_robotSim"
+    case design_ds_desc_appleHIG = "design_ds_desc_appleHIG"
+    case design_ds_desc_adminMinimal = "design_ds_desc_adminMinimal"
+    case design_ds_desc_robotSim = "design_ds_desc_robotSim"
+    case design_ds_customDesc = "design_ds_customDesc"
+    case design_ly_title = "design_ly_title"
+    case design_ly_countFmt = "design_ly_countFmt"
+    case design_ly_empty = "design_ly_empty"
+    case design_ly_emptyHint = "design_ly_emptyHint"
+    case design_avd_exportReview = "design_avd_exportReview"
+    case design_ae_multiFormat = "design_ae_multiFormat"
+    case design_ae_cancel = "design_ae_cancel"
+    case design_ae_exportFmt = "design_ae_exportFmt"
+    case design_cl_conflictFmt = "design_cl_conflictFmt"
+    case design_si_selectScreenshot = "design_si_selectScreenshot"
 }
 
 // MARK: - 翻译管理器
@@ -5138,6 +5184,52 @@ let zhCNTranslations: [String: String] = [
     "design_tok_cat_shadows": "阴影",
     "design_tok_cat_animation": "动画",
     "design_tok_designSpec": "设计规范",
+    "design_cv_menu_duplicate": "复制节点",
+    "design_cv_menu_delete": "删除节点",
+    "design_cv_menu_toggleLock": "锁定/解锁",
+    "design_cv_menu_toggleVisibility": "隐藏/显示",
+    "design_cv_menu_partialRepaint": "局部重绘",
+    "design_cv_menu_bringToFront": "置顶",
+    "design_cv_menu_sendToBack": "置底",
+    "design_cv_menu_selectAll": "全选",
+    "design_cv_menu_fitZoom": "缩放适配",
+    "design_cv_menu_paste": "粘贴",
+    "design_cg_targetLabel": "导出目标",
+    "design_cg_componentName": "组件名",
+    "design_cg_generating": "生成中...",
+    "design_cg_generate": "生成代码",
+    "design_cg_copied": "已复制",
+    "design_cg_copy": "复制",
+    "design_cg_emptyHint": "选择导出目标\n点击生成代码",
+    "design_cg_charCount": "字符",
+    "design_cg_genFailFmt": "代码生成失败: %@",
+    "design_cg_desc_html": "纯 HTML + CSS 导出",
+    "design_cg_desc_react": "React 组件 + Tailwind CSS",
+    "design_cg_desc_tailwind": "纯 Tailwind CSS 类名",
+    "design_cg_desc_swiftui": "SwiftUI View 代码",
+    "design_ds_title": "设计系统",
+    "design_ds_refresh": "刷新",
+    "design_ds_activeFmt": "当前激活: %@",
+    "design_ds_applyToCanvas": "应用到画布",
+    "design_ds_activateFailFmt": "激活失败: %@",
+    "design_ds_listFailFmt": "获取设计系统列表失败: %@",
+    "design_ds_name_appleHIG": "Apple HIG",
+    "design_ds_name_adminMinimal": "极简后台",
+    "design_ds_name_robotSim": "机器人仿真",
+    "design_ds_desc_appleHIG": "Apple Human Interface Guidelines",
+    "design_ds_desc_adminMinimal": "极简风格后台管理",
+    "design_ds_desc_robotSim": "工业仿真控制面板",
+    "design_ds_customDesc": "自定义设计系统",
+    "design_ly_title": "图层",
+    "design_ly_countFmt": "%d 个元素",
+    "design_ly_empty": "暂无图层",
+    "design_ly_emptyHint": "使用 AI 对话生成设计后\n图层将在此处显示",
+    "design_avd_exportReview": "导出审查",
+    "design_ae_multiFormat": "多格式导出",
+    "design_ae_cancel": "取消",
+    "design_ae_exportFmt": "导出 %d 格式",
+    "design_cl_conflictFmt": "文件与设计存在近时修改，已采用文件版本: %@",
+    "design_si_selectScreenshot": "选择截图文件",
 ]
 
 let enUSTranslations: [String: String] = [
@@ -7488,6 +7580,52 @@ let enUSTranslations: [String: String] = [
     "design_tok_cat_shadows": "Shadows",
     "design_tok_cat_animation": "Animation",
     "design_tok_designSpec": "Design Spec",
+    "design_cv_menu_duplicate": "Duplicate Node",
+    "design_cv_menu_delete": "Delete Node",
+    "design_cv_menu_toggleLock": "Lock/Unlock",
+    "design_cv_menu_toggleVisibility": "Hide/Show",
+    "design_cv_menu_partialRepaint": "Partial Repaint",
+    "design_cv_menu_bringToFront": "Bring to Front",
+    "design_cv_menu_sendToBack": "Send to Back",
+    "design_cv_menu_selectAll": "Select All",
+    "design_cv_menu_fitZoom": "Fit Zoom",
+    "design_cv_menu_paste": "Paste",
+    "design_cg_targetLabel": "Export Target",
+    "design_cg_componentName": "Component Name",
+    "design_cg_generating": "Generating...",
+    "design_cg_generate": "Generate Code",
+    "design_cg_copied": "Copied",
+    "design_cg_copy": "Copy",
+    "design_cg_emptyHint": "Select export target\nClick to generate code",
+    "design_cg_charCount": "chars",
+    "design_cg_genFailFmt": "Code generation failed: %@",
+    "design_cg_desc_html": "Pure HTML + CSS Export",
+    "design_cg_desc_react": "React Component + Tailwind CSS",
+    "design_cg_desc_tailwind": "Pure Tailwind CSS Classes",
+    "design_cg_desc_swiftui": "SwiftUI View Code",
+    "design_ds_title": "Design Systems",
+    "design_ds_refresh": "Refresh",
+    "design_ds_activeFmt": "Active: %@",
+    "design_ds_applyToCanvas": "Apply to Canvas",
+    "design_ds_activateFailFmt": "Activation failed: %@",
+    "design_ds_listFailFmt": "Failed to load design systems: %@",
+    "design_ds_name_appleHIG": "Apple HIG",
+    "design_ds_name_adminMinimal": "Minimal Admin",
+    "design_ds_name_robotSim": "Robot Simulation",
+    "design_ds_desc_appleHIG": "Apple Human Interface Guidelines",
+    "design_ds_desc_adminMinimal": "Minimal-style admin management",
+    "design_ds_desc_robotSim": "Industrial simulation control panel",
+    "design_ds_customDesc": "Custom Design System",
+    "design_ly_title": "Layers",
+    "design_ly_countFmt": "%d elements",
+    "design_ly_empty": "No Layers",
+    "design_ly_emptyHint": "Layers appear here after generating\na design via AI chat",
+    "design_avd_exportReview": "Export Review",
+    "design_ae_multiFormat": "Multi-format Export",
+    "design_ae_cancel": "Cancel",
+    "design_ae_exportFmt": "Export %d format(s)",
+    "design_cl_conflictFmt": "File and design both modified recently; using file version: %@",
+    "design_si_selectScreenshot": "Select Screenshot File",
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -9832,6 +9970,52 @@ let jaJPTranslations: [String: String] = [
     "design_tok_cat_shadows": "シャドウ",
     "design_tok_cat_animation": "アニメーション",
     "design_tok_designSpec": "デザイン仕様",
+    "design_cv_menu_duplicate": "ノードを複製",
+    "design_cv_menu_delete": "ノードを削除",
+    "design_cv_menu_toggleLock": "ロック/ロック解除",
+    "design_cv_menu_toggleVisibility": "非表示/表示",
+    "design_cv_menu_partialRepaint": "部分再描画",
+    "design_cv_menu_bringToFront": "最前面へ",
+    "design_cv_menu_sendToBack": "最背面へ",
+    "design_cv_menu_selectAll": "すべて選択",
+    "design_cv_menu_fitZoom": "ズームをフィット",
+    "design_cv_menu_paste": "貼り付け",
+    "design_cg_targetLabel": "エクスポート対象",
+    "design_cg_componentName": "コンポーネント名",
+    "design_cg_generating": "生成中...",
+    "design_cg_generate": "コード生成",
+    "design_cg_copied": "コピー済み",
+    "design_cg_copy": "コピー",
+    "design_cg_emptyHint": "エクスポート対象を選択\nクリックしてコード生成",
+    "design_cg_charCount": "文字",
+    "design_cg_genFailFmt": "コード生成失敗: %@",
+    "design_cg_desc_html": "純 HTML + CSS エクスポート",
+    "design_cg_desc_react": "React コンポーネント + Tailwind CSS",
+    "design_cg_desc_tailwind": "純 Tailwind CSS クラス名",
+    "design_cg_desc_swiftui": "SwiftUI View コード",
+    "design_ds_title": "デザインシステム",
+    "design_ds_refresh": "更新",
+    "design_ds_activeFmt": "現在アクティブ: %@",
+    "design_ds_applyToCanvas": "キャンバスに適用",
+    "design_ds_activateFailFmt": "アクティベート失敗: %@",
+    "design_ds_listFailFmt": "デザインシステム一覧の取得に失敗: %@",
+    "design_ds_name_appleHIG": "Apple HIG",
+    "design_ds_name_adminMinimal": "ミニマル管理",
+    "design_ds_name_robotSim": "ロボットシミュレーション",
+    "design_ds_desc_appleHIG": "Apple Human Interface Guidelines",
+    "design_ds_desc_adminMinimal": "ミニマル風管理",
+    "design_ds_desc_robotSim": "産業シミュレーション制御パネル",
+    "design_ds_customDesc": "カスタムデザインシステム",
+    "design_ly_title": "レイヤー",
+    "design_ly_countFmt": "%d 個の要素",
+    "design_ly_empty": "レイヤーなし",
+    "design_ly_emptyHint": "AIチャットでデザインを生成すると\nここにレイヤーが表示されます",
+    "design_avd_exportReview": "レビューをエクスポート",
+    "design_ae_multiFormat": "マルチフォーマットエクスポート",
+    "design_ae_cancel": "キャンセル",
+    "design_ae_exportFmt": "%d 形式をエクスポート",
+    "design_cl_conflictFmt": "ファイルとデザインが同時に変更されたため、ファイル版を採用: %@",
+    "design_si_selectScreenshot": "スクリーンショットファイルを選択",
 ]
 
 let koKRTranslations: [String: String] = [
@@ -12176,6 +12360,52 @@ let koKRTranslations: [String: String] = [
     "design_tok_cat_shadows": "그림자",
     "design_tok_cat_animation": "애니메이션",
     "design_tok_designSpec": "디자인 사양",
+    "design_cv_menu_duplicate": "노드 복제",
+    "design_cv_menu_delete": "노드 삭제",
+    "design_cv_menu_toggleLock": "잠금/해제",
+    "design_cv_menu_toggleVisibility": "숨기기/표시",
+    "design_cv_menu_partialRepaint": "부분 다시 그리기",
+    "design_cv_menu_bringToFront": "맨 앞으로",
+    "design_cv_menu_sendToBack": "맨 뒤로",
+    "design_cv_menu_selectAll": "모두 선택",
+    "design_cv_menu_fitZoom": "줌 맞춤",
+    "design_cv_menu_paste": "붙여넣기",
+    "design_cg_targetLabel": "내보내기 대상",
+    "design_cg_componentName": "컴포넌트 이름",
+    "design_cg_generating": "생성 중...",
+    "design_cg_generate": "코드 생성",
+    "design_cg_copied": "복사됨",
+    "design_cg_copy": "복사",
+    "design_cg_emptyHint": "내보내기 대상 선택\n클릭하여 코드 생성",
+    "design_cg_charCount": "문자",
+    "design_cg_genFailFmt": "코드 생성 실패: %@",
+    "design_cg_desc_html": "순 HTML + CSS 내보내기",
+    "design_cg_desc_react": "React 컴포넌트 + Tailwind CSS",
+    "design_cg_desc_tailwind": "순 Tailwind CSS 클래스명",
+    "design_cg_desc_swiftui": "SwiftUI View 코드",
+    "design_ds_title": "디자인 시스템",
+    "design_ds_refresh": "새로고침",
+    "design_ds_activeFmt": "현재 활성: %@",
+    "design_ds_applyToCanvas": "캔버스에 적용",
+    "design_ds_activateFailFmt": "활성화 실패: %@",
+    "design_ds_listFailFmt": "디자인 시스템 목록 로드 실패: %@",
+    "design_ds_name_appleHIG": "Apple HIG",
+    "design_ds_name_adminMinimal": "미니멀 관리",
+    "design_ds_name_robotSim": "로봇 시뮬레이션",
+    "design_ds_desc_appleHIG": "Apple Human Interface Guidelines",
+    "design_ds_desc_adminMinimal": "미니멀 스타일 관리",
+    "design_ds_desc_robotSim": "산업 시뮬레이션 제어 패널",
+    "design_ds_customDesc": "커스텀 디자인 시스템",
+    "design_ly_title": "레이어",
+    "design_ly_countFmt": "요소 %d개",
+    "design_ly_empty": "레이어 없음",
+    "design_ly_emptyHint": "AI 채팅으로 디자인 생성 후\n여기에 레이어가 표시됩니다",
+    "design_avd_exportReview": "리뷰 내보내기",
+    "design_ae_multiFormat": "다중 형식 내보내기",
+    "design_ae_cancel": "취소",
+    "design_ae_exportFmt": "%d 형식 내보내기",
+    "design_cl_conflictFmt": "파일과 디자인이 최근 변경되어 파일 버전 채택: %@",
+    "design_si_selectScreenshot": "스크린샷 파일 선택",
 ]
 
 // MARK: - 国际化文本视图
