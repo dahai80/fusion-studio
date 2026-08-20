@@ -26,6 +26,7 @@ struct DesignChatPanel: View {
     @State private var refocusTrigger: Int = 0
     @State private var selectedModel: String = ""
     @StateObject private var voiceInput = VoiceInputManager()
+    @StateObject private var i18n = I18nManager.shared
 
     private var hasDesignMessages: Bool {
         !designBridge.messages.isEmpty || designBridge.isGenerating
@@ -107,16 +108,16 @@ struct DesignChatPanel: View {
     private var swiftUIExportSheet: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("SwiftUI 导出")
+                Text(i18n.t(.design_swiftUITitle))
                     .font(.system(size: theme.textSize, weight: .semibold))
                     .foregroundStyle(theme.text)
                 Spacer()
-                Button("复制") {
+                Button(i18n.t(.design_copy)) {
                     designBridge.copyExportedSwiftUI()
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(theme.accent)
-                Button("关闭") {
+                Button(i18n.t(.design_close)) {
                     showSwiftUIExport = false
                 }
                 .buttonStyle(.plain)
@@ -141,16 +142,16 @@ struct DesignChatPanel: View {
     private var codegenExportSheet: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("代码导出")
+                Text(i18n.t(.design_codegenTitle))
                     .font(.system(size: theme.textSize, weight: .semibold))
                     .foregroundStyle(theme.text)
                 Spacer()
-                Button("复制") {
+                Button(i18n.t(.design_copy)) {
                     designBridge.copyExportedCodegen()
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(theme.accent)
-                Button("关闭") {
+                Button(i18n.t(.design_close)) {
                     showCodegenExport = false
                 }
                 .buttonStyle(.plain)
@@ -210,7 +211,7 @@ struct DesignChatPanel: View {
                     .foregroundStyle(showPageList ? theme.accent : theme.textTertiary)
             }
             .buttonStyle(.plain)
-            .help("页面管理")
+            .help(i18n.t(.design_helpPageMgmt))
 
             if !designBridge.currentArtifactCode.isEmpty {
                 Button(action: { designBridge.copyCurrentCode() }) {
@@ -220,7 +221,7 @@ struct DesignChatPanel: View {
                 }
                 .buttonStyle(.plain)
                 .keyboardShortcut("c", modifiers: [.command, .shift])
-                .help("复制代码 (⇧⌘C)")
+                .help(i18n.t(.design_helpCopyCode))
 
                 Button(action: { showCodegenExport = true }) {
                     Image(systemName: "square.and.arrow.up")
@@ -229,7 +230,7 @@ struct DesignChatPanel: View {
                 }
                 .buttonStyle(.plain)
                 .keyboardShortcut("e", modifiers: [.command, .shift])
-                .help("导出代码 (⇧⌘E)")
+                .help(i18n.t(.design_helpExportCode))
             }
 
             Button(action: { designBridge.clearConversation() }) {
@@ -238,7 +239,7 @@ struct DesignChatPanel: View {
                     .foregroundStyle(theme.textTertiary)
             }
             .buttonStyle(.plain)
-            .help("清空对话")
+            .help(i18n.t(.design_helpClear))
             .disabled(designBridge.messages.isEmpty)
         }
         .padding(.horizontal, theme.spacingM)
@@ -258,7 +259,7 @@ struct DesignChatPanel: View {
                 .foregroundStyle(theme.text)
                 .padding(.top, theme.spacingM)
 
-            Text("描述你想设计的界面，AI 将为你生成可交互的代码")
+            Text(i18n.t(.design_welcomeDesc))
                 .font(.system(size: theme.textSize))
                 .foregroundStyle(theme.textTertiary)
                 .multilineTextAlignment(.center)
@@ -284,7 +285,7 @@ struct DesignChatPanel: View {
             VStack(spacing: 0) {
                 SendableTextEditor(
                     text: $inputText,
-                    placeholder: "描述你想设计的界面...",
+                    placeholder: i18n.t(.design_inputPh),
                     font: .systemFont(ofSize: CGFloat(theme.textSize)),
                     textColor: NSColor(theme.text),
                     placeholderColor: NSColor(theme.textTertiary),
@@ -317,16 +318,16 @@ struct DesignChatPanel: View {
         HStack(spacing: theme.spacingS) {
             Menu {
                 Button(action: { inputText = "" }) {
-                    Label("清空输入", systemImage: "xmark.circle")
+                    Label(i18n.t(.design_clearInput), systemImage: "xmark.circle")
                 }
                 Divider()
                 Button(action: { designBridge.clearConversation() }) {
-                    Label("清空对话", systemImage: "trash")
+                    Label(i18n.t(.design_clearConv), systemImage: "trash")
                 }
                 .disabled(designBridge.messages.isEmpty)
                 Divider()
                 Button(action: { designBridge.copyCurrentCode() }) {
-                    Label("复制当前代码", systemImage: "doc.on.doc")
+                    Label(i18n.t(.design_copyCurrentCode), systemImage: "doc.on.doc")
                 }
                 .disabled(designBridge.currentArtifactCode.isEmpty)
             } label: {
@@ -345,7 +346,7 @@ struct DesignChatPanel: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(designBridge.artifactSaved)
-                .help("保存")
+                .help(i18n.t(.design_helpSave))
 
                 Button(action: { designBridge.copyCurrentCode() }) {
                     Image(systemName: "doc.on.doc")
@@ -353,7 +354,7 @@ struct DesignChatPanel: View {
                         .foregroundStyle(theme.textTertiary)
                 }
                 .buttonStyle(.plain)
-                .help("复制代码")
+                .help(i18n.t(.design_helpCopy))
 
                 if !designBridge.artifactId.isEmpty {
                     Button(action: {
@@ -367,7 +368,7 @@ struct DesignChatPanel: View {
                             .foregroundStyle(showVersionHistory ? theme.accent : theme.textTertiary)
                     }
                     .buttonStyle(.plain)
-                    .help("历史")
+                    .help(i18n.t(.design_helpHistory))
                 }
 
                 Button(action: { exportSwiftUI() }) {
@@ -381,7 +382,7 @@ struct DesignChatPanel: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(designBridge.isExportingSwiftUI)
-                .help("导出 SwiftUI")
+                .help(i18n.t(.design_helpSwiftUI))
             }
 
             Spacer()
@@ -400,7 +401,7 @@ struct DesignChatPanel: View {
                         .foregroundStyle(theme.accentDestructive)
                 }
                 .buttonStyle(.plain)
-                .help("停止")
+                .help(i18n.t(.design_helpStop))
             } else {
                 Button(action: { sendChat() }) {
                     Image(systemName: "arrow.up.circle.fill")
@@ -409,7 +410,7 @@ struct DesignChatPanel: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .help("发送")
+                .help(i18n.t(.design_helpSend))
             }
         }
         .padding(.horizontal, theme.spacingM)
@@ -461,11 +462,11 @@ struct DesignChatPanel: View {
                 .font(.system(size: 36))
                 .foregroundStyle(theme.textTertiary)
 
-            Text("描述你想设计的界面")
+            Text(i18n.t(.design_emptyTitle))
                 .font(.system(size: theme.textSize, weight: .medium))
                 .foregroundStyle(theme.text)
 
-            Text("AI 将为你生成可交互的 HTML 代码，右侧实时预览")
+            Text(i18n.t(.design_emptyDesc))
                 .font(.system(size: theme.footnoteSize))
                 .foregroundStyle(theme.textSecondary)
                 .multilineTextAlignment(.center)
@@ -487,7 +488,7 @@ struct DesignChatPanel: View {
                             Image(systemName: group.icon)
                                 .font(.system(size: 9))
                                 .foregroundStyle(theme.textTertiary)
-                            Text(group.rawValue)
+                            Text(group.localLabel)
                                 .font(.system(size: 9, weight: .semibold))
                                 .foregroundStyle(theme.textTertiary)
                         }
@@ -508,7 +509,7 @@ struct DesignChatPanel: View {
                                         Image(systemName: tmpl.icon)
                                             .font(.system(size: 10))
                                             .foregroundStyle(group == .skills ? theme.accent : theme.textSecondary)
-                                        Text(tmpl.name)
+                                        Text(tmpl.localName)
                                             .font(.system(size: 10, weight: .medium))
                                             .foregroundStyle(theme.text)
                                             .lineLimit(1)
@@ -569,7 +570,7 @@ struct DesignChatPanel: View {
             let prompt = inputText.isEmpty ? "首页→列表→详情的导航流程" : inputText
             designBridge.skillPageFlow(prompt: prompt)
         default:
-            let skillMsg = "使用\(tmpl.name)技能: \(inputText)"
+            let skillMsg = String(format: i18n.t(.design_skillUseFmt), tmpl.localName, inputText)
             inputText = skillMsg
             sendChat(explicitMessage: skillMsg)
         }
@@ -580,7 +581,7 @@ struct DesignChatPanel: View {
         return HStack(alignment: .top, spacing: theme.spacingS) {
             if isUser { Spacer(minLength: 60) }
             VStack(alignment: isUser ? .trailing : .leading, spacing: 4) {
-                Text(isUser ? "你" : "设计师")
+                Text(isUser ? i18n.t(.design_roleUser) : i18n.t(.design_roleDesigner))
                     .font(.system(size: theme.captionSize, weight: .medium))
                     .foregroundStyle(isUser ? theme.textTertiary : theme.accent)
 
@@ -604,7 +605,7 @@ struct DesignChatPanel: View {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: theme.captionSize))
                             .foregroundStyle(.green)
-                        Text("已解析: \(msg.artifactInfo!.title)")
+                        Text(String(format: i18n.t(.design_parsedFmt), msg.artifactInfo!.title))
                             .font(.system(size: theme.captionSize))
                             .foregroundStyle(theme.textTertiary)
                     }
@@ -684,7 +685,7 @@ struct DesignChatPanel: View {
                 ProgressView()
                     .controlSize(.small)
             } else if designBridge.versionHistory.isEmpty {
-                Text("暂无版本记录")
+                Text(i18n.t(.design_noVersions))
                     .font(.system(size: theme.footnoteSize))
                     .foregroundStyle(theme.textTertiary)
                     .padding(theme.spacingS)
@@ -701,7 +702,7 @@ struct DesignChatPanel: View {
                                 .lineLimit(1)
                         }
                         Spacer()
-                        Button("回退") {
+                        Button(i18n.t(.design_rollback)) {
                             let v = ver["version"] as? Int ?? (idx + 1)
                             Task { await designBridge.rollbackToVersion(v) }
                         }
@@ -739,7 +740,7 @@ struct DesignChatPanel: View {
                     await MainActor.run { proceedToSend(message: message) }
                 } else {
                     await MainActor.run {
-                        designBridge.errorMessage = "MLX 服务未运行，请先在 MLX 面板启动服务后再发送"
+                        designBridge.errorMessage = i18n.t(.design_errMLXNotRunning)
                         chatPanelLog.warning("DesignChatPanel: send blocked - MLX not running (live probe failed)")
                     }
                 }
@@ -766,7 +767,7 @@ struct DesignChatPanel: View {
         let cfg = FusionConfig.shared
         let resolvedModel = selectedModel.isEmpty ? cfg.defaultModel(for: .code) : selectedModel
         if resolvedModel.isEmpty {
-            designBridge.errorMessage = "未选择对话模型，请在顶部模型选择器选一个模型后再发送"
+            designBridge.errorMessage = i18n.t(.design_errNoModel)
             chatPanelLog.warning("DesignChatPanel: send aborted - no model selected")
             return
         }
@@ -825,7 +826,7 @@ struct DesignChatPanel: View {
             Image(systemName: "selection.pin.in.out")
                 .font(.system(size: theme.iconS))
                 .foregroundColor(theme.accent)
-            Text("已框选 \(designBridge.marqueeSelectedNodeIDs.count) 个节点")
+            Text(String(format: i18n.t(.design_marqueeFmt), designBridge.marqueeSelectedNodeIDs.count))
                 .font(.system(size: theme.captionSize))
                 .foregroundColor(theme.text)
             Spacer()
@@ -853,15 +854,15 @@ struct DesignChatPanel: View {
                 .font(.system(size: theme.iconS))
                 .foregroundStyle(theme.accent)
             VStack(alignment: .leading, spacing: 2) {
-                Text("预览: \(designBridge.pendingPlanTitle)")
+                Text(String(format: i18n.t(.design_previewFmt), designBridge.pendingPlanTitle))
                     .font(.system(size: theme.footnoteSize, weight: .medium))
                     .foregroundStyle(theme.text)
-                Text("AI 建议的更改，确认后写入画布")
+                Text(i18n.t(.design_previewHint))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textTertiary)
             }
             Spacer()
-            Button("拒绝") {
+            Button(i18n.t(.design_reject)) {
                 designBridge.rejectPlan()
             }
             .buttonStyle(.plain)
@@ -872,7 +873,7 @@ struct DesignChatPanel: View {
                 RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
                     .stroke(theme.groupBorder, lineWidth: 1)
             )
-            Button("确认") {
+            Button(i18n.t(.design_accept)) {
                 designBridge.acceptPlan()
             }
             .buttonStyle(.plain)
@@ -892,7 +893,7 @@ struct DesignChatPanel: View {
     private var pageListView: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("页面")
+                Text(i18n.t(.design_pages))
                     .font(.system(size: theme.captionSize, weight: .semibold))
                     .foregroundStyle(theme.textTertiary)
                 Spacer()
@@ -902,13 +903,13 @@ struct DesignChatPanel: View {
                         .foregroundStyle(theme.accent)
                 }
                 .buttonStyle(.plain)
-                .help("新建页面")
+                .help(i18n.t(.design_newPage))
             }
             .padding(.horizontal, theme.spacingM)
             .padding(.vertical, theme.spacingXS)
 
             if designBridge.pages.isEmpty {
-                Text("暂无页面，生成设计后自动创建")
+                Text(i18n.t(.design_noPages))
                     .font(.system(size: theme.footnoteSize))
                     .foregroundStyle(theme.textQuaternary)
                     .frame(maxWidth: .infinity)
@@ -935,7 +936,7 @@ struct DesignChatPanel: View {
                                 .foregroundStyle(theme.textTertiary)
                         }
                         .buttonStyle(.plain)
-                        .help("删除页面")
+                        .help(i18n.t(.design_deletePage))
                         .opacity(isCurrent ? 1 : 0.5)
                     }
                     .padding(.horizontal, theme.spacingM)
@@ -952,11 +953,11 @@ struct DesignChatPanel: View {
     private var batchExportSheet: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("批量导出")
+                Text(i18n.t(.design_batchExport))
                     .font(.system(size: theme.textSize, weight: .semibold))
                     .foregroundStyle(theme.text)
                 Spacer()
-                Button("关闭") {
+                Button(i18n.t(.design_close)) {
                     showBatchExport = false
                 }
                 .buttonStyle(.plain)
@@ -970,7 +971,7 @@ struct DesignChatPanel: View {
                 VStack(spacing: theme.spacingM) {
                     ProgressView()
                         .controlSize(.regular)
-                    Text("正在导出...")
+                    Text(i18n.t(.design_exporting))
                         .font(.system(size: theme.footnoteSize))
                         .foregroundStyle(theme.textSecondary)
                 }
@@ -992,7 +993,7 @@ struct DesignChatPanel: View {
                     Image(systemName: "square.and.arrow.up")
                         .font(.system(size: 36))
                         .foregroundStyle(theme.textTertiary)
-                    Text("选择导出格式")
+                    Text(i18n.t(.design_selectFormat))
                         .font(.system(size: theme.textSize, weight: .medium))
                         .foregroundStyle(theme.text)
                     HStack(spacing: theme.spacingM) {
@@ -1036,11 +1037,11 @@ struct DesignChatPanel: View {
 
     private var inferenceStepLabel: String {
         switch designBridge.inferenceStep {
-        case "connecting": return "连接中..."
-        case "generating": return "推理中..."
-        case "streaming": return "生成中..."
-        case "rendering": return "渲染画布..."
-        default: return "生成中..."
+        case "connecting": return i18n.t(.design_stepConnecting)
+        case "generating": return i18n.t(.design_stepGenerating)
+        case "streaming": return i18n.t(.design_stepStreaming)
+        case "rendering": return i18n.t(.design_stepRendering)
+        default: return i18n.t(.design_stepStreaming)
         }
     }
 
@@ -1113,10 +1114,10 @@ struct DesignChatPanel: View {
 
     private var inferenceStepBar: some View {
         let steps = [
-            ("connecting", "连接"),
-            ("generating", "推理"),
-            ("streaming", "生成"),
-            ("rendering", "渲染"),
+            ("connecting", i18n.t(.design_stepConnShort)),
+            ("generating", i18n.t(.design_stepGenShort)),
+            ("streaming", i18n.t(.design_stepStreamShort)),
+            ("rendering", i18n.t(.design_stepRenderShort)),
         ]
         let stepOrder = ["connecting", "generating", "streaming", "rendering"]
         let currentIdx = stepOrder.firstIndex(of: designBridge.inferenceStep) ?? 0

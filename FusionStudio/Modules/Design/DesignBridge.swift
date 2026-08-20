@@ -119,11 +119,19 @@ enum DesignSkill: String, CaseIterable, Identifiable {
 }
 
 enum DesignTemplateGroup: String, CaseIterable, Identifiable {
-    case pages = "页面"
-    case components = "组件"
-    case skills = "AI 技能"
+    case pages = "pages"
+    case components = "components"
+    case skills = "skills"
 
     var id: String { rawValue }
+
+    var localLabel: String {
+        switch self {
+        case .pages: return I18nManager.shared.t(.design_grp_pages)
+        case .components: return I18nManager.shared.t(.design_grp_components)
+        case .skills: return I18nManager.shared.t(.design_grp_skills)
+        }
+    }
 
     var icon: String {
         switch self {
@@ -1137,7 +1145,7 @@ class DesignBridge: ObservableObject {
         let model = selectedModel.isEmpty ? config.defaultModel(for: .code) : selectedModel
         if model.isEmpty {
             // 无默认对话模型：MLX 会 400 "model: Field required"，提前给出明确错误并复位状态
-            errorMessage = "未选择对话模型，请在顶部模型选择器选一个模型后再发送"
+            errorMessage = I18nManager.shared.t(.design_errNoModel)
             isGenerating = false
             designBridgeLog.error("sendDesignChat: aborted, no model selected (selectedModel & defaultModel both empty)")
             return
