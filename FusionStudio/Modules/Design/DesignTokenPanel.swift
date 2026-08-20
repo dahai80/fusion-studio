@@ -30,6 +30,14 @@ enum DesignSystemPreset: String, CaseIterable, Identifiable {
         case .robotSim: return "工业仿真控制面板"
         }
     }
+
+    var localLabel: String {
+        switch self {
+        case .appleHIG: return I18nManager.shared.t(.design_tok_preset_appleHIG)
+        case .adminMinimal: return I18nManager.shared.t(.design_tok_preset_adminMinimal)
+        case .robotSim: return I18nManager.shared.t(.design_tok_preset_robotSim)
+        }
+    }
 }
 
 enum DesignTokenCategory: String, CaseIterable {
@@ -50,11 +58,23 @@ enum DesignTokenCategory: String, CaseIterable {
         case .animation: return "waveform.path"
         }
     }
+
+    var localLabel: String {
+        switch self {
+        case .colors: return I18nManager.shared.t(.design_tok_cat_colors)
+        case .spacing: return I18nManager.shared.t(.design_tok_cat_spacing)
+        case .typography: return I18nManager.shared.t(.design_tok_cat_typography)
+        case .radius: return I18nManager.shared.t(.design_tok_cat_radius)
+        case .shadows: return I18nManager.shared.t(.design_tok_cat_shadows)
+        case .animation: return I18nManager.shared.t(.design_tok_cat_animation)
+        }
+    }
 }
 
 struct DesignTokenPanel: View {
     @Environment(\.studioTheme) var theme
     @EnvironmentObject var designBridge: DesignBridge
+    @StateObject private var i18n = I18nManager.shared
     @State private var selectedCategory: DesignTokenCategory = .colors
     @State private var activePreset: DesignSystemPreset = .appleHIG
 
@@ -75,7 +95,7 @@ struct DesignTokenPanel: View {
 
     private var systemSwitcher: some View {
         VStack(alignment: .leading, spacing: theme.spacingXS) {
-            Text("设计规范")
+            Text(i18n.t(.design_tok_designSpec))
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundColor(theme.textTertiary)
                 .textCase(.uppercase)
@@ -89,7 +109,7 @@ struct DesignTokenPanel: View {
                         VStack(spacing: 2) {
                             Image(systemName: preset == .appleHIG ? "apple.logo" : preset == .adminMinimal ? "menubar.rectangle" : "cpu")
                                 .font(.system(size: 12))
-                            Text(preset.rawValue)
+                            Text(preset.localLabel)
                                 .font(.system(size: 9, weight: .medium))
                         }
                         .foregroundStyle(activePreset == preset ? theme.accentText : theme.textSecondary)
@@ -131,7 +151,7 @@ struct DesignTokenPanel: View {
                         HStack(spacing: 4) {
                             Image(systemName: cat.icon)
                                 .font(.system(size: 10))
-                            Text(cat.rawValue)
+                            Text(cat.localLabel)
                                 .font(.system(size: theme.captionSize, weight: .medium))
                         }
                         .foregroundStyle(selectedCategory == cat ? theme.accentText : theme.textSecondary)
