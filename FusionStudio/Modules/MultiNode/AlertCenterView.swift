@@ -7,25 +7,33 @@ struct AlertCenterView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var engine: MultiNodeEngine
     @Environment(\.studioTheme) var theme
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var selectedTab: AlertTab = .active
     @State private var acknowledgedAlerts: Set<String> = []
     @State private var isExporting = false
 
     enum AlertTab: String, CaseIterable {
-        case active = "活跃告警"
-        case suggestions = "智能建议"
-        case history = "告警历史"
+        case active
+        case suggestions
+        case history
+        var localLabel: String {
+            switch self {
+            case .active: return I18nManager.shared.t(.mn_alert_tab_active)
+            case .suggestions: return I18nManager.shared.t(.mn_alert_tab_suggestions)
+            case .history: return I18nManager.shared.t(.mn_alert_tab_history)
+            }
+        }
     }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                ScreenHeader(eyebrow: "Multi-Node", title: "告警中心", subtitle: "集群异常检测与智能建议")
+                ScreenHeader(eyebrow: "Multi-Node", title: i18n.t(.mn_alert_title), subtitle: i18n.t(.mn_alert_subtitle))
 
                 HStack {
                     Spacer()
-                    FusionButton("导出日志", icon: "arrow.down.doc", style: .secondary, size: .small,
+                    FusionButton(i18n.t(.mn_alert_exportBtn), icon: "arrow.down.doc", style: .secondary, size: .small,
                         isLoading: isExporting) {
                         exportAlertLog()
                     }
@@ -57,7 +65,7 @@ struct AlertCenterView: View {
                     withAnimation(theme.springDefault) { selectedTab = tab }
                 } label: {
                     HStack(spacing: theme.spacingXS) {
-                        Text(tab.rawValue)
+                        Text(tab.localLabel)
                             .font(.system(size: theme.smallTextSize, weight: tab == selectedTab ? .semibold : .regular))
                         if tab == .active {
                             let count = engine.alerts.filter { !($0.resolved ?? false) }.count
@@ -93,10 +101,10 @@ struct AlertCenterView: View {
 
     private var activeAlertsSection: some View {
         ListGroup {
-            StudioSectionHeader(title: "活跃告警 (\(activeAlerts.count))")
+            StudioSectionHeader(title: String(format: i18n.t(.mn_alert_activeTitleFmt), activeAlerts.count))
 
             if activeAlerts.isEmpty {
-                emptyState(icon: "checkmark.shield", text: "无活跃告警，集群运行正常")
+                emptyState(icon: "checkmark.shield", text: i18n.t(.mn_alert_activeEmpty))
             }
 
             ForEach(activeAlerts) { alert in
@@ -107,10 +115,10 @@ struct AlertCenterView: View {
 
     private var suggestionsSection: some View {
         ListGroup {
-            StudioSectionHeader(title: "智能建议 (\(engine.suggestions.count))")
+            StudioSectionHeader(title: String(format: i18n.t(.mn_alert_suggestTitleFmt), engine.suggestions.count))
 
             if engine.suggestions.isEmpty {
-                emptyState(icon: "lightbulb", text: "暂无优化建议")
+                emptyState(icon: "lightbulb", text: i18n.t(.mn_alert_suggestEmpty))
             }
 
             ForEach(engine.suggestions) { suggestion in
@@ -121,10 +129,10 @@ struct AlertCenterView: View {
 
     private var historySection: some View {
         ListGroup {
-            StudioSectionHeader(title: "告警历史")
+            StudioSectionHeader(title: i18n.t(.mn_alert_historyTitle))
 
             if engine.alerts.isEmpty {
-                emptyState(icon: "clock", text: "暂无告警历史")
+                emptyState(icon: "clock", text: i18n.t(.mn_alert_historyEmpty))
             }
 
             ForEach(engine.alerts) { alert in
@@ -167,7 +175,7 @@ struct AlertCenterView: View {
             Spacer()
 
             if !showAck {
-                FusionButton("确认", style: .ghost, size: .small) {
+                FusionButton(i18n.t(.mn_alert_ackBtn), style: .ghost, size: .small) {
                     withAnimation(theme.springSnappy) {
                         _ = acknowledgedAlerts.insert(alert.id)
                     }

@@ -11,6 +11,7 @@ private let kvLog = Logger(subsystem: "com.fusion.studio", category: "KVCache")
 struct KVCacheView: View {
     @EnvironmentObject var engine: MultiNodeEngine
     @Environment(\.studioTheme) var theme
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var kvStats: KVStatsResponse?
     @State private var hardware: AgentHardwareInfo?
@@ -29,7 +30,7 @@ struct KVCacheView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                ScreenHeader(eyebrow: "Multi-Node", title: "KV 缓存", subtitle: "管理集群 KV 缓存、查看命中率和节点分布")
+                ScreenHeader(eyebrow: "Multi-Node", title: i18n.t(.mn_kv_title), subtitle: i18n.t(.mn_kv_subtitle))
 
                 statsStrip
                 healthStrip
@@ -53,21 +54,21 @@ struct KVCacheView: View {
         HStack(spacing: theme.spacingM) {
             MetricStripCard(
                 icon: "internaldrive",
-                label: "总条目",
+                label: i18n.t(.mn_kv_totalEntries),
                 value: "\(kvStats?.totalEntries ?? 0)",
-                subtitle: "缓存条目数"
+                subtitle: i18n.t(.mn_kv_cacheEntries)
             )
             MetricStripCard(
                 icon: "arrow.down.doc",
-                label: "总大小",
+                label: i18n.t(.mn_kv_totalSize),
                 value: String(format: "%.1fMB", kvStats?.totalSizeMb ?? 0),
-                subtitle: "缓存占用空间"
+                subtitle: i18n.t(.mn_kv_cacheSpace)
             )
             MetricStripCard(
                 icon: "chart.line.uptrend.xyaxis",
-                label: "命中率",
+                label: i18n.t(.mn_kv_hitRate),
                 value: String(format: "%.0f%%", (kvStats?.hitRate ?? 0) * 100),
-                subtitle: "KV 缓存命中",
+                subtitle: i18n.t(.mn_kv_hitRateSub),
                 dotColor: (kvStats?.hitRate ?? 0) > 0.5 ? theme.greenDot : theme.amberDot
             )
         }
@@ -77,14 +78,14 @@ struct KVCacheView: View {
 
     private var searchSection: some View {
         ListGroup {
-            StudioSectionHeader(title: "查找缓存")
+            StudioSectionHeader(title: i18n.t(.mn_kv_findCache))
 
             HStack(spacing: theme.spacingM) {
-                TextField("输入模型名称查找 KV 缓存...", text: $searchModel)
+                TextField(i18n.t(.mn_kv_searchPh), text: $searchModel)
                     .textFieldStyle(.plain)
                     .font(.system(size: theme.smallTextSize, design: .monospaced))
 
-                FusionButton("查找", icon: "magnifyingglass", style: .secondary, size: .small, isLoading: isSearching, isDisabled: searchModel.trimmingCharacters(in: .whitespaces).isEmpty) {
+                FusionButton(i18n.t(.mn_kv_findBtn), icon: "magnifyingglass", style: .secondary, size: .small, isLoading: isSearching, isDisabled: searchModel.trimmingCharacters(in: .whitespaces).isEmpty) {
                     searchKV()
                 }
             }
@@ -128,9 +129,9 @@ struct KVCacheView: View {
         Group {
             if let hw = hardware {
                 ListGroup {
-                    StudioSectionHeader(title: "Agent 硬件")
+                    StudioSectionHeader(title: i18n.t(.mn_kv_hwTitle))
                     if let nid = hw.nodeId {
-                        StudioRow(label: "节点", sublabel: nil) {
+                        StudioRow(label: i18n.t(.mn_kv_node), sublabel: nil) {
                             Text(nid).font(.system(size: theme.footnoteSize, design: .monospaced))
                         }
                     }
@@ -140,7 +141,7 @@ struct KVCacheView: View {
                         }
                     }
                     if let mem = hw.memoryGB {
-                        StudioRow(label: "内存", sublabel: nil) {
+                        StudioRow(label: i18n.t(.mn_kv_memory), sublabel: nil) {
                             Text(String(format: "%.0f GB", mem)).font(.system(size: theme.footnoteSize))
                         }
                     }
@@ -150,7 +151,7 @@ struct KVCacheView: View {
                         }
                     }
                     if let model = hw.deviceModel {
-                        StudioRow(label: "设备", sublabel: nil, isLast: true) {
+                        StudioRow(label: i18n.t(.mn_kv_device), sublabel: nil, isLast: true) {
                             Text(model).font(.system(size: theme.footnoteSize))
                         }
                     }
@@ -164,11 +165,11 @@ struct KVCacheView: View {
             Circle()
                 .fill(agentHealthy == true ? theme.greenDot : (agentHealthy == false ? theme.redDot : theme.textTertiary))
                 .frame(width: 8, height: 8)
-            Text(agentHealthy == true ? "Agent 在线" : (agentHealthy == false ? "Agent 离线" : "检测中..."))
+            Text(agentHealthy == true ? i18n.t(.mn_kv_agentOnline) : (agentHealthy == false ? i18n.t(.mn_kv_agentOffline) : i18n.t(.mn_kv_checking)))
                 .font(.system(size: theme.footnoteSize))
                 .foregroundStyle(theme.textSecondary)
             Spacer()
-            FusionButton("刷新", icon: "arrow.clockwise", style: .ghost, size: .small) {
+            FusionButton(i18n.t(.refresh), icon: "arrow.clockwise", style: .ghost, size: .small) {
                 checkHealth()
             }
         }
@@ -178,15 +179,15 @@ struct KVCacheView: View {
 
     private var warmSection: some View {
         ListGroup {
-            StudioSectionHeader(title: "KV 预热")
+            StudioSectionHeader(title: i18n.t(.mn_kv_warmTitle))
             HStack(spacing: theme.spacingM) {
-                TextField("模型名称", text: $warmModel)
+                TextField(i18n.t(.mn_kv_modelName), text: $warmModel)
                     .textFieldStyle(.plain)
                     .font(.system(size: theme.smallTextSize, design: .monospaced))
-                TextField("预热 Prompt", text: $warmPrompt)
+                TextField(i18n.t(.mn_kv_warmPrompt), text: $warmPrompt)
                     .textFieldStyle(.plain)
                     .font(.system(size: theme.smallTextSize))
-                FusionButton("预热", icon: "flame", style: .secondary, size: .small,
+                FusionButton(i18n.t(.mn_kv_warmBtn), icon: "flame", style: .secondary, size: .small,
                     isLoading: isWarming, isDisabled: warmModel.trimmingCharacters(in: .whitespaces).isEmpty) {
                     warmKV()
                 }
@@ -197,7 +198,7 @@ struct KVCacheView: View {
             if let warmed = warmResult {
                 HStack(spacing: theme.spacingS) {
                     Image(systemName: "checkmark.circle.fill").foregroundStyle(theme.greenDot)
-                    Text("已预热 \(warmed) 条缓存").font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textSecondary)
+                    Text(String(format: i18n.t(.mn_kv_warmedFmt), warmed)).font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textSecondary)
                 }
                 .padding(.horizontal, theme.spacingL)
                 .padding(.vertical, theme.spacingXS)
@@ -207,12 +208,12 @@ struct KVCacheView: View {
 
     private var transferSection: some View {
         ListGroup {
-            StudioSectionHeader(title: "KV 迁移")
+            StudioSectionHeader(title: i18n.t(.mn_kv_transferTitle))
             HStack(spacing: theme.spacingM) {
-                TextField("目标节点ID", text: $transferTargetNode)
+                TextField(i18n.t(.mn_kv_targetNode), text: $transferTargetNode)
                     .textFieldStyle(.plain)
                     .font(.system(size: theme.smallTextSize, design: .monospaced))
-                FusionButton("迁移", icon: "arrow.right.circle", style: .secondary, size: .small,
+                FusionButton(i18n.t(.mn_kv_transferBtn), icon: "arrow.right.circle", style: .secondary, size: .small,
                     isLoading: isTransferring, isDisabled: foundEntry == nil || transferTargetNode.trimmingCharacters(in: .whitespaces).isEmpty) {
                     transferKV()
                 }
@@ -226,7 +227,7 @@ struct KVCacheView: View {
         Group {
             if let byModel = kvStats?.byModel, !byModel.isEmpty {
                 ListGroup {
-                    StudioSectionHeader(title: "按模型分布")
+                    StudioSectionHeader(title: i18n.t(.mn_kv_byModelTitle))
                     ForEach(Array(byModel.keys.sorted()), id: \.self) { model in
                         if let info = byModel[model] {
                             HStack(spacing: theme.spacingM) {
@@ -235,7 +236,7 @@ struct KVCacheView: View {
                                         .font(.system(size: theme.footnoteSize, weight: .medium))
                                         .foregroundStyle(theme.text)
                                         .lineLimit(1)
-                                    Text("\(info.count) 条")
+                                    Text(String(format: i18n.t(.mn_kv_countFmt), info.count))
                                         .font(.system(size: theme.captionSize))
                                         .foregroundStyle(theme.textTertiary)
                                 }
@@ -301,7 +302,7 @@ struct KVCacheView: View {
                     self.foundEntry = entry
                     kvLog.info("Found KV cache: \(entry.cacheId)")
                 case .failure(let err):
-                    self.searchError = "未找到该模型的 KV 缓存: \(err.localizedDescription)"
+                    self.searchError = String(format: i18n.t(.mn_kv_notFoundFmt), err.localizedDescription)
                     kvLog.debug("KV find failed: \(err.localizedDescription)")
                 }
             }

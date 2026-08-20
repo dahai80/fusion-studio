@@ -2300,6 +2300,108 @@ enum I18nKey: String, CaseIterable {
     case fsb_cv_plainText = "fsb_cv_plainText"
     case fsb_cv_addNode = "fsb_cv_addNode"
     case fsb_cv_newWorkflow = "fsb_cv_newWorkflow"
+    case mn_kv_title = "mn_kv_title"
+    case mn_kv_subtitle = "mn_kv_subtitle"
+    case mn_kv_totalEntries = "mn_kv_totalEntries"
+    case mn_kv_cacheEntries = "mn_kv_cacheEntries"
+    case mn_kv_totalSize = "mn_kv_totalSize"
+    case mn_kv_cacheSpace = "mn_kv_cacheSpace"
+    case mn_kv_hitRate = "mn_kv_hitRate"
+    case mn_kv_hitRateSub = "mn_kv_hitRateSub"
+    case mn_kv_findCache = "mn_kv_findCache"
+    case mn_kv_searchPh = "mn_kv_searchPh"
+    case mn_kv_findBtn = "mn_kv_findBtn"
+    case mn_kv_notFoundFmt = "mn_kv_notFoundFmt"
+    case mn_kv_hwTitle = "mn_kv_hwTitle"
+    case mn_kv_node = "mn_kv_node"
+    case mn_kv_memory = "mn_kv_memory"
+    case mn_kv_device = "mn_kv_device"
+    case mn_kv_agentOnline = "mn_kv_agentOnline"
+    case mn_kv_agentOffline = "mn_kv_agentOffline"
+    case mn_kv_checking = "mn_kv_checking"
+    case mn_kv_warmTitle = "mn_kv_warmTitle"
+    case mn_kv_modelName = "mn_kv_modelName"
+    case mn_kv_warmPrompt = "mn_kv_warmPrompt"
+    case mn_kv_warmBtn = "mn_kv_warmBtn"
+    case mn_kv_warmedFmt = "mn_kv_warmedFmt"
+    case mn_kv_transferTitle = "mn_kv_transferTitle"
+    case mn_kv_targetNode = "mn_kv_targetNode"
+    case mn_kv_transferBtn = "mn_kv_transferBtn"
+    case mn_kv_byModelTitle = "mn_kv_byModelTitle"
+    case mn_kv_countFmt = "mn_kv_countFmt"
+    case mn_task_title = "mn_task_title"
+    case mn_task_subtitle = "mn_task_subtitle"
+    case mn_task_tab_all = "mn_task_tab_all"
+    case mn_task_tab_running = "mn_task_tab_running"
+    case mn_task_tab_completed = "mn_task_tab_completed"
+    case mn_task_tab_failed = "mn_task_tab_failed"
+    case mn_task_migrateTitle = "mn_task_migrateTitle"
+    case mn_task_taskId = "mn_task_taskId"
+    case mn_task_targetNode = "mn_task_targetNode"
+    case mn_task_selectNode = "mn_task_selectNode"
+    case mn_task_confirmMigrate = "mn_task_confirmMigrate"
+    case mn_task_total = "mn_task_total"
+    case mn_task_allTasks = "mn_task_allTasks"
+    case mn_task_running = "mn_task_running"
+    case mn_task_executing = "mn_task_executing"
+    case mn_task_failed = "mn_task_failed"
+    case mn_task_needsAttention = "mn_task_needsAttention"
+    case mn_task_listTitleFmt = "mn_task_listTitleFmt"
+    case mn_task_searchPh = "mn_task_searchPh"
+    case mn_task_cancelTask = "mn_task_cancelTask"
+    case mn_task_degradeTask = "mn_task_degradeTask"
+    case mn_task_migrateTask = "mn_task_migrateTask"
+    case mn_task_emptyFmt = "mn_task_emptyFmt"
+    case mn_sync_title = "mn_sync_title"
+    case mn_sync_subtitle = "mn_sync_subtitle"
+    case mn_sync_partitionState = "mn_sync_partitionState"
+    case mn_sync_partitionNodes = "mn_sync_partitionNodes"
+    case mn_sync_isDegraded = "mn_sync_isDegraded"
+    case mn_sync_degraded = "mn_sync_degraded"
+    case mn_sync_normal = "mn_sync_normal"
+    case mn_sync_syncAvailable = "mn_sync_syncAvailable"
+    case mn_sync_available = "mn_sync_available"
+    case mn_sync_unavailable = "mn_sync_unavailable"
+    case mn_sync_incrementalTitle = "mn_sync_incrementalTitle"
+    case mn_sync_modelName = "mn_sync_modelName"
+    case mn_sync_modelPh = "mn_sync_modelPh"
+    case mn_sync_sourceHost = "mn_sync_sourceHost"
+    case mn_sync_sourcePort = "mn_sync_sourcePort"
+    case mn_sync_syncing = "mn_sync_syncing"
+    case mn_sync_triggerBtn = "mn_sync_triggerBtn"
+    case mn_sync_manifestTitle = "mn_sync_manifestTitle"
+    case mn_sync_manifestPh = "mn_sync_manifestPh"
+    case mn_sync_viewBtn = "mn_sync_viewBtn"
+    case mn_sync_upToDateFmt = "mn_sync_upToDateFmt"
+    case mn_sync_syncDoneFmt = "mn_sync_syncDoneFmt"
+    case mn_sync_syncFailFmt = "mn_sync_syncFailFmt"
+    case mn_route_title = "mn_route_title"
+    case mn_route_subtitle = "mn_route_subtitle"
+    case mn_route_currentTitle = "mn_route_currentTitle"
+    case mn_route_strategy = "mn_route_strategy"
+    case mn_route_applyBtn = "mn_route_applyBtn"
+    case mn_route_loadTitle = "mn_route_loadTitle"
+    case mn_route_avgLoad = "mn_route_avgLoad"
+    case mn_route_updatedFmt = "mn_route_updatedFmt"
+    case mn_route_desc_least_loaded = "mn_route_desc_least_loaded"
+    case mn_route_desc_round_robin = "mn_route_desc_round_robin"
+    case mn_route_desc_random = "mn_route_desc_random"
+    case mn_route_desc_capability_aware = "mn_route_desc_capability_aware"
+    case mn_alert_title = "mn_alert_title"
+    case mn_alert_subtitle = "mn_alert_subtitle"
+    case mn_alert_tab_active = "mn_alert_tab_active"
+    case mn_alert_tab_suggestions = "mn_alert_tab_suggestions"
+    case mn_alert_tab_history = "mn_alert_tab_history"
+    case mn_alert_exportBtn = "mn_alert_exportBtn"
+    case mn_alert_activeTitleFmt = "mn_alert_activeTitleFmt"
+    case mn_alert_activeEmpty = "mn_alert_activeEmpty"
+    case mn_alert_suggestTitleFmt = "mn_alert_suggestTitleFmt"
+    case mn_alert_suggestEmpty = "mn_alert_suggestEmpty"
+    case mn_alert_historyTitle = "mn_alert_historyTitle"
+    case mn_alert_historyEmpty = "mn_alert_historyEmpty"
+    case mn_alert_ackBtn = "mn_alert_ackBtn"
+    case mn_err_invalidURL = "mn_err_invalidURL"
+    case mn_err_noData = "mn_err_noData"
 }
 
 // MARK: - 翻译管理器
@@ -4252,6 +4354,108 @@ let zhCNTranslations: [String: String] = [
     "fsb_cv_plainText": "纯文本",
     "fsb_cv_addNode": "添加节点",
     "fsb_cv_newWorkflow": "新工作流",
+    "mn_kv_title": "KV 缓存",
+    "mn_kv_subtitle": "管理集群 KV 缓存、查看命中率和节点分布",
+    "mn_kv_totalEntries": "总条目",
+    "mn_kv_cacheEntries": "缓存条目数",
+    "mn_kv_totalSize": "总大小",
+    "mn_kv_cacheSpace": "缓存占用空间",
+    "mn_kv_hitRate": "命中率",
+    "mn_kv_hitRateSub": "KV 缓存命中",
+    "mn_kv_findCache": "查找缓存",
+    "mn_kv_searchPh": "输入模型名称查找 KV 缓存...",
+    "mn_kv_findBtn": "查找",
+    "mn_kv_notFoundFmt": "未找到该模型的 KV 缓存: %@",
+    "mn_kv_hwTitle": "Agent 硬件",
+    "mn_kv_node": "节点",
+    "mn_kv_memory": "内存",
+    "mn_kv_device": "设备",
+    "mn_kv_agentOnline": "Agent 在线",
+    "mn_kv_agentOffline": "Agent 离线",
+    "mn_kv_checking": "检测中...",
+    "mn_kv_warmTitle": "KV 预热",
+    "mn_kv_modelName": "模型名称",
+    "mn_kv_warmPrompt": "预热 Prompt",
+    "mn_kv_warmBtn": "预热",
+    "mn_kv_warmedFmt": "已预热 %d 条缓存",
+    "mn_kv_transferTitle": "KV 迁移",
+    "mn_kv_targetNode": "目标节点ID",
+    "mn_kv_transferBtn": "迁移",
+    "mn_kv_byModelTitle": "按模型分布",
+    "mn_kv_countFmt": "%d 条",
+    "mn_task_title": "任务监控",
+    "mn_task_subtitle": "实时跟踪任务执行状态与进度",
+    "mn_task_tab_all": "全部",
+    "mn_task_tab_running": "运行中",
+    "mn_task_tab_completed": "已完成",
+    "mn_task_tab_failed": "失败",
+    "mn_task_migrateTitle": "迁移任务",
+    "mn_task_taskId": "任务ID",
+    "mn_task_targetNode": "目标节点",
+    "mn_task_selectNode": "请选择",
+    "mn_task_confirmMigrate": "确认迁移",
+    "mn_task_total": "总任务",
+    "mn_task_allTasks": "全部任务",
+    "mn_task_running": "运行中",
+    "mn_task_executing": "正在执行",
+    "mn_task_failed": "失败",
+    "mn_task_needsAttention": "需要关注",
+    "mn_task_listTitleFmt": "任务列表 (%d)",
+    "mn_task_searchPh": "搜索任务...",
+    "mn_task_cancelTask": "取消任务",
+    "mn_task_degradeTask": "降级任务",
+    "mn_task_migrateTask": "迁移任务",
+    "mn_task_emptyFmt": "暂无%@任务",
+    "mn_sync_title": "集群同步",
+    "mn_sync_subtitle": "模型增量同步与集群分区状态",
+    "mn_sync_partitionState": "分区状态",
+    "mn_sync_partitionNodes": "分区节点",
+    "mn_sync_isDegraded": "是否降级",
+    "mn_sync_degraded": "降级中",
+    "mn_sync_normal": "正常",
+    "mn_sync_syncAvailable": "同步可用",
+    "mn_sync_available": "可用",
+    "mn_sync_unavailable": "不可用",
+    "mn_sync_incrementalTitle": "增量同步",
+    "mn_sync_modelName": "模型名称",
+    "mn_sync_modelPh": "例: Qwen2.5-7B-Instruct",
+    "mn_sync_sourceHost": "源节点 Host",
+    "mn_sync_sourcePort": "源端口",
+    "mn_sync_syncing": "同步中...",
+    "mn_sync_triggerBtn": "触发同步",
+    "mn_sync_manifestTitle": "模型 Manifest",
+    "mn_sync_manifestPh": "输入模型名称查看 Manifest",
+    "mn_sync_viewBtn": "查看",
+    "mn_sync_upToDateFmt": "模型 %@ 已是最新",
+    "mn_sync_syncDoneFmt": "同步完成: %d 个文件已更新",
+    "mn_sync_syncFailFmt": "同步失败: %@",
+    "mn_route_title": "路由策略",
+    "mn_route_subtitle": "配置集群任务路由策略与负载均衡",
+    "mn_route_currentTitle": "当前策略",
+    "mn_route_strategy": "路由策略",
+    "mn_route_applyBtn": "应用策略",
+    "mn_route_loadTitle": "节点负载分布",
+    "mn_route_avgLoad": "平均负载",
+    "mn_route_updatedFmt": "策略已更新为 %@",
+    "mn_route_desc_least_loaded": "优先分配给负载最低的节点",
+    "mn_route_desc_round_robin": "轮流分配到各节点",
+    "mn_route_desc_random": "随机选择节点",
+    "mn_route_desc_capability_aware": "根据节点能力和任务需求匹配",
+    "mn_alert_title": "告警中心",
+    "mn_alert_subtitle": "集群异常检测与智能建议",
+    "mn_alert_tab_active": "活跃告警",
+    "mn_alert_tab_suggestions": "智能建议",
+    "mn_alert_tab_history": "告警历史",
+    "mn_alert_exportBtn": "导出日志",
+    "mn_alert_activeTitleFmt": "活跃告警 (%d)",
+    "mn_alert_activeEmpty": "无活跃告警，集群运行正常",
+    "mn_alert_suggestTitleFmt": "智能建议 (%d)",
+    "mn_alert_suggestEmpty": "暂无优化建议",
+    "mn_alert_historyTitle": "告警历史",
+    "mn_alert_historyEmpty": "暂无告警历史",
+    "mn_alert_ackBtn": "确认",
+    "mn_err_invalidURL": "无效 URL",
+    "mn_err_noData": "无数据返回",
 ]
 
 let enUSTranslations: [String: String] = [
@@ -6159,6 +6363,108 @@ let enUSTranslations: [String: String] = [
     "fsb_cv_plainText": "Plain text",
     "fsb_cv_addNode": "Add node",
     "fsb_cv_newWorkflow": "New workflow",
+    "mn_kv_title": "KV Cache",
+    "mn_kv_subtitle": "Manage cluster KV cache, view hit rate and node distribution",
+    "mn_kv_totalEntries": "Total Entries",
+    "mn_kv_cacheEntries": "Cache entries",
+    "mn_kv_totalSize": "Total Size",
+    "mn_kv_cacheSpace": "Cache space",
+    "mn_kv_hitRate": "Hit Rate",
+    "mn_kv_hitRateSub": "KV cache hits",
+    "mn_kv_findCache": "Find Cache",
+    "mn_kv_searchPh": "Enter model name to find KV cache...",
+    "mn_kv_findBtn": "Find",
+    "mn_kv_notFoundFmt": "No KV cache found for model: %@",
+    "mn_kv_hwTitle": "Agent Hardware",
+    "mn_kv_node": "Node",
+    "mn_kv_memory": "Memory",
+    "mn_kv_device": "Device",
+    "mn_kv_agentOnline": "Agent Online",
+    "mn_kv_agentOffline": "Agent Offline",
+    "mn_kv_checking": "Checking...",
+    "mn_kv_warmTitle": "KV Warmup",
+    "mn_kv_modelName": "Model Name",
+    "mn_kv_warmPrompt": "Warmup Prompt",
+    "mn_kv_warmBtn": "Warm",
+    "mn_kv_warmedFmt": "Warmed %d cache entries",
+    "mn_kv_transferTitle": "KV Transfer",
+    "mn_kv_targetNode": "Target Node ID",
+    "mn_kv_transferBtn": "Transfer",
+    "mn_kv_byModelTitle": "By Model",
+    "mn_kv_countFmt": "%d entries",
+    "mn_task_title": "Task Monitor",
+    "mn_task_subtitle": "Track task execution status and progress in real time",
+    "mn_task_tab_all": "All",
+    "mn_task_tab_running": "Running",
+    "mn_task_tab_completed": "Completed",
+    "mn_task_tab_failed": "Failed",
+    "mn_task_migrateTitle": "Migrate Task",
+    "mn_task_taskId": "Task ID",
+    "mn_task_targetNode": "Target Node",
+    "mn_task_selectNode": "Select",
+    "mn_task_confirmMigrate": "Confirm Migration",
+    "mn_task_total": "Total Tasks",
+    "mn_task_allTasks": "All tasks",
+    "mn_task_running": "Running",
+    "mn_task_executing": "Executing",
+    "mn_task_failed": "Failed",
+    "mn_task_needsAttention": "Needs Attention",
+    "mn_task_listTitleFmt": "Task List (%d)",
+    "mn_task_searchPh": "Search tasks...",
+    "mn_task_cancelTask": "Cancel Task",
+    "mn_task_degradeTask": "Degrade Task",
+    "mn_task_migrateTask": "Migrate Task",
+    "mn_task_emptyFmt": "No %@ tasks",
+    "mn_sync_title": "Cluster Sync",
+    "mn_sync_subtitle": "Model incremental sync and cluster partition status",
+    "mn_sync_partitionState": "Partition State",
+    "mn_sync_partitionNodes": "Partition Nodes",
+    "mn_sync_isDegraded": "Degraded",
+    "mn_sync_degraded": "Degraded",
+    "mn_sync_normal": "Normal",
+    "mn_sync_syncAvailable": "Sync Available",
+    "mn_sync_available": "Available",
+    "mn_sync_unavailable": "Unavailable",
+    "mn_sync_incrementalTitle": "Incremental Sync",
+    "mn_sync_modelName": "Model Name",
+    "mn_sync_modelPh": "e.g. Qwen2.5-7B-Instruct",
+    "mn_sync_sourceHost": "Source Node Host",
+    "mn_sync_sourcePort": "Source Port",
+    "mn_sync_syncing": "Syncing...",
+    "mn_sync_triggerBtn": "Trigger Sync",
+    "mn_sync_manifestTitle": "Model Manifest",
+    "mn_sync_manifestPh": "Enter model name to view Manifest",
+    "mn_sync_viewBtn": "View",
+    "mn_sync_upToDateFmt": "Model %@ is up to date",
+    "mn_sync_syncDoneFmt": "Sync complete: %d files updated",
+    "mn_sync_syncFailFmt": "Sync failed: %@",
+    "mn_route_title": "Routing Strategy",
+    "mn_route_subtitle": "Configure cluster task routing strategy and load balancing",
+    "mn_route_currentTitle": "Current Strategy",
+    "mn_route_strategy": "Routing Strategy",
+    "mn_route_applyBtn": "Apply Strategy",
+    "mn_route_loadTitle": "Node Load Distribution",
+    "mn_route_avgLoad": "Average Load",
+    "mn_route_updatedFmt": "Strategy updated to %@",
+    "mn_route_desc_least_loaded": "Prefer assigning to the least loaded node",
+    "mn_route_desc_round_robin": "Round-robin assignment to each node",
+    "mn_route_desc_random": "Randomly select a node",
+    "mn_route_desc_capability_aware": "Match by node capability and task requirements",
+    "mn_alert_title": "Alert Center",
+    "mn_alert_subtitle": "Cluster anomaly detection and smart suggestions",
+    "mn_alert_tab_active": "Active Alerts",
+    "mn_alert_tab_suggestions": "Smart Suggestions",
+    "mn_alert_tab_history": "Alert History",
+    "mn_alert_exportBtn": "Export Log",
+    "mn_alert_activeTitleFmt": "Active Alerts (%d)",
+    "mn_alert_activeEmpty": "No active alerts, cluster running normally",
+    "mn_alert_suggestTitleFmt": "Smart Suggestions (%d)",
+    "mn_alert_suggestEmpty": "No optimization suggestions",
+    "mn_alert_historyTitle": "Alert History",
+    "mn_alert_historyEmpty": "No alert history",
+    "mn_alert_ackBtn": "Acknowledge",
+    "mn_err_invalidURL": "Invalid URL",
+    "mn_err_noData": "No data returned",
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -8060,6 +8366,108 @@ let jaJPTranslations: [String: String] = [
     "fsb_cv_plainText": "プレーンテキスト",
     "fsb_cv_addNode": "ノード追加",
     "fsb_cv_newWorkflow": "新規ワークフロー",
+    "mn_kv_title": "KV キャッシュ",
+    "mn_kv_subtitle": "クラスタ KV キャッシュを管理、ヒット率とノード分布を表示",
+    "mn_kv_totalEntries": "総エントリ",
+    "mn_kv_cacheEntries": "キャッシュエントリ数",
+    "mn_kv_totalSize": "総サイズ",
+    "mn_kv_cacheSpace": "キャッシュ使用量",
+    "mn_kv_hitRate": "ヒット率",
+    "mn_kv_hitRateSub": "KV キャッシュヒット",
+    "mn_kv_findCache": "キャッシュ検索",
+    "mn_kv_searchPh": "モデル名で KV キャッシュを検索...",
+    "mn_kv_findBtn": "検索",
+    "mn_kv_notFoundFmt": "このモデルの KV キャッシュが見つかりません: %@",
+    "mn_kv_hwTitle": "Agent ハードウェア",
+    "mn_kv_node": "ノード",
+    "mn_kv_memory": "メモリ",
+    "mn_kv_device": "デバイス",
+    "mn_kv_agentOnline": "Agent オンライン",
+    "mn_kv_agentOffline": "Agent オフライン",
+    "mn_kv_checking": "確認中...",
+    "mn_kv_warmTitle": "KV ウォームアップ",
+    "mn_kv_modelName": "モデル名",
+    "mn_kv_warmPrompt": "ウォームアッププロンプト",
+    "mn_kv_warmBtn": "ウォーム",
+    "mn_kv_warmedFmt": "%d 件のキャッシュをウォームアップしました",
+    "mn_kv_transferTitle": "KV 転送",
+    "mn_kv_targetNode": "宛先ノード ID",
+    "mn_kv_transferBtn": "転送",
+    "mn_kv_byModelTitle": "モデル別分布",
+    "mn_kv_countFmt": "%d 件",
+    "mn_task_title": "タスクモニタ",
+    "mn_task_subtitle": "タスク実行状態と進捗をリアルタイム追跡",
+    "mn_task_tab_all": "すべて",
+    "mn_task_tab_running": "実行中",
+    "mn_task_tab_completed": "完了",
+    "mn_task_tab_failed": "失敗",
+    "mn_task_migrateTitle": "タスク移行",
+    "mn_task_taskId": "タスク ID",
+    "mn_task_targetNode": "宛先ノード",
+    "mn_task_selectNode": "選択してください",
+    "mn_task_confirmMigrate": "移行を確認",
+    "mn_task_total": "総タスク",
+    "mn_task_allTasks": "全タスク",
+    "mn_task_running": "実行中",
+    "mn_task_executing": "実行中",
+    "mn_task_failed": "失敗",
+    "mn_task_needsAttention": "要対応",
+    "mn_task_listTitleFmt": "タスクリスト (%d)",
+    "mn_task_searchPh": "タスクを検索...",
+    "mn_task_cancelTask": "タスクをキャンセル",
+    "mn_task_degradeTask": "タスクを降格",
+    "mn_task_migrateTask": "タスクを移行",
+    "mn_task_emptyFmt": "%@タスクはありません",
+    "mn_sync_title": "クラスタ同期",
+    "mn_sync_subtitle": "モデル増分同期とクラスタ分区状態",
+    "mn_sync_partitionState": "分区状態",
+    "mn_sync_partitionNodes": "分区ノード",
+    "mn_sync_isDegraded": "降格状態",
+    "mn_sync_degraded": "降格中",
+    "mn_sync_normal": "正常",
+    "mn_sync_syncAvailable": "同期可否",
+    "mn_sync_available": "利用可能",
+    "mn_sync_unavailable": "利用不可",
+    "mn_sync_incrementalTitle": "増分同期",
+    "mn_sync_modelName": "モデル名",
+    "mn_sync_modelPh": "例: Qwen2.5-7B-Instruct",
+    "mn_sync_sourceHost": "送信元ノード Host",
+    "mn_sync_sourcePort": "送信元ポート",
+    "mn_sync_syncing": "同期中...",
+    "mn_sync_triggerBtn": "同期を開始",
+    "mn_sync_manifestTitle": "モデル Manifest",
+    "mn_sync_manifestPh": "モデル名で Manifest を表示",
+    "mn_sync_viewBtn": "表示",
+    "mn_sync_upToDateFmt": "モデル %@ は最新です",
+    "mn_sync_syncDoneFmt": "同期完了: %d ファイル更新済み",
+    "mn_sync_syncFailFmt": "同期失敗: %@",
+    "mn_route_title": "ルーティング戦略",
+    "mn_route_subtitle": "クラスタタスクルーティング戦略と負荷分散を設定",
+    "mn_route_currentTitle": "現在の戦略",
+    "mn_route_strategy": "ルーティング戦略",
+    "mn_route_applyBtn": "戦略を適用",
+    "mn_route_loadTitle": "ノード負荷分布",
+    "mn_route_avgLoad": "平均負荷",
+    "mn_route_updatedFmt": "戦略を %@ に更新しました",
+    "mn_route_desc_least_loaded": "負荷が最も低いノードを優先",
+    "mn_route_desc_round_robin": "各ノードにラウンドロビン割当",
+    "mn_route_desc_random": "ノードをランダム選択",
+    "mn_route_desc_capability_aware": "ノード能力とタスク要件でマッチング",
+    "mn_alert_title": "アラートセンター",
+    "mn_alert_subtitle": "クラスタ異常検出とスマート提案",
+    "mn_alert_tab_active": "アクティブアラート",
+    "mn_alert_tab_suggestions": "スマート提案",
+    "mn_alert_tab_history": "アラート履歴",
+    "mn_alert_exportBtn": "ログをエクスポート",
+    "mn_alert_activeTitleFmt": "アクティブアラート (%d)",
+    "mn_alert_activeEmpty": "アクティブアラートなし、クラスタ正常稼働中",
+    "mn_alert_suggestTitleFmt": "スマート提案 (%d)",
+    "mn_alert_suggestEmpty": "最適化提案なし",
+    "mn_alert_historyTitle": "アラート履歴",
+    "mn_alert_historyEmpty": "アラート履歴なし",
+    "mn_alert_ackBtn": "確認",
+    "mn_err_invalidURL": "無効な URL",
+    "mn_err_noData": "データが返されませんでした",
 ]
 
 let koKRTranslations: [String: String] = [
@@ -9961,6 +10369,108 @@ let koKRTranslations: [String: String] = [
     "fsb_cv_plainText": "일반 텍스트",
     "fsb_cv_addNode": "노드 추가",
     "fsb_cv_newWorkflow": "새 워크플로",
+    "mn_kv_title": "KV 캐시",
+    "mn_kv_subtitle": "클러스터 KV 캐시 관리, 적중률 및 노드 분포 확인",
+    "mn_kv_totalEntries": "총 항목",
+    "mn_kv_cacheEntries": "캐시 항목 수",
+    "mn_kv_totalSize": "총 크기",
+    "mn_kv_cacheSpace": "캐시 점유 공간",
+    "mn_kv_hitRate": "적중률",
+    "mn_kv_hitRateSub": "KV 캐시 적중",
+    "mn_kv_findCache": "캐시 찾기",
+    "mn_kv_searchPh": "모델 이름으로 KV 캐시 찾기...",
+    "mn_kv_findBtn": "찾기",
+    "mn_kv_notFoundFmt": "이 모델의 KV 캐시를 찾을 수 없습니다: %@",
+    "mn_kv_hwTitle": "Agent 하드웨어",
+    "mn_kv_node": "노드",
+    "mn_kv_memory": "메모리",
+    "mn_kv_device": "장치",
+    "mn_kv_agentOnline": "Agent 온라인",
+    "mn_kv_agentOffline": "Agent 오프라인",
+    "mn_kv_checking": "확인 중...",
+    "mn_kv_warmTitle": "KV 워밍업",
+    "mn_kv_modelName": "모델 이름",
+    "mn_kv_warmPrompt": "워밍업 프롬프트",
+    "mn_kv_warmBtn": "워밍업",
+    "mn_kv_warmedFmt": "%d개 캐시 항목 워밍업 완료",
+    "mn_kv_transferTitle": "KV 이전",
+    "mn_kv_targetNode": "대상 노드 ID",
+    "mn_kv_transferBtn": "이전",
+    "mn_kv_byModelTitle": "모델별 분포",
+    "mn_kv_countFmt": "%d개",
+    "mn_task_title": "작업 모니터",
+    "mn_task_subtitle": "작업 실행 상태 및 진행 상황 실시간 추적",
+    "mn_task_tab_all": "전체",
+    "mn_task_tab_running": "실행 중",
+    "mn_task_tab_completed": "완료",
+    "mn_task_tab_failed": "실패",
+    "mn_task_migrateTitle": "작업 이전",
+    "mn_task_taskId": "작업 ID",
+    "mn_task_targetNode": "대상 노드",
+    "mn_task_selectNode": "선택하세요",
+    "mn_task_confirmMigrate": "이전 확인",
+    "mn_task_total": "총 작업",
+    "mn_task_allTasks": "전체 작업",
+    "mn_task_running": "실행 중",
+    "mn_task_executing": "실행 중",
+    "mn_task_failed": "실패",
+    "mn_task_needsAttention": "주의 필요",
+    "mn_task_listTitleFmt": "작업 목록 (%d)",
+    "mn_task_searchPh": "작업 검색...",
+    "mn_task_cancelTask": "작업 취소",
+    "mn_task_degradeTask": "작업 강등",
+    "mn_task_migrateTask": "작업 이전",
+    "mn_task_emptyFmt": "%@ 작업 없음",
+    "mn_sync_title": "클러스터 동기화",
+    "mn_sync_subtitle": "모델 증분 동기화 및 클러스터 파티션 상태",
+    "mn_sync_partitionState": "파티션 상태",
+    "mn_sync_partitionNodes": "파티션 노드",
+    "mn_sync_isDegraded": "강등 여부",
+    "mn_sync_degraded": "강등 중",
+    "mn_sync_normal": "정상",
+    "mn_sync_syncAvailable": "동기화 가능",
+    "mn_sync_available": "가능",
+    "mn_sync_unavailable": "불가능",
+    "mn_sync_incrementalTitle": "증분 동기화",
+    "mn_sync_modelName": "모델 이름",
+    "mn_sync_modelPh": "예: Qwen2.5-7B-Instruct",
+    "mn_sync_sourceHost": "소스 노드 Host",
+    "mn_sync_sourcePort": "소스 포트",
+    "mn_sync_syncing": "동기화 중...",
+    "mn_sync_triggerBtn": "동기화 트리거",
+    "mn_sync_manifestTitle": "모델 Manifest",
+    "mn_sync_manifestPh": "모델 이름으로 Manifest 확인",
+    "mn_sync_viewBtn": "보기",
+    "mn_sync_upToDateFmt": "모델 %@ 최신 상태",
+    "mn_sync_syncDoneFmt": "동기화 완료: %d개 파일 업데이트",
+    "mn_sync_syncFailFmt": "동기화 실패: %@",
+    "mn_route_title": "라우팅 전략",
+    "mn_route_subtitle": "클러스터 작업 라우팅 전략 및 로드 밸런싱 설정",
+    "mn_route_currentTitle": "현재 전략",
+    "mn_route_strategy": "라우팅 전략",
+    "mn_route_applyBtn": "전략 적용",
+    "mn_route_loadTitle": "노드 부하 분포",
+    "mn_route_avgLoad": "평균 부하",
+    "mn_route_updatedFmt": "전략이 %@로 업데이트되었습니다",
+    "mn_route_desc_least_loaded": "부하가 가장 낮은 노드 우선 할당",
+    "mn_route_desc_round_robin": "각 노드에 라운드로빈 할당",
+    "mn_route_desc_random": "노드 무작위 선택",
+    "mn_route_desc_capability_aware": "노드 능력과 작업 요건 매칭",
+    "mn_alert_title": "알림 센터",
+    "mn_alert_subtitle": "클러스터 이상 감지 및 스마트 제안",
+    "mn_alert_tab_active": "활성 알림",
+    "mn_alert_tab_suggestions": "스마트 제안",
+    "mn_alert_tab_history": "알림 기록",
+    "mn_alert_exportBtn": "로그 내보내기",
+    "mn_alert_activeTitleFmt": "활성 알림 (%d)",
+    "mn_alert_activeEmpty": "활성 알림 없음, 클러스터 정상 작동 중",
+    "mn_alert_suggestTitleFmt": "스마트 제안 (%d)",
+    "mn_alert_suggestEmpty": "최적화 제안 없음",
+    "mn_alert_historyTitle": "알림 기록",
+    "mn_alert_historyEmpty": "알림 기록 없음",
+    "mn_alert_ackBtn": "확인",
+    "mn_err_invalidURL": "잘못된 URL",
+    "mn_err_noData": "반환된 데이터 없음",
 ]
 
 // MARK: - 国际化文本视图
