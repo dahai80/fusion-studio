@@ -7,6 +7,7 @@ struct RAGBenchEvalView: View {
     let selectedKBId: String
     @Environment(\.studioTheme) private var theme
     @ObservedObject var client: RAGAPIClient
+    @StateObject private var i18n = I18nManager.shared
     @State private var isRunning = false
     @State private var benchResults: [BenchResult] = []
     @State private var selectedPreset: BenchPreset = .standard
@@ -17,9 +18,16 @@ struct RAGBenchEvalView: View {
     @State private var previousResults: [[String: Any]] = []
 
     enum BenchPreset: String, CaseIterable {
-        case standard = "标准评测"
-        case code = "代码检索"
-        case design = "设计检索"
+        case standard
+        case code
+        case design
+        var localLabel: String {
+            switch self {
+            case .standard: return I18nManager.shared.t(.rag_bench_preset_standard)
+            case .code: return I18nManager.shared.t(.rag_bench_preset_code)
+            case .design: return I18nManager.shared.t(.rag_bench_preset_design)
+            }
+        }
         var icon: String {
             switch self {
             case .standard: return "chart.bar.xaxis"
@@ -47,7 +55,7 @@ struct RAGBenchEvalView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: theme.spacingL) {
-                Text("检索性能评测")
+                Text(i18n.t(.rag_bench_title))
                     .font(.system(size: theme.titleSize, weight: .bold))
                     .foregroundStyle(theme.text)
                 competitiveCard
@@ -67,12 +75,12 @@ struct RAGBenchEvalView: View {
             Label("Fusion-RAG vs Claude RAG", systemImage: "chart.bar.doc.horizontal")
                 .font(.system(size: theme.textSize, weight: .semibold)).foregroundStyle(theme.text)
             HStack(spacing: theme.spacingM) {
-                advantageChip("本地离线向量", icon: "desktopcomputer", color: .green)
-                advantageChip("代码 AST 解析", icon: "chevron.left.forwardslash.chevron.right", color: .purple)
-                advantageChip("混合检索 RRF", icon: "arrow.triangle.merge", color: .blue)
-                advantageChip("Contextual Retrieval", icon: "text.append", color: .orange)
-                advantageChip("增量同步", icon: "arrow.triangle.2.circlepath", color: .cyan)
-                advantageChip("版本快照", icon: "clock.arrow.circlepath", color: .pink)
+                advantageChip(i18n.t(.rag_bench_adv_local), icon: "desktopcomputer", color: .green)
+                advantageChip(i18n.t(.rag_bench_adv_ast), icon: "chevron.left.forwardslash.chevron.right", color: .purple)
+                advantageChip(i18n.t(.rag_bench_adv_rrf), icon: "arrow.triangle.merge", color: .blue)
+                advantageChip(i18n.t(.rag_bench_adv_context), icon: "text.append", color: .orange)
+                advantageChip(i18n.t(.rag_bench_adv_sync), icon: "arrow.triangle.2.circlepath", color: .cyan)
+                advantageChip(i18n.t(.rag_bench_adv_snap), icon: "clock.arrow.circlepath", color: .pink)
             }
         }
         .padding(theme.spacingM).background(cardBg).overlay(cardStroke)
@@ -89,7 +97,7 @@ struct RAGBenchEvalView: View {
 
     private var presetCard: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            Label("评测预设", systemImage: "slider.horizontal.3")
+            Label(i18n.t(.rag_bench_presetLabel), systemImage: "slider.horizontal.3")
                 .font(.system(size: theme.textSize, weight: .semibold)).foregroundStyle(theme.text)
             HStack(spacing: theme.spacingM) {
                 ForEach(BenchPreset.allCases, id: \.self) { preset in
@@ -107,7 +115,7 @@ struct RAGBenchEvalView: View {
                 Image(systemName: preset.icon)
                     .font(.system(size: theme.iconL))
                     .foregroundStyle(isActive ? theme.accent : theme.textTertiary)
-                Text(preset.rawValue)
+                Text(preset.localLabel)
                     .font(.system(size: theme.textSize, weight: isActive ? .semibold : .regular))
                     .foregroundStyle(isActive ? theme.accent : theme.textSecondary)
             }
@@ -128,7 +136,7 @@ struct RAGBenchEvalView: View {
     private var customQueryCard: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
             HStack {
-                Label("自定义评测集", systemImage: "text.badge.plus")
+                Label(i18n.t(.rag_bench_customQueryLabel), systemImage: "text.badge.plus")
                     .font(.system(size: theme.textSize, weight: .semibold)).foregroundStyle(theme.text)
                 Spacer()
                 Button(action: { showAddQuery = true }) {
@@ -137,7 +145,7 @@ struct RAGBenchEvalView: View {
                 .buttonStyle(.bordered).controlSize(.small)
             }
             if customQueries.isEmpty {
-                Text("点击 + 添加评测查询和期望文档")
+                Text(i18n.t(.rag_bench_customEmpty))
                     .font(.system(size: theme.captionSize)).foregroundStyle(theme.textTertiary)
             } else {
                 ForEach(customQueries) { q in
@@ -158,13 +166,13 @@ struct RAGBenchEvalView: View {
         .padding(theme.spacingM).background(cardBg).overlay(cardStroke)
         .sheet(isPresented: $showAddQuery) {
             VStack(spacing: theme.spacingM) {
-                Text("添加评测查询").font(.headline)
-                TextField("查询文本", text: $newQueryText).textFieldStyle(.roundedBorder)
-                TextField("期望包含的文档名", text: $newQueryExpected).textFieldStyle(.roundedBorder)
+                Text(i18n.t(.rag_bench_addQueryTitle)).font(.headline)
+                TextField(i18n.t(.rag_bench_queryPh), text: $newQueryText).textFieldStyle(.roundedBorder)
+                TextField(i18n.t(.rag_bench_expectedPh), text: $newQueryExpected).textFieldStyle(.roundedBorder)
                 HStack {
-                    Button("取消") { showAddQuery = false; newQueryText = ""; newQueryExpected = "" }
+                    Button(i18n.t(.cancel)) { showAddQuery = false; newQueryText = ""; newQueryExpected = "" }
                     Spacer()
-                    Button("添加") {
+                    Button(i18n.t(.rag_bench_addBtn)) {
                         guard !newQueryText.isEmpty else { return }
                         customQueries.append(BenchQuery(id: UUID().uuidString, query: newQueryText, expectedDoc: newQueryExpected))
                         newQueryText = ""; newQueryExpected = ""; showAddQuery = false
@@ -181,30 +189,30 @@ struct RAGBenchEvalView: View {
             Button(action: { Task { await runBenchmark() } }) {
                 HStack(spacing: theme.spacingXS) {
                     if isRunning { ProgressView().controlSize(.small) }
-                    Text("运行评测")
+                    Text(i18n.t(.rag_bench_runBtn))
                 }
             }
             .disabled(isRunning || selectedKBId.isEmpty)
             .buttonStyle(.borderedProminent)
             if !benchResults.isEmpty {
                 let hitRate = Double(benchResults.filter(\.expectedInTop).count) / Double(benchResults.count) * 100
-                Text("Top-5 命中率: \(String(format: "%.1f%%", hitRate))")
+                Text(String(format: i18n.t(.rag_bench_hitRateFmt), String(format: "%.1f%%", hitRate)))
                     .font(.system(size: theme.textSize, weight: .semibold))
                     .foregroundStyle(hitRate > 80 ? .green : hitRate > 50 ? .orange : .red)
             }
             Spacer()
             if !benchResults.isEmpty {
-                Button("清除结果") { benchResults = [] }.buttonStyle(.bordered).controlSize(.small)
+                Button(i18n.t(.rag_bench_clearResultsBtn)) { benchResults = [] }.buttonStyle(.bordered).controlSize(.small)
             }
         }
     }
 
     private var resultsCard: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            Label("评测结果", systemImage: "chart.bar.xaxis")
+            Label(i18n.t(.rag_bench_resultsLabel), systemImage: "chart.bar.xaxis")
                 .font(.system(size: theme.textSize, weight: .semibold)).foregroundStyle(theme.text)
             if benchResults.isEmpty {
-                Text("点击「运行评测」开始").foregroundStyle(theme.textTertiary)
+                Text(i18n.t(.rag_bench_resultsEmpty)).foregroundStyle(theme.textTertiary)
             } else {
                 summaryBar
                 ForEach(benchResults) { r in resultRow(r) }
@@ -218,9 +226,9 @@ struct RAGBenchEvalView: View {
         let total = benchResults.count
         let avgLatency = total > 0 ? benchResults.map(\.latencyMs).reduce(0, +) / Double(total) : 0
         return HStack(spacing: theme.spacingM) {
-            miniStat("命中", value: "\(hits)/\(total)", icon: "target", color: .green)
-            miniStat("平均延迟", value: String(format: "%.0fms", avgLatency), icon: "clock", color: .orange)
-            miniStat("最高分", value: String(format: "%.3f", benchResults.map(\.topScore).max() ?? 0), icon: "star", color: .blue)
+            miniStat(i18n.t(.rag_bench_miniHit), value: "\(hits)/\(total)", icon: "target", color: .green)
+            miniStat(i18n.t(.rag_bench_miniLatency), value: String(format: "%.0fms", avgLatency), icon: "clock", color: .orange)
+            miniStat(i18n.t(.rag_bench_miniTopScore), value: String(format: "%.3f", benchResults.map(\.topScore).max() ?? 0), icon: "star", color: .blue)
         }
     }
 
@@ -252,10 +260,10 @@ struct RAGBenchEvalView: View {
 
     private var historyCard: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            Label("历史评测记录", systemImage: "clock.arrow.circlepath")
+            Label(i18n.t(.rag_bench_historyLabel), systemImage: "clock.arrow.circlepath")
                 .font(.system(size: theme.textSize, weight: .semibold)).foregroundStyle(theme.text)
             if previousResults.isEmpty {
-                Text("暂无历史评测记录").foregroundStyle(theme.textTertiary)
+                Text(i18n.t(.rag_bench_historyEmpty)).foregroundStyle(theme.textTertiary)
             } else {
                 ForEach(previousResults.prefix(5).indices, id: \.self) { i in
                     let r = previousResults[i]
