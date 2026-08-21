@@ -2453,6 +2453,10 @@ enum I18nKey: String, CaseIterable {
     case mn_node_strategyLabel = "mn_node_strategyLabel"
     case mn_node_applying = "mn_node_applying"
     case mn_node_applyBtn = "mn_node_applyBtn"
+    case mn_node_pendingTitle = "mn_node_pendingTitle"
+    case mn_node_pendingEmpty = "mn_node_pendingEmpty"
+    case mn_node_approveBtn = "mn_node_approveBtn"
+    case mn_node_rejectBtn = "mn_node_rejectBtn"
     case mn_progress_title = "mn_progress_title"
     case mn_progress_subtitle = "mn_progress_subtitle"
     case mn_progress_selectTaskTitle = "mn_progress_selectTaskTitle"
@@ -5446,6 +5450,10 @@ let zhCNTranslations: [String: String] = [
     "mn_node_strategyLabel": "策略",
     "mn_node_applying": "应用中...",
     "mn_node_applyBtn": "应用配置",
+    "mn_node_pendingTitle": "待审批节点",
+    "mn_node_pendingEmpty": "暂无待审批节点",
+    "mn_node_approveBtn": "通过",
+    "mn_node_rejectBtn": "拒绝",
     "mn_progress_title": "任务详情",
     "mn_progress_subtitle": "查看任务进度、时间线和子任务状态",
     "mn_progress_selectTaskTitle": "选择任务",
@@ -8394,6 +8402,10 @@ let enUSTranslations: [String: String] = [
     "mn_node_strategyLabel": "Strategy",
     "mn_node_applying": "Applying...",
     "mn_node_applyBtn": "Apply Config",
+    "mn_node_pendingTitle": "Pending Approval",
+    "mn_node_pendingEmpty": "No pending nodes",
+    "mn_node_approveBtn": "Approve",
+    "mn_node_rejectBtn": "Reject",
     "mn_progress_title": "Task Details",
     "mn_progress_subtitle": "View task progress, timeline and subtask status",
     "mn_progress_selectTaskTitle": "Select Task",
@@ -11336,6 +11348,10 @@ let jaJPTranslations: [String: String] = [
     "mn_node_strategyLabel": "戦略",
     "mn_node_applying": "適用中...",
     "mn_node_applyBtn": "設定を適用",
+    "mn_node_pendingTitle": "承認待ちノード",
+    "mn_node_pendingEmpty": "承認待ちノードなし",
+    "mn_node_approveBtn": "承認",
+    "mn_node_rejectBtn": "拒否",
     "mn_progress_title": "タスク詳細",
     "mn_progress_subtitle": "タスクの進捗、タイムライン、サブタスク状態を表示",
     "mn_progress_selectTaskTitle": "タスク選択",
@@ -14278,6 +14294,10 @@ let koKRTranslations: [String: String] = [
     "mn_node_strategyLabel": "전략",
     "mn_node_applying": "적용 중...",
     "mn_node_applyBtn": "설정 적용",
+    "mn_node_pendingTitle": "승인 대기 노드",
+    "mn_node_pendingEmpty": "대기 중인 노드 없음",
+    "mn_node_approveBtn": "승인",
+    "mn_node_rejectBtn": "거부",
     "mn_progress_title": "작업 상세",
     "mn_progress_subtitle": "작업 진행률, 타임라인, 하위 작업 상태 보기",
     "mn_progress_selectTaskTitle": "작업 선택",

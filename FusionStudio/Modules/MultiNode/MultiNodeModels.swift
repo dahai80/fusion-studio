@@ -159,6 +159,28 @@ struct ClusterNode: Codable, Identifiable, Hashable {
     )
 }
 
+// MARK: - /api/nodes/pending 响应（待审批节点）
+
+struct PendingNodeListResponse: Codable {
+    let pending: [PendingNode]
+}
+
+struct PendingNode: Codable, Identifiable, Hashable {
+    let id: String
+    let hostname: String
+    let ipAddress: String
+    let port: Int
+    let requestedAt: Double
+
+    enum CodingKeys: String, CodingKey {
+        case id = "node_id"
+        case hostname
+        case ipAddress = "ip_address"
+        case port
+        case requestedAt = "requested_at"
+    }
+}
+
 // MARK: - /api/v1/nodes/{id}/metrics 响应
 
 struct NodeMetricsResponse: Codable, Identifiable {

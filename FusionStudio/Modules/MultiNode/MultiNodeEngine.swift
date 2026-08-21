@@ -16,6 +16,7 @@ class MultiNodeEngine: ObservableObject {
     @Published var clusterSyncStatus: ClusterSyncStatus?
     @Published var nodeLoads: [String: NodeLoadReport] = [:]
     @Published var modelManifests: [String: ModelManifest] = [:]
+    @Published var pendingNodes: [PendingNode] = []
     @Published var isConnected: Bool = false
     @Published var lastError: String?
 
@@ -54,6 +55,7 @@ class MultiNodeEngine: ObservableObject {
         schedulePoll(interval: 3.0) { [weak self] in
             self?.fetchTasks()
             self?.fetchClusterSyncStatus()
+            self?.fetchPendingNodes()
         }
         schedulePoll(interval: 5.0) { [weak self] in
             self?.fetchAllNodeLoads()
@@ -104,6 +106,17 @@ class MultiNodeEngine: ObservableObject {
                 }
             case .failure(let err):
                 self?.handleError(err, context: "nodes")
+            }
+        }
+    }
+
+    func fetchPendingNodes() {
+        get("/api/nodes/pending") { [weak self] (result: Result<PendingNodeListResponse, Error>) in
+            switch result {
+            case .success(let resp):
+                DispatchQueue.main.async { self?.pendingNodes = resp.pending }
+            case .failure:
+                engineLog.debug("Pending nodes endpoint not available")
             }
         }
     }
@@ -212,6 +225,18 @@ class MultiNodeEngine: ObservableObject {
         try await delete("/api/nodes/\(nodeId)")
         fetchNodes()
         fetchClusterStats()
+    }
+
+    func approveNode(nodeId: String, approvedBy: String = "admin") async throws {
+        _ = try await post("/api/nodes/approve", body: ["node_id": nodeId, "approved_by": approvedBy])
+        fetchPendingNodes()
+        fetchNodes()
+        fetchClusterStats()
+    }
+
+    func rejectNode(nodeId: String, reason: String = "") async throws {
+        _ = try await post("/api/nodes/reject", body: ["node_id": nodeId, "reason": reason])
+        fetchPendingNodes()
     }
 
     func cancelTask(taskId: String) async throws {
