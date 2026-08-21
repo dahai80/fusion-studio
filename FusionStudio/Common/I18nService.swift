@@ -3217,6 +3217,79 @@ enum I18nKey: String, CaseIterable {
     case fc_create = "fc_create"
     case fc_permission_request = "fc_permission_request"
     case fc_tool_label = "fc_tool_label"
+    case fc_open_project_folder = "fc_open_project_folder"
+    case fc_open_file = "fc_open_file"
+    case fc_scanning = "fc_scanning"
+    case fc_loaded_files = "fc_loaded_files"
+    case fc_loading = "fc_loading"
+    case fc_loaded_one_file = "fc_loaded_one_file"
+    case fc_load_failed = "fc_load_failed"
+    case fc_scanning_n = "fc_scanning_n"
+    case fc_ai_unavailable = "fc_ai_unavailable"
+    case fc_sidebar_chat = "fc_sidebar_chat"
+    case fc_sidebar_files = "fc_sidebar_files"
+    case fc_sidebar_git = "fc_sidebar_git"
+    case fc_sidebar_design = "fc_sidebar_design"
+    case fc_toggle_sidebar = "fc_toggle_sidebar"
+    case fc_input_ask_anything = "fc_input_ask_anything"
+    case fc_attach_file = "fc_attach_file"
+    case fc_menu_add_folder = "fc_menu_add_folder"
+    case fc_menu_add_file = "fc_menu_add_file"
+    case fc_menu_add_github = "fc_menu_add_github"
+    case fc_git_url_detected = "fc_git_url_detected"
+    case fc_send = "fc_send"
+    case fc_open_project = "fc_open_project"
+    case fc_local_folder = "fc_local_folder"
+    case fc_local_folder_desc = "fc_local_folder_desc"
+    case fc_choose = "fc_choose"
+    case fc_single_file = "fc_single_file"
+    case fc_single_file_desc = "fc_single_file_desc"
+    case fc_github_repo = "fc_github_repo"
+    case fc_github_repo_desc = "fc_github_repo_desc"
+    case fc_url = "fc_url"
+    case fc_branch = "fc_branch"
+    case fc_clone_open = "fc_clone_open"
+    case fc_or = "fc_or"
+    case fc_drop_here = "fc_drop_here"
+    case fc_search_conversations = "fc_search_conversations"
+    case fc_no_conversations = "fc_no_conversations"
+    case fc_files_count = "fc_files_count"
+    case fc_close_project = "fc_close_project"
+    case fc_open_another = "fc_open_another"
+    case fc_search_files = "fc_search_files"
+    case fc_open_folder_browse = "fc_open_folder_browse"
+    case fc_show_in_finder = "fc_show_in_finder"
+    case fc_copy_path = "fc_copy_path"
+    case fc_remove_context = "fc_remove_context"
+    case fc_add_to_context = "fc_add_to_context"
+    case fc_add_to_kb = "fc_add_to_kb"
+    case fc_index_to_rag = "fc_index_to_rag"
+    case fc_add_dir_to_kb = "fc_add_dir_to_kb"
+    case fc_not_git_repo = "fc_not_git_repo"
+    case fc_open_for_git = "fc_open_for_git"
+    case fc_no_changes = "fc_no_changes"
+    case fc_welcome_title = "fc_welcome_title"
+    case fc_welcome_tagline = "fc_welcome_tagline"
+    case fc_wc_open_title = "fc_wc_open_title"
+    case fc_wc_open_desc = "fc_wc_open_desc"
+    case fc_wc_explain_title = "fc_wc_explain_title"
+    case fc_wc_explain_desc = "fc_wc_explain_desc"
+    case fc_wc_review_title = "fc_wc_review_title"
+    case fc_wc_review_desc = "fc_wc_review_desc"
+    case fc_wc_test_title = "fc_wc_test_title"
+    case fc_wc_test_desc = "fc_wc_test_desc"
+    case fc_recent = "fc_recent"
+    case fc_min_ago = "fc_min_ago"
+    case fc_hour_ago = "fc_hour_ago"
+    case fc_day_ago = "fc_day_ago"
+    case fc_term_banner = "fc_term_banner"
+    case fc_term_help_hint = "fc_term_help_hint"
+    case fc_terminal = "fc_terminal"
+    case fc_clear = "fc_clear"
+    case fc_term_commands = "fc_term_commands"
+    case fc_term_unknown = "fc_term_unknown"
+    case fc_you = "fc_you"
+    case fc_clone = "fc_clone"
 }
 
 // MARK: - 翻译管理器
@@ -6085,7 +6158,80 @@ let zhCNTranslations: [String: String] = [
     "fc_cancel": "取消",
     "fc_create": "创建",
     "fc_permission_request": "权限请求",
-    "fc_tool_label": "工具:"
+    "fc_tool_label": "工具:",
+    "fc_open_project_folder": "打开项目文件夹",
+    "fc_open_file": "打开文件",
+    "fc_scanning": "扫描 %@...",
+    "fc_loaded_files": "已加载 %d 个文件",
+    "fc_loading": "加载 %@...",
+    "fc_loaded_one_file": "已加载 1 个文件",
+    "fc_load_failed": "加载失败: %@",
+    "fc_scanning_n": "扫描 %d/%d...",
+    "fc_ai_unavailable": "AI 服务暂时不可用，请稍后重试。",
+    "fc_sidebar_chat": "聊天",
+    "fc_sidebar_files": "文件",
+    "fc_sidebar_git": "Git",
+    "fc_sidebar_design": "设计",
+    "fc_toggle_sidebar": "切换侧边栏",
+    "fc_input_ask_anything": "随便问 — code, explain, debug, refactor...",
+    "fc_attach_file": "附加文件",
+    "fc_menu_add_folder": "添加文件夹...",
+    "fc_menu_add_file": "添加文件...",
+    "fc_menu_add_github": "添加 GitHub 仓库...",
+    "fc_git_url_detected": "检测到 Git 仓库 URL",
+    "fc_send": "发送",
+    "fc_open_project": "打开项目",
+    "fc_local_folder": "本地文件夹",
+    "fc_local_folder_desc": "选择本地文件夹，自动扫描代码文件",
+    "fc_choose": "选择...",
+    "fc_single_file": "单个文件",
+    "fc_single_file_desc": "打开单个文件进行编辑和 AI 辅助",
+    "fc_github_repo": "GitHub 仓库",
+    "fc_github_repo_desc": "克隆远程仓库到本地工作区",
+    "fc_url": "URL",
+    "fc_branch": "分支",
+    "fc_clone_open": "克隆并打开",
+    "fc_or": "或",
+    "fc_drop_here": "拖拽文件或文件夹到此处",
+    "fc_search_conversations": "搜索对话...",
+    "fc_no_conversations": "暂无对话",
+    "fc_files_count": "%d 个文件",
+    "fc_close_project": "关闭项目",
+    "fc_open_another": "打开其他项目",
+    "fc_search_files": "搜索文件...",
+    "fc_open_folder_browse": "打开文件夹以浏览文件",
+    "fc_show_in_finder": "在 Finder 中显示",
+    "fc_copy_path": "复制路径",
+    "fc_remove_context": "移除上下文",
+    "fc_add_to_context": "添加到上下文",
+    "fc_add_to_kb": "添加到知识库",
+    "fc_index_to_rag": "索引到 RAG",
+    "fc_add_dir_to_kb": "添加目录到知识库",
+    "fc_not_git_repo": "非 git 仓库",
+    "fc_open_for_git": "打开项目以查看 Git 状态",
+    "fc_no_changes": "无改动",
+    "fc_welcome_title": "Fusion Code — AI 编程助手",
+    "fc_welcome_tagline": "兼容 Claude Code · 由 fusion-mlx 驱动",
+    "fc_wc_open_title": "打开项目",
+    "fc_wc_open_desc": "加载本地/Git代码",
+    "fc_wc_explain_title": "解释",
+    "fc_wc_explain_desc": "解释代码功能",
+    "fc_wc_review_title": "审查",
+    "fc_wc_review_desc": "查找代码缺陷",
+    "fc_wc_test_title": "测试",
+    "fc_wc_test_desc": "生成单元测试",
+    "fc_recent": "最近打开",
+    "fc_min_ago": "%d 分钟前",
+    "fc_hour_ago": "%d 小时前",
+    "fc_day_ago": "%d 天前",
+    "fc_term_banner": "Fusion Studio 终端 v1.0",
+    "fc_term_help_hint": "输入 'help' 查看可用命令",
+    "fc_terminal": "终端",
+    "fc_clear": "清空",
+    "fc_term_commands": "命令: help, clear, status, mlx, python, swift",
+    "fc_term_unknown": "未知: %@。输入 'help'",
+    "fc_you": "你",
+    "fc_clone": "克隆"
 ]
 
 let enUSTranslations: [String: String] = [
@@ -8909,7 +9055,80 @@ let enUSTranslations: [String: String] = [
     "fc_cancel": "Cancel",
     "fc_create": "Create",
     "fc_permission_request": "Permission Request",
-    "fc_tool_label": "Tool:"
+    "fc_tool_label": "Tool:",
+    "fc_open_project_folder": "Open Project Folder",
+    "fc_open_file": "Open File",
+    "fc_scanning": "Scanning %@...",
+    "fc_loaded_files": "Loaded %d files",
+    "fc_loading": "Loading %@...",
+    "fc_loaded_one_file": "Loaded 1 file",
+    "fc_load_failed": "Failed to load: %@",
+    "fc_scanning_n": "Scanning %d/%d...",
+    "fc_ai_unavailable": "AI service temporarily unavailable, please retry later.",
+    "fc_sidebar_chat": "Chat",
+    "fc_sidebar_files": "Files",
+    "fc_sidebar_git": "Git",
+    "fc_sidebar_design": "Design",
+    "fc_toggle_sidebar": "Toggle sidebar",
+    "fc_input_ask_anything": "Ask anything — code, explain, debug, refactor...",
+    "fc_attach_file": "Attach file",
+    "fc_menu_add_folder": "Add Folder...",
+    "fc_menu_add_file": "Add File...",
+    "fc_menu_add_github": "Add GitHub Repo...",
+    "fc_git_url_detected": "Git repository URL detected",
+    "fc_send": "Send",
+    "fc_open_project": "Open Project",
+    "fc_local_folder": "Local Folder",
+    "fc_local_folder_desc": "Select a local folder, auto-scan code files",
+    "fc_choose": "Choose...",
+    "fc_single_file": "Single File",
+    "fc_single_file_desc": "Open a single file for editing and AI assistance",
+    "fc_github_repo": "GitHub Repository",
+    "fc_github_repo_desc": "Clone remote repo to local workspace",
+    "fc_url": "URL",
+    "fc_branch": "Branch",
+    "fc_clone_open": "Clone & Open",
+    "fc_or": "or",
+    "fc_drop_here": "Drop files or folders here",
+    "fc_search_conversations": "Search conversations...",
+    "fc_no_conversations": "No conversations yet",
+    "fc_files_count": "%d files",
+    "fc_close_project": "Close Project",
+    "fc_open_another": "Open Another Project",
+    "fc_search_files": "Search files...",
+    "fc_open_folder_browse": "Open a folder to browse files",
+    "fc_show_in_finder": "Show in Finder",
+    "fc_copy_path": "Copy Path",
+    "fc_remove_context": "Remove from context",
+    "fc_add_to_context": "Add to context",
+    "fc_add_to_kb": "Add to knowledge base",
+    "fc_index_to_rag": "Index to RAG",
+    "fc_add_dir_to_kb": "Add directory to knowledge base",
+    "fc_not_git_repo": "Not a git repo",
+    "fc_open_for_git": "Open a project to see Git status",
+    "fc_no_changes": "No changes",
+    "fc_welcome_title": "Fusion Code — AI Coding Assistant",
+    "fc_welcome_tagline": "Claude Code compatible · Powered by fusion-mlx",
+    "fc_wc_open_title": "Open Project",
+    "fc_wc_open_desc": "Load local/Git code",
+    "fc_wc_explain_title": "Explain",
+    "fc_wc_explain_desc": "Explain code functionality",
+    "fc_wc_review_title": "Review",
+    "fc_wc_review_desc": "Find code defects",
+    "fc_wc_test_title": "Test",
+    "fc_wc_test_desc": "Generate unit tests",
+    "fc_recent": "Recent",
+    "fc_min_ago": "%d min ago",
+    "fc_hour_ago": "%d hours ago",
+    "fc_day_ago": "%d days ago",
+    "fc_term_banner": "Fusion Studio Terminal v1.0",
+    "fc_term_help_hint": "Type 'help' for available commands",
+    "fc_terminal": "Terminal",
+    "fc_clear": "Clear",
+    "fc_term_commands": "Commands: help, clear, status, mlx, python, swift",
+    "fc_term_unknown": "Unknown: %@. Type 'help'",
+    "fc_you": "You",
+    "fc_clone": "Clone"
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -11727,7 +11946,80 @@ let jaJPTranslations: [String: String] = [
     "fc_cancel": "キャンセル",
     "fc_create": "作成",
     "fc_permission_request": "権限リクエスト",
-    "fc_tool_label": "ツール:"
+    "fc_tool_label": "ツール:",
+    "fc_open_project_folder": "プロジェクトフォルダを開く",
+    "fc_open_file": "ファイルを開く",
+    "fc_scanning": "スキャン中 %@...",
+    "fc_loaded_files": "%d ファイル読込済み",
+    "fc_loading": "読込中 %@...",
+    "fc_loaded_one_file": "1 ファイル読込済み",
+    "fc_load_failed": "読込失敗: %@",
+    "fc_scanning_n": "スキャン %d/%d...",
+    "fc_ai_unavailable": "AI サービスは一時的に利用できません。後で再試行してください。",
+    "fc_sidebar_chat": "チャット",
+    "fc_sidebar_files": "ファイル",
+    "fc_sidebar_git": "Git",
+    "fc_sidebar_design": "デザイン",
+    "fc_toggle_sidebar": "サイドバー切替",
+    "fc_input_ask_anything": "何でも聞いて — code, explain, debug, refactor...",
+    "fc_attach_file": "ファイル添付",
+    "fc_menu_add_folder": "フォルダを追加...",
+    "fc_menu_add_file": "ファイルを追加...",
+    "fc_menu_add_github": "GitHub リポジトリを追加...",
+    "fc_git_url_detected": "Git リポジトリ URL を検出",
+    "fc_send": "送信",
+    "fc_open_project": "プロジェクトを開く",
+    "fc_local_folder": "ローカルフォルダ",
+    "fc_local_folder_desc": "ローカルフォルダを選択、コードファイルを自動スキャン",
+    "fc_choose": "選択...",
+    "fc_single_file": "単一ファイル",
+    "fc_single_file_desc": "単一ファイルを開いて編集・AI 支援",
+    "fc_github_repo": "GitHub リポジトリ",
+    "fc_github_repo_desc": "リモートリポジトリをローカルへクローン",
+    "fc_url": "URL",
+    "fc_branch": "ブランチ",
+    "fc_clone_open": "クローンして開く",
+    "fc_or": "または",
+    "fc_drop_here": "ファイルやフォルダをここにドロップ",
+    "fc_search_conversations": "会話を検索...",
+    "fc_no_conversations": "会話なし",
+    "fc_files_count": "%d ファイル",
+    "fc_close_project": "プロジェクトを閉じる",
+    "fc_open_another": "別のプロジェクトを開く",
+    "fc_search_files": "ファイルを検索...",
+    "fc_open_folder_browse": "フォルダを開いてファイル閲覧",
+    "fc_show_in_finder": "Finder で表示",
+    "fc_copy_path": "パスをコピー",
+    "fc_remove_context": "コンテキストから削除",
+    "fc_add_to_context": "コンテキストに追加",
+    "fc_add_to_kb": "ナレッジベースに追加",
+    "fc_index_to_rag": "RAG にインデックス",
+    "fc_add_dir_to_kb": "ディレクトリをナレッジベースに追加",
+    "fc_not_git_repo": "git リポジトリではありません",
+    "fc_open_for_git": "プロジェクトを開いて Git ステータス表示",
+    "fc_no_changes": "変更なし",
+    "fc_welcome_title": "Fusion Code — AI コーディングアシスタント",
+    "fc_welcome_tagline": "Claude Code 互換 · fusion-mlx 駆動",
+    "fc_wc_open_title": "プロジェクトを開く",
+    "fc_wc_open_desc": "ローカル/Git コード読込",
+    "fc_wc_explain_title": "解説",
+    "fc_wc_explain_desc": "コード機能を解説",
+    "fc_wc_review_title": "レビュー",
+    "fc_wc_review_desc": "コードの欠陥を検出",
+    "fc_wc_test_title": "テスト",
+    "fc_wc_test_desc": "ユニットテスト生成",
+    "fc_recent": "最近開いた",
+    "fc_min_ago": "%d 分前",
+    "fc_hour_ago": "%d 時間前",
+    "fc_day_ago": "%d 日前",
+    "fc_term_banner": "Fusion Studio ターミナル v1.0",
+    "fc_term_help_hint": "'help' で利用可能なコマンドを表示",
+    "fc_terminal": "ターミナル",
+    "fc_clear": "クリア",
+    "fc_term_commands": "コマンド: help, clear, status, mlx, python, swift",
+    "fc_term_unknown": "不明: %@。'help' と入力",
+    "fc_you": "あなた",
+    "fc_clone": "クローン"
 ]
 
 let koKRTranslations: [String: String] = [
@@ -14545,7 +14837,80 @@ let koKRTranslations: [String: String] = [
     "fc_cancel": "취소",
     "fc_create": "생성",
     "fc_permission_request": "권한 요청",
-    "fc_tool_label": "도구:"
+    "fc_tool_label": "도구:",
+    "fc_open_project_folder": "프로젝트 폴더 열기",
+    "fc_open_file": "파일 열기",
+    "fc_scanning": "스캔 중 %@...",
+    "fc_loaded_files": "%d개 파일 로드됨",
+    "fc_loading": "로드 중 %@...",
+    "fc_loaded_one_file": "1개 파일 로드됨",
+    "fc_load_failed": "로드 실패: %@",
+    "fc_scanning_n": "스캔 %d/%d...",
+    "fc_ai_unavailable": "AI 서비스를 일시적으로 사용할 수 없습니다. 나중에 다시 시도하세요.",
+    "fc_sidebar_chat": "채팅",
+    "fc_sidebar_files": "파일",
+    "fc_sidebar_git": "Git",
+    "fc_sidebar_design": "디자인",
+    "fc_toggle_sidebar": "사이드바 전환",
+    "fc_input_ask_anything": "무엇이든 물어보세요 — code, explain, debug, refactor...",
+    "fc_attach_file": "파일 첨부",
+    "fc_menu_add_folder": "폴더 추가...",
+    "fc_menu_add_file": "파일 추가...",
+    "fc_menu_add_github": "GitHub 리포 추가...",
+    "fc_git_url_detected": "Git 리포지토리 URL 감지",
+    "fc_send": "전송",
+    "fc_open_project": "프로젝트 열기",
+    "fc_local_folder": "로컬 폴더",
+    "fc_local_folder_desc": "로컬 폴더 선택, 코드 파일 자동 스캔",
+    "fc_choose": "선택...",
+    "fc_single_file": "단일 파일",
+    "fc_single_file_desc": "단일 파일 열어 편집 및 AI 지원",
+    "fc_github_repo": "GitHub リポジ토리",
+    "fc_github_repo_desc": "원격 리포를 로컬로 클론",
+    "fc_url": "URL",
+    "fc_branch": "브랜치",
+    "fc_clone_open": "클론 후 열기",
+    "fc_or": "또는",
+    "fc_drop_here": "파일이나 폴더를 여기에 드롭",
+    "fc_search_conversations": "대화 검색...",
+    "fc_no_conversations": "대화 없음",
+    "fc_files_count": "%d개 파일",
+    "fc_close_project": "프로젝트 닫기",
+    "fc_open_another": "다른 프로젝트 열기",
+    "fc_search_files": "파일 검색...",
+    "fc_open_folder_browse": "폴더를 열어 파일 탐색",
+    "fc_show_in_finder": "Finder에서 보기",
+    "fc_copy_path": "경로 복사",
+    "fc_remove_context": "컨텍스트에서 제거",
+    "fc_add_to_context": "컨텍스트에 추가",
+    "fc_add_to_kb": "지식 베이스에 추가",
+    "fc_index_to_rag": "RAG에 인덱스",
+    "fc_add_dir_to_kb": "디렉터리를 지식 베이스에 추가",
+    "fc_not_git_repo": "git 리포가 아님",
+    "fc_open_for_git": "프로젝트를 열어 Git 상태 보기",
+    "fc_no_changes": "변경 없음",
+    "fc_welcome_title": "Fusion Code — AI 코딩 어시스턴트",
+    "fc_welcome_tagline": "Claude Code 호환 · fusion-mlx 구동",
+    "fc_wc_open_title": "프로젝트 열기",
+    "fc_wc_open_desc": "로컬/Git 코드 로드",
+    "fc_wc_explain_title": "설명",
+    "fc_wc_explain_desc": "코드 기능 설명",
+    "fc_wc_review_title": "검토",
+    "fc_wc_review_desc": "코드 결함 찾기",
+    "fc_wc_test_title": "테스트",
+    "fc_wc_test_desc": "단위 테스트 생성",
+    "fc_recent": "최근 열기",
+    "fc_min_ago": "%d분 전",
+    "fc_hour_ago": "%d시간 전",
+    "fc_day_ago": "%d일 전",
+    "fc_term_banner": "Fusion Studio 터미널 v1.0",
+    "fc_term_help_hint": "'help'로 사용 가능한 명령 표시",
+    "fc_terminal": "터미널",
+    "fc_clear": "지우기",
+    "fc_term_commands": "명령: help, clear, status, mlx, python, swift",
+    "fc_term_unknown": "알 수 없음: %@. 'help' 입력",
+    "fc_you": "나",
+    "fc_clone": "클론"
 ]
 
 // MARK: - 国际化文本视图
