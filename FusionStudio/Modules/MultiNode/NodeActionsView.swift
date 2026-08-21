@@ -13,6 +13,7 @@ struct NodeActionsView: View {
             VStack(alignment: .leading, spacing: 0) {
                 ScreenHeader(eyebrow: "Multi-Node", title: i18n.t(.mn_node_title), subtitle: i18n.t(.mn_node_subtitle))
 
+                pendingApprovalSection
                 autoscalerSection
                 nodeManagementSection
             }
@@ -21,6 +22,45 @@ struct NodeActionsView: View {
         .background(theme.contentBg)
         .onAppear { engine.startPolling() }
         .onDisappear { engine.stopPolling() }
+    }
+
+    private var pendingApprovalSection: some View {
+        ListGroup {
+            StudioSectionHeader(title: i18n.t(.mn_node_pendingTitle))
+
+            ForEach(engine.pendingNodes) { node in
+                HStack(spacing: theme.spacingM) {
+                    Circle()
+                        .fill(theme.accent)
+                        .frame(width: 8, height: 8)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(node.hostname)
+                            .font(.system(size: theme.textSize, weight: .medium))
+                            .foregroundStyle(theme.text)
+                        Text("\(node.ipAddress):\(node.port)")
+                            .font(.system(size: theme.captionSize, design: .monospaced))
+                            .foregroundStyle(theme.textTertiary)
+                    }
+                    Spacer()
+                    FusionButton(i18n.t(.mn_node_approveBtn), style: .primary, size: .small) {
+                        Task { try? await engine.approveNode(nodeId: node.id) }
+                    }
+                    FusionButton(i18n.t(.mn_node_rejectBtn), style: .destructive, size: .small) {
+                        Task { try? await engine.rejectNode(nodeId: node.id) }
+                    }
+                }
+                .padding(.horizontal, theme.spacingL)
+                .padding(.vertical, theme.spacingS)
+            }
+
+            if engine.pendingNodes.isEmpty {
+                Text(i18n.t(.mn_node_pendingEmpty))
+                    .font(.system(size: theme.textSize))
+                    .foregroundStyle(theme.textTertiary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, theme.spacing2XL)
+            }
+        }
     }
 
     private var autoscalerSection: some View {
