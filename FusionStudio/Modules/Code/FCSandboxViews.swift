@@ -11,9 +11,9 @@ enum FCSecurityMode: String, CaseIterable {
 
     var label: String {
         switch self {
-        case .readonly: return "只读"
-        case .manual: return "手动审批"
-        case .auto: return "自动批准"
+        case .readonly: return I18nManager.shared.t(.fc_sm_readonly)
+        case .manual: return I18nManager.shared.t(.fc_sm_manual)
+        case .auto: return I18nManager.shared.t(.fc_sm_auto_full)
         }
     }
 
@@ -112,6 +112,7 @@ struct FCSandboxPanel: View {
     @State private var newDir = ""
     @State private var newPattern = ""
     @State private var selectedTab = 0
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         VStack(spacing: theme.spacingS) {
@@ -125,10 +126,10 @@ struct FCSandboxPanel: View {
 
             TabView(selection: $selectedTab) {
                 policyTab
-                    .tabItem { Label("策略", systemImage: "shield") }
+                    .tabItem { Label(i18n.t(.fc_policy), systemImage: "shield") }
                     .tag(0)
                 auditTab
-                    .tabItem { Label("审计", systemImage: "list.bullet.clipboard") }
+                    .tabItem { Label(i18n.t(.fc_audit), systemImage: "list.bullet.clipboard") }
                     .tag(1)
             }
             .frame(minHeight: 200, maxHeight: 350)
@@ -161,7 +162,7 @@ struct FCSandboxPanel: View {
 
     private var policyTab: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            Text("允许目录")
+            Text(i18n.t(.fc_allow_dirs))
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(theme.textSecondary)
 
@@ -185,10 +186,10 @@ struct FCSandboxPanel: View {
             }
 
             HStack {
-                TextField("添加目录...", text: $newDir)
+                TextField(i18n.t(.fc_add_dir_ph), text: $newDir)
                     .textFieldStyle(.roundedBorder)
                     .font(.system(size: 10))
-                Button("Add") {
+                Button(i18n.t(.fc_add)) {
                     if !newDir.isEmpty {
                         store.addAllowedDir(newDir)
                         newDir = ""
@@ -199,7 +200,7 @@ struct FCSandboxPanel: View {
 
             Divider()
 
-            Text("忽略模式 (.fusionignore)")
+            Text(i18n.t(.fc_ignore_patterns))
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(theme.textSecondary)
 
@@ -219,10 +220,10 @@ struct FCSandboxPanel: View {
             }
 
             HStack {
-                TextField("添加模式...", text: $newPattern)
+                TextField(i18n.t(.fc_add_pattern_ph), text: $newPattern)
                     .textFieldStyle(.roundedBorder)
                     .font(.system(size: 10))
-                Button("Add") {
+                Button(i18n.t(.fc_add)) {
                     if !newPattern.isEmpty {
                         store.addIgnoredPattern(newPattern)
                         newPattern = ""
@@ -236,17 +237,17 @@ struct FCSandboxPanel: View {
     private var auditTab: some View {
         VStack(spacing: 0) {
             if store.auditLog.isEmpty {
-                Text("暂无审计记录")
+                Text(i18n.t(.fc_no_audit))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textTertiary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 HStack {
-                    Text("\(store.auditLog.count) 条记录")
+                    Text(String(format: i18n.t(.fc_records_count), store.auditLog.count))
                         .font(.system(size: 9))
                         .foregroundStyle(theme.textTertiary)
                     Spacer()
-                    Button("导出") {
+                    Button(i18n.t(.fc_export)) {
                         let text = store.exportAuditLog()
                         let panel = NSSavePanel()
                         panel.nameFieldStringValue = "sandbox-audit.log"

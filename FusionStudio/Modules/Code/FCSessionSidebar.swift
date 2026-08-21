@@ -8,6 +8,7 @@ struct FCSessionSidebar: View {
     @State private var showNewSession = false
     @State private var searchText = ""
     @State private var hoveredSessionId: String?
+    @StateObject private var i18n = I18nManager.shared
 
     private let sidebarWidth: CGFloat = 220
 
@@ -29,7 +30,7 @@ struct FCSessionSidebar: View {
 
     private var headerBar: some View {
         HStack(spacing: 4) {
-            Text("Sessions")
+            Text(i18n.t(.fc_sessions))
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(.secondary)
             Spacer()
@@ -38,17 +39,17 @@ struct FCSessionSidebar: View {
                     .font(.system(size: 11))
             }
             .buttonStyle(.plain)
-            .help("新建会话")
+            .help(i18n.t(.fc_new_session))
             Menu {
                 ForEach(FCSidebarGroupMode.allCases, id: \.self) { mode in
-                    Button(mode.rawValue) { groupMode = mode }
+                    Button(mode.localLabel) { groupMode = mode }
                 }
             } label: {
                 Image(systemName: "line.3.horizontal.decrease.circle")
                     .font(.system(size: 11))
             }
             .buttonStyle(.plain)
-            .help("分组方式")
+            .help(i18n.t(.fc_group_mode))
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
@@ -60,7 +61,7 @@ struct FCSessionSidebar: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 10))
                 .foregroundColor(.secondary)
-            TextField("搜索会话...", text: $searchText)
+            TextField(i18n.t(.fc_search_sessions), text: $searchText)
                 .textFieldStyle(.plain)
                 .font(.system(size: 11))
         }
@@ -126,7 +127,7 @@ struct FCSessionSidebar: View {
                         Image(systemName: "folder")
                             .font(.system(size: 9))
                             .foregroundColor(.secondary)
-                        Text(project.isEmpty ? "无项目" : project)
+                        Text(project.isEmpty ? i18n.t(.fc_no_project2) : project)
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(.secondary)
                         Text("(\(sessions.count))")
@@ -163,7 +164,7 @@ struct FCSessionSidebar: View {
                     .font(.system(size: 11, weight: isSelected ? .semibold : .regular))
                     .lineLimit(1)
                 if session.messageCount > 0 {
-                    Text("\(session.messageCount) 条消息")
+                    Text(String(format: i18n.t(.fc_messages_count), session.messageCount))
                         .font(.system(size: 9))
                         .foregroundColor(.secondary)
                 }
@@ -189,19 +190,19 @@ struct FCSessionSidebar: View {
 
     private func sessionContextMenu(_ session: FCSessionDetail) -> some View {
         Group {
-            Button("重命名") {
+            Button(i18n.t(.fc_rename)) {
                 bridge.renameSession(id: session.id, name: "Renamed")
             }
             if session.canPause {
-                Button("暂停") { bridge.pauseSession(id: session.id) }
+                Button(i18n.t(.fc_pause)) { bridge.pauseSession(id: session.id) }
             }
             if session.canResume {
-                Button("恢复") { bridge.resumeSession(id: session.id) }
+                Button(i18n.t(.fc_resume)) { bridge.resumeSession(id: session.id) }
             }
             Divider()
-            Button("克隆") { bridge.cloneSession(id: session.id) }
+            Button(i18n.t(.fc_clone)) { bridge.cloneSession(id: session.id) }
             Divider()
-            Button("删除", role: .destructive) {
+            Button(i18n.t(.fc_delete), role: .destructive) {
                 bridge.deleteSession(id: session.id)
                 if selectedSessionId == session.id {
                     selectedSessionId = nil
@@ -215,7 +216,7 @@ struct FCSessionSidebar: View {
             Menu {
                 ForEach(FCLayoutMode.allCases, id: \.self) { mode in
                     Button(action: { layoutMode = mode }) {
-                        Label(mode.rawValue, systemImage: mode.icon)
+                        Label(mode.localLabel, systemImage: mode.icon)
                     }
                 }
             } label: {
@@ -223,9 +224,9 @@ struct FCSessionSidebar: View {
                     .font(.system(size: 11))
             }
             .buttonStyle(.plain)
-            .help("布局模式")
+            .help(i18n.t(.fc_layout_mode))
             Spacer()
-            Text("\(bridge.sessions.count) 个会话")
+            Text(String(format: i18n.t(.fc_sessions_count), bridge.sessions.count))
                 .font(.system(size: 9))
                 .foregroundColor(.secondary)
         }
@@ -259,6 +260,7 @@ struct FCNewSessionSheet: View {
     @ObservedObject var bridge: FusionCodeBridge
     @Binding var isPresented: Bool
     let onCreated: (String) -> Void
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var name = ""
     @State private var workingDir = ""
@@ -269,18 +271,18 @@ struct FCNewSessionSheet: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            Text("新建编码会话")
+            Text(i18n.t(.fc_new_session_full))
                 .font(.system(size: 14, weight: .semibold))
 
-            formRow("名称") {
-                TextField("会话名称", text: $name)
+            formRow(i18n.t(.fc_title)) {
+                TextField(i18n.t(.fc_session_title_ph), text: $name)
                     .textFieldStyle(.roundedBorder)
             }
-            formRow("工作目录") {
+            formRow(i18n.t(.fc_working_dir)) {
                 TextField("/path/to/project", text: $workingDir)
                     .textFieldStyle(.roundedBorder)
             }
-            formRow("模型") {
+            formRow(i18n.t(.fc_model_label)) {
                 Picker("", selection: $model) {
                     ForEach(bridge.availableModels, id: \.self) { m in
                         Text(m).tag(m)
@@ -301,19 +303,19 @@ struct FCNewSessionSheet: View {
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 80)
             }
-            formRow("安全模式") {
+            formRow(i18n.t(.fc_security_mode)) {
                 Picker("", selection: $securityMode) {
-                    Text("只读").tag("readonly")
-                    Text("手动审批").tag("manual")
-                    Text("自动").tag("auto")
+                    Text(i18n.t(.fc_sm_readonly)).tag("readonly")
+                    Text(i18n.t(.fc_sm_manual)).tag("manual")
+                    Text(i18n.t(.fc_sm_auto)).tag("auto")
                 }
                 .labelsHidden()
             }
 
             HStack(spacing: 12) {
-                Button("取消") { isPresented = false }
+                Button(i18n.t(.fc_cancel)) { isPresented = false }
                     .keyboardShortcut(.cancelAction)
-                Button("创建") {
+                Button(i18n.t(.fc_create)) {
                     let config = FCSessionConfig(
                         name: name,
                         workingDir: workingDir,
