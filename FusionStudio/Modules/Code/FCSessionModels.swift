@@ -169,4 +169,13 @@ enum FCLayoutMode: String, CaseIterable {
         case .chatOnly: return "message"
         }
     }
+
+    var localLabel: String {
+        switch self {
+        case .fourColumn: return I18nManager.shared.t(.fc_layout_four_column)
+        case .threeColumn: return I18nManager.shared.t(.fc_layout_three_column)
+        case .twoColumn: return I18nManager.shared.t(.fc_layout_two_column)
+        case .chatOnly: return I18nManager.shared.t(.fc_layout_chat_only)
+        }
+    }
 }
