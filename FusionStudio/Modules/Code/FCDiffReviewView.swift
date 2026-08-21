@@ -9,10 +9,18 @@ struct FCDiffReviewView: View {
 
     @State private var viewMode: DiffViewMode = .split
     @State private var showLineNumbers = true
+    @StateObject private var i18n = I18nManager.shared
 
     enum DiffViewMode: String, CaseIterable {
         case split = "Split"
         case unified = "Unified"
+
+        var localLabel: String {
+            switch self {
+            case .split: return I18nManager.shared.t(.fc_diff_split)
+            case .unified: return I18nManager.shared.t(.fc_diff_unified)
+            }
+        }
     }
 
     var body: some View {
@@ -39,13 +47,13 @@ struct FCDiffReviewView: View {
 
             Picker("", selection: $viewMode) {
                 ForEach(DiffViewMode.allCases, id: \.self) { mode in
-                    Text(mode.rawValue).tag(mode)
+                    Text(mode.localLabel).tag(mode)
                 }
             }
             .pickerStyle(.segmented)
             .frame(width: 140)
 
-            Toggle("行号", isOn: $showLineNumbers)
+            Toggle(i18n.t(.fc_diff_line_numbers), isOn: $showLineNumbers)
                 .toggleStyle(.checkbox)
                 .font(.system(size: 10))
         }
@@ -56,9 +64,9 @@ struct FCDiffReviewView: View {
 
     private var splitDiffView: some View {
         HStack(spacing: 1) {
-            diffPane(title: "Original", content: original, color: theme.redDot.opacity(0.1))
+            diffPane(title: i18n.t(.fc_original), content: original, color: theme.redDot.opacity(0.1))
             Divider()
-            diffPane(title: "Modified", content: modified, color: theme.greenDot.opacity(0.1))
+            diffPane(title: i18n.t(.fc_modified), content: modified, color: theme.greenDot.opacity(0.1))
         }
     }
 

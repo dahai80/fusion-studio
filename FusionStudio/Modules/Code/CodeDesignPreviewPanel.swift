@@ -12,6 +12,7 @@ struct CodeDesignPreviewPanel: View {
     @Environment(\.studioTheme) private var theme
     @EnvironmentObject var designBridge: DesignBridge
     @State private var deviceMode: PreviewDeviceMode = .mobile
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -50,7 +51,7 @@ struct CodeDesignPreviewPanel: View {
                     .foregroundStyle(theme.textTertiary)
             }
             .buttonStyle(.plain)
-            .help("在 Design 模块中打开")
+            .help(i18n.t(.fc_design_open_in_module))
         }
         .padding(.horizontal, theme.spacingM)
         .padding(.vertical, theme.spacingS)
@@ -77,10 +78,10 @@ struct CodeDesignPreviewPanel: View {
             Image(systemName: "paintbrush.pointed")
                 .font(.system(size: 28))
                 .foregroundStyle(theme.textTertiary)
-            Text("没有设计内容")
+            Text(i18n.t(.fc_design_no_content))
                 .font(.system(size: theme.footnoteSize))
                 .foregroundStyle(theme.textSecondary)
-            Text("在 Design 模块中创建设计后\n可在此预览")
+            Text(i18n.t(.fc_design_create_hint))
                 .font(.system(size: theme.captionSize))
                 .foregroundStyle(theme.textTertiary)
                 .multilineTextAlignment(.center)
@@ -97,11 +98,11 @@ struct CodeDesignPreviewPanel: View {
                 .frame(width: 6, height: 6)
 
             if DesignCodeLink.shared.isActive {
-                Text("双向同步已开启")
+                Text(i18n.t(.fc_design_sync_on))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textSecondary)
             } else {
-                Text("同步未连接")
+                Text(i18n.t(.fc_design_sync_off))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textTertiary)
             }
@@ -131,7 +132,7 @@ struct CodeDesignPreviewPanel: View {
                     .foregroundStyle(theme.textSecondary)
             }
             .buttonStyle(.plain)
-            .help("导出到文件")
+            .help(i18n.t(.fc_design_export_file))
             .disabled(designBridge.currentArtifactCode.isEmpty)
         }
         .padding(.horizontal, theme.spacingM)

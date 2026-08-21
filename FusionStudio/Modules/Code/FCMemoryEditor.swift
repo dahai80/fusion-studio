@@ -11,9 +11,9 @@ enum FCMemoryTier: String, CaseIterable {
 
     var label: String {
         switch self {
-        case .global: return "全局"
-        case .project: return "项目"
-        case .directory: return "目录"
+        case .global: return I18nManager.shared.t(.fc_tier_global)
+        case .project: return I18nManager.shared.t(.fc_tier_project)
+        case .directory: return I18nManager.shared.t(.fc_tier_directory)
         }
     }
 
@@ -100,6 +100,7 @@ struct FCMemoryPanel: View {
     @ObservedObject var store = FCMemoryStore.shared
     @State private var selectedTier: FCMemoryTier = .project
     @State private var editText = ""
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         VStack(spacing: theme.spacingS) {
@@ -144,7 +145,7 @@ struct FCMemoryPanel: View {
 
                 HStack {
                     Spacer()
-                    Button("Save") {
+                    Button(i18n.t(.fc_save)) {
                         saveSelected()
                     }
                     .buttonStyle(.borderedProminent)
