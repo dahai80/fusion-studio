@@ -149,7 +149,7 @@ class FusionCodeBridge: ObservableObject {
             guard let id = s["id"] as? String else { return nil }
             return FCSession(
                 id: id,
-                title: (s["title"] as? String) ?? (s["name"] as? String) ?? "Untitled",
+                title: (s["title"] as? String) ?? (s["name"] as? String) ?? I18nManager.shared.t(.fc_untitled),
                 createdAt: (s["created_at"] as? String) ?? (s["createdAt"] as? String) ?? "",
                 cwd: (s["cwd"] as? String) ?? (s["workDir"] as? String) ?? "",
                 messageCount: (s["message_count"] as? Int) ?? (s["messageCount"] as? Int) ?? 0
@@ -204,7 +204,7 @@ class FusionCodeBridge: ObservableObject {
         guard let original = sessions.first(where: { $0.id == id }) else { return }
         let cloned = FCSessionDetail(
             id: UUID().uuidString.prefix(12).lowercased(),
-            name: "\(original.name) (副本)",
+            name: "\(original.name)\(I18nManager.shared.t(.fc_copy_suffix))",
             state: .idle,
             config: original.config,
             messageCount: 0

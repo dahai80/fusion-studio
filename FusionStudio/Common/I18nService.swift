@@ -3345,6 +3345,41 @@ enum I18nKey: String, CaseIterable {
     case fc_wf_status_running = "fc_wf_status_running"
     case fc_wf_status_completed = "fc_wf_status_completed"
     case fc_wf_status_pending = "fc_wf_status_pending"
+    case fc_preview = "fc_preview"
+    case fc_live = "fc_live"
+    case fc_html_preview_empty = "fc_html_preview_empty"
+    case fc_original = "fc_original"
+    case fc_modified = "fc_modified"
+    case fc_design_open_in_module = "fc_design_open_in_module"
+    case fc_design_no_content = "fc_design_no_content"
+    case fc_design_create_hint = "fc_design_create_hint"
+    case fc_design_sync_on = "fc_design_sync_on"
+    case fc_design_sync_off = "fc_design_sync_off"
+    case fc_design_export_file = "fc_design_export_file"
+    case fc_tier_global = "fc_tier_global"
+    case fc_tier_project = "fc_tier_project"
+    case fc_tier_directory = "fc_tier_directory"
+    case fc_diff_split = "fc_diff_split"
+    case fc_diff_unified = "fc_diff_unified"
+    case fc_diff_line_numbers = "fc_diff_line_numbers"
+    case fc_snapshots = "fc_snapshots"
+    case fc_no_snapshots = "fc_no_snapshots"
+    case fc_create_snapshot = "fc_create_snapshot"
+    case fc_label_optional = "fc_label_optional"
+    case fc_restore = "fc_restore"
+    case fc_rewind_here = "fc_rewind_here"
+    case fc_snap_deltas_fmt = "fc_snap_deltas_fmt"
+    case fc_snap_not_found = "fc_snap_not_found"
+    case fc_pty_stopped = "fc_pty_stopped"
+    case fc_pty_clear = "fc_pty_clear"
+    case fc_pty_stop = "fc_pty_stop"
+    case fc_pty_restart = "fc_pty_restart"
+    case fc_pty_shell_started = "fc_pty_shell_started"
+    case fc_pty_shell_exited = "fc_pty_shell_exited"
+    case fc_pty_start_fail = "fc_pty_start_fail"
+    case fc_pty_alloc_fail = "fc_pty_alloc_fail"
+    case fc_copy_suffix = "fc_copy_suffix"
+    case fc_untitled = "fc_untitled"
 }
 
 // MARK: - 翻译管理器
@@ -6338,10 +6373,45 @@ let zhCNTranslations: [String: String] = [
     "fc_wf_template_batch": "批量API处理",
     "fc_wf_template_refactor": "代码重构",
     "fc_wf_template_test": "测试生成",
-    "fc_wf_status_failed": "%d failed",
-    "fc_wf_status_running": "Running (%d/%d)",
-    "fc_wf_status_completed": "Completed",
-    "fc_wf_status_pending": "Pending (%d/%d)"
+    "fc_wf_status_failed": "%d 失败",
+    "fc_wf_status_running": "运行中 (%d/%d)",
+    "fc_wf_status_completed": "已完成",
+    "fc_wf_status_pending": "排队中 (%d/%d)",
+    "fc_preview": "预览",
+    "fc_live": "实时",
+    "fc_html_preview_empty": "生成HTML后此处显示预览",
+    "fc_original": "原始",
+    "fc_modified": "已修改",
+    "fc_design_open_in_module": "在 Design 模块中打开",
+    "fc_design_no_content": "没有设计内容",
+    "fc_design_create_hint": "在 Design 模块中创建设计后\n可在此预览",
+    "fc_design_sync_on": "双向同步已开启",
+    "fc_design_sync_off": "同步未连接",
+    "fc_design_export_file": "导出到文件",
+    "fc_tier_global": "全局",
+    "fc_tier_project": "项目",
+    "fc_tier_directory": "目录",
+    "fc_diff_split": "分屏",
+    "fc_diff_unified": "合并",
+    "fc_diff_line_numbers": "行号",
+    "fc_snapshots": "快照",
+    "fc_no_snapshots": "暂无快照",
+    "fc_create_snapshot": "创建快照",
+    "fc_label_optional": "标签（可选）",
+    "fc_restore": "恢复",
+    "fc_rewind_here": "回退到此处",
+    "fc_snap_deltas_fmt": "%d 个增量 · %@",
+    "fc_snap_not_found": "未找到快照：%@",
+    "fc_pty_stopped": "已停止",
+    "fc_pty_clear": "清空",
+    "fc_pty_stop": "停止",
+    "fc_pty_restart": "重启",
+    "fc_pty_shell_started": "Shell 已启动：%@",
+    "fc_pty_shell_exited": "Shell 已退出。",
+    "fc_pty_start_fail": "启动 Shell 失败：%@",
+    "fc_pty_alloc_fail": "分配 PTY 失败：%@",
+    "fc_copy_suffix": " (副本)",
+    "fc_untitled": "未命名"
 ]
 
 let enUSTranslations: [String: String] = [
@@ -9290,10 +9360,45 @@ let enUSTranslations: [String: String] = [
     "fc_wf_template_batch": "Batch API processing",
     "fc_wf_template_refactor": "Code refactor",
     "fc_wf_template_test": "Test generation",
-    "fc_wf_status_failed": "%d 失败",
-    "fc_wf_status_running": "运行中 (%d/%d)",
-    "fc_wf_status_completed": "已完成",
-    "fc_wf_status_pending": "排队中 (%d/%d)"
+    "fc_wf_status_failed": "%d failed",
+    "fc_wf_status_running": "Running (%d/%d)",
+    "fc_wf_status_completed": "Completed",
+    "fc_wf_status_pending": "Pending (%d/%d)",
+    "fc_preview": "Preview",
+    "fc_live": "Live",
+    "fc_html_preview_empty": "Preview appears here after HTML is generated",
+    "fc_original": "Original",
+    "fc_modified": "Modified",
+    "fc_design_open_in_module": "Open in Design module",
+    "fc_design_no_content": "No design content",
+    "fc_design_create_hint": "After creating a design in the Design module,\nyou can preview it here",
+    "fc_design_sync_on": "Two-way sync enabled",
+    "fc_design_sync_off": "Sync not connected",
+    "fc_design_export_file": "Export to file",
+    "fc_tier_global": "Global",
+    "fc_tier_project": "Project",
+    "fc_tier_directory": "Directory",
+    "fc_diff_split": "Split",
+    "fc_diff_unified": "Unified",
+    "fc_diff_line_numbers": "Line numbers",
+    "fc_snapshots": "Snapshots",
+    "fc_no_snapshots": "No snapshots",
+    "fc_create_snapshot": "Create Snapshot",
+    "fc_label_optional": "Label (optional)",
+    "fc_restore": "Restore",
+    "fc_rewind_here": "Rewind to here",
+    "fc_snap_deltas_fmt": "%d deltas · %@",
+    "fc_snap_not_found": "Snapshot not found: %@",
+    "fc_pty_stopped": "stopped",
+    "fc_pty_clear": "Clear",
+    "fc_pty_stop": "Stop",
+    "fc_pty_restart": "Restart",
+    "fc_pty_shell_started": "Shell started: %@",
+    "fc_pty_shell_exited": "Shell exited.",
+    "fc_pty_start_fail": "Failed to start shell: %@",
+    "fc_pty_alloc_fail": "Failed to allocate PTY: %@",
+    "fc_copy_suffix": " (Copy)",
+    "fc_untitled": "Untitled"
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -12239,7 +12344,42 @@ let jaJPTranslations: [String: String] = [
     "fc_wf_status_failed": "%d 失敗",
     "fc_wf_status_running": "実行中 (%d/%d)",
     "fc_wf_status_completed": "完了",
-    "fc_wf_status_pending": "保留中 (%d/%d)"
+    "fc_wf_status_pending": "保留中 (%d/%d)",
+    "fc_preview": "プレビュー",
+    "fc_live": "ライブ",
+    "fc_html_preview_empty": "HTML生成後にここにプレビューが表示されます",
+    "fc_original": "オリジナル",
+    "fc_modified": "変更後",
+    "fc_design_open_in_module": "Design モジュールで開く",
+    "fc_design_no_content": "デザインコンテンツがありません",
+    "fc_design_create_hint": "Design モジュールでデザインを作成後\nここでプレビューできます",
+    "fc_design_sync_on": "双方向同期が有効",
+    "fc_design_sync_off": "同期未接続",
+    "fc_design_export_file": "ファイルへエクスポート",
+    "fc_tier_global": "グローバル",
+    "fc_tier_project": "プロジェクト",
+    "fc_tier_directory": "ディレクトリ",
+    "fc_diff_split": "分割",
+    "fc_diff_unified": "統合",
+    "fc_diff_line_numbers": "行番号",
+    "fc_snapshots": "スナップショット",
+    "fc_no_snapshots": "スナップショットなし",
+    "fc_create_snapshot": "スナップショットを作成",
+    "fc_label_optional": "ラベル（任意）",
+    "fc_restore": "復元",
+    "fc_rewind_here": "ここまで巻き戻し",
+    "fc_snap_deltas_fmt": "%d 個のデルタ · %@",
+    "fc_snap_not_found": "スナップショットが見つかりません：%@",
+    "fc_pty_stopped": "停止",
+    "fc_pty_clear": "クリア",
+    "fc_pty_stop": "停止",
+    "fc_pty_restart": "再起動",
+    "fc_pty_shell_started": "Shellを開始しました：%@",
+    "fc_pty_shell_exited": "Shellが終了しました。",
+    "fc_pty_start_fail": "Shellの起動に失敗しました：%@",
+    "fc_pty_alloc_fail": "PTYの割り当てに失敗しました：%@",
+    "fc_copy_suffix": " (コピー)",
+    "fc_untitled": "無題"
 ]
 
 let koKRTranslations: [String: String] = [
@@ -15185,7 +15325,42 @@ let koKRTranslations: [String: String] = [
     "fc_wf_status_failed": "%d 실패",
     "fc_wf_status_running": "실행 중 (%d/%d)",
     "fc_wf_status_completed": "완료",
-    "fc_wf_status_pending": "대기 중 (%d/%d)"
+    "fc_wf_status_pending": "대기 중 (%d/%d)",
+    "fc_preview": "미리보기",
+    "fc_live": "실시간",
+    "fc_html_preview_empty": "HTML 생성 후 여기에 미리보기가 표시됩니다",
+    "fc_original": "원본",
+    "fc_modified": "수정됨",
+    "fc_design_open_in_module": "Design 모듈에서 열기",
+    "fc_design_no_content": "디자인 콘텐츠 없음",
+    "fc_design_create_hint": "Design 모듈에서 디자인 생성 후\n여기서 미리보기할 수 있습니다",
+    "fc_design_sync_on": "양방향 동기화 활성화됨",
+    "fc_design_sync_off": "동기화 미연결",
+    "fc_design_export_file": "파일로 내보내기",
+    "fc_tier_global": "전역",
+    "fc_tier_project": "프로젝트",
+    "fc_tier_directory": "디렉터리",
+    "fc_diff_split": "분할",
+    "fc_diff_unified": "통합",
+    "fc_diff_line_numbers": "줄 번호",
+    "fc_snapshots": "스냅샷",
+    "fc_no_snapshots": "스냅샷 없음",
+    "fc_create_snapshot": "스냅샷 생성",
+    "fc_label_optional": "라벨（선택）",
+    "fc_restore": "복원",
+    "fc_rewind_here": "여기로 되감기",
+    "fc_snap_deltas_fmt": "%d개 델타 · %@",
+    "fc_snap_not_found": "스냅샷을 찾을 수 없음: %@",
+    "fc_pty_stopped": "중지됨",
+    "fc_pty_clear": "지우기",
+    "fc_pty_stop": "중지",
+    "fc_pty_restart": "재시작",
+    "fc_pty_shell_started": "Shell 시작됨: %@",
+    "fc_pty_shell_exited": "Shell 종료됨.",
+    "fc_pty_start_fail": "Shell 시작 실패: %@",
+    "fc_pty_alloc_fail": "PTY 할당 실패: %@",
+    "fc_copy_suffix": " (사본)",
+    "fc_untitled": "제목 없음"
 ]
 
 // MARK: - 国际化文本视图

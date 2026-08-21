@@ -87,7 +87,7 @@ class FCSnapshotManager: ObservableObject {
         let path = "\(snapshotDir)/\(sessionId)/snapshot_\(snapshotId).json"
         guard let data = fileManager.contents(atPath: path),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            lastError = "Snapshot not found: \(snapshotId)"
+            lastError = String(format: I18nManager.shared.t(.fc_snap_not_found), snapshotId)
             return
         }
         let deltaCount = (json["deltas"] as? [[String: Any]])?.count ?? 0
@@ -116,11 +116,12 @@ struct FCSnapshotPanel: View {
     let sessionId: String
     @State private var newLabel = ""
     @State private var showCreateSheet = false
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         VStack(spacing: theme.spacingS) {
             HStack {
-                Text("Snapshots")
+                Text(i18n.t(.fc_snapshots))
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
                     .foregroundStyle(theme.text)
                 Spacer()
@@ -142,7 +143,7 @@ struct FCSnapshotPanel: View {
                 ProgressView()
                     .scaleEffect(0.6)
             } else if manager.snapshots.isEmpty {
-                Text("No snapshots")
+                Text(i18n.t(.fc_no_snapshots))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textTertiary)
             } else {
@@ -160,13 +161,13 @@ struct FCSnapshotPanel: View {
         .onAppear { manager.loadSnapshots(sessionId: sessionId) }
         .sheet(isPresented: $showCreateSheet) {
             VStack(spacing: 12) {
-                Text("Create Snapshot")
+                Text(i18n.t(.fc_create_snapshot))
                     .font(.system(size: 13, weight: .semibold))
-                TextField("Label (optional)", text: $newLabel)
+                TextField(i18n.t(.fc_label_optional), text: $newLabel)
                     .textFieldStyle(.roundedBorder)
                 HStack {
-                    Button("Cancel") { showCreateSheet = false }
-                    Button("Create") {
+                    Button(i18n.t(.fc_cancel)) { showCreateSheet = false }
+                    Button(i18n.t(.fc_create)) {
                         manager.createSnapshot(sessionId: sessionId, label: newLabel)
                         newLabel = ""
                         showCreateSheet = false
@@ -188,7 +189,7 @@ struct FCSnapshotPanel: View {
                     .font(.system(size: 11))
                     .foregroundStyle(theme.text)
                     .lineLimit(1)
-                Text("\(snap.deltaCount) deltas · \(snap.formattedDate)")
+                Text(String(format: i18n.t(.fc_snap_deltas_fmt), snap.deltaCount, snap.formattedDate))
                     .font(.system(size: 9))
                     .foregroundStyle(theme.textTertiary)
             }
@@ -198,10 +199,10 @@ struct FCSnapshotPanel: View {
         .padding(.vertical, 4)
         .background(RoundedRectangle(cornerRadius: 4).fill(theme.groupBg))
         .contextMenu {
-            Button("Restore") { manager.restoreSnapshot(sessionId: sessionId, snapshotId: snap.id) }
-            Button("Rewind to here") { manager.rewind(sessionId: sessionId, steps: manager.snapshots.firstIndex(where: { $0.id == snap.id }) ?? 0) }
+            Button(i18n.t(.fc_restore)) { manager.restoreSnapshot(sessionId: sessionId, snapshotId: snap.id) }
+            Button(i18n.t(.fc_rewind_here)) { manager.rewind(sessionId: sessionId, steps: manager.snapshots.firstIndex(where: { $0.id == snap.id }) ?? 0) }
             Divider()
-            Button("Delete", role: .destructive) { manager.deleteSnapshot(sessionId: sessionId, snapshotId: snap.id) }
+            Button(i18n.t(.fc_delete), role: .destructive) { manager.deleteSnapshot(sessionId: sessionId, snapshotId: snap.id) }
         }
     }
 }

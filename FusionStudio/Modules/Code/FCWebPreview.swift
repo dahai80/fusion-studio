@@ -23,6 +23,7 @@ struct FCWebPreviewPanel: View {
     @Binding var htmlContent: String
     @State private var isLivePreview = true
     @State private var zoom: Double = 1.0
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -34,7 +35,7 @@ struct FCWebPreviewPanel: View {
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(theme.text)
                 Spacer()
-                Toggle("Live", isOn: $isLivePreview)
+                Toggle(i18n.t(.fc_live), isOn: $isLivePreview)
                     .toggleStyle(.switch)
                     .controlSize(.mini)
                 Button(action: { zoom = max(0.25, zoom - 0.25) }) {
@@ -68,7 +69,7 @@ struct FCWebPreviewPanel: View {
                     Image(systemName: "doc.text.magnifyingglass")
                         .font(.system(size: 24))
                         .foregroundStyle(theme.textTertiary)
-                    Text("生成HTML后此处显示预览")
+                    Text(i18n.t(.fc_html_preview_empty))
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.textTertiary)
                 }

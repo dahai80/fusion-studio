@@ -22,7 +22,7 @@ class PTYSession: ObservableObject {
 
         guard openpty(&masterFD, &slaveFD, nil, nil, nil) == 0 else {
             ptyLog.error("openpty failed: \(String(cString: strerror(errno)))")
-            appendLine(text: "Failed to allocate PTY: \(String(cString: strerror(errno)))", type: .error)
+            appendLine(text: String(format: I18nManager.shared.t(.fc_pty_alloc_fail), String(cString: strerror(errno))), type: .error)
             return
         }
 
@@ -53,11 +53,11 @@ class PTYSession: ObservableObject {
             try p.run()
             close(slaveFD)
             isRunning = true
-            appendLine(text: "Shell started: \(shell)", type: .info)
+            appendLine(text: String(format: I18nManager.shared.t(.fc_pty_shell_started), shell), type: .info)
             startReading(masterFd: masterFD)
         } catch {
             ptyLog.error("Failed to start shell: \(error.localizedDescription)")
-            appendLine(text: "Failed to start shell: \(error.localizedDescription)", type: .error)
+            appendLine(text: String(format: I18nManager.shared.t(.fc_pty_start_fail), error.localizedDescription), type: .error)
             close(masterFD)
             close(slaveFD)
             self.masterFd = -1
@@ -75,7 +75,7 @@ class PTYSession: ObservableObject {
                 if bytesRead == 0 {
                     DispatchQueue.main.async {
                         self.isRunning = false
-                        self.appendLine(text: "Shell exited.", type: .info)
+                        self.appendLine(text: I18nManager.shared.t(.fc_pty_shell_exited), type: .info)
                     }
                 }
                 return
@@ -185,6 +185,7 @@ struct PTYTerminalView: View {
     @StateObject private var session = PTYSession()
     @State private var inputText = ""
     @Binding var workingDirectory: String?
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -239,7 +240,7 @@ struct PTYTerminalView: View {
             Circle()
                 .fill(session.isRunning ? Color.green : Color.red)
                 .frame(width: 8, height: 8)
-            Text(session.isRunning ? "zsh" : "stopped")
+            Text(session.isRunning ? "zsh" : i18n.t(.fc_pty_stopped))
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundColor(.secondary)
             Spacer()
@@ -254,7 +255,7 @@ struct PTYTerminalView: View {
             Button {
                 session.clear()
             } label: {
-                Text("Clear").font(.system(size: 10))
+                Text(i18n.t(.fc_pty_clear)).font(.system(size: 10))
             }
             .buttonStyle(.borderless)
             .controlSize(.small)
@@ -263,7 +264,7 @@ struct PTYTerminalView: View {
                 Button {
                     session.stop()
                 } label: {
-                    Text("Stop").font(.system(size: 10)).foregroundColor(.red)
+                    Text(i18n.t(.fc_pty_stop)).font(.system(size: 10)).foregroundColor(.red)
                 }
                 .buttonStyle(.borderless)
                 .controlSize(.small)
@@ -271,7 +272,7 @@ struct PTYTerminalView: View {
                 Button {
                     session.start(directory: workingDirectory)
                 } label: {
-                    Text("Restart").font(.system(size: 10)).foregroundColor(.green)
+                    Text(i18n.t(.fc_pty_restart)).font(.system(size: 10)).foregroundColor(.green)
                 }
                 .buttonStyle(.borderless)
                 .controlSize(.small)
