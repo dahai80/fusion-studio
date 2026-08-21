@@ -26,6 +26,14 @@ enum FCExecutionMode: String, CaseIterable {
         case .planOnly: return "Read-only analysis"
         }
     }
+
+    var localLabel: String {
+        switch self {
+        case .askPermissions: return I18nManager.shared.t(.fc_mode_ask)
+        case .autoAccept: return I18nManager.shared.t(.fc_mode_auto)
+        case .planOnly: return I18nManager.shared.t(.fc_mode_plan)
+        }
+    }
 }
 
 // MARK: - Chat Message Model
@@ -124,6 +132,7 @@ struct FusionCodeView: View {
     @StateObject private var fcBridge = FusionCodeBridge.shared
     @StateObject private var workspace = ProjectWorkspace.shared
     @StateObject private var voiceInput = VoiceInputManager()
+    @StateObject private var i18n = I18nManager.shared
 
     @State private var inputText = ""
     @State private var messages: [FCChatMessage] = []
@@ -164,6 +173,18 @@ struct FusionCodeView: View {
         case snapshot = "Snapshot"
         case workflow = "Workflow"
         case sandbox = "Sandbox"
+
+        var localLabel: String {
+            switch self {
+            case .editor: return I18nManager.shared.t(.fc_pane_editor)
+            case .diff: return I18nManager.shared.t(.fc_pane_diff)
+            case .preview: return I18nManager.shared.t(.fc_pane_preview)
+            case .terminal: return I18nManager.shared.t(.fc_pane_terminal)
+            case .snapshot: return I18nManager.shared.t(.fc_pane_snapshot)
+            case .workflow: return I18nManager.shared.t(.fc_pane_workflow)
+            case .sandbox: return I18nManager.shared.t(.fc_pane_sandbox)
+            }
+        }
     }
 
     var body: some View {
@@ -393,10 +414,10 @@ struct FusionCodeView: View {
             Image(systemName: "folder.badge.plus")
                 .font(.system(size: 32))
                 .foregroundStyle(theme.textTertiary)
-            Text("Open a project folder")
+            Text(i18n.t(.fc_no_project_title))
                 .font(.system(size: theme.footnoteSize))
                 .foregroundStyle(theme.textTertiary)
-            Button("Open Folder") {
+            Button(i18n.t(.fc_open_folder)) {
                 workspace.openLocalFolder()
             }
             .buttonStyle(.plain)
@@ -424,7 +445,7 @@ struct FusionCodeView: View {
                 HStack(spacing: theme.spacingS) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(theme.amberDot)
-                    Text("fusion-code offline — using MLX inference")
+                    Text(i18n.t(.fc_offline_mlx))
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.textSecondary)
                     Spacer()
@@ -448,7 +469,7 @@ struct FusionCodeView: View {
                                 HStack(spacing: theme.spacingS) {
                                     ProgressView()
                                         .controlSize(.small)
-                                    Text("Thinking...")
+                                    Text(i18n.t(.fc_thinking))
                                         .font(.system(size: theme.captionSize))
                                         .foregroundStyle(theme.textTertiary)
                                 }
@@ -518,7 +539,7 @@ struct FusionCodeView: View {
                 Circle()
                     .fill(fcBridge.isConnected ? theme.greenDot : theme.redDot)
                     .frame(width: 6, height: 6)
-                Text(fcBridge.isConnected ? "Connected" : "Offline")
+                Text(fcBridge.isConnected ? i18n.t(.fc_connected) : i18n.t(.fc_offline))
                     .font(.system(size: 10))
                     .foregroundStyle(theme.textTertiary)
             }
@@ -546,12 +567,12 @@ struct FusionCodeView: View {
             Menu {
                 ForEach(FCLayoutMode.allCases, id: \.self) { mode in
                     Button(action: { withAnimation { layoutMode = mode } }) {
-                        Label(mode.rawValue, systemImage: mode.icon)
+                        Label(mode.localLabel, systemImage: mode.icon)
                     }
                 }
                 Divider()
                 Button(action: { withAnimation { showSessionSidebar.toggle() } }) {
-                    Label(showSessionSidebar ? "隐藏会话栏" : "显示会话栏", systemImage: "sidebar.left")
+                    Label(showSessionSidebar ? i18n.t(.fc_hide_session_bar) : i18n.t(.fc_show_session_bar), systemImage: "sidebar.left")
                 }
             } label: {
                 Image(systemName: layoutMode.icon)
@@ -573,36 +594,36 @@ struct FusionCodeView: View {
                 .font(.system(size: 28, weight: .bold))
                 .foregroundStyle(theme.text)
 
-            Text("Fusion Code — Local AI Coding Assistant")
+            Text(i18n.t(.fc_welcome_subtitle))
                 .font(.system(size: theme.textSize))
                 .foregroundStyle(theme.textSecondary)
 
             HStack(spacing: theme.spacingS) {
-                FCWelcomeCard(icon: "folder.badge.plus", title: "Open Project", subtitle: "Start with a local folder") {
+                FCWelcomeCard(icon: "folder.badge.plus", title: i18n.t(.fc_card_open_title), subtitle: i18n.t(.fc_card_open_sub)) {
                     showOpenProject = true
                 }
-                FCWelcomeCard(icon: "chevron.left.forwardslash.chevron.right", title: "Code", subtitle: "Generate & edit code") {
-                    inputText = "Write a "
+                FCWelcomeCard(icon: "chevron.left.forwardslash.chevron.right", title: i18n.t(.fc_card_code_title), subtitle: i18n.t(.fc_card_code_sub)) {
+                    inputText = i18n.t(.fc_prompt_write)
                 }
-                FCWelcomeCard(icon: "ladybug", title: "Debug", subtitle: "Find and fix issues") {
-                    inputText = "Help me debug this"
+                FCWelcomeCard(icon: "ladybug", title: i18n.t(.fc_card_debug_title), subtitle: i18n.t(.fc_card_debug_sub)) {
+                    inputText = i18n.t(.fc_prompt_debug)
                 }
-                FCWelcomeCard(icon: "books.vertical", title: "KB Query", subtitle: "Ask your codebase") {
+                FCWelcomeCard(icon: "books.vertical", title: i18n.t(.fc_card_kb_title), subtitle: i18n.t(.fc_card_kb_sub)) {
                     inputText = "/kb "
                 }
             }
 
             HStack(spacing: theme.spacingS) {
-                FCWelcomeCard(icon: "brain", title: "Memory", subtitle: "Manage context") {
+                FCWelcomeCard(icon: "brain", title: i18n.t(.fc_card_memory_title), subtitle: i18n.t(.fc_card_memory_sub)) {
                     inputText = "/memory"
                 }
-                FCWelcomeCard(icon: "square.grid.3x3", title: "Template", subtitle: "Workflow templates") {
+                FCWelcomeCard(icon: "square.grid.3x3", title: i18n.t(.fc_card_template_title), subtitle: i18n.t(.fc_card_template_sub)) {
                     inputText = "/template"
                 }
-                FCWelcomeCard(icon: "magnifyingglass", title: "Review", subtitle: "Code review") {
+                FCWelcomeCard(icon: "magnifyingglass", title: i18n.t(.fc_card_review_title), subtitle: i18n.t(.fc_card_review_sub)) {
                     inputText = "/review"
                 }
-                FCWelcomeCard(icon: "checkmark.shield", title: "Test", subtitle: "Generate tests") {
+                FCWelcomeCard(icon: "checkmark.shield", title: i18n.t(.fc_card_test_title), subtitle: i18n.t(.fc_card_test_sub)) {
                     inputText = "/test"
                 }
             }
@@ -615,10 +636,10 @@ struct FusionCodeView: View {
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
         switch hour {
-        case 0..<12: return "Good morning"
-        case 12..<17: return "Good afternoon"
-        case 17..<21: return "Good evening"
-        default: return "Good night"
+        case 0..<12: return i18n.t(.fc_greeting_morning)
+        case 12..<17: return i18n.t(.fc_greeting_afternoon)
+        case 17..<21: return i18n.t(.fc_greeting_evening)
+        default: return i18n.t(.fc_greeting_night)
         }
     }
 
@@ -644,7 +665,7 @@ struct FusionCodeView: View {
                         } label: {
                             HStack(spacing: 4) {
                                 Image(systemName: mode.icon)
-                                Text(mode.rawValue)
+                                Text(mode.localLabel)
                                 Spacer()
                                 if executionMode == mode {
                                     Image(systemName: "checkmark")
@@ -656,7 +677,7 @@ struct FusionCodeView: View {
                     HStack(spacing: 4) {
                         Image(systemName: executionMode.icon)
                             .font(.system(size: 11))
-                        Text(executionMode.rawValue)
+                        Text(executionMode.localLabel)
                             .font(.system(size: theme.captionSize, weight: .medium))
                     }
                     .foregroundStyle(modeColor)
@@ -668,21 +689,21 @@ struct FusionCodeView: View {
 
                 Menu {
                     Button(action: { workspace.openLocalFolder() }) {
-                        Label("Add folder", systemImage: "folder.badge.plus")
+                        Label(i18n.t(.fc_add_folder), systemImage: "folder.badge.plus")
                     }
                     Button(action: { workspace.openSingleFile() }) {
-                        Label("Add file", systemImage: "doc.text")
+                        Label(i18n.t(.fc_add_file), systemImage: "doc.text")
                     }
                     Divider()
                     Button(action: { inputText = "/kb " }) {
-                        Label("Query KB", systemImage: "books.vertical")
+                        Label(i18n.t(.fc_query_kb), systemImage: "books.vertical")
                     }
                     Button(action: { showTemplatePicker = true }) {
-                        Label("Templates", systemImage: "square.grid.3x3")
+                        Label(i18n.t(.fc_templates), systemImage: "square.grid.3x3")
                     }
                     Divider()
                     Toggle(isOn: $isWebSearchEnabled) {
-                        Label("Web search", systemImage: "globe")
+                        Label(i18n.t(.fc_web_search), systemImage: "globe")
                     }
                 } label: {
                     Image(systemName: "plus.circle")
@@ -698,7 +719,7 @@ struct FusionCodeView: View {
                 ZStack(alignment: .topLeading) {
                     SendableTextEditor(
                         text: $inputText,
-                        placeholder: "Ask anything — / for commands...",
+                        placeholder: i18n.t(.fc_input_placeholder),
                         font: .systemFont(ofSize: 14),
                         textColor: NSColor.labelColor,
                         placeholderColor: NSColor.tertiaryLabelColor,
@@ -793,7 +814,7 @@ struct FusionCodeView: View {
                         Image(systemName: "doc.text")
                             .font(.system(size: 32))
                             .foregroundStyle(theme.textQuaternary)
-                        Text("Select a file to edit")
+                        Text(i18n.t(.fc_select_file_edit))
                             .font(.system(size: theme.footnoteSize))
                             .foregroundStyle(theme.textTertiary)
                     }
@@ -825,7 +846,7 @@ struct FusionCodeView: View {
                         Image(systemName: "camera")
                             .font(.system(size: 24))
                             .foregroundStyle(theme.textTertiary)
-                        Text("Select a session to view snapshots")
+                        Text(i18n.t(.fc_select_session_snapshot))
                             .font(.system(size: theme.captionSize))
                             .foregroundStyle(theme.textTertiary)
                     }
@@ -852,7 +873,7 @@ struct FusionCodeView: View {
                     HStack(spacing: 4) {
                         Image(systemName: rightPaneIcon(pane))
                             .font(.system(size: 11))
-                        Text(pane.rawValue)
+                        Text(pane.localLabel)
                             .font(.system(size: theme.captionSize))
                     }
                     .padding(.horizontal, theme.spacingM)
@@ -902,7 +923,7 @@ struct FusionCodeView: View {
             }
             Spacer()
             if let file = workspace.selectedFile, workspace.hasCheckpoint(file) {
-                Button("Undo") {
+                Button(i18n.t(.fc_undo)) {
                     if workspace.undoLastWrite(file) {
                         editorContent = workspace.selectedFile?.content ?? file.content
                         fcLog.info("Undo checkpoint restored")
@@ -912,7 +933,7 @@ struct FusionCodeView: View {
                 .font(.system(size: 10))
                 .foregroundStyle(theme.accent)
             }
-            Button("Save") {
+            Button(i18n.t(.fc_save)) {
                 if let file = workspace.selectedFile {
                     workspace.write(file: file, content: editorContent)
                     fcLog.info("File saved: \(file.name)")
@@ -931,23 +952,23 @@ struct FusionCodeView: View {
 
     private var fcContextPanel: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            Text("Project Context")
+            Text(i18n.t(.fc_project_context))
                 .font(.system(size: theme.footnoteSize, weight: .semibold))
                 .foregroundStyle(theme.text)
 
             if workspace.hasProject {
                 VStack(alignment: .leading, spacing: theme.spacingS) {
-                    contextRow("Project", value: workspace.projectName)
+                    contextRow(i18n.t(.fc_ctx_project), value: workspace.projectName)
                     if !workspace.gitBranch.isEmpty {
-                        contextRow("Branch", value: workspace.gitBranch)
+                        contextRow(i18n.t(.fc_ctx_branch), value: workspace.gitBranch)
                     }
-                    contextRow("Files", value: "\(workspace.files.count)")
-                    contextRow("Model", value: selectedModel.isEmpty ? "Not selected" : selectedModel)
-                    contextRow("Mode", value: executionMode.rawValue)
-                    contextRow("KB", value: kbStatusText)
+                    contextRow(i18n.t(.fc_ctx_files), value: "\(workspace.files.count)")
+                    contextRow(i18n.t(.fc_ctx_model), value: selectedModel.isEmpty ? i18n.t(.fc_not_selected) : selectedModel)
+                    contextRow(i18n.t(.fc_ctx_mode), value: executionMode.localLabel)
+                    contextRow(i18n.t(.fc_ctx_kb), value: kbStatusText)
                 }
             } else {
-                Text("No project open")
+                Text(i18n.t(.fc_no_project_open))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textTertiary)
             }
@@ -973,17 +994,17 @@ struct FusionCodeView: View {
 
     private var fcMemoryPanel: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            Text("Project Memory")
+            Text(i18n.t(.fc_project_memory))
                 .font(.system(size: theme.footnoteSize, weight: .semibold))
 
-            Button("Load Memory Files") {
+            Button(i18n.t(.fc_load_memory)) {
                 loadMemoryFiles()
             }
             .buttonStyle(.plain)
             .font(.system(size: theme.captionSize, weight: .medium))
             .foregroundStyle(theme.accent)
 
-            Button("Write Memory") {
+            Button(i18n.t(.fc_write_memory)) {
                 inputText = "/memory "
                 showMemoryPanel = false
             }
@@ -999,12 +1020,12 @@ struct FusionCodeView: View {
 
     private var fcSessionPicker: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            Text("Sessions")
+            Text(i18n.t(.fc_sessions))
                 .font(.system(size: theme.footnoteSize, weight: .semibold))
                 .foregroundStyle(theme.text)
 
             if fcBridge.sessions.isEmpty {
-                Text("No sessions")
+                Text(i18n.t(.fc_no_sessions))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textTertiary)
             } else {
@@ -1025,7 +1046,7 @@ struct FusionCodeView: View {
                                             .font(.system(size: theme.captionSize))
                                             .foregroundStyle(theme.text)
                                             .lineLimit(1)
-                                        Text("\(session.messageCount) messages")
+                                        Text(String(format: i18n.t(.fc_messages_count), session.messageCount))
                                             .font(.system(size: 10))
                                             .foregroundStyle(theme.textTertiary)
                                     }
@@ -1066,16 +1087,16 @@ struct FusionCodeView: View {
 
     private var fcTemplatePicker: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            Text("Workflow Templates")
+            Text(i18n.t(.fc_workflow_templates))
                 .font(.system(size: theme.footnoteSize, weight: .semibold))
 
-            let builtinTemplates = [
-                ("Code Review", "magnifyingglass", "/review"),
-                ("Generate Tests", "checkmark.shield", "/test"),
-                ("Debug Issue", "ladybug", "/debug"),
-                ("Refactor", "hammer", "/refactor"),
-                ("Explain Code", "text.bubble", "/explain"),
-                ("Deploy", "cloud.upload", "/deploy"),
+            let builtinTemplates: [(String, String, String)] = [
+                (i18n.t(.fc_tpl_review), "magnifyingglass", "/review"),
+                (i18n.t(.fc_tpl_test), "checkmark.shield", "/test"),
+                (i18n.t(.fc_tpl_debug), "ladybug", "/debug"),
+                (i18n.t(.fc_tpl_refactor), "hammer", "/refactor"),
+                (i18n.t(.fc_tpl_explain), "text.bubble", "/explain"),
+                (i18n.t(.fc_tpl_deploy), "cloud.upload", "/deploy"),
             ]
 
             ForEach(builtinTemplates, id: \.0) { tpl in
@@ -1255,15 +1276,15 @@ struct FusionCodeView: View {
         switch tool {
         case "Edit", "edit":
             let path = args["file_path"] as? String ?? args["path"] as? String ?? "unknown"
-            return "Edit file: \(path)"
+            return String(format: I18nManager.shared.t(.fc_tool_edit), path)
         case "Write", "write":
             let path = args["file_path"] as? String ?? args["path"] as? String ?? "unknown"
-            return "Write file: \(path)"
+            return String(format: I18nManager.shared.t(.fc_tool_write), path)
         case "Bash", "bash":
             let cmd = args["command"] as? String ?? "unknown"
-            return "Run: \(cmd.prefix(60))"
+            return String(format: I18nManager.shared.t(.fc_tool_run), String(cmd.prefix(60)))
         case "MultiEdit", "multi_edit":
-            return "Edit multiple files"
+            return I18nManager.shared.t(.fc_tool_multi_edit)
         default:
             return "\(tool): \(args.values.first.map { "\($0)" } ?? "")"
         }
@@ -1292,13 +1313,13 @@ struct FusionCodeView: View {
         case "/model":
             if !arg.isEmpty {
                 selectedModel = arg
-                messages.append(FCChatMessage(role: "assistant", content: "Model switched to: \(arg)", toolCalls: [], timestamp: Date()))
+                messages.append(FCChatMessage(role: "assistant", content: String(format: I18nManager.shared.t(.fc_msg_model_switched), arg), toolCalls: [], timestamp: Date()))
             } else {
-                messages.append(FCChatMessage(role: "assistant", content: "Current model: \(selectedModel.isEmpty ? "none" : selectedModel)", toolCalls: [], timestamp: Date()))
+                messages.append(FCChatMessage(role: "assistant", content: String(format: I18nManager.shared.t(.fc_msg_current_model), selectedModel.isEmpty ? "none" : selectedModel), toolCalls: [], timestamp: Date()))
             }
         case "/compact":
             fcBridge.compactSession(sessionId: currentSessionId)
-            messages.append(FCChatMessage(role: "system", content: "Context compacted", toolCalls: [], timestamp: Date()))
+            messages.append(FCChatMessage(role: "system", content: I18nManager.shared.t(.fc_msg_context_compacted), toolCalls: [], timestamp: Date()))
             fcLog.info("compact sent for session \(currentSessionId ?? "none")")
         case "/review", "/test", "/debug", "/refactor", "/explain", "/deploy", "/init":
             let userMsg = FCChatMessage(role: "user", content: text, toolCalls: [], timestamp: Date())
@@ -1307,17 +1328,17 @@ struct FusionCodeView: View {
             messages.append(assistantMsg)
             fcBridge.chatStream(sessionId: currentSessionId, message: text, cwd: workspace.projectRoot?.path, model: selectedModel.isEmpty ? nil : selectedModel, executionMode: executionMode.rawValue, webSearch: isWebSearchEnabled, commandMode: true)
         default:
-            messages.append(FCChatMessage(role: "assistant", content: "Unknown command: \(cmd). Type /help for available commands.", toolCalls: [], timestamp: Date()))
+            messages.append(FCChatMessage(role: "assistant", content: String(format: I18nManager.shared.t(.fc_msg_unknown_cmd), cmd), toolCalls: [], timestamp: Date()))
         }
     }
 
     private func handleKBQuery(_ query: String) {
         guard !query.isEmpty else {
-            messages.append(FCChatMessage(role: "assistant", content: "Usage: /kb <query>", toolCalls: [], timestamp: Date()))
+            messages.append(FCChatMessage(role: "assistant", content: I18nManager.shared.t(.fc_msg_kb_usage), toolCalls: [], timestamp: Date()))
             return
         }
         guard let cwd = workspace.projectRoot?.path else {
-            messages.append(FCChatMessage(role: "assistant", content: "No project open. Open a folder first.", toolCalls: [], timestamp: Date()))
+            messages.append(FCChatMessage(role: "assistant", content: I18nManager.shared.t(.fc_msg_no_project_open), toolCalls: [], timestamp: Date()))
             return
         }
         Task {
@@ -1326,7 +1347,7 @@ struct FusionCodeView: View {
                 let results = result["results"] as? [[String: Any]] ?? []
                 if results.isEmpty {
                     await MainActor.run {
-                        messages.append(FCChatMessage(role: "assistant", content: "No results found for: \(query)", toolCalls: [], timestamp: Date()))
+                        messages.append(FCChatMessage(role: "assistant", content: String(format: I18nManager.shared.t(.fc_msg_kb_no_results), query), toolCalls: [], timestamp: Date()))
                     }
                 } else {
                     let formatted = results.enumerated().map { (i, r) in
@@ -1335,12 +1356,12 @@ struct FusionCodeView: View {
                         return "[\(i + 1)] \(source)\n\(content.prefix(200))..."
                     }.joined(separator: "\n\n")
                     await MainActor.run {
-                        messages.append(FCChatMessage(role: "assistant", content: "KB Results:\n\n\(formatted)", toolCalls: [], timestamp: Date()))
+                        messages.append(FCChatMessage(role: "assistant", content: String(format: I18nManager.shared.t(.fc_msg_kb_results), formatted), toolCalls: [], timestamp: Date()))
                     }
                 }
             } catch {
                 await MainActor.run {
-                    messages.append(FCChatMessage(role: "assistant", content: "KB query failed: \(error.localizedDescription)", toolCalls: [], timestamp: Date()))
+                    messages.append(FCChatMessage(role: "assistant", content: String(format: I18nManager.shared.t(.fc_msg_kb_failed), error.localizedDescription), toolCalls: [], timestamp: Date()))
                 }
             }
         }
@@ -1348,7 +1369,7 @@ struct FusionCodeView: View {
 
     private func handleMemoryCommand(_ arg: String) {
         guard let cwd = workspace.projectRoot?.path else {
-            messages.append(FCChatMessage(role: "assistant", content: "No project open.", toolCalls: [], timestamp: Date()))
+            messages.append(FCChatMessage(role: "assistant", content: I18nManager.shared.t(.fc_msg_no_project), toolCalls: [], timestamp: Date()))
             return
         }
         Task {
@@ -1357,7 +1378,7 @@ struct FusionCodeView: View {
                 let files = result["files"] as? [[String: Any]] ?? []
                 if files.isEmpty {
                     await MainActor.run {
-                        messages.append(FCChatMessage(role: "assistant", content: "No memory files found.", toolCalls: [], timestamp: Date()))
+                        messages.append(FCChatMessage(role: "assistant", content: I18nManager.shared.t(.fc_msg_no_memory), toolCalls: [], timestamp: Date()))
                     }
                 } else {
                     let list = files.map { f in
@@ -1366,12 +1387,12 @@ struct FusionCodeView: View {
                         return "- \(name) (\(size) bytes)"
                     }.joined(separator: "\n")
                     await MainActor.run {
-                        messages.append(FCChatMessage(role: "assistant", content: "Memory files:\n\(list)", toolCalls: [], timestamp: Date()))
+                        messages.append(FCChatMessage(role: "assistant", content: String(format: I18nManager.shared.t(.fc_msg_memory_files), list), toolCalls: [], timestamp: Date()))
                     }
                 }
             } catch {
                 await MainActor.run {
-                    messages.append(FCChatMessage(role: "assistant", content: "Memory load failed: \(error.localizedDescription)", toolCalls: [], timestamp: Date()))
+                    messages.append(FCChatMessage(role: "assistant", content: String(format: I18nManager.shared.t(.fc_msg_memory_failed), error.localizedDescription), toolCalls: [], timestamp: Date()))
                 }
             }
         }
@@ -1380,13 +1401,13 @@ struct FusionCodeView: View {
     private func buildKB() {
         guard let cwd = workspace.projectRoot?.path else { return }
         Task {
-            await MainActor.run { kbStatusText = "KB: building..." }
+            await MainActor.run { kbStatusText = I18nManager.shared.t(.fc_kb_building) }
             do {
                 _ = try await fcBridge.buildKB(cwd: cwd)
                 loadKBStatus()
                 fcLog.info("KB build triggered")
             } catch {
-                await MainActor.run { kbStatusText = "KB: build failed" }
+                await MainActor.run { kbStatusText = I18nManager.shared.t(.fc_kb_build_failed) }
                 fcLog.error("KB build failed: \(error.localizedDescription)")
             }
         }
@@ -1466,7 +1487,7 @@ struct FusionCodeView: View {
             let msg = messages[lastIdx]
             var updatedCalls = msg.toolCalls
             if let tcIdx = updatedCalls.firstIndex(where: { $0.status == .pending }) {
-                updatedCalls[tcIdx] = FCToolCall(id: updatedCalls[tcIdx].id, name: updatedCalls[tcIdx].name, args: updatedCalls[tcIdx].args, status: .denied, output: "Denied by user")
+                updatedCalls[tcIdx] = FCToolCall(id: updatedCalls[tcIdx].id, name: updatedCalls[tcIdx].name, args: updatedCalls[tcIdx].args, status: .denied, output: I18nManager.shared.t(.fc_denied_by_user))
             }
             messages[lastIdx] = FCChatMessage(id: msg.id, role: msg.role, content: msg.content, toolCalls: updatedCalls, timestamp: msg.timestamp, isStreaming: msg.isStreaming)
         }
@@ -1482,6 +1503,7 @@ struct FCMessageBubble: View {
     let onApprove: (UUID) -> Void
     let onDeny: (UUID) -> Void
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         HStack(spacing: theme.spacingS) {
@@ -1553,7 +1575,7 @@ struct FCMessageBubble: View {
                     toolStatusBadge(tc.status)
 
                     if tc.status == .pending {
-                        Button("Approve") { onApprove(tc.id) }
+                        Button(i18n.t(.fc_approve)) { onApprove(tc.id) }
                             .buttonStyle(.plain)
                             .font(.system(size: 10, weight: .medium))
                             .foregroundStyle(theme.greenDot)
@@ -1561,7 +1583,7 @@ struct FCMessageBubble: View {
                             .padding(.vertical, 2)
                             .background(RoundedRectangle(cornerRadius: 4, style: .continuous).fill(theme.successBg))
 
-                        Button("Deny") { onDeny(tc.id) }
+                        Button(i18n.t(.fc_deny)) { onDeny(tc.id) }
                             .buttonStyle(.plain)
                             .font(.system(size: 10, weight: .medium))
                             .foregroundStyle(theme.redDot)
@@ -1588,7 +1610,7 @@ struct FCMessageBubble: View {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left.forwardslash.chevron.right")
                             .font(.system(size: 10))
-                        Text("Apply Code\(codeBlocks.count > 1 ? " #\(index + 1)" : "")")
+                        Text(codeBlocks.count > 1 ? String(format: i18n.t(.fc_apply_code_n), index + 1) : i18n.t(.fc_apply_code))
                             .font(.system(size: theme.captionSize, weight: .medium))
                     }
                     .foregroundStyle(theme.accent)
@@ -1641,12 +1663,12 @@ struct FCMessageBubble: View {
 
     private func statusLabel(_ status: FCToolStatus) -> String {
         switch status {
-        case .pending: return "Pending"
-        case .running: return "Running"
-        case .approved: return "Approved"
-        case .denied: return "Denied"
-        case .completed: return "Done"
-        case .failed: return "Failed"
+        case .pending: return I18nManager.shared.t(.fc_status_pending)
+        case .running: return I18nManager.shared.t(.fc_status_running)
+        case .approved: return I18nManager.shared.t(.fc_status_approved)
+        case .denied: return I18nManager.shared.t(.fc_status_denied)
+        case .completed: return I18nManager.shared.t(.fc_status_completed)
+        case .failed: return I18nManager.shared.t(.fc_status_failed)
         }
     }
 
@@ -1704,6 +1726,7 @@ struct FCMessageContentView: View {
     let content: String
     let isStreaming: Bool
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @State private var copiedIndex: Int? = nil
 
     private struct ContentSegment: Identifiable {
@@ -1775,7 +1798,7 @@ struct FCMessageContentView: View {
     private func codeBlockView(seg: ContentSegment, index: Int) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: theme.spacingS) {
-                Text(seg.language.isEmpty ? "code" : seg.language)
+                Text(seg.language.isEmpty ? i18n.t(.fc_code) : seg.language)
                     .font(.system(size: 10, weight: .medium, design: .monospaced))
                     .foregroundStyle(theme.textTertiary)
                 Spacer()
@@ -1791,7 +1814,7 @@ struct FCMessageContentView: View {
                     HStack(spacing: 3) {
                         Image(systemName: copiedIndex == index ? "checkmark" : "doc.on.doc")
                             .font(.system(size: 9))
-                        Text(copiedIndex == index ? "Copied" : "Copy")
+                        Text(copiedIndex == index ? i18n.t(.fc_copied) : i18n.t(.fc_copy))
                             .font(.system(size: 9))
                     }
                     .foregroundStyle(theme.textTertiary)

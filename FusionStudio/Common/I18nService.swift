@@ -3085,6 +3085,138 @@ enum I18nKey: String, CaseIterable {
     case dy_err_register = "dy_err_register"
     case dy_err_unregister = "dy_err_unregister"
     case dy_cron_name = "dy_cron_name"
+    case fc_mode_ask = "fc_mode_ask"
+    case fc_mode_auto = "fc_mode_auto"
+    case fc_mode_plan = "fc_mode_plan"
+    case fc_layout_four_column = "fc_layout_four_column"
+    case fc_layout_three_column = "fc_layout_three_column"
+    case fc_layout_two_column = "fc_layout_two_column"
+    case fc_layout_chat_only = "fc_layout_chat_only"
+    case fc_pane_editor = "fc_pane_editor"
+    case fc_pane_diff = "fc_pane_diff"
+    case fc_pane_preview = "fc_pane_preview"
+    case fc_pane_terminal = "fc_pane_terminal"
+    case fc_pane_snapshot = "fc_pane_snapshot"
+    case fc_pane_workflow = "fc_pane_workflow"
+    case fc_pane_sandbox = "fc_pane_sandbox"
+    case fc_cmd_help = "fc_cmd_help"
+    case fc_cmd_clear = "fc_cmd_clear"
+    case fc_cmd_compact = "fc_cmd_compact"
+    case fc_cmd_model = "fc_cmd_model"
+    case fc_cmd_kb = "fc_cmd_kb"
+    case fc_cmd_memory = "fc_cmd_memory"
+    case fc_cmd_template = "fc_cmd_template"
+    case fc_cmd_init = "fc_cmd_init"
+    case fc_cmd_review = "fc_cmd_review"
+    case fc_cmd_test = "fc_cmd_test"
+    case fc_cmd_deploy = "fc_cmd_deploy"
+    case fc_cmd_explain = "fc_cmd_explain"
+    case fc_cmd_refactor = "fc_cmd_refactor"
+    case fc_cmd_debug = "fc_cmd_debug"
+    case fc_no_project_title = "fc_no_project_title"
+    case fc_open_folder = "fc_open_folder"
+    case fc_offline_mlx = "fc_offline_mlx"
+    case fc_thinking = "fc_thinking"
+    case fc_connected = "fc_connected"
+    case fc_offline = "fc_offline"
+    case fc_hide_session_bar = "fc_hide_session_bar"
+    case fc_show_session_bar = "fc_show_session_bar"
+    case fc_greeting_morning = "fc_greeting_morning"
+    case fc_greeting_afternoon = "fc_greeting_afternoon"
+    case fc_greeting_evening = "fc_greeting_evening"
+    case fc_greeting_night = "fc_greeting_night"
+    case fc_welcome_subtitle = "fc_welcome_subtitle"
+    case fc_card_open_title = "fc_card_open_title"
+    case fc_card_open_sub = "fc_card_open_sub"
+    case fc_card_code_title = "fc_card_code_title"
+    case fc_card_code_sub = "fc_card_code_sub"
+    case fc_card_debug_title = "fc_card_debug_title"
+    case fc_card_debug_sub = "fc_card_debug_sub"
+    case fc_card_kb_title = "fc_card_kb_title"
+    case fc_card_kb_sub = "fc_card_kb_sub"
+    case fc_card_memory_title = "fc_card_memory_title"
+    case fc_card_memory_sub = "fc_card_memory_sub"
+    case fc_card_template_title = "fc_card_template_title"
+    case fc_card_template_sub = "fc_card_template_sub"
+    case fc_card_review_title = "fc_card_review_title"
+    case fc_card_review_sub = "fc_card_review_sub"
+    case fc_card_test_title = "fc_card_test_title"
+    case fc_card_test_sub = "fc_card_test_sub"
+    case fc_prompt_write = "fc_prompt_write"
+    case fc_prompt_debug = "fc_prompt_debug"
+    case fc_add_folder = "fc_add_folder"
+    case fc_add_file = "fc_add_file"
+    case fc_query_kb = "fc_query_kb"
+    case fc_templates = "fc_templates"
+    case fc_web_search = "fc_web_search"
+    case fc_input_placeholder = "fc_input_placeholder"
+    case fc_select_file_edit = "fc_select_file_edit"
+    case fc_select_session_snapshot = "fc_select_session_snapshot"
+    case fc_undo = "fc_undo"
+    case fc_save = "fc_save"
+    case fc_project_context = "fc_project_context"
+    case fc_ctx_project = "fc_ctx_project"
+    case fc_ctx_branch = "fc_ctx_branch"
+    case fc_ctx_files = "fc_ctx_files"
+    case fc_ctx_model = "fc_ctx_model"
+    case fc_ctx_mode = "fc_ctx_mode"
+    case fc_ctx_kb = "fc_ctx_kb"
+    case fc_not_selected = "fc_not_selected"
+    case fc_no_project_open = "fc_no_project_open"
+    case fc_project_memory = "fc_project_memory"
+    case fc_load_memory = "fc_load_memory"
+    case fc_write_memory = "fc_write_memory"
+    case fc_sessions = "fc_sessions"
+    case fc_no_sessions = "fc_no_sessions"
+    case fc_messages_count = "fc_messages_count"
+    case fc_workflow_templates = "fc_workflow_templates"
+    case fc_tpl_review = "fc_tpl_review"
+    case fc_tpl_test = "fc_tpl_test"
+    case fc_tpl_debug = "fc_tpl_debug"
+    case fc_tpl_refactor = "fc_tpl_refactor"
+    case fc_tpl_explain = "fc_tpl_explain"
+    case fc_tpl_deploy = "fc_tpl_deploy"
+    case fc_msg_model_switched = "fc_msg_model_switched"
+    case fc_msg_current_model = "fc_msg_current_model"
+    case fc_msg_context_compacted = "fc_msg_context_compacted"
+    case fc_msg_unknown_cmd = "fc_msg_unknown_cmd"
+    case fc_msg_kb_usage = "fc_msg_kb_usage"
+    case fc_msg_no_project_open = "fc_msg_no_project_open"
+    case fc_msg_kb_no_results = "fc_msg_kb_no_results"
+    case fc_msg_kb_results = "fc_msg_kb_results"
+    case fc_msg_kb_failed = "fc_msg_kb_failed"
+    case fc_msg_no_project = "fc_msg_no_project"
+    case fc_msg_no_memory = "fc_msg_no_memory"
+    case fc_msg_memory_files = "fc_msg_memory_files"
+    case fc_msg_memory_failed = "fc_msg_memory_failed"
+    case fc_kb_building = "fc_kb_building"
+    case fc_kb_build_failed = "fc_kb_build_failed"
+    case fc_tool_edit = "fc_tool_edit"
+    case fc_tool_write = "fc_tool_write"
+    case fc_tool_run = "fc_tool_run"
+    case fc_tool_multi_edit = "fc_tool_multi_edit"
+    case fc_denied_by_user = "fc_denied_by_user"
+    case fc_approve = "fc_approve"
+    case fc_deny = "fc_deny"
+    case fc_apply_code = "fc_apply_code"
+    case fc_apply_code_n = "fc_apply_code_n"
+    case fc_status_pending = "fc_status_pending"
+    case fc_status_running = "fc_status_running"
+    case fc_status_approved = "fc_status_approved"
+    case fc_status_denied = "fc_status_denied"
+    case fc_status_completed = "fc_status_completed"
+    case fc_status_failed = "fc_status_failed"
+    case fc_code = "fc_code"
+    case fc_copied = "fc_copied"
+    case fc_copy = "fc_copy"
+    case fc_no_matching_commands = "fc_no_matching_commands"
+    case fc_new_session = "fc_new_session"
+    case fc_title = "fc_title"
+    case fc_session_title_ph = "fc_session_title_ph"
+    case fc_cancel = "fc_cancel"
+    case fc_create = "fc_create"
+    case fc_permission_request = "fc_permission_request"
+    case fc_tool_label = "fc_tool_label"
 }
 
 // MARK: - 翻译管理器
@@ -5822,6 +5954,138 @@ let zhCNTranslations: [String: String] = [
     "dy_err_register": "注册发布计划失败: %@",
     "dy_err_unregister": "取消计划失败: %@",
     "dy_cron_name": "抖音高峰发布计划",
+    "fc_mode_ask": "询问",
+    "fc_mode_auto": "自动",
+    "fc_mode_plan": "计划",
+    "fc_layout_four_column": "四栏",
+    "fc_layout_three_column": "三栏",
+    "fc_layout_two_column": "双栏",
+    "fc_layout_chat_only": "纯对话",
+    "fc_pane_editor": "编辑器",
+    "fc_pane_diff": "差异",
+    "fc_pane_preview": "预览",
+    "fc_pane_terminal": "终端",
+    "fc_pane_snapshot": "快照",
+    "fc_pane_workflow": "工作流",
+    "fc_pane_sandbox": "沙箱",
+    "fc_cmd_help": "显示可用命令",
+    "fc_cmd_clear": "清空对话",
+    "fc_cmd_compact": "压缩对话上下文",
+    "fc_cmd_model": "切换模型",
+    "fc_cmd_kb": "查询知识库",
+    "fc_cmd_memory": "管理项目记忆",
+    "fc_cmd_template": "应用工作流模板",
+    "fc_cmd_init": "初始化项目上下文",
+    "fc_cmd_review": "审查当前改动",
+    "fc_cmd_test": "生成并运行测试",
+    "fc_cmd_deploy": "部署项目",
+    "fc_cmd_explain": "解释代码",
+    "fc_cmd_refactor": "重构代码",
+    "fc_cmd_debug": "调试问题",
+    "fc_no_project_title": "打开项目文件夹",
+    "fc_open_folder": "打开文件夹",
+    "fc_offline_mlx": "fusion-code 离线 — 使用 MLX 推理",
+    "fc_thinking": "思考中...",
+    "fc_connected": "已连接",
+    "fc_offline": "离线",
+    "fc_hide_session_bar": "隐藏会话栏",
+    "fc_show_session_bar": "显示会话栏",
+    "fc_greeting_morning": "早上好",
+    "fc_greeting_afternoon": "下午好",
+    "fc_greeting_evening": "晚上好",
+    "fc_greeting_night": "夜深了",
+    "fc_welcome_subtitle": "Fusion Code — 本地 AI 编程助手",
+    "fc_card_open_title": "打开项目",
+    "fc_card_open_sub": "从本地文件夹开始",
+    "fc_card_code_title": "代码",
+    "fc_card_code_sub": "生成与编辑代码",
+    "fc_card_debug_title": "调试",
+    "fc_card_debug_sub": "查找并修复问题",
+    "fc_card_kb_title": "知识库查询",
+    "fc_card_kb_sub": "向你的代码库提问",
+    "fc_card_memory_title": "记忆",
+    "fc_card_memory_sub": "管理上下文",
+    "fc_card_template_title": "模板",
+    "fc_card_template_sub": "工作流模板",
+    "fc_card_review_title": "审查",
+    "fc_card_review_sub": "代码审查",
+    "fc_card_test_title": "测试",
+    "fc_card_test_sub": "生成测试",
+    "fc_prompt_write": "写一个 ",
+    "fc_prompt_debug": "帮我调试这个问题",
+    "fc_add_folder": "添加文件夹",
+    "fc_add_file": "添加文件",
+    "fc_query_kb": "查询知识库",
+    "fc_templates": "模板",
+    "fc_web_search": "网页搜索",
+    "fc_input_placeholder": "随便问 — / 召唤命令...",
+    "fc_select_file_edit": "选择文件进行编辑",
+    "fc_select_session_snapshot": "选择会话查看快照",
+    "fc_undo": "撤销",
+    "fc_save": "保存",
+    "fc_project_context": "项目上下文",
+    "fc_ctx_project": "项目",
+    "fc_ctx_branch": "分支",
+    "fc_ctx_files": "文件",
+    "fc_ctx_model": "模型",
+    "fc_ctx_mode": "模式",
+    "fc_ctx_kb": "知识库",
+    "fc_not_selected": "未选择",
+    "fc_no_project_open": "未打开项目",
+    "fc_project_memory": "项目记忆",
+    "fc_load_memory": "加载记忆文件",
+    "fc_write_memory": "写入记忆",
+    "fc_sessions": "会话",
+    "fc_no_sessions": "无会话",
+    "fc_messages_count": "%d 条消息",
+    "fc_workflow_templates": "工作流模板",
+    "fc_tpl_review": "代码审查",
+    "fc_tpl_test": "生成测试",
+    "fc_tpl_debug": "调试问题",
+    "fc_tpl_refactor": "重构",
+    "fc_tpl_explain": "解释代码",
+    "fc_tpl_deploy": "部署",
+    "fc_msg_model_switched": "已切换模型: %@",
+    "fc_msg_current_model": "当前模型: %@",
+    "fc_msg_context_compacted": "上下文已压缩",
+    "fc_msg_unknown_cmd": "未知命令: %@。输入 /help 查看可用命令。",
+    "fc_msg_kb_usage": "用法: /kb <查询>",
+    "fc_msg_no_project_open": "未打开项目。请先打开文件夹。",
+    "fc_msg_kb_no_results": "未找到结果: %@",
+    "fc_msg_kb_results": "知识库结果:\n\n%@",
+    "fc_msg_kb_failed": "知识库查询失败: %@",
+    "fc_msg_no_project": "未打开项目。",
+    "fc_msg_no_memory": "未找到记忆文件。",
+    "fc_msg_memory_files": "记忆文件:\n%@",
+    "fc_msg_memory_failed": "记忆加载失败: %@",
+    "fc_kb_building": "知识库: 构建中...",
+    "fc_kb_build_failed": "知识库: 构建失败",
+    "fc_tool_edit": "编辑文件: %@",
+    "fc_tool_write": "写入文件: %@",
+    "fc_tool_run": "运行: %@",
+    "fc_tool_multi_edit": "编辑多个文件",
+    "fc_denied_by_user": "已被用户拒绝",
+    "fc_approve": "批准",
+    "fc_deny": "拒绝",
+    "fc_apply_code": "应用代码",
+    "fc_apply_code_n": "应用代码 #%d",
+    "fc_status_pending": "待定",
+    "fc_status_running": "运行中",
+    "fc_status_approved": "已批准",
+    "fc_status_denied": "已拒绝",
+    "fc_status_completed": "完成",
+    "fc_status_failed": "失败",
+    "fc_code": "代码",
+    "fc_copied": "已复制",
+    "fc_copy": "复制",
+    "fc_no_matching_commands": "无匹配命令",
+    "fc_new_session": "新建会话",
+    "fc_title": "标题",
+    "fc_session_title_ph": "会话标题",
+    "fc_cancel": "取消",
+    "fc_create": "创建",
+    "fc_permission_request": "权限请求",
+    "fc_tool_label": "工具:"
 ]
 
 let enUSTranslations: [String: String] = [
@@ -8514,6 +8778,138 @@ let enUSTranslations: [String: String] = [
     "dy_err_register": "Register publish plan failed: %@",
     "dy_err_unregister": "Cancel plan failed: %@",
     "dy_cron_name": "Douyin Peak-Hour Publish Plan",
+    "fc_mode_ask": "Ask",
+    "fc_mode_auto": "Auto",
+    "fc_mode_plan": "Plan",
+    "fc_layout_four_column": "Four Column",
+    "fc_layout_three_column": "Three Column",
+    "fc_layout_two_column": "Two Column",
+    "fc_layout_chat_only": "Chat Only",
+    "fc_pane_editor": "Editor",
+    "fc_pane_diff": "Diff",
+    "fc_pane_preview": "Preview",
+    "fc_pane_terminal": "Terminal",
+    "fc_pane_snapshot": "Snapshot",
+    "fc_pane_workflow": "Workflow",
+    "fc_pane_sandbox": "Sandbox",
+    "fc_cmd_help": "Show available commands",
+    "fc_cmd_clear": "Clear conversation",
+    "fc_cmd_compact": "Compact conversation context",
+    "fc_cmd_model": "Switch model",
+    "fc_cmd_kb": "Query knowledge base",
+    "fc_cmd_memory": "Manage project memory",
+    "fc_cmd_template": "Apply workflow template",
+    "fc_cmd_init": "Initialize project context",
+    "fc_cmd_review": "Code review current changes",
+    "fc_cmd_test": "Generate and run tests",
+    "fc_cmd_deploy": "Deploy project",
+    "fc_cmd_explain": "Explain code",
+    "fc_cmd_refactor": "Refactor code",
+    "fc_cmd_debug": "Debug issue",
+    "fc_no_project_title": "Open a project folder",
+    "fc_open_folder": "Open Folder",
+    "fc_offline_mlx": "fusion-code offline — using MLX inference",
+    "fc_thinking": "Thinking...",
+    "fc_connected": "Connected",
+    "fc_offline": "Offline",
+    "fc_hide_session_bar": "Hide session bar",
+    "fc_show_session_bar": "Show session bar",
+    "fc_greeting_morning": "Good morning",
+    "fc_greeting_afternoon": "Good afternoon",
+    "fc_greeting_evening": "Good evening",
+    "fc_greeting_night": "Good night",
+    "fc_welcome_subtitle": "Fusion Code — Local AI Coding Assistant",
+    "fc_card_open_title": "Open Project",
+    "fc_card_open_sub": "Start with a local folder",
+    "fc_card_code_title": "Code",
+    "fc_card_code_sub": "Generate & edit code",
+    "fc_card_debug_title": "Debug",
+    "fc_card_debug_sub": "Find and fix issues",
+    "fc_card_kb_title": "KB Query",
+    "fc_card_kb_sub": "Ask your codebase",
+    "fc_card_memory_title": "Memory",
+    "fc_card_memory_sub": "Manage context",
+    "fc_card_template_title": "Template",
+    "fc_card_template_sub": "Workflow templates",
+    "fc_card_review_title": "Review",
+    "fc_card_review_sub": "Code review",
+    "fc_card_test_title": "Test",
+    "fc_card_test_sub": "Generate tests",
+    "fc_prompt_write": "Write a ",
+    "fc_prompt_debug": "Help me debug this",
+    "fc_add_folder": "Add folder",
+    "fc_add_file": "Add file",
+    "fc_query_kb": "Query KB",
+    "fc_templates": "Templates",
+    "fc_web_search": "Web search",
+    "fc_input_placeholder": "Ask anything — / for commands...",
+    "fc_select_file_edit": "Select a file to edit",
+    "fc_select_session_snapshot": "Select a session to view snapshots",
+    "fc_undo": "Undo",
+    "fc_save": "Save",
+    "fc_project_context": "Project Context",
+    "fc_ctx_project": "Project",
+    "fc_ctx_branch": "Branch",
+    "fc_ctx_files": "Files",
+    "fc_ctx_model": "Model",
+    "fc_ctx_mode": "Mode",
+    "fc_ctx_kb": "KB",
+    "fc_not_selected": "Not selected",
+    "fc_no_project_open": "No project open",
+    "fc_project_memory": "Project Memory",
+    "fc_load_memory": "Load Memory Files",
+    "fc_write_memory": "Write Memory",
+    "fc_sessions": "Sessions",
+    "fc_no_sessions": "No sessions",
+    "fc_messages_count": "%d messages",
+    "fc_workflow_templates": "Workflow Templates",
+    "fc_tpl_review": "Code Review",
+    "fc_tpl_test": "Generate Tests",
+    "fc_tpl_debug": "Debug Issue",
+    "fc_tpl_refactor": "Refactor",
+    "fc_tpl_explain": "Explain Code",
+    "fc_tpl_deploy": "Deploy",
+    "fc_msg_model_switched": "Model switched to: %@",
+    "fc_msg_current_model": "Current model: %@",
+    "fc_msg_context_compacted": "Context compacted",
+    "fc_msg_unknown_cmd": "Unknown command: %@. Type /help for available commands.",
+    "fc_msg_kb_usage": "Usage: /kb <query>",
+    "fc_msg_no_project_open": "No project open. Open a folder first.",
+    "fc_msg_kb_no_results": "No results found for: %@",
+    "fc_msg_kb_results": "KB Results:\n\n%@",
+    "fc_msg_kb_failed": "KB query failed: %@",
+    "fc_msg_no_project": "No project open.",
+    "fc_msg_no_memory": "No memory files found.",
+    "fc_msg_memory_files": "Memory files:\n%@",
+    "fc_msg_memory_failed": "Memory load failed: %@",
+    "fc_kb_building": "KB: building...",
+    "fc_kb_build_failed": "KB: build failed",
+    "fc_tool_edit": "Edit file: %@",
+    "fc_tool_write": "Write file: %@",
+    "fc_tool_run": "Run: %@",
+    "fc_tool_multi_edit": "Edit multiple files",
+    "fc_denied_by_user": "Denied by user",
+    "fc_approve": "Approve",
+    "fc_deny": "Deny",
+    "fc_apply_code": "Apply Code",
+    "fc_apply_code_n": "Apply Code #%d",
+    "fc_status_pending": "Pending",
+    "fc_status_running": "Running",
+    "fc_status_approved": "Approved",
+    "fc_status_denied": "Denied",
+    "fc_status_completed": "Done",
+    "fc_status_failed": "Failed",
+    "fc_code": "code",
+    "fc_copied": "Copied",
+    "fc_copy": "Copy",
+    "fc_no_matching_commands": "No matching commands",
+    "fc_new_session": "New Session",
+    "fc_title": "Title",
+    "fc_session_title_ph": "Session title",
+    "fc_cancel": "Cancel",
+    "fc_create": "Create",
+    "fc_permission_request": "Permission Request",
+    "fc_tool_label": "Tool:"
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -11200,6 +11596,138 @@ let jaJPTranslations: [String: String] = [
     "dy_err_register": "公開計画登録失敗: %@",
     "dy_err_unregister": "計画キャンセル失敗: %@",
     "dy_cron_name": "抖音ピーク時間公開計画",
+    "fc_mode_ask": "Ask",
+    "fc_mode_auto": "Auto",
+    "fc_mode_plan": "Plan",
+    "fc_layout_four_column": "4列",
+    "fc_layout_three_column": "3列",
+    "fc_layout_two_column": "2列",
+    "fc_layout_chat_only": "チャットのみ",
+    "fc_pane_editor": "エディタ",
+    "fc_pane_diff": "差分",
+    "fc_pane_preview": "プレビュー",
+    "fc_pane_terminal": "ターミナル",
+    "fc_pane_snapshot": "スナップショット",
+    "fc_pane_workflow": "ワークフロー",
+    "fc_pane_sandbox": "サンドボックス",
+    "fc_cmd_help": "利用可能なコマンドを表示",
+    "fc_cmd_clear": "会話をクリア",
+    "fc_cmd_compact": "会話コンテキストを圧縮",
+    "fc_cmd_model": "モデル切替",
+    "fc_cmd_kb": "ナレッジベース照会",
+    "fc_cmd_memory": "プロジェクトメモリ管理",
+    "fc_cmd_template": "ワークフローテンプレート適用",
+    "fc_cmd_init": "プロジェクトコンテキスト初期化",
+    "fc_cmd_review": "現在の変更をレビュー",
+    "fc_cmd_test": "テスト生成・実行",
+    "fc_cmd_deploy": "プロジェクトデプロイ",
+    "fc_cmd_explain": "コード解説",
+    "fc_cmd_refactor": "コードリファクタ",
+    "fc_cmd_debug": "問題デバッグ",
+    "fc_no_project_title": "プロジェクトフォルダを開く",
+    "fc_open_folder": "フォルダを開く",
+    "fc_offline_mlx": "fusion-code オフライン — MLX 推論を使用",
+    "fc_thinking": "思考中...",
+    "fc_connected": "接続済み",
+    "fc_offline": "オフライン",
+    "fc_hide_session_bar": "セッションバーを非表示",
+    "fc_show_session_bar": "セッションバーを表示",
+    "fc_greeting_morning": "おはようございます",
+    "fc_greeting_afternoon": "こんにちは",
+    "fc_greeting_evening": "こんばんは",
+    "fc_greeting_night": "おやすみなさい",
+    "fc_welcome_subtitle": "Fusion Code — ローカル AI コーディングアシスタント",
+    "fc_card_open_title": "プロジェクトを開く",
+    "fc_card_open_sub": "ローカルフォルダから開始",
+    "fc_card_code_title": "コード",
+    "fc_card_code_sub": "コード生成・編集",
+    "fc_card_debug_title": "デバッグ",
+    "fc_card_debug_sub": "問題を発見・修正",
+    "fc_card_kb_title": "KB 照会",
+    "fc_card_kb_sub": "コードベースに質問",
+    "fc_card_memory_title": "メモリ",
+    "fc_card_memory_sub": "コンテキスト管理",
+    "fc_card_template_title": "テンプレート",
+    "fc_card_template_sub": "ワークフローテンプレート",
+    "fc_card_review_title": "レビュー",
+    "fc_card_review_sub": "コードレビュー",
+    "fc_card_test_title": "テスト",
+    "fc_card_test_sub": "テスト生成",
+    "fc_prompt_write": "書いて: ",
+    "fc_prompt_debug": "この問題をデバッグして",
+    "fc_add_folder": "フォルダを追加",
+    "fc_add_file": "ファイルを追加",
+    "fc_query_kb": "KB 照会",
+    "fc_templates": "テンプレート",
+    "fc_web_search": "ウェブ検索",
+    "fc_input_placeholder": "何でも聞いて — / でコマンド...",
+    "fc_select_file_edit": "編集するファイルを選択",
+    "fc_select_session_snapshot": "スナップショット表示するセッションを選択",
+    "fc_undo": "元に戻す",
+    "fc_save": "保存",
+    "fc_project_context": "プロジェクトコンテキスト",
+    "fc_ctx_project": "プロジェクト",
+    "fc_ctx_branch": "ブランチ",
+    "fc_ctx_files": "ファイル",
+    "fc_ctx_model": "モデル",
+    "fc_ctx_mode": "モード",
+    "fc_ctx_kb": "KB",
+    "fc_not_selected": "未選択",
+    "fc_no_project_open": "プロジェクト未開",
+    "fc_project_memory": "プロジェクトメモリ",
+    "fc_load_memory": "メモリファイル読込",
+    "fc_write_memory": "メモリ書込",
+    "fc_sessions": "セッション",
+    "fc_no_sessions": "セッションなし",
+    "fc_messages_count": "%d 件のメッセージ",
+    "fc_workflow_templates": "ワークフローテンプレート",
+    "fc_tpl_review": "コードレビュー",
+    "fc_tpl_test": "テスト生成",
+    "fc_tpl_debug": "問題デバッグ",
+    "fc_tpl_refactor": "リファクタ",
+    "fc_tpl_explain": "コード解説",
+    "fc_tpl_deploy": "デプロイ",
+    "fc_msg_model_switched": "モデル切替: %@",
+    "fc_msg_current_model": "現在のモデル: %@",
+    "fc_msg_context_compacted": "コンテキスト圧縮済み",
+    "fc_msg_unknown_cmd": "不明なコマンド: %@。/help で利用可能なコマンドを確認。",
+    "fc_msg_kb_usage": "使い方: /kb <クエリ>",
+    "fc_msg_no_project_open": "プロジェクト未開。先にフォルダを開いてください。",
+    "fc_msg_kb_no_results": "結果なし: %@",
+    "fc_msg_kb_results": "KB 結果:\n\n%@",
+    "fc_msg_kb_failed": "KB 照会失敗: %@",
+    "fc_msg_no_project": "プロジェクト未開。",
+    "fc_msg_no_memory": "メモリファイルなし。",
+    "fc_msg_memory_files": "メモリファイル:\n%@",
+    "fc_msg_memory_failed": "メモリ読込失敗: %@",
+    "fc_kb_building": "KB: 構築中...",
+    "fc_kb_build_failed": "KB: 構築失敗",
+    "fc_tool_edit": "ファイル編集: %@",
+    "fc_tool_write": "ファイル書込: %@",
+    "fc_tool_run": "実行: %@",
+    "fc_tool_multi_edit": "複数ファイル編集",
+    "fc_denied_by_user": "ユーザーにより拒否",
+    "fc_approve": "承認",
+    "fc_deny": "拒否",
+    "fc_apply_code": "コード適用",
+    "fc_apply_code_n": "コード適用 #%d",
+    "fc_status_pending": "保留中",
+    "fc_status_running": "実行中",
+    "fc_status_approved": "承認済み",
+    "fc_status_denied": "拒否済み",
+    "fc_status_completed": "完了",
+    "fc_status_failed": "失敗",
+    "fc_code": "コード",
+    "fc_copied": "コピー済み",
+    "fc_copy": "コピー",
+    "fc_no_matching_commands": "一致するコマンドなし",
+    "fc_new_session": "新規セッション",
+    "fc_title": "タイトル",
+    "fc_session_title_ph": "セッションタイトル",
+    "fc_cancel": "キャンセル",
+    "fc_create": "作成",
+    "fc_permission_request": "権限リクエスト",
+    "fc_tool_label": "ツール:"
 ]
 
 let koKRTranslations: [String: String] = [
@@ -13886,6 +14414,138 @@ let koKRTranslations: [String: String] = [
     "dy_err_register": "게시 계획 등록 실패: %@",
     "dy_err_unregister": "계획 취소 실패: %@",
     "dy_cron_name": "抖音 피크 시간대 게시 계획",
+    "fc_mode_ask": "Ask",
+    "fc_mode_auto": "Auto",
+    "fc_mode_plan": "Plan",
+    "fc_layout_four_column": "4열",
+    "fc_layout_three_column": "3열",
+    "fc_layout_two_column": "2열",
+    "fc_layout_chat_only": "채팅만",
+    "fc_pane_editor": "편집기",
+    "fc_pane_diff": "차분",
+    "fc_pane_preview": "미리보기",
+    "fc_pane_terminal": "터미널",
+    "fc_pane_snapshot": "스냅샷",
+    "fc_pane_workflow": "워크플로",
+    "fc_pane_sandbox": "샌드박스",
+    "fc_cmd_help": "사용 가능한 명령 표시",
+    "fc_cmd_clear": "대화 비우기",
+    "fc_cmd_compact": "대화 컨텍스트 압축",
+    "fc_cmd_model": "모델 전환",
+    "fc_cmd_kb": "지식 베이스 조회",
+    "fc_cmd_memory": "프로젝트 메모리 관리",
+    "fc_cmd_template": "워크플로 템플릿 적용",
+    "fc_cmd_init": "프로젝트 컨텍스트 초기화",
+    "fc_cmd_review": "현재 변경사항 검토",
+    "fc_cmd_test": "테스트 생성 및 실행",
+    "fc_cmd_deploy": "프로젝트 배포",
+    "fc_cmd_explain": "코드 설명",
+    "fc_cmd_refactor": "코드 리팩터",
+    "fc_cmd_debug": "문제 디버그",
+    "fc_no_project_title": "프로젝트 폴더 열기",
+    "fc_open_folder": "폴더 열기",
+    "fc_offline_mlx": "fusion-code 오프라인 — MLX 추론 사용",
+    "fc_thinking": "생각 중...",
+    "fc_connected": "연결됨",
+    "fc_offline": "오프라인",
+    "fc_hide_session_bar": "세션 바 숨기기",
+    "fc_show_session_bar": "세션 바 표시",
+    "fc_greeting_morning": "좋은 아침",
+    "fc_greeting_afternoon": "좋은 오후",
+    "fc_greeting_evening": "좋은 저녁",
+    "fc_greeting_night": "안녕히 주무세요",
+    "fc_welcome_subtitle": "Fusion Code — 로컬 AI 코딩 어시스턴트",
+    "fc_card_open_title": "프로젝트 열기",
+    "fc_card_open_sub": "로컬 폴더로 시작",
+    "fc_card_code_title": "코드",
+    "fc_card_code_sub": "코드 생성 및 편집",
+    "fc_card_debug_title": "디버그",
+    "fc_card_debug_sub": "문제 찾기 및 수정",
+    "fc_card_kb_title": "KB 조회",
+    "fc_card_kb_sub": "코드베이스에 질문",
+    "fc_card_memory_title": "메모리",
+    "fc_card_memory_sub": "컨텍스트 관리",
+    "fc_card_template_title": "템플릿",
+    "fc_card_template_sub": "워크플로 템플릿",
+    "fc_card_review_title": "검토",
+    "fc_card_review_sub": "코드 검토",
+    "fc_card_test_title": "테스트",
+    "fc_card_test_sub": "테스트 생성",
+    "fc_prompt_write": "작성해: ",
+    "fc_prompt_debug": "이 문제를 디버그해줘",
+    "fc_add_folder": "폴더 추가",
+    "fc_add_file": "파일 추가",
+    "fc_query_kb": "KB 조회",
+    "fc_templates": "템플릿",
+    "fc_web_search": "웹 검색",
+    "fc_input_placeholder": "무엇이든 물어보세요 — / 로 명령...",
+    "fc_select_file_edit": "편집할 파일 선택",
+    "fc_select_session_snapshot": "스냅샷을 볼 세션 선택",
+    "fc_undo": "실행 취소",
+    "fc_save": "저장",
+    "fc_project_context": "프로젝트 컨텍스트",
+    "fc_ctx_project": "프로젝트",
+    "fc_ctx_branch": "브랜치",
+    "fc_ctx_files": "파일",
+    "fc_ctx_model": "모델",
+    "fc_ctx_mode": "모드",
+    "fc_ctx_kb": "KB",
+    "fc_not_selected": "선택 안 됨",
+    "fc_no_project_open": "프로젝트 미열림",
+    "fc_project_memory": "프로젝트 메모리",
+    "fc_load_memory": "메모리 파일 로드",
+    "fc_write_memory": "메모리 작성",
+    "fc_sessions": "세션",
+    "fc_no_sessions": "세션 없음",
+    "fc_messages_count": "%d개 메시지",
+    "fc_workflow_templates": "워크플로 템플릿",
+    "fc_tpl_review": "코드 검토",
+    "fc_tpl_test": "테스트 생성",
+    "fc_tpl_debug": "문제 디버그",
+    "fc_tpl_refactor": "리팩터",
+    "fc_tpl_explain": "코드 설명",
+    "fc_tpl_deploy": "배포",
+    "fc_msg_model_switched": "모델 전환: %@",
+    "fc_msg_current_model": "현재 모델: %@",
+    "fc_msg_context_compacted": "컨텍스트 압축됨",
+    "fc_msg_unknown_cmd": "알 수 없는 명령: %@. /help로 사용 가능한 명령 확인.",
+    "fc_msg_kb_usage": "사용법: /kb <쿼리>",
+    "fc_msg_no_project_open": "프로젝트가 열려 있지 않습니다. 먼저 폴더를 여세요.",
+    "fc_msg_kb_no_results": "결과 없음: %@",
+    "fc_msg_kb_results": "KB 결과:\n\n%@",
+    "fc_msg_kb_failed": "KB 조회 실패: %@",
+    "fc_msg_no_project": "프로젝트 미열림.",
+    "fc_msg_no_memory": "메모리 파일 없음.",
+    "fc_msg_memory_files": "메모리 파일:\n%@",
+    "fc_msg_memory_failed": "메모리 로드 실패: %@",
+    "fc_kb_building": "KB: 빌드 중...",
+    "fc_kb_build_failed": "KB: 빌드 실패",
+    "fc_tool_edit": "파일 편집: %@",
+    "fc_tool_write": "파일 작성: %@",
+    "fc_tool_run": "실행: %@",
+    "fc_tool_multi_edit": "여러 파일 편집",
+    "fc_denied_by_user": "사용자가 거부함",
+    "fc_approve": "승인",
+    "fc_deny": "거부",
+    "fc_apply_code": "코드 적용",
+    "fc_apply_code_n": "코드 적용 #%d",
+    "fc_status_pending": "대기 중",
+    "fc_status_running": "실행 중",
+    "fc_status_approved": "승인됨",
+    "fc_status_denied": "거부됨",
+    "fc_status_completed": "완료",
+    "fc_status_failed": "실패",
+    "fc_code": "코드",
+    "fc_copied": "복사됨",
+    "fc_copy": "복사",
+    "fc_no_matching_commands": "일치하는 명령 없음",
+    "fc_new_session": "새 세션",
+    "fc_title": "제목",
+    "fc_session_title_ph": "세션 제목",
+    "fc_cancel": "취소",
+    "fc_create": "생성",
+    "fc_permission_request": "권한 요청",
+    "fc_tool_label": "도구:"
 ]
 
 // MARK: - 国际化文本视图

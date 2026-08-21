@@ -9,6 +9,7 @@ struct FCSlashCommandMenu: View {
     let filter: String
     let onSelect: (FCSlashCommand) -> Void
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     private var filtered: [FCSlashCommand] {
         guard !filter.isEmpty else { return FC_SLASH_COMMANDS }
@@ -18,10 +19,30 @@ struct FCSlashCommandMenu: View {
         }
     }
 
+    private func localDesc(_ cmd: FCSlashCommand) -> String {
+        switch cmd.name {
+        case "help": return i18n.t(.fc_cmd_help)
+        case "clear": return i18n.t(.fc_cmd_clear)
+        case "compact": return i18n.t(.fc_cmd_compact)
+        case "model": return i18n.t(.fc_cmd_model)
+        case "kb": return i18n.t(.fc_cmd_kb)
+        case "memory": return i18n.t(.fc_cmd_memory)
+        case "template": return i18n.t(.fc_cmd_template)
+        case "init": return i18n.t(.fc_cmd_init)
+        case "review": return i18n.t(.fc_cmd_review)
+        case "test": return i18n.t(.fc_cmd_test)
+        case "deploy": return i18n.t(.fc_cmd_deploy)
+        case "explain": return i18n.t(.fc_cmd_explain)
+        case "refactor": return i18n.t(.fc_cmd_refactor)
+        case "debug": return i18n.t(.fc_cmd_debug)
+        default: return cmd.description
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if filtered.isEmpty {
-                Text("No matching commands")
+                Text(i18n.t(.fc_no_matching_commands))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textTertiary)
                     .padding(theme.spacingM)
@@ -42,7 +63,7 @@ struct FCSlashCommandMenu: View {
                                         Text(cmd.shortcut)
                                             .font(.system(size: theme.footnoteSize, weight: .medium))
                                             .foregroundStyle(theme.text)
-                                        Text(cmd.description)
+                                        Text(localDesc(cmd))
                                             .font(.system(size: 10))
                                             .foregroundStyle(theme.textSecondary)
                                     }
@@ -75,6 +96,7 @@ struct FCSlashCommandMenu: View {
 struct FCCreateSessionDialog: View {
     @Environment(\.studioTheme) private var theme
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var i18n = I18nManager.shared
     @Binding var sessions: [FCSession]
     @Binding var currentSessionId: String?
     let cwd: String?
@@ -85,16 +107,16 @@ struct FCCreateSessionDialog: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: theme.spacingL) {
-            Text("New Session")
+            Text(i18n.t(.fc_new_session))
                 .font(.system(size: theme.headlineSize, weight: .semibold))
                 .foregroundStyle(theme.text)
 
             VStack(alignment: .leading, spacing: theme.spacingM) {
                 VStack(alignment: .leading, spacing: theme.spacingXS) {
-                    Text("Title")
+                    Text(i18n.t(.fc_title))
                         .font(.system(size: theme.captionSize, weight: .medium))
                         .foregroundStyle(theme.textSecondary)
-                    TextField("Session title", text: $sessionTitle)
+                    TextField(i18n.t(.fc_session_title_ph), text: $sessionTitle)
                         .textFieldStyle(.plain)
                         .font(.system(size: theme.textSize))
                         .padding(theme.spacingS)
@@ -111,14 +133,14 @@ struct FCCreateSessionDialog: View {
 
             HStack {
                 Spacer()
-                Button("Cancel") { dismiss() }
+                Button(i18n.t(.fc_cancel)) { dismiss() }
                     .buttonStyle(.plain)
                     .font(.system(size: theme.footnoteSize))
                     .foregroundStyle(theme.textSecondary)
                     .padding(.horizontal, theme.spacingM)
                     .padding(.vertical, theme.spacingS)
 
-                Button("Create") {
+                Button(i18n.t(.fc_create)) {
                     createSession()
                 }
                 .buttonStyle(.plain)
@@ -176,20 +198,21 @@ struct FCPermissionDetailPanel: View {
     let onApprove: () -> Void
     let onDeny: () -> Void
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
             HStack(spacing: theme.spacingS) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(request.tier == .tier2 ? theme.amberDot : theme.blueDot)
-                Text("Permission Request")
+                Text(i18n.t(.fc_permission_request))
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
                     .foregroundStyle(theme.text)
             }
 
             VStack(alignment: .leading, spacing: theme.spacingS) {
                 HStack {
-                    Text("Tool:")
+                    Text(i18n.t(.fc_tool_label))
                         .font(.system(size: theme.captionSize, weight: .medium))
                         .foregroundStyle(theme.textSecondary)
                     Text(request.tool)
@@ -226,7 +249,7 @@ struct FCPermissionDetailPanel: View {
 
             HStack {
                 Spacer()
-                Button("Deny") { onDeny() }
+                Button(i18n.t(.fc_deny)) { onDeny() }
                     .buttonStyle(.plain)
                     .font(.system(size: theme.footnoteSize, weight: .medium))
                     .foregroundStyle(theme.redDot)
@@ -241,7 +264,7 @@ struct FCPermissionDetailPanel: View {
                             )
                     )
 
-                Button("Approve") { onApprove() }
+                Button(i18n.t(.fc_approve)) { onApprove() }
                     .buttonStyle(.plain)
                     .font(.system(size: theme.footnoteSize, weight: .medium))
                     .foregroundStyle(theme.accentText)
