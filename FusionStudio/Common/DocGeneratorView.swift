@@ -302,7 +302,10 @@ class DocGenerator: ObservableObject {
 
             ## [Unreleased]
 
+            ## [0.1.40] - 2026-08-21
+
             ### 新增
+            - 多节点集群节点审批 GUI：接入 fusion-multi-node `NodeApprovalManager` 审批后端（`/api/nodes/approve|reject|pending`，后端 PR #14 已落地）；新增 `PendingNode` 模型 + `MultiNodeEngine` `@Published pendingNodes` 3s 轮询 + `approveNode`/`rejectNode` 异步动作，`NodeActionsView` 顶部待审批队列（hostname + ip:port + 通过/拒绝按钮 + 空态），i18n 覆盖 zh/en/ja/ko (PR #215, closes #214)
             - agent 生命周期补充「撤回发布/取消归档」入口：新增 `agent.unpublish` RPC（上游 fusion-agent-studio #159/#160，published/archived → draft），AgentListViews 右键菜单已发布 agent 显示 Unpublish、已归档显示 Restore to Draft
             - 调试代码任务支持多语言：上游 CodeSandbox 按 LANGUAGES 注册表分发执行（python/shell/bash/javascript/swift/go/cpp/c，编译型用 clang/clang++），新增 `agent.code_languages` RPC 返回环境实际可用语言；AIAgentDebugView 语言选择器改为据 RPC 动态渲染，不再给出会失败的选项（上游 fusion-agent-studio #161/#162）
 
