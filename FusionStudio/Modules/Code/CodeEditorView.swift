@@ -161,8 +161,8 @@ class ProjectWorkspace: ObservableObject {
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
-        panel.title = "Open Project Folder"
-        panel.prompt = "Open"
+        panel.title = I18nManager.shared.t(.fc_open_project_folder)
+        panel.prompt = I18nManager.shared.t(.fc_open_folder)
 
         guard panel.runModal() == .OK, let url = panel.url else { return }
         loadProject(from: url)
@@ -173,8 +173,8 @@ class ProjectWorkspace: ObservableObject {
         panel.canChooseFiles = true
         panel.canChooseDirectories = false
         panel.allowsMultipleSelection = false
-        panel.title = "Open File"
-        panel.prompt = "Open"
+        panel.title = I18nManager.shared.t(.fc_open_file)
+        panel.prompt = I18nManager.shared.t(.fc_open_folder)
         panel.allowedContentTypes = [.sourceCode, .plainText, .script]
 
         guard panel.runModal() == .OK, let url = panel.url else { return }
@@ -203,7 +203,7 @@ class ProjectWorkspace: ObservableObject {
         loadTask = Task { @MainActor in
             isLoading = true
             loadProgress = 0
-            loadMessage = "Scanning \(url.lastPathComponent)..."
+            loadMessage = String(format: I18nManager.shared.t(.fc_scanning), url.lastPathComponent)
             projectRoot = url
             projectName = url.lastPathComponent
             gitBranch = detectGitBranch(at: url)
@@ -216,7 +216,7 @@ class ProjectWorkspace: ObservableObject {
             files = scanned
             isLoading = false
             loadProgress = 1.0
-            loadMessage = "Loaded \(totalFileCount) files"
+            loadMessage = String(format: I18nManager.shared.t(.fc_loaded_files), totalFileCount)
 
             let recent = RecentProject(name: projectName, path: url.path)
             addRecentProject(recent)
@@ -230,7 +230,7 @@ class ProjectWorkspace: ObservableObject {
         loadTask = Task { @MainActor in
             isLoading = true
             loadProgress = 0
-            loadMessage = "Loading \(url.lastPathComponent)..."
+            loadMessage = String(format: I18nManager.shared.t(.fc_loading), url.lastPathComponent)
 
             do {
                 let content = try String(contentsOf: url, encoding: .utf8)
@@ -260,7 +260,7 @@ class ProjectWorkspace: ObservableObject {
                 selectedFile = file
                 isLoading = false
                 loadProgress = 1.0
-                loadMessage = "Loaded 1 file"
+                loadMessage = I18nManager.shared.t(.fc_loaded_one_file)
 
                 let recent = RecentProject(name: url.lastPathComponent, path: url.path)
                 addRecentProject(recent)
@@ -268,7 +268,7 @@ class ProjectWorkspace: ObservableObject {
                 codeLog.info("Single file loaded: \(url.lastPathComponent)")
             } catch {
                 isLoading = false
-                loadMessage = "Failed to load: \(error.localizedDescription)"
+                loadMessage = String(format: I18nManager.shared.t(.fc_load_failed), error.localizedDescription)
                 codeLog.error("Failed to load file: \(error.localizedDescription)")
             }
         }
@@ -451,7 +451,7 @@ class ProjectWorkspace: ObservableObject {
             if index % 10 == 0 {
                 await MainActor.run {
                     loadProgress = Double(index) / Double(sorted.count)
-                    loadMessage = "Scanning \(index)/\(sorted.count)..."
+                    loadMessage = String(format: I18nManager.shared.t(.fc_scanning_n), index, sorted.count)
                 }
             }
         }
@@ -579,7 +579,7 @@ class CodeAgent: ObservableObject {
                 }
             } catch {
                 await MainActor.run {
-                    let err = "⚠️ \((error as? BridgeError)?.userMessage ?? "AI 服务暂时不可用，请稍后重试。")"
+                    let err = "⚠️ \((error as? BridgeError)?.userMessage ?? I18nManager.shared.t(.fc_ai_unavailable))"
                     self.conversation.append(CodeMessage(role: "assistant", content: err, timestamp: Date(), codeBlocks: []))
                     self.isThinking = false
                     self.objectWillChange.send()
@@ -629,6 +629,7 @@ class CodeAgent: ObservableObject {
 
 struct CodeView: View {
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     @StateObject private var agent = CodeAgent.shared
     @StateObject private var workspace = ProjectWorkspace.shared
     @State private var showSidebar = true
@@ -642,6 +643,15 @@ struct CodeView: View {
         case files = "Files"
         case git = "Git"
         case preview = "Design"
+
+        var localLabel: String {
+            switch self {
+            case .chat: return I18nManager.shared.t(.fc_sidebar_chat)
+            case .files: return I18nManager.shared.t(.fc_sidebar_files)
+            case .git: return I18nManager.shared.t(.fc_sidebar_git)
+            case .preview: return I18nManager.shared.t(.fc_sidebar_design)
+            }
+        }
     }
 
     var body: some View {
@@ -687,7 +697,7 @@ struct CodeView: View {
                     VStack(spacing: 2) {
                         Image(systemName: tabIcon(tab))
                             .font(.system(size: 12))
-                        Text(tab.rawValue).font(.system(size: 9))
+                        Text(tab.localLabel).font(.system(size: 9))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)
@@ -725,9 +735,9 @@ struct CodeView: View {
                     Image(systemName: "sidebar.left")
                 }
                 .buttonStyle(.borderless)
-                .help("切换侧边栏")
+                .help(i18n.t(.fc_toggle_sidebar))
 
-                TextField("Ask anything — code, explain, debug, refactor...", text: $inputText, axis: .vertical)
+                TextField(i18n.t(.fc_input_ask_anything), text: $inputText, axis: .vertical)
                     .textFieldStyle(.plain)
                     .font(.system(size: 13))
                     .lineLimit(1...6)
@@ -740,7 +750,7 @@ struct CodeView: View {
                     Image(systemName: "paperclip")
                 }
                 .buttonStyle(.borderless)
-                .help("附加文件")
+                .help(i18n.t(.fc_attach_file))
 
                 Button(action: sendMessage) {
                     Image(systemName: "arrow.up.circle.fill")
@@ -778,10 +788,10 @@ struct CodeView: View {
 
     private func showAttachMenu() {
         let menu = NSMenu()
-        menu.addItem(withTitle: "Add Folder...", action: nil, keyEquivalent: "")
-        menu.addItem(withTitle: "Add File...", action: nil, keyEquivalent: "")
+        menu.addItem(withTitle: I18nManager.shared.t(.fc_menu_add_folder), action: nil, keyEquivalent: "")
+        menu.addItem(withTitle: I18nManager.shared.t(.fc_menu_add_file), action: nil, keyEquivalent: "")
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(withTitle: "Add GitHub Repo...", action: nil, keyEquivalent: "")
+        menu.addItem(withTitle: I18nManager.shared.t(.fc_menu_add_github), action: nil, keyEquivalent: "")
 
         if let event = NSApp.currentEvent {
             NSMenu.popUpContextMenu(menu, with: event, for: NSApp.keyWindow?.contentView ?? NSView())
@@ -796,6 +806,7 @@ struct GitURLDetectionBar: View {
     let onClone: () -> Void
     let onSendAsText: () -> Void
     @Environment(\.studioTheme) var theme
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         HStack(spacing: theme.spacingS) {
@@ -803,7 +814,7 @@ struct GitURLDetectionBar: View {
                 .font(.system(size: theme.iconS))
                 .foregroundStyle(theme.accent)
             VStack(alignment: .leading, spacing: 2) {
-                Text("检测到 Git 仓库 URL")
+                Text(i18n.t(.fc_git_url_detected))
                     .font(.system(size: theme.footnoteSize, weight: .semibold))
                     .foregroundStyle(theme.accent)
                 Text(url)
@@ -812,8 +823,8 @@ struct GitURLDetectionBar: View {
                     .lineLimit(1)
             }
             Spacer()
-            FusionButton("Clone", icon: "arrow.down.circle", style: .tinted, size: .small, action: onClone)
-            FusionButton("发送", icon: "paperplane", style: .ghost, size: .small, action: onSendAsText)
+            FusionButton(i18n.t(.fc_clone), icon: "arrow.down.circle", style: .tinted, size: .small, action: onClone)
+            FusionButton(i18n.t(.fc_send), icon: "paperplane", style: .ghost, size: .small, action: onSendAsText)
         }
         .padding(.horizontal, theme.spacingL)
         .padding(.vertical, theme.spacingS)
@@ -828,6 +839,7 @@ struct OpenProjectSheet: View {
     @ObservedObject var workspace: ProjectWorkspace
     @Environment(\.studioTheme) var theme
     @Environment(\.dismiss) var dismiss
+    @StateObject private var i18n = I18nManager.shared
     @State private var gitURL = ""
     @State private var gitBranch = "main"
     @State private var isCloning = false
@@ -853,7 +865,7 @@ struct OpenProjectSheet: View {
 
     private var sheetHeader: some View {
         HStack {
-            Text("Open Project")
+            Text(i18n.t(.fc_open_project))
                 .font(.system(size: theme.headlineSize, weight: .bold))
                 .foregroundStyle(theme.text)
             Spacer()
@@ -877,17 +889,17 @@ struct OpenProjectSheet: View {
                     .foregroundStyle(theme.accent)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Local Folder")
+                    Text(i18n.t(.fc_local_folder))
                         .font(.system(size: theme.textSize, weight: .semibold))
                         .foregroundStyle(theme.text)
-                    Text("选择本地文件夹，自动扫描代码文件")
+                    Text(i18n.t(.fc_local_folder_desc))
                         .font(.system(size: theme.footnoteSize))
                         .foregroundStyle(theme.textSecondary)
                 }
 
                 Spacer()
 
-                FusionButton("Choose...", icon: "folder", style: .tinted, size: .regular) {
+                FusionButton(i18n.t(.fc_choose), icon: "folder", style: .tinted, size: .regular) {
                     workspace.openLocalFolder()
                     if workspace.hasProject { dismiss() }
                 }
@@ -903,17 +915,17 @@ struct OpenProjectSheet: View {
                     .foregroundStyle(theme.accent)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Single File")
+                    Text(i18n.t(.fc_single_file))
                         .font(.system(size: theme.textSize, weight: .semibold))
                         .foregroundStyle(theme.text)
-                    Text("打开单个文件进行编辑和 AI 辅助")
+                    Text(i18n.t(.fc_single_file_desc))
                         .font(.system(size: theme.footnoteSize))
                         .foregroundStyle(theme.textSecondary)
                 }
 
                 Spacer()
 
-                FusionButton("Choose...", icon: "doc", style: .tinted, size: .regular) {
+                FusionButton(i18n.t(.fc_choose), icon: "doc", style: .tinted, size: .regular) {
                     workspace.openSingleFile()
                     if workspace.hasProject { dismiss() }
                 }
@@ -929,17 +941,17 @@ struct OpenProjectSheet: View {
                         .font(.system(size: theme.iconXL))
                         .foregroundStyle(theme.accent)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("GitHub Repository")
+                        Text(i18n.t(.fc_github_repo))
                             .font(.system(size: theme.textSize, weight: .semibold))
                             .foregroundStyle(theme.text)
-                        Text("克隆远程仓库到本地工作区")
+                        Text(i18n.t(.fc_github_repo_desc))
                             .font(.system(size: theme.footnoteSize))
                             .foregroundStyle(theme.textSecondary)
                     }
                 }
 
                 HStack(spacing: theme.spacingS) {
-                    Text("URL")
+                    Text(i18n.t(.fc_url))
                         .font(.system(size: theme.footnoteSize, weight: .medium))
                         .foregroundStyle(theme.textSecondary)
                         .frame(width: 50, alignment: .trailing)
@@ -956,7 +968,7 @@ struct OpenProjectSheet: View {
                 }
 
                 HStack(spacing: theme.spacingS) {
-                    Text("Branch")
+                    Text(i18n.t(.fc_branch))
                         .font(.system(size: theme.footnoteSize, weight: .medium))
                         .foregroundStyle(theme.textSecondary)
                         .frame(width: 50, alignment: .trailing)
@@ -984,7 +996,7 @@ struct OpenProjectSheet: View {
 
                 HStack {
                     Spacer()
-                    FusionButton("Clone & Open", icon: "arrow.down.circle", style: .primary, size: .regular, isLoading: isCloning, isDisabled: !isValidGitURL) {
+                    FusionButton(i18n.t(.fc_clone_open), icon: "arrow.down.circle", style: .primary, size: .regular, isLoading: isCloning, isDisabled: !isValidGitURL) {
                         cloneRepo()
                     }
                 }
@@ -995,7 +1007,7 @@ struct OpenProjectSheet: View {
     private var dividerOr: some View {
         HStack(spacing: theme.spacingM) {
             Rectangle().fill(theme.separator).frame(height: 0.5)
-            Text("或")
+            Text(i18n.t(.fc_or))
                 .font(.system(size: theme.footnoteSize))
                 .foregroundStyle(theme.textTertiary)
             Rectangle().fill(theme.separator).frame(height: 0.5)
@@ -1007,7 +1019,7 @@ struct OpenProjectSheet: View {
             Image(systemName: "arrow.down.doc")
                 .font(.system(size: theme.iconXL))
                 .foregroundStyle(theme.textTertiary)
-            Text("拖拽文件或文件夹到此处")
+            Text(i18n.t(.fc_drop_here))
                 .font(.system(size: theme.smallTextSize))
                 .foregroundStyle(theme.textTertiary)
         }
@@ -1099,12 +1111,13 @@ struct OpenProjectSheet: View {
 struct ChatHistoryView: View {
     @Environment(\.studioTheme) private var theme
     @StateObject private var agent = CodeAgent.shared
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         VStack(spacing: 0) {
             HStack {
                 Image(systemName: "magnifyingglass").foregroundColor(.secondary).font(.caption)
-                TextField("Search conversations...", text: .constant(""))
+                TextField(i18n.t(.fc_search_conversations), text: .constant(""))
                     .textFieldStyle(.plain)
                     .font(.system(size: 11))
             }
@@ -1116,7 +1129,7 @@ struct ChatHistoryView: View {
                 VStack(spacing: 6) {
                     Spacer()
                     Image(systemName: "message").font(.system(size: 20)).foregroundColor(.secondary)
-                    Text("No conversations yet").font(.caption).foregroundColor(.secondary)
+                    Text(i18n.t(.fc_no_conversations)).font(.caption).foregroundColor(.secondary)
                     Spacer()
                 }
             } else {
@@ -1151,6 +1164,7 @@ struct FileTreeView: View {
     @Environment(\.studioTheme) private var theme
     @StateObject private var workspace = ProjectWorkspace.shared
     @StateObject private var agent = CodeAgent.shared
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -1186,7 +1200,7 @@ struct FileTreeView: View {
                         }
                         .foregroundStyle(theme.textSecondary)
                     }
-                    Text("\(workspace.totalFileCount) files")
+                    Text(String(format: i18n.t(.fc_files_count), workspace.totalFileCount))
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.textTertiary)
                 }
@@ -1198,7 +1212,7 @@ struct FileTreeView: View {
                     .foregroundStyle(theme.textTertiary)
             }
             .buttonStyle(.plain)
-            .help("Close Project")
+            .help(i18n.t(.fc_close_project))
 
             Button(action: { workspace.openLocalFolder() }) {
                 Image(systemName: "plus")
@@ -1206,7 +1220,7 @@ struct FileTreeView: View {
                     .foregroundStyle(theme.accent)
             }
             .buttonStyle(.plain)
-            .help("Open Another Project")
+            .help(i18n.t(.fc_open_another))
         }
         .padding(.horizontal, theme.spacingM)
         .padding(.vertical, theme.spacingS)
@@ -1217,7 +1231,7 @@ struct FileTreeView: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: theme.iconXS))
                 .foregroundStyle(theme.textTertiary)
-            TextField("搜索文件...", text: $workspace.searchText)
+            TextField(i18n.t(.fc_search_files), text: $workspace.searchText)
                 .textFieldStyle(.plain)
                 .font(.system(size: theme.footnoteSize))
         }
@@ -1285,14 +1299,14 @@ struct FileTreeView: View {
             Image(systemName: "folder.badge.plus")
                 .font(.system(size: 32))
                 .foregroundStyle(theme.textTertiary)
-            Text("No project open")
+            Text(i18n.t(.fc_no_project_open))
                 .font(.system(size: theme.textSize, weight: .medium))
                 .foregroundStyle(theme.textSecondary)
-            Text("Open a folder to browse files")
+            Text(i18n.t(.fc_open_folder_browse))
                 .font(.system(size: theme.footnoteSize))
                 .foregroundStyle(theme.textTertiary)
 
-            FusionButton("Open Project", icon: "folder.badge.plus", style: .tinted, size: .regular) {
+            FusionButton(i18n.t(.fc_open_project), icon: "folder.badge.plus", style: .tinted, size: .regular) {
                 workspace.openLocalFolder()
             }
             .padding(.top, theme.spacingS)
@@ -1326,6 +1340,7 @@ struct FileTreeRow: View {
     @Environment(\.studioTheme) var theme
     @StateObject private var workspace = ProjectWorkspace.shared
     @StateObject private var agent = CodeAgent.shared
+    @StateObject private var i18n = I18nManager.shared
     @EnvironmentObject var ipc: IPCClient
     @State private var kbBuilding = false
     @State private var isHovered = false
@@ -1387,28 +1402,28 @@ struct FileTreeRow: View {
 // User instruction: #49 文件树右键「加入知识库」菜单
         .contextMenu {
             if !file.isDirectory {
-                Button("在 Finder 中显示") {
+                Button(i18n.t(.fc_show_in_finder)) {
                     NSWorkspace.shared.selectFile(file.path, inFileViewerRootedAtPath: "")
                 }
-                Button("复制路径") {
+                Button(i18n.t(.fc_copy_path)) {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(file.relativePath, forType: .string)
                 }
                 Divider()
                 if agent.fileContexts.contains(where: { $0.id == file.id }) {
-                    Button("移除上下文") { agent.removeFileContext(file) }
+                    Button(i18n.t(.fc_remove_context)) { agent.removeFileContext(file) }
                 } else {
-                    Button("添加到上下文") { agent.addFileContext(file) }
+                    Button(i18n.t(.fc_add_to_context)) { agent.addFileContext(file) }
                 }
                 Divider()
-                Button("添加到知识库") { addToKnowledgeBase(file) }
-                Button("索引到 RAG") { indexToRAG(file) }
+                Button(i18n.t(.fc_add_to_kb)) { addToKnowledgeBase(file) }
+                Button(i18n.t(.fc_index_to_rag)) { indexToRAG(file) }
             }
             if file.isDirectory {
-                Button("在 Finder 中显示") {
+                Button(i18n.t(.fc_show_in_finder)) {
                     NSWorkspace.shared.selectFile(file.path, inFileViewerRootedAtPath: "")
                 }
-                Button("添加目录到知识库") { addToKnowledgeBase(file) }
+                Button(i18n.t(.fc_add_dir_to_kb)) { addToKnowledgeBase(file) }
             }
         }
     }
@@ -1482,13 +1497,14 @@ struct FileTreeRow: View {
 struct GitStatusView: View {
     @Environment(\.studioTheme) private var theme
     @StateObject private var workspace = ProjectWorkspace.shared
+    @StateObject private var i18n = I18nManager.shared
     @State private var changes: [(String, String)] = []
 
     var body: some View {
         VStack(spacing: 0) {
             HStack {
                 Image(systemName: "arrow.triangle.branch").font(.system(size: 10))
-                Text(workspace.gitBranch.isEmpty ? "Not a git repo" : workspace.gitBranch)
+                Text(workspace.gitBranch.isEmpty ? i18n.t(.fc_not_git_repo) : workspace.gitBranch)
                     .font(.system(size: 11, weight: .medium))
                 Spacer()
             }
@@ -1498,14 +1514,14 @@ struct GitStatusView: View {
                 VStack(spacing: 6) {
                     Spacer()
                     Image(systemName: "arrow.triangle.branch").font(.system(size: 20)).foregroundColor(.secondary)
-                    Text("Open a project to see Git status").font(.caption).foregroundColor(.secondary)
+                    Text(i18n.t(.fc_open_for_git)).font(.caption).foregroundColor(.secondary)
                     Spacer()
                 }
             } else if changes.isEmpty {
                 VStack(spacing: 6) {
                     Spacer()
                     Image(systemName: "checkmark.circle").font(.system(size: 20)).foregroundColor(.secondary)
-                    Text("No changes").font(.caption).foregroundColor(.secondary)
+                    Text(i18n.t(.fc_no_changes)).font(.caption).foregroundColor(.secondary)
                     Spacer()
                 }
             } else {
@@ -1558,6 +1574,7 @@ struct ChatContentView: View {
     @Environment(\.studioTheme) private var theme
     @StateObject private var agent = CodeAgent.shared
     @StateObject private var workspace = ProjectWorkspace.shared
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -1575,7 +1592,7 @@ struct ChatContentView: View {
                     if agent.isThinking {
                         HStack(spacing: 6) {
                             ProgressView().controlSize(.small).scaleEffect(0.7)
-                            Text("Thinking...").font(.system(size: 12)).foregroundColor(.secondary)
+                            Text(i18n.t(.fc_thinking)).font(.system(size: 12)).foregroundColor(.secondary)
                             Spacer()
                         }
                         .padding(.horizontal, 16)
@@ -1603,24 +1620,24 @@ struct ChatContentView: View {
             Image(systemName: "sparkles")
                 .font(.system(size: 32))
                 .foregroundStyle(theme.accent)
-            Text("Fusion Code — AI Coding Assistant")
+            Text(i18n.t(.fc_welcome_title))
                 .font(.system(size: theme.headlineSize, weight: .semibold))
                 .foregroundStyle(theme.text)
-            Text("Claude Code compatible · Powered by fusion-mlx")
+            Text(i18n.t(.fc_welcome_tagline))
                 .font(.system(size: theme.smallTextSize))
                 .foregroundStyle(theme.textSecondary)
 
             HStack(spacing: theme.spacingM) {
-                WelcomeCard(icon: "folder.badge.plus", title: "Open Project", desc: "加载本地/Git代码", accent: true) {
+                WelcomeCard(icon: "folder.badge.plus", title: i18n.t(.fc_wc_open_title), desc: i18n.t(.fc_wc_open_desc), accent: true) {
                     workspace.openLocalFolder()
                 }
-                WelcomeCard(icon: "questionmark.circle", title: "Explain", desc: "解释代码功能") {
+                WelcomeCard(icon: "questionmark.circle", title: i18n.t(.fc_wc_explain_title), desc: i18n.t(.fc_wc_explain_desc)) {
                     agent.askAI(prompt: "Explain the code in the current file")
                 }
-                WelcomeCard(icon: "ant", title: "Review", desc: "查找代码缺陷") {
+                WelcomeCard(icon: "ant", title: i18n.t(.fc_wc_review_title), desc: i18n.t(.fc_wc_review_desc)) {
                     agent.askAI(prompt: "Review the code for bugs and issues")
                 }
-                WelcomeCard(icon: "testtube.2", title: "Test", desc: "生成单元测试") {
+                WelcomeCard(icon: "testtube.2", title: i18n.t(.fc_wc_test_title), desc: i18n.t(.fc_wc_test_desc)) {
                     agent.askAI(prompt: "Write unit tests for the code")
                 }
             }
@@ -1628,7 +1645,7 @@ struct ChatContentView: View {
 
             if !workspace.recentProjects.isEmpty {
                 VStack(alignment: .leading, spacing: theme.spacingS) {
-                    Text("最近打开")
+                    Text(i18n.t(.fc_recent))
                         .font(.system(size: theme.footnoteSize, weight: .semibold))
                         .foregroundStyle(theme.textTertiary)
                         .textCase(.uppercase)
@@ -1692,6 +1709,7 @@ struct RecentProjectRow: View {
     let project: RecentProject
     let action: () -> Void
     @Environment(\.studioTheme) var theme
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         Button(action: action) {
@@ -1723,9 +1741,9 @@ struct RecentProjectRow: View {
 
     private func relativeTime(_ date: Date) -> String {
         let interval = Date().timeIntervalSince(date)
-        if interval < 3600 { return "\(Int(interval / 60))分钟前" }
-        if interval < 86400 { return "\(Int(interval / 3600))小时前" }
-        if interval < 604800 { return "\(Int(interval / 86400))天前" }
+        if interval < 3600 { return String(format: i18n.t(.fc_min_ago), Int(interval / 60)) }
+        if interval < 86400 { return String(format: i18n.t(.fc_hour_ago), Int(interval / 3600)) }
+        if interval < 604800 { return String(format: i18n.t(.fc_day_ago), Int(interval / 86400)) }
         let formatter = DateFormatter()
         formatter.dateStyle = .short
         return formatter.string(from: date)
@@ -1760,13 +1778,14 @@ struct SuggestionCard: View {
 struct MessageBubble: View {
     let message: CodeAgent.CodeMessage
     @Environment(\.studioTheme) var theme
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 if message.role == "user" {
                     Spacer()
-                    Text("You").font(.system(size: 11, weight: .medium)).foregroundColor(.secondary)
+                    Text(i18n.t(.fc_you)).font(.system(size: 11, weight: .medium)).foregroundColor(.secondary)
                 } else {
                     Text("Fusion Code").font(.system(size: 11, weight: .medium)).foregroundColor(.accentColor)
                     Spacer()
@@ -1790,19 +1809,17 @@ struct MessageBubble: View {
 // MARK: - Terminal View
 
 struct TerminalView: View {
-    @State private var output: [TerminalLine] = [
-        TerminalLine(text: "Fusion Studio Terminal v1.0", type: .info),
-        TerminalLine(text: "Type 'help' for available commands", type: .info),
-        TerminalLine(text: "", type: .input)
-    ]
+    @StateObject private var i18n = I18nManager.shared
+    @State private var output: [TerminalLine] = []
     @State private var currentInput: String = ""
+    @State private var didInitBanner = false
 
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("Terminal").font(.system(size: 11, weight: .semibold)).foregroundColor(.secondary)
+                Text(i18n.t(.fc_terminal)).font(.system(size: 11, weight: .semibold)).foregroundColor(.secondary)
                 Spacer()
-                Button("Clear") { output = [] }.buttonStyle(.borderless).controlSize(.small).font(.system(size: 10))
+                Button(i18n.t(.fc_clear)) { output = [] }.buttonStyle(.borderless).controlSize(.small).font(.system(size: 10))
             }
             .padding(.horizontal, 12).padding(.vertical, 4)
 
@@ -1835,6 +1852,15 @@ struct TerminalView: View {
                 }
             }
         }
+        .onAppear {
+            guard !didInitBanner else { return }
+            didInitBanner = true
+            output = [
+                TerminalLine(text: i18n.t(.fc_term_banner), type: .info),
+                TerminalLine(text: i18n.t(.fc_term_help_hint), type: .info),
+                TerminalLine(text: "", type: .input)
+            ]
+        }
     }
 
     private func executeCommand(_ cmd: String) {
@@ -1848,11 +1874,11 @@ struct TerminalView: View {
 
     private func processCommand(_ cmd: String) -> String {
         switch cmd.lowercased() {
-        case "help": return "Commands: help, clear, status, mlx, python, swift"
+        case "help": return i18n.t(.fc_term_commands)
         case "clear": output = []; return ""
         case "status": return "Fusion Studio v1.0 | MLX: running | fusion-coder: ready"
         case "mlx": return "fusion-mlx: localhost:\(FusionConfig.shared.mlxPort) | model: qwen3.5-9b-4bit"
-        default: return "Unknown: \(cmd). Type 'help'"
+        default: return String(format: i18n.t(.fc_term_unknown), cmd)
         }
     }
 }
