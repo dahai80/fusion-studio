@@ -649,7 +649,8 @@ extension DesignBridgeTests {
 
     func testComponentSizeAllCases() {
         XCTAssertEqual(ComponentSize.allCases.count, 3)
-        XCTAssertEqual(ComponentSize.small.displayName, "小")
+        // displayName 经 i18n 本地化; 测试环境默认 enUS → "S"
+        XCTAssertEqual(ComponentSize.small.displayName, "S")
     }
 
     func testComponentCategoryAllCases() {
@@ -691,12 +692,14 @@ extension DesignBridgeTests {
     }
 
     func testJustifyContentDisplayNames() {
-        XCTAssertEqual(JustifyContent.center.displayName, "居中")
-        XCTAssertEqual(JustifyContent.between.displayName, "两端对齐")
+        // displayName 经 i18n 本地化; 测试环境默认 enUS → "Center"/"Space Between"
+        XCTAssertEqual(JustifyContent.center.displayName, "Center")
+        XCTAssertEqual(JustifyContent.between.displayName, "Space Between")
     }
 
     func testAlignItemsDisplayNames() {
-        XCTAssertEqual(AlignItems.stretch.displayName, "拉伸")
+        // displayName 经 i18n 本地化; 测试环境默认 enUS → "Stretch"
+        XCTAssertEqual(AlignItems.stretch.displayName, "Stretch")
     }
 
     func testStylePropertiesDefaultCSS() {

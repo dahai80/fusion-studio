@@ -19,17 +19,45 @@ struct TrainerRun: Codable, Identifiable, Hashable {
     var error: String?
 
     static func from(_ d: [String: Any]) -> TrainerRun {
-        TrainerRun(
+        let total = d["total_steps"] as? Int ?? 0
+        let step = d["step"] as? Int ?? d["current_step"] as? Int ?? 0
+        let progress: Double
+        if let p = d["progress"] as? Double {
+            progress = p
+        } else if total > 0 {
+            progress = Double(step) / Double(total)
+        } else {
+            progress = 0
+        }
+        let createdStr: String
+        if let s = d["created_at"] as? String {
+            createdStr = s
+        } else if let epoch = d["created"] as? Int {
+            createdStr = TrainerRun.formatEpoch(epoch)
+        } else if let epoch = d["created"] as? Double {
+            createdStr = TrainerRun.formatEpoch(Int(epoch))
+        } else {
+            createdStr = ""
+        }
+        return TrainerRun(
             run_id: d["run_id"] as? String ?? "",
             method: d["method"] as? String ?? "",
             model: d["model"] as? String ?? "",
             status: d["status"] as? String ?? "unknown",
-            created_at: d["created_at"] as? String ?? "",
-            progress: d["progress"] as? Double ?? 0,
-            current_step: d["current_step"] as? Int ?? 0,
-            total_steps: d["total_steps"] as? Int ?? 0,
+            created_at: createdStr,
+            progress: progress,
+            current_step: step,
+            total_steps: total,
             error: d["error"] as? String
         )
+    }
+
+    private static func formatEpoch(_ epoch: Int) -> String {
+        let date = Date(timeIntervalSince1970: TimeInterval(epoch))
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd'T'HH:mm:ss'Z'"
+        f.timeZone = TimeZone(identifier: "UTC")
+        return f.string(from: date)
     }
 }
 
@@ -94,12 +122,33 @@ struct TrainerProgressEvent: Codable, Identifiable, Hashable {
     var ts: String
 
     static func from(_ d: [String: Any]) -> TrainerProgressEvent {
-        TrainerProgressEvent(
-            step: d["step"] as? Int ?? 0,
-            metric: d["metric"] as? String ?? "",
-            value: d["value"] as? Double ?? 0,
-            ts: d["ts"] as? String ?? ""
-        )
+        let step = d["step"] as? Int ?? 0
+        // 优先用已归一化的 metric/value (旧客户端格式)
+        if let metric = d["metric"] as? String, !metric.isEmpty {
+            let value: Double
+            if let v = d["value"] as? Double { value = v }
+            else if let v = d["value"] as? Int { value = Double(v) }
+            else { value = 0 }
+            return TrainerProgressEvent(
+                step: step, metric: metric, value: value,
+                ts: d["ts"] as? String ?? ""
+            )
+        }
+        // 归一化原始 fusion-mlx event (RunManager run_progress 原样透传):
+        // type=train_loss → metric="train_loss", value=train_loss
+        // type=val_loss   → metric="val_loss",   value=val_loss
+        if let type = d["type"] as? String {
+            let metric = type
+            let value: Double
+            if let v = d[metric] as? Double { value = v }
+            else if let v = d[metric] as? Int { value = Double(v) }
+            else { value = 0 }
+            return TrainerProgressEvent(
+                step: step, metric: metric, value: value,
+                ts: d["ts"] as? String ?? ""
+            )
+        }
+        return TrainerProgressEvent(step: step, metric: "", value: 0, ts: d["ts"] as? String ?? "")
     }
 }
 
@@ -193,7 +242,9 @@ final class TrainerBridge: ObservableObject {
         guard let client = ipcClient else { return }
         do {
             let result = try await client.trainerRunsStatusFull(runId: runId)
-            if let runDict = result["run"] as? [String: Any] {
+            // RunManager 返回顶层平铺 dict (无 "run" 包装); 兼容旧带包装的返回
+            let runDict = (result["run"] as? [String: Any]) ?? result
+            if runDict["run_id"] != nil {
                 let updated = TrainerRun.from(runDict)
                 if let idx = runs.firstIndex(where: { $0.run_id == runId }) {
                     runs[idx] = updated
@@ -234,7 +285,9 @@ final class TrainerBridge: ObservableObject {
             let events = (result["events"] as? [[String: Any]] ?? []).map { TrainerProgressEvent.from($0) }
             if let last = events.last { lastSeenStep = max(lastSeenStep, last.step) }
             if !events.isEmpty { progressEvents.append(contentsOf: events) }
-            if let runDict = result["run"] as? [String: Any] {
+            // RunManager run_progress 返回顶层平铺 (run_id/status), 无 "run" 包装; 兼容旧返回
+            let runDict = (result["run"] as? [String: Any]) ?? result
+            if runDict["run_id"] != nil {
                 let updated = TrainerRun.from(runDict)
                 if let idx = runs.firstIndex(where: { $0.run_id == runId }) { runs[idx] = updated }
                 if selectedRun?.run_id == runId { selectedRun = updated }
