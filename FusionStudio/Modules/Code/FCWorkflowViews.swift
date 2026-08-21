@@ -60,10 +60,10 @@ struct FCWorkflowPlan: Identifiable {
         let done = steps.filter { $0.status == .completed }.count
         let failed = steps.filter { $0.status == .failed }.count
         let running = steps.filter { $0.status == .running }.count
-        if failed > 0 { return "\(failed) failed" }
-        if running > 0 { return "Running (\(done)/\(steps.count))" }
-        if done == steps.count { return "Completed" }
-        return "Pending (\(done)/\(steps.count))"
+        if failed > 0 { return String(format: I18nManager.shared.t(.fc_wf_status_failed), failed) }
+        if running > 0 { return String(format: I18nManager.shared.t(.fc_wf_status_running), done, steps.count) }
+        if done == steps.count { return I18nManager.shared.t(.fc_wf_status_completed) }
+        return String(format: I18nManager.shared.t(.fc_wf_status_pending), done, steps.count)
     }
 }
 
@@ -73,14 +73,16 @@ class FCWorkflowStore: ObservableObject {
     @Published var plans: [FCWorkflowPlan] = []
     @Published var activePlanId: UUID?
 
-    let templates: [(name: String, icon: String, desc: String)] = [
-        ("generic", "square.grid.3x3", "通用任务分解"),
-        ("legacy_migration", "arrow.right.circle", "遗留系统迁移"),
-        ("security_scan", "shield.checkered", "安全扫描审计"),
-        ("batch_api", "server.rack", "批量API处理"),
-        ("refactor", "hammer", "代码重构"),
-        ("test_gen", "checkmark.shield", "测试生成"),
-    ]
+    var templates: [(name: String, icon: String, desc: String)] {
+        [
+            ("generic", "square.grid.3x3", I18nManager.shared.t(.fc_wf_template_generic)),
+            ("legacy_migration", "arrow.right.circle", I18nManager.shared.t(.fc_wf_template_legacy)),
+            ("security_scan", "shield.checkered", I18nManager.shared.t(.fc_wf_template_security)),
+            ("batch_api", "server.rack", I18nManager.shared.t(.fc_wf_template_batch)),
+            ("refactor", "hammer", I18nManager.shared.t(.fc_wf_template_refactor)),
+            ("test_gen", "checkmark.shield", I18nManager.shared.t(.fc_wf_template_test)),
+        ]
+    }
 
     func createPlan(goal: String, template: String = "generic") -> FCWorkflowPlan {
         let steps = decomposeSteps(goal: goal, template: template)
@@ -180,6 +182,7 @@ struct FCWorkflowPanel: View {
     @Environment(\.studioTheme) private var theme
     @ObservedObject var store = FCWorkflowStore.shared
     @State private var showCreateSheet = false
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         VStack(spacing: theme.spacingS) {
@@ -220,10 +223,10 @@ struct FCWorkflowPanel: View {
             Image(systemName: "square.grid.3x3")
                 .font(.system(size: 24))
                 .foregroundStyle(theme.textTertiary)
-            Text("创建工作流自动化执行复杂任务")
+            Text(i18n.t(.fc_wf_empty_desc))
                 .font(.system(size: theme.captionSize))
                 .foregroundStyle(theme.textTertiary)
-            Button("新建工作流") { showCreateSheet = true }
+            Button(i18n.t(.fc_wf_new)) { showCreateSheet = true }
                 .controlSize(.small)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -259,7 +262,7 @@ struct FCWorkflowPanel: View {
                 .stroke(theme.groupBorder, lineWidth: 1)
         )
         .contextMenu {
-            Button("删除", role: .destructive) { store.deletePlan(id: plan.id) }
+            Button(i18n.t(.fc_delete), role: .destructive) { store.deletePlan(id: plan.id) }
         }
     }
 
@@ -284,16 +287,17 @@ struct FCWorkflowCreateSheet: View {
     @Binding var isPresented: Bool
     @State private var goal = ""
     @State private var template = "generic"
+    @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
         VStack(spacing: 12) {
-            Text("新建工作流")
+            Text(i18n.t(.fc_wf_new))
                 .font(.system(size: 14, weight: .semibold))
 
-            TextField("目标描述", text: $goal)
+            TextField(i18n.t(.fc_wf_goal_ph), text: $goal)
                 .textFieldStyle(.roundedBorder)
 
-            Text("选择模板")
+            Text(i18n.t(.fc_wf_select_template))
                 .font(.system(size: 11, weight: .medium))
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -326,8 +330,8 @@ struct FCWorkflowCreateSheet: View {
             }
 
             HStack(spacing: 12) {
-                Button("取消") { isPresented = false }
-                Button("创建") {
+                Button(i18n.t(.fc_cancel)) { isPresented = false }
+                Button(i18n.t(.fc_create)) {
                     _ = store.createPlan(goal: goal, template: template)
                     isPresented = false
                 }

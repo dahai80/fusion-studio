@@ -38,13 +38,13 @@ enum FCSessionState: String, CaseIterable, Codable {
 
     var label: String {
         switch self {
-        case .idle: return "空闲"
-        case .running: return "运行中"
-        case .waitingApproval: return "等待审批"
-        case .paused: return "已暂停"
-        case .completed: return "已完成"
-        case .failed: return "异常"
-        case .clusterRunning: return "集群运行中"
+        case .idle: return I18nManager.shared.t(.fc_state_idle)
+        case .running: return I18nManager.shared.t(.fc_state_running)
+        case .waitingApproval: return I18nManager.shared.t(.fc_state_waiting)
+        case .paused: return I18nManager.shared.t(.fc_state_paused)
+        case .completed: return I18nManager.shared.t(.fc_state_completed)
+        case .failed: return I18nManager.shared.t(.fc_state_failed)
+        case .clusterRunning: return I18nManager.shared.t(.fc_state_cluster)
         }
     }
 }
@@ -153,6 +153,14 @@ enum FCSidebarGroupMode: String, CaseIterable {
     case byProject = "按项目"
     case byState = "按状态"
     case flat = "平铺"
+
+    var localLabel: String {
+        switch self {
+        case .byProject: return I18nManager.shared.t(.fc_gm_by_project)
+        case .byState: return I18nManager.shared.t(.fc_gm_by_state)
+        case .flat: return I18nManager.shared.t(.fc_gm_flat)
+        }
+    }
 }
 
 enum FCLayoutMode: String, CaseIterable {

@@ -3290,6 +3290,57 @@ enum I18nKey: String, CaseIterable {
     case fc_term_unknown = "fc_term_unknown"
     case fc_you = "fc_you"
     case fc_clone = "fc_clone"
+    case fc_group_mode = "fc_group_mode"
+    case fc_search_sessions = "fc_search_sessions"
+    case fc_no_project2 = "fc_no_project2"
+    case fc_rename = "fc_rename"
+    case fc_pause = "fc_pause"
+    case fc_resume = "fc_resume"
+    case fc_delete = "fc_delete"
+    case fc_layout_mode = "fc_layout_mode"
+    case fc_sessions_count = "fc_sessions_count"
+    case fc_new_session_full = "fc_new_session_full"
+    case fc_working_dir = "fc_working_dir"
+    case fc_model_label = "fc_model_label"
+    case fc_security_mode = "fc_security_mode"
+    case fc_sm_readonly = "fc_sm_readonly"
+    case fc_sm_manual = "fc_sm_manual"
+    case fc_sm_auto = "fc_sm_auto"
+    case fc_gm_by_project = "fc_gm_by_project"
+    case fc_gm_by_state = "fc_gm_by_state"
+    case fc_gm_flat = "fc_gm_flat"
+    case fc_state_idle = "fc_state_idle"
+    case fc_state_running = "fc_state_running"
+    case fc_state_waiting = "fc_state_waiting"
+    case fc_state_paused = "fc_state_paused"
+    case fc_state_completed = "fc_state_completed"
+    case fc_state_failed = "fc_state_failed"
+    case fc_state_cluster = "fc_state_cluster"
+    case fc_sm_auto_full = "fc_sm_auto_full"
+    case fc_policy = "fc_policy"
+    case fc_audit = "fc_audit"
+    case fc_allow_dirs = "fc_allow_dirs"
+    case fc_add_dir_ph = "fc_add_dir_ph"
+    case fc_add = "fc_add"
+    case fc_ignore_patterns = "fc_ignore_patterns"
+    case fc_add_pattern_ph = "fc_add_pattern_ph"
+    case fc_no_audit = "fc_no_audit"
+    case fc_records_count = "fc_records_count"
+    case fc_export = "fc_export"
+    case fc_wf_empty_desc = "fc_wf_empty_desc"
+    case fc_wf_new = "fc_wf_new"
+    case fc_wf_goal_ph = "fc_wf_goal_ph"
+    case fc_wf_select_template = "fc_wf_select_template"
+    case fc_wf_template_generic = "fc_wf_template_generic"
+    case fc_wf_template_legacy = "fc_wf_template_legacy"
+    case fc_wf_template_security = "fc_wf_template_security"
+    case fc_wf_template_batch = "fc_wf_template_batch"
+    case fc_wf_template_refactor = "fc_wf_template_refactor"
+    case fc_wf_template_test = "fc_wf_template_test"
+    case fc_wf_status_failed = "fc_wf_status_failed"
+    case fc_wf_status_running = "fc_wf_status_running"
+    case fc_wf_status_completed = "fc_wf_status_completed"
+    case fc_wf_status_pending = "fc_wf_status_pending"
 }
 
 // MARK: - 翻译管理器
@@ -6231,7 +6282,58 @@ let zhCNTranslations: [String: String] = [
     "fc_term_commands": "命令: help, clear, status, mlx, python, swift",
     "fc_term_unknown": "未知: %@。输入 'help'",
     "fc_you": "你",
-    "fc_clone": "克隆"
+    "fc_clone": "克隆",
+    "fc_group_mode": "分组方式",
+    "fc_search_sessions": "搜索会话...",
+    "fc_no_project2": "无项目",
+    "fc_rename": "重命名",
+    "fc_pause": "暂停",
+    "fc_resume": "恢复",
+    "fc_delete": "删除",
+    "fc_layout_mode": "布局模式",
+    "fc_sessions_count": "%d 个会话",
+    "fc_new_session_full": "新建编码会话",
+    "fc_working_dir": "工作目录",
+    "fc_model_label": "模型",
+    "fc_security_mode": "安全模式",
+    "fc_sm_readonly": "只读",
+    "fc_sm_manual": "手动审批",
+    "fc_sm_auto": "自动",
+    "fc_gm_by_project": "按项目",
+    "fc_gm_by_state": "按状态",
+    "fc_gm_flat": "平铺",
+    "fc_state_idle": "空闲",
+    "fc_state_running": "运行中",
+    "fc_state_waiting": "等待审批",
+    "fc_state_paused": "已暂停",
+    "fc_state_completed": "已完成",
+    "fc_state_failed": "异常",
+    "fc_state_cluster": "集群运行中",
+    "fc_sm_auto_full": "自动批准",
+    "fc_policy": "策略",
+    "fc_audit": "审计",
+    "fc_allow_dirs": "允许目录",
+    "fc_add_dir_ph": "添加目录...",
+    "fc_add": "Add",
+    "fc_ignore_patterns": "忽略模式 (.fusionignore)",
+    "fc_add_pattern_ph": "添加模式...",
+    "fc_no_audit": "暂无审计记录",
+    "fc_records_count": "%d 条记录",
+    "fc_export": "导出",
+    "fc_wf_empty_desc": "创建工作流自动化执行复杂任务",
+    "fc_wf_new": "新建工作流",
+    "fc_wf_goal_ph": "目标描述",
+    "fc_wf_select_template": "选择模板",
+    "fc_wf_template_generic": "通用任务分解",
+    "fc_wf_template_legacy": "遗留系统迁移",
+    "fc_wf_template_security": "安全扫描审计",
+    "fc_wf_template_batch": "批量API处理",
+    "fc_wf_template_refactor": "代码重构",
+    "fc_wf_template_test": "测试生成",
+    "fc_wf_status_failed": "%d failed",
+    "fc_wf_status_running": "Running (%d/%d)",
+    "fc_wf_status_completed": "Completed",
+    "fc_wf_status_pending": "Pending (%d/%d)"
 ]
 
 let enUSTranslations: [String: String] = [
@@ -9128,7 +9230,58 @@ let enUSTranslations: [String: String] = [
     "fc_term_commands": "Commands: help, clear, status, mlx, python, swift",
     "fc_term_unknown": "Unknown: %@. Type 'help'",
     "fc_you": "You",
-    "fc_clone": "Clone"
+    "fc_clone": "Clone",
+    "fc_group_mode": "Group By",
+    "fc_search_sessions": "Search sessions...",
+    "fc_no_project2": "No Project",
+    "fc_rename": "Rename",
+    "fc_pause": "Pause",
+    "fc_resume": "Resume",
+    "fc_delete": "Delete",
+    "fc_layout_mode": "Layout",
+    "fc_sessions_count": "%d sessions",
+    "fc_new_session_full": "New Coding Session",
+    "fc_working_dir": "Working Dir",
+    "fc_model_label": "Model",
+    "fc_security_mode": "Security Mode",
+    "fc_sm_readonly": "Read-only",
+    "fc_sm_manual": "Manual Approval",
+    "fc_sm_auto": "Auto",
+    "fc_gm_by_project": "By Project",
+    "fc_gm_by_state": "By State",
+    "fc_gm_flat": "Flat",
+    "fc_state_idle": "Idle",
+    "fc_state_running": "Running",
+    "fc_state_waiting": "Waiting Approval",
+    "fc_state_paused": "Paused",
+    "fc_state_completed": "Completed",
+    "fc_state_failed": "Failed",
+    "fc_state_cluster": "Cluster Running",
+    "fc_sm_auto_full": "Auto-approve",
+    "fc_policy": "Policy",
+    "fc_audit": "Audit",
+    "fc_allow_dirs": "Allowed Dirs",
+    "fc_add_dir_ph": "Add dir...",
+    "fc_add": "Add",
+    "fc_ignore_patterns": "Ignore Patterns (.fusionignore)",
+    "fc_add_pattern_ph": "Add pattern...",
+    "fc_no_audit": "No audit records",
+    "fc_records_count": "%d records",
+    "fc_export": "Export",
+    "fc_wf_empty_desc": "Create workflows to automate complex tasks",
+    "fc_wf_new": "New Workflow",
+    "fc_wf_goal_ph": "Goal description",
+    "fc_wf_select_template": "Select Template",
+    "fc_wf_template_generic": "Generic task decomposition",
+    "fc_wf_template_legacy": "Legacy migration",
+    "fc_wf_template_security": "Security scan audit",
+    "fc_wf_template_batch": "Batch API processing",
+    "fc_wf_template_refactor": "Code refactor",
+    "fc_wf_template_test": "Test generation",
+    "fc_wf_status_failed": "%d 失败",
+    "fc_wf_status_running": "运行中 (%d/%d)",
+    "fc_wf_status_completed": "已完成",
+    "fc_wf_status_pending": "排队中 (%d/%d)"
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -12019,7 +12172,58 @@ let jaJPTranslations: [String: String] = [
     "fc_term_commands": "コマンド: help, clear, status, mlx, python, swift",
     "fc_term_unknown": "不明: %@。'help' と入力",
     "fc_you": "あなた",
-    "fc_clone": "クローン"
+    "fc_clone": "クローン",
+    "fc_group_mode": "グループ",
+    "fc_search_sessions": "セッション検索...",
+    "fc_no_project2": "プロジェクト無",
+    "fc_rename": "名前変更",
+    "fc_pause": "一時停止",
+    "fc_resume": "再開",
+    "fc_delete": "削除",
+    "fc_layout_mode": "レイアウト",
+    "fc_sessions_count": "%d セッション",
+    "fc_new_session_full": "新規コーディングセッション",
+    "fc_working_dir": "作業ディレクトリ",
+    "fc_model_label": "モデル",
+    "fc_security_mode": "セキュリティモード",
+    "fc_sm_readonly": "読み取り専用",
+    "fc_sm_manual": "手動承認",
+    "fc_sm_auto": "自動",
+    "fc_gm_by_project": "プロジェクト別",
+    "fc_gm_by_state": "状態別",
+    "fc_gm_flat": "フラット",
+    "fc_state_idle": "アイドル",
+    "fc_state_running": "実行中",
+    "fc_state_waiting": "承認待ち",
+    "fc_state_paused": "一時停止中",
+    "fc_state_completed": "完了",
+    "fc_state_failed": "異常",
+    "fc_state_cluster": "クラスター実行中",
+    "fc_sm_auto_full": "自動承認",
+    "fc_policy": "ポリシー",
+    "fc_audit": "監査",
+    "fc_allow_dirs": "許可ディレクトリ",
+    "fc_add_dir_ph": "ディレクトリ追加...",
+    "fc_add": "追加",
+    "fc_ignore_patterns": "無視パターン (.fusionignore)",
+    "fc_add_pattern_ph": "パターン追加...",
+    "fc_no_audit": "監査記録なし",
+    "fc_records_count": "%d 件",
+    "fc_export": "エクスポート",
+    "fc_wf_empty_desc": "複雑なタスクを自動化するワークフローを作成",
+    "fc_wf_new": "新規ワークフロー",
+    "fc_wf_goal_ph": "目標説明",
+    "fc_wf_select_template": "テンプレート選択",
+    "fc_wf_template_generic": "汎用タスク分解",
+    "fc_wf_template_legacy": "レガシー移行",
+    "fc_wf_template_security": "セキュリティスキャン監査",
+    "fc_wf_template_batch": "バッチAPI処理",
+    "fc_wf_template_refactor": "リファクタリング",
+    "fc_wf_template_test": "テスト生成",
+    "fc_wf_status_failed": "%d 失敗",
+    "fc_wf_status_running": "実行中 (%d/%d)",
+    "fc_wf_status_completed": "完了",
+    "fc_wf_status_pending": "保留中 (%d/%d)"
 ]
 
 let koKRTranslations: [String: String] = [
@@ -14910,7 +15114,58 @@ let koKRTranslations: [String: String] = [
     "fc_term_commands": "명령: help, clear, status, mlx, python, swift",
     "fc_term_unknown": "알 수 없음: %@. 'help' 입력",
     "fc_you": "나",
-    "fc_clone": "클론"
+    "fc_clone": "클론",
+    "fc_group_mode": "그룹",
+    "fc_search_sessions": "세션 검색...",
+    "fc_no_project2": "프로젝트 없음",
+    "fc_rename": "이름 변경",
+    "fc_pause": "일시정지",
+    "fc_resume": "재개",
+    "fc_delete": "삭제",
+    "fc_layout_mode": "레이아웃",
+    "fc_sessions_count": "%d 세션",
+    "fc_new_session_full": "새 코딩 세션",
+    "fc_working_dir": "작업 디렉토리",
+    "fc_model_label": "모델",
+    "fc_security_mode": "보안 모드",
+    "fc_sm_readonly": "읽기 전용",
+    "fc_sm_manual": "수동 승인",
+    "fc_sm_auto": "자동",
+    "fc_gm_by_project": "프로젝트별",
+    "fc_gm_by_state": "상태별",
+    "fc_gm_flat": "플랫",
+    "fc_state_idle": "유휴",
+    "fc_state_running": "실행 중",
+    "fc_state_waiting": "승인 대기",
+    "fc_state_paused": "일시정지됨",
+    "fc_state_completed": "완료",
+    "fc_state_failed": "실패",
+    "fc_state_cluster": "클러스터 실행 중",
+    "fc_sm_auto_full": "자동 승인",
+    "fc_policy": "정책",
+    "fc_audit": "감사",
+    "fc_allow_dirs": "허용 디렉토리",
+    "fc_add_dir_ph": "디렉토리 추가...",
+    "fc_add": "추가",
+    "fc_ignore_patterns": "무시 패턴 (.fusionignore)",
+    "fc_add_pattern_ph": "패턴 추가...",
+    "fc_no_audit": "감사 기록 없음",
+    "fc_records_count": "%d건",
+    "fc_export": "내보내기",
+    "fc_wf_empty_desc": "복잡한 작업을 자동화하는 워크플로 생성",
+    "fc_wf_new": "새 워크플로",
+    "fc_wf_goal_ph": "목표 설명",
+    "fc_wf_select_template": "템플릿 선택",
+    "fc_wf_template_generic": "범용 작업 분해",
+    "fc_wf_template_legacy": "레거시 마이그레이션",
+    "fc_wf_template_security": "보안 스캔 감사",
+    "fc_wf_template_batch": "배치 API 처리",
+    "fc_wf_template_refactor": "코드 리팩터링",
+    "fc_wf_template_test": "테스트 생성",
+    "fc_wf_status_failed": "%d 실패",
+    "fc_wf_status_running": "실행 중 (%d/%d)",
+    "fc_wf_status_completed": "완료",
+    "fc_wf_status_pending": "대기 중 (%d/%d)"
 ]
 
 // MARK: - 国际化文本视图
