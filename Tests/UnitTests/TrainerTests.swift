@@ -82,6 +82,46 @@ final class TrainerModelParsingTests: XCTestCase {
         XCTAssertEqual(e.value, 2.345, accuracy: 0.0001)
         XCTAssertEqual(e.id, 5)
     }
+
+    // RunManager 平铺 schema (issue #212): step/total_steps/created(int), 无 progress/current_step/created_at
+    func testTrainerRunFromFlatSchema() {
+        let d: [String: Any] = [
+            "run_id": "run-flat", "method": "sft", "model": "qwen",
+            "status": "running", "step": 42, "total_steps": 100,
+            "created": 1724210000, "error": "",
+        ]
+        let run = TrainerRun.from(d)
+        XCTAssertEqual(run.run_id, "run-flat")
+        XCTAssertEqual(run.current_step, 42)
+        XCTAssertEqual(run.total_steps, 100)
+        XCTAssertEqual(run.progress, 0.42, accuracy: 0.001)
+        XCTAssertTrue(run.created_at.hasPrefix("2024-"), "expected ISO date from epoch, got \(run.created_at)")
+        XCTAssertEqual(run.error, "")
+    }
+
+    // 原始 mlx event 归一化 (issue #212): type=train_loss + train_loss 字段 → metric/value
+    func testTrainerProgressEventFromRawMlxTrainLoss() {
+        let d: [String: Any] = ["type": "train_loss", "step": 42, "train_loss": 1.23, "learning_rate": 2e-5]
+        let e = TrainerProgressEvent.from(d)
+        XCTAssertEqual(e.step, 42)
+        XCTAssertEqual(e.metric, "train_loss")
+        XCTAssertEqual(e.value, 1.23, accuracy: 0.0001)
+    }
+
+    func testTrainerProgressEventFromRawMlxValLoss() {
+        let d: [String: Any] = ["type": "val_loss", "step": 42, "val_loss": 1.5]
+        let e = TrainerProgressEvent.from(d)
+        XCTAssertEqual(e.metric, "val_loss")
+        XCTAssertEqual(e.value, 1.5, accuracy: 0.0001)
+    }
+
+    func testTrainerRunProgressZeroWhenNoTotal() {
+        let d: [String: Any] = ["run_id": "r", "status": "running", "step": 5]
+        let run = TrainerRun.from(d)
+        XCTAssertEqual(run.progress, 0)
+        XCTAssertEqual(run.current_step, 5)
+        XCTAssertEqual(run.total_steps, 0)
+    }
 }
 
 final class TrainerBridgeStateTests: XCTestCase {

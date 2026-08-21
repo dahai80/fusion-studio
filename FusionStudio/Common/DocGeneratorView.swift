@@ -302,6 +302,12 @@ class DocGenerator: ObservableObject {
 
             ## [Unreleased]
 
+            ## [0.1.41] - 2026-08-21
+
+            ### 修复
+            - build.sh wasm 同步缺陈旧件告警（#206）：fusion-design target 存在但缺 wasm-bindgen 产物（`_bg.wasm`+`.js`）时显式 WARN，回退内置件打印 sha256，不再静默回退陈旧 wasm 导致前后端版本错配
+            - TrainerBridge 与 RunManager 返回 schema 对齐（#212）：`fetchFullStatus`/`pollProgressOnce` 改读顶层平铺 dict（去掉 `result["run"]` 解包）；`TrainerRun.from` 字段映射 `step`→`current_step`、`created`(int epoch)→`created_at`(格式化)、从 `step/total_steps` 计算 `progress`；`TrainerProgressEvent.from` 归一化原始 mlx events（`type=train_loss`→`metric/value`、`type=val_loss`→`metric/value`、`step` 透传）；进度条/步数/创建时间/损失曲线不再静默空白
+
             ## [0.1.40] - 2026-08-21
 
             ### 新增

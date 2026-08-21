@@ -100,14 +100,17 @@ final class ProfilerIntegrationTests: XCTestCase {
     }
 
     func testProfilerHistory() {
+        // sampleMetrics() 为空桩 (假数据已清理, 待接通真实性能 IPC, 见 ProfilerView.sampleMetrics)
+        // 故采样期间 history 保持空; stopProfiling 后 isProfiling 复位为 false
         let profiler = PerformanceProfiler.shared
         profiler.clearHistory()
         profiler.startProfiling()
-        // 采样一次
-        let expectation = XCTestExpectation(description: "等待采样")
+        XCTAssertTrue(profiler.isProfiling)
+        let expectation = XCTestExpectation(description: "等待采样窗口")
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             profiler.stopProfiling()
-            XCTAssertFalse(profiler.history.isEmpty)
+            XCTAssertFalse(profiler.isProfiling)
+            XCTAssertTrue(profiler.history.isEmpty, "sampleMetrics 为空桩, 不应写入 history")
             expectation.fulfill()
         }
         wait(for: [expectation], timeout: 3.0)
@@ -151,7 +154,13 @@ final class SecurityScanTests: XCTestCase {
         // 环境变量名如 FUSION_MLX_API_KEY、字段名如 mlxApiKey 不算泄露。
         // 仅匹配被赋了非空字面量的敏感字段（形如 key = "value"）。
         // 空串初始化如 password = ""、环境变量名引用如 FUSION_MLX_API_KEY 不算泄露。
-        let sensitivePatterns = ["SECRET_KEY\\s*=\\s*\"[^\"]+\"", "API_KEY\\s*=\\s*\"[^\"]+\"", "password\\s*=\\s*\"[^\"]+\""]
+        // (?m)multiline + (?:^|[^\w"]) 前置: 排除 i18n dict key 形如 "doc_auth_password" = "..."
+        // (password 紧前是 " 属 enum/dict rawValue 标识符, 非密钥赋值)
+        let sensitivePatterns = [
+            "(?m)(?:^|[^\\w\"])SECRET_KEY\\s*=\\s*\"[^\"]+\"",
+            "(?m)(?:^|[^\\w\"])API_KEY\\s*=\\s*\"[^\"]+\"",
+            "(?m)(?:^|[^\\w\"])password\\s*=\\s*\"[^\"]+\"",
+        ]
         for file in files {
             let path = "\(sourceDir)/\(file)"
             guard let content = try? String(contentsOfFile: path) else { continue }

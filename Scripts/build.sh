@@ -15,7 +15,7 @@ CONFIGURATION="${CONFIGURATION:-release}"
 
 # Callers: build.sh package/dmg/sign. Affected API: VERSION variable → DMG filename + Info.plist CFBundleShortVersionString. Data: version string. User: "修复 Release workflow"
 # 版本信息
-VERSION="0.1.40"
+VERSION="0.1.41"
 BUILD_NUM=$(date +%Y%m%d%H%M)
 
 # 颜色
@@ -160,17 +160,36 @@ PLIST
         else
             warn "fusion-design CLI 未找到, 跳过"
         fi
-        # 更新 wasm
-        local fd_wasm="$fd_dir/target/wasm32-unknown-unknown/release/fd_host_web_bg.wasm"
+        # 更新 wasm (issue #206: 拒绝静默回退陈旧件)
+        local fd_target="$fd_dir/target/wasm32-unknown-unknown"
+        local fd_wasm="$fd_target/release/fd_host_web_bg.wasm"
+        local fd_js="$fd_target/release/fd_host_web.js"
+        local wasm_profile="release"
         if [ ! -f "$fd_wasm" ]; then
-            fd_wasm="$fd_dir/target/wasm32-unknown-unknown/debug/fd_host_web_bg.wasm"
+            fd_wasm="$fd_target/debug/fd_host_web_bg.wasm"
+            fd_js="$fd_target/debug/fd_host_web.js"
+            wasm_profile="debug"
         fi
-        if [ -f "$fd_wasm" ]; then
+        # 校验 bindgen 产物齐全: _bg.wasm + .js 缺一不可
+        if [ -d "$fd_target" ] && { [ ! -f "$fd_wasm" ] || [ ! -f "$fd_js" ]; }; then
+            warn "⚠️  fusion-design target 存在但缺 wasm-bindgen 产物 (profile=$wasm_profile)"
+            warn "    需先在 fusion-design 跑 wasm-bindgen 后处理, 否则回退内置陈旧 wasm"
+            warn "    缺失: $([ ! -f "$fd_wasm" ] && echo "_bg.wasm") $([ ! -f "$fd_js" ] && echo ".js")"
+        fi
+        if [ -f "$fd_wasm" ] && [ -f "$fd_js" ]; then
             cp "$fd_wasm" "$app_dir/Resources/wasm/"
-            local fd_js="$fd_dir/target/wasm32-unknown-unknown/release/fd_host_web.js"
-            [ ! -f "$fd_js" ] && fd_js="$fd_dir/target/wasm32-unknown-unknown/debug/fd_host_web.js"
-            [ -f "$fd_js" ] && cp "$fd_js" "$app_dir/Resources/wasm/"
-            info "✅ 复制 fd-host-web wasm + js glue"
+            cp "$fd_js" "$app_dir/Resources/wasm/"
+            info "✅ 复制 fd-host-web wasm + js glue (profile=$wasm_profile)"
+            info "    wasm sha256: $(shasum -a 256 "$fd_wasm" | awk '{print $1}')"
+            info "    js   sha256: $(shasum -a 256 "$fd_js" | awk '{print $1}')"
+        else
+            # 显式回退内置件, 非静默 (issue #206)
+            local builtin_wasm="$app_dir/Resources/wasm/fd_host_web_bg.wasm"
+            warn "⚠️  回退内置 fd-host-web wasm (无新 bindgen 产物)"
+            if [ -f "$builtin_wasm" ]; then
+                warn "    builtin wasm sha256: $(shasum -a 256 "$builtin_wasm" | awk '{print $1}')"
+                warn "    ⚠️  前端跑的是内置旧版, 可能与 fd-cli Rust crate 版本错配"
+            fi
         fi
     else
         warn "fusion-design 源码未找到, 跳过 CLI + wasm 构建"
