@@ -6,32 +6,45 @@ import os.log
 // Data schemas: TrainerRun/TrainerPreset/TrainerDataset/TrainerAdapter/TrainerProgressEvent (System/TrainerBridge.swift).
 // User instruction: "continue Task" — fusion-trainer RunManager GUI panel (#175)
 
+private let trainerViewLogger = Logger(subsystem: "com.fusion.studio", category: "TrainerView")
+
 struct TrainerView: View {
     @Environment(\.studioTheme) private var theme
     @EnvironmentObject var bridge: TrainerBridge
     @State private var selectedTab: TrainerTab = .runs
 
     enum TrainerTab: String, CaseIterable {
-        case runs = "训练运行"
-        case start = "启动训练"
-        case presets = "预设"
-        case datasets = "数据集"
-        case adapters = "适配器"
-        case info = "环境信息"
+        case runs
+        case start
+        case presets
+        case datasets
+        case adapters
+        case info
+
+        var localizedName: String {
+            switch self {
+            case .runs:      return I18nManager.shared.t(.tr_tab_runs)
+            case .start:     return I18nManager.shared.t(.tr_tab_start)
+            case .presets:   return I18nManager.shared.t(.tr_tab_presets)
+            case .datasets:  return I18nManager.shared.t(.tr_tab_datasets)
+            case .adapters:  return I18nManager.shared.t(.tr_tab_adapters)
+            case .info:      return I18nManager.shared.t(.tr_tab_info)
+            }
+        }
     }
 
     var body: some View {
         VStack(spacing: 0) {
             ScreenHeader(
                 eyebrow: "Fusion Trainer",
-                title: "训练管理",
-                subtitle: "SFT / RLSL / DPO / ORPO / GRPO — 本地训练编排，通过 trainer.* IPC 委托 fusion-mlx 执行梯度循环。"
+                title: I18nManager.shared.t(.tr_title),
+                subtitle: I18nManager.shared.t(.tr_subtitle)
             )
 
             HStack(spacing: 8) {
                 Picker("", selection: $selectedTab) {
                     ForEach(TrainerTab.allCases, id: \.self) { tab in
-                        Label(tab.rawValue, systemImage: tabIcon(tab)).tag(tab)
+                        Label(tab.localizedName, systemImage: tabIcon(tab)).tag(tab)
                     }
                 }
                 .pickerStyle(.segmented)
@@ -39,7 +52,7 @@ struct TrainerView: View {
                 Button {
                     Task { await refreshAll() }
                 } label: {
-                    Label("刷新", systemImage: "arrow.clockwise")
+                    Label(I18nManager.shared.t(.tr_btn_refresh), systemImage: "arrow.clockwise")
                 }
                 .buttonStyle(.bordered).controlSize(.small)
             }
@@ -53,7 +66,7 @@ struct TrainerView: View {
                     Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.orange)
                     Text(err).font(.caption).foregroundColor(theme.textSecondary).lineLimit(2)
                     Spacer()
-                    Button("清除") { bridge.lastError = nil }.buttonStyle(.borderless).controlSize(.small)
+                    Button(I18nManager.shared.t(.tr_btn_clear)) { bridge.lastError = nil }.buttonStyle(.borderless).controlSize(.small)
                 }
                 .padding(.horizontal, 12).padding(.vertical, 6)
                 .background(theme.accentSoft.opacity(0.3))
@@ -110,7 +123,7 @@ struct TrainerRunsTab: View {
     private var runsList: some View {
         VStack(spacing: 0) {
             if bridge.runs.isEmpty {
-                EmptyStateView(icon: "tray", text: "暂无训练运行。在「启动训练」发起一次 SFT 或 RLSL。")
+                EmptyStateView(icon: "tray", text: I18nManager.shared.t(.tr_runs_empty))
             } else {
                 List(bridge.runs, selection: Binding(
                     get: { bridge.selectedRun?.run_id },
@@ -157,26 +170,26 @@ struct TrainerRunsTab: View {
                             if run.status == "running" {
                                 Button(role: .destructive) {
                                     Task { await bridge.stopRun(runId: run.run_id) }
-                                } label: { Label("停止", systemImage: "stop.fill") }
+                                } label: { Label(I18nManager.shared.t(.tr_run_stop), systemImage: "stop.fill") }
                                 .buttonStyle(.borderedProminent).tint(theme.accentDestructive).controlSize(.small)
                             }
                         }
 
-                        detailRow("状态", run.status)
-                        detailRow("进度", String(format: "%.1f%%", run.progress * 100))
-                        detailRow("步数", "\(run.current_step) / \(run.total_steps)")
+                        detailRow(I18nManager.shared.t(.tr_detail_status), run.status)
+                        detailRow(I18nManager.shared.t(.tr_detail_progress), String(format: "%.1f%%", run.progress * 100))
+                        detailRow(I18nManager.shared.t(.tr_detail_steps), "\(run.current_step) / \(run.total_steps)")
                         if let err = run.error, !err.isEmpty {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("错误").font(.caption.bold()).foregroundColor(.red)
+                                Text(I18nManager.shared.t(.tr_detail_error)).font(.caption.bold()).foregroundColor(.red)
                                 Text(err).font(.caption).foregroundColor(.red).padding(8)
                                     .background(theme.accentSoft.opacity(0.3)).cornerRadius(6)
                             }
                         }
 
                         Divider()
-                        Text("实时指标").font(.subheadline.bold())
+                        Text(I18nManager.shared.t(.tr_detail_realtime)).font(.subheadline.bold())
                         if bridge.progressEvents.isEmpty {
-                            Text("等待事件流…").font(.caption).foregroundColor(theme.textTertiary)
+                            Text(I18nManager.shared.t(.tr_detail_wait_events)).font(.caption).foregroundColor(theme.textTertiary)
                         } else {
                             TrainerProgressChart(events: bridge.progressEvents)
                                 .frame(height: 160)
@@ -200,7 +213,7 @@ struct TrainerRunsTab: View {
                     .padding(16)
                 }
             } else {
-                EmptyStateView(icon: "sidebar.left", text: "选择左侧运行查看详情与实时指标。")
+                EmptyStateView(icon: "sidebar.left", text: I18nManager.shared.t(.tr_detail_select_hint))
             }
         }
         .background(theme.contentBg)
@@ -287,34 +300,44 @@ struct TrainerStartTab: View {
     @State private var loraRank: Int = 16
     @State private var lr: Double = 1e-4
 
-    enum TrainerMode: String, CaseIterable { case sft = "SFT 微调", rlsl = "RLSL 对齐" }
+    enum TrainerMode: String, CaseIterable {
+        case sft
+        case rlsl
+
+        var localizedName: String {
+            switch self {
+            case .sft:  return I18nManager.shared.t(.tr_mode_sft)
+            case .rlsl: return I18nManager.shared.t(.tr_mode_rlsl)
+            }
+        }
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Picker("模式", selection: $mode) {
-                    ForEach(TrainerMode.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                Picker(I18nManager.shared.t(.tr_start_label_mode), selection: $mode) {
+                    ForEach(TrainerMode.allCases, id: \.self) { Text($0.localizedName).tag($0) }
                 }
                 .pickerStyle(.segmented)
 
                 Group {
                     Form {
-                        Section("模型与数据") {
-                            TextField("基础模型", text: $model)
-                            TextField("数据集", text: $dataset)
-                            Picker("预设", selection: $preset) {
+                        Section(I18nManager.shared.t(.tr_start_section_model)) {
+                            TextField(I18nManager.shared.t(.tr_start_label_model), text: $model)
+                            TextField(I18nManager.shared.t(.tr_start_label_dataset), text: $dataset)
+                            Picker(I18nManager.shared.t(.tr_start_label_preset), selection: $preset) {
                                 ForEach(bridge.presets) { p in Text(p.name).tag(p.name) }
                             }
                         }
                         if mode == .rlsl {
-                            Section("RLSL 方法") {
+                            Section(I18nManager.shared.t(.tr_start_section_rlsl)) {
                                 Picker("method", selection: $method) {
                                     ForEach(["dpo", "orpo", "grpo"], id: \.self) { Text($0).tag($0) }
                                 }
                                 .pickerStyle(.segmented)
                             }
                         }
-                        Section("训练超参") {
+                        Section(I18nManager.shared.t(.tr_start_section_params)) {
                             Stepper("iters: \(iters)", value: $iters, in: 1...10000, step: 10)
                             Stepper("batch_size: \(batchSize)", value: $batchSize, in: 1...32)
                             Stepper("lora_rank: \(loraRank)", value: $loraRank, in: 4...128, step: 4)
@@ -334,10 +357,15 @@ struct TrainerStartTab: View {
                     Spacer()
                     Button {
                         let cfg = buildConfig()
-                        if mode == .sft { Task { await bridge.startSft(config: cfg) } }
-                        else { Task { await bridge.startRlsl(config: cfg) } }
+                        if mode == .sft {
+                            trainerViewLogger.info("start SFT: model=\(model, privacy: .public) dataset=\(dataset, privacy: .public)")
+                            Task { await bridge.startSft(config: cfg) }
+                        } else {
+                            trainerViewLogger.info("start RLSL: method=\(method, privacy: .public) model=\(model, privacy: .public)")
+                            Task { await bridge.startRlsl(config: cfg) }
+                        }
                     } label: {
-                        Label(bridge.isStarting ? "提交中…" : "启动训练", systemImage: "play.fill")
+                        Label(bridge.isStarting ? I18nManager.shared.t(.tr_start_btn_submitting) : I18nManager.shared.t(.tr_start_btn_start), systemImage: "play.fill")
                     }
                     .buttonStyle(.borderedProminent).controlSize(.regular)
                     .disabled(bridge.isStarting || model.isEmpty || dataset.isEmpty)
@@ -382,7 +410,7 @@ struct TrainerPresetsTab: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 8) {
                 if bridge.presets.isEmpty {
-                    EmptyStateView(icon: "slider.horizontal.3", text: "无预设。确认 fusion-trainer 已安装且 IPC 已连接。")
+                    EmptyStateView(icon: "slider.horizontal.3", text: I18nManager.shared.t(.tr_presets_empty))
                 } else {
                     ForEach(bridge.presets) { p in
                         VStack(alignment: .leading, spacing: 6) {
@@ -416,7 +444,7 @@ struct TrainerDatasetsTab: View {
     var body: some View {
         VStack(spacing: 0) {
             if bridge.datasets.isEmpty {
-                EmptyStateView(icon: "doc.text", text: "无数据集。fusion-trainer 从 hub 路径只读加载。")
+                EmptyStateView(icon: "doc.text", text: I18nManager.shared.t(.tr_datasets_empty))
             } else {
                 List(bridge.datasets) { ds in
                     HStack {
@@ -425,9 +453,9 @@ struct TrainerDatasetsTab: View {
                             Text(ds.path).font(.caption2).foregroundColor(theme.textTertiary).lineLimit(1)
                         }
                         Spacer()
-                        Text("\(ds.samples) 样本").font(.caption2).foregroundColor(theme.textSecondary)
+                        Text(I18nManager.shared.tf(.tr_datasets_samples, ds.samples)).font(.caption2).foregroundColor(theme.textSecondary)
                         Text(ds.format).font(.caption2).foregroundColor(theme.accentText)
-                        Button("预览") {
+                        Button(I18nManager.shared.t(.tr_datasets_preview)) {
                             previewName = ds.name
                             Task { await bridge.previewDataset(name: ds.name) }
                         }
@@ -460,7 +488,7 @@ struct TrainerAdaptersTab: View {
     var body: some View {
         Group {
             if bridge.adapters.isEmpty {
-                EmptyStateView(icon: "externaldrive.badge.plus", text: "无适配器。训练完成后权重写入 ~/.fusion-mlx/adapters/。")
+                EmptyStateView(icon: "externaldrive.badge.plus", text: I18nManager.shared.t(.tr_adapters_empty))
             } else {
                 List(bridge.adapters) { ad in
                     HStack {
@@ -480,13 +508,13 @@ struct TrainerAdaptersTab: View {
             }
         }
         .background(theme.contentBg)
-        .confirmationDialog("删除适配器 \(pendingDelete?.name ?? "")？此操作不可恢复。",
+        .confirmationDialog(I18nManager.shared.tf(.tr_adapters_delete_title, pendingDelete?.name ?? ""),
                             isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } })) {
-            Button("删除", role: .destructive) {
+            Button(I18nManager.shared.t(.tr_adapters_delete_btn), role: .destructive) {
                 if let ad = pendingDelete { Task { await bridge.deleteAdapter(name: ad.name) } }
                 pendingDelete = nil
             }
-            Button("取消", role: .cancel) { pendingDelete = nil }
+            Button(I18nManager.shared.t(.tr_adapters_cancel), role: .cancel) { pendingDelete = nil }
         }
     }
 }
@@ -501,7 +529,7 @@ struct TrainerInfoTab: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 6) {
                 if bridge.info.isEmpty {
-                    EmptyStateView(icon: "info.circle", text: "无环境信息。")
+                    EmptyStateView(icon: "info.circle", text: I18nManager.shared.t(.tr_info_empty))
                 } else {
                     ForEach(bridge.info.keys.sorted(), id: \.self) { key in
                         HStack(alignment: .top) {

@@ -1414,6 +1414,45 @@ enum I18nKey: String, CaseIterable {
     case train_log_api_failed = "train_log_api_failed"
     case train_log_ensure_mlx = "train_log_ensure_mlx"
     case train_log_paused = "train_log_paused"
+    case tr_tab_runs = "tr_tab_runs"
+    case tr_tab_start = "tr_tab_start"
+    case tr_tab_presets = "tr_tab_presets"
+    case tr_tab_datasets = "tr_tab_datasets"
+    case tr_tab_adapters = "tr_tab_adapters"
+    case tr_tab_info = "tr_tab_info"
+    case tr_mode_sft = "tr_mode_sft"
+    case tr_mode_rlsl = "tr_mode_rlsl"
+    case tr_title = "tr_title"
+    case tr_subtitle = "tr_subtitle"
+    case tr_btn_refresh = "tr_btn_refresh"
+    case tr_btn_clear = "tr_btn_clear"
+    case tr_runs_empty = "tr_runs_empty"
+    case tr_run_stop = "tr_run_stop"
+    case tr_detail_status = "tr_detail_status"
+    case tr_detail_progress = "tr_detail_progress"
+    case tr_detail_steps = "tr_detail_steps"
+    case tr_detail_error = "tr_detail_error"
+    case tr_detail_realtime = "tr_detail_realtime"
+    case tr_detail_wait_events = "tr_detail_wait_events"
+    case tr_detail_select_hint = "tr_detail_select_hint"
+    case tr_start_section_model = "tr_start_section_model"
+    case tr_start_section_rlsl = "tr_start_section_rlsl"
+    case tr_start_section_params = "tr_start_section_params"
+    case tr_start_label_model = "tr_start_label_model"
+    case tr_start_label_dataset = "tr_start_label_dataset"
+    case tr_start_label_preset = "tr_start_label_preset"
+    case tr_start_label_mode = "tr_start_label_mode"
+    case tr_start_btn_submitting = "tr_start_btn_submitting"
+    case tr_start_btn_start = "tr_start_btn_start"
+    case tr_presets_empty = "tr_presets_empty"
+    case tr_datasets_empty = "tr_datasets_empty"
+    case tr_datasets_samples = "tr_datasets_samples"
+    case tr_datasets_preview = "tr_datasets_preview"
+    case tr_adapters_empty = "tr_adapters_empty"
+    case tr_adapters_delete_title = "tr_adapters_delete_title"
+    case tr_adapters_delete_btn = "tr_adapters_delete_btn"
+    case tr_adapters_cancel = "tr_adapters_cancel"
+    case tr_info_empty = "tr_info_empty"
     case proj_subtitle = "proj_subtitle"
     case proj_searchPh = "proj_searchPh"
     case proj_newHelp = "proj_newHelp"
@@ -5134,6 +5173,45 @@ let zhCNTranslations: [String: String] = [
     "train_log_api_failed": "⚠️ 调用 fusion-mlx 训练 API 失败: %@",
     "train_log_ensure_mlx": "请确保 fusion-mlx 服务正在运行且支持训练接口。",
     "train_log_paused": "⏸️ 训练已暂停",
+    "tr_tab_runs": "训练运行",
+    "tr_tab_start": "启动训练",
+    "tr_tab_presets": "预设",
+    "tr_tab_datasets": "数据集",
+    "tr_tab_adapters": "适配器",
+    "tr_tab_info": "环境信息",
+    "tr_mode_sft": "SFT 微调",
+    "tr_mode_rlsl": "RLSL 对齐",
+    "tr_title": "训练管理",
+    "tr_subtitle": "SFT / RLSL / DPO / ORPO / GRPO — 本地训练编排，通过 trainer.* IPC 委托 fusion-mlx 执行梯度循环。",
+    "tr_btn_refresh": "刷新",
+    "tr_btn_clear": "清除",
+    "tr_runs_empty": "暂无训练运行。在「启动训练」发起一次 SFT 或 RLSL。",
+    "tr_run_stop": "停止",
+    "tr_detail_status": "状态",
+    "tr_detail_progress": "进度",
+    "tr_detail_steps": "步数",
+    "tr_detail_error": "错误",
+    "tr_detail_realtime": "实时指标",
+    "tr_detail_wait_events": "等待事件流…",
+    "tr_detail_select_hint": "选择左侧运行查看详情与实时指标。",
+    "tr_start_section_model": "模型与数据",
+    "tr_start_section_rlsl": "RLSL 方法",
+    "tr_start_section_params": "训练超参",
+    "tr_start_label_model": "基础模型",
+    "tr_start_label_dataset": "数据集",
+    "tr_start_label_preset": "预设",
+    "tr_start_label_mode": "模式",
+    "tr_start_btn_submitting": "提交中…",
+    "tr_start_btn_start": "启动训练",
+    "tr_presets_empty": "无预设。确认 fusion-trainer 已安装且 IPC 已连接。",
+    "tr_datasets_empty": "无数据集。fusion-trainer 从 hub 路径只读加载。",
+    "tr_datasets_samples": "%d 样本",
+    "tr_datasets_preview": "预览",
+    "tr_adapters_empty": "无适配器。训练完成后权重写入 ~/.fusion-mlx/adapters/。",
+    "tr_adapters_delete_title": "删除适配器 %@？此操作不可恢复。",
+    "tr_adapters_delete_btn": "删除",
+    "tr_adapters_cancel": "取消",
+    "tr_info_empty": "无环境信息。",
     "proj_subtitle": "管理你的 AI 项目、指令和知识库",
     "proj_searchPh": "搜索项目",
     "proj_newHelp": "新建项目",
@@ -8807,6 +8885,45 @@ let enUSTranslations: [String: String] = [
     "train_log_api_failed": "⚠️ Failed to call fusion-mlx training API: %@",
     "train_log_ensure_mlx": "Ensure fusion-mlx service is running and supports training interface.",
     "train_log_paused": "⏸️ Training paused",
+    "tr_tab_runs": "Runs",
+    "tr_tab_start": "Start",
+    "tr_tab_presets": "Presets",
+    "tr_tab_datasets": "Datasets",
+    "tr_tab_adapters": "Adapters",
+    "tr_tab_info": "Info",
+    "tr_mode_sft": "SFT Fine-tune",
+    "tr_mode_rlsl": "RLSL Alignment",
+    "tr_title": "Training Manager",
+    "tr_subtitle": "SFT / RLSL / DPO / ORPO / GRPO — local training orchestration via trainer.* IPC delegating gradient loops to fusion-mlx.",
+    "tr_btn_refresh": "Refresh",
+    "tr_btn_clear": "Clear",
+    "tr_runs_empty": "No training runs. Start an SFT or RLSL from Start.",
+    "tr_run_stop": "Stop",
+    "tr_detail_status": "Status",
+    "tr_detail_progress": "Progress",
+    "tr_detail_steps": "Steps",
+    "tr_detail_error": "Error",
+    "tr_detail_realtime": "Realtime Metrics",
+    "tr_detail_wait_events": "Waiting for event stream…",
+    "tr_detail_select_hint": "Select a run on the left to view details and realtime metrics.",
+    "tr_start_section_model": "Model & Data",
+    "tr_start_section_rlsl": "RLSL Method",
+    "tr_start_section_params": "Training Hyperparams",
+    "tr_start_label_model": "Base model",
+    "tr_start_label_dataset": "Dataset",
+    "tr_start_label_preset": "Preset",
+    "tr_start_label_mode": "Mode",
+    "tr_start_btn_submitting": "Submitting…",
+    "tr_start_btn_start": "Start Training",
+    "tr_presets_empty": "No presets. Ensure fusion-trainer is installed and IPC is connected.",
+    "tr_datasets_empty": "No datasets. fusion-trainer loads read-only from hub paths.",
+    "tr_datasets_samples": "%d samples",
+    "tr_datasets_preview": "Preview",
+    "tr_adapters_empty": "No adapters. Weights are written to ~/.fusion-mlx/adapters/ after training.",
+    "tr_adapters_delete_title": "Delete adapter %@? This cannot be undone.",
+    "tr_adapters_delete_btn": "Delete",
+    "tr_adapters_cancel": "Cancel",
+    "tr_info_empty": "No environment info.",
     "proj_subtitle": "Manage your AI projects, instructions and knowledge base",
     "proj_searchPh": "Search projects",
     "proj_newHelp": "New project",
@@ -12474,6 +12591,45 @@ let jaJPTranslations: [String: String] = [
     "train_log_api_failed": "⚠️ fusion-mlx 訓練 API 呼出失敗: %@",
     "train_log_ensure_mlx": "fusion-mlx サービスが実行中で訓練インターフェースをサポートしていることを確認してください。",
     "train_log_paused": "⏸️ 訓練一時停止",
+    "tr_tab_runs": "訓練実行",
+    "tr_tab_start": "訓練開始",
+    "tr_tab_presets": "プリセット",
+    "tr_tab_datasets": "データセット",
+    "tr_tab_adapters": "アダプタ",
+    "tr_tab_info": "環境情報",
+    "tr_mode_sft": "SFT ファインチューニング",
+    "tr_mode_rlsl": "RLSL アライメント",
+    "tr_title": "訓練管理",
+    "tr_subtitle": "SFT / RLSL / DPO / ORPO / GRPO — ローカル訓練オーケストレーション、trainer.* IPC 経由で fusion-mlx に勾配ループを委譲。",
+    "tr_btn_refresh": "更新",
+    "tr_btn_clear": "クリア",
+    "tr_runs_empty": "訓練実行がありません。訓練開始から SFT または RLSL を開始してください。",
+    "tr_run_stop": "停止",
+    "tr_detail_status": "ステータス",
+    "tr_detail_progress": "進捗",
+    "tr_detail_steps": "ステップ",
+    "tr_detail_error": "エラー",
+    "tr_detail_realtime": "リアルタイム指標",
+    "tr_detail_wait_events": "イベントストリーム待機中…",
+    "tr_detail_select_hint": "左側の実行を選択して詳細とリアルタイム指標を表示。",
+    "tr_start_section_model": "モデルとデータ",
+    "tr_start_section_rlsl": "RLSL メソッド",
+    "tr_start_section_params": "訓練ハイパーパラメータ",
+    "tr_start_label_model": "ベースモデル",
+    "tr_start_label_dataset": "データセット",
+    "tr_start_label_preset": "プリセット",
+    "tr_start_label_mode": "モード",
+    "tr_start_btn_submitting": "送信中…",
+    "tr_start_btn_start": "訓練開始",
+    "tr_presets_empty": "プリセットがありません。fusion-trainer がインストール済みで IPC が接続されていることを確認してください。",
+    "tr_datasets_empty": "データセットがありません。fusion-trainer は hub パスから読み取り専用で読み込みます。",
+    "tr_datasets_samples": "%d サンプル",
+    "tr_datasets_preview": "プレビュー",
+    "tr_adapters_empty": "アダプタがありません。訓練完了後の重みは ~/.fusion-mlx/adapters/ に書き込まれます。",
+    "tr_adapters_delete_title": "アダプタ %@ を削除しますか？この操作は元に戻せません。",
+    "tr_adapters_delete_btn": "削除",
+    "tr_adapters_cancel": "キャンセル",
+    "tr_info_empty": "環境情報がありません。",
     "proj_subtitle": "AIプロジェクト・指示・ナレッジベースを管理",
     "proj_searchPh": "プロジェクトを検索",
     "proj_newHelp": "新規プロジェクト",
@@ -16141,6 +16297,45 @@ let koKRTranslations: [String: String] = [
     "train_log_api_failed": "⚠️ fusion-mlx 학습 API 호출 실패: %@",
     "train_log_ensure_mlx": "fusion-mlx 서비스가 실행 중이고 학습 인터페이스를 지원하는지 확인하세요.",
     "train_log_paused": "⏸️ 학습 일시정지",
+    "tr_tab_runs": "학습 실행",
+    "tr_tab_start": "학습 시작",
+    "tr_tab_presets": "프리셋",
+    "tr_tab_datasets": "데이터셋",
+    "tr_tab_adapters": "어댑터",
+    "tr_tab_info": "환경 정보",
+    "tr_mode_sft": "SFT 파인튜닝",
+    "tr_mode_rlsl": "RLSL 정렬",
+    "tr_title": "학습 관리",
+    "tr_subtitle": "SFT / RLSL / DPO / ORPO / GRPO — 로컬 학습 오케스트레이션, trainer.* IPC로 fusion-mlx에 그래디언트 루프 위임.",
+    "tr_btn_refresh": "새로고침",
+    "tr_btn_clear": "지우기",
+    "tr_runs_empty": "학습 실행이 없습니다. 학습 시작에서 SFT 또는 RLSL을 시작하세요.",
+    "tr_run_stop": "중지",
+    "tr_detail_status": "상태",
+    "tr_detail_progress": "진행률",
+    "tr_detail_steps": "스텝",
+    "tr_detail_error": "오류",
+    "tr_detail_realtime": "실시간 지표",
+    "tr_detail_wait_events": "이벤트 스트림 대기 중…",
+    "tr_detail_select_hint": "좌측 실행을 선택하여 상세와 실시간 지표를 확인하세요.",
+    "tr_start_section_model": "모델과 데이터",
+    "tr_start_section_rlsl": "RLSL 메서드",
+    "tr_start_section_params": "학습 하이퍼파라미터",
+    "tr_start_label_model": "기본 모델",
+    "tr_start_label_dataset": "데이터셋",
+    "tr_start_label_preset": "프리셋",
+    "tr_start_label_mode": "모드",
+    "tr_start_btn_submitting": "제출 중…",
+    "tr_start_btn_start": "학습 시작",
+    "tr_presets_empty": "프리셋이 없습니다. fusion-trainer가 설치되어 있고 IPC가 연결되어 있는지 확인하세요.",
+    "tr_datasets_empty": "데이터셋이 없습니다. fusion-trainer는 hub 경로에서 읽기 전용으로 로드합니다.",
+    "tr_datasets_samples": "%d 샘플",
+    "tr_datasets_preview": "미리보기",
+    "tr_adapters_empty": "어댑터가 없습니다. 학습 완료 후 가중치는 ~/.fusion-mlx/adapters/에 기록됩니다.",
+    "tr_adapters_delete_title": "어댑터 %@을(를) 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+    "tr_adapters_delete_btn": "삭제",
+    "tr_adapters_cancel": "취소",
+    "tr_info_empty": "환경 정보가 없습니다.",
     "proj_subtitle": "AI 프로젝트·지시·지식베이스 관리",
     "proj_searchPh": "프로젝트 검색",
     "proj_newHelp": "새 프로젝트",
