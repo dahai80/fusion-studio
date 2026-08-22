@@ -5,16 +5,30 @@
 
 import SwiftUI
 import Foundation
+import os.log
+
+private let docGenLogger = Logger(subsystem: "com.fusion.studio", category: "DocGeneratorView")
 
 // MARK: - 文档类型
 
 enum DocGenType: String, CaseIterable {
-    case api        = "API 文档"
-    case arch       = "架构文档"
-    case changelog  = "更新日志"
-    case readme     = "README"
-    case module     = "模块文档"
-    case full       = "完整文档"
+    case api
+    case arch
+    case changelog
+    case readme
+    case module
+    case full
+
+    var localizedName: String {
+        switch self {
+        case .api:       return I18nManager.shared.t(.docgen_type_api)
+        case .arch:      return I18nManager.shared.t(.docgen_type_arch)
+        case .changelog: return I18nManager.shared.t(.docgen_type_changelog)
+        case .readme:    return I18nManager.shared.t(.docgen_type_readme)
+        case .module:    return I18nManager.shared.t(.docgen_type_module)
+        case .full:      return I18nManager.shared.t(.docgen_type_full)
+        }
+    }
 
     var icon: String {
         switch self {
@@ -28,12 +42,12 @@ enum DocGenType: String, CaseIterable {
     }
     var description: String {
         switch self {
-        case .api:       return "从源代码生成 JSON-RPC API 参考文档"
-        case .arch:      return "从项目结构生成架构概览文档"
-        case .changelog: return "从 Git 历史生成更新日志"
-        case .readme:    return "生成项目 README 文档"
-        case .module:    return "为每个模块生成独立文档"
-        case .full:      return "生成完整文档集"
+        case .api:       return I18nManager.shared.t(.docgen_desc_api)
+        case .arch:      return I18nManager.shared.t(.docgen_desc_arch)
+        case .changelog: return I18nManager.shared.t(.docgen_desc_changelog)
+        case .readme:    return I18nManager.shared.t(.docgen_desc_readme)
+        case .module:    return I18nManager.shared.t(.docgen_desc_module)
+        case .full:      return I18nManager.shared.t(.docgen_desc_full)
         }
     }
 }
@@ -99,7 +113,10 @@ class DocGenerator: ObservableObject {
         isGenerating = true
         progress = 0
         log = []
-        log.append("开始生成 \(type.rawValue)...")
+        let name = type.localizedName
+        let startMsg = I18nManager.shared.tf(.docgen_log_start, name)
+        log.append(startMsg)
+        docGenLogger.info("start generate type=\(type.rawValue, privacy: .public)")
 
         switch type {
         case .api:       generateAPIDocs()
@@ -113,72 +130,68 @@ class DocGenerator: ObservableObject {
 
     private func generateAPIDocs() {
         simulateGeneration(steps: [
-            ("扫描 IPC 方法定义...", 0.1),
-            ("解析 JSON-RPC 2.0 接口...", 0.3),
-            ("生成请求/响应示例...", 0.5),
-            ("生成错误码文档...", 0.7),
-            ("生成 Swift 客户端 API...", 0.85),
-            ("写入文件...", 1.0),
+            (I18nManager.shared.t(.docgen_step_scan_ipc), 0.1),
+            (I18nManager.shared.t(.docgen_step_parse_rpc), 0.3),
+            (I18nManager.shared.t(.docgen_step_gen_request), 0.5),
+            (I18nManager.shared.t(.docgen_step_gen_errors), 0.7),
+            (I18nManager.shared.t(.docgen_step_gen_client), 0.85),
+            (I18nManager.shared.t(.docgen_step_write_file), 1.0),
         ], outputName: "api-reference.md", type: .api)
     }
 
     private func generateArchDocs() {
         simulateGeneration(steps: [
-            ("扫描项目结构...", 0.1),
-            ("解析模块依赖关系...", 0.3),
-            ("生成架构图...", 0.5),
-            ("生成模块描述...", 0.7),
-            ("生成数据流文档...", 0.85),
-            ("写入文件...", 1.0),
+            (I18nManager.shared.t(.docgen_step_scan_structure), 0.1),
+            (I18nManager.shared.t(.docgen_step_parse_deps), 0.3),
+            (I18nManager.shared.t(.docgen_step_gen_arch_diagram), 0.5),
+            (I18nManager.shared.t(.docgen_step_gen_module_desc), 0.7),
+            (I18nManager.shared.t(.docgen_step_gen_dataflow), 0.85),
+            (I18nManager.shared.t(.docgen_step_write_file), 1.0),
         ], outputName: "architecture.md", type: .arch)
     }
 
     private func generateChangelog() {
         simulateGeneration(steps: [
-            ("读取 Git 历史...", 0.1),
-            ("解析提交信息...", 0.3),
-            ("分类变更类型...", 0.5),
-            ("生成版本列表...", 0.7),
-            ("生成更新日志...", 0.9),
-            ("写入文件...", 1.0),
+            (I18nManager.shared.t(.docgen_step_read_git), 0.1),
+            (I18nManager.shared.t(.docgen_step_parse_commits), 0.3),
+            (I18nManager.shared.t(.docgen_step_classify_changes), 0.5),
+            (I18nManager.shared.t(.docgen_step_gen_versions), 0.7),
+            (I18nManager.shared.t(.docgen_step_gen_changelog), 0.9),
+            (I18nManager.shared.t(.docgen_step_write_file), 1.0),
         ], outputName: "CHANGELOG.md", type: .changelog)
     }
 
     private func generateREADME() {
         simulateGeneration(steps: [
-            ("扫描项目信息...", 0.1),
-            ("生成项目描述...", 0.3),
-            ("生成功能列表...", 0.5),
-            ("生成安装说明...", 0.7),
-            ("生成使用示例...", 0.85),
-            ("写入文件...", 1.0),
+            (I18nManager.shared.t(.docgen_step_scan_project), 0.1),
+            (I18nManager.shared.t(.docgen_step_gen_project_desc), 0.3),
+            (I18nManager.shared.t(.docgen_step_gen_features), 0.5),
+            (I18nManager.shared.t(.docgen_step_gen_install), 0.7),
+            (I18nManager.shared.t(.docgen_step_gen_usage), 0.85),
+            (I18nManager.shared.t(.docgen_step_write_file), 1.0),
         ], outputName: "README.md", type: .readme)
     }
 
     private func generateModuleDocs() {
         simulateGeneration(steps: [
-            ("扫描模块列表...", 0.1),
-            ("解析模块接口...", 0.2),
-            ("生成 Design 模块文档...", 0.35),
-            ("生成 Code 模块文档...", 0.45),
-            ("生成 Simulation 模块文档...", 0.55),
-            ("生成 Model Hub 模块文档...", 0.65),
-            ("生成其他模块文档...", 0.8),
-            ("生成索引文件...", 0.9),
-            ("写入文件...", 1.0),
+            (I18nManager.shared.t(.docgen_step_scan_modules), 0.1),
+            (I18nManager.shared.t(.docgen_step_parse_module_api), 0.2),
+            (I18nManager.shared.t(.docgen_step_gen_module_desc), 0.5),
+            (I18nManager.shared.t(.docgen_step_gen_index), 0.9),
+            (I18nManager.shared.t(.docgen_step_write_file), 1.0),
         ], outputName: "modules/index.md", type: .module)
     }
 
     private func generateFullDocs() {
         simulateGeneration(steps: [
-            ("生成 API 文档...", 0.15),
-            ("生成架构文档...", 0.3),
-            ("生成更新日志...", 0.45),
-            ("生成 README...", 0.55),
-            ("生成模块文档...", 0.7),
-            ("生成用户指南...", 0.8),
-            ("生成开发指南...", 0.9),
-            ("生成索引文件...", 1.0),
+            (I18nManager.shared.t(.docgen_step_gen_request), 0.15),
+            (I18nManager.shared.t(.docgen_step_gen_arch_diagram), 0.3),
+            (I18nManager.shared.t(.docgen_step_gen_changelog), 0.45),
+            (I18nManager.shared.t(.docgen_step_gen_project_desc), 0.55),
+            (I18nManager.shared.t(.docgen_step_gen_module_desc), 0.7),
+            (I18nManager.shared.t(.docgen_step_gen_user_guide), 0.8),
+            (I18nManager.shared.t(.docgen_step_gen_dev_guide), 0.9),
+            (I18nManager.shared.t(.docgen_step_gen_index), 1.0),
         ], outputName: "index.html", type: .full)
     }
 
@@ -204,7 +217,6 @@ class DocGenerator: ObservableObject {
         let outputDir = docsOutputDir()
         let filePath = outputDir.appendingPathComponent(outputName)
 
-        // 创建示例文档内容
         let content = generateSampleContent(type: type, name: outputName)
         try? FileManager.default.createDirectory(at: outputDir, withIntermediateDirectories: true)
         try? content.write(to: filePath, atomically: true, encoding: .utf8)
@@ -221,7 +233,9 @@ class DocGenerator: ObservableObject {
             format: config.outputFormat
         )
         generatedFiles.append(doc)
-        log.append("✅ 生成完成: \(outputName) (\(doc.sizeFormatted))")
+        let doneMsg = I18nManager.shared.tf(.docgen_log_done, outputName, doc.sizeFormatted)
+        log.append(doneMsg)
+        docGenLogger.info("generate done name=\(outputName, privacy: .public) size=\(size)")
 
         isGenerating = false
         objectWillChange.send()
@@ -229,50 +243,51 @@ class DocGenerator: ObservableObject {
 
     private func generateSampleContent(type: DocGenType, name: String) -> String {
         let date = DateFormatter.localizedString(from: Date(), dateStyle: .medium, timeStyle: .short)
+        let genTime = I18nManager.shared.tf(.docgen_sample_api_gen_time, date)
         switch type {
         case .api:
             return """
-            # Fusion Studio API 参考文档
+            # \(I18nManager.shared.t(.docgen_sample_api_title))
 
-            > 生成时间: \(date)
-            > 版本: 1.0.0
+            > \(genTime)
+            > \(I18nManager.shared.t(.docgen_sample_api_version))
 
-            ## JSON-RPC 2.0 接口
+            ## \(I18nManager.shared.t(.docgen_sample_api_section))
 
             ### env.health_check
-            运行环境健康检查。
+            \(I18nManager.shared.t(.docgen_sample_api_env_check))
 
-            **请求**: `{"jsonrpc": "2.0", "id": 1, "method": "env.health_check"}`
-            **响应**: `{"jsonrpc": "2.0", "id": 1, "result": [...]}`
+            \(I18nManager.shared.t(.docgen_md_request)): `{"jsonrpc": "2.0", "id": 1, "method": "env.health_check"}`
+            \(I18nManager.shared.t(.docgen_md_response)): `{"jsonrpc": "2.0", "id": 1, "result": [...]}`
 
             ### env.repair
-            修复指定的环境检查项。
+            \(I18nManager.shared.t(.docgen_sample_api_env_repair))
 
-            **参数**: `{"item_id": "mlx"}`
-            **响应**: `{"jsonrpc": "2.0", "id": 1, "result": {"success": true}}`
+            \(I18nManager.shared.t(.docgen_md_params)): `{"item_id": "mlx"}`
+            \(I18nManager.shared.t(.docgen_md_response)): `{"jsonrpc": "2.0", "id": 1, "result": {"success": true}}`
 
             ### mlx.status
-            获取 MLX 推理服务状态。
+            \(I18nManager.shared.t(.docgen_sample_api_mlx_status))
 
-            **响应**: `{"jsonrpc": "2.0", "id": 1, "result": {"running": true, "model": "..."}}`
+            \(I18nManager.shared.t(.docgen_md_response)): `{"jsonrpc": "2.0", "id": 1, "result": {"running": true, "model": "..."}}`
             """
         case .arch:
             return """
-            # Fusion Studio 架构文档
+            # \(I18nManager.shared.t(.docgen_sample_arch_title))
 
-            > 生成时间: \(date)
+            > \(genTime)
 
-            ## 分层架构
+            \(I18nManager.shared.t(.docgen_md_layers))
 
             ```
-            📱 应用层 - SwiftUI 原生桌面
-            🛠️ 容器层 - WKWebView + 原生组件
-            🔗 桥接层 - Unix Domain Socket + JSON-RPC 2.0
-            ⚙️ 服务层 - Rust/Python 守护进程
-            🧠 底座层 - Apple Silicon 原生
+            📱 \(I18nManager.shared.t(.docgen_sample_arch_layer_app))
+            🛠️ \(I18nManager.shared.t(.docgen_sample_arch_layer_container))
+            🔗 \(I18nManager.shared.t(.docgen_sample_arch_layer_bridge))
+            ⚙️ \(I18nManager.shared.t(.docgen_sample_arch_layer_service))
+            🧠 \(I18nManager.shared.t(.docgen_sample_arch_layer_base))
             ```
 
-            ## 模块依赖
+            \(I18nManager.shared.t(.docgen_md_deps))
 
             - Design → IPC → Code
             - Code → IPC → Simulation
@@ -280,305 +295,74 @@ class DocGenerator: ObservableObject {
             """
         case .changelog:
             return """
-            # 更新日志
+            # \(I18nManager.shared.t(.docgen_sample_changelog_title))
 
             ## [1.0.0] - \(date)
 
-            ### 新增
-            - 全部 10 个模块已完善
-            - 局域网协作功能
-            - 插件系统支持
-            - 高级渲染/仿真参数调节
+            \(I18nManager.shared.t(.docgen_sample_changelog_added))
+            \(I18nManager.shared.t(.docgen_md_changelog_bullet1))
+            \(I18nManager.shared.t(.docgen_md_changelog_bullet2))
+            \(I18nManager.shared.t(.docgen_md_changelog_bullet3))
 
-            ### 修复
-            - 多项性能优化和内存泄漏修复
-
-            ## [0.2.0] - 2026-07-10
-
-            ### 新增
-            - Simulation 仿真视图
-            - Model Hub 模型管理
-            - CLI 图形化面板
-
-            ## [Unreleased]
-
-            ## [0.1.42] - 2026-08-22
-
-            ### 新增
-            - Chat/Cowork 共用首页 + 授权文件夹选择交互（审计 P1-1，#217）：UnifiedChatView 顶部 Chat↔Cowork 模式切换；切 Cowork 无已注册文件夹时自动弹 NSOpenPanel 选目录（多选、enforce=true），下发 `desk.system.set_scoped_folder` 到沙箱根；提交走 `desk.workflow.create`+`desk.workflow.run`，`desk.events.*` 轮询实时进度内联为对话气泡（step/artifact/done/error）。新增 `CoworkHomeBridge`（状态机+事件映射纯函数）、`ChatSessionStore.appendMessage`、2 个 desk IPC 方法、13 个 i18n key × 4 语言、16 单测
-
-            ## [0.1.41] - 2026-08-21
-
-            ### 修复
-            - build.sh wasm 同步缺陈旧件告警（#206）：fusion-design target 存在但缺 wasm-bindgen 产物（`_bg.wasm`+`.js`）时显式 WARN，回退内置件打印 sha256，不再静默回退陈旧 wasm 导致前后端版本错配
-            - TrainerBridge 与 RunManager 返回 schema 对齐（#212）：`fetchFullStatus`/`pollProgressOnce` 改读顶层平铺 dict（去掉 `result["run"]` 解包）；`TrainerRun.from` 字段映射 `step`→`current_step`、`created`(int epoch)→`created_at`(格式化)、从 `step/total_steps` 计算 `progress`；`TrainerProgressEvent.from` 归一化原始 mlx events（`type=train_loss`→`metric/value`、`type=val_loss`→`metric/value`、`step` 透传）；进度条/步数/创建时间/损失曲线不再静默空白
-
-            ## [0.1.40] - 2026-08-21
-
-            ### 新增
-            - 多节点集群节点审批 GUI：接入 fusion-multi-node `NodeApprovalManager` 审批后端（`/api/nodes/approve|reject|pending`，后端 PR #14 已落地）；新增 `PendingNode` 模型 + `MultiNodeEngine` `@Published pendingNodes` 3s 轮询 + `approveNode`/`rejectNode` 异步动作，`NodeActionsView` 顶部待审批队列（hostname + ip:port + 通过/拒绝按钮 + 空态），i18n 覆盖 zh/en/ja/ko (PR #215, closes #214)
-            - agent 生命周期补充「撤回发布/取消归档」入口：新增 `agent.unpublish` RPC（上游 fusion-agent-studio #159/#160，published/archived → draft），AgentListViews 右键菜单已发布 agent 显示 Unpublish、已归档显示 Restore to Draft
-            - 调试代码任务支持多语言：上游 CodeSandbox 按 LANGUAGES 注册表分发执行（python/shell/bash/javascript/swift/go/cpp/c，编译型用 clang/clang++），新增 `agent.code_languages` RPC 返回环境实际可用语言；AIAgentDebugView 语言选择器改为据 RPC 动态渲染，不再给出会失败的选项（上游 fusion-agent-studio #161/#162）
-
-            ### 整理
-            - 清理测试/假数据：LogPanelView/CollaborationService/RealTimeService/ProfilerView/AnalyticsDashboardView/AdvancedSettingsView/BenchView 删假数据留空态（等待接通真实后端）；ExternalIntegrationsView 假服务连接/Issues/API 响应替换为真实 URLSession 调用与空态；AgentOrchestrator 内置 5 agent 种子模板保留但假 taskCount 清零
-            - 删死代码：FeaturePlaceholderView（零引用）、Design RAG 兼容 shim（DesignSpecRAGIndexer/ComponentRAGIndexer，RAGEngine 已移除后的日志占位）
-            - 清理过时注释：ModuleDetailView 占位视图 MARK、ModelHubView/DesignWorkflowOrchestrator 历史任务指令残留
-
-            ## [0.1.39] - 2026-08-19
-
-            ### 新增
-            - fusion-trainer RunManager GUI 面板：TrainerView (536 行) + TrainerBridge (377 行) + IPCTrainerMethods，接入 fusion-trainer RunManager；AppState 新增 trainer 状态，Sidebar/IconRail/ModuleDetailView 路由打通；TrainerTests 115 行 (#176, closes #175)
-            - i18n 全量本地化推进至 Projects 模块：Projects ProjectModuleView 18 视图结构全量本地化（Batch 6a, 173 proj_ 键）；Doc 15 视图全量（Batch 5a/5b, 198 doc_ 键）；ModelHub 13 视图全量（Batch 4a/4b, 694 hub_ 键）；设置面板+通用组件+Inspector（Batch 2）；Module 标签 62 模块×4 语言（Batch 3）；导航栏 IconRail+Sidebar（Batch 1）。I18nService 字典 1288 keys × 4 语言（zhCN/enUS/jaJP/koKR）全量平衡
-
-            ### 整理
-            - 分支清理：21 个已合并分支（7 本地 + 14 远程）全部删除，仓库仅留 master
-
-            ## [0.1.38] - 2026-08-16
-
-            ### 修复
-            - 执行时 artifact 回写闭环最后一环：executeGraph 透传 task_id，任务执行产出的 artifact 自动关联回 Task 记录（后端 daemon_server._handle_graph_execute 已收 artifact_create tool_result 并回写），激活 Task 体系 priority-4 闭环 (#141, #154)
-
-            ## [0.1.37] - 2026-08-16
-
-            ### 新增
-            - Task 体系四 Phase 落地：TaskModel + TaskTrigger(Immediate/Schedule/Once) + TaskStatus(7态)；AgentBridge @Published tasks + taskSubmit/ExecuteImmediate/Cancel/Rerun/Delete/ScheduleCron/ScheduleRunAt；AgentTaskListView + CreateTaskSheet(触发方式/Workflow Picker/Input/Priority) + AgentTaskDetailView；CronTabView 改只读监控(读后端 expression/graph_id/input_data)；TaskBoardView Kanban 按状态分列；AgentDetailView 快速 Assign (#149)
-            - 接通真实后端 task.* RPC (上游 issue #141 / PR#143 已落地)，前端用 agent.execute/graph.execute 直连降耦 (#150)
-            - 接入 project_id 容器 + project.list / project.tasks (#151)
-            - taskDelete 切真删 RPC + 新增 taskAddArtifacts (上游 PR#148 closes #147) (#152)
-            - 执行时 artifact 回写闭环最后一环：executeGraph 透传 task_id，任务执行产出的 artifact 自动关联回 Task 记录（后端 daemon_server._handle_graph_execute 已收 artifact_create tool_result 并回写）(#141 priority-4)
-            - 抖音运营看板新增「计划」tab——高峰时段 cron 自动发布
-
-            ### 修复
-            - agent-graph 使用真实 graph_id String，不再强制转 UUID，修复 graph 路由错配 (#146)
-            - Services/env-daemon Rust 源码 rustfmt 格式化归一 (lint 全绿)
-
-            ## [0.1.36] - 2026-08-15
-
-            ### 新增
-            - 抖音运营模块 (Phase 4 GUI)：DouyinOperationView + DouyinOperationBridge，读 fusion-operation ops 数据 + 调 agent-studio graph DAG；sidebar 抖音运营组统计卡片 + 点击进入主区
-            - comfyui 造片服务纳入上游管理 (FusionConfig upstreamComfyuiPath + comfyuiPort 11445，UpstreamServiceManager 自动拉起)
-
-            ### 修复
-            - 下载按钮链接修正为 https://github.com/dahai80/fusion-studio (IconRail + Sidebar 两处)
-            - 设置按钮子菜单全部接通功能：Settings 打开设置、Language 子菜单 4 语言切换、Get Help/Upgrade Plan/Get Apps/Learn More 跳 GitHub、Logout 置灰 (本地优先无账号)
-            - RAG 知识库卡片「进入」按钮接通：选中 KB + 跳转文件目录管理 (此前只高亮无反应)
-            - RAG 知识库卡片 `...` → 「RAG 对话」接通：选中 KB + 跳转 RAG 对话 section，KBChatView 预选知识库 (此前只高亮无反应)
-
-            ## [0.1.35] - 2026-08-09
-
-            ### 修复
-            - env-daemon 改用独立 socket /tmp/fusion-env-daemon.sock，避免与 agent-studio 中央路由 (/tmp/fusion-studio.sock) 抢占，修复 agent.*/hardware.metrics 全部返回「未知方法」、agent-studio 表现为不可用的问题 (PR #141)
-
-            ## [0.1.34] - 2026-08-07
-
-            ### 修复
-            - 硬件监控改接真实 hardware.metrics IPC（psutil），替换 Double.random 假数据；失败保持上次值并标记"离线"（生产验收 #27 发现①）
-            - 依赖上游 fusion-agent-studio PR #99 新增 hardware.metrics RPC（memory/cpu/gpu/mlx）
-            - README 订正：存储为 UserDefaults（非 SQLite/加密）、无障碍覆盖进行中、模块数澄清（Module 枚举 27 / IconRail 顶级 20）
-
-            ## [0.1.33] - 2026-08-07
-
-            ### 新增
-            - Security 中心全量重构：6 原生 tab 接入 fusion-security :11454（安全概览/项目与扫描/漏洞清单/AI 修复/质量门禁/运行时防护）
-            - SecurityBridge HTTP client + 15 DTO，直连 fusion-security FastAPI /api/v1/*
-            - 运行时防护新增「敏感信息脱敏」「Prompt 注入检测」，超越 Claude Code 运行时安全能力
-            - 端口对齐 securityPort 11442→11454，健康端点改 /api/v1/system/health
-
-            ### 移除
-            - 失效的 Security WebView 面板（直连前端 :3000，前端未运行）
-
-            ## [0.1.32] - 2026-08-07
-
-            ### 修复
-            - Code 模块 Offline：fusion-code start.sh 前台 exec 被 Studio 30s 超时连带终止，改后台 detach (#136 上游 fusion-code#55)
-            - RAG 环境检测异常：upstreamRagPath 误指不存在的 ~/fusion/fusion-kb，修正为 ~/fusion/fusion-rag (#136)
-            - Science 环境检测异常：sciencePort 8200 与 start.sh 默认 11462 不一致，修正为 11462 (#136)
-            - Health 环境检测异常：无 start.sh 未运行，上游新增后台 detach 启动脚本 :11456 (#136 上游 fusion-health#10)
-            - Doc 环境检测异常：未纳入 UpstreamServiceManager + 端口 11449 被 multi-node 占用；新增管理器条目，multi-node 上游迁 11452 释放 11449 (#136 上游 fusion-multi-nodes#13 / fusion-doc#31)
-            - EnvironmentHealthSheet doc 探活端点 /health 误用，修正为 /api/health
-
-            ## [0.1.31] - 2026-08-07
-
-            ### 修复
-            - fusion-science 缺失 start.sh SERVICES 注册 (#113)
-            - Design 检查器面板按钮无响应：observeNotifications 同步设置 selectedElement (#120)
-            - Agent / AI Agent 菜单语义重叠：SidebarSection rawValue 区分 "Agent 工作台" / "AI 控制台" (#122)
-            - AX 主窗口未暴露为 AXWindow：WindowGroup 加标题 + .windowStyle(.automatic) 替 .titleBar (#125)
-
-            ### 新增
-            - fusion-health 集成侧栏：HealthBridge (HTTP :11456, X-API-Key) + HealthWorkbenchView (概览/病历摘要/体征提取/AI咨询) (#121)
-            - UpstreamServiceManager 注册 fusion-health 健康探针；EnvironmentHealthSheet 增加 science/health 探针
-
-            ## [0.1.30] - 2026-08-07
-
-            ### 修复
-            - Design 模块提交卡死/预览不可见/Canvas 修复：mlx 直连 401 鉴权回退到 settings.json、sendChat 实时 probe、预览白色背景、Canvas wasm Bundle.module 加载、runFusionDesign 管道死锁、Design RAG 暂禁+超时保护
-            - Project 会话无 AI 回复：新增 generateReply 调 infer 回填 assistant 气泡（用户右对齐/AI 左对齐）
-            - 严格健康检查：仅 HTTP 200-299 + UDS result 字段计为健康；9 子系统逐项探活 + 启动按钮；UDS 探活循环读至换行修复截断假阴性
-            - Projects 删除 "project not found"：FusionProject.id let→var + fromDict 直赋值，移除 encode-decode 往返
-            - Code 模块：聊天输入框移入中列；fusion-code offline 根因 /api/model/status 401，全量 HTTP+WS 加 Bearer
-            - AI 鉴权自愈：probeMLXRunningStatus 401/403 读 settings.json auth.api_key 重试并持久化覆盖失效 env
-            - Artifacts：X-API-Key header 从 FUSION_ARTIFACTS_API_KEY env 读取；artifactGet 解包嵌套 result + shareGet REST 404 fallback
-
-            ### 新增
-            - 侧边栏/IconRail 无障碍标识符 (closes #123)
-            - fusion-model-hub 生命周期 start.sh + 公开健康端点 /api/v1/system/health
-
-            ## [0.1.11] - 2026-07-31
-
-            ### 新增
-            - IPCClient REST 直连：GET /api/v1/share/{share_id} 公开分享只读渲染（Issue #26-B）
-            - IPCClient SSE 事件流订阅：artifactEventStream / sessionEventStream + Last-Event-ID 断线重连（Issue #26-C）
-            - IPCClient artifact.list_events 事件时间线 + artifact.update 乐观锁 expected_content_hash（Issue #26-A）
-            - Artifacts GUI：ArtifactShareDialog 分享弹窗、ArtifactVersionHistory 版本历史
-            - CoWork GUI：SessionSnapshotView 快照/Fork 交互
-            - FSB 模块：FSBWorkspaceView 工作台 + FSBWorkflowEditorView DAG 编辑器
-            - Projects GUI：ProjectInstructionsPanel Markdown/富文本双模 + 版本历史、KnowledgeBaseTreeView kb.list/add/remove
-            - Foundation IPC 层：projectCall(UDS) / spaceCall(UDS) / artifactCall(HTTP) 路由
-            - desk.* 47 方法全量路由至 /tmp/fusion-cowork.sock
-
-            ### 修复
-            - desk.* 方法从 env-daemon 转发修正为直连 desk_rpc socket（#38）
-            - start.sh readiness check socket path 不再拼接（安全修复）
-
-            ### 文档
-            - docs/upstream-http-endpoints.md 全量更新：29 artifact.* 方法表 + REST 路由 + SSE 契约
-
-            ## [0.1.10] - 2026-07-31
-
-            ### 新增
-            - 侧边栏菜单入口全量补齐：新增 Fusion-MLX 段（控制台/模型/调优/测评）、Multi-Node 段（集群总览/拓扑图/任务监控/告警中心/节点管理/提交任务/任务详情/路由策略/KV缓存/服务面板/多模态/分析/协作/外部集成/运维/部署），Agent 段追加知识库/自动化
-            - 22 个原孤儿模块视图现可经侧边栏直达（排除训练/仿真/教育三个待补能力模块）
-            - SectionContentView 新增 .mlx/.multiNode 段路由至 ModuleDetailView，IconRailView/FusionSidebarView 同步接入
-            - CoWork space GUI：connector/apikey/style/analytics/alert tabs（Issue #17 P1/P2）+ 38 RPC + Team/Cron/Hooks/memory/safety/planner/context compact/usage/rag/tools/skills/research tabs（Issue #18）
-            - 截图粘贴 + OCR + artifact 渲染 + skill/research/RAG watch（Issue #16）
-            - 项目过滤器 + agent lifecycle + dashboard tab（Issue #15 + #17 P0）
-
-            ### 修复
-            - bug41: 消息对齐（用户右对齐/AI 左对齐）+ 编辑/重发按钮贴边 + 附件缩略图异步解码
-            - bug35/37/38: 截图粘贴板、麦克风音量滑块、图片处理
-
-            ## [0.1.9] - 2026-07-31
-
-            ### 新增
-            - FusionCodeProject 模型 + FusionCodeAPIClient.fetchProjects() 调用 GET /api/projects
-            - ChatSessionStore 注入 FusionCodeAPIClient + fetchProjects() 包装方法
-            - FusionStudioApp 启动时创建 FusionCodeAPIClient 实例并注入 ChatSessionStore
-            - 上游 fusion-code API 集成验证通过 (/api/projects, /api/projects/:id/context, /api/sessions)
-
-            ## [0.1.8] - 2026-07-31
-
-            ### 新增
-            - ChatPreset 枚举 (Code/Write/Create/Learn/Life) + systemPrompt 注入，快捷按钮对齐 Claude.ai L1
-            - OutputStyle 枚举 (正式/极简/技术文档/学术) + stylePrompt 注入，+ 菜单 Use style 选择器
-            - AttachmentData 附件模型 + 截图/文件附件 UI + 输入框附件条 + 消息气泡缩略图
-            - AgentBridge.inferStream/infer messages 扩展 [[String:Any]] 支持多模态 + webSearch 参数
-            - ChatSessionData.projectId 字段 + Project 选择器 + 关联指示器
-            - BridgeError.userMessage 用户友好中文错误封装 (authFailed/serviceUnavailable/ipcError 分类)
-            - + 菜单完整化：Add files (⌘U) / Take screenshot / Web search / Project
-
-            ## [0.1.7] - 2026-07-30
-
-            ### 新增
-            - Issue #8: OrchestrationPattern 映射修正 — 6 模式 (sequential/parallel/masterWorker/handoff/broadcast/supervisor) 与 IndependentRouter (swarm/plaza/fmp) 分离
-            - Issue #11: StreamingBridge WebSocket 模式 — connectWebSocket/streamChatWS/disconnectWebSocket，对接 fusion-code /ws/chat
-            - RouterCard 视图 + IndependentRouter 网格加入 OrchestrationArea
-
-            ### 修复
-            - FusionCodeAPIClient SessionSummary/SessionDetail 字段对齐上游 (sessionId/summary/firstPrompt/lastModified/createdAt/gitBranch/cwd/fileSize)
-            - 测试修复: AppState default module .code -> .chat
-
-            ## [0.1.4] - 2026-07-29
-
-            ### 新增
-            - UI/UX Pro Max 审视优化：三栏布局对齐、暗色主题默认、8px 栅格系统、AccentColor 统一资源
-            - accent #007AFF 统一原生 .accentColor/.tint，组件级主题令牌（auxiliary #1F2937 等）
-
-            ### 修复
-            - AgentStudio ConfigureAgentSheet：模型字段改下拉选择 + L1-L3 安全等级说明（对齐后端 SafetyGateway 三级）
-            - 修复过期测试用例：RAGEngine -> RAGAPIClient、InfoPanelTab 断言 2 -> 7 cases
-
-            ## [0.1.27] - 2026-08-04
-
-            ### 新增
-            - Fusion Simulation 模块: fusion-simulation GUI 工作台 (SimulationBridge + 4-zone WorkbenchView)
-            - REST :11455 + gRPC :11447 集成: 场景加载/传感器/LLM Agent 策略/快照/实时监控
-
-            ## [0.1.3] - 2026-07-29
-
-            ### 新增
-            - Desk 模块全量 GUI 覆盖 + IPCClient/AgentBridge/Artifacts 增强
-            - UpstreamServiceManager 注册 fusion-cowork / model-hub / security 上游服务
-            - 可复用 UpstreamServiceStatusBanner 组件（DeskView / ModelHubView / SecurityView）
-
-            ### 修复
-            - fusion-cowork / model-hub / security 模块"无内容"问题：缺少上游服务时展示状态横幅与启动入口
-
-            ## [0.1.2] - 2026-07-01
-
-            ### 新增
-            - 初始 MVP 版本
-            - SwiftUI 主框架
-            - 环境自检 & 修复引擎
-            - IPC 桥接
+            \(I18nManager.shared.t(.docgen_sample_changelog_fixed))
+            \(I18nManager.shared.t(.docgen_md_changelog_fix))
             """
         case .readme:
             return """
-            # Fusion Studio
+            # \(I18nManager.shared.t(.docgen_sample_readme_title))
 
-            > 生成时间: \(date)
+            > \(genTime)
 
-            Fusion-MLX 本地 AI 生态的统一 macOS 桌面客户端。
+            \(I18nManager.shared.t(.docgen_sample_readme_desc))
 
-            ## 功能特性
+            \(I18nManager.shared.t(.docgen_sample_readme_features))
 
-            - 10 个模块集成（设计、编码、仿真、模型管理等）
-            - 100% 本地离线
-            - Apple Silicon 原生优化
-            - 环境自检 & 一键修复
-            - 局域网协作
-            - 插件系统
+            - \(I18nManager.shared.t(.docgen_sample_readme_feat_modules))
+            - \(I18nManager.shared.t(.docgen_sample_readme_feat_offline))
+            - \(I18nManager.shared.t(.docgen_sample_readme_feat_native))
+            \(I18nManager.shared.t(.docgen_md_readme_bullet1))
+            \(I18nManager.shared.t(.docgen_md_readme_bullet2))
+            \(I18nManager.shared.t(.docgen_md_readme_bullet3))
             """
         case .module:
             return """
-            # 模块文档
+            # \(I18nManager.shared.t(.docgen_sample_module_title))
 
-            > 生成时间: \(date)
+            > \(genTime)
 
-            ## Design 模块
-            AI 驱动的设计画布，支持对话式 UI 生成。
+            \(I18nManager.shared.t(.docgen_md_design_h))
+            \(I18nManager.shared.t(.docgen_sample_module_design))
 
-            ## Code 模块
-            内置代码编辑器和集成终端。
+            \(I18nManager.shared.t(.docgen_md_code_h))
+            \(I18nManager.shared.t(.docgen_sample_module_code))
 
-            ## Simulation 模块
-            3D 物理仿真引擎。
+            \(I18nManager.shared.t(.docgen_md_sim_h))
+            \(I18nManager.shared.t(.docgen_sample_module_sim))
 
-            ## Model Hub 模块
-            模型可视化管理。
+            \(I18nManager.shared.t(.docgen_md_hub_h))
+            \(I18nManager.shared.t(.docgen_sample_module_hub))
 
-            ## CLI 模块
-            命令行工具图形化面板。
+            \(I18nManager.shared.t(.docgen_md_cli_h))
+            \(I18nManager.shared.t(.docgen_sample_module_cli))
             """
         case .full:
             return """
             <!DOCTYPE html>
             <html>
-            <head><title>Fusion Studio 文档</title>
+            <head><title>\(I18nManager.shared.t(.docgen_sample_full_title))</title>
             <style>
             body { font-family: -apple-system; max-width: 800px; margin: auto; padding: 2em; }
             h1 { color: #7c3aed; }
             </style></head>
             <body>
-            <h1>Fusion Studio 文档</h1>
-            <p>生成时间: \(date)</p>
+            <h1>\(I18nManager.shared.t(.docgen_sample_full_title))</h1>
+            <p>\(genTime)</p>
             <ul>
-            <li><a href="api-reference.md">API 参考文档</a></li>
-            <li><a href="architecture.md">架构文档</a></li>
-            <li><a href="CHANGELOG.md">更新日志</a></li>
+            <li><a href="api-reference.md">\(I18nManager.shared.t(.docgen_sample_full_api))</a></li>
+            <li><a href="architecture.md">\(I18nManager.shared.t(.docgen_sample_full_arch))</a></li>
+            <li><a href="CHANGELOG.md">\(I18nManager.shared.t(.docgen_sample_full_changelog))</a></li>
             <li><a href="README.md">README</a></li>
-            <li><a href="modules/index.md">模块文档</a></li>
+            <li><a href="modules/index.md">\(I18nManager.shared.t(.docgen_type_module))</a></li>
             </ul>
             </body></html>
             """
@@ -612,12 +396,11 @@ struct DocGeneratorView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // 类型选择
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(DocGenType.allCases, id: \.self) { type in
                         Button(action: { selectedType = type }) {
-                            Label(type.rawValue, systemImage: type.icon)
+                            Label(type.localizedName, systemImage: type.icon)
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.small)
@@ -631,25 +414,25 @@ struct DocGeneratorView: View {
             Divider()
 
             HSplitView {
-                // 左侧：配置和操作
                 VStack(spacing: 12) {
-                    GroupBox("生成配置") {
+                    GroupBox(I18nManager.shared.t(.docgen_cfg_title)) {
                         VStack(alignment: .leading, spacing: 8) {
-                            Picker("输出格式", selection: $generator.config.outputFormat) {
+                            Picker(I18nManager.shared.t(.docgen_cfg_output_format), selection: $generator.config.outputFormat) {
                                 ForEach(DocGenConfig.OutputFormat.allCases, id: \.self) { fmt in
                                     Label(fmt.rawValue, systemImage: fmt.icon).tag(fmt)
                                 }
                             }
-                            Toggle("包含私有成员", isOn: $generator.config.includePrivate)
-                            Toggle("包含代码示例", isOn: $generator.config.includeCodeExamples)
-                            Toggle("包含架构图", isOn: $generator.config.includeDiagrams)
-                            Stepper("最大深度: \(generator.config.maxDepth)", value: $generator.config.maxDepth, in: 1...5)
+                            Toggle(I18nManager.shared.t(.docgen_cfg_include_private), isOn: $generator.config.includePrivate)
+                            Toggle(I18nManager.shared.t(.docgen_cfg_include_examples), isOn: $generator.config.includeCodeExamples)
+                            Toggle(I18nManager.shared.t(.docgen_cfg_include_diagrams), isOn: $generator.config.includeDiagrams)
+                            Text(I18nManager.shared.tf(.docgen_cfg_max_depth, generator.config.maxDepth))
+                            Stepper("", value: $generator.config.maxDepth, in: 1...5).labelsHidden()
                         }
                         .padding(8)
                     }
 
                     Button(action: { generator.generate(type: selectedType) }) {
-                        Label("生成 \(selectedType.rawValue)", systemImage: "doc.badge.gearshape")
+                        Label(I18nManager.shared.tf(.docgen_btn_generate, selectedType.localizedName), systemImage: "doc.badge.gearshape")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
@@ -664,15 +447,14 @@ struct DocGeneratorView: View {
                     }
 
                     if !generator.generatedFiles.isEmpty {
-                        Button("打开输出目录") { generator.openOutputFolder() }
+                        Button(I18nManager.shared.t(.docgen_btn_open_output)) { generator.openOutputFolder() }
                             .buttonStyle(.bordered)
                     }
 
                     Spacer()
 
-                    // 输出历史
                     if !generator.log.isEmpty {
-                        GroupBox("生成日志") {
+                        GroupBox(I18nManager.shared.t(.docgen_log_title)) {
                             ScrollView {
                                 VStack(alignment: .leading, spacing: 2) {
                                     ForEach(generator.log, id: \.self) { line in
@@ -689,7 +471,6 @@ struct DocGeneratorView: View {
                 .padding()
                 .frame(minWidth: 250, maxWidth: 300)
 
-                // 右侧：已生成文件
                 VStack {
                     if generator.generatedFiles.isEmpty {
                         VStack(spacing: 12) {
@@ -697,7 +478,7 @@ struct DocGeneratorView: View {
                             Image(systemName: "doc.badge.gearshape")
                                 .font(.system(size: 48))
                                 .foregroundColor(.secondary)
-                            Text("选择文档类型并点击生成")
+                            Text(I18nManager.shared.t(.docgen_empty_hint))
                                 .foregroundColor(.secondary)
                             Spacer()
                         }
@@ -717,7 +498,7 @@ struct DocGeneratorView: View {
                                             .foregroundColor(.secondary)
                                     }
                                     HStack {
-                                        Text(doc.type.rawValue)
+                                        Text(doc.type.localizedName)
                                             .font(.caption2)
                                             .padding(.horizontal, 4)
                                             .background(Color.accentColor.opacity(0.1))
@@ -735,10 +516,10 @@ struct DocGeneratorView: View {
                                             .foregroundColor(.secondary)
                                             .lineLimit(1)
                                         Spacer()
-                                        Button("打开") { NSWorkspace.shared.open(URL(fileURLWithPath: doc.path)) }
+                                        Button(I18nManager.shared.t(.docgen_btn_open)) { NSWorkspace.shared.open(URL(fileURLWithPath: doc.path)) }
                                             .buttonStyle(.bordered)
                                             .controlSize(.small)
-                                        Button("显示") { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: doc.path)]) }
+                                        Button(I18nManager.shared.t(.docgen_btn_show)) { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: doc.path)]) }
                                             .buttonStyle(.bordered)
                                             .controlSize(.small)
                                     }
@@ -753,9 +534,9 @@ struct DocGeneratorView: View {
         }
         .toolbar {
             ToolbarItemGroup {
-                Button("清空历史") { generator.clearHistory() }
+                Button(I18nManager.shared.t(.docgen_btn_clear_history)) { generator.clearHistory() }
                     .buttonStyle(.bordered).controlSize(.small)
-                Button("打开输出目录") { generator.openOutputFolder() }
+                Button(I18nManager.shared.t(.docgen_btn_open_output)) { generator.openOutputFolder() }
                     .buttonStyle(.bordered).controlSize(.small)
             }
         }
