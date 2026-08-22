@@ -3541,6 +3541,32 @@ enum I18nKey: String, CaseIterable {
     case cli_btn_cancel = "cli_btn_cancel"
     case cli_btn_continue = "cli_btn_continue"
     case cli_err_exec_failed = "cli_err_exec_failed"
+    case health_tab_dashboard = "health_tab_dashboard"
+    case health_tab_ehr = "health_tab_ehr"
+    case health_tab_vitals = "health_tab_vitals"
+    case health_tab_copilot = "health_tab_copilot"
+    case health_title = "health_title"
+    case health_status_online = "health_status_online"
+    case health_status_offline = "health_status_offline"
+    case health_online = "health_online"
+    case health_offline = "health_offline"
+    case health_metric_service_status = "health_metric_service_status"
+    case health_metric_service_name = "health_metric_service_name"
+    case health_metric_version = "health_metric_version"
+    case health_metric_model = "health_metric_model"
+    case health_title_overview = "health_title_overview"
+    case health_title_ehr_gen = "health_title_ehr_gen"
+    case health_desc_ehr_gen = "health_desc_ehr_gen"
+    case health_btn_generating = "health_btn_generating"
+    case health_btn_generate_summary = "health_btn_generate_summary"
+    case health_groupbox_summary = "health_groupbox_summary"
+    case health_title_vitals = "health_title_vitals"
+    case health_desc_vitals = "health_desc_vitals"
+    case health_btn_extracting = "health_btn_extracting"
+    case health_btn_extract_vitals = "health_btn_extract_vitals"
+    case health_groupbox_vitals = "health_groupbox_vitals"
+    case health_title_copilot = "health_title_copilot"
+    case health_ph_input_question = "health_ph_input_question"
 }
 
 // MARK: - 翻译管理器
@@ -6731,7 +6757,33 @@ let zhCNTranslations: [String: String] = [
     "cli_alert_will_do": "此操作将 %@。确定要继续吗？",
     "cli_btn_cancel": "取消",
     "cli_btn_continue": "继续",
-    "cli_err_exec_failed": "执行失败: %@"
+    "cli_err_exec_failed": "执行失败: %@",
+    "health_tab_dashboard": "概览",
+    "health_tab_ehr": "病历摘要",
+    "health_tab_vitals": "体征提取",
+    "health_tab_copilot": "AI 咨询",
+    "health_title": "健康助手",
+    "health_status_online": "服务在线",
+    "health_status_offline": "离线",
+    "health_online": "在线",
+    "health_offline": "离线",
+    "health_metric_service_status": "服务状态",
+    "health_metric_service_name": "服务名称",
+    "health_metric_version": "版本",
+    "health_metric_model": "模型",
+    "health_title_overview": "Fusion Health 概览",
+    "health_title_ehr_gen": "病历摘要生成",
+    "health_desc_ehr_gen": "粘贴临床记录，生成结构化摘要。",
+    "health_btn_generating": "生成中…",
+    "health_btn_generate_summary": "生成摘要",
+    "health_groupbox_summary": "摘要",
+    "health_title_vitals": "体征提取",
+    "health_desc_vitals": "从文本中抽取生命体征（血压/心率/体温等）。",
+    "health_btn_extracting": "抽取中…",
+    "health_btn_extract_vitals": "提取体征",
+    "health_groupbox_vitals": "体征",
+    "health_title_copilot": "AI 医疗咨询",
+    "health_ph_input_question": "输入健康问题…"
 ]
 
 let enUSTranslations: [String: String] = [
@@ -9877,7 +9929,33 @@ let enUSTranslations: [String: String] = [
     "cli_alert_will_do": "This action will %@. Are you sure you want to continue?",
     "cli_btn_cancel": "Cancel",
     "cli_btn_continue": "Continue",
-    "cli_err_exec_failed": "Execution failed: %@"
+    "cli_err_exec_failed": "Execution failed: %@",
+    "health_tab_dashboard": "Overview",
+    "health_tab_ehr": "Medical Summary",
+    "health_tab_vitals": "Vital Signs",
+    "health_tab_copilot": "AI Consultation",
+    "health_title": "Health Assistant",
+    "health_status_online": "Service Online",
+    "health_status_offline": "Offline",
+    "health_online": "Online",
+    "health_offline": "Offline",
+    "health_metric_service_status": "Service Status",
+    "health_metric_service_name": "Service Name",
+    "health_metric_version": "Version",
+    "health_metric_model": "Model",
+    "health_title_overview": "Fusion Health Overview",
+    "health_title_ehr_gen": "Medical Summary Generation",
+    "health_desc_ehr_gen": "Paste clinical notes to generate a structured summary.",
+    "health_btn_generating": "Generating…",
+    "health_btn_generate_summary": "Generate Summary",
+    "health_groupbox_summary": "Summary",
+    "health_title_vitals": "Vital Signs Extraction",
+    "health_desc_vitals": "Extract vital signs from text (blood pressure / heart rate / temperature, etc.).",
+    "health_btn_extracting": "Extracting…",
+    "health_btn_extract_vitals": "Extract Vitals",
+    "health_groupbox_vitals": "Vitals",
+    "health_title_copilot": "AI Medical Consultation",
+    "health_ph_input_question": "Enter a health question…"
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -13017,7 +13095,33 @@ let jaJPTranslations: [String: String] = [
     "cli_alert_will_do": "この操作は %@ を行います。続行しますか？",
     "cli_btn_cancel": "キャンセル",
     "cli_btn_continue": "続行",
-    "cli_err_exec_failed": "実行失敗: %@"
+    "cli_err_exec_failed": "実行失敗: %@",
+    "health_tab_dashboard": "概览",
+    "health_tab_ehr": "カルテサマリー",
+    "health_tab_vitals": "バイタルサイン",
+    "health_tab_copilot": "AI相談",
+    "health_title": "ヘルスアシスタント",
+    "health_status_online": "サービスオンライン",
+    "health_status_offline": "オフライン",
+    "health_online": "オンライン",
+    "health_offline": "オフライン",
+    "health_metric_service_status": "サービス状態",
+    "health_metric_service_name": "サービス名",
+    "health_metric_version": "バージョン",
+    "health_metric_model": "モデル",
+    "health_title_overview": "Fusion Health 概要",
+    "health_title_ehr_gen": "カルテサマリー生成",
+    "health_desc_ehr_gen": "臨床記録を貼り付けて構造化サマリーを生成します。",
+    "health_btn_generating": "生成中…",
+    "health_btn_generate_summary": "サマリー生成",
+    "health_groupbox_summary": "サマリー",
+    "health_title_vitals": "バイタルサイン抽出",
+    "health_desc_vitals": "テキストからバイタルサインを抽出（血圧/心拍/体温など）。",
+    "health_btn_extracting": "抽出中…",
+    "health_btn_extract_vitals": "バイタル抽出",
+    "health_groupbox_vitals": "バイタル",
+    "health_title_copilot": "AI医療相談",
+    "health_ph_input_question": "健康上の質問を入力…"
 ]
 
 let koKRTranslations: [String: String] = [
@@ -16157,7 +16261,33 @@ let koKRTranslations: [String: String] = [
     "cli_alert_will_do": "이 작업은 %@ 를 수행합니다. 계속하시겠습니까?",
     "cli_btn_cancel": "취소",
     "cli_btn_continue": "계속",
-    "cli_err_exec_failed": "실행 실패: %@"
+    "cli_err_exec_failed": "실행 실패: %@",
+    "health_tab_dashboard": "개요",
+    "health_tab_ehr": "진료기록 요약",
+    "health_tab_vitals": "바이탈 징후",
+    "health_tab_copilot": "AI 상담",
+    "health_title": "헬스 어시스턴트",
+    "health_status_online": "서비스 온라인",
+    "health_status_offline": "오프라인",
+    "health_online": "온라인",
+    "health_offline": "오프라인",
+    "health_metric_service_status": "서비스 상태",
+    "health_metric_service_name": "서비스 이름",
+    "health_metric_version": "버전",
+    "health_metric_model": "모델",
+    "health_title_overview": "Fusion Health 개요",
+    "health_title_ehr_gen": "진료기록 요약 생성",
+    "health_desc_ehr_gen": "임상 기록을 붙여넣어 구조화된 요약을 생성합니다.",
+    "health_btn_generating": "생성 중…",
+    "health_btn_generate_summary": "요약 생성",
+    "health_groupbox_summary": "요약",
+    "health_title_vitals": "바이탈 징후 추출",
+    "health_desc_vitals": "텍스트에서 바이탈 징후 추출(혈압/심박수/체온 등).",
+    "health_btn_extracting": "추출 중…",
+    "health_btn_extract_vitals": "바이탈 추출",
+    "health_groupbox_vitals": "바이탈",
+    "health_title_copilot": "AI 의료 상담",
+    "health_ph_input_question": "건강 질문 입력…"
 ]
 
 // MARK: - 国际化文本视图
