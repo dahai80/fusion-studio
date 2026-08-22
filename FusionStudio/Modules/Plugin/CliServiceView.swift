@@ -13,9 +13,9 @@ struct CliServiceView: View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
                 Image(systemName: "terminal").font(.system(size: 18, weight: .semibold)).foregroundStyle(theme.accent)
-                Text("CLI 服务").font(.system(size: 16, weight: .semibold)).foregroundStyle(theme.text)
+                Text(I18nManager.shared.t(.plugin_cli_title)).font(.system(size: 16, weight: .semibold)).foregroundStyle(theme.text)
                 Spacer()
-                Button("清屏") { outputLines.removeAll() }.font(.system(size: 11)).foregroundStyle(theme.textTertiary).buttonStyle(.plain)
+                Button(I18nManager.shared.t(.plugin_cli_btn_clear)) { outputLines.removeAll() }.font(.system(size: 11)).foregroundStyle(theme.textTertiary).buttonStyle(.plain)
             }.padding(.horizontal, 16).padding(.vertical, 10).background(theme.surfaceSecondary)
             ScrollViewReader { proxy in
                 ScrollView {
@@ -29,7 +29,7 @@ struct CliServiceView: View {
             }
             HStack(spacing: 8) {
                 Text(">").font(.system(size: 13, weight: .bold, design: .monospaced)).foregroundStyle(theme.accent)
-                TextField("输入命令...", text: $commandInput).font(.system(size: 12, design: .monospaced)).textFieldStyle(.plain).onSubmit { executeCommand() }
+                TextField(I18nManager.shared.t(.plugin_cli_ph_input), text: $commandInput).font(.system(size: 12, design: .monospaced)).textFieldStyle(.plain).onSubmit { executeCommand() }
                 Button(action: executeCommand) { Image(systemName: "play.fill").font(.system(size: 11)).foregroundStyle(isRunning ? theme.textTertiary : theme.accent) }.buttonStyle(.plain).disabled(isRunning)
             }.padding(.horizontal, 16).padding(.vertical, 10).background(theme.surfaceSecondary)
         }.onAppear { log.info("CliServiceView appeared") }
@@ -63,14 +63,14 @@ struct CliServiceView: View {
                 }
             }
         } catch {
-            outputLines.append("错误: \(error.localizedDescription)")
+            outputLines.append("\(I18nManager.shared.t(.plugin_cli_err_prefix)): \(error.localizedDescription)")
             isRunning = false
         }
     }
 
     private func lineColor(_ line: String) -> Color {
         if line.hasPrefix("> ") { return theme.accent }
-        if line.hasPrefix("错误") { return theme.accentDestructive }
+        if line.hasPrefix(I18nManager.shared.t(.plugin_cli_err_prefix)) { return theme.accentDestructive }
         return theme.text
     }
 }

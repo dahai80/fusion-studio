@@ -8,7 +8,9 @@ struct PluginEcosystemView: View {
     @Environment(\.studioTheme) private var theme
     @State private var selectedTab: Int = 0
 
-    private let tabs = ["插件", "配置", "状态", "Token", "VRAM", "日志", "MCP"]
+    private var tabs: [String] {
+        [I18nManager.shared.t(.plugin_tab_plugins), I18nManager.shared.t(.plugin_tab_config), I18nManager.shared.t(.plugin_tab_status), I18nManager.shared.t(.plugin_tab_token), I18nManager.shared.t(.plugin_tab_vram), I18nManager.shared.t(.plugin_tab_logs), I18nManager.shared.t(.plugin_tab_mcp)]
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -40,14 +42,14 @@ struct PluginEcosystemView: View {
             Image(systemName: "puzzlepiece.extension")
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(theme.accent)
-            Text("插件生态")
+            Text(I18nManager.shared.t(.plugin_title))
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(theme.text)
             Spacer()
             Circle()
                 .fill(bridge.isConnected ? Color.green : Color.red)
                 .frame(width: 8, height: 8)
-            Text(bridge.isConnected ? "已连接" : "未连接")
+            Text(bridge.isConnected ? I18nManager.shared.t(.plugin_status_connected) : I18nManager.shared.t(.plugin_status_disconnected))
                 .font(.system(size: 11))
                 .foregroundStyle(theme.textTertiary)
             Button(action: { bridge.listPlugins(); bridge.listStates() }) {
