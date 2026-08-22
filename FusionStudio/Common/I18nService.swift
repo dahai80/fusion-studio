@@ -1285,6 +1285,59 @@ enum I18nKey: String, CaseIterable {
     case doc_admin_fmt_cluster_line = "doc_admin_fmt_cluster_line"
     case doc_admin_err_prefix = "doc_admin_err_prefix"
     case doc_admin_err_failed = "doc_admin_err_failed"
+    case lic_type_community = "lic_type_community"
+    case lic_type_pro = "lic_type_pro"
+    case lic_type_enterprise = "lic_type_enterprise"
+    case lic_type_trial = "lic_type_trial"
+    case lic_desc_community = "lic_desc_community"
+    case lic_desc_pro = "lic_desc_pro"
+    case lic_desc_enterprise = "lic_desc_enterprise"
+    case lic_desc_trial = "lic_desc_trial"
+    case lic_price_community = "lic_price_community"
+    case lic_price_pro = "lic_price_pro"
+    case lic_price_enterprise = "lic_price_enterprise"
+    case lic_price_trial = "lic_price_trial"
+    case lic_feat_mlx = "lic_feat_mlx"
+    case lic_feat_design_code_sim = "lic_feat_design_code_sim"
+    case lic_feat_env_check = "lic_feat_env_check"
+    case lic_feat_rag = "lic_feat_rag"
+    case lic_feat_orchestrate = "lic_feat_orchestrate"
+    case lic_feat_multimodal = "lic_feat_multimodal"
+    case lic_feat_training = "lic_feat_training"
+    case lic_feat_team_collab = "lic_feat_team_collab"
+    case lic_feat_ops = "lic_feat_ops"
+    case lic_feat_commercial = "lic_feat_commercial"
+    case lic_tab_overview = "lic_tab_overview"
+    case lic_tab_plans = "lic_tab_plans"
+    case lic_tab_activate = "lic_tab_activate"
+    case lic_header = "lic_header"
+    case lic_label_activation_info = "lic_label_activation_info"
+    case lic_label_status = "lic_label_status"
+    case lic_label_version = "lic_label_version"
+    case lic_label_device_id = "lic_label_device_id"
+    case lic_label_licensee = "lic_label_licensee"
+    case lic_label_activated_at = "lic_label_activated_at"
+    case lic_label_expires_at = "lic_label_expires_at"
+    case lic_label_days_remaining = "lic_label_days_remaining"
+    case lic_val_expired = "lic_val_expired"
+    case lic_val_valid = "lic_val_valid"
+    case lic_btn_deactivate = "lic_btn_deactivate"
+    case lic_btn_upgrade_pro = "lic_btn_upgrade_pro"
+    case lic_btn_activate = "lic_btn_activate"
+    case lic_btn_buy = "lic_btn_buy"
+    case lic_btn_start_trial = "lic_btn_start_trial"
+    case lic_btn_cancel = "lic_btn_cancel"
+    case lic_sheet_title = "lic_sheet_title"
+    case lic_sheet_desc = "lic_sheet_desc"
+    case lic_or = "lic_or"
+    case lic_form_activate_title = "lic_form_activate_title"
+    case lic_form_code_label = "lic_form_code_label"
+    case lic_form_code_ph = "lic_form_code_ph"
+    case lic_form_email_label = "lic_form_email_label"
+    case lic_form_email_ph = "lic_form_email_ph"
+    case lic_no_code = "lic_no_code"
+    case lic_fmt_days = "lic_fmt_days"
+    case lic_err_invalid = "lic_err_invalid"
     case proj_subtitle = "proj_subtitle"
     case proj_searchPh = "proj_searchPh"
     case proj_newHelp = "proj_newHelp"
@@ -4876,6 +4929,59 @@ let zhCNTranslations: [String: String] = [
     "doc_admin_fmt_cluster_line": "%@: %d 组",
     "doc_admin_err_prefix": "错误: %@",
     "doc_admin_err_failed": "%@ 失败: %@",
+    "lic_type_community": "社区版",
+    "lic_type_pro": "专业版",
+    "lic_type_enterprise": "企业版",
+    "lic_type_trial": "试用版",
+    "lic_desc_community": "免费开源，MIT 许可证，适用于个人开发者",
+    "lic_desc_pro": "高级功能解锁，包含多模态增强、训练流水线、高级运维",
+    "lic_desc_enterprise": "全功能解锁，包含团队协作、集群部署、商业授权",
+    "lic_desc_trial": "14 天全功能试用，到期后自动降级为社区版",
+    "lic_price_community": "免费",
+    "lic_price_pro": "¥299/年",
+    "lic_price_enterprise": "¥999/年",
+    "lic_price_trial": "免费试用 14 天",
+    "lic_feat_mlx": "基础 MLX 推理",
+    "lic_feat_design_code_sim": "设计/编码/仿真",
+    "lic_feat_env_check": "环境自检与修复",
+    "lic_feat_rag": "RAG 知识库",
+    "lic_feat_orchestrate": "智能体编排",
+    "lic_feat_multimodal": "多模态生成",
+    "lic_feat_training": "训练流水线",
+    "lic_feat_team_collab": "团队协作",
+    "lic_feat_ops": "高级运维",
+    "lic_feat_commercial": "商业授权",
+    "lic_tab_overview": "授权概览",
+    "lic_tab_plans": "版本对比",
+    "lic_tab_activate": "激活",
+    "lic_header": "商业授权",
+    "lic_label_activation_info": "激活信息",
+    "lic_label_status": "状态",
+    "lic_label_version": "版本",
+    "lic_label_device_id": "设备 ID",
+    "lic_label_licensee": "授权人",
+    "lic_label_activated_at": "激活时间",
+    "lic_label_expires_at": "到期时间",
+    "lic_label_days_remaining": "剩余天数",
+    "lic_val_expired": "已过期",
+    "lic_val_valid": "有效",
+    "lic_btn_deactivate": "降级为社区版",
+    "lic_btn_upgrade_pro": "升级到专业版",
+    "lic_btn_activate": "激活",
+    "lic_btn_buy": "购买许可证",
+    "lic_btn_start_trial": "开始 14 天免费试用",
+    "lic_btn_cancel": "取消",
+    "lic_sheet_title": "激活专业版",
+    "lic_sheet_desc": "输入激活码解锁全部功能",
+    "lic_or": "或",
+    "lic_form_activate_title": "激活 Fusion Studio",
+    "lic_form_code_label": "激活码",
+    "lic_form_code_ph": "输入激活码",
+    "lic_form_email_label": "邮箱",
+    "lic_form_email_ph": "输入邮箱地址",
+    "lic_no_code": "没有激活码？",
+    "lic_fmt_days": "%d 天",
+    "lic_err_invalid": "无效的激活码。格式: FS-PRO-XXXXX、FS-ENT-XXXXX 或 TRIAL",
     "proj_subtitle": "管理你的 AI 项目、指令和知识库",
     "proj_searchPh": "搜索项目",
     "proj_newHelp": "新建项目",
@@ -8420,6 +8526,59 @@ let enUSTranslations: [String: String] = [
     "doc_admin_fmt_cluster_line": "%@: %d groups",
     "doc_admin_err_prefix": "Error: %@",
     "doc_admin_err_failed": "%@ failed: %@",
+    "lic_type_community": "Community",
+    "lic_type_pro": "Pro",
+    "lic_type_enterprise": "Enterprise",
+    "lic_type_trial": "Trial",
+    "lic_desc_community": "Free and open source, MIT license, for individual developers",
+    "lic_desc_pro": "Advanced features unlocked, including multimodal enhancement, training pipeline, advanced operations",
+    "lic_desc_enterprise": "Full feature unlock, including team collaboration, cluster deployment, commercial license",
+    "lic_desc_trial": "14-day full-feature trial, auto-downgrade to Community after expiry",
+    "lic_price_community": "Free",
+    "lic_price_pro": "$299/year",
+    "lic_price_enterprise": "$999/year",
+    "lic_price_trial": "Free 14-day trial",
+    "lic_feat_mlx": "Basic MLX inference",
+    "lic_feat_design_code_sim": "Design/Coding/Simulation",
+    "lic_feat_env_check": "Environment self-check & repair",
+    "lic_feat_rag": "RAG knowledge base",
+    "lic_feat_orchestrate": "Agent orchestration",
+    "lic_feat_multimodal": "Multimodal generation",
+    "lic_feat_training": "Training pipeline",
+    "lic_feat_team_collab": "Team collaboration",
+    "lic_feat_ops": "Advanced operations",
+    "lic_feat_commercial": "Commercial license",
+    "lic_tab_overview": "License Overview",
+    "lic_tab_plans": "Plan Comparison",
+    "lic_tab_activate": "Activate",
+    "lic_header": "Commercial License",
+    "lic_label_activation_info": "Activation Info",
+    "lic_label_status": "Status",
+    "lic_label_version": "Version",
+    "lic_label_device_id": "Device ID",
+    "lic_label_licensee": "Licensee",
+    "lic_label_activated_at": "Activated At",
+    "lic_label_expires_at": "Expires At",
+    "lic_label_days_remaining": "Days Remaining",
+    "lic_val_expired": "Expired",
+    "lic_val_valid": "Valid",
+    "lic_btn_deactivate": "Downgrade to Community",
+    "lic_btn_upgrade_pro": "Upgrade to Pro",
+    "lic_btn_activate": "Activate",
+    "lic_btn_buy": "Buy License",
+    "lic_btn_start_trial": "Start 14-day Free Trial",
+    "lic_btn_cancel": "Cancel",
+    "lic_sheet_title": "Activate Pro",
+    "lic_sheet_desc": "Enter activation code to unlock all features",
+    "lic_or": "or",
+    "lic_form_activate_title": "Activate Fusion Studio",
+    "lic_form_code_label": "Activation Code",
+    "lic_form_code_ph": "Enter activation code",
+    "lic_form_email_label": "Email",
+    "lic_form_email_ph": "Enter email address",
+    "lic_no_code": "No activation code?",
+    "lic_fmt_days": "%d days",
+    "lic_err_invalid": "Invalid activation code. Format: FS-PRO-XXXXX, FS-ENT-XXXXX or TRIAL",
     "proj_subtitle": "Manage your AI projects, instructions and knowledge base",
     "proj_searchPh": "Search projects",
     "proj_newHelp": "New project",
@@ -11958,6 +12117,59 @@ let jaJPTranslations: [String: String] = [
     "doc_admin_fmt_cluster_line": "%@: %d グループ",
     "doc_admin_err_prefix": "エラー: %@",
     "doc_admin_err_failed": "%@ 失敗: %@",
+    "lic_type_community": "コミュニティ版",
+    "lic_type_pro": "Pro版",
+    "lic_type_enterprise": "エンタープライズ版",
+    "lic_type_trial": "試用版",
+    "lic_desc_community": "無料オープンソース、MITライセンス、個人開発者向け",
+    "lic_desc_pro": "高度な機能のロック解除、マルチモーダル強化、トレーニングパイプライン、高度な運用を含む",
+    "lic_desc_enterprise": "全機能ロック解除、チームコラボレーション、クラスターデプロイ、商用ライセンスを含む",
+    "lic_desc_trial": "14日間の全機能試用、期限切れ後はコミュニティ版に自動ダウングレード",
+    "lic_price_community": "無料",
+    "lic_price_pro": "¥299/年",
+    "lic_price_enterprise": "¥999/年",
+    "lic_price_trial": "14日間無料試用",
+    "lic_feat_mlx": "基本MLX推論",
+    "lic_feat_design_code_sim": "デザイン/コーディング/シミュレーション",
+    "lic_feat_env_check": "環境自己チェックと修復",
+    "lic_feat_rag": "RAGナレッジベース",
+    "lic_feat_orchestrate": "エージェントオーケストレーション",
+    "lic_feat_multimodal": "マルチモーダル生成",
+    "lic_feat_training": "トレーニングパイプライン",
+    "lic_feat_team_collab": "チームコラボレーション",
+    "lic_feat_ops": "高度な運用",
+    "lic_feat_commercial": "商用ライセンス",
+    "lic_tab_overview": "ライセンス概览",
+    "lic_tab_plans": "プラン比較",
+    "lic_tab_activate": "アクティベート",
+    "lic_header": "商用ライセンス",
+    "lic_label_activation_info": "アクティベート情報",
+    "lic_label_status": "ステータス",
+    "lic_label_version": "バージョン",
+    "lic_label_device_id": "デバイスID",
+    "lic_label_licensee": "ライセンシー",
+    "lic_label_activated_at": "アクティベート日時",
+    "lic_label_expires_at": "有効期限",
+    "lic_label_days_remaining": "残り日数",
+    "lic_val_expired": "期限切れ",
+    "lic_val_valid": "有効",
+    "lic_btn_deactivate": "コミュニティ版にダウングレード",
+    "lic_btn_upgrade_pro": "Pro版にアップグレード",
+    "lic_btn_activate": "アクティベート",
+    "lic_btn_buy": "ライセンス購入",
+    "lic_btn_start_trial": "14日間無料試用を開始",
+    "lic_btn_cancel": "キャンセル",
+    "lic_sheet_title": "Pro版アクティベート",
+    "lic_sheet_desc": "アクティベートコードを入力して全機能をロック解除",
+    "lic_or": "または",
+    "lic_form_activate_title": "Fusion Studioをアクティベート",
+    "lic_form_code_label": "アクティベートコード",
+    "lic_form_code_ph": "アクティベートコードを入力",
+    "lic_form_email_label": "メール",
+    "lic_form_email_ph": "メールアドレスを入力",
+    "lic_no_code": "アクティベートコードがない？",
+    "lic_fmt_days": "%d 日",
+    "lic_err_invalid": "無効なアクティベートコード。形式: FS-PRO-XXXXX、FS-ENT-XXXXX または TRIAL",
     "proj_subtitle": "AIプロジェクト・指示・ナレッジベースを管理",
     "proj_searchPh": "プロジェクトを検索",
     "proj_newHelp": "新規プロジェクト",
@@ -15496,6 +15708,59 @@ let koKRTranslations: [String: String] = [
     "doc_admin_fmt_cluster_line": "%@: %d 그룹",
     "doc_admin_err_prefix": "오류: %@",
     "doc_admin_err_failed": "%@ 실패: %@",
+    "lic_type_community": "커뮤니티",
+    "lic_type_pro": "Pro",
+    "lic_type_enterprise": "엔터프라이즈",
+    "lic_type_trial": "체험판",
+    "lic_desc_community": "무료 오픈소스, MIT 라이선스, 개인 개발자용",
+    "lic_desc_pro": "고급 기능 잠금 해제, 멀티모달 강화, 트레이닝 파이프라인, 고급 운영 포함",
+    "lic_desc_enterprise": "전체 기능 잠금 해제, 팀 협업, 클러스터 배포, 상업 라이선스 포함",
+    "lic_desc_trial": "14일 전체 기능 체험, 만료 후 커뮤니티로 자동 다운그레이드",
+    "lic_price_community": "무료",
+    "lic_price_pro": "₩299/년",
+    "lic_price_enterprise": "₩999/년",
+    "lic_price_trial": "14일 무료 체험",
+    "lic_feat_mlx": "기본 MLX 추론",
+    "lic_feat_design_code_sim": "디자인/코딩/시뮬레이션",
+    "lic_feat_env_check": "환경 자가 점검 및 복구",
+    "lic_feat_rag": "RAG 지식베이스",
+    "lic_feat_orchestrate": "에이전트 오케스트레이션",
+    "lic_feat_multimodal": "멀티모달 생성",
+    "lic_feat_training": "트레이닝 파이프라인",
+    "lic_feat_team_collab": "팀 협업",
+    "lic_feat_ops": "고급 운영",
+    "lic_feat_commercial": "상업 라이선스",
+    "lic_tab_overview": "라이선스 개요",
+    "lic_tab_plans": "플랜 비교",
+    "lic_tab_activate": "활성화",
+    "lic_header": "상업 라이선스",
+    "lic_label_activation_info": "활성화 정보",
+    "lic_label_status": "상태",
+    "lic_label_version": "버전",
+    "lic_label_device_id": "기기 ID",
+    "lic_label_licensee": "라이선시",
+    "lic_label_activated_at": "활성화 시간",
+    "lic_label_expires_at": "만료 시간",
+    "lic_label_days_remaining": "남은 일수",
+    "lic_val_expired": "만료됨",
+    "lic_val_valid": "유효",
+    "lic_btn_deactivate": "커뮤니티로 다운그레이드",
+    "lic_btn_upgrade_pro": "Pro로 업그레이드",
+    "lic_btn_activate": "활성화",
+    "lic_btn_buy": "라이선스 구매",
+    "lic_btn_start_trial": "14일 무료 체험 시작",
+    "lic_btn_cancel": "취소",
+    "lic_sheet_title": "Pro 활성화",
+    "lic_sheet_desc": "활성화 코드를 입력하여 모든 기능 잠금 해제",
+    "lic_or": "또는",
+    "lic_form_activate_title": "Fusion Studio 활성화",
+    "lic_form_code_label": "활성화 코드",
+    "lic_form_code_ph": "활성화 코드 입력",
+    "lic_form_email_label": "이메일",
+    "lic_form_email_ph": "이메일 주소 입력",
+    "lic_no_code": "활성화 코드가 없습니까?",
+    "lic_fmt_days": "%d 일",
+    "lic_err_invalid": "유효하지 않은 활성화 코드. 형식: FS-PRO-XXXXX, FS-ENT-XXXXX 또는 TRIAL",
     "proj_subtitle": "AI 프로젝트·지시·지식베이스 관리",
     "proj_searchPh": "프로젝트 검색",
     "proj_newHelp": "새 프로젝트",

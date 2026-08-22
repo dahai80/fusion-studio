@@ -8,37 +8,45 @@ import SwiftUI
 // MARK: - 许可证类型
 
 enum LicenseType: String, CaseIterable {
-    case community = "社区版"
-    case pro       = "专业版"
-    case enterprise = "企业版"
-    case trial     = "试用版"
+    case community
+    case pro
+    case enterprise
+    case trial
 
+    var localizedName: String {
+        switch self {
+        case .community:  return I18nManager.shared.t(.lic_type_community)
+        case .pro:        return I18nManager.shared.t(.lic_type_pro)
+        case .enterprise: return I18nManager.shared.t(.lic_type_enterprise)
+        case .trial:      return I18nManager.shared.t(.lic_type_trial)
+        }
+    }
     var description: String {
         switch self {
-        case .community:  return "免费开源，MIT 许可证，适用于个人开发者"
-        case .pro:        return "高级功能解锁，包含多模态增强、训练流水线、高级运维"
-        case .enterprise: return "全功能解锁，包含团队协作、集群部署、商业授权"
-        case .trial:      return "14 天全功能试用，到期后自动降级为社区版"
+        case .community:  return I18nManager.shared.t(.lic_desc_community)
+        case .pro:        return I18nManager.shared.t(.lic_desc_pro)
+        case .enterprise: return I18nManager.shared.t(.lic_desc_enterprise)
+        case .trial:      return I18nManager.shared.t(.lic_desc_trial)
         }
     }
     var price: String {
         switch self {
-        case .community:  return "免费"
-        case .pro:        return "¥299/年"
-        case .enterprise: return "¥999/年"
-        case .trial:      return "免费试用 14 天"
+        case .community:  return I18nManager.shared.t(.lic_price_community)
+        case .pro:        return I18nManager.shared.t(.lic_price_pro)
+        case .enterprise: return I18nManager.shared.t(.lic_price_enterprise)
+        case .trial:      return I18nManager.shared.t(.lic_price_trial)
         }
     }
     var features: [(String, Bool)] {
         switch self {
         case .community:
-            return [("基础 MLX 推理", true), ("设计/编码/仿真", true), ("环境自检与修复", true), ("RAG 知识库", true), ("智能体编排", true), ("多模态生成", false), ("训练流水线", false), ("团队协作", false), ("高级运维", false), ("商业授权", false)]
+            return [(I18nManager.shared.t(.lic_feat_mlx), true), (I18nManager.shared.t(.lic_feat_design_code_sim), true), (I18nManager.shared.t(.lic_feat_env_check), true), (I18nManager.shared.t(.lic_feat_rag), true), (I18nManager.shared.t(.lic_feat_orchestrate), true), (I18nManager.shared.t(.lic_feat_multimodal), false), (I18nManager.shared.t(.lic_feat_training), false), (I18nManager.shared.t(.lic_feat_team_collab), false), (I18nManager.shared.t(.lic_feat_ops), false), (I18nManager.shared.t(.lic_feat_commercial), false)]
         case .pro:
-            return [("基础 MLX 推理", true), ("设计/编码/仿真", true), ("环境自检与修复", true), ("RAG 知识库", true), ("智能体编排", true), ("多模态生成", true), ("训练流水线", true), ("团队协作", false), ("高级运维", true), ("商业授权", false)]
+            return [(I18nManager.shared.t(.lic_feat_mlx), true), (I18nManager.shared.t(.lic_feat_design_code_sim), true), (I18nManager.shared.t(.lic_feat_env_check), true), (I18nManager.shared.t(.lic_feat_rag), true), (I18nManager.shared.t(.lic_feat_orchestrate), true), (I18nManager.shared.t(.lic_feat_multimodal), true), (I18nManager.shared.t(.lic_feat_training), true), (I18nManager.shared.t(.lic_feat_team_collab), false), (I18nManager.shared.t(.lic_feat_ops), true), (I18nManager.shared.t(.lic_feat_commercial), false)]
         case .enterprise:
-            return [("基础 MLX 推理", true), ("设计/编码/仿真", true), ("环境自检与修复", true), ("RAG 知识库", true), ("智能体编排", true), ("多模态生成", true), ("训练流水线", true), ("团队协作", true), ("高级运维", true), ("商业授权", true)]
+            return [(I18nManager.shared.t(.lic_feat_mlx), true), (I18nManager.shared.t(.lic_feat_design_code_sim), true), (I18nManager.shared.t(.lic_feat_env_check), true), (I18nManager.shared.t(.lic_feat_rag), true), (I18nManager.shared.t(.lic_feat_orchestrate), true), (I18nManager.shared.t(.lic_feat_multimodal), true), (I18nManager.shared.t(.lic_feat_training), true), (I18nManager.shared.t(.lic_feat_team_collab), true), (I18nManager.shared.t(.lic_feat_ops), true), (I18nManager.shared.t(.lic_feat_commercial), true)]
         case .trial:
-            return [("基础 MLX 推理", true), ("设计/编码/仿真", true), ("环境自检与修复", true), ("RAG 知识库", true), ("智能体编排", true), ("多模态生成", true), ("训练流水线", true), ("团队协作", true), ("高级运维", true), ("商业授权", true)]
+            return [(I18nManager.shared.t(.lic_feat_mlx), true), (I18nManager.shared.t(.lic_feat_design_code_sim), true), (I18nManager.shared.t(.lic_feat_env_check), true), (I18nManager.shared.t(.lic_feat_rag), true), (I18nManager.shared.t(.lic_feat_orchestrate), true), (I18nManager.shared.t(.lic_feat_multimodal), true), (I18nManager.shared.t(.lic_feat_training), true), (I18nManager.shared.t(.lic_feat_team_collab), true), (I18nManager.shared.t(.lic_feat_ops), true), (I18nManager.shared.t(.lic_feat_commercial), true)]
         }
     }
 }
@@ -101,7 +109,7 @@ class LicenseManager: ObservableObject {
             status = ActivationStatus(isActivated: true, licenseType: .trial, activatedAt: Date(), expiresAt: Calendar.current.date(byAdding: .day, value: 14, to: Date()), deviceId: deviceUUID(), licensee: email, licenseKey: key, isOffline: true)
             activationError = nil
         } else {
-            activationError = "无效的激活码。格式: FS-PRO-XXXXX、FS-ENT-XXXXX 或 TRIAL"
+            activationError = I18nManager.shared.t(.lic_err_invalid)
         }
         objectWillChange.send()
     }
@@ -127,15 +135,23 @@ struct LicenseView: View {
     @State private var selectedTab: LicenseTab = .overview
 
     enum LicenseTab: String, CaseIterable {
-        case overview = "授权概览"
-        case plans    = "版本对比"
-        case activate = "激活"
+        case overview
+        case plans
+        case activate
+
+        var localizedName: String {
+            switch self {
+            case .overview: return I18nManager.shared.t(.lic_tab_overview)
+            case .plans:    return I18nManager.shared.t(.lic_tab_plans)
+            case .activate: return I18nManager.shared.t(.lic_tab_activate)
+            }
+        }
     }
 
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Label("商业授权", systemImage: "key.fill").font(.headline)
+                Label(I18nManager.shared.t(.lic_header), systemImage: "key.fill").font(.headline)
                 Spacer()
                 LicenseBadge(type: manager.status.licenseType)
             }
@@ -146,7 +162,7 @@ struct LicenseView: View {
 
             Picker("", selection: $selectedTab) {
                 ForEach(LicenseTab.allCases, id: \.self) { tab in
-                    Label(tab.rawValue, systemImage: tabIcon(tab)).tag(tab)
+                    Label(tab.localizedName, systemImage: tabIcon(tab)).tag(tab)
                 }
             }
             .pickerStyle(.segmented).padding(8)
@@ -180,7 +196,7 @@ struct LicenseOverview: View {
                 .font(.system(size: 64))
                 .foregroundColor(manager.status.licenseType == .community ? .secondary : .green)
 
-            Text(manager.status.licenseType.rawValue)
+            Text(manager.status.licenseType.localizedName)
                 .font(.largeTitle).bold()
 
             Text(manager.status.licenseType.description)
@@ -190,20 +206,20 @@ struct LicenseOverview: View {
 
             Divider().frame(width: 200)
 
-            GroupBox("激活信息") {
+            GroupBox(I18nManager.shared.t(.lic_label_activation_info)) {
                 VStack(alignment: .leading, spacing: 6) {
-                    LicRow("状态", manager.isExpired ? "已过期" : "有效")
-                    LicRow("版本", manager.status.licenseType.rawValue)
-                    LicRow("设备 ID", manager.status.deviceId)
+                    LicRow(I18nManager.shared.t(.lic_label_status), manager.isExpired ? I18nManager.shared.t(.lic_val_expired) : I18nManager.shared.t(.lic_val_valid))
+                    LicRow(I18nManager.shared.t(.lic_label_version), manager.status.licenseType.localizedName)
+                    LicRow(I18nManager.shared.t(.lic_label_device_id), manager.status.deviceId)
                     if !manager.status.licensee.isEmpty {
-                        LicRow("授权人", manager.status.licensee)
+                        LicRow(I18nManager.shared.t(.lic_label_licensee), manager.status.licensee)
                     }
                     if let activated = manager.status.activatedAt {
-                        LicRow("激活时间", activated.formatted(date: .numeric, time: .shortened))
+                        LicRow(I18nManager.shared.t(.lic_label_activated_at), activated.formatted(date: .numeric, time: .shortened))
                     }
                     if let expires = manager.status.expiresAt {
-                        LicRow("到期时间", expires.formatted(date: .numeric, time: .shortened))
-                        LicRow("剩余天数", "\(manager.daysRemaining) 天")
+                        LicRow(I18nManager.shared.t(.lic_label_expires_at), expires.formatted(date: .numeric, time: .shortened))
+                        LicRow(I18nManager.shared.t(.lic_label_days_remaining), I18nManager.shared.tf(.lic_fmt_days, manager.daysRemaining))
                     }
                 }
                 .padding(8)
@@ -211,12 +227,12 @@ struct LicenseOverview: View {
             .padding(.horizontal)
 
             if manager.status.licenseType != .community {
-                Button("降级为社区版") { manager.deactivate() }
+                Button(I18nManager.shared.t(.lic_btn_deactivate)) { manager.deactivate() }
                     .buttonStyle(.bordered).foregroundColor(.red)
             }
 
             if !manager.isPro && !manager.isExpired {
-                Button("升级到专业版") { manager.showActivationSheet = true }
+                Button(I18nManager.shared.t(.lic_btn_upgrade_pro)) { manager.showActivationSheet = true }
                     .buttonStyle(.borderedProminent)
             }
 
@@ -243,7 +259,7 @@ struct LicensePlansView: View {
                 ForEach(LicenseType.allCases, id: \.rawValue) { license in
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text(license.rawValue).font(.headline)
+                            Text(license.localizedName).font(.headline)
                             Spacer()
                             Text(license.price).font(.title3).fontWeight(.bold).foregroundColor(.accentColor)
                         }
@@ -282,17 +298,17 @@ struct LicenseActivateView: View {
             Spacer()
 
             Image(systemName: "key.fill").font(.system(size: 48)).foregroundColor(.accentColor)
-            Text("激活 Fusion Studio").font(.title2).bold()
+            Text(I18nManager.shared.t(.lic_form_activate_title)).font(.title2).bold()
 
             GroupBox {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("激活码").font(.subheadline).foregroundColor(.secondary)
-                    TextField("输入激活码", text: $licenseKey)
+                    Text(I18nManager.shared.t(.lic_form_code_label)).font(.subheadline).foregroundColor(.secondary)
+                    TextField(I18nManager.shared.t(.lic_form_code_ph), text: $licenseKey)
                         .textFieldStyle(.roundedBorder)
                         .font(.system(.body, design: .monospaced))
 
-                    Text("邮箱").font(.subheadline).foregroundColor(.secondary)
-                    TextField("输入邮箱地址", text: $email)
+                    Text(I18nManager.shared.t(.lic_form_email_label)).font(.subheadline).foregroundColor(.secondary)
+                    TextField(I18nManager.shared.t(.lic_form_email_ph), text: $email)
                         .textFieldStyle(.roundedBorder)
 
                     if let error = manager.activationError {
@@ -300,18 +316,18 @@ struct LicenseActivateView: View {
                     }
 
                     Button(action: { manager.activate(key: licenseKey, email: email) }) {
-                        Label("激活", systemImage: "key").frame(maxWidth: .infinity)
+                        Label(I18nManager.shared.t(.lic_btn_activate), systemImage: "key").frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(licenseKey.isEmpty || email.isEmpty)
 
                     Divider()
 
-                    Text("没有激活码？").font(.subheadline).foregroundColor(.secondary)
-                    Button("开始 14 天免费试用") { manager.startTrial() }
+                    Text(I18nManager.shared.t(.lic_no_code)).font(.subheadline).foregroundColor(.secondary)
+                    Button(I18nManager.shared.t(.lic_btn_start_trial)) { manager.startTrial() }
                         .buttonStyle(.bordered)
 
-                    Button("购买许可证") { }
+                    Button(I18nManager.shared.t(.lic_btn_buy)) { }
                         .buttonStyle(.bordered)
                 }
                 .padding(8)
@@ -333,14 +349,14 @@ struct ActivationSheetView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("激活专业版").font(.title2).bold()
-            Text("输入激活码解锁全部功能").font(.subheadline).foregroundColor(.secondary)
+            Text(I18nManager.shared.t(.lic_sheet_title)).font(.title2).bold()
+            Text(I18nManager.shared.t(.lic_sheet_desc)).font(.subheadline).foregroundColor(.secondary)
 
-            TextField("激活码", text: $licenseKey)
+            TextField(I18nManager.shared.t(.lic_form_code_ph), text: $licenseKey)
                 .textFieldStyle(.roundedBorder)
                 .font(.system(.body, design: .monospaced))
 
-            TextField("邮箱", text: $email)
+            TextField(I18nManager.shared.t(.lic_form_email_ph), text: $email)
                 .textFieldStyle(.roundedBorder)
 
             if let error = manager.activationError {
@@ -348,8 +364,8 @@ struct ActivationSheetView: View {
             }
 
             HStack {
-                Button("取消") { dismiss() }.buttonStyle(.bordered)
-                Button("激活") {
+                Button(I18nManager.shared.t(.lic_btn_cancel)) { dismiss() }.buttonStyle(.bordered)
+                Button(I18nManager.shared.t(.lic_btn_activate)) {
                     manager.activate(key: licenseKey, email: email)
                     if manager.activationError == nil { dismiss() }
                 }
@@ -358,8 +374,8 @@ struct ActivationSheetView: View {
             }
 
             Divider()
-            Text("或").font(.caption).foregroundColor(.secondary)
-            Button("开始 14 天免费试用") {
+            Text(I18nManager.shared.t(.lic_or)).font(.caption).foregroundColor(.secondary)
+            Button(I18nManager.shared.t(.lic_btn_start_trial)) {
                 manager.startTrial()
                 dismiss()
             }
@@ -377,7 +393,7 @@ struct LicenseBadge: View {
         HStack(spacing: 4) {
             Image(systemName: type == .community ? "shield" : "shield.checkered")
                 .font(.caption)
-            Text(type.rawValue).font(.caption)
+            Text(type.localizedName).font(.caption)
         }
         .padding(.horizontal, 8).padding(.vertical, 4)
         .background(color.opacity(0.1)).cornerRadius(6)
