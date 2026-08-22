@@ -11,18 +11,18 @@ struct FinanceDashboardView: View {
             VStack(alignment: .leading, spacing: 16) {
                 connectionStatus
 
-                Text("公司全景")
+                Text(I18nManager.shared.t(.fin_company_panorama))
                     .font(.title2.bold())
 
                 HStack(spacing: 12) {
-                    TextField("公司名称", text: $company)
+                    TextField(I18nManager.shared.t(.fin_ph_company), text: $company)
                         .textFieldStyle(.roundedBorder)
-                    TextField("营收(逗号分隔)", text: $revenue)
+                    TextField(I18nManager.shared.t(.fin_ph_revenue), text: $revenue)
                         .textFieldStyle(.roundedBorder)
                     TextField("WACC", text: $wacc)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 80)
-                    Button("查询") { fetchDashboard() }
+                    Button(I18nManager.shared.t(.fin_btn_query)) { fetchDashboard() }
                         .buttonStyle(.borderedProminent)
                 }
 
@@ -32,14 +32,14 @@ struct FinanceDashboardView: View {
 
                 Divider()
 
-                Text("市场概览")
+                Text(I18nManager.shared.t(.fin_market_overview))
                     .font(.title2.bold())
 
                 HStack(spacing: 12) {
-                    Button("价值股") { fetchMarket(preset: "value") }
-                    Button("成长股") { fetchMarket(preset: "growth") }
-                    Button("红利股") { fetchMarket(preset: "dividend") }
-                    Button("质量股") { fetchMarket(preset: "quality") }
+                    Button(I18nManager.shared.t(.fin_stock_value)) { fetchMarket(preset: "value") }
+                    Button(I18nManager.shared.t(.fin_stock_growth)) { fetchMarket(preset: "growth") }
+                    Button(I18nManager.shared.t(.fin_stock_dividend)) { fetchMarket(preset: "dividend") }
+                    Button(I18nManager.shared.t(.fin_stock_quality)) { fetchMarket(preset: "quality") }
                 }
                 .buttonStyle(.bordered)
 
@@ -56,7 +56,7 @@ struct FinanceDashboardView: View {
             Circle()
                 .fill(financeBridge.isConnected ? Color.green : Color.red)
                 .frame(width: 8, height: 8)
-            Text(financeBridge.isConnected ? "已连接" : "未连接")
+            Text(financeBridge.isConnected ? I18nManager.shared.t(.fin_connected) : I18nManager.shared.t(.fin_disconnected))
                 .font(.caption)
             if let status = financeBridge.serviceStatus {
                 Text("v\(status.version) · MLX: \(status.mlx.status)")
@@ -71,14 +71,14 @@ struct FinanceDashboardView: View {
             Text(result.company).font(.headline)
             if let dcf = result.dcf {
                 HStack(spacing: 16) {
-                    metricCard("企业价值", value: dcf.enterpriseValue.map { String(format: "%.1f", $0) } ?? "—")
-                    metricCard("股权价值", value: dcf.equityValue.map { String(format: "%.1f", $0) } ?? "—")
+                    metricCard(I18nManager.shared.t(.fin_metric_enterprise), value: dcf.enterpriseValue.map { String(format: "%.1f", $0) } ?? "—")
+                    metricCard(I18nManager.shared.t(.fin_metric_equity), value: dcf.equityValue.map { String(format: "%.1f", $0) } ?? "—")
                 }
             }
             if let metrics = result.keyMetrics {
                 HStack(spacing: 16) {
-                    metricCard("毛利率", value: metrics.grossMargin.map { String(format: "%.1f%%", $0 * 100) } ?? "—")
-                    metricCard("EBIT利润率", value: metrics.ebitMargin.map { String(format: "%.1f%%", $0 * 100) } ?? "—")
+                    metricCard(I18nManager.shared.t(.fin_metric_gross_margin), value: metrics.grossMargin.map { String(format: "%.1f%%", $0 * 100) } ?? "—")
+                    metricCard(I18nManager.shared.t(.fin_metric_ebit_margin), value: metrics.ebitMargin.map { String(format: "%.1f%%", $0 * 100) } ?? "—")
                 }
             }
         }
@@ -87,7 +87,7 @@ struct FinanceDashboardView: View {
     private func marketContent(_ market: FinanceMarketResult) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             if let screener = market.screener {
-                Text("通过筛选: \(screener.passedFilter ?? 0) 只")
+                Text(String(format: I18nManager.shared.t(.fin_passed_filter), screener.passedFilter ?? 0))
                     .font(.subheadline)
                 if let items = screener.results {
                     ForEach(items.prefix(10)) { item in

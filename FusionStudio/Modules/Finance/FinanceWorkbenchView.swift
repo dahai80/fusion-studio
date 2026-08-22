@@ -34,7 +34,7 @@ struct FinanceNavigationView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("金融分析")
+            Text(I18nManager.shared.t(.fin_title))
                 .font(.headline)
                 .padding(.horizontal, 12)
                 .padding(.top, 12)
@@ -45,7 +45,7 @@ struct FinanceNavigationView: View {
                     HStack(spacing: 8) {
                         Image(systemName: tab.icon)
                             .frame(width: 20)
-                        Text(tab.rawValue)
+                        Text(tab.localizedName)
                             .font(.subheadline)
                         Spacer()
                     }

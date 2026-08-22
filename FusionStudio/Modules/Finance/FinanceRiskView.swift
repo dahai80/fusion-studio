@@ -9,30 +9,30 @@ struct FinanceRiskView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Text("KYC 尽职调查")
+                Text(I18nManager.shared.t(.fin_kyc_dd))
                     .font(.title2.bold())
 
                 HStack(spacing: 12) {
-                    TextField("实体名称", text: $entity)
+                    TextField(I18nManager.shared.t(.fin_ph_entity), text: $entity)
                         .textFieldStyle(.roundedBorder)
-                    Button("筛查") { runKYC() }
+                    Button(I18nManager.shared.t(.fin_btn_screen_kyc)) { runKYC() }
                         .buttonStyle(.borderedProminent)
                 }
 
                 if let r = kycResult {
-                    resultSection("KYC 结果", dict: r)
+                    resultSection(I18nManager.shared.t(.fin_kyc_result), dict: r)
                 }
 
                 Divider()
 
-                Text("VaR 风险价值")
+                Text(I18nManager.shared.t(.fin_var_risk))
                     .font(.title2.bold())
 
-                Button("示例 VaR 计算") { calcVar() }
+                Button(I18nManager.shared.t(.fin_btn_sample_var)) { calcVar() }
                     .buttonStyle(.bordered)
 
                 if let r = varResult {
-                    resultSection("VaR 结果", dict: r)
+                    resultSection(I18nManager.shared.t(.fin_var_result), dict: r)
                 }
             }
             .padding(20)

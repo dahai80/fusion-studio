@@ -12,46 +12,46 @@ struct FinanceModelingView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Text("DCF 估值")
+                Text(I18nManager.shared.t(.fin_dcf_valuation))
                     .font(.title2.bold())
 
                 HStack(spacing: 12) {
-                    TextField("公司", text: $company)
+                    TextField(I18nManager.shared.t(.fin_ph_company_short), text: $company)
                         .textFieldStyle(.roundedBorder)
-                    TextField("营收", text: $revenue)
+                    TextField(I18nManager.shared.t(.fin_ph_revenue_short), text: $revenue)
                         .textFieldStyle(.roundedBorder)
                     TextField("WACC", text: $wacc)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 80)
-                    TextField("永续增长率", text: $terminalGrowth)
+                    TextField(I18nManager.shared.t(.fin_ph_terminal_growth), text: $terminalGrowth)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 80)
-                    Button("计算 DCF") { calcDCF() }
+                    Button(I18nManager.shared.t(.fin_btn_calc_dcf)) { calcDCF() }
                         .buttonStyle(.borderedProminent)
                 }
 
                 if let r = dcfResult {
-                    resultSection("DCF 结果", dict: r)
+                    resultSection(I18nManager.shared.t(.fin_dcf_result), dict: r)
                 }
 
                 Divider()
 
-                Text("敏感性分析")
+                Text(I18nManager.shared.t(.fin_sensitivity_analysis))
                     .font(.title2.bold())
 
-                Button("运行敏感性分析") { calcSensitivity() }
+                Button(I18nManager.shared.t(.fin_btn_run_sensitivity)) { calcSensitivity() }
                     .buttonStyle(.bordered)
 
                 if let r = sensitivityResult {
-                    resultSection("敏感性矩阵", dict: r)
+                    resultSection(I18nManager.shared.t(.fin_sensitivity_matrix), dict: r)
                 }
 
                 Divider()
 
-                Text("投资组合优化")
+                Text(I18nManager.shared.t(.fin_portfolio_optimization))
                     .font(.title2.bold())
 
-                Button("示例组合优化") { calcPortfolio() }
+                Button(I18nManager.shared.t(.fin_btn_sample_portfolio)) { calcPortfolio() }
                     .buttonStyle(.bordered)
             }
             .padding(20)
