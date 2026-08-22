@@ -4,10 +4,10 @@ import os.log
 private let healthViewLog = Logger(subsystem: "com.fusion.studio", category: "HealthWorkbenchView")
 
 enum HealthModuleTab: String, CaseIterable, Identifiable {
-    case dashboard = "概览"
-    case ehr = "病历摘要"
-    case vitals = "体征提取"
-    case copilot = "AI 咨询"
+    case dashboard = "dashboard"
+    case ehr = "ehr"
+    case vitals = "vitals"
+    case copilot = "copilot"
     var id: String { rawValue }
     var icon: String {
         switch self {
@@ -15,6 +15,14 @@ enum HealthModuleTab: String, CaseIterable, Identifiable {
         case .ehr: return "doc.text.magnifyingglass"
         case .vitals: return "waveform.path.ecg"
         case .copilot: return "stethoscope"
+        }
+    }
+    var localizedName: String {
+        switch self {
+        case .dashboard: return I18nManager.shared.t(.health_tab_dashboard)
+        case .ehr: return I18nManager.shared.t(.health_tab_ehr)
+        case .vitals: return I18nManager.shared.t(.health_tab_vitals)
+        case .copilot: return I18nManager.shared.t(.health_tab_copilot)
         }
     }
 }
@@ -52,7 +60,7 @@ struct HealthNavigationView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("健康助手")
+            Text(I18nManager.shared.t(.health_title))
                 .font(.headline)
                 .padding(.horizontal, 12)
                 .padding(.top, 12)
@@ -63,7 +71,7 @@ struct HealthNavigationView: View {
                     HStack(spacing: 8) {
                         Image(systemName: tab.icon)
                             .frame(width: 20)
-                        Text(tab.rawValue)
+                        Text(tab.localizedName)
                             .font(.subheadline)
                         Spacer()
                     }
@@ -81,7 +89,7 @@ struct HealthNavigationView: View {
                 Circle()
                     .fill(healthBridge.isConnected ? Color.green : Color.gray)
                     .frame(width: 8, height: 8)
-                Text(healthBridge.isConnected ? "服务在线" : "离线")
+                Text(healthBridge.isConnected ? I18nManager.shared.t(.health_status_online) : I18nManager.shared.t(.health_status_offline))
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
@@ -116,15 +124,15 @@ struct HealthDashboardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Fusion Health 概览")
+            Text(I18nManager.shared.t(.health_title_overview))
                 .font(.title2.bold())
                 .padding(.top, 16)
 
             HStack(spacing: 16) {
-                HealthMetricCard(title: "服务状态", value: healthBridge.isConnected ? "在线" : "离线", icon: "heart.text.square", color: healthBridge.isConnected ? .green : .gray)
-                HealthMetricCard(title: "服务名称", value: healthBridge.serviceStatus?.service ?? "fusion-health", icon: "server.rack", color: .blue)
-                HealthMetricCard(title: "版本", value: healthBridge.serviceStatus?.version ?? "-", icon: "tag", color: .purple)
-                HealthMetricCard(title: "模型", value: healthBridge.serviceStatus?.model ?? "-", icon: "cpu", color: .orange)
+                HealthMetricCard(title: I18nManager.shared.t(.health_metric_service_status), value: healthBridge.isConnected ? I18nManager.shared.t(.health_online) : I18nManager.shared.t(.health_offline), icon: "heart.text.square", color: healthBridge.isConnected ? .green : .gray)
+                HealthMetricCard(title: I18nManager.shared.t(.health_metric_service_name), value: healthBridge.serviceStatus?.service ?? "fusion-health", icon: "server.rack", color: .blue)
+                HealthMetricCard(title: I18nManager.shared.t(.health_metric_version), value: healthBridge.serviceStatus?.version ?? "-", icon: "tag", color: .purple)
+                HealthMetricCard(title: I18nManager.shared.t(.health_metric_model), value: healthBridge.serviceStatus?.model ?? "-", icon: "cpu", color: .orange)
             }
 
             if let err = healthBridge.lastError {
@@ -174,8 +182,8 @@ struct HealthEhrSummaryView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("病历摘要生成").font(.title3.bold()).padding(.top, 16)
-            Text("粘贴临床记录，生成结构化摘要。").font(.caption).foregroundColor(.secondary)
+            Text(I18nManager.shared.t(.health_title_ehr_gen)).font(.title3.bold()).padding(.top, 16)
+            Text(I18nManager.shared.t(.health_desc_ehr_gen)).font(.caption).foregroundColor(.secondary)
 
             TextEditor(text: $notes)
                 .frame(minHeight: 160)
@@ -185,13 +193,13 @@ struct HealthEhrSummaryView: View {
                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.gray.opacity(0.3)))
 
             Button(action: generate) {
-                Label(loading ? "生成中…" : "生成摘要", systemImage: "wand.and.stars")
+                Label(loading ? I18nManager.shared.t(.health_btn_generating) : I18nManager.shared.t(.health_btn_generate_summary), systemImage: "wand.and.stars")
             }
             .buttonStyle(.borderedProminent)
             .disabled(notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || loading)
 
             if let summary = healthBridge.ehrSummary {
-                GroupBox("摘要") {
+                GroupBox(I18nManager.shared.t(.health_groupbox_summary)) {
                     ScrollView {
                         Text(summary)
                             .font(.body)
@@ -224,8 +232,8 @@ struct HealthVitalsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("体征提取").font(.title3.bold()).padding(.top, 16)
-            Text("从文本中抽取生命体征（血压/心率/体温等）。").font(.caption).foregroundColor(.secondary)
+            Text(I18nManager.shared.t(.health_title_vitals)).font(.title3.bold()).padding(.top, 16)
+            Text(I18nManager.shared.t(.health_desc_vitals)).font(.caption).foregroundColor(.secondary)
 
             TextEditor(text: $text)
                 .frame(minHeight: 120)
@@ -235,13 +243,13 @@ struct HealthVitalsView: View {
                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.gray.opacity(0.3)))
 
             Button(action: extract) {
-                Label(loading ? "抽取中…" : "提取体征", systemImage: "waveform.path.ecg")
+                Label(loading ? I18nManager.shared.t(.health_btn_extracting) : I18nManager.shared.t(.health_btn_extract_vitals), systemImage: "waveform.path.ecg")
             }
             .buttonStyle(.borderedProminent)
             .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || loading)
 
             if !vitals.isEmpty {
-                GroupBox("体征") {
+                GroupBox(I18nManager.shared.t(.health_groupbox_vitals)) {
                     VStack(alignment: .leading, spacing: 6) {
                         ForEach(vitals.keys.sorted(), id: \.self) { key in
                             HStack {
@@ -276,7 +284,7 @@ struct HealthCopilotPanel: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Text("AI 医疗咨询")
+            Text(I18nManager.shared.t(.health_title_copilot))
                 .font(.headline)
                 .padding(8)
                 .frame(maxWidth: .infinity)
@@ -306,7 +314,7 @@ struct HealthCopilotPanel: View {
             Divider()
 
             HStack(spacing: 8) {
-                TextField("输入健康问题…", text: $inputText)
+                TextField(I18nManager.shared.t(.health_ph_input_question), text: $inputText)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit { send() }
                 Button(action: send) {
