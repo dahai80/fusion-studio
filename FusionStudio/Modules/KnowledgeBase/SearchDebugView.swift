@@ -20,41 +20,41 @@ struct SearchDebugView: View {
         VStack(spacing: 0) {
             // Controls
             HStack {
-                Picker("知识库", selection: $selectedKBId) {
-                    Text("选择知识库").tag("")
+                Picker(I18nManager.shared.t(.kbc_label_kb), selection: $selectedKBId) {
+                    Text(I18nManager.shared.t(.kbc_ph_select_kb)).tag("")
                     ForEach(client.knowledgeBases) { kb in
                         Text(kb.name).tag(kb.id)
                     }
                 }
                 .frame(maxWidth: 180)
 
-                TextField("搜索查询", text: $query)
+                TextField(I18nManager.shared.t(.kbc_ph_search_query), text: $query)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit { doSearch() }
 
                 Stepper("Top \(topK)", value: $topK, in: 1...50)
                     .frame(maxWidth: 100)
 
-                Button("搜索") { doSearch() }
+                Button(I18nManager.shared.t(.kbc_btn_search)) { doSearch() }
                     .disabled(isSearching || query.isEmpty || selectedKBId.isEmpty)
                     .buttonStyle(.borderedProminent)
             }
             .padding(12)
 
             HStack {
-                Picker("查询重写", selection: $rewriteMode) {
-                    Text("关闭").tag(String?.none)
+                Picker(I18nManager.shared.t(.kbc_label_rewrite), selection: $rewriteMode) {
+                    Text(I18nManager.shared.t(.kbc_rewrite_off)).tag(String?.none)
                     Text("HyDE").tag(String?.some("hyde"))
-                    Text("扩展").tag(String?.some("expand"))
-                    Text("精简").tag(String?.some("condense"))
+                    Text(I18nManager.shared.t(.kbc_rewrite_expand)).tag(String?.some("expand"))
+                    Text(I18nManager.shared.t(.kbc_rewrite_condense)).tag(String?.some("condense"))
                 }
                 .frame(maxWidth: 120)
                 Slider(value: $threshold, in: 0...1, step: 0.05) {
-                    Text("阈值: \(String(format: "%.2f", threshold))")
+                    Text(String(format: I18nManager.shared.t(.kbc_label_threshold), threshold))
                 }
                 .frame(maxWidth: 200)
                 if searchTimeMs > 0 {
-                    Text("耗时: \(String(format: "%.0f", searchTimeMs))ms")
+                    Text(String(format: I18nManager.shared.t(.kbc_label_elapsed), searchTimeMs))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -68,7 +68,7 @@ struct SearchDebugView: View {
             // Results
             if isSearching {
                 Spacer()
-                ProgressView("搜索中...")
+                ProgressView(I18nManager.shared.t(.kbc_searching))
                 Spacer()
             } else if results.isEmpty {
                 Spacer()
@@ -76,7 +76,7 @@ struct SearchDebugView: View {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 32))
                         .foregroundStyle(.secondary)
-                    Text(query.isEmpty ? "输入查询开始搜索" : "无搜索结果")
+                    Text(query.isEmpty ? I18nManager.shared.t(.kbc_msg_input_to_search) : I18nManager.shared.t(.kbc_msg_no_results))
                         .foregroundStyle(.secondary)
                 }
                 Spacer()

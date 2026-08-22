@@ -3602,6 +3602,62 @@ enum I18nKey: String, CaseIterable {
     case plugin_log_ph_plugin_id = "plugin_log_ph_plugin_id"
     case plugin_log_btn_refresh = "plugin_log_btn_refresh"
     case plugin_log_msg_empty = "plugin_log_msg_empty"
+    case kbc_label_kb = "kbc_label_kb"
+    case kbc_ph_select_kb = "kbc_ph_select_kb"
+    case kbc_opt_not_selected = "kbc_opt_not_selected"
+    case kbc_label_rewrite = "kbc_label_rewrite"
+    case kbc_rewrite_off = "kbc_rewrite_off"
+    case kbc_rewrite_expand = "kbc_rewrite_expand"
+    case kbc_rewrite_condense = "kbc_rewrite_condense"
+    case kbc_ph_input_question = "kbc_ph_input_question"
+    case kbc_msg_request_failed = "kbc_msg_request_failed"
+    case kbc_label_sources = "kbc_label_sources"
+    case kbc_label_relevance_f = "kbc_label_relevance_f"
+    case kbc_help_refresh_list = "kbc_help_refresh_list"
+    case kbc_help_create_kb = "kbc_help_create_kb"
+    case kbc_loading = "kbc_loading"
+    case kbc_empty_no_kb = "kbc_empty_no_kb"
+    case kbc_btn_create_kb = "kbc_btn_create_kb"
+    case kbc_menu_scan_dir = "kbc_menu_scan_dir"
+    case kbc_btn_delete = "kbc_btn_delete"
+    case kbc_field_name = "kbc_field_name"
+    case kbc_field_desc = "kbc_field_desc"
+    case kbc_field_chunk_strategy = "kbc_field_chunk_strategy"
+    case kbc_field_embed_model = "kbc_field_embed_model"
+    case kbc_btn_cancel = "kbc_btn_cancel"
+    case kbc_btn_create = "kbc_btn_create"
+    case kbc_field_dir_path = "kbc_field_dir_path"
+    case kbc_btn_start_scan = "kbc_btn_start_scan"
+    case kbc_label_n_files = "kbc_label_n_files"
+    case kbc_label_n_chunks = "kbc_label_n_chunks"
+    case kbc_section_rag_service = "kbc_section_rag_service"
+    case kbc_field_host = "kbc_field_host"
+    case kbc_field_port = "kbc_field_port"
+    case kbc_field_api_key_optional = "kbc_field_api_key_optional"
+    case kbc_label_service_url = "kbc_label_service_url"
+    case kbc_btn_check_conn = "kbc_btn_check_conn"
+    case kbc_status_unknown = "kbc_status_unknown"
+    case kbc_status_checking = "kbc_status_checking"
+    case kbc_status_ok = "kbc_status_ok"
+    case kbc_status_unreachable = "kbc_status_unreachable"
+    case kbc_section_embed_model = "kbc_section_embed_model"
+    case kbc_field_default_model = "kbc_field_default_model"
+    case kbc_help_embed_model = "kbc_help_embed_model"
+    case kbc_section_advanced = "kbc_section_advanced"
+    case kbc_toggle_rewrite = "kbc_toggle_rewrite"
+    case kbc_toggle_hybrid_search = "kbc_toggle_hybrid_search"
+    case kbc_toggle_reranker = "kbc_toggle_reranker"
+    case kbc_toggle_contextualizer = "kbc_toggle_contextualizer"
+    case kbc_btn_reset_defaults = "kbc_btn_reset_defaults"
+    case kbc_ph_search_query = "kbc_ph_search_query"
+    case kbc_btn_search = "kbc_btn_search"
+    case kbc_label_threshold = "kbc_label_threshold"
+    case kbc_label_elapsed = "kbc_label_elapsed"
+    case kbc_searching = "kbc_searching"
+    case kbc_msg_input_to_search = "kbc_msg_input_to_search"
+    case kbc_msg_no_results = "kbc_msg_no_results"
+    case kbc_err_invalid_url = "kbc_err_invalid_url"
+    case kbc_err_invalid_response = "kbc_err_invalid_response"
 }
 
 // MARK: - 翻译管理器
@@ -6853,7 +6909,63 @@ let zhCNTranslations: [String: String] = [
     "plugin_log_filter_level": "级别",
     "plugin_log_ph_plugin_id": "插件ID",
     "plugin_log_btn_refresh": "刷新",
-    "plugin_log_msg_empty": "暂无日志"
+    "plugin_log_msg_empty": "暂无日志",
+    "kbc_label_kb": "知识库",
+    "kbc_ph_select_kb": "选择知识库",
+    "kbc_opt_not_selected": "未选择",
+    "kbc_label_rewrite": "查询重写",
+    "kbc_rewrite_off": "关闭",
+    "kbc_rewrite_expand": "扩展",
+    "kbc_rewrite_condense": "精简",
+    "kbc_ph_input_question": "输入问题...",
+    "kbc_msg_request_failed": "请求失败，请检查知识库服务是否运行",
+    "kbc_label_sources": "引用来源 (%d)",
+    "kbc_label_relevance_f": "相关度: %.2f",
+    "kbc_help_refresh_list": "刷新列表",
+    "kbc_help_create_kb": "创建知识库",
+    "kbc_loading": "加载中...",
+    "kbc_empty_no_kb": "暂无知识库",
+    "kbc_btn_create_kb": "创建知识库",
+    "kbc_menu_scan_dir": "扫描目录导入",
+    "kbc_btn_delete": "删除",
+    "kbc_field_name": "名称",
+    "kbc_field_desc": "描述",
+    "kbc_field_chunk_strategy": "分块策略",
+    "kbc_field_embed_model": "嵌入模型",
+    "kbc_btn_cancel": "取消",
+    "kbc_btn_create": "创建",
+    "kbc_field_dir_path": "目录路径",
+    "kbc_btn_start_scan": "开始扫描",
+    "kbc_label_n_files": "%d 文件",
+    "kbc_label_n_chunks": "%d 分块",
+    "kbc_section_rag_service": "Fusion-RAG 服务",
+    "kbc_field_host": "主机",
+    "kbc_field_port": "端口",
+    "kbc_field_api_key_optional": "API Key (可选)",
+    "kbc_label_service_url": "服务地址: %@",
+    "kbc_btn_check_conn": "检测连接",
+    "kbc_status_unknown": "未检测",
+    "kbc_status_checking": "检测中...",
+    "kbc_status_ok": "正常",
+    "kbc_status_unreachable": "无法连接",
+    "kbc_section_embed_model": "嵌入模型",
+    "kbc_field_default_model": "默认模型",
+    "kbc_help_embed_model": "如 BGE-M3, text-embedding-3-small 等",
+    "kbc_section_advanced": "高级",
+    "kbc_toggle_rewrite": "启用查询重写",
+    "kbc_toggle_hybrid_search": "启用混合搜索 (BM25 + 向量)",
+    "kbc_toggle_reranker": "启用 Reranker",
+    "kbc_toggle_contextualizer": "启用上下文增强 (Contextualizer)",
+    "kbc_btn_reset_defaults": "重置为默认值",
+    "kbc_ph_search_query": "搜索查询",
+    "kbc_btn_search": "搜索",
+    "kbc_label_threshold": "阈值: %.2f",
+    "kbc_label_elapsed": "耗时: %.0fms",
+    "kbc_searching": "搜索中...",
+    "kbc_msg_input_to_search": "输入查询开始搜索",
+    "kbc_msg_no_results": "无搜索结果",
+    "kbc_err_invalid_url": "无效的 URL",
+    "kbc_err_invalid_response": "无效的响应"
 ]
 
 let enUSTranslations: [String: String] = [
@@ -10060,7 +10172,63 @@ let enUSTranslations: [String: String] = [
     "plugin_log_filter_level": "Level",
     "plugin_log_ph_plugin_id": "Plugin ID",
     "plugin_log_btn_refresh": "Refresh",
-    "plugin_log_msg_empty": "No logs"
+    "plugin_log_msg_empty": "No logs",
+    "kbc_label_kb": "Knowledge Base",
+    "kbc_ph_select_kb": "Select knowledge base",
+    "kbc_opt_not_selected": "None",
+    "kbc_label_rewrite": "Query rewrite",
+    "kbc_rewrite_off": "Off",
+    "kbc_rewrite_expand": "Expand",
+    "kbc_rewrite_condense": "Condense",
+    "kbc_ph_input_question": "Enter question...",
+    "kbc_msg_request_failed": "Request failed, please check if the knowledge base service is running",
+    "kbc_label_sources": "Sources (%d)",
+    "kbc_label_relevance_f": "Relevance: %.2f",
+    "kbc_help_refresh_list": "Refresh list",
+    "kbc_help_create_kb": "Create knowledge base",
+    "kbc_loading": "Loading...",
+    "kbc_empty_no_kb": "No knowledge bases",
+    "kbc_btn_create_kb": "Create knowledge base",
+    "kbc_menu_scan_dir": "Scan directory import",
+    "kbc_btn_delete": "Delete",
+    "kbc_field_name": "Name",
+    "kbc_field_desc": "Description",
+    "kbc_field_chunk_strategy": "Chunk strategy",
+    "kbc_field_embed_model": "Embedding model",
+    "kbc_btn_cancel": "Cancel",
+    "kbc_btn_create": "Create",
+    "kbc_field_dir_path": "Directory path",
+    "kbc_btn_start_scan": "Start scan",
+    "kbc_label_n_files": "%d files",
+    "kbc_label_n_chunks": "%d chunks",
+    "kbc_section_rag_service": "Fusion-RAG Service",
+    "kbc_field_host": "Host",
+    "kbc_field_port": "Port",
+    "kbc_field_api_key_optional": "API Key (optional)",
+    "kbc_label_service_url": "Service URL: %@",
+    "kbc_btn_check_conn": "Test connection",
+    "kbc_status_unknown": "Not tested",
+    "kbc_status_checking": "Checking...",
+    "kbc_status_ok": "OK",
+    "kbc_status_unreachable": "Unreachable",
+    "kbc_section_embed_model": "Embedding Model",
+    "kbc_field_default_model": "Default model",
+    "kbc_help_embed_model": "e.g. BGE-M3, text-embedding-3-small",
+    "kbc_section_advanced": "Advanced",
+    "kbc_toggle_rewrite": "Enable query rewrite",
+    "kbc_toggle_hybrid_search": "Enable hybrid search (BM25 + vector)",
+    "kbc_toggle_reranker": "Enable Reranker",
+    "kbc_toggle_contextualizer": "Enable context enhancement (Contextualizer)",
+    "kbc_btn_reset_defaults": "Reset to defaults",
+    "kbc_ph_search_query": "Search query",
+    "kbc_btn_search": "Search",
+    "kbc_label_threshold": "Threshold: %.2f",
+    "kbc_label_elapsed": "Time: %.0fms",
+    "kbc_searching": "Searching...",
+    "kbc_msg_input_to_search": "Enter a query to start searching",
+    "kbc_msg_no_results": "No search results",
+    "kbc_err_invalid_url": "Invalid URL",
+    "kbc_err_invalid_response": "Invalid response"
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -13261,7 +13429,63 @@ let jaJPTranslations: [String: String] = [
     "plugin_log_filter_level": "レベル",
     "plugin_log_ph_plugin_id": "プラグインID",
     "plugin_log_btn_refresh": "更新",
-    "plugin_log_msg_empty": "ログなし"
+    "plugin_log_msg_empty": "ログなし",
+    "kbc_label_kb": "ナレッジベース",
+    "kbc_ph_select_kb": "ナレッジベースを選択",
+    "kbc_opt_not_selected": "未選択",
+    "kbc_label_rewrite": "クエリ書き換え",
+    "kbc_rewrite_off": "オフ",
+    "kbc_rewrite_expand": "拡張",
+    "kbc_rewrite_condense": "圧縮",
+    "kbc_ph_input_question": "質問を入力...",
+    "kbc_msg_request_failed": "リクエスト失敗、ナレッジベースサービスが起動しているか確認してください",
+    "kbc_label_sources": "参照元 (%d)",
+    "kbc_label_relevance_f": "関連度: %.2f",
+    "kbc_help_refresh_list": "リストを更新",
+    "kbc_help_create_kb": "ナレッジベースを作成",
+    "kbc_loading": "読み込み中...",
+    "kbc_empty_no_kb": "ナレッジベースなし",
+    "kbc_btn_create_kb": "ナレッジベースを作成",
+    "kbc_menu_scan_dir": "ディレクトリをスキャンしてインポート",
+    "kbc_btn_delete": "削除",
+    "kbc_field_name": "名前",
+    "kbc_field_desc": "説明",
+    "kbc_field_chunk_strategy": "チャンク戦略",
+    "kbc_field_embed_model": "埋め込みモデル",
+    "kbc_btn_cancel": "キャンセル",
+    "kbc_btn_create": "作成",
+    "kbc_field_dir_path": "ディレクトリパス",
+    "kbc_btn_start_scan": "スキャン開始",
+    "kbc_label_n_files": "%d ファイル",
+    "kbc_label_n_chunks": "%d チャンク",
+    "kbc_section_rag_service": "Fusion-RAG サービス",
+    "kbc_field_host": "ホスト",
+    "kbc_field_port": "ポート",
+    "kbc_field_api_key_optional": "APIキー (任意)",
+    "kbc_label_service_url": "サービスURL: %@",
+    "kbc_btn_check_conn": "接続確認",
+    "kbc_status_unknown": "未検証",
+    "kbc_status_checking": "確認中...",
+    "kbc_status_ok": "正常",
+    "kbc_status_unreachable": "接続不可",
+    "kbc_section_embed_model": "埋め込みモデル",
+    "kbc_field_default_model": "デフォルトモデル",
+    "kbc_help_embed_model": "例: BGE-M3, text-embedding-3-small",
+    "kbc_section_advanced": "高度",
+    "kbc_toggle_rewrite": "クエリ書き換えを有効化",
+    "kbc_toggle_hybrid_search": "ハイブリッド検索を有効化 (BM25 + ベクトル)",
+    "kbc_toggle_reranker": "Rerankerを有効化",
+    "kbc_toggle_contextualizer": "コンテキスト強化を有効化 (Contextualizer)",
+    "kbc_btn_reset_defaults": "デフォルトにリセット",
+    "kbc_ph_search_query": "検索クエリ",
+    "kbc_btn_search": "検索",
+    "kbc_label_threshold": "しきい値: %.2f",
+    "kbc_label_elapsed": "所要時間: %.0fms",
+    "kbc_searching": "検索中...",
+    "kbc_msg_input_to_search": "クエリを入力して検索を開始",
+    "kbc_msg_no_results": "検索結果なし",
+    "kbc_err_invalid_url": "無効なURL",
+    "kbc_err_invalid_response": "無効なレスポンス"
 ]
 
 let koKRTranslations: [String: String] = [
@@ -16462,7 +16686,63 @@ let koKRTranslations: [String: String] = [
     "plugin_log_filter_level": "레벨",
     "plugin_log_ph_plugin_id": "플러그인ID",
     "plugin_log_btn_refresh": "새로고침",
-    "plugin_log_msg_empty": "로그 없음"
+    "plugin_log_msg_empty": "로그 없음",
+    "kbc_label_kb": "지식 베이스",
+    "kbc_ph_select_kb": "지식 베이스 선택",
+    "kbc_opt_not_selected": "미선택",
+    "kbc_label_rewrite": "쿼리 재작성",
+    "kbc_rewrite_off": "끄기",
+    "kbc_rewrite_expand": "확장",
+    "kbc_rewrite_condense": "압축",
+    "kbc_ph_input_question": "질문 입력...",
+    "kbc_msg_request_failed": "요청 실패, 지식 베이스 서비스가 실행 중인지 확인하세요",
+    "kbc_label_sources": "출처 (%d)",
+    "kbc_label_relevance_f": "관련도: %.2f",
+    "kbc_help_refresh_list": "목록 새로고침",
+    "kbc_help_create_kb": "지식 베이스 생성",
+    "kbc_loading": "로딩 중...",
+    "kbc_empty_no_kb": "지식 베이스 없음",
+    "kbc_btn_create_kb": "지식 베이스 생성",
+    "kbc_menu_scan_dir": "디렉토리 스캔 가져오기",
+    "kbc_btn_delete": "삭제",
+    "kbc_field_name": "이름",
+    "kbc_field_desc": "설명",
+    "kbc_field_chunk_strategy": "청크 전략",
+    "kbc_field_embed_model": "임베딩 모델",
+    "kbc_btn_cancel": "취소",
+    "kbc_btn_create": "생성",
+    "kbc_field_dir_path": "디렉토리 경로",
+    "kbc_btn_start_scan": "스캔 시작",
+    "kbc_label_n_files": "%d 파일",
+    "kbc_label_n_chunks": "%d 청크",
+    "kbc_section_rag_service": "Fusion-RAG 서비스",
+    "kbc_field_host": "호스트",
+    "kbc_field_port": "포트",
+    "kbc_field_api_key_optional": "API 키 (선택)",
+    "kbc_label_service_url": "서비스 URL: %@",
+    "kbc_btn_check_conn": "연결 확인",
+    "kbc_status_unknown": "미확인",
+    "kbc_status_checking": "확인 중...",
+    "kbc_status_ok": "정상",
+    "kbc_status_unreachable": "연결 불가",
+    "kbc_section_embed_model": "임베딩 모델",
+    "kbc_field_default_model": "기본 모델",
+    "kbc_help_embed_model": "예: BGE-M3, text-embedding-3-small",
+    "kbc_section_advanced": "고급",
+    "kbc_toggle_rewrite": "쿼리 재작성 활성화",
+    "kbc_toggle_hybrid_search": "하이브리드 검색 활성화 (BM25 + 벡터)",
+    "kbc_toggle_reranker": "Reranker 활성화",
+    "kbc_toggle_contextualizer": "컨텍스트 강화 활성화 (Contextualizer)",
+    "kbc_btn_reset_defaults": "기본값으로 재설정",
+    "kbc_ph_search_query": "검색 쿼리",
+    "kbc_btn_search": "검색",
+    "kbc_label_threshold": "임계값: %.2f",
+    "kbc_label_elapsed": "소요 시간: %.0fms",
+    "kbc_searching": "검색 중...",
+    "kbc_msg_input_to_search": "쿼리를 입력하여 검색 시작",
+    "kbc_msg_no_results": "검색 결과 없음",
+    "kbc_err_invalid_url": "잘못된 URL",
+    "kbc_err_invalid_response": "잘못된 응답"
 ]
 
 // MARK: - 国际化文本视图

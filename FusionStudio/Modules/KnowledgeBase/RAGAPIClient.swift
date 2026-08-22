@@ -788,8 +788,8 @@ enum RAGAPIClientError: Error, LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .invalidURL: return "无效的 URL"
-        case .invalidResponse: return "无效的响应"
+        case .invalidURL: return I18nManager.shared.t(.kbc_err_invalid_url)
+        case .invalidResponse: return I18nManager.shared.t(.kbc_err_invalid_response)
         case .httpError(let s, let m): return "HTTP \(s): \(m)"
         }
     }

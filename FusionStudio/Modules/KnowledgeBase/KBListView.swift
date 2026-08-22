@@ -24,7 +24,7 @@ struct KBListView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("知识库")
+                Text(I18nManager.shared.t(.kbc_label_kb))
                     .font(.headline)
                 Spacer()
                 Button {
@@ -32,20 +32,20 @@ struct KBListView: View {
                 } label: {
                     Image(systemName: "arrow.clockwise")
                 }
-                .help("刷新列表")
+                .help(I18nManager.shared.t(.kbc_help_refresh_list))
                 Button {
                     showCreate = true
                 } label: {
                     Image(systemName: "plus")
                 }
-                .help("创建知识库")
+                .help(I18nManager.shared.t(.kbc_help_create_kb))
             }
             .padding(12)
             Divider()
 
             if client.isLoading && client.knowledgeBases.isEmpty {
                 Spacer()
-                ProgressView("加载中...")
+                ProgressView(I18nManager.shared.t(.kbc_loading))
                 Spacer()
             } else if client.knowledgeBases.isEmpty {
                 Spacer()
@@ -53,9 +53,9 @@ struct KBListView: View {
                     Image(systemName: "books.vertical")
                         .font(.system(size: 40))
                         .foregroundStyle(.secondary)
-                    Text("暂无知识库")
+                    Text(I18nManager.shared.t(.kbc_empty_no_kb))
                         .foregroundStyle(.secondary)
-                    Button("创建知识库") { showCreate = true }
+                    Button(I18nManager.shared.t(.kbc_btn_create_kb)) { showCreate = true }
                 }
                 Spacer()
             } else {
@@ -63,13 +63,13 @@ struct KBListView: View {
                     KBRowView(kb: kb, client: client)
                         .tag(kb)
                         .contextMenu {
-                            Button("扫描目录导入") {
+                            Button(I18nManager.shared.t(.kbc_menu_scan_dir)) {
                                 selectedKB = kb
                                 scanDirPath = ""
                                 showScanDir = true
                             }
                             Divider()
-                            Button("删除", role: .destructive) {
+                            Button(I18nManager.shared.t(.kbc_btn_delete), role: .destructive) {
                                 Task {
                                     let ok = await client.deleteBase(kbId: kb.id)
                                     if ok { await client.listBases() }
@@ -100,23 +100,23 @@ struct KBListView: View {
 
     private var createSheet: some View {
         VStack(spacing: 16) {
-            Text("创建知识库").font(.headline)
-            TextField("名称", text: $newName)
-            TextField("描述", text: $newDesc)
-            Picker("分块策略", selection: $newChunkStrategy) {
+            Text(I18nManager.shared.t(.kbc_btn_create_kb)).font(.headline)
+            TextField(I18nManager.shared.t(.kbc_field_name), text: $newName)
+            TextField(I18nManager.shared.t(.kbc_field_desc), text: $newDesc)
+            Picker(I18nManager.shared.t(.kbc_field_chunk_strategy), selection: $newChunkStrategy) {
                 ForEach(chunkStrategies, id: \.self) { s in
                     Text(s).tag(s)
                 }
             }
-            TextField("嵌入模型", text: $newEmbedModel)
+            TextField(I18nManager.shared.t(.kbc_field_embed_model), text: $newEmbedModel)
             HStack {
-                Button("取消") {
+                Button(I18nManager.shared.t(.kbc_btn_cancel)) {
                     showCreate = false
                     newName = ""
                     newDesc = ""
                 }
                 Spacer()
-                Button("创建") {
+                Button(I18nManager.shared.t(.kbc_btn_create)) {
                     guard !newName.isEmpty else { return }
                     Task {
                         if let _ = await client.createBase(
@@ -142,17 +142,17 @@ struct KBListView: View {
 
     private var scanDirSheet: some View {
         VStack(spacing: 16) {
-            Text("扫描目录导入").font(.headline)
+            Text(I18nManager.shared.t(.kbc_menu_scan_dir)).font(.headline)
             if let kb = selectedKB {
-                Text("知识库: \(kb.name)")
+                Text(I18nManager.shared.t(.kbc_label_kb) + ": \(kb.name)")
                     .foregroundStyle(.secondary)
             }
-            TextField("目录路径", text: $scanDirPath)
+            TextField(I18nManager.shared.t(.kbc_field_dir_path), text: $scanDirPath)
                 .textFieldStyle(.roundedBorder)
             HStack {
-                Button("取消") { showScanDir = false }
+                Button(I18nManager.shared.t(.kbc_btn_cancel)) { showScanDir = false }
                 Spacer()
-                Button("开始扫描") {
+                Button(I18nManager.shared.t(.kbc_btn_start_scan)) {
                     guard let kb = selectedKB, !scanDirPath.isEmpty else { return }
                     Task {
                         let result = await client.scanDirectory(kbId: kb.id, dirPath: scanDirPath)
@@ -184,11 +184,11 @@ struct KBRowView: View {
                     .font(.body)
                 HStack(spacing: 8) {
                     if let fc = kb.fileCount, fc > 0 {
-                        Label("\(fc) 文件", systemImage: "doc")
+                        Label(String(format: I18nManager.shared.t(.kbc_label_n_files), fc), systemImage: "doc")
                             .font(.caption2)
                     }
                     if let cc = kb.chunkCount, cc > 0 {
-                        Label("\(cc) 分块", systemImage: "square.grid.2x2")
+                        Label(String(format: I18nManager.shared.t(.kbc_label_n_chunks), cc), systemImage: "square.grid.2x2")
                             .font(.caption2)
                     }
                     if let model = kb.embeddingModel {

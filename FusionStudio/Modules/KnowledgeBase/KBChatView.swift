@@ -27,20 +27,20 @@ struct KBChatView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("知识库:").font(.caption)
-                Picker("选择知识库", selection: $selectedKBId) {
-                    Text("未选择").tag("")
+                Text(I18nManager.shared.t(.kbc_label_kb) + ":").font(.caption)
+                Picker(I18nManager.shared.t(.kbc_ph_select_kb), selection: $selectedKBId) {
+                    Text(I18nManager.shared.t(.kbc_opt_not_selected)).tag("")
                     ForEach(client.knowledgeBases) { kb in
                         Text(kb.name).tag(kb.id)
                     }
                 }
                 .frame(maxWidth: 200)
                 Spacer()
-                Picker("查询重写", selection: $rewriteMode) {
-                    Text("关闭").tag(String?.none)
+                Picker(I18nManager.shared.t(.kbc_label_rewrite), selection: $rewriteMode) {
+                    Text(I18nManager.shared.t(.kbc_rewrite_off)).tag(String?.none)
                     Text("HyDE").tag(String?.some("hyde"))
-                    Text("扩展").tag(String?.some("expand"))
-                    Text("精简").tag(String?.some("condense"))
+                    Text(I18nManager.shared.t(.kbc_rewrite_expand)).tag(String?.some("expand"))
+                    Text(I18nManager.shared.t(.kbc_rewrite_condense)).tag(String?.some("condense"))
                 }
                 .frame(maxWidth: 120)
             }
@@ -50,7 +50,7 @@ struct KBChatView: View {
             if chatHistory.isEmpty {
                 CenteredChatInput(
                     text: $question,
-                    placeholder: "输入问题...",
+                    placeholder: I18nManager.shared.t(.kbc_ph_input_question),
                     isCentered: true,
                     onSend: submitQuestion,
                     trailingContent: AnyView(inputControls)
@@ -76,7 +76,7 @@ struct KBChatView: View {
 
                 CenteredChatInput(
                     text: $question,
-                    placeholder: "输入问题...",
+                    placeholder: I18nManager.shared.t(.kbc_ph_input_question),
                     isCentered: false,
                     onSend: submitQuestion,
                     trailingContent: AnyView(inputControls)
@@ -120,7 +120,7 @@ struct KBChatView: View {
             if let result = result {
                 chatHistory.append(ChatMessage(role: "assistant", content: result.answer, sources: result.sources))
             } else {
-                chatHistory.append(ChatMessage(role: "assistant", content: "请求失败，请检查知识库服务是否运行", sources: []))
+                chatHistory.append(ChatMessage(role: "assistant", content: I18nManager.shared.t(.kbc_msg_request_failed), sources: []))
             }
         }
     }
@@ -141,7 +141,7 @@ struct ChatBubbleView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 10))
 
             if !message.sources.isEmpty {
-                DisclosureGroup("引用来源 (\(message.sources.count))") {
+                DisclosureGroup(String(format: I18nManager.shared.t(.kbc_label_sources), message.sources.count)) {
                     ForEach(Array(message.sources.enumerated()), id: \.offset) { idx, src in
                         HStack {
                             Image(systemName: "doc.text").foregroundStyle(.secondary)
@@ -149,7 +149,7 @@ struct ChatBubbleView: View {
                                 Text(src.docName).font(.caption).fontWeight(.medium)
                                 Text(String(src.snippet.prefix(80)) + (src.snippet.count > 80 ? "..." : ""))
                                     .font(.caption2).foregroundStyle(.secondary)
-                                Text("相关度: \(String(format: "%.2f", src.score))")
+                                Text(String(format: I18nManager.shared.t(.kbc_label_relevance_f), src.score))
                                     .font(.caption2).foregroundStyle(.blue)
                             }
                         }

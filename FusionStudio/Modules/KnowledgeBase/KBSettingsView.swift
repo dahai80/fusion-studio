@@ -4,52 +4,61 @@ import SwiftUI
 
 struct KBSettingsView: View {
     @ObservedObject private var config = FusionConfig.shared
-    @State private var healthStatus: String = "未检测"
+    @State private var healthStatus: String = "unknown"
     @State private var isChecking = false
+
+    private var healthStatusText: String {
+        switch healthStatus {
+        case "ok": return I18nManager.shared.t(.kbc_status_ok)
+        case "checking": return I18nManager.shared.t(.kbc_status_checking)
+        case "error": return I18nManager.shared.t(.kbc_status_unreachable)
+        default: return I18nManager.shared.t(.kbc_status_unknown)
+        }
+    }
 
     var body: some View {
         Form {
-            Section("Fusion-RAG 服务") {
+            Section(I18nManager.shared.t(.kbc_section_rag_service)) {
                 HStack {
-                    TextField("主机", text: $config.fusionRagHost)
+                    TextField(I18nManager.shared.t(.kbc_field_host), text: $config.fusionRagHost)
                         .frame(maxWidth: 120)
-                    TextField("端口", value: $config.fusionRagPort, format: .number)
+                    TextField(I18nManager.shared.t(.kbc_field_port), value: $config.fusionRagPort, format: .number)
                         .frame(maxWidth: 80)
                 }
-                SecureField("API Key (可选)", text: $config.fusionRagApiKey)
+                SecureField(I18nManager.shared.t(.kbc_field_api_key_optional), text: $config.fusionRagApiKey)
                 HStack {
-                    Text("服务地址: \(config.fusionRagURL)")
+                    Text(String(format: I18nManager.shared.t(.kbc_label_service_url), config.fusionRagURL))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Spacer()
-                    Button("检测连接") {
+                    Button(I18nManager.shared.t(.kbc_btn_check_conn)) {
                         checkHealth()
                     }
                     .disabled(isChecking)
                 }
                 HStack {
                     Circle()
-                        .fill(healthStatus == "正常" ? .green : (healthStatus == "未检测" ? .gray : .red))
+                        .fill(healthStatus == "ok" ? .green : (healthStatus == "unknown" ? .gray : .red))
                         .frame(width: 10, height: 10)
-                    Text(healthStatus)
+                    Text(healthStatusText)
                         .font(.caption)
                 }
             }
 
-            Section("嵌入模型") {
-                TextField("默认模型", text: $config.fusionRagEmbed)
-                    .help("如 BGE-M3, text-embedding-3-small 等")
+            Section(I18nManager.shared.t(.kbc_section_embed_model)) {
+                TextField(I18nManager.shared.t(.kbc_field_default_model), text: $config.fusionRagEmbed)
+                    .help(I18nManager.shared.t(.kbc_help_embed_model))
             }
 
-            Section("高级") {
-                Toggle("启用查询重写", isOn: .constant(true))
-                Toggle("启用混合搜索 (BM25 + 向量)", isOn: .constant(true))
-                Toggle("启用 Reranker", isOn: .constant(true))
-                Toggle("启用上下文增强 (Contextualizer)", isOn: .constant(true))
+            Section(I18nManager.shared.t(.kbc_section_advanced)) {
+                Toggle(I18nManager.shared.t(.kbc_toggle_rewrite), isOn: .constant(true))
+                Toggle(I18nManager.shared.t(.kbc_toggle_hybrid_search), isOn: .constant(true))
+                Toggle(I18nManager.shared.t(.kbc_toggle_reranker), isOn: .constant(true))
+                Toggle(I18nManager.shared.t(.kbc_toggle_contextualizer), isOn: .constant(true))
             }
 
             Section {
-                Button("重置为默认值") {
+                Button(I18nManager.shared.t(.kbc_btn_reset_defaults)) {
                     config.resetToDefaults()
                 }
             }
@@ -60,11 +69,11 @@ struct KBSettingsView: View {
 
     private func checkHealth() {
         isChecking = true
-        healthStatus = "检测中..."
+        healthStatus = "checking"
         Task {
             let ok = await RAGAPIClient.shared.healthCheck()
             await MainActor.run {
-                healthStatus = ok ? "正常" : "无法连接"
+                healthStatus = ok ? "ok" : "error"
                 isChecking = false
             }
         }
