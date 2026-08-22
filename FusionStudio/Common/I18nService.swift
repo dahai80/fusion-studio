@@ -1199,6 +1199,92 @@ enum I18nKey: String, CaseIterable {
     case doc_wf_queryBtn = "doc_wf_queryBtn"
     case doc_wf_currentStateFmt = "doc_wf_currentStateFmt"
     case doc_wf_executeBtn = "doc_wf_executeBtn"
+    case doc_admin_title = "doc_admin_title"
+    case doc_admin_sec_users = "doc_admin_sec_users"
+    case doc_admin_sec_aiRaw = "doc_admin_sec_aiRaw"
+    case doc_admin_sec_branding = "doc_admin_sec_branding"
+    case doc_admin_sec_theme = "doc_admin_sec_theme"
+    case doc_admin_sec_vocabulary = "doc_admin_sec_vocabulary"
+    case doc_admin_sec_webhooks = "doc_admin_sec_webhooks"
+    case doc_admin_sec_metadata = "doc_admin_sec_metadata"
+    case doc_admin_sec_systemInfo = "doc_admin_sec_systemInfo"
+    case doc_admin_sec_systemConfig = "doc_admin_sec_systemConfig"
+    case doc_admin_sec_export = "doc_admin_sec_export"
+    case doc_admin_sec_rag = "doc_admin_sec_rag"
+    case doc_admin_sec_graph = "doc_admin_sec_graph"
+    case doc_admin_sec_notifications = "doc_admin_sec_notifications"
+    case doc_admin_panel_users = "doc_admin_panel_users"
+    case doc_admin_panel_aiRaw = "doc_admin_panel_aiRaw"
+    case doc_admin_panel_branding = "doc_admin_panel_branding"
+    case doc_admin_panel_theme = "doc_admin_panel_theme"
+    case doc_admin_panel_vocabulary = "doc_admin_panel_vocabulary"
+    case doc_admin_panel_webhooks = "doc_admin_panel_webhooks"
+    case doc_admin_panel_metadata = "doc_admin_panel_metadata"
+    case doc_admin_panel_systemInfo = "doc_admin_panel_systemInfo"
+    case doc_admin_panel_systemConfig = "doc_admin_panel_systemConfig"
+    case doc_admin_panel_export = "doc_admin_panel_export"
+    case doc_admin_panel_rag = "doc_admin_panel_rag"
+    case doc_admin_panel_graph = "doc_admin_panel_graph"
+    case doc_admin_panel_notifications = "doc_admin_panel_notifications"
+    case doc_admin_empty_users = "doc_admin_empty_users"
+    case doc_admin_empty_metadata_query = "doc_admin_empty_metadata_query"
+    case doc_admin_empty_sysinfo = "doc_admin_empty_sysinfo"
+    case doc_admin_empty_sysconfig = "doc_admin_empty_sysconfig"
+    case doc_admin_empty_notifications = "doc_admin_empty_notifications"
+    case doc_admin_btn_completions = "doc_admin_btn_completions"
+    case doc_admin_btn_chat = "doc_admin_btn_chat"
+    case doc_admin_btn_save = "doc_admin_btn_save"
+    case doc_admin_btn_create = "doc_admin_btn_create"
+    case doc_admin_btn_add = "doc_admin_btn_add"
+    case doc_admin_btn_query = "doc_admin_btn_query"
+    case doc_admin_btn_refresh = "doc_admin_btn_refresh"
+    case doc_admin_btn_export = "doc_admin_btn_export"
+    case doc_admin_btn_refresh_status = "doc_admin_btn_refresh_status"
+    case doc_admin_btn_build_index = "doc_admin_btn_build_index"
+    case doc_admin_btn_clear_index = "doc_admin_btn_clear_index"
+    case doc_admin_btn_embed = "doc_admin_btn_embed"
+    case doc_admin_btn_search = "doc_admin_btn_search"
+    case doc_admin_btn_traverse = "doc_admin_btn_traverse"
+    case doc_admin_btn_cluster = "doc_admin_btn_cluster"
+    case doc_admin_btn_mark_all_read = "doc_admin_btn_mark_all_read"
+    case doc_admin_btn_mark_read = "doc_admin_btn_mark_read"
+    case doc_admin_label_result = "doc_admin_label_result"
+    case doc_admin_label_primary_color = "doc_admin_label_primary_color"
+    case doc_admin_label_secondary_color = "doc_admin_label_secondary_color"
+    case doc_admin_label_font = "doc_admin_label_font"
+    case doc_admin_label_custom_css = "doc_admin_label_custom_css"
+    case doc_admin_label_saved = "doc_admin_label_saved"
+    case doc_admin_label_new_theme = "doc_admin_label_new_theme"
+    case doc_admin_label_name = "doc_admin_label_name"
+    case doc_admin_label_css_optional = "doc_admin_label_css_optional"
+    case doc_admin_label_dark = "doc_admin_label_dark"
+    case doc_admin_label_new_term = "doc_admin_label_new_term"
+    case doc_admin_label_term = "doc_admin_label_term"
+    case doc_admin_label_category = "doc_admin_label_category"
+    case doc_admin_label_definition = "doc_admin_label_definition"
+    case doc_admin_label_new_webhook = "doc_admin_label_new_webhook"
+    case doc_admin_label_events = "doc_admin_label_events"
+    case doc_admin_label_secret = "doc_admin_label_secret"
+    case doc_admin_label_version = "doc_admin_label_version"
+    case doc_admin_label_uptime = "doc_admin_label_uptime"
+    case doc_admin_label_total_books = "doc_admin_label_total_books"
+    case doc_admin_label_total_pages = "doc_admin_label_total_pages"
+    case doc_admin_label_total_users = "doc_admin_label_total_users"
+    case doc_admin_label_format = "doc_admin_label_format"
+    case doc_admin_label_export_jobs = "doc_admin_label_export_jobs"
+    case doc_admin_label_embed_content = "doc_admin_label_embed_content"
+    case doc_admin_label_input_text = "doc_admin_label_input_text"
+    case doc_admin_label_semantic_search = "doc_admin_label_semantic_search"
+    case doc_admin_label_query_ph = "doc_admin_label_query_ph"
+    case doc_admin_label_graph_traverse = "doc_admin_label_graph_traverse"
+    case doc_admin_label_start_node = "doc_admin_label_start_node"
+    case doc_admin_label_cluster_result = "doc_admin_label_cluster_result"
+    case doc_admin_label_input_prompt = "doc_admin_label_input_prompt"
+    case doc_admin_fmt_depth = "doc_admin_fmt_depth"
+    case doc_admin_fmt_graph_result = "doc_admin_fmt_graph_result"
+    case doc_admin_fmt_cluster_line = "doc_admin_fmt_cluster_line"
+    case doc_admin_err_prefix = "doc_admin_err_prefix"
+    case doc_admin_err_failed = "doc_admin_err_failed"
     case proj_subtitle = "proj_subtitle"
     case proj_searchPh = "proj_searchPh"
     case proj_newHelp = "proj_newHelp"
@@ -4704,6 +4790,92 @@ let zhCNTranslations: [String: String] = [
     "doc_wf_queryBtn": "查询",
     "doc_wf_currentStateFmt": "当前状态: %@",
     "doc_wf_executeBtn": "执行",
+    "doc_admin_title": "管理",
+    "doc_admin_sec_users": "用户",
+    "doc_admin_sec_aiRaw": "AI 原始",
+    "doc_admin_sec_branding": "品牌",
+    "doc_admin_sec_theme": "主题",
+    "doc_admin_sec_vocabulary": "术语库",
+    "doc_admin_sec_webhooks": "Webhooks",
+    "doc_admin_sec_metadata": "元数据",
+    "doc_admin_sec_systemInfo": "系统信息",
+    "doc_admin_sec_systemConfig": "系统配置",
+    "doc_admin_sec_export": "导出",
+    "doc_admin_sec_rag": "RAG",
+    "doc_admin_sec_graph": "图谱搜索",
+    "doc_admin_sec_notifications": "通知",
+    "doc_admin_panel_users": "用户管理",
+    "doc_admin_panel_aiRaw": "AI 原始接口",
+    "doc_admin_panel_branding": "品牌设置",
+    "doc_admin_panel_theme": "主题管理",
+    "doc_admin_panel_vocabulary": "术语库",
+    "doc_admin_panel_webhooks": "Webhooks",
+    "doc_admin_panel_metadata": "元数据",
+    "doc_admin_panel_systemInfo": "系统信息",
+    "doc_admin_panel_systemConfig": "系统配置",
+    "doc_admin_panel_export": "导出",
+    "doc_admin_panel_rag": "RAG 索引",
+    "doc_admin_panel_graph": "图谱搜索",
+    "doc_admin_panel_notifications": "通知",
+    "doc_admin_empty_users": "暂无用户",
+    "doc_admin_empty_metadata_query": "输入 entity 和 entity_id 查询元数据",
+    "doc_admin_empty_sysinfo": "点击刷新获取系统信息",
+    "doc_admin_empty_sysconfig": "暂无配置项",
+    "doc_admin_empty_notifications": "暂无通知",
+    "doc_admin_btn_completions": "补全 (completions)",
+    "doc_admin_btn_chat": "对话 (chat)",
+    "doc_admin_btn_save": "保存",
+    "doc_admin_btn_create": "创建",
+    "doc_admin_btn_add": "添加",
+    "doc_admin_btn_query": "查询",
+    "doc_admin_btn_refresh": "刷新",
+    "doc_admin_btn_export": "导出",
+    "doc_admin_btn_refresh_status": "刷新状态",
+    "doc_admin_btn_build_index": "构建索引",
+    "doc_admin_btn_clear_index": "清空索引",
+    "doc_admin_btn_embed": "嵌入",
+    "doc_admin_btn_search": "搜索",
+    "doc_admin_btn_traverse": "遍历",
+    "doc_admin_btn_cluster": "聚类 (louvain)",
+    "doc_admin_btn_mark_all_read": "全部已读",
+    "doc_admin_btn_mark_read": "标记已读",
+    "doc_admin_label_result": "结果",
+    "doc_admin_label_primary_color": "主色",
+    "doc_admin_label_secondary_color": "次色",
+    "doc_admin_label_font": "字体",
+    "doc_admin_label_custom_css": "自定义 CSS",
+    "doc_admin_label_saved": "已保存",
+    "doc_admin_label_new_theme": "新建主题",
+    "doc_admin_label_name": "名称",
+    "doc_admin_label_css_optional": "CSS（可选）",
+    "doc_admin_label_dark": "深色",
+    "doc_admin_label_new_term": "新建术语",
+    "doc_admin_label_term": "术语",
+    "doc_admin_label_category": "分类",
+    "doc_admin_label_definition": "定义",
+    "doc_admin_label_new_webhook": "新建 Webhook",
+    "doc_admin_label_events": "事件（逗号分隔，如 book.created,page.updated）",
+    "doc_admin_label_secret": "Secret（可选）",
+    "doc_admin_label_version": "版本",
+    "doc_admin_label_uptime": "运行时长",
+    "doc_admin_label_total_books": "书籍总数",
+    "doc_admin_label_total_pages": "页面总数",
+    "doc_admin_label_total_users": "用户总数",
+    "doc_admin_label_format": "格式",
+    "doc_admin_label_export_jobs": "导出任务",
+    "doc_admin_label_embed_content": "嵌入内容",
+    "doc_admin_label_input_text": "输入文本",
+    "doc_admin_label_semantic_search": "语义搜索",
+    "doc_admin_label_query_ph": "查询",
+    "doc_admin_label_graph_traverse": "图遍历",
+    "doc_admin_label_start_node": "起始节点 ID",
+    "doc_admin_label_cluster_result": "聚类结果",
+    "doc_admin_label_input_prompt": "输入 Prompt",
+    "doc_admin_fmt_depth": "深度 %d",
+    "doc_admin_fmt_graph_result": "结果: %d 节点, %d 边",
+    "doc_admin_fmt_cluster_line": "%@: %d 组",
+    "doc_admin_err_prefix": "错误: %@",
+    "doc_admin_err_failed": "%@ 失败: %@",
     "proj_subtitle": "管理你的 AI 项目、指令和知识库",
     "proj_searchPh": "搜索项目",
     "proj_newHelp": "新建项目",
@@ -8162,6 +8334,92 @@ let enUSTranslations: [String: String] = [
     "doc_wf_queryBtn": "Query",
     "doc_wf_currentStateFmt": "Current state: %@",
     "doc_wf_executeBtn": "Execute",
+    "doc_admin_title": "Admin",
+    "doc_admin_sec_users": "Users",
+    "doc_admin_sec_aiRaw": "AI Raw",
+    "doc_admin_sec_branding": "Branding",
+    "doc_admin_sec_theme": "Theme",
+    "doc_admin_sec_vocabulary": "Vocabulary",
+    "doc_admin_sec_webhooks": "Webhooks",
+    "doc_admin_sec_metadata": "Metadata",
+    "doc_admin_sec_systemInfo": "System Info",
+    "doc_admin_sec_systemConfig": "System Config",
+    "doc_admin_sec_export": "Export",
+    "doc_admin_sec_rag": "RAG",
+    "doc_admin_sec_graph": "Graph Search",
+    "doc_admin_sec_notifications": "Notifications",
+    "doc_admin_panel_users": "User Management",
+    "doc_admin_panel_aiRaw": "AI Raw Interface",
+    "doc_admin_panel_branding": "Branding Settings",
+    "doc_admin_panel_theme": "Theme Management",
+    "doc_admin_panel_vocabulary": "Vocabulary",
+    "doc_admin_panel_webhooks": "Webhooks",
+    "doc_admin_panel_metadata": "Metadata",
+    "doc_admin_panel_systemInfo": "System Info",
+    "doc_admin_panel_systemConfig": "System Config",
+    "doc_admin_panel_export": "Export",
+    "doc_admin_panel_rag": "RAG Index",
+    "doc_admin_panel_graph": "Graph Search",
+    "doc_admin_panel_notifications": "Notifications",
+    "doc_admin_empty_users": "No users",
+    "doc_admin_empty_metadata_query": "Enter entity and entity_id to query metadata",
+    "doc_admin_empty_sysinfo": "Click refresh to get system info",
+    "doc_admin_empty_sysconfig": "No config items",
+    "doc_admin_empty_notifications": "No notifications",
+    "doc_admin_btn_completions": "Complete (completions)",
+    "doc_admin_btn_chat": "Chat (chat)",
+    "doc_admin_btn_save": "Save",
+    "doc_admin_btn_create": "Create",
+    "doc_admin_btn_add": "Add",
+    "doc_admin_btn_query": "Query",
+    "doc_admin_btn_refresh": "Refresh",
+    "doc_admin_btn_export": "Export",
+    "doc_admin_btn_refresh_status": "Refresh Status",
+    "doc_admin_btn_build_index": "Build Index",
+    "doc_admin_btn_clear_index": "Clear Index",
+    "doc_admin_btn_embed": "Embed",
+    "doc_admin_btn_search": "Search",
+    "doc_admin_btn_traverse": "Traverse",
+    "doc_admin_btn_cluster": "Cluster (louvain)",
+    "doc_admin_btn_mark_all_read": "Mark All Read",
+    "doc_admin_btn_mark_read": "Mark Read",
+    "doc_admin_label_result": "Result",
+    "doc_admin_label_primary_color": "Primary Color",
+    "doc_admin_label_secondary_color": "Secondary Color",
+    "doc_admin_label_font": "Font",
+    "doc_admin_label_custom_css": "Custom CSS",
+    "doc_admin_label_saved": "Saved",
+    "doc_admin_label_new_theme": "New Theme",
+    "doc_admin_label_name": "Name",
+    "doc_admin_label_css_optional": "CSS (optional)",
+    "doc_admin_label_dark": "Dark",
+    "doc_admin_label_new_term": "New Term",
+    "doc_admin_label_term": "Term",
+    "doc_admin_label_category": "Category",
+    "doc_admin_label_definition": "Definition",
+    "doc_admin_label_new_webhook": "New Webhook",
+    "doc_admin_label_events": "Events (comma-separated, e.g. book.created,page.updated)",
+    "doc_admin_label_secret": "Secret (optional)",
+    "doc_admin_label_version": "Version",
+    "doc_admin_label_uptime": "Uptime",
+    "doc_admin_label_total_books": "Total Books",
+    "doc_admin_label_total_pages": "Total Pages",
+    "doc_admin_label_total_users": "Total Users",
+    "doc_admin_label_format": "Format",
+    "doc_admin_label_export_jobs": "Export Jobs",
+    "doc_admin_label_embed_content": "Embed Content",
+    "doc_admin_label_input_text": "Input Text",
+    "doc_admin_label_semantic_search": "Semantic Search",
+    "doc_admin_label_query_ph": "Query",
+    "doc_admin_label_graph_traverse": "Graph Traversal",
+    "doc_admin_label_start_node": "Start Node ID",
+    "doc_admin_label_cluster_result": "Cluster Result",
+    "doc_admin_label_input_prompt": "Input Prompt",
+    "doc_admin_fmt_depth": "Depth %d",
+    "doc_admin_fmt_graph_result": "Result: %d nodes, %d edges",
+    "doc_admin_fmt_cluster_line": "%@: %d groups",
+    "doc_admin_err_prefix": "Error: %@",
+    "doc_admin_err_failed": "%@ failed: %@",
     "proj_subtitle": "Manage your AI projects, instructions and knowledge base",
     "proj_searchPh": "Search projects",
     "proj_newHelp": "New project",
@@ -11614,6 +11872,92 @@ let jaJPTranslations: [String: String] = [
     "doc_wf_queryBtn": "照会",
     "doc_wf_currentStateFmt": "現在の状態: %@",
     "doc_wf_executeBtn": "実行",
+    "doc_admin_title": "管理",
+    "doc_admin_sec_users": "ユーザー",
+    "doc_admin_sec_aiRaw": "AI Raw",
+    "doc_admin_sec_branding": "ブランディング",
+    "doc_admin_sec_theme": "テーマ",
+    "doc_admin_sec_vocabulary": "用語集",
+    "doc_admin_sec_webhooks": "Webhooks",
+    "doc_admin_sec_metadata": "メタデータ",
+    "doc_admin_sec_systemInfo": "システム情報",
+    "doc_admin_sec_systemConfig": "システム設定",
+    "doc_admin_sec_export": "エクスポート",
+    "doc_admin_sec_rag": "RAG",
+    "doc_admin_sec_graph": "グラフ検索",
+    "doc_admin_sec_notifications": "通知",
+    "doc_admin_panel_users": "ユーザー管理",
+    "doc_admin_panel_aiRaw": "AI Raw インターフェース",
+    "doc_admin_panel_branding": "ブランディング設定",
+    "doc_admin_panel_theme": "テーマ管理",
+    "doc_admin_panel_vocabulary": "用語集",
+    "doc_admin_panel_webhooks": "Webhooks",
+    "doc_admin_panel_metadata": "メタデータ",
+    "doc_admin_panel_systemInfo": "システム情報",
+    "doc_admin_panel_systemConfig": "システム設定",
+    "doc_admin_panel_export": "エクスポート",
+    "doc_admin_panel_rag": "RAG インデックス",
+    "doc_admin_panel_graph": "グラフ検索",
+    "doc_admin_panel_notifications": "通知",
+    "doc_admin_empty_users": "ユーザーなし",
+    "doc_admin_empty_metadata_query": "entity と entity_id を入力してメタデータを検索",
+    "doc_admin_empty_sysinfo": "更新をクリックしてシステム情報を取得",
+    "doc_admin_empty_sysconfig": "設定項目なし",
+    "doc_admin_empty_notifications": "通知なし",
+    "doc_admin_btn_completions": "補完 (completions)",
+    "doc_admin_btn_chat": "対話 (chat)",
+    "doc_admin_btn_save": "保存",
+    "doc_admin_btn_create": "作成",
+    "doc_admin_btn_add": "追加",
+    "doc_admin_btn_query": "検索",
+    "doc_admin_btn_refresh": "更新",
+    "doc_admin_btn_export": "エクスポート",
+    "doc_admin_btn_refresh_status": "状態更新",
+    "doc_admin_btn_build_index": "インデックス構築",
+    "doc_admin_btn_clear_index": "インデックス消去",
+    "doc_admin_btn_embed": "埋め込み",
+    "doc_admin_btn_search": "検索",
+    "doc_admin_btn_traverse": "走査",
+    "doc_admin_btn_cluster": "クラスタリング (louvain)",
+    "doc_admin_btn_mark_all_read": "すべて既読",
+    "doc_admin_btn_mark_read": "既読にする",
+    "doc_admin_label_result": "結果",
+    "doc_admin_label_primary_color": "メインカラー",
+    "doc_admin_label_secondary_color": "サブカラー",
+    "doc_admin_label_font": "フォント",
+    "doc_admin_label_custom_css": "カスタム CSS",
+    "doc_admin_label_saved": "保存済み",
+    "doc_admin_label_new_theme": "新規テーマ",
+    "doc_admin_label_name": "名前",
+    "doc_admin_label_css_optional": "CSS（任意）",
+    "doc_admin_label_dark": "ダーク",
+    "doc_admin_label_new_term": "新規用語",
+    "doc_admin_label_term": "用語",
+    "doc_admin_label_category": "分類",
+    "doc_admin_label_definition": "定義",
+    "doc_admin_label_new_webhook": "新規 Webhook",
+    "doc_admin_label_events": "イベント（カンマ区切り、例 book.created,page.updated）",
+    "doc_admin_label_secret": "Secret（任意）",
+    "doc_admin_label_version": "バージョン",
+    "doc_admin_label_uptime": "稼働時間",
+    "doc_admin_label_total_books": "書籍合計",
+    "doc_admin_label_total_pages": "ページ合計",
+    "doc_admin_label_total_users": "ユーザー合計",
+    "doc_admin_label_format": "形式",
+    "doc_admin_label_export_jobs": "エクスポートジョブ",
+    "doc_admin_label_embed_content": "埋め込み内容",
+    "doc_admin_label_input_text": "テキスト入力",
+    "doc_admin_label_semantic_search": "セマンティック検索",
+    "doc_admin_label_query_ph": "クエリ",
+    "doc_admin_label_graph_traverse": "グラフ走査",
+    "doc_admin_label_start_node": "開始ノード ID",
+    "doc_admin_label_cluster_result": "クラスタ結果",
+    "doc_admin_label_input_prompt": "プロンプト入力",
+    "doc_admin_fmt_depth": "深さ %d",
+    "doc_admin_fmt_graph_result": "結果: %d ノード, %d エッジ",
+    "doc_admin_fmt_cluster_line": "%@: %d グループ",
+    "doc_admin_err_prefix": "エラー: %@",
+    "doc_admin_err_failed": "%@ 失敗: %@",
     "proj_subtitle": "AIプロジェクト・指示・ナレッジベースを管理",
     "proj_searchPh": "プロジェクトを検索",
     "proj_newHelp": "新規プロジェクト",
@@ -15066,6 +15410,92 @@ let koKRTranslations: [String: String] = [
     "doc_wf_queryBtn": "조회",
     "doc_wf_currentStateFmt": "현재 상태: %@",
     "doc_wf_executeBtn": "실행",
+    "doc_admin_title": "관리",
+    "doc_admin_sec_users": "사용자",
+    "doc_admin_sec_aiRaw": "AI Raw",
+    "doc_admin_sec_branding": "브랜딩",
+    "doc_admin_sec_theme": "테마",
+    "doc_admin_sec_vocabulary": "용어집",
+    "doc_admin_sec_webhooks": "Webhooks",
+    "doc_admin_sec_metadata": "메타데이터",
+    "doc_admin_sec_systemInfo": "시스템 정보",
+    "doc_admin_sec_systemConfig": "시스템 설정",
+    "doc_admin_sec_export": "내보내기",
+    "doc_admin_sec_rag": "RAG",
+    "doc_admin_sec_graph": "그래프 검색",
+    "doc_admin_sec_notifications": "알림",
+    "doc_admin_panel_users": "사용자 관리",
+    "doc_admin_panel_aiRaw": "AI Raw 인터페이스",
+    "doc_admin_panel_branding": "브랜딩 설정",
+    "doc_admin_panel_theme": "테마 관리",
+    "doc_admin_panel_vocabulary": "용어집",
+    "doc_admin_panel_webhooks": "Webhooks",
+    "doc_admin_panel_metadata": "메타데이터",
+    "doc_admin_panel_systemInfo": "시스템 정보",
+    "doc_admin_panel_systemConfig": "시스템 설정",
+    "doc_admin_panel_export": "내보내기",
+    "doc_admin_panel_rag": "RAG 인덱스",
+    "doc_admin_panel_graph": "그래프 검색",
+    "doc_admin_panel_notifications": "알림",
+    "doc_admin_empty_users": "사용자 없음",
+    "doc_admin_empty_metadata_query": "entity 와 entity_id 를 입력하여 메타데이터 조회",
+    "doc_admin_empty_sysinfo": "새로고침을 클릭하여 시스템 정보 가져오기",
+    "doc_admin_empty_sysconfig": "설정 항목 없음",
+    "doc_admin_empty_notifications": "알림 없음",
+    "doc_admin_btn_completions": "완성 (completions)",
+    "doc_admin_btn_chat": "대화 (chat)",
+    "doc_admin_btn_save": "저장",
+    "doc_admin_btn_create": "생성",
+    "doc_admin_btn_add": "추가",
+    "doc_admin_btn_query": "조회",
+    "doc_admin_btn_refresh": "새로고침",
+    "doc_admin_btn_export": "내보내기",
+    "doc_admin_btn_refresh_status": "상태 새로고침",
+    "doc_admin_btn_build_index": "인덱스 구축",
+    "doc_admin_btn_clear_index": "인덱스 비우기",
+    "doc_admin_btn_embed": "임베드",
+    "doc_admin_btn_search": "검색",
+    "doc_admin_btn_traverse": "순회",
+    "doc_admin_btn_cluster": "클러스터링 (louvain)",
+    "doc_admin_btn_mark_all_read": "모두 읽음",
+    "doc_admin_btn_mark_read": "읽음 표시",
+    "doc_admin_label_result": "결과",
+    "doc_admin_label_primary_color": "메인 컬러",
+    "doc_admin_label_secondary_color": "서브 컬러",
+    "doc_admin_label_font": "폰트",
+    "doc_admin_label_custom_css": "커스텀 CSS",
+    "doc_admin_label_saved": "저장됨",
+    "doc_admin_label_new_theme": "새 테마",
+    "doc_admin_label_name": "이름",
+    "doc_admin_label_css_optional": "CSS (선택)",
+    "doc_admin_label_dark": "다크",
+    "doc_admin_label_new_term": "새 용어",
+    "doc_admin_label_term": "용어",
+    "doc_admin_label_category": "분류",
+    "doc_admin_label_definition": "정의",
+    "doc_admin_label_new_webhook": "새 Webhook",
+    "doc_admin_label_events": "이벤트 (쉼표 구분, 예 book.created,page.updated)",
+    "doc_admin_label_secret": "Secret (선택)",
+    "doc_admin_label_version": "버전",
+    "doc_admin_label_uptime": "가동 시간",
+    "doc_admin_label_total_books": "총 도서",
+    "doc_admin_label_total_pages": "총 페이지",
+    "doc_admin_label_total_users": "총 사용자",
+    "doc_admin_label_format": "형식",
+    "doc_admin_label_export_jobs": "내보내기 작업",
+    "doc_admin_label_embed_content": "임베드 내용",
+    "doc_admin_label_input_text": "텍스트 입력",
+    "doc_admin_label_semantic_search": "시맨틱 검색",
+    "doc_admin_label_query_ph": "쿼리",
+    "doc_admin_label_graph_traverse": "그래프 순회",
+    "doc_admin_label_start_node": "시작 노드 ID",
+    "doc_admin_label_cluster_result": "클러스터 결과",
+    "doc_admin_label_input_prompt": "프롬프트 입력",
+    "doc_admin_fmt_depth": "깊이 %d",
+    "doc_admin_fmt_graph_result": "결과: %d 노드, %d 엣지",
+    "doc_admin_fmt_cluster_line": "%@: %d 그룹",
+    "doc_admin_err_prefix": "오류: %@",
+    "doc_admin_err_failed": "%@ 실패: %@",
     "proj_subtitle": "AI 프로젝트·지시·지식베이스 관리",
     "proj_searchPh": "프로젝트 검색",
     "proj_newHelp": "새 프로젝트",
