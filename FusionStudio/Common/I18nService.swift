@@ -3392,6 +3392,112 @@ enum I18nKey: String, CaseIterable {
     case fc_pty_alloc_fail = "fc_pty_alloc_fail"
     case fc_copy_suffix = "fc_copy_suffix"
     case fc_untitled = "fc_untitled"
+
+    // Simulation 模块 15a
+    case sim_status_idle = "sim_status_idle"
+    case sim_status_running = "sim_status_running"
+    case sim_status_paused = "sim_status_paused"
+    case sim_status_error = "sim_status_error"
+    case sim_tab_viewport = "sim_tab_viewport"
+    case sim_tab_scene = "sim_tab_scene"
+    case sim_tab_physics = "sim_tab_physics"
+    case sim_tab_log = "sim_tab_log"
+    case sim_scene_robot_arm = "sim_scene_robot_arm"
+    case sim_scene_biped = "sim_scene_biped"
+    case sim_scene_grasp = "sim_scene_grasp"
+    case sim_scene_robot_arm_desc = "sim_scene_robot_arm_desc"
+    case sim_scene_biped_desc = "sim_scene_biped_desc"
+    case sim_scene_grasp_desc = "sim_scene_grasp_desc"
+    case sim_scene_new_default = "sim_scene_new_default"
+    case sim_section_scene_list = "sim_section_scene_list"
+    case sim_btn_delete = "sim_btn_delete"
+    case sim_btn_new_scene = "sim_btn_new_scene"
+    case sim_hint_select_scene = "sim_hint_select_scene"
+    case sim_btn_run = "sim_btn_run"
+    case sim_btn_pause = "sim_btn_pause"
+    case sim_btn_stop = "sim_btn_stop"
+    case sim_btn_reset = "sim_btn_reset"
+    case sim_label_running = "sim_label_running"
+    case sim_hint_viewport_ctrl = "sim_hint_viewport_ctrl"
+    case sim_section_basic = "sim_section_basic"
+    case sim_field_name = "sim_field_name"
+    case sim_field_desc = "sim_field_desc"
+    case sim_ph_scene_name = "sim_ph_scene_name"
+    case sim_ph_desc = "sim_ph_desc"
+    case sim_section_env = "sim_section_env"
+    case sim_field_gravity = "sim_field_gravity"
+    case sim_field_time_step = "sim_field_time_step"
+    case sim_field_rt_factor = "sim_field_rt_factor"
+    case sim_section_debug = "sim_section_debug"
+    case sim_toggle_wireframe = "sim_toggle_wireframe"
+    case sim_toggle_contact = "sim_toggle_contact"
+    case sim_toggle_debug = "sim_toggle_debug"
+    case sim_section_physics_engine = "sim_section_physics_engine"
+    case sim_field_solver = "sim_field_solver"
+    case sim_solver_default = "sim_solver_default"
+    case sim_field_substeps = "sim_field_substeps"
+    case sim_field_collision = "sim_field_collision"
+    case sim_collision_precise = "sim_collision_precise"
+    case sim_collision_fast = "sim_collision_fast"
+    case sim_collision_none = "sim_collision_none"
+    case sim_section_constraint = "sim_section_constraint"
+    case sim_field_erp = "sim_field_erp"
+    case sim_field_cfm = "sim_field_cfm"
+    case sim_field_max_contacts = "sim_field_max_contacts"
+    case sim_log_init = "sim_log_init"
+    case sim_log_world_created = "sim_log_world_created"
+    case sim_log_unstable_constraint = "sim_log_unstable_constraint"
+    case sim_title_new_scene = "sim_title_new_scene"
+    case sim_ph_scene_name_opt = "sim_ph_scene_name_opt"
+    case sim_ph_desc_opt = "sim_ph_desc_opt"
+    case sim_btn_cancel = "sim_btn_cancel"
+    case sim_btn_create = "sim_btn_create"
+    case sim_label_scene = "sim_label_scene"
+    case sim_label_agent = "sim_label_agent"
+    case sim_label_sensor = "sim_label_sensor"
+    case sim_btn_load_scene = "sim_btn_load_scene"
+    case sim_btn_add_agent = "sim_btn_add_agent"
+    case sim_btn_add_sensor = "sim_btn_add_sensor"
+    case sim_field_agent_name = "sim_field_agent_name"
+    case sim_field_action_dim = "sim_field_action_dim"
+    case sim_field_model = "sim_field_model"
+    case sim_metric_state = "sim_metric_state"
+    case sim_metric_sim_time = "sim_metric_sim_time"
+    case sim_metric_frames = "sim_metric_frames"
+    case sim_metric_entities = "sim_metric_entities"
+    case sim_metric_rt_factor = "sim_metric_rt_factor"
+    case sim_metric_initialized = "sim_metric_initialized"
+    case sim_yes = "sim_yes"
+    case sim_no = "sim_no"
+    case sim_label_last_step_cost = "sim_label_last_step_cost"
+    case sim_timing_physics = "sim_timing_physics"
+    case sim_timing_sensor = "sim_timing_sensor"
+    case sim_timing_decision = "sim_timing_decision"
+    case sim_timing_render = "sim_timing_render"
+    case sim_timing_total = "sim_timing_total"
+    case sim_msg_not_stepped = "sim_msg_not_stepped"
+    case sim_label_observations = "sim_label_observations"
+    case sim_help_refresh_obs = "sim_help_refresh_obs"
+    case sim_msg_no_observations = "sim_msg_no_observations"
+    case sim_tab_status = "sim_tab_status"
+    case sim_tab_env = "sim_tab_env"
+    case sim_tab_snapshot = "sim_tab_snapshot"
+    case sim_msg_no_status = "sim_msg_no_status"
+    case sim_msg_env_not_checked = "sim_msg_env_not_checked"
+    case sim_btn_recheck = "sim_btn_recheck"
+    case sim_label_save_snapshot = "sim_label_save_snapshot"
+    case sim_field_snapshot_name = "sim_field_snapshot_name"
+    case sim_btn_save = "sim_btn_save"
+    case sim_label_last_snapshot = "sim_label_last_snapshot"
+    case sim_label_restore_snapshot = "sim_label_restore_snapshot"
+    case sim_field_snapshot_id = "sim_field_snapshot_id"
+    case sim_btn_restore = "sim_btn_restore"
+    case sim_btn_init = "sim_btn_init"
+    case sim_btn_step = "sim_btn_step"
+    case sim_btn_resume = "sim_btn_resume"
+    case sim_steps_unit = "sim_steps_unit"
+    case sim_msg_empty = "sim_msg_empty"
+    case sim_msg_empty_payload = "sim_msg_empty_payload"
 }
 
 // MARK: - 翻译管理器
@@ -6435,7 +6541,111 @@ let zhCNTranslations: [String: String] = [
     "fc_pty_start_fail": "启动 Shell 失败：%@",
     "fc_pty_alloc_fail": "分配 PTY 失败：%@",
     "fc_copy_suffix": " (副本)",
-    "fc_untitled": "未命名"
+    "fc_untitled": "未命名",
+    "sim_status_idle": "空闲",
+    "sim_status_running": "运行中",
+    "sim_status_paused": "已暂停",
+    "sim_status_error": "错误",
+    "sim_tab_viewport": "视口",
+    "sim_tab_scene": "场景",
+    "sim_tab_physics": "物理",
+    "sim_tab_log": "日志",
+    "sim_scene_robot_arm": "机器人手臂",
+    "sim_scene_biped": "双足行走",
+    "sim_scene_grasp": "物体抓取",
+    "sim_scene_robot_arm_desc": "六轴机械臂运动仿真",
+    "sim_scene_biped_desc": "双足机器人步行仿真",
+    "sim_scene_grasp_desc": "机械臂抓取物体测试",
+    "sim_scene_new_default": "新场景",
+    "sim_section_scene_list": "场景列表",
+    "sim_btn_delete": "删除",
+    "sim_btn_new_scene": "新建场景",
+    "sim_hint_select_scene": "请选择或创建一个仿真场景",
+    "sim_btn_run": "运行",
+    "sim_btn_pause": "暂停",
+    "sim_btn_stop": "停止",
+    "sim_btn_reset": "重置",
+    "sim_label_running": "运行中",
+    "sim_hint_viewport_ctrl": "鼠标拖拽旋转 · 滚轮缩放 · 右键平移",
+    "sim_section_basic": "基本信息",
+    "sim_field_name": "名称",
+    "sim_field_desc": "描述",
+    "sim_ph_scene_name": "场景名称",
+    "sim_ph_desc": "描述",
+    "sim_section_env": "环境参数",
+    "sim_field_gravity": "重力 (m/s²)",
+    "sim_field_time_step": "时间步长",
+    "sim_field_rt_factor": "实时倍率",
+    "sim_section_debug": "调试选项",
+    "sim_toggle_wireframe": "线框模式",
+    "sim_toggle_contact": "显示接触点",
+    "sim_toggle_debug": "调试信息",
+    "sim_section_physics_engine": "物理引擎",
+    "sim_field_solver": "求解器",
+    "sim_solver_default": "默认 (LCP)",
+    "sim_field_substeps": "子步数",
+    "sim_field_collision": "碰撞检测",
+    "sim_collision_precise": "精确",
+    "sim_collision_fast": "快速",
+    "sim_collision_none": "禁用",
+    "sim_section_constraint": "约束求解",
+    "sim_field_erp": "ERP",
+    "sim_field_cfm": "CFM",
+    "sim_field_max_contacts": "最大接触点",
+    "sim_log_init": "PyBullet 引擎初始化",
+    "sim_log_world_created": "物理世界创建完成",
+    "sim_log_unstable_constraint": "检测到不稳定约束",
+    "sim_title_new_scene": "新建仿真场景",
+    "sim_ph_scene_name_opt": "场景名称",
+    "sim_ph_desc_opt": "描述（可选）",
+    "sim_btn_cancel": "取消",
+    "sim_btn_create": "创建",
+    "sim_label_scene": "场景",
+    "sim_label_agent": "智能体",
+    "sim_label_sensor": "传感器",
+    "sim_btn_load_scene": "加载场景",
+    "sim_btn_add_agent": "添加智能体",
+    "sim_btn_add_sensor": "添加传感器",
+    "sim_field_agent_name": "名称",
+    "sim_field_action_dim": "动作维度",
+    "sim_field_model": "模型",
+    "sim_metric_state": "状态",
+    "sim_metric_sim_time": "仿真时间",
+    "sim_metric_frames": "帧数",
+    "sim_metric_entities": "实体数",
+    "sim_metric_rt_factor": "实时因子",
+    "sim_metric_initialized": "已初始化",
+    "sim_yes": "是",
+    "sim_no": "否",
+    "sim_label_last_step_cost": "最近一步耗时",
+    "sim_timing_physics": "物理",
+    "sim_timing_sensor": "传感器",
+    "sim_timing_decision": "决策",
+    "sim_timing_render": "渲染",
+    "sim_timing_total": "合计",
+    "sim_msg_not_stepped": "尚未执行 step",
+    "sim_label_observations": "观测",
+    "sim_help_refresh_obs": "刷新观测",
+    "sim_msg_no_observations": "无观测数据",
+    "sim_tab_status": "状态",
+    "sim_tab_env": "环境",
+    "sim_tab_snapshot": "快照",
+    "sim_msg_no_status": "无状态数据",
+    "sim_msg_env_not_checked": "环境检查未运行",
+    "sim_btn_recheck": "重新检查",
+    "sim_label_save_snapshot": "保存快照",
+    "sim_field_snapshot_name": "名称(可选)",
+    "sim_btn_save": "保存",
+    "sim_label_last_snapshot": "最近快照: %@",
+    "sim_label_restore_snapshot": "恢复快照",
+    "sim_field_snapshot_id": "Snapshot ID",
+    "sim_btn_restore": "恢复",
+    "sim_btn_init": "初始化",
+    "sim_btn_step": "Step",
+    "sim_btn_resume": "继续",
+    "sim_steps_unit": "%d 步",
+    "sim_msg_empty": "暂无",
+    "sim_msg_empty_payload": "空"
 ]
 
 let enUSTranslations: [String: String] = [
@@ -9434,7 +9644,111 @@ let enUSTranslations: [String: String] = [
     "fc_pty_start_fail": "Failed to start shell: %@",
     "fc_pty_alloc_fail": "Failed to allocate PTY: %@",
     "fc_copy_suffix": " (Copy)",
-    "fc_untitled": "Untitled"
+    "fc_untitled": "Untitled",
+    "sim_status_idle": "Idle",
+    "sim_status_running": "Running",
+    "sim_status_paused": "Paused",
+    "sim_status_error": "Error",
+    "sim_tab_viewport": "Viewport",
+    "sim_tab_scene": "Scene",
+    "sim_tab_physics": "Physics",
+    "sim_tab_log": "Log",
+    "sim_scene_robot_arm": "Robot Arm",
+    "sim_scene_biped": "Bipedal Walk",
+    "sim_scene_grasp": "Object Grasp",
+    "sim_scene_robot_arm_desc": "6-axis robotic arm motion simulation",
+    "sim_scene_biped_desc": "Bipedal robot walking simulation",
+    "sim_scene_grasp_desc": "Robotic arm object grasping test",
+    "sim_scene_new_default": "New Scene",
+    "sim_section_scene_list": "Scene List",
+    "sim_btn_delete": "Delete",
+    "sim_btn_new_scene": "New Scene",
+    "sim_hint_select_scene": "Select or create a simulation scene",
+    "sim_btn_run": "Run",
+    "sim_btn_pause": "Pause",
+    "sim_btn_stop": "Stop",
+    "sim_btn_reset": "Reset",
+    "sim_label_running": "Running",
+    "sim_hint_viewport_ctrl": "Drag to rotate · Scroll to zoom · Right-click to pan",
+    "sim_section_basic": "Basic Info",
+    "sim_field_name": "Name",
+    "sim_field_desc": "Description",
+    "sim_ph_scene_name": "Scene name",
+    "sim_ph_desc": "Description",
+    "sim_section_env": "Environment",
+    "sim_field_gravity": "Gravity (m/s²)",
+    "sim_field_time_step": "Time Step",
+    "sim_field_rt_factor": "Real-time Factor",
+    "sim_section_debug": "Debug Options",
+    "sim_toggle_wireframe": "Wireframe",
+    "sim_toggle_contact": "Show Contact Points",
+    "sim_toggle_debug": "Debug Info",
+    "sim_section_physics_engine": "Physics Engine",
+    "sim_field_solver": "Solver",
+    "sim_solver_default": "Default (LCP)",
+    "sim_field_substeps": "Sub-steps",
+    "sim_field_collision": "Collision Detection",
+    "sim_collision_precise": "Precise",
+    "sim_collision_fast": "Fast",
+    "sim_collision_none": "Disabled",
+    "sim_section_constraint": "Constraint Solving",
+    "sim_field_erp": "ERP",
+    "sim_field_cfm": "CFM",
+    "sim_field_max_contacts": "Max Contacts",
+    "sim_log_init": "PyBullet engine initialized",
+    "sim_log_world_created": "Physics world created",
+    "sim_log_unstable_constraint": "Unstable constraint detected",
+    "sim_title_new_scene": "New Simulation Scene",
+    "sim_ph_scene_name_opt": "Scene name",
+    "sim_ph_desc_opt": "Description (optional)",
+    "sim_btn_cancel": "Cancel",
+    "sim_btn_create": "Create",
+    "sim_label_scene": "Scene",
+    "sim_label_agent": "Agent",
+    "sim_label_sensor": "Sensor",
+    "sim_btn_load_scene": "Load Scene",
+    "sim_btn_add_agent": "Add Agent",
+    "sim_btn_add_sensor": "Add Sensor",
+    "sim_field_agent_name": "Name",
+    "sim_field_action_dim": "Action Dim",
+    "sim_field_model": "Model",
+    "sim_metric_state": "State",
+    "sim_metric_sim_time": "Sim Time",
+    "sim_metric_frames": "Frames",
+    "sim_metric_entities": "Entities",
+    "sim_metric_rt_factor": "RT Factor",
+    "sim_metric_initialized": "Initialized",
+    "sim_yes": "Yes",
+    "sim_no": "No",
+    "sim_label_last_step_cost": "Last Step Cost",
+    "sim_timing_physics": "Physics",
+    "sim_timing_sensor": "Sensor",
+    "sim_timing_decision": "Decision",
+    "sim_timing_render": "Render",
+    "sim_timing_total": "Total",
+    "sim_msg_not_stepped": "No step executed yet",
+    "sim_label_observations": "Observations",
+    "sim_help_refresh_obs": "Refresh observations",
+    "sim_msg_no_observations": "No observation data",
+    "sim_tab_status": "Status",
+    "sim_tab_env": "Environment",
+    "sim_tab_snapshot": "Snapshot",
+    "sim_msg_no_status": "No status data",
+    "sim_msg_env_not_checked": "Environment check not run",
+    "sim_btn_recheck": "Recheck",
+    "sim_label_save_snapshot": "Save Snapshot",
+    "sim_field_snapshot_name": "Name (optional)",
+    "sim_btn_save": "Save",
+    "sim_label_last_snapshot": "Latest snapshot: %@",
+    "sim_label_restore_snapshot": "Restore Snapshot",
+    "sim_field_snapshot_id": "Snapshot ID",
+    "sim_btn_restore": "Restore",
+    "sim_btn_init": "Initialize",
+    "sim_btn_step": "Step",
+    "sim_btn_resume": "Resume",
+    "sim_steps_unit": "%d steps",
+    "sim_msg_empty": "None",
+    "sim_msg_empty_payload": "Empty"
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -12427,7 +12741,111 @@ let jaJPTranslations: [String: String] = [
     "fc_pty_start_fail": "Shellの起動に失敗しました：%@",
     "fc_pty_alloc_fail": "PTYの割り当てに失敗しました：%@",
     "fc_copy_suffix": " (コピー)",
-    "fc_untitled": "無題"
+    "fc_untitled": "無題",
+    "sim_status_idle": "待機中",
+    "sim_status_running": "実行中",
+    "sim_status_paused": "一時停止",
+    "sim_status_error": "エラー",
+    "sim_tab_viewport": "ビューポート",
+    "sim_tab_scene": "シーン",
+    "sim_tab_physics": "物理",
+    "sim_tab_log": "ログ",
+    "sim_scene_robot_arm": "ロボットアーム",
+    "sim_scene_biped": "二足歩行",
+    "sim_scene_grasp": "物体把持",
+    "sim_scene_robot_arm_desc": "6軸ロボットアーム運動シミュレーション",
+    "sim_scene_biped_desc": "二足ロボット歩行シミュレーション",
+    "sim_scene_grasp_desc": "ロボットアーム物体把持テスト",
+    "sim_scene_new_default": "新規シーン",
+    "sim_section_scene_list": "シーンリスト",
+    "sim_btn_delete": "削除",
+    "sim_btn_new_scene": "新規シーン",
+    "sim_hint_select_scene": "シミュレーションシーンを選択または作成してください",
+    "sim_btn_run": "実行",
+    "sim_btn_pause": "一時停止",
+    "sim_btn_stop": "停止",
+    "sim_btn_reset": "リセット",
+    "sim_label_running": "実行中",
+    "sim_hint_viewport_ctrl": "ドラッグで回転・スクロールでズーム・右クリックでパン",
+    "sim_section_basic": "基本情報",
+    "sim_field_name": "名称",
+    "sim_field_desc": "説明",
+    "sim_ph_scene_name": "シーン名",
+    "sim_ph_desc": "説明",
+    "sim_section_env": "環境パラメータ",
+    "sim_field_gravity": "重力 (m/s²)",
+    "sim_field_time_step": "タイムステップ",
+    "sim_field_rt_factor": "リアルタイム倍率",
+    "sim_section_debug": "デバッグオプション",
+    "sim_toggle_wireframe": "ワイヤーフレーム",
+    "sim_toggle_contact": "接触点表示",
+    "sim_toggle_debug": "デバッグ情報",
+    "sim_section_physics_engine": "物理エンジン",
+    "sim_field_solver": "ソルバ",
+    "sim_solver_default": "デフォルト (LCP)",
+    "sim_field_substeps": "サブステップ",
+    "sim_field_collision": "衝突検出",
+    "sim_collision_precise": "精密",
+    "sim_collision_fast": "高速",
+    "sim_collision_none": "無効",
+    "sim_section_constraint": "拘束ソルバ",
+    "sim_field_erp": "ERP",
+    "sim_field_cfm": "CFM",
+    "sim_field_max_contacts": "最大接触点",
+    "sim_log_init": "PyBullet エンジン初期化",
+    "sim_log_world_created": "物理ワールド作成完了",
+    "sim_log_unstable_constraint": "不安定な拘束を検出",
+    "sim_title_new_scene": "新規シミュレーションシーン",
+    "sim_ph_scene_name_opt": "シーン名",
+    "sim_ph_desc_opt": "説明（任意）",
+    "sim_btn_cancel": "キャンセル",
+    "sim_btn_create": "作成",
+    "sim_label_scene": "シーン",
+    "sim_label_agent": "エージェント",
+    "sim_label_sensor": "センサー",
+    "sim_btn_load_scene": "シーン読込",
+    "sim_btn_add_agent": "エージェント追加",
+    "sim_btn_add_sensor": "センサー追加",
+    "sim_field_agent_name": "名称",
+    "sim_field_action_dim": "アクション次元",
+    "sim_field_model": "モデル",
+    "sim_metric_state": "状態",
+    "sim_metric_sim_time": "シミュレーション時間",
+    "sim_metric_frames": "フレーム数",
+    "sim_metric_entities": "エンティティ数",
+    "sim_metric_rt_factor": "リアルタイム係数",
+    "sim_metric_initialized": "初期化済み",
+    "sim_yes": "はい",
+    "sim_no": "いいえ",
+    "sim_label_last_step_cost": "直近ステップ所要時間",
+    "sim_timing_physics": "物理",
+    "sim_timing_sensor": "センサー",
+    "sim_timing_decision": "意思決定",
+    "sim_timing_render": "レンダリング",
+    "sim_timing_total": "合計",
+    "sim_msg_not_stepped": "ステップ未実行",
+    "sim_label_observations": "観測",
+    "sim_help_refresh_obs": "観測を更新",
+    "sim_msg_no_observations": "観測データなし",
+    "sim_tab_status": "状態",
+    "sim_tab_env": "環境",
+    "sim_tab_snapshot": "スナップショット",
+    "sim_msg_no_status": "ステータスデータなし",
+    "sim_msg_env_not_checked": "環境チェック未実行",
+    "sim_btn_recheck": "再チェック",
+    "sim_label_save_snapshot": "スナップショット保存",
+    "sim_field_snapshot_name": "名称（任意）",
+    "sim_btn_save": "保存",
+    "sim_label_last_snapshot": "直近スナップショット: %@",
+    "sim_label_restore_snapshot": "スナップショット復元",
+    "sim_field_snapshot_id": "スナップショット ID",
+    "sim_btn_restore": "復元",
+    "sim_btn_init": "初期化",
+    "sim_btn_step": "ステップ",
+    "sim_btn_resume": "再開",
+    "sim_steps_unit": "%d ステップ",
+    "sim_msg_empty": "なし",
+    "sim_msg_empty_payload": "空"
 ]
 
 let koKRTranslations: [String: String] = [
@@ -15420,7 +15838,111 @@ let koKRTranslations: [String: String] = [
     "fc_pty_start_fail": "Shell 시작 실패: %@",
     "fc_pty_alloc_fail": "PTY 할당 실패: %@",
     "fc_copy_suffix": " (사본)",
-    "fc_untitled": "제목 없음"
+    "fc_untitled": "제목 없음",
+    "sim_status_idle": "유휴",
+    "sim_status_running": "실행 중",
+    "sim_status_paused": "일시정지",
+    "sim_status_error": "오류",
+    "sim_tab_viewport": "뷰포트",
+    "sim_tab_scene": "씬",
+    "sim_tab_physics": "물리",
+    "sim_tab_log": "로그",
+    "sim_scene_robot_arm": "로봇 암",
+    "sim_scene_biped": "이족 보행",
+    "sim_scene_grasp": "물체 파지",
+    "sim_scene_robot_arm_desc": "6축 로봇 암 운동 시뮬레이션",
+    "sim_scene_biped_desc": "이족 로봇 보행 시뮬레이션",
+    "sim_scene_grasp_desc": "로봇 암 물체 파지 테스트",
+    "sim_scene_new_default": "새 씬",
+    "sim_section_scene_list": "씬 목록",
+    "sim_btn_delete": "삭제",
+    "sim_btn_new_scene": "새 씬 만들기",
+    "sim_hint_select_scene": "시뮬레이션 씬을 선택하거나 생성하세요",
+    "sim_btn_run": "실행",
+    "sim_btn_pause": "일시정지",
+    "sim_btn_stop": "정지",
+    "sim_btn_reset": "리셋",
+    "sim_label_running": "실행 중",
+    "sim_hint_viewport_ctrl": "드래그 회전 · 스크롤 확대 · 우클릭 이동",
+    "sim_section_basic": "기본 정보",
+    "sim_field_name": "이름",
+    "sim_field_desc": "설명",
+    "sim_ph_scene_name": "씬 이름",
+    "sim_ph_desc": "설명",
+    "sim_section_env": "환경 매개변수",
+    "sim_field_gravity": "중력 (m/s²)",
+    "sim_field_time_step": "타임스텝",
+    "sim_field_rt_factor": "실시간 배율",
+    "sim_section_debug": "디버그 옵션",
+    "sim_toggle_wireframe": "와이어프레임",
+    "sim_toggle_contact": "접촉점 표시",
+    "sim_toggle_debug": "디버그 정보",
+    "sim_section_physics_engine": "물리 엔진",
+    "sim_field_solver": "솔버",
+    "sim_solver_default": "기본 (LCP)",
+    "sim_field_substeps": "서브스텝",
+    "sim_field_collision": "충돌 감지",
+    "sim_collision_precise": "정밀",
+    "sim_collision_fast": "빠름",
+    "sim_collision_none": "비활성화",
+    "sim_section_constraint": "제약 솔버",
+    "sim_field_erp": "ERP",
+    "sim_field_cfm": "CFM",
+    "sim_field_max_contacts": "최대 접촉점",
+    "sim_log_init": "PyBullet 엔진 초기화",
+    "sim_log_world_created": "물리 월드 생성 완료",
+    "sim_log_unstable_constraint": "불안정한 제약 감지",
+    "sim_title_new_scene": "새 시뮬레이션 씬",
+    "sim_ph_scene_name_opt": "씬 이름",
+    "sim_ph_desc_opt": "설명 (선택)",
+    "sim_btn_cancel": "취소",
+    "sim_btn_create": "생성",
+    "sim_label_scene": "씬",
+    "sim_label_agent": "에이전트",
+    "sim_label_sensor": "센서",
+    "sim_btn_load_scene": "씬 로드",
+    "sim_btn_add_agent": "에이전트 추가",
+    "sim_btn_add_sensor": "센서 추가",
+    "sim_field_agent_name": "이름",
+    "sim_field_action_dim": "액션 차원",
+    "sim_field_model": "모델",
+    "sim_metric_state": "상태",
+    "sim_metric_sim_time": "시뮬레이션 시간",
+    "sim_metric_frames": "프레임 수",
+    "sim_metric_entities": "엔티티 수",
+    "sim_metric_rt_factor": "실시간 계수",
+    "sim_metric_initialized": "초기화됨",
+    "sim_yes": "예",
+    "sim_no": "아니오",
+    "sim_label_last_step_cost": "최근 스텝 소요",
+    "sim_timing_physics": "물리",
+    "sim_timing_sensor": "센서",
+    "sim_timing_decision": "의사결정",
+    "sim_timing_render": "렌더링",
+    "sim_timing_total": "합계",
+    "sim_msg_not_stepped": "스텝 미실행",
+    "sim_label_observations": "관측",
+    "sim_help_refresh_obs": "관측 새로고침",
+    "sim_msg_no_observations": "관측 데이터 없음",
+    "sim_tab_status": "상태",
+    "sim_tab_env": "환경",
+    "sim_tab_snapshot": "스냅샷",
+    "sim_msg_no_status": "상태 데이터 없음",
+    "sim_msg_env_not_checked": "환경 점검 미실행",
+    "sim_btn_recheck": "재점검",
+    "sim_label_save_snapshot": "스냅샷 저장",
+    "sim_field_snapshot_name": "이름 (선택)",
+    "sim_btn_save": "저장",
+    "sim_label_last_snapshot": "최근 스냅샷: %@",
+    "sim_label_restore_snapshot": "스냅샷 복원",
+    "sim_field_snapshot_id": "스냅샷 ID",
+    "sim_btn_restore": "복원",
+    "sim_btn_init": "초기화",
+    "sim_btn_step": "스텝",
+    "sim_btn_resume": "재개",
+    "sim_steps_unit": "%d 스텝",
+    "sim_msg_empty": "없음",
+    "sim_msg_empty_payload": "비어있음"
 ]
 
 // MARK: - 国际化文本视图

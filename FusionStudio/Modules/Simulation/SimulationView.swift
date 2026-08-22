@@ -27,10 +27,19 @@ struct SimulationScene: Identifiable, Hashable, Codable {
     }
 
     enum SimulationStatus: String, Codable {
-        case idle     = "空闲"
-        case running  = "运行中"
-        case paused   = "已暂停"
-        case error    = "错误"
+        case idle     = "idle"
+        case running  = "running"
+        case paused   = "paused"
+        case error    = "error"
+
+        var localizedName: String {
+            switch self {
+            case .idle:    return I18nManager.shared.t(.sim_status_idle)
+            case .running: return I18nManager.shared.t(.sim_status_running)
+            case .paused:  return I18nManager.shared.t(.sim_status_paused)
+            case .error:   return I18nManager.shared.t(.sim_status_error)
+            }
+        }
     }
 }
 
@@ -56,10 +65,19 @@ struct SimulationView: View {
     @State private var selectedTab: SimTab = .viewport
 
     enum SimTab: String, CaseIterable {
-        case viewport    = "视口"
-        case scene       = "场景"
-        case physics     = "物理"
-        case log         = "日志"
+        case viewport    = "viewport"
+        case scene       = "scene"
+        case physics     = "physics"
+        case log         = "log"
+
+        var localizedName: String {
+            switch self {
+            case .viewport: return I18nManager.shared.t(.sim_tab_viewport)
+            case .scene:    return I18nManager.shared.t(.sim_tab_scene)
+            case .physics:  return I18nManager.shared.t(.sim_tab_physics)
+            case .log:      return I18nManager.shared.t(.sim_tab_log)
+            }
+        }
     }
 
     var body: some View {
@@ -89,7 +107,7 @@ struct SimulationView: View {
                 // 标签切换
                 Picker("", selection: $selectedTab) {
                     ForEach(SimTab.allCases, id: \.self) { tab in
-                        Text(tab.rawValue).tag(tab)
+                        Text(tab.localizedName).tag(tab)
                     }
                 }
                 .pickerStyle(.segmented)
@@ -135,8 +153,8 @@ struct SimulationView: View {
         scenes = [
             SimulationScene(
                 id: "scene-1",
-                name: "机器人手臂",
-                description: "六轴机械臂运动仿真",
+                name: I18nManager.shared.t(.sim_scene_robot_arm),
+                description: I18nManager.shared.t(.sim_scene_robot_arm_desc),
                 lastModified: Date(),
                 status: .idle,
                 fps: 0,
@@ -144,8 +162,8 @@ struct SimulationView: View {
             ),
             SimulationScene(
                 id: "scene-2",
-                name: "双足行走",
-                description: "双足机器人步行仿真",
+                name: I18nManager.shared.t(.sim_scene_biped),
+                description: I18nManager.shared.t(.sim_scene_biped_desc),
                 lastModified: Date(),
                 status: .idle,
                 fps: 0,
@@ -153,8 +171,8 @@ struct SimulationView: View {
             ),
             SimulationScene(
                 id: "scene-3",
-                name: "物体抓取",
-                description: "机械臂抓取物体测试",
+                name: I18nManager.shared.t(.sim_scene_grasp),
+                description: I18nManager.shared.t(.sim_scene_grasp_desc),
                 lastModified: Date(),
                 status: .idle,
                 fps: 0,
@@ -209,12 +227,12 @@ struct SceneListView: View {
 
     var body: some View {
         List(selection: $selectedScene) {
-            Section("场景列表") {
+            Section(I18nManager.shared.t(.sim_section_scene_list)) {
                 ForEach(scenes) { scene in
                     SceneRow(scene: scene)
                         .tag(scene)
                         .contextMenu {
-                            Button("删除", role: .destructive) {
+                            Button(I18nManager.shared.t(.sim_btn_delete), role: .destructive) {
                                 onDeleteScene(scene)
                             }
                         }
@@ -225,7 +243,7 @@ struct SceneListView: View {
         .toolbar {
             ToolbarItem {
                 Button(action: onNewScene) {
-                    Label("新建场景", systemImage: "plus")
+                    Label(I18nManager.shared.t(.sim_btn_new_scene), systemImage: "plus")
                 }
             }
         }
@@ -289,7 +307,7 @@ struct SimulationToolbar: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             } else {
-                Text("请选择或创建一个仿真场景")
+                Text(I18nManager.shared.t(.sim_hint_select_scene))
                     .foregroundColor(.secondary)
                 Spacer()
             }
@@ -298,25 +316,25 @@ struct SimulationToolbar: View {
 
             HStack(spacing: 4) {
                 Button(action: onStart) {
-                    Label("运行", systemImage: "play.fill")
+                    Label(I18nManager.shared.t(.sim_btn_run), systemImage: "play.fill")
                 }
                 .disabled(selectedScene == nil || isRunning)
                 .buttonStyle(.borderedProminent)
 
                 Button(action: onPause) {
-                    Label("暂停", systemImage: "pause.fill")
+                    Label(I18nManager.shared.t(.sim_btn_pause), systemImage: "pause.fill")
                 }
                 .disabled(!isRunning)
                 .buttonStyle(.bordered)
 
                 Button(action: onStop) {
-                    Label("停止", systemImage: "stop.fill")
+                    Label(I18nManager.shared.t(.sim_btn_stop), systemImage: "stop.fill")
                 }
                 .disabled(!isRunning)
                 .buttonStyle(.bordered)
 
                 Button(action: onReset) {
-                    Label("重置", systemImage: "arrow.counterclockwise")
+                    Label(I18nManager.shared.t(.sim_btn_reset), systemImage: "arrow.counterclockwise")
                 }
                 .buttonStyle(.bordered)
             }
@@ -347,7 +365,7 @@ struct SimulationViewport: View {
             VStack {
                 HStack {
                     if isRunning {
-                        Label("运行中", systemImage: "circle.fill")
+                        Label(I18nManager.shared.t(.sim_label_running), systemImage: "circle.fill")
                             .foregroundColor(.green)
                             .font(.caption)
                             .padding(6)
@@ -361,7 +379,7 @@ struct SimulationViewport: View {
 
                 // 底部控制提示
                 HStack {
-                    Text("鼠标拖拽旋转 · 滚轮缩放 · 右键平移")
+                    Text(I18nManager.shared.t(.sim_hint_viewport_ctrl))
                         .font(.caption2)
                         .foregroundColor(.white.opacity(0.5))
                     Spacer()
@@ -545,15 +563,15 @@ struct SceneEditorView: View {
     var body: some View {
         Form {
             if let scene = scene {
-                Section("基本信息") {
-                    LabeledContent("名称") {
-                        TextField("场景名称", text: Binding(
+                Section(I18nManager.shared.t(.sim_section_basic)) {
+                    LabeledContent(I18nManager.shared.t(.sim_field_name)) {
+                        TextField(I18nManager.shared.t(.sim_ph_scene_name), text: Binding(
                             get: { scene.name },
                             set: { newValue in /* update */ }
                         ))
                     }
-                    LabeledContent("描述") {
-                        TextField("描述", text: Binding(
+                    LabeledContent(I18nManager.shared.t(.sim_field_desc)) {
+                        TextField(I18nManager.shared.t(.sim_ph_desc), text: Binding(
                             get: { scene.description },
                             set: { newValue, _ in /* update */ }
                         ))
@@ -561,13 +579,13 @@ struct SceneEditorView: View {
                 }
             }
 
-            Section("环境参数") {
-                LabeledContent("重力 (m/s²)") {
+            Section(I18nManager.shared.t(.sim_section_env)) {
+                LabeledContent(I18nManager.shared.t(.sim_field_gravity)) {
                     Slider(value: $config.gravity, in: 0...20)
                     Text("\(String(format: "%.1f", config.gravity))")
                         .frame(width: 40)
                 }
-                LabeledContent("时间步长") {
+                LabeledContent(I18nManager.shared.t(.sim_field_time_step)) {
                     Picker("", selection: $config.timeStep) {
                         Text("1/60").tag(1.0/60.0)
                         Text("1/120").tag(1.0/120.0)
@@ -577,17 +595,17 @@ struct SceneEditorView: View {
                     .pickerStyle(.menu)
                     .frame(width: 80)
                 }
-                LabeledContent("实时倍率") {
+                LabeledContent(I18nManager.shared.t(.sim_field_rt_factor)) {
                     Slider(value: $config.realTimeFactor, in: 0.1...5.0)
                     Text("\(String(format: "%.1f", config.realTimeFactor))x")
                         .frame(width: 40)
                 }
             }
 
-            Section("调试选项") {
-                Toggle("线框模式", isOn: $config.enableWireframe)
-                Toggle("显示接触点", isOn: $config.enableContactPoints)
-                Toggle("调试信息", isOn: $config.enableDebug)
+            Section(I18nManager.shared.t(.sim_section_debug)) {
+                Toggle(I18nManager.shared.t(.sim_toggle_wireframe), isOn: $config.enableWireframe)
+                Toggle(I18nManager.shared.t(.sim_toggle_contact), isOn: $config.enableContactPoints)
+                Toggle(I18nManager.shared.t(.sim_toggle_debug), isOn: $config.enableDebug)
             }
         }
         .padding()
@@ -606,34 +624,34 @@ struct PhysicsConfigView: View {
 
     var body: some View {
         Form {
-            Section("物理引擎") {
-                LabeledContent("求解器") {
-                    Picker("", selection: .constant("默认")) {
-                        Text("默认 (LCP)").tag("lcp")
+            Section(I18nManager.shared.t(.sim_section_physics_engine)) {
+                LabeledContent(I18nManager.shared.t(.sim_field_solver)) {
+                    Picker("", selection: .constant("lcp")) {
+                        Text(I18nManager.shared.t(.sim_solver_default)).tag("lcp")
                         Text("MGS").tag("mgs")
                         Text("Dantzig").tag("dantzig")
                     }
                 }
-                LabeledContent("子步数") {
+                LabeledContent(I18nManager.shared.t(.sim_field_substeps)) {
                     Stepper("\(config.numSubSteps)", value: $config.numSubSteps, in: 1...10)
                 }
-                LabeledContent("碰撞检测") {
-                    Picker("", selection: .constant("精确")) {
-                        Text("精确").tag("precise")
-                        Text("快速").tag("fast")
-                        Text("禁用").tag("none")
+                LabeledContent(I18nManager.shared.t(.sim_field_collision)) {
+                    Picker("", selection: .constant("precise")) {
+                        Text(I18nManager.shared.t(.sim_collision_precise)).tag("precise")
+                        Text(I18nManager.shared.t(.sim_collision_fast)).tag("fast")
+                        Text(I18nManager.shared.t(.sim_collision_none)).tag("none")
                     }
                 }
             }
 
-            Section("约束求解") {
-                LabeledContent("ERP") {
+            Section(I18nManager.shared.t(.sim_section_constraint)) {
+                LabeledContent(I18nManager.shared.t(.sim_field_erp)) {
                     Slider(value: .constant(0.2), in: 0...1)
                 }
-                LabeledContent("CFM") {
+                LabeledContent(I18nManager.shared.t(.sim_field_cfm)) {
                     Slider(value: .constant(0.00001), in: 0.000001...0.1)
                 }
-                LabeledContent("最大接触点") {
+                LabeledContent(I18nManager.shared.t(.sim_field_max_contacts)) {
                     Stepper("\(3)", value: .constant(3), in: 1...10)
                 }
             }
@@ -647,9 +665,9 @@ struct PhysicsConfigView: View {
 
 struct SimulationLogView: View {
     @State private var logs: [SimLogEntry] = [
-        SimLogEntry(time: "00:00:00", level: .info, message: "PyBullet 引擎初始化"),
-        SimLogEntry(time: "00:00:01", level: .info, message: "物理世界创建完成"),
-        SimLogEntry(time: "00:00:02", level: .warning, message: "检测到不稳定约束"),
+        SimLogEntry(time: "00:00:00", level: .info, message: I18nManager.shared.t(.sim_log_init)),
+        SimLogEntry(time: "00:00:01", level: .info, message: I18nManager.shared.t(.sim_log_world_created)),
+        SimLogEntry(time: "00:00:02", level: .warning, message: I18nManager.shared.t(.sim_log_unstable_constraint)),
     ]
 
     var body: some View {
@@ -711,23 +729,23 @@ struct NewSceneDialog: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("新建仿真场景")
+            Text(I18nManager.shared.t(.sim_title_new_scene))
                 .font(.title2)
                 .bold()
 
-            TextField("场景名称", text: $name)
+            TextField(I18nManager.shared.t(.sim_ph_scene_name_opt), text: $name)
                 .textFieldStyle(.roundedBorder)
 
-            TextField("描述（可选）", text: $description)
+            TextField(I18nManager.shared.t(.sim_ph_desc_opt), text: $description)
                 .textFieldStyle(.roundedBorder)
 
             HStack {
-                Button("取消") { dismiss() }
+                Button(I18nManager.shared.t(.sim_btn_cancel)) { dismiss() }
                     .buttonStyle(.bordered)
-                Button("创建") {
+                Button(I18nManager.shared.t(.sim_btn_create)) {
                     let scene = SimulationScene(
                         id: "scene-\(UUID().uuidString.prefix(8))",
-                        name: name.isEmpty ? "新场景" : name,
+                        name: name.isEmpty ? I18nManager.shared.t(.sim_scene_new_default) : name,
                         description: description,
                         lastModified: Date(),
                         status: .idle,
