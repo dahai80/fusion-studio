@@ -3658,6 +3658,62 @@ enum I18nKey: String, CaseIterable {
     case kbc_msg_no_results = "kbc_msg_no_results"
     case kbc_err_invalid_url = "kbc_err_invalid_url"
     case kbc_err_invalid_response = "kbc_err_invalid_response"
+    case fin_title = "fin_title"
+    case fin_connected = "fin_connected"
+    case fin_disconnected = "fin_disconnected"
+    case fin_tab_dashboard = "fin_tab_dashboard"
+    case fin_tab_modeling = "fin_tab_modeling"
+    case fin_tab_statements = "fin_tab_statements"
+    case fin_tab_risk = "fin_tab_risk"
+    case fin_tab_report = "fin_tab_report"
+    case fin_company_panorama = "fin_company_panorama"
+    case fin_ph_company = "fin_ph_company"
+    case fin_ph_revenue = "fin_ph_revenue"
+    case fin_btn_query = "fin_btn_query"
+    case fin_market_overview = "fin_market_overview"
+    case fin_stock_value = "fin_stock_value"
+    case fin_stock_growth = "fin_stock_growth"
+    case fin_stock_dividend = "fin_stock_dividend"
+    case fin_stock_quality = "fin_stock_quality"
+    case fin_metric_enterprise = "fin_metric_enterprise"
+    case fin_metric_equity = "fin_metric_equity"
+    case fin_metric_gross_margin = "fin_metric_gross_margin"
+    case fin_metric_ebit_margin = "fin_metric_ebit_margin"
+    case fin_passed_filter = "fin_passed_filter"
+    case fin_dcf_valuation = "fin_dcf_valuation"
+    case fin_ph_company_short = "fin_ph_company_short"
+    case fin_ph_revenue_short = "fin_ph_revenue_short"
+    case fin_ph_terminal_growth = "fin_ph_terminal_growth"
+    case fin_btn_calc_dcf = "fin_btn_calc_dcf"
+    case fin_dcf_result = "fin_dcf_result"
+    case fin_sensitivity_analysis = "fin_sensitivity_analysis"
+    case fin_btn_run_sensitivity = "fin_btn_run_sensitivity"
+    case fin_sensitivity_matrix = "fin_sensitivity_matrix"
+    case fin_portfolio_optimization = "fin_portfolio_optimization"
+    case fin_btn_sample_portfolio = "fin_btn_sample_portfolio"
+    case fin_metrics_calc = "fin_metrics_calc"
+    case fin_btn_sample_metrics = "fin_btn_sample_metrics"
+    case fin_metrics_result = "fin_metrics_result"
+    case fin_stock_screener = "fin_stock_screener"
+    case fin_strategy = "fin_strategy"
+    case fin_strategy_value = "fin_strategy_value"
+    case fin_strategy_growth = "fin_strategy_growth"
+    case fin_strategy_dividend = "fin_strategy_dividend"
+    case fin_strategy_quality = "fin_strategy_quality"
+    case fin_btn_screen = "fin_btn_screen"
+    case fin_screen_result = "fin_screen_result"
+    case fin_kyc_dd = "fin_kyc_dd"
+    case fin_ph_entity = "fin_ph_entity"
+    case fin_btn_screen_kyc = "fin_btn_screen_kyc"
+    case fin_kyc_result = "fin_kyc_result"
+    case fin_var_risk = "fin_var_risk"
+    case fin_btn_sample_var = "fin_btn_sample_var"
+    case fin_var_result = "fin_var_result"
+    case fin_valuation_report = "fin_valuation_report"
+    case fin_btn_gen_report = "fin_btn_gen_report"
+    case fin_report_content = "fin_report_content"
+    case fin_ai_copilot = "fin_ai_copilot"
+    case fin_ph_input_question = "fin_ph_input_question"
 }
 
 // MARK: - 翻译管理器
@@ -6965,7 +7021,63 @@ let zhCNTranslations: [String: String] = [
     "kbc_msg_input_to_search": "输入查询开始搜索",
     "kbc_msg_no_results": "无搜索结果",
     "kbc_err_invalid_url": "无效的 URL",
-    "kbc_err_invalid_response": "无效的响应"
+    "kbc_err_invalid_response": "无效的响应",
+    "fin_title": "金融分析",
+    "fin_connected": "已连接",
+    "fin_disconnected": "未连接",
+    "fin_tab_dashboard": "仪表盘",
+    "fin_tab_modeling": "建模",
+    "fin_tab_statements": "财报",
+    "fin_tab_risk": "风控",
+    "fin_tab_report": "报告",
+    "fin_company_panorama": "公司全景",
+    "fin_ph_company": "公司名称",
+    "fin_ph_revenue": "营收(逗号分隔)",
+    "fin_btn_query": "查询",
+    "fin_market_overview": "市场概览",
+    "fin_stock_value": "价值股",
+    "fin_stock_growth": "成长股",
+    "fin_stock_dividend": "红利股",
+    "fin_stock_quality": "质量股",
+    "fin_metric_enterprise": "企业价值",
+    "fin_metric_equity": "股权价值",
+    "fin_metric_gross_margin": "毛利率",
+    "fin_metric_ebit_margin": "EBIT利润率",
+    "fin_passed_filter": "通过筛选: %d 只",
+    "fin_dcf_valuation": "DCF 估值",
+    "fin_ph_company_short": "公司",
+    "fin_ph_revenue_short": "营收",
+    "fin_ph_terminal_growth": "永续增长率",
+    "fin_btn_calc_dcf": "计算 DCF",
+    "fin_dcf_result": "DCF 结果",
+    "fin_sensitivity_analysis": "敏感性分析",
+    "fin_btn_run_sensitivity": "运行敏感性分析",
+    "fin_sensitivity_matrix": "敏感性矩阵",
+    "fin_portfolio_optimization": "投资组合优化",
+    "fin_btn_sample_portfolio": "示例组合优化",
+    "fin_metrics_calc": "财务指标计算",
+    "fin_btn_sample_metrics": "示例指标计算",
+    "fin_metrics_result": "指标结果",
+    "fin_stock_screener": "选股筛选",
+    "fin_strategy": "策略",
+    "fin_strategy_value": "价值",
+    "fin_strategy_growth": "成长",
+    "fin_strategy_dividend": "红利",
+    "fin_strategy_quality": "质量",
+    "fin_btn_screen": "筛选",
+    "fin_screen_result": "筛选结果",
+    "fin_kyc_dd": "KYC 尽职调查",
+    "fin_ph_entity": "实体名称",
+    "fin_btn_screen_kyc": "筛查",
+    "fin_kyc_result": "KYC 结果",
+    "fin_var_risk": "VaR 风险价值",
+    "fin_btn_sample_var": "示例 VaR 计算",
+    "fin_var_result": "VaR 结果",
+    "fin_valuation_report": "估值报告",
+    "fin_btn_gen_report": "生成报告",
+    "fin_report_content": "报告内容",
+    "fin_ai_copilot": "AI Copilot",
+    "fin_ph_input_question": "输入问题…"
 ]
 
 let enUSTranslations: [String: String] = [
@@ -10228,7 +10340,63 @@ let enUSTranslations: [String: String] = [
     "kbc_msg_input_to_search": "Enter a query to start searching",
     "kbc_msg_no_results": "No search results",
     "kbc_err_invalid_url": "Invalid URL",
-    "kbc_err_invalid_response": "Invalid response"
+    "kbc_err_invalid_response": "Invalid response",
+    "fin_title": "Financial Analysis",
+    "fin_connected": "Connected",
+    "fin_disconnected": "Not connected",
+    "fin_tab_dashboard": "Dashboard",
+    "fin_tab_modeling": "Modeling",
+    "fin_tab_statements": "Statements",
+    "fin_tab_risk": "Risk",
+    "fin_tab_report": "Report",
+    "fin_company_panorama": "Company Overview",
+    "fin_ph_company": "Company name",
+    "fin_ph_revenue": "Revenue (comma-separated)",
+    "fin_btn_query": "Query",
+    "fin_market_overview": "Market Overview",
+    "fin_stock_value": "Value Stocks",
+    "fin_stock_growth": "Growth Stocks",
+    "fin_stock_dividend": "Dividend Stocks",
+    "fin_stock_quality": "Quality Stocks",
+    "fin_metric_enterprise": "Enterprise Value",
+    "fin_metric_equity": "Equity Value",
+    "fin_metric_gross_margin": "Gross Margin",
+    "fin_metric_ebit_margin": "EBIT Margin",
+    "fin_passed_filter": "Passed filter: %d",
+    "fin_dcf_valuation": "DCF Valuation",
+    "fin_ph_company_short": "Company",
+    "fin_ph_revenue_short": "Revenue",
+    "fin_ph_terminal_growth": "Terminal Growth",
+    "fin_btn_calc_dcf": "Calculate DCF",
+    "fin_dcf_result": "DCF Result",
+    "fin_sensitivity_analysis": "Sensitivity Analysis",
+    "fin_btn_run_sensitivity": "Run Sensitivity Analysis",
+    "fin_sensitivity_matrix": "Sensitivity Matrix",
+    "fin_portfolio_optimization": "Portfolio Optimization",
+    "fin_btn_sample_portfolio": "Sample Portfolio Optimization",
+    "fin_metrics_calc": "Financial Metrics",
+    "fin_btn_sample_metrics": "Sample Metrics Calculation",
+    "fin_metrics_result": "Metrics Result",
+    "fin_stock_screener": "Stock Screener",
+    "fin_strategy": "Strategy",
+    "fin_strategy_value": "Value",
+    "fin_strategy_growth": "Growth",
+    "fin_strategy_dividend": "Dividend",
+    "fin_strategy_quality": "Quality",
+    "fin_btn_screen": "Screen",
+    "fin_screen_result": "Screening Result",
+    "fin_kyc_dd": "KYC Due Diligence",
+    "fin_ph_entity": "Entity name",
+    "fin_btn_screen_kyc": "Screen",
+    "fin_kyc_result": "KYC Result",
+    "fin_var_risk": "VaR Value at Risk",
+    "fin_btn_sample_var": "Sample VaR Calculation",
+    "fin_var_result": "VaR Result",
+    "fin_valuation_report": "Valuation Report",
+    "fin_btn_gen_report": "Generate Report",
+    "fin_report_content": "Report Content",
+    "fin_ai_copilot": "AI Copilot",
+    "fin_ph_input_question": "Enter question…"
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -13485,7 +13653,63 @@ let jaJPTranslations: [String: String] = [
     "kbc_msg_input_to_search": "クエリを入力して検索を開始",
     "kbc_msg_no_results": "検索結果なし",
     "kbc_err_invalid_url": "無効なURL",
-    "kbc_err_invalid_response": "無効なレスポンス"
+    "kbc_err_invalid_response": "無効なレスポンス",
+    "fin_title": "金融分析",
+    "fin_connected": "接続済み",
+    "fin_disconnected": "未接続",
+    "fin_tab_dashboard": "ダッシュボード",
+    "fin_tab_modeling": "モデリング",
+    "fin_tab_statements": "財務諸表",
+    "fin_tab_risk": "リスク",
+    "fin_tab_report": "レポート",
+    "fin_company_panorama": "会社概観",
+    "fin_ph_company": "会社名",
+    "fin_ph_revenue": "売上(カンマ区切り)",
+    "fin_btn_query": "照会",
+    "fin_market_overview": "市場概況",
+    "fin_stock_value": "バリュー株",
+    "fin_stock_growth": "成長株",
+    "fin_stock_dividend": "配当株",
+    "fin_stock_quality": "クオリティ株",
+    "fin_metric_enterprise": "企業価値",
+    "fin_metric_equity": "株式価値",
+    "fin_metric_gross_margin": "粗利益率",
+    "fin_metric_ebit_margin": "EBIT利益率",
+    "fin_passed_filter": "スクリーニング通過: %d 銘柄",
+    "fin_dcf_valuation": "DCF 評価",
+    "fin_ph_company_short": "会社",
+    "fin_ph_revenue_short": "売上",
+    "fin_ph_terminal_growth": "永久成長率",
+    "fin_btn_calc_dcf": "DCF 計算",
+    "fin_dcf_result": "DCF 結果",
+    "fin_sensitivity_analysis": "感度分析",
+    "fin_btn_run_sensitivity": "感度分析を実行",
+    "fin_sensitivity_matrix": "感度マトリクス",
+    "fin_portfolio_optimization": "ポートフォリオ最適化",
+    "fin_btn_sample_portfolio": "サンプルポートフォリオ最適化",
+    "fin_metrics_calc": "財務指標計算",
+    "fin_btn_sample_metrics": "サンプル指標計算",
+    "fin_metrics_result": "指標結果",
+    "fin_stock_screener": "銘柄スクリーニング",
+    "fin_strategy": "戦略",
+    "fin_strategy_value": "バリュー",
+    "fin_strategy_growth": "成長",
+    "fin_strategy_dividend": "配当",
+    "fin_strategy_quality": "クオリティ",
+    "fin_btn_screen": "スクリーニング",
+    "fin_screen_result": "スクリーニング結果",
+    "fin_kyc_dd": "KYC デューデリジェンス",
+    "fin_ph_entity": "エンティティ名",
+    "fin_btn_screen_kyc": "スクリーニング",
+    "fin_kyc_result": "KYC 結果",
+    "fin_var_risk": "VaR 価値",
+    "fin_btn_sample_var": "サンプル VaR 計算",
+    "fin_var_result": "VaR 結果",
+    "fin_valuation_report": "評価レポート",
+    "fin_btn_gen_report": "レポート生成",
+    "fin_report_content": "レポート内容",
+    "fin_ai_copilot": "AI Copilot",
+    "fin_ph_input_question": "質問を入力…"
 ]
 
 let koKRTranslations: [String: String] = [
@@ -16742,7 +16966,63 @@ let koKRTranslations: [String: String] = [
     "kbc_msg_input_to_search": "쿼리를 입력하여 검색 시작",
     "kbc_msg_no_results": "검색 결과 없음",
     "kbc_err_invalid_url": "잘못된 URL",
-    "kbc_err_invalid_response": "잘못된 응답"
+    "kbc_err_invalid_response": "잘못된 응답",
+    "fin_title": "금융 분석",
+    "fin_connected": "연결됨",
+    "fin_disconnected": "연결 안 됨",
+    "fin_tab_dashboard": "대시보드",
+    "fin_tab_modeling": "모델링",
+    "fin_tab_statements": "재무제표",
+    "fin_tab_risk": "리스크",
+    "fin_tab_report": "보고서",
+    "fin_company_panorama": "기업 개요",
+    "fin_ph_company": "회사명",
+    "fin_ph_revenue": "매출(쉼표 구분)",
+    "fin_btn_query": "조회",
+    "fin_market_overview": "시장 개요",
+    "fin_stock_value": "가치주",
+    "fin_stock_growth": "성장주",
+    "fin_stock_dividend": "배당주",
+    "fin_stock_quality": "퀄리티주",
+    "fin_metric_enterprise": "기업가치",
+    "fin_metric_equity": "주식가치",
+    "fin_metric_gross_margin": "매출총이익률",
+    "fin_metric_ebit_margin": "EBIT 이익률",
+    "fin_passed_filter": "스크리닝 통과: %d 종목",
+    "fin_dcf_valuation": "DCF 밸류에이션",
+    "fin_ph_company_short": "회사",
+    "fin_ph_revenue_short": "매출",
+    "fin_ph_terminal_growth": "영구성장률",
+    "fin_btn_calc_dcf": "DCF 계산",
+    "fin_dcf_result": "DCF 결과",
+    "fin_sensitivity_analysis": "민감도 분석",
+    "fin_btn_run_sensitivity": "민감도 분석 실행",
+    "fin_sensitivity_matrix": "민감도 매트릭스",
+    "fin_portfolio_optimization": "포트폴리오 최적화",
+    "fin_btn_sample_portfolio": "샘플 포트폴리오 최적화",
+    "fin_metrics_calc": "재무 지표 계산",
+    "fin_btn_sample_metrics": "샘플 지표 계산",
+    "fin_metrics_result": "지표 결과",
+    "fin_stock_screener": "종목 스크리닝",
+    "fin_strategy": "전략",
+    "fin_strategy_value": "가치",
+    "fin_strategy_growth": "성장",
+    "fin_strategy_dividend": "배당",
+    "fin_strategy_quality": "퀄리티",
+    "fin_btn_screen": "스크리닝",
+    "fin_screen_result": "스크리닝 결과",
+    "fin_kyc_dd": "KYC 실사",
+    "fin_ph_entity": "개체명",
+    "fin_btn_screen_kyc": "조회",
+    "fin_kyc_result": "KYC 결과",
+    "fin_var_risk": "VaR 위험가치",
+    "fin_btn_sample_var": "샘플 VaR 계산",
+    "fin_var_result": "VaR 결과",
+    "fin_valuation_report": "밸류에이션 보고서",
+    "fin_btn_gen_report": "보고서 생성",
+    "fin_report_content": "보고서 내용",
+    "fin_ai_copilot": "AI Copilot",
+    "fin_ph_input_question": "질문 입력…"
 ]
 
 // MARK: - 国际化文本视图

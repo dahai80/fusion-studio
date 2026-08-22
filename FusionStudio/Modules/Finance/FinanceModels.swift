@@ -116,13 +116,23 @@ struct FinanceCopilotMessage: Codable, Identifiable {
 }
 
 enum FinanceModuleTab: String, CaseIterable, Identifiable {
-    case dashboard = "仪表盘"
-    case modeling = "建模"
-    case statements = "财报"
-    case risk = "风控"
-    case report = "报告"
+    case dashboard = "Dashboard"
+    case modeling = "Modeling"
+    case statements = "Statements"
+    case risk = "Risk"
+    case report = "Report"
 
     var id: String { rawValue }
+
+    var localizedName: String {
+        switch self {
+        case .dashboard: return I18nManager.shared.t(.fin_tab_dashboard)
+        case .modeling: return I18nManager.shared.t(.fin_tab_modeling)
+        case .statements: return I18nManager.shared.t(.fin_tab_statements)
+        case .risk: return I18nManager.shared.t(.fin_tab_risk)
+        case .report: return I18nManager.shared.t(.fin_tab_report)
+        }
+    }
 
     var icon: String {
         switch self {

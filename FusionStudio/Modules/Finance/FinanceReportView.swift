@@ -8,18 +8,18 @@ struct FinanceReportView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Text("估值报告")
+                Text(I18nManager.shared.t(.fin_valuation_report))
                     .font(.title2.bold())
 
                 HStack(spacing: 12) {
-                    TextField("公司名称", text: $company)
+                    TextField(I18nManager.shared.t(.fin_ph_company), text: $company)
                         .textFieldStyle(.roundedBorder)
-                    Button("生成报告") { genReport() }
+                    Button(I18nManager.shared.t(.fin_btn_gen_report)) { genReport() }
                         .buttonStyle(.borderedProminent)
                 }
 
                 if let r = reportResult {
-                    resultSection("报告内容", dict: r)
+                    resultSection(I18nManager.shared.t(.fin_report_content), dict: r)
                 }
             }
             .padding(20)

@@ -7,7 +7,7 @@ struct FinanceCopilotPanel: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Text("AI Copilot")
+            Text(I18nManager.shared.t(.fin_ai_copilot))
                 .font(.headline)
                 .padding(8)
                 .frame(maxWidth: .infinity)
@@ -35,7 +35,7 @@ struct FinanceCopilotPanel: View {
             Divider()
 
             HStack(spacing: 8) {
-                TextField("输入问题…", text: $inputText)
+                TextField(I18nManager.shared.t(.fin_ph_input_question), text: $inputText)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit { send() }
                 Button(action: send) {

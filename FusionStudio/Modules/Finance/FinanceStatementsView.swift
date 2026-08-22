@@ -9,34 +9,34 @@ struct FinanceStatementsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Text("财务指标计算")
+                Text(I18nManager.shared.t(.fin_metrics_calc))
                     .font(.title2.bold())
 
-                Button("示例指标计算") { calcMetrics() }
+                Button(I18nManager.shared.t(.fin_btn_sample_metrics)) { calcMetrics() }
                     .buttonStyle(.bordered)
 
                 if let r = metricsResult {
-                    resultSection("指标结果", dict: r)
+                    resultSection(I18nManager.shared.t(.fin_metrics_result), dict: r)
                 }
 
                 Divider()
 
-                Text("选股筛选")
+                Text(I18nManager.shared.t(.fin_stock_screener))
                     .font(.title2.bold())
 
-                Picker("策略", selection: $selectedPreset) {
-                    Text("价值").tag("value")
-                    Text("成长").tag("growth")
-                    Text("红利").tag("dividend")
-                    Text("质量").tag("quality")
+                Picker(I18nManager.shared.t(.fin_strategy), selection: $selectedPreset) {
+                    Text(I18nManager.shared.t(.fin_strategy_value)).tag("value")
+                    Text(I18nManager.shared.t(.fin_strategy_growth)).tag("growth")
+                    Text(I18nManager.shared.t(.fin_strategy_dividend)).tag("dividend")
+                    Text(I18nManager.shared.t(.fin_strategy_quality)).tag("quality")
                 }
                 .pickerStyle(.segmented)
 
-                Button("筛选") { screenStocks() }
+                Button(I18nManager.shared.t(.fin_btn_screen)) { screenStocks() }
                     .buttonStyle(.bordered)
 
                 if let r = screenerResult {
-                    resultSection("筛选结果", dict: r)
+                    resultSection(I18nManager.shared.t(.fin_screen_result), dict: r)
                 }
             }
             .padding(20)
