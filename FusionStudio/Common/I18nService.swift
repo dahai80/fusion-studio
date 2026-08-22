@@ -3567,6 +3567,18 @@ enum I18nKey: String, CaseIterable {
     case health_groupbox_vitals = "health_groupbox_vitals"
     case health_title_copilot = "health_title_copilot"
     case health_ph_input_question = "health_ph_input_question"
+    case kb_sample_1_title = "kb_sample_1_title"
+    case kb_sample_1_content = "kb_sample_1_content"
+    case kb_sample_1_tag_arch = "kb_sample_1_tag_arch"
+    case kb_sample_2_title = "kb_sample_2_title"
+    case kb_sample_2_content = "kb_sample_2_content"
+    case kb_sample_2_tag_env = "kb_sample_2_tag_env"
+    case kb_sample_2_tag_config = "kb_sample_2_tag_config"
+    case kb_sample_3_title = "kb_sample_3_title"
+    case kb_sample_3_content = "kb_sample_3_content"
+    case kb_ph_search = "kb_ph_search"
+    case kb_msg_select_entry = "kb_msg_select_entry"
+    case kb_label_relevance = "kb_label_relevance"
 }
 
 // MARK: - 翻译管理器
@@ -6783,7 +6795,19 @@ let zhCNTranslations: [String: String] = [
     "health_btn_extract_vitals": "提取体征",
     "health_groupbox_vitals": "体征",
     "health_title_copilot": "AI 医疗咨询",
-    "health_ph_input_question": "输入健康问题…"
+    "health_ph_input_question": "输入健康问题…",
+    "kb_sample_1_title": "Fusion Studio 架构",
+    "kb_sample_1_content": "Fusion Studio 采用五层架构...",
+    "kb_sample_1_tag_arch": "架构",
+    "kb_sample_2_title": "环境自检项说明",
+    "kb_sample_2_content": "环境自检包含 7 项检查...",
+    "kb_sample_2_tag_env": "环境",
+    "kb_sample_2_tag_config": "配置",
+    "kb_sample_3_title": "IPC 协议详解",
+    "kb_sample_3_content": "JSON-RPC 2.0 over Unix Socket...",
+    "kb_ph_search": "搜索知识库...",
+    "kb_msg_select_entry": "选择一条知识条目",
+    "kb_label_relevance": "相关度: %d%%"
 ]
 
 let enUSTranslations: [String: String] = [
@@ -9955,7 +9979,19 @@ let enUSTranslations: [String: String] = [
     "health_btn_extract_vitals": "Extract Vitals",
     "health_groupbox_vitals": "Vitals",
     "health_title_copilot": "AI Medical Consultation",
-    "health_ph_input_question": "Enter a health question…"
+    "health_ph_input_question": "Enter a health question…",
+    "kb_sample_1_title": "Fusion Studio Architecture",
+    "kb_sample_1_content": "Fusion Studio uses a five-layer architecture...",
+    "kb_sample_1_tag_arch": "Architecture",
+    "kb_sample_2_title": "Environment Health Check Items",
+    "kb_sample_2_content": "Environment health check includes 7 items...",
+    "kb_sample_2_tag_env": "Environment",
+    "kb_sample_2_tag_config": "Config",
+    "kb_sample_3_title": "IPC Protocol Explained",
+    "kb_sample_3_content": "JSON-RPC 2.0 over Unix Socket...",
+    "kb_ph_search": "Search knowledge base...",
+    "kb_msg_select_entry": "Select a knowledge entry",
+    "kb_label_relevance": "Relevance: %d%%"
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -13121,7 +13157,19 @@ let jaJPTranslations: [String: String] = [
     "health_btn_extract_vitals": "バイタル抽出",
     "health_groupbox_vitals": "バイタル",
     "health_title_copilot": "AI医療相談",
-    "health_ph_input_question": "健康上の質問を入力…"
+    "health_ph_input_question": "健康上の質問を入力…",
+    "kb_sample_1_title": "Fusion Studio アーキテクチャ",
+    "kb_sample_1_content": "Fusion Studio は五層アーキテクチャを採用...",
+    "kb_sample_1_tag_arch": "アーキテクチャ",
+    "kb_sample_2_title": "環境チェック項目説明",
+    "kb_sample_2_content": "環境チェックは 7 項目を含む...",
+    "kb_sample_2_tag_env": "環境",
+    "kb_sample_2_tag_config": "設定",
+    "kb_sample_3_title": "IPC プロトコル解説",
+    "kb_sample_3_content": "JSON-RPC 2.0 over Unix Socket...",
+    "kb_ph_search": "ナレッジベースを検索...",
+    "kb_msg_select_entry": "ナレッジエントリを選択",
+    "kb_label_relevance": "関連度: %d%%"
 ]
 
 let koKRTranslations: [String: String] = [
@@ -16287,7 +16335,19 @@ let koKRTranslations: [String: String] = [
     "health_btn_extract_vitals": "바이탈 추출",
     "health_groupbox_vitals": "바이탈",
     "health_title_copilot": "AI 의료 상담",
-    "health_ph_input_question": "건강 질문 입력…"
+    "health_ph_input_question": "건강 질문 입력…",
+    "kb_sample_1_title": "Fusion Studio 아키텍처",
+    "kb_sample_1_content": "Fusion Studio는 5계층 아키텍처 채택...",
+    "kb_sample_1_tag_arch": "아키텍처",
+    "kb_sample_2_title": "환경 점검 항목 설명",
+    "kb_sample_2_content": "환경 점검은 7개 항목 포함...",
+    "kb_sample_2_tag_env": "환경",
+    "kb_sample_2_tag_config": "설정",
+    "kb_sample_3_title": "IPC 프로토콜 해설",
+    "kb_sample_3_content": "JSON-RPC 2.0 over Unix Socket...",
+    "kb_ph_search": "지식 베이스 검색...",
+    "kb_msg_select_entry": "지식 항목 선택",
+    "kb_label_relevance": "관련도: %d%%"
 ]
 
 // MARK: - 国际化文本视图
