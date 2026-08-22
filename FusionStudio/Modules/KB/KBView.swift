@@ -24,11 +24,13 @@ struct KBEntry: Identifiable, Hashable {
     }
 }
 
-let sampleKBEntries: [KBEntry] = [
-    KBEntry(id: "kb-1", title: "Fusion Studio 架构", content: "Fusion Studio 采用五层架构...", source: "ARCHITECTURE.md", relevance: 0.95, lastUpdated: Date(), tags: ["架构"]),
-    KBEntry(id: "kb-2", title: "环境自检项说明", content: "环境自检包含 7 项检查...", source: "docs/guide.md", relevance: 0.88, lastUpdated: Date(), tags: ["环境", "配置"]),
-    KBEntry(id: "kb-3", title: "IPC 协议详解", content: "JSON-RPC 2.0 over Unix Socket...", source: "docs/api.md", relevance: 0.82, lastUpdated: Date(), tags: ["IPC", "API"]),
-]
+var sampleKBEntries: [KBEntry] {
+    [
+    KBEntry(id: "kb-1", title: I18nManager.shared.t(.kb_sample_1_title), content: I18nManager.shared.t(.kb_sample_1_content), source: "ARCHITECTURE.md", relevance: 0.95, lastUpdated: Date(), tags: [I18nManager.shared.t(.kb_sample_1_tag_arch)]),
+    KBEntry(id: "kb-2", title: I18nManager.shared.t(.kb_sample_2_title), content: I18nManager.shared.t(.kb_sample_2_content), source: "docs/guide.md", relevance: 0.88, lastUpdated: Date(), tags: [I18nManager.shared.t(.kb_sample_2_tag_env), I18nManager.shared.t(.kb_sample_2_tag_config)]),
+    KBEntry(id: "kb-3", title: I18nManager.shared.t(.kb_sample_3_title), content: I18nManager.shared.t(.kb_sample_3_content), source: "docs/api.md", relevance: 0.82, lastUpdated: Date(), tags: ["IPC", "API"]),
+    ]
+}
 
 struct KBView: View {
     @Environment(\.studioTheme) private var theme
@@ -54,7 +56,7 @@ struct KBView: View {
                 HStack {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.secondary)
-                    TextField("搜索知识库...", text: $searchText)
+                    TextField(I18nManager.shared.t(.kb_ph_search), text: $searchText)
                         .textFieldStyle(.plain)
                     if isSearching {
                         ProgressView()
@@ -84,7 +86,7 @@ struct KBView: View {
                     Image(systemName: "books.vertical")
                         .font(.system(size: 48))
                         .foregroundColor(.secondary)
-                    Text("选择一条知识条目")
+                    Text(I18nManager.shared.t(.kb_msg_select_entry))
                         .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -137,7 +139,7 @@ struct KBEntryDetail: View {
                 HStack(spacing: 12) {
                     Label(entry.source, systemImage: "doc.text")
                     Spacer()
-                    Text("相关度: \(Int(entry.relevance * 100))%")
+                    Text(String(format: I18nManager.shared.t(.kb_label_relevance), Int(entry.relevance * 100)))
                         .foregroundColor(.blue)
                 }
                 .font(.subheadline)
