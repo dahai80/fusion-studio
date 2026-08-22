@@ -302,6 +302,11 @@ class DocGenerator: ObservableObject {
 
             ## [Unreleased]
 
+            ## [0.1.42] - 2026-08-22
+
+            ### 新增
+            - Chat/Cowork 共用首页 + 授权文件夹选择交互（审计 P1-1，#217）：UnifiedChatView 顶部 Chat↔Cowork 模式切换；切 Cowork 无已注册文件夹时自动弹 NSOpenPanel 选目录（多选、enforce=true），下发 `desk.system.set_scoped_folder` 到沙箱根；提交走 `desk.workflow.create`+`desk.workflow.run`，`desk.events.*` 轮询实时进度内联为对话气泡（step/artifact/done/error）。新增 `CoworkHomeBridge`（状态机+事件映射纯函数）、`ChatSessionStore.appendMessage`、2 个 desk IPC 方法、13 个 i18n key × 4 语言、16 单测
+
             ## [0.1.41] - 2026-08-21
 
             ### 修复
