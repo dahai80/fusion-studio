@@ -3498,6 +3498,49 @@ enum I18nKey: String, CaseIterable {
     case sim_steps_unit = "sim_steps_unit"
     case sim_msg_empty = "sim_msg_empty"
     case sim_msg_empty_payload = "sim_msg_empty_payload"
+    case cli_cat_model = "cli_cat_model"
+    case cli_cat_kb = "cli_cat_kb"
+    case cli_cat_bench = "cli_cat_bench"
+    case cli_cat_service = "cli_cat_service"
+    case cli_cat_desk = "cli_cat_desk"
+    case cli_cat_utility = "cli_cat_utility"
+    case cli_preset_model_list_title = "cli_preset_model_list_title"
+    case cli_preset_model_list_desc = "cli_preset_model_list_desc"
+    case cli_preset_model_pull_title = "cli_preset_model_pull_title"
+    case cli_preset_model_pull_desc = "cli_preset_model_pull_desc"
+    case cli_preset_model_delete_title = "cli_preset_model_delete_title"
+    case cli_preset_model_delete_desc = "cli_preset_model_delete_desc"
+    case cli_preset_kb_list_title = "cli_preset_kb_list_title"
+    case cli_preset_kb_list_desc = "cli_preset_kb_list_desc"
+    case cli_preset_kb_create_title = "cli_preset_kb_create_title"
+    case cli_preset_kb_create_desc = "cli_preset_kb_create_desc"
+    case cli_preset_kb_ingest_title = "cli_preset_kb_ingest_title"
+    case cli_preset_kb_ingest_desc = "cli_preset_kb_ingest_desc"
+    case cli_preset_bench_speed_title = "cli_preset_bench_speed_title"
+    case cli_preset_bench_speed_desc = "cli_preset_bench_speed_desc"
+    case cli_preset_bench_mem_title = "cli_preset_bench_mem_title"
+    case cli_preset_bench_mem_desc = "cli_preset_bench_mem_desc"
+    case cli_preset_bench_ctx_title = "cli_preset_bench_ctx_title"
+    case cli_preset_bench_ctx_desc = "cli_preset_bench_ctx_desc"
+    case cli_preset_svc_status_title = "cli_preset_svc_status_title"
+    case cli_preset_svc_status_desc = "cli_preset_svc_status_desc"
+    case cli_preset_svc_start_title = "cli_preset_svc_start_title"
+    case cli_preset_svc_start_desc = "cli_preset_svc_start_desc"
+    case cli_preset_svc_stop_title = "cli_preset_svc_stop_title"
+    case cli_preset_svc_stop_desc = "cli_preset_svc_stop_desc"
+    case cli_preset_desk_list_title = "cli_preset_desk_list_title"
+    case cli_preset_desk_list_desc = "cli_preset_desk_list_desc"
+    case cli_preset_desk_run_title = "cli_preset_desk_run_title"
+    case cli_preset_desk_run_desc = "cli_preset_desk_run_desc"
+    case cli_quick_commands = "cli_quick_commands"
+    case cli_ph_input_cmd = "cli_ph_input_cmd"
+    case cli_msg_select_or_input = "cli_msg_select_or_input"
+    case cli_hint_help = "cli_hint_help"
+    case cli_alert_confirm = "cli_alert_confirm"
+    case cli_alert_will_do = "cli_alert_will_do"
+    case cli_btn_cancel = "cli_btn_cancel"
+    case cli_btn_continue = "cli_btn_continue"
+    case cli_err_exec_failed = "cli_err_exec_failed"
 }
 
 // MARK: - 翻译管理器
@@ -6645,7 +6688,50 @@ let zhCNTranslations: [String: String] = [
     "sim_btn_resume": "继续",
     "sim_steps_unit": "%d 步",
     "sim_msg_empty": "暂无",
-    "sim_msg_empty_payload": "空"
+    "sim_msg_empty_payload": "空",
+    "cli_cat_model": "模型管理",
+    "cli_cat_kb": "知识库",
+    "cli_cat_bench": "基准测试",
+    "cli_cat_service": "服务管理",
+    "cli_cat_desk": "桌面自动化",
+    "cli_cat_utility": "工具",
+    "cli_preset_model_list_title": "列出模型",
+    "cli_preset_model_list_desc": "列出所有本地 MLX 模型",
+    "cli_preset_model_pull_title": "下载模型",
+    "cli_preset_model_pull_desc": "从 Model-Hub 下载模型",
+    "cli_preset_model_delete_title": "删除模型",
+    "cli_preset_model_delete_desc": "删除本地模型",
+    "cli_preset_kb_list_title": "知识库列表",
+    "cli_preset_kb_list_desc": "列出所有知识库",
+    "cli_preset_kb_create_title": "创建知识库",
+    "cli_preset_kb_create_desc": "创建新的知识库",
+    "cli_preset_kb_ingest_title": "导入文档",
+    "cli_preset_kb_ingest_desc": "导入文档到知识库",
+    "cli_preset_bench_speed_title": "速度测试",
+    "cli_preset_bench_speed_desc": "Token 生成速度测试",
+    "cli_preset_bench_mem_title": "内存测试",
+    "cli_preset_bench_mem_desc": "内存使用分析",
+    "cli_preset_bench_ctx_title": "上下文测试",
+    "cli_preset_bench_ctx_desc": "上下文长度压力测试",
+    "cli_preset_svc_status_title": "服务状态",
+    "cli_preset_svc_status_desc": "查看所有服务状态",
+    "cli_preset_svc_start_title": "启动服务",
+    "cli_preset_svc_start_desc": "启动服务",
+    "cli_preset_svc_stop_title": "停止服务",
+    "cli_preset_svc_stop_desc": "停止服务",
+    "cli_preset_desk_list_title": "模板列表",
+    "cli_preset_desk_list_desc": "列出自动化模板",
+    "cli_preset_desk_run_title": "运行模板",
+    "cli_preset_desk_run_desc": "执行自动化模板",
+    "cli_quick_commands": "快捷命令",
+    "cli_ph_input_cmd": "输入 fusion 命令...",
+    "cli_msg_select_or_input": "从左侧选择快捷命令，或直接输入命令",
+    "cli_hint_help": "提示: 输入 help 查看可用命令",
+    "cli_alert_confirm": "确认执行",
+    "cli_alert_will_do": "此操作将 %@。确定要继续吗？",
+    "cli_btn_cancel": "取消",
+    "cli_btn_continue": "继续",
+    "cli_err_exec_failed": "执行失败: %@"
 ]
 
 let enUSTranslations: [String: String] = [
@@ -9748,7 +9834,50 @@ let enUSTranslations: [String: String] = [
     "sim_btn_resume": "Resume",
     "sim_steps_unit": "%d steps",
     "sim_msg_empty": "None",
-    "sim_msg_empty_payload": "Empty"
+    "sim_msg_empty_payload": "Empty",
+    "cli_cat_model": "Model Management",
+    "cli_cat_kb": "Knowledge Base",
+    "cli_cat_bench": "Benchmark",
+    "cli_cat_service": "Service Management",
+    "cli_cat_desk": "Desktop Automation",
+    "cli_cat_utility": "Utilities",
+    "cli_preset_model_list_title": "List Models",
+    "cli_preset_model_list_desc": "List all local MLX models",
+    "cli_preset_model_pull_title": "Download Model",
+    "cli_preset_model_pull_desc": "Download model from Model-Hub",
+    "cli_preset_model_delete_title": "Delete Model",
+    "cli_preset_model_delete_desc": "Delete local model",
+    "cli_preset_kb_list_title": "Knowledge Base List",
+    "cli_preset_kb_list_desc": "List all knowledge bases",
+    "cli_preset_kb_create_title": "Create Knowledge Base",
+    "cli_preset_kb_create_desc": "Create a new knowledge base",
+    "cli_preset_kb_ingest_title": "Ingest Document",
+    "cli_preset_kb_ingest_desc": "Ingest document into knowledge base",
+    "cli_preset_bench_speed_title": "Speed Test",
+    "cli_preset_bench_speed_desc": "Token generation speed test",
+    "cli_preset_bench_mem_title": "Memory Test",
+    "cli_preset_bench_mem_desc": "Memory usage analysis",
+    "cli_preset_bench_ctx_title": "Context Test",
+    "cli_preset_bench_ctx_desc": "Context length stress test",
+    "cli_preset_svc_status_title": "Service Status",
+    "cli_preset_svc_status_desc": "View all service status",
+    "cli_preset_svc_start_title": "Start Service",
+    "cli_preset_svc_start_desc": "Start service",
+    "cli_preset_svc_stop_title": "Stop Service",
+    "cli_preset_svc_stop_desc": "Stop service",
+    "cli_preset_desk_list_title": "Template List",
+    "cli_preset_desk_list_desc": "List automation templates",
+    "cli_preset_desk_run_title": "Run Template",
+    "cli_preset_desk_run_desc": "Execute automation template",
+    "cli_quick_commands": "Quick Commands",
+    "cli_ph_input_cmd": "Enter fusion command...",
+    "cli_msg_select_or_input": "Select a quick command from the left, or enter a command directly",
+    "cli_hint_help": "Tip: enter help to see available commands",
+    "cli_alert_confirm": "Confirm Execution",
+    "cli_alert_will_do": "This action will %@. Are you sure you want to continue?",
+    "cli_btn_cancel": "Cancel",
+    "cli_btn_continue": "Continue",
+    "cli_err_exec_failed": "Execution failed: %@"
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -12845,7 +12974,50 @@ let jaJPTranslations: [String: String] = [
     "sim_btn_resume": "再開",
     "sim_steps_unit": "%d ステップ",
     "sim_msg_empty": "なし",
-    "sim_msg_empty_payload": "空"
+    "sim_msg_empty_payload": "空",
+    "cli_cat_model": "モデル管理",
+    "cli_cat_kb": "ナレッジベース",
+    "cli_cat_bench": "ベンチマーク",
+    "cli_cat_service": "サービス管理",
+    "cli_cat_desk": "デスクトップ自動化",
+    "cli_cat_utility": "ツール",
+    "cli_preset_model_list_title": "モデル一覧",
+    "cli_preset_model_list_desc": "ローカル MLX モデルをすべて一覧表示",
+    "cli_preset_model_pull_title": "モデルダウンロード",
+    "cli_preset_model_pull_desc": "Model-Hub からモデルをダウンロード",
+    "cli_preset_model_delete_title": "モデル削除",
+    "cli_preset_model_delete_desc": "ローカルモデルを削除",
+    "cli_preset_kb_list_title": "ナレッジベース一覧",
+    "cli_preset_kb_list_desc": "ナレッジベースをすべて一覧表示",
+    "cli_preset_kb_create_title": "ナレッジベース作成",
+    "cli_preset_kb_create_desc": "新しいナレッジベースを作成",
+    "cli_preset_kb_ingest_title": "ドキュメント取り込み",
+    "cli_preset_kb_ingest_desc": "ナレッジベースにドキュメントを取り込み",
+    "cli_preset_bench_speed_title": "速度テスト",
+    "cli_preset_bench_speed_desc": "トークン生成速度テスト",
+    "cli_preset_bench_mem_title": "メモリテスト",
+    "cli_preset_bench_mem_desc": "メモリ使用量分析",
+    "cli_preset_bench_ctx_title": "コンテキストテスト",
+    "cli_preset_bench_ctx_desc": "コンテキスト長ストレステスト",
+    "cli_preset_svc_status_title": "サービス状態",
+    "cli_preset_svc_status_desc": "全サービス状態を表示",
+    "cli_preset_svc_start_title": "サービス開始",
+    "cli_preset_svc_start_desc": "サービスを開始",
+    "cli_preset_svc_stop_title": "サービス停止",
+    "cli_preset_svc_stop_desc": "サービスを停止",
+    "cli_preset_desk_list_title": "テンプレート一覧",
+    "cli_preset_desk_list_desc": "自動化テンプレートを一覧表示",
+    "cli_preset_desk_run_title": "テンプレート実行",
+    "cli_preset_desk_run_desc": "自動化テンプレートを実行",
+    "cli_quick_commands": "クイックコマンド",
+    "cli_ph_input_cmd": "fusion コマンドを入力...",
+    "cli_msg_select_or_input": "左からクイックコマンドを選択、または直接コマンドを入力",
+    "cli_hint_help": "ヒント: help と入力して利用可能なコマンドを表示",
+    "cli_alert_confirm": "実行確認",
+    "cli_alert_will_do": "この操作は %@ を行います。続行しますか？",
+    "cli_btn_cancel": "キャンセル",
+    "cli_btn_continue": "続行",
+    "cli_err_exec_failed": "実行失敗: %@"
 ]
 
 let koKRTranslations: [String: String] = [
@@ -15942,7 +16114,50 @@ let koKRTranslations: [String: String] = [
     "sim_btn_resume": "재개",
     "sim_steps_unit": "%d 스텝",
     "sim_msg_empty": "없음",
-    "sim_msg_empty_payload": "비어있음"
+    "sim_msg_empty_payload": "비어있음",
+    "cli_cat_model": "모델 관리",
+    "cli_cat_kb": "지식 베이스",
+    "cli_cat_bench": "벤치마크",
+    "cli_cat_service": "서비스 관리",
+    "cli_cat_desk": "데스크탑 자동화",
+    "cli_cat_utility": "유틸리티",
+    "cli_preset_model_list_title": "모델 목록",
+    "cli_preset_model_list_desc": "로컬 MLX 모델 전체 나열",
+    "cli_preset_model_pull_title": "모델 다운로드",
+    "cli_preset_model_pull_desc": "Model-Hub에서 모델 다운로드",
+    "cli_preset_model_delete_title": "모델 삭제",
+    "cli_preset_model_delete_desc": "로컬 모델 삭제",
+    "cli_preset_kb_list_title": "지식 베이스 목록",
+    "cli_preset_kb_list_desc": "지식 베이스 전체 나열",
+    "cli_preset_kb_create_title": "지식 베이스 생성",
+    "cli_preset_kb_create_desc": "새 지식 베이스 생성",
+    "cli_preset_kb_ingest_title": "문서 가져오기",
+    "cli_preset_kb_ingest_desc": "지식 베이스에 문서 가져오기",
+    "cli_preset_bench_speed_title": "속도 테스트",
+    "cli_preset_bench_speed_desc": "토큰 생성 속도 테스트",
+    "cli_preset_bench_mem_title": "메모리 테스트",
+    "cli_preset_bench_mem_desc": "메모리 사용량 분석",
+    "cli_preset_bench_ctx_title": "컨텍스트 테스트",
+    "cli_preset_bench_ctx_desc": "컨텍스트 길이 스트레스 테스트",
+    "cli_preset_svc_status_title": "서비스 상태",
+    "cli_preset_svc_status_desc": "전체 서비스 상태 보기",
+    "cli_preset_svc_start_title": "서비스 시작",
+    "cli_preset_svc_start_desc": "서비스 시작",
+    "cli_preset_svc_stop_title": "서비스 중지",
+    "cli_preset_svc_stop_desc": "서비스 중지",
+    "cli_preset_desk_list_title": "템플릿 목록",
+    "cli_preset_desk_list_desc": "자동화 템플릿 나열",
+    "cli_preset_desk_run_title": "템플릿 실행",
+    "cli_preset_desk_run_desc": "자동화 템플릿 실행",
+    "cli_quick_commands": "빠른 명령",
+    "cli_ph_input_cmd": "fusion 명령 입력...",
+    "cli_msg_select_or_input": "왼쪽에서 빠른 명령을 선택하거나 명령을 직접 입력하세요",
+    "cli_hint_help": "팁: help 입력으로 사용 가능한 명령 보기",
+    "cli_alert_confirm": "실행 확인",
+    "cli_alert_will_do": "이 작업은 %@ 를 수행합니다. 계속하시겠습니까?",
+    "cli_btn_cancel": "취소",
+    "cli_btn_continue": "계속",
+    "cli_err_exec_failed": "실행 실패: %@"
 ]
 
 // MARK: - 国际化文本视图
