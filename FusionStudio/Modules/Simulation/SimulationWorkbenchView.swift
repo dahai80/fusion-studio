@@ -83,12 +83,12 @@ struct SimulationWorkbenchView: View {
 
     private var sceneSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            Label("场景", systemImage: "cube.box.fill").font(.system(size: theme.footnoteSize, weight: .semibold)).foregroundStyle(theme.text)
+            Label(I18nManager.shared.t(.sim_label_scene), systemImage: "cube.box.fill").font(.system(size: theme.footnoteSize, weight: .semibold)).foregroundStyle(theme.text)
             Picker("Scene", selection: $selectedScene) {
                 ForEach(scenes, id: \.self) { Text($0).tag($0) }
             }
             .pickerStyle(.segmented)
-            FusionButton("加载场景", icon: "square.and.arrow.down", style: .secondary, size: .small) {
+            FusionButton(I18nManager.shared.t(.sim_btn_load_scene), icon: "square.and.arrow.down", style: .secondary, size: .small) {
                 simViewLog.info("Load scene: \(self.selectedScene)")
                 bridge.loadScene(name: selectedScene)
             }
@@ -97,17 +97,17 @@ struct SimulationWorkbenchView: View {
 
     private var agentSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            Label("智能体", systemImage: "person.crop.square.filled.and.at.rectangle").font(.system(size: theme.footnoteSize, weight: .semibold)).foregroundStyle(theme.text)
-            labeledField("名称", text: $agentName)
+            Label(I18nManager.shared.t(.sim_label_agent), systemImage: "person.crop.square.filled.and.at.rectangle").font(.system(size: theme.footnoteSize, weight: .semibold)).foregroundStyle(theme.text)
+            labeledField(I18nManager.shared.t(.sim_field_agent_name), text: $agentName)
             Picker("Role", selection: $agentRole) {
                 ForEach(roles, id: \.self) { Text($0).tag($0) }
             }.pickerStyle(.segmented)
             HStack(spacing: theme.spacingS) {
-                labeledField("动作维度", text: $agentActionDim)
+                labeledField(I18nManager.shared.t(.sim_field_action_dim), text: $agentActionDim)
                 labeledField("Entity", text: $agentEntityId)
             }
-            labeledField("模型", text: $agentModel)
-            FusionButton("添加智能体", icon: "plus.circle", style: .secondary, size: .small) {
+            labeledField(I18nManager.shared.t(.sim_field_model), text: $agentModel)
+            FusionButton(I18nManager.shared.t(.sim_btn_add_agent), icon: "plus.circle", style: .secondary, size: .small) {
                 let dim = Int(agentActionDim) ?? 0
                 simViewLog.info("Add agent: \(self.agentName) role=\(self.agentRole) dim=\(dim) model=\(self.agentModel)")
                 bridge.addAgent(name: agentName, role: agentRole, actionDim: dim, entityId: agentEntityId, modelName: agentModel)
@@ -118,13 +118,13 @@ struct SimulationWorkbenchView: View {
 
     private var sensorSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            Label("传感器", systemImage: "camera.metering.matrix").font(.system(size: theme.footnoteSize, weight: .semibold)).foregroundStyle(theme.text)
+            Label(I18nManager.shared.t(.sim_label_sensor), systemImage: "camera.metering.matrix").font(.system(size: theme.footnoteSize, weight: .semibold)).foregroundStyle(theme.text)
             Picker("Type", selection: $sensorType) {
                 ForEach(sensorTypes, id: \.self) { Text($0).tag($0) }
             }.pickerStyle(.menu)
-            labeledField("名称", text: $sensorName)
+            labeledField(I18nManager.shared.t(.sim_field_agent_name), text: $sensorName)
             labeledField("Entity", text: $sensorEntityId)
-            FusionButton("添加传感器", icon: "plus.viewfinder", style: .secondary, size: .small) {
+            FusionButton(I18nManager.shared.t(.sim_btn_add_sensor), icon: "plus.viewfinder", style: .secondary, size: .small) {
                 simViewLog.info("Add sensor: \(self.sensorName) type=\(self.sensorType)")
                 bridge.addSensor(type: sensorType, name: sensorName, entityId: sensorEntityId)
             }
@@ -150,30 +150,30 @@ struct SimulationWorkbenchView: View {
         let s = bridge.status
         let cols = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
         return LazyVGrid(columns: cols, spacing: theme.spacingS) {
-            metricCell("状态", s?.state ?? "-", color: s?.running == true ? theme.greenDot : (s?.paused == true ? theme.amberDot : theme.textTertiary))
-            metricCell("仿真时间", String(format: "%.2f s", s?.simTime ?? 0))
-            metricCell("帧数", "\(s?.frameCount ?? 0)")
-            metricCell("实体数", "\(s?.entityCount ?? 0)")
-            metricCell("实时因子", String(format: "%.2fx", s?.realTimeFactor ?? 0))
-            metricCell("已初始化", (s?.initialized ?? false) ? "是" : "否")
+            metricCell(I18nManager.shared.t(.sim_metric_state), s?.state ?? "-", color: s?.running == true ? theme.greenDot : (s?.paused == true ? theme.amberDot : theme.textTertiary))
+            metricCell(I18nManager.shared.t(.sim_metric_sim_time), String(format: "%.2f s", s?.simTime ?? 0))
+            metricCell(I18nManager.shared.t(.sim_metric_frames), "\(s?.frameCount ?? 0)")
+            metricCell(I18nManager.shared.t(.sim_metric_entities), "\(s?.entityCount ?? 0)")
+            metricCell(I18nManager.shared.t(.sim_metric_rt_factor), String(format: "%.2fx", s?.realTimeFactor ?? 0))
+            metricCell(I18nManager.shared.t(.sim_metric_initialized), (s?.initialized ?? false) ? I18nManager.shared.t(.sim_yes) : I18nManager.shared.t(.sim_no))
         }
     }
 
     private var timingSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            Label("最近一步耗时", systemImage: "timer").font(.system(size: theme.footnoteSize, weight: .semibold)).foregroundStyle(theme.text)
+            Label(I18nManager.shared.t(.sim_label_last_step_cost), systemImage: "timer").font(.system(size: theme.footnoteSize, weight: .semibold)).foregroundStyle(theme.text)
             if let step = bridge.lastStepResult {
-                timingBar("物理", step.physicsStepMs, total: step.totalMs)
-                timingBar("传感器", step.sensorCollectMs, total: step.totalMs)
-                timingBar("决策", step.agentDecideMs, total: step.totalMs)
-                timingBar("渲染", step.renderMs, total: step.totalMs)
+                timingBar(I18nManager.shared.t(.sim_timing_physics), step.physicsStepMs, total: step.totalMs)
+                timingBar(I18nManager.shared.t(.sim_timing_sensor), step.sensorCollectMs, total: step.totalMs)
+                timingBar(I18nManager.shared.t(.sim_timing_decision), step.agentDecideMs, total: step.totalMs)
+                timingBar(I18nManager.shared.t(.sim_timing_render), step.renderMs, total: step.totalMs)
                 HStack {
-                    Text("合计").font(.system(size: theme.footnoteSize, weight: .semibold)).foregroundStyle(theme.text)
+                    Text(I18nManager.shared.t(.sim_timing_total)).font(.system(size: theme.footnoteSize, weight: .semibold)).foregroundStyle(theme.text)
                     Spacer()
                     Text(String(format: "%.2f ms", step.totalMs)).font(.system(size: theme.footnoteSize, weight: .semibold)).foregroundStyle(theme.accent)
                 }
             } else {
-                Text("尚未执行 step").font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textTertiary)
+                Text(I18nManager.shared.t(.sim_msg_not_stepped)).font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textTertiary)
             }
         }
     }
@@ -181,13 +181,13 @@ struct SimulationWorkbenchView: View {
     private var observationsSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
             HStack {
-                Label("观测", systemImage: "eye").font(.system(size: theme.footnoteSize, weight: .semibold)).foregroundStyle(theme.text)
+                Label(I18nManager.shared.t(.sim_label_observations), systemImage: "eye").font(.system(size: theme.footnoteSize, weight: .semibold)).foregroundStyle(theme.text)
                 Spacer()
                 Button { bridge.fetchObservations() } label: { Image(systemName: "arrow.clockwise") }
-                    .buttonStyle(.borderless).help("刷新观测")
+                    .buttonStyle(.borderless).help(I18nManager.shared.t(.sim_help_refresh_obs))
             }
             if bridge.observations.isEmpty {
-                Text("无观测数据").font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textTertiary)
+                Text(I18nManager.shared.t(.sim_msg_no_observations)).font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textTertiary)
             } else {
                 ForEach(bridge.observations.keys.sorted(), id: \.self) { key in
                     observationRow(name: key, payload: bridge.observations[key] ?? [:])
@@ -201,9 +201,9 @@ struct SimulationWorkbenchView: View {
     private var inspectorPanel: some View {
         VStack(spacing: 0) {
             FusionTabBar(selected: $inspectorTab, tabs: [
-                FusionTabItem(title: "状态", icon: "chart.bar"),
-                FusionTabItem(title: "环境", icon: "checkmark.shield"),
-                FusionTabItem(title: "快照", icon: "camera.metering.center.weighted"),
+                FusionTabItem(title: I18nManager.shared.t(.sim_tab_status), icon: "chart.bar"),
+                FusionTabItem(title: I18nManager.shared.t(.sim_tab_env), icon: "checkmark.shield"),
+                FusionTabItem(title: I18nManager.shared.t(.sim_tab_snapshot), icon: "camera.metering.center.weighted"),
             ])
             Rectangle().fill(theme.separator).frame(height: 1)
             ScrollView(showsIndicators: false) {
@@ -232,7 +232,7 @@ struct SimulationWorkbenchView: View {
                 statusRow("real_time_factor", String(format: "%.3f", s.realTimeFactor ?? 0))
                 statusRow("paused", s.paused == true ? "true" : "false")
             } else {
-                Text("无状态数据").font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textTertiary)
+                Text(I18nManager.shared.t(.sim_msg_no_status)).font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textTertiary)
             }
         }
     }
@@ -240,7 +240,7 @@ struct SimulationWorkbenchView: View {
     private var envInspector: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
             if bridge.envCheck.isEmpty {
-                Text("环境检查未运行").font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textTertiary)
+                Text(I18nManager.shared.t(.sim_msg_env_not_checked)).font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textTertiary)
             } else {
                 ForEach(bridge.envCheck.keys.sorted(), id: \.self) { key in
                     let comp = bridge.envCheck[key]
@@ -252,7 +252,7 @@ struct SimulationWorkbenchView: View {
                     }
                 }
             }
-            FusionButton("重新检查", icon: "arrow.clockwise", style: .secondary, size: .small) {
+            FusionButton(I18nManager.shared.t(.sim_btn_recheck), icon: "arrow.clockwise", style: .secondary, size: .small) {
                 bridge.envCheckRequest()
             }
         }
@@ -260,9 +260,9 @@ struct SimulationWorkbenchView: View {
 
     private var snapshotInspector: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
-            Label("保存快照", systemImage: "square.and.arrow.down").font(.system(size: theme.footnoteSize, weight: .semibold)).foregroundStyle(theme.text)
-            labeledField("名称(可选)", text: $snapshotName)
-            FusionButton("保存", icon: "camera", style: .secondary, size: .small) {
+            Label(I18nManager.shared.t(.sim_label_save_snapshot), systemImage: "square.and.arrow.down").font(.system(size: theme.footnoteSize, weight: .semibold)).foregroundStyle(theme.text)
+            labeledField(I18nManager.shared.t(.sim_field_snapshot_name), text: $snapshotName)
+            FusionButton(I18nManager.shared.t(.sim_btn_save), icon: "camera", style: .secondary, size: .small) {
                 bridge.saveSnapshot(name: snapshotName) { result in
                     if case .success(let resp) = result, let id = resp.snapshotId {
                         DispatchQueue.main.async { self.lastSavedId = id }
@@ -270,12 +270,12 @@ struct SimulationWorkbenchView: View {
                 }
             }
             if let id = lastSavedId {
-                Text("最近快照: \(id)").font(.system(size: 11)).foregroundStyle(theme.textSecondary).lineLimit(1)
+                Text(String(format: I18nManager.shared.t(.sim_label_last_snapshot), id)).font(.system(size: 11)).foregroundStyle(theme.textSecondary).lineLimit(1)
             }
             Divider().background(theme.separator)
-            Label("恢复快照", systemImage: "arrow.uturn.backward").font(.system(size: theme.footnoteSize, weight: .semibold)).foregroundStyle(theme.text)
-            labeledField("Snapshot ID", text: $restoreId)
-            FusionButton("恢复", icon: "arrow.uturn.backward.circle", style: .secondary, size: .small) {
+            Label(I18nManager.shared.t(.sim_label_restore_snapshot), systemImage: "arrow.uturn.backward").font(.system(size: theme.footnoteSize, weight: .semibold)).foregroundStyle(theme.text)
+            labeledField(I18nManager.shared.t(.sim_field_snapshot_id), text: $restoreId)
+            FusionButton(I18nManager.shared.t(.sim_btn_restore), icon: "arrow.uturn.backward.circle", style: .secondary, size: .small) {
                 bridge.restoreSnapshot(snapshotId: restoreId)
             }
         }
@@ -285,27 +285,27 @@ struct SimulationWorkbenchView: View {
 
     private var transportBar: some View {
         HStack(spacing: theme.spacingM) {
-            FusionButton("初始化", icon: "power", style: .secondary, size: .small, isLoading: bridge.isLoading) {
+            FusionButton(I18nManager.shared.t(.sim_btn_init), icon: "power", style: .secondary, size: .small, isLoading: bridge.isLoading) {
                 simViewLog.info("Init sim")
                 bridge.initSim()
             }
             Divider().frame(height: 20)
             Picker("Steps", selection: $stepCount) {
-                ForEach(stepOptions, id: \.self) { Text("\($0) 步").tag($0) }
+                ForEach(stepOptions, id: \.self) { Text(String(format: I18nManager.shared.t(.sim_steps_unit), $0)).tag($0) }
             }.pickerStyle(.segmented).frame(width: 200)
-            FusionButton("Step", icon: "forward.fill", style: .primary, size: .small, isLoading: bridge.isLoading) {
+            FusionButton(I18nManager.shared.t(.sim_btn_step), icon: "forward.fill", style: .primary, size: .small, isLoading: bridge.isLoading) {
                 simViewLog.info("Step \(self.stepCount)")
                 bridge.step(numSteps: stepCount) { _ in bridge.fetchObservations() }
             }
             Divider().frame(height: 20)
-            FusionButton("暂停", icon: "pause.fill", style: .secondary, size: .small) {
+            FusionButton(I18nManager.shared.t(.sim_btn_pause), icon: "pause.fill", style: .secondary, size: .small) {
                 bridge.pause()
             }
-            FusionButton("继续", icon: "play.fill", style: .secondary, size: .small) {
+            FusionButton(I18nManager.shared.t(.sim_btn_resume), icon: "play.fill", style: .secondary, size: .small) {
                 bridge.resume()
             }
             Divider().frame(height: 20)
-            FusionButton("重置", icon: "arrow.counterclockwise", style: .secondary, size: .small) {
+            FusionButton(I18nManager.shared.t(.sim_btn_reset), icon: "arrow.counterclockwise", style: .secondary, size: .small) {
                 simViewLog.info("Reset sim")
                 bridge.reset()
             }
@@ -347,7 +347,7 @@ struct SimulationWorkbenchView: View {
     private func entityList(_ items: [SimEntityInfo], icon: String) -> some View {
         Group {
             if items.isEmpty {
-                Text("暂无").font(.system(size: 11)).foregroundStyle(theme.textTertiary)
+                Text(I18nManager.shared.t(.sim_msg_empty)).font(.system(size: 11)).foregroundStyle(theme.textTertiary)
             } else {
                 ForEach(items) { info in
                     HStack(spacing: theme.spacingS) {
@@ -409,7 +409,7 @@ struct SimulationWorkbenchView: View {
     }
 
     private func observationSummary(_ payload: [String: Any]) -> String {
-        if payload.isEmpty { return "空" }
+        if payload.isEmpty { return I18nManager.shared.t(.sim_msg_empty_payload) }
         var parts: [String] = []
         for (k, v) in payload.sorted(by: { $0.key < $1.key }).prefix(6) {
             if let arr = v as? [Any] {
