@@ -1453,6 +1453,108 @@ enum I18nKey: String, CaseIterable {
     case tr_adapters_delete_btn = "tr_adapters_delete_btn"
     case tr_adapters_cancel = "tr_adapters_cancel"
     case tr_info_empty = "tr_info_empty"
+    case docgen_type_api = "docgen_type_api"
+    case docgen_type_arch = "docgen_type_arch"
+    case docgen_type_changelog = "docgen_type_changelog"
+    case docgen_type_readme = "docgen_type_readme"
+    case docgen_type_module = "docgen_type_module"
+    case docgen_type_full = "docgen_type_full"
+    case docgen_desc_api = "docgen_desc_api"
+    case docgen_desc_arch = "docgen_desc_arch"
+    case docgen_desc_changelog = "docgen_desc_changelog"
+    case docgen_desc_readme = "docgen_desc_readme"
+    case docgen_desc_module = "docgen_desc_module"
+    case docgen_desc_full = "docgen_desc_full"
+    case docgen_cfg_title = "docgen_cfg_title"
+    case docgen_cfg_output_format = "docgen_cfg_output_format"
+    case docgen_cfg_include_private = "docgen_cfg_include_private"
+    case docgen_cfg_include_examples = "docgen_cfg_include_examples"
+    case docgen_cfg_include_diagrams = "docgen_cfg_include_diagrams"
+    case docgen_cfg_max_depth = "docgen_cfg_max_depth"
+    case docgen_btn_generate = "docgen_btn_generate"
+    case docgen_btn_open_output = "docgen_btn_open_output"
+    case docgen_btn_clear_history = "docgen_btn_clear_history"
+    case docgen_btn_open = "docgen_btn_open"
+    case docgen_btn_show = "docgen_btn_show"
+    case docgen_empty_hint = "docgen_empty_hint"
+    case docgen_log_title = "docgen_log_title"
+    case docgen_log_start = "docgen_log_start"
+    case docgen_log_done = "docgen_log_done"
+    case docgen_step_scan_ipc = "docgen_step_scan_ipc"
+    case docgen_step_parse_rpc = "docgen_step_parse_rpc"
+    case docgen_step_gen_request = "docgen_step_gen_request"
+    case docgen_step_gen_errors = "docgen_step_gen_errors"
+    case docgen_step_gen_client = "docgen_step_gen_client"
+    case docgen_step_write_file = "docgen_step_write_file"
+    case docgen_step_scan_structure = "docgen_step_scan_structure"
+    case docgen_step_parse_deps = "docgen_step_parse_deps"
+    case docgen_step_gen_arch_diagram = "docgen_step_gen_arch_diagram"
+    case docgen_step_gen_module_desc = "docgen_step_gen_module_desc"
+    case docgen_step_gen_dataflow = "docgen_step_gen_dataflow"
+    case docgen_step_read_git = "docgen_step_read_git"
+    case docgen_step_parse_commits = "docgen_step_parse_commits"
+    case docgen_step_classify_changes = "docgen_step_classify_changes"
+    case docgen_step_gen_versions = "docgen_step_gen_versions"
+    case docgen_step_gen_changelog = "docgen_step_gen_changelog"
+    case docgen_step_scan_project = "docgen_step_scan_project"
+    case docgen_step_gen_project_desc = "docgen_step_gen_project_desc"
+    case docgen_step_gen_features = "docgen_step_gen_features"
+    case docgen_step_gen_install = "docgen_step_gen_install"
+    case docgen_step_gen_usage = "docgen_step_gen_usage"
+    case docgen_step_scan_modules = "docgen_step_scan_modules"
+    case docgen_step_parse_module_api = "docgen_step_parse_module_api"
+    case docgen_step_gen_index = "docgen_step_gen_index"
+    case docgen_step_gen_user_guide = "docgen_step_gen_user_guide"
+    case docgen_step_gen_dev_guide = "docgen_step_gen_dev_guide"
+    case docgen_sample_api_title = "docgen_sample_api_title"
+    case docgen_sample_api_gen_time = "docgen_sample_api_gen_time"
+    case docgen_sample_api_version = "docgen_sample_api_version"
+    case docgen_sample_api_section = "docgen_sample_api_section"
+    case docgen_sample_api_env_check = "docgen_sample_api_env_check"
+    case docgen_sample_api_env_repair = "docgen_sample_api_env_repair"
+    case docgen_sample_api_mlx_status = "docgen_sample_api_mlx_status"
+    case docgen_sample_arch_title = "docgen_sample_arch_title"
+    case docgen_sample_arch_layer_app = "docgen_sample_arch_layer_app"
+    case docgen_sample_arch_layer_container = "docgen_sample_arch_layer_container"
+    case docgen_sample_arch_layer_bridge = "docgen_sample_arch_layer_bridge"
+    case docgen_sample_arch_layer_service = "docgen_sample_arch_layer_service"
+    case docgen_sample_arch_layer_base = "docgen_sample_arch_layer_base"
+    case docgen_sample_changelog_title = "docgen_sample_changelog_title"
+    case docgen_sample_changelog_added = "docgen_sample_changelog_added"
+    case docgen_sample_changelog_fixed = "docgen_sample_changelog_fixed"
+    case docgen_sample_readme_title = "docgen_sample_readme_title"
+    case docgen_sample_readme_desc = "docgen_sample_readme_desc"
+    case docgen_sample_readme_features = "docgen_sample_readme_features"
+    case docgen_sample_readme_feat_modules = "docgen_sample_readme_feat_modules"
+    case docgen_sample_readme_feat_offline = "docgen_sample_readme_feat_offline"
+    case docgen_sample_readme_feat_native = "docgen_sample_readme_feat_native"
+    case docgen_sample_module_title = "docgen_sample_module_title"
+    case docgen_sample_module_design = "docgen_sample_module_design"
+    case docgen_sample_module_code = "docgen_sample_module_code"
+    case docgen_sample_module_sim = "docgen_sample_module_sim"
+    case docgen_sample_module_hub = "docgen_sample_module_hub"
+    case docgen_sample_module_cli = "docgen_sample_module_cli"
+    case docgen_sample_full_title = "docgen_sample_full_title"
+    case docgen_sample_full_api = "docgen_sample_full_api"
+    case docgen_sample_full_arch = "docgen_sample_full_arch"
+    case docgen_sample_full_changelog = "docgen_sample_full_changelog"
+    case docgen_md_request = "docgen_md_request"
+    case docgen_md_response = "docgen_md_response"
+    case docgen_md_params = "docgen_md_params"
+    case docgen_md_layers = "docgen_md_layers"
+    case docgen_md_deps = "docgen_md_deps"
+    case docgen_md_design_h = "docgen_md_design_h"
+    case docgen_md_code_h = "docgen_md_code_h"
+    case docgen_md_sim_h = "docgen_md_sim_h"
+    case docgen_md_hub_h = "docgen_md_hub_h"
+    case docgen_md_cli_h = "docgen_md_cli_h"
+    case docgen_md_changelog_bullet1 = "docgen_md_changelog_bullet1"
+    case docgen_md_changelog_bullet2 = "docgen_md_changelog_bullet2"
+    case docgen_md_changelog_bullet3 = "docgen_md_changelog_bullet3"
+    case docgen_md_changelog_fix = "docgen_md_changelog_fix"
+    case docgen_md_readme_bullet1 = "docgen_md_readme_bullet1"
+    case docgen_md_readme_bullet2 = "docgen_md_readme_bullet2"
+    case docgen_md_readme_bullet3 = "docgen_md_readme_bullet3"
     case proj_subtitle = "proj_subtitle"
     case proj_searchPh = "proj_searchPh"
     case proj_newHelp = "proj_newHelp"
@@ -5212,6 +5314,108 @@ let zhCNTranslations: [String: String] = [
     "tr_adapters_delete_btn": "删除",
     "tr_adapters_cancel": "取消",
     "tr_info_empty": "无环境信息。",
+    "docgen_type_api": "API 文档",
+    "docgen_type_arch": "架构文档",
+    "docgen_type_changelog": "更新日志",
+    "docgen_type_readme": "README",
+    "docgen_type_module": "模块文档",
+    "docgen_type_full": "完整文档",
+    "docgen_desc_api": "从源代码生成 JSON-RPC API 参考文档",
+    "docgen_desc_arch": "从项目结构生成架构概览文档",
+    "docgen_desc_changelog": "从 Git 历史生成更新日志",
+    "docgen_desc_readme": "生成项目 README 文档",
+    "docgen_desc_module": "为每个模块生成独立文档",
+    "docgen_desc_full": "生成完整文档集",
+    "docgen_cfg_title": "生成配置",
+    "docgen_cfg_output_format": "输出格式",
+    "docgen_cfg_include_private": "包含私有成员",
+    "docgen_cfg_include_examples": "包含代码示例",
+    "docgen_cfg_include_diagrams": "包含架构图",
+    "docgen_cfg_max_depth": "最大深度: %d",
+    "docgen_btn_generate": "生成 %@",
+    "docgen_btn_open_output": "打开输出目录",
+    "docgen_btn_clear_history": "清空历史",
+    "docgen_btn_open": "打开",
+    "docgen_btn_show": "显示",
+    "docgen_empty_hint": "选择文档类型并点击生成",
+    "docgen_log_title": "生成日志",
+    "docgen_log_start": "开始生成 %@...",
+    "docgen_log_done": "✅ 生成完成: %@ (%@)",
+    "docgen_step_scan_ipc": "扫描 IPC 方法定义...",
+    "docgen_step_parse_rpc": "解析 JSON-RPC 2.0 接口...",
+    "docgen_step_gen_request": "生成请求/响应示例...",
+    "docgen_step_gen_errors": "生成错误码文档...",
+    "docgen_step_gen_client": "生成 Swift 客户端 API...",
+    "docgen_step_write_file": "写入文件...",
+    "docgen_step_scan_structure": "扫描项目结构...",
+    "docgen_step_parse_deps": "解析模块依赖关系...",
+    "docgen_step_gen_arch_diagram": "生成架构图...",
+    "docgen_step_gen_module_desc": "生成模块描述...",
+    "docgen_step_gen_dataflow": "生成数据流文档...",
+    "docgen_step_read_git": "读取 Git 历史...",
+    "docgen_step_parse_commits": "解析提交信息...",
+    "docgen_step_classify_changes": "分类变更类型...",
+    "docgen_step_gen_versions": "生成版本列表...",
+    "docgen_step_gen_changelog": "生成更新日志...",
+    "docgen_step_scan_project": "扫描项目信息...",
+    "docgen_step_gen_project_desc": "生成项目描述...",
+    "docgen_step_gen_features": "生成功能列表...",
+    "docgen_step_gen_install": "生成安装说明...",
+    "docgen_step_gen_usage": "生成使用示例...",
+    "docgen_step_scan_modules": "扫描模块列表...",
+    "docgen_step_parse_module_api": "解析模块接口...",
+    "docgen_step_gen_index": "生成索引文件...",
+    "docgen_step_gen_user_guide": "生成用户指南...",
+    "docgen_step_gen_dev_guide": "生成开发指南...",
+    "docgen_sample_api_title": "Fusion Studio API 参考文档",
+    "docgen_sample_api_gen_time": "生成时间: %@",
+    "docgen_sample_api_version": "版本: 1.0.0",
+    "docgen_sample_api_section": "JSON-RPC 2.0 接口",
+    "docgen_sample_api_env_check": "运行环境健康检查。",
+    "docgen_sample_api_env_repair": "修复指定的环境检查项。",
+    "docgen_sample_api_mlx_status": "获取 MLX 推理服务状态。",
+    "docgen_sample_arch_title": "Fusion Studio 架构文档",
+    "docgen_sample_arch_layer_app": "应用层 - SwiftUI 原生桌面",
+    "docgen_sample_arch_layer_container": "容器层 - WKWebView + 原生组件",
+    "docgen_sample_arch_layer_bridge": "桥接层 - Unix Domain Socket + JSON-RPC 2.0",
+    "docgen_sample_arch_layer_service": "服务层 - Rust/Python 守护进程",
+    "docgen_sample_arch_layer_base": "底座层 - Apple Silicon 原生",
+    "docgen_sample_changelog_title": "更新日志",
+    "docgen_sample_changelog_added": "### 新增",
+    "docgen_sample_changelog_fixed": "### 修复",
+    "docgen_sample_readme_title": "Fusion Studio",
+    "docgen_sample_readme_desc": "Fusion-MLX 本地 AI 生态的统一 macOS 桌面客户端。",
+    "docgen_sample_readme_features": "## 功能特性",
+    "docgen_sample_readme_feat_modules": "10 个模块集成（设计、编码、仿真、模型管理等）",
+    "docgen_sample_readme_feat_offline": "100% 本地离线",
+    "docgen_sample_readme_feat_native": "Apple Silicon 原生优化",
+    "docgen_sample_module_title": "模块文档",
+    "docgen_sample_module_design": "AI 驱动的设计画布，支持对话式 UI 生成。",
+    "docgen_sample_module_code": "内置代码编辑器和集成终端。",
+    "docgen_sample_module_sim": "3D 物理仿真引擎。",
+    "docgen_sample_module_hub": "模型可视化管理。",
+    "docgen_sample_module_cli": "命令行工具图形化面板。",
+    "docgen_sample_full_title": "Fusion Studio 文档",
+    "docgen_sample_full_api": "API 参考文档",
+    "docgen_sample_full_arch": "架构文档",
+    "docgen_sample_full_changelog": "更新日志",
+    "docgen_md_request": "**请求**",
+    "docgen_md_response": "**响应**",
+    "docgen_md_params": "**参数**",
+    "docgen_md_layers": "## 分层架构",
+    "docgen_md_deps": "## 模块依赖",
+    "docgen_md_design_h": "## Design 模块",
+    "docgen_md_code_h": "## Code 模块",
+    "docgen_md_sim_h": "## Simulation 模块",
+    "docgen_md_hub_h": "## Model Hub 模块",
+    "docgen_md_cli_h": "## CLI 模块",
+    "docgen_md_changelog_bullet1": "- 全部 10 个模块已完善",
+    "docgen_md_changelog_bullet2": "- 局域网协作功能",
+    "docgen_md_changelog_bullet3": "- 插件系统支持",
+    "docgen_md_changelog_fix": "- 多项性能优化和内存泄漏修复",
+    "docgen_md_readme_bullet1": "- 环境自检 & 一键修复",
+    "docgen_md_readme_bullet2": "- 局域网协作",
+    "docgen_md_readme_bullet3": "- 插件系统",
     "proj_subtitle": "管理你的 AI 项目、指令和知识库",
     "proj_searchPh": "搜索项目",
     "proj_newHelp": "新建项目",
@@ -8924,6 +9128,108 @@ let enUSTranslations: [String: String] = [
     "tr_adapters_delete_btn": "Delete",
     "tr_adapters_cancel": "Cancel",
     "tr_info_empty": "No environment info.",
+    "docgen_type_api": "API Docs",
+    "docgen_type_arch": "Architecture Docs",
+    "docgen_type_changelog": "Changelog",
+    "docgen_type_readme": "README",
+    "docgen_type_module": "Module Docs",
+    "docgen_type_full": "Full Docs",
+    "docgen_desc_api": "Generate JSON-RPC API reference from source code",
+    "docgen_desc_arch": "Generate architecture overview from project structure",
+    "docgen_desc_changelog": "Generate changelog from Git history",
+    "docgen_desc_readme": "Generate project README",
+    "docgen_desc_module": "Generate standalone docs per module",
+    "docgen_desc_full": "Generate full documentation set",
+    "docgen_cfg_title": "Generation Config",
+    "docgen_cfg_output_format": "Output Format",
+    "docgen_cfg_include_private": "Include private members",
+    "docgen_cfg_include_examples": "Include code examples",
+    "docgen_cfg_include_diagrams": "Include architecture diagrams",
+    "docgen_cfg_max_depth": "Max depth: %d",
+    "docgen_btn_generate": "Generate %@",
+    "docgen_btn_open_output": "Open Output Folder",
+    "docgen_btn_clear_history": "Clear History",
+    "docgen_btn_open": "Open",
+    "docgen_btn_show": "Reveal",
+    "docgen_empty_hint": "Select a doc type and click Generate",
+    "docgen_log_title": "Generation Log",
+    "docgen_log_start": "Start generating %@...",
+    "docgen_log_done": "✅ Done: %@ (%@)",
+    "docgen_step_scan_ipc": "Scanning IPC method definitions...",
+    "docgen_step_parse_rpc": "Parsing JSON-RPC 2.0 interfaces...",
+    "docgen_step_gen_request": "Generating request/response examples...",
+    "docgen_step_gen_errors": "Generating error code docs...",
+    "docgen_step_gen_client": "Generating Swift client API...",
+    "docgen_step_write_file": "Writing file...",
+    "docgen_step_scan_structure": "Scanning project structure...",
+    "docgen_step_parse_deps": "Parsing module dependencies...",
+    "docgen_step_gen_arch_diagram": "Generating architecture diagram...",
+    "docgen_step_gen_module_desc": "Generating module descriptions...",
+    "docgen_step_gen_dataflow": "Generating data flow docs...",
+    "docgen_step_read_git": "Reading Git history...",
+    "docgen_step_parse_commits": "Parsing commit messages...",
+    "docgen_step_classify_changes": "Classifying change types...",
+    "docgen_step_gen_versions": "Generating version list...",
+    "docgen_step_gen_changelog": "Generating changelog...",
+    "docgen_step_scan_project": "Scanning project info...",
+    "docgen_step_gen_project_desc": "Generating project description...",
+    "docgen_step_gen_features": "Generating feature list...",
+    "docgen_step_gen_install": "Generating install instructions...",
+    "docgen_step_gen_usage": "Generating usage examples...",
+    "docgen_step_scan_modules": "Scanning module list...",
+    "docgen_step_parse_module_api": "Parsing module interfaces...",
+    "docgen_step_gen_index": "Generating index file...",
+    "docgen_step_gen_user_guide": "Generating user guide...",
+    "docgen_step_gen_dev_guide": "Generating developer guide...",
+    "docgen_sample_api_title": "Fusion Studio API Reference",
+    "docgen_sample_api_gen_time": "Generated: %@",
+    "docgen_sample_api_version": "Version: 1.0.0",
+    "docgen_sample_api_section": "JSON-RPC 2.0 Interfaces",
+    "docgen_sample_api_env_check": "Runtime environment health check.",
+    "docgen_sample_api_env_repair": "Repair the specified environment check item.",
+    "docgen_sample_api_mlx_status": "Get MLX inference service status.",
+    "docgen_sample_arch_title": "Fusion Studio Architecture",
+    "docgen_sample_arch_layer_app": "Application Layer - SwiftUI native desktop",
+    "docgen_sample_arch_layer_container": "Container Layer - WKWebView + native components",
+    "docgen_sample_arch_layer_bridge": "Bridge Layer - Unix Domain Socket + JSON-RPC 2.0",
+    "docgen_sample_arch_layer_service": "Service Layer - Rust/Python daemons",
+    "docgen_sample_arch_layer_base": "Base Layer - Apple Silicon native",
+    "docgen_sample_changelog_title": "Changelog",
+    "docgen_sample_changelog_added": "### Added",
+    "docgen_sample_changelog_fixed": "### Fixed",
+    "docgen_sample_readme_title": "Fusion Studio",
+    "docgen_sample_readme_desc": "Unified macOS desktop client for the Fusion-MLX local AI ecosystem.",
+    "docgen_sample_readme_features": "## Features",
+    "docgen_sample_readme_feat_modules": "10 integrated modules (design, code, simulation, model hub, etc.)",
+    "docgen_sample_readme_feat_offline": "100% local offline",
+    "docgen_sample_readme_feat_native": "Apple Silicon native optimization",
+    "docgen_sample_module_title": "Module Docs",
+    "docgen_sample_module_design": "AI-driven design canvas with conversational UI generation.",
+    "docgen_sample_module_code": "Built-in code editor and integrated terminal.",
+    "docgen_sample_module_sim": "3D physics simulation engine.",
+    "docgen_sample_module_hub": "Visual model management.",
+    "docgen_sample_module_cli": "Command-line tool GUI panel.",
+    "docgen_sample_full_title": "Fusion Studio Docs",
+    "docgen_sample_full_api": "API Reference",
+    "docgen_sample_full_arch": "Architecture Docs",
+    "docgen_sample_full_changelog": "Changelog",
+    "docgen_md_request": "**Request**",
+    "docgen_md_response": "**Response**",
+    "docgen_md_params": "**Params**",
+    "docgen_md_layers": "## Layered Architecture",
+    "docgen_md_deps": "## Module Dependencies",
+    "docgen_md_design_h": "## Design Module",
+    "docgen_md_code_h": "## Code Module",
+    "docgen_md_sim_h": "## Simulation Module",
+    "docgen_md_hub_h": "## Model Hub Module",
+    "docgen_md_cli_h": "## CLI Module",
+    "docgen_md_changelog_bullet1": "- All 10 modules completed",
+    "docgen_md_changelog_bullet2": "- LAN collaboration",
+    "docgen_md_changelog_bullet3": "- Plugin system support",
+    "docgen_md_changelog_fix": "- Performance optimizations and memory leak fixes",
+    "docgen_md_readme_bullet1": "- Environment self-check & one-click repair",
+    "docgen_md_readme_bullet2": "- LAN collaboration",
+    "docgen_md_readme_bullet3": "- Plugin system",
     "proj_subtitle": "Manage your AI projects, instructions and knowledge base",
     "proj_searchPh": "Search projects",
     "proj_newHelp": "New project",
@@ -12630,6 +12936,108 @@ let jaJPTranslations: [String: String] = [
     "tr_adapters_delete_btn": "削除",
     "tr_adapters_cancel": "キャンセル",
     "tr_info_empty": "環境情報がありません。",
+    "docgen_type_api": "APIドキュメント",
+    "docgen_type_arch": "アーキテクチャドキュメント",
+    "docgen_type_changelog": "更新履歴",
+    "docgen_type_readme": "README",
+    "docgen_type_module": "モジュールドキュメント",
+    "docgen_type_full": "完全ドキュメント",
+    "docgen_desc_api": "ソースコードから JSON-RPC API リファレンスを生成",
+    "docgen_desc_arch": "プロジェクト構造からアーキテクチャ概要を生成",
+    "docgen_desc_changelog": "Git 履歴から更新履歴を生成",
+    "docgen_desc_readme": "プロジェクト README を生成",
+    "docgen_desc_module": "モジュールごとに独立ドキュメントを生成",
+    "docgen_desc_full": "完全ドキュメントセットを生成",
+    "docgen_cfg_title": "生成設定",
+    "docgen_cfg_output_format": "出力形式",
+    "docgen_cfg_include_private": "プライベートメンバーを含む",
+    "docgen_cfg_include_examples": "コード例を含む",
+    "docgen_cfg_include_diagrams": "アーキテクチャ図を含む",
+    "docgen_cfg_max_depth": "最大深度: %d",
+    "docgen_btn_generate": "%@ を生成",
+    "docgen_btn_open_output": "出力フォルダを開く",
+    "docgen_btn_clear_history": "履歴を消去",
+    "docgen_btn_open": "開く",
+    "docgen_btn_show": "表示",
+    "docgen_empty_hint": "ドキュメントタイプを選択して生成をクリック",
+    "docgen_log_title": "生成ログ",
+    "docgen_log_start": "%@ の生成を開始...",
+    "docgen_log_done": "✅ 生成完了: %@ (%@)",
+    "docgen_step_scan_ipc": "IPC メソッド定義をスキャン...",
+    "docgen_step_parse_rpc": "JSON-RPC 2.0 インターフェースを解析...",
+    "docgen_step_gen_request": "リクエスト/レスポンス例を生成...",
+    "docgen_step_gen_errors": "エラーコールドキュメントを生成...",
+    "docgen_step_gen_client": "Swift クライアント API を生成...",
+    "docgen_step_write_file": "ファイルに書き込み...",
+    "docgen_step_scan_structure": "プロジェクト構造をスキャン...",
+    "docgen_step_parse_deps": "モジュール依存関係を解析...",
+    "docgen_step_gen_arch_diagram": "アーキテクチャ図を生成...",
+    "docgen_step_gen_module_desc": "モジュール説明を生成...",
+    "docgen_step_gen_dataflow": "データフロードキュメントを生成...",
+    "docgen_step_read_git": "Git 履歴を読み取り...",
+    "docgen_step_parse_commits": "コミットメッセージを解析...",
+    "docgen_step_classify_changes": "変更タイプを分類...",
+    "docgen_step_gen_versions": "バージョンリストを生成...",
+    "docgen_step_gen_changelog": "更新履歴を生成...",
+    "docgen_step_scan_project": "プロジェクト情報をスキャン...",
+    "docgen_step_gen_project_desc": "プロジェクト説明を生成...",
+    "docgen_step_gen_features": "機能リストを生成...",
+    "docgen_step_gen_install": "インストール手順を生成...",
+    "docgen_step_gen_usage": "使用例を生成...",
+    "docgen_step_scan_modules": "モジュールリストをスキャン...",
+    "docgen_step_parse_module_api": "モジュールインターフェースを解析...",
+    "docgen_step_gen_index": "インデックスファイルを生成...",
+    "docgen_step_gen_user_guide": "ユーザーガイドを生成...",
+    "docgen_step_gen_dev_guide": "開発ガイドを生成...",
+    "docgen_sample_api_title": "Fusion Studio API リファレンス",
+    "docgen_sample_api_gen_time": "生成時間: %@",
+    "docgen_sample_api_version": "バージョン: 1.0.0",
+    "docgen_sample_api_section": "JSON-RPC 2.0 インターフェース",
+    "docgen_sample_api_env_check": "実行環境のヘルスチェック。",
+    "docgen_sample_api_env_repair": "指定された環境チェック項目を修復。",
+    "docgen_sample_api_mlx_status": "MLX 推論サービスの状態を取得。",
+    "docgen_sample_arch_title": "Fusion Studio アーキテクチャ",
+    "docgen_sample_arch_layer_app": "アプリケーション層 - SwiftUI ネイティブデスクトップ",
+    "docgen_sample_arch_layer_container": "コンテナ層 - WKWebView + ネイティブコンポーネント",
+    "docgen_sample_arch_layer_bridge": "ブリッジ層 - Unix Domain Socket + JSON-RPC 2.0",
+    "docgen_sample_arch_layer_service": "サービス層 - Rust/Python デーモン",
+    "docgen_sample_arch_layer_base": "ベース層 - Apple Silicon ネイティブ",
+    "docgen_sample_changelog_title": "更新履歴",
+    "docgen_sample_changelog_added": "### 追加",
+    "docgen_sample_changelog_fixed": "### 修正",
+    "docgen_sample_readme_title": "Fusion Studio",
+    "docgen_sample_readme_desc": "Fusion-MLX ローカル AI エコシステム向けの統合 macOS デスクトップクライアント。",
+    "docgen_sample_readme_features": "## 機能",
+    "docgen_sample_readme_feat_modules": "10 モジュール統合（デザイン、コード、シミュレーション、モデルハブ等）",
+    "docgen_sample_readme_feat_offline": "100% ローカルオフライン",
+    "docgen_sample_readme_feat_native": "Apple Silicon ネイティブ最適化",
+    "docgen_sample_module_title": "モジュールドキュメント",
+    "docgen_sample_module_design": "AI 駆動デザインキャンバス、対話式 UI 生成をサポート。",
+    "docgen_sample_module_code": "内蔵コードエディタと統合ターミナル。",
+    "docgen_sample_module_sim": "3D 物理シミュレーションエンジン。",
+    "docgen_sample_module_hub": "モデルの視覚管理。",
+    "docgen_sample_module_cli": "コマンドラインツール GUI パネル。",
+    "docgen_sample_full_title": "Fusion Studio ドキュメント",
+    "docgen_sample_full_api": "API リファレンス",
+    "docgen_sample_full_arch": "アーキテクチャドキュメント",
+    "docgen_sample_full_changelog": "更新履歴",
+    "docgen_md_request": "**リクエスト**",
+    "docgen_md_response": "**レスポンス**",
+    "docgen_md_params": "**パラメータ**",
+    "docgen_md_layers": "## レイヤーアーキテクチャ",
+    "docgen_md_deps": "## モジュール依存関係",
+    "docgen_md_design_h": "## Design モジュール",
+    "docgen_md_code_h": "## Code モジュール",
+    "docgen_md_sim_h": "## Simulation モジュール",
+    "docgen_md_hub_h": "## Model Hub モジュール",
+    "docgen_md_cli_h": "## CLI モジュール",
+    "docgen_md_changelog_bullet1": "- 全 10 モジュールが完成",
+    "docgen_md_changelog_bullet2": "- LAN コラボレーション機能",
+    "docgen_md_changelog_bullet3": "- プラグインシステム対応",
+    "docgen_md_changelog_fix": "- パフォーマンス最適化とメモリリーク修正",
+    "docgen_md_readme_bullet1": "- 環境自己診断 & ワンクリック修復",
+    "docgen_md_readme_bullet2": "- LAN コラボレーション",
+    "docgen_md_readme_bullet3": "- プラグインシステム",
     "proj_subtitle": "AIプロジェクト・指示・ナレッジベースを管理",
     "proj_searchPh": "プロジェクトを検索",
     "proj_newHelp": "新規プロジェクト",
@@ -16336,6 +16744,108 @@ let koKRTranslations: [String: String] = [
     "tr_adapters_delete_btn": "삭제",
     "tr_adapters_cancel": "취소",
     "tr_info_empty": "환경 정보가 없습니다.",
+    "docgen_type_api": "API 문서",
+    "docgen_type_arch": "아키텍처 문서",
+    "docgen_type_changelog": "변경 이력",
+    "docgen_type_readme": "README",
+    "docgen_type_module": "모듈 문서",
+    "docgen_type_full": "전체 문서",
+    "docgen_desc_api": "소스 코드에서 JSON-RPC API 참조 문서 생성",
+    "docgen_desc_arch": "프로젝트 구조에서 아키텍처 개요 생성",
+    "docgen_desc_changelog": "Git 이력에서 변경 이력 생성",
+    "docgen_desc_readme": "프로젝트 README 생성",
+    "docgen_desc_module": "모듈별 독립 문서 생성",
+    "docgen_desc_full": "전체 문서 세트 생성",
+    "docgen_cfg_title": "생성 설정",
+    "docgen_cfg_output_format": "출력 형식",
+    "docgen_cfg_include_private": "프라이빗 멤버 포함",
+    "docgen_cfg_include_examples": "코드 예제 포함",
+    "docgen_cfg_include_diagrams": "아키텍처 다이어그램 포함",
+    "docgen_cfg_max_depth": "최대 깊이: %d",
+    "docgen_btn_generate": "%@ 생성",
+    "docgen_btn_open_output": "출력 폴더 열기",
+    "docgen_btn_clear_history": "기록 지우기",
+    "docgen_btn_open": "열기",
+    "docgen_btn_show": "표시",
+    "docgen_empty_hint": "문서 유형을 선택하고 생성을 클릭",
+    "docgen_log_title": "생성 로그",
+    "docgen_log_start": "%@ 생성 시작...",
+    "docgen_log_done": "✅ 생성 완료: %@ (%@)",
+    "docgen_step_scan_ipc": "IPC 메서드 정의 스캔...",
+    "docgen_step_parse_rpc": "JSON-RPC 2.0 인터페이스 파싱...",
+    "docgen_step_gen_request": "요청/응답 예제 생성...",
+    "docgen_step_gen_errors": "오류 코드 문서 생성...",
+    "docgen_step_gen_client": "Swift 클라이언트 API 생성...",
+    "docgen_step_write_file": "파일 쓰기...",
+    "docgen_step_scan_structure": "프로젝트 구조 스캔...",
+    "docgen_step_parse_deps": "모듈 종속성 파싱...",
+    "docgen_step_gen_arch_diagram": "아키텍처 다이어그램 생성...",
+    "docgen_step_gen_module_desc": "모듈 설명 생성...",
+    "docgen_step_gen_dataflow": "데이터 흐름 문서 생성...",
+    "docgen_step_read_git": "Git 이력 읽기...",
+    "docgen_step_parse_commits": "커밋 메시지 파싱...",
+    "docgen_step_classify_changes": "변경 유형 분류...",
+    "docgen_step_gen_versions": "버전 목록 생성...",
+    "docgen_step_gen_changelog": "변경 이력 생성...",
+    "docgen_step_scan_project": "프로젝트 정보 스캔...",
+    "docgen_step_gen_project_desc": "프로젝트 설명 생성...",
+    "docgen_step_gen_features": "기능 목록 생성...",
+    "docgen_step_gen_install": "설치 안내 생성...",
+    "docgen_step_gen_usage": "사용 예제 생성...",
+    "docgen_step_scan_modules": "모듈 목록 스캔...",
+    "docgen_step_parse_module_api": "모듈 인터페이스 파싱...",
+    "docgen_step_gen_index": "인덱스 파일 생성...",
+    "docgen_step_gen_user_guide": "사용자 가이드 생성...",
+    "docgen_step_gen_dev_guide": "개발 가이드 생성...",
+    "docgen_sample_api_title": "Fusion Studio API 참조",
+    "docgen_sample_api_gen_time": "생성 시간: %@",
+    "docgen_sample_api_version": "버전: 1.0.0",
+    "docgen_sample_api_section": "JSON-RPC 2.0 인터페이스",
+    "docgen_sample_api_env_check": "실행 환경 상태 확인.",
+    "docgen_sample_api_env_repair": "지정된 환경 검사 항목을 복구.",
+    "docgen_sample_api_mlx_status": "MLX 추론 서비스 상태를 가져옵니다.",
+    "docgen_sample_arch_title": "Fusion Studio 아키텍처",
+    "docgen_sample_arch_layer_app": "애플리케이션 계층 - SwiftUI 네이티브 데스크톱",
+    "docgen_sample_arch_layer_container": "컨테이너 계층 - WKWebView + 네이티브 컴포넌트",
+    "docgen_sample_arch_layer_bridge": "브리지 계층 - Unix Domain Socket + JSON-RPC 2.0",
+    "docgen_sample_arch_layer_service": "서비스 계층 - Rust/Python 데몬",
+    "docgen_sample_arch_layer_base": "베이스 계층 - Apple Silicon 네이티브",
+    "docgen_sample_changelog_title": "변경 이력",
+    "docgen_sample_changelog_added": "### 추가",
+    "docgen_sample_changelog_fixed": "### 수정",
+    "docgen_sample_readme_title": "Fusion Studio",
+    "docgen_sample_readme_desc": "Fusion-MLX 로컬 AI 생태계를 위한 통합 macOS 데스크톱 클라이언트.",
+    "docgen_sample_readme_features": "## 기능",
+    "docgen_sample_readme_feat_modules": "10개 모듈 통합(디자인, 코드, 시뮬레이션, 모델 허브 등)",
+    "docgen_sample_readme_feat_offline": "100% 로컬 오프라인",
+    "docgen_sample_readme_feat_native": "Apple Silicon 네이티브 최적화",
+    "docgen_sample_module_title": "모듈 문서",
+    "docgen_sample_module_design": "AI 기반 디자인 캔버스, 대화형 UI 생성 지원.",
+    "docgen_sample_module_code": "내장 코드 에디터와 통합 터미널.",
+    "docgen_sample_module_sim": "3D 물리 시뮬레이션 엔진.",
+    "docgen_sample_module_hub": "모델 시각 관리.",
+    "docgen_sample_module_cli": "명령줄 도구 GUI 패널.",
+    "docgen_sample_full_title": "Fusion Studio 문서",
+    "docgen_sample_full_api": "API 참조",
+    "docgen_sample_full_arch": "아키텍처 문서",
+    "docgen_sample_full_changelog": "변경 이력",
+    "docgen_md_request": "**요청**",
+    "docgen_md_response": "**응답**",
+    "docgen_md_params": "**매개변수**",
+    "docgen_md_layers": "## 계층 아키텍처",
+    "docgen_md_deps": "## 모듈 종속성",
+    "docgen_md_design_h": "## Design 모듈",
+    "docgen_md_code_h": "## Code 모듈",
+    "docgen_md_sim_h": "## Simulation 모듈",
+    "docgen_md_hub_h": "## Model Hub 모듈",
+    "docgen_md_cli_h": "## CLI 모듈",
+    "docgen_md_changelog_bullet1": "- 전체 10개 모듈 완성",
+    "docgen_md_changelog_bullet2": "- LAN 협업 기능",
+    "docgen_md_changelog_bullet3": "- 플러그인 시스템 지원",
+    "docgen_md_changelog_fix": "- 성능 최적화 및 메모리 누수 수정",
+    "docgen_md_readme_bullet1": "- 환경 자가 점검 & 원클릭 복구",
+    "docgen_md_readme_bullet2": "- LAN 협업",
+    "docgen_md_readme_bullet3": "- 플러그인 시스템",
     "proj_subtitle": "AI 프로젝트·지시·지식베이스 관리",
     "proj_searchPh": "프로젝트 검색",
     "proj_newHelp": "새 프로젝트",
