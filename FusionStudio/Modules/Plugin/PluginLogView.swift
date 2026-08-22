@@ -13,10 +13,10 @@ struct PluginLogView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
-                Picker("级别", selection: $levelFilter) { ForEach(levels, id: \.self) { Text($0) } }.frame(width: 100)
-                TextField("插件ID", text: $pluginFilter).textFieldStyle(.plain).padding(6).background(theme.inputBg).cornerRadius(6).frame(width: 120)
+                Picker(I18nManager.shared.t(.plugin_log_filter_level), selection: $levelFilter) { ForEach(levels, id: \.self) { Text($0) } }.frame(width: 100)
+                TextField(I18nManager.shared.t(.plugin_log_ph_plugin_id), text: $pluginFilter).textFieldStyle(.plain).padding(6).background(theme.inputBg).cornerRadius(6).frame(width: 120)
                 Spacer()
-                Button("刷新") { bridge.fetchLogs(pluginId: pluginFilter.isEmpty ? nil : pluginFilter, level: levelFilter == "all" ? nil : levelFilter) }.font(.system(size: 11)).foregroundStyle(theme.accent).buttonStyle(.plain)
+                Button(I18nManager.shared.t(.plugin_log_btn_refresh)) { bridge.fetchLogs(pluginId: pluginFilter.isEmpty ? nil : pluginFilter, level: levelFilter == "all" ? nil : levelFilter) }.font(.system(size: 11)).foregroundStyle(theme.accent).buttonStyle(.plain)
             }.padding(.horizontal, 16).padding(.vertical, 8).background(theme.surfaceSecondary)
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 2) {
@@ -29,7 +29,7 @@ struct PluginLogView: View {
                             Text(entry.timestamp).font(.system(size: 9)).foregroundStyle(theme.textTertiary)
                         }.padding(.vertical, 2).padding(.horizontal, 6)
                     }
-                    if filteredEntries.isEmpty { Text("暂无日志").foregroundStyle(theme.textTertiary).frame(maxWidth: .infinity, alignment: .center).padding(.top, 40) }
+                    if filteredEntries.isEmpty { Text(I18nManager.shared.t(.plugin_log_msg_empty)).foregroundStyle(theme.textTertiary).frame(maxWidth: .infinity, alignment: .center).padding(.top, 40) }
                 }.padding(16)
             }
         }.onAppear { bridge.fetchLogs(); log.info("PluginLogView appeared") }

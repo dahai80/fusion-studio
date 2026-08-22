@@ -15,12 +15,12 @@ struct PluginCatalogView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 8) {
-                    TextField("搜索插件...", text: $searchText)
+                    TextField(I18nManager.shared.t(.plugin_ph_search), text: $searchText)
                         .textFieldStyle(.plain)
                         .padding(8)
                         .background(theme.inputBg)
                         .cornerRadius(6)
-                    Picker("分类", selection: $filterCategory) {
+                    Picker(I18nManager.shared.t(.plugin_filter_category), selection: $filterCategory) {
                         ForEach(categories, id: \.self) { Text($0) }
                     }
                     .frame(width: 140)
@@ -31,7 +31,7 @@ struct PluginCatalogView: View {
                 }
 
                 if filteredPlugins.isEmpty {
-                    Text("暂无插件")
+                    Text(I18nManager.shared.t(.plugin_msg_empty))
                         .foregroundStyle(theme.textTertiary)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.top, 40)
@@ -77,7 +77,7 @@ struct PluginCatalogView: View {
                 Button(action: {
                     bridge.uninstallPlugin(pluginId: plugin.id) { _ in bridge.listPlugins() }
                 }) {
-                    Text("卸载")
+                    Text(I18nManager.shared.t(.plugin_btn_uninstall))
                         .font(.system(size: 11))
                         .foregroundStyle(theme.accentDestructive)
                 }
@@ -86,7 +86,7 @@ struct PluginCatalogView: View {
                 Button(action: {
                     bridge.installPlugin(pluginId: plugin.id) { _ in bridge.listPlugins() }
                 }) {
-                    Text("安装")
+                    Text(I18nManager.shared.t(.plugin_btn_install))
                         .font(.system(size: 11))
                         .foregroundStyle(theme.accent)
                 }

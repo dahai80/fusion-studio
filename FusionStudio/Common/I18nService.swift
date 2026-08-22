@@ -3579,6 +3579,29 @@ enum I18nKey: String, CaseIterable {
     case kb_ph_search = "kb_ph_search"
     case kb_msg_select_entry = "kb_msg_select_entry"
     case kb_label_relevance = "kb_label_relevance"
+    case plugin_title = "plugin_title"
+    case plugin_tab_plugins = "plugin_tab_plugins"
+    case plugin_tab_config = "plugin_tab_config"
+    case plugin_tab_status = "plugin_tab_status"
+    case plugin_tab_token = "plugin_tab_token"
+    case plugin_tab_vram = "plugin_tab_vram"
+    case plugin_tab_logs = "plugin_tab_logs"
+    case plugin_tab_mcp = "plugin_tab_mcp"
+    case plugin_status_connected = "plugin_status_connected"
+    case plugin_status_disconnected = "plugin_status_disconnected"
+    case plugin_ph_search = "plugin_ph_search"
+    case plugin_filter_category = "plugin_filter_category"
+    case plugin_msg_empty = "plugin_msg_empty"
+    case plugin_btn_install = "plugin_btn_install"
+    case plugin_btn_uninstall = "plugin_btn_uninstall"
+    case plugin_cli_title = "plugin_cli_title"
+    case plugin_cli_btn_clear = "plugin_cli_btn_clear"
+    case plugin_cli_ph_input = "plugin_cli_ph_input"
+    case plugin_cli_err_prefix = "plugin_cli_err_prefix"
+    case plugin_log_filter_level = "plugin_log_filter_level"
+    case plugin_log_ph_plugin_id = "plugin_log_ph_plugin_id"
+    case plugin_log_btn_refresh = "plugin_log_btn_refresh"
+    case plugin_log_msg_empty = "plugin_log_msg_empty"
 }
 
 // MARK: - 翻译管理器
@@ -6807,7 +6830,30 @@ let zhCNTranslations: [String: String] = [
     "kb_sample_3_content": "JSON-RPC 2.0 over Unix Socket...",
     "kb_ph_search": "搜索知识库...",
     "kb_msg_select_entry": "选择一条知识条目",
-    "kb_label_relevance": "相关度: %d%%"
+    "kb_label_relevance": "相关度: %d%%",
+    "plugin_title": "插件生态",
+    "plugin_tab_plugins": "插件",
+    "plugin_tab_config": "配置",
+    "plugin_tab_status": "状态",
+    "plugin_tab_token": "Token",
+    "plugin_tab_vram": "VRAM",
+    "plugin_tab_logs": "日志",
+    "plugin_tab_mcp": "MCP",
+    "plugin_status_connected": "已连接",
+    "plugin_status_disconnected": "未连接",
+    "plugin_ph_search": "搜索插件...",
+    "plugin_filter_category": "分类",
+    "plugin_msg_empty": "暂无插件",
+    "plugin_btn_install": "安装",
+    "plugin_btn_uninstall": "卸载",
+    "plugin_cli_title": "CLI 服务",
+    "plugin_cli_btn_clear": "清屏",
+    "plugin_cli_ph_input": "输入命令...",
+    "plugin_cli_err_prefix": "错误",
+    "plugin_log_filter_level": "级别",
+    "plugin_log_ph_plugin_id": "插件ID",
+    "plugin_log_btn_refresh": "刷新",
+    "plugin_log_msg_empty": "暂无日志"
 ]
 
 let enUSTranslations: [String: String] = [
@@ -9991,7 +10037,30 @@ let enUSTranslations: [String: String] = [
     "kb_sample_3_content": "JSON-RPC 2.0 over Unix Socket...",
     "kb_ph_search": "Search knowledge base...",
     "kb_msg_select_entry": "Select a knowledge entry",
-    "kb_label_relevance": "Relevance: %d%%"
+    "kb_label_relevance": "Relevance: %d%%",
+    "plugin_title": "Plugin Ecosystem",
+    "plugin_tab_plugins": "Plugins",
+    "plugin_tab_config": "Config",
+    "plugin_tab_status": "Status",
+    "plugin_tab_token": "Token",
+    "plugin_tab_vram": "VRAM",
+    "plugin_tab_logs": "Logs",
+    "plugin_tab_mcp": "MCP",
+    "plugin_status_connected": "Connected",
+    "plugin_status_disconnected": "Disconnected",
+    "plugin_ph_search": "Search plugins...",
+    "plugin_filter_category": "Category",
+    "plugin_msg_empty": "No plugins",
+    "plugin_btn_install": "Install",
+    "plugin_btn_uninstall": "Uninstall",
+    "plugin_cli_title": "CLI Service",
+    "plugin_cli_btn_clear": "Clear",
+    "plugin_cli_ph_input": "Enter command...",
+    "plugin_cli_err_prefix": "Error",
+    "plugin_log_filter_level": "Level",
+    "plugin_log_ph_plugin_id": "Plugin ID",
+    "plugin_log_btn_refresh": "Refresh",
+    "plugin_log_msg_empty": "No logs"
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -13169,7 +13238,30 @@ let jaJPTranslations: [String: String] = [
     "kb_sample_3_content": "JSON-RPC 2.0 over Unix Socket...",
     "kb_ph_search": "ナレッジベースを検索...",
     "kb_msg_select_entry": "ナレッジエントリを選択",
-    "kb_label_relevance": "関連度: %d%%"
+    "kb_label_relevance": "関連度: %d%%",
+    "plugin_title": "プラグインエコシステム",
+    "plugin_tab_plugins": "プラグイン",
+    "plugin_tab_config": "設定",
+    "plugin_tab_status": "ステータス",
+    "plugin_tab_token": "Token",
+    "plugin_tab_vram": "VRAM",
+    "plugin_tab_logs": "ログ",
+    "plugin_tab_mcp": "MCP",
+    "plugin_status_connected": "接続済み",
+    "plugin_status_disconnected": "未接続",
+    "plugin_ph_search": "プラグインを検索...",
+    "plugin_filter_category": "カテゴリ",
+    "plugin_msg_empty": "プラグインなし",
+    "plugin_btn_install": "インストール",
+    "plugin_btn_uninstall": "アンインストール",
+    "plugin_cli_title": "CLI サービス",
+    "plugin_cli_btn_clear": "クリア",
+    "plugin_cli_ph_input": "コマンドを入力...",
+    "plugin_cli_err_prefix": "エラー",
+    "plugin_log_filter_level": "レベル",
+    "plugin_log_ph_plugin_id": "プラグインID",
+    "plugin_log_btn_refresh": "更新",
+    "plugin_log_msg_empty": "ログなし"
 ]
 
 let koKRTranslations: [String: String] = [
@@ -16347,7 +16439,30 @@ let koKRTranslations: [String: String] = [
     "kb_sample_3_content": "JSON-RPC 2.0 over Unix Socket...",
     "kb_ph_search": "지식 베이스 검색...",
     "kb_msg_select_entry": "지식 항목 선택",
-    "kb_label_relevance": "관련도: %d%%"
+    "kb_label_relevance": "관련도: %d%%",
+    "plugin_title": "플러그인 생태계",
+    "plugin_tab_plugins": "플러그인",
+    "plugin_tab_config": "구성",
+    "plugin_tab_status": "상태",
+    "plugin_tab_token": "Token",
+    "plugin_tab_vram": "VRAM",
+    "plugin_tab_logs": "로그",
+    "plugin_tab_mcp": "MCP",
+    "plugin_status_connected": "연결됨",
+    "plugin_status_disconnected": "연결 안 됨",
+    "plugin_ph_search": "플러그인 검색...",
+    "plugin_filter_category": "카테고리",
+    "plugin_msg_empty": "플러그인 없음",
+    "plugin_btn_install": "설치",
+    "plugin_btn_uninstall": "제거",
+    "plugin_cli_title": "CLI 서비스",
+    "plugin_cli_btn_clear": "지우기",
+    "plugin_cli_ph_input": "명령어 입력...",
+    "plugin_cli_err_prefix": "오류",
+    "plugin_log_filter_level": "레벨",
+    "plugin_log_ph_plugin_id": "플러그인ID",
+    "plugin_log_btn_refresh": "새로고침",
+    "plugin_log_msg_empty": "로그 없음"
 ]
 
 // MARK: - 国际化文本视图
