@@ -11,16 +11,29 @@ import os.log
 private let teamViewLog = Logger(subsystem: "com.fusion.studio", category: "TeamCollabView")
 
 enum TeamCollabArea: String, CaseIterable, Identifiable {
-    case overview = "概览"
-    case agents = "团队 Agents"
-    case orchestration = "编排模式"
-    case channels = "协作频道"
-    case delegations = "任务委派"
-    case monitor = "实时监控"
-    case health = "健康熔断"
-    case subGraphs = "子图注册"
+    case overview = "Overview"
+    case agents = "TeamAgents"
+    case orchestration = "Orchestration"
+    case channels = "Channels"
+    case delegations = "Delegations"
+    case monitor = "Monitor"
+    case health = "Health"
+    case subGraphs = "SubGraphs"
 
     var id: String { rawValue }
+
+    var localizedName: String {
+        switch self {
+        case .overview: return I18nManager.shared.t(.tc_area_overview)
+        case .agents: return I18nManager.shared.t(.tc_area_agents)
+        case .orchestration: return I18nManager.shared.t(.tc_area_orchestration)
+        case .channels: return I18nManager.shared.t(.tc_area_channels)
+        case .delegations: return I18nManager.shared.t(.tc_area_delegations)
+        case .monitor: return I18nManager.shared.t(.tc_area_monitor)
+        case .health: return I18nManager.shared.t(.tc_area_health)
+        case .subGraphs: return I18nManager.shared.t(.tc_area_subgraphs)
+        }
+    }
 
     var icon: String {
         switch self {
@@ -58,7 +71,7 @@ struct TeamCollabView: View {
                 Image(systemName: "person.3.fill")
                     .font(.system(size: theme.iconL, weight: .semibold))
                     .foregroundStyle(theme.accent)
-                Text("团队协作")
+                Text(I18nManager.shared.t(.tc_title))
                     .font(.system(size: theme.titleSize, weight: .semibold))
                     .foregroundStyle(theme.text)
                 Spacer()
@@ -92,7 +105,7 @@ struct TeamCollabView: View {
                     .font(.system(size: theme.iconM, weight: isActive ? .semibold : .regular))
                     .foregroundStyle(isActive ? theme.accent : theme.textSecondary)
                     .frame(width: theme.iconL)
-                Text(a.rawValue)
+                Text(a.localizedName)
                     .font(.system(size: theme.smallTextSize, weight: isActive ? .medium : .regular))
                     .foregroundStyle(isActive ? theme.text : theme.textSecondary)
                 Spacer()
@@ -208,7 +221,7 @@ struct CircuitBar: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text(state.isOpen ? "熔断开启" : "熔断关闭")
+                Text(state.isOpen ? I18nManager.shared.t(.tc_circuit_open) : I18nManager.shared.t(.tc_circuit_closed))
                     .font(.system(size: theme.captionSize, weight: .medium))
                     .foregroundStyle(state.isOpen ? theme.redDot : theme.greenDot)
                 Spacer()
@@ -326,13 +339,13 @@ struct OverviewArea: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: theme.spacingL) {
-                ScreenHeader(eyebrow: "Team Collaboration", title: "协作总览", subtitle: "Agent 团队编排 · 蜂群委派 · 频道协商 · 熔断健康")
+                ScreenHeader(eyebrow: "Team Collaboration", title: I18nManager.shared.t(.tc_ov_eyebrow_title), subtitle: I18nManager.shared.t(.tc_ov_subtitle))
 
                 HStack(spacing: theme.spacingM) {
-                    StatTile(icon: "checkmark.circle.fill", value: "\(store.onlineCount)/\(store.agents.count)", label: "在线 Agents", tint: .green)
-                    StatTile(icon: "exclamationmark.octagon.fill", value: "\(store.trippedCount)", label: "熔断 Agents", tint: .red)
-                    StatTile(icon: "arrow.triangle.turn.up.right.circle.fill", value: "\(store.runningDelegations)", label: "执行中委派", tint: .orange)
-                    StatTile(icon: "pause.circle.fill", value: "\(store.suspendedChannels)", label: "挂起频道", tint: .gray)
+                    StatTile(icon: "checkmark.circle.fill", value: "\(store.onlineCount)/\(store.agents.count)", label: I18nManager.shared.t(.tc_ov_stat_online), tint: .green)
+                    StatTile(icon: "exclamationmark.octagon.fill", value: "\(store.trippedCount)", label: I18nManager.shared.t(.tc_ov_stat_tripped), tint: .red)
+                    StatTile(icon: "arrow.triangle.turn.up.right.circle.fill", value: "\(store.runningDelegations)", label: I18nManager.shared.t(.tc_ov_stat_running), tint: .orange)
+                    StatTile(icon: "pause.circle.fill", value: "\(store.suspendedChannels)", label: I18nManager.shared.t(.tc_ov_stat_suspended), tint: .gray)
                 }
 
                 HStack(alignment: .top, spacing: theme.spacingM) {
@@ -341,7 +354,7 @@ struct OverviewArea: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                FusionCard(header: "最近委派", headerIcon: "list.bullet.clipboard") {
+                FusionCard(header: I18nManager.shared.t(.tc_ov_recent_delegations), headerIcon: "list.bullet.clipboard") {
                     VStack(spacing: 0) {
                         ForEach(store.delegations.prefix(4)) { d in
                             delegationRow(d)
@@ -357,7 +370,7 @@ struct OverviewArea: View {
     }
 
     private var activePatternCard: some View {
-        FusionCard(header: "当前编排模式", headerIcon: "flowchart.fill") {
+        FusionCard(header: I18nManager.shared.t(.tc_ov_active_pattern), headerIcon: "flowchart.fill") {
             HStack(spacing: theme.spacingM) {
                 Image(systemName: store.activePattern.icon)
                     .font(.system(size: theme.iconXL, weight: .semibold))
@@ -376,12 +389,12 @@ struct OverviewArea: View {
     }
 
     private var healthMiniCard: some View {
-        FusionCard(header: "健康摘要", headerIcon: "heart.text.square") {
+        FusionCard(header: I18nManager.shared.t(.tc_ov_health_summary), headerIcon: "heart.text.square") {
             VStack(alignment: .leading, spacing: theme.spacingS) {
-                healthLine("在线", store.onlineCount, .green)
-                healthLine("繁忙", store.agents.filter { $0.status == .busy }.count, .orange)
-                healthLine("熔断", store.trippedCount, .red)
-                healthLine("离线", store.offlineCount, .gray)
+                healthLine(I18nManager.shared.t(.tc_ov_health_online), store.onlineCount, .green)
+                healthLine(I18nManager.shared.t(.tc_ov_health_busy), store.agents.filter { $0.status == .busy }.count, .orange)
+                healthLine(I18nManager.shared.t(.tc_ov_health_tripped), store.trippedCount, .red)
+                healthLine(I18nManager.shared.t(.tc_ov_health_offline), store.offlineCount, .gray)
             }
         }
     }
@@ -465,7 +478,7 @@ struct AgentsArea: View {
                 VStack(alignment: .leading, spacing: 3) {
                     HStack {
                         Text(agent.name).font(.system(size: theme.smallTextSize, weight: .semibold)).foregroundStyle(theme.text)
-                        Text(agent.role).font(.system(size: theme.captionSize)).foregroundStyle(theme.textTertiary)
+                        Text(agent.roleLabel).font(.system(size: theme.captionSize)).foregroundStyle(theme.textTertiary)
                         Spacer()
                         AgentStatusPill(status: agent.status)
                     }
@@ -496,27 +509,27 @@ struct AgentsArea: View {
                         AgentAvatar(name: agent.name, color: agent.identityColor, size: 56)
                         VStack(alignment: .leading, spacing: 4) {
                             Text(agent.name).font(.system(size: theme.titleSize, weight: .bold)).foregroundStyle(theme.text)
-                            Text("\(agent.role) · \(agent.model)").font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textSecondary)
+                            Text("\(agent.roleLabel) · \(agent.model)").font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textSecondary)
                             AgentStatusPill(status: agent.status)
                         }
                         Spacer()
                     }
 
-                    detailSection("Agent ID") { Text(agent.id).font(.system(size: theme.footnoteSize, design: .monospaced)).foregroundStyle(theme.textTertiary) }
-                    detailSection("能力 Capabilities") {
+                    detailSection(I18nManager.shared.t(.tc_agent_id)) { Text(agent.id).font(.system(size: theme.footnoteSize, design: .monospaced)).foregroundStyle(theme.textTertiary) }
+                    detailSection(I18nManager.shared.t(.tc_agent_capabilities)) {
                         FlowChips(items: agent.capabilities, tint: agent.identityColor)
                     }
-                    detailSection("交接目标 Handoff Targets") {
+                    detailSection(I18nManager.shared.t(.tc_agent_handoff)) {
                         FlowChips(items: agent.handoffTargets.map { store.agentName(byId: $0) }, tint: theme.accent)
                     }
-                    detailSection("任务统计") {
+                    detailSection(I18nManager.shared.t(.tc_agent_task_stats)) {
                         HStack(spacing: theme.spacingL) {
-                            statPair("已完成", "\(agent.tasksDone)")
-                            statPair("进行中", "\(agent.tasksActive)")
-                            statPair("最大跳数", "\(agent.maxHops)")
+                            statPair(I18nManager.shared.t(.tc_agent_done), "\(agent.tasksDone)")
+                            statPair(I18nManager.shared.t(.tc_agent_active), "\(agent.tasksActive)")
+                            statPair(I18nManager.shared.t(.tc_agent_max_hops), "\(agent.maxHops)")
                         }
                     }
-                    detailSection("熔断器 Circuit Breaker") { CircuitBar(state: agent.circuit) }
+                    detailSection(I18nManager.shared.t(.tc_agent_circuit)) { CircuitBar(state: agent.circuit) }
                 }
                 .padding(theme.spacingL)
             }
@@ -544,7 +557,7 @@ struct AgentsArea: View {
     private var emptyDetail: some View {
         VStack(spacing: theme.spacingS) {
             Image(systemName: "person.crop.circle.badge.questionmark").font(.system(size: 36)).foregroundStyle(theme.textTertiary)
-            Text("选择一个 Agent 查看详情").font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textTertiary)
+            Text(I18nManager.shared.t(.tc_agent_empty)).font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textTertiary)
         }
         .frame(width: 320)
         .background(theme.surfaceSecondary)
@@ -579,7 +592,7 @@ struct OrchestrationArea: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: theme.spacingL) {
-                ScreenHeader(eyebrow: "Orchestration Patterns", title: "编排模式", subtitle: "fusion-agent-studio MultiAgentOrchestrator 的 6 种协作模式")
+                ScreenHeader(eyebrow: I18nManager.shared.t(.tc_orch_eyebrow), title: I18nManager.shared.t(.tc_orch_title), subtitle: I18nManager.shared.t(.tc_orch_subtitle))
 
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: theme.spacingM), GridItem(.flexible(), spacing: theme.spacingM), GridItem(.flexible(), spacing: theme.spacingM)], spacing: theme.spacingM) {
                     ForEach(OrchestrationPattern.allCases) { p in
@@ -590,7 +603,7 @@ struct OrchestrationArea: View {
                     }
                 }
 
-                FusionCard(header: "模式说明", headerIcon: "info.circle") {
+                FusionCard(header: I18nManager.shared.t(.tc_orch_pattern_info), headerIcon: "info.circle") {
                     VStack(alignment: .leading, spacing: theme.spacingS) {
                         Text(store.activePattern.label)
                             .font(.system(size: theme.bodySize, weight: .semibold))
@@ -598,14 +611,14 @@ struct OrchestrationArea: View {
                         Text(store.activePattern.desc)
                             .font(.system(size: theme.footnoteSize))
                             .foregroundStyle(theme.textSecondary)
-                        Text("对应实现: agent_runtime/orchestrator.py · \(store.activePattern.rawValue)()")
+                        Text(String(format: I18nManager.shared.t(.tc_orch_impl), store.activePattern.rawValue))
                             .font(.system(size: theme.captionSize, design: .monospaced))
                             .foregroundStyle(theme.textTertiary)
                     }
                     .padding(theme.spacingM)
                 }
 
-                ScreenHeader(eyebrow: "Independent Routers", title: "独立路由", subtitle: "SwarmRouter / Plaza / FMProtocol — 独立于 Orchestrator 的路由模式")
+                ScreenHeader(eyebrow: I18nManager.shared.t(.tc_router_eyebrow), title: I18nManager.shared.t(.tc_router_title), subtitle: I18nManager.shared.t(.tc_router_subtitle))
 
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: theme.spacingM), GridItem(.flexible(), spacing: theme.spacingM), GridItem(.flexible(), spacing: theme.spacingM)], spacing: theme.spacingM) {
                     ForEach(IndependentRouter.allCases) { r in
@@ -616,7 +629,7 @@ struct OrchestrationArea: View {
                     }
                 }
 
-                FusionCard(header: "路由说明", headerIcon: "info.circle") {
+                FusionCard(header: I18nManager.shared.t(.tc_router_info), headerIcon: "info.circle") {
                     VStack(alignment: .leading, spacing: theme.spacingS) {
                         Text(store.activeRouter.label)
                             .font(.system(size: theme.bodySize, weight: .semibold))
@@ -669,7 +682,7 @@ struct ChannelsArea: View {
                     .foregroundStyle(ch.isSuspended ? theme.redDot : theme.accent)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(ch.name).font(.system(size: theme.footnoteSize, weight: .semibold)).foregroundStyle(theme.text).lineLimit(1)
-                    Text("轮次 \(ch.currentRound)/\(ch.maxRounds) · \(ch.participants.count) 人")
+                    Text(String(format: I18nManager.shared.t(.tc_ch_rounds), "\(ch.currentRound)", "\(ch.maxRounds)", "\(ch.participants.count)"))
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(theme.textTertiary)
                 }
@@ -714,7 +727,7 @@ struct ChannelsArea: View {
             if ch.isSuspended {
                 HStack(spacing: 4) {
                     Image(systemName: "exclamationmark.triangle.fill")
-                    Text("已熔断挂起")
+                    Text(I18nManager.shared.t(.tc_ch_suspended))
                 }
                 .font(.system(size: theme.captionSize, weight: .medium))
                 .foregroundStyle(theme.redDot)
@@ -723,7 +736,7 @@ struct ChannelsArea: View {
                 .background(Capsule().fill(theme.redDot.opacity(0.12)))
             }
             VStack(alignment: .trailing, spacing: 2) {
-                Text("轮次").font(.system(size: theme.captionSize)).foregroundStyle(theme.textTertiary)
+                Text(I18nManager.shared.t(.tc_ch_rounds_label)).font(.system(size: theme.captionSize)).foregroundStyle(theme.textTertiary)
                 Text("\(ch.currentRound)/\(ch.maxRounds)").font(.system(size: theme.footnoteSize, weight: .semibold)).foregroundStyle(ch.currentRound >= ch.maxRounds ? theme.redDot : theme.text)
             }
         }
@@ -785,9 +798,9 @@ struct DelegationsArea: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: theme.spacingL) {
-                ScreenHeader(eyebrow: "Task Delegation", title: "任务委派", subtitle: "SwarmRouter 委派链 · 跳数受控 · 自动升级")
+                ScreenHeader(eyebrow: I18nManager.shared.t(.tc_del_eyebrow), title: I18nManager.shared.t(.tc_del_title), subtitle: I18nManager.shared.t(.tc_del_subtitle))
 
-                FusionCard(header: "委派任务", headerIcon: "arrow.triangle.turn.up.right.circle") {
+                FusionCard(header: I18nManager.shared.t(.tc_del_tasks), headerIcon: "arrow.triangle.turn.up.right.circle") {
                     VStack(spacing: 0) {
                         ForEach(store.delegations) { d in
                             delegationDetailRow(d)
@@ -798,7 +811,7 @@ struct DelegationsArea: View {
                     }
                 }
 
-                FusionCard(header: "交接时间线 Handoff", headerIcon: "arrow.right.arrow.left.circle") {
+                FusionCard(header: I18nManager.shared.t(.tc_del_handoff), headerIcon: "arrow.right.arrow.left.circle") {
                     VStack(alignment: .leading, spacing: 0) {
                         ForEach(Array(store.handoffs.enumerated()), id: \.element.id) { idx, h in
                             HStack(alignment: .top, spacing: theme.spacingM) {
@@ -839,9 +852,9 @@ struct DelegationsArea: View {
                 Text(d.createdAt).font(.system(size: theme.captionSize)).foregroundStyle(theme.textTertiary)
             }
             HStack(spacing: theme.spacingL) {
-                metaPair("委派", "\(d.delegator) -> \(d.delegatee)")
-                metaPair("触发", d.triggerCondition)
-                metaPair("交付物", d.deliverable)
+                metaPair(I18nManager.shared.t(.tc_del_meta_delegator), "\(d.delegator) -> \(d.delegatee)")
+                metaPair(I18nManager.shared.t(.tc_del_meta_trigger), d.triggerCondition)
+                metaPair(I18nManager.shared.t(.tc_del_meta_deliverable), d.deliverable)
             }
             HStack {
                 Text("hop \(d.hopCount)").font(.system(size: theme.captionSize, design: .monospaced)).foregroundStyle(theme.accent)
@@ -871,36 +884,36 @@ struct MonitorArea: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: theme.spacingL) {
-                ScreenHeader(eyebrow: "FMProtocol Monitor", title: "实时监控", subtitle: "消息收发 · 去重 · 熔断拦截 · 轮转路由")
+                ScreenHeader(eyebrow: I18nManager.shared.t(.tc_mon_eyebrow), title: I18nManager.shared.t(.tc_mon_title), subtitle: I18nManager.shared.t(.tc_mon_subtitle))
 
                 HStack(spacing: theme.spacingM) {
-                    StatTile(icon: "paperplane.fill", value: "\(store.fmStats.sent)", label: "已发送 sent", tint: .blue)
-                    StatTile(icon: "tray.fill", value: "\(store.fmStats.received)", label: "已接收 received", tint: .green)
-                    StatTile(icon: "arrow.triangle.branch", value: "\(store.fmStats.routed)", label: "已路由 routed", tint: .teal)
+                    StatTile(icon: "paperplane.fill", value: "\(store.fmStats.sent)", label: I18nManager.shared.t(.tc_mon_sent), tint: .blue)
+                    StatTile(icon: "tray.fill", value: "\(store.fmStats.received)", label: I18nManager.shared.t(.tc_mon_received), tint: .green)
+                    StatTile(icon: "arrow.triangle.branch", value: "\(store.fmStats.routed)", label: I18nManager.shared.t(.tc_mon_routed), tint: .teal)
                 }
 
                 HStack(spacing: theme.spacingM) {
-                    StatTile(icon: "doc.on.doc", value: "\(store.fmStats.droppedDedup)", label: "去重丢弃 dedup", tint: .gray)
-                    StatTile(icon: "hand.raised.fill", value: "\(store.fmStats.circuitBlocked)", label: "熔断拦截 blocked", tint: .red)
-                    StatTile(icon: "repeat", value: "\(store.fmStats.maxRounds)", label: "最大轮次 maxRounds", tint: .orange)
+                    StatTile(icon: "doc.on.doc", value: "\(store.fmStats.droppedDedup)", label: I18nManager.shared.t(.tc_mon_dedup), tint: .gray)
+                    StatTile(icon: "hand.raised.fill", value: "\(store.fmStats.circuitBlocked)", label: I18nManager.shared.t(.tc_mon_blocked), tint: .red)
+                    StatTile(icon: "repeat", value: "\(store.fmStats.maxRounds)", label: I18nManager.shared.t(.tc_mon_max_rounds), tint: .orange)
                 }
 
-                FusionCard(header: "消息流量分布", headerIcon: "chart.bar.fill") {
+                FusionCard(header: I18nManager.shared.t(.tc_mon_traffic), headerIcon: "chart.bar.fill") {
                     VStack(alignment: .leading, spacing: theme.spacingM) {
-                        fmBar("已发送", store.fmStats.sent, .blue)
-                        fmBar("已接收", store.fmStats.received, .green)
-                        fmBar("已路由", store.fmStats.routed, .teal)
-                        fmBar("去重丢弃", store.fmStats.droppedDedup, .gray)
-                        fmBar("熔断拦截", store.fmStats.circuitBlocked, .red)
+                        fmBar(I18nManager.shared.t(.tc_mon_sent), store.fmStats.sent, .blue)
+                        fmBar(I18nManager.shared.t(.tc_mon_received), store.fmStats.received, .green)
+                        fmBar(I18nManager.shared.t(.tc_mon_routed), store.fmStats.routed, .teal)
+                        fmBar(I18nManager.shared.t(.tc_mon_dedup), store.fmStats.droppedDedup, .gray)
+                        fmBar(I18nManager.shared.t(.tc_mon_blocked), store.fmStats.circuitBlocked, .red)
                     }
                     .padding(theme.spacingM)
                 }
 
-                FusionCard(header: "路由优先级", headerIcon: "arrow.up.arrow.down.circle") {
+                FusionCard(header: I18nManager.shared.t(.tc_mon_route_priority), headerIcon: "arrow.up.arrow.down.circle") {
                     VStack(alignment: .leading, spacing: theme.spacingS) {
-                        routeLine("1", "@mention 指定目标", "MentionRouter.route_by_mention")
-                        routeLine("2", "点对点 recipient", "FMProtocol.send -> recipient")
-                        routeLine("3", "轮转下一跳", "TurnManager.next_turn (排除熔断)")
+                        routeLine("1", I18nManager.shared.t(.tc_mon_route_mention), "MentionRouter.route_by_mention")
+                        routeLine("2", I18nManager.shared.t(.tc_mon_route_p2p), "FMProtocol.send -> recipient")
+                        routeLine("3", I18nManager.shared.t(.tc_mon_route_turn), "TurnManager.next_turn (skip tripped)")
                     }
                     .padding(theme.spacingM)
                 }
@@ -943,15 +956,15 @@ struct HealthArea: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: theme.spacingL) {
-                ScreenHeader(eyebrow: "Circuit Breaker Health", title: "健康熔断", subtitle: "阈值 3 次失败即熔断 · 30s 半开重试 · 自动升级")
+                ScreenHeader(eyebrow: I18nManager.shared.t(.tc_health_eyebrow), title: I18nManager.shared.t(.tc_health_title), subtitle: I18nManager.shared.t(.tc_health_subtitle))
 
                 HStack(spacing: theme.spacingM) {
-                    StatTile(icon: "checkmark.shield.fill", value: "\(store.agents.filter { !$0.circuit.isOpen }.count)", label: "熔断关闭", tint: .green)
-                    StatTile(icon: "exclamationmark.shield.fill", value: "\(store.agents.filter { $0.circuit.isOpen }.count)", label: "熔断开启", tint: .red)
-                    StatTile(icon: "arrow.up.right.square.fill", value: "\(store.delegations.filter { $0.status == .escalated }.count)", label: "已自动升级", tint: .orange)
+                    StatTile(icon: "checkmark.shield.fill", value: "\(store.agents.filter { !$0.circuit.isOpen }.count)", label: I18nManager.shared.t(.tc_health_stat_closed), tint: .green)
+                    StatTile(icon: "exclamationmark.shield.fill", value: "\(store.agents.filter { $0.circuit.isOpen }.count)", label: I18nManager.shared.t(.tc_health_stat_open), tint: .red)
+                    StatTile(icon: "arrow.up.right.square.fill", value: "\(store.delegations.filter { $0.status == .escalated }.count)", label: I18nManager.shared.t(.tc_health_stat_escalated), tint: .orange)
                 }
 
-                FusionCard(header: "Agent 熔断器", headerIcon: "shield.lefthalf.filled") {
+                FusionCard(header: I18nManager.shared.t(.tc_health_agent_circuit), headerIcon: "shield.lefthalf.filled") {
                     VStack(spacing: theme.spacingM) {
                         ForEach(store.agents) { agent in
                             HStack(spacing: theme.spacingM) {
@@ -962,7 +975,7 @@ struct HealthArea: View {
                                         AgentStatusPill(status: agent.status)
                                         Spacer()
                                         if agent.circuit.isOpen {
-                                            Text("冷却 \(Int(agent.circuit.resetInSeconds))s")
+                                            Text(String(format: I18nManager.shared.t(.tc_health_cooldown), Int(agent.circuit.resetInSeconds)))
                                                 .font(.system(size: theme.captionSize, weight: .medium))
                                                 .foregroundStyle(theme.redDot)
                                         }
@@ -994,7 +1007,7 @@ struct SubGraphsArea: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: theme.spacingL) {
-                ScreenHeader(eyebrow: "Sub-Graph Registry", title: "子图注册", subtitle: "可复用 AgentGraph · 节点/边 · 入口节点 · 运行状态")
+                ScreenHeader(eyebrow: I18nManager.shared.t(.tc_sub_eyebrow), title: I18nManager.shared.t(.tc_sub_title), subtitle: I18nManager.shared.t(.tc_sub_subtitle))
 
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: theme.spacingM), GridItem(.flexible(), spacing: theme.spacingM)], spacing: theme.spacingM) {
                     ForEach(store.subGraphs) { sg in
@@ -1028,13 +1041,13 @@ struct SubGraphsArea: View {
                     .background(Capsule().fill(statusColor.opacity(0.12)))
             }
             HStack(spacing: theme.spacingL) {
-                metaPair("节点", "\(sg.nodeCount)")
-                metaPair("边", "\(sg.edgeCount)")
-                metaPair("入口", sg.entryNode)
+                metaPair(I18nManager.shared.t(.tc_sub_nodes), "\(sg.nodeCount)")
+                metaPair(I18nManager.shared.t(.tc_sub_edges), "\(sg.edgeCount)")
+                metaPair(I18nManager.shared.t(.tc_sub_entry), sg.entryNode)
             }
             HStack {
                 Image(systemName: "clock").font(.system(size: theme.captionSize)).foregroundStyle(theme.textTertiary)
-                Text("最近运行 \(sg.lastRun)").font(.system(size: theme.captionSize)).foregroundStyle(theme.textTertiary)
+                Text(String(format: I18nManager.shared.t(.tc_sub_last_run), sg.lastRun)).font(.system(size: theme.captionSize)).foregroundStyle(theme.textTertiary)
                 Spacer()
                 Text(sg.id).font(.system(size: theme.captionSize, design: .monospaced)).foregroundStyle(theme.textTertiary)
             }

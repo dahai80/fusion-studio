@@ -3714,6 +3714,145 @@ enum I18nKey: String, CaseIterable {
     case fin_report_content = "fin_report_content"
     case fin_ai_copilot = "fin_ai_copilot"
     case fin_ph_input_question = "fin_ph_input_question"
+    // TeamCollab (tc_) — Batch 15h
+    case tc_title = "tc_title"
+    case tc_status_online = "tc_status_online"
+    case tc_status_busy = "tc_status_busy"
+    case tc_status_tripped = "tc_status_tripped"
+    case tc_status_offline = "tc_status_offline"
+    case tc_del_pending = "tc_del_pending"
+    case tc_del_running = "tc_del_running"
+    case tc_del_done = "tc_del_done"
+    case tc_del_failed = "tc_del_failed"
+    case tc_del_escalated = "tc_del_escalated"
+    case tc_pat_sequential = "tc_pat_sequential"
+    case tc_pat_parallel = "tc_pat_parallel"
+    case tc_pat_master_worker = "tc_pat_master_worker"
+    case tc_pat_handoff = "tc_pat_handoff"
+    case tc_pat_broadcast = "tc_pat_broadcast"
+    case tc_pat_supervisor = "tc_pat_supervisor"
+    case tc_pat_desc_sequential = "tc_pat_desc_sequential"
+    case tc_pat_desc_parallel = "tc_pat_desc_parallel"
+    case tc_pat_desc_master_worker = "tc_pat_desc_master_worker"
+    case tc_pat_desc_handoff = "tc_pat_desc_handoff"
+    case tc_pat_desc_broadcast = "tc_pat_desc_broadcast"
+    case tc_pat_desc_supervisor = "tc_pat_desc_supervisor"
+    case tc_router_swarm = "tc_router_swarm"
+    case tc_router_plaza = "tc_router_plaza"
+    case tc_router_fmp = "tc_router_fmp"
+    case tc_router_desc_swarm = "tc_router_desc_swarm"
+    case tc_router_desc_plaza = "tc_router_desc_plaza"
+    case tc_router_desc_fmp = "tc_router_desc_fmp"
+    case tc_area_overview = "tc_area_overview"
+    case tc_area_agents = "tc_area_agents"
+    case tc_area_orchestration = "tc_area_orchestration"
+    case tc_area_channels = "tc_area_channels"
+    case tc_area_delegations = "tc_area_delegations"
+    case tc_area_monitor = "tc_area_monitor"
+    case tc_area_health = "tc_area_health"
+    case tc_area_subgraphs = "tc_area_subgraphs"
+    case tc_ov_eyebrow_title = "tc_ov_eyebrow_title"
+    case tc_ov_subtitle = "tc_ov_subtitle"
+    case tc_ov_stat_online = "tc_ov_stat_online"
+    case tc_ov_stat_tripped = "tc_ov_stat_tripped"
+    case tc_ov_stat_running = "tc_ov_stat_running"
+    case tc_ov_stat_suspended = "tc_ov_stat_suspended"
+    case tc_ov_recent_delegations = "tc_ov_recent_delegations"
+    case tc_ov_active_pattern = "tc_ov_active_pattern"
+    case tc_ov_health_summary = "tc_ov_health_summary"
+    case tc_ov_health_online = "tc_ov_health_online"
+    case tc_ov_health_busy = "tc_ov_health_busy"
+    case tc_ov_health_tripped = "tc_ov_health_tripped"
+    case tc_ov_health_offline = "tc_ov_health_offline"
+    case tc_circuit_open = "tc_circuit_open"
+    case tc_circuit_closed = "tc_circuit_closed"
+    case tc_agent_id = "tc_agent_id"
+    case tc_agent_capabilities = "tc_agent_capabilities"
+    case tc_agent_handoff = "tc_agent_handoff"
+    case tc_agent_task_stats = "tc_agent_task_stats"
+    case tc_agent_done = "tc_agent_done"
+    case tc_agent_active = "tc_agent_active"
+    case tc_agent_max_hops = "tc_agent_max_hops"
+    case tc_agent_circuit = "tc_agent_circuit"
+    case tc_agent_empty = "tc_agent_empty"
+    case tc_orch_eyebrow = "tc_orch_eyebrow"
+    case tc_orch_title = "tc_orch_title"
+    case tc_orch_subtitle = "tc_orch_subtitle"
+    case tc_orch_pattern_info = "tc_orch_pattern_info"
+    case tc_orch_impl = "tc_orch_impl"
+    case tc_router_eyebrow = "tc_router_eyebrow"
+    case tc_router_title = "tc_router_title"
+    case tc_router_subtitle = "tc_router_subtitle"
+    case tc_router_info = "tc_router_info"
+    case tc_ch_rounds = "tc_ch_rounds"
+    case tc_ch_suspended = "tc_ch_suspended"
+    case tc_ch_rounds_label = "tc_ch_rounds_label"
+    case tc_del_eyebrow = "tc_del_eyebrow"
+    case tc_del_title = "tc_del_title"
+    case tc_del_subtitle = "tc_del_subtitle"
+    case tc_del_tasks = "tc_del_tasks"
+    case tc_del_handoff = "tc_del_handoff"
+    case tc_del_meta_delegator = "tc_del_meta_delegator"
+    case tc_del_meta_trigger = "tc_del_meta_trigger"
+    case tc_del_meta_deliverable = "tc_del_meta_deliverable"
+    case tc_mon_eyebrow = "tc_mon_eyebrow"
+    case tc_mon_title = "tc_mon_title"
+    case tc_mon_subtitle = "tc_mon_subtitle"
+    case tc_mon_sent = "tc_mon_sent"
+    case tc_mon_received = "tc_mon_received"
+    case tc_mon_routed = "tc_mon_routed"
+    case tc_mon_dedup = "tc_mon_dedup"
+    case tc_mon_blocked = "tc_mon_blocked"
+    case tc_mon_max_rounds = "tc_mon_max_rounds"
+    case tc_mon_traffic = "tc_mon_traffic"
+    case tc_mon_route_priority = "tc_mon_route_priority"
+    case tc_mon_route_mention = "tc_mon_route_mention"
+    case tc_mon_route_p2p = "tc_mon_route_p2p"
+    case tc_mon_route_turn = "tc_mon_route_turn"
+    case tc_health_eyebrow = "tc_health_eyebrow"
+    case tc_health_title = "tc_health_title"
+    case tc_health_subtitle = "tc_health_subtitle"
+    case tc_health_stat_closed = "tc_health_stat_closed"
+    case tc_health_stat_open = "tc_health_stat_open"
+    case tc_health_stat_escalated = "tc_health_stat_escalated"
+    case tc_health_agent_circuit = "tc_health_agent_circuit"
+    case tc_health_cooldown = "tc_health_cooldown"
+    case tc_sub_eyebrow = "tc_sub_eyebrow"
+    case tc_sub_title = "tc_sub_title"
+    case tc_sub_subtitle = "tc_sub_subtitle"
+    case tc_sub_nodes = "tc_sub_nodes"
+    case tc_sub_edges = "tc_sub_edges"
+    case tc_sub_entry = "tc_sub_entry"
+    case tc_sub_last_run = "tc_sub_last_run"
+    case tc_role_planner = "tc_role_planner"
+    case tc_role_coder = "tc_role_coder"
+    case tc_role_reviewer = "tc_role_reviewer"
+    case tc_role_writer = "tc_role_writer"
+    case tc_role_executor = "tc_role_executor"
+    case tc_role_researcher = "tc_role_researcher"
+    // TeamCollab seed content (tc_seed_) — Batch 15h
+    case tc_seed_task1 = "tc_seed_task1"
+    case tc_seed_task2 = "tc_seed_task2"
+    case tc_seed_task3 = "tc_seed_task3"
+    case tc_seed_task4 = "tc_seed_task4"
+    case tc_seed_deliverable1 = "tc_seed_deliverable1"
+    case tc_seed_deliverable2 = "tc_seed_deliverable2"
+    case tc_seed_deliverable3 = "tc_seed_deliverable3"
+    case tc_seed_result1 = "tc_seed_result1"
+    case tc_seed_handoff1 = "tc_seed_handoff1"
+    case tc_seed_handoff2 = "tc_seed_handoff2"
+    case tc_seed_handoff3 = "tc_seed_handoff3"
+    case tc_seed_msg1 = "tc_seed_msg1"
+    case tc_seed_msg2 = "tc_seed_msg2"
+    case tc_seed_msg3 = "tc_seed_msg3"
+    case tc_seed_msg4 = "tc_seed_msg4"
+    case tc_seed_msg5 = "tc_seed_msg5"
+    case tc_seed_ch_name1 = "tc_seed_ch_name1"
+    case tc_seed_ch_name2 = "tc_seed_ch_name2"
+    case tc_seed_sub_name1 = "tc_seed_sub_name1"
+    case tc_seed_sub_name2 = "tc_seed_sub_name2"
+    case tc_seed_sub_name3 = "tc_seed_sub_name3"
+    case tc_seed_lastrun_yesterday = "tc_seed_lastrun_yesterday"
 }
 
 // MARK: - 翻译管理器
@@ -7077,7 +7216,146 @@ let zhCNTranslations: [String: String] = [
     "fin_btn_gen_report": "生成报告",
     "fin_report_content": "报告内容",
     "fin_ai_copilot": "AI Copilot",
-    "fin_ph_input_question": "输入问题…"
+    "fin_ph_input_question": "输入问题…",
+    // TeamCollab (tc_) — Batch 15h
+    "tc_title": "团队协作",
+    "tc_status_online": "在线",
+    "tc_status_busy": "繁忙",
+    "tc_status_tripped": "熔断",
+    "tc_status_offline": "离线",
+    "tc_del_pending": "待执行",
+    "tc_del_running": "执行中",
+    "tc_del_done": "已完成",
+    "tc_del_failed": "失败",
+    "tc_del_escalated": "已升级",
+    "tc_pat_sequential": "顺序执行",
+    "tc_pat_parallel": "并行执行",
+    "tc_pat_master_worker": "主从分解",
+    "tc_pat_handoff": "链式交接",
+    "tc_pat_broadcast": "广播汇聚",
+    "tc_pat_supervisor": "监督路由",
+    "tc_pat_desc_sequential": "按顺序依次执行,前一步输出作为后一步输入",
+    "tc_pat_desc_parallel": "所有 Agent 并行执行,结果合并",
+    "tc_pat_desc_master_worker": "Master 分解任务 -> Workers 并行 -> 汇总",
+    "tc_pat_desc_handoff": "Agent 链式传递,携带累积上下文",
+    "tc_pat_desc_broadcast": "全员并行处理,合并策略(concat/best/json)",
+    "tc_pat_desc_supervisor": "Supervisor 逐轮路由,JSON 决策 done/__end__",
+    "tc_router_swarm": "蜂群委派",
+    "tc_router_plaza": "广场协商",
+    "tc_router_fmp": "FM 协议",
+    "tc_router_desc_swarm": "按能力/handoff_targets 委派,跳数受控 (team.swarm_*)",
+    "tc_router_desc_plaza": "频道广播 + @mention 路由 + 熔断 (team.plaza_*)",
+    "tc_router_desc_fmp": "FMProtocol send/receive/route/mention/circuit breaker (team.fmp_*)",
+    "tc_area_overview": "概览",
+    "tc_area_agents": "团队 Agents",
+    "tc_area_orchestration": "编排模式",
+    "tc_area_channels": "协作频道",
+    "tc_area_delegations": "任务委派",
+    "tc_area_monitor": "实时监控",
+    "tc_area_health": "健康熔断",
+    "tc_area_subgraphs": "子图注册",
+    "tc_ov_eyebrow_title": "协作总览",
+    "tc_ov_subtitle": "Agent 团队编排 · 蜂群委派 · 频道协商 · 熔断健康",
+    "tc_ov_stat_online": "在线 Agents",
+    "tc_ov_stat_tripped": "熔断 Agents",
+    "tc_ov_stat_running": "执行中委派",
+    "tc_ov_stat_suspended": "挂起频道",
+    "tc_ov_recent_delegations": "最近委派",
+    "tc_ov_active_pattern": "当前编排模式",
+    "tc_ov_health_summary": "健康摘要",
+    "tc_ov_health_online": "在线",
+    "tc_ov_health_busy": "繁忙",
+    "tc_ov_health_tripped": "熔断",
+    "tc_ov_health_offline": "离线",
+    "tc_circuit_open": "熔断开启",
+    "tc_circuit_closed": "熔断关闭",
+    "tc_agent_id": "Agent ID",
+    "tc_agent_capabilities": "能力 Capabilities",
+    "tc_agent_handoff": "交接目标 Handoff Targets",
+    "tc_agent_task_stats": "任务统计",
+    "tc_agent_done": "已完成",
+    "tc_agent_active": "进行中",
+    "tc_agent_max_hops": "最大跳数",
+    "tc_agent_circuit": "熔断器 Circuit Breaker",
+    "tc_agent_empty": "选择一个 Agent 查看详情",
+    "tc_orch_eyebrow": "Orchestration Patterns",
+    "tc_orch_title": "编排模式",
+    "tc_orch_subtitle": "fusion-agent-studio MultiAgentOrchestrator 的 6 种协作模式",
+    "tc_orch_pattern_info": "模式说明",
+    "tc_orch_impl": "对应实现: agent_runtime/orchestrator.py · %@()",
+    "tc_router_eyebrow": "Independent Routers",
+    "tc_router_title": "独立路由",
+    "tc_router_subtitle": "SwarmRouter / Plaza / FMProtocol — 独立于 Orchestrator 的路由模式",
+    "tc_router_info": "路由说明",
+    "tc_ch_rounds": "轮次 %@/%@ · %@ 人",
+    "tc_ch_suspended": "已熔断挂起",
+    "tc_ch_rounds_label": "轮次",
+    "tc_del_eyebrow": "Task Delegation",
+    "tc_del_title": "任务委派",
+    "tc_del_subtitle": "SwarmRouter 委派链 · 跳数受控 · 自动升级",
+    "tc_del_tasks": "委派任务",
+    "tc_del_handoff": "交接时间线 Handoff",
+    "tc_del_meta_delegator": "委派",
+    "tc_del_meta_trigger": "触发",
+    "tc_del_meta_deliverable": "交付物",
+    "tc_mon_eyebrow": "FMProtocol Monitor",
+    "tc_mon_title": "实时监控",
+    "tc_mon_subtitle": "消息收发 · 去重 · 熔断拦截 · 轮转路由",
+    "tc_mon_sent": "已发送 sent",
+    "tc_mon_received": "已接收 received",
+    "tc_mon_routed": "已路由 routed",
+    "tc_mon_dedup": "去重丢弃 dedup",
+    "tc_mon_blocked": "熔断拦截 blocked",
+    "tc_mon_max_rounds": "最大轮次 maxRounds",
+    "tc_mon_traffic": "消息流量分布",
+    "tc_mon_route_priority": "路由优先级",
+    "tc_mon_route_mention": "@mention 指定目标",
+    "tc_mon_route_p2p": "点对点 recipient",
+    "tc_mon_route_turn": "轮转下一跳 (排除熔断)",
+    "tc_health_eyebrow": "Circuit Breaker Health",
+    "tc_health_title": "健康熔断",
+    "tc_health_subtitle": "阈值 3 次失败即熔断 · 30s 半开重试 · 自动升级",
+    "tc_health_stat_closed": "熔断关闭",
+    "tc_health_stat_open": "熔断开启",
+    "tc_health_stat_escalated": "已自动升级",
+    "tc_health_agent_circuit": "Agent 熔断器",
+    "tc_health_cooldown": "冷却 %ds",
+    "tc_sub_eyebrow": "Sub-Graph Registry",
+    "tc_sub_title": "子图注册",
+    "tc_sub_subtitle": "可复用 AgentGraph · 节点/边 · 入口节点 · 运行状态",
+    "tc_sub_nodes": "节点",
+    "tc_sub_edges": "边",
+    "tc_sub_entry": "入口",
+    "tc_sub_last_run": "最近运行 %@",
+    "tc_role_planner": "规划",
+    "tc_role_coder": "编码",
+    "tc_role_reviewer": "评审",
+    "tc_role_writer": "文档",
+    "tc_role_executor": "执行",
+    "tc_role_researcher": "调研",
+    // TeamCollab seed content
+    "tc_seed_task1": "拆解需求 PRD-77",
+    "tc_seed_task2": "评审 auth 模块",
+    "tc_seed_task3": "部署到 staging",
+    "tc_seed_task4": "生成 API 文档",
+    "tc_seed_deliverable1": "实现 diff",
+    "tc_seed_deliverable2": "评审意见",
+    "tc_seed_deliverable3": "部署日志",
+    "tc_seed_result1": "熔断,已升级至 Planner",
+    "tc_seed_handoff1": "PRD-77 已拆解为 3 子任务",
+    "tc_seed_handoff2": "auth 模块实现完成,含测试",
+    "tc_seed_handoff3": "评审通过,触发部署",
+    "tc_seed_msg1": "@Coder 开始 PRD-77 编码",
+    "tc_seed_msg2": "已完成,提交 @Reviewer 评审",
+    "tc_seed_msg3": "评审通过,建议部署 @Executor",
+    "tc_seed_msg4": "Coder 熔断,暂停该 agent",
+    "tc_seed_msg5": "检索到 12 篇相关论文",
+    "tc_seed_ch_name1": "PRD-77 协作",
+    "tc_seed_ch_name2": "技术调研",
+    "tc_seed_sub_name1": "代码评审流",
+    "tc_seed_sub_name2": "文档生成流",
+    "tc_seed_sub_name3": "部署流水线",
+    "tc_seed_lastrun_yesterday": "昨日 18:02"
 ]
 
 let enUSTranslations: [String: String] = [
@@ -10396,7 +10674,146 @@ let enUSTranslations: [String: String] = [
     "fin_btn_gen_report": "Generate Report",
     "fin_report_content": "Report Content",
     "fin_ai_copilot": "AI Copilot",
-    "fin_ph_input_question": "Enter question…"
+    "fin_ph_input_question": "Enter question…",
+    // TeamCollab (tc_) — Batch 15h
+    "tc_title": "Team Collaboration",
+    "tc_status_online": "Online",
+    "tc_status_busy": "Busy",
+    "tc_status_tripped": "Tripped",
+    "tc_status_offline": "Offline",
+    "tc_del_pending": "Pending",
+    "tc_del_running": "Running",
+    "tc_del_done": "Done",
+    "tc_del_failed": "Failed",
+    "tc_del_escalated": "Escalated",
+    "tc_pat_sequential": "Sequential",
+    "tc_pat_parallel": "Parallel",
+    "tc_pat_master_worker": "Master-Worker",
+    "tc_pat_handoff": "Chained Handoff",
+    "tc_pat_broadcast": "Broadcast Merge",
+    "tc_pat_supervisor": "Supervisor Routing",
+    "tc_pat_desc_sequential": "Execute in sequence, prior output feeds next step",
+    "tc_pat_desc_parallel": "All agents run in parallel, results merged",
+    "tc_pat_desc_master_worker": "Master decomposes -> workers parallel -> aggregate",
+    "tc_pat_desc_handoff": "Agents pass along chain, carrying accumulated context",
+    "tc_pat_desc_broadcast": "All process in parallel, merge strategy (concat/best/json)",
+    "tc_pat_desc_supervisor": "Supervisor routes per round, JSON decides done/__end__",
+    "tc_router_swarm": "Swarm Delegation",
+    "tc_router_plaza": "Plaza Negotiation",
+    "tc_router_fmp": "FM Protocol",
+    "tc_router_desc_swarm": "Delegate by capability/handoff_targets, hop-limited (team.swarm_*)",
+    "tc_router_desc_plaza": "Channel broadcast + @mention routing + circuit breaker (team.plaza_*)",
+    "tc_router_desc_fmp": "FMProtocol send/receive/route/mention/circuit breaker (team.fmp_*)",
+    "tc_area_overview": "Overview",
+    "tc_area_agents": "Team Agents",
+    "tc_area_orchestration": "Orchestration",
+    "tc_area_channels": "Channels",
+    "tc_area_delegations": "Delegations",
+    "tc_area_monitor": "Monitor",
+    "tc_area_health": "Health & Circuit",
+    "tc_area_subgraphs": "Sub-Graphs",
+    "tc_ov_eyebrow_title": "Collaboration Overview",
+    "tc_ov_subtitle": "Agent team orchestration · swarm delegation · channel negotiation · circuit health",
+    "tc_ov_stat_online": "Online Agents",
+    "tc_ov_stat_tripped": "Tripped Agents",
+    "tc_ov_stat_running": "Running Delegations",
+    "tc_ov_stat_suspended": "Suspended Channels",
+    "tc_ov_recent_delegations": "Recent Delegations",
+    "tc_ov_active_pattern": "Active Pattern",
+    "tc_ov_health_summary": "Health Summary",
+    "tc_ov_health_online": "Online",
+    "tc_ov_health_busy": "Busy",
+    "tc_ov_health_tripped": "Tripped",
+    "tc_ov_health_offline": "Offline",
+    "tc_circuit_open": "Circuit Open",
+    "tc_circuit_closed": "Circuit Closed",
+    "tc_agent_id": "Agent ID",
+    "tc_agent_capabilities": "Capabilities",
+    "tc_agent_handoff": "Handoff Targets",
+    "tc_agent_task_stats": "Task Stats",
+    "tc_agent_done": "Done",
+    "tc_agent_active": "Active",
+    "tc_agent_max_hops": "Max Hops",
+    "tc_agent_circuit": "Circuit Breaker",
+    "tc_agent_empty": "Select an agent to view details",
+    "tc_orch_eyebrow": "Orchestration Patterns",
+    "tc_orch_title": "Orchestration",
+    "tc_orch_subtitle": "6 collaboration patterns from fusion-agent-studio MultiAgentOrchestrator",
+    "tc_orch_pattern_info": "Pattern Info",
+    "tc_orch_impl": "Implementation: agent_runtime/orchestrator.py · %@()",
+    "tc_router_eyebrow": "Independent Routers",
+    "tc_router_title": "Independent Routers",
+    "tc_router_subtitle": "SwarmRouter / Plaza / FMProtocol — routing independent of Orchestrator",
+    "tc_router_info": "Router Info",
+    "tc_ch_rounds": "Round %@/%@ · %@ people",
+    "tc_ch_suspended": "Suspended by circuit",
+    "tc_ch_rounds_label": "Rounds",
+    "tc_del_eyebrow": "Task Delegation",
+    "tc_del_title": "Delegations",
+    "tc_del_subtitle": "SwarmRouter delegation chain · hop-limited · auto-escalation",
+    "tc_del_tasks": "Delegation Tasks",
+    "tc_del_handoff": "Handoff Timeline",
+    "tc_del_meta_delegator": "Delegator",
+    "tc_del_meta_trigger": "Trigger",
+    "tc_del_meta_deliverable": "Deliverable",
+    "tc_mon_eyebrow": "FMProtocol Monitor",
+    "tc_mon_title": "Monitor",
+    "tc_mon_subtitle": "Message send/recv · dedup · circuit block · turn routing",
+    "tc_mon_sent": "Sent",
+    "tc_mon_received": "Received",
+    "tc_mon_routed": "Routed",
+    "tc_mon_dedup": "Dedup dropped",
+    "tc_mon_blocked": "Circuit blocked",
+    "tc_mon_max_rounds": "Max rounds",
+    "tc_mon_traffic": "Message Traffic",
+    "tc_mon_route_priority": "Routing Priority",
+    "tc_mon_route_mention": "@mention target",
+    "tc_mon_route_p2p": "Peer-to-peer recipient",
+    "tc_mon_route_turn": "Turn next hop (skip tripped)",
+    "tc_health_eyebrow": "Circuit Breaker Health",
+    "tc_health_title": "Health & Circuit",
+    "tc_health_subtitle": "3 failures trips circuit · 30s half-open retry · auto-escalation",
+    "tc_health_stat_closed": "Circuit Closed",
+    "tc_health_stat_open": "Circuit Open",
+    "tc_health_stat_escalated": "Auto-escalated",
+    "tc_health_agent_circuit": "Agent Circuit Breakers",
+    "tc_health_cooldown": "Cooldown %ds",
+    "tc_sub_eyebrow": "Sub-Graph Registry",
+    "tc_sub_title": "Sub-Graphs",
+    "tc_sub_subtitle": "Reusable AgentGraph · nodes/edges · entry node · run status",
+    "tc_sub_nodes": "Nodes",
+    "tc_sub_edges": "Edges",
+    "tc_sub_entry": "Entry",
+    "tc_sub_last_run": "Last run %@",
+    "tc_role_planner": "Planner",
+    "tc_role_coder": "Coder",
+    "tc_role_reviewer": "Reviewer",
+    "tc_role_writer": "Writer",
+    "tc_role_executor": "Executor",
+    "tc_role_researcher": "Researcher",
+    // TeamCollab seed content
+    "tc_seed_task1": "Decompose PRD-77 requirements",
+    "tc_seed_task2": "Review auth module",
+    "tc_seed_task3": "Deploy to staging",
+    "tc_seed_task4": "Generate API docs",
+    "tc_seed_deliverable1": "Implementation diff",
+    "tc_seed_deliverable2": "Review notes",
+    "tc_seed_deliverable3": "Deploy logs",
+    "tc_seed_result1": "Tripped, escalated to Planner",
+    "tc_seed_handoff1": "PRD-77 decomposed into 3 subtasks",
+    "tc_seed_handoff2": "auth module implemented, with tests",
+    "tc_seed_handoff3": "Review passed, triggering deploy",
+    "tc_seed_msg1": "@Coder start PRD-77 coding",
+    "tc_seed_msg2": "Done, submit to @Reviewer for review",
+    "tc_seed_msg3": "Review passed, recommend deploy @Executor",
+    "tc_seed_msg4": "Coder tripped, pause this agent",
+    "tc_seed_msg5": "Found 12 related papers",
+    "tc_seed_ch_name1": "PRD-77 Collaboration",
+    "tc_seed_ch_name2": "Tech Research",
+    "tc_seed_sub_name1": "Code Review Flow",
+    "tc_seed_sub_name2": "Doc Generation Flow",
+    "tc_seed_sub_name3": "Deploy Pipeline",
+    "tc_seed_lastrun_yesterday": "Yesterday 18:02"
 ]
 
 let jaJPTranslations: [String: String] = [
@@ -13709,7 +14126,146 @@ let jaJPTranslations: [String: String] = [
     "fin_btn_gen_report": "レポート生成",
     "fin_report_content": "レポート内容",
     "fin_ai_copilot": "AI Copilot",
-    "fin_ph_input_question": "質問を入力…"
+    "fin_ph_input_question": "質問を入力…",
+    // TeamCollab (tc_) — Batch 15h
+    "tc_title": "チームコラボ",
+    "tc_status_online": "オンライン",
+    "tc_status_busy": "ビジー",
+    "tc_status_tripped": "ヒューズ遮断",
+    "tc_status_offline": "オフライン",
+    "tc_del_pending": "待機中",
+    "tc_del_running": "実行中",
+    "tc_del_done": "完了",
+    "tc_del_failed": "失敗",
+    "tc_del_escalated": "エスカレーション",
+    "tc_pat_sequential": "順次実行",
+    "tc_pat_parallel": "並列実行",
+    "tc_pat_master_worker": "マスター・ワーカー",
+    "tc_pat_handoff": "チェーン引き継ぎ",
+    "tc_pat_broadcast": "ブロードキャスト統合",
+    "tc_pat_supervisor": "スーパーバイザー制御",
+    "tc_pat_desc_sequential": "順番に実行,前ステップの出力が次ステップの入力",
+    "tc_pat_desc_parallel": "全エージェント並列実行,結果を統合",
+    "tc_pat_desc_master_worker": "Master がタスク分割 -> Workers 並列 -> 統合",
+    "tc_pat_desc_handoff": "エージェントがチェーンで引き継ぎ,累積コンテキストを保持",
+    "tc_pat_desc_broadcast": "全員並列処理,統合戦略(concat/best/json)",
+    "tc_pat_desc_supervisor": "Supervisor が毎ラウンド制御,JSON で done/__end__ 判定",
+    "tc_router_swarm": "スワーム委譲",
+    "tc_router_plaza": "プラザ協議",
+    "tc_router_fmp": "FM プロトコル",
+    "tc_router_desc_swarm": "能力/handoff_targets で委譲,ホップ制限 (team.swarm_*)",
+    "tc_router_desc_plaza": "チャネル放送 + @mention ルーティング + ヒューズ (team.plaza_*)",
+    "tc_router_desc_fmp": "FMProtocol send/receive/route/mention/circuit breaker (team.fmp_*)",
+    "tc_area_overview": "概要",
+    "tc_area_agents": "チーム Agents",
+    "tc_area_orchestration": "オーケストレーション",
+    "tc_area_channels": "コラボチャネル",
+    "tc_area_delegations": "タスク委譲",
+    "tc_area_monitor": "リアルタイム監視",
+    "tc_area_health": "健全性・ヒューズ",
+    "tc_area_subgraphs": "サブグラフ登録",
+    "tc_ov_eyebrow_title": "コラボ概要",
+    "tc_ov_subtitle": "Agent チーム編成 · スワーム委譲 · チャネル協議 · ヒューズ健全性",
+    "tc_ov_stat_online": "オンライン Agents",
+    "tc_ov_stat_tripped": "遮断 Agents",
+    "tc_ov_stat_running": "実行中委譲",
+    "tc_ov_stat_suspended": "保留チャネル",
+    "tc_ov_recent_delegations": "最近の委譲",
+    "tc_ov_active_pattern": "現在のパターン",
+    "tc_ov_health_summary": "健全性サマリー",
+    "tc_ov_health_online": "オンライン",
+    "tc_ov_health_busy": "ビジー",
+    "tc_ov_health_tripped": "遮断",
+    "tc_ov_health_offline": "オフライン",
+    "tc_circuit_open": "ヒューズ遮断中",
+    "tc_circuit_closed": "ヒューズ閉鎖",
+    "tc_agent_id": "Agent ID",
+    "tc_agent_capabilities": "機能 Capabilities",
+    "tc_agent_handoff": "引き継ぎ先 Handoff Targets",
+    "tc_agent_task_stats": "タスク統計",
+    "tc_agent_done": "完了",
+    "tc_agent_active": "進行中",
+    "tc_agent_max_hops": "最大ホップ数",
+    "tc_agent_circuit": "ヒューズ Circuit Breaker",
+    "tc_agent_empty": "Agent を選択して詳細を表示",
+    "tc_orch_eyebrow": "Orchestration Patterns",
+    "tc_orch_title": "オーケストレーション",
+    "tc_orch_subtitle": "fusion-agent-studio MultiAgentOrchestrator の 6 種コラボパターン",
+    "tc_orch_pattern_info": "パターン説明",
+    "tc_orch_impl": "実装: agent_runtime/orchestrator.py · %@()",
+    "tc_router_eyebrow": "Independent Routers",
+    "tc_router_title": "独立ルーティング",
+    "tc_router_subtitle": "SwarmRouter / Plaza / FMProtocol — Orchestrator に依存しないルーティング",
+    "tc_router_info": "ルーティング説明",
+    "tc_ch_rounds": "ラウンド %@/%@ · %@ 人",
+    "tc_ch_suspended": "ヒューズ遮断で保留",
+    "tc_ch_rounds_label": "ラウンド",
+    "tc_del_eyebrow": "Task Delegation",
+    "tc_del_title": "タスク委譲",
+    "tc_del_subtitle": "SwarmRouter 委譲チェーン · ホップ制限 · 自動エスカレーション",
+    "tc_del_tasks": "委譲タスク",
+    "tc_del_handoff": "引き継ぎタイムライン Handoff",
+    "tc_del_meta_delegator": "委譲",
+    "tc_del_meta_trigger": "トリガー",
+    "tc_del_meta_deliverable": "成果物",
+    "tc_mon_eyebrow": "FMProtocol Monitor",
+    "tc_mon_title": "リアルタイム監視",
+    "tc_mon_subtitle": "メッセージ送受信 · 重複排除 · ヒューズ遮断 · ターンルーティング",
+    "tc_mon_sent": "送信済 sent",
+    "tc_mon_received": "受信済 received",
+    "tc_mon_routed": "ルーティング routed",
+    "tc_mon_dedup": "重複破棄 dedup",
+    "tc_mon_blocked": "ヒューズ遮断 blocked",
+    "tc_mon_max_rounds": "最大ラウンド maxRounds",
+    "tc_mon_traffic": "メッセージトラフィック",
+    "tc_mon_route_priority": "ルーティング優先度",
+    "tc_mon_route_mention": "@mention 指定先",
+    "tc_mon_route_p2p": "点対点 recipient",
+    "tc_mon_route_turn": "ターン次ホップ (遮断除外)",
+    "tc_health_eyebrow": "Circuit Breaker Health",
+    "tc_health_title": "健全性・ヒューズ",
+    "tc_health_subtitle": "3 回失敗で遮断 · 30s ハーフオープン再試行 · 自動エスカレーション",
+    "tc_health_stat_closed": "ヒューズ閉鎖",
+    "tc_health_stat_open": "ヒューズ遮断中",
+    "tc_health_stat_escalated": "自動エスカレーション済",
+    "tc_health_agent_circuit": "Agent ヒューズ",
+    "tc_health_cooldown": "クールダウン %ds",
+    "tc_sub_eyebrow": "Sub-Graph Registry",
+    "tc_sub_title": "サブグラフ登録",
+    "tc_sub_subtitle": "再利用可能 AgentGraph · ノード/エッジ · 入口ノード · 実行状態",
+    "tc_sub_nodes": "ノード",
+    "tc_sub_edges": "エッジ",
+    "tc_sub_entry": "入口",
+    "tc_sub_last_run": "最近実行 %@",
+    "tc_role_planner": "計画",
+    "tc_role_coder": "コーディング",
+    "tc_role_reviewer": "レビュー",
+    "tc_role_writer": "ドキュメント",
+    "tc_role_executor": "実行",
+    "tc_role_researcher": "調査",
+    // TeamCollab seed content
+    "tc_seed_task1": "要件 PRD-77 を分解",
+    "tc_seed_task2": "auth モジュールをレビュー",
+    "tc_seed_task3": "staging にデプロイ",
+    "tc_seed_task4": "API ドキュメントを生成",
+    "tc_seed_deliverable1": "実装 diff",
+    "tc_seed_deliverable2": "レビュー意見",
+    "tc_seed_deliverable3": "デプロイログ",
+    "tc_seed_result1": "遮断,Planner にエスカレーション",
+    "tc_seed_handoff1": "PRD-77 を 3 サブタスクに分解",
+    "tc_seed_handoff2": "auth モジュール実装完了,テスト含む",
+    "tc_seed_handoff3": "レビュー通過,デプロイ発動",
+    "tc_seed_msg1": "@Coder PRD-77 のコーディングを開始",
+    "tc_seed_msg2": "完了,@Reviewer にレビュー提出",
+    "tc_seed_msg3": "レビュー通過,@Executor へのデプロイを推奨",
+    "tc_seed_msg4": "Coder が遮断,この agent を一時停止",
+    "tc_seed_msg5": "関連論文 12 件を検出",
+    "tc_seed_ch_name1": "PRD-77 コラボ",
+    "tc_seed_ch_name2": "技術調査",
+    "tc_seed_sub_name1": "コードレビューフロー",
+    "tc_seed_sub_name2": "ドキュメント生成フロー",
+    "tc_seed_sub_name3": "デプロイパイプライン",
+    "tc_seed_lastrun_yesterday": "昨日 18:02"
 ]
 
 let koKRTranslations: [String: String] = [
@@ -17022,7 +17578,146 @@ let koKRTranslations: [String: String] = [
     "fin_btn_gen_report": "보고서 생성",
     "fin_report_content": "보고서 내용",
     "fin_ai_copilot": "AI Copilot",
-    "fin_ph_input_question": "질문 입력…"
+    "fin_ph_input_question": "질문 입력…",
+    // TeamCollab (tc_) — Batch 15h
+    "tc_title": "팀 협업",
+    "tc_status_online": "온라인",
+    "tc_status_busy": "바쁨",
+    "tc_status_tripped": "차단",
+    "tc_status_offline": "오프라인",
+    "tc_del_pending": "대기 중",
+    "tc_del_running": "실행 중",
+    "tc_del_done": "완료",
+    "tc_del_failed": "실패",
+    "tc_del_escalated": "에스컬레이션",
+    "tc_pat_sequential": "순차 실행",
+    "tc_pat_parallel": "병렬 실행",
+    "tc_pat_master_worker": "마스터-워커",
+    "tc_pat_handoff": "체인 인계",
+    "tc_pat_broadcast": "브로드캐스트 통합",
+    "tc_pat_supervisor": "감독자 라우팅",
+    "tc_pat_desc_sequential": "순서대로 실행, 이전 단계 출력이 다음 단계 입력",
+    "tc_pat_desc_parallel": "모든 에이전트 병렬 실행, 결과 통합",
+    "tc_pat_desc_master_worker": "Master가 작업 분해 -> Workers 병렬 -> 통합",
+    "tc_pat_desc_handoff": "에이전트가 체인으로 인계, 누적 컨텍스트 유지",
+    "tc_pat_desc_broadcast": "전원 병렬 처리, 통합 전략(concat/best/json)",
+    "tc_pat_desc_supervisor": "Supervisor가 매 라운드 라우팅, JSON으로 done/__end__ 판정",
+    "tc_router_swarm": "스웜 위임",
+    "tc_router_plaza": "플라자 협의",
+    "tc_router_fmp": "FM 프로토콜",
+    "tc_router_desc_swarm": "능력/handoff_targets로 위임, 홉 제한 (team.swarm_*)",
+    "tc_router_desc_plaza": "채널 방송 + @mention 라우팅 + 차단 (team.plaza_*)",
+    "tc_router_desc_fmp": "FMProtocol send/receive/route/mention/circuit breaker (team.fmp_*)",
+    "tc_area_overview": "개요",
+    "tc_area_agents": "팀 Agents",
+    "tc_area_orchestration": "오케스트레이션",
+    "tc_area_channels": "협업 채널",
+    "tc_area_delegations": "작업 위임",
+    "tc_area_monitor": "실시간 모니터",
+    "tc_area_health": "건전성·차단",
+    "tc_area_subgraphs": "서브그래프 등록",
+    "tc_ov_eyebrow_title": "협업 개요",
+    "tc_ov_subtitle": "Agent 팀 오케스트레이션 · 스웜 위임 · 채널 협의 · 차단 건전성",
+    "tc_ov_stat_online": "온라인 Agents",
+    "tc_ov_stat_tripped": "차단 Agents",
+    "tc_ov_stat_running": "실행 중 위임",
+    "tc_ov_stat_suspended": "보류 채널",
+    "tc_ov_recent_delegations": "최근 위임",
+    "tc_ov_active_pattern": "현재 패턴",
+    "tc_ov_health_summary": "건전성 요약",
+    "tc_ov_health_online": "온라인",
+    "tc_ov_health_busy": "바쁨",
+    "tc_ov_health_tripped": "차단",
+    "tc_ov_health_offline": "오프라인",
+    "tc_circuit_open": "차단 활성",
+    "tc_circuit_closed": "차단 해제",
+    "tc_agent_id": "Agent ID",
+    "tc_agent_capabilities": "기능 Capabilities",
+    "tc_agent_handoff": "인계 대상 Handoff Targets",
+    "tc_agent_task_stats": "작업 통계",
+    "tc_agent_done": "완료",
+    "tc_agent_active": "진행 중",
+    "tc_agent_max_hops": "최대 홉",
+    "tc_agent_circuit": "차단기 Circuit Breaker",
+    "tc_agent_empty": "Agent를 선택해 상세 보기",
+    "tc_orch_eyebrow": "Orchestration Patterns",
+    "tc_orch_title": "오케스트레이션",
+    "tc_orch_subtitle": "fusion-agent-studio MultiAgentOrchestrator의 6가지 협업 패턴",
+    "tc_orch_pattern_info": "패턴 설명",
+    "tc_orch_impl": "구현: agent_runtime/orchestrator.py · %@()",
+    "tc_router_eyebrow": "Independent Routers",
+    "tc_router_title": "독립 라우팅",
+    "tc_router_subtitle": "SwarmRouter / Plaza / FMProtocol — Orchestrator와 독립적인 라우팅",
+    "tc_router_info": "라우팅 설명",
+    "tc_ch_rounds": "라운드 %@/%@ · %@명",
+    "tc_ch_suspended": "차단으로 보류",
+    "tc_ch_rounds_label": "라운드",
+    "tc_del_eyebrow": "Task Delegation",
+    "tc_del_title": "작업 위임",
+    "tc_del_subtitle": "SwarmRouter 위임 체인 · 홉 제한 · 자동 에스컬레이션",
+    "tc_del_tasks": "위임 작업",
+    "tc_del_handoff": "인계 타임라인 Handoff",
+    "tc_del_meta_delegator": "위임",
+    "tc_del_meta_trigger": "트리거",
+    "tc_del_meta_deliverable": "산출물",
+    "tc_mon_eyebrow": "FMProtocol Monitor",
+    "tc_mon_title": "실시간 모니터",
+    "tc_mon_subtitle": "메시지 송수신 · 중복 제거 · 차단 차단 · 턴 라우팅",
+    "tc_mon_sent": "전송 sent",
+    "tc_mon_received": "수신 received",
+    "tc_mon_routed": "라우팅 routed",
+    "tc_mon_dedup": "중복 폐기 dedup",
+    "tc_mon_blocked": "차단 차단 blocked",
+    "tc_mon_max_rounds": "최대 라운드 maxRounds",
+    "tc_mon_traffic": "메시지 트래픽",
+    "tc_mon_route_priority": "라우팅 우선순위",
+    "tc_mon_route_mention": "@mention 지정 대상",
+    "tc_mon_route_p2p": "점대점 recipient",
+    "tc_mon_route_turn": "턴 다음 홉 (차단 제외)",
+    "tc_health_eyebrow": "Circuit Breaker Health",
+    "tc_health_title": "건전성·차단",
+    "tc_health_subtitle": "3회 실패 시 차단 · 30s 하프오픈 재시도 · 자동 에스컬레이션",
+    "tc_health_stat_closed": "차단 해제",
+    "tc_health_stat_open": "차단 활성",
+    "tc_health_stat_escalated": "자동 에스컬레이션",
+    "tc_health_agent_circuit": "Agent 차단기",
+    "tc_health_cooldown": "쿨다운 %ds",
+    "tc_sub_eyebrow": "Sub-Graph Registry",
+    "tc_sub_title": "서브그래프 등록",
+    "tc_sub_subtitle": "재사용 AgentGraph · 노드/엣지 · 입구 노드 · 실행 상태",
+    "tc_sub_nodes": "노드",
+    "tc_sub_edges": "엣지",
+    "tc_sub_entry": "입구",
+    "tc_sub_last_run": "최근 실행 %@",
+    "tc_role_planner": "계획",
+    "tc_role_coder": "코딩",
+    "tc_role_reviewer": "리뷰",
+    "tc_role_writer": "문서",
+    "tc_role_executor": "실행",
+    "tc_role_researcher": "조사",
+    // TeamCollab seed content
+    "tc_seed_task1": "PRD-77 요구사항 분해",
+    "tc_seed_task2": "auth 모듈 리뷰",
+    "tc_seed_task3": "staging에 배포",
+    "tc_seed_task4": "API 문서 생성",
+    "tc_seed_deliverable1": "구현 diff",
+    "tc_seed_deliverable2": "리뷰 의견",
+    "tc_seed_deliverable3": "배포 로그",
+    "tc_seed_result1": "차단, Planner로 에스컬레이션",
+    "tc_seed_handoff1": "PRD-77을 3개 하위 작업으로 분해",
+    "tc_seed_handoff2": "auth 모듈 구현 완료, 테스트 포함",
+    "tc_seed_handoff3": "리뷰 통과, 배포 트리거",
+    "tc_seed_msg1": "@Coder PRD-77 코딩 시작",
+    "tc_seed_msg2": "완료, @Reviewer에 리뷰 제출",
+    "tc_seed_msg3": "리뷰 통과, @Executor 배포 권장",
+    "tc_seed_msg4": "Coder 차단, 이 agent 일시정지",
+    "tc_seed_msg5": "관련 논문 12건 검색",
+    "tc_seed_ch_name1": "PRD-77 협업",
+    "tc_seed_ch_name2": "기술 조사",
+    "tc_seed_sub_name1": "코드 리뷰 흐름",
+    "tc_seed_sub_name2": "문서 생성 흐름",
+    "tc_seed_sub_name3": "배포 파이프라인",
+    "tc_seed_lastrun_yesterday": "어제 18:02"
 ]
 
 // MARK: - 国际化文本视图
