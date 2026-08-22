@@ -4,6 +4,9 @@
 // User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
 
 import SwiftUI
+import os.log
+
+private let trainLogger = Logger(subsystem: "com.fusion.studio", category: "TrainingView")
 
 // MARK: - 训练配置
 
@@ -26,9 +29,17 @@ struct TrainingConfig {
     var optimizer: OptimizerType = .adamW
 
     enum TrainingMethod: String, CaseIterable {
-        case lora  = "LoRA"
-        case qlora = "QLoRA"
-        case full  = "全量微调"
+        case lora
+        case qlora
+        case full
+
+        var localizedName: String {
+            switch self {
+            case .lora:  return I18nManager.shared.t(.train_method_lora)
+            case .qlora: return I18nManager.shared.t(.train_method_qlora)
+            case .full:  return I18nManager.shared.t(.train_method_full)
+            }
+        }
     }
     enum OptimizerType: String, CaseIterable {
         case adamW = "AdamW"
@@ -85,18 +96,17 @@ class TrainingManager: ObservableObject {
 
     func startTraining() {
         status.isRunning = true
-        status.log = ["开始训练..."]
-        status.log.append(" 模型: \(config.modelName)")
-        status.log.append(" 方法: \(config.method.rawValue)")
-        status.log.append(" 学习率: \(config.learningRate)")
-        status.log.append(" Epochs: \(config.numEpochs)")
-        status.log.append(" Batch: \(config.batchSize)")
+        status.log = [I18nManager.shared.t(.train_log_start)]
+        status.log.append(I18nManager.shared.tf(.train_log_model, config.modelName))
+        status.log.append(I18nManager.shared.tf(.train_log_method, config.method.localizedName))
+        status.log.append(I18nManager.shared.tf(.train_log_lr_val, config.learningRate))
+        status.log.append(I18nManager.shared.tf(.train_log_epochs, config.numEpochs))
+        status.log.append(I18nManager.shared.tf(.train_log_batch, config.batchSize))
         status.log.append("")
 
         let totalSteps = config.numEpochs * 100
         status.totalSteps = totalSteps
         status.totalEpochs = config.numEpochs
-        let start = Date()
 
         // 通过 fusion-mlx HTTP API 调用训练
         Task { [weak self] in
@@ -117,6 +127,7 @@ class TrainingManager: ObservableObject {
                 ]
                 request.httpBody = try JSONSerialization.data(withJSONObject: body)
                 request.timeoutInterval = 3600
+                trainLogger.info("submit training: model=\(self.config.modelName, privacy: .public) method=\(self.config.method.rawValue, privacy: .public)")
 
                 let (data, response) = try await URLSession.shared.data(for: request)
                 if let httpResp = response as? HTTPURLResponse,
@@ -124,25 +135,26 @@ class TrainingManager: ObservableObject {
                    let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
                     let trainingId = json["training_id"] as? String ?? "unknown"
                     await MainActor.run {
-                        self.status.log.append("✅ 训练任务已提交 (ID: \(trainingId))")
-                        self.status.log.append("训练已在 fusion-mlx 后台启动，请查看 fusion-mlx 日志获取实时进度。")
+                        self.status.log.append(I18nManager.shared.tf(.train_log_submitted, trainingId))
+                        self.status.log.append(I18nManager.shared.t(.train_log_bg_started))
                         self.status.isRunning = false
-                        let newCheckpoint = Checkpoint(name: "training-\(trainingId.prefix(8))", step: 0, loss: 0, date: Date(), size: "进行中")
+                        let newCheckpoint = Checkpoint(name: "training-\(trainingId.prefix(8))", step: 0, loss: 0, date: Date(), size: I18nManager.shared.t(.train_ckpt_in_progress))
                         self.checkpoints.append(newCheckpoint)
                         self.objectWillChange.send()
                     }
                 } else {
-                    let errorBody = String(data: data, encoding: .utf8) ?? "未知错误"
+                    let errorBody = String(data: data, encoding: .utf8) ?? I18nManager.shared.t(.train_log_unknown_error)
                     await MainActor.run {
-                        self.status.log.append("⚠️ fusion-mlx 返回错误: \(errorBody)")
+                        self.status.log.append(I18nManager.shared.tf(.train_log_mlx_error, errorBody))
                         self.status.isRunning = false
                         self.objectWillChange.send()
                     }
                 }
             } catch {
+                trainLogger.error("training API failed: \(error.localizedDescription, privacy: .public)")
                 await MainActor.run {
-                    self.status.log.append("⚠️ 调用 fusion-mlx 训练 API 失败: \(error.localizedDescription)")
-                    self.status.log.append("请确保 fusion-mlx 服务正在运行且支持训练接口。")
+                    self.status.log.append(I18nManager.shared.tf(.train_log_api_failed, error.localizedDescription))
+                    self.status.log.append(I18nManager.shared.t(.train_log_ensure_mlx))
                     self.status.isRunning = false
                     self.objectWillChange.send()
                 }
@@ -152,7 +164,7 @@ class TrainingManager: ObservableObject {
 
     func stopTraining() {
         status.isRunning = false
-        status.log.append("⏸️ 训练已暂停")
+        status.log.append(I18nManager.shared.t(.train_log_paused))
         objectWillChange.send()
     }
 
@@ -170,22 +182,31 @@ struct TrainingView: View {
     @State private var selectedTab: TrainingTab = .config
 
     enum TrainingTab: String, CaseIterable {
-        case config     = "训练配置"
-        case monitor    = "训练监控"
-        case checkpoints = "检查点"
-        case dataset    = "数据集"
+        case config
+        case monitor
+        case checkpoints
+        case dataset
+
+        var localizedName: String {
+            switch self {
+            case .config:      return I18nManager.shared.t(.train_tab_config)
+            case .monitor:     return I18nManager.shared.t(.train_tab_monitor)
+            case .checkpoints: return I18nManager.shared.t(.train_tab_checkpoints)
+            case .dataset:     return I18nManager.shared.t(.train_tab_dataset)
+            }
+        }
     }
 
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Label("模型训练", systemImage: "brain").font(.headline)
+                Label(I18nManager.shared.t(.train_header), systemImage: "brain").font(.headline)
                 Spacer()
                 if manager.status.isRunning {
-                    Button("停止训练") { manager.stopTraining() }
+                    Button(I18nManager.shared.t(.train_btn_stop)) { manager.stopTraining() }
                         .buttonStyle(.borderedProminent).tint(.red).controlSize(.small)
                 } else {
-                    Button("开始训练") { manager.startTraining() }
+                    Button(I18nManager.shared.t(.train_btn_start)) { manager.startTraining() }
                         .buttonStyle(.borderedProminent).controlSize(.small)
                 }
             }
@@ -196,7 +217,7 @@ struct TrainingView: View {
 
             Picker("", selection: $selectedTab) {
                 ForEach(TrainingTab.allCases, id: \.self) { tab in
-                    Label(tab.rawValue, systemImage: tabIcon(tab)).tag(tab)
+                    Label(tab.localizedName, systemImage: tabIcon(tab)).tag(tab)
                 }
             }
             .pickerStyle(.segmented).padding(8)
@@ -225,50 +246,50 @@ struct TrainingConfigView: View {
 
     var body: some View {
         Form {
-            Section("模型") {
-                Picker("基础模型", selection: $manager.config.modelName) {
+            Section(I18nManager.shared.t(.train_sec_model)) {
+                Picker(I18nManager.shared.t(.train_label_base_model), selection: $manager.config.modelName) {
                     Text("qwen3.5-9b-4bit").tag("qwen3.5-9b-4bit")
                     Text("llama3-8b-4bit").tag("llama3-8b-4bit")
                     Text("deepseek-coder-6.7b-4bit").tag("deepseek-coder-6.7b-4bit")
                 }
-                Picker("训练方法", selection: $manager.config.method) {
+                Picker(I18nManager.shared.t(.train_label_method), selection: $manager.config.method) {
                     ForEach(TrainingConfig.TrainingMethod.allCases, id: \.self) { m in
-                        Text(m.rawValue).tag(m)
+                        Text(m.localizedName).tag(m)
                     }
                 }
             }
 
-            Section("LoRA 参数") {
-                Stepper("Rank: \(manager.config.loraRank)", value: $manager.config.loraRank, in: 4...128, step: 4)
+            Section(I18nManager.shared.t(.train_sec_lora_params)) {
+                Stepper(I18nManager.shared.tf(.train_label_rank, manager.config.loraRank), value: $manager.config.loraRank, in: 4...128, step: 4)
                 HStack {
-                    Text("Alpha: \(String(format: "%.0f", manager.config.loraAlpha))")
+                    Text(I18nManager.shared.tf(.train_label_alpha, manager.config.loraAlpha))
                     Slider(value: $manager.config.loraAlpha, in: 8...128, step: 8)
                 }
                 HStack {
-                    Text("Dropout: \(String(format: "%.2f", manager.config.loraDropout))")
+                    Text(I18nManager.shared.tf(.train_label_dropout, manager.config.loraDropout))
                     Slider(value: $manager.config.loraDropout, in: 0...0.5, step: 0.05)
                 }
-                Text("目标模块: \(manager.config.targetModules.joined(separator: ", "))")
+                Text(I18nManager.shared.tf(.train_label_target_modules, manager.config.targetModules.joined(separator: ", ")))
                     .font(.caption).foregroundColor(.secondary)
             }
 
-            Section("训练参数") {
+            Section(I18nManager.shared.t(.train_sec_train_params)) {
                 HStack {
-                    Text("学习率: \(String(format: "%.0e", manager.config.learningRate))")
+                    Text(I18nManager.shared.tf(.train_label_lr, manager.config.learningRate))
                     Slider(value: $manager.config.learningRate, in: 1e-6...1e-3, step: 1e-6)
                 }
-                Stepper("Epochs: \(manager.config.numEpochs)", value: $manager.config.numEpochs, in: 1...20)
-                Picker("优化器", selection: $manager.config.optimizer) {
+                Stepper(I18nManager.shared.tf(.train_label_epochs, manager.config.numEpochs), value: $manager.config.numEpochs, in: 1...20)
+                Picker(I18nManager.shared.t(.train_label_optimizer), selection: $manager.config.optimizer) {
                     ForEach(TrainingConfig.OptimizerType.allCases, id: \.self) { o in Text(o.rawValue).tag(o) }
                 }
-                Stepper("Batch Size: \(manager.config.batchSize)", value: $manager.config.batchSize, in: 1...8)
-                Stepper("最大序列长度: \(manager.config.maxSeqLength)", value: $manager.config.maxSeqLength, in: 256...8192, step: 256)
-                Stepper("Warmup Steps: \(manager.config.warmupSteps)", value: $manager.config.warmupSteps, in: 0...1000, step: 50)
+                Stepper(I18nManager.shared.tf(.train_label_batch_size, manager.config.batchSize), value: $manager.config.batchSize, in: 1...8)
+                Stepper(I18nManager.shared.tf(.train_label_max_seq, manager.config.maxSeqLength), value: $manager.config.maxSeqLength, in: 256...8192, step: 256)
+                Stepper(I18nManager.shared.tf(.train_label_warmup, manager.config.warmupSteps), value: $manager.config.warmupSteps, in: 0...1000, step: 50)
             }
 
-            Section("优化") {
-                Toggle("4bit 量化训练 (QLoRA)", isOn: $manager.config.useQuad)
-                Toggle("梯度检查点", isOn: $manager.config.useGradientCheckpointing)
+            Section(I18nManager.shared.t(.train_sec_optimize)) {
+                Toggle(I18nManager.shared.t(.train_toggle_quad), isOn: $manager.config.useQuad)
+                Toggle(I18nManager.shared.t(.train_toggle_grad_ckpt), isOn: $manager.config.useGradientCheckpointing)
             }
         }
         .padding()
@@ -286,19 +307,19 @@ struct TrainingMonitorView: View {
             VStack(spacing: 12) {
                 Spacer()
                 Image(systemName: "gauge.medium").font(.system(size: 40)).foregroundColor(.secondary)
-                Text("配置训练参数并开始训练").foregroundColor(.secondary)
+                Text(I18nManager.shared.t(.train_monitor_empty)).foregroundColor(.secondary)
                 Spacer()
             }
         } else {
             VStack(spacing: 0) {
                 // 指标卡片
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 150))], spacing: 8) {
-                    MetricCard(title: "损失", value: String(format: "%.4f", manager.status.loss), unit: "", progress: 0.5, color: .blue)
-                    MetricCard(title: "学习率", value: String(format: "%.2e", manager.status.learningRate), unit: "", progress: 0.3, color: .green)
+                    MetricCard(title: I18nManager.shared.t(.train_metric_loss), value: String(format: "%.4f", manager.status.loss), unit: "", progress: 0.5, color: .blue)
+                    MetricCard(title: I18nManager.shared.t(.train_metric_lr), value: String(format: "%.2e", manager.status.learningRate), unit: "", progress: 0.3, color: .green)
                     MetricCard(title: "Epoch", value: "\(manager.status.currentEpoch)", unit: "/\(manager.status.totalEpochs)", progress: Double(manager.status.currentEpoch) / Double(max(manager.status.totalEpochs, 1)), color: .orange)
                     MetricCard(title: "Step", value: "\(manager.status.currentStep)", unit: "/\(manager.status.totalSteps)", progress: Double(manager.status.currentStep) / Double(max(manager.status.totalSteps, 1)), color: .purple)
-                    MetricCard(title: "已用时间", value: formatTime(manager.status.elapsedTime), unit: "", progress: 0.5, color: .pink)
-                    MetricCard(title: "预计剩余", value: formatTime(manager.status.estimatedTimeRemaining), unit: "", progress: 0.5, color: .indigo)
+                    MetricCard(title: I18nManager.shared.t(.train_metric_elapsed), value: formatTime(manager.status.elapsedTime), unit: "", progress: 0.5, color: .pink)
+                    MetricCard(title: I18nManager.shared.t(.train_metric_remaining), value: formatTime(manager.status.estimatedTimeRemaining), unit: "", progress: 0.5, color: .indigo)
                 }
                 .padding(8)
 
@@ -312,7 +333,7 @@ struct TrainingMonitorView: View {
                 Divider()
 
                 // 日志
-                GroupBox("训练日志") {
+                GroupBox(I18nManager.shared.t(.train_log_title)) {
                     ScrollViewReader { proxy in
                         ScrollView {
                             VStack(alignment: .leading, spacing: 2) {
@@ -355,7 +376,7 @@ struct CheckpointsView: View {
             VStack(spacing: 12) {
                 Spacer()
                 Image(systemName: "clock.arrow.circlepath").font(.system(size: 40)).foregroundColor(.secondary)
-                Text("训练完成后将自动保存检查点").foregroundColor(.secondary)
+                Text(I18nManager.shared.t(.train_ckpt_empty)).foregroundColor(.secondary)
                 Spacer()
             }
         } else {
@@ -372,8 +393,8 @@ struct CheckpointsView: View {
                             Text(cp.date, style: .time).font(.caption).foregroundColor(.secondary)
                             Text(cp.size).font(.caption2).foregroundColor(.secondary)
                         }
-                        Button("加载") { }.buttonStyle(.bordered).controlSize(.small)
-                        Button("导出") { }.buttonStyle(.bordered).controlSize(.small)
+                        Button(I18nManager.shared.t(.train_btn_load)) { }.buttonStyle(.bordered).controlSize(.small)
+                        Button(I18nManager.shared.t(.train_btn_export)) { }.buttonStyle(.bordered).controlSize(.small)
                     }
                     .padding(.vertical, 4)
                 }
@@ -393,39 +414,36 @@ struct TrainingDatasetView: View {
 
     var body: some View {
         Form {
-            Section("数据集") {
+            Section(I18nManager.shared.t(.train_sec_dataset)) {
                 HStack {
-                    TextField("数据集路径", text: $datasetPath)
+                    TextField(I18nManager.shared.t(.train_label_dataset_path), text: $datasetPath)
                         .textFieldStyle(.roundedBorder)
-                    Button("浏览") { }
+                    Button(I18nManager.shared.t(.train_btn_browse)) { }
                         .buttonStyle(.bordered)
                 }
-                Picker("格式", selection: $datasetFormat) {
+                Picker(I18nManager.shared.t(.train_label_format), selection: $datasetFormat) {
                     ForEach(formats, id: \.self) { f in Text(f.uppercased()).tag(f) }
                 }
             }
 
-            Section("格式示例") {
+            Section(I18nManager.shared.t(.train_sec_format_example)) {
                 if datasetFormat == "jsonl" {
-                    Text("""
-                    {"prompt": "你好", "completion": "你好！有什么可以帮助你的吗？"}
-                    {"prompt": "什么是 MLX？", "completion": "MLX 是 Apple 的机器学习框架..."}
-                    """).font(.system(.caption, design: .monospaced))
+                    Text(I18nManager.shared.t(.train_sample_jsonl))
+                        .font(.system(.caption, design: .monospaced))
                 } else if datasetFormat == "alpaca" {
-                    Text("""
-                    {"instruction": "解释什么是机器学习", "input": "", "output": "机器学习是 AI 的一个分支..."}
-                    """).font(.system(.caption, design: .monospaced))
+                    Text(I18nManager.shared.t(.train_sample_alpaca))
+                        .font(.system(.caption, design: .monospaced))
                 } else {
-                    Text("CSV 格式: prompt,completion\n你好,你好！有什么可以帮助你的吗？")
+                    Text(I18nManager.shared.t(.train_sample_csv))
                         .font(.system(.caption, design: .monospaced))
                 }
             }
 
-            Section("数据预处理") {
-                Toggle("自动格式转换", isOn: .constant(true))
-                Toggle("数据去重", isOn: .constant(true))
-                Toggle("过滤过长样本", isOn: .constant(true))
-                Stepper("最大长度: \(manager.config.maxSeqLength)", value: $manager.config.maxSeqLength, in: 256...8192, step: 256)
+            Section(I18nManager.shared.t(.train_sec_preprocess)) {
+                Toggle(I18nManager.shared.t(.train_toggle_auto_convert), isOn: .constant(true))
+                Toggle(I18nManager.shared.t(.train_toggle_dedup), isOn: .constant(true))
+                Toggle(I18nManager.shared.t(.train_toggle_filter_long), isOn: .constant(true))
+                Stepper(I18nManager.shared.tf(.train_label_max_length, manager.config.maxSeqLength), value: $manager.config.maxSeqLength, in: 256...8192, step: 256)
             }
         }
         .padding()
@@ -447,22 +465,22 @@ struct ModelExportView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            GroupBox("导出模型") {
+            GroupBox(I18nManager.shared.t(.train_export_title)) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Picker("导出格式", selection: $exportFormat) {
+                    Picker(I18nManager.shared.t(.train_label_export_format), selection: $exportFormat) {
                         ForEach(formats, id: \.self) { f in Text(f.uppercased()).tag(f) }
                     }
-                    Picker("量化精度", selection: $exportQuant) {
+                    Picker(I18nManager.shared.t(.train_label_quant), selection: $exportQuant) {
                         ForEach(quants, id: \.self) { q in Text(q).tag(q) }
                     }
                     HStack {
-                        TextField("导出路径", text: $exportPath)
+                        TextField(I18nManager.shared.t(.train_label_export_path), text: $exportPath)
                             .textFieldStyle(.roundedBorder)
-                        Button("浏览") { }
+                        Button(I18nManager.shared.t(.train_btn_browse)) { }
                             .buttonStyle(.bordered)
                     }
                     Button(action: startExport) {
-                        Label(isExporting ? "导出中..." : "开始导出", systemImage: "square.and.arrow.up")
+                        Label(isExporting ? I18nManager.shared.t(.train_btn_exporting) : I18nManager.shared.t(.train_btn_start_export), systemImage: "square.and.arrow.up")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
@@ -477,13 +495,13 @@ struct ModelExportView: View {
             }
             .padding(.horizontal)
 
-            GroupBox("支持的导出格式") {
+            GroupBox(I18nManager.shared.t(.train_export_supported)) {
                 VStack(alignment: .leading, spacing: 4) {
-                    ExportRow("MLX", "Apple Silicon 原生格式，推理最快")
-                    ExportRow("GGUF", "llama.cpp 兼容格式，跨平台")
-                    ExportRow("Core ML", "Apple 端侧推理格式，适配 iOS")
-                    ExportRow("ONNX", "开放神经网络交换格式")
-                    ExportRow("SafeTensors", "安全张量格式")
+                    ExportRow("MLX", I18nManager.shared.t(.train_export_mlx_desc))
+                    ExportRow("GGUF", I18nManager.shared.t(.train_export_gguf_desc))
+                    ExportRow("Core ML", I18nManager.shared.t(.train_export_coreml_desc))
+                    ExportRow("ONNX", I18nManager.shared.t(.train_export_onnx_desc))
+                    ExportRow("SafeTensors", I18nManager.shared.t(.train_export_safetensors_desc))
                 }
                 .padding(8)
             }

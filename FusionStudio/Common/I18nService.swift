@@ -1338,6 +1338,82 @@ enum I18nKey: String, CaseIterable {
     case lic_no_code = "lic_no_code"
     case lic_fmt_days = "lic_fmt_days"
     case lic_err_invalid = "lic_err_invalid"
+    case train_method_lora = "train_method_lora"
+    case train_method_qlora = "train_method_qlora"
+    case train_method_full = "train_method_full"
+    case train_tab_config = "train_tab_config"
+    case train_tab_monitor = "train_tab_monitor"
+    case train_tab_checkpoints = "train_tab_checkpoints"
+    case train_tab_dataset = "train_tab_dataset"
+    case train_header = "train_header"
+    case train_btn_stop = "train_btn_stop"
+    case train_btn_start = "train_btn_start"
+    case train_sec_model = "train_sec_model"
+    case train_sec_lora_params = "train_sec_lora_params"
+    case train_sec_train_params = "train_sec_train_params"
+    case train_sec_optimize = "train_sec_optimize"
+    case train_label_base_model = "train_label_base_model"
+    case train_label_method = "train_label_method"
+    case train_label_rank = "train_label_rank"
+    case train_label_alpha = "train_label_alpha"
+    case train_label_dropout = "train_label_dropout"
+    case train_label_target_modules = "train_label_target_modules"
+    case train_label_lr = "train_label_lr"
+    case train_label_epochs = "train_label_epochs"
+    case train_label_optimizer = "train_label_optimizer"
+    case train_label_batch_size = "train_label_batch_size"
+    case train_label_max_seq = "train_label_max_seq"
+    case train_label_warmup = "train_label_warmup"
+    case train_toggle_quad = "train_toggle_quad"
+    case train_toggle_grad_ckpt = "train_toggle_grad_ckpt"
+    case train_monitor_empty = "train_monitor_empty"
+    case train_metric_loss = "train_metric_loss"
+    case train_metric_lr = "train_metric_lr"
+    case train_metric_elapsed = "train_metric_elapsed"
+    case train_metric_remaining = "train_metric_remaining"
+    case train_log_title = "train_log_title"
+    case train_ckpt_empty = "train_ckpt_empty"
+    case train_btn_load = "train_btn_load"
+    case train_btn_export = "train_btn_export"
+    case train_sec_dataset = "train_sec_dataset"
+    case train_sec_format_example = "train_sec_format_example"
+    case train_sec_preprocess = "train_sec_preprocess"
+    case train_label_dataset_path = "train_label_dataset_path"
+    case train_btn_browse = "train_btn_browse"
+    case train_label_format = "train_label_format"
+    case train_toggle_auto_convert = "train_toggle_auto_convert"
+    case train_toggle_dedup = "train_toggle_dedup"
+    case train_toggle_filter_long = "train_toggle_filter_long"
+    case train_label_max_length = "train_label_max_length"
+    case train_sample_jsonl = "train_sample_jsonl"
+    case train_sample_alpaca = "train_sample_alpaca"
+    case train_sample_csv = "train_sample_csv"
+    case train_export_title = "train_export_title"
+    case train_export_supported = "train_export_supported"
+    case train_label_export_format = "train_label_export_format"
+    case train_label_quant = "train_label_quant"
+    case train_label_export_path = "train_label_export_path"
+    case train_btn_start_export = "train_btn_start_export"
+    case train_btn_exporting = "train_btn_exporting"
+    case train_export_mlx_desc = "train_export_mlx_desc"
+    case train_export_gguf_desc = "train_export_gguf_desc"
+    case train_export_coreml_desc = "train_export_coreml_desc"
+    case train_export_onnx_desc = "train_export_onnx_desc"
+    case train_export_safetensors_desc = "train_export_safetensors_desc"
+    case train_log_start = "train_log_start"
+    case train_log_model = "train_log_model"
+    case train_log_method = "train_log_method"
+    case train_log_lr_val = "train_log_lr_val"
+    case train_log_epochs = "train_log_epochs"
+    case train_log_batch = "train_log_batch"
+    case train_log_submitted = "train_log_submitted"
+    case train_log_bg_started = "train_log_bg_started"
+    case train_ckpt_in_progress = "train_ckpt_in_progress"
+    case train_log_unknown_error = "train_log_unknown_error"
+    case train_log_mlx_error = "train_log_mlx_error"
+    case train_log_api_failed = "train_log_api_failed"
+    case train_log_ensure_mlx = "train_log_ensure_mlx"
+    case train_log_paused = "train_log_paused"
     case proj_subtitle = "proj_subtitle"
     case proj_searchPh = "proj_searchPh"
     case proj_newHelp = "proj_newHelp"
@@ -4982,6 +5058,82 @@ let zhCNTranslations: [String: String] = [
     "lic_no_code": "没有激活码？",
     "lic_fmt_days": "%d 天",
     "lic_err_invalid": "无效的激活码。格式: FS-PRO-XXXXX、FS-ENT-XXXXX 或 TRIAL",
+    "train_method_lora": "LoRA",
+    "train_method_qlora": "QLoRA",
+    "train_method_full": "全量微调",
+    "train_tab_config": "训练配置",
+    "train_tab_monitor": "训练监控",
+    "train_tab_checkpoints": "检查点",
+    "train_tab_dataset": "数据集",
+    "train_header": "模型训练",
+    "train_btn_stop": "停止训练",
+    "train_btn_start": "开始训练",
+    "train_sec_model": "模型",
+    "train_sec_lora_params": "LoRA 参数",
+    "train_sec_train_params": "训练参数",
+    "train_sec_optimize": "优化",
+    "train_label_base_model": "基础模型",
+    "train_label_method": "训练方法",
+    "train_label_rank": "Rank: %d",
+    "train_label_alpha": "Alpha: %.0f",
+    "train_label_dropout": "Dropout: %.2f",
+    "train_label_target_modules": "目标模块: %@",
+    "train_label_lr": "学习率: %.0e",
+    "train_label_epochs": "Epochs: %d",
+    "train_label_optimizer": "优化器",
+    "train_label_batch_size": "Batch Size: %d",
+    "train_label_max_seq": "最大序列长度: %d",
+    "train_label_warmup": "Warmup Steps: %d",
+    "train_toggle_quad": "4bit 量化训练 (QLoRA)",
+    "train_toggle_grad_ckpt": "梯度检查点",
+    "train_monitor_empty": "配置训练参数并开始训练",
+    "train_metric_loss": "损失",
+    "train_metric_lr": "学习率",
+    "train_metric_elapsed": "已用时间",
+    "train_metric_remaining": "预计剩余",
+    "train_log_title": "训练日志",
+    "train_ckpt_empty": "训练完成后将自动保存检查点",
+    "train_btn_load": "加载",
+    "train_btn_export": "导出",
+    "train_sec_dataset": "数据集",
+    "train_sec_format_example": "格式示例",
+    "train_sec_preprocess": "数据预处理",
+    "train_label_dataset_path": "数据集路径",
+    "train_btn_browse": "浏览",
+    "train_label_format": "格式",
+    "train_toggle_auto_convert": "自动格式转换",
+    "train_toggle_dedup": "数据去重",
+    "train_toggle_filter_long": "过滤过长样本",
+    "train_label_max_length": "最大长度: %d",
+    "train_sample_jsonl": "{\"prompt\": \"你好\", \"completion\": \"你好！有什么可以帮助你的吗？\"}\n{\"prompt\": \"什么是 MLX？\", \"completion\": \"MLX 是 Apple 的机器学习框架...\"}",
+    "train_sample_alpaca": "{\"instruction\": \"解释什么是机器学习\", \"input\": \"\", \"output\": \"机器学习是 AI 的一个分支...\"}",
+    "train_sample_csv": "CSV 格式: prompt,completion\n你好,你好！有什么可以帮助你的吗？",
+    "train_export_title": "导出模型",
+    "train_export_supported": "支持的导出格式",
+    "train_label_export_format": "导出格式",
+    "train_label_quant": "量化精度",
+    "train_label_export_path": "导出路径",
+    "train_btn_start_export": "开始导出",
+    "train_btn_exporting": "导出中...",
+    "train_export_mlx_desc": "Apple Silicon 原生格式，推理最快",
+    "train_export_gguf_desc": "llama.cpp 兼容格式，跨平台",
+    "train_export_coreml_desc": "Apple 端侧推理格式，适配 iOS",
+    "train_export_onnx_desc": "开放神经网络交换格式",
+    "train_export_safetensors_desc": "安全张量格式",
+    "train_log_start": "开始训练...",
+    "train_log_model": " 模型: %@",
+    "train_log_method": " 方法: %@",
+    "train_log_lr_val": " 学习率: %f",
+    "train_log_epochs": " Epochs: %d",
+    "train_log_batch": " Batch: %d",
+    "train_log_submitted": "✅ 训练任务已提交 (ID: %@)",
+    "train_log_bg_started": "训练已在 fusion-mlx 后台启动，请查看 fusion-mlx 日志获取实时进度。",
+    "train_ckpt_in_progress": "进行中",
+    "train_log_unknown_error": "未知错误",
+    "train_log_mlx_error": "⚠️ fusion-mlx 返回错误: %@",
+    "train_log_api_failed": "⚠️ 调用 fusion-mlx 训练 API 失败: %@",
+    "train_log_ensure_mlx": "请确保 fusion-mlx 服务正在运行且支持训练接口。",
+    "train_log_paused": "⏸️ 训练已暂停",
     "proj_subtitle": "管理你的 AI 项目、指令和知识库",
     "proj_searchPh": "搜索项目",
     "proj_newHelp": "新建项目",
@@ -8579,6 +8731,82 @@ let enUSTranslations: [String: String] = [
     "lic_no_code": "No activation code?",
     "lic_fmt_days": "%d days",
     "lic_err_invalid": "Invalid activation code. Format: FS-PRO-XXXXX, FS-ENT-XXXXX or TRIAL",
+    "train_method_lora": "LoRA",
+    "train_method_qlora": "QLoRA",
+    "train_method_full": "Full Fine-tune",
+    "train_tab_config": "Config",
+    "train_tab_monitor": "Monitor",
+    "train_tab_checkpoints": "Checkpoints",
+    "train_tab_dataset": "Dataset",
+    "train_header": "Model Training",
+    "train_btn_stop": "Stop",
+    "train_btn_start": "Start Training",
+    "train_sec_model": "Model",
+    "train_sec_lora_params": "LoRA Params",
+    "train_sec_train_params": "Training Params",
+    "train_sec_optimize": "Optimization",
+    "train_label_base_model": "Base Model",
+    "train_label_method": "Method",
+    "train_label_rank": "Rank: %d",
+    "train_label_alpha": "Alpha: %.0f",
+    "train_label_dropout": "Dropout: %.2f",
+    "train_label_target_modules": "Target modules: %@",
+    "train_label_lr": "Learning rate: %.0e",
+    "train_label_epochs": "Epochs: %d",
+    "train_label_optimizer": "Optimizer",
+    "train_label_batch_size": "Batch Size: %d",
+    "train_label_max_seq": "Max sequence length: %d",
+    "train_label_warmup": "Warmup Steps: %d",
+    "train_toggle_quad": "4-bit quantized training (QLoRA)",
+    "train_toggle_grad_ckpt": "Gradient checkpointing",
+    "train_monitor_empty": "Configure training params and start training",
+    "train_metric_loss": "Loss",
+    "train_metric_lr": "Learning rate",
+    "train_metric_elapsed": "Elapsed",
+    "train_metric_remaining": "Remaining",
+    "train_log_title": "Training Log",
+    "train_ckpt_empty": "Checkpoints will be saved automatically after training",
+    "train_btn_load": "Load",
+    "train_btn_export": "Export",
+    "train_sec_dataset": "Dataset",
+    "train_sec_format_example": "Format Example",
+    "train_sec_preprocess": "Preprocessing",
+    "train_label_dataset_path": "Dataset path",
+    "train_btn_browse": "Browse",
+    "train_label_format": "Format",
+    "train_toggle_auto_convert": "Auto format conversion",
+    "train_toggle_dedup": "Deduplication",
+    "train_toggle_filter_long": "Filter long samples",
+    "train_label_max_length": "Max length: %d",
+    "train_sample_jsonl": "{\"prompt\": \"Hello\", \"completion\": \"Hi! How can I help you?\"}\n{\"prompt\": \"What is MLX?\", \"completion\": \"MLX is Apple's machine learning framework...\"}",
+    "train_sample_alpaca": "{\"instruction\": \"Explain what machine learning is\", \"input\": \"\", \"output\": \"Machine learning is a branch of AI...\"}",
+    "train_sample_csv": "CSV format: prompt,completion\nHello,Hi! How can I help you?",
+    "train_export_title": "Export Model",
+    "train_export_supported": "Supported Export Formats",
+    "train_label_export_format": "Export format",
+    "train_label_quant": "Quantization",
+    "train_label_export_path": "Export path",
+    "train_btn_start_export": "Start Export",
+    "train_btn_exporting": "Exporting...",
+    "train_export_mlx_desc": "Apple Silicon native format, fastest inference",
+    "train_export_gguf_desc": "llama.cpp compatible format, cross-platform",
+    "train_export_coreml_desc": "Apple on-device inference format, iOS ready",
+    "train_export_onnx_desc": "Open Neural Network Exchange format",
+    "train_export_safetensors_desc": "Safe tensors format",
+    "train_log_start": "Starting training...",
+    "train_log_model": " Model: %@",
+    "train_log_method": " Method: %@",
+    "train_log_lr_val": " Learning rate: %f",
+    "train_log_epochs": " Epochs: %d",
+    "train_log_batch": " Batch: %d",
+    "train_log_submitted": "✅ Training job submitted (ID: %@)",
+    "train_log_bg_started": "Training started in fusion-mlx background. Check fusion-mlx logs for real-time progress.",
+    "train_ckpt_in_progress": "In progress",
+    "train_log_unknown_error": "Unknown error",
+    "train_log_mlx_error": "⚠️ fusion-mlx returned error: %@",
+    "train_log_api_failed": "⚠️ Failed to call fusion-mlx training API: %@",
+    "train_log_ensure_mlx": "Ensure fusion-mlx service is running and supports training interface.",
+    "train_log_paused": "⏸️ Training paused",
     "proj_subtitle": "Manage your AI projects, instructions and knowledge base",
     "proj_searchPh": "Search projects",
     "proj_newHelp": "New project",
@@ -12170,6 +12398,82 @@ let jaJPTranslations: [String: String] = [
     "lic_no_code": "アクティベートコードがない？",
     "lic_fmt_days": "%d 日",
     "lic_err_invalid": "無効なアクティベートコード。形式: FS-PRO-XXXXX、FS-ENT-XXXXX または TRIAL",
+    "train_method_lora": "LoRA",
+    "train_method_qlora": "QLoRA",
+    "train_method_full": "フルチューニング",
+    "train_tab_config": "訓練設定",
+    "train_tab_monitor": "訓練モニタ",
+    "train_tab_checkpoints": "チェックポイント",
+    "train_tab_dataset": "データセット",
+    "train_header": "モデル訓練",
+    "train_btn_stop": "停止",
+    "train_btn_start": "訓練開始",
+    "train_sec_model": "モデル",
+    "train_sec_lora_params": "LoRA パラメータ",
+    "train_sec_train_params": "訓練パラメータ",
+    "train_sec_optimize": "最適化",
+    "train_label_base_model": "ベースモデル",
+    "train_label_method": "訓練方法",
+    "train_label_rank": "Rank: %d",
+    "train_label_alpha": "Alpha: %.0f",
+    "train_label_dropout": "Dropout: %.2f",
+    "train_label_target_modules": "対象モジュール: %@",
+    "train_label_lr": "学習率: %.0e",
+    "train_label_epochs": "Epochs: %d",
+    "train_label_optimizer": "オプティマイザ",
+    "train_label_batch_size": "Batch Size: %d",
+    "train_label_max_seq": "最大シーケンス長: %d",
+    "train_label_warmup": "Warmup Steps: %d",
+    "train_toggle_quad": "4bit 量子化訓練 (QLoRA)",
+    "train_toggle_grad_ckpt": "勾配チェックポイント",
+    "train_monitor_empty": "訓練パラメータを設定して訓練を開始",
+    "train_metric_loss": "損失",
+    "train_metric_lr": "学習率",
+    "train_metric_elapsed": "経過時間",
+    "train_metric_remaining": "残り時間",
+    "train_log_title": "訓練ログ",
+    "train_ckpt_empty": "訓練完了後にチェックポイントが自動保存されます",
+    "train_btn_load": "読込",
+    "train_btn_export": "書出",
+    "train_sec_dataset": "データセット",
+    "train_sec_format_example": "フォーマット例",
+    "train_sec_preprocess": "データ前処理",
+    "train_label_dataset_path": "データセットパス",
+    "train_btn_browse": "参照",
+    "train_label_format": "フォーマット",
+    "train_toggle_auto_convert": "自動フォーマット変換",
+    "train_toggle_dedup": "データ重複排除",
+    "train_toggle_filter_long": "長すぎるサンプルを除外",
+    "train_label_max_length": "最大長: %d",
+    "train_sample_jsonl": "{\"prompt\": \"こんにちは\", \"completion\": \"こんにちは！何かお手伝いしましょうか？\"}\n{\"prompt\": \"MLXとは？\", \"completion\": \"MLXはAppleの機械学習フレームワークです...\"}",
+    "train_sample_alpaca": "{\"instruction\": \"機械学習とは何か説明して\", \"input\": \"\", \"output\": \"機械学習はAIの一分野です...\"}",
+    "train_sample_csv": "CSVフォーマット: prompt,completion\nこんにちは,こんにちは！何かお手伝いしましょうか？",
+    "train_export_title": "モデル書出",
+    "train_export_supported": "対応書出フォーマット",
+    "train_label_export_format": "書出フォーマット",
+    "train_label_quant": "量子化精度",
+    "train_label_export_path": "書出パス",
+    "train_btn_start_export": "書出開始",
+    "train_btn_exporting": "書出中...",
+    "train_export_mlx_desc": "Apple Silicon ネイティブ形式、推論最速",
+    "train_export_gguf_desc": "llama.cpp 互換形式、クロスプラットフォーム",
+    "train_export_coreml_desc": "Apple オンデバイス推論形式、iOS 対応",
+    "train_export_onnx_desc": "Open Neural Network Exchange 形式",
+    "train_export_safetensors_desc": "セーフテンソル形式",
+    "train_log_start": "訓練を開始...",
+    "train_log_model": " モデル: %@",
+    "train_log_method": " 方法: %@",
+    "train_log_lr_val": " 学習率: %f",
+    "train_log_epochs": " Epochs: %d",
+    "train_log_batch": " Batch: %d",
+    "train_log_submitted": "✅ 訓練タスク送信済み (ID: %@)",
+    "train_log_bg_started": "訓練は fusion-mlx バックグラウンドで開始されました。リアルタイム進捗は fusion-mlx ログを確認してください。",
+    "train_ckpt_in_progress": "進行中",
+    "train_log_unknown_error": "不明なエラー",
+    "train_log_mlx_error": "⚠️ fusion-mlx がエラーを返しました: %@",
+    "train_log_api_failed": "⚠️ fusion-mlx 訓練 API 呼出失敗: %@",
+    "train_log_ensure_mlx": "fusion-mlx サービスが実行中で訓練インターフェースをサポートしていることを確認してください。",
+    "train_log_paused": "⏸️ 訓練一時停止",
     "proj_subtitle": "AIプロジェクト・指示・ナレッジベースを管理",
     "proj_searchPh": "プロジェクトを検索",
     "proj_newHelp": "新規プロジェクト",
@@ -15761,6 +16065,82 @@ let koKRTranslations: [String: String] = [
     "lic_no_code": "활성화 코드가 없습니까?",
     "lic_fmt_days": "%d 일",
     "lic_err_invalid": "유효하지 않은 활성화 코드. 형식: FS-PRO-XXXXX, FS-ENT-XXXXX 또는 TRIAL",
+    "train_method_lora": "LoRA",
+    "train_method_qlora": "QLoRA",
+    "train_method_full": "전체 파인튜닝",
+    "train_tab_config": "학습 설정",
+    "train_tab_monitor": "학습 모니터",
+    "train_tab_checkpoints": "체크포인트",
+    "train_tab_dataset": "데이터셋",
+    "train_header": "모델 학습",
+    "train_btn_stop": "중지",
+    "train_btn_start": "학습 시작",
+    "train_sec_model": "모델",
+    "train_sec_lora_params": "LoRA 매개변수",
+    "train_sec_train_params": "학습 매개변수",
+    "train_sec_optimize": "최적화",
+    "train_label_base_model": "기본 모델",
+    "train_label_method": "학습 방법",
+    "train_label_rank": "Rank: %d",
+    "train_label_alpha": "Alpha: %.0f",
+    "train_label_dropout": "Dropout: %.2f",
+    "train_label_target_modules": "대상 모듈: %@",
+    "train_label_lr": "학습률: %.0e",
+    "train_label_epochs": "Epochs: %d",
+    "train_label_optimizer": "옵티마이저",
+    "train_label_batch_size": "Batch Size: %d",
+    "train_label_max_seq": "최대 시퀀스 길이: %d",
+    "train_label_warmup": "Warmup Steps: %d",
+    "train_toggle_quad": "4bit 양자화 학습 (QLoRA)",
+    "train_toggle_grad_ckpt": "그래디언트 체크포인트",
+    "train_monitor_empty": "학습 매개변수를 설정하고 학습을 시작하세요",
+    "train_metric_loss": "손실",
+    "train_metric_lr": "학습률",
+    "train_metric_elapsed": "경과 시간",
+    "train_metric_remaining": "남은 시간",
+    "train_log_title": "학습 로그",
+    "train_ckpt_empty": "학습 완료 후 체크포인트가 자동 저장됩니다",
+    "train_btn_load": "불러오기",
+    "train_btn_export": "내보내기",
+    "train_sec_dataset": "데이터셋",
+    "train_sec_format_example": "형식 예시",
+    "train_sec_preprocess": "데이터 전처리",
+    "train_label_dataset_path": "데이터셋 경로",
+    "train_btn_browse": "찾아보기",
+    "train_label_format": "형식",
+    "train_toggle_auto_convert": "자동 형식 변환",
+    "train_toggle_dedup": "데이터 중복 제거",
+    "train_toggle_filter_long": "긴 샘플 필터링",
+    "train_label_max_length": "최대 길이: %d",
+    "train_sample_jsonl": "{\"prompt\": \"안녕하세요\", \"completion\": \"안녕하세요! 무엇을 도와드릴까요?\"}\n{\"prompt\": \"MLX란?\", \"completion\": \"MLX는 Apple의 머신러닝 프레임워크입니다...\"}",
+    "train_sample_alpaca": "{\"instruction\": \"머신러닝이 무엇인지 설명하세요\", \"input\": \"\", \"output\": \"머신러닝은 AI의 한 분야입니다...\"}",
+    "train_sample_csv": "CSV 형식: prompt,completion\n안녕하세요,안녕하세요! 무엇을 도와드릴까요?",
+    "train_export_title": "모델 내보내기",
+    "train_export_supported": "지원 내보내기 형식",
+    "train_label_export_format": "내보내기 형식",
+    "train_label_quant": "양자화 정밀도",
+    "train_label_export_path": "내보내기 경로",
+    "train_btn_start_export": "내보내기 시작",
+    "train_btn_exporting": "내보내는 중...",
+    "train_export_mlx_desc": "Apple Silicon 네이티브 형식, 추론 최고속",
+    "train_export_gguf_desc": "llama.cpp 호환 형식, 크로스플랫폼",
+    "train_export_coreml_desc": "Apple 온디바이스 추론 형식, iOS 대응",
+    "train_export_onnx_desc": "Open Neural Network Exchange 형식",
+    "train_export_safetensors_desc": "안전 텐서 형식",
+    "train_log_start": "학습을 시작합니다...",
+    "train_log_model": " 모델: %@",
+    "train_log_method": " 방법: %@",
+    "train_log_lr_val": " 학습률: %f",
+    "train_log_epochs": " Epochs: %d",
+    "train_log_batch": " Batch: %d",
+    "train_log_submitted": "✅ 학습 작업 제출됨 (ID: %@)",
+    "train_log_bg_started": "학습이 fusion-mlx 백그라운드에서 시작되었습니다. 실시간 진행은 fusion-mlx 로그를 확인하세요.",
+    "train_ckpt_in_progress": "진행 중",
+    "train_log_unknown_error": "알 수 없는 오류",
+    "train_log_mlx_error": "⚠️ fusion-mlx 오류 반환: %@",
+    "train_log_api_failed": "⚠️ fusion-mlx 학습 API 호출 실패: %@",
+    "train_log_ensure_mlx": "fusion-mlx 서비스가 실행 중이고 학습 인터페이스를 지원하는지 확인하세요.",
+    "train_log_paused": "⏸️ 학습 일시정지",
     "proj_subtitle": "AI 프로젝트·지시·지식베이스 관리",
     "proj_searchPh": "프로젝트 검색",
     "proj_newHelp": "새 프로젝트",
