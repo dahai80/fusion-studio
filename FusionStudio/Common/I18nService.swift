@@ -1606,6 +1606,18 @@ enum I18nKey: String, CaseIterable {
     case cw_mkt_typeWorkflow = "cw_mkt_typeWorkflow"
     case cw_mkt_typeArtifact = "cw_mkt_typeArtifact"
     case cw_mkt_install = "cw_mkt_install"
+    case cw_home_mode_chat = "cw_home_mode_chat"
+    case cw_home_mode_cowork = "cw_home_mode_cowork"
+    case cw_home_pick_title = "cw_home_pick_title"
+    case cw_home_pick_prompt = "cw_home_pick_prompt"
+    case cw_home_pick_confirm = "cw_home_pick_confirm"
+    case cw_home_no_scoped = "cw_home_no_scoped"
+    case cw_home_svc_down = "cw_home_svc_down"
+    case cw_home_submit_fail = "cw_home_submit_fail"
+    case cw_home_bubble_step = "cw_home_bubble_step"
+    case cw_home_bubble_done = "cw_home_bubble_done"
+    case cw_home_bubble_error = "cw_home_bubble_error"
+    case cw_home_bubble_artifact = "cw_home_bubble_artifact"
     case ai_offline_badge = "ai_offline_badge"
     case ai_offline_helpOff = "ai_offline_helpOff"
     case ai_offline_helpOn = "ai_offline_helpOn"
@@ -4638,6 +4650,18 @@ let zhCNTranslations: [String: String] = [
     "cw_mkt_typeWorkflow": "工作流",
     "cw_mkt_typeArtifact": "产物模板",
     "cw_mkt_install": "安装",
+    "cw_home_mode_chat": "Chat",
+    "cw_home_mode_cowork": "CoWork",
+    "cw_home_pick_title": "选择授权文件夹",
+    "cw_home_pick_prompt": "CoWork 将只能访问你授权的文件夹",
+    "cw_home_pick_confirm": "授权",
+    "cw_home_no_scoped": "请选择授权文件夹后开始",
+    "cw_home_svc_down": "fusion-cowork 未启动（设置 → 上游服务）",
+    "cw_home_submit_fail": "提交失败：",
+    "cw_home_bubble_step": "步骤",
+    "cw_home_bubble_done": "完成",
+    "cw_home_bubble_error": "错误",
+    "cw_home_bubble_artifact": "产物",
     "ai_offline_badge": "离线",
     "ai_offline_helpOff": "离线模式 — 点击查看详情",
     "ai_offline_helpOn": "在线模式",
@@ -7625,6 +7649,18 @@ let enUSTranslations: [String: String] = [
     "cw_mkt_typeWorkflow": "Workflow",
     "cw_mkt_typeArtifact": "Artifact template",
     "cw_mkt_install": "Install",
+    "cw_home_mode_chat": "Chat",
+    "cw_home_mode_cowork": "CoWork",
+    "cw_home_pick_title": "Choose Authorized Folders",
+    "cw_home_pick_prompt": "CoWork will only access folders you authorize",
+    "cw_home_pick_confirm": "Authorize",
+    "cw_home_no_scoped": "Select an authorized folder to start",
+    "cw_home_svc_down": "fusion-cowork not running (Settings → Upstream Services)",
+    "cw_home_submit_fail": "Submit failed: ",
+    "cw_home_bubble_step": "Step",
+    "cw_home_bubble_done": "Done",
+    "cw_home_bubble_error": "Error",
+    "cw_home_bubble_artifact": "Artifact",
     "ai_offline_badge": "Offline",
     "ai_offline_helpOff": "Offline mode — click for details",
     "ai_offline_helpOn": "Online mode",
@@ -10606,6 +10642,18 @@ let jaJPTranslations: [String: String] = [
     "cw_mkt_typeWorkflow": "ワークフロー",
     "cw_mkt_typeArtifact": "アーティファクトテンプレート",
     "cw_mkt_install": "インストール",
+    "cw_home_mode_chat": "Chat",
+    "cw_home_mode_cowork": "CoWork",
+    "cw_home_pick_title": "認可フォルダを選択",
+    "cw_home_pick_prompt": "CoWork は認可したフォルダのみアクセスします",
+    "cw_home_pick_confirm": "認可",
+    "cw_home_no_scoped": "認可フォルダを選択して開始",
+    "cw_home_svc_down": "fusion-cowork 未起動（設定 → アップストリームサービス）",
+    "cw_home_submit_fail": "送信失敗：",
+    "cw_home_bubble_step": "ステップ",
+    "cw_home_bubble_done": "完了",
+    "cw_home_bubble_error": "エラー",
+    "cw_home_bubble_artifact": "成果物",
     "ai_offline_badge": "オフライン",
     "ai_offline_helpOff": "オフラインモード — 詳細を見るにはクリック",
     "ai_offline_helpOn": "オンラインモード",
@@ -13587,6 +13635,18 @@ let koKRTranslations: [String: String] = [
     "cw_mkt_typeWorkflow": "워크플로우",
     "cw_mkt_typeArtifact": "아티팩트 템플릿",
     "cw_mkt_install": "설치",
+    "cw_home_mode_chat": "Chat",
+    "cw_home_mode_cowork": "CoWork",
+    "cw_home_pick_title": "인가 폴더 선택",
+    "cw_home_pick_prompt": "CoWork 는 인가한 폴더만 접근합니다",
+    "cw_home_pick_confirm": "인가",
+    "cw_home_no_scoped": "인가 폴더를 선택하고 시작",
+    "cw_home_svc_down": "fusion-cowork 미실행 (설정 → 업스트림 서비스)",
+    "cw_home_submit_fail": "제출 실패: ",
+    "cw_home_bubble_step": "단계",
+    "cw_home_bubble_done": "완료",
+    "cw_home_bubble_error": "오류",
+    "cw_home_bubble_artifact": "산출물",
     "ai_offline_badge": "오프라인",
     "ai_offline_helpOff": "오프라인 모드 — 클릭하여 상세 보기",
     "ai_offline_helpOn": "온라인 모드",

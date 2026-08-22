@@ -408,6 +408,24 @@ class ChatSessionStore: ObservableObject {
         chatStoreLog.info("ensureActiveSession: created \(session.id)")
     }
 
+    // #217: 外部 bridge (CoworkHomeBridge) 向当前会话追加消息 (工作流进度气泡/用户输入).
+    // 复用既有 append 模式: 更新 activeSession + sessions[idx] + 持久化.
+    func appendMessage(_ msg: ChatMessageData) {
+        guard let session = activeSession else {
+            chatStoreLog.warning("appendMessage: no active session, drop")
+            return
+        }
+        var updated = session
+        updated.messages.append(msg)
+        updated.activeBranch = msg.id
+        updated.updatedAt = Date().timeIntervalSince1970
+        activeSession = updated
+        if let idx = sessions.firstIndex(where: { $0.id == session.id }) {
+            sessions[idx] = updated
+        }
+        saveSessionLocal(updated)
+    }
+
     func loadSessions() async {
         isLoading = true
         defer { isLoading = false }

@@ -355,6 +355,21 @@ extension IPCClient {
         return try await spaceCall(method: "desk.system.info")
     }
 
+    // #217 P1-1: GUI 选定授权工作文件夹后下发沙箱根 (ScopedFolderManager)。
+    // desk.system.set_scoped_folder params {folders:[abs], enforce:bool} -> {set:true, folders, enforce}
+    func deskSystemSetScopedFolder(folders: [String], enforce: Bool = true) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.system.set_scoped_folder", params: [
+            "folders": folders,
+            "enforce": enforce,
+        ])
+    }
+
+    // #217 P1-1: 查询当前已注册授权文件夹 (启动时回填, 已注册则跳过 NSOpenPanel)。
+    // desk.system.scoped_folder (GET) -> {folders, enforce}
+    func deskSystemGetScopedFolder() async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.system.scoped_folder")
+    }
+
     func deskEventsSubscribe() async throws -> [String: Any] {
         return try await spaceCall(method: "desk.events.subscribe")
     }

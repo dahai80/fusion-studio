@@ -40,6 +40,9 @@ struct UnifiedChatView: View {
     @State private var showContextInfo: Bool = false
     @State private var selectedArtifactRefId: String? = nil
     @State private var showArtifactCanvas: Bool = false
+    // #217: 首页 Chat↔Cowork 模式切换 + 授权文件夹 + 工作流实时进度.
+    @State private var homeMode: CoworkHomeMode = .chat
+    @StateObject private var coworkHome = CoworkHomeBridge(ipc: IPCClient())
 
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
@@ -88,6 +91,9 @@ struct UnifiedChatView: View {
             await chatStore.loadSessions()
             initDefaultModel()
             loadSessionTemplates()
+            // #217: 注入真实 ipc (StateObject init 用空桩), 回填授权文件夹.
+            coworkHome.ipc = ipc
+            await coworkHome.loadScopedFolder()
         }
         .onChange(of: chatStore.isGenerating) { oldValue, newValue in
             if oldValue && !newValue {
@@ -97,6 +103,22 @@ struct UnifiedChatView: View {
         .onChange(of: chatStore.activeSession?.id) { _, _ in
             refocusTrigger += 1
         }
+        // #217: 切到 Cowork 模式 — 确保授权文件夹 (空则弹 NSOpenPanel).
+        .onChange(of: homeMode) { _, newMode in
+            guard newMode == .cowork else { return }
+            Task {
+                let ready = await coworkHome.ensureScopedFolder()
+                if ready { chatStore.ensureActiveSession(mode: "cowork") }
+                chatViewLog.info("cowork mode: scopedReady=\(ready)")
+            }
+        }
+        // #217: desk.events.* 事件 -> 对话气泡 (注入当前 cowork 会话).
+        .onChange(of: coworkHome.lastEvent) { _, ev in
+            guard let ev = ev else { return }
+            appendCoworkBubble(ev)
+        }
+        // #217: 离开视图停止事件轮询.
+        .onDisappear { coworkHome.stopPolling() }
         .alert("Context", isPresented: $showContextInfo) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -118,6 +140,8 @@ struct UnifiedChatView: View {
 
     private var chatToolbar: some View {
         HStack(spacing: theme.spacingS) {
+            // #217: 首页 Chat ↔ Cowork 模式切换.
+            coworkModePicker
             Button {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     showSessionList.toggle()
@@ -198,6 +222,32 @@ struct UnifiedChatView: View {
         .padding(.horizontal, theme.spacingL)
         .padding(.vertical, theme.spacingS)
         .background(theme.contentBg)
+    }
+
+    // #217: Chat ↔ Cowork 首页模式切换器 (segmented).
+    private var coworkModePicker: some View {
+        HStack(spacing: 2) {
+            ForEach(CoworkHomeMode.allCases, id: \.self) { mode in
+                let active = homeMode == mode
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        homeMode = mode
+                    }
+                } label: {
+                    Text(mode == .chat ? i18n.t(.cw_home_mode_chat) : i18n.t(.cw_home_mode_cowork))
+                        .font(.system(size: theme.footnoteSize, weight: active ? .semibold : .regular))
+                        .foregroundStyle(active ? theme.accent : theme.textSecondary)
+                        .padding(.horizontal, theme.spacingS)
+                        .padding(.vertical, 3)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(active ? theme.accent.opacity(0.15) : .clear)
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .help(i18n.t(.cw_home_mode_cowork))
     }
 
     // MARK: - Message Area (welcome or messages, always present)
@@ -967,9 +1017,31 @@ struct UnifiedChatView: View {
         let attachments = pendingAttachments
         pendingAttachments = []
 
+        // #217: Cowork 模式走工作流提交 (desk.workflow.create/run + desk.events 进度气泡);
+        // 否则走原有聊天流.
+        if homeMode == .cowork {
+            chatStore.ensureActiveSession(mode: "cowork")
+            let userMsg = ChatMessageData(role: "user", content: text)
+            chatStore.appendMessage(userMsg)
+            Task {
+                let ok = await coworkHome.submitWorkflow(prompt: text)
+                if !ok {
+                    let failMsg = coworkHome.lastError ?? i18n.t(.cw_home_submit_fail)
+                    chatStore.appendMessage(ChatMessageData(role: "assistant", content: i18n.t(.cw_home_submit_fail) + failMsg, mode: "cowork"))
+                }
+            }
+            return
+        }
+
         Task {
             await chatStore.sendMessage(text, mode: selectedMode.rawValue, attachments: attachments)
         }
+    }
+
+    // #217: desk.events.* 事件映射为 assistant 对话气泡 (内联进当前 cowork 会话).
+    private func appendCoworkBubble(_ ev: CoworkHomeEvent) {
+        chatStore.appendMessage(ChatMessageData(role: "assistant", content: ev.text, mode: "cowork"))
+        chatViewLog.info("cowork bubble: kind=\(ev.kind.rawValue) text='\(ev.text.prefix(40))'")
     }
 
     private func takeScreenshot() {
