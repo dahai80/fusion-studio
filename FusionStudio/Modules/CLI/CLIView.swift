@@ -16,12 +16,12 @@ struct CLIPreset: Identifiable {
     let dangerLevel: Int  // 0=safe, 1=caution, 2=destructive
 
     enum CLICategory: String, CaseIterable {
-        case model    = "模型管理"
-        case kb       = "知识库"
-        case bench    = "基准测试"
-        case service  = "服务管理"
-        case desk     = "桌面自动化"
-        case utility  = "工具"
+        case model    = "model"
+        case kb       = "kb"
+        case bench    = "bench"
+        case service  = "service"
+        case desk     = "desk"
+        case utility  = "utility"
 
         var icon: String {
             switch self {
@@ -33,36 +33,49 @@ struct CLIPreset: Identifiable {
             case .utility: return "wrench.and.screwdriver"
             }
         }
+
+        var localizedName: String {
+            switch self {
+            case .model:   return I18nManager.shared.t(.cli_cat_model)
+            case .kb:      return I18nManager.shared.t(.cli_cat_kb)
+            case .bench:   return I18nManager.shared.t(.cli_cat_bench)
+            case .service: return I18nManager.shared.t(.cli_cat_service)
+            case .desk:    return I18nManager.shared.t(.cli_cat_desk)
+            case .utility: return I18nManager.shared.t(.cli_cat_utility)
+            }
+        }
     }
 }
 
 // MARK: - 预设命令
 
-let cliPresets: [CLIPreset] = [
+var cliPresets: [CLIPreset] {
+    [
     // 模型管理
-    CLIPreset(id: "model-list", title: "列出模型", command: "fusion model list", description: "列出所有本地 MLX 模型", category: .model, icon: "list.bullet", dangerLevel: 0),
-    CLIPreset(id: "model-pull", title: "下载模型", command: "fusion model pull", description: "从 Model-Hub 下载模型", category: .model, icon: "icloud.and.arrow.down", dangerLevel: 0),
-    CLIPreset(id: "model-delete", title: "删除模型", command: "fusion model delete", description: "删除本地模型", category: .model, icon: "trash", dangerLevel: 2),
+    CLIPreset(id: "model-list", title: I18nManager.shared.t(.cli_preset_model_list_title), command: "fusion model list", description: I18nManager.shared.t(.cli_preset_model_list_desc), category: .model, icon: "list.bullet", dangerLevel: 0),
+    CLIPreset(id: "model-pull", title: I18nManager.shared.t(.cli_preset_model_pull_title), command: "fusion model pull", description: I18nManager.shared.t(.cli_preset_model_pull_desc), category: .model, icon: "icloud.and.arrow.down", dangerLevel: 0),
+    CLIPreset(id: "model-delete", title: I18nManager.shared.t(.cli_preset_model_delete_title), command: "fusion model delete", description: I18nManager.shared.t(.cli_preset_model_delete_desc), category: .model, icon: "trash", dangerLevel: 2),
 
     // 知识库
-    CLIPreset(id: "kb-list", title: "知识库列表", command: "fusion kb list", description: "列出所有知识库", category: .kb, icon: "list.bullet", dangerLevel: 0),
-    CLIPreset(id: "kb-create", title: "创建知识库", command: "fusion kb create", description: "创建新的知识库", category: .kb, icon: "plus.circle", dangerLevel: 0),
-    CLIPreset(id: "kb-ingest", title: "导入文档", command: "fusion kb ingest", description: "导入文档到知识库", category: .kb, icon: "doc.badge.plus", dangerLevel: 0),
+    CLIPreset(id: "kb-list", title: I18nManager.shared.t(.cli_preset_kb_list_title), command: "fusion kb list", description: I18nManager.shared.t(.cli_preset_kb_list_desc), category: .kb, icon: "list.bullet", dangerLevel: 0),
+    CLIPreset(id: "kb-create", title: I18nManager.shared.t(.cli_preset_kb_create_title), command: "fusion kb create", description: I18nManager.shared.t(.cli_preset_kb_create_desc), category: .kb, icon: "plus.circle", dangerLevel: 0),
+    CLIPreset(id: "kb-ingest", title: I18nManager.shared.t(.cli_preset_kb_ingest_title), command: "fusion kb ingest", description: I18nManager.shared.t(.cli_preset_kb_ingest_desc), category: .kb, icon: "doc.badge.plus", dangerLevel: 0),
 
     // 基准测试
-    CLIPreset(id: "bench-speed", title: "速度测试", command: "fusion bench speed", description: "Token 生成速度测试", category: .bench, icon: "speedometer", dangerLevel: 0),
-    CLIPreset(id: "bench-mem", title: "内存测试", command: "fusion bench mem", description: "内存使用分析", category: .bench, icon: "memorychip", dangerLevel: 0),
-    CLIPreset(id: "bench-ctx", title: "上下文测试", command: "fusion bench ctx", description: "上下文长度压力测试", category: .bench, icon: "doc.text.magnifyingglass", dangerLevel: 0),
+    CLIPreset(id: "bench-speed", title: I18nManager.shared.t(.cli_preset_bench_speed_title), command: "fusion bench speed", description: I18nManager.shared.t(.cli_preset_bench_speed_desc), category: .bench, icon: "speedometer", dangerLevel: 0),
+    CLIPreset(id: "bench-mem", title: I18nManager.shared.t(.cli_preset_bench_mem_title), command: "fusion bench mem", description: I18nManager.shared.t(.cli_preset_bench_mem_desc), category: .bench, icon: "memorychip", dangerLevel: 0),
+    CLIPreset(id: "bench-ctx", title: I18nManager.shared.t(.cli_preset_bench_ctx_title), command: "fusion bench ctx", description: I18nManager.shared.t(.cli_preset_bench_ctx_desc), category: .bench, icon: "doc.text.magnifyingglass", dangerLevel: 0),
 
     // 服务管理
-    CLIPreset(id: "svc-status", title: "服务状态", command: "fusion service status", description: "查看所有服务状态", category: .service, icon: "info.circle", dangerLevel: 0),
-    CLIPreset(id: "svc-start", title: "启动服务", command: "fusion service start", description: "启动服务", category: .service, icon: "play.circle", dangerLevel: 0),
-    CLIPreset(id: "svc-stop", title: "停止服务", command: "fusion service stop", description: "停止服务", category: .service, icon: "stop.circle", dangerLevel: 1),
+    CLIPreset(id: "svc-status", title: I18nManager.shared.t(.cli_preset_svc_status_title), command: "fusion service status", description: I18nManager.shared.t(.cli_preset_svc_status_desc), category: .service, icon: "info.circle", dangerLevel: 0),
+    CLIPreset(id: "svc-start", title: I18nManager.shared.t(.cli_preset_svc_start_title), command: "fusion service start", description: I18nManager.shared.t(.cli_preset_svc_start_desc), category: .service, icon: "play.circle", dangerLevel: 0),
+    CLIPreset(id: "svc-stop", title: I18nManager.shared.t(.cli_preset_svc_stop_title), command: "fusion service stop", description: I18nManager.shared.t(.cli_preset_svc_stop_desc), category: .service, icon: "stop.circle", dangerLevel: 1),
 
     // 桌面自动化
-    CLIPreset(id: "desk-list", title: "模板列表", command: "fusion desk list", description: "列出自动化模板", category: .desk, icon: "list.bullet", dangerLevel: 0),
-    CLIPreset(id: "desk-run", title: "运行模板", command: "fusion desk run", description: "执行自动化模板", category: .desk, icon: "play", dangerLevel: 1),
-]
+    CLIPreset(id: "desk-list", title: I18nManager.shared.t(.cli_preset_desk_list_title), command: "fusion desk list", description: I18nManager.shared.t(.cli_preset_desk_list_desc), category: .desk, icon: "list.bullet", dangerLevel: 0),
+    CLIPreset(id: "desk-run", title: I18nManager.shared.t(.cli_preset_desk_run_title), command: "fusion desk run", description: I18nManager.shared.t(.cli_preset_desk_run_desc), category: .desk, icon: "play", dangerLevel: 1),
+    ]
+}
 
 // MARK: - 命令历史
 
@@ -95,7 +108,7 @@ struct CLIView: View {
         HSplitView {
             // 左侧：预设命令面板
             VStack(spacing: 0) {
-                Text("快捷命令")
+                Text(I18nManager.shared.t(.cli_quick_commands))
                     .font(.headline)
                     .padding(8)
 
@@ -110,7 +123,7 @@ struct CLIView: View {
                                     }
                             }
                         } header: {
-                            Label(category.rawValue, systemImage: category.icon)
+                            Label(category.localizedName, systemImage: category.icon)
                         }
                     }
                 }
@@ -125,7 +138,7 @@ struct CLIView: View {
                     Image(systemName: "chevron.right")
                         .foregroundColor(.green)
                         .font(.system(size: 14, weight: .bold))
-                    TextField("输入 fusion 命令...", text: $commandInput)
+                    TextField(I18nManager.shared.t(.cli_ph_input_cmd), text: $commandInput)
                         .textFieldStyle(.plain)
                         .font(.system(.body, design: .monospaced))
                         .onSubmit {
@@ -167,9 +180,9 @@ struct CLIView: View {
                                     Image(systemName: "terminal")
                                         .font(.system(size: 32))
                                         .foregroundColor(.secondary)
-                                    Text("从左侧选择快捷命令，或直接输入命令")
+                                    Text(I18nManager.shared.t(.cli_msg_select_or_input))
                                         .foregroundColor(.secondary)
-                                    Text("提示: 输入 help 查看可用命令")
+                                    Text(I18nManager.shared.t(.cli_hint_help))
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
@@ -197,10 +210,10 @@ struct CLIView: View {
     private func runPreset(_ preset: CLIPreset) {
         if preset.dangerLevel >= 2 {
             let alert = NSAlert()
-            alert.messageText = "确认执行"
-            alert.informativeText = "此操作将 \(preset.description)。确定要继续吗？"
-            alert.addButton(withTitle: "取消")
-            alert.addButton(withTitle: "继续")
+            alert.messageText = I18nManager.shared.t(.cli_alert_confirm)
+            alert.informativeText = String(format: I18nManager.shared.t(.cli_alert_will_do), preset.description)
+            alert.addButton(withTitle: I18nManager.shared.t(.cli_btn_cancel))
+            alert.addButton(withTitle: I18nManager.shared.t(.cli_btn_continue))
             alert.alertStyle = .warning
             guard alert.runModal() == .alertSecondButtonReturn else { return }
         }
@@ -253,7 +266,7 @@ struct CLIView: View {
             let combined = [output, error].filter { !$0.isEmpty }.joined(separator: "\n")
             return (combined, task.terminationStatus)
         } catch {
-            return ("执行失败: \(error.localizedDescription)", -1)
+            return (String(format: I18nManager.shared.t(.cli_err_exec_failed), error.localizedDescription), -1)
         }
     }
 }
