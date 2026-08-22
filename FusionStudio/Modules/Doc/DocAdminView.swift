@@ -29,20 +29,37 @@ struct DocAdminView: View {
     @State private var section: AdminSection = .users
 
     private enum AdminSection: String, CaseIterable, Identifiable {
-        case users = "用户"
-        case aiRaw = "AI 原始"
-        case branding = "品牌"
-        case theme = "主题"
-        case vocabulary = "术语库"
+        case users = "Users"
+        case aiRaw = "AI Raw"
+        case branding = "Branding"
+        case theme = "Theme"
+        case vocabulary = "Vocabulary"
         case webhooks = "Webhooks"
-        case metadata = "元数据"
-        case systemInfo = "系统信息"
-        case systemConfig = "系统配置"
-        case exportJobs = "导出"
+        case metadata = "Metadata"
+        case systemInfo = "System Info"
+        case systemConfig = "System Config"
+        case exportJobs = "Export"
         case rag = "RAG"
-        case graph = "图谱搜索"
-        case notifications = "通知"
+        case graph = "Graph Search"
+        case notifications = "Notifications"
         var id: String { rawValue }
+        var localizedName: String {
+            switch self {
+            case .users: return I18nManager.shared.t(.doc_admin_sec_users)
+            case .aiRaw: return I18nManager.shared.t(.doc_admin_sec_aiRaw)
+            case .branding: return I18nManager.shared.t(.doc_admin_sec_branding)
+            case .theme: return I18nManager.shared.t(.doc_admin_sec_theme)
+            case .vocabulary: return I18nManager.shared.t(.doc_admin_sec_vocabulary)
+            case .webhooks: return I18nManager.shared.t(.doc_admin_sec_webhooks)
+            case .metadata: return I18nManager.shared.t(.doc_admin_sec_metadata)
+            case .systemInfo: return I18nManager.shared.t(.doc_admin_sec_systemInfo)
+            case .systemConfig: return I18nManager.shared.t(.doc_admin_sec_systemConfig)
+            case .exportJobs: return I18nManager.shared.t(.doc_admin_sec_export)
+            case .rag: return I18nManager.shared.t(.doc_admin_sec_rag)
+            case .graph: return I18nManager.shared.t(.doc_admin_sec_graph)
+            case .notifications: return I18nManager.shared.t(.doc_admin_sec_notifications)
+            }
+        }
         var icon: String {
             switch self {
             case .users: return "person.2"
@@ -65,7 +82,7 @@ struct DocAdminView: View {
     var body: some View {
         HStack(spacing: 0) {
             VStack(spacing: 0) {
-                Text("管理")
+                Text(I18nManager.shared.t(.doc_admin_title))
                     .font(.headline)
                     .padding(.vertical, 12)
                     .frame(maxWidth: .infinity)
@@ -81,7 +98,7 @@ struct DocAdminView: View {
                                     Image(systemName: s.icon)
                                         .frame(width: 18)
                                         .foregroundColor(section == s ? theme.accent : theme.textSecondary)
-                                    Text(s.rawValue)
+                                    Text(s.localizedName)
                                         .foregroundColor(section == s ? theme.text : theme.textSecondary)
                                     Spacer()
                                 }
@@ -171,11 +188,11 @@ private struct UserAdminPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            PanelHeader(title: "用户管理")
+            PanelHeader(title: I18nManager.shared.t(.doc_admin_panel_users))
             if loading { ProgressView() }
             if let err = error { ErrorLine(message: err) }
             if bridge.users.isEmpty && !loading {
-                EmptyHint(text: "暂无用户")
+                EmptyHint(text: I18nManager.shared.t(.doc_admin_empty_users))
             } else {
                 ForEach(bridge.users) { u in
                     HStack(spacing: 10) {
@@ -229,21 +246,21 @@ private struct AIRawPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            PanelHeader(title: "AI 原始接口")
-            TextField("输入 Prompt", text: $prompt, axis: .vertical)
+            PanelHeader(title: I18nManager.shared.t(.doc_admin_panel_aiRaw))
+            TextField(I18nManager.shared.t(.doc_admin_label_input_prompt), text: $prompt, axis: .vertical)
                 .textFieldStyle(.roundedBorder)
                 .lineLimit(3...6)
             HStack {
-                Button("补全 (completions)") { runCompletions() }
+                Button(I18nManager.shared.t(.doc_admin_btn_completions)) { runCompletions() }
                     .buttonStyle(.borderedProminent)
                     .disabled(prompt.isEmpty || loading)
-                Button("对话 (chat)") { runChat() }
+                Button(I18nManager.shared.t(.doc_admin_btn_chat)) { runChat() }
                     .buttonStyle(.bordered)
                     .disabled(prompt.isEmpty || loading)
                 if loading { ProgressView().controlSize(.small) }
             }
             if !result.isEmpty {
-                Text("结果").font(.caption).foregroundColor(theme.textSecondary)
+                Text(I18nManager.shared.t(.doc_admin_label_result)).font(.caption).foregroundColor(theme.textSecondary)
                 TextEditor(text: .constant(result))
                     .font(.system(.body, design: .monospaced))
                     .frame(height: 180)
@@ -261,7 +278,7 @@ private struct AIRawPanel: View {
                 loading = false
                 switch res {
                 case .success(let d): result = d.values.joined(separator: "\n")
-                case .failure(let e): result = "错误: \(e.localizedDescription)"
+                case .failure(let e): result = I18nManager.shared.tf(.doc_admin_err_prefix, e.localizedDescription)
                 }
             }
         }
@@ -274,7 +291,7 @@ private struct AIRawPanel: View {
                 loading = false
                 switch res {
                 case .success(let d): result = d["content"] ?? d.values.joined(separator: "\n")
-                case .failure(let e): result = "错误: \(e.localizedDescription)"
+                case .failure(let e): result = I18nManager.shared.tf(.doc_admin_err_prefix, e.localizedDescription)
                 }
             }
         }
@@ -296,25 +313,25 @@ private struct BrandingPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            PanelHeader(title: "品牌设置")
+            PanelHeader(title: I18nManager.shared.t(.doc_admin_panel_branding))
             if loading { ProgressView().frame(maxWidth: .infinity, alignment: .center) } else {
                 Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 10) {
                     GridRow { Text("Logo URL").frame(width: 110, alignment: .trailing); TextField("", text: $logoUrl).textFieldStyle(.roundedBorder) }
-                    GridRow { Text("主色").frame(width: 110, alignment: .trailing)
+                    GridRow { Text(I18nManager.shared.t(.doc_admin_label_primary_color)).frame(width: 110, alignment: .trailing)
                         HStack { TextField("#007AFF", text: $primaryColor).textFieldStyle(.roundedBorder); ColorSwatch(hex: primaryColor) } }
-                    GridRow { Text("次色").frame(width: 110, alignment: .trailing)
+                    GridRow { Text(I18nManager.shared.t(.doc_admin_label_secondary_color)).frame(width: 110, alignment: .trailing)
                         HStack { TextField("", text: $secondaryColor).textFieldStyle(.roundedBorder); ColorSwatch(hex: secondaryColor) } }
-                    GridRow { Text("字体").frame(width: 110, alignment: .trailing); TextField("", text: $font).textFieldStyle(.roundedBorder) }
+                    GridRow { Text(I18nManager.shared.t(.doc_admin_label_font)).frame(width: 110, alignment: .trailing); TextField("", text: $font).textFieldStyle(.roundedBorder) }
                 }
-                Text("自定义 CSS").font(.caption).foregroundColor(theme.textSecondary)
+                Text(I18nManager.shared.t(.doc_admin_label_custom_css)).font(.caption).foregroundColor(theme.textSecondary)
                 TextEditor(text: $customCss)
                     .font(.system(.body, design: .monospaced))
                     .frame(height: 100)
                     .background(theme.surfaceSecondary)
                     .cornerRadius(8)
                 HStack {
-                    Button("保存") { save() }.buttonStyle(.borderedProminent)
-                    if saved { Label("已保存", systemImage: "checkmark.circle.fill").foregroundColor(.green).font(.caption) }
+                    Button(I18nManager.shared.t(.doc_admin_btn_save)) { save() }.buttonStyle(.borderedProminent)
+                    if saved { Label(I18nManager.shared.t(.doc_admin_label_saved), systemImage: "checkmark.circle.fill").foregroundColor(.green).font(.caption) }
                 }
             }
         }
@@ -372,7 +389,7 @@ private struct ThemePanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            PanelHeader(title: "主题管理")
+            PanelHeader(title: I18nManager.shared.t(.doc_admin_panel_theme))
             if loading { ProgressView() }
             ForEach(bridge.themes) { t in
                 HStack {
@@ -386,11 +403,11 @@ private struct ThemePanel: View {
                 .padding(10).background(theme.surfaceSecondary).cornerRadius(8)
             }
             Divider()
-            Text("新建主题").font(.subheadline).fontWeight(.medium)
-            TextField("名称", text: $newName).textFieldStyle(.roundedBorder)
-            TextField("CSS（可选）", text: $newCss, axis: .vertical).textFieldStyle(.roundedBorder).lineLimit(2...4)
-            Toggle("深色", isOn: $newDark)
-            Button("创建") {
+            Text(I18nManager.shared.t(.doc_admin_label_new_theme)).font(.subheadline).fontWeight(.medium)
+            TextField(I18nManager.shared.t(.doc_admin_label_name), text: $newName).textFieldStyle(.roundedBorder)
+            TextField(I18nManager.shared.t(.doc_admin_label_css_optional), text: $newCss, axis: .vertical).textFieldStyle(.roundedBorder).lineLimit(2...4)
+            Toggle(I18nManager.shared.t(.doc_admin_label_dark), isOn: $newDark)
+            Button(I18nManager.shared.t(.doc_admin_btn_create)) {
                 bridge.createTheme(name: newName, css: newCss.isEmpty ? nil : newCss, isDark: newDark) { _ in
                     newName = ""; newCss = ""; newDark = false; load()
                 }
@@ -417,7 +434,7 @@ private struct VocabularyPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            PanelHeader(title: "术语库")
+            PanelHeader(title: I18nManager.shared.t(.doc_admin_panel_vocabulary))
             if loading { ProgressView() }
             ForEach(bridge.vocabulary) { v in
                 HStack {
@@ -433,13 +450,13 @@ private struct VocabularyPanel: View {
                 .padding(10).background(theme.surfaceSecondary).cornerRadius(8)
             }
             Divider()
-            Text("新建术语").font(.subheadline).fontWeight(.medium)
+            Text(I18nManager.shared.t(.doc_admin_label_new_term)).font(.subheadline).fontWeight(.medium)
             HStack {
-                TextField("术语", text: $term).textFieldStyle(.roundedBorder)
-                TextField("分类", text: $category).textFieldStyle(.roundedBorder).frame(width: 100)
+                TextField(I18nManager.shared.t(.doc_admin_label_term), text: $term).textFieldStyle(.roundedBorder)
+                TextField(I18nManager.shared.t(.doc_admin_label_category), text: $category).textFieldStyle(.roundedBorder).frame(width: 100)
             }
-            TextField("定义", text: $definition, axis: .vertical).textFieldStyle(.roundedBorder).lineLimit(2...3)
-            Button("添加") {
+            TextField(I18nManager.shared.t(.doc_admin_label_definition), text: $definition, axis: .vertical).textFieldStyle(.roundedBorder).lineLimit(2...3)
+            Button(I18nManager.shared.t(.doc_admin_btn_add)) {
                 bridge.createVocabulary(term: term, definition: definition.isEmpty ? nil : definition, category: category.isEmpty ? nil : category) { _ in
                     term = ""; definition = ""; category = ""; load()
                 }
@@ -466,7 +483,7 @@ private struct WebhookPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            PanelHeader(title: "Webhooks")
+            PanelHeader(title: I18nManager.shared.t(.doc_admin_panel_webhooks))
             if loading { ProgressView() }
             ForEach(bridge.webhooks) { w in
                 HStack {
@@ -482,11 +499,11 @@ private struct WebhookPanel: View {
                 .padding(10).background(theme.surfaceSecondary).cornerRadius(8)
             }
             Divider()
-            Text("新建 Webhook").font(.subheadline).fontWeight(.medium)
+            Text(I18nManager.shared.t(.doc_admin_label_new_webhook)).font(.subheadline).fontWeight(.medium)
             TextField("URL", text: $url).textFieldStyle(.roundedBorder)
-            TextField("事件（逗号分隔，如 book.created,page.updated）", text: $events).textFieldStyle(.roundedBorder)
-            SecureField("Secret（可选）", text: $secret).textFieldStyle(.roundedBorder)
-            Button("创建") {
+            TextField(I18nManager.shared.t(.doc_admin_label_events), text: $events).textFieldStyle(.roundedBorder)
+            SecureField(I18nManager.shared.t(.doc_admin_label_secret), text: $secret).textFieldStyle(.roundedBorder)
+            Button(I18nManager.shared.t(.doc_admin_btn_create)) {
                 let ev = events.isEmpty ? nil : events.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
                 bridge.createWebhook(url: url, events: ev, secret: secret.isEmpty ? nil : secret) { _ in
                     url = ""; events = ""; secret = ""; load()
@@ -515,11 +532,11 @@ private struct MetadataPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            PanelHeader(title: "元数据")
+            PanelHeader(title: I18nManager.shared.t(.doc_admin_panel_metadata))
             HStack {
                 TextField("entity", text: $entity).textFieldStyle(.roundedBorder)
                 TextField("entity_id", text: $entityId).textFieldStyle(.roundedBorder)
-                Button("查询") { load() }.buttonStyle(.borderedProminent).disabled(entity.isEmpty || entityId.isEmpty)
+                Button(I18nManager.shared.t(.doc_admin_btn_query)) { load() }.buttonStyle(.borderedProminent).disabled(entity.isEmpty || entityId.isEmpty)
             }
             if loading { ProgressView() }
             if let err = error { ErrorLine(message: err) }
@@ -534,7 +551,7 @@ private struct MetadataPanel: View {
                 }
                 .padding(10).background(theme.surfaceSecondary).cornerRadius(8)
             }
-            if entries.isEmpty && !loading { EmptyHint(text: "输入 entity 和 entity_id 查询元数据") }
+            if entries.isEmpty && !loading { EmptyHint(text: I18nManager.shared.t(.doc_admin_empty_metadata_query)) }
         }
     }
 
@@ -561,18 +578,18 @@ private struct SystemInfoPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack { PanelHeader(title: "系统信息"); Spacer(); Button("刷新") { load() }.buttonStyle(.bordered) }
+            HStack { PanelHeader(title: I18nManager.shared.t(.doc_admin_panel_systemInfo)); Spacer(); Button(I18nManager.shared.t(.doc_admin_btn_refresh)) { load() }.buttonStyle(.bordered) }
             if loading { ProgressView() }
             if let info = bridge.systemInfo {
                 VStack(spacing: 8) {
-                    InfoRow(label: "版本", value: info.version ?? "-")
-                    if let up = info.uptime { InfoRow(label: "运行时长", value: "\(Int(up))s") }
-                    if let b = info.total_books { InfoRow(label: "书籍总数", value: "\(b)") }
-                    if let p = info.total_pages { InfoRow(label: "页面总数", value: "\(p)") }
-                    if let u = info.total_users { InfoRow(label: "用户总数", value: "\(u)") }
+                    InfoRow(label: I18nManager.shared.t(.doc_admin_label_version), value: info.version ?? "-")
+                    if let up = info.uptime { InfoRow(label: I18nManager.shared.t(.doc_admin_label_uptime), value: "\(Int(up))s") }
+                    if let b = info.total_books { InfoRow(label: I18nManager.shared.t(.doc_admin_label_total_books), value: "\(b)") }
+                    if let p = info.total_pages { InfoRow(label: I18nManager.shared.t(.doc_admin_label_total_pages), value: "\(p)") }
+                    if let u = info.total_users { InfoRow(label: I18nManager.shared.t(.doc_admin_label_total_users), value: "\(u)") }
                 }
             } else if !loading {
-                EmptyHint(text: "点击刷新获取系统信息")
+                EmptyHint(text: I18nManager.shared.t(.doc_admin_empty_sysinfo))
             }
         }
         .onAppear { if bridge.systemInfo == nil { load() } }
@@ -608,7 +625,7 @@ private struct SystemConfigPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack { PanelHeader(title: "系统配置"); Spacer(); Button("刷新") { load() }.buttonStyle(.bordered) }
+            HStack { PanelHeader(title: I18nManager.shared.t(.doc_admin_panel_systemConfig)); Spacer(); Button(I18nManager.shared.t(.doc_admin_btn_refresh)) { load() }.buttonStyle(.bordered) }
             if loading { ProgressView() }
             ForEach(bridge.systemConfig, id: \.key) { c in
                 HStack {
@@ -617,14 +634,14 @@ private struct SystemConfigPanel: View {
                         get: { edits[c.key] ?? c.value ?? "" },
                         set: { edits[c.key] = $0 }
                     )).textFieldStyle(.roundedBorder)
-                    Button("保存") {
+                    Button(I18nManager.shared.t(.doc_admin_btn_save)) {
                         if let v = edits[c.key] {
                             bridge.updateSystemConfig(key: c.key, value: v) { _ in load() }
                         }
                     }.buttonStyle(.borderedProminent)
                 }
             }
-            if bridge.systemConfig.isEmpty && !loading { EmptyHint(text: "暂无配置项") }
+            if bridge.systemConfig.isEmpty && !loading { EmptyHint(text: I18nManager.shared.t(.doc_admin_empty_sysconfig)) }
         }
         .onAppear { if bridge.systemConfig.isEmpty { load() } }
     }
@@ -649,18 +666,18 @@ private struct ExportPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            PanelHeader(title: "导出")
+            PanelHeader(title: I18nManager.shared.t(.doc_admin_panel_export))
             HStack {
                 TextField("Book ID", text: $bookId).textFieldStyle(.roundedBorder)
-                Picker("格式", selection: $format) {
+                Picker(I18nManager.shared.t(.doc_admin_label_format), selection: $format) {
                     ForEach(formats, id: \.self) { Text($0).tag($0) }
                 }.pickerStyle(.menu).frame(width: 110)
-                Button("导出") { exportBook() }.buttonStyle(.borderedProminent).disabled(bookId.isEmpty || loading)
+                Button(I18nManager.shared.t(.doc_admin_btn_export)) { exportBook() }.buttonStyle(.borderedProminent).disabled(bookId.isEmpty || loading)
                 if loading { ProgressView().controlSize(.small) }
             }
             if let err = error { ErrorLine(message: err) }
             if !bridge.exportJobs.isEmpty {
-                Text("导出任务").font(.subheadline).fontWeight(.medium)
+                Text(I18nManager.shared.t(.doc_admin_label_export_jobs)).font(.subheadline).fontWeight(.medium)
                 ForEach(bridge.exportJobs) { job in
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
@@ -671,7 +688,7 @@ private struct ExportPanel: View {
                             }
                         }
                         Spacer()
-                        Button("刷新状态") {
+                        Button(I18nManager.shared.t(.doc_admin_btn_refresh_status)) {
                             bridge.fetchExportStatus(jobId: job.id) { res in
                                 DispatchQueue.main.async {
                                     if case .success(let updated) = res {
@@ -712,7 +729,7 @@ private struct RAGPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack { PanelHeader(title: "RAG 索引"); Spacer(); Button("刷新状态") { loadStatus() }.buttonStyle(.bordered) }
+            HStack { PanelHeader(title: I18nManager.shared.t(.doc_admin_panel_rag)); Spacer(); Button(I18nManager.shared.t(.doc_admin_btn_refresh_status)) { loadStatus() }.buttonStyle(.bordered) }
             if loading { ProgressView() }
             if !status.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
@@ -723,12 +740,12 @@ private struct RAGPanel: View {
                 .padding(10).background(theme.surfaceSecondary).cornerRadius(8)
             }
             HStack {
-                Button("构建索引") { runOp(bridge.buildRAGIndex, label: "build") }.buttonStyle(.borderedProminent)
-                Button("清空索引") { runOp(bridge.clearRAGIndex, label: "clear") }.buttonStyle(.bordered)
+                Button(I18nManager.shared.t(.doc_admin_btn_build_index)) { runOp(bridge.buildRAGIndex, label: "build") }.buttonStyle(.borderedProminent)
+                Button(I18nManager.shared.t(.doc_admin_btn_clear_index)) { runOp(bridge.clearRAGIndex, label: "clear") }.buttonStyle(.bordered)
             }
-            Text("嵌入内容").font(.caption).foregroundColor(theme.textSecondary)
-            TextField("输入文本", text: $embedContent, axis: .vertical).textFieldStyle(.roundedBorder).lineLimit(2...4)
-            Button("嵌入") {
+            Text(I18nManager.shared.t(.doc_admin_label_embed_content)).font(.caption).foregroundColor(theme.textSecondary)
+            TextField(I18nManager.shared.t(.doc_admin_label_input_text), text: $embedContent, axis: .vertical).textFieldStyle(.roundedBorder).lineLimit(2...4)
+            Button(I18nManager.shared.t(.doc_admin_btn_embed)) {
                 bridge.embedRAGContent(content: embedContent) { res in
                     DispatchQueue.main.async {
                         msg = formatBoolResult(res, label: "embed")
@@ -763,7 +780,7 @@ private struct RAGPanel: View {
     private func formatBoolResult(_ res: Result<[String: Bool], Error>, label: String) -> String {
         switch res {
         case .success(let d): return "\(label): " + d.map { "\($0.key)=\($0.value)" }.joined(separator: ", ")
-        case .failure(let e): return "\(label) 失败: \(e.localizedDescription)"
+        case .failure(let e): return I18nManager.shared.tf(.doc_admin_err_failed, label, e.localizedDescription)
         }
     }
 }
@@ -783,29 +800,29 @@ private struct GraphPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            PanelHeader(title: "图谱搜索")
+            PanelHeader(title: I18nManager.shared.t(.doc_admin_panel_graph))
             if loading { ProgressView() }
             if let err = error { ErrorLine(message: err) }
             VStack(alignment: .leading, spacing: 6) {
-                Text("语义搜索").font(.subheadline).fontWeight(.medium)
+                Text(I18nManager.shared.t(.doc_admin_label_semantic_search)).font(.subheadline).fontWeight(.medium)
                 HStack {
-                    TextField("查询", text: $query).textFieldStyle(.roundedBorder)
-                    Button("搜索") { search() }.buttonStyle(.borderedProminent).disabled(query.isEmpty)
+                    TextField(I18nManager.shared.t(.doc_admin_label_query_ph), text: $query).textFieldStyle(.roundedBorder)
+                    Button(I18nManager.shared.t(.doc_admin_btn_search)) { search() }.buttonStyle(.borderedProminent).disabled(query.isEmpty)
                 }
             }
             VStack(alignment: .leading, spacing: 6) {
-                Text("图遍历").font(.subheadline).fontWeight(.medium)
+                Text(I18nManager.shared.t(.doc_admin_label_graph_traverse)).font(.subheadline).fontWeight(.medium)
                 HStack {
-                    TextField("起始节点 ID", text: $startId).textFieldStyle(.roundedBorder)
-                    Stepper("深度 \(depth)", value: $depth, in: 1...10)
-                    Button("遍历") { traverse() }.buttonStyle(.bordered).disabled(startId.isEmpty)
+                    TextField(I18nManager.shared.t(.doc_admin_label_start_node), text: $startId).textFieldStyle(.roundedBorder)
+                    Stepper(I18nManager.shared.tf(.doc_admin_fmt_depth, depth), value: $depth, in: 1...10)
+                    Button(I18nManager.shared.t(.doc_admin_btn_traverse)) { traverse() }.buttonStyle(.bordered).disabled(startId.isEmpty)
                 }
             }
             HStack {
-                Button("聚类 (louvain)") { cluster() }.buttonStyle(.bordered)
+                Button(I18nManager.shared.t(.doc_admin_btn_cluster)) { cluster() }.buttonStyle(.bordered)
             }
             if let g = graph {
-                Text("结果: \(g.nodes.count) 节点, \(g.edges.count) 边").font(.caption).foregroundColor(theme.textSecondary)
+                Text(I18nManager.shared.tf(.doc_admin_fmt_graph_result, g.nodes.count, g.edges.count)).font(.caption).foregroundColor(theme.textSecondary)
                 ForEach(g.nodes.prefix(20)) { n in
                     HStack {
                         Image(systemName: "circle.fill").foregroundColor(theme.accent).font(.system(size: 6))
@@ -815,7 +832,7 @@ private struct GraphPanel: View {
                 }
             }
             if !clusterResult.isEmpty {
-                Text("聚类结果").font(.caption).foregroundColor(theme.textSecondary)
+                Text(I18nManager.shared.t(.doc_admin_label_cluster_result)).font(.caption).foregroundColor(theme.textSecondary)
                 Text(clusterResult).font(.system(.caption, design: .monospaced))
                     .padding(10).background(theme.surfaceSecondary).cornerRadius(8)
             }
@@ -855,7 +872,7 @@ private struct GraphPanel: View {
                 loading = false
                 switch res {
                 case .success(let clusters):
-                    clusterResult = clusters.map { (k, v) in "\(k): \(v.count) 组" }.joined(separator: "\n")
+                    clusterResult = clusters.map { (k, v) in I18nManager.shared.tf(.doc_admin_fmt_cluster_line, k, v.count) }.joined(separator: "\n")
                 case .failure(let e): error = e.localizedDescription
                 }
             }
@@ -872,15 +889,15 @@ private struct NotificationPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack { PanelHeader(title: "通知"); Spacer()
-                Button("全部已读") {
+            HStack { PanelHeader(title: I18nManager.shared.t(.doc_admin_panel_notifications)); Spacer()
+                Button(I18nManager.shared.t(.doc_admin_btn_mark_all_read)) {
                     bridge.markAllNotificationsRead { _ in load() }
                 }.buttonStyle(.bordered)
-                Button("刷新") { load() }.buttonStyle(.bordered)
+                Button(I18nManager.shared.t(.doc_admin_btn_refresh)) { load() }.buttonStyle(.bordered)
             }
             if loading { ProgressView() }
             if bridge.notifications.isEmpty && !loading {
-                EmptyHint(text: "暂无通知")
+                EmptyHint(text: I18nManager.shared.t(.doc_admin_empty_notifications))
             } else {
                 ForEach(bridge.notifications) { n in
                     HStack {
@@ -892,7 +909,7 @@ private struct NotificationPanel: View {
                         }
                         Spacer()
                         if n.is_read != true {
-                            Button("标记已读") {
+                            Button(I18nManager.shared.t(.doc_admin_btn_mark_read)) {
                                 bridge.markNotificationRead(id: n.id) { _ in load() }
                             }.buttonStyle(.bordered).controlSize(.small)
                         }
