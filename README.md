@@ -537,6 +537,38 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 
 ## 📋 Changelog
 
+### v0.1.43 — i18n Doc Admin + License 全量本地化 (2026-08-22)
+
+补丁版本，推进 i18n 全量本地化工程 Batch 16a/16b，分支清理：
+
+- **Doc Admin 全量本地化** (PR #229, Batch 16a)：DocAdminView 13 API 组管理面板（UserAdmin/AIRaw/Branding/Theme/Vocabulary/Webhook/Metadata/SystemInfo/SystemConfig/Export/RAG/Graph/Notification）全量 `t()`；补完此前延后的 Batch 5c；AdminSection enum rawValue 中文→英文 + localizedName；86 `doc_admin_` × 4 语言
+- **License 全量本地化** (PR #230, Batch 16b)：LicenseView 单文件全量本地化；LicenseType + LicenseTab 2 enum rawValue 中文→英文 + localizedName（rawValue 仅 UI 显示，LicenseManager 逻辑用 case 名非 rawValue）；10 feature 项 + 4 type/desc/price + 3 tab + 8 label + 6 btn + sheet/form + `fmt_days` 格式占位符；53 `lic_` × 4 语言
+- **I18nService 字典**：3515 → 3568 keys × 4 语言（zhCN/enUS/jaJP/koKR）全量平衡
+- **分支清理**：9 个已合并 i18n 分支（Batch 15b-16b）全部删除，仓库仅留 master
+- **CI 全绿**：Swift Build & Test / Rust Check / Code Quality / Security Audit 4/4 pass；swift test 170/170
+
+### v0.1.42 — Chat/Cowork 共用首页 + 授权文件夹 (2026-08-21)
+
+PR #220 squash→c69fa7c，含 PR #219 (#217)：
+
+- **Chat/Cowork 共用首页**：CoworkHomeBridge + `desk.system.set_scoped_folder`/`scoped_folder` + `desk.events` 进度内联气泡；NSOpenPanel 授权文件夹选择（审计 P1-1 修复）
+- **6 文件 +524 行，16 单测，170/170**，CI 4/4
+
+### v0.1.41 — TrainerBridge schema + build.sh wasm + 测试修复 (2026-08-21)
+
+PR #218 squash→c7a2779：
+
+- **TrainerBridge 对齐 RunManager 平铺 schema**；build.sh wasm 显式告警；154/154 测试修复（DesignBridge i18n / SecurityScan enum / Profiler 空桩）
+- #202 关（重复 #217）、#186 关（上游已兼容）、#205 链上游 fusion-design #17
+- CI 全绿，tag v0.1.41，DMG 35.4MB
+
+### v0.1.40 — 多节点审批 GUI + agent 撤回发布/多语言 (2026-08-21)
+
+PR #214 + #215：
+
+- **多节点审批 GUI**：node-approval pending 队列 + approval 流程接入
+- **agent 撤回发布 + 多语言沙箱**（#214 #215）
+
 ### v0.1.39 — Trainer GUI + Projects/Doc 全量本地化 (2026-08-19)
 
 合并 PR #176 (closes #175) 与 i18n Batch 2/3/4a/4b/5a/5b/6a 共 7 个 PR，全量本地化推进至 Projects 模块：
