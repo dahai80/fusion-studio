@@ -4381,6 +4381,69 @@ enum I18nKey: String, CaseIterable {
     case tq_type_export = "tq_type_export"
     case tq_type_inference = "tq_type_inference"
     case tq_type_simulation = "tq_type_simulation"
+    case as_quality_draft = "as_quality_draft"
+    case as_quality_low = "as_quality_low"
+    case as_quality_medium = "as_quality_medium"
+    case as_quality_high = "as_quality_high"
+    case as_quality_ultra = "as_quality_ultra"
+    case as_quality_desc_draft = "as_quality_desc_draft"
+    case as_quality_desc_low = "as_quality_desc_low"
+    case as_quality_desc_medium = "as_quality_desc_medium"
+    case as_quality_desc_high = "as_quality_desc_high"
+    case as_quality_desc_ultra = "as_quality_desc_ultra"
+    case as_sec_quality = "as_sec_quality"
+    case as_preset = "as_preset"
+    case as_est_perf = "as_est_perf"
+    case as_sec_resolution = "as_sec_resolution"
+    case as_resolution = "as_resolution"
+    case as_native = "as_native"
+    case as_sec_aa = "as_sec_aa"
+    case as_aa = "as_aa"
+    case as_off = "as_off"
+    case as_sec_shadow = "as_sec_shadow"
+    case as_enable_shadow = "as_enable_shadow"
+    case as_shadow_map = "as_shadow_map"
+    case as_sec_postfx = "as_sec_postfx"
+    case as_bloom = "as_bloom"
+    case as_ssao = "as_ssao"
+    case as_reflections = "as_reflections"
+    case as_fog = "as_fog"
+    case as_sec_perf = "as_sec_perf"
+    case as_texture_quality = "as_texture_quality"
+    case as_lod_bias = "as_lod_bias"
+    case as_max_lights = "as_max_lights"
+    case as_vsync = "as_vsync"
+    case as_max_fps = "as_max_fps"
+    case as_unlimited = "as_unlimited"
+    case as_sec_physics = "as_sec_physics"
+    case as_gravity = "as_gravity"
+    case as_time_step = "as_time_step"
+    case as_solver_iter = "as_solver_iter"
+    case as_max_substeps = "as_max_substeps"
+    case as_sec_collision = "as_sec_collision"
+    case as_ccd = "as_ccd"
+    case as_sleeping = "as_sleeping"
+    case as_contact_break = "as_contact_break"
+    case as_collision_margin = "as_collision_margin"
+    case as_sec_material = "as_sec_material"
+    case as_restitution = "as_restitution"
+    case as_friction = "as_friction"
+    case as_linear_damping = "as_linear_damping"
+    case as_angular_damping = "as_angular_damping"
+    case as_sec_constraint = "as_sec_constraint"
+    case as_enable_constraint = "as_enable_constraint"
+    case as_sec_stats = "as_sec_stats"
+    case as_score = "as_score"
+    case as_score_desc = "as_score_desc"
+    case as_bench_title = "as_bench_title"
+    case as_bench_running = "as_bench_running"
+    case as_bench_run = "as_bench_run"
+    case as_bench_progress = "as_bench_progress"
+    case as_bench_empty = "as_bench_empty"
+    case as_tab_render = "as_tab_render"
+    case as_tab_simulation = "as_tab_simulation"
+    case as_tab_benchmark = "as_tab_benchmark"
+    case as_title = "as_title"
     case fc_preview = "fc_preview"
     case fc_live = "fc_live"
     case fc_html_preview_empty = "fc_html_preview_empty"
@@ -8910,6 +8973,69 @@ let zhCNTranslations: [String: String] = [
     "tq_type_export": "导出",
     "tq_type_inference": "推理",
     "tq_type_simulation": "仿真",
+    "as_quality_draft": "草稿",
+    "as_quality_low": "低",
+    "as_quality_medium": "中",
+    "as_quality_high": "高",
+    "as_quality_ultra": "极致",
+    "as_quality_desc_draft": "最低画质，最高帧率（调试用）",
+    "as_quality_desc_low": "低画质，适合轻量预览",
+    "as_quality_desc_medium": "中等画质，性能与画质平衡",
+    "as_quality_desc_high": "高画质，适合正式渲染",
+    "as_quality_desc_ultra": "极致画质，需要高性能 GPU",
+    "as_sec_quality": "画质预设",
+    "as_preset": "预设",
+    "as_est_perf": "预估性能",
+    "as_sec_resolution": "分辨率",
+    "as_resolution": "分辨率",
+    "as_native": "原生",
+    "as_sec_aa": "抗锯齿",
+    "as_aa": "抗锯齿",
+    "as_off": "关闭",
+    "as_sec_shadow": "阴影",
+    "as_enable_shadow": "启用阴影",
+    "as_shadow_map": "阴影贴图分辨率",
+    "as_sec_postfx": "后期特效",
+    "as_bloom": "泛光 (Bloom)",
+    "as_ssao": "环境光遮蔽 (SSAO)",
+    "as_reflections": "反射",
+    "as_fog": "雾效",
+    "as_sec_perf": "性能",
+    "as_texture_quality": "纹理质量",
+    "as_lod_bias": "LOD 偏移",
+    "as_max_lights": "最大光源数: %d",
+    "as_vsync": "垂直同步",
+    "as_max_fps": "最大 FPS",
+    "as_unlimited": "不限制",
+    "as_sec_physics": "物理引擎",
+    "as_gravity": "重力 (m/s²)",
+    "as_time_step": "时间步长",
+    "as_solver_iter": "求解器迭代次数: %d",
+    "as_max_substeps": "最大子步数: %d",
+    "as_sec_collision": "碰撞检测",
+    "as_ccd": "连续碰撞检测 (CCD)",
+    "as_sleeping": "物体休眠优化",
+    "as_contact_break": "接触断裂阈值",
+    "as_collision_margin": "碰撞容差",
+    "as_sec_material": "物理材质",
+    "as_restitution": "弹性系数",
+    "as_friction": "摩擦系数",
+    "as_linear_damping": "线性阻尼",
+    "as_angular_damping": "角阻尼",
+    "as_sec_constraint": "约束求解",
+    "as_enable_constraint": "启用约束求解器",
+    "as_sec_stats": "统计信息",
+    "as_score": "当前设置评分",
+    "as_score_desc": "评分基于物理精度、碰撞检测质量和性能开销的综合评估",
+    "as_bench_title": "性能基准测试",
+    "as_bench_running": "测试中...",
+    "as_bench_run": "运行测试",
+    "as_bench_progress": "%d%% - 正在测试...",
+    "as_bench_empty": "运行基准测试以评估当前渲染和仿真性能",
+    "as_tab_render": "渲染",
+    "as_tab_simulation": "仿真",
+    "as_tab_benchmark": "基准测试",
+    "as_title": "高级设置",
     "fc_preview": "预览",
     "fc_live": "实时",
     "fc_html_preview_empty": "生成HTML后此处显示预览",
@@ -13392,6 +13518,69 @@ let enUSTranslations: [String: String] = [
     "tq_type_export": "Export",
     "tq_type_inference": "Inference",
     "tq_type_simulation": "Simulation",
+    "as_quality_draft": "Draft",
+    "as_quality_low": "Low",
+    "as_quality_medium": "Medium",
+    "as_quality_high": "High",
+    "as_quality_ultra": "Ultra",
+    "as_quality_desc_draft": "Lowest quality, highest FPS (for debugging)",
+    "as_quality_desc_low": "Low quality, light preview",
+    "as_quality_desc_medium": "Medium quality, balanced performance and visuals",
+    "as_quality_desc_high": "High quality, for production rendering",
+    "as_quality_desc_ultra": "Ultra quality, requires high-performance GPU",
+    "as_sec_quality": "Quality Preset",
+    "as_preset": "Preset",
+    "as_est_perf": "Estimated Performance",
+    "as_sec_resolution": "Resolution",
+    "as_resolution": "Resolution",
+    "as_native": "Native",
+    "as_sec_aa": "Anti-Aliasing",
+    "as_aa": "Anti-Aliasing",
+    "as_off": "Off",
+    "as_sec_shadow": "Shadows",
+    "as_enable_shadow": "Enable Shadows",
+    "as_shadow_map": "Shadow Map Resolution",
+    "as_sec_postfx": "Post-Processing",
+    "as_bloom": "Bloom",
+    "as_ssao": "SSAO",
+    "as_reflections": "Reflections",
+    "as_fog": "Fog",
+    "as_sec_perf": "Performance",
+    "as_texture_quality": "Texture Quality",
+    "as_lod_bias": "LOD Bias",
+    "as_max_lights": "Max Lights: %d",
+    "as_vsync": "V-Sync",
+    "as_max_fps": "Max FPS",
+    "as_unlimited": "Unlimited",
+    "as_sec_physics": "Physics Engine",
+    "as_gravity": "Gravity (m/s²)",
+    "as_time_step": "Time Step",
+    "as_solver_iter": "Solver Iterations: %d",
+    "as_max_substeps": "Max Substeps: %d",
+    "as_sec_collision": "Collision Detection",
+    "as_ccd": "Continuous Collision Detection (CCD)",
+    "as_sleeping": "Object Sleeping Optimization",
+    "as_contact_break": "Contact Breaking Threshold",
+    "as_collision_margin": "Collision Margin",
+    "as_sec_material": "Physics Material",
+    "as_restitution": "Restitution",
+    "as_friction": "Friction",
+    "as_linear_damping": "Linear Damping",
+    "as_angular_damping": "Angular Damping",
+    "as_sec_constraint": "Constraint Solver",
+    "as_enable_constraint": "Enable Constraint Solver",
+    "as_sec_stats": "Statistics",
+    "as_score": "Current Settings Score",
+    "as_score_desc": "Score is a comprehensive evaluation of physics accuracy, collision detection quality, and performance cost",
+    "as_bench_title": "Performance Benchmark",
+    "as_bench_running": "Testing...",
+    "as_bench_run": "Run Test",
+    "as_bench_progress": "%d%% - Testing...",
+    "as_bench_empty": "Run benchmark to evaluate current rendering and simulation performance",
+    "as_tab_render": "Render",
+    "as_tab_simulation": "Simulation",
+    "as_tab_benchmark": "Benchmark",
+    "as_title": "Advanced Settings",
     "fc_preview": "Preview",
     "fc_live": "Live",
     "fc_html_preview_empty": "Preview appears here after HTML is generated",
@@ -17868,6 +18057,69 @@ let jaJPTranslations: [String: String] = [
     "tq_type_export": "エクスポート",
     "tq_type_inference": "推論",
     "tq_type_simulation": "シミュレーション",
+    "as_quality_draft": "下書き",
+    "as_quality_low": "低",
+    "as_quality_medium": "中",
+    "as_quality_high": "高",
+    "as_quality_ultra": "最高",
+    "as_quality_desc_draft": "最低画質、最高FPS（デバッグ用）",
+    "as_quality_desc_low": "低画質、軽量プレビュー向け",
+    "as_quality_desc_medium": "中画質、パフォーマンスと画質のバランス",
+    "as_quality_desc_high": "高画質、本番レンダリング向け",
+    "as_quality_desc_ultra": "最高画質、高性能GPUが必要",
+    "as_sec_quality": "画質プリセット",
+    "as_preset": "プリセット",
+    "as_est_perf": "推定パフォーマンス",
+    "as_sec_resolution": "解像度",
+    "as_resolution": "解像度",
+    "as_native": "ネイティブ",
+    "as_sec_aa": "アンチエイリアス",
+    "as_aa": "アンチエイリアス",
+    "as_off": "オフ",
+    "as_sec_shadow": "シャドウ",
+    "as_enable_shadow": "シャドウを有効化",
+    "as_shadow_map": "シャドウマップ解像度",
+    "as_sec_postfx": "ポストエフェクト",
+    "as_bloom": "ブルーム (Bloom)",
+    "as_ssao": "環境光遮蔽 (SSAO)",
+    "as_reflections": "反射",
+    "as_fog": "フォグ",
+    "as_sec_perf": "パフォーマンス",
+    "as_texture_quality": "テクスチャ品質",
+    "as_lod_bias": "LOD バイアス",
+    "as_max_lights": "最大光源数: %d",
+    "as_vsync": "垂直同期",
+    "as_max_fps": "最大FPS",
+    "as_unlimited": "無制限",
+    "as_sec_physics": "物理エンジン",
+    "as_gravity": "重力 (m/s²)",
+    "as_time_step": "タイムステップ",
+    "as_solver_iter": "ソルバー反復回数: %d",
+    "as_max_substeps": "最大サブステップ数: %d",
+    "as_sec_collision": "衝突検出",
+    "as_ccd": "連続衝突検出 (CCD)",
+    "as_sleeping": "オブジェクトスリープ最適化",
+    "as_contact_break": "接触破断しきい値",
+    "as_collision_margin": "衝突マージン",
+    "as_sec_material": "物理マテリアル",
+    "as_restitution": "反発係数",
+    "as_friction": "摩擦係数",
+    "as_linear_damping": "線形ダンピング",
+    "as_angular_damping": "角ダンピング",
+    "as_sec_constraint": "制約ソルバー",
+    "as_enable_constraint": "制約ソルバーを有効化",
+    "as_sec_stats": "統計情報",
+    "as_score": "現在の設定スコア",
+    "as_score_desc": "スコアは物理精度、衝突検出品質、パフォーマンスコストの総合評価です",
+    "as_bench_title": "パフォーマンスベンチマーク",
+    "as_bench_running": "テスト中...",
+    "as_bench_run": "テストを実行",
+    "as_bench_progress": "%d%% - テスト中...",
+    "as_bench_empty": "ベンチマークを実行して現在のレンダリングとシミュレーションパフォーマンスを評価",
+    "as_tab_render": "レンダリング",
+    "as_tab_simulation": "シミュレーション",
+    "as_tab_benchmark": "ベンチマーク",
+    "as_title": "詳細設定",
     "fc_preview": "プレビュー",
     "fc_live": "ライブ",
     "fc_html_preview_empty": "HTML生成後にここにプレビューが表示されます",
@@ -22344,6 +22596,69 @@ let koKRTranslations: [String: String] = [
     "tq_type_export": "내보내기",
     "tq_type_inference": "추론",
     "tq_type_simulation": "시뮬레이션",
+    "as_quality_draft": "초안",
+    "as_quality_low": "낮음",
+    "as_quality_medium": "보통",
+    "as_quality_high": "높음",
+    "as_quality_ultra": "최고",
+    "as_quality_desc_draft": "최저 화질, 최고 FPS(디버그용)",
+    "as_quality_desc_low": "낮은 화질, 가벼운 미리보기용",
+    "as_quality_desc_medium": "보통 화질, 성능과 화질 균형",
+    "as_quality_desc_high": "높은 화질, 정식 렌더링용",
+    "as_quality_desc_ultra": "최고 화질, 고성능 GPU 필요",
+    "as_sec_quality": "화질 프리셋",
+    "as_preset": "프리셋",
+    "as_est_perf": "예상 성능",
+    "as_sec_resolution": "해상도",
+    "as_resolution": "해상도",
+    "as_native": "네이티브",
+    "as_sec_aa": "안티에일리어싱",
+    "as_aa": "안티에일리어싱",
+    "as_off": "끄기",
+    "as_sec_shadow": "그림자",
+    "as_enable_shadow": "그림자 활성화",
+    "as_shadow_map": "섀도 맵 해상도",
+    "as_sec_postfx": "후처리 효과",
+    "as_bloom": "블룸 (Bloom)",
+    "as_ssao": "SSAO",
+    "as_reflections": "반사",
+    "as_fog": "포그",
+    "as_sec_perf": "성능",
+    "as_texture_quality": "텍스처 품질",
+    "as_lod_bias": "LOD 바이어스",
+    "as_max_lights": "최대 광원 수: %d",
+    "as_vsync": "수직 동기화",
+    "as_max_fps": "최대 FPS",
+    "as_unlimited": "제한 없음",
+    "as_sec_physics": "물리 엔진",
+    "as_gravity": "중력 (m/s²)",
+    "as_time_step": "타임 스텝",
+    "as_solver_iter": "솔버 반복 횟수: %d",
+    "as_max_substeps": "최대 서브스텝 수: %d",
+    "as_sec_collision": "충돌 감지",
+    "as_ccd": "연속 충돌 감지 (CCD)",
+    "as_sleeping": "객체 슬립 최적화",
+    "as_contact_break": "접촉 단절 임계값",
+    "as_collision_margin": "충돌 여유",
+    "as_sec_material": "물리 머티리얼",
+    "as_restitution": "반발 계수",
+    "as_friction": "마찰 계수",
+    "as_linear_damping": "선형 감쇠",
+    "as_angular_damping": "각 감쇠",
+    "as_sec_constraint": "제약 솔버",
+    "as_enable_constraint": "제약 솔버 활성화",
+    "as_sec_stats": "통계 정보",
+    "as_score": "현재 설정 점수",
+    "as_score_desc": "점수는 물리 정확도, 충돌 감지 품질, 성능 비용의 종합 평가입니다",
+    "as_bench_title": "성능 벤치마크",
+    "as_bench_running": "테스트 중...",
+    "as_bench_run": "테스트 실행",
+    "as_bench_progress": "%d%% - 테스트 중...",
+    "as_bench_empty": "벤치마크를 실행하여 현재 렌더링 및 시뮬레이션 성능 평가",
+    "as_tab_render": "렌더링",
+    "as_tab_simulation": "시뮬레이션",
+    "as_tab_benchmark": "벤치마크",
+    "as_title": "고급 설정",
     "fc_preview": "미리보기",
     "fc_live": "실시간",
     "fc_html_preview_empty": "HTML 생성 후 여기에 미리보기가 표시됩니다",

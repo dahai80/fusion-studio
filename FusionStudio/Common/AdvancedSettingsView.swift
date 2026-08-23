@@ -8,19 +8,29 @@ import SwiftUI
 // MARK: - 渲染质量预设
 
 enum RenderQuality: String, CaseIterable {
-    case draft    = "草稿"
-    case low      = "低"
-    case medium   = "中"
-    case high     = "高"
-    case ultra    = "极致"
+    case draft    = "draft"
+    case low      = "low"
+    case medium   = "medium"
+    case high     = "high"
+    case ultra    = "ultra"
 
-    var description: String {
+    var localizedName: String {
         switch self {
-        case .draft:  return "最低画质，最高帧率（调试用）"
-        case .low:    return "低画质，适合轻量预览"
-        case .medium: return "中等画质，性能与画质平衡"
-        case .high:   return "高画质，适合正式渲染"
-        case .ultra:  return "极致画质，需要高性能 GPU"
+        case .draft:  return I18nManager.shared.t(.as_quality_draft)
+        case .low:    return I18nManager.shared.t(.as_quality_low)
+        case .medium: return I18nManager.shared.t(.as_quality_medium)
+        case .high:   return I18nManager.shared.t(.as_quality_high)
+        case .ultra:  return I18nManager.shared.t(.as_quality_ultra)
+        }
+    }
+
+    var localizedDescription: String {
+        switch self {
+        case .draft:  return I18nManager.shared.t(.as_quality_desc_draft)
+        case .low:    return I18nManager.shared.t(.as_quality_desc_low)
+        case .medium: return I18nManager.shared.t(.as_quality_desc_medium)
+        case .high:   return I18nManager.shared.t(.as_quality_desc_high)
+        case .ultra:  return I18nManager.shared.t(.as_quality_desc_ultra)
         }
     }
 
@@ -83,10 +93,10 @@ struct AdvancedRenderView: View {
 
     var body: some View {
         Form {
-            Section("画质预设") {
-                Picker("预设", selection: $selectedPreset) {
+            Section(I18nManager.shared.t(.as_sec_quality)) {
+                Picker(I18nManager.shared.t(.as_preset), selection: $selectedPreset) {
                     ForEach(RenderQuality.allCases, id: \.self) { preset in
-                        Text(preset.rawValue).tag(preset)
+                        Text(preset.localizedName).tag(preset)
                     }
                 }
                 .pickerStyle(.segmented)
@@ -94,12 +104,12 @@ struct AdvancedRenderView: View {
                     applyPreset(newValue)
                 }
 
-                Text(selectedPreset.description)
+                Text(selectedPreset.localizedDescription)
                     .font(.caption)
                     .foregroundColor(.secondary)
 
                 HStack {
-                    Text("预估性能")
+                    Text(I18nManager.shared.t(.as_est_perf))
                     Spacer()
                     Text(selectedPreset.sampleFPS)
                         .font(.system(.body, design: .monospaced))
@@ -107,9 +117,9 @@ struct AdvancedRenderView: View {
                 }
             }
 
-            Section("分辨率") {
+            Section(I18nManager.shared.t(.as_sec_resolution)) {
                 HStack {
-                    Picker("分辨率", selection: Binding(
+                    Picker(I18nManager.shared.t(.as_resolution), selection: Binding(
                         get: { "\(Int(params.resolution.width))x\(Int(params.resolution.height))" },
                         set: { val in
                             let parts = val.split(separator: "x")
@@ -122,7 +132,7 @@ struct AdvancedRenderView: View {
                         Text("1920x1080").tag("1920x1080")
                         Text("2560x1440").tag("2560x1440")
                         Text("3840x2160").tag("3840x2160")
-                        Text("原生").tag("native")
+                        Text(I18nManager.shared.t(.as_native)).tag("native")
                     }
                     Spacer()
                     Slider(value: $params.scaleFactor, in: 0.25...2.0, step: 0.25)
@@ -133,19 +143,19 @@ struct AdvancedRenderView: View {
                 }
             }
 
-            Section("抗锯齿") {
-                Picker("抗锯齿", selection: $params.antiAliasing) {
-                    Text("关闭").tag(0)
+            Section(I18nManager.shared.t(.as_sec_aa)) {
+                Picker(I18nManager.shared.t(.as_aa), selection: $params.antiAliasing) {
+                    Text(I18nManager.shared.t(.as_off)).tag(0)
                     Text("2x MSAA").tag(2)
                     Text("4x MSAA").tag(4)
                     Text("8x MSAA").tag(8)
                 }
             }
 
-            Section("阴影") {
-                Toggle("启用阴影", isOn: $params.enableShadows)
+            Section(I18nManager.shared.t(.as_sec_shadow)) {
+                Toggle(I18nManager.shared.t(.as_enable_shadow), isOn: $params.enableShadows)
                 if params.enableShadows {
-                    Picker("阴影贴图分辨率", selection: $params.shadowMapSize) {
+                    Picker(I18nManager.shared.t(.as_shadow_map), selection: $params.shadowMapSize) {
                         Text("256").tag(256)
                         Text("512").tag(512)
                         Text("1024").tag(1024)
@@ -155,36 +165,36 @@ struct AdvancedRenderView: View {
                 }
             }
 
-            Section("后期特效") {
+            Section(I18nManager.shared.t(.as_sec_postfx)) {
                 Toggle("HDR", isOn: $params.enableHDR)
-                Toggle("泛光 (Bloom)", isOn: $params.enableBloom)
-                Toggle("环境光遮蔽 (SSAO)", isOn: $params.enableSSAO)
-                Toggle("反射", isOn: $params.enableReflections)
-                Toggle("雾效", isOn: $params.enableFog)
+                Toggle(I18nManager.shared.t(.as_bloom), isOn: $params.enableBloom)
+                Toggle(I18nManager.shared.t(.as_ssao), isOn: $params.enableSSAO)
+                Toggle(I18nManager.shared.t(.as_reflections), isOn: $params.enableReflections)
+                Toggle(I18nManager.shared.t(.as_fog), isOn: $params.enableFog)
             }
 
-            Section("性能") {
+            Section(I18nManager.shared.t(.as_sec_perf)) {
                 HStack {
-                    Text("纹理质量")
+                    Text(I18nManager.shared.t(.as_texture_quality))
                     Slider(value: $textureQuality, in: 10...100, step: 10)
                     Text("\(Int(textureQuality))%")
                         .frame(width: 40)
                 }
                 HStack {
-                    Text("LOD 偏移")
+                    Text(I18nManager.shared.t(.as_lod_bias))
                     Slider(value: $params.lodBias, in: -2...2, step: 0.5)
                     Text("\(params.lodBias, specifier: "%.1f")")
                         .frame(width: 40)
                 }
-                Stepper("最大光源数: \(params.maxLights)", value: $params.maxLights, in: 1...16)
-                Toggle("垂直同步", isOn: $params.vsync)
+                Stepper(I18nManager.shared.tf(.as_max_lights, params.maxLights), value: $params.maxLights, in: 1...16)
+                Toggle(I18nManager.shared.t(.as_vsync), isOn: $params.vsync)
                 if params.vsync {
-                    Picker("最大 FPS", selection: $params.maxFPS) {
+                    Picker(I18nManager.shared.t(.as_max_fps), selection: $params.maxFPS) {
                         Text("30").tag(30)
                         Text("60").tag(60)
                         Text("120").tag(120)
                         Text("144").tag(144)
-                        Text("不限制").tag(0)
+                        Text(I18nManager.shared.t(.as_unlimited)).tag(0)
                     }
                 }
             }
@@ -216,15 +226,15 @@ struct AdvancedSimulationView: View {
 
     var body: some View {
         Form {
-            Section("物理引擎") {
+            Section(I18nManager.shared.t(.as_sec_physics)) {
                 HStack {
-                    Text("重力 (m/s²)")
+                    Text(I18nManager.shared.t(.as_gravity))
                     Slider(value: $params.gravity, in: -20...20, step: 0.1)
                     Text("\(params.gravity, specifier: "%.1f")")
                         .frame(width: 40)
                 }
 
-                Picker("时间步长", selection: $params.timeStep) {
+                Picker(I18nManager.shared.t(.as_time_step), selection: $params.timeStep) {
                     Text("1/60 (60 FPS)").tag(1.0/60.0)
                     Text("1/120 (120 FPS)").tag(1.0/120.0)
                     Text("1/240 (240 FPS)").tag(1.0/240.0)
@@ -232,69 +242,69 @@ struct AdvancedSimulationView: View {
                     Text("1/960 (960 FPS)").tag(1.0/960.0)
                 }
 
-                Stepper("求解器迭代次数: \(params.numSolverIterations)", value: $params.numSolverIterations, in: 1...50)
-                Stepper("最大子步数: \(params.maxSubSteps)", value: $params.maxSubSteps, in: 1...10)
+                Stepper(I18nManager.shared.tf(.as_solver_iter, params.numSolverIterations), value: $params.numSolverIterations, in: 1...50)
+                Stepper(I18nManager.shared.tf(.as_max_substeps, params.maxSubSteps), value: $params.maxSubSteps, in: 1...10)
             }
 
-            Section("碰撞检测") {
-                Toggle("连续碰撞检测 (CCD)", isOn: $params.enableCCD)
-                Toggle("物体休眠优化", isOn: $params.enableSleeping)
+            Section(I18nManager.shared.t(.as_sec_collision)) {
+                Toggle(I18nManager.shared.t(.as_ccd), isOn: $params.enableCCD)
+                Toggle(I18nManager.shared.t(.as_sleeping), isOn: $params.enableSleeping)
 
                 HStack {
-                    Text("接触断裂阈值")
+                    Text(I18nManager.shared.t(.as_contact_break))
                     Slider(value: $params.contactBreakingThreshold, in: 0.001...0.1)
                     Text("\(params.contactBreakingThreshold, specifier: "%.3f")")
                         .frame(width: 50)
                 }
 
                 HStack {
-                    Text("碰撞容差")
+                    Text(I18nManager.shared.t(.as_collision_margin))
                     Slider(value: $params.collisionMargin, in: 0.001...0.1)
                     Text("\(params.collisionMargin, specifier: "%.3f")")
                         .frame(width: 50)
                 }
             }
 
-            Section("物理材质") {
+            Section(I18nManager.shared.t(.as_sec_material)) {
                 HStack {
-                    Text("弹性系数")
+                    Text(I18nManager.shared.t(.as_restitution))
                     Slider(value: $params.restitution, in: 0...1)
                     Text("\(params.restitution, specifier: "%.2f")")
                         .frame(width: 40)
                 }
                 HStack {
-                    Text("摩擦系数")
+                    Text(I18nManager.shared.t(.as_friction))
                     Slider(value: $params.friction, in: 0...1)
                     Text("\(params.friction, specifier: "%.2f")")
                         .frame(width: 40)
                 }
                 HStack {
-                    Text("线性阻尼")
+                    Text(I18nManager.shared.t(.as_linear_damping))
                     Slider(value: $params.linearDamping, in: 0...1)
                     Text("\(params.linearDamping, specifier: "%.2f")")
                         .frame(width: 40)
                 }
                 HStack {
-                    Text("角阻尼")
+                    Text(I18nManager.shared.t(.as_angular_damping))
                     Slider(value: $params.angularDamping, in: 0...1)
                     Text("\(params.angularDamping, specifier: "%.2f")")
                         .frame(width: 40)
                 }
             }
 
-            Section("约束求解") {
-                Toggle("启用约束求解器", isOn: $params.enableConstraintSolver)
+            Section(I18nManager.shared.t(.as_sec_constraint)) {
+                Toggle(I18nManager.shared.t(.as_enable_constraint), isOn: $params.enableConstraintSolver)
             }
 
-            Section("统计信息") {
+            Section(I18nManager.shared.t(.as_sec_stats)) {
                 HStack {
-                    Text("当前设置评分")
+                    Text(I18nManager.shared.t(.as_score))
                     Spacer()
                     Text(performanceScore)
                         .font(.headline)
                         .foregroundColor(scoreColor)
                 }
-                Text("评分基于物理精度、碰撞检测质量和性能开销的综合评估")
+                Text(I18nManager.shared.t(.as_score_desc))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -338,11 +348,11 @@ struct PerformanceBenchmarkView: View {
     var body: some View {
         VStack(spacing: 16) {
             HStack {
-                Label("性能基准测试", systemImage: "speedometer")
+                Label(I18nManager.shared.t(.as_bench_title), systemImage: "speedometer")
                     .font(.headline)
                 Spacer()
                 Button(action: runBenchmark) {
-                    Label(isRunning ? "测试中..." : "运行测试", systemImage: "play.fill")
+                    Label(isRunning ? I18nManager.shared.t(.as_bench_running) : I18nManager.shared.t(.as_bench_run), systemImage: "play.fill")
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(isRunning)
@@ -351,7 +361,7 @@ struct PerformanceBenchmarkView: View {
             if isRunning {
                 VStack(alignment: .leading, spacing: 4) {
                     ProgressView(value: progress)
-                    Text("\(Int(progress * 100))% - 正在测试...")
+                    Text(I18nManager.shared.tf(.as_bench_progress, Int(progress * 100)))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -379,7 +389,7 @@ struct PerformanceBenchmarkView: View {
                     Image(systemName: "chart.bar.xaxis")
                         .font(.largeTitle)
                         .foregroundColor(.secondary)
-                    Text("运行基准测试以评估当前渲染和仿真性能")
+                    Text(I18nManager.shared.t(.as_bench_empty))
                         .foregroundColor(.secondary)
                 }
                 .padding(.vertical, 20)
@@ -405,20 +415,28 @@ struct AdvancedSettingsView: View {
     @State private var showBenchmark = false
 
     enum AdvTab: String, CaseIterable {
-        case render     = "渲染"
-        case simulation = "仿真"
-        case benchmark  = "基准测试"
+        case render     = "render"
+        case simulation = "simulation"
+        case benchmark  = "benchmark"
+
+        var localizedName: String {
+            switch self {
+            case .render:     return I18nManager.shared.t(.as_tab_render)
+            case .simulation: return I18nManager.shared.t(.as_tab_simulation)
+            case .benchmark:  return I18nManager.shared.t(.as_tab_benchmark)
+            }
+        }
     }
 
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("高级设置")
+                Text(I18nManager.shared.t(.as_title))
                     .font(.title2)
                     .bold()
                 Spacer()
                 Button(action: { showBenchmark.toggle() }) {
-                    Label("基准测试", systemImage: "speedometer")
+                    Label(I18nManager.shared.t(.as_tab_benchmark), systemImage: "speedometer")
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
@@ -428,7 +446,7 @@ struct AdvancedSettingsView: View {
 
             Picker("", selection: $selectedTab) {
                 ForEach(AdvTab.allCases, id: \.self) { tab in
-                    Label(tab.rawValue, systemImage: tabIcon(tab)).tag(tab)
+                    Label(tab.localizedName, systemImage: tabIcon(tab)).tag(tab)
                 }
             }
             .pickerStyle(.segmented)
