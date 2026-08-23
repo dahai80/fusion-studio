@@ -4323,6 +4323,64 @@ enum I18nKey: String, CaseIterable {
     case fc_wf_step_desc_analyze_task = "fc_wf_step_desc_analyze_task"
     case fc_wf_step_desc_make_plan = "fc_wf_step_desc_make_plan"
     case fc_wf_step_desc_execute = "fc_wf_step_desc_execute"
+    case tq_active_queue = "tq_active_queue"
+    case tq_cancel = "tq_cancel"
+    case tq_clear = "tq_clear"
+    case tq_clear_all = "tq_clear_all"
+    case tq_clear_completed = "tq_clear_completed"
+    case tq_clear_confirm = "tq_clear_confirm"
+    case tq_clear_title = "tq_clear_title"
+    case tq_close = "tq_close"
+    case tq_delete = "tq_delete"
+    case tq_demo_batch_export = "tq_demo_batch_export"
+    case tq_demo_dl_merge = "tq_demo_dl_merge"
+    case tq_demo_dl_shard = "tq_demo_dl_shard"
+    case tq_demo_download = "tq_demo_download"
+    case tq_demo_download_title = "tq_demo_download_title"
+    case tq_demo_export_page = "tq_demo_export_page"
+    case tq_demo_export_title = "tq_demo_export_title"
+    case tq_demo_inference = "tq_demo_inference"
+    case tq_demo_inference_title = "tq_demo_inference_title"
+    case tq_demo_sub_gen_response = "tq_demo_sub_gen_response"
+    case tq_demo_sub_load_model = "tq_demo_sub_load_model"
+    case tq_demo_sub_process_prompt = "tq_demo_sub_process_prompt"
+    case tq_empty = "tq_empty"
+    case tq_gb_basic = "tq_gb_basic"
+    case tq_gb_error = "tq_gb_error"
+    case tq_gb_progress = "tq_gb_progress"
+    case tq_gb_result = "tq_gb_result"
+    case tq_gb_subtasks = "tq_gb_subtasks"
+    case tq_lbl_created = "tq_lbl_created"
+    case tq_lbl_duration = "tq_lbl_duration"
+    case tq_lbl_started = "tq_lbl_started"
+    case tq_lbl_status = "tq_lbl_status"
+    case tq_lbl_task_id = "tq_lbl_task_id"
+    case tq_lbl_type = "tq_lbl_type"
+    case tq_pause = "tq_pause"
+    case tq_pl_done = "tq_pl_done"
+    case tq_pl_starting = "tq_pl_starting"
+    case tq_pl_waiting = "tq_pl_waiting"
+    case tq_progress_label = "tq_progress_label"
+    case tq_resume = "tq_resume"
+    case tq_stat_completed = "tq_stat_completed"
+    case tq_stat_failed = "tq_stat_failed"
+    case tq_stat_queued = "tq_stat_queued"
+    case tq_stat_running = "tq_stat_running"
+    case tq_status_cancelled = "tq_status_cancelled"
+    case tq_status_completed = "tq_status_completed"
+    case tq_status_failed = "tq_status_failed"
+    case tq_status_paused = "tq_status_paused"
+    case tq_status_pending = "tq_status_pending"
+    case tq_status_running = "tq_status_running"
+    case tq_title = "tq_title"
+    case tq_toggle_cancelled = "tq_toggle_cancelled"
+    case tq_toggle_completed = "tq_toggle_completed"
+    case tq_type_batch = "tq_type_batch"
+    case tq_type_compile = "tq_type_compile"
+    case tq_type_download = "tq_type_download"
+    case tq_type_export = "tq_type_export"
+    case tq_type_inference = "tq_type_inference"
+    case tq_type_simulation = "tq_type_simulation"
     case fc_preview = "fc_preview"
     case fc_live = "fc_live"
     case fc_html_preview_empty = "fc_html_preview_empty"
@@ -8794,6 +8852,64 @@ let zhCNTranslations: [String: String] = [
     "fc_wf_step_desc_analyze_task": "理解目标和约束",
     "fc_wf_step_desc_make_plan": "拆分子任务和依赖",
     "fc_wf_step_desc_execute": "逐步实现子任务",
+    "tq_active_queue": "%d 活跃 / %d 排队",
+    "tq_cancel": "取消",
+    "tq_clear": "清除",
+    "tq_clear_all": "清除全部",
+    "tq_clear_completed": "清除已完成",
+    "tq_clear_confirm": "确定要清除任务吗？",
+    "tq_clear_title": "清除任务",
+    "tq_close": "关闭",
+    "tq_delete": "删除",
+    "tq_demo_batch_export": "添加批量导出",
+    "tq_demo_dl_merge": "合并文件",
+    "tq_demo_dl_shard": "下载分片 %d/%d",
+    "tq_demo_download": "添加下载任务",
+    "tq_demo_download_title": "下载 Qwen3.5 9B",
+    "tq_demo_export_page": "导出 Page %d",
+    "tq_demo_export_title": "导出设计稿 (%d个)",
+    "tq_demo_inference": "添加推理任务",
+    "tq_demo_inference_title": "Qwen3.5 推理",
+    "tq_demo_sub_gen_response": "生成回应",
+    "tq_demo_sub_load_model": "加载模型",
+    "tq_demo_sub_process_prompt": "处理提示词",
+    "tq_empty": "暂无任务",
+    "tq_gb_basic": "基本信息",
+    "tq_gb_error": "错误信息",
+    "tq_gb_progress": "进度",
+    "tq_gb_result": "结果",
+    "tq_gb_subtasks": "子任务",
+    "tq_lbl_created": "创建时间",
+    "tq_lbl_duration": "耗时",
+    "tq_lbl_started": "开始时间",
+    "tq_lbl_status": "状态",
+    "tq_lbl_task_id": "任务 ID",
+    "tq_lbl_type": "类型",
+    "tq_pause": "暂停",
+    "tq_pl_done": "完成",
+    "tq_pl_starting": "启动中...",
+    "tq_pl_waiting": "等待中",
+    "tq_progress_label": "%d%% - %@",
+    "tq_resume": "恢复",
+    "tq_stat_completed": "完成",
+    "tq_stat_failed": "失败",
+    "tq_stat_queued": "排队",
+    "tq_stat_running": "运行中",
+    "tq_status_cancelled": "已取消",
+    "tq_status_completed": "已完成",
+    "tq_status_failed": "失败",
+    "tq_status_paused": "已暂停",
+    "tq_status_pending": "排队中",
+    "tq_status_running": "运行中",
+    "tq_title": "任务队列",
+    "tq_toggle_cancelled": "取消",
+    "tq_toggle_completed": "完成",
+    "tq_type_batch": "批量",
+    "tq_type_compile": "编译",
+    "tq_type_download": "下载",
+    "tq_type_export": "导出",
+    "tq_type_inference": "推理",
+    "tq_type_simulation": "仿真",
     "fc_preview": "预览",
     "fc_live": "实时",
     "fc_html_preview_empty": "生成HTML后此处显示预览",
@@ -13218,6 +13334,64 @@ let enUSTranslations: [String: String] = [
     "fc_wf_step_desc_analyze_task": "Understand goals and constraints",
     "fc_wf_step_desc_make_plan": "Break down subtasks and dependencies",
     "fc_wf_step_desc_execute": "Implement subtasks step by step",
+    "tq_active_queue": "%d active / %d queued",
+    "tq_cancel": "Cancel",
+    "tq_clear": "Clear",
+    "tq_clear_all": "Clear All",
+    "tq_clear_completed": "Clear Completed",
+    "tq_clear_confirm": "Are you sure you want to clear tasks?",
+    "tq_clear_title": "Clear Tasks",
+    "tq_close": "Close",
+    "tq_delete": "Delete",
+    "tq_demo_batch_export": "Add Batch Export",
+    "tq_demo_dl_merge": "Merge files",
+    "tq_demo_dl_shard": "Download shard %d/%d",
+    "tq_demo_download": "Add Download Task",
+    "tq_demo_download_title": "Download Qwen3.5 9B",
+    "tq_demo_export_page": "Export Page %d",
+    "tq_demo_export_title": "Export designs (%d)",
+    "tq_demo_inference": "Add Inference Task",
+    "tq_demo_inference_title": "Qwen3.5 Inference",
+    "tq_demo_sub_gen_response": "Generate response",
+    "tq_demo_sub_load_model": "Load model",
+    "tq_demo_sub_process_prompt": "Process prompt",
+    "tq_empty": "No tasks",
+    "tq_gb_basic": "Basic Info",
+    "tq_gb_error": "Error",
+    "tq_gb_progress": "Progress",
+    "tq_gb_result": "Result",
+    "tq_gb_subtasks": "Subtasks",
+    "tq_lbl_created": "Created",
+    "tq_lbl_duration": "Duration",
+    "tq_lbl_started": "Started",
+    "tq_lbl_status": "Status",
+    "tq_lbl_task_id": "Task ID",
+    "tq_lbl_type": "Type",
+    "tq_pause": "Pause",
+    "tq_pl_done": "Done",
+    "tq_pl_starting": "Starting...",
+    "tq_pl_waiting": "Waiting",
+    "tq_progress_label": "%d%% - %@",
+    "tq_resume": "Resume",
+    "tq_stat_completed": "Completed",
+    "tq_stat_failed": "Failed",
+    "tq_stat_queued": "Queued",
+    "tq_stat_running": "Running",
+    "tq_status_cancelled": "Cancelled",
+    "tq_status_completed": "Completed",
+    "tq_status_failed": "Failed",
+    "tq_status_paused": "Paused",
+    "tq_status_pending": "Pending",
+    "tq_status_running": "Running",
+    "tq_title": "Task Queue",
+    "tq_toggle_cancelled": "Cancelled",
+    "tq_toggle_completed": "Completed",
+    "tq_type_batch": "Batch",
+    "tq_type_compile": "Compile",
+    "tq_type_download": "Download",
+    "tq_type_export": "Export",
+    "tq_type_inference": "Inference",
+    "tq_type_simulation": "Simulation",
     "fc_preview": "Preview",
     "fc_live": "Live",
     "fc_html_preview_empty": "Preview appears here after HTML is generated",
@@ -17636,6 +17810,64 @@ let jaJPTranslations: [String: String] = [
     "fc_wf_step_desc_analyze_task": "目標と制約を理解",
     "fc_wf_step_desc_make_plan": "サブタスクと依存を分解",
     "fc_wf_step_desc_execute": "サブタスクを段階的に実装",
+    "tq_active_queue": "%d 実行中 / %d 待機",
+    "tq_cancel": "キャンセル",
+    "tq_clear": "クリア",
+    "tq_clear_all": "すべてクリア",
+    "tq_clear_completed": "完了をクリア",
+    "tq_clear_confirm": "タスクをクリアしますか？",
+    "tq_clear_title": "タスクをクリア",
+    "tq_close": "閉じる",
+    "tq_delete": "削除",
+    "tq_demo_batch_export": "一括エクスポート追加",
+    "tq_demo_dl_merge": "ファイルを結合",
+    "tq_demo_dl_shard": "ダウンロード分割 %d/%d",
+    "tq_demo_download": "ダウンロードタスク追加",
+    "tq_demo_download_title": "Qwen3.5 9B をダウンロード",
+    "tq_demo_export_page": "Page %d をエクスポート",
+    "tq_demo_export_title": "デザインをエクスポート (%d)",
+    "tq_demo_inference": "推論タスク追加",
+    "tq_demo_inference_title": "Qwen3.5 推論",
+    "tq_demo_sub_gen_response": "応答を生成",
+    "tq_demo_sub_load_model": "モデルをロード",
+    "tq_demo_sub_process_prompt": "プロンプトを処理",
+    "tq_empty": "タスクなし",
+    "tq_gb_basic": "基本情報",
+    "tq_gb_error": "エラー情報",
+    "tq_gb_progress": "進捗",
+    "tq_gb_result": "結果",
+    "tq_gb_subtasks": "サブタスク",
+    "tq_lbl_created": "作成日時",
+    "tq_lbl_duration": "所要時間",
+    "tq_lbl_started": "開始日時",
+    "tq_lbl_status": "ステータス",
+    "tq_lbl_task_id": "タスク ID",
+    "tq_lbl_type": "タイプ",
+    "tq_pause": "一時停止",
+    "tq_pl_done": "完了",
+    "tq_pl_starting": "起動中...",
+    "tq_pl_waiting": "待機中",
+    "tq_progress_label": "%d%% - %@",
+    "tq_resume": "再開",
+    "tq_stat_completed": "完了",
+    "tq_stat_failed": "失敗",
+    "tq_stat_queued": "待機",
+    "tq_stat_running": "実行中",
+    "tq_status_cancelled": "キャンセル済み",
+    "tq_status_completed": "完了",
+    "tq_status_failed": "失敗",
+    "tq_status_paused": "一時停止中",
+    "tq_status_pending": "待機中",
+    "tq_status_running": "実行中",
+    "tq_title": "タスクキュー",
+    "tq_toggle_cancelled": "キャンセル",
+    "tq_toggle_completed": "完了",
+    "tq_type_batch": "バッチ",
+    "tq_type_compile": "コンパイル",
+    "tq_type_download": "ダウンロード",
+    "tq_type_export": "エクスポート",
+    "tq_type_inference": "推論",
+    "tq_type_simulation": "シミュレーション",
     "fc_preview": "プレビュー",
     "fc_live": "ライブ",
     "fc_html_preview_empty": "HTML生成後にここにプレビューが表示されます",
@@ -22054,6 +22286,64 @@ let koKRTranslations: [String: String] = [
     "fc_wf_step_desc_analyze_task": "목표 및 제약 이해",
     "fc_wf_step_desc_make_plan": "하위 작업 및 의존성 분해",
     "fc_wf_step_desc_execute": "하위 작업을 단계별 구현",
+    "tq_active_queue": "%d 실행 중 / %d 대기",
+    "tq_cancel": "취소",
+    "tq_clear": "지우기",
+    "tq_clear_all": "모두 지우기",
+    "tq_clear_completed": "완료됨 지우기",
+    "tq_clear_confirm": "작업을 지우시겠습니까?",
+    "tq_clear_title": "작업 지우기",
+    "tq_close": "닫기",
+    "tq_delete": "삭제",
+    "tq_demo_batch_export": "일괄 내보내기 추가",
+    "tq_demo_dl_merge": "파일 병합",
+    "tq_demo_dl_shard": "다운로드 분할 %d/%d",
+    "tq_demo_download": "다운로드 작업 추가",
+    "tq_demo_download_title": "Qwen3.5 9B 다운로드",
+    "tq_demo_export_page": "Page %d 내보내기",
+    "tq_demo_export_title": "디자인 내보내기 (%d)",
+    "tq_demo_inference": "추론 작업 추가",
+    "tq_demo_inference_title": "Qwen3.5 추론",
+    "tq_demo_sub_gen_response": "응답 생성",
+    "tq_demo_sub_load_model": "모델 로드",
+    "tq_demo_sub_process_prompt": "프롬프트 처리",
+    "tq_empty": "작업 없음",
+    "tq_gb_basic": "기본 정보",
+    "tq_gb_error": "오류 정보",
+    "tq_gb_progress": "진행률",
+    "tq_gb_result": "결과",
+    "tq_gb_subtasks": "하위 작업",
+    "tq_lbl_created": "생성 시간",
+    "tq_lbl_duration": "소요 시간",
+    "tq_lbl_started": "시작 시간",
+    "tq_lbl_status": "상태",
+    "tq_lbl_task_id": "작업 ID",
+    "tq_lbl_type": "유형",
+    "tq_pause": "일시정지",
+    "tq_pl_done": "완료",
+    "tq_pl_starting": "시작 중...",
+    "tq_pl_waiting": "대기 중",
+    "tq_progress_label": "%d%% - %@",
+    "tq_resume": "재개",
+    "tq_stat_completed": "완료",
+    "tq_stat_failed": "실패",
+    "tq_stat_queued": "대기",
+    "tq_stat_running": "실행 중",
+    "tq_status_cancelled": "취소됨",
+    "tq_status_completed": "완료됨",
+    "tq_status_failed": "실패",
+    "tq_status_paused": "일시정지됨",
+    "tq_status_pending": "대기 중",
+    "tq_status_running": "실행 중",
+    "tq_title": "작업 대기열",
+    "tq_toggle_cancelled": "취소됨",
+    "tq_toggle_completed": "완료됨",
+    "tq_type_batch": "일괄",
+    "tq_type_compile": "컴파일",
+    "tq_type_download": "다운로드",
+    "tq_type_export": "내보내기",
+    "tq_type_inference": "추론",
+    "tq_type_simulation": "시뮬레이션",
     "fc_preview": "미리보기",
     "fc_live": "실시간",
     "fc_html_preview_empty": "HTML 생성 후 여기에 미리보기가 표시됩니다",
