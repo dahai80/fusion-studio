@@ -77,15 +77,15 @@ struct DesignComponent: Codable, Identifiable {
 }
 
 enum ComponentCategory: String, Codable, CaseIterable, Identifiable {
-    case button = "按钮"
-    case card = "卡片"
-    case input = "输入"
-    case select = "选择"
-    case modal = "弹窗"
-    case navigation = "导航"
-    case table = "表格"
-    case chart = "图表"
-    case form = "表单"
+    case button
+    case card
+    case input
+    case select
+    case modal
+    case navigation
+    case table
+    case chart
+    case form
 
     var id: String { rawValue }
 
@@ -139,11 +139,11 @@ enum DesignTemplate: String, Codable, CaseIterable, Identifiable {
 
     var description: String {
         switch self {
-        case .dashboard: return "数据仪表盘布局"
-        case .landing: return "着陆页模板"
-        case .settings: return "设置页面模板"
-        case .login: return "登录/注册表单模板"
-        case .profile: return "用户个人资料模板"
+        case .dashboard: return I18nManager.shared.t(.fds_tpl_desc_dashboard)
+        case .landing: return I18nManager.shared.t(.fds_tpl_desc_landing)
+        case .settings: return I18nManager.shared.t(.fds_tpl_desc_settings)
+        case .login: return I18nManager.shared.t(.fds_tpl_desc_login)
+        case .profile: return I18nManager.shared.t(.fds_tpl_desc_profile)
         }
     }
 }

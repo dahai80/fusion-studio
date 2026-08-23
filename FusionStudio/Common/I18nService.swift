@@ -2118,6 +2118,11 @@ enum I18nKey: String, CaseIterable {
     case dsk_desc_specDoc = "dsk_desc_specDoc"
     case dsk_name_pageFlow = "dsk_name_pageFlow"
     case dsk_desc_pageFlow = "dsk_desc_pageFlow"
+    case fds_tpl_desc_dashboard = "fds_tpl_desc_dashboard"
+    case fds_tpl_desc_landing = "fds_tpl_desc_landing"
+    case fds_tpl_desc_settings = "fds_tpl_desc_settings"
+    case fds_tpl_desc_login = "fds_tpl_desc_login"
+    case fds_tpl_desc_profile = "fds_tpl_desc_profile"
     case proj_subtitle = "proj_subtitle"
     case proj_searchPh = "proj_searchPh"
     case proj_newHelp = "proj_newHelp"
@@ -6542,6 +6547,11 @@ let zhCNTranslations: [String: String] = [
     "dsk_desc_specDoc": "设计规范 → 结构化文档",
     "dsk_name_pageFlow": "页面流",
     "dsk_desc_pageFlow": "描述多页面流程 → 串联页面",
+    "fds_tpl_desc_dashboard": "数据仪表盘布局",
+    "fds_tpl_desc_landing": "着陆页模板",
+    "fds_tpl_desc_settings": "设置页面模板",
+    "fds_tpl_desc_login": "登录/注册表单模板",
+    "fds_tpl_desc_profile": "用户个人资料模板",
     "proj_subtitle": "管理你的 AI 项目、指令和知识库",
     "proj_searchPh": "搜索项目",
     "proj_newHelp": "新建项目",
@@ -10919,6 +10929,11 @@ let enUSTranslations: [String: String] = [
     "dsk_desc_specDoc": "Design spec → structured document",
     "dsk_name_pageFlow": "Page Flow",
     "dsk_desc_pageFlow": "Describe multi-page flow → link pages",
+    "fds_tpl_desc_dashboard": "Data dashboard layout",
+    "fds_tpl_desc_landing": "Landing page template",
+    "fds_tpl_desc_settings": "Settings page template",
+    "fds_tpl_desc_login": "Login/register form template",
+    "fds_tpl_desc_profile": "User profile template",
     "proj_subtitle": "Manage your AI projects, instructions and knowledge base",
     "proj_searchPh": "Search projects",
     "proj_newHelp": "New project",
@@ -15290,6 +15305,11 @@ let jaJPTranslations: [String: String] = [
     "dsk_desc_specDoc": "設計仕様 → 構造化ドキュメント",
     "dsk_name_pageFlow": "ページフロー",
     "dsk_desc_pageFlow": "複数ページフローを記述 → ページ連結",
+    "fds_tpl_desc_dashboard": "データダッシュボードレイアウト",
+    "fds_tpl_desc_landing": "ランディングページテンプレート",
+    "fds_tpl_desc_settings": "設定ページテンプレート",
+    "fds_tpl_desc_login": "ログイン/登録フォームテンプレート",
+    "fds_tpl_desc_profile": "ユーザープロフィールテンプレート",
     "proj_subtitle": "AIプロジェクト・指示・ナレッジベースを管理",
     "proj_searchPh": "プロジェクトを検索",
     "proj_newHelp": "新規プロジェクト",
@@ -19661,6 +19681,11 @@ let koKRTranslations: [String: String] = [
     "dsk_desc_specDoc": "설계 명세 → 구조화 문서",
     "dsk_name_pageFlow": "페이지 흐름",
     "dsk_desc_pageFlow": "다중 페이지 흐름 설명 → 페이지 연결",
+    "fds_tpl_desc_dashboard": "데이터 대시보드 레이아웃",
+    "fds_tpl_desc_landing": "랜딩 페이지 템플릿",
+    "fds_tpl_desc_settings": "설정 페이지 템플릿",
+    "fds_tpl_desc_login": "로그인/가입 폼 템플릿",
+    "fds_tpl_desc_profile": "사용자 프로필 템플릿",
     "proj_subtitle": "AI 프로젝트·지시·지식베이스 관리",
     "proj_searchPh": "프로젝트 검색",
     "proj_newHelp": "새 프로젝트",
