@@ -1,28 +1,37 @@
-// Callers: ModuleDetailView routing.
-// Affected API: AutoTuningView (replacing NSColor with StudioTheme tokens).
-// Data schemas: None changed.
-// User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
-
 import SwiftUI
+import os.log
+
+private let atLog = Logger(subsystem: "com.fusion.studio", category: "auto-tuning")
 
 // MARK: - 调优维度
 
 enum TuningDimension: String, CaseIterable {
-    case quantization = "量化精度"
-    case memory       = "内存分配"
-    case batch        = "批处理大小"
-    case context      = "上下文长度"
-    case parallelism  = "并行度"
-    case threads      = "线程数"
+    case quantization
+    case memory
+    case batch
+    case context
+    case parallelism
+    case threads
 
-    var description: String {
+    var localizedName: String {
         switch self {
-        case .quantization: return "自动选择最优量化等级"
-        case .memory:       return "自动调整内存分配策略"
-        case .batch:        return "自动选择最优批处理大小"
-        case .context:      return "自动调整上下文长度限制"
-        case .parallelism:  return "自动调整张量并行数"
-        case .threads:      return "自动调整 CPU 线程数"
+        case .quantization: return I18nManager.shared.t(.at_dim_quantization)
+        case .memory:       return I18nManager.shared.t(.at_dim_memory)
+        case .batch:        return I18nManager.shared.t(.at_dim_batch)
+        case .context:      return I18nManager.shared.t(.at_dim_context)
+        case .parallelism:  return I18nManager.shared.t(.at_dim_parallelism)
+        case .threads:      return I18nManager.shared.t(.at_dim_threads)
+        }
+    }
+
+    var localizedDescription: String {
+        switch self {
+        case .quantization: return I18nManager.shared.t(.at_dim_desc_quantization)
+        case .memory:       return I18nManager.shared.t(.at_dim_desc_memory)
+        case .batch:        return I18nManager.shared.t(.at_dim_desc_batch)
+        case .context:      return I18nManager.shared.t(.at_dim_desc_context)
+        case .parallelism:  return I18nManager.shared.t(.at_dim_desc_parallelism)
+        case .threads:      return I18nManager.shared.t(.at_dim_desc_threads)
         }
     }
 }
@@ -39,17 +48,35 @@ struct TuningConfig {
     var tuningInterval: TuningInterval = .hourly
 
     enum TargetMetric: String, CaseIterable {
-        case throughput   = "吞吐量"
-        case latency      = "延迟"
-        case memory       = "内存"
-        case balanced     = "均衡"
+        case throughput
+        case latency
+        case memory
+        case balanced
+
+        var localizedName: String {
+            switch self {
+            case .throughput: return I18nManager.shared.t(.at_metric_throughput)
+            case .latency:    return I18nManager.shared.t(.at_metric_latency)
+            case .memory:     return I18nManager.shared.t(.at_metric_memory)
+            case .balanced:   return I18nManager.shared.t(.at_metric_balanced)
+            }
+        }
     }
 
     enum TuningInterval: String, CaseIterable {
-        case hourly  = "每小时"
-        case daily   = "每天"
-        case weekly  = "每周"
-        case manual  = "手动"
+        case hourly
+        case daily
+        case weekly
+        case manual
+
+        var localizedName: String {
+            switch self {
+            case .hourly: return I18nManager.shared.t(.at_interval_hourly)
+            case .daily:  return I18nManager.shared.t(.at_interval_daily)
+            case .weekly: return I18nManager.shared.t(.at_interval_weekly)
+            case .manual: return I18nManager.shared.t(.at_interval_manual)
+            }
+        }
     }
 }
 
@@ -86,7 +113,15 @@ class AutoTuningEngine: ObservableObject {
         let confidence: Int
         let action: () -> Void
 
-        enum Impact: String { case high = "高", medium = "中", low = "低" }
+        enum Impact: String { case high, medium, low
+            var localizedName: String {
+                switch self {
+                case .high:   return I18nManager.shared.t(.at_impact_high)
+                case .medium: return I18nManager.shared.t(.at_impact_medium)
+                case .low:    return I18nManager.shared.t(.at_impact_low)
+                }
+            }
+        }
     }
 
     init() {
@@ -98,6 +133,7 @@ class AutoTuningEngine: ObservableObject {
         isTuning = true
         progress = 0
         results = []
+        atLog.info("auto-tuning started")
 
         let dimensions = TuningDimension.allCases
         var current = 0
@@ -112,7 +148,7 @@ class AutoTuningEngine: ObservableObject {
             }
 
             let dim = dimensions[current]
-            self.currentAction = "优化 \(dim.rawValue)..."
+            self.currentAction = I18nManager.shared.tf(.at_action_optimize, dim.localizedName)
             self.progress = Double(current + 1) / Double(dimensions.count)
 
             let result = TuningResult(
@@ -120,7 +156,7 @@ class AutoTuningEngine: ObservableObject {
                 dimension: dim,
                 previousValue: self.randomPrevious(dim),
                 newValue: self.randomNew(dim),
-                improvement: "\(Int.random(in: 5...35))%",
+                improvement: I18nManager.shared.tf(.at_improvement_pct, Int.random(in: 5...35)),
                 score: Int.random(in: 60...95)
             )
             self.results.append(result)
@@ -151,20 +187,21 @@ class AutoTuningEngine: ObservableObject {
     }
 
     private func finishTuning() {
-        currentAction = "✅ 调优完成"
+        currentAction = I18nManager.shared.t(.at_action_done)
         overallScore = Int.random(in: 75...95)
         isTuning = false
         generateRecommendations()
         objectWillChange.send()
+        atLog.info("auto-tuning finished, score \(self.overallScore)")
     }
 
     func generateRecommendations() {
         recommendations = [
-            TuningRecommendation(title: "增加最大内存到 20GB", description: "当前配置可安全增加 4GB 内存分配，提升推理吞吐量", impact: .high, confidence: 92) {},
-            TuningRecommendation(title: "启用 Flash Attention", description: "Flash Attention 可减少 30% 内存使用并提升速度", impact: .high, confidence: 88) {},
-            TuningRecommendation(title: "调整批处理大小为 2", description: "批处理大小 2 在大多数场景下提供最佳吞吐量", impact: .medium, confidence: 75) {},
-            TuningRecommendation(title: "增加上下文长度到 8192", description: "当前内存允许扩展上下文长度，提升长文本处理能力", impact: .medium, confidence: 70) {},
-            TuningRecommendation(title: "启用连续批处理", description: "连续批处理可提高 GPU 利用率", impact: .low, confidence: 65) {},
+            TuningRecommendation(title: I18nManager.shared.t(.at_rec_title_increase_mem), description: I18nManager.shared.t(.at_rec_desc_increase_mem), impact: .high, confidence: 92) {},
+            TuningRecommendation(title: I18nManager.shared.t(.at_rec_title_flash_attn), description: I18nManager.shared.t(.at_rec_desc_flash_attn), impact: .high, confidence: 88) {},
+            TuningRecommendation(title: I18nManager.shared.t(.at_rec_title_batch_size), description: I18nManager.shared.t(.at_rec_desc_batch_size), impact: .medium, confidence: 75) {},
+            TuningRecommendation(title: I18nManager.shared.t(.at_rec_title_ctx_len), description: I18nManager.shared.t(.at_rec_desc_ctx_len), impact: .medium, confidence: 70) {},
+            TuningRecommendation(title: I18nManager.shared.t(.at_rec_title_continuous_batch), description: I18nManager.shared.t(.at_rec_desc_continuous_batch), impact: .low, confidence: 65) {},
         ]
     }
 
@@ -172,11 +209,13 @@ class AutoTuningEngine: ObservableObject {
         for rec in recommendations where rec.confidence >= 80 {
             rec.action()
         }
+        atLog.info("applied high-confidence recommendations")
     }
 
     func clearResults() {
         results.removeAll()
         objectWillChange.send()
+        atLog.info("cleared tuning results")
     }
 }
 
@@ -188,23 +227,32 @@ struct AutoTuningView: View {
     @State private var selectedTab: TuningTab = .dashboard
 
     enum TuningTab: String, CaseIterable {
-        case dashboard = "调优仪表盘"
-        case results   = "调优结果"
-        case config    = "调优配置"
-        case recommend = "优化建议"
+        case dashboard
+        case results
+        case config
+        case recommend
+
+        var localizedName: String {
+            switch self {
+            case .dashboard: return I18nManager.shared.t(.at_tab_dashboard)
+            case .results:   return I18nManager.shared.t(.at_tab_results)
+            case .config:    return I18nManager.shared.t(.at_tab_config)
+            case .recommend: return I18nManager.shared.t(.at_tab_recommend)
+            }
+        }
     }
 
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Label("性能自动调优", systemImage: "wand.and.rays").font(.headline)
+                Label(I18nManager.shared.t(.at_header), systemImage: "wand.and.rays").font(.headline)
                 Spacer()
                 HStack(spacing: 8) {
-                    Text("性能评分: \(engine.overallScore)/100")
+                    Text(I18nManager.shared.tf(.at_score_label, engine.overallScore))
                         .font(.system(.body, design: .monospaced))
                         .foregroundColor(scoreColor(engine.overallScore))
                     Button(action: { engine.startTuning() }) {
-                        Label(engine.isTuning ? "调优中..." : "开始调优", systemImage: "play.fill")
+                        Label(engine.isTuning ? I18nManager.shared.t(.at_btn_tuning) : I18nManager.shared.t(.at_btn_start), systemImage: "play.fill")
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
@@ -221,14 +269,14 @@ struct AutoTuningView: View {
                 VStack(spacing: 8) {
                     ProgressView(value: engine.progress)
                     Text(engine.currentAction).font(.headline)
-                    Text("\(Int(engine.progress * 100))%").font(.caption).foregroundColor(.secondary)
+                    Text(I18nManager.shared.tf(.at_progress_pct, Int(engine.progress * 100))).font(.caption).foregroundColor(.secondary)
                 }
                 .padding()
             }
 
             Picker("", selection: $selectedTab) {
                 ForEach(TuningTab.allCases, id: \.self) { tab in
-                    Label(tab.rawValue, systemImage: tabIcon(tab)).tag(tab)
+                    Label(tab.localizedName, systemImage: tabIcon(tab)).tag(tab)
                 }
             }
             .pickerStyle(.segmented).padding(8)
@@ -259,12 +307,12 @@ struct TuningDashboard: View {
     var body: some View {
         ScrollView {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 200))], spacing: 12) {
-                TuningCard(title: "性能评分", value: "\(engine.overallScore)/100", icon: "gauge.open.with.lines.needle.33percent", color: scoreColor(engine.overallScore))
-                TuningCard(title: "调优次数", value: "\(engine.results.count)", icon: "arrow.triangle.2.circlepath", color: .blue)
-                TuningCard(title: "优化建议", value: "\(engine.recommendations.count)", icon: "lightbulb", color: .yellow)
-                TuningCard(title: "自动调优", value: engine.config.isAutoTuning ? "已开启" : "已关闭", icon: "wand.and.rays", color: engine.config.isAutoTuning ? .green : .gray)
-                TuningCard(title: "目标指标", value: engine.config.targetMetric.rawValue, icon: "target", color: .purple)
-                TuningCard(title: "调优间隔", value: engine.config.tuningInterval.rawValue, icon: "clock", color: .orange)
+                TuningCard(title: I18nManager.shared.t(.at_card_score), value: "\(engine.overallScore)/100", icon: "gauge.open.with.lines.needle.33percent", color: scoreColor(engine.overallScore))
+                TuningCard(title: I18nManager.shared.t(.at_card_count), value: "\(engine.results.count)", icon: "arrow.triangle.2.circlepath", color: .blue)
+                TuningCard(title: I18nManager.shared.t(.at_card_rec), value: "\(engine.recommendations.count)", icon: "lightbulb", color: .yellow)
+                TuningCard(title: I18nManager.shared.t(.at_card_auto), value: engine.config.isAutoTuning ? I18nManager.shared.t(.at_val_on) : I18nManager.shared.t(.at_val_off), icon: "wand.and.rays", color: engine.config.isAutoTuning ? .green : .gray)
+                TuningCard(title: I18nManager.shared.t(.at_metric_throughput), value: engine.config.targetMetric.localizedName, icon: "target", color: .purple)
+                TuningCard(title: I18nManager.shared.t(.at_cfg_interval_label), value: engine.config.tuningInterval.localizedName, icon: "clock", color: .orange)
             }
             .padding()
         }
@@ -301,7 +349,7 @@ struct TuningResultsView: View {
             VStack(spacing: 12) {
                 Spacer()
                 Image(systemName: "wand.and.rays").font(.system(size: 40)).foregroundColor(.secondary)
-                Text("运行自动调优以查看结果").foregroundColor(.secondary)
+                Text(I18nManager.shared.t(.at_results_empty)).foregroundColor(.secondary)
                 Spacer()
             }
         } else {
@@ -310,15 +358,15 @@ struct TuningResultsView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
                             Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
-                            Text(result.dimension.rawValue).font(.headline)
+                            Text(result.dimension.localizedName).font(.headline)
                             Spacer()
-                            Text("+\(result.improvement)").font(.system(.body, design: .monospaced)).foregroundColor(.green)
+                            Text(I18nManager.shared.tf(.at_result_improvement, result.improvement)).font(.system(.body, design: .monospaced)).foregroundColor(.green)
                         }
                         HStack {
-                            Text("\(result.previousValue) → \(result.newValue)")
+                            Text(I18nManager.shared.tf(.at_result_change, result.previousValue, result.newValue))
                                 .font(.caption).foregroundColor(.secondary)
                             Spacer()
-                            Text("评分: \(result.score)/100")
+                            Text(I18nManager.shared.tf(.at_result_score, result.score))
                                 .font(.caption).foregroundColor(.blue)
                         }
                         Text(result.timestamp, style: .time)
@@ -328,7 +376,7 @@ struct TuningResultsView: View {
                 }
             }
             .toolbar {
-                ToolbarItem { Button("清空") { engine.clearResults() }.buttonStyle(.bordered).controlSize(.small) }
+                ToolbarItem { Button(I18nManager.shared.t(.at_btn_clear)) { engine.clearResults() }.buttonStyle(.bordered).controlSize(.small) }
             }
         }
     }
@@ -341,43 +389,43 @@ struct TuningConfigView: View {
 
     var body: some View {
         Form {
-            Section("自动调优") {
-                Toggle("启用自动调优", isOn: $engine.config.isAutoTuning)
-                Toggle("调优后自动重启服务", isOn: $engine.config.enableAutoRestart)
-                Picker("调优间隔", selection: $engine.config.tuningInterval) {
+            Section(I18nManager.shared.t(.at_cfg_section_auto)) {
+                Toggle(I18nManager.shared.t(.at_cfg_enable), isOn: $engine.config.isAutoTuning)
+                Toggle(I18nManager.shared.t(.at_cfg_autorestart), isOn: $engine.config.enableAutoRestart)
+                Picker(I18nManager.shared.t(.at_cfg_interval_label), selection: $engine.config.tuningInterval) {
                     ForEach(TuningConfig.TuningInterval.allCases, id: \.self) { interval in
-                        Text(interval.rawValue).tag(interval)
+                        Text(interval.localizedName).tag(interval)
                     }
                 }
             }
 
-            Section("目标指标") {
-                Picker("优化目标", selection: $engine.config.targetMetric) {
+            Section(I18nManager.shared.t(.at_cfg_section_metric)) {
+                Picker(I18nManager.shared.t(.at_cfg_target_label), selection: $engine.config.targetMetric) {
                     ForEach(TuningConfig.TargetMetric.allCases, id: \.self) { metric in
-                        Text(metric.rawValue).tag(metric)
+                        Text(metric.localizedName).tag(metric)
                     }
                 }
-                Text("选择优化目标将影响自动调优的方向和参数选择")
+                Text(I18nManager.shared.t(.at_cfg_target_hint))
                     .font(.caption).foregroundColor(.secondary)
             }
 
-            Section("约束条件") {
+            Section(I18nManager.shared.t(.at_cfg_section_constraints)) {
                 HStack {
-                    Text("最大内存: \(Int(engine.config.maxMemoryGB)) GB")
+                    Text(I18nManager.shared.tf(.at_cfg_max_mem, Int(engine.config.maxMemoryGB)))
                     Slider(value: $engine.config.maxMemoryGB, in: 4...64, step: 2)
                 }
                 HStack {
-                    Text("最大延迟: \(Int(engine.config.maxLatencyMs)) ms")
+                    Text(I18nManager.shared.tf(.at_cfg_max_latency, Int(engine.config.maxLatencyMs)))
                     Slider(value: $engine.config.maxLatencyMs, in: 100...2000, step: 50)
                 }
                 HStack {
-                    Text("最低响应: \(Int(engine.config.minResponseTime)) ms")
+                    Text(I18nManager.shared.tf(.at_cfg_min_resp, Int(engine.config.minResponseTime)))
                     Slider(value: $engine.config.minResponseTime, in: 10...200, step: 10)
                 }
             }
 
-            Section("说明") {
-                Text("自动调优引擎将根据当前硬件配置和使用模式，自动调整 MLX 推理参数以获得最佳性能。调优过程不影响正在进行的任务。")
+            Section(I18nManager.shared.t(.at_cfg_section_note)) {
+                Text(I18nManager.shared.t(.at_cfg_note))
                     .font(.caption).foregroundColor(.secondary)
             }
         }
@@ -407,7 +455,7 @@ struct TuningRecommendationsView: View {
                         HStack {
                             ImpactBadge(impact: rec.impact)
                             Spacer()
-                            Text("置信度: \(rec.confidence)%")
+                            Text(I18nManager.shared.tf(.at_rec_confidence, rec.confidence))
                                 .font(.caption).foregroundColor(.secondary)
                         }
                     }
@@ -419,9 +467,9 @@ struct TuningRecommendationsView: View {
             .padding()
 
             HStack(spacing: 12) {
-                Button("应用所有高置信度建议") { engine.applyAll() }
+                Button(I18nManager.shared.t(.at_rec_apply)) { engine.applyAll() }
                     .buttonStyle(.borderedProminent)
-                Button("刷新建议") { engine.generateRecommendations() }
+                Button(I18nManager.shared.t(.at_rec_refresh)) { engine.generateRecommendations() }
                     .buttonStyle(.bordered)
             }
             .padding()
@@ -432,7 +480,7 @@ struct TuningRecommendationsView: View {
 struct ConfidenceBadge: View {
     let confidence: Int
     var body: some View {
-        Text("\(confidence)%")
+        Text(I18nManager.shared.tf(.at_confidence_pct, confidence))
             .font(.caption).fontWeight(.bold)
             .padding(.horizontal, 6).padding(.vertical, 2)
             .background(confidence >= 80 ? Color.green.opacity(0.2) : (confidence >= 60 ? Color.orange.opacity(0.2) : Color.gray.opacity(0.2)))
@@ -444,7 +492,7 @@ struct ConfidenceBadge: View {
 struct ImpactBadge: View {
     let impact: AutoTuningEngine.TuningRecommendation.Impact
     var body: some View {
-        Label("影响: \(impact.rawValue)", systemImage: "arrow.up")
+        Label(I18nManager.shared.tf(.at_impact_label, impact.localizedName), systemImage: "arrow.up")
             .font(.caption)
             .foregroundColor(impact == .high ? .green : (impact == .medium ? .orange : .secondary))
     }
