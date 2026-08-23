@@ -2102,6 +2102,22 @@ enum I18nKey: String, CaseIterable {
     case at_rec_desc_continuous_batch = "at_rec_desc_continuous_batch"
     case at_confidence_pct = "at_confidence_pct"
     case at_improvement_pct = "at_improvement_pct"
+    case dsk_name_textToUI = "dsk_name_textToUI"
+    case dsk_desc_textToUI = "dsk_desc_textToUI"
+    case dsk_name_imageToUI = "dsk_name_imageToUI"
+    case dsk_desc_imageToUI = "dsk_desc_imageToUI"
+    case dsk_name_partialEdit = "dsk_name_partialEdit"
+    case dsk_desc_partialEdit = "dsk_desc_partialEdit"
+    case dsk_name_localEdit = "dsk_name_localEdit"
+    case dsk_desc_localEdit = "dsk_desc_localEdit"
+    case dsk_name_simPanel = "dsk_name_simPanel"
+    case dsk_desc_simPanel = "dsk_desc_simPanel"
+    case dsk_name_multiVariants = "dsk_name_multiVariants"
+    case dsk_desc_multiVariants = "dsk_desc_multiVariants"
+    case dsk_name_specDoc = "dsk_name_specDoc"
+    case dsk_desc_specDoc = "dsk_desc_specDoc"
+    case dsk_name_pageFlow = "dsk_name_pageFlow"
+    case dsk_desc_pageFlow = "dsk_desc_pageFlow"
     case proj_subtitle = "proj_subtitle"
     case proj_searchPh = "proj_searchPh"
     case proj_newHelp = "proj_newHelp"
@@ -6510,6 +6526,22 @@ let zhCNTranslations: [String: String] = [
     "at_rec_desc_continuous_batch": "连续批处理可提高 GPU 利用率",
     "at_confidence_pct": "%d%%",
     "at_improvement_pct": "%d%%",
+    "dsk_name_textToUI": "文生 UI",
+    "dsk_desc_textToUI": "自然语言描述 → 完整页面",
+    "dsk_name_imageToUI": "图生 UI",
+    "dsk_desc_imageToUI": "上传草图/参考图 → 生成 UI",
+    "dsk_name_partialEdit": "局部编辑",
+    "dsk_desc_partialEdit": "描述修改意图 → AI 局部修改",
+    "dsk_name_localEdit": "精准修改",
+    "dsk_desc_localEdit": "选中节点 → 精准属性修改",
+    "dsk_name_simPanel": "相似面板",
+    "dsk_desc_simPanel": "生成相似风格面板组件",
+    "dsk_name_multiVariants": "多方案",
+    "dsk_desc_multiVariants": "一次生成多种风格方案",
+    "dsk_name_specDoc": "规范文档",
+    "dsk_desc_specDoc": "设计规范 → 结构化文档",
+    "dsk_name_pageFlow": "页面流",
+    "dsk_desc_pageFlow": "描述多页面流程 → 串联页面",
     "proj_subtitle": "管理你的 AI 项目、指令和知识库",
     "proj_searchPh": "搜索项目",
     "proj_newHelp": "新建项目",
@@ -10871,6 +10903,22 @@ let enUSTranslations: [String: String] = [
     "at_rec_desc_continuous_batch": "Continuous batching improves GPU utilization",
     "at_confidence_pct": "%d%%",
     "at_improvement_pct": "%d%%",
+    "dsk_name_textToUI": "Text-to-UI",
+    "dsk_desc_textToUI": "Natural language description → full page",
+    "dsk_name_imageToUI": "Image-to-UI",
+    "dsk_desc_imageToUI": "Upload sketch/reference → generate UI",
+    "dsk_name_partialEdit": "Partial Edit",
+    "dsk_desc_partialEdit": "Describe edit intent → AI partial modification",
+    "dsk_name_localEdit": "Precision Edit",
+    "dsk_desc_localEdit": "Select node → precise property edit",
+    "dsk_name_simPanel": "Similar Panel",
+    "dsk_desc_simPanel": "Generate similar-style panel component",
+    "dsk_name_multiVariants": "Multi-Variant",
+    "dsk_desc_multiVariants": "Generate multiple style variants at once",
+    "dsk_name_specDoc": "Spec Doc",
+    "dsk_desc_specDoc": "Design spec → structured document",
+    "dsk_name_pageFlow": "Page Flow",
+    "dsk_desc_pageFlow": "Describe multi-page flow → link pages",
     "proj_subtitle": "Manage your AI projects, instructions and knowledge base",
     "proj_searchPh": "Search projects",
     "proj_newHelp": "New project",
@@ -15226,6 +15274,22 @@ let jaJPTranslations: [String: String] = [
     "at_rec_desc_continuous_batch": "連続バッチ処理は GPU 使用率を向上",
     "at_confidence_pct": "%d%%",
     "at_improvement_pct": "%d%%",
+    "dsk_name_textToUI": "テキスト→UI",
+    "dsk_desc_textToUI": "自然言語記述 → 完全ページ",
+    "dsk_name_imageToUI": "画像→UI",
+    "dsk_desc_imageToUI": "スケッチ/参考画像をアップロード → UI生成",
+    "dsk_name_partialEdit": "部分編集",
+    "dsk_desc_partialEdit": "編集意図を記述 → AI部分修正",
+    "dsk_name_localEdit": "精密編集",
+    "dsk_desc_localEdit": "ノード選択 → 精密プロパティ編集",
+    "dsk_name_simPanel": "類似パネル",
+    "dsk_desc_simPanel": "類似スタイルのパネルコンポーネント生成",
+    "dsk_name_multiVariants": "マルチバリアント",
+    "dsk_desc_multiVariants": "複数スタイル案を一度に生成",
+    "dsk_name_specDoc": "仕様書",
+    "dsk_desc_specDoc": "設計仕様 → 構造化ドキュメント",
+    "dsk_name_pageFlow": "ページフロー",
+    "dsk_desc_pageFlow": "複数ページフローを記述 → ページ連結",
     "proj_subtitle": "AIプロジェクト・指示・ナレッジベースを管理",
     "proj_searchPh": "プロジェクトを検索",
     "proj_newHelp": "新規プロジェクト",
@@ -19581,6 +19645,22 @@ let koKRTranslations: [String: String] = [
     "at_rec_desc_continuous_batch": "연속 배치 처리는 GPU 활용률을 향상",
     "at_confidence_pct": "%d%%",
     "at_improvement_pct": "%d%%",
+    "dsk_name_textToUI": "텍스트→UI",
+    "dsk_desc_textToUI": "자연어 설명 → 전체 페이지",
+    "dsk_name_imageToUI": "이미지→UI",
+    "dsk_desc_imageToUI": "스케치/참조 업로드 → UI 생성",
+    "dsk_name_partialEdit": "부분 편집",
+    "dsk_desc_partialEdit": "편집 의도 설명 → AI 부분 수정",
+    "dsk_name_localEdit": "정밀 편집",
+    "dsk_desc_localEdit": "노드 선택 → 정밀 속성 편집",
+    "dsk_name_simPanel": "유사 패널",
+    "dsk_desc_simPanel": "유사 스타일 패널 컴포넌트 생성",
+    "dsk_name_multiVariants": "다중 변형",
+    "dsk_desc_multiVariants": "여러 스타일 변형을 한 번에 생성",
+    "dsk_name_specDoc": "명세 문서",
+    "dsk_desc_specDoc": "설계 명세 → 구조화 문서",
+    "dsk_name_pageFlow": "페이지 흐름",
+    "dsk_desc_pageFlow": "다중 페이지 흐름 설명 → 페이지 연결",
     "proj_subtitle": "AI 프로젝트·지시·지식베이스 관리",
     "proj_searchPh": "프로젝트 검색",
     "proj_newHelp": "새 프로젝트",

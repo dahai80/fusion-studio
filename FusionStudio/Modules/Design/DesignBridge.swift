@@ -80,14 +80,14 @@ enum DesignSkill: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .textToUI: return "文生 UI"
-        case .imageToUI: return "图生 UI"
-        case .partialEdit: return "局部编辑"
-        case .localEdit: return "精准修改"
-        case .simPanel: return "相似面板"
-        case .multiVariants: return "多方案"
-        case .specDoc: return "规范文档"
-        case .pageFlow: return "页面流"
+        case .textToUI: return I18nManager.shared.t(.dsk_name_textToUI)
+        case .imageToUI: return I18nManager.shared.t(.dsk_name_imageToUI)
+        case .partialEdit: return I18nManager.shared.t(.dsk_name_partialEdit)
+        case .localEdit: return I18nManager.shared.t(.dsk_name_localEdit)
+        case .simPanel: return I18nManager.shared.t(.dsk_name_simPanel)
+        case .multiVariants: return I18nManager.shared.t(.dsk_name_multiVariants)
+        case .specDoc: return I18nManager.shared.t(.dsk_name_specDoc)
+        case .pageFlow: return I18nManager.shared.t(.dsk_name_pageFlow)
         }
     }
 
@@ -106,14 +106,14 @@ enum DesignSkill: String, CaseIterable, Identifiable {
 
     var description: String {
         switch self {
-        case .textToUI: return "自然语言描述 → 完整页面"
-        case .imageToUI: return "上传草图/参考图 → 生成 UI"
-        case .partialEdit: return "描述修改意图 → AI 局部修改"
-        case .localEdit: return "选中节点 → 精准属性修改"
-        case .simPanel: return "生成相似风格面板组件"
-        case .multiVariants: return "一次生成多种风格方案"
-        case .specDoc: return "设计规范 → 结构化文档"
-        case .pageFlow: return "描述多页面流程 → 串联页面"
+        case .textToUI: return I18nManager.shared.t(.dsk_desc_textToUI)
+        case .imageToUI: return I18nManager.shared.t(.dsk_desc_imageToUI)
+        case .partialEdit: return I18nManager.shared.t(.dsk_desc_partialEdit)
+        case .localEdit: return I18nManager.shared.t(.dsk_desc_localEdit)
+        case .simPanel: return I18nManager.shared.t(.dsk_desc_simPanel)
+        case .multiVariants: return I18nManager.shared.t(.dsk_desc_multiVariants)
+        case .specDoc: return I18nManager.shared.t(.dsk_desc_specDoc)
+        case .pageFlow: return I18nManager.shared.t(.dsk_desc_pageFlow)
         }
     }
 }
