@@ -10,12 +10,12 @@ import Combine
 // MARK: - 任务状态
 
 enum TaskStatus: String, Codable {
-    case pending   = "排队中"
-    case running   = "运行中"
-    case paused    = "已暂停"
-    case completed = "已完成"
-    case failed    = "失败"
-    case cancelled = "已取消"
+    case pending   = "pending"
+    case running   = "running"
+    case paused    = "paused"
+    case completed = "completed"
+    case failed    = "failed"
+    case cancelled = "cancelled"
 
     var color: Color {
         switch self {
@@ -38,15 +38,26 @@ enum TaskStatus: String, Codable {
         case .cancelled: return "minus.circle"
         }
     }
+
+    var localizedName: String {
+        switch self {
+        case .pending:   return I18nManager.shared.t(.tq_status_pending)
+        case .running:   return I18nManager.shared.t(.tq_status_running)
+        case .paused:    return I18nManager.shared.t(.tq_status_paused)
+        case .completed: return I18nManager.shared.t(.tq_status_completed)
+        case .failed:    return I18nManager.shared.t(.tq_status_failed)
+        case .cancelled: return I18nManager.shared.t(.tq_status_cancelled)
+        }
+    }
 }
 
 enum TaskType: String, Codable, CaseIterable {
-    case inference  = "推理"
-    case compile    = "编译"
-    case export     = "导出"
-    case simulation = "仿真"
-    case batch      = "批量"
-    case download   = "下载"
+    case inference  = "inference"
+    case compile    = "compile"
+    case export     = "export"
+    case simulation = "simulation"
+    case batch      = "batch"
+    case download   = "download"
 
     var icon: String {
         switch self {
@@ -56,6 +67,17 @@ enum TaskType: String, Codable, CaseIterable {
         case .simulation: return "gearshape.2"
         case .batch:      return "square.stack.3d.forward.dottedline"
         case .download:   return "icloud.and.arrow.down"
+        }
+    }
+
+    var localizedName: String {
+        switch self {
+        case .inference:  return I18nManager.shared.t(.tq_type_inference)
+        case .compile:    return I18nManager.shared.t(.tq_type_compile)
+        case .export:     return I18nManager.shared.t(.tq_type_export)
+        case .simulation: return I18nManager.shared.t(.tq_type_simulation)
+        case .batch:      return I18nManager.shared.t(.tq_type_batch)
+        case .download:   return I18nManager.shared.t(.tq_type_download)
         }
     }
 }
@@ -158,7 +180,7 @@ class TaskManager: ObservableObject {
             type: type,
             status: .pending,
             progress: 0,
-            progressLabel: "等待中",
+            progressLabel: I18nManager.shared.t(.tq_pl_waiting),
             createdAt: Date(),
             subtasks: subtasks.enumerated().map { i, name in
                 TaskItem.SubTask(id: "sub-\(i)", name: name, status: .pending, progress: 0)
@@ -176,7 +198,7 @@ class TaskManager: ObservableObject {
         update(id) { task in
             task.status = .running
             task.startedAt = Date()
-            task.progressLabel = "启动中..."
+            task.progressLabel = I18nManager.shared.t(.tq_pl_starting)
         }
     }
 
@@ -219,7 +241,7 @@ class TaskManager: ObservableObject {
             task.status = .completed
             task.progress = 1.0
             task.completedAt = Date()
-            task.progressLabel = "完成"
+            task.progressLabel = I18nManager.shared.t(.tq_pl_done)
             task.result = result
         }
     }
@@ -306,28 +328,28 @@ struct TaskQueueView: View {
         VStack(alignment: .leading, spacing: 12) {
             // 标题栏
             HStack {
-                Label("任务队列", systemImage: "list.bullet.rectangle")
+                Label(I18nManager.shared.t(.tq_title), systemImage: "list.bullet.rectangle")
                     .font(.headline)
                 Spacer()
-                Text("\(manager.activeCount) 活跃 / \(manager.queueCount) 排队")
+                Text(I18nManager.shared.tf(.tq_active_queue, manager.activeCount, manager.queueCount))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
 
             // 统计栏
             HStack(spacing: 16) {
-                StatBadge(count: manager.activeCount, label: "运行中", color: .blue)
-                StatBadge(count: manager.queueCount, label: "排队", color: .gray)
-                StatBadge(count: manager.completedCount, label: "完成", color: .green)
-                StatBadge(count: manager.failedCount, label: "失败", color: .red)
+                StatBadge(count: manager.activeCount, label: I18nManager.shared.t(.tq_stat_running), color: .blue)
+                StatBadge(count: manager.queueCount, label: I18nManager.shared.t(.tq_stat_queued), color: .gray)
+                StatBadge(count: manager.completedCount, label: I18nManager.shared.t(.tq_stat_completed), color: .green)
+                StatBadge(count: manager.failedCount, label: I18nManager.shared.t(.tq_stat_failed), color: .red)
                 Spacer()
-                Toggle("完成", isOn: $manager.showCompleted)
+                Toggle(I18nManager.shared.t(.tq_toggle_completed), isOn: $manager.showCompleted)
                     .controlSize(.small)
                     .toggleStyle(.checkbox)
-                Toggle("取消", isOn: $manager.showCancelled)
+                Toggle(I18nManager.shared.t(.tq_toggle_cancelled), isOn: $manager.showCancelled)
                     .controlSize(.small)
                     .toggleStyle(.checkbox)
-                Button("清除") { showClearAlert = true }
+                Button(I18nManager.shared.t(.tq_clear)) { showClearAlert = true }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     .disabled(manager.tasks.isEmpty)
@@ -342,7 +364,7 @@ struct TaskQueueView: View {
                         Image(systemName: "tray")
                             .font(.largeTitle)
                             .foregroundColor(.secondary)
-                        Text("暂无任务")
+                        Text(I18nManager.shared.t(.tq_empty))
                             .foregroundColor(.secondary)
                     }
                     Spacer()
@@ -355,16 +377,16 @@ struct TaskQueueView: View {
                             .tag(task)
                             .contextMenu {
                                 if task.status == .running {
-                                    Button("暂停") { manager.pause(task.id) }
+                                    Button(I18nManager.shared.t(.tq_pause)) { manager.pause(task.id) }
                                 }
                                 if task.status == .paused {
-                                    Button("恢复") { manager.resume(task.id) }
+                                    Button(I18nManager.shared.t(.tq_resume)) { manager.resume(task.id) }
                                 }
                                 if task.status == .pending || task.status == .running || task.status == .paused {
-                                    Button("取消", role: .destructive) { manager.cancel(task.id) }
+                                    Button(I18nManager.shared.t(.tq_cancel), role: .destructive) { manager.cancel(task.id) }
                                 }
                                 if task.status == .completed || task.status == .failed || task.status == .cancelled {
-                                    Button("删除") {
+                                    Button(I18nManager.shared.t(.tq_delete)) {
                                         manager.tasks.removeAll { $0.id == task.id }
                                     }
                                 }
@@ -378,12 +400,12 @@ struct TaskQueueView: View {
         .padding()
         .background(theme.surfaceSecondary)
         .cornerRadius(12)
-        .alert("清除任务", isPresented: $showClearAlert) {
-            Button("清除已完成", action: { manager.clearCompleted() })
-            Button("清除全部", role: .destructive, action: { manager.clearAll() })
-            Button("取消", role: .cancel) {}
+        .alert(I18nManager.shared.t(.tq_clear_title), isPresented: $showClearAlert) {
+            Button(I18nManager.shared.t(.tq_clear_completed), action: { manager.clearCompleted() })
+            Button(I18nManager.shared.t(.tq_clear_all), role: .destructive, action: { manager.clearAll() })
+            Button(I18nManager.shared.t(.tq_cancel), role: .cancel) {}
         } message: {
-            Text("确定要清除任务吗？")
+            Text(I18nManager.shared.t(.tq_clear_confirm))
         }
         .sheet(item: $selectedTask) { task in
             TaskDetailView(task: task)
@@ -428,7 +450,7 @@ struct TaskRowView: View {
                         .font(.subheadline)
                         .fontWeight(task.status == .running ? .semibold : .regular)
                     Spacer()
-                    Text(task.type.rawValue)
+                    Text(task.type.localizedName)
                         .font(.caption2)
                         .padding(.horizontal, 4)
                         .padding(.vertical, 1)
@@ -547,35 +569,35 @@ struct TaskDetailView: View {
                     .font(.title2)
                     .bold()
                 Spacer()
-                Button("关闭") { dismiss() }
+                Button(I18nManager.shared.t(.tq_close)) { dismiss() }
                     .buttonStyle(.borderedProminent)
             }
 
             Divider()
 
             // 基本信息
-            GroupBox("基本信息") {
+            GroupBox(I18nManager.shared.t(.tq_gb_basic)) {
                 VStack(alignment: .leading, spacing: 6) {
-                    TaskDetailRow("任务 ID", task.id)
-                    TaskDetailRow("类型", task.type.rawValue)
-                    TaskDetailRow("状态", task.status.rawValue)
-                    TaskDetailRow("创建时间", task.createdAt.formatted(date: .numeric, time: .shortened))
+                    TaskDetailRow(I18nManager.shared.t(.tq_lbl_task_id), task.id)
+                    TaskDetailRow(I18nManager.shared.t(.tq_lbl_type), task.type.localizedName)
+                    TaskDetailRow(I18nManager.shared.t(.tq_lbl_status), task.status.localizedName)
+                    TaskDetailRow(I18nManager.shared.t(.tq_lbl_created), task.createdAt.formatted(date: .numeric, time: .shortened))
                     if let start = task.startedAt {
-                        TaskDetailRow("开始时间", start.formatted(date: .numeric, time: .shortened))
+                        TaskDetailRow(I18nManager.shared.t(.tq_lbl_started), start.formatted(date: .numeric, time: .shortened))
                     }
                     if let _ = task.startedAt {
-                        TaskDetailRow("耗时", task.formattedDuration)
+                        TaskDetailRow(I18nManager.shared.t(.tq_lbl_duration), task.formattedDuration)
                     }
                 }
                 .padding(8)
             }
 
             // 进度
-            GroupBox("进度") {
+            GroupBox(I18nManager.shared.t(.tq_gb_progress)) {
                 VStack(spacing: 8) {
                     ProgressView(value: task.progress)
                         .tint(task.status.color)
-                    Text("\(Int(task.progress * 100))% - \(task.progressLabel)")
+                    Text(I18nManager.shared.tf(.tq_progress_label, Int(task.progress * 100), task.progressLabel))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -584,7 +606,7 @@ struct TaskDetailView: View {
 
             // 子任务
             if !task.subtasks.isEmpty {
-                GroupBox("子任务") {
+                GroupBox(I18nManager.shared.t(.tq_gb_subtasks)) {
                     ForEach(task.subtasks) { sub in
                         HStack {
                             Image(systemName: sub.status.icon)
@@ -608,7 +630,7 @@ struct TaskDetailView: View {
 
             // 错误信息
             if let error = task.errorMessage {
-                GroupBox("错误信息") {
+                GroupBox(I18nManager.shared.t(.tq_gb_error)) {
                     Text(error)
                         .font(.system(.body, design: .monospaced))
                         .foregroundColor(.red)
@@ -618,7 +640,7 @@ struct TaskDetailView: View {
 
             // 结果
             if let result = task.result {
-                GroupBox("结果") {
+                GroupBox(I18nManager.shared.t(.tq_gb_result)) {
                     ForEach(Array(result.keys.sorted()), id: \.self) { key in
                         DetailRow(key, result[key] ?? "")
                     }
@@ -644,20 +666,20 @@ struct TaskDemoView: View {
             Divider()
 
             HStack {
-                Button("添加推理任务") {
-                    let id = manager.submit(title: "Qwen3.5 推理", type: .inference, subtasks: ["加载模型", "处理提示词", "生成回应"])
+                Button(I18nManager.shared.t(.tq_demo_inference)) {
+                    let id = manager.submit(title: I18nManager.shared.t(.tq_demo_inference_title), type: .inference, subtasks: [I18nManager.shared.t(.tq_demo_sub_load_model), I18nManager.shared.t(.tq_demo_sub_process_prompt), I18nManager.shared.t(.tq_demo_sub_gen_response)])
                     simulateTask(id)
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(demoRunning)
 
-                Button("添加批量导出") {
-                    manager.submit(title: "导出设计稿 (3个)", type: .export, subtasks: ["导出 Page 1", "导出 Page 2", "导出 Page 3"])
+                Button(I18nManager.shared.t(.tq_demo_batch_export)) {
+                    manager.submit(title: I18nManager.shared.tf(.tq_demo_export_title, 3), type: .export, subtasks: [I18nManager.shared.tf(.tq_demo_export_page, 1), I18nManager.shared.tf(.tq_demo_export_page, 2), I18nManager.shared.tf(.tq_demo_export_page, 3)])
                 }
                 .disabled(demoRunning)
 
-                Button("添加下载任务") {
-                    let id = manager.submit(title: "下载 Qwen3.5 9B", type: .download, subtasks: ["下载分片 1/4", "下载分片 2/4", "下载分片 3/4", "合并文件"])
+                Button(I18nManager.shared.t(.tq_demo_download)) {
+                    let id = manager.submit(title: I18nManager.shared.t(.tq_demo_download_title), type: .download, subtasks: [I18nManager.shared.tf(.tq_demo_dl_shard, 1, 4), I18nManager.shared.tf(.tq_demo_dl_shard, 2, 4), I18nManager.shared.tf(.tq_demo_dl_shard, 3, 4), I18nManager.shared.t(.tq_demo_dl_merge)])
                     simulateDownload(id)
                 }
                 .disabled(demoRunning)
