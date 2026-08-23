@@ -25,14 +25,14 @@ enum PluginCategory: String, Codable, CaseIterable {
 
     var label: String {
         switch self {
-        case .codingPlan:      return "代码规划"
-        case .contextCompress: return "上下文压缩"
-        case .mlxInference:    return "MLX 推理"
-        case .terminalProxy:   return "终端代理"
-        case .fileIndex:       return "文件检索"
-        case .quantization:    return "量化工具"
-        case .visualBackend:   return "视觉后端"
-        case .custom:          return "自定义"
+        case .codingPlan:      return I18nManager.shared.t(.psvc_cat_codingPlan)
+        case .contextCompress: return I18nManager.shared.t(.psvc_cat_contextCompress)
+        case .mlxInference:    return I18nManager.shared.t(.psvc_cat_mlxInference)
+        case .terminalProxy:   return I18nManager.shared.t(.psvc_cat_terminalProxy)
+        case .fileIndex:       return I18nManager.shared.t(.psvc_cat_fileIndex)
+        case .quantization:    return I18nManager.shared.t(.psvc_cat_quantization)
+        case .visualBackend:   return I18nManager.shared.t(.psvc_cat_visualBackend)
+        case .custom:          return I18nManager.shared.t(.psvc_cat_custom)
         }
     }
 
@@ -64,10 +64,10 @@ enum PluginCapability: String, Codable, CaseIterable {
         switch self {
         case .mcpTool:      return "MCP Tool"
         case .claudeSkill:  return "Claude Skill"
-        case .subagent:     return "子代理"
-        case .fileAccess:   return "文件读写"
-        case .vramConsumer: return "显存占用"
-        case .longTask:     return "长任务"
+        case .subagent:     return I18nManager.shared.t(.psvc_cap_subagent)
+        case .fileAccess:   return I18nManager.shared.t(.psvc_cap_fileAccess)
+        case .vramConsumer: return I18nManager.shared.t(.psvc_cap_vramConsumer)
+        case .longTask:     return I18nManager.shared.t(.psvc_cap_longTask)
         }
     }
 
@@ -91,8 +91,8 @@ enum SandboxMode: String, Codable, CaseIterable {
 
     var label: String {
         switch self {
-        case .inline:  return "进程内"
-        case .process: return "独立进程"
+        case .inline:  return I18nManager.shared.t(.psvc_sbox_inline)
+        case .process: return I18nManager.shared.t(.psvc_sbox_process)
         }
     }
 }
@@ -159,12 +159,12 @@ enum PluginState: String, Equatable {
 
     var label: String {
         switch self {
-        case .registered: return "已注册"
-        case .loaded:     return "已加载"
-        case .enabled:    return "运行中"
-        case .disabled:   return "已停用"
-        case .crashed:    return "崩溃"
-        case .timeout:    return "超时"
+        case .registered: return I18nManager.shared.t(.psvc_state_registered)
+        case .loaded:     return I18nManager.shared.t(.psvc_state_loaded)
+        case .enabled:    return I18nManager.shared.t(.psvc_state_enabled)
+        case .disabled:   return I18nManager.shared.t(.psvc_state_disabled)
+        case .crashed:    return I18nManager.shared.t(.psvc_state_crashed)
+        case .timeout:    return I18nManager.shared.t(.psvc_state_timeout)
         }
     }
 
@@ -236,9 +236,9 @@ class PluginManager: ObservableObject {
     private func loadBuiltinPlugins() {
         let builtins: [(PluginManifest, PluginState)] = [
             (PluginManifest(
-                id: "builtin-terminal", name: "高级终端", version: "1.0.0",
+                id: "builtin-terminal", name: I18nManager.shared.t(.psvc_seed_term_name), version: "1.0.0",
                 category: .terminalProxy,
-                description: "增强终端功能，支持多标签页和主题",
+                description: I18nManager.shared.t(.psvc_seed_term_desc),
                 capabilities: [.longTask], params: [],
                 entryPoint: "terminal", defaultMounted: true,
                 timeoutSeconds: nil, vramMb: 0, dependsOn: [],
@@ -247,9 +247,9 @@ class PluginManager: ObservableObject {
                 icon: "terminal", homepage: nil
             ), .enabled),
             (PluginManifest(
-                id: "builtin-git", name: "Git 可视化", version: "1.0.0",
+                id: "builtin-git", name: I18nManager.shared.t(.psvc_seed_git_name), version: "1.0.0",
                 category: .codingPlan,
-                description: "图形化 Git 操作：提交、分支、合并",
+                description: I18nManager.shared.t(.psvc_seed_git_desc),
                 capabilities: [.fileAccess], params: [],
                 entryPoint: "git", defaultMounted: true,
                 timeoutSeconds: nil, vramMb: 0, dependsOn: [],
@@ -258,9 +258,9 @@ class PluginManager: ObservableObject {
                 icon: "arrow.triangle.branch", homepage: nil
             ), .enabled),
             (PluginManifest(
-                id: "builtin-export", name: "批量导出", version: "1.0.0",
+                id: "builtin-export", name: I18nManager.shared.t(.psvc_seed_export_name), version: "1.0.0",
                 category: .visualBackend,
-                description: "批量导出设计稿、代码、仿真结果",
+                description: I18nManager.shared.t(.psvc_seed_export_desc),
                 capabilities: [.fileAccess, .longTask], params: [],
                 entryPoint: "export", defaultMounted: false,
                 timeoutSeconds: 300, vramMb: 0, dependsOn: [],
@@ -269,9 +269,9 @@ class PluginManager: ObservableObject {
                 icon: "square.and.arrow.up", homepage: nil
             ), .enabled),
             (PluginManifest(
-                id: "builtin-markdown", name: "Markdown 预览", version: "1.0.0",
+                id: "builtin-markdown", name: I18nManager.shared.t(.psvc_seed_md_name), version: "1.0.0",
                 category: .custom,
-                description: "实时 Markdown 渲染与预览",
+                description: I18nManager.shared.t(.psvc_seed_md_desc),
                 capabilities: [.mcpTool], params: [],
                 entryPoint: "markdown", defaultMounted: false,
                 timeoutSeconds: nil, vramMb: 0, dependsOn: [],
@@ -432,7 +432,7 @@ class PluginManager: ObservableObject {
             name: name,
             version: "0.1.0",
             category: .custom,
-            description: "Fusion Studio 插件",
+            description: I18nManager.shared.t(.psvc_template_desc),
             capabilities: [.mcpTool],
             params: [],
             entryPoint: "main.py",
@@ -612,22 +612,36 @@ struct PluginView: View {
     @State private var templateAuthor = ""
 
     enum PluginTab: String, CaseIterable {
-        case installed = "已安装"
-        case market    = "市场"
-        case config    = "配置"
-        case status    = "状态"
-        case tokens    = "Token"
-        case vram      = "显存"
-        case logs      = "日志"
-        case mcp       = "MCP"
-        case develop   = "开发"
+        case installed
+        case market
+        case config
+        case status
+        case tokens
+        case vram
+        case logs
+        case mcp
+        case develop
+
+        var localizedName: String {
+            switch self {
+            case .installed: return I18nManager.shared.t(.psvc_tab_installed)
+            case .market:    return I18nManager.shared.t(.psvc_tab_market)
+            case .config:    return I18nManager.shared.t(.psvc_tab_config)
+            case .status:    return I18nManager.shared.t(.psvc_tab_status)
+            case .tokens:    return I18nManager.shared.t(.psvc_tab_tokens)
+            case .vram:      return I18nManager.shared.t(.psvc_tab_vram)
+            case .logs:      return I18nManager.shared.t(.psvc_tab_logs)
+            case .mcp:       return I18nManager.shared.t(.psvc_tab_mcp)
+            case .develop:   return I18nManager.shared.t(.psvc_tab_develop)
+            }
+        }
     }
 
     var body: some View {
         VStack(spacing: 0) {
             Picker("", selection: $selectedTab) {
                 ForEach(PluginTab.allCases, id: \.self) { tab in
-                    Label(tab.rawValue, systemImage: tabIcon(tab)).tag(tab)
+                    Label(tab.localizedName, systemImage: tabIcon(tab)).tag(tab)
                 }
             }
             .pickerStyle(.segmented)
@@ -657,13 +671,13 @@ struct PluginView: View {
         .toolbar {
             ToolbarItemGroup {
                 Button(action: { showFilePicker = true }) {
-                    Label("安装插件", systemImage: "plus")
+                    Label(I18nManager.shared.t(.psvc_tb_install), systemImage: "plus")
                 }
                 Button(action: { pluginManager.scanInstalledPlugins() }) {
-                    Label("刷新", systemImage: "arrow.clockwise")
+                    Label(I18nManager.shared.t(.psvc_tb_refresh), systemImage: "arrow.clockwise")
                 }
                 Button(action: { pluginManager.openPluginFolder() }) {
-                    Label("插件目录", systemImage: "folder")
+                    Label(I18nManager.shared.t(.psvc_tb_folder), systemImage: "folder")
                 }
             }
         }
@@ -683,20 +697,20 @@ struct PluginView: View {
 
     private var createTemplateSheet: some View {
         VStack(spacing: 16) {
-            Text("创建插件模板")
+            Text(I18nManager.shared.t(.psvc_tmpl_title))
                 .font(.title2)
                 .bold()
 
-            TextField("插件名称", text: $templateName)
+            TextField(I18nManager.shared.t(.psvc_tmpl_name_ph), text: $templateName)
                 .textFieldStyle(.roundedBorder)
 
-            TextField("作者", text: $templateAuthor)
+            TextField(I18nManager.shared.t(.psvc_tmpl_author_ph), text: $templateAuthor)
                 .textFieldStyle(.roundedBorder)
 
             HStack {
-                Button("取消") { showCreateTemplate = false }
+                Button(I18nManager.shared.t(.psvc_tmpl_cancel)) { showCreateTemplate = false }
                     .buttonStyle(.bordered)
-                Button("创建") {
+                Button(I18nManager.shared.t(.psvc_tmpl_create)) {
                     if let url = pluginManager.createPluginTemplate(name: templateName, author: templateAuthor) {
                         NSWorkspace.shared.open(url)
                     }
@@ -748,30 +762,30 @@ struct InstalledPluginsView: View {
             VStack(spacing: 0) {
                 categoryFilter
                 List(selection: $selectedPlugin) {
-                    Section("内置插件") {
+                    Section(I18nManager.shared.t(.psvc_sec_builtin)) {
                         ForEach(filteredPlugins.filter { $0.installPath == "builtin" }) { plugin in
                             PluginRow(plugin: plugin)
                                 .tag(plugin)
                         }
                     }
-                    Section("用户插件") {
+                    Section(I18nManager.shared.t(.psvc_sec_user)) {
                         let userPlugins = filteredPlugins.filter { $0.installPath != "builtin" }
                         if userPlugins.isEmpty {
-                            Text("暂无用户插件")
+                            Text(I18nManager.shared.t(.psvc_user_empty))
                                 .foregroundColor(.secondary)
                         }
                         ForEach(userPlugins) { plugin in
                             PluginRow(plugin: plugin)
                                 .tag(plugin)
                                 .contextMenu {
-                                    Button(plugin.state == .enabled ? "停用" : "启用") {
+                                    Button(plugin.state == .enabled ? I18nManager.shared.t(.psvc_btn_disable) : I18nManager.shared.t(.psvc_btn_enable)) {
                                         if plugin.state == .enabled {
                                             pluginManager.disablePlugin(plugin.id)
                                         } else {
                                             pluginManager.enablePlugin(plugin.id)
                                         }
                                     }
-                                    Button("卸载", role: .destructive) {
+                                    Button(I18nManager.shared.t(.psvc_btn_uninstall), role: .destructive) {
                                         selectedPlugin = plugin
                                         showUninstallAlert = true
                                     }
@@ -791,29 +805,29 @@ struct InstalledPluginsView: View {
                     Image(systemName: "puzzlepiece.extension")
                         .font(.system(size: 48))
                         .foregroundColor(.secondary)
-                    Text("选择一个插件查看详情")
+                    Text(I18nManager.shared.t(.psvc_installed_empty))
                         .foregroundColor(.secondary)
                     Spacer()
                 }
                 .frame(maxWidth: .infinity)
             }
         }
-        .alert("确认卸载", isPresented: $showUninstallAlert) {
-            Button("取消", role: .cancel) {}
-            Button("卸载", role: .destructive) {
+        .alert(I18nManager.shared.t(.psvc_uninstall_title), isPresented: $showUninstallAlert) {
+            Button(I18nManager.shared.t(.psvc_tmpl_cancel), role: .cancel) {}
+            Button(I18nManager.shared.t(.psvc_btn_uninstall), role: .destructive) {
                 if let plugin = selectedPlugin {
                     pluginManager.uninstallPlugin(plugin.id)
                 }
             }
         } message: {
-            Text("确定要卸载此插件吗？此操作不可撤销。")
+            Text(I18nManager.shared.t(.psvc_uninstall_msg))
         }
     }
 
     private var categoryFilter: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
-                Button("全部") { selectedCategory = nil }
+                Button(I18nManager.shared.t(.psvc_filter_all)) { selectedCategory = nil }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     .tint(selectedCategory == nil ? Color.accentColor : nil)
@@ -897,29 +911,29 @@ struct PluginDetailView: View {
 
                 Divider()
 
-                GroupBox("基本信息") {
+                GroupBox(I18nManager.shared.t(.psvc_detail_basic)) {
                     VStack(alignment: .leading, spacing: 6) {
-                        PluginDetailRow("ID", plugin.manifest.id)
-                        PluginDetailRow("版本", plugin.manifest.version)
-                        PluginDetailRow("分类", plugin.manifest.category.label)
-                        PluginDetailRow("描述", plugin.manifest.description)
+                        PluginDetailRow(I18nManager.shared.t(.psvc_detail_id), plugin.manifest.id)
+                        PluginDetailRow(I18nManager.shared.t(.psvc_detail_version), plugin.manifest.version)
+                        PluginDetailRow(I18nManager.shared.t(.psvc_detail_category), plugin.manifest.category.label)
+                        PluginDetailRow(I18nManager.shared.t(.psvc_detail_desc), plugin.manifest.description)
                         if let author = plugin.manifest.author {
-                            PluginDetailRow("作者", author)
+                            PluginDetailRow(I18nManager.shared.t(.psvc_detail_author), author)
                         }
                         if let minVer = plugin.manifest.minAppVersion {
-                            PluginDetailRow("最低版本", "Fusion Studio \(minVer)")
+                            PluginDetailRow(I18nManager.shared.t(.psvc_detail_minver), "Fusion Studio \(minVer)")
                         }
-                        PluginDetailRow("入口", plugin.manifest.entryPoint ?? "-")
-                        PluginDetailRow("安装路径", plugin.installPath)
+                        PluginDetailRow(I18nManager.shared.t(.psvc_detail_entry), plugin.manifest.entryPoint ?? "-")
+                        PluginDetailRow(I18nManager.shared.t(.psvc_detail_path), plugin.installPath)
                         if plugin.installPath != "builtin" {
-                            PluginDetailRow("安装时间", plugin.installDate.formatted(date: .numeric, time: .shortened))
+                            PluginDetailRow(I18nManager.shared.t(.psvc_detail_instime), plugin.installDate.formatted(date: .numeric, time: .shortened))
                         }
                     }
                     .padding(8)
                 }
                 .padding(.horizontal)
 
-                GroupBox("能力声明") {
+                GroupBox(I18nManager.shared.t(.psvc_detail_caps)) {
                     VStack(alignment: .leading, spacing: 4) {
                         ForEach(plugin.manifest.capabilities, id: \.rawValue) { cap in
                             HStack {
@@ -933,7 +947,7 @@ struct PluginDetailView: View {
                             .padding(.vertical, 2)
                         }
                         if plugin.manifest.capabilities.isEmpty {
-                            Text("无能力声明")
+                            Text(I18nManager.shared.t(.psvc_detail_caps_empty))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -943,7 +957,7 @@ struct PluginDetailView: View {
                 .padding(.horizontal)
 
                 if !plugin.manifest.params.isEmpty {
-                    GroupBox("参数配置") {
+                    GroupBox(I18nManager.shared.t(.psvc_detail_params)) {
                         VStack(alignment: .leading, spacing: 6) {
                             ForEach(plugin.manifest.params) { param in
                                 HStack(alignment: .top) {
@@ -955,7 +969,7 @@ struct PluginDetailView: View {
                                         .foregroundStyle(.secondary)
                                         .frame(width: 50, alignment: .leading)
                                     if param.required {
-                                        Text("必填")
+                                        Text(I18nManager.shared.t(.psvc_param_required))
                                             .font(.caption2)
                                             .padding(.horizontal, 4)
                                             .padding(.vertical, 1)
@@ -974,16 +988,16 @@ struct PluginDetailView: View {
                     .padding(.horizontal)
                 }
 
-                GroupBox("运行配置") {
+                GroupBox(I18nManager.shared.t(.psvc_detail_runtime)) {
                     VStack(alignment: .leading, spacing: 6) {
-                        PluginDetailRow("沙箱模式", plugin.manifest.sandboxMode.label)
-                        PluginDetailRow("VRAM 预算", plugin.manifest.vramMb > 0 ? "\(plugin.manifest.vramMb) MB" : "不占用")
-                        PluginDetailRow("默认挂载", plugin.manifest.defaultMounted ? "是" : "否")
+                        PluginDetailRow(I18nManager.shared.t(.psvc_detail_sandbox), plugin.manifest.sandboxMode.label)
+                        PluginDetailRow(I18nManager.shared.t(.psvc_detail_vram), plugin.manifest.vramMb > 0 ? "\(plugin.manifest.vramMb) MB" : I18nManager.shared.t(.psvc_detail_vram_none))
+                        PluginDetailRow(I18nManager.shared.t(.psvc_detail_mounted), plugin.manifest.defaultMounted ? I18nManager.shared.t(.psvc_yes) : I18nManager.shared.t(.psvc_no))
                         if let timeout = plugin.manifest.timeoutSeconds {
-                            PluginDetailRow("超时", "\(timeout) 秒")
+                            PluginDetailRow(I18nManager.shared.t(.psvc_detail_timeout), "\(timeout) s")
                         }
                         if !plugin.manifest.dependsOn.isEmpty {
-                            PluginDetailRow("依赖", plugin.manifest.dependsOn.joined(separator: ", "))
+                            PluginDetailRow(I18nManager.shared.t(.psvc_detail_deps), plugin.manifest.dependsOn.joined(separator: ", "))
                         }
                     }
                     .padding(8)
@@ -996,13 +1010,13 @@ struct PluginDetailView: View {
                     Spacer()
                     if plugin.installPath != "builtin" {
                         if plugin.state == .enabled {
-                            Button("停用") { pluginManager.disablePlugin(plugin.id) }
+                            Button(I18nManager.shared.t(.psvc_btn_disable)) { pluginManager.disablePlugin(plugin.id) }
                                 .buttonStyle(.bordered)
                         } else {
-                            Button("启用") { pluginManager.enablePlugin(plugin.id) }
+                            Button(I18nManager.shared.t(.psvc_btn_enable)) { pluginManager.enablePlugin(plugin.id) }
                                 .buttonStyle(.borderedProminent)
                         }
-                        Button("卸载", role: .destructive) { pluginManager.uninstallPlugin(plugin.id) }
+                        Button(I18nManager.shared.t(.psvc_btn_uninstall), role: .destructive) { pluginManager.uninstallPlugin(plugin.id) }
                             .buttonStyle(.bordered)
                     }
                     Spacer()
@@ -1058,9 +1072,9 @@ struct PluginDetailRow: View {
 struct PluginMarketView: View {
     @Environment(\.studioTheme) private var theme
     let marketItems: [PluginMarketItem] = [
-        PluginMarketItem(id: "theme-dark", name: "深色主题增强", author: "Fusion Labs", description: "更多深色主题变体，护眼模式", version: "1.2.0", downloads: 1280, rating: 4.5, iconName: "paintpalette", isInstalled: false, hasUpdate: false),
-        PluginMarketItem(id: "code-lint", name: "代码检查器", author: "DevTools", description: "集成 ESLint、SwiftLint 等 linter", version: "0.8.0", downloads: 856, rating: 4.2, iconName: "checkmark.shield", isInstalled: true, hasUpdate: true),
-        PluginMarketItem(id: "sim-extra", name: "仿真扩展包", author: "SimLab", description: "额外的物理引擎和机器人模型", version: "1.0.0", downloads: 2340, rating: 4.8, iconName: "gearshape.2.fill", isInstalled: false, hasUpdate: false),
+        PluginMarketItem(id: "theme-dark", name: I18nManager.shared.t(.psvc_market_theme_name), author: "Fusion Labs", description: I18nManager.shared.t(.psvc_market_theme_desc), version: "1.2.0", downloads: 1280, rating: 4.5, iconName: "paintpalette", isInstalled: false, hasUpdate: false),
+        PluginMarketItem(id: "code-lint", name: I18nManager.shared.t(.psvc_market_lint_name), author: "DevTools", description: I18nManager.shared.t(.psvc_market_lint_desc), version: "0.8.0", downloads: 856, rating: 4.2, iconName: "checkmark.shield", isInstalled: true, hasUpdate: true),
+        PluginMarketItem(id: "sim-extra", name: I18nManager.shared.t(.psvc_market_sim_name), author: "SimLab", description: I18nManager.shared.t(.psvc_market_sim_desc), version: "1.0.0", downloads: 2340, rating: 4.8, iconName: "gearshape.2.fill", isInstalled: false, hasUpdate: false),
     ]
 
     var body: some View {
@@ -1087,7 +1101,7 @@ struct MarketCard: View {
                     .foregroundColor(.accentColor)
                 Spacer()
                 if item.hasUpdate {
-                    Text("可更新")
+                    Text(I18nManager.shared.t(.psvc_market_update_badge))
                         .font(.system(size: 8))
                         .padding(.horizontal, 4)
                         .padding(.vertical, 1)
@@ -1125,7 +1139,7 @@ struct MarketCard: View {
                     .font(.caption2)
                     .foregroundColor(.secondary)
                 Spacer()
-                Button(item.isInstalled ? (item.hasUpdate ? "更新" : "已安装") : "安装") {}
+                Button(item.isInstalled ? (item.hasUpdate ? I18nManager.shared.t(.psvc_market_btn_update) : I18nManager.shared.t(.psvc_market_btn_installed)) : I18nManager.shared.t(.psvc_market_btn_install)) {}
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
                     .disabled(item.isInstalled && !item.hasUpdate)
@@ -1148,18 +1162,18 @@ struct PluginDeveloperView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                GroupBox("快速开始") {
+                GroupBox(I18nManager.shared.t(.psvc_dev_quick)) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Fusion Studio 插件开发指南")
+                        Text(I18nManager.shared.t(.psvc_dev_guide_title))
                             .font(.headline)
-                        Text("插件是 Python 脚本包，包含 manifest.json 清单文件和入口脚本。将插件文件夹放入以下目录即可安装：")
+                        Text(I18nManager.shared.t(.psvc_dev_guide_desc))
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                         HStack {
                             Text(pluginManager.pluginDir.path)
                                 .font(.system(.body, design: .monospaced))
                                 .foregroundColor(.accentColor)
-                            Button("打开") { pluginManager.openPluginFolder() }
+                            Button(I18nManager.shared.t(.psvc_dev_open)) { pluginManager.openPluginFolder() }
                                 .buttonStyle(.bordered)
                                 .controlSize(.small)
                         }
@@ -1168,16 +1182,16 @@ struct PluginDeveloperView: View {
                 }
                 .padding(.horizontal)
 
-                GroupBox("模板生成") {
+                GroupBox(I18nManager.shared.t(.psvc_dev_tmpl_gen)) {
                     VStack(spacing: 12) {
-                        Text("创建一个新的插件模板项目")
+                        Text(I18nManager.shared.t(.psvc_dev_tmpl_desc))
                             .font(.subheadline)
                         HStack {
-                            TextField("插件名称", text: $templateName)
+                            TextField(I18nManager.shared.t(.psvc_tmpl_name_ph), text: $templateName)
                                 .textFieldStyle(.roundedBorder)
-                            TextField("作者", text: $templateAuthor)
+                            TextField(I18nManager.shared.t(.psvc_tmpl_author_ph), text: $templateAuthor)
                                 .textFieldStyle(.roundedBorder)
-                            Button("生成") {
+                            Button(I18nManager.shared.t(.psvc_dev_gen)) {
                                 if let url = pluginManager.createPluginTemplate(name: templateName, author: templateAuthor) {
                                     NSWorkspace.shared.open(url)
                                 }
@@ -1192,27 +1206,27 @@ struct PluginDeveloperView: View {
                 }
                 .padding(.horizontal)
 
-                GroupBox("插件结构") {
+                GroupBox(I18nManager.shared.t(.psvc_dev_structure)) {
                     VStack(alignment: .leading, spacing: 4) {
                         CodeLine("my-plugin.plugin/")
-                        CodeLine("\u{251c}\u{2500}\u{2500} manifest.json    # \u{63d2}\u{4ef6}\u{6e05}\u{5355}")
-                        CodeLine("\u{251c}\u{2500}\u{2500} main.py          # \u{5165}\u{53e3}\u{811a}\u{672c}")
-                        CodeLine("\u{251c}\u{2500}\u{2500} assets/          # \u{8d44}\u{6e90}\u{6587}\u{4ef6}")
-                        CodeLine("\u{2514}\u{2500}\u{2500} README.md        # \u{8bf4}\u{660e}\u{6587}\u{6863}")
+                        CodeLine("\u{251c}\u{2500}\u{2500} manifest.json    \(I18nManager.shared.t(.psvc_dev_tree_manifest))")
+                        CodeLine("\u{251c}\u{2500}\u{2500} main.py          \(I18nManager.shared.t(.psvc_dev_tree_entry))")
+                        CodeLine("\u{251c}\u{2500}\u{2500} assets/          \(I18nManager.shared.t(.psvc_dev_tree_assets))")
+                        CodeLine("\u{2514}\u{2500}\u{2500} README.md        \(I18nManager.shared.t(.psvc_dev_tree_readme))")
                     }
                     .padding(8)
                     .font(.system(.body, design: .monospaced))
                 }
                 .padding(.horizontal)
 
-                GroupBox("manifest.json 示例 (aligned with plugins-ecosystem)") {
+                GroupBox(I18nManager.shared.t(.psvc_dev_sample_title)) {
                     Text("""
                     {
                       "id": "my-plugin",
-                      "name": "\u{6211}\u{7684}\u{63d2}\u{4ef6}",
+                      "name": "\(I18nManager.shared.t(.psvc_dev_sample_name))",
                       "version": "0.1.0",
                       "category": "custom",
-                      "description": "\u{63d2}\u{4ef6}\u{63cf}\u{8ff0}",
+                      "description": "\(I18nManager.shared.t(.psvc_dev_sample_desc))",
                       "capabilities": ["mcp_tool"],
                       "params": [],
                       "entry_point": "main.py",
@@ -1257,14 +1271,14 @@ struct PluginConfigView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Text("Ecosystem 配置")
+                    Text(I18nManager.shared.t(.psvc_cfg_title))
                         .font(.headline)
                         .foregroundColor(.primary)
                     Spacer()
                     Button(action: { Task { await pm.fetchEcosystemConfig() } }) {
                         Image(systemName: "arrow.clockwise")
                     }
-                    .help("刷新配置")
+                    .help(I18nManager.shared.t(.psvc_cfg_refresh))
                 }
 
                 if pm.ecosystemConfig.isEmpty {
@@ -1272,7 +1286,7 @@ struct PluginConfigView: View {
                         Image(systemName: "gearshape")
                             .font(.system(size: 32))
                             .foregroundColor(.secondary)
-                        Text("连接 fusion-plugins-ecosystem 后显示配置")
+                        Text(I18nManager.shared.t(.psvc_cfg_empty))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -1298,11 +1312,11 @@ struct PluginConfigView: View {
                 .frame(width: 200, alignment: .leading)
             Spacer()
             if editingKey == key {
-                TextField("值", text: $editingValue)
+                TextField(I18nManager.shared.t(.psvc_cfg_value_ph), text: $editingValue)
                     .textFieldStyle(.roundedBorder)
                     .font(.system(.caption, design: .monospaced))
                     .frame(width: 200)
-                Button("保存") {
+                Button(I18nManager.shared.t(.psvc_cfg_save)) {
                     let val: Any = editingValue.lowercased() == "true" ? true :
                                   editingValue.lowercased() == "false" ? false :
                                   (Int(editingValue) as Any?) ?? editingValue
@@ -1311,13 +1325,13 @@ struct PluginConfigView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
-                Button("取消") { editingKey = nil }
+                Button(I18nManager.shared.t(.psvc_tmpl_cancel)) { editingKey = nil }
                     .controlSize(.small)
             } else {
                 Text(String(describing: value ?? ""))
                     .font(.system(.caption, design: .monospaced))
                     .foregroundColor(.primary)
-                Button("编辑") {
+                Button(I18nManager.shared.t(.psvc_cfg_edit)) {
                     editingKey = key
                     editingValue = String(describing: value ?? "")
                 }
@@ -1353,15 +1367,15 @@ struct PluginStatusView: View {
 
     private var statusToolbar: some View {
         HStack {
-            Text("插件状态监控")
+            Text(I18nManager.shared.t(.psvc_status_title))
                 .font(.headline)
                 .foregroundColor(.primary)
             Spacer()
             HStack(spacing: 4) {
-                statusFilterChip("全部", value: "all")
-                statusFilterChip("运行", value: "enabled")
-                statusFilterChip("崩溃", value: "crashed")
-                statusFilterChip("超时", value: "timeout")
+                statusFilterChip(I18nManager.shared.t(.psvc_filter_all), value: "all")
+                statusFilterChip(I18nManager.shared.t(.psvc_status_filter_run), value: "enabled")
+                statusFilterChip(I18nManager.shared.t(.psvc_status_filter_crash), value: "crashed")
+                statusFilterChip(I18nManager.shared.t(.psvc_status_filter_timeout), value: "timeout")
             }
             Button(action: { Task { await pm.fetchPluginStates() } }) {
                 Image(systemName: "arrow.clockwise")
@@ -1390,7 +1404,7 @@ struct PluginStatusView: View {
             Image(systemName: "heartbeat")
                 .font(.system(size: 32))
                 .foregroundColor(.secondary)
-            Text("连接后显示插件状态")
+            Text(I18nManager.shared.t(.psvc_status_empty))
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
@@ -1414,7 +1428,7 @@ struct PluginStatusView: View {
                         .font(.caption)
                         .foregroundColor(stateColor(state))
                     if let count = item["restart_count"] as? Int, count > 0 {
-                        Text("重启\(count)次")
+                        Text(I18nManager.shared.tf(.psvc_status_restart_fmt, count))
                             .font(.caption2)
                             .foregroundColor(.orange)
                     }
@@ -1457,7 +1471,7 @@ struct PluginTokenDashboard: View {
 
     private var tokenToolbar: some View {
         HStack {
-            Text("Token 用量仪表盘")
+            Text(I18nManager.shared.t(.psvc_token_title))
                 .font(.headline)
                 .foregroundColor(.primary)
             Spacer()
@@ -1467,7 +1481,7 @@ struct PluginTokenDashboard: View {
             Button(action: { Task { await pm.pruneTokenRecords() } }) {
                 Image(systemName: "trash")
             }
-            .help("清理过期记录")
+            .help(I18nManager.shared.t(.psvc_token_prune))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -1479,7 +1493,7 @@ struct PluginTokenDashboard: View {
             Image(systemName: "chart.bar.xaxis")
                 .font(.system(size: 32))
                 .foregroundColor(.secondary)
-            Text("暂无 Token 用量记录")
+            Text(I18nManager.shared.t(.psvc_token_empty))
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
@@ -1568,7 +1582,7 @@ struct PluginVramView: View {
 
     private var vramToolbar: some View {
         HStack {
-            Text("显存分配")
+            Text(I18nManager.shared.t(.psvc_vram_title))
                 .font(.headline)
                 .foregroundColor(.primary)
             Spacer()
@@ -1588,7 +1602,7 @@ struct PluginVramView: View {
         let ratio = total > 0 ? used / total : 0
 
         return VStack(alignment: .leading, spacing: 8) {
-            Text("总览")
+            Text(I18nManager.shared.t(.psvc_vram_overview))
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(.primary)
             GeometryReader { geo in
@@ -1602,15 +1616,15 @@ struct PluginVramView: View {
             }
             .frame(height: 20)
             HStack {
-                Label(String(format: "已用 %.0f MB", used), systemImage: "memorychip")
+                Label(I18nManager.shared.tf(.psvc_vram_used_fmt, used), systemImage: "memorychip")
                     .font(.caption)
                     .foregroundColor(theme.accent)
                 Spacer()
-                Label(String(format: "剩余 %.0f MB", free), systemImage: "memorychip")
+                Label(I18nManager.shared.tf(.psvc_vram_free_fmt, free), systemImage: "memorychip")
                     .font(.caption)
                     .foregroundColor(.secondary)
                 Spacer()
-                Label(String(format: "总计 %.0f MB", total), systemImage: "memorychip")
+                Label(I18nManager.shared.tf(.psvc_vram_total_fmt, total), systemImage: "memorychip")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -1623,11 +1637,11 @@ struct PluginVramView: View {
     private var vramBreakdown: some View {
         let byPlugin = pm.vramUsage["by_plugin"] as? [[String: Any]] ?? []
         return VStack(alignment: .leading, spacing: 8) {
-            Text("按插件分配")
+            Text(I18nManager.shared.t(.psvc_vram_byplugin))
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(.primary)
             if byPlugin.isEmpty {
-                Text("暂无显存分配数据")
+                Text(I18nManager.shared.t(.psvc_vram_empty))
                     .font(.caption)
                     .foregroundColor(.secondary)
             } else {
@@ -1670,17 +1684,17 @@ struct PluginLogViewer: View {
 
     private var logToolbar: some View {
         HStack {
-            Text("插件日志")
+            Text(I18nManager.shared.t(.psvc_log_title))
                 .font(.headline)
                 .foregroundColor(.primary)
             Spacer()
             HStack(spacing: 4) {
-                logFilterChip("全部", value: "all")
+                logFilterChip(I18nManager.shared.t(.psvc_filter_all), value: "all")
                 logFilterChip("INFO", value: "INFO")
                 logFilterChip("WARN", value: "WARNING")
                 logFilterChip("ERROR", value: "ERROR")
             }
-            TextField("搜索...", text: $searchQuery)
+            TextField(I18nManager.shared.t(.psvc_log_search_ph), text: $searchQuery)
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 100)
                 .font(.caption)
@@ -1719,7 +1733,7 @@ struct PluginLogViewer: View {
                     Image(systemName: "text.justify.leading")
                         .font(.system(size: 32))
                         .foregroundColor(.secondary)
-                    Text("暂无日志")
+                    Text(I18nManager.shared.t(.psvc_log_empty))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -1785,11 +1799,11 @@ struct PluginMcpView: View {
 
     private var mcpToolbar: some View {
         HStack {
-            Text("MCP 连接管理")
+            Text(I18nManager.shared.t(.psvc_mcp_title))
                 .font(.headline)
                 .foregroundColor(.primary)
             Spacer()
-            Text("\(pm.mcpSessions.count) 会话")
+            Text(I18nManager.shared.tf(.psvc_mcp_session_fmt, pm.mcpSessions.count))
                 .font(.caption)
                 .foregroundColor(.secondary)
             Button(action: { Task { await pm.fetchMcpSessions() } }) {
@@ -1798,7 +1812,7 @@ struct PluginMcpView: View {
             Button(action: { Task { await pm.pruneMcpSessions() } }) {
                 Image(systemName: "trash")
             }
-            .help("清理过期会话")
+            .help(I18nManager.shared.t(.psvc_mcp_prune))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -1810,7 +1824,7 @@ struct PluginMcpView: View {
             Image(systemName: "network")
                 .font(.system(size: 32))
                 .foregroundColor(.secondary)
-            Text("暂无 MCP 会话")
+            Text(I18nManager.shared.t(.psvc_mcp_empty))
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
@@ -1837,16 +1851,16 @@ struct PluginMcpView: View {
                             .cornerRadius(3)
                     }
                     if let calls = session["call_count"] as? Int {
-                        Text("调用次数: \(calls)")
+                        Text(I18nManager.shared.tf(.psvc_mcp_calls_fmt, calls))
                             .font(.caption2)
                             .foregroundColor(.secondary)
                     }
                     if let rateLimit = session["rate_limit_remaining"] as? Int {
                         HStack(spacing: 4) {
-                            Text("速率限制:")
+                            Text(I18nManager.shared.t(.psvc_mcp_ratelimit))
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
-                            Text("\(rateLimit) 剩余")
+                            Text(I18nManager.shared.tf(.psvc_mcp_remaining_fmt, rateLimit))
                                 .font(.caption2)
                                 .foregroundColor(rateLimit < 10 ? .red : .green)
                         }

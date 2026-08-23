@@ -1555,6 +1555,142 @@ enum I18nKey: String, CaseIterable {
     case docgen_md_readme_bullet1 = "docgen_md_readme_bullet1"
     case docgen_md_readme_bullet2 = "docgen_md_readme_bullet2"
     case docgen_md_readme_bullet3 = "docgen_md_readme_bullet3"
+    case psvc_cat_codingPlan = "psvc_cat_codingPlan"
+    case psvc_cat_contextCompress = "psvc_cat_contextCompress"
+    case psvc_cat_mlxInference = "psvc_cat_mlxInference"
+    case psvc_cat_terminalProxy = "psvc_cat_terminalProxy"
+    case psvc_cat_fileIndex = "psvc_cat_fileIndex"
+    case psvc_cat_quantization = "psvc_cat_quantization"
+    case psvc_cat_visualBackend = "psvc_cat_visualBackend"
+    case psvc_cat_custom = "psvc_cat_custom"
+    case psvc_cap_subagent = "psvc_cap_subagent"
+    case psvc_cap_fileAccess = "psvc_cap_fileAccess"
+    case psvc_cap_vramConsumer = "psvc_cap_vramConsumer"
+    case psvc_cap_longTask = "psvc_cap_longTask"
+    case psvc_sbox_inline = "psvc_sbox_inline"
+    case psvc_sbox_process = "psvc_sbox_process"
+    case psvc_state_registered = "psvc_state_registered"
+    case psvc_state_loaded = "psvc_state_loaded"
+    case psvc_state_enabled = "psvc_state_enabled"
+    case psvc_state_disabled = "psvc_state_disabled"
+    case psvc_state_crashed = "psvc_state_crashed"
+    case psvc_state_timeout = "psvc_state_timeout"
+    case psvc_seed_term_name = "psvc_seed_term_name"
+    case psvc_seed_term_desc = "psvc_seed_term_desc"
+    case psvc_seed_git_name = "psvc_seed_git_name"
+    case psvc_seed_git_desc = "psvc_seed_git_desc"
+    case psvc_seed_export_name = "psvc_seed_export_name"
+    case psvc_seed_export_desc = "psvc_seed_export_desc"
+    case psvc_seed_md_name = "psvc_seed_md_name"
+    case psvc_seed_md_desc = "psvc_seed_md_desc"
+    case psvc_template_desc = "psvc_template_desc"
+    case psvc_tab_installed = "psvc_tab_installed"
+    case psvc_tab_market = "psvc_tab_market"
+    case psvc_tab_config = "psvc_tab_config"
+    case psvc_tab_status = "psvc_tab_status"
+    case psvc_tab_tokens = "psvc_tab_tokens"
+    case psvc_tab_vram = "psvc_tab_vram"
+    case psvc_tab_logs = "psvc_tab_logs"
+    case psvc_tab_mcp = "psvc_tab_mcp"
+    case psvc_tab_develop = "psvc_tab_develop"
+    case psvc_tb_install = "psvc_tb_install"
+    case psvc_tb_refresh = "psvc_tb_refresh"
+    case psvc_tb_folder = "psvc_tb_folder"
+    case psvc_tmpl_title = "psvc_tmpl_title"
+    case psvc_tmpl_name_ph = "psvc_tmpl_name_ph"
+    case psvc_tmpl_author_ph = "psvc_tmpl_author_ph"
+    case psvc_tmpl_cancel = "psvc_tmpl_cancel"
+    case psvc_tmpl_create = "psvc_tmpl_create"
+    case psvc_sec_builtin = "psvc_sec_builtin"
+    case psvc_sec_user = "psvc_sec_user"
+    case psvc_user_empty = "psvc_user_empty"
+    case psvc_btn_disable = "psvc_btn_disable"
+    case psvc_btn_enable = "psvc_btn_enable"
+    case psvc_btn_uninstall = "psvc_btn_uninstall"
+    case psvc_installed_empty = "psvc_installed_empty"
+    case psvc_uninstall_title = "psvc_uninstall_title"
+    case psvc_uninstall_msg = "psvc_uninstall_msg"
+    case psvc_filter_all = "psvc_filter_all"
+    case psvc_detail_basic = "psvc_detail_basic"
+    case psvc_detail_id = "psvc_detail_id"
+    case psvc_detail_version = "psvc_detail_version"
+    case psvc_detail_category = "psvc_detail_category"
+    case psvc_detail_desc = "psvc_detail_desc"
+    case psvc_detail_author = "psvc_detail_author"
+    case psvc_detail_minver = "psvc_detail_minver"
+    case psvc_detail_entry = "psvc_detail_entry"
+    case psvc_detail_path = "psvc_detail_path"
+    case psvc_detail_instime = "psvc_detail_instime"
+    case psvc_detail_caps = "psvc_detail_caps"
+    case psvc_detail_caps_empty = "psvc_detail_caps_empty"
+    case psvc_detail_params = "psvc_detail_params"
+    case psvc_param_required = "psvc_param_required"
+    case psvc_detail_runtime = "psvc_detail_runtime"
+    case psvc_detail_sandbox = "psvc_detail_sandbox"
+    case psvc_detail_vram = "psvc_detail_vram"
+    case psvc_detail_vram_none = "psvc_detail_vram_none"
+    case psvc_detail_mounted = "psvc_detail_mounted"
+    case psvc_yes = "psvc_yes"
+    case psvc_no = "psvc_no"
+    case psvc_detail_timeout = "psvc_detail_timeout"
+    case psvc_detail_deps = "psvc_detail_deps"
+    case psvc_market_theme_name = "psvc_market_theme_name"
+    case psvc_market_theme_desc = "psvc_market_theme_desc"
+    case psvc_market_lint_name = "psvc_market_lint_name"
+    case psvc_market_lint_desc = "psvc_market_lint_desc"
+    case psvc_market_sim_name = "psvc_market_sim_name"
+    case psvc_market_sim_desc = "psvc_market_sim_desc"
+    case psvc_market_update_badge = "psvc_market_update_badge"
+    case psvc_market_btn_update = "psvc_market_btn_update"
+    case psvc_market_btn_installed = "psvc_market_btn_installed"
+    case psvc_market_btn_install = "psvc_market_btn_install"
+    case psvc_dev_quick = "psvc_dev_quick"
+    case psvc_dev_guide_title = "psvc_dev_guide_title"
+    case psvc_dev_guide_desc = "psvc_dev_guide_desc"
+    case psvc_dev_open = "psvc_dev_open"
+    case psvc_dev_tmpl_gen = "psvc_dev_tmpl_gen"
+    case psvc_dev_tmpl_desc = "psvc_dev_tmpl_desc"
+    case psvc_dev_gen = "psvc_dev_gen"
+    case psvc_dev_structure = "psvc_dev_structure"
+    case psvc_dev_tree_manifest = "psvc_dev_tree_manifest"
+    case psvc_dev_tree_entry = "psvc_dev_tree_entry"
+    case psvc_dev_tree_assets = "psvc_dev_tree_assets"
+    case psvc_dev_tree_readme = "psvc_dev_tree_readme"
+    case psvc_dev_sample_title = "psvc_dev_sample_title"
+    case psvc_dev_sample_name = "psvc_dev_sample_name"
+    case psvc_dev_sample_desc = "psvc_dev_sample_desc"
+    case psvc_cfg_title = "psvc_cfg_title"
+    case psvc_cfg_refresh = "psvc_cfg_refresh"
+    case psvc_cfg_empty = "psvc_cfg_empty"
+    case psvc_cfg_value_ph = "psvc_cfg_value_ph"
+    case psvc_cfg_save = "psvc_cfg_save"
+    case psvc_cfg_edit = "psvc_cfg_edit"
+    case psvc_status_title = "psvc_status_title"
+    case psvc_status_filter_run = "psvc_status_filter_run"
+    case psvc_status_filter_crash = "psvc_status_filter_crash"
+    case psvc_status_filter_timeout = "psvc_status_filter_timeout"
+    case psvc_status_empty = "psvc_status_empty"
+    case psvc_status_restart_fmt = "psvc_status_restart_fmt"
+    case psvc_token_title = "psvc_token_title"
+    case psvc_token_prune = "psvc_token_prune"
+    case psvc_token_empty = "psvc_token_empty"
+    case psvc_vram_title = "psvc_vram_title"
+    case psvc_vram_overview = "psvc_vram_overview"
+    case psvc_vram_used_fmt = "psvc_vram_used_fmt"
+    case psvc_vram_free_fmt = "psvc_vram_free_fmt"
+    case psvc_vram_total_fmt = "psvc_vram_total_fmt"
+    case psvc_vram_byplugin = "psvc_vram_byplugin"
+    case psvc_vram_empty = "psvc_vram_empty"
+    case psvc_log_title = "psvc_log_title"
+    case psvc_log_search_ph = "psvc_log_search_ph"
+    case psvc_log_empty = "psvc_log_empty"
+    case psvc_mcp_title = "psvc_mcp_title"
+    case psvc_mcp_session_fmt = "psvc_mcp_session_fmt"
+    case psvc_mcp_prune = "psvc_mcp_prune"
+    case psvc_mcp_empty = "psvc_mcp_empty"
+    case psvc_mcp_calls_fmt = "psvc_mcp_calls_fmt"
+    case psvc_mcp_ratelimit = "psvc_mcp_ratelimit"
+    case psvc_mcp_remaining_fmt = "psvc_mcp_remaining_fmt"
     case proj_subtitle = "proj_subtitle"
     case proj_searchPh = "proj_searchPh"
     case proj_newHelp = "proj_newHelp"
@@ -5416,6 +5552,142 @@ let zhCNTranslations: [String: String] = [
     "docgen_md_readme_bullet1": "- 环境自检 & 一键修复",
     "docgen_md_readme_bullet2": "- 局域网协作",
     "docgen_md_readme_bullet3": "- 插件系统",
+    "psvc_cat_codingPlan": "代码规划",
+    "psvc_cat_contextCompress": "上下文压缩",
+    "psvc_cat_mlxInference": "MLX 推理",
+    "psvc_cat_terminalProxy": "终端代理",
+    "psvc_cat_fileIndex": "文件检索",
+    "psvc_cat_quantization": "量化工具",
+    "psvc_cat_visualBackend": "视觉后端",
+    "psvc_cat_custom": "自定义",
+    "psvc_cap_subagent": "子代理",
+    "psvc_cap_fileAccess": "文件读写",
+    "psvc_cap_vramConsumer": "显存占用",
+    "psvc_cap_longTask": "长任务",
+    "psvc_sbox_inline": "进程内",
+    "psvc_sbox_process": "独立进程",
+    "psvc_state_registered": "已注册",
+    "psvc_state_loaded": "已加载",
+    "psvc_state_enabled": "运行中",
+    "psvc_state_disabled": "已停用",
+    "psvc_state_crashed": "崩溃",
+    "psvc_state_timeout": "超时",
+    "psvc_seed_term_name": "高级终端",
+    "psvc_seed_term_desc": "增强终端功能，支持多标签页和主题",
+    "psvc_seed_git_name": "Git 可视化",
+    "psvc_seed_git_desc": "图形化 Git 操作：提交、分支、合并",
+    "psvc_seed_export_name": "批量导出",
+    "psvc_seed_export_desc": "批量导出设计稿、代码、仿真结果",
+    "psvc_seed_md_name": "Markdown 预览",
+    "psvc_seed_md_desc": "实时 Markdown 渲染与预览",
+    "psvc_template_desc": "Fusion Studio 插件",
+    "psvc_tab_installed": "已安装",
+    "psvc_tab_market": "市场",
+    "psvc_tab_config": "配置",
+    "psvc_tab_status": "状态",
+    "psvc_tab_tokens": "Token",
+    "psvc_tab_vram": "显存",
+    "psvc_tab_logs": "日志",
+    "psvc_tab_mcp": "MCP",
+    "psvc_tab_develop": "开发",
+    "psvc_tb_install": "安装插件",
+    "psvc_tb_refresh": "刷新",
+    "psvc_tb_folder": "插件目录",
+    "psvc_tmpl_title": "创建插件模板",
+    "psvc_tmpl_name_ph": "插件名称",
+    "psvc_tmpl_author_ph": "作者",
+    "psvc_tmpl_cancel": "取消",
+    "psvc_tmpl_create": "创建",
+    "psvc_sec_builtin": "内置插件",
+    "psvc_sec_user": "用户插件",
+    "psvc_user_empty": "暂无用户插件",
+    "psvc_btn_disable": "停用",
+    "psvc_btn_enable": "启用",
+    "psvc_btn_uninstall": "卸载",
+    "psvc_installed_empty": "选择一个插件查看详情",
+    "psvc_uninstall_title": "确认卸载",
+    "psvc_uninstall_msg": "确定要卸载此插件吗？此操作不可撤销。",
+    "psvc_filter_all": "全部",
+    "psvc_detail_basic": "基本信息",
+    "psvc_detail_id": "ID",
+    "psvc_detail_version": "版本",
+    "psvc_detail_category": "分类",
+    "psvc_detail_desc": "描述",
+    "psvc_detail_author": "作者",
+    "psvc_detail_minver": "最低版本",
+    "psvc_detail_entry": "入口",
+    "psvc_detail_path": "安装路径",
+    "psvc_detail_instime": "安装时间",
+    "psvc_detail_caps": "能力声明",
+    "psvc_detail_caps_empty": "无能力声明",
+    "psvc_detail_params": "参数配置",
+    "psvc_param_required": "必填",
+    "psvc_detail_runtime": "运行配置",
+    "psvc_detail_sandbox": "沙箱模式",
+    "psvc_detail_vram": "VRAM 预算",
+    "psvc_detail_vram_none": "不占用",
+    "psvc_detail_mounted": "默认挂载",
+    "psvc_yes": "是",
+    "psvc_no": "否",
+    "psvc_detail_timeout": "超时",
+    "psvc_detail_deps": "依赖",
+    "psvc_market_theme_name": "深色主题增强",
+    "psvc_market_theme_desc": "更多深色主题变体，护眼模式",
+    "psvc_market_lint_name": "代码检查器",
+    "psvc_market_lint_desc": "集成 ESLint、SwiftLint 等 linter",
+    "psvc_market_sim_name": "仿真扩展包",
+    "psvc_market_sim_desc": "额外的物理引擎和机器人模型",
+    "psvc_market_update_badge": "可更新",
+    "psvc_market_btn_update": "更新",
+    "psvc_market_btn_installed": "已安装",
+    "psvc_market_btn_install": "安装",
+    "psvc_dev_quick": "快速开始",
+    "psvc_dev_guide_title": "Fusion Studio 插件开发指南",
+    "psvc_dev_guide_desc": "插件是 Python 脚本包，包含 manifest.json 清单文件和入口脚本。将插件文件夹放入以下目录即可安装：",
+    "psvc_dev_open": "打开",
+    "psvc_dev_tmpl_gen": "模板生成",
+    "psvc_dev_tmpl_desc": "创建一个新的插件模板项目",
+    "psvc_dev_gen": "生成",
+    "psvc_dev_structure": "插件结构",
+    "psvc_dev_tree_manifest": "# 插件清单",
+    "psvc_dev_tree_entry": "# 入口脚本",
+    "psvc_dev_tree_assets": "# 资源文件",
+    "psvc_dev_tree_readme": "# 说明文档",
+    "psvc_dev_sample_title": "manifest.json 示例 (aligned with plugins-ecosystem)",
+    "psvc_dev_sample_name": "我的插件",
+    "psvc_dev_sample_desc": "插件描述",
+    "psvc_cfg_title": "Ecosystem 配置",
+    "psvc_cfg_refresh": "刷新配置",
+    "psvc_cfg_empty": "连接 fusion-plugins-ecosystem 后显示配置",
+    "psvc_cfg_value_ph": "值",
+    "psvc_cfg_save": "保存",
+    "psvc_cfg_edit": "编辑",
+    "psvc_status_title": "插件状态监控",
+    "psvc_status_filter_run": "运行",
+    "psvc_status_filter_crash": "崩溃",
+    "psvc_status_filter_timeout": "超时",
+    "psvc_status_empty": "连接后显示插件状态",
+    "psvc_status_restart_fmt": "重启%d次",
+    "psvc_token_title": "Token 用量仪表盘",
+    "psvc_token_prune": "清理过期记录",
+    "psvc_token_empty": "暂无 Token 用量记录",
+    "psvc_vram_title": "显存分配",
+    "psvc_vram_overview": "总览",
+    "psvc_vram_used_fmt": "已用 %.0f MB",
+    "psvc_vram_free_fmt": "剩余 %.0f MB",
+    "psvc_vram_total_fmt": "总计 %.0f MB",
+    "psvc_vram_byplugin": "按插件分配",
+    "psvc_vram_empty": "暂无显存分配数据",
+    "psvc_log_title": "插件日志",
+    "psvc_log_search_ph": "搜索...",
+    "psvc_log_empty": "暂无日志",
+    "psvc_mcp_title": "MCP 连接管理",
+    "psvc_mcp_session_fmt": "%d 会话",
+    "psvc_mcp_prune": "清理过期会话",
+    "psvc_mcp_empty": "暂无 MCP 会话",
+    "psvc_mcp_calls_fmt": "调用次数: %d",
+    "psvc_mcp_ratelimit": "速率限制:",
+    "psvc_mcp_remaining_fmt": "%d 剩余",
     "proj_subtitle": "管理你的 AI 项目、指令和知识库",
     "proj_searchPh": "搜索项目",
     "proj_newHelp": "新建项目",
@@ -9230,6 +9502,142 @@ let enUSTranslations: [String: String] = [
     "docgen_md_readme_bullet1": "- Environment self-check & one-click repair",
     "docgen_md_readme_bullet2": "- LAN collaboration",
     "docgen_md_readme_bullet3": "- Plugin system",
+    "psvc_cat_codingPlan": "Code Planning",
+    "psvc_cat_contextCompress": "Context Compress",
+    "psvc_cat_mlxInference": "MLX Inference",
+    "psvc_cat_terminalProxy": "Terminal Proxy",
+    "psvc_cat_fileIndex": "File Index",
+    "psvc_cat_quantization": "Quantization",
+    "psvc_cat_visualBackend": "Visual Backend",
+    "psvc_cat_custom": "Custom",
+    "psvc_cap_subagent": "Subagent",
+    "psvc_cap_fileAccess": "File Access",
+    "psvc_cap_vramConsumer": "VRAM Consumer",
+    "psvc_cap_longTask": "Long Task",
+    "psvc_sbox_inline": "Inline",
+    "psvc_sbox_process": "Process",
+    "psvc_state_registered": "Registered",
+    "psvc_state_loaded": "Loaded",
+    "psvc_state_enabled": "Running",
+    "psvc_state_disabled": "Disabled",
+    "psvc_state_crashed": "Crashed",
+    "psvc_state_timeout": "Timeout",
+    "psvc_seed_term_name": "Advanced Terminal",
+    "psvc_seed_term_desc": "Enhanced terminal with multi-tab and themes",
+    "psvc_seed_git_name": "Git Visual",
+    "psvc_seed_git_desc": "Visual Git ops: commit, branch, merge",
+    "psvc_seed_export_name": "Batch Export",
+    "psvc_seed_export_desc": "Batch export designs, code, simulation results",
+    "psvc_seed_md_name": "Markdown Preview",
+    "psvc_seed_md_desc": "Live Markdown rendering and preview",
+    "psvc_template_desc": "Fusion Studio Plugin",
+    "psvc_tab_installed": "Installed",
+    "psvc_tab_market": "Market",
+    "psvc_tab_config": "Config",
+    "psvc_tab_status": "Status",
+    "psvc_tab_tokens": "Token",
+    "psvc_tab_vram": "VRAM",
+    "psvc_tab_logs": "Logs",
+    "psvc_tab_mcp": "MCP",
+    "psvc_tab_develop": "Develop",
+    "psvc_tb_install": "Install Plugin",
+    "psvc_tb_refresh": "Refresh",
+    "psvc_tb_folder": "Plugin Folder",
+    "psvc_tmpl_title": "Create Plugin Template",
+    "psvc_tmpl_name_ph": "Plugin name",
+    "psvc_tmpl_author_ph": "Author",
+    "psvc_tmpl_cancel": "Cancel",
+    "psvc_tmpl_create": "Create",
+    "psvc_sec_builtin": "Built-in Plugins",
+    "psvc_sec_user": "User Plugins",
+    "psvc_user_empty": "No user plugins",
+    "psvc_btn_disable": "Disable",
+    "psvc_btn_enable": "Enable",
+    "psvc_btn_uninstall": "Uninstall",
+    "psvc_installed_empty": "Select a plugin to view details",
+    "psvc_uninstall_title": "Confirm Uninstall",
+    "psvc_uninstall_msg": "Are you sure to uninstall this plugin? This cannot be undone.",
+    "psvc_filter_all": "All",
+    "psvc_detail_basic": "Basic Info",
+    "psvc_detail_id": "ID",
+    "psvc_detail_version": "Version",
+    "psvc_detail_category": "Category",
+    "psvc_detail_desc": "Description",
+    "psvc_detail_author": "Author",
+    "psvc_detail_minver": "Min Version",
+    "psvc_detail_entry": "Entry Point",
+    "psvc_detail_path": "Install Path",
+    "psvc_detail_instime": "Install Time",
+    "psvc_detail_caps": "Capabilities",
+    "psvc_detail_caps_empty": "No capabilities",
+    "psvc_detail_params": "Parameters",
+    "psvc_param_required": "Required",
+    "psvc_detail_runtime": "Runtime Config",
+    "psvc_detail_sandbox": "Sandbox Mode",
+    "psvc_detail_vram": "VRAM Budget",
+    "psvc_detail_vram_none": "None",
+    "psvc_detail_mounted": "Default Mounted",
+    "psvc_yes": "Yes",
+    "psvc_no": "No",
+    "psvc_detail_timeout": "Timeout",
+    "psvc_detail_deps": "Dependencies",
+    "psvc_market_theme_name": "Dark Theme Enhancer",
+    "psvc_market_theme_desc": "More dark theme variants, eye-care mode",
+    "psvc_market_lint_name": "Code Linter",
+    "psvc_market_lint_desc": "Integrate ESLint, SwiftLint and other linters",
+    "psvc_market_sim_name": "Simulation Pack",
+    "psvc_market_sim_desc": "Extra physics engines and robot models",
+    "psvc_market_update_badge": "Updatable",
+    "psvc_market_btn_update": "Update",
+    "psvc_market_btn_installed": "Installed",
+    "psvc_market_btn_install": "Install",
+    "psvc_dev_quick": "Quick Start",
+    "psvc_dev_guide_title": "Fusion Studio Plugin Dev Guide",
+    "psvc_dev_guide_desc": "Plugins are Python script packages with a manifest.json and entry script. Drop the folder into the directory below to install:",
+    "psvc_dev_open": "Open",
+    "psvc_dev_tmpl_gen": "Template Generator",
+    "psvc_dev_tmpl_desc": "Create a new plugin template project",
+    "psvc_dev_gen": "Generate",
+    "psvc_dev_structure": "Plugin Structure",
+    "psvc_dev_tree_manifest": "# Plugin manifest",
+    "psvc_dev_tree_entry": "# Entry script",
+    "psvc_dev_tree_assets": "# Assets",
+    "psvc_dev_tree_readme": "# Documentation",
+    "psvc_dev_sample_title": "manifest.json sample (aligned with plugins-ecosystem)",
+    "psvc_dev_sample_name": "My Plugin",
+    "psvc_dev_sample_desc": "Plugin description",
+    "psvc_cfg_title": "Ecosystem Config",
+    "psvc_cfg_refresh": "Refresh config",
+    "psvc_cfg_empty": "Config shows after connecting to fusion-plugins-ecosystem",
+    "psvc_cfg_value_ph": "Value",
+    "psvc_cfg_save": "Save",
+    "psvc_cfg_edit": "Edit",
+    "psvc_status_title": "Plugin Status Monitor",
+    "psvc_status_filter_run": "Running",
+    "psvc_status_filter_crash": "Crashed",
+    "psvc_status_filter_timeout": "Timeout",
+    "psvc_status_empty": "Plugin status shows after connecting",
+    "psvc_status_restart_fmt": "Restarted %d time(s)",
+    "psvc_token_title": "Token Usage Dashboard",
+    "psvc_token_prune": "Prune expired records",
+    "psvc_token_empty": "No token usage records",
+    "psvc_vram_title": "VRAM Allocation",
+    "psvc_vram_overview": "Overview",
+    "psvc_vram_used_fmt": "Used %.0f MB",
+    "psvc_vram_free_fmt": "Free %.0f MB",
+    "psvc_vram_total_fmt": "Total %.0f MB",
+    "psvc_vram_byplugin": "By Plugin",
+    "psvc_vram_empty": "No VRAM allocation data",
+    "psvc_log_title": "Plugin Logs",
+    "psvc_log_search_ph": "Search...",
+    "psvc_log_empty": "No logs",
+    "psvc_mcp_title": "MCP Connection",
+    "psvc_mcp_session_fmt": "%d sessions",
+    "psvc_mcp_prune": "Prune expired sessions",
+    "psvc_mcp_empty": "No MCP sessions",
+    "psvc_mcp_calls_fmt": "Calls: %d",
+    "psvc_mcp_ratelimit": "Rate limit:",
+    "psvc_mcp_remaining_fmt": "%d remaining",
     "proj_subtitle": "Manage your AI projects, instructions and knowledge base",
     "proj_searchPh": "Search projects",
     "proj_newHelp": "New project",
@@ -13038,6 +13446,142 @@ let jaJPTranslations: [String: String] = [
     "docgen_md_readme_bullet1": "- 環境自己診断 & ワンクリック修復",
     "docgen_md_readme_bullet2": "- LAN コラボレーション",
     "docgen_md_readme_bullet3": "- プラグインシステム",
+    "psvc_cat_codingPlan": "コード計画",
+    "psvc_cat_contextCompress": "コンテキスト圧縮",
+    "psvc_cat_mlxInference": "MLX 推論",
+    "psvc_cat_terminalProxy": "ターミナルプロキシ",
+    "psvc_cat_fileIndex": "ファイル検索",
+    "psvc_cat_quantization": "量子化ツール",
+    "psvc_cat_visualBackend": "ビジュアルバックエンド",
+    "psvc_cat_custom": "カスタム",
+    "psvc_cap_subagent": "サブエージェント",
+    "psvc_cap_fileAccess": "ファイル読み書き",
+    "psvc_cap_vramConsumer": "VRAM 消費",
+    "psvc_cap_longTask": "長時間タスク",
+    "psvc_sbox_inline": "インライン",
+    "psvc_sbox_process": "プロセス",
+    "psvc_state_registered": "登録済み",
+    "psvc_state_loaded": "読込済み",
+    "psvc_state_enabled": "実行中",
+    "psvc_state_disabled": "停止",
+    "psvc_state_crashed": "クラッシュ",
+    "psvc_state_timeout": "タイムアウト",
+    "psvc_seed_term_name": "高度ターミナル",
+    "psvc_seed_term_desc": "マルチタブとテーマ対応の拡張ターミナル",
+    "psvc_seed_git_name": "Git ビジュアル",
+    "psvc_seed_git_desc": "グラフィカル Git 操作：コミット・ブランチ・マージ",
+    "psvc_seed_export_name": "バッチ書き出し",
+    "psvc_seed_export_desc": "デザイン・コード・シミュレーション結果を一括書き出し",
+    "psvc_seed_md_name": "Markdown プレビュー",
+    "psvc_seed_md_desc": "リアルタイム Markdown レンダリングとプレビュー",
+    "psvc_template_desc": "Fusion Studio プラグイン",
+    "psvc_tab_installed": "インストール済み",
+    "psvc_tab_market": "マーケット",
+    "psvc_tab_config": "設定",
+    "psvc_tab_status": "ステータス",
+    "psvc_tab_tokens": "Token",
+    "psvc_tab_vram": "VRAM",
+    "psvc_tab_logs": "ログ",
+    "psvc_tab_mcp": "MCP",
+    "psvc_tab_develop": "開発",
+    "psvc_tb_install": "プラグインインストール",
+    "psvc_tb_refresh": "更新",
+    "psvc_tb_folder": "プラグインフォルダ",
+    "psvc_tmpl_title": "プラグインテンプレート作成",
+    "psvc_tmpl_name_ph": "プラグイン名",
+    "psvc_tmpl_author_ph": "作者",
+    "psvc_tmpl_cancel": "キャンセル",
+    "psvc_tmpl_create": "作成",
+    "psvc_sec_builtin": "組み込みプラグイン",
+    "psvc_sec_user": "ユーザープラグイン",
+    "psvc_user_empty": "ユーザープラグインなし",
+    "psvc_btn_disable": "無効化",
+    "psvc_btn_enable": "有効化",
+    "psvc_btn_uninstall": "アンインストール",
+    "psvc_installed_empty": "詳細表示するプラグインを選択",
+    "psvc_uninstall_title": "アンインストール確認",
+    "psvc_uninstall_msg": "このプラグインをアンインストールしますか？この操作は取り消せません。",
+    "psvc_filter_all": "すべて",
+    "psvc_detail_basic": "基本情報",
+    "psvc_detail_id": "ID",
+    "psvc_detail_version": "バージョン",
+    "psvc_detail_category": "カテゴリ",
+    "psvc_detail_desc": "説明",
+    "psvc_detail_author": "作者",
+    "psvc_detail_minver": "最低バージョン",
+    "psvc_detail_entry": "エントリ",
+    "psvc_detail_path": "インストールパス",
+    "psvc_detail_instime": "インストール日時",
+    "psvc_detail_caps": "機能宣言",
+    "psvc_detail_caps_empty": "機能宣言なし",
+    "psvc_detail_params": "パラメータ設定",
+    "psvc_param_required": "必須",
+    "psvc_detail_runtime": "実行設定",
+    "psvc_detail_sandbox": "サンドボックスモード",
+    "psvc_detail_vram": "VRAM 予算",
+    "psvc_detail_vram_none": "消費なし",
+    "psvc_detail_mounted": "デフォルトマウント",
+    "psvc_yes": "はい",
+    "psvc_no": "いいえ",
+    "psvc_detail_timeout": "タイムアウト",
+    "psvc_detail_deps": "依存",
+    "psvc_market_theme_name": "ダークテーマ拡張",
+    "psvc_market_theme_desc": "ダークテーマバリエーション追加、目に優しいモード",
+    "psvc_market_lint_name": "コードリンター",
+    "psvc_market_lint_desc": "ESLint、SwiftLint などのリンター統合",
+    "psvc_market_sim_name": "シミュレーション拡張パック",
+    "psvc_market_sim_desc": "追加物理エンジンとロボットモデル",
+    "psvc_market_update_badge": "更新可能",
+    "psvc_market_btn_update": "更新",
+    "psvc_market_btn_installed": "インストール済み",
+    "psvc_market_btn_install": "インストール",
+    "psvc_dev_quick": "クイックスタート",
+    "psvc_dev_guide_title": "Fusion Studio プラグイン開発ガイド",
+    "psvc_dev_guide_desc": "プラグインは manifest.json とエントリスクリプトを含む Python スクリプトパッケージです。フォルダを以下のディレクトリに配置してインストール：",
+    "psvc_dev_open": "開く",
+    "psvc_dev_tmpl_gen": "テンプレート生成",
+    "psvc_dev_tmpl_desc": "新しいプラグインテンプレートプロジェクトを作成",
+    "psvc_dev_gen": "生成",
+    "psvc_dev_structure": "プラグイン構造",
+    "psvc_dev_tree_manifest": "# プラグインマニフェスト",
+    "psvc_dev_tree_entry": "# エントリスクリプト",
+    "psvc_dev_tree_assets": "# アセット",
+    "psvc_dev_tree_readme": "# ドキュメント",
+    "psvc_dev_sample_title": "manifest.json サンプル (plugins-ecosystem 準拠)",
+    "psvc_dev_sample_name": "マイプラグイン",
+    "psvc_dev_sample_desc": "プラグインの説明",
+    "psvc_cfg_title": "Ecosystem 設定",
+    "psvc_cfg_refresh": "設定を更新",
+    "psvc_cfg_empty": "fusion-plugins-ecosystem 接続後に設定を表示",
+    "psvc_cfg_value_ph": "値",
+    "psvc_cfg_save": "保存",
+    "psvc_cfg_edit": "編集",
+    "psvc_status_title": "プラグインステータス監視",
+    "psvc_status_filter_run": "実行",
+    "psvc_status_filter_crash": "クラッシュ",
+    "psvc_status_filter_timeout": "タイムアウト",
+    "psvc_status_empty": "接続後にプラグインステータスを表示",
+    "psvc_status_restart_fmt": "再起動 %d 回",
+    "psvc_token_title": "Token 使用量ダッシュボード",
+    "psvc_token_prune": "期限切れレコードを削除",
+    "psvc_token_empty": "Token 使用量記録なし",
+    "psvc_vram_title": "VRAM 割り当て",
+    "psvc_vram_overview": "概要",
+    "psvc_vram_used_fmt": "使用 %.0f MB",
+    "psvc_vram_free_fmt": "残り %.0f MB",
+    "psvc_vram_total_fmt": "合計 %.0f MB",
+    "psvc_vram_byplugin": "プラグイン別",
+    "psvc_vram_empty": "VRAM 割り当てデータなし",
+    "psvc_log_title": "プラグインログ",
+    "psvc_log_search_ph": "検索...",
+    "psvc_log_empty": "ログなし",
+    "psvc_mcp_title": "MCP 接続管理",
+    "psvc_mcp_session_fmt": "%d セッション",
+    "psvc_mcp_prune": "期限切れセッションを削除",
+    "psvc_mcp_empty": "MCP セッションなし",
+    "psvc_mcp_calls_fmt": "呼び出し回数: %d",
+    "psvc_mcp_ratelimit": "レート制限:",
+    "psvc_mcp_remaining_fmt": "残り %d",
     "proj_subtitle": "AIプロジェクト・指示・ナレッジベースを管理",
     "proj_searchPh": "プロジェクトを検索",
     "proj_newHelp": "新規プロジェクト",
@@ -16846,6 +17390,142 @@ let koKRTranslations: [String: String] = [
     "docgen_md_readme_bullet1": "- 환경 자가 점검 & 원클릭 복구",
     "docgen_md_readme_bullet2": "- LAN 협업",
     "docgen_md_readme_bullet3": "- 플러그인 시스템",
+    "psvc_cat_codingPlan": "코드 계획",
+    "psvc_cat_contextCompress": "컨텍스트 압축",
+    "psvc_cat_mlxInference": "MLX 추론",
+    "psvc_cat_terminalProxy": "터미널 프록시",
+    "psvc_cat_fileIndex": "파일 검색",
+    "psvc_cat_quantization": "양자화 도구",
+    "psvc_cat_visualBackend": "비주얼 백엔드",
+    "psvc_cat_custom": "커스텀",
+    "psvc_cap_subagent": "서브에이전트",
+    "psvc_cap_fileAccess": "파일 읽기/쓰기",
+    "psvc_cap_vramConsumer": "VRAM 사용",
+    "psvc_cap_longTask": "장기 작업",
+    "psvc_sbox_inline": "인라인",
+    "psvc_sbox_process": "프로세스",
+    "psvc_state_registered": "등록됨",
+    "psvc_state_loaded": "로드됨",
+    "psvc_state_enabled": "실행 중",
+    "psvc_state_disabled": "비활성화",
+    "psvc_state_crashed": "충돌",
+    "psvc_state_timeout": "시간 초과",
+    "psvc_seed_term_name": "고급 터미널",
+    "psvc_seed_term_desc": "멀티 탭과 테마 지원 고급 터미널",
+    "psvc_seed_git_name": "Git 비주얼",
+    "psvc_seed_git_desc": "그래픽 Git 작업: 커밋, 브랜치, 병합",
+    "psvc_seed_export_name": "일괄 내보내기",
+    "psvc_seed_export_desc": "디자인, 코드, 시뮬레이션 결과 일괄 내보내기",
+    "psvc_seed_md_name": "Markdown 미리보기",
+    "psvc_seed_md_desc": "실시간 Markdown 렌더링 및 미리보기",
+    "psvc_template_desc": "Fusion Studio 플러그인",
+    "psvc_tab_installed": "설치됨",
+    "psvc_tab_market": "마켓",
+    "psvc_tab_config": "설정",
+    "psvc_tab_status": "상태",
+    "psvc_tab_tokens": "Token",
+    "psvc_tab_vram": "VRAM",
+    "psvc_tab_logs": "로그",
+    "psvc_tab_mcp": "MCP",
+    "psvc_tab_develop": "개발",
+    "psvc_tb_install": "플러그인 설치",
+    "psvc_tb_refresh": "새로고침",
+    "psvc_tb_folder": "플러그인 폴더",
+    "psvc_tmpl_title": "플러그인 템플릿 만들기",
+    "psvc_tmpl_name_ph": "플러그인 이름",
+    "psvc_tmpl_author_ph": "작성자",
+    "psvc_tmpl_cancel": "취소",
+    "psvc_tmpl_create": "만들기",
+    "psvc_sec_builtin": "내장 플러그인",
+    "psvc_sec_user": "사용자 플러그인",
+    "psvc_user_empty": "사용자 플러그인 없음",
+    "psvc_btn_disable": "비활성화",
+    "psvc_btn_enable": "활성화",
+    "psvc_btn_uninstall": "제거",
+    "psvc_installed_empty": "세부 정보를 볼 플러그인 선택",
+    "psvc_uninstall_title": "제거 확인",
+    "psvc_uninstall_msg": "이 플러그인을 제거하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+    "psvc_filter_all": "전체",
+    "psvc_detail_basic": "기본 정보",
+    "psvc_detail_id": "ID",
+    "psvc_detail_version": "버전",
+    "psvc_detail_category": "카테고리",
+    "psvc_detail_desc": "설명",
+    "psvc_detail_author": "작성자",
+    "psvc_detail_minver": "최소 버전",
+    "psvc_detail_entry": "진입점",
+    "psvc_detail_path": "설치 경로",
+    "psvc_detail_instime": "설치 시간",
+    "psvc_detail_caps": "기능 선언",
+    "psvc_detail_caps_empty": "기능 선언 없음",
+    "psvc_detail_params": "매개변수 설정",
+    "psvc_param_required": "필수",
+    "psvc_detail_runtime": "실행 설정",
+    "psvc_detail_sandbox": "샌드박스 모드",
+    "psvc_detail_vram": "VRAM 예산",
+    "psvc_detail_vram_none": "사용 안 함",
+    "psvc_detail_mounted": "기본 마운트",
+    "psvc_yes": "예",
+    "psvc_no": "아니오",
+    "psvc_detail_timeout": "시간 초과",
+    "psvc_detail_deps": "종속",
+    "psvc_market_theme_name": "다크 테마 강화",
+    "psvc_market_theme_desc": "다크 테마 변형 추가, 눈 보호 모드",
+    "psvc_market_lint_name": "코드 린터",
+    "psvc_market_lint_desc": "ESLint, SwiftLint 등 린터 통합",
+    "psvc_market_sim_name": "시뮬레이션 확장 팩",
+    "psvc_market_sim_desc": "추가 물리 엔진과 로봇 모델",
+    "psvc_market_update_badge": "업데이트 가능",
+    "psvc_market_btn_update": "업데이트",
+    "psvc_market_btn_installed": "설치됨",
+    "psvc_market_btn_install": "설치",
+    "psvc_dev_quick": "빠른 시작",
+    "psvc_dev_guide_title": "Fusion Studio 플러그인 개발 가이드",
+    "psvc_dev_guide_desc": "플러그인은 manifest.json과 진입 스크립트를 포함한 Python 스크립트 패키지입니다. 폴더를 아래 디렉터리에 넣으면 설치됩니다:",
+    "psvc_dev_open": "열기",
+    "psvc_dev_tmpl_gen": "템플릿 생성",
+    "psvc_dev_tmpl_desc": "새 플러그인 템플릿 프로젝트 만들기",
+    "psvc_dev_gen": "생성",
+    "psvc_dev_structure": "플러그인 구조",
+    "psvc_dev_tree_manifest": "# 플러그인 매니페스트",
+    "psvc_dev_tree_entry": "# 진입 스크립트",
+    "psvc_dev_tree_assets": "# 자산 파일",
+    "psvc_dev_tree_readme": "# 문서",
+    "psvc_dev_sample_title": "manifest.json 샘플 (plugins-ecosystem 정렬)",
+    "psvc_dev_sample_name": "내 플러그인",
+    "psvc_dev_sample_desc": "플러그인 설명",
+    "psvc_cfg_title": "Ecosystem 설정",
+    "psvc_cfg_refresh": "설정 새로고침",
+    "psvc_cfg_empty": "fusion-plugins-ecosystem 연결 후 설정 표시",
+    "psvc_cfg_value_ph": "값",
+    "psvc_cfg_save": "저장",
+    "psvc_cfg_edit": "편집",
+    "psvc_status_title": "플러그인 상태 모니터",
+    "psvc_status_filter_run": "실행",
+    "psvc_status_filter_crash": "충돌",
+    "psvc_status_filter_timeout": "시간 초과",
+    "psvc_status_empty": "연결 후 플러그인 상태 표시",
+    "psvc_status_restart_fmt": "재시작 %d회",
+    "psvc_token_title": "Token 사용량 대시보드",
+    "psvc_token_prune": "만료된 기록 정리",
+    "psvc_token_empty": "Token 사용량 기록 없음",
+    "psvc_vram_title": "VRAM 할당",
+    "psvc_vram_overview": "개요",
+    "psvc_vram_used_fmt": "사용 %.0f MB",
+    "psvc_vram_free_fmt": "여유 %.0f MB",
+    "psvc_vram_total_fmt": "전체 %.0f MB",
+    "psvc_vram_byplugin": "플러그인별",
+    "psvc_vram_empty": "VRAM 할당 데이터 없음",
+    "psvc_log_title": "플러그인 로그",
+    "psvc_log_search_ph": "검색...",
+    "psvc_log_empty": "로그 없음",
+    "psvc_mcp_title": "MCP 연결 관리",
+    "psvc_mcp_session_fmt": "%d 세션",
+    "psvc_mcp_prune": "만료된 세션 정리",
+    "psvc_mcp_empty": "MCP 세션 없음",
+    "psvc_mcp_calls_fmt": "호출 횟수: %d",
+    "psvc_mcp_ratelimit": "속도 제한:",
+    "psvc_mcp_remaining_fmt": "남은 %d",
     "proj_subtitle": "AI 프로젝트·지시·지식베이스 관리",
     "proj_searchPh": "프로젝트 검색",
     "proj_newHelp": "새 프로젝트",
