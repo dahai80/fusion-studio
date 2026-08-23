@@ -2028,6 +2028,80 @@ enum I18nKey: String, CaseIterable {
     case isc_row_type = "isc_row_type"
     case isc_type_builtin = "isc_type_builtin"
     case isc_type_custom = "isc_type_custom"
+    case at_dim_quantization = "at_dim_quantization"
+    case at_dim_memory = "at_dim_memory"
+    case at_dim_batch = "at_dim_batch"
+    case at_dim_context = "at_dim_context"
+    case at_dim_parallelism = "at_dim_parallelism"
+    case at_dim_threads = "at_dim_threads"
+    case at_dim_desc_quantization = "at_dim_desc_quantization"
+    case at_dim_desc_memory = "at_dim_desc_memory"
+    case at_dim_desc_batch = "at_dim_desc_batch"
+    case at_dim_desc_context = "at_dim_desc_context"
+    case at_dim_desc_parallelism = "at_dim_desc_parallelism"
+    case at_dim_desc_threads = "at_dim_desc_threads"
+    case at_metric_throughput = "at_metric_throughput"
+    case at_metric_latency = "at_metric_latency"
+    case at_metric_memory = "at_metric_memory"
+    case at_metric_balanced = "at_metric_balanced"
+    case at_interval_hourly = "at_interval_hourly"
+    case at_interval_daily = "at_interval_daily"
+    case at_interval_weekly = "at_interval_weekly"
+    case at_interval_manual = "at_interval_manual"
+    case at_tab_dashboard = "at_tab_dashboard"
+    case at_tab_results = "at_tab_results"
+    case at_tab_config = "at_tab_config"
+    case at_tab_recommend = "at_tab_recommend"
+    case at_impact_high = "at_impact_high"
+    case at_impact_medium = "at_impact_medium"
+    case at_impact_low = "at_impact_low"
+    case at_header = "at_header"
+    case at_score_label = "at_score_label"
+    case at_btn_start = "at_btn_start"
+    case at_btn_tuning = "at_btn_tuning"
+    case at_progress_pct = "at_progress_pct"
+    case at_action_optimize = "at_action_optimize"
+    case at_action_done = "at_action_done"
+    case at_card_score = "at_card_score"
+    case at_card_count = "at_card_count"
+    case at_card_rec = "at_card_rec"
+    case at_card_auto = "at_card_auto"
+    case at_val_on = "at_val_on"
+    case at_val_off = "at_val_off"
+    case at_results_empty = "at_results_empty"
+    case at_result_improvement = "at_result_improvement"
+    case at_result_change = "at_result_change"
+    case at_result_score = "at_result_score"
+    case at_btn_clear = "at_btn_clear"
+    case at_cfg_section_auto = "at_cfg_section_auto"
+    case at_cfg_enable = "at_cfg_enable"
+    case at_cfg_autorestart = "at_cfg_autorestart"
+    case at_cfg_interval_label = "at_cfg_interval_label"
+    case at_cfg_section_metric = "at_cfg_section_metric"
+    case at_cfg_target_label = "at_cfg_target_label"
+    case at_cfg_target_hint = "at_cfg_target_hint"
+    case at_cfg_section_constraints = "at_cfg_section_constraints"
+    case at_cfg_max_mem = "at_cfg_max_mem"
+    case at_cfg_max_latency = "at_cfg_max_latency"
+    case at_cfg_min_resp = "at_cfg_min_resp"
+    case at_cfg_section_note = "at_cfg_section_note"
+    case at_cfg_note = "at_cfg_note"
+    case at_rec_apply = "at_rec_apply"
+    case at_rec_refresh = "at_rec_refresh"
+    case at_rec_confidence = "at_rec_confidence"
+    case at_impact_label = "at_impact_label"
+    case at_rec_title_increase_mem = "at_rec_title_increase_mem"
+    case at_rec_desc_increase_mem = "at_rec_desc_increase_mem"
+    case at_rec_title_flash_attn = "at_rec_title_flash_attn"
+    case at_rec_desc_flash_attn = "at_rec_desc_flash_attn"
+    case at_rec_title_batch_size = "at_rec_title_batch_size"
+    case at_rec_desc_batch_size = "at_rec_desc_batch_size"
+    case at_rec_title_ctx_len = "at_rec_title_ctx_len"
+    case at_rec_desc_ctx_len = "at_rec_desc_ctx_len"
+    case at_rec_title_continuous_batch = "at_rec_title_continuous_batch"
+    case at_rec_desc_continuous_batch = "at_rec_desc_continuous_batch"
+    case at_confidence_pct = "at_confidence_pct"
+    case at_improvement_pct = "at_improvement_pct"
     case proj_subtitle = "proj_subtitle"
     case proj_searchPh = "proj_searchPh"
     case proj_newHelp = "proj_newHelp"
@@ -6362,6 +6436,80 @@ let zhCNTranslations: [String: String] = [
     "isc_row_type": "类型",
     "isc_type_builtin": "内置",
     "isc_type_custom": "自定义",
+    "at_dim_quantization": "量化精度",
+    "at_dim_memory": "内存分配",
+    "at_dim_batch": "批处理大小",
+    "at_dim_context": "上下文长度",
+    "at_dim_parallelism": "并行度",
+    "at_dim_threads": "线程数",
+    "at_dim_desc_quantization": "自动选择最优量化等级",
+    "at_dim_desc_memory": "自动调整内存分配策略",
+    "at_dim_desc_batch": "自动选择最优批处理大小",
+    "at_dim_desc_context": "自动调整上下文长度限制",
+    "at_dim_desc_parallelism": "自动调整张量并行数",
+    "at_dim_desc_threads": "自动调整 CPU 线程数",
+    "at_metric_throughput": "吞吐量",
+    "at_metric_latency": "延迟",
+    "at_metric_memory": "内存",
+    "at_metric_balanced": "均衡",
+    "at_interval_hourly": "每小时",
+    "at_interval_daily": "每天",
+    "at_interval_weekly": "每周",
+    "at_interval_manual": "手动",
+    "at_tab_dashboard": "调优仪表盘",
+    "at_tab_results": "调优结果",
+    "at_tab_config": "调优配置",
+    "at_tab_recommend": "优化建议",
+    "at_impact_high": "高",
+    "at_impact_medium": "中",
+    "at_impact_low": "低",
+    "at_header": "性能自动调优",
+    "at_score_label": "性能评分: %@/100",
+    "at_btn_start": "开始调优",
+    "at_btn_tuning": "调优中...",
+    "at_progress_pct": "%d%%",
+    "at_action_optimize": "优化 %@...",
+    "at_action_done": "✅ 调优完成",
+    "at_card_score": "性能评分",
+    "at_card_count": "调优次数",
+    "at_card_rec": "优化建议",
+    "at_card_auto": "自动调优",
+    "at_val_on": "已开启",
+    "at_val_off": "已关闭",
+    "at_results_empty": "运行自动调优以查看结果",
+    "at_result_improvement": "+%@",
+    "at_result_change": "%@ → %@",
+    "at_result_score": "评分: %d/100",
+    "at_btn_clear": "清空",
+    "at_cfg_section_auto": "自动调优",
+    "at_cfg_enable": "启用自动调优",
+    "at_cfg_autorestart": "调优后自动重启服务",
+    "at_cfg_interval_label": "调优间隔",
+    "at_cfg_section_metric": "目标指标",
+    "at_cfg_target_label": "优化目标",
+    "at_cfg_target_hint": "选择优化目标将影响自动调优的方向和参数选择",
+    "at_cfg_section_constraints": "约束条件",
+    "at_cfg_max_mem": "最大内存: %d GB",
+    "at_cfg_max_latency": "最大延迟: %d ms",
+    "at_cfg_min_resp": "最低响应: %d ms",
+    "at_cfg_section_note": "说明",
+    "at_cfg_note": "自动调优引擎将根据当前硬件配置和使用模式，自动调整 MLX 推理参数以获得最佳性能。调优过程不影响正在进行的任务。",
+    "at_rec_apply": "应用所有高置信度建议",
+    "at_rec_refresh": "刷新建议",
+    "at_rec_confidence": "置信度: %d%%",
+    "at_impact_label": "影响: %@",
+    "at_rec_title_increase_mem": "增加最大内存到 20GB",
+    "at_rec_desc_increase_mem": "当前配置可安全增加 4GB 内存分配，提升推理吞吐量",
+    "at_rec_title_flash_attn": "启用 Flash Attention",
+    "at_rec_desc_flash_attn": "Flash Attention 可减少 30% 内存使用并提升速度",
+    "at_rec_title_batch_size": "调整批处理大小为 2",
+    "at_rec_desc_batch_size": "批处理大小 2 在大多数场景下提供最佳吞吐量",
+    "at_rec_title_ctx_len": "增加上下文长度到 8192",
+    "at_rec_desc_ctx_len": "当前内存允许扩展上下文长度，提升长文本处理能力",
+    "at_rec_title_continuous_batch": "启用连续批处理",
+    "at_rec_desc_continuous_batch": "连续批处理可提高 GPU 利用率",
+    "at_confidence_pct": "%d%%",
+    "at_improvement_pct": "%d%%",
     "proj_subtitle": "管理你的 AI 项目、指令和知识库",
     "proj_searchPh": "搜索项目",
     "proj_newHelp": "新建项目",
@@ -10649,6 +10797,80 @@ let enUSTranslations: [String: String] = [
     "isc_row_type": "Type",
     "isc_type_builtin": "Built-in",
     "isc_type_custom": "Custom",
+    "at_dim_quantization": "Quantization",
+    "at_dim_memory": "Memory Allocation",
+    "at_dim_batch": "Batch Size",
+    "at_dim_context": "Context Length",
+    "at_dim_parallelism": "Parallelism",
+    "at_dim_threads": "Thread Count",
+    "at_dim_desc_quantization": "Automatically select optimal quantization level",
+    "at_dim_desc_memory": "Automatically adjust memory allocation strategy",
+    "at_dim_desc_batch": "Automatically select optimal batch size",
+    "at_dim_desc_context": "Automatically adjust context length limit",
+    "at_dim_desc_parallelism": "Automatically adjust tensor parallelism",
+    "at_dim_desc_threads": "Automatically adjust CPU thread count",
+    "at_metric_throughput": "Throughput",
+    "at_metric_latency": "Latency",
+    "at_metric_memory": "Memory",
+    "at_metric_balanced": "Balanced",
+    "at_interval_hourly": "Hourly",
+    "at_interval_daily": "Daily",
+    "at_interval_weekly": "Weekly",
+    "at_interval_manual": "Manual",
+    "at_tab_dashboard": "Tuning Dashboard",
+    "at_tab_results": "Tuning Results",
+    "at_tab_config": "Tuning Config",
+    "at_tab_recommend": "Recommendations",
+    "at_impact_high": "High",
+    "at_impact_medium": "Medium",
+    "at_impact_low": "Low",
+    "at_header": "Performance Auto-Tuning",
+    "at_score_label": "Performance Score: %@/100",
+    "at_btn_start": "Start Tuning",
+    "at_btn_tuning": "Tuning...",
+    "at_progress_pct": "%d%%",
+    "at_action_optimize": "Optimizing %@...",
+    "at_action_done": "✅ Tuning Complete",
+    "at_card_score": "Performance Score",
+    "at_card_count": "Tuning Count",
+    "at_card_rec": "Recommendations",
+    "at_card_auto": "Auto-Tuning",
+    "at_val_on": "Enabled",
+    "at_val_off": "Disabled",
+    "at_results_empty": "Run auto-tuning to see results",
+    "at_result_improvement": "+%@",
+    "at_result_change": "%@ → %@",
+    "at_result_score": "Score: %d/100",
+    "at_btn_clear": "Clear",
+    "at_cfg_section_auto": "Auto-Tuning",
+    "at_cfg_enable": "Enable Auto-Tuning",
+    "at_cfg_autorestart": "Auto-restart service after tuning",
+    "at_cfg_interval_label": "Tuning Interval",
+    "at_cfg_section_metric": "Target Metric",
+    "at_cfg_target_label": "Optimization Target",
+    "at_cfg_target_hint": "Selecting optimization target affects auto-tuning direction and parameter selection",
+    "at_cfg_section_constraints": "Constraints",
+    "at_cfg_max_mem": "Max Memory: %d GB",
+    "at_cfg_max_latency": "Max Latency: %d ms",
+    "at_cfg_min_resp": "Min Response: %d ms",
+    "at_cfg_section_note": "Notes",
+    "at_cfg_note": "The auto-tuning engine adjusts MLX inference parameters based on current hardware and usage patterns for optimal performance. Tuning does not affect ongoing tasks.",
+    "at_rec_apply": "Apply All High-Confidence Recommendations",
+    "at_rec_refresh": "Refresh Recommendations",
+    "at_rec_confidence": "Confidence: %d%%",
+    "at_impact_label": "Impact: %@",
+    "at_rec_title_increase_mem": "Increase max memory to 20GB",
+    "at_rec_desc_increase_mem": "Current config can safely add 4GB memory allocation, boosting inference throughput",
+    "at_rec_title_flash_attn": "Enable Flash Attention",
+    "at_rec_desc_flash_attn": "Flash Attention reduces memory usage by 30% and improves speed",
+    "at_rec_title_batch_size": "Set batch size to 2",
+    "at_rec_desc_batch_size": "Batch size 2 provides optimal throughput in most scenarios",
+    "at_rec_title_ctx_len": "Increase context length to 8192",
+    "at_rec_desc_ctx_len": "Current memory allows extending context length, improving long-text processing",
+    "at_rec_title_continuous_batch": "Enable continuous batching",
+    "at_rec_desc_continuous_batch": "Continuous batching improves GPU utilization",
+    "at_confidence_pct": "%d%%",
+    "at_improvement_pct": "%d%%",
     "proj_subtitle": "Manage your AI projects, instructions and knowledge base",
     "proj_searchPh": "Search projects",
     "proj_newHelp": "New project",
@@ -14930,6 +15152,80 @@ let jaJPTranslations: [String: String] = [
     "isc_row_type": "タイプ",
     "isc_type_builtin": "組み込み",
     "isc_type_custom": "カスタム",
+    "at_dim_quantization": "量子化精度",
+    "at_dim_memory": "メモリ割り当て",
+    "at_dim_batch": "バッチサイズ",
+    "at_dim_context": "コンテキスト長",
+    "at_dim_parallelism": "並列度",
+    "at_dim_threads": "スレッド数",
+    "at_dim_desc_quantization": "最適な量子化レベルを自動選択",
+    "at_dim_desc_memory": "メモリ割り当て戦略を自動調整",
+    "at_dim_desc_batch": "最適なバッチサイズを自動選択",
+    "at_dim_desc_context": "コンテキスト長の制限を自動調整",
+    "at_dim_desc_parallelism": "テンソル並列数を自動調整",
+    "at_dim_desc_threads": "CPU スレッド数を自動調整",
+    "at_metric_throughput": "スループット",
+    "at_metric_latency": "レイテンシ",
+    "at_metric_memory": "メモリ",
+    "at_metric_balanced": "バランス",
+    "at_interval_hourly": "毎時",
+    "at_interval_daily": "毎日",
+    "at_interval_weekly": "毎週",
+    "at_interval_manual": "手動",
+    "at_tab_dashboard": "チューニングダッシュボード",
+    "at_tab_results": "チューニング結果",
+    "at_tab_config": "チューニング設定",
+    "at_tab_recommend": "推奨事項",
+    "at_impact_high": "高",
+    "at_impact_medium": "中",
+    "at_impact_low": "低",
+    "at_header": "パフォーマンス自動チューニング",
+    "at_score_label": "パフォーマンススコア: %@/100",
+    "at_btn_start": "チューニング開始",
+    "at_btn_tuning": "チューニング中...",
+    "at_progress_pct": "%d%%",
+    "at_action_optimize": "%@ を最適化中...",
+    "at_action_done": "✅ チューニング完了",
+    "at_card_score": "パフォーマンススコア",
+    "at_card_count": "チューニング回数",
+    "at_card_rec": "推奨事項",
+    "at_card_auto": "自動チューニング",
+    "at_val_on": "有効",
+    "at_val_off": "無効",
+    "at_results_empty": "自動チューニングを実行して結果を表示",
+    "at_result_improvement": "+%@",
+    "at_result_change": "%@ → %@",
+    "at_result_score": "スコア: %d/100",
+    "at_btn_clear": "クリア",
+    "at_cfg_section_auto": "自動チューニング",
+    "at_cfg_enable": "自動チューニングを有効化",
+    "at_cfg_autorestart": "チューニング後にサービスを自動再起動",
+    "at_cfg_interval_label": "チューニング間隔",
+    "at_cfg_section_metric": "ターゲット指標",
+    "at_cfg_target_label": "最適化ターゲット",
+    "at_cfg_target_hint": "最適化ターゲットの選択は自動チューニングの方向とパラメータ選択に影響します",
+    "at_cfg_section_constraints": "制約条件",
+    "at_cfg_max_mem": "最大メモリ: %d GB",
+    "at_cfg_max_latency": "最大レイテンシ: %d ms",
+    "at_cfg_min_resp": "最低応答: %d ms",
+    "at_cfg_section_note": "説明",
+    "at_cfg_note": "自動チューニングエンジンは現在のハードウェア構成と使用パターンに基づき、最適なパフォーマンスのために MLX 推論パラメータを自動調整します。チューニングは進行中のタスクに影響しません。",
+    "at_rec_apply": "高信頼度の推奨をすべて適用",
+    "at_rec_refresh": "推奨事項を更新",
+    "at_rec_confidence": "信頼度: %d%%",
+    "at_impact_label": "影響: %@",
+    "at_rec_title_increase_mem": "最大メモリを 20GB に増加",
+    "at_rec_desc_increase_mem": "現在の構成は 4GB のメモリ割り当てを安全に追加でき、推論スループットを向上",
+    "at_rec_title_flash_attn": "Flash Attention を有効化",
+    "at_rec_desc_flash_attn": "Flash Attention はメモリ使用量を 30% 削減し速度を向上",
+    "at_rec_title_batch_size": "バッチサイズを 2 に調整",
+    "at_rec_desc_batch_size": "バッチサイズ 2 はほとんどのシナリオで最適なスループットを提供",
+    "at_rec_title_ctx_len": "コンテキスト長を 8192 に増加",
+    "at_rec_desc_ctx_len": "現在のメモリはコンテキスト長の拡張を許可し、長文処理能力を向上",
+    "at_rec_title_continuous_batch": "連続バッチ処理を有効化",
+    "at_rec_desc_continuous_batch": "連続バッチ処理は GPU 使用率を向上",
+    "at_confidence_pct": "%d%%",
+    "at_improvement_pct": "%d%%",
     "proj_subtitle": "AIプロジェクト・指示・ナレッジベースを管理",
     "proj_searchPh": "プロジェクトを検索",
     "proj_newHelp": "新規プロジェクト",
@@ -19211,6 +19507,80 @@ let koKRTranslations: [String: String] = [
     "isc_row_type": "유형",
     "isc_type_builtin": "내장",
     "isc_type_custom": "사용자 정의",
+    "at_dim_quantization": "양자화 정밀도",
+    "at_dim_memory": "메모리 할당",
+    "at_dim_batch": "배치 크기",
+    "at_dim_context": "컨텍스트 길이",
+    "at_dim_parallelism": "병렬도",
+    "at_dim_threads": "스레드 수",
+    "at_dim_desc_quantization": "최적의 양자화 수준 자동 선택",
+    "at_dim_desc_memory": "메모리 할당 전략 자동 조정",
+    "at_dim_desc_batch": "최적의 배치 크기 자동 선택",
+    "at_dim_desc_context": "컨텍스트 길이 제한 자동 조정",
+    "at_dim_desc_parallelism": "텐서 병렬 수 자동 조정",
+    "at_dim_desc_threads": "CPU 스레드 수 자동 조정",
+    "at_metric_throughput": "처리량",
+    "at_metric_latency": "지연 시간",
+    "at_metric_memory": "메모리",
+    "at_metric_balanced": "균형",
+    "at_interval_hourly": "매시간",
+    "at_interval_daily": "매일",
+    "at_interval_weekly": "매주",
+    "at_interval_manual": "수동",
+    "at_tab_dashboard": "튜닝 대시보드",
+    "at_tab_results": "튜닝 결과",
+    "at_tab_config": "튜닝 설정",
+    "at_tab_recommend": "최적화 권장",
+    "at_impact_high": "높음",
+    "at_impact_medium": "중간",
+    "at_impact_low": "낮음",
+    "at_header": "성능 자동 튜닝",
+    "at_score_label": "성능 점수: %@/100",
+    "at_btn_start": "튜닝 시작",
+    "at_btn_tuning": "튜닝 중...",
+    "at_progress_pct": "%d%%",
+    "at_action_optimize": "%@ 최적화 중...",
+    "at_action_done": "✅ 튜닝 완료",
+    "at_card_score": "성능 점수",
+    "at_card_count": "튜닝 횟수",
+    "at_card_rec": "최적화 권장",
+    "at_card_auto": "자동 튜닝",
+    "at_val_on": "활성화됨",
+    "at_val_off": "비활성화됨",
+    "at_results_empty": "결과를 보려면 자동 튜닝을 실행하세요",
+    "at_result_improvement": "+%@",
+    "at_result_change": "%@ → %@",
+    "at_result_score": "점수: %d/100",
+    "at_btn_clear": "지우기",
+    "at_cfg_section_auto": "자동 튜닝",
+    "at_cfg_enable": "자동 튜닝 활성화",
+    "at_cfg_autorestart": "튜닝 후 서비스 자동 재시작",
+    "at_cfg_interval_label": "튜닝 간격",
+    "at_cfg_section_metric": "대상 지표",
+    "at_cfg_target_label": "최적화 대상",
+    "at_cfg_target_hint": "최적화 대상 선택은 자동 튜닝 방향과 매개변수 선택에 영향을 줍니다",
+    "at_cfg_section_constraints": "제약 조건",
+    "at_cfg_max_mem": "최대 메모리: %d GB",
+    "at_cfg_max_latency": "최대 지연: %d ms",
+    "at_cfg_min_resp": "최소 응답: %d ms",
+    "at_cfg_section_note": "참고",
+    "at_cfg_note": "자동 튜닝 엔진은 현재 하드웨어 구성과 사용 패턴에 따라 최적 성능을 위해 MLX 추론 매개변수를 자동 조정합니다. 튜닝은 진행 중인 작업에 영향을 주지 않습니다.",
+    "at_rec_apply": "고신뢰도 권장 모두 적용",
+    "at_rec_refresh": "권장 새로고침",
+    "at_rec_confidence": "신뢰도: %d%%",
+    "at_impact_label": "영향: %@",
+    "at_rec_title_increase_mem": "최대 메모리를 20GB로 증가",
+    "at_rec_desc_increase_mem": "현재 구성은 4GB 메모리 할당을 안전하게 추가하여 추론 처리량을 향상",
+    "at_rec_title_flash_attn": "Flash Attention 활성화",
+    "at_rec_desc_flash_attn": "Flash Attention은 메모리 사용량을 30% 줄이고 속도를 향상",
+    "at_rec_title_batch_size": "배치 크기를 2로 조정",
+    "at_rec_desc_batch_size": "배치 크기 2는 대부분의 시나리오에서 최적의 처리량을 제공",
+    "at_rec_title_ctx_len": "컨텍스트 길이를 8192로 증가",
+    "at_rec_desc_ctx_len": "현재 메모리는 컨텍스트 길이 확장을 허용하여 긴 텍스트 처리 능력을 향상",
+    "at_rec_title_continuous_batch": "연속 배치 처리 활성화",
+    "at_rec_desc_continuous_batch": "연속 배치 처리는 GPU 활용률을 향상",
+    "at_confidence_pct": "%d%%",
+    "at_improvement_pct": "%d%%",
     "proj_subtitle": "AI 프로젝트·지시·지식베이스 관리",
     "proj_searchPh": "프로젝트 검색",
     "proj_newHelp": "새 프로젝트",
