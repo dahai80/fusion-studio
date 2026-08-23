@@ -10,15 +10,22 @@ import CommonCrypto
 // MARK: - 安全检查级别
 
 enum SecurityLevel: String, CaseIterable {
-    case standard = "标准"
-    case high     = "高"
-    case maximum  = "最高"
+    case standard
+    case high
+    case maximum
 
     var description: String {
         switch self {
-        case .standard: return "基本安全保护，适合日常使用"
-        case .high:     return "增强安全保护，启用沙箱和文件权限控制"
-        case .maximum:  return "最高安全保护，限制网络访问和外部连接"
+        case .standard: return I18nManager.shared.t(.secv_lvl_standard)
+        case .high:     return I18nManager.shared.t(.secv_lvl_high)
+        case .maximum:  return I18nManager.shared.t(.secv_lvl_maximum)
+        }
+    }
+    var localizedName: String {
+        switch self {
+        case .standard: return I18nManager.shared.t(.secv_lvl_standard)
+        case .high:     return I18nManager.shared.t(.secv_lvl_high)
+        case .maximum:  return I18nManager.shared.t(.secv_lvl_maximum)
         }
     }
 }
@@ -33,8 +40,8 @@ struct SecurityEvent: Identifiable {
     let severity: Severity
     let source: String
 
-    enum EventType: String { case access = "访问控制", network = "网络", file = "文件", process = "进程", integrity = "完整性" }
-    enum Severity: String { case info = "信息", warning = "警告", critical = "严重" }
+    enum EventType: String { case access, network, file, process, integrity }
+    enum Severity: String { case info, warning, critical }
 }
 
 // MARK: - 安全扫描结果
@@ -47,7 +54,7 @@ struct SecurityScanResult: Identifiable {
     let detail: String
     let recommendation: String
 
-    enum ScanStatus: String { case passed = "通过", failed = "失败", warning = "警告" }
+    enum ScanStatus: String { case passed, failed, warning }
 }
 
 // MARK: - 安全管理器
@@ -73,16 +80,16 @@ class SecurityManager: ObservableObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             guard let self = self else { return }
             self.scanResults.append(contentsOf: [
-                SecurityScanResult(category: "文件系统", item: "沙箱隔离", status: self.sandboxEnabled ? .passed : .warning, detail: self.sandboxEnabled ? "沙箱已启用" : "沙箱未启用", recommendation: "建议启用沙箱以隔离文件访问"),
-                SecurityScanResult(category: "文件系统", item: "工作区权限", status: .passed, detail: "工作区目录权限正确 (0755)", recommendation: "维持当前权限设置"),
-                SecurityScanResult(category: "网络", item: "离线模式", status: UserDefaults.standard.bool(forKey: "offlineMode") ? .passed : .warning, detail: UserDefaults.standard.bool(forKey: "offlineMode") ? "离线模式已开启" : "离线模式未开启", recommendation: "建议开启离线模式阻止外部网络请求"),
-                SecurityScanResult(category: "网络", item: "Socket 权限", status: .passed, detail: "Unix Socket 权限 0600", recommendation: "维持当前权限设置"),
-                SecurityScanResult(category: "进程", item: "后台服务隔离", status: .passed, detail: "env-daemon 以独立进程运行", recommendation: "维持当前配置"),
-                SecurityScanResult(category: "进程", item: "子进程管理", status: .passed, detail: "所有子进程受监控", recommendation: "维持当前配置"),
-                SecurityScanResult(category: "完整性", item: "应用签名", status: .warning, detail: "应用未签名", recommendation: "使用开发者证书签名应用"),
-                SecurityScanResult(category: "完整性", item: "代码完整性", status: .passed, detail: "核心文件完整性检查通过", recommendation: "维持当前配置"),
-                SecurityScanResult(category: "数据", item: "用户数据加密", status: .warning, detail: "本地数据存储未加密", recommendation: "考虑使用 FileVault 加密磁盘"),
-                SecurityScanResult(category: "数据", item: "日志安全", status: .passed, detail: "日志不包含敏感信息", recommendation: "维持当前配置"),
+                SecurityScanResult(category: I18nManager.shared.t(.secv_cat_filesystem), item: I18nManager.shared.t(.secv_item_sandbox), status: self.sandboxEnabled ? .passed : .warning, detail: self.sandboxEnabled ? I18nManager.shared.t(.secv_detail_sandbox_on) : I18nManager.shared.t(.secv_detail_sandbox_off), recommendation: I18nManager.shared.t(.secv_reco_sandbox)),
+                SecurityScanResult(category: I18nManager.shared.t(.secv_cat_filesystem), item: I18nManager.shared.t(.secv_item_workspace_perm), status: .passed, detail: I18nManager.shared.t(.secv_detail_workspace_perm), recommendation: I18nManager.shared.t(.secv_reco_keep)),
+                SecurityScanResult(category: I18nManager.shared.t(.secv_cat_network), item: I18nManager.shared.t(.secv_item_offline_mode), status: UserDefaults.standard.bool(forKey: "offlineMode") ? .passed : .warning, detail: UserDefaults.standard.bool(forKey: "offlineMode") ? I18nManager.shared.t(.secv_detail_offline_on) : I18nManager.shared.t(.secv_detail_offline_off), recommendation: I18nManager.shared.t(.secv_reco_offline)),
+                SecurityScanResult(category: I18nManager.shared.t(.secv_cat_network), item: I18nManager.shared.t(.secv_item_socket_perm), status: .passed, detail: I18nManager.shared.t(.secv_detail_socket_perm), recommendation: I18nManager.shared.t(.secv_reco_keep)),
+                SecurityScanResult(category: I18nManager.shared.t(.secv_cat_process), item: I18nManager.shared.t(.secv_item_service_isolation), status: .passed, detail: I18nManager.shared.t(.secv_detail_service_isolation), recommendation: I18nManager.shared.t(.secv_reco_keep_config)),
+                SecurityScanResult(category: I18nManager.shared.t(.secv_cat_process), item: I18nManager.shared.t(.secv_item_subprocess), status: .passed, detail: I18nManager.shared.t(.secv_detail_subprocess), recommendation: I18nManager.shared.t(.secv_reco_keep_config)),
+                SecurityScanResult(category: I18nManager.shared.t(.secv_cat_integrity), item: I18nManager.shared.t(.secv_item_app_signature), status: .warning, detail: I18nManager.shared.t(.secv_detail_unsigned), recommendation: I18nManager.shared.t(.secv_reco_sign)),
+                SecurityScanResult(category: I18nManager.shared.t(.secv_cat_integrity), item: I18nManager.shared.t(.secv_item_code_integrity), status: .passed, detail: I18nManager.shared.t(.secv_detail_code_integrity_pass), recommendation: I18nManager.shared.t(.secv_reco_keep_config)),
+                SecurityScanResult(category: I18nManager.shared.t(.secv_cat_data), item: I18nManager.shared.t(.secv_item_data_encryption), status: .warning, detail: I18nManager.shared.t(.secv_detail_data_unencrypted), recommendation: I18nManager.shared.t(.secv_reco_filevault)),
+                SecurityScanResult(category: I18nManager.shared.t(.secv_cat_data), item: I18nManager.shared.t(.secv_item_log_security), status: .passed, detail: I18nManager.shared.t(.secv_detail_log_clean), recommendation: I18nManager.shared.t(.secv_reco_keep_config)),
             ])
             self.isScanning = false
             self.objectWillChange.send()
@@ -150,12 +157,23 @@ struct SecurityView: View {
     @State private var selectedTab: SecurityTab = .dashboard
 
     enum SecurityTab: String, CaseIterable {
-        case dashboard = "安全概览"
-        case projects  = "项目与扫描"
-        case vulns     = "漏洞清单"
-        case patch     = "AI 修复"
-        case gate      = "质量门禁"
-        case runtime   = "运行时防护"
+        case dashboard
+        case projects
+        case vulns
+        case patch
+        case gate
+        case runtime
+
+        var localizedName: String {
+            switch self {
+            case .dashboard: return I18nManager.shared.t(.secv_tab_dashboard)
+            case .projects:  return I18nManager.shared.t(.secv_tab_projects)
+            case .vulns:     return I18nManager.shared.t(.secv_tab_vulns)
+            case .patch:     return I18nManager.shared.t(.secv_tab_patch)
+            case .gate:      return I18nManager.shared.t(.secv_tab_gate)
+            case .runtime:   return I18nManager.shared.t(.secv_tab_runtime)
+            }
+        }
     }
 
     var body: some View {
@@ -163,14 +181,14 @@ struct SecurityView: View {
             HStack {
                 Image(systemName: "shield.checkered")
                     .foregroundColor(.green)
-                Text("安全中心")
+                Text(I18nManager.shared.t(.secv_center))
                     .font(.headline)
                 Spacer()
                 if bridge.isConnected {
-                    Label("已连接", systemImage: "checkmark.circle.fill")
+                    Label(I18nManager.shared.t(.secv_connected), systemImage: "checkmark.circle.fill")
                         .font(.caption).foregroundColor(.green)
                 } else {
-                    Label("离线", systemImage: "xmark.circle.fill")
+                    Label(I18nManager.shared.t(.secv_offline), systemImage: "xmark.circle.fill")
                         .font(.caption).foregroundColor(.red)
                 }
             }
@@ -182,7 +200,7 @@ struct SecurityView: View {
 
             Picker("", selection: $selectedTab) {
                 ForEach(SecurityTab.allCases, id: \.self) { tab in
-                    Label(tab.rawValue, systemImage: tabIcon(tab)).tag(tab)
+                    Label(tab.localizedName, systemImage: tabIcon(tab)).tag(tab)
                 }
             }
             .pickerStyle(.segmented)
@@ -239,10 +257,10 @@ struct SecOverviewTab: View {
             VStack(spacing: 12) {
                 if let info = bridge.systemInfo {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("引擎信息").font(.caption).foregroundColor(.secondary)
+                        Text(I18nManager.shared.t(.secv_engine_info)).font(.caption).foregroundColor(.secondary)
                         Text("\(info.name ?? "Fusion-Security")  v\(info.version ?? "?")")
                             .font(.subheadline)
-                        Text("平台: \(info.platform ?? "?") · Python \(info.pythonVersion ?? "?")")
+                        Text(I18nManager.shared.tf(.secv_platform_fmt, info.platform ?? "?", info.pythonVersion ?? "?"))
                             .font(.caption2).foregroundColor(.secondary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -252,18 +270,18 @@ struct SecOverviewTab: View {
                 }
 
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 160))], spacing: 12) {
-                    SecStatCard(title: "扫描总数", value: bridge.dashboard?.totalScans ?? 0, icon: "magnifyingglass", color: .blue)
-                    SecStatCard(title: "漏洞总数", value: bridge.dashboard?.totalVulnerabilities ?? 0, icon: "exclamationmark.shield", color: .orange)
-                    SecStatCard(title: "项目数", value: bridge.dashboard?.projectsCount ?? bridge.projects.count, icon: "folder", color: .green)
-                    SecStatCard(title: "严重", value: bridge.dashboard?.severityCounts?.critical ?? 0, icon: "flame.fill", color: .red)
-                    SecStatCard(title: "高危", value: bridge.dashboard?.severityCounts?.high ?? 0, icon: "exclamationmark.triangle.fill", color: .orange)
-                    SecStatCard(title: "中危", value: bridge.dashboard?.severityCounts?.medium ?? 0, icon: "exclamationmark.circle.fill", color: .yellow)
-                    SecStatCard(title: "低危", value: bridge.dashboard?.severityCounts?.low ?? 0, icon: "info.circle.fill", color: .gray)
+                    SecStatCard(title: I18nManager.shared.t(.secv_stat_total_scans), value: bridge.dashboard?.totalScans ?? 0, icon: "magnifyingglass", color: .blue)
+                    SecStatCard(title: I18nManager.shared.t(.secv_stat_total_vulns), value: bridge.dashboard?.totalVulnerabilities ?? 0, icon: "exclamationmark.shield", color: .orange)
+                    SecStatCard(title: I18nManager.shared.t(.secv_stat_projects), value: bridge.dashboard?.projectsCount ?? bridge.projects.count, icon: "folder", color: .green)
+                    SecStatCard(title: I18nManager.shared.t(.secv_stat_critical), value: bridge.dashboard?.severityCounts?.critical ?? 0, icon: "flame.fill", color: .red)
+                    SecStatCard(title: I18nManager.shared.t(.secv_stat_high), value: bridge.dashboard?.severityCounts?.high ?? 0, icon: "exclamationmark.triangle.fill", color: .orange)
+                    SecStatCard(title: I18nManager.shared.t(.secv_stat_medium), value: bridge.dashboard?.severityCounts?.medium ?? 0, icon: "exclamationmark.circle.fill", color: .yellow)
+                    SecStatCard(title: I18nManager.shared.t(.secv_stat_low), value: bridge.dashboard?.severityCounts?.low ?? 0, icon: "info.circle.fill", color: .gray)
                 }
 
                 if let rules = bridge.dashboard?.topRules, !rules.isEmpty {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("高频规则 TOP").font(.caption).foregroundColor(.secondary)
+                        Text(I18nManager.shared.t(.secv_top_rules)).font(.caption).foregroundColor(.secondary)
                         ForEach(Array(rules.prefix(5).enumerated()), id: \.offset) { _, rule in
                             HStack {
                                 Text(rule.ruleId ?? "?").font(.system(.caption, design: .monospaced))
@@ -319,23 +337,23 @@ struct SecProjectsTab: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("项目 (\(bridge.projects.count))").font(.headline)
+                Text(I18nManager.shared.tf(.secv_projects_fmt, bridge.projects.count)).font(.headline)
                 Spacer()
                 Button { showCreate.toggle() } label: {
-                    Label("新建项目", systemImage: "plus.circle")
+                    Label(I18nManager.shared.t(.secv_new_project), systemImage: "plus.circle")
                 }.buttonStyle(.bordered).controlSize(.small)
             }.padding(8)
 
             if showCreate {
                 VStack(spacing: 6) {
-                    TextField("项目名", text: $newName).textFieldStyle(.roundedBorder)
-                    TextField("本地路径", text: $newPath).textFieldStyle(.roundedBorder)
+                    TextField(I18nManager.shared.t(.secv_project_name), text: $newName).textFieldStyle(.roundedBorder)
+                    TextField(I18nManager.shared.t(.secv_local_path), text: $newPath).textFieldStyle(.roundedBorder)
                     HStack {
-                        Picker("技术栈", selection: $newStack) {
+                        Picker(I18nManager.shared.t(.secv_tech_stack), selection: $newStack) {
                             ForEach(["python", "javascript", "typescript", "go", "rust", "java"], id: \.self) { Text($0) }
                         }.pickerStyle(.menu)
                         Spacer()
-                        Button("创建") {
+                        Button(I18nManager.shared.t(.secv_create)) {
                             bridge.createProject(name: newName, localPath: newPath, techStack: newStack) { _ in
                                 bridge.fetchProjects()
                                 newName = ""; newPath = ""; showCreate = false
@@ -349,7 +367,7 @@ struct SecProjectsTab: View {
             Divider()
 
             List {
-                Section("项目列表") {
+                Section(I18nManager.shared.t(.secv_project_list)) {
                     ForEach(bridge.projects) { p in
                         VStack(alignment: .leading, spacing: 2) {
                             HStack {
@@ -359,7 +377,7 @@ struct SecProjectsTab: View {
                                 }
                                 Spacer()
                                 Button { scanProjectId = p.id; scanPath = p.localPath ?? "" } label: {
-                                    Label("扫描", systemImage: "magnifyingglass")
+                                    Label(I18nManager.shared.t(.secv_scan), systemImage: "magnifyingglass")
                                 }.buttonStyle(.bordered).controlSize(.mini)
                             }
                             if let path = p.localPath {
@@ -370,23 +388,23 @@ struct SecProjectsTab: View {
                 }
 
                 if let sid = scanProjectId {
-                    Section("发起扫描 — \(bridge.projects.first(where: { $0.id == sid })?.name ?? sid)") {
-                        TextField("扫描路径", text: $scanPath).textFieldStyle(.roundedBorder)
-                        Toggle("使用 AI 增强分析", isOn: $useAi)
+                    Section(I18nManager.shared.tf(.secv_start_scan_fmt, bridge.projects.first(where: { $0.id == sid })?.name ?? sid)) {
+                        TextField(I18nManager.shared.t(.secv_scan_path), text: $scanPath).textFieldStyle(.roundedBorder)
+                        Toggle(I18nManager.shared.t(.secv_use_ai), isOn: $useAi)
                         HStack {
-                            Button("开始扫描") {
+                            Button(I18nManager.shared.t(.secv_start_scan)) {
                                 bridge.createScan(projectId: sid, path: scanPath, useAi: useAi) { _ in
                                     scanProjectId = nil
                                 }
                             }.buttonStyle(.borderedProminent).controlSize(.small)
                             .disabled(bridge.isScanning || scanPath.isEmpty)
-                            Button("取消") { scanProjectId = nil }.buttonStyle(.bordered).controlSize(.small)
+                            Button(I18nManager.shared.t(.secv_cancel)) { scanProjectId = nil }.buttonStyle(.bordered).controlSize(.small)
                             if bridge.isScanning { ProgressView().controlSize(.small) }
                         }
                     }
                 }
 
-                Section("扫描历史 (\(bridge.scans.count))") {
+                Section(I18nManager.shared.tf(.secv_scan_history_fmt, bridge.scans.count)) {
                     ForEach(bridge.scans) { s in
                         VStack(alignment: .leading, spacing: 2) {
                             HStack {
@@ -394,7 +412,7 @@ struct SecProjectsTab: View {
                                 Text(s.status).font(.caption).foregroundColor(secStatusColor(s.status))
                                 Spacer()
                                 if let total = s.totalVulnerabilities {
-                                    Text("\(total) 漏洞").font(.caption2).foregroundColor(.orange)
+                                    Text(I18nManager.shared.tf(.secv_vulns_count_fmt, total)).font(.caption2).foregroundColor(.orange)
                                 }
                             }
                             if let summary = s.summary {
@@ -427,12 +445,12 @@ struct SecVulnsTab: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Picker("严重度", selection: $filterSeverity) {
-                    ForEach(["all", "critical", "high", "medium", "low"], id: \.self) { Text($0 == "all" ? "全部" : $0.capitalized) }
+                Picker(I18nManager.shared.t(.secv_severity), selection: $filterSeverity) {
+                    ForEach(["all", "critical", "high", "medium", "low"], id: \.self) { Text($0 == "all" ? I18nManager.shared.t(.secv_all) : $0.capitalized) }
                 }.pickerStyle(.segmented).controlSize(.small)
                 Spacer()
                 Button { bridge.fetchVulnerabilities(); bridge.fetchVulnStats() } label: {
-                    Label("刷新", systemImage: "arrow.clockwise")
+                    Label(I18nManager.shared.t(.secv_refresh), systemImage: "arrow.clockwise")
                 }.buttonStyle(.bordered).controlSize(.small)
             }.padding(8)
 
@@ -452,15 +470,15 @@ struct SecVulnsTab: View {
                                 .padding(6).background(Color.black.opacity(0.3)).cornerRadius(4)
                         }
                         if let fix = v.fixSuggestion {
-                            Text("修复建议: \(fix)").font(.caption2).foregroundColor(.green)
+                            Text(I18nManager.shared.tf(.secv_fix_suggestion_fmt, fix)).font(.caption2).foregroundColor(.green)
                         }
                         HStack {
-                            Button("修复") { bridge.generatePatch(vulnId: v.id) { _ in bridge.fetchPatches() } }
+                            Button(I18nManager.shared.t(.secv_fix)) { bridge.generatePatch(vulnId: v.id) { _ in bridge.fetchPatches() } }
                                 .buttonStyle(.borderedProminent).controlSize(.mini)
-                            Button("误报") { bridge.markFalsePositive(id: v.id, reason: "Studio 标记") { _ in bridge.fetchVulnerabilities() } }
+                            Button(I18nManager.shared.t(.secv_false_positive)) { bridge.markFalsePositive(id: v.id, reason: I18nManager.shared.t(.secv_false_positive_reason)) { _ in bridge.fetchVulnerabilities() } }
                                 .buttonStyle(.bordered).controlSize(.mini)
                             if v.verified == true {
-                                Label("已验证", systemImage: "checkmark.seal.fill").font(.caption2).foregroundColor(.green)
+                                Label(I18nManager.shared.t(.secv_verified), systemImage: "checkmark.seal.fill").font(.caption2).foregroundColor(.green)
                             }
                         }.padding(.top, 4)
                     }
@@ -472,7 +490,7 @@ struct SecVulnsTab: View {
                             HStack {
                                 Text(v.severity).font(.caption2).padding(.horizontal, 4).background(sevColor(v.severity).opacity(0.15)).cornerRadius(3)
                                 if let cwe = v.cweId { Text(cwe).font(.caption2).foregroundColor(.secondary) }
-                                if let conf = v.confidence { Text("置信 \(Int(conf * 100))%").font(.caption2).foregroundColor(.secondary) }
+                                if let conf = v.confidence { Text(I18nManager.shared.tf(.secv_confidence_fmt, Int(conf * 100))).font(.caption2).foregroundColor(.secondary) }
                             }
                         }
                     }
@@ -504,20 +522,20 @@ struct SecPatchTab: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("AI 补丁 (\(bridge.patches.count))").font(.headline)
+                Text(I18nManager.shared.tf(.secv_ai_patches_fmt, bridge.patches.count)).font(.headline)
                 Spacer()
-                Button { bridge.fetchPatches() } label: { Label("刷新", systemImage: "arrow.clockwise") }
+                Button { bridge.fetchPatches() } label: { Label(I18nManager.shared.t(.secv_refresh), systemImage: "arrow.clockwise") }
                     .buttonStyle(.bordered).controlSize(.small)
             }.padding(8)
 
             if bridge.isLoading {
-                ProgressView("AI 生成中...").padding()
+                ProgressView(I18nManager.shared.t(.secv_ai_generating)).padding()
             }
 
             if bridge.patches.isEmpty && !bridge.isLoading {
                 VStack(spacing: 12) {
                     Image(systemName: "wrench.and.screwdriver").font(.system(size: 36)).foregroundColor(.secondary)
-                    Text("在「漏洞清单」点击「修复」生成 AI 补丁").foregroundColor(.secondary).font(.caption)
+                    Text(I18nManager.shared.t(.secv_patch_empty_desc)).foregroundColor(.secondary).font(.caption)
                 }.frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List(bridge.patches) { p in
@@ -526,27 +544,27 @@ struct SecPatchTab: View {
                         set: { expandedPatch = $0 ? p.id : nil }
                     )) {
                         VStack(alignment: .leading, spacing: 6) {
-                            if let strat = p.strategy { Text("策略: \(strat)").font(.caption2).foregroundColor(.secondary) }
+                            if let strat = p.strategy { Text(I18nManager.shared.tf(.secv_strategy_fmt, strat)).font(.caption2).foregroundColor(.secondary) }
                             if let desc = p.description { Text(desc).font(.caption).foregroundColor(.secondary) }
                             if let orig = p.originalCode {
-                                Text("原始代码").font(.caption2).foregroundColor(.red)
+                                Text(I18nManager.shared.t(.secv_original_code)).font(.caption2).foregroundColor(.red)
                                 Text(orig).font(.system(.caption2, design: .monospaced)).padding(6).background(Color.black.opacity(0.3)).cornerRadius(4)
                             }
                             if let patched = p.patchedCode {
-                                Text("修复代码").font(.caption2).foregroundColor(.green)
+                                Text(I18nManager.shared.t(.secv_patched_code)).font(.caption2).foregroundColor(.green)
                                 Text(patched).font(.system(.caption2, design: .monospaced)).padding(6).background(Color.black.opacity(0.3)).cornerRadius(4)
                             }
                             HStack {
                                 if p.status == "generated" || p.status == "pending" {
-                                    Button("应用补丁") { bridge.applyPatch(id: p.id) { _ in bridge.fetchPatches() } }
+                                    Button(I18nManager.shared.t(.secv_apply_patch)) { bridge.applyPatch(id: p.id) { _ in bridge.fetchPatches() } }
                                         .buttonStyle(.borderedProminent).controlSize(.mini)
                                 }
                                 if p.status == "applied" {
-                                    Button("验证补丁") { bridge.verifyPatch(id: p.id) { _ in bridge.fetchPatches() } }
+                                    Button(I18nManager.shared.t(.secv_verify_patch)) { bridge.verifyPatch(id: p.id) { _ in bridge.fetchPatches() } }
                                         .buttonStyle(.borderedProminent).controlSize(.mini)
                                 }
                                 if p.verified == true {
-                                    Label("已验证", systemImage: "checkmark.seal.fill").font(.caption2).foregroundColor(.green)
+                                    Label(I18nManager.shared.t(.secv_verified), systemImage: "checkmark.seal.fill").font(.caption2).foregroundColor(.green)
                                 }
                             }.padding(.top, 4)
                         }
@@ -554,8 +572,8 @@ struct SecPatchTab: View {
                         HStack {
                             Image(systemName: patchStatusIcon(p.status ?? "")).foregroundColor(patchStatusColor(p.status ?? ""))
                             VStack(alignment: .leading, spacing: 1) {
-                                Text("补丁 \(p.id.prefix(8))").font(.subheadline)
-                                Text("漏洞 \(p.vulnId?.prefix(8) ?? "?")").font(.caption2).foregroundColor(.secondary)
+                                Text(I18nManager.shared.tf(.secv_patch_fmt, String(p.id.prefix(8)))).font(.subheadline)
+                                Text(I18nManager.shared.tf(.secv_vuln_fmt, String(p.vulnId?.prefix(8) ?? "?"))).font(.caption2).foregroundColor(.secondary)
                             }
                             Spacer()
                             Text(p.status ?? "?").font(.caption2).foregroundColor(patchStatusColor(p.status ?? ""))
@@ -592,17 +610,17 @@ struct SecGateTab: View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("门禁策略").font(.headline)
+                    Text(I18nManager.shared.t(.secv_gate_policy)).font(.headline)
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("策略名").font(.caption)
+                            Text(I18nManager.shared.t(.secv_policy_name)).font(.caption)
                             TextField("default", text: $policy).textFieldStyle(.roundedBorder).frame(width: 120)
                         }
                         HStack {
-                            Stepper("最大严重: \(maxCritical)", value: $maxCritical, in: 0...50)
-                            Stepper("最大高危: \(maxHigh)", value: $maxHigh, in: 0...50)
+                            Stepper(I18nManager.shared.tf(.secv_max_critical, maxCritical), value: $maxCritical, in: 0...50)
+                            Stepper(I18nManager.shared.tf(.secv_max_high, maxHigh), value: $maxHigh, in: 0...50)
                         }
-                        Button("评估门禁 (基于当前漏洞)") {
+                        Button(I18nManager.shared.t(.secv_evaluate_gate)) {
                             let vulnArr: [[String: Any]] = bridge.vulnerabilities.map { v in
                                 ["severity": v.severity, "status": v.status ?? "open", "id": v.id]
                             }
@@ -617,15 +635,15 @@ struct SecGateTab: View {
                         HStack {
                             Image(systemName: r.passed ? "checkmark.seal.fill" : "xmark.octagon.fill")
                                 .foregroundColor(r.passed ? .green : .red).font(.title2)
-                            Text(r.passed ? "门禁通过" : "门禁未通过").font(.headline)
+                            Text(r.passed ? I18nManager.shared.t(.secv_gate_passed) : I18nManager.shared.t(.secv_gate_failed)).font(.headline)
                             Spacer()
                         }.padding(10).background((r.passed ? Color.green : Color.red).opacity(0.1)).cornerRadius(8)
                         if let blocked = r.blockedBy, !blocked.isEmpty {
-                            Text("阻断项: \(blocked.joined(separator: ", "))").font(.caption).foregroundColor(.red)
+                            Text(I18nManager.shared.tf(.secv_blocked_by_fmt, blocked.joined(separator: ", "))).font(.caption).foregroundColor(.red)
                         }
                     }
 
-                    Text("内置规则 (\(bridge.rules.count))").font(.headline).padding(.top, 8)
+                    Text(I18nManager.shared.tf(.secv_builtin_rules_fmt, bridge.rules.count)).font(.headline).padding(.top, 8)
                     ForEach(bridge.rules.prefix(10)) { rule in
                         HStack {
                             VStack(alignment: .leading, spacing: 1) {
@@ -638,17 +656,17 @@ struct SecGateTab: View {
                         }
                     }
 
-                    Text("自定义规则 (\(bridge.customRules.count))").font(.headline).padding(.top, 8)
+                    Text(I18nManager.shared.tf(.secv_custom_rules_fmt, bridge.customRules.count)).font(.headline).padding(.top, 8)
                     VStack(spacing: 4) {
-                        TextField("规则 ID", text: $newRuleId).textFieldStyle(.roundedBorder)
-                        TextField("名称", text: $newRuleName).textFieldStyle(.roundedBorder)
-                        TextField("正则模式", text: $newRulePattern).textFieldStyle(.roundedBorder)
+                        TextField(I18nManager.shared.t(.secv_rule_id), text: $newRuleId).textFieldStyle(.roundedBorder)
+                        TextField(I18nManager.shared.t(.secv_name), text: $newRuleName).textFieldStyle(.roundedBorder)
+                        TextField(I18nManager.shared.t(.secv_regex_pattern), text: $newRulePattern).textFieldStyle(.roundedBorder)
                         HStack {
-                            Picker("严重度", selection: $newRuleSeverity) {
+                            Picker(I18nManager.shared.t(.secv_severity), selection: $newRuleSeverity) {
                                 ForEach(["critical", "high", "medium", "low"], id: \.self) { Text($0) }
                             }.pickerStyle(.menu).controlSize(.small)
                             Spacer()
-                            Button("添加") {
+                            Button(I18nManager.shared.t(.secv_add)) {
                                 bridge.createCustomRule(id: newRuleId, name: newRuleName, pattern: newRulePattern, severity: newRuleSeverity) { _ in
                                     bridge.fetchCustomRules()
                                     newRuleId = ""; newRuleName = ""; newRulePattern = ""
@@ -692,10 +710,10 @@ struct SecRuntimeTab: View {
 
     var body: some View {
         Form {
-            Section("安全等级") {
-                Picker("安全等级", selection: $securityLevelRaw) {
+            Section(I18nManager.shared.t(.secv_security_level)) {
+                Picker(I18nManager.shared.t(.secv_security_level), selection: $securityLevelRaw) {
                     ForEach(SecurityLevel.allCases, id: \.rawValue) { level in
-                        Text(level.rawValue).tag(level.rawValue)
+                        Text(level.localizedName).tag(level.rawValue)
                     }
                 }.pickerStyle(.segmented)
                 if let level = SecurityLevel(rawValue: securityLevelRaw) {
@@ -703,32 +721,32 @@ struct SecRuntimeTab: View {
                 }
             }
 
-            Section("本地防护") {
-                Toggle("离线模式", isOn: $offlineMode).help("开启后阻止所有外部网络请求")
-                Toggle("沙箱隔离", isOn: $sandboxEnabled).help("限制应用访问文件系统范围")
-                Toggle("文件访问控制", isOn: $fileAccessControl).help("限制仅允许访问特定目录")
-                Toggle("网络访问控制", isOn: $networkAccessControl).help("控制网络请求的发起")
-                Toggle("完整性检查", isOn: $integrityCheck).help("定期检查核心文件完整性")
+            Section(I18nManager.shared.t(.secv_local_protection)) {
+                Toggle(I18nManager.shared.t(.secv_offline_mode), isOn: $offlineMode).help(I18nManager.shared.t(.secv_offline_mode_help))
+                Toggle(I18nManager.shared.t(.secv_sandbox_isolation), isOn: $sandboxEnabled).help(I18nManager.shared.t(.secv_sandbox_help))
+                Toggle(I18nManager.shared.t(.secv_file_access), isOn: $fileAccessControl).help(I18nManager.shared.t(.secv_file_access_help))
+                Toggle(I18nManager.shared.t(.secv_network_access), isOn: $networkAccessControl).help(I18nManager.shared.t(.secv_network_access_help))
+                Toggle(I18nManager.shared.t(.secv_integrity_check), isOn: $integrityCheck).help(I18nManager.shared.t(.secv_integrity_help))
             }
             .onChange(of: sandboxEnabled) { _, v in security.sandboxEnabled = v }
             .onChange(of: fileAccessControl) { _, v in security.fileAccessControl = v }
             .onChange(of: networkAccessControl) { _, v in security.networkAccessControl = v }
             .onChange(of: integrityCheck) { _, v in security.integrityCheck = v }
 
-            Section("AI 运行时增强（超越 Claude Code）") {
-                Toggle("敏感信息脱敏", isOn: $secretRedaction)
-                    .help("自动在日志/输出/LLM 上下文中脱敏 API Key、Token、私钥")
-                Toggle("Prompt 注入检测", isOn: $promptInjectionGuard)
-                    .help("检测并拦截用户输入中的提示注入攻击模式")
+            Section(I18nManager.shared.t(.secv_ai_runtime_enhance)) {
+                Toggle(I18nManager.shared.t(.secv_secret_redaction), isOn: $secretRedaction)
+                    .help(I18nManager.shared.t(.secv_secret_redaction_help))
+                Toggle(I18nManager.shared.t(.secv_prompt_injection), isOn: $promptInjectionGuard)
+                    .help(I18nManager.shared.t(.secv_prompt_injection_help))
             }
 
-            Section("输入过滤") {
-                Text("所有用户输入将自动过滤 Shell 注入字符（; | & $ ` \\ > < !）")
+            Section(I18nManager.shared.t(.secv_input_filter)) {
+                Text(I18nManager.shared.t(.secv_input_filter_desc))
                     .font(.caption).foregroundColor(.secondary)
             }
 
-            Section("文件路径验证") {
-                Text("允许的目录:\n\(NSHomeDirectory())/.fusion-studio\n\(NSHomeDirectory())/FusionStudio\n/tmp")
+            Section(I18nManager.shared.t(.secv_path_validation)) {
+                Text(I18nManager.shared.tf(.secv_allowed_dirs_fmt, NSHomeDirectory(), NSHomeDirectory()))
                     .font(.system(.caption, design: .monospaced)).foregroundColor(.secondary)
             }
         }
@@ -742,7 +760,7 @@ struct SecurityLevelBadge: View {
     var body: some View {
         HStack(spacing: 4) {
             Circle().fill(color).frame(width: 6, height: 6)
-            Text(level.rawValue).font(.caption)
+            Text(level.localizedName).font(.caption)
         }
         .padding(.horizontal, 8).padding(.vertical, 4)
         .background(color.opacity(0.1)).cornerRadius(6)
