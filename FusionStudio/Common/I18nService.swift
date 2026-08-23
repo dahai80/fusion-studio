@@ -1691,6 +1691,82 @@ enum I18nKey: String, CaseIterable {
     case psvc_mcp_calls_fmt = "psvc_mcp_calls_fmt"
     case psvc_mcp_ratelimit = "psvc_mcp_ratelimit"
     case psvc_mcp_remaining_fmt = "psvc_mcp_remaining_fmt"
+    case mlo_q_speed_fastest = "mlo_q_speed_fastest"
+    case mlo_q_speed_veryfast = "mlo_q_speed_veryfast"
+    case mlo_q_speed_recommended = "mlo_q_speed_recommended"
+    case mlo_q_speed_medium = "mlo_q_speed_medium"
+    case mlo_q_speed_slow = "mlo_q_speed_slow"
+    case mlo_q_speed_vslow = "mlo_q_speed_vslow"
+    case mlo_q_speed_slowest = "mlo_q_speed_slowest"
+    case mlo_tab_config = "mlo_tab_config"
+    case mlo_tab_server = "mlo_tab_server"
+    case mlo_tab_bench = "mlo_tab_bench"
+    case mlo_tab_stats = "mlo_tab_stats"
+    case mlo_tab_recommend = "mlo_tab_recommend"
+    case mlo_sec_quant = "mlo_sec_quant"
+    case mlo_sec_mem = "mlo_sec_mem"
+    case mlo_sec_accel = "mlo_sec_accel"
+    case mlo_sec_parallel = "mlo_sec_parallel"
+    case mlo_sec_mem_est = "mlo_sec_mem_est"
+    case mlo_quant_precision = "mlo_quant_precision"
+    case mlo_metal_gpu = "mlo_metal_gpu"
+    case mlo_ane = "mlo_ane"
+    case mlo_flash_attn = "mlo_flash_attn"
+    case mlo_kv_cache = "mlo_kv_cache"
+    case mlo_cont_batch = "mlo_cont_batch"
+    case mlo_tensor_parallel = "mlo_tensor_parallel"
+    case mlo_default = "mlo_default"
+    case mlo_batch_size = "mlo_batch_size"
+    case mlo_model_weights = "mlo_model_weights"
+    case mlo_total_est = "mlo_total_est"
+    case mlo_mem_over_limit = "mlo_mem_over_limit"
+    case mlo_est_mem_fmt = "mlo_est_mem_fmt"
+    case mlo_speed_label_fmt = "mlo_speed_label_fmt"
+    case mlo_max_mem_fmt = "mlo_max_mem_fmt"
+    case mlo_ctx_len_fmt = "mlo_ctx_len_fmt"
+    case mlo_bench_running_fmt = "mlo_bench_running_fmt"
+    case mlo_conv_log_start_fmt = "mlo_conv_log_start_fmt"
+    case mlo_conv_log_progress_fmt = "mlo_conv_log_progress_fmt"
+    case mlo_conv_log_done_fmt = "mlo_conv_log_done_fmt"
+    case mlo_bench_empty_desc = "mlo_bench_empty_desc"
+    case mlo_bench_start = "mlo_bench_start"
+    case mlo_bench_running_desc = "mlo_bench_running_desc"
+    case mlo_bench_results = "mlo_bench_results"
+    case mlo_bench_rerun = "mlo_bench_rerun"
+    case mlo_bench_clear = "mlo_bench_clear"
+    case mlo_stats_empty = "mlo_stats_empty"
+    case mlo_stat_speed = "mlo_stat_speed"
+    case mlo_stat_mem = "mlo_stat_mem"
+    case mlo_stat_latency = "mlo_stat_latency"
+    case mlo_recommended_badge = "mlo_recommended_badge"
+    case mlo_rec_title = "mlo_rec_title"
+    case mlo_rec_suggestion = "mlo_rec_suggestion"
+    case mlo_rec_quant = "mlo_rec_quant"
+    case mlo_rec_metal = "mlo_rec_metal"
+    case mlo_rec_flash_attn = "mlo_rec_flash_attn"
+    case mlo_rec_kv_cache = "mlo_rec_kv_cache"
+    case mlo_rec_ctx_len = "mlo_rec_ctx_len"
+    case mlo_rec_max_mem = "mlo_rec_max_mem"
+    case mlo_rec_est_perf = "mlo_rec_est_perf"
+    case mlo_rec_apply = "mlo_rec_apply"
+    case mlo_rec_empty_desc = "mlo_rec_empty_desc"
+    case mlo_rec_run_bench = "mlo_rec_run_bench"
+    case mlo_conv_title = "mlo_conv_title"
+    case mlo_conv_source_ph = "mlo_conv_source_ph"
+    case mlo_conv_browse = "mlo_conv_browse"
+    case mlo_conv_target_fmt = "mlo_conv_target_fmt"
+    case mlo_conv_converting = "mlo_conv_converting"
+    case mlo_conv_start = "mlo_conv_start"
+    case mlo_server_ctrl = "mlo_server_ctrl"
+    case mlo_server_start = "mlo_server_start"
+    case mlo_server_stop = "mlo_server_stop"
+    case mlo_server_restart = "mlo_server_restart"
+    case mlo_server_status = "mlo_server_status"
+    case mlo_server_not_connected = "mlo_server_not_connected"
+    case mlo_hw_metrics = "mlo_hw_metrics"
+    case mlo_hw_no_data = "mlo_hw_no_data"
+    case mlo_enabled = "mlo_enabled"
+    case mlo_disabled = "mlo_disabled"
     case proj_subtitle = "proj_subtitle"
     case proj_searchPh = "proj_searchPh"
     case proj_newHelp = "proj_newHelp"
@@ -5688,6 +5764,82 @@ let zhCNTranslations: [String: String] = [
     "psvc_mcp_calls_fmt": "调用次数: %d",
     "psvc_mcp_ratelimit": "速率限制:",
     "psvc_mcp_remaining_fmt": "%d 剩余",
+    "mlo_q_speed_fastest": "最快",
+    "mlo_q_speed_veryfast": "很快",
+    "mlo_q_speed_recommended": "推荐",
+    "mlo_q_speed_medium": "中等",
+    "mlo_q_speed_slow": "较慢",
+    "mlo_q_speed_vslow": "慢",
+    "mlo_q_speed_slowest": "最慢",
+    "mlo_tab_config": "优化配置",
+    "mlo_tab_server": "服务器",
+    "mlo_tab_bench": "基准测试",
+    "mlo_tab_stats": "推理统计",
+    "mlo_tab_recommend": "推荐配置",
+    "mlo_sec_quant": "量化",
+    "mlo_sec_mem": "内存",
+    "mlo_sec_accel": "加速",
+    "mlo_sec_parallel": "并行",
+    "mlo_sec_mem_est": "内存预估",
+    "mlo_quant_precision": "量化精度",
+    "mlo_metal_gpu": "Metal GPU 加速",
+    "mlo_ane": "ANE 神经网络引擎",
+    "mlo_flash_attn": "Flash Attention",
+    "mlo_kv_cache": "KV Cache",
+    "mlo_cont_batch": "连续批处理",
+    "mlo_tensor_parallel": "张量并行数",
+    "mlo_default": "1 (默认)",
+    "mlo_batch_size": "批处理大小",
+    "mlo_model_weights": "模型权重",
+    "mlo_total_est": "总计预估",
+    "mlo_mem_over_limit": "预估内存超出限制，建议降低量化精度或上下文长度",
+    "mlo_est_mem_fmt": "预估内存: %.1f GB",
+    "mlo_speed_label_fmt": "速度: %@",
+    "mlo_max_mem_fmt": "最大内存: %d GB",
+    "mlo_ctx_len_fmt": "上下文长度: %d",
+    "mlo_bench_running_fmt": "测试中... %d%%",
+    "mlo_conv_log_start_fmt": "开始转换: %@ → %@ %@...\n",
+    "mlo_conv_log_progress_fmt": "  [%d%%] 处理中...\n",
+    "mlo_conv_log_done_fmt": "✅ 转换完成: %@ %@\n",
+    "mlo_bench_empty_desc": "运行基准测试以评估各量化等级的性能",
+    "mlo_bench_start": "开始基准测试",
+    "mlo_bench_running_desc": "正在测试不同量化等级的性能和内存占用",
+    "mlo_bench_results": "基准测试结果",
+    "mlo_bench_rerun": "重新测试",
+    "mlo_bench_clear": "清空",
+    "mlo_stats_empty": "运行基准测试以查看统计",
+    "mlo_stat_speed": "速度",
+    "mlo_stat_mem": "内存",
+    "mlo_stat_latency": "延迟",
+    "mlo_recommended_badge": "🏆 推荐",
+    "mlo_rec_title": "推荐配置",
+    "mlo_rec_suggestion": "优化建议",
+    "mlo_rec_quant": "量化精度",
+    "mlo_rec_metal": "Metal 加速",
+    "mlo_rec_flash_attn": "Flash Attention",
+    "mlo_rec_kv_cache": "KV Cache",
+    "mlo_rec_ctx_len": "上下文长度",
+    "mlo_rec_max_mem": "最大内存",
+    "mlo_rec_est_perf": "预估性能",
+    "mlo_rec_apply": "应用推荐配置",
+    "mlo_rec_empty_desc": "运行基准测试以获取推荐配置",
+    "mlo_rec_run_bench": "运行基准测试",
+    "mlo_conv_title": "模型转换",
+    "mlo_conv_source_ph": "源模型路径",
+    "mlo_conv_browse": "浏览",
+    "mlo_conv_target_fmt": "目标格式",
+    "mlo_conv_converting": "转换中...",
+    "mlo_conv_start": "开始转换",
+    "mlo_server_ctrl": "服务器控制",
+    "mlo_server_start": "启动",
+    "mlo_server_stop": "停止",
+    "mlo_server_restart": "重启",
+    "mlo_server_status": "服务器状态",
+    "mlo_server_not_connected": "未连接",
+    "mlo_hw_metrics": "硬件指标",
+    "mlo_hw_no_data": "无数据",
+    "mlo_enabled": "启用",
+    "mlo_disabled": "禁用",
     "proj_subtitle": "管理你的 AI 项目、指令和知识库",
     "proj_searchPh": "搜索项目",
     "proj_newHelp": "新建项目",
@@ -9638,6 +9790,82 @@ let enUSTranslations: [String: String] = [
     "psvc_mcp_calls_fmt": "Calls: %d",
     "psvc_mcp_ratelimit": "Rate limit:",
     "psvc_mcp_remaining_fmt": "%d remaining",
+    "mlo_q_speed_fastest": "Fastest",
+    "mlo_q_speed_veryfast": "Very fast",
+    "mlo_q_speed_recommended": "Recommended",
+    "mlo_q_speed_medium": "Medium",
+    "mlo_q_speed_slow": "Somewhat slow",
+    "mlo_q_speed_vslow": "Slow",
+    "mlo_q_speed_slowest": "Slowest",
+    "mlo_tab_config": "Optimization",
+    "mlo_tab_server": "Server",
+    "mlo_tab_bench": "Benchmark",
+    "mlo_tab_stats": "Inference Stats",
+    "mlo_tab_recommend": "Recommended",
+    "mlo_sec_quant": "Quantization",
+    "mlo_sec_mem": "Memory",
+    "mlo_sec_accel": "Acceleration",
+    "mlo_sec_parallel": "Parallelism",
+    "mlo_sec_mem_est": "Memory Estimate",
+    "mlo_quant_precision": "Quantization precision",
+    "mlo_metal_gpu": "Metal GPU acceleration",
+    "mlo_ane": "ANE neural engine",
+    "mlo_flash_attn": "Flash Attention",
+    "mlo_kv_cache": "KV Cache",
+    "mlo_cont_batch": "Continuous batching",
+    "mlo_tensor_parallel": "Tensor parallelism",
+    "mlo_default": "1 (default)",
+    "mlo_batch_size": "Batch size",
+    "mlo_model_weights": "Model weights",
+    "mlo_total_est": "Total estimate",
+    "mlo_mem_over_limit": "Estimated memory exceeds the limit. Lower quantization precision or context length.",
+    "mlo_est_mem_fmt": "Estimated memory: %.1f GB",
+    "mlo_speed_label_fmt": "Speed: %@",
+    "mlo_max_mem_fmt": "Max memory: %d GB",
+    "mlo_ctx_len_fmt": "Context length: %d",
+    "mlo_bench_running_fmt": "Testing... %d%%",
+    "mlo_conv_log_start_fmt": "Starting conversion: %@ → %@ %@...\n",
+    "mlo_conv_log_progress_fmt": "  [%d%%] Processing...\n",
+    "mlo_conv_log_done_fmt": "✅ Conversion done: %@ %@\n",
+    "mlo_bench_empty_desc": "Run a benchmark to evaluate performance across quantization levels",
+    "mlo_bench_start": "Start benchmark",
+    "mlo_bench_running_desc": "Testing performance and memory usage across quantization levels",
+    "mlo_bench_results": "Benchmark results",
+    "mlo_bench_rerun": "Re-run",
+    "mlo_bench_clear": "Clear",
+    "mlo_stats_empty": "Run a benchmark to view stats",
+    "mlo_stat_speed": "Speed",
+    "mlo_stat_mem": "Memory",
+    "mlo_stat_latency": "Latency",
+    "mlo_recommended_badge": "🏆 Recommended",
+    "mlo_rec_title": "Recommended config",
+    "mlo_rec_suggestion": "Suggestions",
+    "mlo_rec_quant": "Quantization",
+    "mlo_rec_metal": "Metal accel",
+    "mlo_rec_flash_attn": "Flash Attention",
+    "mlo_rec_kv_cache": "KV Cache",
+    "mlo_rec_ctx_len": "Context length",
+    "mlo_rec_max_mem": "Max memory",
+    "mlo_rec_est_perf": "Est. performance",
+    "mlo_rec_apply": "Apply recommended",
+    "mlo_rec_empty_desc": "Run a benchmark to get a recommendation",
+    "mlo_rec_run_bench": "Run benchmark",
+    "mlo_conv_title": "Model conversion",
+    "mlo_conv_source_ph": "Source model path",
+    "mlo_conv_browse": "Browse",
+    "mlo_conv_target_fmt": "Target format",
+    "mlo_conv_converting": "Converting...",
+    "mlo_conv_start": "Start conversion",
+    "mlo_server_ctrl": "Server control",
+    "mlo_server_start": "Start",
+    "mlo_server_stop": "Stop",
+    "mlo_server_restart": "Restart",
+    "mlo_server_status": "Server status",
+    "mlo_server_not_connected": "Not connected",
+    "mlo_hw_metrics": "Hardware metrics",
+    "mlo_hw_no_data": "No data",
+    "mlo_enabled": "Enabled",
+    "mlo_disabled": "Disabled",
     "proj_subtitle": "Manage your AI projects, instructions and knowledge base",
     "proj_searchPh": "Search projects",
     "proj_newHelp": "New project",
@@ -13582,6 +13810,82 @@ let jaJPTranslations: [String: String] = [
     "psvc_mcp_calls_fmt": "呼び出し回数: %d",
     "psvc_mcp_ratelimit": "レート制限:",
     "psvc_mcp_remaining_fmt": "残り %d",
+    "mlo_q_speed_fastest": "最速",
+    "mlo_q_speed_veryfast": "高速",
+    "mlo_q_speed_recommended": "推奨",
+    "mlo_q_speed_medium": "中程度",
+    "mlo_q_speed_slow": "やや遅い",
+    "mlo_q_speed_vslow": "遅い",
+    "mlo_q_speed_slowest": "最遅",
+    "mlo_tab_config": "最適化設定",
+    "mlo_tab_server": "サーバー",
+    "mlo_tab_bench": "ベンチマーク",
+    "mlo_tab_stats": "推論統計",
+    "mlo_tab_recommend": "推奨設定",
+    "mlo_sec_quant": "量子化",
+    "mlo_sec_mem": "メモリ",
+    "mlo_sec_accel": "アクセラレーション",
+    "mlo_sec_parallel": "並列",
+    "mlo_sec_mem_est": "メモリ見積もり",
+    "mlo_quant_precision": "量子化精度",
+    "mlo_metal_gpu": "Metal GPU アクセラレーション",
+    "mlo_ane": "ANE ニューラルエンジン",
+    "mlo_flash_attn": "Flash Attention",
+    "mlo_kv_cache": "KV Cache",
+    "mlo_cont_batch": "連続バッチ処理",
+    "mlo_tensor_parallel": "テンソル並列数",
+    "mlo_default": "1 (デフォルト)",
+    "mlo_batch_size": "バッチサイズ",
+    "mlo_model_weights": "モデル重み",
+    "mlo_total_est": "合計見積もり",
+    "mlo_mem_over_limit": "見積もりメモリが上限を超えました。量子化精度またはコンテキスト長を下げてください。",
+    "mlo_est_mem_fmt": "見積もりメモリ: %.1f GB",
+    "mlo_speed_label_fmt": "速度: %@",
+    "mlo_max_mem_fmt": "最大メモリ: %d GB",
+    "mlo_ctx_len_fmt": "コンテキスト長: %d",
+    "mlo_bench_running_fmt": "テスト中... %d%%",
+    "mlo_conv_log_start_fmt": "変換開始: %@ → %@ %@...\n",
+    "mlo_conv_log_progress_fmt": "  [%d%%] 処理中...\n",
+    "mlo_conv_log_done_fmt": "✅ 変換完了: %@ %@\n",
+    "mlo_bench_empty_desc": "ベンチマークを実行して各量子化レベルの性能を評価",
+    "mlo_bench_start": "ベンチマーク開始",
+    "mlo_bench_running_desc": "各量子化レベルの性能とメモリ使用量をテスト中",
+    "mlo_bench_results": "ベンチマーク結果",
+    "mlo_bench_rerun": "再テスト",
+    "mlo_bench_clear": "クリア",
+    "mlo_stats_empty": "ベンチマークを実行して統計を表示",
+    "mlo_stat_speed": "速度",
+    "mlo_stat_mem": "メモリ",
+    "mlo_stat_latency": "遅延",
+    "mlo_recommended_badge": "🏆 推奨",
+    "mlo_rec_title": "推奨設定",
+    "mlo_rec_suggestion": "最適化の提案",
+    "mlo_rec_quant": "量子化精度",
+    "mlo_rec_metal": "Metal アクセラレーション",
+    "mlo_rec_flash_attn": "Flash Attention",
+    "mlo_rec_kv_cache": "KV Cache",
+    "mlo_rec_ctx_len": "コンテキスト長",
+    "mlo_rec_max_mem": "最大メモリ",
+    "mlo_rec_est_perf": "見積もり性能",
+    "mlo_rec_apply": "推奨設定を適用",
+    "mlo_rec_empty_desc": "ベンチマークを実行して推奨設定を取得",
+    "mlo_rec_run_bench": "ベンチマーク実行",
+    "mlo_conv_title": "モデル変換",
+    "mlo_conv_source_ph": "ソースモデルパス",
+    "mlo_conv_browse": "参照",
+    "mlo_conv_target_fmt": "ターゲット形式",
+    "mlo_conv_converting": "変換中...",
+    "mlo_conv_start": "変換開始",
+    "mlo_server_ctrl": "サーバー制御",
+    "mlo_server_start": "起動",
+    "mlo_server_stop": "停止",
+    "mlo_server_restart": "再起動",
+    "mlo_server_status": "サーバー状態",
+    "mlo_server_not_connected": "未接続",
+    "mlo_hw_metrics": "ハードウェア指標",
+    "mlo_hw_no_data": "データなし",
+    "mlo_enabled": "有効",
+    "mlo_disabled": "無効",
     "proj_subtitle": "AIプロジェクト・指示・ナレッジベースを管理",
     "proj_searchPh": "プロジェクトを検索",
     "proj_newHelp": "新規プロジェクト",
@@ -17526,6 +17830,82 @@ let koKRTranslations: [String: String] = [
     "psvc_mcp_calls_fmt": "호출 횟수: %d",
     "psvc_mcp_ratelimit": "속도 제한:",
     "psvc_mcp_remaining_fmt": "남은 %d",
+    "mlo_q_speed_fastest": "최고속",
+    "mlo_q_speed_veryfast": "매우 빠름",
+    "mlo_q_speed_recommended": "권장",
+    "mlo_q_speed_medium": "보통",
+    "mlo_q_speed_slow": "다소 느림",
+    "mlo_q_speed_vslow": "느림",
+    "mlo_q_speed_slowest": "최저속",
+    "mlo_tab_config": "최적화 설정",
+    "mlo_tab_server": "서버",
+    "mlo_tab_bench": "벤치마크",
+    "mlo_tab_stats": "추론 통계",
+    "mlo_tab_recommend": "권장 설정",
+    "mlo_sec_quant": "양자화",
+    "mlo_sec_mem": "메모리",
+    "mlo_sec_accel": "가속",
+    "mlo_sec_parallel": "병렬",
+    "mlo_sec_mem_est": "메모리 예상",
+    "mlo_quant_precision": "양자화 정밀도",
+    "mlo_metal_gpu": "Metal GPU 가속",
+    "mlo_ane": "ANE 신경망 엔진",
+    "mlo_flash_attn": "Flash Attention",
+    "mlo_kv_cache": "KV Cache",
+    "mlo_cont_batch": "연속 배치 처리",
+    "mlo_tensor_parallel": "텐서 병렬 수",
+    "mlo_default": "1 (기본값)",
+    "mlo_batch_size": "배치 크기",
+    "mlo_model_weights": "모델 가중치",
+    "mlo_total_est": "총 예상",
+    "mlo_mem_over_limit": "예상 메모리가 한도를 초과했습니다. 양자화 정밀도 또는 컨텍스트 길이를 낮추세요.",
+    "mlo_est_mem_fmt": "예상 메모리: %.1f GB",
+    "mlo_speed_label_fmt": "속도: %@",
+    "mlo_max_mem_fmt": "최대 메모리: %d GB",
+    "mlo_ctx_len_fmt": "컨텍스트 길이: %d",
+    "mlo_bench_running_fmt": "테스트 중... %d%%",
+    "mlo_conv_log_start_fmt": "변환 시작: %@ → %@ %@...\n",
+    "mlo_conv_log_progress_fmt": "  [%d%%] 처리 중...\n",
+    "mlo_conv_log_done_fmt": "✅ 변환 완료: %@ %@\n",
+    "mlo_bench_empty_desc": "벤치마크를 실행해 각 양자화 수준의 성능 평가",
+    "mlo_bench_start": "벤치마크 시작",
+    "mlo_bench_running_desc": "각 양자화 수준의 성능과 메모리 사용량 테스트 중",
+    "mlo_bench_results": "벤치마크 결과",
+    "mlo_bench_rerun": "다시 테스트",
+    "mlo_bench_clear": "지우기",
+    "mlo_stats_empty": "벤치마크를 실행해 통계 표시",
+    "mlo_stat_speed": "속도",
+    "mlo_stat_mem": "메모리",
+    "mlo_stat_latency": "지연",
+    "mlo_recommended_badge": "🏆 권장",
+    "mlo_rec_title": "권장 설정",
+    "mlo_rec_suggestion": "최적화 제안",
+    "mlo_rec_quant": "양자화 정밀도",
+    "mlo_rec_metal": "Metal 가속",
+    "mlo_rec_flash_attn": "Flash Attention",
+    "mlo_rec_kv_cache": "KV Cache",
+    "mlo_rec_ctx_len": "컨텍스트 길이",
+    "mlo_rec_max_mem": "최대 메모리",
+    "mlo_rec_est_perf": "예상 성능",
+    "mlo_rec_apply": "권장 설정 적용",
+    "mlo_rec_empty_desc": "벤치마크를 실행해 권장 설정 받기",
+    "mlo_rec_run_bench": "벤치마크 실행",
+    "mlo_conv_title": "모델 변환",
+    "mlo_conv_source_ph": "소스 모델 경로",
+    "mlo_conv_browse": "찾아보기",
+    "mlo_conv_target_fmt": "대상 형식",
+    "mlo_conv_converting": "변환 중...",
+    "mlo_conv_start": "변환 시작",
+    "mlo_server_ctrl": "서버 제어",
+    "mlo_server_start": "시작",
+    "mlo_server_stop": "중지",
+    "mlo_server_restart": "재시작",
+    "mlo_server_status": "서버 상태",
+    "mlo_server_not_connected": "연결 안 됨",
+    "mlo_hw_metrics": "하드웨어 지표",
+    "mlo_hw_no_data": "데이터 없음",
+    "mlo_enabled": "활성화",
+    "mlo_disabled": "비활성화",
     "proj_subtitle": "AI 프로젝트·지시·지식베이스 관리",
     "proj_searchPh": "프로젝트 검색",
     "proj_newHelp": "새 프로젝트",

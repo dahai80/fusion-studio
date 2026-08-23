@@ -37,9 +37,13 @@ struct ModelOptimizationConfig {
         }
         var speed: String {
             switch self {
-            case .q2: return "最快"; case .q3: return "很快"; case .q4: return "推荐"
-            case .q5: return "中等"; case .q6: return "较慢"; case .q8: return "慢"
-            case .fp16: return "最慢"
+            case .q2: return I18nManager.shared.t(.mlo_q_speed_fastest)
+            case .q3: return I18nManager.shared.t(.mlo_q_speed_veryfast)
+            case .q4: return I18nManager.shared.t(.mlo_q_speed_recommended)
+            case .q5: return I18nManager.shared.t(.mlo_q_speed_medium)
+            case .q6: return I18nManager.shared.t(.mlo_q_speed_slow)
+            case .q8: return I18nManager.shared.t(.mlo_q_speed_vslow)
+            case .fp16: return I18nManager.shared.t(.mlo_q_speed_slowest)
             }
         }
     }
@@ -144,18 +148,28 @@ struct MLXOptimizerView: View {
     @State private var isLoadingStatus = false
 
     enum OptimizerTab: String, CaseIterable {
-        case config    = "优化配置"
-        case server    = "服务器"
-        case bench     = "基准测试"
-        case stats     = "推理统计"
-        case recommend = "推荐配置"
+        case config
+        case server
+        case bench
+        case stats
+        case recommend
+
+        var localizedName: String {
+            switch self {
+            case .config:    return I18nManager.shared.t(.mlo_tab_config)
+            case .server:    return I18nManager.shared.t(.mlo_tab_server)
+            case .bench:     return I18nManager.shared.t(.mlo_tab_bench)
+            case .stats:     return I18nManager.shared.t(.mlo_tab_stats)
+            case .recommend: return I18nManager.shared.t(.mlo_tab_recommend)
+            }
+        }
     }
 
     var body: some View {
         VStack(spacing: 0) {
             Picker("", selection: $selectedTab) {
                 ForEach(OptimizerTab.allCases, id: \.self) { tab in
-                    Label(tab.rawValue, systemImage: tabIcon(tab)).tag(tab)
+                    Label(tab.localizedName, systemImage: tabIcon(tab)).tag(tab)
                 }
             }
             .pickerStyle(.segmented)
@@ -199,72 +213,72 @@ struct OptimizerConfigView: View {
 
     var body: some View {
         Form {
-            Section("量化") {
-                Picker("量化精度", selection: $optimizer.config.quantization) {
+            Section(I18nManager.shared.t(.mlo_sec_quant)) {
+                Picker(I18nManager.shared.t(.mlo_quant_precision), selection: $optimizer.config.quantization) {
                     ForEach(ModelOptimizationConfig.QuantizationLevel.allCases, id: \.self) { q in
                         Text("\(q.rawValue) (\(q.speed), ~\(q.memoryGB, specifier: "%.1f")GB)").tag(q)
                     }
                 }
                 HStack {
-                    Text("预估内存: \(optimizer.config.quantization.memoryGB, specifier: "%.1f") GB")
+                    Text(I18nManager.shared.tf(.mlo_est_mem_fmt, optimizer.config.quantization.memoryGB))
                     Spacer()
-                    Text("速度: \(optimizer.config.quantization.speed)")
+                    Text(I18nManager.shared.tf(.mlo_speed_label_fmt, optimizer.config.quantization.speed))
                         .foregroundColor(.secondary)
                 }
                 .font(.caption)
             }
 
-            Section("内存") {
+            Section(I18nManager.shared.t(.mlo_sec_mem)) {
                 HStack {
-                    Text("最大内存: \(Int(optimizer.config.maxMemoryGB)) GB")
+                    Text(I18nManager.shared.tf(.mlo_max_mem_fmt, Int(optimizer.config.maxMemoryGB)))
                     Slider(value: $optimizer.config.maxMemoryGB, in: 4...64, step: 2)
                 }
                 HStack {
-                    Text("上下文长度: \(optimizer.config.maxContextLength)")
+                    Text(I18nManager.shared.tf(.mlo_ctx_len_fmt, optimizer.config.maxContextLength))
                     Slider(value: Binding(get: { Double(optimizer.config.maxContextLength) }, set: { optimizer.config.maxContextLength = Int($0) }), in: 1024...32768, step: 1024)
                 }
             }
 
-            Section("加速") {
-                Toggle("Metal GPU 加速", isOn: $optimizer.config.useMetal)
-                Toggle("ANE 神经网络引擎", isOn: $optimizer.config.useANE)
-                Toggle("Flash Attention", isOn: $optimizer.config.enableFlashAttention)
-                Toggle("KV Cache", isOn: $optimizer.config.useKVCache)
-                Toggle("连续批处理", isOn: $optimizer.config.enableContinuousBatching)
+            Section(I18nManager.shared.t(.mlo_sec_accel)) {
+                Toggle(I18nManager.shared.t(.mlo_metal_gpu), isOn: $optimizer.config.useMetal)
+                Toggle(I18nManager.shared.t(.mlo_ane), isOn: $optimizer.config.useANE)
+                Toggle(I18nManager.shared.t(.mlo_flash_attn), isOn: $optimizer.config.enableFlashAttention)
+                Toggle(I18nManager.shared.t(.mlo_kv_cache), isOn: $optimizer.config.useKVCache)
+                Toggle(I18nManager.shared.t(.mlo_cont_batch), isOn: $optimizer.config.enableContinuousBatching)
             }
 
-            Section("并行") {
-                Picker("张量并行数", selection: $optimizer.config.tensorParallelism) {
-                    Text("1 (默认)").tag(1)
+            Section(I18nManager.shared.t(.mlo_sec_parallel)) {
+                Picker(I18nManager.shared.t(.mlo_tensor_parallel), selection: $optimizer.config.tensorParallelism) {
+                    Text(I18nManager.shared.t(.mlo_default)).tag(1)
                     Text("2").tag(2)
                     Text("4").tag(4)
                 }
-                Picker("批处理大小", selection: $optimizer.config.batchSize) {
+                Picker(I18nManager.shared.t(.mlo_batch_size), selection: $optimizer.config.batchSize) {
                     Text("1").tag(1); Text("2").tag(2); Text("4").tag(4); Text("8").tag(8)
                 }
             }
 
-            Section("内存预估") {
+            Section(I18nManager.shared.t(.mlo_sec_mem_est)) {
                 let estimated = optimizer.config.quantization.memoryGB + Double(optimizer.config.maxContextLength) / 4096 * 0.5
                 HStack {
-                    Text("模型权重")
+                    Text(I18nManager.shared.t(.mlo_model_weights))
                     Spacer()
                     Text("\(optimizer.config.quantization.memoryGB, specifier: "%.1f") GB")
                 }
                 HStack {
-                    Text("KV Cache")
+                    Text(I18nManager.shared.t(.mlo_kv_cache))
                     Spacer()
                     Text("\(Double(optimizer.config.maxContextLength) / 4096 * 0.5, specifier: "%.1f") GB")
                 }
                 HStack {
-                    Text("总计预估")
+                    Text(I18nManager.shared.t(.mlo_total_est))
                         .fontWeight(.bold)
                     Spacer()
                     Text("\(estimated, specifier: "%.1f") GB")
                         .fontWeight(.bold)
                 }
                 if estimated > optimizer.config.maxMemoryGB {
-                    Label("预估内存超出限制，建议降低量化精度或上下文长度", systemImage: "exclamationmark.triangle")
+                    Label(I18nManager.shared.t(.mlo_mem_over_limit), systemImage: "exclamationmark.triangle")
                         .font(.caption).foregroundColor(.orange)
                 }
             }
@@ -285,26 +299,26 @@ struct BenchmarkView: View {
                 VStack(spacing: 12) {
                     Spacer()
                     Image(systemName: "speedometer").font(.system(size: 40)).foregroundColor(.secondary)
-                    Text("运行基准测试以评估各量化等级的性能").foregroundColor(.secondary)
-                    Button("开始基准测试") { optimizer.runBenchmark() }.buttonStyle(.borderedProminent)
+                    Text(I18nManager.shared.t(.mlo_bench_empty_desc)).foregroundColor(.secondary)
+                    Button(I18nManager.shared.t(.mlo_bench_start)) { optimizer.runBenchmark() }.buttonStyle(.borderedProminent)
                     Spacer()
                 }
             } else if optimizer.isBenchmarking {
                 VStack(spacing: 16) {
                     ProgressView(value: optimizer.benchmarkProgress)
-                    Text("测试中... \(Int(optimizer.benchmarkProgress * 100))%")
+                    Text(I18nManager.shared.tf(.mlo_bench_running_fmt, Int(optimizer.benchmarkProgress * 100)))
                         .font(.headline)
-                    Text("正在测试不同量化等级的性能和内存占用")
+                    Text(I18nManager.shared.t(.mlo_bench_running_desc))
                         .font(.caption).foregroundColor(.secondary)
                 }
                 .padding()
                 Spacer()
             } else {
                 HStack {
-                    Text("基准测试结果").font(.headline)
+                    Text(I18nManager.shared.t(.mlo_bench_results)).font(.headline)
                     Spacer()
-                    Button("重新测试") { optimizer.runBenchmark() }.buttonStyle(.bordered).controlSize(.small)
-                    Button("清空") { optimizer.clearStats() }.buttonStyle(.bordered).controlSize(.small)
+                    Button(I18nManager.shared.t(.mlo_bench_rerun)) { optimizer.runBenchmark() }.buttonStyle(.bordered).controlSize(.small)
+                    Button(I18nManager.shared.t(.mlo_bench_clear)) { optimizer.clearStats() }.buttonStyle(.bordered).controlSize(.small)
                 }
                 .padding(.horizontal)
 
@@ -343,7 +357,7 @@ struct InferenceStatsView: View {
             VStack(spacing: 12) {
                 Spacer()
                 Image(systemName: "chart.bar").font(.system(size: 40)).foregroundColor(.secondary)
-                Text("运行基准测试以查看统计").foregroundColor(.secondary)
+                Text(I18nManager.shared.t(.mlo_stats_empty)).foregroundColor(.secondary)
                 Spacer()
             }
         } else {
@@ -353,12 +367,12 @@ struct InferenceStatsView: View {
                         VStack(spacing: 8) {
                             Text(stat.quantLevel).font(.title2).bold().foregroundColor(.accentColor)
                             Divider()
-                            StatRow(label: "速度", value: String(format: "%.1f", stat.tokensPerSecond) + " t/s")
-                            StatRow(label: "内存", value: String(format: "%.1f", stat.memoryUsed) + " GB")
-                            StatRow(label: "延迟", value: String(format: "%.0f", stat.latencyMs) + " ms")
+                            StatRow(label: I18nManager.shared.t(.mlo_stat_speed), value: String(format: "%.1f", stat.tokensPerSecond) + " t/s")
+                            StatRow(label: I18nManager.shared.t(.mlo_stat_mem), value: String(format: "%.1f", stat.memoryUsed) + " GB")
+                            StatRow(label: I18nManager.shared.t(.mlo_stat_latency), value: String(format: "%.0f", stat.latencyMs) + " ms")
                             if let best = optimizer.stats.max(by: { $0.tokensPerSecond < $1.tokensPerSecond }),
                                best.quantLevel == stat.quantLevel {
-                                Text("🏆 推荐").font(.caption).foregroundColor(.orange)
+                                Text(I18nManager.shared.t(.mlo_recommended_badge)).font(.caption).foregroundColor(.orange)
                             }
                         }
                         .padding()
@@ -393,24 +407,24 @@ struct RecommendationView: View {
             if let rec = optimizer.recommendedConfig {
                 Spacer()
                 Image(systemName: "wand.and.stars").font(.system(size: 48)).foregroundColor(.accentColor)
-                Text("推荐配置").font(.largeTitle).bold()
+                Text(I18nManager.shared.t(.mlo_rec_title)).font(.largeTitle).bold()
 
-                GroupBox("优化建议") {
+                GroupBox(I18nManager.shared.t(.mlo_rec_suggestion)) {
                     VStack(alignment: .leading, spacing: 8) {
-                        RecRow("量化精度", rec.quantization.rawValue)
-                        RecRow("Metal 加速", rec.useMetal ? "启用" : "禁用")
-                        RecRow("Flash Attention", rec.enableFlashAttention ? "启用" : "禁用")
-                        RecRow("KV Cache", rec.useKVCache ? "启用" : "禁用")
-                        RecRow("上下文长度", "\(rec.maxContextLength)")
-                        RecRow("最大内存", "\(Int(rec.maxMemoryGB)) GB")
-                        RecRow("预估性能", String(format: "%.0f", optimizer.stats.first(where: { $0.quantLevel == rec.quantization.rawValue })?.tokensPerSecond ?? 0) + " t/s")
+                        RecRow(I18nManager.shared.t(.mlo_rec_quant), rec.quantization.rawValue)
+                        RecRow(I18nManager.shared.t(.mlo_rec_metal), rec.useMetal ? I18nManager.shared.t(.mlo_enabled) : I18nManager.shared.t(.mlo_disabled))
+                        RecRow(I18nManager.shared.t(.mlo_rec_flash_attn), rec.enableFlashAttention ? I18nManager.shared.t(.mlo_enabled) : I18nManager.shared.t(.mlo_disabled))
+                        RecRow(I18nManager.shared.t(.mlo_rec_kv_cache), rec.useKVCache ? I18nManager.shared.t(.mlo_enabled) : I18nManager.shared.t(.mlo_disabled))
+                        RecRow(I18nManager.shared.t(.mlo_rec_ctx_len), "\(rec.maxContextLength)")
+                        RecRow(I18nManager.shared.t(.mlo_rec_max_mem), "\(Int(rec.maxMemoryGB)) GB")
+                        RecRow(I18nManager.shared.t(.mlo_rec_est_perf), String(format: "%.0f", optimizer.stats.first(where: { $0.quantLevel == rec.quantization.rawValue })?.tokensPerSecond ?? 0) + " t/s")
                     }
                     .padding(8)
                 }
                 .padding(.horizontal)
 
                 Button(action: { optimizer.applyRecommendation() }) {
-                    Label("应用推荐配置", systemImage: "checkmark")
+                    Label(I18nManager.shared.t(.mlo_rec_apply), systemImage: "checkmark")
                         .frame(width: 200)
                 }
                 .buttonStyle(.borderedProminent)
@@ -421,8 +435,8 @@ struct RecommendationView: View {
                 VStack(spacing: 12) {
                     Spacer()
                     Image(systemName: "lightbulb").font(.system(size: 40)).foregroundColor(.secondary)
-                    Text("运行基准测试以获取推荐配置").foregroundColor(.secondary)
-                    Button("运行基准测试") { optimizer.runBenchmark() }.buttonStyle(.borderedProminent)
+                    Text(I18nManager.shared.t(.mlo_rec_empty_desc)).foregroundColor(.secondary)
+                    Button(I18nManager.shared.t(.mlo_rec_run_bench)) { optimizer.runBenchmark() }.buttonStyle(.borderedProminent)
                     Spacer()
                 }
             }
@@ -456,23 +470,23 @@ struct ModelConversionView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            GroupBox("模型转换") {
+            GroupBox(I18nManager.shared.t(.mlo_conv_title)) {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        TextField("源模型路径", text: $sourcePath)
+                        TextField(I18nManager.shared.t(.mlo_conv_source_ph), text: $sourcePath)
                             .textFieldStyle(.roundedBorder)
-                        Button("浏览") { }
+                        Button(I18nManager.shared.t(.mlo_conv_browse)) { }
                             .buttonStyle(.bordered)
                     }
-                    Picker("目标格式", selection: $targetFormat) {
+                    Picker(I18nManager.shared.t(.mlo_conv_target_fmt), selection: $targetFormat) {
                         ForEach(formats, id: \.self) { fmt in Text(fmt.uppercased()).tag(fmt) }
                     }
-                    Picker("量化精度", selection: $targetQuant) {
+                    Picker(I18nManager.shared.t(.mlo_quant_precision), selection: $targetQuant) {
                         Text("2bit").tag("2bit"); Text("3bit").tag("3bit"); Text("4bit").tag("4bit")
                         Text("8bit").tag("8bit"); Text("fp16").tag("fp16")
                     }
                     Button(action: convert) {
-                        Label(isConverting ? "转换中..." : "开始转换", systemImage: "arrow.triangle.2.circlepath")
+                        Label(isConverting ? I18nManager.shared.t(.mlo_conv_converting) : I18nManager.shared.t(.mlo_conv_start), systemImage: "arrow.triangle.2.circlepath")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
@@ -500,12 +514,13 @@ struct ModelConversionView: View {
     }
 
     private func convert() {
-        isConverting = true; progress = 0; log = "开始转换: \(sourcePath) → \(targetFormat.uppercased()) \(targetQuant)...\n"
+        isConverting = true; progress = 0
+        log = I18nManager.shared.tf(.mlo_conv_log_start_fmt, sourcePath, targetFormat.uppercased(), targetQuant)
         Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { timer in
             progress += 0.1
-            log += "  [\(Int(progress * 100))%] 处理中...\n"
+            log += I18nManager.shared.tf(.mlo_conv_log_progress_fmt, Int(progress * 100))
             if progress >= 1.0 {
-                log += "✅ 转换完成: \(targetFormat.uppercased()) \(targetQuant)\n"
+                log += I18nManager.shared.tf(.mlo_conv_log_done_fmt, targetFormat.uppercased(), targetQuant)
                 timer.invalidate(); isConverting = false
             }
         }
@@ -527,23 +542,23 @@ struct ServerControlView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 // 服务器控制
-                GroupBox("服务器控制") {
+                GroupBox(I18nManager.shared.t(.mlo_server_ctrl)) {
                     HStack(spacing: 12) {
                         Button(action: { Task { try? await bridge.startMLX(model: restartModel); await refresh() } }) {
-                            Label("启动", systemImage: "play.fill")
+                            Label(I18nManager.shared.t(.mlo_server_start), systemImage: "play.fill")
                         }
                         .buttonStyle(.borderedProminent)
                         .controlSize(.small)
 
                         Button(action: { Task { try? await bridge.stopMLX(); await refresh() } }) {
-                            Label("停止", systemImage: "stop.fill")
+                            Label(I18nManager.shared.t(.mlo_server_stop), systemImage: "stop.fill")
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.small)
                         .foregroundColor(.red)
 
                         Button(action: { Task { try? await bridge.restartMLX(model: restartModel); await refresh() } }) {
-                            Label("重启", systemImage: "arrow.clockwise")
+                            Label(I18nManager.shared.t(.mlo_server_restart), systemImage: "arrow.clockwise")
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.small)
@@ -560,11 +575,11 @@ struct ServerControlView: View {
                 }
 
                 // 服务器状态
-                GroupBox("服务器状态") {
+                GroupBox(I18nManager.shared.t(.mlo_server_status)) {
                     if isLoadingStatus {
                         HStack { Spacer(); ProgressView(); Spacer() }
                     } else if mlxStatusInfo.isEmpty {
-                        Text("未连接").foregroundColor(.secondary).padding(8)
+                        Text(I18nManager.shared.t(.mlo_server_not_connected)).foregroundColor(.secondary).padding(8)
                     } else {
                         VStack(alignment: .leading, spacing: 4) {
                             ForEach(mlxStatusInfo.sorted(by: { $0.key < $1.key }), id: \.key) { key, value in
@@ -580,9 +595,9 @@ struct ServerControlView: View {
                 }
 
                 // 硬件指标
-                GroupBox("硬件指标") {
+                GroupBox(I18nManager.shared.t(.mlo_hw_metrics)) {
                     if hwMetrics.isEmpty {
-                        Text("无数据").foregroundColor(.secondary).padding(8)
+                        Text(I18nManager.shared.t(.mlo_hw_no_data)).foregroundColor(.secondary).padding(8)
                     } else {
                         VStack(alignment: .leading, spacing: 4) {
                             ForEach(hwMetrics.sorted(by: { $0.key < $1.key }), id: \.key) { key, value in
