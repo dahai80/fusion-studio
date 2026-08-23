@@ -21,10 +21,10 @@ struct Collaborator: Identifiable, Hashable {
     var version: String
 
     enum PeerStatus: String, Codable {
-        case online  = "在线"
-        case away    = "离开"
-        case busy    = "忙碌"
-        case offline = "离线"
+        case online  = "online"
+        case away    = "away"
+        case busy    = "busy"
+        case offline = "offline"
 
         var color: Color {
             switch self {
@@ -32,6 +32,15 @@ struct Collaborator: Identifiable, Hashable {
             case .away:    return .orange
             case .busy:    return .red
             case .offline: return .gray
+            }
+        }
+
+        var localizedName: String {
+            switch self {
+            case .online:  return I18nManager.shared.t(.col_status_online)
+            case .away:    return I18nManager.shared.t(.col_status_away)
+            case .busy:    return I18nManager.shared.t(.col_status_busy)
+            case .offline: return I18nManager.shared.t(.col_status_offline)
             }
         }
     }
@@ -64,11 +73,11 @@ struct SharedResource: Identifiable, Hashable {
     var lastModified: Date
 
     enum ResourceType: String, CaseIterable {
-        case design     = "设计"
-        case code       = "代码"
-        case model      = "模型"
-        case simulation = "仿真"
-        case document   = "文档"
+        case design     = "design"
+        case code       = "code"
+        case model      = "model"
+        case simulation = "simulation"
+        case document   = "document"
 
         var icon: String {
             switch self {
@@ -77,6 +86,16 @@ struct SharedResource: Identifiable, Hashable {
             case .model:      return "cpu"
             case .simulation: return "gearshape.2"
             case .document:   return "doc.text"
+            }
+        }
+
+        var localizedName: String {
+            switch self {
+            case .design:     return I18nManager.shared.t(.col_type_design)
+            case .code:       return I18nManager.shared.t(.col_type_code)
+            case .model:      return I18nManager.shared.t(.col_type_model)
+            case .simulation: return I18nManager.shared.t(.col_type_simulation)
+            case .document:   return I18nManager.shared.t(.col_type_document)
             }
         }
     }
@@ -196,11 +215,11 @@ class CollaborationService: ObservableObject {
             listener?.stateUpdateHandler = { state in
                 switch state {
                 case .ready:
-                    print("协作广播已启动")
+                    print(I18nManager.shared.t(.col_log_advertise_start))
                 case .failed(let error):
-                    print("协作广播失败: \(error)")
+                    print(I18nManager.shared.tf(.col_log_advertise_failed, error.localizedDescription))
                 case .cancelled:
-                    print("协作广播已停止")
+                    print(I18nManager.shared.t(.col_log_advertise_stopped))
                 default: break
                 }
             }
@@ -211,7 +230,7 @@ class CollaborationService: ObservableObject {
 
             listener?.start(queue: queue)
         } catch {
-            print("无法启动协作广播: \(error)")
+            print(I18nManager.shared.tf(.col_log_advertise_error, error.localizedDescription))
         }
     }
 
@@ -227,9 +246,9 @@ class CollaborationService: ObservableObject {
         browser?.stateUpdateHandler = { state in
             switch state {
             case .ready:
-                print("协作浏览已启动")
+                print(I18nManager.shared.t(.col_log_browse_start))
             case .failed(let error):
-                print("协作浏览失败: \(error)")
+                print(I18nManager.shared.tf(.col_log_browse_failed, error.localizedDescription))
             default: break
             }
         }
@@ -253,7 +272,7 @@ class CollaborationService: ObservableObject {
         // 处理入站连接
         connection.stateUpdateHandler = { state in
             if state == .ready {
-                print("协作连接已建立: \(connection.endpoint)")
+                print(I18nManager.shared.tf(.col_log_conn_ready, connection.endpoint.debugDescription))
             }
         }
         connection.start(queue: queue)
@@ -339,10 +358,19 @@ struct CollaborateView: View {
     @State private var newSessionName = ""
 
     enum CollabTab: String, CaseIterable {
-        case peers    = "团队成员"
-        case session  = "协作会话"
-        case share    = "共享资源"
-        case settings = "协作设置"
+        case peers    = "peers"
+        case session  = "session"
+        case share    = "share"
+        case settings = "settings"
+
+        var localizedName: String {
+            switch self {
+            case .peers:    return I18nManager.shared.t(.col_tab_peers)
+            case .session:  return I18nManager.shared.t(.col_tab_session)
+            case .share:    return I18nManager.shared.t(.col_tab_share)
+            case .settings: return I18nManager.shared.t(.col_tab_settings)
+            }
+        }
     }
 
     var body: some View {
@@ -351,7 +379,7 @@ struct CollaborateView: View {
             HStack {
                 Image(systemName: "person.2.fill")
                     .foregroundColor(collab.isEnabled ? .green : .gray)
-                Text("局域网协作")
+                Text(I18nManager.shared.t(.col_title))
                     .font(.headline)
                 Spacer()
                 Toggle("", isOn: Binding(
@@ -369,7 +397,7 @@ struct CollaborateView: View {
 
             Picker("", selection: $selectedTab) {
                 ForEach(CollabTab.allCases, id: \.self) { tab in
-                    Label(tab.rawValue, systemImage: tabIcon(tab)).tag(tab)
+                    Label(tab.localizedName, systemImage: tabIcon(tab)).tag(tab)
                 }
             }
             .pickerStyle(.segmented)
@@ -388,15 +416,15 @@ struct CollaborateView: View {
         }
         .sheet(isPresented: $showCreateSession) {
             VStack(spacing: 16) {
-                Text("创建协作会话")
+                Text(I18nManager.shared.t(.col_create_session))
                     .font(.title2)
                     .bold()
-                TextField("会话名称", text: $newSessionName)
+                TextField(I18nManager.shared.t(.col_session_name), text: $newSessionName)
                     .textFieldStyle(.roundedBorder)
                 HStack {
-                    Button("取消") { showCreateSession = false }
+                    Button(I18nManager.shared.t(.col_cancel)) { showCreateSession = false }
                         .buttonStyle(.bordered)
-                    Button("创建") {
+                    Button(I18nManager.shared.t(.col_create)) {
                         collab.createSession(name: newSessionName)
                         newSessionName = ""
                         showCreateSession = false
@@ -432,9 +460,9 @@ struct PeerListView: View {
                 Image(systemName: "wifi.slash")
                     .font(.system(size: 40))
                     .foregroundColor(.secondary)
-                Text("未发现团队成员")
+                Text(I18nManager.shared.t(.col_no_peers))
                     .foregroundColor(.secondary)
-                Text("确保其他 Fusion Studio 用户在同一局域网并已开启协作")
+                Text(I18nManager.shared.t(.col_no_peers_hint))
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -444,11 +472,11 @@ struct PeerListView: View {
         } else {
             List {
                 // 本地节点
-                Section("本地") {
+                Section(I18nManager.shared.t(.col_section_local)) {
                     PeerRow(peer: collab.localPeer, isLocal: true)
                 }
 
-                Section("团队成员 (\(collab.peers.count))") {
+                Section(I18nManager.shared.tf(.col_section_peers_fmt, collab.peers.count)) {
                     ForEach(collab.peers) { peer in
                         PeerRow(peer: peer, isLocal: false)
                     }
@@ -473,13 +501,13 @@ struct PeerRow: View {
                     Text(peer.name)
                         .font(.headline)
                     if isLocal {
-                        Text("(本机)")
+                        Text(I18nManager.shared.t(.col_local_tag))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
                 }
                 HStack(spacing: 6) {
-                    Text(peer.status.rawValue)
+                    Text(peer.status.localizedName)
                         .font(.caption)
                         .foregroundColor(peer.status.color)
                     Text("·")
@@ -505,7 +533,7 @@ struct PeerRow: View {
             Spacer()
 
             if !isLocal {
-                Button("邀请") {}
+                Button(I18nManager.shared.t(.col_invite)) {}
                     .buttonStyle(.bordered)
                     .controlSize(.small)
             }
@@ -531,14 +559,14 @@ struct SessionView: View {
                         .bold()
                     Spacer()
                     Button(action: { collab.leaveSession() }) {
-                        Label("离开", systemImage: "xmark")
+                        Label(I18nManager.shared.t(.col_leave), systemImage: "xmark")
                     }
                     .buttonStyle(.bordered)
                     .foregroundColor(.red)
                 }
                 .padding(.horizontal)
 
-                GroupBox("成员 (\(session.members.count))") {
+                GroupBox(I18nManager.shared.tf(.col_members_fmt, session.members.count)) {
                     ForEach(session.members) { member in
                         PeerRow(peer: member, isLocal: member.id == collab.localPeer.id)
                     }
@@ -546,9 +574,9 @@ struct SessionView: View {
                 }
                 .padding(.horizontal)
 
-                GroupBox("共享资源 (\(session.sharedResources.count))") {
+                GroupBox(I18nManager.shared.tf(.col_resources_fmt, session.sharedResources.count)) {
                     if session.sharedResources.isEmpty {
-                        Text("暂无共享资源")
+                        Text(I18nManager.shared.t(.col_no_resources))
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .padding(8)
@@ -578,13 +606,13 @@ struct SessionView: View {
                 Image(systemName: "bubble.left.and.bubble.right")
                     .font(.system(size: 40))
                     .foregroundColor(.secondary)
-                Text("未加入任何会话")
+                Text(I18nManager.shared.t(.col_no_session))
                     .foregroundColor(.secondary)
-                Text("创建新会话或通过成员列表邀请加入")
+                Text(I18nManager.shared.t(.col_no_session_hint))
                     .font(.caption)
                     .foregroundColor(.secondary)
                 Button(action: { showCreateSession = true }) {
-                    Label("创建会话", systemImage: "plus")
+                    Label(I18nManager.shared.t(.col_new_session), systemImage: "plus")
                 }
                 .buttonStyle(.borderedProminent)
                 Spacer()
@@ -598,15 +626,15 @@ struct SessionView: View {
     private var createSessionSheet: some View {
         @State var name = ""
         return VStack(spacing: 16) {
-            Text("创建协作会话")
+            Text(I18nManager.shared.t(.col_create_session))
                 .font(.title2)
                 .bold()
-            TextField("会话名称", text: $name)
+            TextField(I18nManager.shared.t(.col_session_name), text: $name)
                 .textFieldStyle(.roundedBorder)
             HStack {
-                Button("取消") { showCreateSession = false }
+                Button(I18nManager.shared.t(.col_cancel)) { showCreateSession = false }
                     .buttonStyle(.bordered)
-                Button("创建") {
+                Button(I18nManager.shared.t(.col_create)) {
                     collab.createSession(name: name)
                     showCreateSession = false
                 }
@@ -633,7 +661,7 @@ struct SharedResourcesView: View {
                     ForEach(SharedResource.ResourceType.allCases, id: \.self) { type in
                         let isSelected = selectedType == type
                         Button(action: { selectedType = isSelected ? nil : type }) {
-                            Label(type.rawValue, systemImage: type.icon)
+                            Label(type.localizedName, systemImage: type.icon)
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.small)
@@ -658,7 +686,7 @@ struct SharedResourcesView: View {
                                 .foregroundColor(.secondary)
                         }
                         Spacer()
-                        Button("下载") {}
+                        Button(I18nManager.shared.t(.col_download)) {}
                             .buttonStyle(.bordered)
                             .controlSize(.small)
                     }
@@ -670,9 +698,9 @@ struct SharedResourcesView: View {
                     Image(systemName: "square.and.arrow.up")
                         .font(.system(size: 40))
                         .foregroundColor(.secondary)
-                    Text("暂无共享资源")
+                    Text(I18nManager.shared.t(.col_no_resources))
                         .foregroundColor(.secondary)
-                    Text("加入协作会话后，可在此查看和分享资源")
+                    Text(I18nManager.shared.t(.col_no_resources_hint))
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Spacer()
@@ -695,30 +723,30 @@ struct CollabSettingsView: View {
 
     var body: some View {
         Form {
-            Section("标识") {
-                TextField("服务名称", text: $serviceName)
+            Section(I18nManager.shared.t(.col_section_identity)) {
+                TextField(I18nManager.shared.t(.col_service_name), text: $serviceName)
                     .textFieldStyle(.roundedBorder)
-                Stepper("端口: \(port)", value: $port, in: 1024...65535, step: 1)
+                Stepper(I18nManager.shared.tf(.col_port_fmt, port), value: $port, in: 1024...65535, step: 1)
             }
 
-            Section("自动操作") {
-                Toggle("自动接受加入请求", isOn: $autoAccept)
+            Section(I18nManager.shared.t(.col_section_auto)) {
+                Toggle(I18nManager.shared.t(.col_auto_accept), isOn: $autoAccept)
             }
 
-            Section("共享模块") {
-                Toggle("共享设计模块", isOn: $shareDesign)
-                Toggle("共享代码模块", isOn: $shareCode)
-                Toggle("共享模型", isOn: $shareModels)
+            Section(I18nManager.shared.t(.col_section_share)) {
+                Toggle(I18nManager.shared.t(.col_share_design), isOn: $shareDesign)
+                Toggle(I18nManager.shared.t(.col_share_code), isOn: $shareCode)
+                Toggle(I18nManager.shared.t(.col_share_model), isOn: $shareModels)
             }
 
-            Section("安全") {
-                Toggle("需要密码加入", isOn: .constant(false))
-                Toggle("加密传输", isOn: .constant(true))
+            Section(I18nManager.shared.t(.col_section_security)) {
+                Toggle(I18nManager.shared.t(.col_password), isOn: .constant(false))
+                Toggle(I18nManager.shared.t(.col_encrypt), isOn: .constant(true))
                     .disabled(true)
             }
 
-            Section("说明") {
-                Text("局域网协作功能使用 Bonjour/mDNS 协议自动发现同一局域网内的 Fusion Studio 用户。所有数据传输仅在局域网内进行，不经过外部网络。")
+            Section(I18nManager.shared.t(.col_section_note)) {
+                Text(I18nManager.shared.t(.col_note_desc))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
