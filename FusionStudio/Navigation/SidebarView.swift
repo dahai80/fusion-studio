@@ -37,7 +37,7 @@ struct SidebarRow: View {
     @Environment(\.studioTheme) private var theme
 
     var body: some View {
-        Label(module.rawValue, systemImage: module.icon)
+        Label(module.localizedName, systemImage: module.icon)
             .font(.system(size: theme.textSize))
             .foregroundStyle(theme.text)
             .padding(.vertical, 3)
