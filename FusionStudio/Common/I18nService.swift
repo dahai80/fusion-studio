@@ -4281,6 +4281,48 @@ enum I18nKey: String, CaseIterable {
     case fc_wf_status_running = "fc_wf_status_running"
     case fc_wf_status_completed = "fc_wf_status_completed"
     case fc_wf_status_pending = "fc_wf_status_pending"
+    case fc_wf_step_analyze_code = "fc_wf_step_analyze_code"
+    case fc_wf_step_gen_migration_plan = "fc_wf_step_gen_migration_plan"
+    case fc_wf_step_execute_migration = "fc_wf_step_execute_migration"
+    case fc_wf_step_verify_tests = "fc_wf_step_verify_tests"
+    case fc_wf_step_cleanup_docs = "fc_wf_step_cleanup_docs"
+    case fc_wf_step_dep_scan = "fc_wf_step_dep_scan"
+    case fc_wf_step_code_audit = "fc_wf_step_code_audit"
+    case fc_wf_step_perm_check = "fc_wf_step_perm_check"
+    case fc_wf_step_gen_report = "fc_wf_step_gen_report"
+    case fc_wf_step_api_analysis = "fc_wf_step_api_analysis"
+    case fc_wf_step_batch_generate = "fc_wf_step_batch_generate"
+    case fc_wf_step_test_verify = "fc_wf_step_test_verify"
+    case fc_wf_step_understand_code = "fc_wf_step_understand_code"
+    case fc_wf_step_plan_refactor = "fc_wf_step_plan_refactor"
+    case fc_wf_step_execute_refactor = "fc_wf_step_execute_refactor"
+    case fc_wf_step_verify = "fc_wf_step_verify"
+    case fc_wf_step_gen_cases = "fc_wf_step_gen_cases"
+    case fc_wf_step_run_tests = "fc_wf_step_run_tests"
+    case fc_wf_step_analyze_task = "fc_wf_step_analyze_task"
+    case fc_wf_step_make_plan = "fc_wf_step_make_plan"
+    case fc_wf_step_execute = "fc_wf_step_execute"
+    case fc_wf_step_desc_analyze_code = "fc_wf_step_desc_analyze_code"
+    case fc_wf_step_desc_gen_migration_plan = "fc_wf_step_desc_gen_migration_plan"
+    case fc_wf_step_desc_execute_migration = "fc_wf_step_desc_execute_migration"
+    case fc_wf_step_desc_verify_tests = "fc_wf_step_desc_verify_tests"
+    case fc_wf_step_desc_cleanup_docs = "fc_wf_step_desc_cleanup_docs"
+    case fc_wf_step_desc_dep_scan = "fc_wf_step_desc_dep_scan"
+    case fc_wf_step_desc_code_audit = "fc_wf_step_desc_code_audit"
+    case fc_wf_step_desc_perm_check = "fc_wf_step_desc_perm_check"
+    case fc_wf_step_desc_gen_report = "fc_wf_step_desc_gen_report"
+    case fc_wf_step_desc_api_analysis = "fc_wf_step_desc_api_analysis"
+    case fc_wf_step_desc_batch_generate = "fc_wf_step_desc_batch_generate"
+    case fc_wf_step_desc_test_verify = "fc_wf_step_desc_test_verify"
+    case fc_wf_step_desc_understand_code = "fc_wf_step_desc_understand_code"
+    case fc_wf_step_desc_plan_refactor = "fc_wf_step_desc_plan_refactor"
+    case fc_wf_step_desc_execute_refactor = "fc_wf_step_desc_execute_refactor"
+    case fc_wf_step_desc_verify = "fc_wf_step_desc_verify"
+    case fc_wf_step_desc_gen_cases = "fc_wf_step_desc_gen_cases"
+    case fc_wf_step_desc_run_tests = "fc_wf_step_desc_run_tests"
+    case fc_wf_step_desc_analyze_task = "fc_wf_step_desc_analyze_task"
+    case fc_wf_step_desc_make_plan = "fc_wf_step_desc_make_plan"
+    case fc_wf_step_desc_execute = "fc_wf_step_desc_execute"
     case fc_preview = "fc_preview"
     case fc_live = "fc_live"
     case fc_html_preview_empty = "fc_html_preview_empty"
@@ -8710,6 +8752,48 @@ let zhCNTranslations: [String: String] = [
     "fc_wf_status_running": "运行中 (%d/%d)",
     "fc_wf_status_completed": "已完成",
     "fc_wf_status_pending": "排队中 (%d/%d)",
+    "fc_wf_step_analyze_code": "分析代码",
+    "fc_wf_step_gen_migration_plan": "生成迁移方案",
+    "fc_wf_step_execute_migration": "执行迁移",
+    "fc_wf_step_verify_tests": "验证测试",
+    "fc_wf_step_cleanup_docs": "清理文档",
+    "fc_wf_step_dep_scan": "依赖扫描",
+    "fc_wf_step_code_audit": "代码审计",
+    "fc_wf_step_perm_check": "权限检查",
+    "fc_wf_step_gen_report": "生成报告",
+    "fc_wf_step_api_analysis": "接口分析",
+    "fc_wf_step_batch_generate": "批量生成",
+    "fc_wf_step_test_verify": "测试验证",
+    "fc_wf_step_understand_code": "理解代码",
+    "fc_wf_step_plan_refactor": "规划重构",
+    "fc_wf_step_execute_refactor": "执行重构",
+    "fc_wf_step_verify": "验证",
+    "fc_wf_step_gen_cases": "生成用例",
+    "fc_wf_step_run_tests": "运行测试",
+    "fc_wf_step_analyze_task": "分析任务",
+    "fc_wf_step_make_plan": "制定方案",
+    "fc_wf_step_execute": "执行",
+    "fc_wf_step_desc_analyze_code": "扫描遗留代码结构",
+    "fc_wf_step_desc_gen_migration_plan": "制定迁移策略和步骤",
+    "fc_wf_step_desc_execute_migration": "按方案逐步迁移代码",
+    "fc_wf_step_desc_verify_tests": "运行测试验证迁移结果",
+    "fc_wf_step_desc_cleanup_docs": "更新文档和配置",
+    "fc_wf_step_desc_dep_scan": "检查第三方依赖漏洞",
+    "fc_wf_step_desc_code_audit": "静态分析安全风险",
+    "fc_wf_step_desc_perm_check": "验证文件和API权限",
+    "fc_wf_step_desc_gen_report": "汇总安全问题并生成报告",
+    "fc_wf_step_desc_api_analysis": "分析API接口规范",
+    "fc_wf_step_desc_batch_generate": "生成API调用代码",
+    "fc_wf_step_desc_test_verify": "批量测试API响应",
+    "fc_wf_step_desc_understand_code": "分析代码结构和模式",
+    "fc_wf_step_desc_plan_refactor": "制定重构方案",
+    "fc_wf_step_desc_execute_refactor": "逐步重构代码",
+    "fc_wf_step_desc_verify": "检查结果是否达标",
+    "fc_wf_step_desc_gen_cases": "生成测试用例代码",
+    "fc_wf_step_desc_run_tests": "执行测试并报告结果",
+    "fc_wf_step_desc_analyze_task": "理解目标和约束",
+    "fc_wf_step_desc_make_plan": "拆分子任务和依赖",
+    "fc_wf_step_desc_execute": "逐步实现子任务",
     "fc_preview": "预览",
     "fc_live": "实时",
     "fc_html_preview_empty": "生成HTML后此处显示预览",
@@ -13092,6 +13176,48 @@ let enUSTranslations: [String: String] = [
     "fc_wf_status_running": "Running (%d/%d)",
     "fc_wf_status_completed": "Completed",
     "fc_wf_status_pending": "Pending (%d/%d)",
+    "fc_wf_step_analyze_code": "Analyze code",
+    "fc_wf_step_gen_migration_plan": "Generate migration plan",
+    "fc_wf_step_execute_migration": "Execute migration",
+    "fc_wf_step_verify_tests": "Verify tests",
+    "fc_wf_step_cleanup_docs": "Clean up docs",
+    "fc_wf_step_dep_scan": "Dependency scan",
+    "fc_wf_step_code_audit": "Code audit",
+    "fc_wf_step_perm_check": "Permission check",
+    "fc_wf_step_gen_report": "Generate report",
+    "fc_wf_step_api_analysis": "API analysis",
+    "fc_wf_step_batch_generate": "Batch generate",
+    "fc_wf_step_test_verify": "Test verification",
+    "fc_wf_step_understand_code": "Understand code",
+    "fc_wf_step_plan_refactor": "Plan refactor",
+    "fc_wf_step_execute_refactor": "Execute refactor",
+    "fc_wf_step_verify": "Verify",
+    "fc_wf_step_gen_cases": "Generate test cases",
+    "fc_wf_step_run_tests": "Run tests",
+    "fc_wf_step_analyze_task": "Analyze task",
+    "fc_wf_step_make_plan": "Make plan",
+    "fc_wf_step_execute": "Execute",
+    "fc_wf_step_desc_analyze_code": "Scan legacy code structure",
+    "fc_wf_step_desc_gen_migration_plan": "Define migration strategy and steps",
+    "fc_wf_step_desc_execute_migration": "Migrate code step by step",
+    "fc_wf_step_desc_verify_tests": "Run tests to verify migration",
+    "fc_wf_step_desc_cleanup_docs": "Update docs and config",
+    "fc_wf_step_desc_dep_scan": "Scan third-party dependency vulnerabilities",
+    "fc_wf_step_desc_code_audit": "Statically analyze security risks",
+    "fc_wf_step_desc_perm_check": "Verify file and API permissions",
+    "fc_wf_step_desc_gen_report": "Summarize security issues and generate report",
+    "fc_wf_step_desc_api_analysis": "Analyze API specs",
+    "fc_wf_step_desc_batch_generate": "Generate API call code",
+    "fc_wf_step_desc_test_verify": "Batch test API responses",
+    "fc_wf_step_desc_understand_code": "Analyze code structure and patterns",
+    "fc_wf_step_desc_plan_refactor": "Define refactor plan",
+    "fc_wf_step_desc_execute_refactor": "Refactor code step by step",
+    "fc_wf_step_desc_verify": "Check results meet criteria",
+    "fc_wf_step_desc_gen_cases": "Generate test case code",
+    "fc_wf_step_desc_run_tests": "Run tests and report results",
+    "fc_wf_step_desc_analyze_task": "Understand goals and constraints",
+    "fc_wf_step_desc_make_plan": "Break down subtasks and dependencies",
+    "fc_wf_step_desc_execute": "Implement subtasks step by step",
     "fc_preview": "Preview",
     "fc_live": "Live",
     "fc_html_preview_empty": "Preview appears here after HTML is generated",
@@ -17468,6 +17594,48 @@ let jaJPTranslations: [String: String] = [
     "fc_wf_status_running": "実行中 (%d/%d)",
     "fc_wf_status_completed": "完了",
     "fc_wf_status_pending": "保留中 (%d/%d)",
+    "fc_wf_step_analyze_code": "コードを分析",
+    "fc_wf_step_gen_migration_plan": "移行計画を生成",
+    "fc_wf_step_execute_migration": "移行を実行",
+    "fc_wf_step_verify_tests": "テストを検証",
+    "fc_wf_step_cleanup_docs": "ドキュメントを整理",
+    "fc_wf_step_dep_scan": "依存関係スキャン",
+    "fc_wf_step_code_audit": "コード監査",
+    "fc_wf_step_perm_check": "権限チェック",
+    "fc_wf_step_gen_report": "レポートを生成",
+    "fc_wf_step_api_analysis": "API分析",
+    "fc_wf_step_batch_generate": "一括生成",
+    "fc_wf_step_test_verify": "テスト検証",
+    "fc_wf_step_understand_code": "コードを理解",
+    "fc_wf_step_plan_refactor": "リファクタリングを計画",
+    "fc_wf_step_execute_refactor": "リファクタリングを実行",
+    "fc_wf_step_verify": "検証",
+    "fc_wf_step_gen_cases": "テストケースを生成",
+    "fc_wf_step_run_tests": "テストを実行",
+    "fc_wf_step_analyze_task": "タスクを分析",
+    "fc_wf_step_make_plan": "計画を策定",
+    "fc_wf_step_execute": "実行",
+    "fc_wf_step_desc_analyze_code": "レガシーコード構造をスキャン",
+    "fc_wf_step_desc_gen_migration_plan": "移行戦略と手順を策定",
+    "fc_wf_step_desc_execute_migration": "計画に沿ってコードを段階移行",
+    "fc_wf_step_desc_verify_tests": "テストを実行し移行結果を検証",
+    "fc_wf_step_desc_cleanup_docs": "ドキュメントと設定を更新",
+    "fc_wf_step_desc_dep_scan": "サードパーティ依存の脆弱性を確認",
+    "fc_wf_step_desc_code_audit": "セキュリティリスクを静的解析",
+    "fc_wf_step_desc_perm_check": "ファイルとAPI権限を検証",
+    "fc_wf_step_desc_gen_report": "セキュリティ問題を集計しレポート生成",
+    "fc_wf_step_desc_api_analysis": "API仕様を分析",
+    "fc_wf_step_desc_batch_generate": "API呼び出しコードを生成",
+    "fc_wf_step_desc_test_verify": "API応答を一括テスト",
+    "fc_wf_step_desc_understand_code": "コード構造とパターンを分析",
+    "fc_wf_step_desc_plan_refactor": "リファクタリング計画を策定",
+    "fc_wf_step_desc_execute_refactor": "コードを段階的にリファクタリング",
+    "fc_wf_step_desc_verify": "結果が基準を満たすか確認",
+    "fc_wf_step_desc_gen_cases": "テストケースコードを生成",
+    "fc_wf_step_desc_run_tests": "テストを実行し結果を報告",
+    "fc_wf_step_desc_analyze_task": "目標と制約を理解",
+    "fc_wf_step_desc_make_plan": "サブタスクと依存を分解",
+    "fc_wf_step_desc_execute": "サブタスクを段階的に実装",
     "fc_preview": "プレビュー",
     "fc_live": "ライブ",
     "fc_html_preview_empty": "HTML生成後にここにプレビューが表示されます",
@@ -21844,6 +22012,48 @@ let koKRTranslations: [String: String] = [
     "fc_wf_status_running": "실행 중 (%d/%d)",
     "fc_wf_status_completed": "완료",
     "fc_wf_status_pending": "대기 중 (%d/%d)",
+    "fc_wf_step_analyze_code": "코드 분석",
+    "fc_wf_step_gen_migration_plan": "마이그레이션 계획 생성",
+    "fc_wf_step_execute_migration": "마이그레이션 실행",
+    "fc_wf_step_verify_tests": "테스트 검증",
+    "fc_wf_step_cleanup_docs": "문서 정리",
+    "fc_wf_step_dep_scan": "의존성 스캔",
+    "fc_wf_step_code_audit": "코드 감사",
+    "fc_wf_step_perm_check": "권한 확인",
+    "fc_wf_step_gen_report": "보고서 생성",
+    "fc_wf_step_api_analysis": "API 분석",
+    "fc_wf_step_batch_generate": "일괄 생성",
+    "fc_wf_step_test_verify": "테스트 검증",
+    "fc_wf_step_understand_code": "코드 이해",
+    "fc_wf_step_plan_refactor": "리팩터링 계획",
+    "fc_wf_step_execute_refactor": "리팩터링 실행",
+    "fc_wf_step_verify": "검증",
+    "fc_wf_step_gen_cases": "테스트 케이스 생성",
+    "fc_wf_step_run_tests": "테스트 실행",
+    "fc_wf_step_analyze_task": "작업 분석",
+    "fc_wf_step_make_plan": "계획 수립",
+    "fc_wf_step_execute": "실행",
+    "fc_wf_step_desc_analyze_code": "레거시 코드 구조 스캔",
+    "fc_wf_step_desc_gen_migration_plan": "마이그레이션 전략 및 단계 정의",
+    "fc_wf_step_desc_execute_migration": "계획에 따라 코드를 단계별 마이그레이션",
+    "fc_wf_step_desc_verify_tests": "테스트 실행하여 마이그레이션 결과 검증",
+    "fc_wf_step_desc_cleanup_docs": "문서 및 설정 업데이트",
+    "fc_wf_step_desc_dep_scan": "서드파티 의존성 취약점 확인",
+    "fc_wf_step_desc_code_audit": "보안 위험 정적 분석",
+    "fc_wf_step_desc_perm_check": "파일 및 API 권한 검증",
+    "fc_wf_step_desc_gen_report": "보안 문제 집계 및 보고서 생성",
+    "fc_wf_step_desc_api_analysis": "API 사양 분석",
+    "fc_wf_step_desc_batch_generate": "API 호출 코드 생성",
+    "fc_wf_step_desc_test_verify": "API 응답 일괄 테스트",
+    "fc_wf_step_desc_understand_code": "코드 구조 및 패턴 분석",
+    "fc_wf_step_desc_plan_refactor": "리팩터링 계획 수립",
+    "fc_wf_step_desc_execute_refactor": "코드를 단계별 리팩터링",
+    "fc_wf_step_desc_verify": "결과가 기준을 충족하는지 확인",
+    "fc_wf_step_desc_gen_cases": "테스트 케이스 코드 생성",
+    "fc_wf_step_desc_run_tests": "테스트 실행 및 결과 보고",
+    "fc_wf_step_desc_analyze_task": "목표 및 제약 이해",
+    "fc_wf_step_desc_make_plan": "하위 작업 및 의존성 분해",
+    "fc_wf_step_desc_execute": "하위 작업을 단계별 구현",
     "fc_preview": "미리보기",
     "fc_live": "실시간",
     "fc_html_preview_empty": "HTML 생성 후 여기에 미리보기가 표시됩니다",

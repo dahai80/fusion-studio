@@ -39,6 +39,60 @@ struct FCWorkflowStep: Identifiable {
     var status: FCWorkflowStepStatus
     var dependencies: [String]
     var output: String = ""
+
+    var localizedName: String {
+        switch name {
+        case "analyze_code": return I18nManager.shared.t(.fc_wf_step_analyze_code)
+        case "gen_migration_plan": return I18nManager.shared.t(.fc_wf_step_gen_migration_plan)
+        case "execute_migration": return I18nManager.shared.t(.fc_wf_step_execute_migration)
+        case "verify_tests": return I18nManager.shared.t(.fc_wf_step_verify_tests)
+        case "cleanup_docs": return I18nManager.shared.t(.fc_wf_step_cleanup_docs)
+        case "dep_scan": return I18nManager.shared.t(.fc_wf_step_dep_scan)
+        case "code_audit": return I18nManager.shared.t(.fc_wf_step_code_audit)
+        case "perm_check": return I18nManager.shared.t(.fc_wf_step_perm_check)
+        case "gen_report": return I18nManager.shared.t(.fc_wf_step_gen_report)
+        case "api_analysis": return I18nManager.shared.t(.fc_wf_step_api_analysis)
+        case "batch_generate": return I18nManager.shared.t(.fc_wf_step_batch_generate)
+        case "test_verify": return I18nManager.shared.t(.fc_wf_step_test_verify)
+        case "understand_code": return I18nManager.shared.t(.fc_wf_step_understand_code)
+        case "plan_refactor": return I18nManager.shared.t(.fc_wf_step_plan_refactor)
+        case "execute_refactor": return I18nManager.shared.t(.fc_wf_step_execute_refactor)
+        case "verify": return I18nManager.shared.t(.fc_wf_step_verify)
+        case "gen_cases": return I18nManager.shared.t(.fc_wf_step_gen_cases)
+        case "run_tests": return I18nManager.shared.t(.fc_wf_step_run_tests)
+        case "analyze_task": return I18nManager.shared.t(.fc_wf_step_analyze_task)
+        case "make_plan": return I18nManager.shared.t(.fc_wf_step_make_plan)
+        case "execute": return I18nManager.shared.t(.fc_wf_step_execute)
+        default: return name
+        }
+    }
+
+    var localizedDescription: String {
+        switch name {
+        case "analyze_code": return I18nManager.shared.t(.fc_wf_step_desc_analyze_code)
+        case "gen_migration_plan": return I18nManager.shared.t(.fc_wf_step_desc_gen_migration_plan)
+        case "execute_migration": return I18nManager.shared.t(.fc_wf_step_desc_execute_migration)
+        case "verify_tests": return I18nManager.shared.t(.fc_wf_step_desc_verify_tests)
+        case "cleanup_docs": return I18nManager.shared.t(.fc_wf_step_desc_cleanup_docs)
+        case "dep_scan": return I18nManager.shared.t(.fc_wf_step_desc_dep_scan)
+        case "code_audit": return I18nManager.shared.t(.fc_wf_step_desc_code_audit)
+        case "perm_check": return I18nManager.shared.t(.fc_wf_step_desc_perm_check)
+        case "gen_report": return I18nManager.shared.t(.fc_wf_step_desc_gen_report)
+        case "api_analysis": return I18nManager.shared.t(.fc_wf_step_desc_api_analysis)
+        case "batch_generate": return I18nManager.shared.t(.fc_wf_step_desc_batch_generate)
+        case "test_verify": return I18nManager.shared.t(.fc_wf_step_desc_test_verify)
+        case "understand_code": return I18nManager.shared.t(.fc_wf_step_desc_understand_code)
+        case "plan_refactor": return I18nManager.shared.t(.fc_wf_step_desc_plan_refactor)
+        case "execute_refactor": return I18nManager.shared.t(.fc_wf_step_desc_execute_refactor)
+        case "verify": return I18nManager.shared.t(.fc_wf_step_desc_verify)
+        case "gen_cases": return I18nManager.shared.t(.fc_wf_step_desc_gen_cases)
+        case "run_tests": return I18nManager.shared.t(.fc_wf_step_desc_run_tests)
+        case "analyze_task": return I18nManager.shared.t(.fc_wf_step_desc_analyze_task)
+        case "make_plan": return I18nManager.shared.t(.fc_wf_step_desc_make_plan)
+        case "execute": return I18nManager.shared.t(.fc_wf_step_desc_execute)
+        default: return description
+        }
+    }
 }
 
 struct FCWorkflowPlan: Identifiable {
@@ -135,44 +189,44 @@ class FCWorkflowStore: ObservableObject {
         switch template {
         case "legacy_migration":
             return [
-                FCWorkflowStep(name: "分析代码", description: "扫描遗留代码结构", status: .pending, dependencies: []),
-                FCWorkflowStep(name: "生成迁移方案", description: "制定迁移策略和步骤", status: .pending, dependencies: ["分析代码"]),
-                FCWorkflowStep(name: "执行迁移", description: "按方案逐步迁移代码", status: .pending, dependencies: ["生成迁移方案"]),
-                FCWorkflowStep(name: "验证测试", description: "运行测试验证迁移结果", status: .pending, dependencies: ["执行迁移"]),
-                FCWorkflowStep(name: "清理文档", description: "更新文档和配置", status: .pending, dependencies: ["验证测试"]),
+                FCWorkflowStep(name: "analyze_code", description: "analyze_code", status: .pending, dependencies: []),
+                FCWorkflowStep(name: "gen_migration_plan", description: "gen_migration_plan", status: .pending, dependencies: ["analyze_code"]),
+                FCWorkflowStep(name: "execute_migration", description: "execute_migration", status: .pending, dependencies: ["gen_migration_plan"]),
+                FCWorkflowStep(name: "verify_tests", description: "verify_tests", status: .pending, dependencies: ["execute_migration"]),
+                FCWorkflowStep(name: "cleanup_docs", description: "cleanup_docs", status: .pending, dependencies: ["verify_tests"]),
             ]
         case "security_scan":
             return [
-                FCWorkflowStep(name: "依赖扫描", description: "检查第三方依赖漏洞", status: .pending, dependencies: []),
-                FCWorkflowStep(name: "代码审计", description: "静态分析安全风险", status: .pending, dependencies: []),
-                FCWorkflowStep(name: "权限检查", description: "验证文件和API权限", status: .pending, dependencies: ["依赖扫描"]),
-                FCWorkflowStep(name: "生成报告", description: "汇总安全问题并生成报告", status: .pending, dependencies: ["代码审计", "权限检查"]),
+                FCWorkflowStep(name: "dep_scan", description: "dep_scan", status: .pending, dependencies: []),
+                FCWorkflowStep(name: "code_audit", description: "code_audit", status: .pending, dependencies: []),
+                FCWorkflowStep(name: "perm_check", description: "perm_check", status: .pending, dependencies: ["dep_scan"]),
+                FCWorkflowStep(name: "gen_report", description: "gen_report", status: .pending, dependencies: ["code_audit", "perm_check"]),
             ]
         case "batch_api":
             return [
-                FCWorkflowStep(name: "接口分析", description: "分析API接口规范", status: .pending, dependencies: []),
-                FCWorkflowStep(name: "批量生成", description: "生成API调用代码", status: .pending, dependencies: ["接口分析"]),
-                FCWorkflowStep(name: "测试验证", description: "批量测试API响应", status: .pending, dependencies: ["批量生成"]),
+                FCWorkflowStep(name: "api_analysis", description: "api_analysis", status: .pending, dependencies: []),
+                FCWorkflowStep(name: "batch_generate", description: "batch_generate", status: .pending, dependencies: ["api_analysis"]),
+                FCWorkflowStep(name: "test_verify", description: "test_verify", status: .pending, dependencies: ["batch_generate"]),
             ]
         case "refactor":
             return [
-                FCWorkflowStep(name: "理解代码", description: "分析代码结构和模式", status: .pending, dependencies: []),
-                FCWorkflowStep(name: "规划重构", description: "制定重构方案", status: .pending, dependencies: ["理解代码"]),
-                FCWorkflowStep(name: "执行重构", description: "逐步重构代码", status: .pending, dependencies: ["规划重构"]),
-                FCWorkflowStep(name: "验证", description: "运行测试确保功能不变", status: .pending, dependencies: ["执行重构"]),
+                FCWorkflowStep(name: "understand_code", description: "understand_code", status: .pending, dependencies: []),
+                FCWorkflowStep(name: "plan_refactor", description: "plan_refactor", status: .pending, dependencies: ["understand_code"]),
+                FCWorkflowStep(name: "execute_refactor", description: "execute_refactor", status: .pending, dependencies: ["plan_refactor"]),
+                FCWorkflowStep(name: "verify", description: "verify", status: .pending, dependencies: ["execute_refactor"]),
             ]
         case "test_gen":
             return [
-                FCWorkflowStep(name: "分析代码", description: "理解代码逻辑和边界", status: .pending, dependencies: []),
-                FCWorkflowStep(name: "生成用例", description: "生成测试用例代码", status: .pending, dependencies: ["分析代码"]),
-                FCWorkflowStep(name: "运行测试", description: "执行测试并报告结果", status: .pending, dependencies: ["生成用例"]),
+                FCWorkflowStep(name: "analyze_code", description: "analyze_code", status: .pending, dependencies: []),
+                FCWorkflowStep(name: "gen_cases", description: "gen_cases", status: .pending, dependencies: ["analyze_code"]),
+                FCWorkflowStep(name: "run_tests", description: "run_tests", status: .pending, dependencies: ["gen_cases"]),
             ]
         default:
             return [
-                FCWorkflowStep(name: "分析任务", description: "理解目标和约束", status: .pending, dependencies: []),
-                FCWorkflowStep(name: "制定方案", description: "拆分子任务和依赖", status: .pending, dependencies: ["分析任务"]),
-                FCWorkflowStep(name: "执行", description: "逐步实现子任务", status: .pending, dependencies: ["制定方案"]),
-                FCWorkflowStep(name: "验证", description: "检查结果是否达标", status: .pending, dependencies: ["执行"]),
+                FCWorkflowStep(name: "analyze_task", description: "analyze_task", status: .pending, dependencies: []),
+                FCWorkflowStep(name: "make_plan", description: "make_plan", status: .pending, dependencies: ["analyze_task"]),
+                FCWorkflowStep(name: "execute", description: "execute", status: .pending, dependencies: ["make_plan"]),
+                FCWorkflowStep(name: "verify", description: "verify", status: .pending, dependencies: ["execute"]),
             ]
         }
     }
@@ -271,7 +325,7 @@ struct FCWorkflowPanel: View {
             Image(systemName: step.status.icon)
                 .font(.system(size: 8))
                 .foregroundColor(step.status.color)
-            Text(step.name)
+            Text(step.localizedName)
                 .font(.system(size: 9))
                 .foregroundStyle(theme.textSecondary)
                 .lineLimit(1)
