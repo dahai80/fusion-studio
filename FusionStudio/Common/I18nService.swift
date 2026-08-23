@@ -4444,6 +4444,60 @@ enum I18nKey: String, CaseIterable {
     case as_tab_simulation = "as_tab_simulation"
     case as_tab_benchmark = "as_tab_benchmark"
     case as_title = "as_title"
+    case col_status_online = "col_status_online"
+    case col_status_away = "col_status_away"
+    case col_status_busy = "col_status_busy"
+    case col_status_offline = "col_status_offline"
+    case col_type_design = "col_type_design"
+    case col_type_code = "col_type_code"
+    case col_type_model = "col_type_model"
+    case col_type_simulation = "col_type_simulation"
+    case col_type_document = "col_type_document"
+    case col_tab_peers = "col_tab_peers"
+    case col_tab_session = "col_tab_session"
+    case col_tab_share = "col_tab_share"
+    case col_tab_settings = "col_tab_settings"
+    case col_log_advertise_start = "col_log_advertise_start"
+    case col_log_advertise_failed = "col_log_advertise_failed"
+    case col_log_advertise_stopped = "col_log_advertise_stopped"
+    case col_log_advertise_error = "col_log_advertise_error"
+    case col_log_browse_start = "col_log_browse_start"
+    case col_log_browse_failed = "col_log_browse_failed"
+    case col_log_conn_ready = "col_log_conn_ready"
+    case col_title = "col_title"
+    case col_create_session = "col_create_session"
+    case col_session_name = "col_session_name"
+    case col_cancel = "col_cancel"
+    case col_create = "col_create"
+    case col_no_peers = "col_no_peers"
+    case col_no_peers_hint = "col_no_peers_hint"
+    case col_section_local = "col_section_local"
+    case col_section_peers_fmt = "col_section_peers_fmt"
+    case col_local_tag = "col_local_tag"
+    case col_invite = "col_invite"
+    case col_leave = "col_leave"
+    case col_members_fmt = "col_members_fmt"
+    case col_resources_fmt = "col_resources_fmt"
+    case col_no_resources = "col_no_resources"
+    case col_no_session = "col_no_session"
+    case col_no_session_hint = "col_no_session_hint"
+    case col_new_session = "col_new_session"
+    case col_download = "col_download"
+    case col_no_resources_hint = "col_no_resources_hint"
+    case col_section_identity = "col_section_identity"
+    case col_service_name = "col_service_name"
+    case col_port_fmt = "col_port_fmt"
+    case col_section_auto = "col_section_auto"
+    case col_auto_accept = "col_auto_accept"
+    case col_section_share = "col_section_share"
+    case col_share_design = "col_share_design"
+    case col_share_code = "col_share_code"
+    case col_share_model = "col_share_model"
+    case col_section_security = "col_section_security"
+    case col_password = "col_password"
+    case col_encrypt = "col_encrypt"
+    case col_section_note = "col_section_note"
+    case col_note_desc = "col_note_desc"
     case fc_preview = "fc_preview"
     case fc_live = "fc_live"
     case fc_html_preview_empty = "fc_html_preview_empty"
@@ -9036,6 +9090,60 @@ let zhCNTranslations: [String: String] = [
     "as_tab_simulation": "仿真",
     "as_tab_benchmark": "基准测试",
     "as_title": "高级设置",
+    "col_status_online": "在线",
+    "col_status_away": "离开",
+    "col_status_busy": "忙碌",
+    "col_status_offline": "离线",
+    "col_type_design": "设计",
+    "col_type_code": "代码",
+    "col_type_model": "模型",
+    "col_type_simulation": "仿真",
+    "col_type_document": "文档",
+    "col_tab_peers": "团队成员",
+    "col_tab_session": "协作会话",
+    "col_tab_share": "共享资源",
+    "col_tab_settings": "协作设置",
+    "col_log_advertise_start": "协作广播已启动",
+    "col_log_advertise_failed": "协作广播失败: %@",
+    "col_log_advertise_stopped": "协作广播已停止",
+    "col_log_advertise_error": "无法启动协作广播: %@",
+    "col_log_browse_start": "协作浏览已启动",
+    "col_log_browse_failed": "协作浏览失败: %@",
+    "col_log_conn_ready": "协作连接已建立: %@",
+    "col_title": "局域网协作",
+    "col_create_session": "创建协作会话",
+    "col_session_name": "会话名称",
+    "col_cancel": "取消",
+    "col_create": "创建",
+    "col_no_peers": "未发现团队成员",
+    "col_no_peers_hint": "确保其他 Fusion Studio 用户在同一局域网并已开启协作",
+    "col_section_local": "本地",
+    "col_section_peers_fmt": "团队成员 (%d)",
+    "col_local_tag": "(本机)",
+    "col_invite": "邀请",
+    "col_leave": "离开",
+    "col_members_fmt": "成员 (%d)",
+    "col_resources_fmt": "共享资源 (%d)",
+    "col_no_resources": "暂无共享资源",
+    "col_no_session": "未加入任何会话",
+    "col_no_session_hint": "创建新会话或通过成员列表邀请加入",
+    "col_new_session": "创建会话",
+    "col_download": "下载",
+    "col_no_resources_hint": "加入协作会话后，可在此查看和分享资源",
+    "col_section_identity": "标识",
+    "col_service_name": "服务名称",
+    "col_port_fmt": "端口: %d",
+    "col_section_auto": "自动操作",
+    "col_auto_accept": "自动接受加入请求",
+    "col_section_share": "共享模块",
+    "col_share_design": "共享设计模块",
+    "col_share_code": "共享代码模块",
+    "col_share_model": "共享模型",
+    "col_section_security": "安全",
+    "col_password": "需要密码加入",
+    "col_encrypt": "加密传输",
+    "col_section_note": "说明",
+    "col_note_desc": "局域网协作功能使用 Bonjour/mDNS 协议自动发现同一局域网内的 Fusion Studio 用户。所有数据传输仅在局域网内进行，不经过外部网络。",
     "fc_preview": "预览",
     "fc_live": "实时",
     "fc_html_preview_empty": "生成HTML后此处显示预览",
@@ -13581,6 +13689,60 @@ let enUSTranslations: [String: String] = [
     "as_tab_simulation": "Simulation",
     "as_tab_benchmark": "Benchmark",
     "as_title": "Advanced Settings",
+    "col_status_online": "Online",
+    "col_status_away": "Away",
+    "col_status_busy": "Busy",
+    "col_status_offline": "Offline",
+    "col_type_design": "Design",
+    "col_type_code": "Code",
+    "col_type_model": "Model",
+    "col_type_simulation": "Simulation",
+    "col_type_document": "Document",
+    "col_tab_peers": "Team Members",
+    "col_tab_session": "Session",
+    "col_tab_share": "Shared Resources",
+    "col_tab_settings": "Settings",
+    "col_log_advertise_start": "Collaboration broadcast started",
+    "col_log_advertise_failed": "Collaboration broadcast failed: %@",
+    "col_log_advertise_stopped": "Collaboration broadcast stopped",
+    "col_log_advertise_error": "Unable to start collaboration broadcast: %@",
+    "col_log_browse_start": "Collaboration browsing started",
+    "col_log_browse_failed": "Collaboration browsing failed: %@",
+    "col_log_conn_ready": "Collaboration connection established: %@",
+    "col_title": "LAN Collaboration",
+    "col_create_session": "Create Collaboration Session",
+    "col_session_name": "Session Name",
+    "col_cancel": "Cancel",
+    "col_create": "Create",
+    "col_no_peers": "No team members found",
+    "col_no_peers_hint": "Ensure other Fusion Studio users are on the same LAN with collaboration enabled",
+    "col_section_local": "Local",
+    "col_section_peers_fmt": "Team Members (%d)",
+    "col_local_tag": "(This Machine)",
+    "col_invite": "Invite",
+    "col_leave": "Leave",
+    "col_members_fmt": "Members (%d)",
+    "col_resources_fmt": "Shared Resources (%d)",
+    "col_no_resources": "No shared resources",
+    "col_no_session": "Not joined to any session",
+    "col_no_session_hint": "Create a new session or join via an invite from the members list",
+    "col_new_session": "Create Session",
+    "col_download": "Download",
+    "col_no_resources_hint": "Join a collaboration session to view and share resources here",
+    "col_section_identity": "Identity",
+    "col_service_name": "Service Name",
+    "col_port_fmt": "Port: %d",
+    "col_section_auto": "Automation",
+    "col_auto_accept": "Auto-accept join requests",
+    "col_section_share": "Shared Modules",
+    "col_share_design": "Share Design Module",
+    "col_share_code": "Share Code Module",
+    "col_share_model": "Share Models",
+    "col_section_security": "Security",
+    "col_password": "Require password to join",
+    "col_encrypt": "Encrypted Transfer",
+    "col_section_note": "Note",
+    "col_note_desc": "LAN collaboration uses the Bonjour/mDNS protocol to automatically discover Fusion Studio users on the same LAN. All data transfer stays within the LAN and does not pass through external networks.",
     "fc_preview": "Preview",
     "fc_live": "Live",
     "fc_html_preview_empty": "Preview appears here after HTML is generated",
@@ -18120,6 +18282,60 @@ let jaJPTranslations: [String: String] = [
     "as_tab_simulation": "シミュレーション",
     "as_tab_benchmark": "ベンチマーク",
     "as_title": "詳細設定",
+    "col_status_online": "オンライン",
+    "col_status_away": "退席中",
+    "col_status_busy": "取込中",
+    "col_status_offline": "オフライン",
+    "col_type_design": "デザイン",
+    "col_type_code": "コード",
+    "col_type_model": "モデル",
+    "col_type_simulation": "シミュレーション",
+    "col_type_document": "ドキュメント",
+    "col_tab_peers": "チームメンバー",
+    "col_tab_session": "セッション",
+    "col_tab_share": "共有リソース",
+    "col_tab_settings": "設定",
+    "col_log_advertise_start": "コラボレーション配信を開始しました",
+    "col_log_advertise_failed": "コラボレーション配信に失敗しました: %@",
+    "col_log_advertise_stopped": "コラボレーション配信を停止しました",
+    "col_log_advertise_error": "コラボレーション配信を開始できません: %@",
+    "col_log_browse_start": "コラボレーション参照を開始しました",
+    "col_log_browse_failed": "コラボレーション参照に失敗しました: %@",
+    "col_log_conn_ready": "コラボレーション接続を確立しました: %@",
+    "col_title": "LAN コラボレーション",
+    "col_create_session": "コラボレーションセッションを作成",
+    "col_session_name": "セッション名",
+    "col_cancel": "キャンセル",
+    "col_create": "作成",
+    "col_no_peers": "チームメンバーが見つかりません",
+    "col_no_peers_hint": "他の Fusion Studio ユーザーが同じ LAN でコラボレーションを有効にしていることを確認してください",
+    "col_section_local": "ローカル",
+    "col_section_peers_fmt": "チームメンバー (%d)",
+    "col_local_tag": "(この端末)",
+    "col_invite": "招待",
+    "col_leave": "離脱",
+    "col_members_fmt": "メンバー (%d)",
+    "col_resources_fmt": "共有リソース (%d)",
+    "col_no_resources": "共有リソースはありません",
+    "col_no_session": "どのセッションにも参加していません",
+    "col_no_session_hint": "新しいセッションを作成するか、メンバーリストからの招待で参加してください",
+    "col_new_session": "セッションを作成",
+    "col_download": "ダウンロード",
+    "col_no_resources_hint": "コラボレーションセッションに参加すると、ここでリソースを確認・共有できます",
+    "col_section_identity": "識別情報",
+    "col_service_name": "サービス名",
+    "col_port_fmt": "ポート: %d",
+    "col_section_auto": "自動操作",
+    "col_auto_accept": "参加リクエストを自動承認",
+    "col_section_share": "共有モジュール",
+    "col_share_design": "デザインモジュールを共有",
+    "col_share_code": "コードモジュールを共有",
+    "col_share_model": "モデルを共有",
+    "col_section_security": "セキュリティ",
+    "col_password": "参加にパスワードが必要",
+    "col_encrypt": "暗号化転送",
+    "col_section_note": "説明",
+    "col_note_desc": "LAN コラボレーションは Bonjour/mDNS プロトコルを使用し、同じ LAN 内の Fusion Studio ユーザーを自動的に検出します。すべてのデータ転送は LAN 内にとどまり、外部ネットワークを経由しません。",
     "fc_preview": "プレビュー",
     "fc_live": "ライブ",
     "fc_html_preview_empty": "HTML生成後にここにプレビューが表示されます",
@@ -22659,6 +22875,60 @@ let koKRTranslations: [String: String] = [
     "as_tab_simulation": "시뮬레이션",
     "as_tab_benchmark": "벤치마크",
     "as_title": "고급 설정",
+    "col_status_online": "온라인",
+    "col_status_away": "자리 비움",
+    "col_status_busy": "바쁨",
+    "col_status_offline": "오프라인",
+    "col_type_design": "디자인",
+    "col_type_code": "코드",
+    "col_type_model": "모델",
+    "col_type_simulation": "시뮬레이션",
+    "col_type_document": "문서",
+    "col_tab_peers": "팀 멤버",
+    "col_tab_session": "세션",
+    "col_tab_share": "공유 리소스",
+    "col_tab_settings": "설정",
+    "col_log_advertise_start": "협업 브로드캐스트가 시작되었습니다",
+    "col_log_advertise_failed": "협업 브로드캐스트 실패: %@",
+    "col_log_advertise_stopped": "협업 브로드캐스트가 중지되었습니다",
+    "col_log_advertise_error": "협업 브로드캐스트를 시작할 수 없습니다: %@",
+    "col_log_browse_start": "협업 검색이 시작되었습니다",
+    "col_log_browse_failed": "협업 검색 실패: %@",
+    "col_log_conn_ready": "협업 연결이 설정되었습니다: %@",
+    "col_title": "LAN 협업",
+    "col_create_session": "협업 세션 만들기",
+    "col_session_name": "세션 이름",
+    "col_cancel": "취소",
+    "col_create": "만들기",
+    "col_no_peers": "팀 멤버를 찾을 수 없습니다",
+    "col_no_peers_hint": "다른 Fusion Studio 사용자가 같은 LAN에서 협업을 활성화했는지 확인하세요",
+    "col_section_local": "로컬",
+    "col_section_peers_fmt": "팀 멤버 (%d)",
+    "col_local_tag": "(이 컴퓨터)",
+    "col_invite": "초대",
+    "col_leave": "나가기",
+    "col_members_fmt": "멤버 (%d)",
+    "col_resources_fmt": "공유 리소스 (%d)",
+    "col_no_resources": "공유 리소스가 없습니다",
+    "col_no_session": "참여 중인 세션이 없습니다",
+    "col_no_session_hint": "새 세션을 만들거나 멤버 목록의 초대로 참여하세요",
+    "col_new_session": "세션 만들기",
+    "col_download": "다운로드",
+    "col_no_resources_hint": "협업 세션에 참여하면 여기서 리소스를 보고 공유할 수 있습니다",
+    "col_section_identity": "식별 정보",
+    "col_service_name": "서비스 이름",
+    "col_port_fmt": "포트: %d",
+    "col_section_auto": "자동화",
+    "col_auto_accept": "참여 요청 자동 수락",
+    "col_section_share": "공유 모듈",
+    "col_share_design": "디자인 모듈 공유",
+    "col_share_code": "코드 모듈 공유",
+    "col_share_model": "모델 공유",
+    "col_section_security": "보안",
+    "col_password": "참여 시 비밀번호 필요",
+    "col_encrypt": "암호화 전송",
+    "col_section_note": "설명",
+    "col_note_desc": "LAN 협업은 Bonjour/mDNS 프로토콜을 사용하여 같은 LAN 내의 Fusion Studio 사용자를 자동으로 발견합니다. 모든 데이터 전송은 LAN 내에 머물며 외부 네트워크를 거치지 않습니다.",
     "fc_preview": "미리보기",
     "fc_live": "실시간",
     "fc_html_preview_empty": "HTML 생성 후 여기에 미리보기가 표시됩니다",
