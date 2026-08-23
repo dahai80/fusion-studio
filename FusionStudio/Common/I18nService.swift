@@ -1892,6 +1892,76 @@ enum I18nKey: String, CaseIterable {
     case secv_reco_offline = "secv_reco_offline"
     case secv_reco_sign = "secv_reco_sign"
     case secv_reco_filevault = "secv_reco_filevault"
+    case onb_title_welcome = "onb_title_welcome"
+    case onb_title_dashboard = "onb_title_dashboard"
+    case onb_title_modules = "onb_title_modules"
+    case onb_title_design = "onb_title_design"
+    case onb_title_code = "onb_title_code"
+    case onb_title_simulation = "onb_title_simulation"
+    case onb_title_settings = "onb_title_settings"
+    case onb_title_complete = "onb_title_complete"
+    case onb_desc_welcome = "onb_desc_welcome"
+    case onb_desc_dashboard = "onb_desc_dashboard"
+    case onb_desc_modules = "onb_desc_modules"
+    case onb_desc_design = "onb_desc_design"
+    case onb_desc_code = "onb_desc_code"
+    case onb_desc_simulation = "onb_desc_simulation"
+    case onb_desc_settings = "onb_desc_settings"
+    case onb_desc_complete = "onb_desc_complete"
+    case onb_btn_prev = "onb_btn_prev"
+    case onb_btn_next = "onb_btn_next"
+    case onb_btn_start = "onb_btn_start"
+    case onb_btn_skip = "onb_btn_skip"
+    case onb_btn_reset = "onb_btn_reset"
+    case onb_tip_env_title = "onb_tip_env_title"
+    case onb_tip_env_msg = "onb_tip_env_msg"
+    case onb_tip_mlx_title = "onb_tip_mlx_title"
+    case onb_tip_mlx_msg = "onb_tip_mlx_msg"
+    case onb_tip_link_title = "onb_tip_link_title"
+    case onb_tip_link_msg = "onb_tip_link_msg"
+    case onb_tip_key_title = "onb_tip_key_title"
+    case onb_tip_key_msg = "onb_tip_key_msg"
+    case onb_tip_offline_title = "onb_tip_offline_title"
+    case onb_tip_offline_msg = "onb_tip_offline_msg"
+    case onb_tab_tips = "onb_tab_tips"
+    case onb_tab_faq = "onb_tab_faq"
+    case onb_tab_shortcuts = "onb_tab_shortcuts"
+    case onb_tab_about = "onb_tab_about"
+    case onb_search_hint = "onb_search_hint"
+    case onb_faq_free_q = "onb_faq_free_q"
+    case onb_faq_free_a = "onb_faq_free_a"
+    case onb_faq_intel_q = "onb_faq_intel_q"
+    case onb_faq_intel_a = "onb_faq_intel_a"
+    case onb_faq_install_q = "onb_faq_install_q"
+    case onb_faq_install_a = "onb_faq_install_a"
+    case onb_faq_cloud_q = "onb_faq_cloud_q"
+    case onb_faq_cloud_a = "onb_faq_cloud_a"
+    case onb_faq_update_q = "onb_faq_update_q"
+    case onb_faq_update_a = "onb_faq_update_a"
+    case onb_faq_lang_q = "onb_faq_lang_q"
+    case onb_faq_lang_a = "onb_faq_lang_a"
+    case onb_faq_plugin_q = "onb_faq_plugin_q"
+    case onb_faq_plugin_a = "onb_faq_plugin_a"
+    case onb_faq_lan_q = "onb_faq_lan_q"
+    case onb_faq_lan_a = "onb_faq_lan_a"
+    case onb_sc_mod = "onb_sc_mod"
+    case onb_sc_settings = "onb_sc_settings"
+    case onb_sc_run = "onb_sc_run"
+    case onb_sc_build = "onb_sc_build"
+    case onb_sc_search = "onb_sc_search"
+    case onb_sc_help = "onb_sc_help"
+    case onb_sc_new = "onb_sc_new"
+    case onb_sc_export = "onb_sc_export"
+    case onb_sc_preview = "onb_sc_preview"
+    case onb_sc_cancel = "onb_sc_cancel"
+    case onb_about_version = "onb_about_version"
+    case onb_about_tagline = "onb_about_tagline"
+    case onb_about_macos = "onb_about_macos"
+    case onb_about_offline = "onb_about_offline"
+    case onb_about_modules = "onb_about_modules"
+    case onb_about_license = "onb_about_license"
+    case onb_about_check_update = "onb_about_check_update"
+    case onb_about_copyright = "onb_about_copyright"
     case proj_subtitle = "proj_subtitle"
     case proj_searchPh = "proj_searchPh"
     case proj_newHelp = "proj_newHelp"
@@ -6090,6 +6160,76 @@ let zhCNTranslations: [String: String] = [
     "secv_reco_offline": "建议开启离线模式阻止外部网络请求",
     "secv_reco_sign": "使用开发者证书签名应用",
     "secv_reco_filevault": "考虑使用 FileVault 加密磁盘",
+    "onb_title_welcome": "欢迎使用 Fusion Studio",
+    "onb_title_dashboard": "控制台概览",
+    "onb_title_modules": "模块导航",
+    "onb_title_design": "AI 设计画布",
+    "onb_title_code": "AI 编码助手",
+    "onb_title_simulation": "机器人仿真",
+    "onb_title_settings": "个性化设置",
+    "onb_title_complete": "准备就绪",
+    "onb_desc_welcome": "Fusion Studio 是 Fusion-MLX 生态的统一桌面客户端。它将设计、编码、仿真、模型管理等 10 个模块整合为一个 macOS 原生应用。",
+    "onb_desc_dashboard": "控制台是您的指挥中心。在这里可以查看环境健康状态、运行任务队列、监控硬件使用情况。",
+    "onb_desc_modules": "左侧边栏列出了所有可用模块。点击任意模块即可快速切换。当前已激活 10 个模块。",
+    "onb_desc_design": "使用 AI 驱动的设计画布创建 UI 界面。支持对话式生成、一键导出代码到编码模块。",
+    "onb_desc_code": "内置代码编辑器和集成终端。支持 Swift、Python、Rust 等多种语言，可直接运行和调试。",
+    "onb_desc_simulation": "3D 物理仿真引擎，支持机器人运动学、动力学仿真。可与设计和编码模块联动。",
+    "onb_desc_settings": "在设置中配置硬件加速、离线模式、量化精度、工作区路径等。",
+    "onb_desc_complete": "您已掌握基本操作！如需更多帮助，请查看帮助菜单或访问在线文档。",
+    "onb_btn_prev": "上一步",
+    "onb_btn_next": "下一步",
+    "onb_btn_start": "开始使用",
+    "onb_btn_skip": "跳过引导",
+    "onb_btn_reset": "重新显示引导",
+    "onb_tip_env_title": "环境健康检查",
+    "onb_tip_env_msg": "首次使用请运行环境自检，确保所有依赖已安装",
+    "onb_tip_mlx_title": "MLX 推理服务",
+    "onb_tip_mlx_msg": "AI 功能需要 fusion-mlx 服务运行，在设置中开启自动启动",
+    "onb_tip_link_title": "模块联动",
+    "onb_tip_link_msg": "设计 → 代码 → 仿真 三联动，一键流转数据",
+    "onb_tip_key_title": "快捷键",
+    "onb_tip_key_msg": "Cmd+1-9 快速切换模块，Cmd+, 打开设置",
+    "onb_tip_offline_title": "离线模式",
+    "onb_tip_offline_msg": "默认开启离线模式，所有数据仅存储在本地",
+    "onb_tab_tips": "使用提示",
+    "onb_tab_faq": "常见问题",
+    "onb_tab_shortcuts": "快捷键",
+    "onb_tab_about": "关于",
+    "onb_search_hint": "搜索提示...",
+    "onb_faq_free_q": "Fusion Studio 是否完全免费？",
+    "onb_faq_free_a": "是的，Fusion Studio 是开源软件，使用 MIT 许可证，完全免费。",
+    "onb_faq_intel_q": "是否支持 Intel Mac？",
+    "onb_faq_intel_a": "目前仅支持 Apple Silicon (M1-M5)，因为依赖 MLX 框架的 Metal 加速。",
+    "onb_faq_install_q": "如何安装 fusion-mlx？",
+    "onb_faq_install_a": "在控制台运行环境自检，点击「修复」按钮自动安装，或手动执行 pip install fusion-mlx。",
+    "onb_faq_cloud_q": "数据会上传到云端吗？",
+    "onb_faq_cloud_a": "不会。Fusion Studio 默认开启离线模式，所有数据仅存储在本地。",
+    "onb_faq_update_q": "如何更新 Fusion Studio？",
+    "onb_faq_update_a": "在设置中点击「检查更新」，或从 GitHub Release 下载最新 DMG。",
+    "onb_faq_lang_q": "支持哪些编程语言？",
+    "onb_faq_lang_a": "内置支持 Swift、Python、Rust、JavaScript、TypeScript、HTML、CSS、JSON、YAML。",
+    "onb_faq_plugin_q": "如何创建自定义插件？",
+    "onb_faq_plugin_a": "在插件面板中点击「创建模板」，生成插件骨架后编辑 manifest.json 和 main.py。",
+    "onb_faq_lan_q": "局域网协作安全吗？",
+    "onb_faq_lan_a": "所有数据传输仅在局域网内进行，使用 Bonjour/mDNS 发现，不经过外部网络。",
+    "onb_sc_mod": "切换模块",
+    "onb_sc_settings": "打开设置",
+    "onb_sc_run": "运行当前代码",
+    "onb_sc_build": "构建项目",
+    "onb_sc_search": "搜索",
+    "onb_sc_help": "显示帮助",
+    "onb_sc_new": "新建文档",
+    "onb_sc_export": "导出",
+    "onb_sc_preview": "预览/播放",
+    "onb_sc_cancel": "取消/关闭",
+    "onb_about_version": "版本 %@ (Build %@)",
+    "onb_about_tagline": "Fusion-MLX 本地 AI 生态的统一桌面客户端",
+    "onb_about_macos": "macOS 14+ Apple Silicon",
+    "onb_about_offline": "100% 本地离线",
+    "onb_about_modules": "10 个模块 · 全生态收口",
+    "onb_about_license": "MIT 开源许可证",
+    "onb_about_check_update": "检查更新",
+    "onb_about_copyright": "© 2026 Fusion-MLX Team",
     "proj_subtitle": "管理你的 AI 项目、指令和知识库",
     "proj_searchPh": "搜索项目",
     "proj_newHelp": "新建项目",
@@ -10241,6 +10381,76 @@ let enUSTranslations: [String: String] = [
     "secv_reco_offline": "Recommend enabling offline mode to block external requests",
     "secv_reco_sign": "Sign app with developer certificate",
     "secv_reco_filevault": "Consider using FileVault to encrypt disk",
+    "onb_title_welcome": "Welcome to Fusion Studio",
+    "onb_title_dashboard": "Dashboard Overview",
+    "onb_title_modules": "Module Navigation",
+    "onb_title_design": "AI Design Canvas",
+    "onb_title_code": "AI Code Assistant",
+    "onb_title_simulation": "Robot Simulation",
+    "onb_title_settings": "Personal Settings",
+    "onb_title_complete": "Ready to Go",
+    "onb_desc_welcome": "Fusion Studio is the unified desktop client for the Fusion-MLX ecosystem. It integrates 10 modules including design, coding, simulation, and model management into a single macOS native app.",
+    "onb_desc_dashboard": "The dashboard is your command center. Here you can check environment health, run the task queue, and monitor hardware usage.",
+    "onb_desc_modules": "The left sidebar lists all available modules. Click any module to switch quickly. 10 modules are currently active.",
+    "onb_desc_design": "Create UI interfaces on the AI-powered design canvas. Supports conversational generation and one-click code export to the code module.",
+    "onb_desc_code": "Built-in code editor and integrated terminal. Supports Swift, Python, Rust and more, with direct run and debug.",
+    "onb_desc_simulation": "3D physics simulation engine supporting robot kinematics and dynamics. Can be linked with the design and code modules.",
+    "onb_desc_settings": "Configure hardware acceleration, offline mode, quantization precision, workspace path, and more in settings.",
+    "onb_desc_complete": "You've mastered the basics! For more help, check the Help menu or visit the online docs.",
+    "onb_btn_prev": "Previous",
+    "onb_btn_next": "Next",
+    "onb_btn_start": "Get Started",
+    "onb_btn_skip": "Skip Onboarding",
+    "onb_btn_reset": "Show Onboarding Again",
+    "onb_tip_env_title": "Environment Health Check",
+    "onb_tip_env_msg": "Run an environment self-check on first use to ensure all dependencies are installed",
+    "onb_tip_mlx_title": "MLX Inference Service",
+    "onb_tip_mlx_msg": "AI features require the fusion-mlx service running. Enable auto-start in settings",
+    "onb_tip_link_title": "Module Linkage",
+    "onb_tip_link_msg": "Design → Code → Simulation, three-way linkage with one-click data flow",
+    "onb_tip_key_title": "Keyboard Shortcuts",
+    "onb_tip_key_msg": "Cmd+1-9 to quickly switch modules, Cmd+, to open settings",
+    "onb_tip_offline_title": "Offline Mode",
+    "onb_tip_offline_msg": "Offline mode is on by default. All data is stored locally only",
+    "onb_tab_tips": "Tips",
+    "onb_tab_faq": "FAQ",
+    "onb_tab_shortcuts": "Shortcuts",
+    "onb_tab_about": "About",
+    "onb_search_hint": "Search tips...",
+    "onb_faq_free_q": "Is Fusion Studio completely free?",
+    "onb_faq_free_a": "Yes, Fusion Studio is open-source software under the MIT license, completely free.",
+    "onb_faq_intel_q": "Does it support Intel Macs?",
+    "onb_faq_intel_a": "Currently only Apple Silicon (M1-M5) is supported, due to reliance on the MLX framework's Metal acceleration.",
+    "onb_faq_install_q": "How to install fusion-mlx?",
+    "onb_faq_install_a": "Run an environment self-check on the dashboard, click 「Repair」 to auto-install, or manually run pip install fusion-mlx.",
+    "onb_faq_cloud_q": "Is data uploaded to the cloud?",
+    "onb_faq_cloud_a": "No. Fusion Studio has offline mode on by default, all data is stored locally only.",
+    "onb_faq_update_q": "How to update Fusion Studio?",
+    "onb_faq_update_a": "Click 「Check for Updates」 in settings, or download the latest DMG from GitHub Release.",
+    "onb_faq_lang_q": "Which programming languages are supported?",
+    "onb_faq_lang_a": "Built-in support for Swift, Python, Rust, JavaScript, TypeScript, HTML, CSS, JSON, YAML.",
+    "onb_faq_plugin_q": "How to create a custom plugin?",
+    "onb_faq_plugin_a": "Click 「Create Template」 in the plugin panel, generate the plugin skeleton, then edit manifest.json and main.py.",
+    "onb_faq_lan_q": "Is LAN collaboration safe?",
+    "onb_faq_lan_a": "All data transfer happens within the LAN only, using Bonjour/mDNS discovery, without going through external networks.",
+    "onb_sc_mod": "Switch Module",
+    "onb_sc_settings": "Open Settings",
+    "onb_sc_run": "Run Current Code",
+    "onb_sc_build": "Build Project",
+    "onb_sc_search": "Search",
+    "onb_sc_help": "Show Help",
+    "onb_sc_new": "New Document",
+    "onb_sc_export": "Export",
+    "onb_sc_preview": "Preview/Play",
+    "onb_sc_cancel": "Cancel/Close",
+    "onb_about_version": "Version %@ (Build %@)",
+    "onb_about_tagline": "Unified desktop client for the Fusion-MLX local AI ecosystem",
+    "onb_about_macos": "macOS 14+ Apple Silicon",
+    "onb_about_offline": "100% Local Offline",
+    "onb_about_modules": "10 Modules · Full Ecosystem",
+    "onb_about_license": "MIT Open-Source License",
+    "onb_about_check_update": "Check for Updates",
+    "onb_about_copyright": "© 2026 Fusion-MLX Team",
     "proj_subtitle": "Manage your AI projects, instructions and knowledge base",
     "proj_searchPh": "Search projects",
     "proj_newHelp": "New project",
@@ -14386,6 +14596,76 @@ let jaJPTranslations: [String: String] = [
     "secv_reco_offline": "外部要求をブロックするためオフラインモード有効化を推奨",
     "secv_reco_sign": "開発者証明書でアプリを署名",
     "secv_reco_filevault": "FileVaultでのディスク暗号化を検討",
+    "onb_title_welcome": "Fusion Studioへようこそ",
+    "onb_title_dashboard": "ダッシュボードの概要",
+    "onb_title_modules": "モジュールナビゲーション",
+    "onb_title_design": "AI デザインキャンバス",
+    "onb_title_code": "AI コーディングアシスタント",
+    "onb_title_simulation": "ロボットシミュレーション",
+    "onb_title_settings": "パーソナライズ設定",
+    "onb_title_complete": "準備完了",
+    "onb_desc_welcome": "Fusion Studio は Fusion-MLX エコシステムの統合デスクトップクライアントです。デザイン、コーディング、シミュレーション、モデル管理など 10 個のモジュールを 1 つの macOS ネイティブアプリに統合します。",
+    "onb_desc_dashboard": "ダッシュボードはあなたのコマンドセンターです。ここで環境の健全性を確認し、タスクキューを実行し、ハードウェアの使用状況を監視できます。",
+    "onb_desc_modules": "左側のサイドバーに利用可能なすべてのモジュールが表示されます。任意のモジュールをクリックして素早く切り替えられます。現在 10 個のモジュールがアクティブです。",
+    "onb_desc_design": "AI 駆動のデザインキャンバスで UI インターフェースを作成します。会話式生成と、コーディングモジュールへのワンクリックコードエクスポートをサポートします。",
+    "onb_desc_code": "組み込みのコードエディタと統合ターミナル。Swift、Python、Rust など多数の言語をサポートし、直接実行とデバッグが可能です。",
+    "onb_desc_simulation": "3D 物理シミュレーションエンジン。ロボットの運動学・動力学シミュレーションをサポートし、デザインとコーディングモジュールと連携できます。",
+    "onb_desc_settings": "設定でハードウェアアクセラレーション、オフラインモード、量子化精度、ワークスペースパスなどを構成します。",
+    "onb_desc_complete": "基本操作をマスターしました！さらにヘルプが必要な場合は、ヘルプメニューを確認するかオンラインドキュメントをご覧ください。",
+    "onb_btn_prev": "前へ",
+    "onb_btn_next": "次へ",
+    "onb_btn_start": "はじめる",
+    "onb_btn_skip": "オンボーディングをスキップ",
+    "onb_btn_reset": "オンボーディングを再表示",
+    "onb_tip_env_title": "環境ヘルスチェック",
+    "onb_tip_env_msg": "初回使用時に環境自己診断を実行し、すべての依存関係がインストールされていることを確認してください",
+    "onb_tip_mlx_title": "MLX 推論サービス",
+    "onb_tip_mlx_msg": "AI機能には fusion-mlx サービスの実行が必要です。設定で自動起動を有効にしてください",
+    "onb_tip_link_title": "モジュール連携",
+    "onb_tip_link_msg": "デザイン → コード → シミュレーションの三連携、ワンクリックでデータを連携",
+    "onb_tip_key_title": "キーボードショートカット",
+    "onb_tip_key_msg": "Cmd+1-9 でモジュールを素早く切り替え、Cmd+, で設定を開く",
+    "onb_tip_offline_title": "オフラインモード",
+    "onb_tip_offline_msg": "デフォルトでオフラインモードが有効で、すべてのデータはローカルにのみ保存されます",
+    "onb_tab_tips": "使い方のヒント",
+    "onb_tab_faq": "よくある質問",
+    "onb_tab_shortcuts": "ショートカット",
+    "onb_tab_about": "について",
+    "onb_search_hint": "ヒントを検索...",
+    "onb_faq_free_q": "Fusion Studio は完全に無料ですか？",
+    "onb_faq_free_a": "はい、Fusion Studio は MIT ライセンスのオープンソースソフトウェアで、完全に無料です。",
+    "onb_faq_intel_q": "Intel Mac に対応していますか？",
+    "onb_faq_intel_a": "現在 Apple Silicon (M1-M5) のみ対応しています。MLX フレームワークの Metal アクセラレーションに依存しているためです。",
+    "onb_faq_install_q": "fusion-mlx をインストールするには？",
+    "onb_faq_install_a": "ダッシュボードで環境自己診断を実行し、「修復」ボタンをクリックして自動インストールするか、手動で pip install fusion-mlx を実行してください。",
+    "onb_faq_cloud_q": "データはクラウドにアップロードされますか？",
+    "onb_faq_cloud_a": "いいえ。Fusion Studio はデフォルトでオフラインモードが有効で、すべてのデータはローカルにのみ保存されます。",
+    "onb_faq_update_q": "Fusion Studio を更新するには？",
+    "onb_faq_update_a": "設定で「更新を確認」をクリックするか、GitHub Release から最新の DMG をダウンロードしてください。",
+    "onb_faq_lang_q": "どのプログラミング言語に対応していますか？",
+    "onb_faq_lang_a": "Swift、Python、Rust、JavaScript、TypeScript、HTML、CSS、JSON、YAML を組み込みでサポートします。",
+    "onb_faq_plugin_q": "カスタムプラグインを作成するには？",
+    "onb_faq_plugin_a": "プラグインパネルで「テンプレート作成」をクリックし、プラグインの雛形を生成した後、manifest.json と main.py を編集してください。",
+    "onb_faq_lan_q": "LAN コラボレーションは安全ですか？",
+    "onb_faq_lan_a": "すべてのデータ転送は LAN 内のみで行われ、Bonjour/mDNS で検出され、外部ネットワークを経由しません。",
+    "onb_sc_mod": "モジュールの切り替え",
+    "onb_sc_settings": "設定を開く",
+    "onb_sc_run": "現在のコードを実行",
+    "onb_sc_build": "プロジェクトをビルド",
+    "onb_sc_search": "検索",
+    "onb_sc_help": "ヘルプを表示",
+    "onb_sc_new": "新規ドキュメント",
+    "onb_sc_export": "エクスポート",
+    "onb_sc_preview": "プレビュー/再生",
+    "onb_sc_cancel": "キャンセル/閉じる",
+    "onb_about_version": "バージョン %@ (Build %@)",
+    "onb_about_tagline": "Fusion-MLX ローカル AI エコシステムの統合デスクトップクライアント",
+    "onb_about_macos": "macOS 14+ Apple Silicon",
+    "onb_about_offline": "100% ローカルオフライン",
+    "onb_about_modules": "10 モジュール · フルエコシステム",
+    "onb_about_license": "MIT オープンソースライセンス",
+    "onb_about_check_update": "更新を確認",
+    "onb_about_copyright": "© 2026 Fusion-MLX Team",
     "proj_subtitle": "AIプロジェクト・指示・ナレッジベースを管理",
     "proj_searchPh": "プロジェクトを検索",
     "proj_newHelp": "新規プロジェクト",
@@ -18531,6 +18811,76 @@ let koKRTranslations: [String: String] = [
     "secv_reco_offline": "외부 요청 차단을 위해 오프라인 모드 활성화 권장",
     "secv_reco_sign": "개발자 인증서로 앱 서명",
     "secv_reco_filevault": "FileVault로 디스크 암호화 검토",
+    "onb_title_welcome": "Fusion Studio에 오신 것을 환영합니다",
+    "onb_title_dashboard": "대시보드 개요",
+    "onb_title_modules": "모듈 탐색",
+    "onb_title_design": "AI 디자인 캔버스",
+    "onb_title_code": "AI 코딩 어시스턴트",
+    "onb_title_simulation": "로봇 시뮬레이션",
+    "onb_title_settings": "개인화 설정",
+    "onb_title_complete": "시작할 준비가 되었습니다",
+    "onb_desc_welcome": "Fusion Studio는 Fusion-MLX 생태계의 통합 데스크톱 클라이언트입니다. 디자인, 코딩, 시뮬레이션, 모델 관리 등 10개 모듈을 하나의 macOS 네이티브 앱으로 통합합니다.",
+    "onb_desc_dashboard": "대시보드는 사용자의 커맨드 센터입니다. 여기서 환경 상태를 확인하고, 작업 대기열을 실행하며, 하드웨어 사용량을 모니터링할 수 있습니다.",
+    "onb_desc_modules": "왼쪽 사이드바에 사용 가능한 모든 모듈이 표시됩니다. 모듈을 클릭해 빠르게 전환할 수 있습니다. 현재 10개 모듈이 활성화되어 있습니다.",
+    "onb_desc_design": "AI 기반 디자인 캔버스에서 UI 인터페이스를 만듭니다. 대화형 생성과 코딩 모듈로의 원클릭 코드 내보내기를 지원합니다.",
+    "onb_desc_code": "내장 코드 편집기와 통합 터미널. Swift, Python, Rust 등 다양한 언어를 지원하며 직접 실행 및 디버깅이 가능합니다.",
+    "onb_desc_simulation": "3D 물리 시뮬레이션 엔진. 로봇 운동학 및 동역학 시뮬레이션을 지원하며 디자인 및 코딩 모듈과 연동할 수 있습니다.",
+    "onb_desc_settings": "설정에서 하드웨어 가속, 오프라인 모드, 양자화 정밀도, 작업 공간 경로 등을 구성합니다.",
+    "onb_desc_complete": "기본 조작을 마스터했습니다! 추가 도움이 필요하면 도움말 메뉴를 확인하거나 온라인 문서를 방문하세요.",
+    "onb_btn_prev": "이전",
+    "onb_btn_next": "다음",
+    "onb_btn_start": "시작하기",
+    "onb_btn_skip": "온보딩 건너뛰기",
+    "onb_btn_reset": "온보딩 다시 표시",
+    "onb_tip_env_title": "환경 상태 확인",
+    "onb_tip_env_msg": "처음 사용 시 환경 자가 진단을 실행해 모든 종속성이 설치되었는지 확인하세요",
+    "onb_tip_mlx_title": "MLX 추론 서비스",
+    "onb_tip_mlx_msg": "AI 기능은 fusion-mlx 서비스 실행이 필요합니다. 설정에서 자동 시작을 활성화하세요",
+    "onb_tip_link_title": "모듈 연동",
+    "onb_tip_link_msg": "디자인 → 코드 → 시뮬레이션 3단계 연동, 원클릭으로 데이터 흐름",
+    "onb_tip_key_title": "키보드 단축키",
+    "onb_tip_key_msg": "Cmd+1-9으로 모듈을 빠르게 전환하고 Cmd+,로 설정 열기",
+    "onb_tip_offline_title": "오프라인 모드",
+    "onb_tip_offline_msg": "기본적으로 오프라인 모드가 켜져 있으며 모든 데이터는 로컬에만 저장됩니다",
+    "onb_tab_tips": "사용 팁",
+    "onb_tab_faq": "자주 묻는 질문",
+    "onb_tab_shortcuts": "단축키",
+    "onb_tab_about": "정보",
+    "onb_search_hint": "팁 검색...",
+    "onb_faq_free_q": "Fusion Studio는 완전히 무료인가요?",
+    "onb_faq_free_a": "네, Fusion Studio는 MIT 라이선스의 오픈소스 소프트웨어로 완전히 무료입니다.",
+    "onb_faq_intel_q": "Intel Mac을 지원하나요?",
+    "onb_faq_intel_a": "현재 Apple Silicon (M1-M5)만 지원합니다. MLX 프레임워크의 Metal 가속에 의존하기 때문입니다.",
+    "onb_faq_install_q": "fusion-mlx를 어떻게 설치하나요?",
+    "onb_faq_install_a": "대시보드에서 환경 자가 진단을 실행하고 「수리」 버튼을 클릭해 자동 설치하거나, 수동으로 pip install fusion-mlx를 실행하세요.",
+    "onb_faq_cloud_q": "데이터가 클라우드에 업로드되나요?",
+    "onb_faq_cloud_a": "아니요. Fusion Studio는 기본적으로 오프라인 모드가 켜져 있어 모든 데이터는 로컬에만 저장됩니다.",
+    "onb_faq_update_q": "Fusion Studio를 어떻게 업데이트하나요?",
+    "onb_faq_update_a": "설정에서 「업데이트 확인」을 클릭하거나 GitHub Release에서 최신 DMG를 다운로드하세요.",
+    "onb_faq_lang_q": "어떤 프로그래밍 언어를 지원하나요?",
+    "onb_faq_lang_a": "Swift, Python, Rust, JavaScript, TypeScript, HTML, CSS, JSON, YAML를 내장 지원합니다.",
+    "onb_faq_plugin_q": "사용자 정의 플러그인을 어떻게 만드나요?",
+    "onb_faq_plugin_a": "플러그인 패널에서 「템플릿 만들기」를 클릭해 플러그인 골격을 생성한 후 manifest.json과 main.py를 편집하세요.",
+    "onb_faq_lan_q": "LAN 협업은 안전한가요?",
+    "onb_faq_lan_a": "모든 데이터 전송은 LAN 내에서만 이루어지며, Bonjour/mDNS로 검색되고 외부 네트워크를 거치지 않습니다.",
+    "onb_sc_mod": "모듈 전환",
+    "onb_sc_settings": "설정 열기",
+    "onb_sc_run": "현재 코드 실행",
+    "onb_sc_build": "프로젝트 빌드",
+    "onb_sc_search": "검색",
+    "onb_sc_help": "도움말 표시",
+    "onb_sc_new": "새 문서",
+    "onb_sc_export": "내보내기",
+    "onb_sc_preview": "미리보기/재생",
+    "onb_sc_cancel": "취소/닫기",
+    "onb_about_version": "버전 %@ (Build %@)",
+    "onb_about_tagline": "Fusion-MLX 로컬 AI 생태계의 통합 데스크톱 클라이언트",
+    "onb_about_macos": "macOS 14+ Apple Silicon",
+    "onb_about_offline": "100% 로컬 오프라인",
+    "onb_about_modules": "10개 모듈 · 전체 생태계 통합",
+    "onb_about_license": "MIT 오픈소스 라이선스",
+    "onb_about_check_update": "업데이트 확인",
+    "onb_about_copyright": "© 2026 Fusion-MLX Team",
     "proj_subtitle": "AI 프로젝트·지시·지식베이스 관리",
     "proj_searchPh": "프로젝트 검색",
     "proj_newHelp": "새 프로젝트",
