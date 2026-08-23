@@ -1,4 +1,7 @@
 import SwiftUI
+import os.log
+
+private let onbLog = Logger(subsystem: "com.fusion.studio", category: "onboarding")
 
 // MARK: - 引导步骤
 
@@ -14,27 +17,27 @@ enum OnboardingStep: Int, CaseIterable {
 
     var title: String {
         switch self {
-        case .welcome:    return "欢迎使用 Fusion Studio"
-        case .dashboard:  return "控制台概览"
-        case .modules:    return "模块导航"
-        case .design:     return "AI 设计画布"
-        case .code:       return "AI 编码助手"
-        case .simulation: return "机器人仿真"
-        case .settings:   return "个性化设置"
-        case .complete:   return "准备就绪"
+        case .welcome:    return I18nManager.shared.t(.onb_title_welcome)
+        case .dashboard:  return I18nManager.shared.t(.onb_title_dashboard)
+        case .modules:    return I18nManager.shared.t(.onb_title_modules)
+        case .design:     return I18nManager.shared.t(.onb_title_design)
+        case .code:       return I18nManager.shared.t(.onb_title_code)
+        case .simulation: return I18nManager.shared.t(.onb_title_simulation)
+        case .settings:   return I18nManager.shared.t(.onb_title_settings)
+        case .complete:   return I18nManager.shared.t(.onb_title_complete)
         }
     }
 
     var description: String {
         switch self {
-        case .welcome:    return "Fusion Studio 是 Fusion-MLX 生态的统一桌面客户端。它将设计、编码、仿真、模型管理等 10 个模块整合为一个 macOS 原生应用。"
-        case .dashboard:  return "控制台是您的指挥中心。在这里可以查看环境健康状态、运行任务队列、监控硬件使用情况。"
-        case .modules:    return "左侧边栏列出了所有可用模块。点击任意模块即可快速切换。当前已激活 10 个模块。"
-        case .design:     return "使用 AI 驱动的设计画布创建 UI 界面。支持对话式生成、一键导出代码到编码模块。"
-        case .code:       return "内置代码编辑器和集成终端。支持 Swift、Python、Rust 等多种语言，可直接运行和调试。"
-        case .simulation: return "3D 物理仿真引擎，支持机器人运动学、动力学仿真。可与设计和编码模块联动。"
-        case .settings:   return "在设置中配置硬件加速、离线模式、量化精度、工作区路径等。"
-        case .complete:   return "您已掌握基本操作！如需更多帮助，请查看帮助菜单或访问在线文档。"
+        case .welcome:    return I18nManager.shared.t(.onb_desc_welcome)
+        case .dashboard:  return I18nManager.shared.t(.onb_desc_dashboard)
+        case .modules:    return I18nManager.shared.t(.onb_desc_modules)
+        case .design:     return I18nManager.shared.t(.onb_desc_design)
+        case .code:       return I18nManager.shared.t(.onb_desc_code)
+        case .simulation: return I18nManager.shared.t(.onb_desc_simulation)
+        case .settings:   return I18nManager.shared.t(.onb_desc_settings)
+        case .complete:   return I18nManager.shared.t(.onb_desc_complete)
         }
     }
 
@@ -94,12 +97,14 @@ class OnboardingManager: ObservableObject {
         hasCompletedOnboarding = true
         showOnboarding = false
         UserDefaults.standard.set(true, forKey: "onboarding_completed")
+        onbLog.info("onboarding completed")
     }
 
     func reset() {
         hasCompletedOnboarding = false
         currentStep = .welcome
         showOnboarding = true
+        onbLog.info("onboarding reset")
     }
 }
 
@@ -158,7 +163,7 @@ struct OnboardingOverlay: View {
                     HStack(spacing: 16) {
                         if onboarding.currentStep != .welcome {
                             Button(action: onboarding.previous) {
-                                Label("上一步", systemImage: "arrow.left")
+                                Label(I18nManager.shared.t(.onb_btn_prev), systemImage: "arrow.left")
                             }
                             .buttonStyle(.bordered)
                             .controlSize(.large)
@@ -166,7 +171,7 @@ struct OnboardingOverlay: View {
 
                         if onboarding.isLastStep {
                             Button(action: onboarding.complete) {
-                                Label("开始使用", systemImage: "hand.wave")
+                                Label(I18nManager.shared.t(.onb_btn_start), systemImage: "hand.wave")
                                     .frame(width: 160)
                             }
                             .buttonStyle(.borderedProminent)
@@ -174,7 +179,7 @@ struct OnboardingOverlay: View {
                             .tint(.green)
                         } else {
                             Button(action: onboarding.next) {
-                                Label("下一步", systemImage: "arrow.right")
+                                Label(I18nManager.shared.t(.onb_btn_next), systemImage: "arrow.right")
                                     .frame(width: 120)
                             }
                             .buttonStyle(.borderedProminent)
@@ -182,7 +187,7 @@ struct OnboardingOverlay: View {
                         }
                     }
 
-                    Button("跳过引导", action: onboarding.skip)
+                    Button(I18nManager.shared.t(.onb_btn_skip), action: onboarding.skip)
                         .buttonStyle(.plain)
                         .foregroundColor(.secondary)
                         .font(.caption)
@@ -261,11 +266,11 @@ struct ContextualTip: Identifiable {
 }
 
 let contextualTips: [ContextualTip] = [
-    ContextualTip(title: "环境健康检查", message: "首次使用请运行环境自检，确保所有依赖已安装", icon: "stethoscope", targetModule: "dashboard", priority: 1),
-    ContextualTip(title: "MLX 推理服务", message: "AI 功能需要 fusion-mlx 服务运行，在设置中开启自动启动", icon: "bolt", targetModule: "settings", priority: 2),
-    ContextualTip(title: "模块联动", message: "设计 → 代码 → 仿真 三联动，一键流转数据", icon: "arrow.triangle.branch", targetModule: nil, priority: 3),
-    ContextualTip(title: "快捷键", message: "Cmd+1-9 快速切换模块，Cmd+, 打开设置", icon: "keyboard", targetModule: nil, priority: 4),
-    ContextualTip(title: "离线模式", message: "默认开启离线模式，所有数据仅存储在本地", icon: "lock.shield", targetModule: "settings", priority: 5),
+    ContextualTip(title: I18nManager.shared.t(.onb_tip_env_title), message: I18nManager.shared.t(.onb_tip_env_msg), icon: "stethoscope", targetModule: "dashboard", priority: 1),
+    ContextualTip(title: I18nManager.shared.t(.onb_tip_mlx_title), message: I18nManager.shared.t(.onb_tip_mlx_msg), icon: "bolt", targetModule: "settings", priority: 2),
+    ContextualTip(title: I18nManager.shared.t(.onb_tip_link_title), message: I18nManager.shared.t(.onb_tip_link_msg), icon: "arrow.triangle.branch", targetModule: nil, priority: 3),
+    ContextualTip(title: I18nManager.shared.t(.onb_tip_key_title), message: I18nManager.shared.t(.onb_tip_key_msg), icon: "keyboard", targetModule: nil, priority: 4),
+    ContextualTip(title: I18nManager.shared.t(.onb_tip_offline_title), message: I18nManager.shared.t(.onb_tip_offline_msg), icon: "lock.shield", targetModule: "settings", priority: 5),
 ]
 
 // MARK: - 帮助面板
@@ -275,17 +280,26 @@ struct HelpPanelView: View {
     @State private var searchText = ""
 
     enum HelpTab: String, CaseIterable {
-        case tips    = "使用提示"
-        case faq     = "常见问题"
-        case shortcuts = "快捷键"
-        case about   = "关于"
+        case tips
+        case faq
+        case shortcuts
+        case about
+
+        var localizedName: String {
+            switch self {
+            case .tips:      return I18nManager.shared.t(.onb_tab_tips)
+            case .faq:       return I18nManager.shared.t(.onb_tab_faq)
+            case .shortcuts: return I18nManager.shared.t(.onb_tab_shortcuts)
+            case .about:     return I18nManager.shared.t(.onb_tab_about)
+            }
+        }
     }
 
     var body: some View {
         VStack(spacing: 0) {
             Picker("", selection: $selectedTab) {
                 ForEach(HelpTab.allCases, id: \.self) { tab in
-                    Label(tab.rawValue, systemImage: tabIcon(tab)).tag(tab)
+                    Label(tab.localizedName, systemImage: tabIcon(tab)).tag(tab)
                 }
             }
             .pickerStyle(.segmented)
@@ -324,23 +338,25 @@ struct TipsListView: View {
             }
             .padding()
         }
-        .searchable(text: $searchText, prompt: "搜索提示...")
+        .searchable(text: $searchText, prompt: I18nManager.shared.t(.onb_search_hint))
     }
 }
 
 struct FAQView: View {
     @State private var selectedItem: String?
 
-    let faqs: [(question: String, answer: String)] = [
-        ("Fusion Studio 是否完全免费？", "是的，Fusion Studio 是开源软件，使用 MIT 许可证，完全免费。"),
-        ("是否支持 Intel Mac？", "目前仅支持 Apple Silicon (M1-M5)，因为依赖 MLX 框架的 Metal 加速。"),
-        ("如何安装 fusion-mlx？", "在控制台运行环境自检，点击「修复」按钮自动安装，或手动执行 pip install fusion-mlx。"),
-        ("数据会上传到云端吗？", "不会。Fusion Studio 默认开启离线模式，所有数据仅存储在本地。"),
-        ("如何更新 Fusion Studio？", "在设置中点击「检查更新」，或从 GitHub Release 下载最新 DMG。"),
-        ("支持哪些编程语言？", "内置支持 Swift、Python、Rust、JavaScript、TypeScript、HTML、CSS、JSON、YAML。"),
-        ("如何创建自定义插件？", "在插件面板中点击「创建模板」，生成插件骨架后编辑 manifest.json 和 main.py。"),
-        ("局域网协作安全吗？", "所有数据传输仅在局域网内进行，使用 Bonjour/mDNS 发现，不经过外部网络。"),
-    ]
+    var faqs: [(question: String, answer: String)] {
+        [
+            (I18nManager.shared.t(.onb_faq_free_q), I18nManager.shared.t(.onb_faq_free_a)),
+            (I18nManager.shared.t(.onb_faq_intel_q), I18nManager.shared.t(.onb_faq_intel_a)),
+            (I18nManager.shared.t(.onb_faq_install_q), I18nManager.shared.t(.onb_faq_install_a)),
+            (I18nManager.shared.t(.onb_faq_cloud_q), I18nManager.shared.t(.onb_faq_cloud_a)),
+            (I18nManager.shared.t(.onb_faq_update_q), I18nManager.shared.t(.onb_faq_update_a)),
+            (I18nManager.shared.t(.onb_faq_lang_q), I18nManager.shared.t(.onb_faq_lang_a)),
+            (I18nManager.shared.t(.onb_faq_plugin_q), I18nManager.shared.t(.onb_faq_plugin_a)),
+            (I18nManager.shared.t(.onb_faq_lan_q), I18nManager.shared.t(.onb_faq_lan_a)),
+        ]
+    }
 
     var body: some View {
         ScrollView {
@@ -364,18 +380,20 @@ struct FAQView: View {
 }
 
 struct ShortcutsView: View {
-    let shortcuts: [(keys: String, action: String)] = [
-        ("Cmd + 1-9", "切换模块"),
-        ("Cmd + ,", "打开设置"),
-        ("Cmd + R", "运行当前代码"),
-        ("Cmd + B", "构建项目"),
-        ("Cmd + Shift + F", "搜索"),
-        ("Cmd + Shift + H", "显示帮助"),
-        ("Cmd + Shift + N", "新建文档"),
-        ("Cmd + Shift + E", "导出"),
-        ("Space", "预览/播放"),
-        ("Esc", "取消/关闭"),
-    ]
+    var shortcuts: [(keys: String, action: String)] {
+        [
+            ("Cmd + 1-9", I18nManager.shared.t(.onb_sc_mod)),
+            ("Cmd + ,", I18nManager.shared.t(.onb_sc_settings)),
+            ("Cmd + R", I18nManager.shared.t(.onb_sc_run)),
+            ("Cmd + B", I18nManager.shared.t(.onb_sc_build)),
+            ("Cmd + Shift + F", I18nManager.shared.t(.onb_sc_search)),
+            ("Cmd + Shift + H", I18nManager.shared.t(.onb_sc_help)),
+            ("Cmd + Shift + N", I18nManager.shared.t(.onb_sc_new)),
+            ("Cmd + Shift + E", I18nManager.shared.t(.onb_sc_export)),
+            ("Space", I18nManager.shared.t(.onb_sc_preview)),
+            ("Esc", I18nManager.shared.t(.onb_sc_cancel)),
+        ]
+    }
 
     var body: some View {
         List {
@@ -417,11 +435,11 @@ struct AboutDetailView: View {
                 .font(.largeTitle)
                 .bold()
 
-            Text("版本 \(updateManager.currentVersion) (Build \(updateManager.currentBuild))")
+            Text(I18nManager.shared.tf(.onb_about_version, updateManager.currentVersion, updateManager.currentBuild))
                 .font(.title3)
                 .foregroundColor(.secondary)
 
-            Text("Fusion-MLX 本地 AI 生态的统一桌面客户端")
+            Text(I18nManager.shared.t(.onb_about_tagline))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
 
@@ -429,23 +447,23 @@ struct AboutDetailView: View {
                 .frame(width: 200)
 
             VStack(alignment: .leading, spacing: 8) {
-                Label("macOS 14+ Apple Silicon", systemImage: "cpu")
-                Label("100% 本地离线", systemImage: "lock.shield")
-                Label("10 个模块 · 全生态收口", systemImage: "square.grid.3x3")
-                Label("MIT 开源许可证", systemImage: "doc.text")
+                Label(I18nManager.shared.t(.onb_about_macos), systemImage: "cpu")
+                Label(I18nManager.shared.t(.onb_about_offline), systemImage: "lock.shield")
+                Label(I18nManager.shared.t(.onb_about_modules), systemImage: "square.grid.3x3")
+                Label(I18nManager.shared.t(.onb_about_license), systemImage: "doc.text")
             }
             .font(.subheadline)
             .foregroundColor(.secondary)
 
             Button(action: { updateManager.checkForUpdates(force: true) }) {
-                Label("检查更新", systemImage: "arrow.clockwise")
+                Label(I18nManager.shared.t(.onb_about_check_update), systemImage: "arrow.clockwise")
             }
             .buttonStyle(.bordered)
             .padding(.top)
 
             Spacer()
 
-            Text("© 2026 Fusion-MLX Team")
+            Text(I18nManager.shared.t(.onb_about_copyright))
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
@@ -460,7 +478,7 @@ struct ResetOnboardingButton: View {
 
     var body: some View {
         Button(action: { onboarding.reset() }) {
-            Label("重新显示引导", systemImage: "arrow.counterclockwise")
+            Label(I18nManager.shared.t(.onb_btn_reset), systemImage: "arrow.counterclockwise")
         }
         .buttonStyle(.bordered)
         .controlSize(.small)
