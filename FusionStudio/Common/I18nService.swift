@@ -1767,6 +1767,131 @@ enum I18nKey: String, CaseIterable {
     case mlo_hw_no_data = "mlo_hw_no_data"
     case mlo_enabled = "mlo_enabled"
     case mlo_disabled = "mlo_disabled"
+    // MARK: - SecurityService (secv_)
+    case secv_lvl_standard = "secv_lvl_standard"
+    case secv_lvl_high = "secv_lvl_high"
+    case secv_lvl_maximum = "secv_lvl_maximum"
+    case secv_tab_dashboard = "secv_tab_dashboard"
+    case secv_tab_projects = "secv_tab_projects"
+    case secv_tab_vulns = "secv_tab_vulns"
+    case secv_tab_patch = "secv_tab_patch"
+    case secv_tab_gate = "secv_tab_gate"
+    case secv_tab_runtime = "secv_tab_runtime"
+    case secv_center = "secv_center"
+    case secv_connected = "secv_connected"
+    case secv_offline = "secv_offline"
+    case secv_engine_info = "secv_engine_info"
+    case secv_platform_fmt = "secv_platform_fmt"
+    case secv_stat_total_scans = "secv_stat_total_scans"
+    case secv_stat_total_vulns = "secv_stat_total_vulns"
+    case secv_stat_projects = "secv_stat_projects"
+    case secv_stat_critical = "secv_stat_critical"
+    case secv_stat_high = "secv_stat_high"
+    case secv_stat_medium = "secv_stat_medium"
+    case secv_stat_low = "secv_stat_low"
+    case secv_top_rules = "secv_top_rules"
+    case secv_projects_fmt = "secv_projects_fmt"
+    case secv_new_project = "secv_new_project"
+    case secv_project_name = "secv_project_name"
+    case secv_local_path = "secv_local_path"
+    case secv_tech_stack = "secv_tech_stack"
+    case secv_create = "secv_create"
+    case secv_project_list = "secv_project_list"
+    case secv_scan = "secv_scan"
+    case secv_start_scan_fmt = "secv_start_scan_fmt"
+    case secv_scan_path = "secv_scan_path"
+    case secv_use_ai = "secv_use_ai"
+    case secv_start_scan = "secv_start_scan"
+    case secv_cancel = "secv_cancel"
+    case secv_scan_history_fmt = "secv_scan_history_fmt"
+    case secv_vulns_count_fmt = "secv_vulns_count_fmt"
+    case secv_severity = "secv_severity"
+    case secv_all = "secv_all"
+    case secv_refresh = "secv_refresh"
+    case secv_fix_suggestion_fmt = "secv_fix_suggestion_fmt"
+    case secv_fix = "secv_fix"
+    case secv_false_positive = "secv_false_positive"
+    case secv_false_positive_reason = "secv_false_positive_reason"
+    case secv_verified = "secv_verified"
+    case secv_confidence_fmt = "secv_confidence_fmt"
+    case secv_ai_patches_fmt = "secv_ai_patches_fmt"
+    case secv_ai_generating = "secv_ai_generating"
+    case secv_patch_empty_desc = "secv_patch_empty_desc"
+    case secv_strategy_fmt = "secv_strategy_fmt"
+    case secv_original_code = "secv_original_code"
+    case secv_patched_code = "secv_patched_code"
+    case secv_apply_patch = "secv_apply_patch"
+    case secv_verify_patch = "secv_verify_patch"
+    case secv_patch_fmt = "secv_patch_fmt"
+    case secv_vuln_fmt = "secv_vuln_fmt"
+    case secv_gate_policy = "secv_gate_policy"
+    case secv_policy_name = "secv_policy_name"
+    case secv_max_critical = "secv_max_critical"
+    case secv_max_high = "secv_max_high"
+    case secv_evaluate_gate = "secv_evaluate_gate"
+    case secv_gate_passed = "secv_gate_passed"
+    case secv_gate_failed = "secv_gate_failed"
+    case secv_blocked_by_fmt = "secv_blocked_by_fmt"
+    case secv_builtin_rules_fmt = "secv_builtin_rules_fmt"
+    case secv_custom_rules_fmt = "secv_custom_rules_fmt"
+    case secv_rule_id = "secv_rule_id"
+    case secv_name = "secv_name"
+    case secv_regex_pattern = "secv_regex_pattern"
+    case secv_add = "secv_add"
+    case secv_security_level = "secv_security_level"
+    case secv_local_protection = "secv_local_protection"
+    case secv_offline_mode = "secv_offline_mode"
+    case secv_offline_mode_help = "secv_offline_mode_help"
+    case secv_sandbox_isolation = "secv_sandbox_isolation"
+    case secv_sandbox_help = "secv_sandbox_help"
+    case secv_file_access = "secv_file_access"
+    case secv_file_access_help = "secv_file_access_help"
+    case secv_network_access = "secv_network_access"
+    case secv_network_access_help = "secv_network_access_help"
+    case secv_integrity_check = "secv_integrity_check"
+    case secv_integrity_help = "secv_integrity_help"
+    case secv_ai_runtime_enhance = "secv_ai_runtime_enhance"
+    case secv_secret_redaction = "secv_secret_redaction"
+    case secv_secret_redaction_help = "secv_secret_redaction_help"
+    case secv_prompt_injection = "secv_prompt_injection"
+    case secv_prompt_injection_help = "secv_prompt_injection_help"
+    case secv_input_filter = "secv_input_filter"
+    case secv_input_filter_desc = "secv_input_filter_desc"
+    case secv_path_validation = "secv_path_validation"
+    case secv_allowed_dirs_fmt = "secv_allowed_dirs_fmt"
+    case secv_cat_filesystem = "secv_cat_filesystem"
+    case secv_cat_network = "secv_cat_network"
+    case secv_cat_process = "secv_cat_process"
+    case secv_cat_integrity = "secv_cat_integrity"
+    case secv_cat_data = "secv_cat_data"
+    case secv_item_sandbox = "secv_item_sandbox"
+    case secv_item_workspace_perm = "secv_item_workspace_perm"
+    case secv_item_offline_mode = "secv_item_offline_mode"
+    case secv_item_socket_perm = "secv_item_socket_perm"
+    case secv_item_service_isolation = "secv_item_service_isolation"
+    case secv_item_subprocess = "secv_item_subprocess"
+    case secv_item_app_signature = "secv_item_app_signature"
+    case secv_item_code_integrity = "secv_item_code_integrity"
+    case secv_item_data_encryption = "secv_item_data_encryption"
+    case secv_item_log_security = "secv_item_log_security"
+    case secv_detail_sandbox_on = "secv_detail_sandbox_on"
+    case secv_detail_sandbox_off = "secv_detail_sandbox_off"
+    case secv_detail_workspace_perm = "secv_detail_workspace_perm"
+    case secv_detail_offline_on = "secv_detail_offline_on"
+    case secv_detail_offline_off = "secv_detail_offline_off"
+    case secv_detail_socket_perm = "secv_detail_socket_perm"
+    case secv_detail_service_isolation = "secv_detail_service_isolation"
+    case secv_detail_subprocess = "secv_detail_subprocess"
+    case secv_detail_unsigned = "secv_detail_unsigned"
+    case secv_detail_code_integrity_pass = "secv_detail_code_integrity_pass"
+    case secv_detail_data_unencrypted = "secv_detail_data_unencrypted"
+    case secv_detail_log_clean = "secv_detail_log_clean"
+    case secv_reco_sandbox = "secv_reco_sandbox"
+    case secv_reco_keep = "secv_reco_keep"
+    case secv_reco_keep_config = "secv_reco_keep_config"
+    case secv_reco_offline = "secv_reco_offline"
+    case secv_reco_sign = "secv_reco_sign"
+    case secv_reco_filevault = "secv_reco_filevault"
     case proj_subtitle = "proj_subtitle"
     case proj_searchPh = "proj_searchPh"
     case proj_newHelp = "proj_newHelp"
@@ -5840,6 +5965,131 @@ let zhCNTranslations: [String: String] = [
     "mlo_hw_no_data": "无数据",
     "mlo_enabled": "启用",
     "mlo_disabled": "禁用",
+    // secv_
+    "secv_lvl_standard": "基本安全保护，适合日常使用",
+    "secv_lvl_high": "增强安全保护，启用沙箱和文件权限控制",
+    "secv_lvl_maximum": "最高安全保护，限制网络访问和外部连接",
+    "secv_tab_dashboard": "安全概览",
+    "secv_tab_projects": "项目与扫描",
+    "secv_tab_vulns": "漏洞清单",
+    "secv_tab_patch": "AI 修复",
+    "secv_tab_gate": "质量门禁",
+    "secv_tab_runtime": "运行时防护",
+    "secv_center": "安全中心",
+    "secv_connected": "已连接",
+    "secv_offline": "离线",
+    "secv_engine_info": "引擎信息",
+    "secv_platform_fmt": "平台: %@ · Python %@",
+    "secv_stat_total_scans": "扫描总数",
+    "secv_stat_total_vulns": "漏洞总数",
+    "secv_stat_projects": "项目数",
+    "secv_stat_critical": "严重",
+    "secv_stat_high": "高危",
+    "secv_stat_medium": "中危",
+    "secv_stat_low": "低危",
+    "secv_top_rules": "高频规则 TOP",
+    "secv_projects_fmt": "项目 (%d)",
+    "secv_new_project": "新建项目",
+    "secv_project_name": "项目名",
+    "secv_local_path": "本地路径",
+    "secv_tech_stack": "技术栈",
+    "secv_create": "创建",
+    "secv_project_list": "项目列表",
+    "secv_scan": "扫描",
+    "secv_start_scan_fmt": "发起扫描 — %@",
+    "secv_scan_path": "扫描路径",
+    "secv_use_ai": "使用 AI 增强分析",
+    "secv_start_scan": "开始扫描",
+    "secv_cancel": "取消",
+    "secv_scan_history_fmt": "扫描历史 (%d)",
+    "secv_vulns_count_fmt": "%d 漏洞",
+    "secv_severity": "严重度",
+    "secv_all": "全部",
+    "secv_refresh": "刷新",
+    "secv_fix_suggestion_fmt": "修复建议: %@",
+    "secv_fix": "修复",
+    "secv_false_positive": "误报",
+    "secv_false_positive_reason": "Studio 标记",
+    "secv_verified": "已验证",
+    "secv_confidence_fmt": "置信 %d%%",
+    "secv_ai_patches_fmt": "AI 补丁 (%d)",
+    "secv_ai_generating": "AI 生成中...",
+    "secv_patch_empty_desc": "在「漏洞清单」点击「修复」生成 AI 补丁",
+    "secv_strategy_fmt": "策略: %@",
+    "secv_original_code": "原始代码",
+    "secv_patched_code": "修复代码",
+    "secv_apply_patch": "应用补丁",
+    "secv_verify_patch": "验证补丁",
+    "secv_patch_fmt": "补丁 %@",
+    "secv_vuln_fmt": "漏洞 %@",
+    "secv_gate_policy": "门禁策略",
+    "secv_policy_name": "策略名",
+    "secv_max_critical": "最大严重: %d",
+    "secv_max_high": "最大高危: %d",
+    "secv_evaluate_gate": "评估门禁 (基于当前漏洞)",
+    "secv_gate_passed": "门禁通过",
+    "secv_gate_failed": "门禁未通过",
+    "secv_blocked_by_fmt": "阻断项: %@",
+    "secv_builtin_rules_fmt": "内置规则 (%d)",
+    "secv_custom_rules_fmt": "自定义规则 (%d)",
+    "secv_rule_id": "规则 ID",
+    "secv_name": "名称",
+    "secv_regex_pattern": "正则模式",
+    "secv_add": "添加",
+    "secv_security_level": "安全等级",
+    "secv_local_protection": "本地防护",
+    "secv_offline_mode": "离线模式",
+    "secv_offline_mode_help": "开启后阻止所有外部网络请求",
+    "secv_sandbox_isolation": "沙箱隔离",
+    "secv_sandbox_help": "限制应用访问文件系统范围",
+    "secv_file_access": "文件访问控制",
+    "secv_file_access_help": "限制仅允许访问特定目录",
+    "secv_network_access": "网络访问控制",
+    "secv_network_access_help": "控制网络请求的发起",
+    "secv_integrity_check": "完整性检查",
+    "secv_integrity_help": "定期检查核心文件完整性",
+    "secv_ai_runtime_enhance": "AI 运行时增强（超越 Claude Code）",
+    "secv_secret_redaction": "敏感信息脱敏",
+    "secv_secret_redaction_help": "自动在日志/输出/LLM 上下文中脱敏 API Key、Token、私钥",
+    "secv_prompt_injection": "Prompt 注入检测",
+    "secv_prompt_injection_help": "检测并拦截用户输入中的提示注入攻击模式",
+    "secv_input_filter": "输入过滤",
+    "secv_input_filter_desc": "所有用户输入将自动过滤 Shell 注入字符（; | & $ ` \\ > < !）",
+    "secv_path_validation": "文件路径验证",
+    "secv_allowed_dirs_fmt": "允许的目录:\n%@/.fusion-studio\n%@/FusionStudio\n/tmp",
+    "secv_cat_filesystem": "文件系统",
+    "secv_cat_network": "网络",
+    "secv_cat_process": "进程",
+    "secv_cat_integrity": "完整性",
+    "secv_cat_data": "数据",
+    "secv_item_sandbox": "沙箱隔离",
+    "secv_item_workspace_perm": "工作区权限",
+    "secv_item_offline_mode": "离线模式",
+    "secv_item_socket_perm": "Socket 权限",
+    "secv_item_service_isolation": "后台服务隔离",
+    "secv_item_subprocess": "子进程管理",
+    "secv_item_app_signature": "应用签名",
+    "secv_item_code_integrity": "代码完整性",
+    "secv_item_data_encryption": "用户数据加密",
+    "secv_item_log_security": "日志安全",
+    "secv_detail_sandbox_on": "沙箱已启用",
+    "secv_detail_sandbox_off": "沙箱未启用",
+    "secv_detail_workspace_perm": "工作区目录权限正确 (0755)",
+    "secv_detail_offline_on": "离线模式已开启",
+    "secv_detail_offline_off": "离线模式未开启",
+    "secv_detail_socket_perm": "Unix Socket 权限 0600",
+    "secv_detail_service_isolation": "env-daemon 以独立进程运行",
+    "secv_detail_subprocess": "所有子进程受监控",
+    "secv_detail_unsigned": "应用未签名",
+    "secv_detail_code_integrity_pass": "核心文件完整性检查通过",
+    "secv_detail_data_unencrypted": "本地数据存储未加密",
+    "secv_detail_log_clean": "日志不包含敏感信息",
+    "secv_reco_sandbox": "建议启用沙箱以隔离文件访问",
+    "secv_reco_keep": "维持当前权限设置",
+    "secv_reco_keep_config": "维持当前配置",
+    "secv_reco_offline": "建议开启离线模式阻止外部网络请求",
+    "secv_reco_sign": "使用开发者证书签名应用",
+    "secv_reco_filevault": "考虑使用 FileVault 加密磁盘",
     "proj_subtitle": "管理你的 AI 项目、指令和知识库",
     "proj_searchPh": "搜索项目",
     "proj_newHelp": "新建项目",
@@ -9866,6 +10116,131 @@ let enUSTranslations: [String: String] = [
     "mlo_hw_no_data": "No data",
     "mlo_enabled": "Enabled",
     "mlo_disabled": "Disabled",
+    // secv_
+    "secv_lvl_standard": "Basic protection for everyday use",
+    "secv_lvl_high": "Enhanced protection with sandbox and file permission control",
+    "secv_lvl_maximum": "Maximum protection, restrict network access and external connections",
+    "secv_tab_dashboard": "Security Overview",
+    "secv_tab_projects": "Projects & Scans",
+    "secv_tab_vulns": "Vulnerabilities",
+    "secv_tab_patch": "AI Fix",
+    "secv_tab_gate": "Quality Gate",
+    "secv_tab_runtime": "Runtime Protection",
+    "secv_center": "Security Center",
+    "secv_connected": "Connected",
+    "secv_offline": "Offline",
+    "secv_engine_info": "Engine Info",
+    "secv_platform_fmt": "Platform: %@ · Python %@",
+    "secv_stat_total_scans": "Total Scans",
+    "secv_stat_total_vulns": "Total Vulns",
+    "secv_stat_projects": "Projects",
+    "secv_stat_critical": "Critical",
+    "secv_stat_high": "High",
+    "secv_stat_medium": "Medium",
+    "secv_stat_low": "Low",
+    "secv_top_rules": "Top Rules",
+    "secv_projects_fmt": "Projects (%d)",
+    "secv_new_project": "New Project",
+    "secv_project_name": "Project Name",
+    "secv_local_path": "Local Path",
+    "secv_tech_stack": "Tech Stack",
+    "secv_create": "Create",
+    "secv_project_list": "Project List",
+    "secv_scan": "Scan",
+    "secv_start_scan_fmt": "Start Scan — %@",
+    "secv_scan_path": "Scan Path",
+    "secv_use_ai": "Use AI-enhanced analysis",
+    "secv_start_scan": "Start Scan",
+    "secv_cancel": "Cancel",
+    "secv_scan_history_fmt": "Scan History (%d)",
+    "secv_vulns_count_fmt": "%d vulns",
+    "secv_severity": "Severity",
+    "secv_all": "All",
+    "secv_refresh": "Refresh",
+    "secv_fix_suggestion_fmt": "Fix suggestion: %@",
+    "secv_fix": "Fix",
+    "secv_false_positive": "False Positive",
+    "secv_false_positive_reason": "Studio flagged",
+    "secv_verified": "Verified",
+    "secv_confidence_fmt": "Confidence %d%%",
+    "secv_ai_patches_fmt": "AI Patches (%d)",
+    "secv_ai_generating": "AI generating...",
+    "secv_patch_empty_desc": "Click \"Fix\" in Vulnerabilities to generate AI patch",
+    "secv_strategy_fmt": "Strategy: %@",
+    "secv_original_code": "Original Code",
+    "secv_patched_code": "Patched Code",
+    "secv_apply_patch": "Apply Patch",
+    "secv_verify_patch": "Verify Patch",
+    "secv_patch_fmt": "Patch %@",
+    "secv_vuln_fmt": "Vuln %@",
+    "secv_gate_policy": "Gate Policy",
+    "secv_policy_name": "Policy Name",
+    "secv_max_critical": "Max Critical: %d",
+    "secv_max_high": "Max High: %d",
+    "secv_evaluate_gate": "Evaluate gate (based on current vulns)",
+    "secv_gate_passed": "Gate Passed",
+    "secv_gate_failed": "Gate Failed",
+    "secv_blocked_by_fmt": "Blocked by: %@",
+    "secv_builtin_rules_fmt": "Built-in Rules (%d)",
+    "secv_custom_rules_fmt": "Custom Rules (%d)",
+    "secv_rule_id": "Rule ID",
+    "secv_name": "Name",
+    "secv_regex_pattern": "Regex Pattern",
+    "secv_add": "Add",
+    "secv_security_level": "Security Level",
+    "secv_local_protection": "Local Protection",
+    "secv_offline_mode": "Offline Mode",
+    "secv_offline_mode_help": "When enabled, blocks all external network requests",
+    "secv_sandbox_isolation": "Sandbox Isolation",
+    "secv_sandbox_help": "Restricts app filesystem access scope",
+    "secv_file_access": "File Access Control",
+    "secv_file_access_help": "Restricts access to specific directories only",
+    "secv_network_access": "Network Access Control",
+    "secv_network_access_help": "Controls network request initiation",
+    "secv_integrity_check": "Integrity Check",
+    "secv_integrity_help": "Periodically checks core file integrity",
+    "secv_ai_runtime_enhance": "AI Runtime Enhancement (beyond Claude Code)",
+    "secv_secret_redaction": "Secret Redaction",
+    "secv_secret_redaction_help": "Auto-redact API Keys, Tokens, private keys in logs/output/LLM context",
+    "secv_prompt_injection": "Prompt Injection Detection",
+    "secv_prompt_injection_help": "Detect and block prompt injection attack patterns in user input",
+    "secv_input_filter": "Input Filter",
+    "secv_input_filter_desc": "All user input is auto-filtered for shell injection chars (; | & $ ` \\ > < !)",
+    "secv_path_validation": "File Path Validation",
+    "secv_allowed_dirs_fmt": "Allowed directories:\n%@/.fusion-studio\n%@/FusionStudio\n/tmp",
+    "secv_cat_filesystem": "Filesystem",
+    "secv_cat_network": "Network",
+    "secv_cat_process": "Process",
+    "secv_cat_integrity": "Integrity",
+    "secv_cat_data": "Data",
+    "secv_item_sandbox": "Sandbox Isolation",
+    "secv_item_workspace_perm": "Workspace Permissions",
+    "secv_item_offline_mode": "Offline Mode",
+    "secv_item_socket_perm": "Socket Permissions",
+    "secv_item_service_isolation": "Background Service Isolation",
+    "secv_item_subprocess": "Subprocess Management",
+    "secv_item_app_signature": "App Signature",
+    "secv_item_code_integrity": "Code Integrity",
+    "secv_item_data_encryption": "User Data Encryption",
+    "secv_item_log_security": "Log Security",
+    "secv_detail_sandbox_on": "Sandbox enabled",
+    "secv_detail_sandbox_off": "Sandbox not enabled",
+    "secv_detail_workspace_perm": "Workspace directory permissions correct (0755)",
+    "secv_detail_offline_on": "Offline mode enabled",
+    "secv_detail_offline_off": "Offline mode not enabled",
+    "secv_detail_socket_perm": "Unix Socket permissions 0600",
+    "secv_detail_service_isolation": "env-daemon runs as independent process",
+    "secv_detail_subprocess": "All subprocesses monitored",
+    "secv_detail_unsigned": "App not signed",
+    "secv_detail_code_integrity_pass": "Core file integrity check passed",
+    "secv_detail_data_unencrypted": "Local data storage not encrypted",
+    "secv_detail_log_clean": "Logs contain no sensitive info",
+    "secv_reco_sandbox": "Recommend enabling sandbox to isolate file access",
+    "secv_reco_keep": "Maintain current permission settings",
+    "secv_reco_keep_config": "Maintain current configuration",
+    "secv_reco_offline": "Recommend enabling offline mode to block external requests",
+    "secv_reco_sign": "Sign app with developer certificate",
+    "secv_reco_filevault": "Consider using FileVault to encrypt disk",
     "proj_subtitle": "Manage your AI projects, instructions and knowledge base",
     "proj_searchPh": "Search projects",
     "proj_newHelp": "New project",
@@ -13886,6 +14261,131 @@ let jaJPTranslations: [String: String] = [
     "mlo_hw_no_data": "データなし",
     "mlo_enabled": "有効",
     "mlo_disabled": "無効",
+    // secv_
+    "secv_lvl_standard": "日常的な基本保護",
+    "secv_lvl_high": "サンドボックスとファイル権限制御を有効化した強化保護",
+    "secv_lvl_maximum": "最高保護、ネットワークアクセスと外部接続を制限",
+    "secv_tab_dashboard": "セキュリティ概要",
+    "secv_tab_projects": "プロジェクトとスキャン",
+    "secv_tab_vulns": "脆弱性リスト",
+    "secv_tab_patch": "AI修正",
+    "secv_tab_gate": "品質ゲート",
+    "secv_tab_runtime": "ランタイム保護",
+    "secv_center": "セキュリティセンター",
+    "secv_connected": "接続済み",
+    "secv_offline": "オフライン",
+    "secv_engine_info": "エンジン情報",
+    "secv_platform_fmt": "プラットフォーム: %@ · Python %@",
+    "secv_stat_total_scans": "スキャン合計",
+    "secv_stat_total_vulns": "脆弱性合計",
+    "secv_stat_projects": "プロジェクト数",
+    "secv_stat_critical": "重大",
+    "secv_stat_high": "高",
+    "secv_stat_medium": "中",
+    "secv_stat_low": "低",
+    "secv_top_rules": "高頻度ルール TOP",
+    "secv_projects_fmt": "プロジェクト (%d)",
+    "secv_new_project": "新規プロジェクト",
+    "secv_project_name": "プロジェクト名",
+    "secv_local_path": "ローカルパス",
+    "secv_tech_stack": "テックスタック",
+    "secv_create": "作成",
+    "secv_project_list": "プロジェクトリスト",
+    "secv_scan": "スキャン",
+    "secv_start_scan_fmt": "スキャン開始 — %@",
+    "secv_scan_path": "スキャンパス",
+    "secv_use_ai": "AI強化分析を使用",
+    "secv_start_scan": "スキャン開始",
+    "secv_cancel": "キャンセル",
+    "secv_scan_history_fmt": "スキャン履歴 (%d)",
+    "secv_vulns_count_fmt": "%d 件の脆弱性",
+    "secv_severity": "重大度",
+    "secv_all": "すべて",
+    "secv_refresh": "更新",
+    "secv_fix_suggestion_fmt": "修正提案: %@",
+    "secv_fix": "修正",
+    "secv_false_positive": "誤検知",
+    "secv_false_positive_reason": "Studioフラグ",
+    "secv_verified": "検証済み",
+    "secv_confidence_fmt": "信頼度 %d%%",
+    "secv_ai_patches_fmt": "AIパッチ (%d)",
+    "secv_ai_generating": "AI生成中...",
+    "secv_patch_empty_desc": "「脆弱性リスト」の「修正」をクリックしてAIパッチを生成",
+    "secv_strategy_fmt": "戦略: %@",
+    "secv_original_code": "元のコード",
+    "secv_patched_code": "修正後コード",
+    "secv_apply_patch": "パッチ適用",
+    "secv_verify_patch": "パッチ検証",
+    "secv_patch_fmt": "パッチ %@",
+    "secv_vuln_fmt": "脆弱性 %@",
+    "secv_gate_policy": "ゲートポリシー",
+    "secv_policy_name": "ポリシー名",
+    "secv_max_critical": "最大重大: %d",
+    "secv_max_high": "最大高: %d",
+    "secv_evaluate_gate": "ゲート評価（現在の脆弱性に基づく）",
+    "secv_gate_passed": "ゲート通過",
+    "secv_gate_failed": "ゲート不通過",
+    "secv_blocked_by_fmt": "ブロック項目: %@",
+    "secv_builtin_rules_fmt": "組み込みルール (%d)",
+    "secv_custom_rules_fmt": "カスタムルール (%d)",
+    "secv_rule_id": "ルール ID",
+    "secv_name": "名称",
+    "secv_regex_pattern": "正規表現パターン",
+    "secv_add": "追加",
+    "secv_security_level": "セキュリティレベル",
+    "secv_local_protection": "ローカル保護",
+    "secv_offline_mode": "オフラインモード",
+    "secv_offline_mode_help": "有効化するとすべての外部ネットワーク要求をブロック",
+    "secv_sandbox_isolation": "サンドボックス分離",
+    "secv_sandbox_help": "アプリのファイルシステムアクセス範囲を制限",
+    "secv_file_access": "ファイルアクセス制御",
+    "secv_file_access_help": "特定ディレクトリのみアクセス許可",
+    "secv_network_access": "ネットワークアクセス制御",
+    "secv_network_access_help": "ネットワーク要求の発行を制御",
+    "secv_integrity_check": "整合性チェック",
+    "secv_integrity_help": "定期的にコアファイルの整合性をチェック",
+    "secv_ai_runtime_enhance": "AIランタイム強化（Claude Codeを超越）",
+    "secv_secret_redaction": "機密情報マスキング",
+    "secv_secret_redaction_help": "ログ/出力/LLMコンテキストでAPI Key、Token、秘密鍵を自動マスキング",
+    "secv_prompt_injection": "プロンプト注入検出",
+    "secv_prompt_injection_help": "ユーザー入力のプロンプト注入攻撃パターンを検出・ブロック",
+    "secv_input_filter": "入力フィルタ",
+    "secv_input_filter_desc": "すべてのユーザー入力はシェルインジェクション文字（; | & $ ` \\ > < !）を自動フィルタ",
+    "secv_path_validation": "ファイルパス検証",
+    "secv_allowed_dirs_fmt": "許可ディレクトリ:\n%@/.fusion-studio\n%@/FusionStudio\n/tmp",
+    "secv_cat_filesystem": "ファイルシステム",
+    "secv_cat_network": "ネットワーク",
+    "secv_cat_process": "プロセス",
+    "secv_cat_integrity": "整合性",
+    "secv_cat_data": "データ",
+    "secv_item_sandbox": "サンドボックス分離",
+    "secv_item_workspace_perm": "ワークスペース権限",
+    "secv_item_offline_mode": "オフラインモード",
+    "secv_item_socket_perm": "Socket 権限",
+    "secv_item_service_isolation": "バックグラウンドサービス分離",
+    "secv_item_subprocess": "サブプロセス管理",
+    "secv_item_app_signature": "アプリ署名",
+    "secv_item_code_integrity": "コード整合性",
+    "secv_item_data_encryption": "ユーザーデータ暗号化",
+    "secv_item_log_security": "ログセキュリティ",
+    "secv_detail_sandbox_on": "サンドボックス有効",
+    "secv_detail_sandbox_off": "サンドボックス無効",
+    "secv_detail_workspace_perm": "ワークスペースディレクトリ権限が正しい (0755)",
+    "secv_detail_offline_on": "オフラインモード有効",
+    "secv_detail_offline_off": "オフラインモード無効",
+    "secv_detail_socket_perm": "Unix Socket 権限 0600",
+    "secv_detail_service_isolation": "env-daemonは独立プロセスで実行",
+    "secv_detail_subprocess": "すべてのサブプロセスは監視下",
+    "secv_detail_unsigned": "アプリ未署名",
+    "secv_detail_code_integrity_pass": "コアファイル整合性チェック通過",
+    "secv_detail_data_unencrypted": "ローカルデータストレージ未暗号化",
+    "secv_detail_log_clean": "ログに機密情報なし",
+    "secv_reco_sandbox": "ファイルアクセスを隔離するためサンドボックス有効化を推奨",
+    "secv_reco_keep": "現在の権限設定を維持",
+    "secv_reco_keep_config": "現在の構成を維持",
+    "secv_reco_offline": "外部要求をブロックするためオフラインモード有効化を推奨",
+    "secv_reco_sign": "開発者証明書でアプリを署名",
+    "secv_reco_filevault": "FileVaultでのディスク暗号化を検討",
     "proj_subtitle": "AIプロジェクト・指示・ナレッジベースを管理",
     "proj_searchPh": "プロジェクトを検索",
     "proj_newHelp": "新規プロジェクト",
@@ -17906,6 +18406,131 @@ let koKRTranslations: [String: String] = [
     "mlo_hw_no_data": "데이터 없음",
     "mlo_enabled": "활성화",
     "mlo_disabled": "비활성화",
+    // secv_
+    "secv_lvl_standard": "일상 사용을 위한 기본 보호",
+    "secv_lvl_high": "샌드박스 및 파일 권한 제어를 활성화한 강화 보호",
+    "secv_lvl_maximum": "최고 보호, 네트워크 액세스 및 외부 연결 제한",
+    "secv_tab_dashboard": "보안 개요",
+    "secv_tab_projects": "프로젝트 및 스캔",
+    "secv_tab_vulns": "취약점 목록",
+    "secv_tab_patch": "AI 수정",
+    "secv_tab_gate": "품질 게이트",
+    "secv_tab_runtime": "런타임 보호",
+    "secv_center": "보안 센터",
+    "secv_connected": "연결됨",
+    "secv_offline": "오프라인",
+    "secv_engine_info": "엔진 정보",
+    "secv_platform_fmt": "플랫폼: %@ · Python %@",
+    "secv_stat_total_scans": "전체 스캔",
+    "secv_stat_total_vulns": "전체 취약점",
+    "secv_stat_projects": "프로젝트 수",
+    "secv_stat_critical": "치명적",
+    "secv_stat_high": "높음",
+    "secv_stat_medium": "중간",
+    "secv_stat_low": "낮음",
+    "secv_top_rules": "고빈도 규칙 TOP",
+    "secv_projects_fmt": "프로젝트 (%d)",
+    "secv_new_project": "새 프로젝트",
+    "secv_project_name": "프로젝트명",
+    "secv_local_path": "로컬 경로",
+    "secv_tech_stack": "기술 스택",
+    "secv_create": "생성",
+    "secv_project_list": "프로젝트 목록",
+    "secv_scan": "스캔",
+    "secv_start_scan_fmt": "스캔 시작 — %@",
+    "secv_scan_path": "스캔 경로",
+    "secv_use_ai": "AI 강화 분석 사용",
+    "secv_start_scan": "스캔 시작",
+    "secv_cancel": "취소",
+    "secv_scan_history_fmt": "스캔 기록 (%d)",
+    "secv_vulns_count_fmt": "%d 취약점",
+    "secv_severity": "심각도",
+    "secv_all": "전체",
+    "secv_refresh": "새로고침",
+    "secv_fix_suggestion_fmt": "수정 제안: %@",
+    "secv_fix": "수정",
+    "secv_false_positive": "오탐",
+    "secv_false_positive_reason": "Studio 플래그",
+    "secv_verified": "검증됨",
+    "secv_confidence_fmt": "신뢰도 %d%%",
+    "secv_ai_patches_fmt": "AI 패치 (%d)",
+    "secv_ai_generating": "AI 생성 중...",
+    "secv_patch_empty_desc": "「취약점 목록」에서 「수정」을 클릭하여 AI 패치 생성",
+    "secv_strategy_fmt": "전략: %@",
+    "secv_original_code": "원본 코드",
+    "secv_patched_code": "수정된 코드",
+    "secv_apply_patch": "패치 적용",
+    "secv_verify_patch": "패치 검증",
+    "secv_patch_fmt": "패치 %@",
+    "secv_vuln_fmt": "취약점 %@",
+    "secv_gate_policy": "게이트 정책",
+    "secv_policy_name": "정책명",
+    "secv_max_critical": "최대 치명적: %d",
+    "secv_max_high": "최대 높음: %d",
+    "secv_evaluate_gate": "게이트 평가 (현재 취약점 기준)",
+    "secv_gate_passed": "게이트 통과",
+    "secv_gate_failed": "게이트 실패",
+    "secv_blocked_by_fmt": "차단 항목: %@",
+    "secv_builtin_rules_fmt": "내장 규칙 (%d)",
+    "secv_custom_rules_fmt": "사용자 규칙 (%d)",
+    "secv_rule_id": "규칙 ID",
+    "secv_name": "이름",
+    "secv_regex_pattern": "정규식 패턴",
+    "secv_add": "추가",
+    "secv_security_level": "보안 수준",
+    "secv_local_protection": "로컬 보호",
+    "secv_offline_mode": "오프라인 모드",
+    "secv_offline_mode_help": "활성화 시 모든 외부 네트워크 요청 차단",
+    "secv_sandbox_isolation": "샌드박스 격리",
+    "secv_sandbox_help": "앱 파일시스템 접근 범위 제한",
+    "secv_file_access": "파일 접근 제어",
+    "secv_file_access_help": "특정 디렉터리만 접근 허용",
+    "secv_network_access": "네트워크 접근 제어",
+    "secv_network_access_help": "네트워크 요청 시작 제어",
+    "secv_integrity_check": "무결성 검사",
+    "secv_integrity_help": "주기적으로 핵심 파일 무결성 검사",
+    "secv_ai_runtime_enhance": "AI 런타임 강화 (Claude Code 초과)",
+    "secv_secret_redaction": "민감 정보 마스킹",
+    "secv_secret_redaction_help": "로그/출력/LLM 컨텍스트에서 API Key, Token, 개인 키 자동 마스킹",
+    "secv_prompt_injection": "프롬프트 주입 감지",
+    "secv_prompt_injection_help": "사용자 입력의 프롬프트 주입 공격 패턴 감지 및 차단",
+    "secv_input_filter": "입력 필터",
+    "secv_input_filter_desc": "모든 사용자 입력은 셸 주입 문자(; | & $ ` \\ > < !)를 자동 필터링",
+    "secv_path_validation": "파일 경로 검증",
+    "secv_allowed_dirs_fmt": "허용 디렉터리:\n%@/.fusion-studio\n%@/FusionStudio\n/tmp",
+    "secv_cat_filesystem": "파일시스템",
+    "secv_cat_network": "네트워크",
+    "secv_cat_process": "프로세스",
+    "secv_cat_integrity": "무결성",
+    "secv_cat_data": "데이터",
+    "secv_item_sandbox": "샌드박스 격리",
+    "secv_item_workspace_perm": "워크스페이스 권한",
+    "secv_item_offline_mode": "오프라인 모드",
+    "secv_item_socket_perm": "Socket 권한",
+    "secv_item_service_isolation": "백그라운드 서비스 격리",
+    "secv_item_subprocess": "하위 프로세스 관리",
+    "secv_item_app_signature": "앱 서명",
+    "secv_item_code_integrity": "코드 무결성",
+    "secv_item_data_encryption": "사용자 데이터 암호화",
+    "secv_item_log_security": "로그 보안",
+    "secv_detail_sandbox_on": "샌드박스 활성화",
+    "secv_detail_sandbox_off": "샌드박스 비활성화",
+    "secv_detail_workspace_perm": "워크스페이스 디렉터리 권한 올바름 (0755)",
+    "secv_detail_offline_on": "오프라인 모드 활성화",
+    "secv_detail_offline_off": "오프라인 모드 비활성화",
+    "secv_detail_socket_perm": "Unix Socket 권한 0600",
+    "secv_detail_service_isolation": "env-daemon은 독립 프로세스로 실행",
+    "secv_detail_subprocess": "모든 하위 프로세스 모니터링됨",
+    "secv_detail_unsigned": "앱 미서명",
+    "secv_detail_code_integrity_pass": "핵심 파일 무결성 검사 통과",
+    "secv_detail_data_unencrypted": "로컬 데이터 저장소 미암호화",
+    "secv_detail_log_clean": "로그에 민감 정보 없음",
+    "secv_reco_sandbox": "파일 접근 격리를 위해 샌드박스 활성화 권장",
+    "secv_reco_keep": "현재 권한 설정 유지",
+    "secv_reco_keep_config": "현재 구성 유지",
+    "secv_reco_offline": "외부 요청 차단을 위해 오프라인 모드 활성화 권장",
+    "secv_reco_sign": "개발자 인증서로 앱 서명",
+    "secv_reco_filevault": "FileVault로 디스크 암호화 검토",
     "proj_subtitle": "AI 프로젝트·지시·지식베이스 관리",
     "proj_searchPh": "프로젝트 검색",
     "proj_newHelp": "새 프로젝트",
