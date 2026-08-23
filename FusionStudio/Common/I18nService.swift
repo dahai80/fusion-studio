@@ -1962,6 +1962,72 @@ enum I18nKey: String, CaseIterable {
     case onb_about_license = "onb_about_license"
     case onb_about_check_update = "onb_about_check_update"
     case onb_about_copyright = "onb_about_copyright"
+    case isc_ind_robot = "isc_ind_robot"
+    case isc_ind_content = "isc_ind_content"
+    case isc_ind_enterprise = "isc_ind_enterprise"
+    case isc_ind_aitool = "isc_ind_aitool"
+    case isc_ind_design = "isc_ind_design"
+    case isc_ind_science = "isc_ind_science"
+    case isc_diff_beginner = "isc_diff_beginner"
+    case isc_diff_intermediate = "isc_diff_intermediate"
+    case isc_diff_advanced = "isc_diff_advanced"
+    case isc_name_scene_robot_arm = "isc_name_scene_robot_arm"
+    case isc_desc_scene_robot_arm = "isc_desc_scene_robot_arm"
+    case isc_time_scene_robot_arm = "isc_time_scene_robot_arm"
+    case isc_name_scene_robot_walk = "isc_name_scene_robot_walk"
+    case isc_desc_scene_robot_walk = "isc_desc_scene_robot_walk"
+    case isc_time_scene_robot_walk = "isc_time_scene_robot_walk"
+    case isc_name_scene_content_blog = "isc_name_scene_content_blog"
+    case isc_desc_scene_content_blog = "isc_desc_scene_content_blog"
+    case isc_time_scene_content_blog = "isc_time_scene_content_blog"
+    case isc_name_scene_content_video = "isc_name_scene_content_video"
+    case isc_desc_scene_content_video = "isc_desc_scene_content_video"
+    case isc_time_scene_content_video = "isc_time_scene_content_video"
+    case isc_name_scene_enterprise_kb = "isc_name_scene_enterprise_kb"
+    case isc_desc_scene_enterprise_kb = "isc_desc_scene_enterprise_kb"
+    case isc_time_scene_enterprise_kb = "isc_time_scene_enterprise_kb"
+    case isc_name_scene_enterprise_report = "isc_name_scene_enterprise_report"
+    case isc_desc_scene_enterprise_report = "isc_desc_scene_enterprise_report"
+    case isc_time_scene_enterprise_report = "isc_time_scene_enterprise_report"
+    case isc_name_scene_ai_agent = "isc_name_scene_ai_agent"
+    case isc_desc_scene_ai_agent = "isc_desc_scene_ai_agent"
+    case isc_time_scene_ai_agent = "isc_time_scene_ai_agent"
+    case isc_name_scene_ai_code_review = "isc_name_scene_ai_code_review"
+    case isc_desc_scene_ai_code_review = "isc_desc_scene_ai_code_review"
+    case isc_time_scene_ai_code_review = "isc_time_scene_ai_code_review"
+    case isc_name_scene_design_app = "isc_name_scene_design_app"
+    case isc_desc_scene_design_app = "isc_desc_scene_design_app"
+    case isc_time_scene_design_app = "isc_time_scene_design_app"
+    case isc_name_scene_design_dashboard = "isc_name_scene_design_dashboard"
+    case isc_desc_scene_design_dashboard = "isc_desc_scene_design_dashboard"
+    case isc_time_scene_design_dashboard = "isc_time_scene_design_dashboard"
+    case isc_name_scene_science_lab = "isc_name_scene_science_lab"
+    case isc_desc_scene_science_lab = "isc_desc_scene_science_lab"
+    case isc_time_scene_science_lab = "isc_time_scene_science_lab"
+    case isc_name_scene_science_paper = "isc_name_scene_science_paper"
+    case isc_desc_scene_science_paper = "isc_desc_scene_science_paper"
+    case isc_time_scene_science_paper = "isc_time_scene_science_paper"
+    case isc_title = "isc_title"
+    case isc_view_grid = "isc_view_grid"
+    case isc_view_list = "isc_view_list"
+    case isc_search_hint = "isc_search_hint"
+    case isc_ind_all = "isc_ind_all"
+    case isc_empty = "isc_empty"
+    case isc_installed = "isc_installed"
+    case isc_install = "isc_install"
+    case isc_install_short = "isc_install_short"
+    case isc_close = "isc_close"
+    case isc_info = "isc_info"
+    case isc_modules = "isc_modules"
+    case isc_install_guide = "isc_install_guide"
+    case isc_install_guide_desc = "isc_install_guide_desc"
+    case isc_uninstall = "isc_uninstall"
+    case isc_row_desc = "isc_row_desc"
+    case isc_row_diff = "isc_row_diff"
+    case isc_row_time = "isc_row_time"
+    case isc_row_type = "isc_row_type"
+    case isc_type_builtin = "isc_type_builtin"
+    case isc_type_custom = "isc_type_custom"
     case proj_subtitle = "proj_subtitle"
     case proj_searchPh = "proj_searchPh"
     case proj_newHelp = "proj_newHelp"
@@ -6230,6 +6296,72 @@ let zhCNTranslations: [String: String] = [
     "onb_about_license": "MIT 开源许可证",
     "onb_about_check_update": "检查更新",
     "onb_about_copyright": "© 2026 Fusion-MLX Team",
+    "isc_ind_robot": "机器人",
+    "isc_ind_content": "内容创作",
+    "isc_ind_enterprise": "企业",
+    "isc_ind_aitool": "AI 工具",
+    "isc_ind_design": "设计",
+    "isc_ind_science": "科研",
+    "isc_diff_beginner": "初级",
+    "isc_diff_intermediate": "中级",
+    "isc_diff_advanced": "高级",
+    "isc_name_scene_robot_arm": "六轴机械臂仿真",
+    "isc_desc_scene_robot_arm": "完整的六轴工业机器人仿真场景，包含运动学模型、轨迹规划和控制面板",
+    "isc_time_scene_robot_arm": "2-3 小时",
+    "isc_name_scene_robot_walk": "双足行走机器人",
+    "isc_desc_scene_robot_walk": "双足机器人步行仿真，包含平衡控制、步态规划和传感器融合",
+    "isc_time_scene_robot_walk": "4-6 小时",
+    "isc_name_scene_content_blog": "博客内容创作",
+    "isc_desc_scene_content_blog": "AI 辅助博客写作工作流，包含选题、大纲、写作、配图、发布全流程",
+    "isc_time_scene_content_blog": "30 分钟",
+    "isc_name_scene_content_video": "短视频批量生成",
+    "isc_desc_scene_content_video": "AI 短视频批量生产流水线：脚本生成、配音、配图、字幕一站式",
+    "isc_time_scene_content_video": "1-2 小时",
+    "isc_name_scene_enterprise_kb": "企业知识库搭建",
+    "isc_desc_scene_enterprise_kb": "搭建企业级 RAG 知识库，支持多格式文档导入、智能检索和权限管理",
+    "isc_time_scene_enterprise_kb": "3-4 小时",
+    "isc_name_scene_enterprise_report": "智能报表系统",
+    "isc_desc_scene_enterprise_report": "自动生成企业周报/月报/季报，集成数据分析和可视化图表",
+    "isc_time_scene_enterprise_report": "1 小时",
+    "isc_name_scene_ai_agent": "AI 客服机器人",
+    "isc_desc_scene_ai_agent": "基于 RAG 和智能体编排的客服机器人，支持多轮对话和工单管理",
+    "isc_time_scene_ai_agent": "5-8 小时",
+    "isc_name_scene_ai_code_review": "自动化代码审查",
+    "isc_desc_scene_ai_code_review": "多智能体协作的代码审查流水线：风格检查、安全扫描、性能分析",
+    "isc_time_scene_ai_code_review": "2 小时",
+    "isc_name_scene_design_app": "移动 App 设计",
+    "isc_desc_scene_design_app": "从需求到原型的一站式移动 App 设计流程，含设计系统和代码导出",
+    "isc_time_scene_design_app": "3-5 小时",
+    "isc_name_scene_design_dashboard": "数据仪表盘设计",
+    "isc_desc_scene_design_dashboard": "企业数据仪表盘设计模板，包含实时图表、指标卡片和交互原型",
+    "isc_time_scene_design_dashboard": "1-2 小时",
+    "isc_name_scene_science_lab": "科研实验管理",
+    "isc_desc_scene_science_lab": "科研实验数据管理、分析、报告生成工作流",
+    "isc_time_scene_science_lab": "2-3 小时",
+    "isc_name_scene_science_paper": "论文写作助手",
+    "isc_desc_scene_science_paper": "AI 辅助学术论文写作：文献检索、大纲生成、内容撰写、格式校对",
+    "isc_time_scene_science_paper": "4-6 小时",
+    "isc_title": "行业场景模板",
+    "isc_view_grid": "网格",
+    "isc_view_list": "列表",
+    "isc_search_hint": "搜索场景...",
+    "isc_ind_all": "全部",
+    "isc_empty": "无匹配场景",
+    "isc_installed": "已安装",
+    "isc_install": "安装场景",
+    "isc_install_short": "安装",
+    "isc_close": "关闭",
+    "isc_info": "场景信息",
+    "isc_modules": "涉及模块",
+    "isc_install_guide": "安装说明",
+    "isc_install_guide_desc": "安装此场景将自动配置相关模块的参数和预设。场景模板包含配置文件、示例数据和初始化脚本。",
+    "isc_uninstall": "卸载场景",
+    "isc_row_desc": "描述",
+    "isc_row_diff": "难度",
+    "isc_row_time": "预计时间",
+    "isc_row_type": "类型",
+    "isc_type_builtin": "内置",
+    "isc_type_custom": "自定义",
     "proj_subtitle": "管理你的 AI 项目、指令和知识库",
     "proj_searchPh": "搜索项目",
     "proj_newHelp": "新建项目",
@@ -10451,6 +10583,72 @@ let enUSTranslations: [String: String] = [
     "onb_about_license": "MIT Open-Source License",
     "onb_about_check_update": "Check for Updates",
     "onb_about_copyright": "© 2026 Fusion-MLX Team",
+    "isc_ind_robot": "Robotics",
+    "isc_ind_content": "Content Creation",
+    "isc_ind_enterprise": "Enterprise",
+    "isc_ind_aitool": "AI Tools",
+    "isc_ind_design": "Design",
+    "isc_ind_science": "Research",
+    "isc_diff_beginner": "Beginner",
+    "isc_diff_intermediate": "Intermediate",
+    "isc_diff_advanced": "Advanced",
+    "isc_name_scene_robot_arm": "Six-Axis Robot Arm Simulation",
+    "isc_desc_scene_robot_arm": "Complete six-axis industrial robot simulation with kinematics modeling, trajectory planning, and control panel",
+    "isc_time_scene_robot_arm": "2-3 hours",
+    "isc_name_scene_robot_walk": "Bipedal Walking Robot",
+    "isc_desc_scene_robot_walk": "Bipedal robot walking simulation with balance control, gait planning, and sensor fusion",
+    "isc_time_scene_robot_walk": "4-6 hours",
+    "isc_name_scene_content_blog": "Blog Content Creation",
+    "isc_desc_scene_content_blog": "AI-assisted blog writing workflow: topic selection, outline, writing, illustration, publishing",
+    "isc_time_scene_content_blog": "30 minutes",
+    "isc_name_scene_content_video": "Short Video Batch Generation",
+    "isc_desc_scene_content_video": "AI short video batch production pipeline: script generation, voiceover, illustration, subtitles",
+    "isc_time_scene_content_video": "1-2 hours",
+    "isc_name_scene_enterprise_kb": "Enterprise Knowledge Base",
+    "isc_desc_scene_enterprise_kb": "Build an enterprise-grade RAG knowledge base with multi-format document import, smart retrieval, and permission management",
+    "isc_time_scene_enterprise_kb": "3-4 hours",
+    "isc_name_scene_enterprise_report": "Smart Reporting System",
+    "isc_desc_scene_enterprise_report": "Auto-generate enterprise weekly/monthly/quarterly reports with integrated data analysis and charts",
+    "isc_time_scene_enterprise_report": "1 hour",
+    "isc_name_scene_ai_agent": "AI Customer Service Bot",
+    "isc_desc_scene_ai_agent": "Customer service bot based on RAG and agent orchestration, with multi-turn dialogue and ticket management",
+    "isc_time_scene_ai_agent": "5-8 hours",
+    "isc_name_scene_ai_code_review": "Automated Code Review",
+    "isc_desc_scene_ai_code_review": "Multi-agent collaborative code review pipeline: style checks, security scans, performance analysis",
+    "isc_time_scene_ai_code_review": "2 hours",
+    "isc_name_scene_design_app": "Mobile App Design",
+    "isc_desc_scene_design_app": "One-stop mobile app design flow from requirements to prototypes, with design system and code export",
+    "isc_time_scene_design_app": "3-5 hours",
+    "isc_name_scene_design_dashboard": "Data Dashboard Design",
+    "isc_desc_scene_design_dashboard": "Enterprise data dashboard design template with real-time charts, metric cards, and interactive prototypes",
+    "isc_time_scene_design_dashboard": "1-2 hours",
+    "isc_name_scene_science_lab": "Research Lab Management",
+    "isc_desc_scene_science_lab": "Research experiment data management, analysis, and report generation workflow",
+    "isc_time_scene_science_lab": "2-3 hours",
+    "isc_name_scene_science_paper": "Paper Writing Assistant",
+    "isc_desc_scene_science_paper": "AI-assisted academic paper writing: literature search, outline generation, content drafting, format proofreading",
+    "isc_time_scene_science_paper": "4-6 hours",
+    "isc_title": "Industry Scenarios",
+    "isc_view_grid": "Grid",
+    "isc_view_list": "List",
+    "isc_search_hint": "Search scenarios...",
+    "isc_ind_all": "All",
+    "isc_empty": "No matching scenarios",
+    "isc_installed": "Installed",
+    "isc_install": "Install",
+    "isc_install_short": "Install",
+    "isc_close": "Close",
+    "isc_info": "Scenario Info",
+    "isc_modules": "Involved Modules",
+    "isc_install_guide": "Install Guide",
+    "isc_install_guide_desc": "Installing this scenario auto-configures parameters and presets for related modules. The template includes config files, sample data, and init scripts.",
+    "isc_uninstall": "Uninstall",
+    "isc_row_desc": "Description",
+    "isc_row_diff": "Difficulty",
+    "isc_row_time": "Estimated Time",
+    "isc_row_type": "Type",
+    "isc_type_builtin": "Built-in",
+    "isc_type_custom": "Custom",
     "proj_subtitle": "Manage your AI projects, instructions and knowledge base",
     "proj_searchPh": "Search projects",
     "proj_newHelp": "New project",
@@ -14666,6 +14864,72 @@ let jaJPTranslations: [String: String] = [
     "onb_about_license": "MIT オープンソースライセンス",
     "onb_about_check_update": "更新を確認",
     "onb_about_copyright": "© 2026 Fusion-MLX Team",
+    "isc_ind_robot": "ロボット",
+    "isc_ind_content": "コンテンツ制作",
+    "isc_ind_enterprise": "エンタープライズ",
+    "isc_ind_aitool": "AIツール",
+    "isc_ind_design": "デザイン",
+    "isc_ind_science": "研究",
+    "isc_diff_beginner": "初級",
+    "isc_diff_intermediate": "中級",
+    "isc_diff_advanced": "上級",
+    "isc_name_scene_robot_arm": "6軸ロボットアームシミュレーション",
+    "isc_desc_scene_robot_arm": "運動学モデル、軌道計画、コントロールパネルを含む完全な6軸産業用ロボットシミュレーション",
+    "isc_time_scene_robot_arm": "2-3 時間",
+    "isc_name_scene_robot_walk": "二足歩行ロボット",
+    "isc_desc_scene_robot_walk": "バランス制御、歩容計画、センサーフュージョンを含む二足歩行ロボットシミュレーション",
+    "isc_time_scene_robot_walk": "4-6 時間",
+    "isc_name_scene_content_blog": "ブログコンテンツ制作",
+    "isc_desc_scene_content_blog": "選題、アウトライン、執筆、挿絵、公開の全工程を含むAI支援ブログ執筆ワークフロー",
+    "isc_time_scene_content_blog": "30 分",
+    "isc_name_scene_content_video": "ショート動画一括生成",
+    "isc_desc_scene_content_video": "スクリプト生成、ナレーション、挿絵、字幕を一元化するAIショート動画一括生産ライン",
+    "isc_time_scene_content_video": "1-2 時間",
+    "isc_name_scene_enterprise_kb": "エンタープライズナレッジベース",
+    "isc_desc_scene_enterprise_kb": "多形式ドキュメントインポート、スマート検索、権限管理をサポートするエンタープライズ級RAGナレッジベースを構築",
+    "isc_time_scene_enterprise_kb": "3-4 時間",
+    "isc_name_scene_enterprise_report": "スマートレポートシステム",
+    "isc_desc_scene_enterprise_report": "データ分析と可視化チャートを統合し、企業の週次/月次/四半期レポートを自動生成",
+    "isc_time_scene_enterprise_report": "1 時間",
+    "isc_name_scene_ai_agent": "AIカスタマーサービスボット",
+    "isc_desc_scene_ai_agent": "RAGとエージェントオーケストレーションに基づくカスタマーサービスボット、マルチターン対話とチケット管理をサポート",
+    "isc_time_scene_ai_agent": "5-8 時間",
+    "isc_name_scene_ai_code_review": "自動コードレビュー",
+    "isc_desc_scene_ai_code_review": "マルチエージェント協調のコードレビューパイプライン：スタイルチェック、セキュリティスキャン、パフォーマンス分析",
+    "isc_time_scene_ai_code_review": "2 時間",
+    "isc_name_scene_design_app": "モバイルアプリデザイン",
+    "isc_desc_scene_design_app": "要件からプロトタイプまでのワンストップモバイルアプリデザインフロー、デザインシステムとコードエクスポート付き",
+    "isc_time_scene_design_app": "3-5 時間",
+    "isc_name_scene_design_dashboard": "データダッシュボードデザイン",
+    "isc_desc_scene_design_dashboard": "リアルタイムチャート、指標カード、インタラクティブプロトタイプを含むエンタープライズデータダッシュボードデザインテンプレート",
+    "isc_time_scene_design_dashboard": "1-2 時間",
+    "isc_name_scene_science_lab": "研究実験管理",
+    "isc_desc_scene_science_lab": "研究実験データ管理、分析、レポート生成ワークフロー",
+    "isc_time_scene_science_lab": "2-3 時間",
+    "isc_name_scene_science_paper": "論文執筆アシスタント",
+    "isc_desc_scene_science_paper": "AI支援学術論文執筆：文献検索、アウトライン生成、内容執筆、フォーマット校正",
+    "isc_time_scene_science_paper": "4-6 時間",
+    "isc_title": "業界シナリオ",
+    "isc_view_grid": "グリッド",
+    "isc_view_list": "リスト",
+    "isc_search_hint": "シナリオを検索...",
+    "isc_ind_all": "すべて",
+    "isc_empty": "一致するシナリオなし",
+    "isc_installed": "インストール済み",
+    "isc_install": "インストール",
+    "isc_install_short": "インストール",
+    "isc_close": "閉じる",
+    "isc_info": "シナリオ情報",
+    "isc_modules": "関連モジュール",
+    "isc_install_guide": "インストールガイド",
+    "isc_install_guide_desc": "このシナリオをインストールすると、関連モジュールのパラメータとプリセットが自動設定されます。テンプレートには設定ファイル、サンプルデータ、初期化スクリプトが含まれます。",
+    "isc_uninstall": "アンインストール",
+    "isc_row_desc": "説明",
+    "isc_row_diff": "難易度",
+    "isc_row_time": "所要時間",
+    "isc_row_type": "タイプ",
+    "isc_type_builtin": "組み込み",
+    "isc_type_custom": "カスタム",
     "proj_subtitle": "AIプロジェクト・指示・ナレッジベースを管理",
     "proj_searchPh": "プロジェクトを検索",
     "proj_newHelp": "新規プロジェクト",
@@ -18881,6 +19145,72 @@ let koKRTranslations: [String: String] = [
     "onb_about_license": "MIT 오픈소스 라이선스",
     "onb_about_check_update": "업데이트 확인",
     "onb_about_copyright": "© 2026 Fusion-MLX Team",
+    "isc_ind_robot": "로봇",
+    "isc_ind_content": "콘텐츠 제작",
+    "isc_ind_enterprise": "엔터프라이즈",
+    "isc_ind_aitool": "AI 도구",
+    "isc_ind_design": "디자인",
+    "isc_ind_science": "연구",
+    "isc_diff_beginner": "초급",
+    "isc_diff_intermediate": "중급",
+    "isc_diff_advanced": "고급",
+    "isc_name_scene_robot_arm": "6축 로봇팔 시뮬레이션",
+    "isc_desc_scene_robot_arm": "운동학 모델, 궤도 계획, 제어 패널을 포함한 완전한 6축 산업용 로봇 시뮬레이션",
+    "isc_time_scene_robot_arm": "2-3시간",
+    "isc_name_scene_robot_walk": "이족보행 로봇",
+    "isc_desc_scene_robot_walk": "균형 제어, 보행 계획, 센서 융합을 포함한 이족보행 로봇 시뮬레이션",
+    "isc_time_scene_robot_walk": "4-6시간",
+    "isc_name_scene_content_blog": "블로그 콘텐츠 제작",
+    "isc_desc_scene_content_blog": "주제 선정, 개요, 작성, 이미지 삽입, 발행 전 과정을 포함한 AI 지원 블로그 작성 워크플로우",
+    "isc_time_scene_content_blog": "30분",
+    "isc_name_scene_content_video": "숏폼 동영상 일괄 생성",
+    "isc_desc_scene_content_video": "스크립트 생성, 더빙, 이미지, 자막을 통합한 AI 숏폼 동영상 일괄 생산 라인",
+    "isc_time_scene_content_video": "1-2시간",
+    "isc_name_scene_enterprise_kb": "엔터프라이즈 지식 베이스",
+    "isc_desc_scene_enterprise_kb": "다중 형식 문서 가져오기, 스마트 검색, 권한 관리를 지원하는 엔터프라이즈급 RAG 지식 베이스 구축",
+    "isc_time_scene_enterprise_kb": "3-4시간",
+    "isc_name_scene_enterprise_report": "스마트 보고서 시스템",
+    "isc_desc_scene_enterprise_report": "데이터 분석과 시각화 차트를 통합하여 기업 주간/월간/분기 보고서를 자동 생성",
+    "isc_time_scene_enterprise_report": "1시간",
+    "isc_name_scene_ai_agent": "AI 고객 서비스 봇",
+    "isc_desc_scene_ai_agent": "RAG와 에이전트 오케스트레이션 기반 고객 서비스 봇, 멀티턴 대화와 티켓 관리 지원",
+    "isc_time_scene_ai_agent": "5-8시간",
+    "isc_name_scene_ai_code_review": "자동화된 코드 리뷰",
+    "isc_desc_scene_ai_code_review": "다중 에이전트 협업 코드 리뷰 파이프라인: 스타일 검사, 보안 스캔, 성능 분석",
+    "isc_time_scene_ai_code_review": "2시간",
+    "isc_name_scene_design_app": "모바일 앱 디자인",
+    "isc_desc_scene_design_app": "요구사항부터 프로토타입까지의 원스톱 모바일 앱 디자인 흐름, 디자인 시스템과 코드 내보내기 포함",
+    "isc_time_scene_design_app": "3-5시간",
+    "isc_name_scene_design_dashboard": "데이터 대시보드 디자인",
+    "isc_desc_scene_design_dashboard": "실시간 차트, 지표 카드, 인터랙티브 프로토타입을 포함한 엔터프라이즈 데이터 대시보드 디자인 템플릿",
+    "isc_time_scene_design_dashboard": "1-2시간",
+    "isc_name_scene_science_lab": "연구 실험 관리",
+    "isc_desc_scene_science_lab": "연구 실험 데이터 관리, 분석, 보고서 생성 워크플로우",
+    "isc_time_scene_science_lab": "2-3시간",
+    "isc_name_scene_science_paper": "논문 작성 어시스턴트",
+    "isc_desc_scene_science_paper": "AI 지원 학술 논문 작성: 문헌 검색, 개요 생성, 내용 작성, 형식 교정",
+    "isc_time_scene_science_paper": "4-6시간",
+    "isc_title": "산업 시나리오",
+    "isc_view_grid": "그리드",
+    "isc_view_list": "리스트",
+    "isc_search_hint": "시나리오 검색...",
+    "isc_ind_all": "전체",
+    "isc_empty": "일치하는 시나리오 없음",
+    "isc_installed": "설치됨",
+    "isc_install": "설치",
+    "isc_install_short": "설치",
+    "isc_close": "닫기",
+    "isc_info": "시나리오 정보",
+    "isc_modules": "관련 모듈",
+    "isc_install_guide": "설치 가이드",
+    "isc_install_guide_desc": "이 시나리오를 설치하면 관련 모듈의 매개변수와 프리셋이 자동으로 구성됩니다. 템플릿에는 설정 파일, 샘플 데이터, 초기화 스크립트가 포함됩니다.",
+    "isc_uninstall": "제거",
+    "isc_row_desc": "설명",
+    "isc_row_diff": "난이도",
+    "isc_row_time": "예상 시간",
+    "isc_row_type": "유형",
+    "isc_type_builtin": "내장",
+    "isc_type_custom": "사용자 정의",
     "proj_subtitle": "AI 프로젝트·지시·지식베이스 관리",
     "proj_searchPh": "프로젝트 검색",
     "proj_newHelp": "새 프로젝트",
