@@ -4498,6 +4498,66 @@ enum I18nKey: String, CaseIterable {
     case col_encrypt = "col_encrypt"
     case col_section_note = "col_section_note"
     case col_note_desc = "col_note_desc"
+    case mscene_agent = "mscene_agent"
+    case mscene_artifacts = "mscene_artifacts"
+    case mscene_chat = "mscene_chat"
+    case mscene_code = "mscene_code"
+    case mslot_code = "mslot_code"
+    case mslot_heavy = "mslot_heavy"
+    case mslot_small = "mslot_small"
+    case wel_apikey_hint = "wel_apikey_hint"
+    case wel_btn_back = "wel_btn_back"
+    case wel_btn_continue = "wel_btn_continue"
+    case wel_btn_done = "wel_btn_done"
+    case wel_btn_download_fmt = "wel_btn_download_fmt"
+    case wel_btn_regen = "wel_btn_regen"
+    case wel_btn_save = "wel_btn_save"
+    case wel_btn_select_all = "wel_btn_select_all"
+    case wel_btn_start = "wel_btn_start"
+    case wel_complete_title = "wel_complete_title"
+    case wel_err_apikey_empty = "wel_err_apikey_empty"
+    case wel_err_apikey_invalid = "wel_err_apikey_invalid"
+    case wel_err_port = "wel_err_port"
+    case wel_feat_cache = "wel_feat_cache"
+    case wel_feat_inference = "wel_feat_inference"
+    case wel_feat_mlx = "wel_feat_mlx"
+    case wel_field_port = "wel_field_port"
+    case wel_hw_bandwidth = "wel_hw_bandwidth"
+    case wel_hw_card = "wel_hw_card"
+    case wel_hw_chip = "wel_hw_chip"
+    case wel_hw_cores = "wel_hw_cores"
+    case wel_hw_disk = "wel_hw_disk"
+    case wel_hw_gpu = "wel_hw_gpu"
+    case wel_hw_memory = "wel_hw_memory"
+    case wel_hw_sub = "wel_hw_sub"
+    case wel_hw_title = "wel_hw_title"
+    case wel_intro_desc = "wel_intro_desc"
+    case wel_intro_tagline = "wel_intro_tagline"
+    case wel_model_reason_fmt = "wel_model_reason_fmt"
+    case wel_no_model = "wel_no_model"
+    case wel_not_selected = "wel_not_selected"
+    case wel_ready_fmt = "wel_ready_fmt"
+    case wel_rec_download_card = "wel_rec_download_card"
+    case wel_rec_empty = "wel_rec_empty"
+    case wel_rec_loading = "wel_rec_loading"
+    case wel_rec_sub = "wel_rec_sub"
+    case wel_rec_title = "wel_rec_title"
+    case wel_setup_card = "wel_setup_card"
+    case wel_setup_sub = "wel_setup_sub"
+    case wel_setup_title = "wel_setup_title"
+    case wel_slots_card_fmt = "wel_slots_card_fmt"
+    case wel_small_slot_fmt = "wel_small_slot_fmt"
+    case wel_src_hint_hf = "wel_src_hint_hf"
+    case wel_src_hint_mirror = "wel_src_hint_mirror"
+    case wel_src_hint_scope = "wel_src_hint_scope"
+    case wel_src_sub = "wel_src_sub"
+    case wel_src_title = "wel_src_title"
+    case wel_status_downloading = "wel_status_downloading"
+    case wel_status_failed = "wel_status_failed"
+    case wel_status_pending = "wel_status_pending"
+    case wel_unknown = "wel_unknown"
+    case wel_usecase_chat = "wel_usecase_chat"
+    case wel_usecase_coding = "wel_usecase_coding"
     case fc_preview = "fc_preview"
     case fc_live = "fc_live"
     case fc_html_preview_empty = "fc_html_preview_empty"
@@ -9144,6 +9204,66 @@ let zhCNTranslations: [String: String] = [
     "col_encrypt": "加密传输",
     "col_section_note": "说明",
     "col_note_desc": "局域网协作功能使用 Bonjour/mDNS 协议自动发现同一局域网内的 Fusion Studio 用户。所有数据传输仅在局域网内进行，不经过外部网络。",
+    "mscene_agent": "Agent",
+    "mscene_artifacts": "Artifacts",
+    "mscene_chat": "对话",
+    "mscene_code": "代码",
+    "mslot_code": "代码模型",
+    "mslot_heavy": "复杂模型",
+    "mslot_small": "小模型",
+    "wel_apikey_hint": "API Key 用于鉴权，已写入 ~/.fusion-mlx/settings.json。可重新生成或沿用已有。",
+    "wel_btn_back": "返回",
+    "wel_btn_continue": "继续",
+    "wel_btn_done": "完成",
+    "wel_btn_download_fmt": "下载 (%d)",
+    "wel_btn_regen": "重新生成",
+    "wel_btn_save": "保存并进入",
+    "wel_btn_select_all": "全选",
+    "wel_btn_start": "开始使用",
+    "wel_complete_title": "设置完成",
+    "wel_err_apikey_empty": "请生成或填写 API Key",
+    "wel_err_apikey_invalid": "API Key 至少 4 字符且无空白",
+    "wel_err_port": "端口需为 1-65535 的数字",
+    "wel_feat_cache": "智能缓存",
+    "wel_feat_inference": "本地推理",
+    "wel_feat_mlx": "MLX 加速",
+    "wel_field_port": "端口",
+    "wel_hw_bandwidth": "内存带宽",
+    "wel_hw_card": "硬件信息",
+    "wel_hw_chip": "芯片",
+    "wel_hw_cores": "CPU 核数",
+    "wel_hw_disk": "磁盘可用",
+    "wel_hw_gpu": "GPU",
+    "wel_hw_memory": "统一内存",
+    "wel_hw_sub": "当前 Mac 硬件信息，用于推荐合适的模型。",
+    "wel_hw_title": "硬件检测",
+    "wel_intro_desc": "首次启动引导，完成三步即可开始本地 AI 体验。",
+    "wel_intro_tagline": "本地 AI，无需等待",
+    "wel_model_reason_fmt": "%s · %d 次下载",
+    "wel_no_model": "未配置模型，可稍后在设置中配置",
+    "wel_not_selected": "未选择",
+    "wel_ready_fmt": "fusion-mlx 已就绪：http://%s",
+    "wel_rec_download_card": "推荐下载",
+    "wel_rec_empty": "暂无匹配当前硬件的推荐模型，可从上方本地模型选择。",
+    "wel_rec_loading": "正在加载推荐模型，可先从上方本地模型选择主模型…",
+    "wel_rec_sub": "按用例与硬件推荐模型，勾选后下载并设为主模型。",
+    "wel_rec_title": "推荐配置",
+    "wel_setup_card": "基础配置",
+    "wel_setup_sub": "fusion-mlx 已独立运行，此处确认连接端口与 API Key。",
+    "wel_setup_title": "配置本地服务",
+    "wel_slots_card_fmt": "配置三档模型 (%d 个本地模型)",
+    "wel_small_slot_fmt": "小模型档：%s",
+    "wel_src_hint_hf": "国际默认源",
+    "wel_src_hint_mirror": "国内镜像，速度更快",
+    "wel_src_hint_scope": "国内备选源",
+    "wel_src_sub": "选择下载镜像。国内用户建议选 HF Mirror 或 ModelScope。",
+    "wel_src_title": "模型源",
+    "wel_status_downloading": "下载中",
+    "wel_status_failed": "失败",
+    "wel_status_pending": "待下载",
+    "wel_unknown": "未知",
+    "wel_usecase_chat": "对话",
+    "wel_usecase_coding": "编程",
     "fc_preview": "预览",
     "fc_live": "实时",
     "fc_html_preview_empty": "生成HTML后此处显示预览",
@@ -13743,6 +13863,66 @@ let enUSTranslations: [String: String] = [
     "col_encrypt": "Encrypted Transfer",
     "col_section_note": "Note",
     "col_note_desc": "LAN collaboration uses the Bonjour/mDNS protocol to automatically discover Fusion Studio users on the same LAN. All data transfer stays within the LAN and does not pass through external networks.",
+    "mscene_agent": "Agent",
+    "mscene_artifacts": "Artifacts",
+    "mscene_chat": "Chat",
+    "mscene_code": "Code",
+    "mslot_code": "Code model",
+    "mslot_heavy": "Heavy model",
+    "mslot_small": "Small model",
+    "wel_apikey_hint": "The API Key is used for authentication and written to ~/.fusion-mlx/settings.json. You can regenerate it or keep the existing one.",
+    "wel_btn_back": "Back",
+    "wel_btn_continue": "Continue",
+    "wel_btn_done": "Done",
+    "wel_btn_download_fmt": "Download (%d)",
+    "wel_btn_regen": "Regenerate",
+    "wel_btn_save": "Save & Enter",
+    "wel_btn_select_all": "Select All",
+    "wel_btn_start": "Get Started",
+    "wel_complete_title": "Setup Complete",
+    "wel_err_apikey_empty": "Please generate or fill in the API Key",
+    "wel_err_apikey_invalid": "API Key must be at least 4 characters with no whitespace",
+    "wel_err_port": "Port must be a number from 1 to 65535",
+    "wel_feat_cache": "Smart Cache",
+    "wel_feat_inference": "Local Inference",
+    "wel_feat_mlx": "MLX Acceleration",
+    "wel_field_port": "Port",
+    "wel_hw_bandwidth": "Memory Bandwidth",
+    "wel_hw_card": "Hardware Info",
+    "wel_hw_chip": "Chip",
+    "wel_hw_cores": "CPU Cores",
+    "wel_hw_disk": "Disk Free",
+    "wel_hw_gpu": "GPU",
+    "wel_hw_memory": "Unified Memory",
+    "wel_hw_sub": "Current Mac hardware info, used to recommend suitable models.",
+    "wel_hw_title": "Hardware Check",
+    "wel_intro_desc": "First-launch guide; complete three steps to start your local AI experience.",
+    "wel_intro_tagline": "Local AI, no waiting",
+    "wel_model_reason_fmt": "%s · %d downloads",
+    "wel_no_model": "No model configured; you can configure it later in Settings",
+    "wel_not_selected": "Not Selected",
+    "wel_ready_fmt": "fusion-mlx ready: http://%s",
+    "wel_rec_download_card": "Recommended Downloads",
+    "wel_rec_empty": "No recommended models match current hardware; pick from local models above.",
+    "wel_rec_loading": "Loading recommended models; you can pick a main model from local models above first…",
+    "wel_rec_sub": "Recommend models by use case and hardware; check to download and set as main model.",
+    "wel_rec_title": "Recommended Setup",
+    "wel_setup_card": "Basic Config",
+    "wel_setup_sub": "fusion-mlx runs independently; confirm the connection port and API Key here.",
+    "wel_setup_title": "Configure Local Service",
+    "wel_slots_card_fmt": "Configure 3-tier models (%d local models)",
+    "wel_small_slot_fmt": "Small model tier: %s",
+    "wel_src_hint_hf": "International default source",
+    "wel_src_hint_mirror": "Domestic mirror, faster",
+    "wel_src_hint_scope": "Domestic alternative source",
+    "wel_src_sub": "Choose a download mirror. Domestic users should pick HF Mirror or ModelScope.",
+    "wel_src_title": "Model Source",
+    "wel_status_downloading": "Downloading",
+    "wel_status_failed": "Failed",
+    "wel_status_pending": "Pending",
+    "wel_unknown": "Unknown",
+    "wel_usecase_chat": "Chat",
+    "wel_usecase_coding": "Coding",
     "fc_preview": "Preview",
     "fc_live": "Live",
     "fc_html_preview_empty": "Preview appears here after HTML is generated",
@@ -18336,6 +18516,66 @@ let jaJPTranslations: [String: String] = [
     "col_encrypt": "暗号化転送",
     "col_section_note": "説明",
     "col_note_desc": "LAN コラボレーションは Bonjour/mDNS プロトコルを使用し、同じ LAN 内の Fusion Studio ユーザーを自動的に検出します。すべてのデータ転送は LAN 内にとどまり、外部ネットワークを経由しません。",
+    "mscene_agent": "Agent",
+    "mscene_artifacts": "Artifacts",
+    "mscene_chat": "チャット",
+    "mscene_code": "コード",
+    "mslot_code": "コードモデル",
+    "mslot_heavy": "ヘビーモデル",
+    "mslot_small": "スモールモデル",
+    "wel_apikey_hint": "API Key は認証に使用され、~/.fusion-mlx/settings.json に書き込まれます。再生成または既存のものを継続使用できます。",
+    "wel_btn_back": "戻る",
+    "wel_btn_continue": "続ける",
+    "wel_btn_done": "完了",
+    "wel_btn_download_fmt": "ダウンロード (%d)",
+    "wel_btn_regen": "再生成",
+    "wel_btn_save": "保存して進む",
+    "wel_btn_select_all": "すべて選択",
+    "wel_btn_start": "開始する",
+    "wel_complete_title": "セットアップ完了",
+    "wel_err_apikey_empty": "API Key を生成または入力してください",
+    "wel_err_apikey_invalid": "API Key は4文字以上で空白を含めないでください",
+    "wel_err_port": "ポートは 1〜65535 の数字である必要があります",
+    "wel_feat_cache": "スマートキャッシュ",
+    "wel_feat_inference": "ローカル推論",
+    "wel_feat_mlx": "MLX アクセラレーション",
+    "wel_field_port": "ポート",
+    "wel_hw_bandwidth": "メモリ帯域幅",
+    "wel_hw_card": "ハードウェア情報",
+    "wel_hw_chip": "チップ",
+    "wel_hw_cores": "CPU コア数",
+    "wel_hw_disk": "ディスク空き容量",
+    "wel_hw_gpu": "GPU",
+    "wel_hw_memory": "ユニファイドメモリ",
+    "wel_hw_sub": "現在の Mac ハードウェア情報。適切なモデルを推奨するために使用します。",
+    "wel_hw_title": "ハードウェア検出",
+    "wel_intro_desc": "初回起動ガイド。3ステップ完了でローカル AI を開始できます。",
+    "wel_intro_tagline": "ローカル AI、待つ必要なし",
+    "wel_model_reason_fmt": "%s · %d ダウンロード",
+    "wel_no_model": "モデル未設定。後で設定で構成できます",
+    "wel_not_selected": "未選択",
+    "wel_ready_fmt": "fusion-mlx 準備完了: http://%s",
+    "wel_rec_download_card": "おすすめダウンロード",
+    "wel_rec_empty": "現在のハードウェアに合う推奨モデルがありません。上のローカルモデルから選択してください。",
+    "wel_rec_loading": "推奨モデルを読み込み中。まず上のローカルモデルからメインモデルを選択できます…",
+    "wel_rec_sub": "ユースケースとハードウェアでモデルを推奨。チェックしてダウンロードしメインモデルに設定します。",
+    "wel_rec_title": "推奨構成",
+    "wel_setup_card": "基本設定",
+    "wel_setup_sub": "fusion-mlx は独立実行中。ここで接続ポートと API Key を確認します。",
+    "wel_setup_title": "ローカルサービス設定",
+    "wel_slots_card_fmt": "3段階モデルを設定 (%d ローカルモデル)",
+    "wel_small_slot_fmt": "スモールモデル枠: %s",
+    "wel_src_hint_hf": "国際デフォルトソース",
+    "wel_src_hint_mirror": "国内ミラー、より高速",
+    "wel_src_hint_scope": "国内代替ソース",
+    "wel_src_sub": "ダウンロードミラーを選択。国内ユーザーは HF Mirror または ModelScope を推奨。",
+    "wel_src_title": "モデルソース",
+    "wel_status_downloading": "ダウンロード中",
+    "wel_status_failed": "失敗",
+    "wel_status_pending": "ダウンロード待ち",
+    "wel_unknown": "不明",
+    "wel_usecase_chat": "チャット",
+    "wel_usecase_coding": "コーディング",
     "fc_preview": "プレビュー",
     "fc_live": "ライブ",
     "fc_html_preview_empty": "HTML生成後にここにプレビューが表示されます",
@@ -22929,6 +23169,66 @@ let koKRTranslations: [String: String] = [
     "col_encrypt": "암호화 전송",
     "col_section_note": "설명",
     "col_note_desc": "LAN 협업은 Bonjour/mDNS 프로토콜을 사용하여 같은 LAN 내의 Fusion Studio 사용자를 자동으로 발견합니다. 모든 데이터 전송은 LAN 내에 머물며 외부 네트워크를 거치지 않습니다.",
+    "mscene_agent": "Agent",
+    "mscene_artifacts": "Artifacts",
+    "mscene_chat": "채팅",
+    "mscene_code": "코드",
+    "mslot_code": "코드 모델",
+    "mslot_heavy": "대형 모델",
+    "mslot_small": "소형 모델",
+    "wel_apikey_hint": "API Key는 인증에 사용되며 ~/.fusion-mlx/settings.json에 기록됩니다. 재생성하거나 기존 것을 유지할 수 있습니다.",
+    "wel_btn_back": "뒤로",
+    "wel_btn_continue": "계속",
+    "wel_btn_done": "완료",
+    "wel_btn_download_fmt": "다운로드 (%d)",
+    "wel_btn_regen": "재생성",
+    "wel_btn_save": "저장 후 진입",
+    "wel_btn_select_all": "모두 선택",
+    "wel_btn_start": "시작하기",
+    "wel_complete_title": "설정 완료",
+    "wel_err_apikey_empty": "API Key를 생성하거나 입력하세요",
+    "wel_err_apikey_invalid": "API Key는 4자 이상, 공백 없이 입력하세요",
+    "wel_err_port": "포트는 1~65535의 숫자여야 합니다",
+    "wel_feat_cache": "스마트 캐시",
+    "wel_feat_inference": "로컬 추론",
+    "wel_feat_mlx": "MLX 가속",
+    "wel_field_port": "포트",
+    "wel_hw_bandwidth": "메모리 대역폭",
+    "wel_hw_card": "하드웨어 정보",
+    "wel_hw_chip": "칩",
+    "wel_hw_cores": "CPU 코어 수",
+    "wel_hw_disk": "디스크 여유",
+    "wel_hw_gpu": "GPU",
+    "wel_hw_memory": "통합 메모리",
+    "wel_hw_sub": "현재 Mac 하드웨어 정보. 적절한 모델 추천에 사용됩니다.",
+    "wel_hw_title": "하드웨어 확인",
+    "wel_intro_desc": "최초 실행 가이드. 3단계 완료로 로컬 AI를 시작하세요.",
+    "wel_intro_tagline": "로컬 AI, 대기 불필요",
+    "wel_model_reason_fmt": "%s · %d 다운로드",
+    "wel_no_model": "모델 미설정. 나중에 설정에서 구성할 수 있습니다",
+    "wel_not_selected": "선택 안 함",
+    "wel_ready_fmt": "fusion-mlx 준비 완료: http://%s",
+    "wel_rec_download_card": "추천 다운로드",
+    "wel_rec_empty": "현재 하드웨어에 맞는 추천 모델이 없습니다. 위 로컬 모델에서 선택하세요.",
+    "wel_rec_loading": "추천 모델 로딩 중. 먼저 위 로컬 모델에서 메인 모델을 선택할 수 있습니다…",
+    "wel_rec_sub": "용도와 하드웨어로 모델 추천. 체크하여 다운로드하고 메인 모델로 설정하세요.",
+    "wel_rec_title": "추천 설정",
+    "wel_setup_card": "기본 설정",
+    "wel_setup_sub": "fusion-mlx가 독립 실행 중. 여기서 연결 포트와 API Key를 확인하세요.",
+    "wel_setup_title": "로컬 서비스 설정",
+    "wel_slots_card_fmt": "3단계 모델 설정 (%d 로컬 모델)",
+    "wel_small_slot_fmt": "소형 모델 티어: %s",
+    "wel_src_hint_hf": "국제 기본 소스",
+    "wel_src_hint_mirror": "국내 미러, 더 빠름",
+    "wel_src_hint_scope": "국내 대체 소스",
+    "wel_src_sub": "다운로드 미러 선택. 국내 사용자는 HF Mirror 또는 ModelScope 추천.",
+    "wel_src_title": "모델 소스",
+    "wel_status_downloading": "다운로드 중",
+    "wel_status_failed": "실패",
+    "wel_status_pending": "대기 중",
+    "wel_unknown": "알 수 없음",
+    "wel_usecase_chat": "채팅",
+    "wel_usecase_coding": "코딩",
     "fc_preview": "미리보기",
     "fc_live": "실시간",
     "fc_html_preview_empty": "HTML 생성 후 여기에 미리보기가 표시됩니다",

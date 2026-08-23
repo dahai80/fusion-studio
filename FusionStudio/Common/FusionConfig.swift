@@ -26,6 +26,13 @@ enum ModelSlot: String, CaseIterable, Identifiable {
         case .heavy: return "brain.head.profile"
         }
     }
+    var localizedName: String {
+        switch self {
+        case .small: return I18nManager.shared.t(.mslot_small)
+        case .code: return I18nManager.shared.t(.mslot_code)
+        case .heavy: return I18nManager.shared.t(.mslot_heavy)
+        }
+    }
 }
 
 /// 用模型场景：决定默认档位（对话->小、code->代码、agent/artifacts->复杂）
@@ -38,6 +45,14 @@ enum ModelScene: String, CaseIterable, Identifiable {
         case .code: return "代码"
         case .agent: return "Agent"
         case .artifacts: return "Artifacts"
+        }
+    }
+    var localizedName: String {
+        switch self {
+        case .chat: return I18nManager.shared.t(.mscene_chat)
+        case .code: return I18nManager.shared.t(.mscene_code)
+        case .agent: return I18nManager.shared.t(.mscene_agent)
+        case .artifacts: return I18nManager.shared.t(.mscene_artifacts)
         }
     }
 }

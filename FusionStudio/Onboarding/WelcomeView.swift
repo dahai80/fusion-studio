@@ -154,7 +154,7 @@ final class WelcomeViewModel: ObservableObject {
         return Array(pool.prefix(6)).map { m in
             let size = m.paramsFormatted ?? m.sizeFormatted ?? "—"
             let dl = m.downloads ?? 0
-            return ModelOption(id: m.repoId, displayName: m.name ?? m.repoId, reason: "\(size) · \(dl) 次下载")
+            return ModelOption(id: m.repoId, displayName: m.name ?? m.repoId, reason: I18nManager.shared.tf(.wel_model_reason_fmt, size, dl))
         }
     }
 
@@ -211,12 +211,12 @@ final class WelcomeViewModel: ObservableObject {
     func validateSetup() -> Bool {
         let portStr = portText.trimmingCharacters(in: .whitespaces)
         guard let port = Int(portStr), (1...65535).contains(port) else {
-            lastError = "端口需为 1-65535 的数字"; return false
+            lastError = I18nManager.shared.t(.wel_err_port); return false
         }
         let key = apiKey.trimmingCharacters(in: .whitespaces)
-        if key.isEmpty { lastError = "请生成或填写 API Key"; return false }
+        if key.isEmpty { lastError = I18nManager.shared.t(.wel_err_apikey_empty); return false }
         if key.count < 4 || key.contains(where: { $0.isWhitespace }) {
-            lastError = "API Key 至少 4 字符且无空白"; return false
+            lastError = I18nManager.shared.t(.wel_err_apikey_invalid); return false
         }
         lastError = nil
         return true
@@ -340,7 +340,7 @@ struct WelcomeView: View {
                 if vm.step == .intro || vm.step == .complete {
                     Spacer()
                 } else {
-                    FusionButton("返回", icon: "chevron.left", style: .secondary, size: .regular) { vm.back() }
+                    FusionButton(I18nManager.shared.t(.wel_btn_back), icon: "chevron.left", style: .secondary, size: .regular) { vm.back() }
                 }
                 Spacer()
                 if let err = vm.lastError {
@@ -358,19 +358,19 @@ struct WelcomeView: View {
     @ViewBuilder private var primaryButton: some View {
         switch vm.step {
         case .intro:
-            FusionButton("开始使用", icon: "arrow.right", style: .primary, size: .regular) { vm.next() }
+            FusionButton(I18nManager.shared.t(.wel_btn_start), icon: "arrow.right", style: .primary, size: .regular) { vm.next() }
         case .setup:
-            FusionButton("继续", style: .primary, size: .regular) { vm.next() }
+            FusionButton(I18nManager.shared.t(.wel_btn_continue), style: .primary, size: .regular) { vm.next() }
         case .hardwareDetect:
-            FusionButton("继续", style: .primary, size: .regular) { vm.next() }
+            FusionButton(I18nManager.shared.t(.wel_btn_continue), style: .primary, size: .regular) { vm.next() }
         case .modelSource:
-            FusionButton("继续", style: .primary, size: .regular) { vm.next() }
+            FusionButton(I18nManager.shared.t(.wel_btn_continue), style: .primary, size: .regular) { vm.next() }
         case .recommend:
-            FusionButton("保存并进入", icon: "arrow.right", style: .primary, size: .regular) {
+            FusionButton(I18nManager.shared.t(.wel_btn_save), icon: "arrow.right", style: .primary, size: .regular) {
                 Task { await vm.startServer() }
             }
         case .complete:
-            FusionButton("完成", icon: "checkmark", style: .primary, size: .regular) { vm.onFinish?() }
+            FusionButton(I18nManager.shared.t(.wel_btn_done), icon: "checkmark", style: .primary, size: .regular) { vm.onFinish?() }
         }
     }
 }
@@ -393,13 +393,13 @@ struct WelcomeIntroStep: View {
                 .font(.system(size: 64, weight: .light))
                 .foregroundStyle(theme.accent)
             Text("Fusion MLX").font(.system(size: 40, weight: .bold)).foregroundStyle(theme.text)
-            Text("本地 AI，无需等待").font(.system(size: 20, weight: .semibold)).foregroundStyle(theme.textSecondary)
-            Text("首次启动引导：选择并下载主模型，配置本地推理服务。")
+            Text(I18nManager.shared.t(.wel_intro_tagline)).font(.system(size: 20, weight: .semibold)).foregroundStyle(theme.textSecondary)
+            Text(I18nManager.shared.t(.wel_intro_desc))
                 .font(.system(size: 13)).foregroundStyle(theme.textTertiary).multilineTextAlignment(.center)
             HStack(spacing: theme.spacingM) {
-                featurePill("bolt.fill", "本地推理")
-                featurePill("memorychip", "MLX 加速")
-                featurePill("sparkles", "智能缓存")
+                featurePill("bolt.fill", I18nManager.shared.t(.wel_feat_inference))
+                featurePill("memorychip", I18nManager.shared.t(.wel_feat_mlx))
+                featurePill("sparkles", I18nManager.shared.t(.wel_feat_cache))
             }
             Spacer()
         }
@@ -423,11 +423,11 @@ struct WelcomeSetupStep: View {
     @Environment(\.studioTheme) var theme
     var body: some View {
         VStack(alignment: .leading, spacing: theme.spacingL) {
-            welcomeHeader(theme, "配置本地服务", "fusion-mlx 已独立运行，此处确认连接端口与 API Key。")
-            FusionCard(style: .bordered, header: "基础配置", headerIcon: "slider.horizontal.3") {
+            welcomeHeader(theme, I18nManager.shared.t(.wel_setup_title), I18nManager.shared.t(.wel_setup_sub))
+            FusionCard(style: .bordered, header: I18nManager.shared.t(.wel_setup_card), headerIcon: "slider.horizontal.3") {
                 VStack(spacing: theme.spacingM) {
                     HStack {
-                        Text("端口").font(.system(size: 13)).foregroundStyle(theme.textSecondary).frame(width: 80, alignment: .leading)
+                        Text(I18nManager.shared.t(.wel_field_port)).font(.system(size: 13)).foregroundStyle(theme.textSecondary).frame(width: 80, alignment: .leading)
                         TextField("11432", text: $vm.portText)
                             .textFieldStyle(.roundedBorder)
                             .frame(width: 120)
@@ -446,9 +446,9 @@ struct WelcomeSetupStep: View {
                         Button { vm.apiKeyVisible.toggle() } label: {
                             Image(systemName: vm.apiKeyVisible ? "eye.slash" : "eye").font(.system(size: 12))
                         }.buttonStyle(.plain)
-                        FusionButton("重新生成", icon: "arrow.clockwise", style: .secondary, size: .small) { vm.regenerateApiKey() }
+                        FusionButton(I18nManager.shared.t(.wel_btn_regen), icon: "arrow.clockwise", style: .secondary, size: .small) { vm.regenerateApiKey() }
                     }
-                    Text("API Key 用于鉴权，已写入 ~/.fusion-mlx/settings.json。可重新生成或沿用已有。")
+                    Text(I18nManager.shared.t(.wel_apikey_hint))
                         .font(.system(size: 11)).foregroundStyle(theme.textTertiary)
                 }
             }
@@ -463,15 +463,15 @@ struct WelcomeHardwareStep: View {
     @Environment(\.studioTheme) var theme
     var body: some View {
         VStack(alignment: .leading, spacing: theme.spacingL) {
-            welcomeHeader(theme, "硬件检测", "当前 Mac 硬件信息，用于推荐合适的模型。")
-            FusionCard(style: .bordered, header: "硬件信息", headerIcon: "cpu") {
+            welcomeHeader(theme, I18nManager.shared.t(.wel_hw_title), I18nManager.shared.t(.wel_hw_sub))
+            FusionCard(style: .bordered, header: I18nManager.shared.t(.wel_hw_card), headerIcon: "cpu") {
                 VStack(spacing: theme.spacingS) {
-                    row("芯片", vm.hardware?.chip ?? "未知")
-                    row("CPU 核数", "\(vm.hardware?.cpuCores ?? 0)")
-                    row("GPU", vm.hardware?.chip ?? "Apple Silicon")
-                    row("统一内存", String(format: "%.0f GB", vm.hardware?.memoryGB ?? 0))
-                    row("内存带宽", vm.hardware?.bandwidthGBs.map { "\($0) GB/s" } ?? "未知")
-                    row("磁盘可用", String(format: "%.0f GB", vm.hardware?.diskFreeGB ?? 0))
+                    row(I18nManager.shared.t(.wel_hw_chip), vm.hardware?.chip ?? I18nManager.shared.t(.wel_unknown))
+                    row(I18nManager.shared.t(.wel_hw_cores), "\(vm.hardware?.cpuCores ?? 0)")
+                    row(I18nManager.shared.t(.wel_hw_gpu), vm.hardware?.chip ?? "Apple Silicon")
+                    row(I18nManager.shared.t(.wel_hw_memory), String(format: "%.0f GB", vm.hardware?.memoryGB ?? 0))
+                    row(I18nManager.shared.t(.wel_hw_bandwidth), vm.hardware?.bandwidthGBs.map { "\($0) GB/s" } ?? I18nManager.shared.t(.wel_unknown))
+                    row(I18nManager.shared.t(.wel_hw_disk), String(format: "%.0f GB", vm.hardware?.diskFreeGB ?? 0))
                 }
             }
             Spacer()
@@ -491,13 +491,13 @@ struct WelcomeModelSourceStep: View {
     @ObservedObject var vm: WelcomeViewModel
     @Environment(\.studioTheme) var theme
     private let sources: [(id: String, name: String, url: String, icon: String, hint: String)] = [
-        ("huggingface", "Hugging Face", "hub.huggingface.co", "globe", "国际默认源"),
-        ("hf-mirror", "HF Mirror", "hf-mirror.com", "globe.asia.australia.fill", "国内镜像，速度更快"),
-        ("modelscope", "ModelScope", "modelscope.cn", "globe.asia.australia.fill", "国内备选源"),
+        ("huggingface", "Hugging Face", "hub.huggingface.co", "globe", I18nManager.shared.t(.wel_src_hint_hf)),
+        ("hf-mirror", "HF Mirror", "hf-mirror.com", "globe.asia.australia.fill", I18nManager.shared.t(.wel_src_hint_mirror)),
+        ("modelscope", "ModelScope", "modelscope.cn", "globe.asia.australia.fill", I18nManager.shared.t(.wel_src_hint_scope)),
     ]
     var body: some View {
         VStack(alignment: .leading, spacing: theme.spacingL) {
-            welcomeHeader(theme, "模型源", "选择下载镜像。国内用户建议选 HF Mirror 或 ModelScope。")
+            welcomeHeader(theme, I18nManager.shared.t(.wel_src_title), I18nManager.shared.t(.wel_src_sub))
             VStack(spacing: theme.spacingM) {
                 ForEach(sources.indices, id: \.self) { i in
                     sourceCard(sources[i])
@@ -537,19 +537,19 @@ struct WelcomeRecommendStep: View {
     @Environment(\.studioTheme) var theme
     private let useCases: [(id: String, name: String, icon: String)] = [
         ("agent", "Agent", "brain.head.profile"),
-        ("coding", "编程", "chevron.left.forwardslash.chevron.right"),
-        ("chat", "对话", "bubble.left.and.bubble.right"),
+        ("coding", I18nManager.shared.t(.wel_usecase_coding), "chevron.left.forwardslash.chevron.right"),
+        ("chat", I18nManager.shared.t(.wel_usecase_chat), "bubble.left.and.bubble.right"),
     ]
     var body: some View {
         VStack(alignment: .leading, spacing: theme.spacingL) {
-            welcomeHeader(theme, "推荐配置", "按用例与硬件推荐模型，勾选后下载并设为主模型。")
+            welcomeHeader(theme, I18nManager.shared.t(.wel_rec_title), I18nManager.shared.t(.wel_rec_sub))
             HStack(spacing: theme.spacingS) {
                 ForEach(useCases.indices, id: \.self) { i in
                     useCaseButton(useCases[i])
                 }
             }
             if !vm.localModels.isEmpty {
-                FusionCard(style: .bordered, header: "配置三档模型 (\(vm.localModels.count) 个本地模型)", headerIcon: "circle.grid.2x2") {
+                FusionCard(style: .bordered, header: I18nManager.shared.tf(.wel_slots_card_fmt, vm.localModels.count), headerIcon: "circle.grid.2x2") {
                     VStack(spacing: theme.spacingS) {
                         slotPickerRow(.small)
                         slotPickerRow(.code)
@@ -557,10 +557,10 @@ struct WelcomeRecommendStep: View {
                     }
                 }
             }
-            FusionCard(style: .bordered, header: "推荐下载", headerIcon: "square.and.arrow.down") {
+            FusionCard(style: .bordered, header: I18nManager.shared.t(.wel_rec_download_card), headerIcon: "square.and.arrow.down") {
                 VStack(spacing: theme.spacingS) {
                     if vm.recommendedModels.isEmpty {
-                        Text(vm.hfRecommended.isEmpty ? "正在加载推荐模型，可先从上方本地模型选择主模型…" : "暂无匹配当前硬件的推荐模型，可从上方本地模型选择。")
+                        Text(vm.hfRecommended.isEmpty ? I18nManager.shared.t(.wel_rec_loading) : I18nManager.shared.t(.wel_rec_empty))
                             .font(.system(size: 12)).foregroundStyle(theme.textTertiary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     } else {
@@ -568,9 +568,9 @@ struct WelcomeRecommendStep: View {
                             modelRow(m)
                         }
                         HStack {
-                            FusionButton("全选", style: .secondary, size: .small) { vm.selectAllRecommended() }
+                            FusionButton(I18nManager.shared.t(.wel_btn_select_all), style: .secondary, size: .small) { vm.selectAllRecommended() }
                             Spacer()
-                            FusionButton("下载 (\(vm.selectedModels.count))", icon: "arrow.down.circle", style: .primary, size: .small, isDisabled: vm.selectedModels.isEmpty) {
+                            FusionButton(I18nManager.shared.tf(.wel_btn_download_fmt, vm.selectedModels.count), icon: "arrow.down.circle", style: .primary, size: .small, isDisabled: vm.selectedModels.isEmpty) {
                                 vm.downloadSelectedModels()
                             }
                         }
@@ -614,23 +614,23 @@ struct WelcomeRecommendStep: View {
     }
     @ViewBuilder private func statusView(_ status: String?) -> some View {
         if status == "downloading" {
-            HStack(spacing: 4) { ProgressView().controlSize(.small); Text("下载中").font(.system(size: 11)).foregroundStyle(theme.textTertiary) }
+            HStack(spacing: 4) { ProgressView().controlSize(.small); Text(I18nManager.shared.t(.wel_status_downloading)).font(.system(size: 11)).foregroundStyle(theme.textTertiary) }
         } else if status == "done" {
             Image(systemName: "checkmark.circle.fill").foregroundStyle(theme.accent)
         } else if status == "error" {
-            Text("失败").font(.system(size: 11)).foregroundStyle(theme.accentDestructive)
+            Text(I18nManager.shared.t(.wel_status_failed)).font(.system(size: 11)).foregroundStyle(theme.accentDestructive)
         } else {
-            Text("待下载").font(.system(size: 11)).foregroundStyle(theme.textTertiary)
+            Text(I18nManager.shared.t(.wel_status_pending)).font(.system(size: 11)).foregroundStyle(theme.textTertiary)
         }
     }
     private func slotPickerRow(_ slot: ModelSlot) -> some View {
         HStack(spacing: theme.spacingM) {
-            Label(slot.label, systemImage: slot.icon)
+            Label(slot.localizedName, systemImage: slot.icon)
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(theme.text)
                 .frame(width: 92, alignment: .leading)
             Picker(selection: vm.slotBinding(slot)) {
-                Text("未选择").tag("")
+                Text(I18nManager.shared.t(.wel_not_selected)).tag("")
                 ForEach(vm.localModels) { m in
                     Text(m.displayName ?? m.id).tag(m.id)
                 }
@@ -653,12 +653,12 @@ struct WelcomeCompleteStep: View {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 64, weight: .light))
                 .foregroundStyle(theme.accent)
-            Text("设置完成").font(.system(size: 32, weight: .bold)).foregroundStyle(theme.text)
-            Text("fusion-mlx 已就绪：http://\(vm.portText)").font(.system(size: 14, design: .monospaced)).foregroundStyle(theme.textSecondary)
+            Text(I18nManager.shared.t(.wel_complete_title)).font(.system(size: 32, weight: .bold)).foregroundStyle(theme.text)
+            Text(I18nManager.shared.tf(.wel_ready_fmt, vm.portText)).font(.system(size: 14, design: .monospaced)).foregroundStyle(theme.textSecondary)
             if let m = vm.selectedSmall {
-                Text("小模型档：\(m)").font(.system(size: 13)).foregroundStyle(theme.textTertiary)
+                Text(I18nManager.shared.tf(.wel_small_slot_fmt, m)).font(.system(size: 13)).foregroundStyle(theme.textTertiary)
             } else {
-                Text("未配置模型，可稍后在设置中配置").font(.system(size: 13)).foregroundStyle(theme.textTertiary)
+                Text(I18nManager.shared.t(.wel_no_model)).font(.system(size: 13)).foregroundStyle(theme.textTertiary)
             }
             Spacer()
         }
