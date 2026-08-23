@@ -65,7 +65,7 @@ struct ModuleSidebarView: View {
                     .foregroundStyle(isActive ? Color(red: 0 / 255, green: 122 / 255, blue: 1.0) : theme.textTertiary)
                     .frame(width: 18)
 
-                Text(module.rawValue)
+                Text(module.localizedName)
                     .font(.system(size: theme.textSize, weight: isActive ? .medium : .regular))
                     .foregroundStyle(isActive ? theme.text : theme.textSecondary)
 
