@@ -2234,38 +2234,11 @@ final class AgentBridge: ObservableObject {
     }
 
     // MARK: - Analytics & Alert Operations
+    // ARCH-1: fetchAnalytics/fetchAlerts/alertAcknowledge 抽至 AgentAnalyticsService.swift facade extension。
+    // @Published analyticsData/alerts 留此 (extension 不可声明存储, 有外部 SwiftUI 读 AgentConfigTabs)。
 
     @Published var analyticsData: [String: Any] = [:]
     @Published var alerts: [[String: Any]] = []
-
-    func fetchAnalytics(agentId: String? = nil, range: String = "week") async {
-        guard let client = ipcClient else { return }
-        do {
-            let result = try await client.analyticsAgentUsage(agentId: agentId, range: range)
-            self.analyticsData = result
-            logger.info("Analytics fetched")
-        } catch {
-            logger.debug("fetchAnalytics failed: \(error.localizedDescription)")
-        }
-    }
-
-    func fetchAlerts() async {
-        guard let client = ipcClient else { return }
-        do {
-            let result = try await client.alertList()
-            self.alerts = result["alerts"] as? [[String: Any]] ?? []
-            logger.info("Fetched \(self.alerts.count) alerts")
-        } catch {
-            logger.debug("fetchAlerts failed: \(error.localizedDescription)")
-        }
-    }
-
-    func alertAcknowledge(alertId: String) async throws -> [String: Any] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        let result = try await client.alertAcknowledge(alertId: alertId)
-        await fetchAlerts()
-        return result
-    }
 
     // MARK: - Marketplace Operations
 
