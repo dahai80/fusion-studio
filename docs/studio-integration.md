@@ -17,7 +17,7 @@
 | 7 | fusion-doc | 智能文档(20+ API) | HTTP(11435) | DocView | 纯静态UI | 🔴 外壳 |
 | 8 | fusion-kb | 向量知识库(LanceDB) | HTTP(11436) | KBView | 纯静态UI | 🔴 外壳 |
 | 9 | fusion-bench | 模型测评(REST+Web) | HTTP+Next.js | BenchView | WKWebView嵌入bench站 | 🟡 部分 |
-| 10 | fusion-desk | 桌面自动化(15 MCP工具) | CLI+MCP | DeskView | 纯静态UI(模板列表) | 🔴 外壳 |
+| 10 | fusion-cowork | 桌面自动化(15 MCP工具) | CLI+MCP | DeskView | 纯静态UI(模板列表) | 🔴 外壳 |
 | 11 | fusion-agent-studio | Agent编排(图编辑/调试/市场) | UDS JSON-RPC | AgentStudioView | 调用agent/graph/marketplace全套 | 🟢 已接 |
 | 12 | fusion-security | 代码安全审计(5阶段流水线) | HTTP(8000)+React | SecurityView | WKWebView嵌入 | 🟡 部分 |
 | 13 | fusion-comfyui | ComfyUI图像/视频生成 | HTTP(8188)+WebSocket | 无 | — | ⚫ 缺失 |
@@ -54,7 +54,7 @@
 | **CLIView.swift** | .cli | 18个命令预设按钮(纯文本) | Rust二进制: `fusion model list/pull`, `fusion kb query`, `fusion bench speed`, `fusion desk run` 等全部CLI |
 | **DocView.swift** | .doc | 文档分类列表(硬编码标题/标签) | HTTP(11435): 20+ API — workspaces/books/chapters/pages/versions/links/tags/search/graph/ai/chat/ai/embeddings/rag/index/rag/query/export |
 | **KBView.swift** | .kb | 知识库条目列表(硬编码标题/相关度) | HTTP(11436): `/kb/bases` CRUD, `/documents` 上传, `/scan` 扫描, `/search` 向量搜索, `/ask` RAG问答 |
-| **DeskView.swift** | .desk | 自动化模板列表(10个硬编码模板) | CLI: `fusion-desk template list/run`, `ai generate`, MCP Server 15个工具, DAG工作流引擎 |
+| **DeskView.swift** | .desk | 自动化模板列表(10个硬编码模板) | CLI: `fusion-cowork template list/run`, `ai generate`, MCP Server 15个工具, DAG工作流引擎 |
 | **TrainingView.swift** | .training | 训练参数表单(LoRA/QLoRA选项) | CLI: `fusion-trainer sft/rlsl`, `dataset import/list/info`, SFT全参数+RLSL/DPO/ORPO |
 | **DataToolsView.swift** | .dataTools | 数据集列表+图表类型选择 | 无专属上游，应接fusion-artifacts-engine的data类型产物 |
 | **MultiModalView.swift** | .multimodal | 任务类型标签(文生图/OCR/语音) | 应调fusion-mlx的 `/v1/images/generations`, `/v1/audio/speech`, `/v1/audio/transcriptions` |
@@ -181,9 +181,9 @@
 - `/api/rag/index`, `/api/rag/query`
 - `/api/export/:format/:id`
 
-**fusion-desk** 提供 CLI + MCP:
-- `fusion-desk template list/show/run`
-- `fusion-desk ai generate/status`
+**fusion-cowork** 提供 CLI + MCP:
+- `fusion-cowork template list/show/run`
+- `fusion-cowork ai generate/status`
 - MCP Server 15个工具 (Shell, Python REPL, Web Search, Fetch URL, Apply Edit等)
 - DAG工作流引擎
 
@@ -250,7 +250,7 @@
 | fusion-doc HTTP | 20+ | 0 | 0% |
 | fusion-kb HTTP | 8+ | 0 | 0% |
 | fusion-model-hub REST | 30+ | 0 | 0% |
-| fusion-desk CLI/MCP | 15+ | 0 | 0% |
+| fusion-cowork CLI/MCP | 15+ | 0 | 0% |
 | fusion-bench REST | 8+ | 0 (仅WebView) | ~10% |
 | fusion-security REST | 8+ | 0 (仅WebView) | ~10% |
 | fusion-trainer CLI | 6+ | 0 | 0% |
@@ -267,7 +267,7 @@
 | **P1** | ModelHubView接入fusion-model-hub REST API | 3天 | 模型管理从假数据变真实 |
 | **P1** | KBView接入fusion-kb HTTP API | 2天 | 知识库从假数据变真实 |
 | **P2** | DocView接入fusion-doc HTTP API | 3天 | 文档编辑/协作/RAG可用 |
-| **P2** | DeskView接入fusion-desk MCP/CLI | 3天 | 自动化模板真实执行 |
+| **P2** | DeskView接入fusion-cowork MCP/CLI | 3天 | 自动化模板真实执行 |
 | **P2** | SimulationView接入fusion-simulation CLI | 3天 | 仿真训练真实可用 |
 | **P2** | TrainingView接入fusion-trainer CLI | 2天 | 训练任务真实提交 |
 | **P2** | MultiModalView接入fusion-mlx多模态API | 2天 | 文生图/语音/OCR真实调用 |
