@@ -1,10 +1,15 @@
 use env_daemon::{HealthCheckItem, HealthChecker, RepairEngine, RepairResult};
 use serde::{Deserialize, Serialize};
 use std::os::unix::fs::PermissionsExt;
+use std::os::unix::io::AsRawFd;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::UnixListener;
+
+// ─── peer credential (macOS LOCAL_PEERCRED) ────────────────────────
+// 拒绝非同 UID 连接, 防止本地其他用户/低权限进程伪造 JSON-RPC 调用后端控制面
+use libc::{c_void, getsockopt, socklen_t, xucred, SOL_LOCAL, LOCAL_PEERCRED};
 
 /// JSON-RPC 请求
 #[derive(Debug, Deserialize)]
@@ -42,18 +47,23 @@ async fn main() -> anyhow::Result<()> {
     // 初始化日志
     tracing_subscriber::fmt::init();
 
-    // env-daemon 监听独立 socket，避免与 agent-studio 中央路由
-    // (/tmp/fusion-studio.sock) 抢占。env.* 方法由 agent-studio 自带实现转发。
-    let default_sock = "/tmp/fusion-env-daemon.sock";
+    // socket 移出 /tmp: 放用户私有目录 ~/.fusion-studio/run/, 0700 目录权限
+    // /tmp 系统级可写, 其他 UID 可抢占同名 socket 做劫持; 私有目录杜绝该攻击面
+    // env.* 方法由 agent-studio 中央路由转发, Swift 不直连本 socket
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
+    let default_sock = format!("{}/.fusion-studio/run/fusion-env-daemon.sock", home);
     let socket_path =
-        std::env::var("FUSION_ENV_DAEMON_SOCKET").unwrap_or_else(|_| default_sock.to_string());
+        std::env::var("FUSION_ENV_DAEMON_SOCKET").unwrap_or_else(|_| default_sock.clone());
     let health_checker = Arc::new(HealthChecker::new());
     let repair_engine = Arc::new(RepairEngine::new());
+
+    // 启动 uid: peer credential 校验基准, 仅允许同 uid 连接
+    let our_uid = unsafe { libc::getuid() };
 
     let mut retry_count = 0;
 
     loop {
-        match run_server(&socket_path, &health_checker, &repair_engine).await {
+        match run_server(&socket_path, &health_checker, &repair_engine, our_uid).await {
             Ok(()) => {
                 // 正常退出，重置重试计数
                 retry_count = 0;
@@ -76,11 +86,42 @@ async fn main() -> anyhow::Result<()> {
     }
 }
 
+/// 取连接对端 uid (macOS LOCAL_PEERCRED), 失败返回 None
+fn peer_uid(fd: std::os::unix::io::RawFd) -> Option<u32> {
+    let mut cred: xucred = unsafe { std::mem::zeroed() };
+    let mut len: socklen_t = std::mem::size_of::<xucred>() as socklen_t;
+    let rc = unsafe {
+        getsockopt(
+            fd,
+            SOL_LOCAL,
+            LOCAL_PEERCRED,
+            &mut cred as *mut xucred as *mut c_void,
+            &mut len,
+        )
+    };
+    if rc == 0 && cred.cr_uid != u32::MAX {
+        Some(cred.cr_uid)
+    } else {
+        None
+    }
+}
+
 async fn run_server(
     socket_path: &str,
     health_checker: &Arc<HealthChecker>,
     repair_engine: &Arc<RepairEngine>,
+    our_uid: u32,
 ) -> anyhow::Result<()> {
+    // 确保 socket 父目录存在并设 0700 (仅所有者可进入, 阻止其他用户 bind 同名/读取)
+    let sock_dir = std::path::Path::new(socket_path)
+        .parent()
+        .unwrap_or(std::path::Path::new("/tmp"));
+    std::fs::create_dir_all(sock_dir)?;
+    let dir_meta = std::fs::metadata(sock_dir)?;
+    let mut dir_perms = dir_meta.permissions();
+    dir_perms.set_mode(0o700);
+    std::fs::set_permissions(sock_dir, dir_perms)?;
+
     // 清理旧的 socket 文件
     if std::path::Path::new(socket_path).exists() {
         std::fs::remove_file(socket_path)?;
@@ -88,13 +129,16 @@ async fn run_server(
 
     let listener = UnixListener::bind(socket_path)?;
 
-    // 设置 socket 权限为 0600（仅所有者可读写）
+    // 设置 socket 文件权限为 0600（仅所有者可读写）
     let metadata = std::fs::metadata(socket_path)?;
     let mut perms = metadata.permissions();
     perms.set_mode(0o600);
     std::fs::set_permissions(socket_path, perms)?;
 
-    println!("env-daemon 启动，监听: {} (权限: 0600)", socket_path);
+    println!(
+        "env-daemon 启动，监听: {} (目录 0700, socket 0600, 仅同 UID {} 可连)",
+        socket_path, our_uid
+    );
 
     loop {
         // 设置 accept 超时（方便外部检测僵死）
@@ -109,6 +153,17 @@ async fn run_server(
                 continue;
             }
         };
+
+        // peer credential UID 校验: 拒绝非同 uid 连接
+        let peer = peer_uid(stream.as_raw_fd());
+        match peer {
+            Some(uid) if uid == our_uid => {}
+            other => {
+                tracing::warn!("拒绝连接: peer uid {:?} != 本进程 uid {}", other, our_uid);
+                // 立即关闭, 不进入 handle_connection
+                continue;
+            }
+        }
 
         let checker = Arc::clone(health_checker);
         let repairer = Arc::clone(repair_engine);

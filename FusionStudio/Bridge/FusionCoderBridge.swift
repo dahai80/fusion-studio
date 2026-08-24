@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import os.log
 
 /// FusionCoder 桥接 — 调用真实的 fusion-coder CLI
 /// 通过子进程执行 fusion-coder 命令，获取 AI 编码辅助
@@ -12,19 +13,49 @@ class FusionCoderBridge: ObservableObject {
 
     private let queue = DispatchQueue(label: "com.fusion-studio.fusion-coder", qos: .userInitiated)
 
-    /// 找到 fusion-coder 可执行路径
-    private var fusionCoderPath: String {
-        // 优先使用项目内的 fusion-coder
+    /// fusion-coder 启动信息: executableURL + currentDirectoryURL + 初始参数前缀
+    private struct CoderLaunch {
+        let executableURL: URL
+        let cwd: URL?
+        let prefixArgs: [String]
+    }
+
+    /// 解析 fusion-coder 启动方式 (不拼 shell, 不走 PATH 盲查)
+    private func coderLaunch() -> CoderLaunch? {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         let projectPath = "\(home)/fusion/fusion-coder"
         if FileManager.default.fileExists(atPath: "\(projectPath)/pyproject.toml") {
-            return "cd \(projectPath) && python3 -m fusion_coder"
+            return CoderLaunch(
+                executableURL: URL(fileURLWithPath: "/usr/bin/python3"),
+                cwd: URL(fileURLWithPath: projectPath),
+                prefixArgs: ["-m", "fusion_coder"]
+            )
         }
-        // 回退到 PATH 中的 fusion-coder
-        return "fusion-coder"
+        let which = Process()
+        which.executableURL = URL(fileURLWithPath: "/usr/bin/which")
+        which.arguments = ["fusion-coder"]
+        let pipe = Pipe()
+        which.standardOutput = pipe
+        which.standardError = Pipe()
+        do {
+            try which.run()
+            which.waitUntilExit()
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            let path = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if !path.isEmpty && FileManager.default.isExecutableFile(atPath: path) {
+                return CoderLaunch(
+                    executableURL: URL(fileURLWithPath: path),
+                    cwd: nil,
+                    prefixArgs: []
+                )
+            }
+        } catch {
+            Logger(subsystem: "com.fusion.studio", category: "FusionCoderBridge").error("定位 fusion-coder 失败: \(error.localizedDescription)")
+        }
+        return nil
     }
 
-    /// 执行命令并返回结果
+    /// 执行命令并返回结果 (无 shell, 参数数组直传, 避免 zsh -c 注入)
     @discardableResult
     func execute(arguments: [String], input: String? = nil) async throws -> String {
         await MainActor.run { isRunning = true }
@@ -33,9 +64,19 @@ class FusionCoderBridge: ObservableObject {
             queue.async { [weak self] in
                 guard let self = self else { return }
 
+                guard let launch = self.coderLaunch() else {
+                    DispatchQueue.main.async { self.isRunning = false }
+                    continuation.resume(throwing: NSError(
+                        domain: "FusionCoderBridge", code: 1,
+                        userInfo: [NSLocalizedDescriptionKey: "fusion-coder 未找到"]
+                    ))
+                    return
+                }
+
                 let task = Process()
-                task.executableURL = URL(fileURLWithPath: "/bin/zsh")
-                task.arguments = ["-c", "\(self.fusionCoderPath) \(arguments.joined(separator: " "))"]
+                task.executableURL = launch.executableURL
+                task.arguments = launch.prefixArgs + arguments
+                if let cwd = launch.cwd { task.currentDirectoryURL = cwd }
 
                 let outputPipe = Pipe()
                 let errorPipe = Pipe()
@@ -76,9 +117,9 @@ class FusionCoderBridge: ObservableObject {
         }
     }
 
-    /// 运行 fusion-coder -p <prompt> 单次提示
+    /// 运行 fusion-coder -p <prompt> 单次提示 (prompt 作裸参数, 不经 shell 转义)
     func runPrompt(_ prompt: String, model: String = "") async throws -> String {
-        var args = ["-p", "\"\(prompt.replacingOccurrences(of: "\"", with: "\\\""))\""]
+        var args = ["-p", prompt]
         if !model.isEmpty { args += ["--model", model] }
         return try await execute(arguments: args)
     }
@@ -88,9 +129,9 @@ class FusionCoderBridge: ObservableObject {
         return try await execute(arguments: ["doctor"])
     }
 
-    /// 运行 fusion-coder run <prompt> 运行任务
+    /// 运行 fusion-coder run <prompt> 运行任务 (prompt 作裸参数)
     func runTask(_ prompt: String, model: String = "") async throws -> String {
-        var args = ["run", "\"\(prompt.replacingOccurrences(of: "\"", with: "\\\""))\""]
+        var args = ["run", prompt]
         if !model.isEmpty { args += ["--model", model] }
         return try await execute(arguments: args)
     }
@@ -119,24 +160,31 @@ class FusionCoderBridge: ObservableObject {
         return try await runPrompt(prompt)
     }
 
-    /// 运行代码 — 通过 fusion-coder 执行代码
+    /// 运行代码 — 通过子进程执行代码文件 (无 shell, executableURL + 参数数组)
     func runCode(_ code: String, language: String) async throws -> String {
         let tempFile = FileManager.default.temporaryDirectory.appendingPathComponent("fusion_run_\(UUID().uuidString.prefix(8)).\(languageExtension(language))")
         try code.write(to: tempFile, atomically: true, encoding: .utf8)
 
-        let runner: String
+        let executable: String
+        var args: [String]
         switch language {
-        case "python": runner = "python3"
-        case "swift":  runner = "swift"
-        case "rust":   runner = "rustc"
-        case "js", "javascript": runner = "node"
-        case "ts", "typescript": runner = "npx ts-node"
-        default:       runner = "python3"
+        case "python":
+            executable = "/usr/bin/python3"; args = [tempFile.path]
+        case "swift":
+            executable = "/usr/bin/swift"; args = [tempFile.path]
+        case "rust":
+            executable = "/usr/bin/rustc"; args = [tempFile.path]
+        case "js", "javascript":
+            executable = "/usr/local/bin/node"; args = [tempFile.path]
+        case "ts", "typescript":
+            executable = "/usr/local/bin/npx"; args = ["ts-node", tempFile.path]
+        default:
+            executable = "/usr/bin/python3"; args = [tempFile.path]
         }
 
         let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/bin/zsh")
-        task.arguments = ["-c", "\(runner) \(tempFile.path) 2>&1"]
+        task.executableURL = URL(fileURLWithPath: executable)
+        task.arguments = args
 
         let outputPipe = Pipe()
         task.standardOutput = outputPipe

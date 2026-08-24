@@ -13,14 +13,14 @@ import sys
 import json
 import signal
 import time
-import socket
+import secrets
 import threading
 import subprocess
 import logging
 from pathlib import Path
 from typing import Optional, Dict, Any
 from dataclasses import dataclass, asdict
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
 logging.basicConfig(
     level=logging.INFO,
@@ -235,15 +235,27 @@ class HardwareMonitor:
                 return {"error": "无法获取 CPU 信息"}
 
     def _get_gpu_usage(self) -> Dict[str, Any]:
-        """获取 GPU 使用情况（通过 Metal 性能状态）"""
+        """获取 GPU 使用情况
+
+        powermetrics 需管理员权限; 桌面 app daemon 无 sudo 免密必然挂起/失败,
+        故去 sudo 裸跑 — 无特权时快速 Permission denied (不阻塞), 不再触发
+        密码提示/超时。真实 GPU 信息走 _get_mlx_metrics 的 mx.metal.device_info()
+        无特权路径 (HIGH-1)。
+        """
         try:
             result = subprocess.run(
-                ["sudo", "powermetrics", "--samplers", "gpu_power", "-i", "100", "-n", "1"],
+                ["powermetrics", "--samplers", "gpu_power", "-i", "100", "-n", "1"],
                 capture_output=True, text=True, timeout=2,
             )
+            if result.returncode != 0:
+                return {"error": f"powermetrics 需管理员权限 (rc={result.returncode}): {result.stderr.strip()}"}
             return {"raw": result.stdout}
-        except Exception:
-            return {"error": "无法获取 GPU 信息（需要管理员权限）"}
+        except FileNotFoundError:
+            return {"error": "powermetrics 不可用, 详见 _get_mlx_metrics 的 metal.device_info()"}
+        except subprocess.TimeoutExpired:
+            return {"error": "powermetrics 超时"}
+        except Exception as e:
+            return {"error": f"无法获取 GPU 信息: {e}"}
 
     def _get_mlx_metrics(self) -> Dict[str, Any]:
         """获取 MLX 运行时指标"""
@@ -273,6 +285,20 @@ class JSONRPCRequestHandler(BaseHTTPRequestHandler):
 
         try:
             request = json.loads(body.decode())
+            # 鉴权: 除 ping (健康探活) 外, 若启用 token 则管理方法须带 Bearer
+            # 防本机任意进程无凭证调 mlx.stop/set_model (HIGH-1)
+            method = request.get("method", "")
+            if method != "ping" and self.server._auth_token:
+                auth = self.headers.get("Authorization", "")
+                expected = f"Bearer {self.server._auth_token}"
+                if not secrets.compare_digest(auth, expected):
+                    response = {
+                        "jsonrpc": "2.0",
+                        "id": request.get("id"),
+                        "error": {"code": -32001, "message": "未授权: 缺失或错误 Bearer token"},
+                    }
+                    self._send_json(response, status=401)
+                    return
             response = self.server.handle_request(request)
         except Exception as e:
             response = {
@@ -281,7 +307,10 @@ class JSONRPCRequestHandler(BaseHTTPRequestHandler):
                 "error": {"code": -32700, "message": str(e)},
             }
 
-        self.send_response(200)
+        self._send_json(response, status=200)
+
+    def _send_json(self, response: dict, status: int = 200):
+        self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
         self.wfile.write(json.dumps(response).encode())
@@ -297,20 +326,32 @@ class MLXDaemonServer:
         self.config = config
         self.process_manager = MLXProcessManager(config)
         self.hardware_monitor = HardwareMonitor()
-        self.http_server: Optional[HTTPServer] = None
+        self.http_server: Optional[ThreadingHTTPServer] = None
         self._request_id = 0
+        # 管理 API 鉴权 token: opt-in via FUSION_MLX_DAEMON_TOKEN 环境变量
+        # 未设置时不强制鉴权 (向后兼容 agent-studio 中央路由转发 mlx.*),
+        # 仅 loopback bind 兜底; 设置后强制 Bearer 校验防本机任意进程
+        # 无凭证调 mlx.stop/set_model 杀推理/切模型 (HIGH-1)
+        self._auth_token = os.environ.get("FUSION_MLX_DAEMON_TOKEN", "")
+        if self._auth_token:
+            logger.info("MLX Daemon 管理 API 鉴权已启用 (FUSION_MLX_DAEMON_TOKEN)")
+        else:
+            logger.warning(
+                "FUSION_MLX_DAEMON_TOKEN 未设置, 管理 API 无鉴权 "
+                "(仅 loopback bind 兜底); 生产环境建议设置该环境变量"
+            )
 
     def start(self):
         """启动守护进程"""
-        # 启动 HTTP JSON-RPC 服务
-        addr = (self.config.host, self.config.port + 1)  # 使用 8001 作为管理端口
-        self.http_server = HTTPServer(
+        # 启动 HTTP JSON-RPC 服务 (ThreadingHTTPServer: 慢请求不阻塞全部管理 API)
+        addr = (self.config.host, self.config.port + 1)  # 管理端口 = 推理端口 + 1 (11435)
+        self.http_server = ThreadingHTTPServer(
             addr,
             lambda *args: JSONRPCRequestHandler(*args, self)
         )
         thread = threading.Thread(target=self.http_server.serve_forever, daemon=True)
         thread.start()
-        logger.info(f"MLX Daemon 管理服务启动: {addr[0]}:{addr[1]}")
+        logger.info(f"MLX Daemon 管理服务启动: {addr[0]}:{addr[1]} (ThreadingHTTPServer + Bearer token 鉴权)")
 
         # 自动启动 fusion-mlx
         if self.config.daemon:

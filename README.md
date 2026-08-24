@@ -401,7 +401,7 @@ python -c "from fusion_simulation.cli import main; main()" service start \
 | IPC | **Unix Socket + JSON-RPC 2.0** | Lightweight, zero-dependency, cross-language |
 | Backend Services | **Rust** (primary) + **Python** (secondary) | Rust for performance/process mgmt, Python for MLX |
 | Inference Engine | **fusion-mlx** | Apple Silicon MLX, multi-modal, quantization |
-| Storage | **UserDefaults** (local-first) | Zero-config, local-first; integrity via SHA256 (no at-rest encryption / SQLite on Studio side) |
+| Storage | **UserDefaults** (prefs) + **Keychain** (secrets) | Local-first; non-secret config in UserDefaults, API keys/tokens in macOS Keychain (kSecClassGenericPassword); file integrity via SHA256 |
 | Packaging | **Xcode Archive + Notarization + DMG** | Standard macOS distribution |
 
 ---
@@ -473,12 +473,17 @@ fusion-studio 默认通过 fusion-gateway(`:11432`) 连接 fusion-mlx，gateway 
 自己的入站 key（非 mlx `settings.json` 的 key）。`FusionConfig.mlxResolvedApiKey`
 按以下优先级解析（与上游 fusion-mlx `_resolve_api_key` 对齐）：
 
-1. 用户在 Settings 显式设置（`mlxApiKey @AppStorage`）
+1. 用户在 Settings 显式设置（`mlxApiKey`，存 macOS **Keychain**，service `com.fusion.studio`）
 2. 进程环境变量 `FUSION_MLX_API_KEY`（fusion-mlx/fusion-gateway 启动时注入）
 3. `~/.fusion-mlx/settings.json` → `auth.api_key`
 
 解析来源记录到 `os.log`（subsystem `com.fusion.studio`, category `FusionConfig`）。
 启动 fusion-gateway/mlx 时导出 `FUSION_MLX_API_KEY` 即可让 studio 取到正确入站 key。
+
+> **密钥存储 (HIGH-2)**：`mlxApiKey` / `fusionRagApiKey` / `modelHubApiKey` 均存 Keychain，
+> 不再落 UserDefaults plist 明文。`fusionCodeApiKey` 为 per-instance 随机 token（首次生成落
+> Keychain + `~/.fusion-studio/fusion-code.token` 0600），旧硬编码 `fg-admin-key` 已移除。
+> fusion-code 服务端 authToken 默认空导致鉴权 fail-open，见上游 issue [dahai80/fusion-code#132](https://github.com/dahai80/fusion-code/issues/132)。
 
 ### First-Run Onboarding (三档模型引导)
 

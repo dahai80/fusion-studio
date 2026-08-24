@@ -92,7 +92,18 @@ class FusionConfig: ObservableObject {
     // MARK: - MLX
     @AppStorage("mlxHost") var mlxHost = "localhost"
     @AppStorage("mlxPort") var mlxPort = 11434
-    @AppStorage("mlxApiKey") var mlxApiKey = ""
+    // API key 存 macOS Keychain (HIGH-2), 不再 @AppStorage 明文落 UserDefaults plist
+    // didSet 写 Keychain; mlxResolvedApiKey 读取此属性 (内存缓存 = Keychain 真值)
+    @Published var mlxApiKey: String = KeychainStore.get("mlxApiKey") ?? "" {
+        didSet {
+            if mlxApiKey.isEmpty {
+                KeychainStore.delete("mlxApiKey")
+            } else {
+                KeychainStore.set("mlxApiKey", mlxApiKey)
+            }
+            fusionConfigLog.info("mlxApiKey persisted to Keychain (len \(self.mlxApiKey.count))")
+        }
+    }
     @AppStorage("mlxModel") var mlxModel = ""
     @AppStorage("mlxPath") var mlxPath = ""
 
@@ -126,7 +137,17 @@ class FusionConfig: ObservableObject {
     // user instruction: "完成所有待办任务"
     @AppStorage("fusionRagHost") var fusionRagHost = "127.0.0.1"
     @AppStorage("fusionRagPort") var fusionRagPort = 11436
-    @AppStorage("fusionRagApiKey") var fusionRagApiKey = ""
+    // API key 存 Keychain (HIGH-2), SecureField 绑定 $fusionRagApiKey 由 didSet 透传 Keychain
+    @Published var fusionRagApiKey: String = KeychainStore.get("fusionRagApiKey") ?? "" {
+        didSet {
+            if fusionRagApiKey.isEmpty {
+                KeychainStore.delete("fusionRagApiKey")
+            } else {
+                KeychainStore.set("fusionRagApiKey", fusionRagApiKey)
+            }
+            fusionConfigLog.info("fusionRagApiKey persisted to Keychain (len \(self.fusionRagApiKey.count))")
+        }
+    }
     @AppStorage("fusionRagEmbed") var fusionRagEmbed = "BGE-M3"
 
     /// Fusion-RAG 服务地址
@@ -135,8 +156,11 @@ class FusionConfig: ObservableObject {
     /// Fusion-Code API 服务地址
     var fusionCodeURL: String { "http://127.0.0.1:\(fusionCodePort)" }
 
-    /// Fusion-Code 鉴权 API key（与 gateway 同源 fg-admin-key）
-    var fusionCodeApiKey: String { "fg-admin-key" }
+    /// Fusion-Code 鉴权 API key — per-instance 随机 token (HIGH-2), 首次调用生成并落 Keychain
+    // 上游契约 (fusion-code issue #132): token 同步写 ~/.fusion-studio/fusion-code.token (0600),
+    // 供 fusion-code 启动读取作 ENVIRONMENT_MANAGER_AUTH_TOKEN。旧硬编码 "fg-admin-key" 已移除
+    // (服务端 authToken 空=鉴权 fail-open, 固定串既不校验也无法轮换, 比不鉴权更恶劣)。
+    var fusionCodeApiKey: String { KeychainStore.fusionCodeToken() }
 
     // MARK: - Upstream Services
     // Callers: UpstreamServiceManager reads these to locate each upstream repo's start.sh.
@@ -172,7 +196,17 @@ class FusionConfig: ObservableObject {
     @AppStorage("coworkMcpPort") var coworkMcpPort = 11438
     @AppStorage("modelHubHost") var modelHubHost = "127.0.0.1"
     @AppStorage("modelHubPort") var modelHubPort = 11444
-    @AppStorage("modelHubApiKey") var modelHubApiKey = ""
+    // API key 存 Keychain (HIGH-2), HubPermissionView 创建后直接赋值由 didSet 透传 Keychain
+    @Published var modelHubApiKey: String = KeychainStore.get("modelHubApiKey") ?? "" {
+        didSet {
+            if modelHubApiKey.isEmpty {
+                KeychainStore.delete("modelHubApiKey")
+            } else {
+                KeychainStore.set("modelHubApiKey", modelHubApiKey)
+            }
+            fusionConfigLog.info("modelHubApiKey persisted to Keychain (len \(self.modelHubApiKey.count))")
+        }
+    }
     @AppStorage("securityPort") var securityPort = 11454
     @AppStorage("fusionDeskPort") var fusionDeskPort = 9761
     @AppStorage("fusionDocPort") var fusionDocPort = 11449
@@ -346,6 +380,8 @@ class FusionConfig: ObservableObject {
         defaultSlotAgent = ModelSlot.heavy.rawValue
         defaultSlotArtifacts = ModelSlot.heavy.rawValue
         mlxPath = ""
+        // 清 Keychain 内的 API key (HIGH-2): didSet 透传 delete
+        mlxApiKey = ""
 
         artifactsEngineHost = "127.0.0.1"
         artifactsEnginePort = 11451

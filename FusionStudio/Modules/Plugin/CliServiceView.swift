@@ -48,21 +48,48 @@ struct CliServiceView: View {
         process.arguments = ["-c", cmd]
         process.standardOutput = pipe
         process.standardError = pipe
-        do {
-            try process.run()
-            pipe.fileHandleForReading.readabilityHandler = { handler in
-                let data = handler.availableData
-                if let output = String(data: data, encoding: .utf8), !output.isEmpty {
-                    output.split(separator: "\n").forEach { line in
-                        DispatchQueue.main.async { outputLines.append(String(line)) }
-                    }
-                }
-                if !process.isRunning {
-                    handler.readabilityHandler = nil
-                    DispatchQueue.main.async { isRunning = false }
+
+        // readabilityHandler 只管数据: 有数据追加行, EOF(空 availableData)清自身
+        let readHandle = pipe.fileHandleForReading
+        readHandle.readabilityHandler = { handler in
+            let data = handler.availableData
+            if data.isEmpty {
+                // EOF: 进程已关管道, 清 handler 避免泄漏
+                handler.readabilityHandler = nil
+                return
+            }
+            if let output = String(data: data, encoding: .utf8), !output.isEmpty {
+                output.split(separator: "\n", omittingEmptySubsequences: false).forEach { line in
+                    let lineStr = String(line)
+                    DispatchQueue.main.async { outputLines.append(lineStr) }
                 }
             }
+        }
+        // terminationHandler 是退出权威信号: 清 handler + 收尾残留 + 复位 isRunning
+        // 修复 BUG-9: 原 readabilityHandler 内轮询 isRunning 存在竞态, 退出无尾数据时漏判致 FD 泄漏
+        process.terminationHandler = { proc in
+            readHandle.readabilityHandler = nil
+            let rest = readHandle.readDataToEndOfFile()
+            if let restStr = String(data: rest, encoding: .utf8), !restStr.isEmpty {
+                restStr.split(separator: "\n", omittingEmptySubsequences: false).forEach { line in
+                    let lineStr = String(line)
+                    DispatchQueue.main.async { outputLines.append(lineStr) }
+                }
+            }
+            let status = proc.terminationStatus
+            DispatchQueue.main.async {
+                isRunning = false
+                if status != 0 {
+                    outputLines.append("\(I18nManager.shared.t(.plugin_cli_err_prefix)): exit \(status)")
+                }
+                log.info("CLI exit status: \(status)")
+            }
+        }
+
+        do {
+            try process.run()
         } catch {
+            readHandle.readabilityHandler = nil
             outputLines.append("\(I18nManager.shared.t(.plugin_cli_err_prefix)): \(error.localizedDescription)")
             isRunning = false
         }

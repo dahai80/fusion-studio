@@ -257,12 +257,13 @@ struct CLIView: View {
 
         do {
             try task.run()
+            // 并发全量读: 各管道阻塞至 EOF(进程退出关管道), 无 64KB 上限, 无死锁
+            // async let 在并发执行器跑, 避免 waitUntilExit 后单线程串行读的死锁
+            async let outData = outputPipe.fileHandleForReading.readDataToEndOfFile()
+            async let errData = errorPipe.fileHandleForReading.readDataToEndOfFile()
             task.waitUntilExit()
-
-            let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
-            let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
-            let output = String(data: outputData, encoding: .utf8) ?? ""
-            let error = String(data: errorData, encoding: .utf8) ?? ""
+            let output = String(data: await outData, encoding: .utf8) ?? ""
+            let error = String(data: await errData, encoding: .utf8) ?? ""
             let combined = [output, error].filter { !$0.isEmpty }.joined(separator: "\n")
             return (combined, task.terminationStatus)
         } catch {

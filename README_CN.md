@@ -115,7 +115,7 @@ Fusion Studio (统一 macOS 桌面客户端)
 | IPC | **Unix Socket + JSON-RPC 2.0** | 轻量、零依赖、跨语言 |
 | 后台服务 | **Rust** + **Python** | Rust 高性能，Python 复用 MLX |
 | 推理引擎 | **fusion-mlx** | Apple Silicon MLX、多模态、量化 |
-| 存储 | **SQLite + UserDefaults** | 零配置、本地优先、加密 |
+| 存储 | **UserDefaults**（配置）+ **Keychain**（密钥） | 零配置、本地优先；非敏感配置存 UserDefaults，API key/token 存 macOS Keychain（kSecClassGenericPassword） |
 | 打包 | **Xcode Archive + 公证 + DMG** | 标准 macOS 分发 |
 
 ---
