@@ -110,6 +110,15 @@ class IPCClient: ObservableObject {
 
     // MARK: - JSON-RPC 调用
 
+    /// 原子自增请求 id。call() 跑在串行 queue, udsCall() 跑在并发 global queue, 共用同一计数器必须加锁, 否则并发 udsCall 同毫秒时间戳撞 id (PERF-2)
+    private func nextRequestId() -> Int {
+        lock.lock()
+        requestId += 1
+        let id = requestId
+        lock.unlock()
+        return id
+    }
+
     /// 调用远程方法
     @discardableResult
     func call(method: String, params: [String: Any] = [:]) async throws -> [String: Any] {
@@ -120,8 +129,7 @@ class IPCClient: ObservableObject {
                     return
                 }
 
-                self.requestId += 1
-                let reqId = self.requestId
+                let reqId = self.nextRequestId()
 
                 var request: [String: Any] = [
                     "jsonrpc": "2.0",
@@ -207,7 +215,7 @@ class IPCClient: ObservableObject {
                 }
                 var request: [String: Any] = [
                     "jsonrpc": "2.0",
-                    "id": Int(Date().timeIntervalSince1970 * 1000),
+                    "id": self.nextRequestId(),
                     "method": method,
                 ]
                 if !params.isEmpty { request["params"] = params }
@@ -263,16 +271,21 @@ class IPCClient: ObservableObject {
         readQueue.async { [weak self] in
             guard let self = self else { return }
             var buffer = Data()
+            // 4KB 块读 + 0x0A 分割。单字节 read 每字节一次 syscall, 大响应 (model.list/model.detail) 上千次 read, 系统调用风暴 (PERF-1)
+            var readBuf = [UInt8](repeating: 0, count: 4096)
 
             while self.socketFd >= 0 {
-                var byte: UInt8 = 0
-                let n = Darwin.read(self.socketFd, &byte, 1)
+                let n = readBuf.withUnsafeMutableBufferPointer { Darwin.read(self.socketFd, $0.baseAddress!, $0.count) }
                 if n > 0 {
-                    if byte == 0x0A {
-                        self.handleResponse(buffer)
-                        buffer = Data()
-                    } else {
-                        buffer.append(byte)
+                    // 块内按 0x0A 切分, 一次 read 可能含多条消息
+                    for i in 0..<n {
+                        let byte = readBuf[i]
+                        if byte == 0x0A {
+                            self.handleResponse(buffer)
+                            buffer = Data()
+                        } else {
+                            buffer.append(byte)
+                        }
                     }
                 } else if n == 0 {
                     self.drainPending()
