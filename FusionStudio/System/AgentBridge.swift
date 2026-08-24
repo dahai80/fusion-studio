@@ -1455,6 +1455,10 @@ final class AgentBridge: ObservableObject {
                 query: query
             )
             self.ragResults.append(ragResult)
+            // PERF-3: ragResults 无上限 append, 长会话无限增长内存。保留最近 50 条 (LRU 语义: 旧结果越早越无回看价值), 超额丢弃最旧。
+            if self.ragResults.count > 50 {
+                self.ragResults.removeFirst(self.ragResults.count - 50)
+            }
             return ragResult
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
@@ -1931,6 +1935,8 @@ final class AgentBridge: ObservableObject {
                 if self.currentAgent?.id == agentId {
                     self.currentAgent = nil
                 }
+                // PERF-3: 删 agent 时清 agentVersionHistory 该 agent 条目, 否则已删 agent 版本历史孤儿驻留 dict 永不释放。
+                self.agentVersionHistory.removeValue(forKey: agentId)
             }
             return deleted
         } catch let error as IPCError {
