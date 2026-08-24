@@ -40,16 +40,16 @@ class AccessibilityManager: ObservableObject {
     // MARK: - 键盘导航
 
     let keyboardShortcuts: [(keys: String, action: String, category: String)] = [
-        ("Tab", "移动到下一个元素", "导航"),
-        ("Shift+Tab", "移动到上一个元素", "导航"),
-        ("Enter/Space", "激活当前元素", "交互"),
-        ("Esc", "取消/关闭", "交互"),
-        ("↑↓←→", "在元素间移动", "导航"),
-        ("Cmd+1-9", "切换模块", "模块"),
-        ("Cmd+,", "打开设置", "设置"),
-        ("Cmd+F", "搜索", "搜索"),
-        ("Cmd+R", "运行", "操作"),
-        ("Cmd+Shift+H", "显示帮助", "帮助"),
+        ("Tab", "a11yc_sk_act_next", "a11yc_sk_cat_nav"),
+        ("Shift+Tab", "a11yc_sk_act_prev", "a11yc_sk_cat_nav"),
+        ("Enter/Space", "a11yc_sk_act_activate", "a11yc_sk_cat_interact"),
+        ("Esc", "a11yc_sk_act_cancel", "a11yc_sk_cat_interact"),
+        ("↑↓←→", "a11yc_sk_act_move", "a11yc_sk_cat_nav"),
+        ("Cmd+1-9", "a11yc_sk_act_switch_module", "a11yc_sk_cat_module"),
+        ("Cmd+,", "a11yc_sk_act_open_settings", "a11yc_sk_cat_settings"),
+        ("Cmd+F", "a11yc_sk_act_search", "a11yc_sk_cat_search"),
+        ("Cmd+R", "a11yc_sk_act_run", "a11yc_sk_cat_operation"),
+        ("Cmd+Shift+H", "a11yc_sk_act_help", "a11yc_sk_cat_help"),
     ]
 
     // MARK: - VoiceOver 支持
@@ -65,7 +65,7 @@ class AccessibilityManager: ObservableObject {
 
     func focusChanged(to element: String) {
         focusedElement = element
-        announce("焦点已移至: \(element)")
+        announce(I18nManager.shared.tf(.a11yc_focus_moved_fmt, element))
     }
 
     // MARK: - 减少动态效果
@@ -144,16 +144,24 @@ struct AccessibilitySettingsView: View {
     @State private var selectedTab: A11yTab = .general
 
     enum A11yTab: String, CaseIterable {
-        case general  = "通用"
-        case keyboard = "键盘"
-        case display  = "显示"
+        case general
+        case keyboard
+        case display
+
+        var localizedName: String {
+            switch self {
+            case .general:  return I18nManager.shared.t(.a11yc_tab_general)
+            case .keyboard: return I18nManager.shared.t(.a11yc_tab_keyboard)
+            case .display:  return I18nManager.shared.t(.a11yc_tab_display)
+            }
+        }
     }
 
     var body: some View {
         VStack(spacing: 0) {
             Picker("", selection: $selectedTab) {
                 ForEach(A11yTab.allCases, id: \.self) { tab in
-                    Label(tab.rawValue, systemImage: tabIcon(tab)).tag(tab)
+                    Label(tab.localizedName, systemImage: tabIcon(tab)).tag(tab)
                 }
             }
             .pickerStyle(.segmented)
@@ -177,28 +185,28 @@ struct GeneralA11yView: View {
 
     var body: some View {
         Form {
-            Section("VoiceOver") {
-                Toggle("启用 VoiceOver 支持", isOn: $a11y.config.enableVoiceOver)
-                Toggle("播报界面变化", isOn: $a11y.config.announceChanges)
+            Section(I18nManager.shared.t(.a11yc_sec_voiceover)) {
+                Toggle(I18nManager.shared.t(.a11yc_enable_voiceover), isOn: $a11y.config.enableVoiceOver)
+                Toggle(I18nManager.shared.t(.a11yc_announce_changes), isOn: $a11y.config.announceChanges)
                 if a11y.config.announceChanges {
-                    Button("测试播报") {
-                        a11y.announce("这是一条测试播报消息")
+                    Button(I18nManager.shared.t(.a11yc_test_announce)) {
+                        a11y.announce(I18nManager.shared.t(.a11yc_test_announce_msg))
                     }
                     .buttonStyle(.bordered)
                 }
             }
 
-            Section("焦点管理") {
-                Toggle("显示焦点环", isOn: $a11y.config.focusRingVisible)
-                Toggle("启用键盘导航", isOn: $a11y.config.enableKeyboardNavigation)
+            Section(I18nManager.shared.t(.a11yc_sec_focus)) {
+                Toggle(I18nManager.shared.t(.a11yc_show_focus_ring), isOn: $a11y.config.focusRingVisible)
+                Toggle(I18nManager.shared.t(.a11yc_enable_kb_nav), isOn: $a11y.config.enableKeyboardNavigation)
             }
 
-            Section("当前状态") {
+            Section(I18nManager.shared.t(.a11yc_sec_status)) {
                 if let focus = a11y.focusedElement {
-                    HStack { Text("当前焦点"); Spacer(); Text(focus).font(.system(.body, design: .monospaced)) }
+                    HStack { Text(I18nManager.shared.t(.a11yc_current_focus)); Spacer(); Text(focus).font(.system(.body, design: .monospaced)) }
                 }
                 if let announce = a11y.lastAnnouncement {
-                    HStack { Text("最后播报"); Spacer(); Text(announce).font(.caption).foregroundColor(.secondary) }
+                    HStack { Text(I18nManager.shared.t(.a11yc_last_announce)); Spacer(); Text(announce).font(.caption).foregroundColor(.secondary) }
                 }
             }
         }
@@ -212,18 +220,18 @@ struct KeyboardA11yView: View {
 
     var body: some View {
         Form {
-            Section("快捷键修饰键") {
-                Picker("修饰键", selection: $a11y.config.keyboardShortcutModifier) {
+            Section(I18nManager.shared.t(.a11yc_sec_mod_key)) {
+                Picker(I18nManager.shared.t(.a11yc_mod_key), selection: $a11y.config.keyboardShortcutModifier) {
                     ForEach(AccessibilityConfig.KeyModifier.allCases, id: \.self) { mod in
                         Text(mod.rawValue).tag(mod)
                     }
                 }
             }
 
-            Section("键盘快捷键") {
+            Section(I18nManager.shared.t(.a11yc_sec_shortcuts)) {
                 ForEach(a11y.keyboardShortcuts, id: \.keys) { shortcut in
                     HStack {
-                        Text(shortcut.action)
+                        Text(I18nManager.shared.t(shortcut.action))
                             .font(.subheadline)
                         Spacer()
                         Text(shortcut.keys)
@@ -248,17 +256,17 @@ struct DisplayA11yView: View {
 
     var body: some View {
         Form {
-            Section("显示适配") {
-                Toggle("减少动态效果", isOn: $a11y.config.enableReducedMotion)
-                Toggle("增强对比度", isOn: $a11y.config.enableHighContrast)
-                Toggle("大文本", isOn: $a11y.config.enableLargeText)
+            Section(I18nManager.shared.t(.a11yc_sec_display)) {
+                Toggle(I18nManager.shared.t(.a11yc_reduce_motion), isOn: $a11y.config.enableReducedMotion)
+                Toggle(I18nManager.shared.t(.a11yc_high_contrast), isOn: $a11y.config.enableHighContrast)
+                Toggle(I18nManager.shared.t(.a11yc_large_text), isOn: $a11y.config.enableLargeText)
             }
 
-            Section("预览") {
+            Section(I18nManager.shared.t(.a11yc_sec_preview)) {
                 VStack(spacing: 12) {
-                    Text("示例文本")
+                    Text(I18nManager.shared.t(.a11yc_sample_text))
                         .font(.system(size: a11y.scaledFontSize(14)))
-                    Text("缩放后: \(a11y.scaledFontSize(14), specifier: "%.0f")pt (基础 14pt)")
+                    Text(I18nManager.shared.tf(.a11yc_scaled_fmt, String(format: "%.0f", a11y.scaledFontSize(14))))
                         .font(.caption)
                         .foregroundColor(.secondary)
 
@@ -268,17 +276,17 @@ struct DisplayA11yView: View {
                             Rectangle().fill(Color.secondary).frame(width: 20, height: 20)
                             Rectangle().fill(Color.accentColor).frame(width: 20, height: 20)
                         }
-                        Text("高对比度模式已启用")
+                        Text(I18nManager.shared.t(.a11yc_high_contrast_on))
                             .font(.caption).foregroundColor(.secondary)
                     }
                 }
                 .padding()
             }
 
-            Section("系统设置") {
-                Text("macOS 系统辅助功能设置可在「系统设置 → 辅助功能」中调整")
+            Section(I18nManager.shared.t(.a11yc_sec_system)) {
+                Text(I18nManager.shared.t(.a11yc_system_hint))
                     .font(.caption).foregroundColor(.secondary)
-                Button("打开辅助功能设置") {
+                Button(I18nManager.shared.t(.a11yc_open_settings)) {
                     NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.universalaccess")!)
                 }
                 .buttonStyle(.bordered)
@@ -339,7 +347,7 @@ struct KeyboardNavigableView: View {
         .background(theme.surfaceSecondary)
         .cornerRadius(6)
         .focusRing()
-        .a11y(label: "\(title), 快捷键: \(shortcut)")
+        .a11y(label: I18nManager.shared.tf(.a11yc_nav_label_fmt, title, shortcut))
     }
 }
 
@@ -359,6 +367,8 @@ struct A11yStatusIndicator: View {
                     .font(.caption)
             }
         }
-        .help("VoiceOver: \(a11y.config.enableVoiceOver ? "已启用" : "已禁用")\n键盘导航: \(a11y.config.enableKeyboardNavigation ? "已启用" : "已禁用")")
+        .help(I18nManager.shared.tf(.a11yc_status_help_fmt,
+             I18nManager.shared.tf(.a11yc_voiceover_state_fmt, a11y.config.enableVoiceOver ? I18nManager.shared.t(.a11yc_on) : I18nManager.shared.t(.a11yc_off)),
+             I18nManager.shared.tf(.a11yc_kbnav_state_fmt, a11y.config.enableKeyboardNavigation ? I18nManager.shared.t(.a11yc_on) : I18nManager.shared.t(.a11yc_off))))
     }
 }

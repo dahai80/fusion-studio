@@ -4649,6 +4649,58 @@ enum I18nKey: String, CaseIterable {
     case csm_status_restore_done_fmt = "csm_status_restore_done_fmt"
     case csm_status_restore_failed_fmt = "csm_status_restore_failed_fmt"
     case csm_err_invalid_format = "csm_err_invalid_format"
+    case a11yc_tab_general = "a11yc_tab_general"
+    case a11yc_tab_keyboard = "a11yc_tab_keyboard"
+    case a11yc_tab_display = "a11yc_tab_display"
+    case a11yc_sec_voiceover = "a11yc_sec_voiceover"
+    case a11yc_enable_voiceover = "a11yc_enable_voiceover"
+    case a11yc_announce_changes = "a11yc_announce_changes"
+    case a11yc_test_announce = "a11yc_test_announce"
+    case a11yc_test_announce_msg = "a11yc_test_announce_msg"
+    case a11yc_sec_focus = "a11yc_sec_focus"
+    case a11yc_show_focus_ring = "a11yc_show_focus_ring"
+    case a11yc_enable_kb_nav = "a11yc_enable_kb_nav"
+    case a11yc_sec_status = "a11yc_sec_status"
+    case a11yc_current_focus = "a11yc_current_focus"
+    case a11yc_last_announce = "a11yc_last_announce"
+    case a11yc_focus_moved_fmt = "a11yc_focus_moved_fmt"
+    case a11yc_sec_mod_key = "a11yc_sec_mod_key"
+    case a11yc_mod_key = "a11yc_mod_key"
+    case a11yc_sec_shortcuts = "a11yc_sec_shortcuts"
+    case a11yc_sec_display = "a11yc_sec_display"
+    case a11yc_reduce_motion = "a11yc_reduce_motion"
+    case a11yc_high_contrast = "a11yc_high_contrast"
+    case a11yc_large_text = "a11yc_large_text"
+    case a11yc_sec_preview = "a11yc_sec_preview"
+    case a11yc_sample_text = "a11yc_sample_text"
+    case a11yc_scaled_fmt = "a11yc_scaled_fmt"
+    case a11yc_high_contrast_on = "a11yc_high_contrast_on"
+    case a11yc_sec_system = "a11yc_sec_system"
+    case a11yc_system_hint = "a11yc_system_hint"
+    case a11yc_open_settings = "a11yc_open_settings"
+    case a11yc_nav_label_fmt = "a11yc_nav_label_fmt"
+    case a11yc_on = "a11yc_on"
+    case a11yc_off = "a11yc_off"
+    case a11yc_voiceover_state_fmt = "a11yc_voiceover_state_fmt"
+    case a11yc_kbnav_state_fmt = "a11yc_kbnav_state_fmt"
+    case a11yc_status_help_fmt = "a11yc_status_help_fmt"
+    case a11yc_sk_act_next = "a11yc_sk_act_next"
+    case a11yc_sk_act_prev = "a11yc_sk_act_prev"
+    case a11yc_sk_act_activate = "a11yc_sk_act_activate"
+    case a11yc_sk_act_cancel = "a11yc_sk_act_cancel"
+    case a11yc_sk_act_move = "a11yc_sk_act_move"
+    case a11yc_sk_act_switch_module = "a11yc_sk_act_switch_module"
+    case a11yc_sk_act_open_settings = "a11yc_sk_act_open_settings"
+    case a11yc_sk_act_search = "a11yc_sk_act_search"
+    case a11yc_sk_act_run = "a11yc_sk_act_run"
+    case a11yc_sk_act_help = "a11yc_sk_act_help"
+    case a11yc_sk_cat_nav = "a11yc_sk_cat_nav"
+    case a11yc_sk_cat_interact = "a11yc_sk_cat_interact"
+    case a11yc_sk_cat_module = "a11yc_sk_cat_module"
+    case a11yc_sk_cat_settings = "a11yc_sk_cat_settings"
+    case a11yc_sk_cat_search = "a11yc_sk_cat_search"
+    case a11yc_sk_cat_operation = "a11yc_sk_cat_operation"
+    case a11yc_sk_cat_help = "a11yc_sk_cat_help"
     case fc_preview = "fc_preview"
     case fc_live = "fc_live"
     case fc_html_preview_empty = "fc_html_preview_empty"
@@ -9446,6 +9498,58 @@ let zhCNTranslations: [String: String] = [
     "csm_status_restore_done_fmt": "恢复完成: %s",
     "csm_status_restore_failed_fmt": "恢复失败: %s",
     "csm_err_invalid_format": "无效的备份文件格式",
+    "a11yc_tab_general": "通用",
+    "a11yc_tab_keyboard": "键盘",
+    "a11yc_tab_display": "显示",
+    "a11yc_sec_voiceover": "VoiceOver",
+    "a11yc_enable_voiceover": "启用 VoiceOver 支持",
+    "a11yc_announce_changes": "播报界面变化",
+    "a11yc_test_announce": "测试播报",
+    "a11yc_test_announce_msg": "这是一条测试播报消息",
+    "a11yc_sec_focus": "焦点管理",
+    "a11yc_show_focus_ring": "显示焦点环",
+    "a11yc_enable_kb_nav": "启用键盘导航",
+    "a11yc_sec_status": "当前状态",
+    "a11yc_current_focus": "当前焦点",
+    "a11yc_last_announce": "最后播报",
+    "a11yc_focus_moved_fmt": "焦点已移至: %s",
+    "a11yc_sec_mod_key": "快捷键修饰键",
+    "a11yc_mod_key": "修饰键",
+    "a11yc_sec_shortcuts": "键盘快捷键",
+    "a11yc_sec_display": "显示适配",
+    "a11yc_reduce_motion": "减少动态效果",
+    "a11yc_high_contrast": "增强对比度",
+    "a11yc_large_text": "大文本",
+    "a11yc_sec_preview": "预览",
+    "a11yc_sample_text": "示例文本",
+    "a11yc_scaled_fmt": "缩放后: %spt (基础 14pt)",
+    "a11yc_high_contrast_on": "高对比度模式已启用",
+    "a11yc_sec_system": "系统设置",
+    "a11yc_system_hint": "macOS 系统辅助功能设置可在「系统设置 → 辅助功能」中调整",
+    "a11yc_open_settings": "打开辅助功能设置",
+    "a11yc_nav_label_fmt": "%s, 快捷键: %s",
+    "a11yc_on": "已启用",
+    "a11yc_off": "已禁用",
+    "a11yc_voiceover_state_fmt": "VoiceOver: %s",
+    "a11yc_kbnav_state_fmt": "键盘导航: %s",
+    "a11yc_status_help_fmt": "%s\n%s",
+    "a11yc_sk_act_next": "移动到下一个元素",
+    "a11yc_sk_act_prev": "移动到上一个元素",
+    "a11yc_sk_act_activate": "激活当前元素",
+    "a11yc_sk_act_cancel": "取消/关闭",
+    "a11yc_sk_act_move": "在元素间移动",
+    "a11yc_sk_act_switch_module": "切换模块",
+    "a11yc_sk_act_open_settings": "打开设置",
+    "a11yc_sk_act_search": "搜索",
+    "a11yc_sk_act_run": "运行",
+    "a11yc_sk_act_help": "显示帮助",
+    "a11yc_sk_cat_nav": "导航",
+    "a11yc_sk_cat_interact": "交互",
+    "a11yc_sk_cat_module": "模块",
+    "a11yc_sk_cat_settings": "设置",
+    "a11yc_sk_cat_search": "搜索",
+    "a11yc_sk_cat_operation": "操作",
+    "a11yc_sk_cat_help": "帮助",
     "fc_preview": "预览",
     "fc_live": "实时",
     "fc_html_preview_empty": "生成HTML后此处显示预览",
@@ -14196,6 +14300,58 @@ let enUSTranslations: [String: String] = [
     "csm_status_restore_done_fmt": "Restore complete: %s",
     "csm_status_restore_failed_fmt": "Restore failed: %s",
     "csm_err_invalid_format": "Invalid backup file format",
+    "a11yc_tab_general": "General",
+    "a11yc_tab_keyboard": "Keyboard",
+    "a11yc_tab_display": "Display",
+    "a11yc_sec_voiceover": "VoiceOver",
+    "a11yc_enable_voiceover": "Enable VoiceOver support",
+    "a11yc_announce_changes": "Announce UI changes",
+    "a11yc_test_announce": "Test Announcement",
+    "a11yc_test_announce_msg": "This is a test announcement",
+    "a11yc_sec_focus": "Focus Management",
+    "a11yc_show_focus_ring": "Show focus ring",
+    "a11yc_enable_kb_nav": "Enable keyboard navigation",
+    "a11yc_sec_status": "Current Status",
+    "a11yc_current_focus": "Current focus",
+    "a11yc_last_announce": "Last announcement",
+    "a11yc_focus_moved_fmt": "Focus moved to: %s",
+    "a11yc_sec_mod_key": "Shortcut Modifier Key",
+    "a11yc_mod_key": "Modifier",
+    "a11yc_sec_shortcuts": "Keyboard Shortcuts",
+    "a11yc_sec_display": "Display Adaptation",
+    "a11yc_reduce_motion": "Reduce motion",
+    "a11yc_high_contrast": "Increase contrast",
+    "a11yc_large_text": "Large text",
+    "a11yc_sec_preview": "Preview",
+    "a11yc_sample_text": "Sample text",
+    "a11yc_scaled_fmt": "Scaled: %spt (base 14pt)",
+    "a11yc_high_contrast_on": "High contrast mode enabled",
+    "a11yc_sec_system": "System Settings",
+    "a11yc_system_hint": "macOS accessibility settings can be adjusted in System Settings → Accessibility",
+    "a11yc_open_settings": "Open Accessibility Settings",
+    "a11yc_nav_label_fmt": "%s, shortcut: %s",
+    "a11yc_on": "enabled",
+    "a11yc_off": "disabled",
+    "a11yc_voiceover_state_fmt": "VoiceOver: %s",
+    "a11yc_kbnav_state_fmt": "Keyboard nav: %s",
+    "a11yc_status_help_fmt": "%s\n%s",
+    "a11yc_sk_act_next": "Move to next element",
+    "a11yc_sk_act_prev": "Move to previous element",
+    "a11yc_sk_act_activate": "Activate current element",
+    "a11yc_sk_act_cancel": "Cancel/Close",
+    "a11yc_sk_act_move": "Move between elements",
+    "a11yc_sk_act_switch_module": "Switch module",
+    "a11yc_sk_act_open_settings": "Open settings",
+    "a11yc_sk_act_search": "Search",
+    "a11yc_sk_act_run": "Run",
+    "a11yc_sk_act_help": "Show help",
+    "a11yc_sk_cat_nav": "Navigation",
+    "a11yc_sk_cat_interact": "Interaction",
+    "a11yc_sk_cat_module": "Module",
+    "a11yc_sk_cat_settings": "Settings",
+    "a11yc_sk_cat_search": "Search",
+    "a11yc_sk_cat_operation": "Operation",
+    "a11yc_sk_cat_help": "Help",
     "fc_preview": "Preview",
     "fc_live": "Live",
     "fc_html_preview_empty": "Preview appears here after HTML is generated",
@@ -18940,6 +19096,58 @@ let jaJPTranslations: [String: String] = [
     "csm_status_restore_done_fmt": "復元完了: %s",
     "csm_status_restore_failed_fmt": "復元失敗: %s",
     "csm_err_invalid_format": "無効なバックアップファイル形式",
+    "a11yc_tab_general": "一般",
+    "a11yc_tab_keyboard": "キーボード",
+    "a11yc_tab_display": "表示",
+    "a11yc_sec_voiceover": "VoiceOver",
+    "a11yc_enable_voiceover": "VoiceOver サポートを有効化",
+    "a11yc_announce_changes": "UI変更を通知",
+    "a11yc_test_announce": "通知テスト",
+    "a11yc_test_announce_msg": "これはテスト通知です",
+    "a11yc_sec_focus": "フォーカス管理",
+    "a11yc_show_focus_ring": "フォーカスリングを表示",
+    "a11yc_enable_kb_nav": "キーボードナビを有効化",
+    "a11yc_sec_status": "現在の状態",
+    "a11yc_current_focus": "現在のフォーカス",
+    "a11yc_last_announce": "最後の通知",
+    "a11yc_focus_moved_fmt": "フォーカス移動: %s",
+    "a11yc_sec_mod_key": "ショートカット修飾キー",
+    "a11yc_mod_key": "修飾キー",
+    "a11yc_sec_shortcuts": "キーボードショートカット",
+    "a11yc_sec_display": "表示適応",
+    "a11yc_reduce_motion": "モーションを減らす",
+    "a11yc_high_contrast": "コントラストを強調",
+    "a11yc_large_text": "大きいテキスト",
+    "a11yc_sec_preview": "プレビュー",
+    "a11yc_sample_text": "サンプルテキスト",
+    "a11yc_scaled_fmt": "拡大後: %spt (基本 14pt)",
+    "a11yc_high_contrast_on": "高コントラストモード有効",
+    "a11yc_sec_system": "システム設定",
+    "a11yc_system_hint": "macOS アクセシビリティ設定は「システム設定 → アクセシビリティ」で調整できます",
+    "a11yc_open_settings": "アクセシビリティ設定を開く",
+    "a11yc_nav_label_fmt": "%s, ショートカット: %s",
+    "a11yc_on": "有効",
+    "a11yc_off": "無効",
+    "a11yc_voiceover_state_fmt": "VoiceOver: %s",
+    "a11yc_kbnav_state_fmt": "キーボードナビ: %s",
+    "a11yc_status_help_fmt": "%s\n%s",
+    "a11yc_sk_act_next": "次の要素へ移動",
+    "a11yc_sk_act_prev": "前の要素へ移動",
+    "a11yc_sk_act_activate": "現在の要素を有効化",
+    "a11yc_sk_act_cancel": "キャンセル/閉じる",
+    "a11yc_sk_act_move": "要素間を移動",
+    "a11yc_sk_act_switch_module": "モジュール切替",
+    "a11yc_sk_act_open_settings": "設定を開く",
+    "a11yc_sk_act_search": "検索",
+    "a11yc_sk_act_run": "実行",
+    "a11yc_sk_act_help": "ヘルプを表示",
+    "a11yc_sk_cat_nav": "ナビ",
+    "a11yc_sk_cat_interact": "操作",
+    "a11yc_sk_cat_module": "モジュール",
+    "a11yc_sk_cat_settings": "設定",
+    "a11yc_sk_cat_search": "検索",
+    "a11yc_sk_cat_operation": "操作",
+    "a11yc_sk_cat_help": "ヘルプ",
     "fc_preview": "プレビュー",
     "fc_live": "ライブ",
     "fc_html_preview_empty": "HTML生成後にここにプレビューが表示されます",
@@ -23684,6 +23892,58 @@ let koKRTranslations: [String: String] = [
     "csm_status_restore_done_fmt": "복원 완료: %s",
     "csm_status_restore_failed_fmt": "복원 실패: %s",
     "csm_err_invalid_format": "잘못된 백업 파일 형식",
+    "a11yc_tab_general": "일반",
+    "a11yc_tab_keyboard": "키보드",
+    "a11yc_tab_display": "표시",
+    "a11yc_sec_voiceover": "VoiceOver",
+    "a11yc_enable_voiceover": "VoiceOver 지원 활성화",
+    "a11yc_announce_changes": "UI 변경 알림",
+    "a11yc_test_announce": "알림 테스트",
+    "a11yc_test_announce_msg": "테스트 알림 메시지입니다",
+    "a11yc_sec_focus": "포커스 관리",
+    "a11yc_show_focus_ring": "포커스 링 표시",
+    "a11yc_enable_kb_nav": "키보드 탐색 활성화",
+    "a11yc_sec_status": "현재 상태",
+    "a11yc_current_focus": "현재 포커스",
+    "a11yc_last_announce": "마지막 알림",
+    "a11yc_focus_moved_fmt": "포커스 이동: %s",
+    "a11yc_sec_mod_key": "단축키 보조키",
+    "a11yc_mod_key": "보조키",
+    "a11yc_sec_shortcuts": "키보드 단축키",
+    "a11yc_sec_display": "표시 적응",
+    "a11yc_reduce_motion": "모션 줄이기",
+    "a11yc_high_contrast": "대비 강화",
+    "a11yc_large_text": "큰 텍스트",
+    "a11yc_sec_preview": "미리보기",
+    "a11yc_sample_text": "샘플 텍스트",
+    "a11yc_scaled_fmt": "확대 후: %spt (기본 14pt)",
+    "a11yc_high_contrast_on": "고대비 모드 활성화",
+    "a11yc_sec_system": "시스템 설정",
+    "a11yc_system_hint": "macOS 접근성 설정은「시스템 설정 → 접근성」에서 조정 가능",
+    "a11yc_open_settings": "접근성 설정 열기",
+    "a11yc_nav_label_fmt": "%s, 단축키: %s",
+    "a11yc_on": "활성화",
+    "a11yc_off": "비활성화",
+    "a11yc_voiceover_state_fmt": "VoiceOver: %s",
+    "a11yc_kbnav_state_fmt": "키보드 탐색: %s",
+    "a11yc_status_help_fmt": "%s\n%s",
+    "a11yc_sk_act_next": "다음 요소로 이동",
+    "a11yc_sk_act_prev": "이전 요소로 이동",
+    "a11yc_sk_act_activate": "현재 요소 활성화",
+    "a11yc_sk_act_cancel": "취소/닫기",
+    "a11yc_sk_act_move": "요소 간 이동",
+    "a11yc_sk_act_switch_module": "모듈 전환",
+    "a11yc_sk_act_open_settings": "설정 열기",
+    "a11yc_sk_act_search": "검색",
+    "a11yc_sk_act_run": "실행",
+    "a11yc_sk_act_help": "도움말 표시",
+    "a11yc_sk_cat_nav": "탐색",
+    "a11yc_sk_cat_interact": "상호작용",
+    "a11yc_sk_cat_module": "모듈",
+    "a11yc_sk_cat_settings": "설정",
+    "a11yc_sk_cat_search": "검색",
+    "a11yc_sk_cat_operation": "작업",
+    "a11yc_sk_cat_help": "도움말",
     "fc_preview": "미리보기",
     "fc_live": "실시간",
     "fc_html_preview_empty": "HTML 생성 후 여기에 미리보기가 표시됩니다",
