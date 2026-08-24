@@ -1357,10 +1357,11 @@ final class AgentBridge: ObservableObject {
     }
 
     // MARK: - Memory Operations
-    // ARCH-1: memoryStore/memoryRecall/fetchRecentMemories/memoryGet/memoryDelete/memoryDeleteScope/fetchMemoryCount
+    // ARCH-1: memoryStore/memoryRecall/fetchRecentMemories/memoryDelete/memoryDeleteScope/fetchMemoryCount
     //   + parseMemoryEntry (域内专属 parser, 4 调用方全 Memory 域) 抽至 AgentMemoryService.swift facade extension。
     //   parser 同搬范式 (同 #287 parseMarketplaceEntry): private = 文件作用域, 同文件 extension Self.parseMemoryEntry 可达。
     //   0 跨域调用, 写 lastError + 域内 @Published memoryEntries/memoryCount。@Published 留主类 (有外部读)。
+    //   MAINT: memoryGet 删 (0 前端调用方, UI 无单条详情视图)。
 
     // MARK: - Safety Operations
     // ARCH-1: safetyCheck/safetyEvaluateAction/safetyApproveAction/safetyRejectAction/fetchPendingSafetyActions/safetyAddPolicy
@@ -1846,10 +1847,10 @@ final class AgentBridge: ObservableObject {
     }
 
     // MARK: - Team Operations
-    // ARCH-1: teamOrchestrate/fetchSwarmAgents/teamSwarmRegister/teamSwarmDelegate/teamSwarmStats/
-    //   fetchPlazaChannels/teamPlazaCreate/teamPlazaBroadcast 抽至 AgentTeamService.swift facade extension。
-    //   叶 silo: 0 private static, 0 lastError。Register/Create 调 await fetch* (同域 extension 内可达)。
+    // ARCH-1: teamOrchestrate/fetchSwarmAgents/fetchPlazaChannels 抽至 AgentTeamService.swift facade extension。
+    //   叶 silo: 0 private static, 0 lastError。fetchSwarmAgents/fetchPlazaChannels UI onAppear 刷新读。
     //   @Published swarmAgents/plazaChannels 留主类 (有外部读)。
+    //   MAINT: teamSwarmRegister/Delegate/Stats + teamPlazaCreate/Broadcast 删 (0 前端调用方, UI 只读列表)。
 
     @Published var swarmAgents: [[String: Any]] = []
     @Published var plazaChannels: [[String: Any]] = []
