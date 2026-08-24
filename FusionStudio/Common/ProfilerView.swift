@@ -18,7 +18,14 @@ struct PerfMetrics: Identifiable {
     var mlxInferenceMs: Double = 0
     var diskIO: Double = 0
     var networkIO: Double = 0
-    var thermalState: String = "正常"
+    var thermalState: String = "normal"
+    var thermalStateLabel: String {
+        switch thermalState {
+        case "critical": return I18nManager.shared.t(.prof_thermal_critical)
+        case "warning": return I18nManager.shared.t(.prof_thermal_warning)
+        default: return I18nManager.shared.t(.prof_thermal_normal)
+        }
+    }
     var powerUsage: Double = 0
     var id: UUID = UUID()
 
@@ -52,7 +59,15 @@ class PerformanceProfiler: ObservableObject {
         let timestamp: Date
         let suggestion: String
 
-        enum AlertSeverity: String { case info = "提示", warning = "警告", critical = "严重" }
+        enum AlertSeverity: String { case info = "info", warning = "warning", critical = "critical"
+            var localizedName: String {
+                switch self {
+                case .info: return I18nManager.shared.t(.prof_sev_info)
+                case .warning: return I18nManager.shared.t(.prof_sev_warning)
+                case .critical: return I18nManager.shared.t(.prof_sev_critical)
+                }
+            }
+        }
     }
 
     struct ProfilerRecommendation: Identifiable {
@@ -85,13 +100,13 @@ class PerformanceProfiler: ObservableObject {
 
     private func analyzeMetrics(_ m: PerfMetrics) {
         if m.memoryUsage > 28 {
-            alerts.append(ProfilerAlert(severity: .critical, message: "内存使用过高: \(Int(m.memoryUsage))GB", timestamp: Date(), suggestion: "关闭未使用的模型或降低量化精度"))
+            alerts.append(ProfilerAlert(severity: .critical, message: I18nManager.shared.tf(.prof_alert_mem_high_fmt, Int(m.memoryUsage)), timestamp: Date(), suggestion: I18nManager.shared.t(.prof_sugg_close_model)))
         }
         if m.cpuUsage > 80 {
-            alerts.append(ProfilerAlert(severity: .warning, message: "CPU 负载过高: \(Int(m.cpuUsage))%", timestamp: Date(), suggestion: "检查后台任务或减少并行推理"))
+            alerts.append(ProfilerAlert(severity: .warning, message: I18nManager.shared.tf(.prof_alert_cpu_high_fmt, Int(m.cpuUsage)), timestamp: Date(), suggestion: I18nManager.shared.t(.prof_sugg_check_bg)))
         }
-        if m.thermalState == "严重" {
-            alerts.append(ProfilerAlert(severity: .critical, message: "设备温度过高", timestamp: Date(), suggestion: "暂停推理任务，让设备降温"))
+        if m.thermalState == "critical" {
+            alerts.append(ProfilerAlert(severity: .critical, message: I18nManager.shared.t(.prof_alert_thermal_high), timestamp: Date(), suggestion: I18nManager.shared.t(.prof_sugg_pause_infer)))
         }
         if alerts.count > 50 { alerts.removeFirst(alerts.count - 50) }
     }
@@ -113,25 +128,33 @@ struct ProfilerView: View {
     @State private var selectedTab: ProfilerTab = .dashboard
 
     enum ProfilerTab: String, CaseIterable {
-        case dashboard = "仪表盘"
-        case alerts    = "告警"
-        case optimize  = "优化建议"
-        case timeline  = "时间线"
+        case dashboard = "dashboard"
+        case alerts    = "alerts"
+        case optimize  = "optimize"
+        case timeline  = "timeline"
+        var localizedName: String {
+            switch self {
+            case .dashboard: return I18nManager.shared.t(.prof_tab_dashboard)
+            case .alerts:    return I18nManager.shared.t(.prof_tab_alerts)
+            case .optimize:  return I18nManager.shared.t(.prof_tab_optimize)
+            case .timeline:  return I18nManager.shared.t(.prof_tab_timeline)
+            }
+        }
     }
 
     var body: some View {
         VStack(spacing: 0) {
             // 工具栏
             HStack {
-                Label("性能 Profiler", systemImage: "speedometer")
+                Label(I18nManager.shared.t(.prof_title), systemImage: "speedometer")
                     .font(.headline)
                 Spacer()
                 HStack(spacing: 8) {
-                    Text("评分: \(profiler.metrics.score)/100")
+                    Text(I18nManager.shared.tf(.prof_score_fmt, profiler.metrics.score))
                         .font(.system(.body, design: .monospaced))
                         .foregroundColor(scoreColor)
                     Button(action: { profiler.isProfiling ? profiler.stopProfiling() : profiler.startProfiling() }) {
-                        Label(profiler.isProfiling ? "停止" : "开始", systemImage: profiler.isProfiling ? "stop.fill" : "play.fill")
+                        Label(profiler.isProfiling ? I18nManager.shared.t(.prof_btn_stop) : I18nManager.shared.t(.prof_btn_start), systemImage: profiler.isProfiling ? "stop.fill" : "play.fill")
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
@@ -146,7 +169,7 @@ struct ProfilerView: View {
 
             Picker("", selection: $selectedTab) {
                 ForEach(ProfilerTab.allCases, id: \.self) { tab in
-                    Label(tab.rawValue, systemImage: tabIcon(tab)).tag(tab)
+                    Label(tab.localizedName, systemImage: tabIcon(tab)).tag(tab)
                 }
             }
             .pickerStyle(.segmented)
@@ -188,13 +211,13 @@ struct ProfilerDashboard: View {
         ScrollView {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 160))], spacing: 12) {
                 MetricGauge(title: "CPU", value: "\(Int(profiler.metrics.cpuUsage))%", icon: "cpu", color: .blue, progress: profiler.metrics.cpuUsage / 100)
-                MetricGauge(title: "内存", value: "\(Int(profiler.metrics.memoryUsage)) GB", icon: "memorychip", color: .green, progress: profiler.metrics.memoryUsage / 32)
+                MetricGauge(title: I18nManager.shared.t(.prof_metric_mem), value: "\(Int(profiler.metrics.memoryUsage)) GB", icon: "memorychip", color: .green, progress: profiler.metrics.memoryUsage / 32)
                 MetricGauge(title: "GPU", value: "\(Int(profiler.metrics.gpuUsage))%", icon: "square.grid.3x3.fill", color: .purple, progress: profiler.metrics.gpuUsage / 100)
                 MetricGauge(title: "FPS", value: "\(Int(profiler.metrics.fps))", icon: "play.display", color: .orange, progress: profiler.metrics.fps / 120)
-                MetricGauge(title: "帧时间", value: "\(Int(profiler.metrics.frameTime))ms", icon: "clock", color: .pink, progress: profiler.metrics.frameTime / 50)
-                MetricGauge(title: "绘制调用", value: "\(profiler.metrics.drawCalls)", icon: "square.grid.3x3.topleft.filled", color: .indigo, progress: min(Double(profiler.metrics.drawCalls) / 2000, 1))
-                MetricGauge(title: "MLX 推理", value: "\(Int(profiler.metrics.mlxInferenceMs))ms", icon: "bolt", color: .yellow, progress: profiler.metrics.mlxInferenceMs / 200)
-                MetricGauge(title: "热状态", value: profiler.metrics.thermalState, icon: "thermometer.sun", color: profiler.metrics.thermalState == "正常" ? .green : .red, progress: profiler.metrics.thermalState == "正常" ? 0.2 : 0.8)
+                MetricGauge(title: I18nManager.shared.t(.prof_metric_frame), value: "\(Int(profiler.metrics.frameTime))ms", icon: "clock", color: .pink, progress: profiler.metrics.frameTime / 50)
+                MetricGauge(title: I18nManager.shared.t(.prof_metric_draw), value: "\(profiler.metrics.drawCalls)", icon: "square.grid.3x3.topleft.filled", color: .indigo, progress: min(Double(profiler.metrics.drawCalls) / 2000, 1))
+                MetricGauge(title: I18nManager.shared.t(.prof_metric_mlx), value: "\(Int(profiler.metrics.mlxInferenceMs))ms", icon: "bolt", color: .yellow, progress: profiler.metrics.mlxInferenceMs / 200)
+                MetricGauge(title: I18nManager.shared.t(.prof_metric_thermal), value: profiler.metrics.thermalStateLabel, icon: "thermometer.sun", color: profiler.metrics.thermalState == "normal" ? .green : .red, progress: profiler.metrics.thermalState == "normal" ? 0.2 : 0.8)
             }
             .padding()
         }
@@ -229,7 +252,7 @@ struct ProfilerAlertsView: View {
                 VStack(spacing: 12) {
                     Spacer()
                     Image(systemName: "checkmark.circle").font(.system(size: 40)).foregroundColor(.green)
-                    Text("性能良好，无告警").foregroundColor(.secondary)
+                    Text(I18nManager.shared.t(.prof_alerts_empty)).foregroundColor(.secondary)
                     Spacer()
                 }
             } else {
@@ -250,7 +273,7 @@ struct ProfilerAlertsView: View {
             }
         }
         .toolbar {
-            ToolbarItem { Button("清空") { profiler.clearAlerts() }.buttonStyle(.bordered).controlSize(.small) }
+            ToolbarItem { Button(I18nManager.shared.t(.prof_btn_clear)) { profiler.clearAlerts() }.buttonStyle(.bordered).controlSize(.small) }
         }
     }
 
@@ -276,10 +299,10 @@ struct ProfilerOptimizeView: View {
                     Image(systemName: "lightbulb.slash")
                         .font(.system(size: 32))
                         .foregroundStyle(.secondary)
-                    Text("暂无优化建议")
+                    Text(I18nManager.shared.t(.prof_opt_empty))
                         .font(.system(size: 14))
                         .foregroundStyle(.secondary)
-                    Text("接通真实性能分析后将基于实际指标生成")
+                    Text(I18nManager.shared.t(.prof_opt_empty_hint))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -296,9 +319,9 @@ struct ProfilerOptimizeView: View {
                         }
                         Text(rec.description).font(.subheadline).foregroundColor(.secondary)
                         HStack {
-                            Label("影响: \(rec.impact)", systemImage: "arrow.up").font(.caption)
+                            Label(I18nManager.shared.tf(.prof_rec_impact_fmt, rec.impact), systemImage: "arrow.up").font(.caption)
                             Spacer()
-                            Label("工作量: \(rec.effort)", systemImage: "hammer").font(.caption)
+                            Label(I18nManager.shared.tf(.prof_rec_effort_fmt, rec.effort), systemImage: "hammer").font(.caption)
                         }
                         .foregroundColor(.secondary)
                     }
@@ -310,7 +333,7 @@ struct ProfilerOptimizeView: View {
             .padding()
         }
         .toolbar {
-            ToolbarItem { Button("刷新建议") { profiler.generateRecommendations() }.buttonStyle(.bordered).controlSize(.small) }
+            ToolbarItem { Button(I18nManager.shared.t(.prof_btn_refresh)) { profiler.generateRecommendations() }.buttonStyle(.bordered).controlSize(.small) }
         }
     }
 }
@@ -325,7 +348,7 @@ struct ProfilerTimelineView: View {
             VStack(spacing: 12) {
                 Spacer()
                 Image(systemName: "chart.xyaxis.line").font(.system(size: 40)).foregroundColor(.secondary)
-                Text("开始 Profiling 以查看时间线").foregroundColor(.secondary)
+                Text(I18nManager.shared.t(.prof_timeline_empty)).foregroundColor(.secondary)
                 Spacer()
             }
         } else {
@@ -372,9 +395,9 @@ struct ProfilerTimelineView: View {
 
                 HStack(spacing: 16) {
                     Circle().fill(Color.blue).frame(width: 8, height: 8); Text("CPU").font(.caption)
-                    Circle().fill(Color.green).frame(width: 8, height: 8); Text("内存").font(.caption)
+                    Circle().fill(Color.green).frame(width: 8, height: 8); Text(I18nManager.shared.t(.prof_metric_mem)).font(.caption)
                     Spacer()
-                    Text("最近 \(profiler.history.suffix(100).count) 秒").font(.caption).foregroundColor(.secondary)
+                    Text(I18nManager.shared.tf(.prof_recent_seconds_fmt, profiler.history.suffix(100).count)).font(.caption).foregroundColor(.secondary)
                 }
                 .padding(.horizontal)
 
@@ -383,11 +406,11 @@ struct ProfilerTimelineView: View {
                 // 数据表格
                 List(profiler.history.reversed().prefix(50)) { m in
                     HStack {
-                        Text("CPU: \(Int(m.cpuUsage))%").font(.caption).frame(width: 80)
-                        Text("MEM: \(Int(m.memoryUsage))GB").font(.caption).frame(width: 80)
-                        Text("GPU: \(Int(m.gpuUsage))%").font(.caption).frame(width: 80)
-                        Text("FPS: \(Int(m.fps))").font(.caption).frame(width: 60)
-                        Text("MLX: \(Int(m.mlxInferenceMs))ms").font(.caption).frame(width: 80)
+                        Text(I18nManager.shared.tf(.prof_tbl_cpu_fmt, Int(m.cpuUsage))).font(.caption).frame(width: 80)
+                        Text(I18nManager.shared.tf(.prof_tbl_mem_fmt, Int(m.memoryUsage))).font(.caption).frame(width: 80)
+                        Text(I18nManager.shared.tf(.prof_tbl_gpu_fmt, Int(m.gpuUsage))).font(.caption).frame(width: 80)
+                        Text(I18nManager.shared.tf(.prof_tbl_fps_fmt, Int(m.fps))).font(.caption).frame(width: 60)
+                        Text(I18nManager.shared.tf(.prof_tbl_mlx_fmt, Int(m.mlxInferenceMs))).font(.caption).frame(width: 80)
                     }
                     .padding(.vertical, 2)
                 }
@@ -404,43 +427,43 @@ struct MemoryAnalyzerView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            GroupBox("内存使用概览") {
+            GroupBox(I18nManager.shared.t(.prof_mem_overview)) {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Text("使用中").foregroundColor(.secondary)
+                        Text(I18nManager.shared.t(.prof_mem_inuse)).foregroundColor(.secondary)
                         Spacer()
-                        Text("\(Int(profiler.metrics.memoryUsage)) GB / 32 GB")
+                        Text(I18nManager.shared.tf(.prof_mem_usage_fmt, Int(profiler.metrics.memoryUsage)))
                             .font(.system(.body, design: .monospaced))
                     }
                     ProgressView(value: profiler.metrics.memoryUsage / 32)
                         .tint(profiler.metrics.memoryUsage > 28 ? .red : .blue)
-                    Text("建议保持在 28GB 以下以保证推理性能")
+                    Text(I18nManager.shared.t(.prof_mem_advice))
                         .font(.caption).foregroundColor(.secondary)
                 }
                 .padding(8)
             }
 
-            GroupBox("内存分布") {
+            GroupBox(I18nManager.shared.t(.prof_mem_dist)) {
                 VStack(spacing: 6) {
                     if profiler.metrics.memoryUsage <= 0 {
-                        Text("暂无内存分布数据")
+                        Text(I18nManager.shared.t(.prof_mem_no_dist))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, alignment: .center)
                             .padding(.vertical, 12)
                     } else {
-                        MemRow("模型权重", "—", 0)
+                        MemRow(I18nManager.shared.t(.prof_mem_weights), "—", 0)
                         MemRow("KV Cache", "—", 0)
-                        MemRow("应用", "—", 0)
-                        MemRow("系统缓存", "—", 0)
-                        MemRow("其他", "—", 0)
+                        MemRow(I18nManager.shared.t(.prof_mem_app), "—", 0)
+                        MemRow(I18nManager.shared.t(.prof_mem_syscache), "—", 0)
+                        MemRow(I18nManager.shared.t(.prof_mem_other), "—", 0)
                     }
                 }
                 .padding(8)
             }
 
             Button(action: { showLeakCheck = true }) {
-                Label("运行内存泄漏检测", systemImage: "stethoscope")
+                Label(I18nManager.shared.t(.prof_btn_leak), systemImage: "stethoscope")
             }
             .buttonStyle(.borderedProminent)
         }
@@ -471,31 +494,31 @@ struct LeakCheckView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("内存泄漏检测").font(.title2).bold()
+            Text(I18nManager.shared.t(.prof_leak_title)).font(.title2).bold()
 
             if !isRunning && results.isEmpty {
-                Text("检测将扫描应用中的循环引用和未释放对象")
+                Text(I18nManager.shared.t(.prof_leak_desc))
                     .foregroundColor(.secondary)
-                Button("开始检测") { runLeakCheck() }
+                Button(I18nManager.shared.t(.prof_leak_start)) { runLeakCheck() }
                     .buttonStyle(.borderedProminent)
             }
 
             if isRunning {
                 ProgressView(value: progress)
-                Text("扫描中... \(Int(progress * 100))%")
+                Text(I18nManager.shared.tf(.prof_leak_scanning_fmt, Int(progress * 100)))
                     .font(.caption).foregroundColor(.secondary)
             }
 
             if !results.isEmpty {
                 List(results, id: \.self) { result in
-                    Label(result, systemImage: result.hasPrefix("✅") ? "checkmark.circle.fill" : "xmark.circle.fill")
-                        .foregroundColor(result.hasPrefix("✅") ? .green : .red)
+                    Label(result, systemImage: result.hasPrefix("\u{2705}") ? "checkmark.circle.fill" : "xmark.circle.fill")
+                        .foregroundColor(result.hasPrefix("\u{2705}") ? .green : .red)
                 }
                 .frame(minHeight: 100)
             }
 
             if !isRunning && !results.isEmpty {
-                Button("关闭") { dismiss() }.buttonStyle(.borderedProminent)
+                Button(I18nManager.shared.t(.prof_btn_close)) { dismiss() }.buttonStyle(.borderedProminent)
             }
         }
         .padding().frame(width: 360, height: 300)
@@ -503,7 +526,7 @@ struct LeakCheckView: View {
 
     private func runLeakCheck() {
         // 假泄漏检测结果已清理：需接通真实内存诊断后实现
-        results = ["⚠️ 内存泄漏检测尚未接入真实诊断，暂无数据"]
+        results = ["\u{26A0}\u{FE0F} " + I18nManager.shared.t(.prof_leak_no_data)]
         isRunning = false
     }
 }
