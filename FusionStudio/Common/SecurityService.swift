@@ -44,19 +44,6 @@ struct SecurityEvent: Identifiable {
     enum Severity: String { case info, warning, critical }
 }
 
-// MARK: - 安全扫描结果
-
-struct SecurityScanResult: Identifiable {
-    let id = UUID()
-    let category: String
-    let item: String
-    let status: ScanStatus
-    let detail: String
-    let recommendation: String
-
-    enum ScanStatus: String { case passed, failed, warning }
-}
-
 // MARK: - 安全管理器
 
 class SecurityManager: ObservableObject {
@@ -64,37 +51,9 @@ class SecurityManager: ObservableObject {
 
     @Published var securityLevel: SecurityLevel = .standard
     @Published var events: [SecurityEvent] = []
-    @Published var scanResults: [SecurityScanResult] = []
-    @Published var isScanning = false
-    @Published var sandboxEnabled = false
     @Published var fileAccessControl = true
     @Published var networkAccessControl = true
     @Published var integrityCheck = true
-
-    // MARK: - 安全扫描
-
-    func runSecurityScan() {
-        isScanning = true
-        scanResults = []
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            guard let self = self else { return }
-            self.scanResults.append(contentsOf: [
-                SecurityScanResult(category: I18nManager.shared.t(.secv_cat_filesystem), item: I18nManager.shared.t(.secv_item_sandbox), status: self.sandboxEnabled ? .passed : .warning, detail: self.sandboxEnabled ? I18nManager.shared.t(.secv_detail_sandbox_on) : I18nManager.shared.t(.secv_detail_sandbox_off), recommendation: I18nManager.shared.t(.secv_reco_sandbox)),
-                SecurityScanResult(category: I18nManager.shared.t(.secv_cat_filesystem), item: I18nManager.shared.t(.secv_item_workspace_perm), status: .passed, detail: I18nManager.shared.t(.secv_detail_workspace_perm), recommendation: I18nManager.shared.t(.secv_reco_keep)),
-                SecurityScanResult(category: I18nManager.shared.t(.secv_cat_network), item: I18nManager.shared.t(.secv_item_offline_mode), status: UserDefaults.standard.bool(forKey: "offlineMode") ? .passed : .warning, detail: UserDefaults.standard.bool(forKey: "offlineMode") ? I18nManager.shared.t(.secv_detail_offline_on) : I18nManager.shared.t(.secv_detail_offline_off), recommendation: I18nManager.shared.t(.secv_reco_offline)),
-                SecurityScanResult(category: I18nManager.shared.t(.secv_cat_network), item: I18nManager.shared.t(.secv_item_socket_perm), status: .passed, detail: I18nManager.shared.t(.secv_detail_socket_perm), recommendation: I18nManager.shared.t(.secv_reco_keep)),
-                SecurityScanResult(category: I18nManager.shared.t(.secv_cat_process), item: I18nManager.shared.t(.secv_item_service_isolation), status: .passed, detail: I18nManager.shared.t(.secv_detail_service_isolation), recommendation: I18nManager.shared.t(.secv_reco_keep_config)),
-                SecurityScanResult(category: I18nManager.shared.t(.secv_cat_process), item: I18nManager.shared.t(.secv_item_subprocess), status: .passed, detail: I18nManager.shared.t(.secv_detail_subprocess), recommendation: I18nManager.shared.t(.secv_reco_keep_config)),
-                SecurityScanResult(category: I18nManager.shared.t(.secv_cat_integrity), item: I18nManager.shared.t(.secv_item_app_signature), status: .warning, detail: I18nManager.shared.t(.secv_detail_unsigned), recommendation: I18nManager.shared.t(.secv_reco_sign)),
-                SecurityScanResult(category: I18nManager.shared.t(.secv_cat_integrity), item: I18nManager.shared.t(.secv_item_code_integrity), status: .passed, detail: I18nManager.shared.t(.secv_detail_code_integrity_pass), recommendation: I18nManager.shared.t(.secv_reco_keep_config)),
-                SecurityScanResult(category: I18nManager.shared.t(.secv_cat_data), item: I18nManager.shared.t(.secv_item_data_encryption), status: .warning, detail: I18nManager.shared.t(.secv_detail_data_unencrypted), recommendation: I18nManager.shared.t(.secv_reco_filevault)),
-                SecurityScanResult(category: I18nManager.shared.t(.secv_cat_data), item: I18nManager.shared.t(.secv_item_log_security), status: .passed, detail: I18nManager.shared.t(.secv_detail_log_clean), recommendation: I18nManager.shared.t(.secv_reco_keep_config)),
-            ])
-            self.isScanning = false
-            self.objectWillChange.send()
-        }
-    }
 
     // MARK: - 安全事件
 
@@ -701,7 +660,6 @@ struct SecRuntimeTab: View {
     @StateObject private var security = SecurityManager.shared
     @AppStorage("securityLevel") private var securityLevelRaw = "standard"
     @AppStorage("offlineMode") private var offlineMode = true
-    @AppStorage("sandboxEnabled") private var sandboxEnabled = false
     @AppStorage("fileAccessControl") private var fileAccessControl = true
     @AppStorage("networkAccessControl") private var networkAccessControl = true
     @AppStorage("integrityCheck") private var integrityCheck = true
@@ -723,12 +681,10 @@ struct SecRuntimeTab: View {
 
             Section(I18nManager.shared.t(.secv_local_protection)) {
                 Toggle(I18nManager.shared.t(.secv_offline_mode), isOn: $offlineMode).help(I18nManager.shared.t(.secv_offline_mode_help))
-                Toggle(I18nManager.shared.t(.secv_sandbox_isolation), isOn: $sandboxEnabled).help(I18nManager.shared.t(.secv_sandbox_help))
                 Toggle(I18nManager.shared.t(.secv_file_access), isOn: $fileAccessControl).help(I18nManager.shared.t(.secv_file_access_help))
                 Toggle(I18nManager.shared.t(.secv_network_access), isOn: $networkAccessControl).help(I18nManager.shared.t(.secv_network_access_help))
                 Toggle(I18nManager.shared.t(.secv_integrity_check), isOn: $integrityCheck).help(I18nManager.shared.t(.secv_integrity_help))
             }
-            .onChange(of: sandboxEnabled) { _, v in security.sandboxEnabled = v }
             .onChange(of: fileAccessControl) { _, v in security.fileAccessControl = v }
             .onChange(of: networkAccessControl) { _, v in security.networkAccessControl = v }
             .onChange(of: integrityCheck) { _, v in security.integrityCheck = v }

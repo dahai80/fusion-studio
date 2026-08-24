@@ -1,7 +1,7 @@
 import SwiftUI
 
-// Callers: App entry point. API: adds SandboxManager + ScreenContextManager StateObjects. Schemas: none.
-// User instruction: "落地外壳（SwiftUI）：负责 120fps 的极致交互、系统级感知（FSEvents, Accessibility）和沙箱管理。调用 frontend-design 来做好 UI 和 UX 交互设计"
+// Callers: App entry point. API: adds ScreenContextManager StateObject. Schemas: none.
+// Note: SandboxManager removed (dead code, 0 spawn 门控调用; 假沙箱开关已删, FATAL-3).
 
 import SwiftUI
 import os.log
@@ -14,7 +14,6 @@ struct FusionStudioApp: App {
     @StateObject private var ipcClient = IPCClient()
     @StateObject private var agentBridge = AgentBridge()
     @StateObject private var taskManager = TaskManager()
-    @StateObject private var sandboxManager = SandboxManager()
     @StateObject private var screenContext = ScreenContextManager()
     @StateObject private var multiNodeEngine = MultiNodeEngine()
     @StateObject private var designBridge = DesignBridge()
@@ -66,7 +65,6 @@ struct FusionStudioApp: App {
                 .environmentObject(ipcClient)
                 .environmentObject(agentBridge)
                 .environmentObject(taskManager)
-                .environmentObject(sandboxManager)
                 .environmentObject(screenContext)
                 .environmentObject(multiNodeEngine)
                 .environmentObject(designBridge)
