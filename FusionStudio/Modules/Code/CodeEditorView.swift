@@ -1048,6 +1048,29 @@ struct OpenProjectSheet: View {
         let url = gitURL.trimmingCharacters(in: .whitespaces)
         let branch = gitBranch.trimmingCharacters(in: .whitespaces).isEmpty ? "main" : gitBranch
 
+        // BUG-10: argv 防 shell 注入但不防选项注入 — url/branch 以 `--` 开头会被 git 解释为选项,
+        // 如 branch="--upload-pack=evil" 或 url="--config core.sshCommand=..." -> argument injection。
+        // 拦: url 须匹配 https/git/ssh 协议前缀或 git@ 形式; branch 须安全 ref-name (字母数字._/-, 不以 - 开头)。
+        if url.hasPrefix("-") || branch.hasPrefix("-") {
+            cloneError = "URL/分支不能以 -- 开头"
+            isCloning = false
+            return
+        }
+        let urlPattern = #"^(https://|http://|git://|ssh://|git@)[A-Za-z0-9._:@/~%?#&=+-]+"#
+        guard let urlRegex = try? NSRegularExpression(pattern: urlPattern, options: []),
+              urlRegex.firstMatch(in: url, range: NSRange(url.startIndex..., in: url)) != nil else {
+            cloneError = "仓库 URL 协议不受支持 (仅 https/git/ssh/git@)"
+            isCloning = false
+            return
+        }
+        let refPattern = #"^[A-Za-z0-9][A-Za-z0-9._/-]*$"#
+        guard let refRegex = try? NSRegularExpression(pattern: refPattern, options: []),
+              refRegex.firstMatch(in: branch, range: NSRange(branch.startIndex..., in: branch)) != nil else {
+            cloneError = "分支名含非法字符"
+            isCloning = false
+            return
+        }
+
         Task { @MainActor in
             let workspaceDir = FileManager.default.homeDirectoryForCurrentUser
                 .appendingPathComponent("fusion-workspace")
@@ -1056,29 +1079,46 @@ struct OpenProjectSheet: View {
             let repoName = URL(string: url)?.deletingPathExtension().lastPathComponent ?? "repo-\(UUID().uuidString.prefix(6))"
             let targetDir = workspaceDir.appendingPathComponent(repoName)
 
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
-            process.arguments = ["clone", "-b", branch, url, targetDir.path]
-            process.currentDirectoryURL = workspaceDir
+            // BUG-12: 旧实现 waitUntilExit 在 @MainActor Task 内阻塞主线程, 且 stderr 在 wait 后才读 ->
+            // git 进度走 stderr 超 64KB 管道缓冲则写端阻塞, git 不退出, waitUntilExit 永挂, 主线程同时冻死。
+            // 修正: git 进程移到后台 Task.detached, stdout/stderr 各起后台 Task 并发 readDataToEndOfFile
+            // (阻塞各自线程至 EOF, 互不阻塞写端, 管道满即被消费), 两 drain 完成即进程已退出 (EOF 发生于
+            // 进程关闭管道时), 读 terminationStatus 非阻塞, 无需 waitUntilExit/DispatchGroup.wait。
+            let result: (Int32, String?) = await Task.detached(priority: .userInitiated) {
+                let process = Process()
+                process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+                // `--` 分隔符后位置参数, 双保险防 url/branch 被当选项 (BUG-10 纵深防御, 校验已在上层拦)。
+                process.arguments = ["clone", "-b", branch, "--", url, targetDir.path]
+                process.currentDirectoryURL = workspaceDir
 
-            let outputPipe = Pipe()
-            let errorPipe = Pipe()
-            process.standardOutput = outputPipe
-            process.standardError = errorPipe
+                let outputPipe = Pipe()
+                let errorPipe = Pipe()
+                process.standardOutput = outputPipe
+                process.standardError = errorPipe
 
-            do {
-                try process.run()
-                process.waitUntilExit()
-
-                if process.terminationStatus == 0 {
-                    workspace.loadProject(from: targetDir)
-                    dismiss()
-                } else {
-                    let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
-                    cloneError = String(data: errorData, encoding: .utf8) ?? "Clone failed with exit code \(process.terminationStatus)"
+                do {
+                    try process.run()
+                    // 并发 drain: readDataToEndOfFile 阻塞至 EOF (进程关闭管道), 两 Task 互不互锁写端。
+                    async let stdoutData = Task.detached { outputPipe.fileHandleForReading.readDataToEndOfFile() }.value
+                    async let stderrData = Task.detached { errorPipe.fileHandleForReading.readDataToEndOfFile() }.value
+                    _ = await stdoutData
+                    let errBytes = await stderrData
+                    // 两 pipe EOF = 进程已关闭管道, terminationStatus 此时已就绪, 非阻塞读。
+                    if process.terminationStatus == 0 {
+                        return (0, nil)
+                    }
+                    let msg = String(data: errBytes, encoding: .utf8) ?? "Clone failed with exit code \(process.terminationStatus)"
+                    return (process.terminationStatus, msg)
+                } catch {
+                    return (-1, error.localizedDescription)
                 }
-            } catch {
-                cloneError = error.localizedDescription
+            }.value
+
+            if result.0 == 0 {
+                workspace.loadProject(from: targetDir)
+                dismiss()
+            } else {
+                cloneError = result.1 ?? "Clone failed"
             }
             isCloning = false
         }
