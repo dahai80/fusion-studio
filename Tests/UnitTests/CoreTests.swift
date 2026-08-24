@@ -75,7 +75,7 @@ final class FusionConfigTests: XCTestCase {
     }
 
     // mlxResolvedApiKey 必须从环境变量 FUSION_MLX_API_KEY 取值
-    // （gateway 入站鉴权）。用户设置(@AppStorage mlxApiKey)优先；
+    // （gateway 入站鉴权）。用户设置(Keychain-backed mlxApiKey)优先；
     // 为空时回退 env，再回退 ~/.fusion-mlx/settings.json auth.api_key。
     func testMLXResolvedApiKeyEnvVar() {
         let config = FusionConfig.shared
