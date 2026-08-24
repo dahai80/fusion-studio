@@ -320,6 +320,12 @@ final class AgentBridge: ObservableObject {
     @Published var isInferring: Bool = false
     @Published var dashboardData: [String: Any] = [:]
 
+    // ARCH-2: 逃逸 Task 生命周期管理。taskExecuteImmediate 的 fire-and-forget Task 存 handle,
+    // 按 taskId 索引。任务删除/对象销毁时 cancel, 防 view 销毁后后台 Task 仍写 @Published。
+    // nonisolated(unsafe): Task<Void, Never> 是 Sendable, deinit (nonisolated) 需遍历 cancel,
+    // 不走 actor 隔离检查。仅 @MainActor 方法读写, 无真并发竞态。
+    nonisolated(unsafe) private var taskRunHandles: [String: Task<Void, Never>] = [:]
+
     // MARK: - Module Published Properties
 
     @Published var plans: [PlanModel] = []
@@ -2141,7 +2147,13 @@ final class AgentBridge: ObservableObject {
         do {
             let result = try await client.agentListSkills(agentId: agentId)
             let skills = result["skills"] as? [String] ?? []
-            self.agentSkills = skills
+            // ARCH-2: 仅当仍是当前选中 agent 时才回写 @Published。
+            // 切 agent 后旧 fetch 的回调若仍写 self.agentSkills = skills -> 跨 agent 残留串台。
+            if self.currentAgent?.id == agentId {
+                self.agentSkills = skills
+            } else {
+                logger.info("fetchAgentSkills: agent 已切换, 丢弃过期 skills agentId=\(agentId) current=\(self.currentAgent?.id ?? "nil")")
+            }
             return skills
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
@@ -2156,7 +2168,7 @@ final class AgentBridge: ObservableObject {
         do {
             let result = try await client.agentAddSkill(agentId: agentId, skillName: skillName, skillDef: skillDef)
             let added = result["added"] as? Bool ?? true
-            if added {
+            if added && self.currentAgent?.id == agentId {
                 if !self.agentSkills.contains(skillName) {
                     self.agentSkills.append(skillName)
                 }
@@ -2175,7 +2187,7 @@ final class AgentBridge: ObservableObject {
         do {
             let result = try await client.agentDeleteSkill(agentId: agentId, skillName: skillName)
             let deleted = result["deleted"] as? Bool ?? false
-            if deleted {
+            if deleted && self.currentAgent?.id == agentId {
                 self.agentSkills.removeAll { $0 == skillName }
             }
             return deleted
@@ -2191,7 +2203,13 @@ final class AgentBridge: ObservableObject {
         do {
             let result = try await client.agentGetSoul(agentId: agentId)
             let soul = result["soul"] as? String ?? ""
-            self.agentSoul = soul
+            // ARCH-2: 仅当仍是当前选中 agent 时才回写 @Published。
+            // 切 agent 后旧 fetch 的回调若仍写 self.agentSoul = soul -> 跨 agent 残留串台。
+            if self.currentAgent?.id == agentId {
+                self.agentSoul = soul
+            } else {
+                logger.info("fetchAgentSoul: agent 已切换, 丢弃过期 soul agentId=\(agentId) current=\(self.currentAgent?.id ?? "nil")")
+            }
             return soul
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
@@ -2206,7 +2224,7 @@ final class AgentBridge: ObservableObject {
         do {
             let result = try await client.agentUpdateSoul(agentId: agentId, soul: soul)
             let updated = result["updated"] as? Bool ?? true
-            if updated {
+            if updated && self.currentAgent?.id == agentId {
                 self.agentSoul = soul
             }
             return updated
@@ -2657,7 +2675,9 @@ final class AgentBridge: ObservableObject {
         }
         reportTaskStatus(taskId, status: "running")
         logger.info("taskExecuteImmediate: id=\(taskId) agent=\(agentId) graph=\(graphId)")
-        Task {
+        // ARCH-2: 存 Task handle。重复执行同 taskId 先 cancel 旧 handle (防并发重复跑)。
+        taskRunHandles[taskId]?.cancel()
+        let handle = Task {
             do {
                 var eventsParsed: [AgentEventModel] = []
                 var sessionId = ""
@@ -2674,6 +2694,7 @@ final class AgentBridge: ObservableObject {
                         }
                     }
                 }
+                try Task.checkCancellation()
                 let summary = summarizeEvents(eventsParsed)
                 await MainActor.run {
                     self.updateTask(taskId) { t in
@@ -2683,9 +2704,17 @@ final class AgentBridge: ObservableObject {
                         t.sessionId = sessionId
                         t.lastRunAt = Date()
                     }
+                    self.taskRunHandles.removeValue(forKey: taskId)
                     logger.info("taskExecuteImmediate done: id=\(taskId) events=\(eventsParsed.count)")
                 }
                 self.reportTaskStatus(taskId, status: "completed", lastResult: ["summary": summary, "events": eventsParsed.count])
+            } catch is CancellationError {
+                await MainActor.run {
+                    self.updateTask(taskId) { t in
+                        if t.status != .completed { t.status = .cancelled }
+                    }
+                    logger.info("taskExecuteImmediate cancelled: id=\(taskId)")
+                }
             } catch {
                 await MainActor.run {
                     self.updateTask(taskId) { t in
@@ -2702,23 +2731,37 @@ final class AgentBridge: ObservableObject {
                         return
                     }
                     let cur = self.tasks[idx]
+                    // ARCH-2: retry 上限收紧 + 退避, 防 maxRetries 过大时高频重试风暴。
+                    // retryCount 已 +1, 仅当未超 maxRetries 才重排; 退避 1s 避免立即重试打满后端。
                     if cur.retryCount <= cur.maxRetries {
                         self.updateTask(taskId) { t in t.status = .queued }
                         logger.warning("taskExecuteImmediate retry: id=\(taskId) retryCount=\(cur.retryCount)/\(cur.maxRetries)")
-                        self.taskExecuteImmediate(taskId)
+                        Task {
+                            try? await Task.sleep(nanoseconds: 1_000_000_000)
+                            if Task.isCancelled {
+                                logger.info("taskExecuteImmediate retry cancelled: id=\(taskId)")
+                                return
+                            }
+                            await MainActor.run { self.taskExecuteImmediate(taskId) }
+                        }
                     } else {
                         self.updateTask(taskId) { t in t.status = .failed }
+                        self.taskRunHandles.removeValue(forKey: taskId)
                         logger.error("taskExecuteImmediate failed: id=\(taskId) retryCount=\(cur.retryCount) err=\(error.localizedDescription)")
                     }
                 }
                 self.reportTaskStatus(taskId, status: "failed", lastError: error.localizedDescription)
             }
         }
+        taskRunHandles[taskId] = handle
     }
 
     // 上游 task.delete RPC 已落地 (PR#148); 真删 + 注销关联 cron job (后端处理).
     func taskDelete(_ taskId: String) {
         guard let client = ipcClient else { return }
+        // ARCH-2: 删任务先 cancel 在跑的执行 Task, 防 RPC 删后后台 Task 仍写已删任务状态。
+        taskRunHandles[taskId]?.cancel()
+        taskRunHandles.removeValue(forKey: taskId)
         Task {
             do {
                 _ = try await client.taskDelete(taskId: taskId)
@@ -3206,5 +3249,13 @@ final class AgentBridge: ObservableObject {
             created_at: dict["created_at"] as? String ?? "",
             updated_at: dict["updated_at"] as? String ?? ""
         )
+    }
+
+    // ARCH-2: 对象销毁取消所有逃逸执行 Task, 防 bridge 释放后后台 Task 仍持 self 写 @Published。
+    // taskRunHandles 声明 nonisolated(unsafe), deinit (nonisolated) 可遍历 cancel。
+    deinit {
+        for (_, handle) in taskRunHandles {
+            handle.cancel()
+        }
     }
 }
