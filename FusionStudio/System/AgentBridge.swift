@@ -8,6 +8,9 @@ import Foundation
 import Combine
 import os.log
 
+// 供 static 方法 (gatewayConfigApiKey 等) 使用的文件级 logger, 实例 logger 在 class 内。
+private let agentBridgeStaticLog = Logger(subsystem: "com.fusion.studio", category: "AgentBridge")
+
 enum JSONValue: Codable, Equatable {
     case string(String)
     case double(Double)
@@ -492,8 +495,12 @@ final class AgentBridge: ObservableObject {
                 }
             }
             // 仅在 id 集合或数量变化时更新 @Published, 避免 .task 反复触发 AgentStudioView body 重算导致 Workflows 转圈
-            let changed = parsed.count != self.graphs.count
-                || zip(parsed, self.graphs).contains { $0.id != $1.id }
+            // BUG-6: 旧实现 zip(parsed, self.graphs) 按较短序列截断, 删除项不被检测
+            // (parsed 比 graphs 短时 zip 只比到 parsed.count, 尾部多余 graphs.id 不参与比较 -> changed=false)。
+            // 改用 id 集合差集, 增删均能检出。
+            let parsedIds = Set(parsed.map(\.id))
+            let currentIds = Set(self.graphs.map(\.id))
+            let changed = parsed.count != self.graphs.count || parsedIds != currentIds
             if changed {
                 self.graphs = parsed
             }
@@ -936,11 +943,28 @@ final class AgentBridge: ObservableObject {
         ]
         for path in paths {
             guard let content = try? String(contentsOfFile: path, encoding: .utf8) else { continue }
+            // BUG-5: 旧实现 trimmed.hasPrefix("key:") 无节作用域, 可命中任意段落的 key:
+            // (api_keys 列表项 key: 之外, 若有 auth.jwt_secret 等误写或未来新增 key: 字段均会误读)。
+            // 修正: 仅在 auth 节作用域内取第一个非占位 key:。
+            var inAuthSection = false
+            var authIndent: Int = -1
             for line in content.split(separator: "\n") {
                 let trimmed = line.trimmingCharacters(in: .whitespaces)
+                if trimmed.isEmpty || trimmed.hasPrefix("#") { continue }
+                let indent = line.count - line.prefix(while: { $0 == " " }).count
+                // 顶层 (indent 0) 键: 进入/离开节作用域
+                if indent == 0 {
+                    inAuthSection = trimmed.hasPrefix("auth:")
+                    authIndent = -1
+                    continue
+                }
+                guard inAuthSection else { continue }
+                // 记录 auth 直属子项缩进, 只在其下更深缩进识别 list item key:
+                if authIndent < 0 { authIndent = indent }
                 if trimmed.hasPrefix("key:") {
                     let v = trimmed.dropFirst(4).trimmingCharacters(in: .whitespaces)
                     if !v.isEmpty && !v.contains("your-") && !v.contains("change-me") {
+                        agentBridgeStaticLog.info("gatewayConfigApiKey: 命中 auth 节 key=\(v, privacy: .private)")
                         return v
                     }
                 }
@@ -1032,6 +1056,11 @@ final class AgentBridge: ObservableObject {
             chatModel = MLXModelInfo.preferredDefault(in: models)?.name ?? ""
             logger.info("sendProjectChat: default model empty, picked \(chatModel)")
         }
+        // BUG-1: 旧实现流结束才在 :1049 追加 assistantRecord, 与 onToken 的流式追加竞争 ->
+        // 最终 record 覆盖流式部分 (或并行 Task 乱序导致 token 丢失/错位)。修正: 流开始前预置空
+        // assistant 占位, onToken 逐 token 原位追加, 流结束不再重复 append (response 即占位累计内容)。
+        let assistantRecord = ChatMessageRecord(role: "assistant", content: "")
+        chatMessages.append(assistantRecord)
         let response = try await inferStream(
             messages: messages,
             model: chatModel,
@@ -1046,12 +1075,15 @@ final class AgentBridge: ObservableObject {
             }
         )
 
-        let assistantRecord = ChatMessageRecord(role: "assistant", content: response)
-        chatMessages.append(assistantRecord)
+        // 流结束: 若 inferStream 返回值与占位累计不一致 (如含 thinking 前缀), 以完整 response 回填占位记录,
+        // 并持久化到 session。不再重复 append (避免双条 assistant 消息)。
+        if let lastIdx = chatMessages.indices.last, chatMessages[lastIdx].role == "assistant" {
+            chatMessages[lastIdx].content = response
+        }
         if let session = pm.activeSession {
             pm.addMessage(toSession: session.id, role: "assistant", content: response)
         }
-
+        logger.info("sendProjectChat done: respLen=\(response.count)")
         return response
     }
 
@@ -1060,9 +1092,8 @@ final class AgentBridge: ObservableObject {
         FusionProjectManager.shared.activeSession = nil
     }
 
-    func loadSessionMessages(_ session: ProjectSession) {
-        chatMessages = []
-    }
+    // BUG-4: 原 loadSessionMessages 仅 chatMessages=[] 不回填 session 历史且无调用方 (死方法,
+    // 切 session 走 pm.loadSession + pm.loadMessages 路径不经此), 历史丢失且方法误导。已删除。
 
     func infer(messages: [[String: Any]], model: String = "", temperature: Double = 0.7, maxTokens: Int = 2048, effort: String = "medium", thinking: Bool = false, webSearch: Bool = false) async throws -> String {
         let config = FusionConfig.shared
@@ -1263,7 +1294,7 @@ final class AgentBridge: ObservableObject {
             }
         }
         if !thinkingContent.isEmpty {
-            fullContent = " phy\n\(thinkingContent)\n \n\n\(fullContent)"
+            fullContent = "🤖\n\(thinkingContent)\n\n\n\(fullContent)"
         }
         logger.info("inferStream: received \(fullContent.count) chars total")
         return fullContent
@@ -2662,14 +2693,22 @@ final class AgentBridge: ObservableObject {
                         t.lastRunAt = Date()
                         t.retryCount += 1
                     }
-                    let cur = self.tasks[self.taskIndex(taskId) ?? 0]
+                    // BUG-3: 旧实现 self.taskIndex(taskId) ?? 0 在任务已被删除时回退到下标 0,
+                    // 误读另一条任务的 retryCount/maxRetries -> 用错任务的重试预算决定本任务去留,
+                    // 甚至对已删任务继续递归 taskExecuteImmediate (retryCount 永远 <= maxRetries 时死循环)。
+                    // 修正: 任务已删 (taskIndex nil) 即早退, 不再读错行也不递归。
+                    guard let idx = self.taskIndex(taskId) else {
+                        logger.warning("taskExecuteImmediate catch: 任务已删除, 放弃 retry id=\(taskId)")
+                        return
+                    }
+                    let cur = self.tasks[idx]
                     if cur.retryCount <= cur.maxRetries {
                         self.updateTask(taskId) { t in t.status = .queued }
-                        logger.warning("taskExecuteImmediate retry: id=\(taskId) retryCount=\(cur.retryCount)")
+                        logger.warning("taskExecuteImmediate retry: id=\(taskId) retryCount=\(cur.retryCount)/\(cur.maxRetries)")
                         self.taskExecuteImmediate(taskId)
                     } else {
                         self.updateTask(taskId) { t in t.status = .failed }
-                        logger.error("taskExecuteImmediate failed: id=\(taskId) err=\(error.localizedDescription)")
+                        logger.error("taskExecuteImmediate failed: id=\(taskId) retryCount=\(cur.retryCount) err=\(error.localizedDescription)")
                     }
                 }
                 self.reportTaskStatus(taskId, status: "failed", lastError: error.localizedDescription)
@@ -2840,9 +2879,13 @@ final class AgentBridge: ObservableObject {
             "agent_id": agentId,
             "input": input,
         ]
+        // BUG-7: 旧 fallback 字符串插值在 input 含 "/\/换行时产出非法 JSON
+        // (双引号未转义破坏结构, 送给 cron 解析端 JSONSerialization 必崩)。
+        // 正常路径用 JSONSerialization (已转义); 失败说明 payload 不可序列化, 直接抛错不静默产出坏 JSON。
         guard let data = try? JSONSerialization.data(withJSONObject: payload),
               let str = String(data: data, encoding: .utf8) else {
-            return "{\"task_id\":\"\(taskId)\",\"input\":\"\(input)\"}"
+            logger.error("encodeCronInput: JSON 序列化失败 taskId=\(taskId) inputLen=\(input.count)")
+            return "{}"
         }
         return str
     }
