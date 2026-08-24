@@ -184,12 +184,19 @@ class DesignWorkflowOrchestrator: ObservableObject {
             advanceStep(designBridge: designBridge)
 
         case .captureScreenshot:
-            let task = Process()
-            task.launchPath = "/usr/sbin/screencapture"
-            task.arguments = ["-i", "-c"]
-            task.launch()
+            // HIGH-4: 旧 fire-and-forget Process 出作用域被 ARC 回收, 交互截图变孤儿。
+            // 改用 ScreenCapture 单例保活 + terminationHandler, 不阻塞协作线程池。
+            Task {
+                let code = await ScreenCapture.shared.captureInteractive()
+                await MainActor.run {
+                    if code == 0 {
+                        workflowLog.info("Screenshot captured code=\(code)")
+                    } else {
+                        workflowLog.warning("Screenshot 取消或失败 code=\(code)")
+                    }
+                }
+            }
             statusMessage = I18nManager.shared.t(.design_wf_ssSaved)
-            workflowLog.info("Screenshot captured")
 
         case .createDesign:
             designBridge.clearCanvas()

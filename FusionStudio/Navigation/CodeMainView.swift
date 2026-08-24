@@ -485,12 +485,17 @@ struct CodeMainView: View {
         inputText = ""
     }
 
+    // HIGH-4: 旧实现 Process() 出作用域即被 ARC 回收, 交互式 screencapture 中途被杀变孤儿。
+    // 改用 ScreenCapture 单例保活 + try run + terminationHandler, 不阻塞协作线程池。
     private func takeScreenshot() {
-        let task = Process()
-        task.launchPath = "/usr/sbin/screencapture"
-        task.arguments = ["-i", "-c"]
-        task.launch()
-        codeMainLog.info("Screenshot initiated")
+        Task {
+            let code = await ScreenCapture.shared.captureInteractive()
+            if code == 0 {
+                codeMainLog.info("Screenshot 完成, 已存入剪贴板")
+            } else {
+                codeMainLog.warning("Screenshot 取消或失败 code=\(code)")
+            }
+        }
     }
 }
 

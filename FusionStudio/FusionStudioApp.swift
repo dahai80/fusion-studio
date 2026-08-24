@@ -10,6 +10,7 @@ private let appLog = Logger(subsystem: "com.fusion.studio", category: "FusionStu
 
 @main
 struct FusionStudioApp: App {
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var appState = AppState()
     @StateObject private var ipcClient = IPCClient()
     @StateObject private var agentBridge = AgentBridge()
@@ -122,6 +123,12 @@ struct FusionStudioApp: App {
                     setupDockIcon()
                     NSApp.setActivationPolicy(.regular)
                     NSApp.activate(ignoringOtherApps: true)
+                }
+                // HIGH-4: app 进后台或退出时终止遗留 screencapture 进程, 防孤儿。
+                .onChange(of: scenePhase) { phase in
+                    if phase == .background || phase == .inactive {
+                        ScreenCapture.shared.cleanup()
+                    }
                 }
         }
         .windowStyle(.automatic)
