@@ -630,6 +630,24 @@ class DesignBridge: ObservableObject {
         return out
     }
 
+    /// BUG-13: 错误响应体原样插 UI 可能泄密钥 — 服务端错误体可回显请求头 (Authorization/Bearer/api_key),
+    /// .prefix(200) 限长拦不住密钥子串。渲染前剥敏感子串。nonisolated 纯函数。
+    nonisolated static func sanitizeErrorBody(_ body: String) -> String {
+        var out = body
+        // 剥 Bearer <token> / Authorization: <scheme> <token> 整段, 大小写不敏感
+        if let re = try? NSRegularExpression(pattern: #"(?i)bearer\s+[A-Za-z0-9._~+/=-]+"#, options: []) {
+            out = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "Bearer ***")
+        }
+        if let re = try? NSRegularExpression(pattern: #"(?i)authorization\s*:\s*[^\r\n,]+"#, options: []) {
+            out = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "Authorization: ***")
+        }
+        // 剥 api_key / api-key / apikey 字段值 (JSON "api_key":"v" 或 form api_key=v 均覆盖)
+        if let re = try? NSRegularExpression(pattern: #"(?i)(api[_-]?key)\"?(\s*[:=]\s*)\"?([A-Za-z0-9._~+/=-]+)"#, options: []) {
+            out = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "$1$2***")
+        }
+        return out
+    }
+
     /// 调用 fusion-design token-css CLI 获取当前设计规范的 CSS Custom Properties。
     private func fetchTokenCSSViaCLI() -> String? {
         let result = runFusionDesign(["token-css", "--design-system", "apple-hig"])
@@ -987,8 +1005,11 @@ class DesignBridge: ObservableObject {
     func skillLint(documentJSON: String? = nil, designSystem: String = "apple-hig", fix: Bool = false, dryRun: Bool = false) -> [DesignLintIssue] {
         let docJSON = documentJSON ?? lastRenderedDocumentJSON ?? ""
         guard !docJSON.isEmpty else { return [] }
-        let tmpPath = NSTemporaryDirectory() + "fd_lint_input.json"
-        try? docJSON.write(toFile: tmpPath, atomically: true, encoding: .utf8)
+        // BUG-11: 固定名 fd_lint_input.json 存在 TOCTOU (write 与 CLI read 间本地进程替换文件,
+        // 跑攻击者选定 JSON) + 并发调用同名互踩。改 UUID 命名 + 0600 受限权限, 用完即删。
+        let tmpPath = NSTemporaryDirectory() + "fd_lint_\(UUID().uuidString).json"
+        FileManager.default.createFile(atPath: tmpPath, contents: Data(docJSON.utf8))
+        try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: tmpPath)
         var args = ["lint", "--input", tmpPath, "--design-system", designSystem]
         if fix { args.append("--fix") }
         if dryRun { args.append("--dry-run") }
@@ -1020,11 +1041,14 @@ class DesignBridge: ObservableObject {
     }
 
     func skillDiff(oldJSON: String, newJSON: String) -> [DesignDiffEntry] {
+        // BUG-11: 固定名 fd_diff_old/new.json 存在 TOCTOU + 并发互踩。改 UUID 命名 + 0600 受限权限。
         let tmpDir = NSTemporaryDirectory()
-        let oldPath = tmpDir + "fd_diff_old.json"
-        let newPath = tmpDir + "fd_diff_new.json"
-        try? oldJSON.write(toFile: oldPath, atomically: true, encoding: .utf8)
-        try? newJSON.write(toFile: newPath, atomically: true, encoding: .utf8)
+        let oldPath = tmpDir + "fd_diff_old_\(UUID().uuidString).json"
+        let newPath = tmpDir + "fd_diff_new_\(UUID().uuidString).json"
+        FileManager.default.createFile(atPath: oldPath, contents: Data(oldJSON.utf8))
+        FileManager.default.createFile(atPath: newPath, contents: Data(newJSON.utf8))
+        try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: oldPath)
+        try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: newPath)
         let result = runFusionDesign(["diff", "--old", oldPath, "--new", newPath])
         try? FileManager.default.removeItem(atPath: oldPath)
         try? FileManager.default.removeItem(atPath: newPath)
@@ -1838,8 +1862,10 @@ class DesignBridge: ObservableObject {
         }
         isBatchExporting = true
         batchExportResult = ""
-        let tmpPath = NSTemporaryDirectory() + "fd_export_input.json"
-        try? documentJSON.write(toFile: tmpPath, atomically: true, encoding: .utf8)
+        // BUG-11: 固定名 fd_export_input.json 存在 TOCTOU + 并发互踩。改 UUID 命名 + 0600 受限权限。
+        let tmpPath = NSTemporaryDirectory() + "fd_export_\(UUID().uuidString).json"
+        FileManager.default.createFile(atPath: tmpPath, contents: Data(documentJSON.utf8))
+        try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: tmpPath)
         let result = runFusionDesign(["export", "--input", tmpPath, "--format", format, "--out", outputDir])
         try? FileManager.default.removeItem(atPath: tmpPath)
         if result.exitCode == 0 {
@@ -2008,8 +2034,11 @@ class DesignBridge: ObservableObject {
                     designBridgeLog.info("DesignBridge: screenshot imported — \(result.extractedHTML.count) chars, confidence=\(result.confidence)")
                 }
             } else {
-                let body = String(data: data, encoding: .utf8) ?? "unknown"
-                errorMessage = "Screenshot import failed: HTTP \(httpResp.statusCode) — \(body.prefix(200))"
+                // BUG-13: 原始 body 原样插 UI 可泄密钥 — 服务端错误体可回显请求头 (Authorization/Bearer/api_key),
+                // .prefix(200) 限长拦不住密钥子串。渲染前过 sanitizeErrorBody 剥敏感子串。
+                let rawBody = String(data: data, encoding: .utf8) ?? "unknown"
+                let safeBody = Self.sanitizeErrorBody(rawBody)
+                errorMessage = "Screenshot import failed: HTTP \(httpResp.statusCode) — \(safeBody.prefix(200))"
                 designBridgeLog.error("DesignBridge: screenshot import failed — HTTP \(httpResp.statusCode)")
             }
         } catch {

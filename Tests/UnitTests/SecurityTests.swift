@@ -120,3 +120,39 @@ final class HtmlSanitizeTests: XCTestCase {
         XCTAssertTrue(safe.contains("<p>text</p>"), "p 元素必须保留")
     }
 }
+
+// BUG-13: 验证 DesignBridge.sanitizeErrorBody 剥错误响应体中的密钥子串。
+// 服务端错误体可回显请求头 (Authorization/Bearer/api_key), 原样插 UI 泄密钥。
+final class ErrorBodySanitizeTests: XCTestCase {
+
+    // Bearer <token> 整段被剥
+    func testBearerTokenStripped() {
+        let body = #"{"error":"Unauthorized","header":"Bearer sk-ant-abc123xyz"}"#
+        let safe = DesignBridge.sanitizeErrorBody(body)
+        XCTAssertFalse(safe.contains("sk-ant-abc123xyz"), "Bearer token 值必须被剥")
+        XCTAssertTrue(safe.contains("Bearer ***"), "Bearer 段保留占位")
+    }
+
+    // Authorization: <scheme> <token> 整段被剥
+    func testAuthorizationHeaderStripped() {
+        let body = "Authorization: Bearer fg-admin-key, Content-Type: application/json"
+        let safe = DesignBridge.sanitizeErrorBody(body)
+        XCTAssertFalse(safe.contains("fg-admin-key"), "Authorization 内 token 必须被剥")
+        XCTAssertTrue(safe.contains("Authorization: ***"), "Authorization 段保留占位")
+    }
+
+    // api_key/api-key/apikey 字段值被剥 (JSON 与 form 均覆盖)
+    func testApiKeyFieldStripped() {
+        let body = #"{"api_key":"sk-live-12345","model":"qwen"}"#
+        let safe = DesignBridge.sanitizeErrorBody(body)
+        XCTAssertFalse(safe.contains("sk-live-12345"), "api_key 字段值必须被剥")
+    }
+
+    // 非敏感错误信息保留 (不误伤)
+    func testLegitimateErrorPreserved() {
+        let body = #"{"error":"model not found","status":404}"#
+        let safe = DesignBridge.sanitizeErrorBody(body)
+        XCTAssertTrue(safe.contains("model not found"), "非敏感错误信息必须保留")
+        XCTAssertTrue(safe.contains("404"), "状态码必须保留")
+    }
+}
