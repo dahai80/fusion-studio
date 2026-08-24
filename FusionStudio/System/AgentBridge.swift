@@ -1357,116 +1357,10 @@ final class AgentBridge: ObservableObject {
     }
 
     // MARK: - Memory Operations
-
-    func memoryStore(content: String, scope: String = "default", tags: String = "", importance: Int = 5, metadata: [String: Any]? = nil, tier: String = "") async throws -> MemoryEntryModel {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        logger.info("memoryStore: scope=\(scope)")
-        do {
-            let result = try await client.memoryStore(content: content, scope: scope, tags: tags, importance: importance, metadata: metadata, tier: tier)
-            guard let entry = Self.parseMemoryEntry(from: result) else {
-                throw BridgeError.decodeError("Failed to parse memory.store response")
-            }
-            return entry
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            throw bridgeErr
-        }
-    }
-
-    func memoryRecall(query: String, scope: String = "", limit: Int = 10, minImportance: Int = 0, tier: String = "") async throws -> [MemoryEntryModel] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        do {
-            let result = try await client.memoryRecall(query: query, scope: scope, limit: limit, minImportance: minImportance, tier: tier)
-            let entriesData = result["entries"] as? [[String: Any]] ?? []
-            var parsed: [MemoryEntryModel] = []
-            for e in entriesData {
-                if let entry = Self.parseMemoryEntry(from: e) {
-                    parsed.append(entry)
-                }
-            }
-            self.memoryEntries = parsed
-            return parsed
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            throw bridgeErr
-        }
-    }
-
-    func fetchRecentMemories(scope: String = "", limit: Int = 20, minImportance: Int = 0, tier: String = "") async throws -> [MemoryEntryModel] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        do {
-            let result = try await client.memoryListRecent(scope: scope, limit: limit, minImportance: minImportance, tier: tier)
-            let entriesData = result["entries"] as? [[String: Any]] ?? []
-            var parsed: [MemoryEntryModel] = []
-            for e in entriesData {
-                if let entry = Self.parseMemoryEntry(from: e) {
-                    parsed.append(entry)
-                }
-            }
-            self.memoryEntries = parsed
-            logger.info("fetchRecentMemories: received \(parsed.count) entries")
-            return parsed
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            throw bridgeErr
-        }
-    }
-
-    func memoryGet(entryId: String) async throws -> MemoryEntryModel {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        do {
-            let result = try await client.memoryGet(entryId: entryId)
-            guard let entry = Self.parseMemoryEntry(from: result) else {
-                throw BridgeError.decodeError("Failed to parse memory.get response")
-            }
-            return entry
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            throw bridgeErr
-        }
-    }
-
-    func memoryDelete(entryId: String) async throws -> Bool {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        do {
-            let result = try await client.memoryDelete(entryId: entryId)
-            return result["deleted"] as? Bool ?? false
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            throw bridgeErr
-        }
-    }
-
-    func memoryDeleteScope(scope: String) async throws -> Int {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        do {
-            let result = try await client.memoryDeleteScope(scope: scope)
-            return result["count"] as? Int ?? 0
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            throw bridgeErr
-        }
-    }
-
-    func fetchMemoryCount(scope: String = "", tier: String = "") async throws -> Int {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        do {
-            let result = try await client.memoryCount(scope: scope, tier: tier)
-            let count = result["count"] as? Int ?? 0
-            self.memoryCount = count
-            return count
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            throw bridgeErr
-        }
-    }
+    // ARCH-1: memoryStore/memoryRecall/fetchRecentMemories/memoryGet/memoryDelete/memoryDeleteScope/fetchMemoryCount
+    //   + parseMemoryEntry (域内专属 parser, 4 调用方全 Memory 域) 抽至 AgentMemoryService.swift facade extension。
+    //   parser 同搬范式 (同 #287 parseMarketplaceEntry): private = 文件作用域, 同文件 extension Self.parseMemoryEntry 可达。
+    //   0 跨域调用, 写 lastError + 域内 @Published memoryEntries/memoryCount。@Published 留主类 (有外部读)。
 
     // MARK: - Safety Operations
     // ARCH-1: safetyCheck/safetyEvaluateAction/safetyApproveAction/safetyRejectAction/fetchPendingSafetyActions/safetyAddPolicy
@@ -2447,21 +2341,8 @@ final class AgentBridge: ObservableObject {
         )
     }
 
-    private static func parseMemoryEntry(from dict: [String: Any]) -> MemoryEntryModel? {
-        guard let entryId = dict["entry_id"] as? String ?? dict["id"] as? String,
-              let content = dict["content"] as? String else {
-            return nil
-        }
-        return MemoryEntryModel(
-            id: entryId,
-            content: content,
-            scope: dict["scope"] as? String ?? "default",
-            tags: dict["tags"] as? String ?? "",
-            importance: dict["importance"] as? Int ?? 5,
-            timestamp: dict["timestamp"] as? String ?? "",
-            tier: dict["tier"] as? String ?? "short_term"
-        )
-    }
+    // ARCH-1: parseMemoryEntry (memory-specific private static, 4 调用方全 Memory 域) 抽至 AgentMemoryService.swift,
+    //   与 7 Memory 方法同文件 (private = 文件作用域, 同文件 extension Self.parseMemoryEntry 可达, 同 #287 parseMarketplaceEntry 范式)。
 
     private static func parseAgentModel(from dict: [String: Any]) -> AgentModel? {
         guard let agentId = dict["agent_id"] as? String ?? dict["id"] as? String,
