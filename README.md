@@ -537,6 +537,17 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 
 ## 📋 Changelog
 
+### v0.1.45 — deployExport 端口回归修复 (2026-08-24)
+
+补丁版本，修复 v0.1.44 引入的端口回归：
+
+- **端口回归修复** (PR #264, fixes #263)：`IPCConvenienceMethods.deployExport` 默认 port `11434` 回归 `8000`，对齐 `AgentBridge.deployExport` + `DeployView` 两副本 + UI 默认值
+  - **根因**：PR#253 统一 MLX 引擎探测端口 `8000→11434`（mlx-daemon/env-daemon 正确），但误把 `deployExport` 的导出产物服务端口一并改 11434
+  - **`deployExport` port 语义**：导出 agent graph 为独立可部署服务时该服务绑的端口，**非** MLX 引擎端口；绑 11434 会与 MLX 引擎（`localhost:11434`）抢端口冲突
+  - 3 副本默认 port 一致（均 8000）：IPCConvenienceMethods.swift:184 / AgentBridge.swift:1759 / DeployView.swift:71
+  - `8000` 是 `port-registry.yaml` 标 pending 的 legacy 值（check-ports 暂允许带 warning），deploy 产物端口迁 114xx 段属多项目协调另案
+- **CI 全绿**：Swift Build & Test / Rust Check / Code Quality / Security Audit 4/4 pass
+
 ### v0.1.44 — i18n 非延后批次全量完成 + 端口对齐 (2026-08-24)
 
 补丁版本，i18n 全量本地化工程非延后批次全部完成 + 引擎端口对齐：
