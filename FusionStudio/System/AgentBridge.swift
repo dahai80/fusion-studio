@@ -442,7 +442,7 @@ final class AgentBridge: ObservableObject {
     // 逐个探测当前 baseURL（gateway 11432 或直连 11434），首个 200 的持久化到 user-settings。
     private func selfHealApiKeyFromSettings() async -> Bool {
         let cfg = FusionConfig.shared
-        let candidates = Self.mlxSelfHealKeyCandidates(currentResolved: cfg.mlxResolvedApiKey)
+        let candidates = await Self.mlxSelfHealKeyCandidates(currentResolved: cfg.mlxResolvedApiKey)
         guard !candidates.isEmpty else {
             logger.error("selfHealApiKey: no candidate keys to fall back")
             return false
@@ -894,7 +894,7 @@ final class AgentBridge: ObservableObject {
                 logger.error("fetchModels: HTTP \(httpResp.statusCode) — \(body)")
                 let code = httpResp.statusCode
                 if code == 401 || code == 403 {
-                    if let fallback = Self.mlxSettingsJsonApiKey(), !fallback.isEmpty, fallback != apiKey {
+                    if let fallback = await Self.mlxSettingsJsonApiKey(), !fallback.isEmpty, fallback != apiKey {
                         logger.warning("fetchModels: auth failed with resolved key (len \(apiKey.count)), retrying with settings.json key")
                         return try await fetchModels(withApiKey: fallback)
                     }
@@ -930,7 +930,8 @@ final class AgentBridge: ObservableObject {
         }
     }
 
-    static func mlxSettingsJsonApiKey() -> String? {
+    // PERF-4: nonisolated async — 文件 I/O 跑 cooperative 线程池, 不阻塞 MainActor。sync 版删除: 全部调用方已 async await。
+    nonisolated static func mlxSettingsJsonApiKey() async -> String? {
         guard let data = try? Data(contentsOf: URL(fileURLWithPath: NSHomeDirectory() + "/.fusion-mlx/settings.json")),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let auth = json["auth"] as? [String: Any],
@@ -942,7 +943,8 @@ final class AgentBridge: ObservableObject {
 
     // gateway (11432) 的有效 api key：解析 ~/fusion/fusion-gateway/config.yaml auth.api_keys[0]。
     // env FUSION_MLX_API_KEY 常是过期值（被 gateway 拒），自愈回退到此 key。
-    static func gatewayConfigApiKey() -> String? {
+    // PERF-4: nonisolated async — config.yaml 读取 + 行解析跑 cooperative 线程池, 不阻塞 MainActor。
+    nonisolated static func gatewayConfigApiKey() async -> String? {
         let paths = [
             NSHomeDirectory() + "/fusion/fusion-gateway/config.yaml",
             "/Users/dahai/fusion/fusion-gateway/config.yaml",
@@ -980,10 +982,11 @@ final class AgentBridge: ObservableObject {
     }
 
     // 自愈候选 key 序列：gateway config.yaml > settings.json > 内置 fg-admin-key 兜底
-    static func mlxSelfHealKeyCandidates(currentResolved: String) -> [String] {
+    // PERF-4: nonisolated async — 内部两个文件读 async, 本身也 nonisolated 跑 cooperative 池。
+    nonisolated static func mlxSelfHealKeyCandidates(currentResolved: String) async -> [String] {
         var cands: [String] = []
-        if let g = gatewayConfigApiKey(), !g.isEmpty, g != currentResolved { cands.append(g) }
-        if let s = mlxSettingsJsonApiKey(), !s.isEmpty, s != currentResolved { cands.append(s) }
+        if let g = await gatewayConfigApiKey(), !g.isEmpty, g != currentResolved { cands.append(g) }
+        if let s = await mlxSettingsJsonApiKey(), !s.isEmpty, s != currentResolved { cands.append(s) }
         if !cands.contains("fg-admin-key") { cands.append("fg-admin-key") }
         return cands
     }
@@ -1166,7 +1169,7 @@ final class AgentBridge: ObservableObject {
     // 探测候选 key（gateway config.yaml > settings.json > fg-admin-key），首个 200 的持久化并返回。
     private func selfHealApiKeyForInfer(currentURL: URL, routeKey: String) async -> String? {
         let cfg = FusionConfig.shared
-        let candidates = Self.mlxSelfHealKeyCandidates(currentResolved: routeKey)
+        let candidates = await Self.mlxSelfHealKeyCandidates(currentResolved: routeKey)
         for key in candidates {
             guard let probeURL = URL(string: "\(cfg.mlxBaseURL)/v1/models") else { continue }
             var req = URLRequest(url: probeURL)
