@@ -4614,6 +4614,41 @@ enum I18nKey: String, CaseIterable {
     case prof_thermal_warning = "prof_thermal_warning"
     case prof_timeline_empty = "prof_timeline_empty"
     case prof_title = "prof_title"
+    case csm_title = "csm_title"
+    case csm_group_create = "csm_group_create"
+    case csm_group_history = "csm_group_history"
+    case csm_group_auto = "csm_group_auto"
+    case csm_pick_type = "csm_pick_type"
+    case csm_pick_freq = "csm_pick_freq"
+    case csm_type_config = "csm_type_config"
+    case csm_type_templates = "csm_type_templates"
+    case csm_type_workspace = "csm_type_workspace"
+    case csm_type_full = "csm_type_full"
+    case csm_btn_backup_now = "csm_btn_backup_now"
+    case csm_btn_backup = "csm_btn_backup"
+    case csm_btn_restore = "csm_btn_restore"
+    case csm_btn_delete = "csm_btn_delete"
+    case csm_btn_cancel = "csm_btn_cancel"
+    case csm_last_backup_fmt = "csm_last_backup_fmt"
+    case csm_empty = "csm_empty"
+    case csm_empty_hint = "csm_empty_hint"
+    case csm_toggle_config = "csm_toggle_config"
+    case csm_toggle_templates = "csm_toggle_templates"
+    case csm_freq_daily = "csm_freq_daily"
+    case csm_freq_3days = "csm_freq_3days"
+    case csm_freq_weekly = "csm_freq_weekly"
+    case csm_auto_keep_hint = "csm_auto_keep_hint"
+    case csm_alert_backup_title = "csm_alert_backup_title"
+    case csm_alert_restore_title = "csm_alert_restore_title"
+    case csm_confirm_backup_msg_fmt = "csm_confirm_backup_msg_fmt"
+    case csm_confirm_restore_msg = "csm_confirm_restore_msg"
+    case csm_status_backing_up_fmt = "csm_status_backing_up_fmt"
+    case csm_status_backup_done_fmt = "csm_status_backup_done_fmt"
+    case csm_status_backup_failed_fmt = "csm_status_backup_failed_fmt"
+    case csm_status_restoring_fmt = "csm_status_restoring_fmt"
+    case csm_status_restore_done_fmt = "csm_status_restore_done_fmt"
+    case csm_status_restore_failed_fmt = "csm_status_restore_failed_fmt"
+    case csm_err_invalid_format = "csm_err_invalid_format"
     case fc_preview = "fc_preview"
     case fc_live = "fc_live"
     case fc_html_preview_empty = "fc_html_preview_empty"
@@ -9376,6 +9411,41 @@ let zhCNTranslations: [String: String] = [
     "prof_thermal_warning": "警告",
     "prof_timeline_empty": "开始 Profiling 以查看时间线",
     "prof_title": "性能 Profiler",
+    "csm_title": "配置同步 & 备份",
+    "csm_group_create": "创建备份",
+    "csm_group_history": "备份历史",
+    "csm_group_auto": "自动备份",
+    "csm_pick_type": "备份类型",
+    "csm_pick_freq": "备份频率",
+    "csm_type_config": "配置",
+    "csm_type_templates": "模板",
+    "csm_type_workspace": "工作区",
+    "csm_type_full": "完整",
+    "csm_btn_backup_now": "立即备份",
+    "csm_btn_backup": "备份",
+    "csm_btn_restore": "恢复",
+    "csm_btn_delete": "删除",
+    "csm_btn_cancel": "取消",
+    "csm_last_backup_fmt": "上次备份: %s",
+    "csm_empty": "暂无备份",
+    "csm_empty_hint": "创建备份后，将显示在这里",
+    "csm_toggle_config": "自动备份配置",
+    "csm_toggle_templates": "自动备份模板",
+    "csm_freq_daily": "每天",
+    "csm_freq_3days": "每3天",
+    "csm_freq_weekly": "每周",
+    "csm_auto_keep_hint": "自动备份保留最近 20 份，超出自动清理",
+    "csm_alert_backup_title": "确认备份",
+    "csm_alert_restore_title": "确认恢复",
+    "csm_confirm_backup_msg_fmt": "将创建 %s 备份到:\n%s",
+    "csm_confirm_restore_msg": "恢复将覆盖当前配置，此操作不可撤销。确定继续吗？",
+    "csm_status_backing_up_fmt": "正在备份 %s...",
+    "csm_status_backup_done_fmt": "%s 备份完成",
+    "csm_status_backup_failed_fmt": "备份失败: %s",
+    "csm_status_restoring_fmt": "正在恢复 %s...",
+    "csm_status_restore_done_fmt": "恢复完成: %s",
+    "csm_status_restore_failed_fmt": "恢复失败: %s",
+    "csm_err_invalid_format": "无效的备份文件格式",
     "fc_preview": "预览",
     "fc_live": "实时",
     "fc_html_preview_empty": "生成HTML后此处显示预览",
@@ -14091,6 +14161,41 @@ let enUSTranslations: [String: String] = [
     "prof_thermal_warning": "Warning",
     "prof_timeline_empty": "Start profiling to view the timeline",
     "prof_title": "Performance Profiler",
+    "csm_title": "Config Sync & Backup",
+    "csm_group_create": "Create Backup",
+    "csm_group_history": "Backup History",
+    "csm_group_auto": "Auto Backup",
+    "csm_pick_type": "Backup Type",
+    "csm_pick_freq": "Backup Frequency",
+    "csm_type_config": "Config",
+    "csm_type_templates": "Templates",
+    "csm_type_workspace": "Workspace",
+    "csm_type_full": "Full",
+    "csm_btn_backup_now": "Backup Now",
+    "csm_btn_backup": "Backup",
+    "csm_btn_restore": "Restore",
+    "csm_btn_delete": "Delete",
+    "csm_btn_cancel": "Cancel",
+    "csm_last_backup_fmt": "Last backup: %s",
+    "csm_empty": "No backups yet",
+    "csm_empty_hint": "Backups will appear here once created",
+    "csm_toggle_config": "Auto backup config",
+    "csm_toggle_templates": "Auto backup templates",
+    "csm_freq_daily": "Daily",
+    "csm_freq_3days": "Every 3 days",
+    "csm_freq_weekly": "Weekly",
+    "csm_auto_keep_hint": "Auto backup keeps the latest 20; older ones are auto-cleaned",
+    "csm_alert_backup_title": "Confirm Backup",
+    "csm_alert_restore_title": "Confirm Restore",
+    "csm_confirm_backup_msg_fmt": "Will create a %s backup to:\n%s",
+    "csm_confirm_restore_msg": "Restore will overwrite current config. This cannot be undone. Continue?",
+    "csm_status_backing_up_fmt": "Backing up %s...",
+    "csm_status_backup_done_fmt": "%s backup complete",
+    "csm_status_backup_failed_fmt": "Backup failed: %s",
+    "csm_status_restoring_fmt": "Restoring %s...",
+    "csm_status_restore_done_fmt": "Restore complete: %s",
+    "csm_status_restore_failed_fmt": "Restore failed: %s",
+    "csm_err_invalid_format": "Invalid backup file format",
     "fc_preview": "Preview",
     "fc_live": "Live",
     "fc_html_preview_empty": "Preview appears here after HTML is generated",
@@ -18800,6 +18905,41 @@ let jaJPTranslations: [String: String] = [
     "prof_thermal_warning": "警告",
     "prof_timeline_empty": "プロファイリングを開始してタイムラインを表示",
     "prof_title": "パフォーマンスプロファイラ",
+    "csm_title": "設定同期とバックアップ",
+    "csm_group_create": "バックアップ作成",
+    "csm_group_history": "バックアップ履歴",
+    "csm_group_auto": "自動バックアップ",
+    "csm_pick_type": "バックアップ種別",
+    "csm_pick_freq": "バックアップ頻度",
+    "csm_type_config": "設定",
+    "csm_type_templates": "テンプレート",
+    "csm_type_workspace": "ワークスペース",
+    "csm_type_full": "完全",
+    "csm_btn_backup_now": "今すぐバックアップ",
+    "csm_btn_backup": "バックアップ",
+    "csm_btn_restore": "復元",
+    "csm_btn_delete": "削除",
+    "csm_btn_cancel": "キャンセル",
+    "csm_last_backup_fmt": "前回バックアップ: %s",
+    "csm_empty": "バックアップなし",
+    "csm_empty_hint": "バックアップ作成後にここに表示されます",
+    "csm_toggle_config": "設定を自動バックアップ",
+    "csm_toggle_templates": "テンプレートを自動バックアップ",
+    "csm_freq_daily": "毎日",
+    "csm_freq_3days": "3日ごと",
+    "csm_freq_weekly": "毎週",
+    "csm_auto_keep_hint": "自動バックアップは最新20件を保持、超過分は自動削除",
+    "csm_alert_backup_title": "バックアップ確認",
+    "csm_alert_restore_title": "復元確認",
+    "csm_confirm_backup_msg_fmt": "%sバックアップを作成して保存先:\n%s",
+    "csm_confirm_restore_msg": "復元は現在の設定を上書きします。この操作は取り消せません。続行しますか？",
+    "csm_status_backing_up_fmt": "バックアップ中 %s...",
+    "csm_status_backup_done_fmt": "%s バックアップ完了",
+    "csm_status_backup_failed_fmt": "バックアップ失敗: %s",
+    "csm_status_restoring_fmt": "復元中 %s...",
+    "csm_status_restore_done_fmt": "復元完了: %s",
+    "csm_status_restore_failed_fmt": "復元失敗: %s",
+    "csm_err_invalid_format": "無効なバックアップファイル形式",
     "fc_preview": "プレビュー",
     "fc_live": "ライブ",
     "fc_html_preview_empty": "HTML生成後にここにプレビューが表示されます",
@@ -23509,6 +23649,41 @@ let koKRTranslations: [String: String] = [
     "prof_thermal_warning": "경고",
     "prof_timeline_empty": "프로파일링 시작으로 타임라인 보기",
     "prof_title": "성능 프로파일러",
+    "csm_title": "설정 동기화 및 백업",
+    "csm_group_create": "백업 생성",
+    "csm_group_history": "백업 기록",
+    "csm_group_auto": "자동 백업",
+    "csm_pick_type": "백업 유형",
+    "csm_pick_freq": "백업 빈도",
+    "csm_type_config": "설정",
+    "csm_type_templates": "템플릿",
+    "csm_type_workspace": "워크스페이스",
+    "csm_type_full": "전체",
+    "csm_btn_backup_now": "지금 백업",
+    "csm_btn_backup": "백업",
+    "csm_btn_restore": "복원",
+    "csm_btn_delete": "삭제",
+    "csm_btn_cancel": "취소",
+    "csm_last_backup_fmt": "마지막 백업: %s",
+    "csm_empty": "백업 없음",
+    "csm_empty_hint": "백업 생성 후 여기에 표시됩니다",
+    "csm_toggle_config": "설정 자동 백업",
+    "csm_toggle_templates": "템플릿 자동 백업",
+    "csm_freq_daily": "매일",
+    "csm_freq_3days": "3일마다",
+    "csm_freq_weekly": "매주",
+    "csm_auto_keep_hint": "자동 백업은 최신 20개 보관, 초과분 자동 정리",
+    "csm_alert_backup_title": "백업 확인",
+    "csm_alert_restore_title": "복원 확인",
+    "csm_confirm_backup_msg_fmt": "%s 백업을 생성하여 저장:\n%s",
+    "csm_confirm_restore_msg": "복원은 현재 설정을 덮어씁니다. 이 작업은 되돌릴 수 없습니다. 계속하시겠습니까?",
+    "csm_status_backing_up_fmt": "백업 중 %s...",
+    "csm_status_backup_done_fmt": "%s 백업 완료",
+    "csm_status_backup_failed_fmt": "백업 실패: %s",
+    "csm_status_restoring_fmt": "복원 중 %s...",
+    "csm_status_restore_done_fmt": "복원 완료: %s",
+    "csm_status_restore_failed_fmt": "복원 실패: %s",
+    "csm_err_invalid_format": "잘못된 백업 파일 형식",
     "fc_preview": "미리보기",
     "fc_live": "실시간",
     "fc_html_preview_empty": "HTML 생성 후 여기에 미리보기가 표시됩니다",

@@ -24,10 +24,10 @@ struct BackupEntry: Identifiable, Hashable {
     }
 
     enum BackupType: String, CaseIterable {
-        case config   = "配置"
-        case templates = "模板"
-        case workspace = "工作区"
-        case full     = "完整"
+        case config   = "config"
+        case templates = "templates"
+        case workspace = "workspace"
+        case full     = "full"
 
         var icon: String {
             switch self {
@@ -35,6 +35,15 @@ struct BackupEntry: Identifiable, Hashable {
             case .templates: return "doc.on.doc"
             case .workspace: return "folder"
             case .full:     return "externaldrive"
+            }
+        }
+
+        var localizedName: String {
+            switch self {
+            case .config:    return I18nManager.shared.t(.csm_type_config)
+            case .templates: return I18nManager.shared.t(.csm_type_templates)
+            case .workspace: return I18nManager.shared.t(.csm_type_workspace)
+            case .full:      return I18nManager.shared.t(.csm_type_full)
             }
         }
     }
@@ -87,7 +96,7 @@ class ConfigSyncManager: ObservableObject {
     /// 创建配置备份
     func createBackup(type: BackupEntry.BackupType, completion: @escaping (Bool) -> Void = { _ in }) {
         isSyncing = true
-        syncStatus = .syncing("正在备份 \(type.rawValue)...")
+        syncStatus = .syncing(I18nManager.shared.tf(.csm_status_backing_up_fmt, type.localizedName))
 
         backupQueue.async { [weak self] in
             guard let self = self else { return }
@@ -131,14 +140,14 @@ class ConfigSyncManager: ObservableObject {
                     self.backups.append(entry)
                     self.lastSyncDate = Date()
                     self.isSyncing = false
-                    self.syncStatus = .success("\(type.rawValue) 备份完成")
+                    self.syncStatus = .success(I18nManager.shared.tf(.csm_status_backup_done_fmt, type.localizedName))
                     self.cleanupOldBackups()
                     completion(true)
                 }
             } catch {
                 DispatchQueue.main.async {
                     self.isSyncing = false
-                    self.syncStatus = .failed("备份失败: \(error.localizedDescription)")
+                    self.syncStatus = .failed(I18nManager.shared.tf(.csm_status_backup_failed_fmt, error.localizedDescription))
                     completion(false)
                 }
             }
@@ -148,7 +157,7 @@ class ConfigSyncManager: ObservableObject {
     /// 恢复备份
     func restoreBackup(_ entry: BackupEntry, completion: @escaping (Bool) -> Void = { _ in }) {
         isSyncing = true
-        syncStatus = .syncing("正在恢复 \(entry.name)...")
+        syncStatus = .syncing(I18nManager.shared.tf(.csm_status_restoring_fmt, entry.name))
 
         backupQueue.async { [weak self] in
             guard let self = self else { return }
@@ -165,13 +174,13 @@ class ConfigSyncManager: ObservableObject {
                 // 模板和工作区恢复需用户确认路径，这里只记录
                 DispatchQueue.main.async {
                     self.isSyncing = false
-                    self.syncStatus = .success("恢复完成: \(entry.name)")
+                    self.syncStatus = .success(I18nManager.shared.tf(.csm_status_restore_done_fmt, entry.name))
                     completion(true)
                 }
             } catch {
                 DispatchQueue.main.async {
                     self.isSyncing = false
-                    self.syncStatus = .failed("恢复失败: \(error.localizedDescription)")
+                    self.syncStatus = .failed(I18nManager.shared.tf(.csm_status_restore_failed_fmt, error.localizedDescription))
                     completion(false)
                 }
             }
@@ -263,10 +272,10 @@ class ConfigSyncManager: ObservableObject {
                           let date = attrs[.creationDate] as? Date else { return nil }
 
                     let type: BackupEntry.BackupType
-                    if url.lastPathComponent.contains("完整") { type = .full }
-                    else if url.lastPathComponent.contains("配置") { type = .config }
-                    else if url.lastPathComponent.contains("模板") { type = .templates }
-                    else if url.lastPathComponent.contains("工作区") { type = .workspace }
+                    if url.lastPathComponent.contains("full") { type = .full }
+                    else if url.lastPathComponent.contains("config") { type = .config }
+                    else if url.lastPathComponent.contains("templates") { type = .templates }
+                    else if url.lastPathComponent.contains("workspace") { type = .workspace }
                     else { type = .config }
 
                     return BackupEntry(name: url.lastPathComponent, date: date, size: size, type: type, fileURL: url)
@@ -282,7 +291,7 @@ class ConfigSyncManager: ObservableObject {
         case invalidFormat
         var errorDescription: String? {
             switch self {
-            case .invalidFormat: return "无效的备份文件格式"
+            case .invalidFormat: return I18nManager.shared.t(.csm_err_invalid_format)
             }
         }
     }
@@ -304,7 +313,7 @@ struct ConfigSyncView: View {
             HStack {
                 Image(systemName: "arrow.triangle.2.circlepath")
                     .foregroundColor(.accentColor)
-                Text("配置同步 & 备份")
+                Text(I18nManager.shared.t(.csm_title))
                     .font(.headline)
                 Spacer()
 
@@ -336,23 +345,23 @@ struct ConfigSyncView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     // 备份操作
-                    GroupBox("创建备份") {
+                    GroupBox(I18nManager.shared.t(.csm_group_create)) {
                         VStack(spacing: 12) {
-                            Picker("备份类型", selection: $backupType) {
+                            Picker(I18nManager.shared.t(.csm_pick_type), selection: $backupType) {
                                 ForEach(BackupEntry.BackupType.allCases, id: \.self) { type in
-                                    Label(type.rawValue, systemImage: type.icon).tag(type)
+                                    Label(type.localizedName, systemImage: type.icon).tag(type)
                                 }
                             }
 
                             HStack {
                                 if let last = syncManager.lastSyncDate {
-                                    Text("上次备份: \(last.formatted(date: .numeric, time: .shortened))")
+                                    Text(I18nManager.shared.tf(.csm_last_backup_fmt, last.formatted(date: .numeric, time: .shortened)))
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
                                 Spacer()
                                 Button(action: { showBackupConfirm = true }) {
-                                    Label("立即备份", systemImage: "tray.and.arrow.down")
+                                    Label(I18nManager.shared.t(.csm_btn_backup_now), systemImage: "tray.and.arrow.down")
                                 }
                                 .buttonStyle(.borderedProminent)
                                 .disabled(syncManager.isSyncing)
@@ -363,15 +372,15 @@ struct ConfigSyncView: View {
                     .padding(.horizontal)
 
                     // 备份列表
-                    GroupBox("备份历史") {
+                    GroupBox(I18nManager.shared.t(.csm_group_history)) {
                         if syncManager.backups.isEmpty {
                             VStack(spacing: 8) {
                                 Image(systemName: "tray")
                                     .font(.title)
                                     .foregroundColor(.secondary)
-                                Text("暂无备份")
+                                Text(I18nManager.shared.t(.csm_empty))
                                     .foregroundColor(.secondary)
-                                Text("创建备份后，将显示在这里")
+                                Text(I18nManager.shared.t(.csm_empty_hint))
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
@@ -395,14 +404,14 @@ struct ConfigSyncView: View {
 
                                     Spacer()
 
-                                    Button("恢复") {
+                                    Button(I18nManager.shared.t(.csm_btn_restore)) {
                                         selectedBackup = entry
                                         showRestoreConfirm = true
                                     }
                                     .buttonStyle(.bordered)
                                     .controlSize(.small)
 
-                                    Button("删除") {
+                                    Button(I18nManager.shared.t(.csm_btn_delete)) {
                                         syncManager.deleteBackup(entry)
                                     }
                                     .buttonStyle(.bordered)
@@ -416,16 +425,16 @@ struct ConfigSyncView: View {
                     .padding(.horizontal)
 
                     // 自动备份设置
-                    GroupBox("自动备份") {
+                    GroupBox(I18nManager.shared.t(.csm_group_auto)) {
                         VStack(spacing: 8) {
-                            Toggle("自动备份配置", isOn: .constant(true))
-                            Toggle("自动备份模板", isOn: .constant(false))
-                            Picker("备份频率", selection: .constant(1)) {
-                                Text("每天").tag(1)
-                                Text("每3天").tag(3)
-                                Text("每周").tag(7)
+                            Toggle(I18nManager.shared.t(.csm_toggle_config), isOn: .constant(true))
+                            Toggle(I18nManager.shared.t(.csm_toggle_templates), isOn: .constant(false))
+                            Picker(I18nManager.shared.t(.csm_pick_freq), selection: .constant(1)) {
+                                Text(I18nManager.shared.t(.csm_freq_daily)).tag(1)
+                                Text(I18nManager.shared.t(.csm_freq_3days)).tag(3)
+                                Text(I18nManager.shared.t(.csm_freq_weekly)).tag(7)
                             }
-                            Text("自动备份保留最近 20 份，超出自动清理")
+                            Text(I18nManager.shared.t(.csm_auto_keep_hint))
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -439,23 +448,23 @@ struct ConfigSyncView: View {
         .onAppear {
             syncManager.loadExistingBackups()
         }
-        .alert("确认备份", isPresented: $showBackupConfirm) {
-            Button("取消", role: .cancel) {}
-            Button("备份") {
+        .alert(I18nManager.shared.t(.csm_alert_backup_title), isPresented: $showBackupConfirm) {
+            Button(I18nManager.shared.t(.csm_btn_cancel), role: .cancel) {}
+            Button(I18nManager.shared.t(.csm_btn_backup)) {
                 syncManager.createBackup(type: backupType)
             }
         } message: {
-            Text("将创建 \(backupType.rawValue) 备份到:\n\(syncManager.backupDir.path)")
+            Text(I18nManager.shared.tf(.csm_confirm_backup_msg_fmt, backupType.localizedName, syncManager.backupDir.path))
         }
-        .alert("确认恢复", isPresented: $showRestoreConfirm) {
-            Button("取消", role: .cancel) {}
-            Button("恢复", role: .destructive) {
+        .alert(I18nManager.shared.t(.csm_alert_restore_title), isPresented: $showRestoreConfirm) {
+            Button(I18nManager.shared.t(.csm_btn_cancel), role: .cancel) {}
+            Button(I18nManager.shared.t(.csm_btn_restore), role: .destructive) {
                 if let entry = selectedBackup {
                     syncManager.restoreBackup(entry)
                 }
             }
         } message: {
-            Text("恢复将覆盖当前配置，此操作不可撤销。确定继续吗？")
+            Text(I18nManager.shared.t(.csm_confirm_restore_msg))
         }
     }
 }
