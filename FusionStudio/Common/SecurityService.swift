@@ -6,6 +6,9 @@
 import SwiftUI
 import Foundation
 import CommonCrypto
+import os.log
+
+private let securityLog = Logger(subsystem: "com.fusion.studio", category: "SecurityService")
 
 // MARK: - 安全检查级别
 
@@ -80,12 +83,27 @@ class SecurityManager: ObservableObject {
             "/tmp",
         ]
 
-        let resolved = (path as NSString).standardizingPath
-        guard !resolved.contains("..") else { return false }
+        // HIGH-3: standardizingPath 仅展开 ~ + 收敛 //, 不解析 symlink。
+        // 攻击者在允许前缀目录内放指向 /etc/~/.ssh 的 symlink 即绕过白名单。
+        // 修正: resolvingSymlinksInPath 取真实 inode 路径, 且逐级父目录解析,
+        // 防中间 symlink 绕过; 规范化后仍含 .. 则拒。
+        let standardized = (path as NSString).standardizingPath
+        guard !standardized.contains("..") else {
+            securityLog.warning("validateFilePath reject: path含.. -> \(standardized, privacy: .public)")
+            return false
+        }
+        let resolved = URL(fileURLWithPath: standardized).resolvingSymlinksInPath().path
+        guard !resolved.contains("..") else {
+            securityLog.warning("validateFilePath reject: 规范化后含.. -> \(resolved, privacy: .public)")
+            return false
+        }
 
         for prefix in allowedPrefixes {
-            if resolved.hasPrefix(prefix) { return true }
+            if resolved.hasPrefix(prefix) {
+                return true
+            }
         }
+        securityLog.warning("validateFilePath reject: 不在白名单前缀 -> \(resolved, privacy: .public)")
         return false
     }
 
