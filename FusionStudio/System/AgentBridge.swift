@@ -1469,102 +1469,9 @@ final class AgentBridge: ObservableObject {
     }
 
     // MARK: - Safety Operations
-
-    func safetyCheck(content: String, context: String = "") async throws -> SafetyCheckModel {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        logger.info("safetyCheck")
-        do {
-            let result = try await client.safetyCheck(content: content, context: context)
-            let check = SafetyCheckModel(
-                level: result["level"] as? String ?? "L1",
-                violations: result["violations"] as? [String] ?? [],
-                approved: result["approved"] as? Bool ?? true
-            )
-            self.safetyCheckResult = check
-            return check
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            throw bridgeErr
-        }
-    }
-
-    func safetyEvaluateAction(category: String, content: String = "", context: String = "") async throws -> SafetyActionModel {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        do {
-            let result = try await client.safetyEvaluateAction(category: category, content: content, context: context)
-            return SafetyActionModel(
-                id: result["action_id"] as? String ?? UUID().uuidString,
-                category: category,
-                status: result["status"] as? String ?? "pending",
-                content: content
-            )
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            throw bridgeErr
-        }
-    }
-
-    func safetyApproveAction(actionId: String) async throws -> Bool {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        do {
-            let result = try await client.safetyApproveAction(actionId: actionId)
-            return result["approved"] as? Bool ?? true
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            throw bridgeErr
-        }
-    }
-
-    func safetyRejectAction(actionId: String) async throws -> Bool {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        do {
-            let result = try await client.safetyRejectAction(actionId: actionId)
-            return result["rejected"] as? Bool ?? true
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            throw bridgeErr
-        }
-    }
-
-    func fetchPendingSafetyActions() async throws -> [SafetyActionModel] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        do {
-            let result = try await client.safetyGetPendingActions()
-            let actionsData = result["actions"] as? [[String: Any]] ?? []
-            var parsed: [SafetyActionModel] = []
-            for a in actionsData {
-                parsed.append(SafetyActionModel(
-                    id: a["action_id"] as? String ?? a["id"] as? String ?? UUID().uuidString,
-                    category: a["category"] as? String ?? "",
-                    status: a["status"] as? String ?? "pending",
-                    content: a["content"] as? String ?? ""
-                ))
-            }
-            self.safetyPendingActions = parsed
-            logger.info("fetchPendingSafetyActions: \(parsed.count) pending")
-            return parsed
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            throw bridgeErr
-        }
-    }
-
-    func safetyAddPolicy(category: String, description: String = "", defaultLevel: String = "L2", requiresDiff: Bool = false) async throws -> Bool {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        do {
-            let result = try await client.safetyAddPolicy(category: category, description: description, defaultLevel: defaultLevel, requiresDiff: requiresDiff)
-            return result["added"] as? Bool ?? true
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            throw bridgeErr
-        }
-    }
+    // ARCH-1: safetyCheck/safetyEvaluateAction/safetyApproveAction/safetyRejectAction/fetchPendingSafetyActions/safetyAddPolicy
+    //   抽至 AgentSafetyService.swift facade extension。叶 silo (写 lastError, 域内 Model 构造, 无 parser)。
+    //   safetyEvaluateAction/fetchPendingSafetyActions 用 UUID → Foundation。@Published safetyCheckResult/safetyPendingActions 留主类 (有外部读)。
 
     // ARCH-1: Template Operations 全量抽完 (fetchTemplates/templateGet → AgentTemplateService #284, templateInstantiate → AgentGraphService 本批次)。
     // ARCH-1: Deploy Operations 全量抽完 (deployExport/fetchDeployFormats → AgentDeployService #285, deployImport → AgentGraphService 本批次)。
@@ -2045,6 +1952,10 @@ final class AgentBridge: ObservableObject {
     }
 
     // MARK: - Team Operations
+    // ARCH-1: teamOrchestrate/fetchSwarmAgents/teamSwarmRegister/teamSwarmDelegate/teamSwarmStats/
+    //   fetchPlazaChannels/teamPlazaCreate/teamPlazaBroadcast 抽至 AgentTeamService.swift facade extension。
+    //   叶 silo: 0 private static, 0 lastError。Register/Create 调 await fetch* (同域 extension 内可达)。
+    //   @Published swarmAgents/plazaChannels 留主类 (有外部读)。
 
     @Published var swarmAgents: [[String: Any]] = []
     @Published var plazaChannels: [[String: Any]] = []
@@ -2052,62 +1963,6 @@ final class AgentBridge: ObservableObject {
     @Published var hooks: [[String: Any]] = []
     @Published var tasks: [TaskModel] = []
     @Published var projects: [ProjectBucket] = []
-
-    func teamOrchestrate(task: String, agentIds: [String], mode: String = "sequential") async throws -> [String: Any] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        return try await client.teamOrchestrate(task: task, agentIds: agentIds, mode: mode)
-    }
-
-    func fetchSwarmAgents() async {
-        guard let client = ipcClient else { return }
-        do {
-            let result = try await client.teamSwarmAgents()
-            self.swarmAgents = result["agents"] as? [[String: Any]] ?? []
-            logger.info("Fetched \(self.swarmAgents.count) swarm agents")
-        } catch {
-            logger.debug("fetchSwarmAgents failed: \(error.localizedDescription)")
-        }
-    }
-
-    func teamSwarmRegister(agentId: String, role: String = "worker") async throws -> [String: Any] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        let result = try await client.teamSwarmRegister(agentId: agentId, role: role)
-        await fetchSwarmAgents()
-        return result
-    }
-
-    func teamSwarmDelegate(agentId: String, task: String) async throws -> [String: Any] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        return try await client.teamSwarmDelegate(agentId: agentId, task: task)
-    }
-
-    func teamSwarmStats() async throws -> [String: Any] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        return try await client.teamSwarmStats()
-    }
-
-    func fetchPlazaChannels() async {
-        guard let client = ipcClient else { return }
-        do {
-            let result = try await client.teamPlazaChannels()
-            self.plazaChannels = result["channels"] as? [[String: Any]] ?? []
-            logger.info("Fetched \(self.plazaChannels.count) plaza channels")
-        } catch {
-            logger.debug("fetchPlazaChannels failed: \(error.localizedDescription)")
-        }
-    }
-
-    func teamPlazaCreate(name: String, description: String = "") async throws -> [String: Any] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        let result = try await client.teamPlazaCreate(name: name, description: description)
-        await fetchPlazaChannels()
-        return result
-    }
-
-    func teamPlazaBroadcast(channelId: String, message: String) async throws -> [String: Any] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        return try await client.teamPlazaBroadcast(channelId: channelId, message: message)
-    }
 
     // MARK: - Task Operations
 
