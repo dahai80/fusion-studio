@@ -458,7 +458,7 @@ final class AgentBridge: ObservableObject {
                 let (_, resp) = try await URLSession.shared.data(for: req)
                 let code = (resp as? HTTPURLResponse)?.statusCode ?? -1
                 if code == 200 {
-                    await MainActor.run { cfg.mlxApiKey = key }
+                    cfg.mlxApiKey = key
                     logger.info("selfHealApiKey: persisted key (len \(key.count)) to user-settings (resolved key was invalid)")
                     return true
                 }
@@ -1176,7 +1176,7 @@ final class AgentBridge: ObservableObject {
             do {
                 let (_, resp) = try await URLSession.shared.data(for: req)
                 if (resp as? HTTPURLResponse)?.statusCode == 200 {
-                    await MainActor.run { cfg.mlxApiKey = key }
+                    cfg.mlxApiKey = key
                     logger.info("infer selfHeal: persisted key (len \(key.count))")
                     return key
                 }
@@ -2569,10 +2569,8 @@ final class AgentBridge: ObservableObject {
             for d in raw {
                 if let t = TaskModel(backendDict: d) { parsed.append(t) }
             }
-            await MainActor.run {
-                self.tasks = parsed
-                logger.info("fetchTasks: \(parsed.count) backend tasks")
-            }
+            self.tasks = parsed
+            logger.info("fetchTasks: \(parsed.count) backend tasks")
         } catch {
             logger.warning("fetchTasks failed: \(error.localizedDescription)")
         }
@@ -2588,10 +2586,8 @@ final class AgentBridge: ObservableObject {
             for d in raw {
                 if let b = ProjectBucket(backendDict: d) { parsed.append(b) }
             }
-            await MainActor.run {
-                self.projects = parsed
-                logger.info("fetchProjects: \(parsed.count) projects")
-            }
+            self.projects = parsed
+            logger.info("fetchProjects: \(parsed.count) projects")
         } catch {
             logger.warning("fetchProjects failed: \(error.localizedDescription)")
         }
@@ -2652,14 +2648,12 @@ final class AgentBridge: ObservableObject {
               let saved = TaskModel(backendDict: taskDict) else {
             throw BridgeError.decodeError("task.submit missing task field")
         }
-        await MainActor.run {
-            if let idx = self.taskIndex(saved.id) {
-                self.tasks[idx] = saved
-            } else {
-                self.tasks.append(saved)
-            }
-            logger.info("taskSubmit: id=\(saved.id) title=\(title) trigger=\(trigger.rawValue) cron_job=\(saved.cronJobId)")
+        if let idx = self.taskIndex(saved.id) {
+            self.tasks[idx] = saved
+        } else {
+            self.tasks.append(saved)
         }
+        logger.info("taskSubmit: id=\(saved.id) title=\(title) trigger=\(trigger.rawValue) cron_job=\(saved.cronJobId)")
         return saved
     }
 
@@ -2696,59 +2690,53 @@ final class AgentBridge: ObservableObject {
                 }
                 try Task.checkCancellation()
                 let summary = summarizeEvents(eventsParsed)
-                await MainActor.run {
-                    self.updateTask(taskId) { t in
-                        t.status = .completed
-                        t.events = eventsParsed
-                        t.lastResult = summary
-                        t.sessionId = sessionId
-                        t.lastRunAt = Date()
-                    }
-                    self.taskRunHandles.removeValue(forKey: taskId)
-                    logger.info("taskExecuteImmediate done: id=\(taskId) events=\(eventsParsed.count)")
+                self.updateTask(taskId) { t in
+                    t.status = .completed
+                    t.events = eventsParsed
+                    t.lastResult = summary
+                    t.sessionId = sessionId
+                    t.lastRunAt = Date()
                 }
+                self.taskRunHandles.removeValue(forKey: taskId)
+                logger.info("taskExecuteImmediate done: id=\(taskId) events=\(eventsParsed.count)")
                 self.reportTaskStatus(taskId, status: "completed", lastResult: ["summary": summary, "events": eventsParsed.count])
             } catch is CancellationError {
-                await MainActor.run {
-                    self.updateTask(taskId) { t in
-                        if t.status != .completed { t.status = .cancelled }
-                    }
-                    logger.info("taskExecuteImmediate cancelled: id=\(taskId)")
+                self.updateTask(taskId) { t in
+                    if t.status != .completed { t.status = .cancelled }
                 }
+                logger.info("taskExecuteImmediate cancelled: id=\(taskId)")
             } catch {
-                await MainActor.run {
-                    self.updateTask(taskId) { t in
-                        t.lastError = error.localizedDescription
-                        t.lastRunAt = Date()
-                        t.retryCount += 1
-                    }
-                    // BUG-3: 旧实现 self.taskIndex(taskId) ?? 0 在任务已被删除时回退到下标 0,
-                    // 误读另一条任务的 retryCount/maxRetries -> 用错任务的重试预算决定本任务去留,
-                    // 甚至对已删任务继续递归 taskExecuteImmediate (retryCount 永远 <= maxRetries 时死循环)。
-                    // 修正: 任务已删 (taskIndex nil) 即早退, 不再读错行也不递归。
-                    guard let idx = self.taskIndex(taskId) else {
-                        logger.warning("taskExecuteImmediate catch: 任务已删除, 放弃 retry id=\(taskId)")
-                        return
-                    }
-                    let cur = self.tasks[idx]
-                    // ARCH-2: retry 上限收紧 + 退避, 防 maxRetries 过大时高频重试风暴。
-                    // retryCount 已 +1, 仅当未超 maxRetries 才重排; 退避 1s 避免立即重试打满后端。
-                    if cur.retryCount <= cur.maxRetries {
-                        self.updateTask(taskId) { t in t.status = .queued }
-                        logger.warning("taskExecuteImmediate retry: id=\(taskId) retryCount=\(cur.retryCount)/\(cur.maxRetries)")
-                        Task {
-                            try? await Task.sleep(nanoseconds: 1_000_000_000)
-                            if Task.isCancelled {
-                                logger.info("taskExecuteImmediate retry cancelled: id=\(taskId)")
-                                return
-                            }
-                            await MainActor.run { self.taskExecuteImmediate(taskId) }
+                self.updateTask(taskId) { t in
+                    t.lastError = error.localizedDescription
+                    t.lastRunAt = Date()
+                    t.retryCount += 1
+                }
+                // BUG-3: 旧实现 self.taskIndex(taskId) ?? 0 在任务已被删除时回退到下标 0,
+                // 误读另一条任务的 retryCount/maxRetries -> 用错任务的重试预算决定本任务去留,
+                // 甚至对已删任务继续递归 taskExecuteImmediate (retryCount 永远 <= maxRetries 时死循环)。
+                // 修正: 任务已删 (taskIndex nil) 即早退, 不再读错行也不递归。
+                guard let idx = self.taskIndex(taskId) else {
+                    logger.warning("taskExecuteImmediate catch: 任务已删除, 放弃 retry id=\(taskId)")
+                    return
+                }
+                let cur = self.tasks[idx]
+                // ARCH-2: retry 上限收紧 + 退避, 防 maxRetries 过大时高频重试风暴。
+                // retryCount 已 +1, 仅当未超 maxRetries 才重排; 退避 1s 避免立即重试打满后端。
+                if cur.retryCount <= cur.maxRetries {
+                    self.updateTask(taskId) { t in t.status = .queued }
+                    logger.warning("taskExecuteImmediate retry: id=\(taskId) retryCount=\(cur.retryCount)/\(cur.maxRetries)")
+                    Task {
+                        try? await Task.sleep(nanoseconds: 1_000_000_000)
+                        if Task.isCancelled {
+                            logger.info("taskExecuteImmediate retry cancelled: id=\(taskId)")
+                            return
                         }
-                    } else {
-                        self.updateTask(taskId) { t in t.status = .failed }
-                        self.taskRunHandles.removeValue(forKey: taskId)
-                        logger.error("taskExecuteImmediate failed: id=\(taskId) retryCount=\(cur.retryCount) err=\(error.localizedDescription)")
+                        self.taskExecuteImmediate(taskId)
                     }
+                } else {
+                    self.updateTask(taskId) { t in t.status = .failed }
+                    self.taskRunHandles.removeValue(forKey: taskId)
+                    logger.error("taskExecuteImmediate failed: id=\(taskId) retryCount=\(cur.retryCount) err=\(error.localizedDescription)")
                 }
                 self.reportTaskStatus(taskId, status: "failed", lastError: error.localizedDescription)
             }
@@ -2765,10 +2753,8 @@ final class AgentBridge: ObservableObject {
         Task {
             do {
                 _ = try await client.taskDelete(taskId: taskId)
-                await MainActor.run {
-                    self.tasks.removeAll { $0.id == taskId }
-                    logger.info("taskDelete: id=\(taskId) deleted via RPC")
-                }
+                self.tasks.removeAll { $0.id == taskId }
+                logger.info("taskDelete: id=\(taskId) deleted via RPC")
             } catch {
                 logger.error("taskDelete failed: id=\(taskId) err=\(error.localizedDescription)")
             }
@@ -2780,10 +2766,8 @@ final class AgentBridge: ObservableObject {
         do {
             let resp = try await client.taskAddArtifacts(taskId: taskId, artifactIds: artifactIds)
             let aids = resp["artifact_ids"] as? [String] ?? []
-            await MainActor.run {
-                self.updateTask(taskId) { t in t.artifactIds = aids }
-                logger.info("taskAddArtifacts: id=\(taskId) +\(artifactIds.count) -> \(aids.count)")
-            }
+            self.updateTask(taskId) { t in t.artifactIds = aids }
+            logger.info("taskAddArtifacts: id=\(taskId) +\(artifactIds.count) -> \(aids.count)")
         } catch {
             logger.error("taskAddArtifacts failed: id=\(taskId) err=\(error.localizedDescription)")
         }
@@ -2793,10 +2777,8 @@ final class AgentBridge: ObservableObject {
         guard let client = ipcClient else { return }
         do {
             _ = try await client.taskCancel(taskId: taskId)
-            await MainActor.run {
-                self.updateTask(taskId) { t in t.status = .cancelled }
-                logger.info("taskCancel: id=\(taskId)")
-            }
+            self.updateTask(taskId) { t in t.status = .cancelled }
+            logger.info("taskCancel: id=\(taskId)")
         } catch {
             logger.error("taskCancel failed: id=\(taskId) err=\(error.localizedDescription)")
         }
@@ -2807,12 +2789,10 @@ final class AgentBridge: ObservableObject {
         do {
             let result = try await client.taskRerun(taskId: taskId)
             if let d = result["task"] as? [String: Any], let updated = TaskModel(backendDict: d) {
-                await MainActor.run {
-                    if let idx = self.taskIndex(taskId) {
-                        self.tasks[idx] = updated
-                    }
-                    logger.info("taskRerun: id=\(taskId)")
+                if let idx = self.taskIndex(taskId) {
+                    self.tasks[idx] = updated
                 }
+                logger.info("taskRerun: id=\(taskId)")
                 // rerun 重置为 pending, 前端立即执行 immediate 触发.
                 taskExecuteImmediate(taskId)
             }
@@ -2855,20 +2835,16 @@ final class AgentBridge: ObservableObject {
                 let jobId = result["id"] as? String
                     ?? (result["job"] as? [String: Any])?["id"] as? String
                     ?? ""
-                await MainActor.run {
-                    self.updateTask(taskId) { t in
-                        t.cronJobId = jobId
-                    }
-                    logger.info("taskScheduleCron registered: id=\(taskId) cron_job=\(jobId)")
+                self.updateTask(taskId) { t in
+                    t.cronJobId = jobId
                 }
+                logger.info("taskScheduleCron registered: id=\(taskId) cron_job=\(jobId)")
             } catch {
-                await MainActor.run {
-                    self.updateTask(taskId) { t in
-                        t.status = .failed
-                        t.lastError = error.localizedDescription
-                    }
-                    logger.error("taskScheduleCron failed: id=\(taskId) err=\(error.localizedDescription)")
+                self.updateTask(taskId) { t in
+                    t.status = .failed
+                    t.lastError = error.localizedDescription
                 }
+                logger.error("taskScheduleCron failed: id=\(taskId) err=\(error.localizedDescription)")
             }
         }
     }
@@ -2898,20 +2874,16 @@ final class AgentBridge: ObservableObject {
                 let jobId = result["id"] as? String
                     ?? (result["job"] as? [String: Any])?["id"] as? String
                     ?? ""
-                await MainActor.run {
-                    self.updateTask(taskId) { t in
-                        t.cronJobId = jobId
-                    }
-                    logger.info("taskScheduleRunAt registered: id=\(taskId) cron_job=\(jobId)")
+                self.updateTask(taskId) { t in
+                    t.cronJobId = jobId
                 }
+                logger.info("taskScheduleRunAt registered: id=\(taskId) cron_job=\(jobId)")
             } catch {
-                await MainActor.run {
-                    self.updateTask(taskId) { t in
-                        t.status = .failed
-                        t.lastError = error.localizedDescription
-                    }
-                    logger.error("taskScheduleRunAt failed: id=\(taskId) err=\(error.localizedDescription)")
+                self.updateTask(taskId) { t in
+                    t.status = .failed
+                    t.lastError = error.localizedDescription
                 }
+                logger.error("taskScheduleRunAt failed: id=\(taskId) err=\(error.localizedDescription)")
             }
         }
     }
