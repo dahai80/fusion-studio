@@ -1583,27 +1583,31 @@ struct GitStatusView: View {
 
     private func loadGitChanges() {
         guard let root = workspace.projectRoot else { changes = []; return }
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
-        process.arguments = ["status", "--porcelain"]
-        process.currentDirectoryURL = root
+        // PERF-6: git status --porcelain + waitUntilExit 原同步跑主线程, 大仓 waitUntilExit 阻塞 UI。移后台 Task.detached 跑进程, 仅解析结果回 MainActor 赋值。BUG-12 同类: 不在 wait 后读 stderr, 本处 stderr 已 null, stdout readDataToEndOfFile 在进程退出后非阻塞返回。
+        Task.detached { [root] in
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+            process.arguments = ["status", "--porcelain"]
+            process.currentDirectoryURL = root
 
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = FileHandle.nullDevice
+            let pipe = Pipe()
+            process.standardOutput = pipe
+            process.standardError = FileHandle.nullDevice
 
-        do {
-            try process.run()
-            process.waitUntilExit()
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            let output = String(data: data, encoding: .utf8) ?? ""
-            changes = output.split(separator: "\n").compactMap { line in
-                let parts = String(line).split(separator: " ", maxSplits: 1)
-                guard parts.count == 2 else { return nil }
-                return (String(parts[1]), String(parts[0]).trimmingCharacters(in: .whitespaces))
+            do {
+                try process.run()
+                process.waitUntilExit()
+                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                let output = String(data: data, encoding: .utf8) ?? ""
+                let parsed = output.split(separator: "\n").compactMap { line -> (String, String)? in
+                    let parts = String(line).split(separator: " ", maxSplits: 1)
+                    guard parts.count == 2 else { return nil }
+                    return (String(parts[1]), String(parts[0]).trimmingCharacters(in: .whitespaces))
+                }
+                await MainActor.run { self.changes = parsed }
+            } catch {
+                await MainActor.run { self.changes = [] }
             }
-        } catch {
-            changes = []
         }
     }
 }
