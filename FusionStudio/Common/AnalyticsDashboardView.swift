@@ -20,7 +20,19 @@ struct AnalyticsMetric: Identifiable {
     let color: Color
     let detail: String
 
-    enum Trend: String { case up = "上升", down = "下降", stable = "持平" }
+    enum Trend: String {
+        case up = "up"
+        case down = "down"
+        case stable = "stable"
+
+        var localizedName: String {
+            switch self {
+            case .up: return I18nManager.shared.t(.anl_trend_up)
+            case .down: return I18nManager.shared.t(.anl_trend_down)
+            case .stable: return I18nManager.shared.t(.anl_trend_stable)
+            }
+        }
+    }
 }
 
 struct AnalyticsChartPoint: Identifiable {
@@ -44,10 +56,19 @@ class AnalyticsEngine: ObservableObject {
     @Published var isRefreshing = false
 
     enum TimeRange: String, CaseIterable {
-        case day   = "24小时"
-        case week  = "7天"
-        case month = "30天"
-        case quarter = "90天"
+        case day
+        case week
+        case month
+        case quarter
+
+        var localizedName: String {
+            switch self {
+            case .day:     return I18nManager.shared.t(.anl_range_day)
+            case .week:    return I18nManager.shared.t(.anl_range_week)
+            case .month:   return I18nManager.shared.t(.anl_range_month)
+            case .quarter: return I18nManager.shared.t(.anl_range_quarter)
+            }
+        }
     }
 
     init() {
@@ -81,25 +102,34 @@ struct AnalyticsDashboardView: View {
     @Environment(\.studioTheme) private var theme
 
     enum AnalyticsTab: String, CaseIterable {
-        case overview  = "概览"
-        case usage     = "使用分析"
-        case inference = "推理分析"
-        case errors    = "错误分析"
+        case overview
+        case usage
+        case inference
+        case errors
+
+        var localizedName: String {
+            switch self {
+            case .overview:  return I18nManager.shared.t(.anl_tab_overview)
+            case .usage:     return I18nManager.shared.t(.anl_tab_usage)
+            case .inference: return I18nManager.shared.t(.anl_tab_inference)
+            case .errors:    return I18nManager.shared.t(.anl_tab_errors)
+            }
+        }
     }
 
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Label("分析仪表盘", systemImage: "chart.bar.xaxis").font(.headline)
+                Label(I18nManager.shared.t(.anl_title), systemImage: "chart.bar.xaxis").font(.headline)
                 Spacer()
-                Picker("时间范围", selection: $analytics.selectedTimeRange) {
+                Picker(I18nManager.shared.t(.anl_pick_time_range), selection: $analytics.selectedTimeRange) {
                     ForEach(AnalyticsEngine.TimeRange.allCases, id: \.self) { range in
-                        Text(range.rawValue).tag(range)
+                        Text(range.localizedName).tag(range)
                     }
                 }
                 .pickerStyle(.menu).frame(width: 100)
                 Button(action: { analytics.refresh() }) {
-                    Label("刷新", systemImage: "arrow.clockwise")
+                    Label(I18nManager.shared.t(.anl_btn_refresh), systemImage: "arrow.clockwise")
                 }
                 .buttonStyle(.bordered).controlSize(.small)
                 .disabled(analytics.isRefreshing)
@@ -111,13 +141,13 @@ struct AnalyticsDashboardView: View {
 
             Picker("", selection: $selectedTab) {
                 ForEach(AnalyticsTab.allCases, id: \.self) { tab in
-                    Label(tab.rawValue, systemImage: tabIcon(tab)).tag(tab)
+                    Label(tab.localizedName, systemImage: tabIcon(tab)).tag(tab)
                 }
             }
             .pickerStyle(.segmented).padding(8)
 
             if analytics.isRefreshing {
-                ProgressView("刷新中...").padding()
+                ProgressView(I18nManager.shared.t(.anl_refreshing)).padding()
                 Spacer()
             } else {
                 switch selectedTab {
@@ -180,9 +210,9 @@ struct UsageTab: View {
 
     var body: some View {
         List {
-            Section("模块使用排行") {
+            Section(I18nManager.shared.t(.anl_sec_module_ranking)) {
                 if analytics.moduleUsage.isEmpty {
-                    Text("暂无模块使用数据")
+                    Text(I18nManager.shared.t(.anl_empty_module_usage))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -190,7 +220,7 @@ struct UsageTab: View {
                 }
             }
 
-            Section("使用趋势") {
+            Section(I18nManager.shared.t(.anl_sec_usage_trend)) {
                 SimpleChartView(data: analytics.moduleUsage, color: .blue)
                     .frame(height: 150)
             }
@@ -205,9 +235,9 @@ struct InferenceTab: View {
 
     var body: some View {
         List {
-            Section("推理统计") {
+            Section(I18nManager.shared.t(.anl_sec_inference_stats)) {
                 if analytics.inferenceVolume.isEmpty {
-                    Text("暂无推理统计数据")
+                    Text(I18nManager.shared.t(.anl_empty_inference_stats))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -215,7 +245,7 @@ struct InferenceTab: View {
                 }
             }
 
-            Section("请求趋势") {
+            Section(I18nManager.shared.t(.anl_sec_request_trend)) {
                 SimpleChartView(data: analytics.inferenceVolume, color: .orange)
                     .frame(height: 150)
             }
@@ -230,9 +260,9 @@ struct ErrorsTab: View {
 
     var body: some View {
         List {
-            Section("错误分布") {
+            Section(I18nManager.shared.t(.anl_sec_error_dist)) {
                 if analytics.errorRate.isEmpty {
-                    Text("暂无错误数据")
+                    Text(I18nManager.shared.t(.anl_empty_error_data))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -240,17 +270,17 @@ struct ErrorsTab: View {
                 }
             }
 
-            Section("错误率趋势") {
+            Section(I18nManager.shared.t(.anl_sec_error_rate_trend)) {
                 SimpleChartView(data: analytics.errorRate, color: .red)
                     .frame(height: 150)
             }
 
-            Section("建议") {
+            Section(I18nManager.shared.t(.anl_sec_suggestions)) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Label("增加超时时间到 60s", systemImage: "clock")
-                    Label("升级到更高量化精度减少内存", systemImage: "arrow.up.circle")
-                    Label("确保 fusion-mlx 服务已启动", systemImage: "bolt")
-                    Label("设置合理的上下文长度限制", systemImage: "doc.text")
+                    Label(I18nManager.shared.t(.anl_suggest_timeout), systemImage: "clock")
+                    Label(I18nManager.shared.t(.anl_suggest_quant), systemImage: "arrow.up.circle")
+                    Label(I18nManager.shared.t(.anl_suggest_mlx_service), systemImage: "bolt")
+                    Label(I18nManager.shared.t(.anl_suggest_context_len), systemImage: "doc.text")
                 }
                 .font(.subheadline)
             }
@@ -320,26 +350,26 @@ struct ReportExportView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            GroupBox("导出分析报告") {
+            GroupBox(I18nManager.shared.t(.anl_export_title)) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("导出当前分析数据为报告文件，包含所有指标和图表数据。")
+                    Text(I18nManager.shared.t(.anl_export_desc))
                         .font(.subheadline).foregroundColor(.secondary)
 
                     HStack(spacing: 12) {
                         Button(action: exportJSON) {
-                            Label("导出 JSON", systemImage: "curlybraces")
+                            Label(I18nManager.shared.t(.anl_export_json), systemImage: "curlybraces")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
 
                         Button(action: exportCSV) {
-                            Label("导出 CSV", systemImage: "tablecells")
+                            Label(I18nManager.shared.t(.anl_export_csv), systemImage: "tablecells")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
 
                         Button(action: exportPDF) {
-                            Label("导出 PDF", systemImage: "doc.viewfinder")
+                            Label(I18nManager.shared.t(.anl_export_pdf), systemImage: "doc.viewfinder")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)
@@ -350,7 +380,7 @@ struct ReportExportView: View {
             .padding(.horizontal)
 
             if showExportSuccess {
-                Label("报告已导出到桌面", systemImage: "checkmark.circle.fill")
+                Label(I18nManager.shared.t(.anl_export_success), systemImage: "checkmark.circle.fill")
                     .foregroundColor(.green)
             }
 
