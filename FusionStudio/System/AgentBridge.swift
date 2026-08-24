@@ -1854,12 +1854,12 @@ final class AgentBridge: ObservableObject {
 
     @Published var swarmAgents: [[String: Any]] = []
     @Published var plazaChannels: [[String: Any]] = []
-    @Published var cronJobs: [[String: Any]] = []
-    @Published var hooks: [[String: Any]] = []
-    @Published var tasks: [TaskModel] = []
-    @Published var projects: [ProjectBucket] = []
 
     // MARK: - Task Operations
+    // @Published tasks/projects 留此 (extension 不可声明存储, 有外部 SwiftUI 读 TaskQueueView/ProjectsPanel)。
+
+    @Published var tasks: [TaskModel] = []
+    @Published var projects: [ProjectBucket] = []
 
     // 从后端 task.list 拉取持久化任务. 后端 5 态 → 前端 7 态.
     func fetchTasks() async {
@@ -2222,6 +2222,9 @@ final class AgentBridge: ObservableObject {
     }
 
     // MARK: - Cron Operations
+    // @Published cronJobs 留此 (extension 不可声明存储, 有外部 SwiftUI 读 TaskQueueView cron 区)。
+
+    @Published var cronJobs: [[String: Any]] = []
 
     func fetchCronJobs() async {
         guard let client = ipcClient else { return }
@@ -2250,7 +2253,9 @@ final class AgentBridge: ObservableObject {
 
     // MARK: - Hooks Operations
     // ARCH-1: fetchHooks/hooksRegister/hooksTest 抽至 AgentHooksService.swift facade extension。
-    // 本域最薄叶 silo: 0 private 静态依赖, 0 lastError 写, 0 跨域调用。@Published hooks (L2111) 留主类 (有外部读)。
+    // 本域最薄叶 silo: 0 private 静态依赖, 0 lastError 写, 0 跨域调用。@Published hooks 留主类 (有外部读)。
+
+    @Published var hooks: [[String: Any]] = []
 
     // MARK: - Context Operations
     // ARCH-1: contextCompact/contextUsage 抽至 AgentContextService.swift facade extension。本域最简单: 2 薄透传, 0 @Published, 0 private 静态依赖。
