@@ -2241,100 +2241,9 @@ final class AgentBridge: ObservableObject {
     @Published var alerts: [[String: Any]] = []
 
     // MARK: - Marketplace Operations
-
-    func marketplaceSearch(query: String = "", category: String = "", tags: [String] = []) async throws -> [MarketplaceEntryModel] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        do {
-            let result = try await client.marketplaceSearch(query: query, category: category, tags: tags)
-            let entriesData = result["entries"] as? [[String: Any]] ?? []
-            var parsed: [MarketplaceEntryModel] = []
-            for e in entriesData {
-                if let entry = Self.parseMarketplaceEntry(from: e) {
-                    parsed.append(entry)
-                }
-            }
-            self.marketplaceEntries = parsed
-            logger.info("marketplaceSearch: found \(parsed.count) entries")
-            return parsed
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            throw bridgeErr
-        }
-    }
-
-    func marketplaceGet(entryId: String) async throws -> MarketplaceEntryModel {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        do {
-            let result = try await client.marketplaceGet(entryId: entryId)
-            guard let entry = Self.parseMarketplaceEntry(from: result) else {
-                throw BridgeError.decodeError("Failed to parse marketplace.get response")
-            }
-            return entry
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            throw bridgeErr
-        }
-    }
-
-    func marketplacePublish(name: String, author: String = "", description: String = "", category: String = "", tags: [String] = [], version: String = "1.0.0", graphData: [String: Any] = [:]) async throws -> MarketplaceEntryModel {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        logger.info("marketplacePublish: name=\(name)")
-        do {
-            let result = try await client.marketplacePublish(name: name, author: author, description: description, category: category, tags: tags, version: version, graphData: graphData)
-            guard let entry = Self.parseMarketplaceEntry(from: result) else {
-                throw BridgeError.decodeError("Failed to parse marketplace.publish response")
-            }
-            return entry
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            throw bridgeErr
-        }
-    }
-
-    func marketplaceUninstall(entryId: String) async throws -> Bool {
-        guard let client = ipcClient else {
-            throw BridgeError.notConnected
-        }
-        logger.info("marketplaceUninstall: \(entryId)")
-        do {
-            let result = try await client.call(method: "marketplace.uninstall", params: ["entry_id": entryId]) as [String: Any]
-            return result["success"] as? Bool ?? false
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            logger.error("marketplaceUninstall: \(error)")
-            throw bridgeErr
-        }
-    }
-
-    func marketplaceUnpublish(entryId: String) async throws -> Bool {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        do {
-            let result = try await client.marketplaceUnpublish(entryId: entryId)
-            return result["unpublished"] as? Bool ?? true
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            throw bridgeErr
-        }
-    }
-
-    func fetchMarketplaceCategories() async throws -> [String] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        do {
-            let result = try await client.marketplaceListCategories()
-            let categories = result["categories"] as? [String] ?? []
-            self.marketplaceCategories = categories
-            return categories
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            throw bridgeErr
-        }
-    }
+    // ARCH-1: 6 Marketplace 方法 (marketplaceSearch/Get/Publish/Uninstall/Unpublish/fetchMarketplaceCategories) + parseMarketplaceEntry
+    // 抽至 AgentMarketplaceService.swift facade extension。marketplaceInstall 留此: 依赖 Self.parseAgentModel (cross-domain private static 跨文件不可访问) + 写共享 agents 数组, 待 Agent/Graph 域整批同迁。
+    // @Published marketplaceEntries/marketplaceCategories 留此 (extension 不可声明存储, marketplaceEntries 有外部 SwiftUI 读 TemplateMarketView)。
 
     func marketplaceInstall(entryId: String) async throws -> AgentModel {
         guard let client = ipcClient else { throw BridgeError.notConnected }
@@ -3064,25 +2973,7 @@ final class AgentBridge: ObservableObject {
         )
     }
 
-    private static func parseMarketplaceEntry(from dict: [String: Any]) -> MarketplaceEntryModel? {
-        guard let entryId = dict["entry_id"] as? String ?? dict["id"] as? String,
-              let name = dict["name"] as? String else {
-            return nil
-        }
-        return MarketplaceEntryModel(
-            id: entryId,
-            name: name,
-            author: dict["author"] as? String ?? "",
-            description: dict["description"] as? String ?? "",
-            category: dict["category"] as? String ?? "",
-            tags: dict["tags"] as? [String] ?? [],
-            version: dict["version"] as? String ?? "1.0.0",
-            rating: dict["rating"] as? Double ?? 0.0,
-            downloads: dict["downloads"] as? Int ?? 0,
-            created_at: dict["created_at"] as? String ?? "",
-            updated_at: dict["updated_at"] as? String ?? ""
-        )
-    }
+    // ARCH-1: parseMarketplaceEntry (marketplace-specific private static) 抽至 AgentMarketplaceService.swift, 仅 3 调用方全在该 extension。
 
     // ARCH-2: 对象销毁取消所有逃逸执行 Task, 防 bridge 释放后后台 Task 仍持 self 写 @Published。
     // taskRunHandles 声明 nonisolated(unsafe), deinit (nonisolated) 可遍历 cancel。
