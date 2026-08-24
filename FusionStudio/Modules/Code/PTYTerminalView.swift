@@ -35,7 +35,20 @@ class PTYSession: ObservableObject {
         let p = Process()
         p.executableURL = URL(fileURLWithPath: shell)
         p.currentDirectoryURL = URL(fileURLWithPath: cwd)
-        p.environment = ProcessInfo.processInfo.environment.merging([
+        // HIGH-5: 终端是面向用户的交互 shell, 不应继承 app 机密环境。
+        // 旧实现直接传 ProcessInfo.processInfo.environment, 含 FUSION_MLX_API_KEY 等密钥 ->
+        // 用户敲 env 即明文看到上游服务密钥, 经终端历史/录屏/分享外泄 (动态泄漏, HIGH-2 是静态)。
+        // 修正: spawn 前剥离敏感环境键 (*_API_KEY/*_TOKEN/*SECRET*/*_PASSWORD/API_KEY/TOKEN),
+        // 保留终端所需的 PATH/HOME/LANG/TERM 等 shell 变量。不剥离最小集以免破坏用户 shell 配置。
+        let filteredEnv = ProcessInfo.processInfo.environment.filter { kv in
+            let key = kv.key.uppercased()
+            if key.contains("API_KEY") || key.contains("TOKEN") || key.contains("SECRET") || key.contains("PASSWORD") {
+                ptyLog.info("PTY spawn 剥离敏感环境键: \(kv.key, privacy: .public)")
+                return false
+            }
+            return true
+        }
+        p.environment = filteredEnv.merging([
             "TERM": "xterm-256color",
             "COLORTERM": "truecolor",
             "COLUMNS": "120",
