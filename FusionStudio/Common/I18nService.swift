@@ -4738,6 +4738,41 @@ enum I18nKey: String, CaseIterable {
     case ops_log_service_restart_done = "ops_log_service_restart_done"
     case ops_log_restarting_fmt = "ops_log_restarting_fmt"
     case ops_log_restart_done_fmt = "ops_log_restart_done_fmt"
+    case anl_btn_refresh = "anl_btn_refresh"
+    case anl_empty_error_data = "anl_empty_error_data"
+    case anl_empty_inference_stats = "anl_empty_inference_stats"
+    case anl_empty_module_usage = "anl_empty_module_usage"
+    case anl_export_csv = "anl_export_csv"
+    case anl_export_desc = "anl_export_desc"
+    case anl_export_json = "anl_export_json"
+    case anl_export_pdf = "anl_export_pdf"
+    case anl_export_success = "anl_export_success"
+    case anl_export_title = "anl_export_title"
+    case anl_pick_time_range = "anl_pick_time_range"
+    case anl_range_day = "anl_range_day"
+    case anl_range_month = "anl_range_month"
+    case anl_range_quarter = "anl_range_quarter"
+    case anl_range_week = "anl_range_week"
+    case anl_refreshing = "anl_refreshing"
+    case anl_sec_error_dist = "anl_sec_error_dist"
+    case anl_sec_error_rate_trend = "anl_sec_error_rate_trend"
+    case anl_sec_inference_stats = "anl_sec_inference_stats"
+    case anl_sec_module_ranking = "anl_sec_module_ranking"
+    case anl_sec_request_trend = "anl_sec_request_trend"
+    case anl_sec_suggestions = "anl_sec_suggestions"
+    case anl_sec_usage_trend = "anl_sec_usage_trend"
+    case anl_suggest_context_len = "anl_suggest_context_len"
+    case anl_suggest_mlx_service = "anl_suggest_mlx_service"
+    case anl_suggest_quant = "anl_suggest_quant"
+    case anl_suggest_timeout = "anl_suggest_timeout"
+    case anl_tab_errors = "anl_tab_errors"
+    case anl_tab_inference = "anl_tab_inference"
+    case anl_tab_overview = "anl_tab_overview"
+    case anl_tab_usage = "anl_tab_usage"
+    case anl_title = "anl_title"
+    case anl_trend_down = "anl_trend_down"
+    case anl_trend_stable = "anl_trend_stable"
+    case anl_trend_up = "anl_trend_up"
     case fc_preview = "fc_preview"
     case fc_live = "fc_live"
     case fc_html_preview_empty = "fc_html_preview_empty"
@@ -9624,6 +9659,41 @@ let zhCNTranslations: [String: String] = [
     "ops_log_service_restart_done": "服务重启完成",
     "ops_log_restarting_fmt": "正在重启 %s...",
     "ops_log_restart_done_fmt": "%s 重启完成",
+    "anl_btn_refresh": "刷新",
+    "anl_empty_error_data": "暂无错误数据",
+    "anl_empty_inference_stats": "暂无推理统计数据",
+    "anl_empty_module_usage": "暂无模块使用数据",
+    "anl_export_csv": "导出 CSV",
+    "anl_export_desc": "导出当前分析数据为报告文件，包含所有指标和图表数据。",
+    "anl_export_json": "导出 JSON",
+    "anl_export_pdf": "导出 PDF",
+    "anl_export_success": "报告已导出到桌面",
+    "anl_export_title": "导出分析报告",
+    "anl_pick_time_range": "时间范围",
+    "anl_range_day": "24小时",
+    "anl_range_month": "30天",
+    "anl_range_quarter": "90天",
+    "anl_range_week": "7天",
+    "anl_refreshing": "刷新中...",
+    "anl_sec_error_dist": "错误分布",
+    "anl_sec_error_rate_trend": "错误率趋势",
+    "anl_sec_inference_stats": "推理统计",
+    "anl_sec_module_ranking": "模块使用排行",
+    "anl_sec_request_trend": "请求趋势",
+    "anl_sec_suggestions": "建议",
+    "anl_sec_usage_trend": "使用趋势",
+    "anl_suggest_context_len": "设置合理的上下文长度限制",
+    "anl_suggest_mlx_service": "确保 fusion-mlx 服务已启动",
+    "anl_suggest_quant": "升级到更高量化精度减少内存",
+    "anl_suggest_timeout": "增加超时时间到 60s",
+    "anl_tab_errors": "错误分析",
+    "anl_tab_inference": "推理分析",
+    "anl_tab_overview": "概览",
+    "anl_tab_usage": "使用分析",
+    "anl_title": "分析仪表盘",
+    "anl_trend_down": "下降",
+    "anl_trend_stable": "持平",
+    "anl_trend_up": "上升",
     "fc_preview": "预览",
     "fc_live": "实时",
     "fc_html_preview_empty": "生成HTML后此处显示预览",
@@ -14463,6 +14533,41 @@ let enUSTranslations: [String: String] = [
     "ops_log_service_restart_done": "Service restart completed",
     "ops_log_restarting_fmt": "Restarting %s...",
     "ops_log_restart_done_fmt": "%s restart completed",
+    "anl_btn_refresh": "Refresh",
+    "anl_empty_error_data": "No error data",
+    "anl_empty_inference_stats": "No inference statistics",
+    "anl_empty_module_usage": "No module usage data",
+    "anl_export_csv": "Export CSV",
+    "anl_export_desc": "Export current analytics data as a report file, including all metrics and chart data.",
+    "anl_export_json": "Export JSON",
+    "anl_export_pdf": "Export PDF",
+    "anl_export_success": "Report exported to desktop",
+    "anl_export_title": "Export Analytics Report",
+    "anl_pick_time_range": "Time Range",
+    "anl_range_day": "24 Hours",
+    "anl_range_month": "30 Days",
+    "anl_range_quarter": "90 Days",
+    "anl_range_week": "7 Days",
+    "anl_refreshing": "Refreshing...",
+    "anl_sec_error_dist": "Error Distribution",
+    "anl_sec_error_rate_trend": "Error Rate Trend",
+    "anl_sec_inference_stats": "Inference Statistics",
+    "anl_sec_module_ranking": "Module Usage Ranking",
+    "anl_sec_request_trend": "Request Trend",
+    "anl_sec_suggestions": "Suggestions",
+    "anl_sec_usage_trend": "Usage Trend",
+    "anl_suggest_context_len": "Set a reasonable context length limit",
+    "anl_suggest_mlx_service": "Ensure fusion-mlx service is started",
+    "anl_suggest_quant": "Upgrade to higher quantization precision to reduce memory",
+    "anl_suggest_timeout": "Increase timeout to 60s",
+    "anl_tab_errors": "Errors",
+    "anl_tab_inference": "Inference",
+    "anl_tab_overview": "Overview",
+    "anl_tab_usage": "Usage",
+    "anl_title": "Analytics Dashboard",
+    "anl_trend_down": "Down",
+    "anl_trend_stable": "Stable",
+    "anl_trend_up": "Up",
     "fc_preview": "Preview",
     "fc_live": "Live",
     "fc_html_preview_empty": "Preview appears here after HTML is generated",
@@ -19296,6 +19401,41 @@ let jaJPTranslations: [String: String] = [
     "ops_log_service_restart_done": "サービス再起動完了",
     "ops_log_restarting_fmt": "%s を再起動中...",
     "ops_log_restart_done_fmt": "%s 再起動完了",
+    "anl_btn_refresh": "更新",
+    "anl_empty_error_data": "エラーデータなし",
+    "anl_empty_inference_stats": "推論統計データなし",
+    "anl_empty_module_usage": "モジュール使用データなし",
+    "anl_export_csv": "CSVエクスポート",
+    "anl_export_desc": "現在の分析データをレポートファイルとしてエクスポートします。すべての指標とチャートデータを含みます。",
+    "anl_export_json": "JSONエクスポート",
+    "anl_export_pdf": "PDFエクスポート",
+    "anl_export_success": "レポートをデスクトップにエクスポートしました",
+    "anl_export_title": "分析レポートエクスポート",
+    "anl_pick_time_range": "時間範囲",
+    "anl_range_day": "24時間",
+    "anl_range_month": "30日",
+    "anl_range_quarter": "90日",
+    "anl_range_week": "7日",
+    "anl_refreshing": "更新中...",
+    "anl_sec_error_dist": "エラー分布",
+    "anl_sec_error_rate_trend": "エラー率推移",
+    "anl_sec_inference_stats": "推論統計",
+    "anl_sec_module_ranking": "モジュール使用ランキング",
+    "anl_sec_request_trend": "リクエスト推移",
+    "anl_sec_suggestions": "提案",
+    "anl_sec_usage_trend": "使用推移",
+    "anl_suggest_context_len": "適切なコンテキスト長の制限を設定",
+    "anl_suggest_mlx_service": "fusion-mlx サービスが起動していることを確認",
+    "anl_suggest_quant": "より高い量子化精度にアップグレードしてメモリを削減",
+    "anl_suggest_timeout": "タイムアウトを60秒に増やす",
+    "anl_tab_errors": "エラー分析",
+    "anl_tab_inference": "推論分析",
+    "anl_tab_overview": "概要",
+    "anl_tab_usage": "使用分析",
+    "anl_title": "分析ダッシュボード",
+    "anl_trend_down": "下降",
+    "anl_trend_stable": "横ばい",
+    "anl_trend_up": "上昇",
     "fc_preview": "プレビュー",
     "fc_live": "ライブ",
     "fc_html_preview_empty": "HTML生成後にここにプレビューが表示されます",
@@ -24129,6 +24269,41 @@ let koKRTranslations: [String: String] = [
     "ops_log_service_restart_done": "서비스 재시작 완료",
     "ops_log_restarting_fmt": "%s 재시작 중...",
     "ops_log_restart_done_fmt": "%s 재시작 완료",
+    "anl_btn_refresh": "새로고침",
+    "anl_empty_error_data": "오류 데이터 없음",
+    "anl_empty_inference_stats": "추론 통계 데이터 없음",
+    "anl_empty_module_usage": "모듈 사용 데이터 없음",
+    "anl_export_csv": "CSV 내보내기",
+    "anl_export_desc": "현재 분석 데이터를 보고서 파일로 내보냅니다. 모든 지표와 차트 데이터를 포함합니다.",
+    "anl_export_json": "JSON 내보내기",
+    "anl_export_pdf": "PDF 내보내기",
+    "anl_export_success": "보고서가 데스크톱으로 내보내졌습니다",
+    "anl_export_title": "분석 보고서 내보내기",
+    "anl_pick_time_range": "시간 범위",
+    "anl_range_day": "24시간",
+    "anl_range_month": "30일",
+    "anl_range_quarter": "90일",
+    "anl_range_week": "7일",
+    "anl_refreshing": "새로고침 중...",
+    "anl_sec_error_dist": "오류 분포",
+    "anl_sec_error_rate_trend": "오류율 추세",
+    "anl_sec_inference_stats": "추론 통계",
+    "anl_sec_module_ranking": "모듈 사용 순위",
+    "anl_sec_request_trend": "요청 추세",
+    "anl_sec_suggestions": "제안",
+    "anl_sec_usage_trend": "사용 추세",
+    "anl_suggest_context_len": "합리적인 컨텍스트 길이 제한 설정",
+    "anl_suggest_mlx_service": "fusion-mlx 서비스가 시작되었는지 확인",
+    "anl_suggest_quant": "더 높은 양자화 정밀도로 업그레이드하여 메모리 절감",
+    "anl_suggest_timeout": "타임아웃을 60초로 증가",
+    "anl_tab_errors": "오류 분석",
+    "anl_tab_inference": "추론 분석",
+    "anl_tab_overview": "개요",
+    "anl_tab_usage": "사용 분석",
+    "anl_title": "분석 대시보드",
+    "anl_trend_down": "하락",
+    "anl_trend_stable": "보합",
+    "anl_trend_up": "상승",
     "fc_preview": "미리보기",
     "fc_live": "실시간",
     "fc_html_preview_empty": "HTML 생성 후 여기에 미리보기가 표시됩니다",
