@@ -4701,6 +4701,43 @@ enum I18nKey: String, CaseIterable {
     case a11yc_sk_cat_search = "a11yc_sk_cat_search"
     case a11yc_sk_cat_operation = "a11yc_sk_cat_operation"
     case a11yc_sk_cat_help = "a11yc_sk_cat_help"
+    case ops_title = "ops_title"
+    case ops_toggle_realtime = "ops_toggle_realtime"
+    case ops_tab_dashboard = "ops_tab_dashboard"
+    case ops_tab_services = "ops_tab_services"
+    case ops_tab_alerts = "ops_tab_alerts"
+    case ops_tab_logs = "ops_tab_logs"
+    case ops_sev_info = "ops_sev_info"
+    case ops_sev_warning = "ops_sev_warning"
+    case ops_sev_critical = "ops_sev_critical"
+    case ops_status_running = "ops_status_running"
+    case ops_btn_restart = "ops_btn_restart"
+    case ops_btn_start = "ops_btn_start"
+    case ops_card_memory = "ops_card_memory"
+    case ops_card_disk = "ops_card_disk"
+    case ops_card_uptime = "ops_card_uptime"
+    case ops_card_services = "ops_card_services"
+    case ops_card_connections = "ops_card_connections"
+    case ops_card_alerts_today = "ops_card_alerts_today"
+    case ops_card_health_check = "ops_card_health_check"
+    case ops_last_triggered_fmt = "ops_last_triggered_fmt"
+    case ops_rule_cpu_overload = "ops_rule_cpu_overload"
+    case ops_rule_mem_low = "ops_rule_mem_low"
+    case ops_rule_disk_low = "ops_rule_disk_low"
+    case ops_rule_service_down = "ops_rule_service_down"
+    case ops_rule_inference_latency_high = "ops_rule_inference_latency_high"
+    case ops_metric_cpu_usage = "ops_metric_cpu_usage"
+    case ops_metric_mem_usage = "ops_metric_mem_usage"
+    case ops_metric_disk_usage = "ops_metric_disk_usage"
+    case ops_metric_service_status = "ops_metric_service_status"
+    case ops_metric_mlx_latency = "ops_metric_mlx_latency"
+    case ops_log_health_check_ok = "ops_log_health_check_ok"
+    case ops_log_inference_latency_rise = "ops_log_inference_latency_rise"
+    case ops_log_auto_backup_done = "ops_log_auto_backup_done"
+    case ops_log_inference_timeout = "ops_log_inference_timeout"
+    case ops_log_service_restart_done = "ops_log_service_restart_done"
+    case ops_log_restarting_fmt = "ops_log_restarting_fmt"
+    case ops_log_restart_done_fmt = "ops_log_restart_done_fmt"
     case fc_preview = "fc_preview"
     case fc_live = "fc_live"
     case fc_html_preview_empty = "fc_html_preview_empty"
@@ -9550,6 +9587,43 @@ let zhCNTranslations: [String: String] = [
     "a11yc_sk_cat_search": "搜索",
     "a11yc_sk_cat_operation": "操作",
     "a11yc_sk_cat_help": "帮助",
+    "ops_title": "运维中心",
+    "ops_toggle_realtime": "实时监控",
+    "ops_tab_dashboard": "运维概览",
+    "ops_tab_services": "服务管理",
+    "ops_tab_alerts": "告警规则",
+    "ops_tab_logs": "运维日志",
+    "ops_sev_info": "信息",
+    "ops_sev_warning": "警告",
+    "ops_sev_critical": "严重",
+    "ops_status_running": "运行中",
+    "ops_btn_restart": "重启",
+    "ops_btn_start": "启动",
+    "ops_card_memory": "内存",
+    "ops_card_disk": "磁盘",
+    "ops_card_uptime": "运行时间",
+    "ops_card_services": "服务数",
+    "ops_card_connections": "活跃连接",
+    "ops_card_alerts_today": "今日告警",
+    "ops_card_health_check": "健康检查",
+    "ops_last_triggered_fmt": "上次触发: %s",
+    "ops_rule_cpu_overload": "CPU 过载",
+    "ops_rule_mem_low": "内存不足",
+    "ops_rule_disk_low": "磁盘空间不足",
+    "ops_rule_service_down": "服务宕机",
+    "ops_rule_inference_latency_high": "推理延迟过高",
+    "ops_metric_cpu_usage": "CPU 使用率",
+    "ops_metric_mem_usage": "内存使用",
+    "ops_metric_disk_usage": "磁盘使用",
+    "ops_metric_service_status": "服务状态",
+    "ops_metric_mlx_latency": "MLX 延迟",
+    "ops_log_health_check_ok": "环境健康检查通过",
+    "ops_log_inference_latency_rise": "推理延迟升高 (124ms)",
+    "ops_log_auto_backup_done": "自动备份完成",
+    "ops_log_inference_timeout": "推理请求超时",
+    "ops_log_service_restart_done": "服务重启完成",
+    "ops_log_restarting_fmt": "正在重启 %s...",
+    "ops_log_restart_done_fmt": "%s 重启完成",
     "fc_preview": "预览",
     "fc_live": "实时",
     "fc_html_preview_empty": "生成HTML后此处显示预览",
@@ -14352,6 +14426,43 @@ let enUSTranslations: [String: String] = [
     "a11yc_sk_cat_search": "Search",
     "a11yc_sk_cat_operation": "Operation",
     "a11yc_sk_cat_help": "Help",
+    "ops_title": "Operations Center",
+    "ops_toggle_realtime": "Real-time Monitoring",
+    "ops_tab_dashboard": "Dashboard",
+    "ops_tab_services": "Services",
+    "ops_tab_alerts": "Alert Rules",
+    "ops_tab_logs": "Operation Logs",
+    "ops_sev_info": "Info",
+    "ops_sev_warning": "Warning",
+    "ops_sev_critical": "Critical",
+    "ops_status_running": "Running",
+    "ops_btn_restart": "Restart",
+    "ops_btn_start": "Start",
+    "ops_card_memory": "Memory",
+    "ops_card_disk": "Disk",
+    "ops_card_uptime": "Uptime",
+    "ops_card_services": "Services",
+    "ops_card_connections": "Active Connections",
+    "ops_card_alerts_today": "Alerts Today",
+    "ops_card_health_check": "Health Check",
+    "ops_last_triggered_fmt": "Last triggered: %s",
+    "ops_rule_cpu_overload": "CPU Overload",
+    "ops_rule_mem_low": "Memory Low",
+    "ops_rule_disk_low": "Disk Space Low",
+    "ops_rule_service_down": "Service Down",
+    "ops_rule_inference_latency_high": "Inference Latency High",
+    "ops_metric_cpu_usage": "CPU Usage",
+    "ops_metric_mem_usage": "Memory Usage",
+    "ops_metric_disk_usage": "Disk Usage",
+    "ops_metric_service_status": "Service Status",
+    "ops_metric_mlx_latency": "MLX Latency",
+    "ops_log_health_check_ok": "Environment health check passed",
+    "ops_log_inference_latency_rise": "Inference latency rising (124ms)",
+    "ops_log_auto_backup_done": "Auto backup completed",
+    "ops_log_inference_timeout": "Inference request timeout",
+    "ops_log_service_restart_done": "Service restart completed",
+    "ops_log_restarting_fmt": "Restarting %s...",
+    "ops_log_restart_done_fmt": "%s restart completed",
     "fc_preview": "Preview",
     "fc_live": "Live",
     "fc_html_preview_empty": "Preview appears here after HTML is generated",
@@ -19148,6 +19259,43 @@ let jaJPTranslations: [String: String] = [
     "a11yc_sk_cat_search": "検索",
     "a11yc_sk_cat_operation": "操作",
     "a11yc_sk_cat_help": "ヘルプ",
+    "ops_title": "オペレーションセンター",
+    "ops_toggle_realtime": "リアルタイム監視",
+    "ops_tab_dashboard": "ダッシュボード",
+    "ops_tab_services": "サービス管理",
+    "ops_tab_alerts": "アラートルール",
+    "ops_tab_logs": "運用ログ",
+    "ops_sev_info": "情報",
+    "ops_sev_warning": "警告",
+    "ops_sev_critical": "重大",
+    "ops_status_running": "実行中",
+    "ops_btn_restart": "再起動",
+    "ops_btn_start": "起動",
+    "ops_card_memory": "メモリ",
+    "ops_card_disk": "ディスク",
+    "ops_card_uptime": "稼働時間",
+    "ops_card_services": "サービス数",
+    "ops_card_connections": "アクティブ接続",
+    "ops_card_alerts_today": "本日のアラート",
+    "ops_card_health_check": "ヘルスチェック",
+    "ops_last_triggered_fmt": "最終トリガー: %s",
+    "ops_rule_cpu_overload": "CPU 過負荷",
+    "ops_rule_mem_low": "メモリ不足",
+    "ops_rule_disk_low": "ディスク容量不足",
+    "ops_rule_service_down": "サービスダウン",
+    "ops_rule_inference_latency_high": "推論レイテンシ高",
+    "ops_metric_cpu_usage": "CPU 使用率",
+    "ops_metric_mem_usage": "メモリ使用",
+    "ops_metric_disk_usage": "ディスク使用",
+    "ops_metric_service_status": "サービス状態",
+    "ops_metric_mlx_latency": "MLX レイテンシ",
+    "ops_log_health_check_ok": "環境ヘルスチェック通過",
+    "ops_log_inference_latency_rise": "推論レイテンシ上昇 (124ms)",
+    "ops_log_auto_backup_done": "自動バックアップ完了",
+    "ops_log_inference_timeout": "推論リクエストタイムアウト",
+    "ops_log_service_restart_done": "サービス再起動完了",
+    "ops_log_restarting_fmt": "%s を再起動中...",
+    "ops_log_restart_done_fmt": "%s 再起動完了",
     "fc_preview": "プレビュー",
     "fc_live": "ライブ",
     "fc_html_preview_empty": "HTML生成後にここにプレビューが表示されます",
@@ -23944,6 +24092,43 @@ let koKRTranslations: [String: String] = [
     "a11yc_sk_cat_search": "검색",
     "a11yc_sk_cat_operation": "작업",
     "a11yc_sk_cat_help": "도움말",
+    "ops_title": "운영 센터",
+    "ops_toggle_realtime": "실시간 모니터링",
+    "ops_tab_dashboard": "대시보드",
+    "ops_tab_services": "서비스 관리",
+    "ops_tab_alerts": "알림 규칙",
+    "ops_tab_logs": "운영 로그",
+    "ops_sev_info": "정보",
+    "ops_sev_warning": "경고",
+    "ops_sev_critical": "중대",
+    "ops_status_running": "실행 중",
+    "ops_btn_restart": "재시작",
+    "ops_btn_start": "시작",
+    "ops_card_memory": "메모리",
+    "ops_card_disk": "디스크",
+    "ops_card_uptime": "가동 시간",
+    "ops_card_services": "서비스 수",
+    "ops_card_connections": "활성 연결",
+    "ops_card_alerts_today": "오늘 알림",
+    "ops_card_health_check": "헬스 체크",
+    "ops_last_triggered_fmt": "마지막 트리거: %s",
+    "ops_rule_cpu_overload": "CPU 과부하",
+    "ops_rule_mem_low": "메모리 부족",
+    "ops_rule_disk_low": "디스크 공간 부족",
+    "ops_rule_service_down": "서비스 중단",
+    "ops_rule_inference_latency_high": "추론 지연 높음",
+    "ops_metric_cpu_usage": "CPU 사용률",
+    "ops_metric_mem_usage": "메모리 사용",
+    "ops_metric_disk_usage": "디스크 사용",
+    "ops_metric_service_status": "서비스 상태",
+    "ops_metric_mlx_latency": "MLX 지연",
+    "ops_log_health_check_ok": "환경 헬스체크 통과",
+    "ops_log_inference_latency_rise": "추론 지연 증가 (124ms)",
+    "ops_log_auto_backup_done": "자동 백업 완료",
+    "ops_log_inference_timeout": "추론 요청 시간 초과",
+    "ops_log_service_restart_done": "서비스 재시작 완료",
+    "ops_log_restarting_fmt": "%s 재시작 중...",
+    "ops_log_restart_done_fmt": "%s 재시작 완료",
     "fc_preview": "미리보기",
     "fc_live": "실시간",
     "fc_html_preview_empty": "HTML 생성 후 여기에 미리보기가 표시됩니다",
