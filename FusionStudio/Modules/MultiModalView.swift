@@ -8,12 +8,23 @@ import SwiftUI
 // MARK: - 多模态任务类型
 
 enum MultiModalTask: String, CaseIterable {
-    case textToImage = "文生图"
-    case imageToImage = "图生图"
-    case ocr = "OCR 文字识别"
-    case speechToText = "语音转文字"
-    case textToSpeech = "文字转语音"
-    case imageDescribe = "图片描述"
+    case textToImage
+    case imageToImage
+    case ocr
+    case speechToText
+    case textToSpeech
+    case imageDescribe
+
+    var localizedName: String {
+        switch self {
+        case .textToImage:   return I18nManager.shared.t(.mml_task_text_to_image)
+        case .imageToImage:  return I18nManager.shared.t(.mml_task_image_to_image)
+        case .ocr:           return I18nManager.shared.t(.mml_task_ocr)
+        case .speechToText:  return I18nManager.shared.t(.mml_task_speech_to_text)
+        case .textToSpeech:  return I18nManager.shared.t(.mml_task_text_to_speech)
+        case .imageDescribe: return I18nManager.shared.t(.mml_task_image_describe)
+        }
+    }
 
     var icon: String {
         switch self {
@@ -83,7 +94,7 @@ struct MultiModalView: View {
                 HStack(spacing: 8) {
                     ForEach(MultiModalTask.allCases, id: \.self) { task in
                         Button(action: { selectedTask = task }) {
-                            Label(task.rawValue, systemImage: task.icon)
+                            Label(task.localizedName, systemImage: task.icon)
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.small)
@@ -99,37 +110,37 @@ struct MultiModalView: View {
             HSplitView {
                 // 左侧：输入
                 VStack(spacing: 12) {
-                    GroupBox("输入") {
+                    GroupBox(I18nManager.shared.t(.mml_group_input)) {
                         VStack(alignment: .leading, spacing: 8) {
-                            Picker("模型", selection: $selectedModel) {
+                            Picker(I18nManager.shared.t(.mml_pick_model), selection: $selectedModel) {
                                 ForEach(models, id: \.self) { m in Text(m).tag(m) }
                             }
 
                             if selectedTask == .textToImage || selectedTask == .imageToImage || selectedTask == .imageDescribe {
-                                TextField("描述提示词...", text: $prompt, axis: .vertical)
+                                TextField(I18nManager.shared.t(.mml_tf_prompt), text: $prompt, axis: .vertical)
                                     .textFieldStyle(.roundedBorder)
                                     .lineLimit(3...6)
 
                                 if selectedTask == .textToImage {
-                                    TextField("负面提示词（可选）", text: $negativePrompt, axis: .vertical)
+                                    TextField(I18nManager.shared.t(.mml_tf_negative_prompt), text: $negativePrompt, axis: .vertical)
                                         .textFieldStyle(.roundedBorder)
                                         .lineLimit(2...3)
 
-                                    Picker("尺寸", selection: $imageSize) {
+                                    Picker(I18nManager.shared.t(.mml_pick_size), selection: $imageSize) {
                                         ForEach(ImageSize.allCases, id: \.self) { s in Text(s.rawValue).tag(s) }
                                     }
                                     HStack {
-                                        Text("质量: \(Int(quality))%")
+                                        Text(I18nManager.shared.tf(.mml_quality_fmt, Int(quality)))
                                         Slider(value: $quality, in: 10...100, step: 5)
                                     }
                                 }
 
                                 if selectedTask == .imageToImage || selectedTask == .imageDescribe || selectedTask == .ocr {
                                     HStack {
-                                        Button("选择图片") { }
+                                        Button(I18nManager.shared.t(.mml_btn_select_image)) { }
                                             .buttonStyle(.bordered)
                                         if selectedImageURL != nil {
-                                            Text("已选择").font(.caption).foregroundColor(.green)
+                                            Text(I18nManager.shared.t(.mml_selected)).font(.caption).foregroundColor(.green)
                                         }
                                     }
                                 }
@@ -137,15 +148,15 @@ struct MultiModalView: View {
 
                             if selectedTask == .speechToText {
                                 HStack {
-                                    Button("选择音频文件") { }
+                                    Button(I18nManager.shared.t(.mml_btn_select_audio)) { }
                                         .buttonStyle(.bordered)
-                                    Button("录制音频") { }
+                                    Button(I18nManager.shared.t(.mml_btn_record)) { }
                                         .buttonStyle(.bordered)
                                 }
                             }
 
                             if selectedTask == .textToSpeech {
-                                TextField("输入要转语音的文字...", text: $prompt, axis: .vertical)
+                                TextField(I18nManager.shared.t(.mml_tf_tts_text), text: $prompt, axis: .vertical)
                                     .textFieldStyle(.roundedBorder)
                                     .lineLimit(3...6)
                             }
@@ -153,7 +164,7 @@ struct MultiModalView: View {
                             HStack {
                                 Spacer()
                                 Button(action: generate) {
-                                    Label(isGenerating ? "生成中..." : "开始生成", systemImage: "play.fill")
+                                    Label(isGenerating ? I18nManager.shared.t(.mml_generating) : I18nManager.shared.t(.mml_btn_generate), systemImage: "play.fill")
                                         .frame(width: 120)
                                 }
                                 .buttonStyle(.borderedProminent)
@@ -187,9 +198,9 @@ struct MultiModalView: View {
                             .padding()
 
                         HStack(spacing: 8) {
-                            Button("保存到工作区") { }
+                            Button(I18nManager.shared.t(.mml_btn_save)) { }
                                 .buttonStyle(.borderedProminent)
-                            Button("复制到剪贴板") {
+                            Button(I18nManager.shared.t(.mml_btn_copy_clipboard)) {
                                 NSPasteboard.general.clearContents()
                                 NSPasteboard.general.writeObjects([image])
                             }
@@ -203,7 +214,7 @@ struct MultiModalView: View {
                                 .padding()
                         }
 
-                        Button("复制结果") {
+                        Button(I18nManager.shared.t(.mml_btn_copy_result)) {
                             NSPasteboard.general.clearContents()
                             NSPasteboard.general.setString(generatedText, forType: .string)
                         }
@@ -214,9 +225,9 @@ struct MultiModalView: View {
                             Image(systemName: selectedTask.icon)
                                 .font(.system(size: 48))
                                 .foregroundColor(selectedTask.color.opacity(0.5))
-                            Text("输入提示词并点击「开始生成」")
+                            Text(I18nManager.shared.t(.mml_empty_hint))
                                 .foregroundColor(.secondary)
-                            Text("调用 fusion-mlx \(selectedModel) 模型")
+                            Text(I18nManager.shared.tf(.mml_model_hint_fmt, selectedModel))
                                 .font(.caption).foregroundColor(.secondary)
                             Spacer()
                         }
@@ -228,7 +239,7 @@ struct MultiModalView: View {
             // 历史记录
             if !history.isEmpty {
                 Divider()
-                DisclosureGroup("生成历史 (\(history.count))") {
+                DisclosureGroup(I18nManager.shared.tf(.mml_history_fmt, history.count)) {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
                             ForEach(history.reversed()) { record in
@@ -313,7 +324,7 @@ struct MultiModalView: View {
                     request.httpBody = try JSONSerialization.data(withJSONObject: body)
                     request.timeoutInterval = 120
                     let (data, _) = try await URLSession.shared.data(for: request)
-                    await MainActor.run { self.generatedText = "音频已生成 (\(data.count) bytes)" }
+                    await MainActor.run { self.generatedText = I18nManager.shared.tf(.mml_audio_generated_fmt, data.count) }
                 case .ocr, .imageDescribe:
                     // 调用 fusion-mlx 视觉模型 API
                     let url = URL(string: FusionConfig.shared.mlxBaseURL + "/v1/chat/completions")!
@@ -322,6 +333,7 @@ struct MultiModalView: View {
                     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
                     let messages: [[String: Any]] = [
                         ["role": "user", "content": [
+                            // DEFERRED i18n: LLM prompt content (API payload, not UI) — see DesignBridge precedent
                             ["type": "text", "text": taskType == .ocr ? "请识别图片中的文字" : "请描述图片内容"],
                         ]]
                     ]
@@ -342,7 +354,7 @@ struct MultiModalView: View {
                 }
             } catch {
                 await MainActor.run {
-                    self.generatedText = "⚠️ 调用 fusion-mlx 失败: \(error.localizedDescription)\n\n请确保 fusion-mlx 服务正在运行 (\(FusionConfig.shared.mlxBaseURL))。"
+                    self.generatedText = I18nManager.shared.tf(.mml_error_fmt, error.localizedDescription, FusionConfig.shared.mlxBaseURL)
                     self.progress = 1.0
                     self.isGenerating = false
                 }
@@ -381,7 +393,7 @@ struct AudioRecorderView: View {
                 .font(.system(size: 48))
                 .foregroundColor(isRecording ? .red : .accentColor)
 
-            Text(isRecording ? "录制中..." : "点击开始录制")
+            Text(isRecording ? I18nManager.shared.t(.mml_recording) : I18nManager.shared.t(.mml_click_to_record))
                 .font(.headline)
 
             if isRecording {
@@ -390,7 +402,7 @@ struct AudioRecorderView: View {
             }
 
             Button(action: toggleRecording) {
-                Label(isRecording ? "停止录制" : "开始录制", systemImage: isRecording ? "stop.fill" : "record.circle")
+                Label(isRecording ? I18nManager.shared.t(.mml_btn_stop_record) : I18nManager.shared.t(.mml_btn_start_record), systemImage: isRecording ? "stop.fill" : "record.circle")
             }
             .buttonStyle(.borderedProminent)
             .tint(isRecording ? .red : .accentColor)
@@ -425,7 +437,7 @@ struct ImageGalleryView: View {
             if images.isEmpty {
                 VStack(spacing: 12) {
                     Image(systemName: "photo.on.rectangle").font(.system(size: 40)).foregroundColor(.secondary)
-                    Text("暂无图片").foregroundColor(.secondary)
+                    Text(I18nManager.shared.t(.mml_no_images)).foregroundColor(.secondary)
                 }
             } else {
                 TabView(selection: $selectedIndex) {
@@ -439,10 +451,10 @@ struct ImageGalleryView: View {
                 .tabViewStyle(.automatic)
 
                 HStack {
-                    Button("< 上一张") { selectedIndex = max(0, selectedIndex - 1) }
+                    Button(I18nManager.shared.t(.mml_btn_prev)) { selectedIndex = max(0, selectedIndex - 1) }
                         .disabled(selectedIndex == 0)
                     Text("\(selectedIndex + 1) / \(images.count)")
-                    Button("下一张 >") { selectedIndex = min(images.count - 1, selectedIndex + 1) }
+                    Button(I18nManager.shared.t(.mml_btn_next)) { selectedIndex = min(images.count - 1, selectedIndex + 1) }
                         .disabled(selectedIndex == images.count - 1)
                 }
             }

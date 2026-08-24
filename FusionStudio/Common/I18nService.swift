@@ -4773,6 +4773,40 @@ enum I18nKey: String, CaseIterable {
     case anl_trend_down = "anl_trend_down"
     case anl_trend_stable = "anl_trend_stable"
     case anl_trend_up = "anl_trend_up"
+    case mml_audio_generated_fmt = "mml_audio_generated_fmt"
+    case mml_btn_copy_clipboard = "mml_btn_copy_clipboard"
+    case mml_btn_copy_result = "mml_btn_copy_result"
+    case mml_btn_generate = "mml_btn_generate"
+    case mml_btn_next = "mml_btn_next"
+    case mml_btn_prev = "mml_btn_prev"
+    case mml_btn_record = "mml_btn_record"
+    case mml_btn_save = "mml_btn_save"
+    case mml_btn_select_audio = "mml_btn_select_audio"
+    case mml_btn_select_image = "mml_btn_select_image"
+    case mml_btn_start_record = "mml_btn_start_record"
+    case mml_btn_stop_record = "mml_btn_stop_record"
+    case mml_click_to_record = "mml_click_to_record"
+    case mml_empty_hint = "mml_empty_hint"
+    case mml_error_fmt = "mml_error_fmt"
+    case mml_generating = "mml_generating"
+    case mml_group_input = "mml_group_input"
+    case mml_history_fmt = "mml_history_fmt"
+    case mml_model_hint_fmt = "mml_model_hint_fmt"
+    case mml_no_images = "mml_no_images"
+    case mml_pick_model = "mml_pick_model"
+    case mml_pick_size = "mml_pick_size"
+    case mml_quality_fmt = "mml_quality_fmt"
+    case mml_recording = "mml_recording"
+    case mml_selected = "mml_selected"
+    case mml_task_image_describe = "mml_task_image_describe"
+    case mml_task_image_to_image = "mml_task_image_to_image"
+    case mml_task_ocr = "mml_task_ocr"
+    case mml_task_speech_to_text = "mml_task_speech_to_text"
+    case mml_task_text_to_image = "mml_task_text_to_image"
+    case mml_task_text_to_speech = "mml_task_text_to_speech"
+    case mml_tf_negative_prompt = "mml_tf_negative_prompt"
+    case mml_tf_prompt = "mml_tf_prompt"
+    case mml_tf_tts_text = "mml_tf_tts_text"
     case fc_preview = "fc_preview"
     case fc_live = "fc_live"
     case fc_html_preview_empty = "fc_html_preview_empty"
@@ -9694,6 +9728,40 @@ let zhCNTranslations: [String: String] = [
     "anl_trend_down": "下降",
     "anl_trend_stable": "持平",
     "anl_trend_up": "上升",
+    "mml_audio_generated_fmt": "音频已生成 (%d bytes)",
+    "mml_btn_copy_clipboard": "复制到剪贴板",
+    "mml_btn_copy_result": "复制结果",
+    "mml_btn_generate": "开始生成",
+    "mml_btn_next": "下一张 >",
+    "mml_btn_prev": "< 上一张",
+    "mml_btn_record": "录制音频",
+    "mml_btn_save": "保存到工作区",
+    "mml_btn_select_audio": "选择音频文件",
+    "mml_btn_select_image": "选择图片",
+    "mml_btn_start_record": "开始录制",
+    "mml_btn_stop_record": "停止录制",
+    "mml_click_to_record": "点击开始录制",
+    "mml_empty_hint": "输入提示词并点击「开始生成」",
+    "mml_error_fmt": "⚠️ 调用 fusion-mlx 失败: %s\n\n请确保 fusion-mlx 服务正在运行 (%s)。",
+    "mml_generating": "生成中...",
+    "mml_group_input": "输入",
+    "mml_history_fmt": "生成历史 (%d)",
+    "mml_model_hint_fmt": "调用 fusion-mlx %s 模型",
+    "mml_no_images": "暂无图片",
+    "mml_pick_model": "模型",
+    "mml_pick_size": "尺寸",
+    "mml_quality_fmt": "质量: %d%%",
+    "mml_recording": "录制中...",
+    "mml_selected": "已选择",
+    "mml_task_image_describe": "图片描述",
+    "mml_task_image_to_image": "图生图",
+    "mml_task_ocr": "OCR 文字识别",
+    "mml_task_speech_to_text": "语音转文字",
+    "mml_task_text_to_image": "文生图",
+    "mml_task_text_to_speech": "文字转语音",
+    "mml_tf_negative_prompt": "负面提示词（可选）",
+    "mml_tf_prompt": "描述提示词...",
+    "mml_tf_tts_text": "输入要转语音的文字...",
     "fc_preview": "预览",
     "fc_live": "实时",
     "fc_html_preview_empty": "生成HTML后此处显示预览",
@@ -14568,6 +14636,40 @@ let enUSTranslations: [String: String] = [
     "anl_trend_down": "Down",
     "anl_trend_stable": "Stable",
     "anl_trend_up": "Up",
+    "mml_audio_generated_fmt": "Audio generated (%d bytes)",
+    "mml_btn_copy_clipboard": "Copy to Clipboard",
+    "mml_btn_copy_result": "Copy Result",
+    "mml_btn_generate": "Start Generate",
+    "mml_btn_next": "Next >",
+    "mml_btn_prev": "< Previous",
+    "mml_btn_record": "Record Audio",
+    "mml_btn_save": "Save to Workspace",
+    "mml_btn_select_audio": "Select Audio File",
+    "mml_btn_select_image": "Select Image",
+    "mml_btn_start_record": "Start Recording",
+    "mml_btn_stop_record": "Stop Recording",
+    "mml_click_to_record": "Click to Start Recording",
+    "mml_empty_hint": "Enter a prompt and click \"Start Generate\"",
+    "mml_error_fmt": "⚠️ Failed to call fusion-mlx: %s\n\nPlease ensure the fusion-mlx service is running (%s).",
+    "mml_generating": "Generating...",
+    "mml_group_input": "Input",
+    "mml_history_fmt": "Generation History (%d)",
+    "mml_model_hint_fmt": "Calling fusion-mlx %s model",
+    "mml_no_images": "No images",
+    "mml_pick_model": "Model",
+    "mml_pick_size": "Size",
+    "mml_quality_fmt": "Quality: %d%%",
+    "mml_recording": "Recording...",
+    "mml_selected": "Selected",
+    "mml_task_image_describe": "Image Description",
+    "mml_task_image_to_image": "Image to Image",
+    "mml_task_ocr": "OCR Text Recognition",
+    "mml_task_speech_to_text": "Speech to Text",
+    "mml_task_text_to_image": "Text to Image",
+    "mml_task_text_to_speech": "Text to Speech",
+    "mml_tf_negative_prompt": "Negative prompt (optional)",
+    "mml_tf_prompt": "Describe prompt...",
+    "mml_tf_tts_text": "Enter text to convert to speech...",
     "fc_preview": "Preview",
     "fc_live": "Live",
     "fc_html_preview_empty": "Preview appears here after HTML is generated",
@@ -19436,6 +19538,40 @@ let jaJPTranslations: [String: String] = [
     "anl_trend_down": "下降",
     "anl_trend_stable": "横ばい",
     "anl_trend_up": "上昇",
+    "mml_audio_generated_fmt": "音声生成済み (%d bytes)",
+    "mml_btn_copy_clipboard": "クリップボードにコピー",
+    "mml_btn_copy_result": "結果をコピー",
+    "mml_btn_generate": "生成開始",
+    "mml_btn_next": "次へ >",
+    "mml_btn_prev": "< 前へ",
+    "mml_btn_record": "音声録音",
+    "mml_btn_save": "ワークスペースに保存",
+    "mml_btn_select_audio": "音声ファイルを選択",
+    "mml_btn_select_image": "画像を選択",
+    "mml_btn_start_record": "録音開始",
+    "mml_btn_stop_record": "録音停止",
+    "mml_click_to_record": "クリックして録音開始",
+    "mml_empty_hint": "プロンプトを入力し「生成開始」をクリック",
+    "mml_error_fmt": "⚠️ fusion-mlx 呼び出し失敗: %s\n\nfusion-mlx サービスが実行中であることを確認してください (%s)。",
+    "mml_generating": "生成中...",
+    "mml_group_input": "入力",
+    "mml_history_fmt": "生成履歴 (%d)",
+    "mml_model_hint_fmt": "fusion-mlx %s モデルを呼び出し",
+    "mml_no_images": "画像なし",
+    "mml_pick_model": "モデル",
+    "mml_pick_size": "サイズ",
+    "mml_quality_fmt": "品質: %d%%",
+    "mml_recording": "録音中...",
+    "mml_selected": "選択済み",
+    "mml_task_image_describe": "画像説明",
+    "mml_task_image_to_image": "画像から画像",
+    "mml_task_ocr": "OCR 文字認識",
+    "mml_task_speech_to_text": "音声からテキスト",
+    "mml_task_text_to_image": "テキストから画像",
+    "mml_task_text_to_speech": "テキストから音声",
+    "mml_tf_negative_prompt": "ネガティブプロンプト（任意）",
+    "mml_tf_prompt": "プロンプトを記述...",
+    "mml_tf_tts_text": "音声変換するテキストを入力...",
     "fc_preview": "プレビュー",
     "fc_live": "ライブ",
     "fc_html_preview_empty": "HTML生成後にここにプレビューが表示されます",
@@ -24304,6 +24440,40 @@ let koKRTranslations: [String: String] = [
     "anl_trend_down": "하락",
     "anl_trend_stable": "보합",
     "anl_trend_up": "상승",
+    "mml_audio_generated_fmt": "오디오 생성됨 (%d bytes)",
+    "mml_btn_copy_clipboard": "클립보드에 복사",
+    "mml_btn_copy_result": "결과 복사",
+    "mml_btn_generate": "생성 시작",
+    "mml_btn_next": "다음 >",
+    "mml_btn_prev": "< 이전",
+    "mml_btn_record": "오디오 녹음",
+    "mml_btn_save": "워크스페이스에 저장",
+    "mml_btn_select_audio": "오디오 파일 선택",
+    "mml_btn_select_image": "이미지 선택",
+    "mml_btn_start_record": "녹음 시작",
+    "mml_btn_stop_record": "녹음 중지",
+    "mml_click_to_record": "클릭하여 녹음 시작",
+    "mml_empty_hint": "프롬프트를 입력하고 「생성 시작」을 클릭",
+    "mml_error_fmt": "⚠️ fusion-mlx 호출 실패: %s\n\nfusion-mlx 서비스가 실행 중인지 확인하세요 (%s).",
+    "mml_generating": "생성 중...",
+    "mml_group_input": "입력",
+    "mml_history_fmt": "생성 기록 (%d)",
+    "mml_model_hint_fmt": "fusion-mlx %s 모델 호출",
+    "mml_no_images": "이미지 없음",
+    "mml_pick_model": "모델",
+    "mml_pick_size": "크기",
+    "mml_quality_fmt": "품질: %d%%",
+    "mml_recording": "녹음 중...",
+    "mml_selected": "선택됨",
+    "mml_task_image_describe": "이미지 설명",
+    "mml_task_image_to_image": "이미지 투 이미지",
+    "mml_task_ocr": "OCR 텍스트 인식",
+    "mml_task_speech_to_text": "음성 투 텍스트",
+    "mml_task_text_to_image": "텍스트 투 이미지",
+    "mml_task_text_to_speech": "텍스트 투 음성",
+    "mml_tf_negative_prompt": "네거티브 프롬프트 (선택)",
+    "mml_tf_prompt": "프롬프트 설명...",
+    "mml_tf_tts_text": "음성으로 변환할 텍스트 입력...",
     "fc_preview": "미리보기",
     "fc_live": "실시간",
     "fc_html_preview_empty": "HTML 생성 후 여기에 미리보기가 표시됩니다",
