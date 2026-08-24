@@ -107,13 +107,6 @@ class SecurityManager: ObservableObject {
         return false
     }
 
-    func sanitizeInput(_ input: String) -> String {
-        let dangerous = [";", "|", "&", "$", "`", "\\", ">", "<", "!", "\n", "\r"]
-        var sanitized = input
-        for char in dangerous { sanitized = sanitized.replacingOccurrences(of: char, with: "") }
-        return sanitized
-    }
-
     func verifyFileIntegrity(at path: String) -> (isValid: Bool, hash: String) {
         guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)) else { return (false, "") }
         var hash = [UInt8](repeating: 0, count: Int(CC_SHA256_DIGEST_LENGTH))
@@ -741,23 +734,5 @@ struct SecurityLevelBadge: View {
     }
     private var color: Color {
         switch level { case .standard: return .blue; case .high: return .orange; case .maximum: return .red }
-    }
-}
-
-// MARK: - 输入验证工具
-
-struct InputValidator {
-    static func validateCommand(_ input: String) -> Bool {
-        let dangerous = [";", "|", "&", "$", "`", "\\", ">", "<", "!", "\n", "\r"]
-        for char in dangerous { if input.contains(char) { return false } }
-        return true
-    }
-
-    static func validatePath(_ path: String) -> Bool {
-        return SecurityManager.shared.validateFilePath(path)
-    }
-
-    static func sanitize(_ input: String) -> String {
-        return SecurityManager.shared.sanitizeInput(input)
     }
 }
