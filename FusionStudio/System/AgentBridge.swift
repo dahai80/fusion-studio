@@ -1445,57 +1445,8 @@ final class AgentBridge: ObservableObject {
         }
     }
 
-    // MARK: - RAG Operations
-
-    func ragQuery(query: String, config: [String: Any] = [:], model: String = "", systemPrompt: String = "") async throws -> RAGResultModel {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        logger.info("ragQuery: query=\(query)")
-        do {
-            let result = try await client.ragQuery(query: query, config: config, model: model, systemPrompt: systemPrompt)
-            let ragResult = RAGResultModel(
-                answer: result["answer"] as? String ?? "",
-                sources: result["sources"] as? [String] ?? [],
-                query: query
-            )
-            self.ragResults.append(ragResult)
-            // PERF-3: ragResults 无上限 append, 长会话无限增长内存。保留最近 50 条 (LRU 语义: 旧结果越早越无回看价值), 超额丢弃最旧。
-            if self.ragResults.count > 50 {
-                self.ragResults.removeFirst(self.ragResults.count - 50)
-            }
-            return ragResult
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            throw bridgeErr
-        }
-    }
-
-    func ragRetrieve(query: String, config: [String: Any] = [:]) async throws -> [String] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        do {
-            let result = try await client.ragRetrieve(query: query, config: config)
-            return result["documents"] as? [String] ?? []
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            throw bridgeErr
-        }
-    }
-
-    func ragVectorSearch(query: String, limit: Int = 10, threshold: Double = 0.5) async throws -> [String] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        logger.info("ragVectorSearch: query=\(query) limit=\(limit)")
-        do {
-            let result = try await client.ragVectorSearch(query: query, limit: limit, threshold: threshold)
-            let docs = result["documents"] as? [String] ?? result["results"] as? [String] ?? []
-            self.ragSources = docs
-            return docs
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            throw bridgeErr
-        }
-    }
+    // ARCH-1: RAG Operations (ragQuery/ragRetrieve/ragVectorSearch) 抽至 AgentRAGService.swift facade extension。
+    // @Published ragResults/ragSources/lastError + ipcClient 留本类 (extension 不可声明存储), 0 行为零变。
 
     func skillExecute(agentId: String, skillName: String, input: String, tools: [String] = []) async throws -> String {
         guard let client = ipcClient else { throw BridgeError.notConnected }
