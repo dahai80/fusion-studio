@@ -3621,6 +3621,8 @@ enum I18nKey: String, CaseIterable {
     case design_wf_previewing = "design_wf_previewing"
     case design_wf_editHint = "design_wf_editHint"
     case design_wf_generating = "design_wf_generating"
+    case design_wf_seedPrompt = "design_wf_seedPrompt"
+    case design_wf_regenHint = "design_wf_regenHint"
     case design_wf_analyzing = "design_wf_analyzing"
     case design_wf_noScreenshot = "design_wf_noScreenshot"
     case design_wf_selectCodeFile = "design_wf_selectCodeFile"
@@ -8641,6 +8643,8 @@ let zhCNTranslations: [String: String] = [
     "design_wf_previewing": "正在预览设计...",
     "design_wf_editHint": "请在聊天中描述修改需求",
     "design_wf_generating": "AI 正在生成设计...",
+    "design_wf_seedPrompt": "设计一个现代深色主题页面",
+    "design_wf_regenHint": "根据截图重新生成 UI 设计",
     "design_wf_analyzing": "正在分析截图并生成设计...",
     "design_wf_noScreenshot": "剪贴板无截图，请先截图 (⌘⇧4)",
     "design_wf_selectCodeFile": "选择代码文件",
@@ -13612,6 +13616,8 @@ let enUSTranslations: [String: String] = [
     "design_wf_previewing": "Previewing design...",
     "design_wf_editHint": "Describe your edit needs in chat",
     "design_wf_generating": "AI is generating design...",
+    "design_wf_seedPrompt": "Design a modern dark-themed page",
+    "design_wf_regenHint": "Regenerate UI design from screenshot",
     "design_wf_analyzing": "Analyzing screenshot and generating design...",
     "design_wf_noScreenshot": "No screenshot in clipboard, capture one first (⌘⇧4)",
     "design_wf_selectCodeFile": "Select Code File",
@@ -18577,6 +18583,8 @@ let jaJPTranslations: [String: String] = [
     "design_wf_previewing": "デザインをプレビュー中...",
     "design_wf_editHint": "チャットで編集内容を説明してください",
     "design_wf_generating": "AI がデザインを生成中...",
+    "design_wf_seedPrompt": "モダンなダークテーマのページをデザインする",
+    "design_wf_regenHint": "スクリーンショットから UI デザインを再生成",
     "design_wf_analyzing": "スクリーンショットを分析しデザインを生成中...",
     "design_wf_noScreenshot": "クリップボードにスクリーンショットがありません。先に撮影してください (⌘⇧4)",
     "design_wf_selectCodeFile": "コードファイルを選択",
@@ -23542,6 +23550,8 @@ let koKRTranslations: [String: String] = [
     "design_wf_previewing": "디자인 미리보는 중...",
     "design_wf_editHint": "채팅에서 수정 요청을 설명하세요",
     "design_wf_generating": "AI가 디자인 생성 중...",
+    "design_wf_seedPrompt": "모던한 다크 테마 페이지 디자인",
+    "design_wf_regenHint": "스크린샷에서 UI 디자인 재생성",
     "design_wf_analyzing": "스크린샷을 분석하고 디자인을 생성하는 중...",
     "design_wf_noScreenshot": "클립보드에 스크린샷이 없습니다. 먼저 캡처하세요 (⌘⇧4)",
     "design_wf_selectCodeFile": "코드 파일 선택",

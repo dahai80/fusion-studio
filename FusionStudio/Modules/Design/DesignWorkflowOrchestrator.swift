@@ -214,7 +214,7 @@ class DesignWorkflowOrchestrator: ObservableObject {
             advanceStep(designBridge: designBridge)
 
         case .generateDesign:
-            let prompt = "设计一个现代深色主题页面"
+            let prompt = I18nManager.shared.t(.design_wf_seedPrompt)
             designBridge.skillTextToUI(prompt: prompt)
             statusMessage = I18nManager.shared.t(.design_wf_generating)
             advanceStep(designBridge: designBridge)
@@ -223,7 +223,7 @@ class DesignWorkflowOrchestrator: ObservableObject {
             if let clipImage = NSPasteboard.general.data(forType: .tiff) ?? NSPasteboard.general.data(forType: .png) {
                 let tmpPath = NSTemporaryDirectory() + "fd_screenshot.png"
                 try? clipImage.write(to: URL(fileURLWithPath: tmpPath))
-                designBridge.skillImageToUI(imagePath: tmpPath, hint: "根据截图重新生成 UI 设计")
+                designBridge.skillImageToUI(imagePath: tmpPath, hint: I18nManager.shared.t(.design_wf_regenHint))
                 statusMessage = I18nManager.shared.t(.design_wf_analyzing)
                 try? FileManager.default.removeItem(atPath: tmpPath)
             } else {
