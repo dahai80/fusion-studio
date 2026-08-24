@@ -1237,7 +1237,7 @@ class DesignBridge: ObservableObject {
             var (bytes, response) = try await URLSession.shared.bytes(for: request)
             var httpResp = response as? HTTPURLResponse
             if httpResp?.statusCode == 401 || httpResp?.statusCode == 403 {
-                if let fallback = AgentBridge.mlxSettingsJsonApiKey(), !fallback.isEmpty, fallback != apiKey {
+                if let fallback = await AgentBridge.mlxSettingsJsonApiKey(), !fallback.isEmpty, fallback != apiKey {
                     designBridgeLog.warning("sendDesignChat: auth failed (HTTP \(httpResp?.statusCode ?? 0)), retrying with settings.json key")
                     DesignPreviewTrace.log("sendDesignChat: auth retry with settings.json key")
                     apiKey = fallback
