@@ -1,5 +1,5 @@
 // ARCH-1: Memory Operations + parseMemoryEntry 从 AgentBridge God-object 抽出, facade extension。
-// 7 方法 (memoryStore/memoryRecall/fetchRecentMemories/memoryGet/memoryDelete/memoryDeleteScope/fetchMemoryCount)
+// 6 方法 (memoryStore/memoryRecall/fetchRecentMemories/memoryDelete/memoryDeleteScope/fetchMemoryCount)
 //   + 域内专属 parser parseMemoryEntry (private static, 4 调用方全在 Memory 域) 同搬本文件。
 // parser 同搬范式 (同 #287 parseMarketplaceEntry): private = Swift 文件作用域, 同文件 extension 方法 Self.parseMemoryEntry 编译不变。
 //   parseMemoryEntry 无 UUID/Date 依赖 → 仅 import os.log, 无 Foundation。
@@ -73,20 +73,7 @@ extension AgentBridge {
         }
     }
 
-    func memoryGet(entryId: String) async throws -> MemoryEntryModel {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        do {
-            let result = try await client.memoryGet(entryId: entryId)
-            guard let entry = Self.parseMemoryEntry(from: result) else {
-                throw BridgeError.decodeError("Failed to parse memory.get response")
-            }
-            return entry
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            throw bridgeErr
-        }
-    }
+    // MAINT: memoryGet 删除 — 0 前端调用方 (UI 只读 memoryEntries 列表, 无单条详情视图)。后端 memory.get RPC 不动 (跨工程)。
 
     func memoryDelete(entryId: String) async throws -> Bool {
         guard let client = ipcClient else { throw BridgeError.notConnected }
