@@ -4832,6 +4832,34 @@ enum I18nKey: String, CaseIterable {
     case iop_max_history_fmt = "iop_max_history_fmt"
     case iop_sec_note = "iop_sec_note"
     case iop_note_desc = "iop_note_desc"
+
+    // MARK: - SpaceListView (spl_ Batch 16z2)
+    case spl_step_input = "spl_step_input"
+    case spl_step_output = "spl_step_output"
+    case spl_deep_research_fmt = "spl_deep_research_fmt"
+    case spl_mkt_name_code_review = "spl_mkt_name_code_review"
+    case spl_mkt_name_doc_gen = "spl_mkt_name_doc_gen"
+    case spl_mkt_name_data_analysis = "spl_mkt_name_data_analysis"
+    case spl_mkt_name_multi_translate = "spl_mkt_name_multi_translate"
+    case spl_mkt_name_react_dashboard = "spl_mkt_name_react_dashboard"
+    case spl_mkt_name_api_doc = "spl_mkt_name_api_doc"
+    case spl_mkt_name_data_viz = "spl_mkt_name_data_viz"
+    case spl_mkt_name_cli_scaffold = "spl_mkt_name_cli_scaffold"
+    case spl_mkt_desc_code_review = "spl_mkt_desc_code_review"
+    case spl_mkt_desc_doc_gen = "spl_mkt_desc_doc_gen"
+    case spl_mkt_desc_data_analysis = "spl_mkt_desc_data_analysis"
+    case spl_mkt_desc_multi_translate = "spl_mkt_desc_multi_translate"
+    case spl_mkt_desc_react_dashboard = "spl_mkt_desc_react_dashboard"
+    case spl_mkt_desc_api_doc = "spl_mkt_desc_api_doc"
+    case spl_mkt_desc_data_viz = "spl_mkt_desc_data_viz"
+    case spl_mkt_desc_cli_scaffold = "spl_mkt_desc_cli_scaffold"
+    case spl_mkt_cat_dev = "spl_mkt_cat_dev"
+    case spl_mkt_cat_doc = "spl_mkt_cat_doc"
+    case spl_mkt_cat_data = "spl_mkt_cat_data"
+    case spl_mkt_cat_translate = "spl_mkt_cat_translate"
+    case spl_mkt_cat_frontend = "spl_mkt_cat_frontend"
+    case spl_mkt_cat_viz = "spl_mkt_cat_viz"
+    case spl_mkt_cat_tool = "spl_mkt_cat_tool"
     case fc_preview = "fc_preview"
     case fc_live = "fc_live"
     case fc_html_preview_empty = "fc_html_preview_empty"
@@ -9811,6 +9839,33 @@ let zhCNTranslations: [String: String] = [
     "iop_max_history_fmt": "最大历史记录: %d",
     "iop_sec_note": "说明",
     "iop_note_desc": "联动功能使 Design、Code、Simulation 三个模块之间可以自动流转数据，实现设计→代码→仿真的完整闭环。",
+
+    "spl_step_input": "输入",
+    "spl_step_output": "输出",
+    "spl_deep_research_fmt": "深度研究任务 [深度%d]: %s",
+    "spl_mkt_name_code_review": "代码审查流水线",
+    "spl_mkt_name_doc_gen": "文档生成器",
+    "spl_mkt_name_data_analysis": "数据分析流程",
+    "spl_mkt_name_multi_translate": "多轮翻译",
+    "spl_mkt_name_react_dashboard": "React Dashboard",
+    "spl_mkt_name_api_doc": "API 文档模板",
+    "spl_mkt_name_data_viz": "数据可视化套件",
+    "spl_mkt_name_cli_scaffold": "CLI 脚手架",
+    "spl_mkt_desc_code_review": "自动代码审查：语法检查 → 安全扫描 → Agent 评审",
+    "spl_mkt_desc_doc_gen": "根据代码自动生成文档和 API 说明",
+    "spl_mkt_desc_data_analysis": "CSV导入 → 清洗 → 可视化 → 报告生成",
+    "spl_mkt_desc_multi_translate": "原文 → 机器翻译 → 人工校对 → 术语统一",
+    "spl_mkt_desc_react_dashboard": "现代 React 仪表盘模板，含图表和表格",
+    "spl_mkt_desc_api_doc": "OpenAPI 规范的文档模板",
+    "spl_mkt_desc_data_viz": "D3.js/ECharts 可复用图表组件",
+    "spl_mkt_desc_cli_scaffold": "CLI 工具生成器模板",
+    "spl_mkt_cat_dev": "开发",
+    "spl_mkt_cat_doc": "文档",
+    "spl_mkt_cat_data": "数据",
+    "spl_mkt_cat_translate": "翻译",
+    "spl_mkt_cat_frontend": "前端",
+    "spl_mkt_cat_viz": "可视化",
+    "spl_mkt_cat_tool": "工具",
     "fc_preview": "预览",
     "fc_live": "实时",
     "fc_html_preview_empty": "生成HTML后此处显示预览",
@@ -14743,6 +14798,33 @@ let enUSTranslations: [String: String] = [
     "iop_max_history_fmt": "Max history: %d",
     "iop_sec_note": "Note",
     "iop_note_desc": "Interop lets Design, Code, and Simulation modules auto-flow data, completing the design→code→simulation loop.",
+
+    "spl_step_input": "Input",
+    "spl_step_output": "Output",
+    "spl_deep_research_fmt": "Deep research task [depth %d]: %s",
+    "spl_mkt_name_code_review": "Code Review Pipeline",
+    "spl_mkt_name_doc_gen": "Doc Generator",
+    "spl_mkt_name_data_analysis": "Data Analysis Flow",
+    "spl_mkt_name_multi_translate": "Multi-round Translation",
+    "spl_mkt_name_react_dashboard": "React Dashboard",
+    "spl_mkt_name_api_doc": "API Doc Template",
+    "spl_mkt_name_data_viz": "Data Viz Suite",
+    "spl_mkt_name_cli_scaffold": "CLI Scaffold",
+    "spl_mkt_desc_code_review": "Auto code review: syntax check → security scan → Agent review",
+    "spl_mkt_desc_doc_gen": "Auto-generate docs and API notes from code",
+    "spl_mkt_desc_data_analysis": "CSV import → clean → visualize → report",
+    "spl_mkt_desc_multi_translate": "Original → MT → human proof → glossary unify",
+    "spl_mkt_desc_react_dashboard": "Modern React dashboard template with charts and tables",
+    "spl_mkt_desc_api_doc": "OpenAPI spec doc template",
+    "spl_mkt_desc_data_viz": "D3.js/ECharts reusable chart components",
+    "spl_mkt_desc_cli_scaffold": "CLI tool generator template",
+    "spl_mkt_cat_dev": "Dev",
+    "spl_mkt_cat_doc": "Doc",
+    "spl_mkt_cat_data": "Data",
+    "spl_mkt_cat_translate": "Translate",
+    "spl_mkt_cat_frontend": "Frontend",
+    "spl_mkt_cat_viz": "Viz",
+    "spl_mkt_cat_tool": "Tool",
     "fc_preview": "Preview",
     "fc_live": "Live",
     "fc_html_preview_empty": "Preview appears here after HTML is generated",
@@ -19669,6 +19751,33 @@ let jaJPTranslations: [String: String] = [
     "iop_max_history_fmt": "最大履歴: %d",
     "iop_sec_note": "説明",
     "iop_note_desc": "連携機能により Design、Code、Simulation モジュール間でデータを自動転送し、設計→コード→シミュレーションの完全なループを実現します。",
+
+    "spl_step_input": "入力",
+    "spl_step_output": "出力",
+    "spl_deep_research_fmt": "ディープ研究タスク [深さ%d]: %s",
+    "spl_mkt_name_code_review": "コードレビューパイプライン",
+    "spl_mkt_name_doc_gen": "ドキュメント生成器",
+    "spl_mkt_name_data_analysis": "データ分析フロー",
+    "spl_mkt_name_multi_translate": "多段翻訳",
+    "spl_mkt_name_react_dashboard": "React ダッシュボード",
+    "spl_mkt_name_api_doc": "API ドキュメントテンプレート",
+    "spl_mkt_name_data_viz": "データ可視化スイート",
+    "spl_mkt_name_cli_scaffold": "CLI スキャフォールド",
+    "spl_mkt_desc_code_review": "自動コードレビュー：構文チェック → セキュリティスキャン → Agent レビュー",
+    "spl_mkt_desc_doc_gen": "コードからドキュメントと API 説明を自動生成",
+    "spl_mkt_desc_data_analysis": "CSVインポート → クリーニング → 可視化 → レポート生成",
+    "spl_mkt_desc_multi_translate": "原文 → 機械翻訳 → 人力校正 → 用語統一",
+    "spl_mkt_desc_react_dashboard": "モダン React ダッシュボードテンプレート、チャートとテーブル付き",
+    "spl_mkt_desc_api_doc": "OpenAPI 仕様のドキュメントテンプレート",
+    "spl_mkt_desc_data_viz": "D3.js/ECharts 再利用可能なチャートコンポーネント",
+    "spl_mkt_desc_cli_scaffold": "CLI ツール生成テンプレート",
+    "spl_mkt_cat_dev": "開発",
+    "spl_mkt_cat_doc": "ドキュメント",
+    "spl_mkt_cat_data": "データ",
+    "spl_mkt_cat_translate": "翻訳",
+    "spl_mkt_cat_frontend": "フロントエンド",
+    "spl_mkt_cat_viz": "可視化",
+    "spl_mkt_cat_tool": "ツール",
     "fc_preview": "プレビュー",
     "fc_live": "ライブ",
     "fc_html_preview_empty": "HTML生成後にここにプレビューが表示されます",
@@ -24595,6 +24704,33 @@ let koKRTranslations: [String: String] = [
     "iop_max_history_fmt": "최대 기록: %d",
     "iop_sec_note": "설명",
     "iop_note_desc": "연동 기능으로 Design, Code, Simulation 모듈 간 데이터 자동 흐름을 만들어 설계→코드→시뮬레이션 완전한 루프를 구현합니다.",
+
+    "spl_step_input": "입력",
+    "spl_step_output": "출력",
+    "spl_deep_research_fmt": "딥 리서치 작업 [깊이%d]: %s",
+    "spl_mkt_name_code_review": "코드 리뷰 파이프라인",
+    "spl_mkt_name_doc_gen": "문서 생성기",
+    "spl_mkt_name_data_analysis": "데이터 분석 흐름",
+    "spl_mkt_name_multi_translate": "다단계 번역",
+    "spl_mkt_name_react_dashboard": "React 대시보드",
+    "spl_mkt_name_api_doc": "API 문서 템플릿",
+    "spl_mkt_name_data_viz": "데이터 시각화 스위트",
+    "spl_mkt_name_cli_scaffold": "CLI 스캐폴드",
+    "spl_mkt_desc_code_review": "자동 코드 리뷰: 구문 검사 → 보안 스캔 → Agent 리뷰",
+    "spl_mkt_desc_doc_gen": "코드에서 문서와 API 설명 자동 생성",
+    "spl_mkt_desc_data_analysis": "CSV 가져오기 → 정제 → 시각화 → 보고서 생성",
+    "spl_mkt_desc_multi_translate": "원문 → 기계 번역 → 교정 → 용어 통일",
+    "spl_mkt_desc_react_dashboard": "현대 React 대시보드 템플릿, 차트와 표 포함",
+    "spl_mkt_desc_api_doc": "OpenAPI 사양 문서 템플릿",
+    "spl_mkt_desc_data_viz": "D3.js/ECharts 재사용 차트 컴포넌트",
+    "spl_mkt_desc_cli_scaffold": "CLI 도구 생성기 템플릿",
+    "spl_mkt_cat_dev": "개발",
+    "spl_mkt_cat_doc": "문서",
+    "spl_mkt_cat_data": "데이터",
+    "spl_mkt_cat_translate": "번역",
+    "spl_mkt_cat_frontend": "프론트엔드",
+    "spl_mkt_cat_viz": "시각화",
+    "spl_mkt_cat_tool": "도구",
     "fc_preview": "미리보기",
     "fc_live": "실시간",
     "fc_html_preview_empty": "HTML 생성 후 여기에 미리보기가 표시됩니다",
