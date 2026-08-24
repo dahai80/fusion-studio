@@ -486,104 +486,10 @@ final class AgentBridge: ObservableObject {
     }
 
     // MARK: - Graph Operations
-
-    func fetchGraphs() async throws -> [AgentGraphModel] {
-        guard let client = ipcClient else {
-            throw BridgeError.notConnected
-        }
-        do {
-            let result = try await client.call(method: "graph.list")
-            let graphsData = result["graphs"] as? [[String: Any]] ?? []
-            var parsed: [AgentGraphModel] = []
-            for g in graphsData {
-                if let model = Self.parseGraphModel(from: g) {
-                    parsed.append(model)
-                }
-            }
-            // 仅在 id 集合或数量变化时更新 @Published, 避免 .task 反复触发 AgentStudioView body 重算导致 Workflows 转圈
-            // BUG-6: 旧实现 zip(parsed, self.graphs) 按较短序列截断, 删除项不被检测
-            // (parsed 比 graphs 短时 zip 只比到 parsed.count, 尾部多余 graphs.id 不参与比较 -> changed=false)。
-            // 改用 id 集合差集, 增删均能检出。
-            let parsedIds = Set(parsed.map(\.id))
-            let currentIds = Set(self.graphs.map(\.id))
-            let changed = parsed.count != self.graphs.count || parsedIds != currentIds
-            if changed {
-                self.graphs = parsed
-            }
-            logger.info("fetchGraphs: received \(parsed.count) graphs (changed=\(changed))")
-            return parsed
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            logger.error("fetchGraphs: \(error)")
-            throw bridgeErr
-        }
-    }
-
-    func createGraph(name: String, nodes: [NodeConfigModel], edges: [EdgeModel]) async throws -> AgentGraphModel {
-        guard let client = ipcClient else {
-            throw BridgeError.notConnected
-        }
-        logger.info("createGraph: name=\(name) nodes=\(nodes.count) edges=\(edges.count)")
-
-        var nodesParam: [[String: Any]] = []
-        for n in nodes {
-            nodesParam.append([
-                "id": n.id,
-                "type": n.type,
-                "label": n.type,
-            ])
-        }
-
-        var edgesParam: [[String: Any]] = []
-        for e in edges {
-            var edgeDict: [String: Any] = [
-                "source_id": e.source,
-                "target_id": e.target,
-            ]
-            if let cond = e.condition {
-                edgeDict["label"] = cond
-            }
-            edgesParam.append(edgeDict)
-        }
-
-        do {
-            let result = try await client.call(method: "graph.create", params: [
-                "name": name,
-                "nodes": nodesParam,
-                "edges": edgesParam,
-            ])
-
-            guard let model = Self.parseGraphModel(from: result) else {
-                throw BridgeError.decodeError("Failed to parse graph.create response")
-            }
-            logger.info("createGraph: created id=\(model.id)")
-            return model
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            logger.error("createGraph: \(error)")
-            throw bridgeErr
-        }
-    }
-
-    func graphGet(graphId: String) async throws -> AgentGraphModel? {
-        guard let client = ipcClient else {
-            throw BridgeError.notConnected
-        }
-        logger.info("graphGet: graphId=\(graphId)")
-        do {
-            let result = try await client.graphGet(graphId: graphId)
-            // daemon graph.get 的 result 顶层即 graph 数据 (含 nodes/edges/name), 不包在 graph key 里
-            let graphData = (result["graph"] as? [String: Any]) ?? result
-            return Self.parseGraphModel(from: graphData)
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            logger.error("graphGet: \(error)")
-            throw bridgeErr
-        }
-    }
+    // ARCH-1: fetchGraphs/createGraph/graphGet/updateGraph + parseGraphModel 抽至 AgentGraphService.swift facade extension
+    // (耦合同迁: parseGraphModel private static + 6 调用方 = 4 graph + templateInstantiate + deployImport, private = 文件作用域必须同文件)。
+    // deleteGraph/executeGraph/cancelExecution 留此: executeGraph 依赖 Self.parseEventModel (Event 域 private) + 写共享 events/isExecuting;
+    //   deleteGraph/cancelExecution 无 parseGraphModel 依赖, 留以保持 Graph Ops MARK 完整语义。
 
     func deleteGraph(id: String) async throws {
         guard let client = ipcClient else {
@@ -647,34 +553,6 @@ final class AgentBridge: ObservableObject {
     func cancelExecution() {
         logger.info("cancelExecution")
         self.isExecuting = false
-    }
-
-    func updateGraph(id: String, name: String? = nil, nodes: [NodeConfigModel]? = nil, edges: [EdgeModel]? = nil) async throws -> AgentGraphModel? {
-        guard let client = ipcClient else {
-            throw BridgeError.notConnected
-        }
-        logger.info("updateGraph: id=\(id)")
-        var params: [String: Any] = ["graph_id": id]
-        if let name { params["name"] = name }
-        if let nodes {
-            params["nodes"] = nodes.map { node -> [String: Any] in
-                let label: String
-                if case .string(let v) = node.config["label"] { label = v } else { label = "" }
-                return ["id": node.id, "type": node.type, "label": label]
-            }
-        }
-        if let edges {
-            params["edges"] = edges.map { ["source_id": $0.source, "target_id": $0.target, "label": $0.condition ?? ""] }
-        }
-        do {
-            let result = try await client.call(method: "graph.update", params: params)
-            return Self.parseGraphModel(from: result)
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            logger.error("updateGraph: \(error)")
-            throw bridgeErr
-        }
     }
 
     func fetchTools() async throws -> [[String: Any]] {
@@ -1688,46 +1566,9 @@ final class AgentBridge: ObservableObject {
         }
     }
 
-    // MARK: - Template Operations
-    // ARCH-1: fetchTemplates + templateGet 抽至 AgentTemplateService.swift facade extension。
-    // templateInstantiate 留此: 依赖 Self.parseGraphModel (private static L2948 跨文件不可访问),
-    // 待 Graph 域抽取时与 parseGraphModel + 5 graph 方法同搬。
-
-    func templateInstantiate(templateId: String, variables: [String: String]? = nil) async throws -> AgentGraphModel {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        logger.info("templateInstantiate: templateId=\(templateId)")
-        do {
-            let result = try await client.templateInstantiate(templateId: templateId, variables: variables)
-            guard let graph = Self.parseGraphModel(from: result) else {
-                throw BridgeError.decodeError("Failed to parse template.instantiate response")
-            }
-            return graph
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            throw bridgeErr
-        }
-    }
-
-    // MARK: - Deploy Operations
-    // ARCH-1: deployExport + fetchDeployFormats 抽至 AgentDeployService.swift facade extension。
-    // deployImport 留此: 依赖 Self.parseGraphModel (private static 跨文件不可访问), 待 Graph 域抽取时同搬。
-
-    func deployImport(filepath: String) async throws -> AgentGraphModel {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        logger.info("deployImport: filepath=\(filepath)")
-        do {
-            let result = try await client.deployImport(filepath: filepath)
-            guard let graph = Self.parseGraphModel(from: result) else {
-                throw BridgeError.decodeError("Failed to parse deploy.import response")
-            }
-            return graph
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            throw bridgeErr
-        }
-    }
+    // ARCH-1: Template Operations 全量抽完 (fetchTemplates/templateGet → AgentTemplateService #284, templateInstantiate → AgentGraphService 本批次)。
+    // ARCH-1: Deploy Operations 全量抽完 (deployExport/fetchDeployFormats → AgentDeployService #285, deployImport → AgentGraphService 本批次)。
+    // templateInstantiate/deployImport 随 parseGraphModel 同搬 AgentGraphService.swift (private = 文件作用域, 必须同文件)。
 
     // MARK: - Agent Operations
 
@@ -2745,88 +2586,7 @@ final class AgentBridge: ObservableObject {
     // ARCH-1: contextCompact/contextUsage 抽至 AgentContextService.swift facade extension。本域最简单: 2 薄透传, 0 @Published, 0 private 静态依赖。
 
     // MARK: - Parsing Helpers
-
-    private static func parseGraphModel(from dict: [String: Any]) -> AgentGraphModel? {
-        guard let graphId = dict["graph_id"] as? String ?? dict["id"] as? String,
-              let name = dict["name"] as? String else {
-            return nil
-        }
-
-        var nodes: [NodeConfigModel] = []
-        if let nodesDict = dict["nodes"] as? [String: [String: Any]] {
-            for (nodeId, nodeData) in nodesDict {
-                var config: [String: JSONValue] = [:]
-                for (k, v) in nodeData {
-                    if let jv = anyToJSONValue(v) {
-                        config[k] = jv
-                    }
-                }
-                nodes.append(NodeConfigModel(
-                    id: nodeId,
-                    type: nodeData["type"] as? String ?? "llm",
-                    config: config,
-                    position: nil
-                ))
-            }
-        } else if let nodesArray = dict["nodes"] as? [[String: Any]] {
-            for nodeData in nodesArray {
-                let nodeId = nodeData["id"] as? String ?? UUID().uuidString
-                var config: [String: JSONValue] = [:]
-                for (k, v) in nodeData {
-                    if k != "id" && k != "type" && k != "label", let jv = anyToJSONValue(v) {
-                        config[k] = jv
-                    }
-                }
-                nodes.append(NodeConfigModel(
-                    id: nodeId,
-                    type: nodeData["type"] as? String ?? "llm",
-                    config: config,
-                    position: nil
-                ))
-            }
-        }
-
-        var edges: [EdgeModel] = []
-        if let edgesArray = dict["edges"] as? [[String: Any]] {
-            for edgeData in edgesArray {
-                let source = edgeData["source_id"] as? String ?? edgeData["source"] as? String ?? ""
-                let target = edgeData["target_id"] as? String ?? edgeData["target"] as? String ?? ""
-                let condition = edgeData["label"] as? String ?? edgeData["condition"] as? String
-                edges.append(EdgeModel(
-                    id: edgeData["id"] as? String ?? UUID().uuidString,
-                    source: source,
-                    target: target,
-                    condition: condition
-                ))
-            }
-        }
-
-        let createdAt: String
-        if let ts = dict["created_at"] as? Double {
-            let date = Date(timeIntervalSince1970: ts)
-            let formatter = DateFormatter()
-            formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-            createdAt = formatter.string(from: date)
-        } else if let ts = dict["created_at"] as? String {
-            createdAt = ts
-        } else {
-            createdAt = ""
-        }
-
-        // node_count/edge_count 优先取后端元数据; graph.get 返回完整 nodes 时退化为实际数组长度
-        let nodeCount = dict["node_count"] as? Int ?? nodes.count
-        let edgeCount = dict["edge_count"] as? Int ?? edges.count
-
-        return AgentGraphModel(
-            id: graphId,
-            name: name,
-            nodes: nodes,
-            edges: edges,
-            created_at: createdAt,
-            nodeCount: nodeCount,
-            edgeCount: edgeCount
-        )
-    }
+    // ARCH-1: parseGraphModel 抽至 AgentGraphService.swift (private = 文件作用域, 与 6 调用方同文件)。
 
     private static func parseEventModel(from dict: [String: Any]) -> AgentEventModel? {
         guard let type = dict["type"] as? String else { return nil }
@@ -2847,7 +2607,10 @@ final class AgentBridge: ObservableObject {
         )
     }
 
-    private static func anyToJSONValue(_ value: Any) -> JSONValue? {
+    // ARCH-1: anyToJSONValue 通用 Any→JSONValue 转换器 (非域 parser), private→internal。
+    // 被 parseEventModel (留本文件, Event 域) + parseGraphModel (抽至 AgentGraphService.swift, Graph 域) 共用。
+    // 仅 widen 通用 helper, 域 parser (parseEventModel/parsePlanModel 等) 仍 private, "不 widen 域 parser" 约定不变。
+    static func anyToJSONValue(_ value: Any) -> JSONValue? {
         switch value {
         case let s as String: return .string(s)
         case let d as Double: return .double(d)
