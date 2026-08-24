@@ -159,16 +159,24 @@ struct InteropPanelView: View {
     @State private var selectedTab: InteropTab = .flow
 
     enum InteropTab: String, CaseIterable {
-        case flow    = "联动流程"
-        case history = "数据传输"
-        case config  = "联动配置"
+        case flow
+        case history
+        case config
+
+        var localizedName: String {
+            switch self {
+            case .flow:    return I18nManager.shared.t(.iop_tab_flow)
+            case .history: return I18nManager.shared.t(.iop_tab_history)
+            case .config:  return I18nManager.shared.t(.iop_tab_config)
+            }
+        }
     }
 
     var body: some View {
         VStack(spacing: 0) {
             Picker("", selection: $selectedTab) {
                 ForEach(InteropTab.allCases, id: \.self) { tab in
-                    Text(tab.rawValue).tag(tab)
+                    Text(tab.localizedName).tag(tab)
                 }
             }
             .pickerStyle(.segmented)
@@ -193,23 +201,23 @@ struct InteropFlowView: View {
         VStack(spacing: 20) {
             // 三模块联动图
             HStack(spacing: 0) {
-                ModuleNode(name: "🎨 Design", color: .blue, action: "UI 设计")
-                ArrowLabel(label: "导出代码")
-                ModuleNode(name: "💻 Code", color: .green, action: "代码生成")
-                ArrowLabel(label: "部署面板")
-                ModuleNode(name: "🤖 Simulation", color: .orange, action: "仿真运行")
+                ModuleNode(name: "🎨 Design", color: .blue, action: I18nManager.shared.t(.iop_node_design))
+                ArrowLabel(label: I18nManager.shared.t(.iop_arrow_export_code))
+                ModuleNode(name: "💻 Code", color: .green, action: I18nManager.shared.t(.iop_node_code))
+                ArrowLabel(label: I18nManager.shared.t(.iop_arrow_deploy_panel))
+                ModuleNode(name: "🤖 Simulation", color: .orange, action: I18nManager.shared.t(.iop_node_simulation))
             }
             .padding(20)
 
             Divider()
 
             // 联动能力列表
-            GroupBox("联动能力") {
+            GroupBox(I18nManager.shared.t(.iop_sec_capabilities)) {
                 VStack(alignment: .leading, spacing: 12) {
-                    InteropCapabilityRow(icon: "arrow.right.doc.on.clipboard", from: "Design", to: "Code", description: "设计稿一键导出 SwiftUI/React 代码")
-                    InteropCapabilityRow(icon: "arrow.right.square", from: "Code", to: "Simulation", description: "代码部署为仿真控制面板")
-                    InteropCapabilityRow(icon: "arrow.left.arrow.right", from: "Simulation", to: "Design", description: "仿真反馈驱动设计优化")
-                    InteropCapabilityRow(icon: "arrow.right.circle", from: "Design", to: "Simulation", description: "设计稿生成仿真场景")
+                    InteropCapabilityRow(icon: "arrow.right.doc.on.clipboard", from: "Design", to: "Code", description: I18nManager.shared.t(.iop_cap_design_to_code))
+                    InteropCapabilityRow(icon: "arrow.right.square", from: "Code", to: "Simulation", description: I18nManager.shared.t(.iop_cap_code_to_sim))
+                    InteropCapabilityRow(icon: "arrow.left.arrow.right", from: "Simulation", to: "Design", description: I18nManager.shared.t(.iop_cap_sim_to_design))
+                    InteropCapabilityRow(icon: "arrow.right.circle", from: "Design", to: "Simulation", description: I18nManager.shared.t(.iop_cap_design_to_sim))
                 }
                 .padding()
             }
@@ -288,9 +296,9 @@ struct InteropHistoryView: View {
                 Image(systemName: "arrow.triangle.branch")
                     .font(.system(size: 32))
                     .foregroundColor(.secondary)
-                Text("暂无数据传输")
+                Text(I18nManager.shared.t(.iop_empty_history))
                     .foregroundColor(.secondary)
-                Text("在 Design/Code/Simulation 模块间联动时，数据传输记录将显示在这里")
+                Text(I18nManager.shared.t(.iop_empty_history_hint))
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -349,18 +357,18 @@ struct InteropConfigView: View {
 
     var body: some View {
         Form {
-            Section("自动联动") {
-                Toggle("设计完成后自动导出代码", isOn: $autoExport)
-                Toggle("代码完成后自动部署仿真", isOn: $autoDeploy)
-                Toggle("仿真完成后自动反馈设计", isOn: $autoFeedback)
+            Section(I18nManager.shared.t(.iop_sec_auto)) {
+                Toggle(I18nManager.shared.t(.iop_toggle_auto_export), isOn: $autoExport)
+                Toggle(I18nManager.shared.t(.iop_toggle_auto_deploy), isOn: $autoDeploy)
+                Toggle(I18nManager.shared.t(.iop_toggle_auto_feedback), isOn: $autoFeedback)
             }
 
-            Section("数据管理") {
-                Stepper("最大历史记录: \(maxHistory)", value: $maxHistory, in: 10...200, step: 10)
+            Section(I18nManager.shared.t(.iop_sec_data_mgmt)) {
+                Stepper(I18nManager.shared.tf(.iop_max_history_fmt, maxHistory), value: $maxHistory, in: 10...200, step: 10)
             }
 
-            Section("说明") {
-                Text("联动功能使 Design、Code、Simulation 三个模块之间可以自动流转数据，实现设计→代码→仿真的完整闭环。")
+            Section(I18nManager.shared.t(.iop_sec_note)) {
+                Text(I18nManager.shared.t(.iop_note_desc))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }

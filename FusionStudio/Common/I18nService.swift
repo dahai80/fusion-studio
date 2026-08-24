@@ -4807,6 +4807,31 @@ enum I18nKey: String, CaseIterable {
     case mml_tf_negative_prompt = "mml_tf_negative_prompt"
     case mml_tf_prompt = "mml_tf_prompt"
     case mml_tf_tts_text = "mml_tf_tts_text"
+
+    // MARK: - InteropService (iop_ Batch 16z)
+    case iop_tab_flow = "iop_tab_flow"
+    case iop_tab_history = "iop_tab_history"
+    case iop_tab_config = "iop_tab_config"
+    case iop_node_design = "iop_node_design"
+    case iop_node_code = "iop_node_code"
+    case iop_node_simulation = "iop_node_simulation"
+    case iop_arrow_export_code = "iop_arrow_export_code"
+    case iop_arrow_deploy_panel = "iop_arrow_deploy_panel"
+    case iop_sec_capabilities = "iop_sec_capabilities"
+    case iop_cap_design_to_code = "iop_cap_design_to_code"
+    case iop_cap_code_to_sim = "iop_cap_code_to_sim"
+    case iop_cap_sim_to_design = "iop_cap_sim_to_design"
+    case iop_cap_design_to_sim = "iop_cap_design_to_sim"
+    case iop_empty_history = "iop_empty_history"
+    case iop_empty_history_hint = "iop_empty_history_hint"
+    case iop_sec_auto = "iop_sec_auto"
+    case iop_toggle_auto_export = "iop_toggle_auto_export"
+    case iop_toggle_auto_deploy = "iop_toggle_auto_deploy"
+    case iop_toggle_auto_feedback = "iop_toggle_auto_feedback"
+    case iop_sec_data_mgmt = "iop_sec_data_mgmt"
+    case iop_max_history_fmt = "iop_max_history_fmt"
+    case iop_sec_note = "iop_sec_note"
+    case iop_note_desc = "iop_note_desc"
     case fc_preview = "fc_preview"
     case fc_live = "fc_live"
     case fc_html_preview_empty = "fc_html_preview_empty"
@@ -9762,6 +9787,30 @@ let zhCNTranslations: [String: String] = [
     "mml_tf_negative_prompt": "负面提示词（可选）",
     "mml_tf_prompt": "描述提示词...",
     "mml_tf_tts_text": "输入要转语音的文字...",
+
+    "iop_tab_flow": "联动流程",
+    "iop_tab_history": "数据传输",
+    "iop_tab_config": "联动配置",
+    "iop_node_design": "UI 设计",
+    "iop_node_code": "代码生成",
+    "iop_node_simulation": "仿真运行",
+    "iop_arrow_export_code": "导出代码",
+    "iop_arrow_deploy_panel": "部署面板",
+    "iop_sec_capabilities": "联动能力",
+    "iop_cap_design_to_code": "设计稿一键导出 SwiftUI/React 代码",
+    "iop_cap_code_to_sim": "代码部署为仿真控制面板",
+    "iop_cap_sim_to_design": "仿真反馈驱动设计优化",
+    "iop_cap_design_to_sim": "设计稿生成仿真场景",
+    "iop_empty_history": "暂无数据传输",
+    "iop_empty_history_hint": "在 Design/Code/Simulation 模块间联动时，数据传输记录将显示在这里",
+    "iop_sec_auto": "自动联动",
+    "iop_toggle_auto_export": "设计完成后自动导出代码",
+    "iop_toggle_auto_deploy": "代码完成后自动部署仿真",
+    "iop_toggle_auto_feedback": "仿真完成后自动反馈设计",
+    "iop_sec_data_mgmt": "数据管理",
+    "iop_max_history_fmt": "最大历史记录: %d",
+    "iop_sec_note": "说明",
+    "iop_note_desc": "联动功能使 Design、Code、Simulation 三个模块之间可以自动流转数据，实现设计→代码→仿真的完整闭环。",
     "fc_preview": "预览",
     "fc_live": "实时",
     "fc_html_preview_empty": "生成HTML后此处显示预览",
@@ -14670,6 +14719,30 @@ let enUSTranslations: [String: String] = [
     "mml_tf_negative_prompt": "Negative prompt (optional)",
     "mml_tf_prompt": "Describe prompt...",
     "mml_tf_tts_text": "Enter text to convert to speech...",
+
+    "iop_tab_flow": "Flow",
+    "iop_tab_history": "History",
+    "iop_tab_config": "Config",
+    "iop_node_design": "UI Design",
+    "iop_node_code": "Code Gen",
+    "iop_node_simulation": "Simulation",
+    "iop_arrow_export_code": "Export Code",
+    "iop_arrow_deploy_panel": "Deploy Panel",
+    "iop_sec_capabilities": "Capabilities",
+    "iop_cap_design_to_code": "Export design to SwiftUI/React code",
+    "iop_cap_code_to_sim": "Deploy code as simulation panel",
+    "iop_cap_sim_to_design": "Simulation feedback drives design optimization",
+    "iop_cap_design_to_sim": "Generate simulation scene from design",
+    "iop_empty_history": "No data transfers",
+    "iop_empty_history_hint": "Transfer records will appear here when modules interconnect",
+    "iop_sec_auto": "Auto Interop",
+    "iop_toggle_auto_export": "Auto-export code after design completes",
+    "iop_toggle_auto_deploy": "Auto-deploy simulation after code completes",
+    "iop_toggle_auto_feedback": "Auto-feedback design after simulation completes",
+    "iop_sec_data_mgmt": "Data Management",
+    "iop_max_history_fmt": "Max history: %d",
+    "iop_sec_note": "Note",
+    "iop_note_desc": "Interop lets Design, Code, and Simulation modules auto-flow data, completing the design→code→simulation loop.",
     "fc_preview": "Preview",
     "fc_live": "Live",
     "fc_html_preview_empty": "Preview appears here after HTML is generated",
@@ -19572,6 +19645,30 @@ let jaJPTranslations: [String: String] = [
     "mml_tf_negative_prompt": "ネガティブプロンプト（任意）",
     "mml_tf_prompt": "プロンプトを記述...",
     "mml_tf_tts_text": "音声変換するテキストを入力...",
+
+    "iop_tab_flow": "連携フロー",
+    "iop_tab_history": "データ転送",
+    "iop_tab_config": "連携設定",
+    "iop_node_design": "UI デザイン",
+    "iop_node_code": "コード生成",
+    "iop_node_simulation": "シミュレーション",
+    "iop_arrow_export_code": "コードエクスポート",
+    "iop_arrow_deploy_panel": "パネル配置",
+    "iop_sec_capabilities": "連携機能",
+    "iop_cap_design_to_code": "デザインから SwiftUI/React コードをエクスポート",
+    "iop_cap_code_to_sim": "コードをシミュレーションパネルとして配置",
+    "iop_cap_sim_to_design": "シミュレーションフィードバックで設計を最適化",
+    "iop_cap_design_to_sim": "デザインからシミュレーションシーンを生成",
+    "iop_empty_history": "データ転送なし",
+    "iop_empty_history_hint": "モジュール連携時のデータ転送記録がここに表示されます",
+    "iop_sec_auto": "自動連携",
+    "iop_toggle_auto_export": "デザイン完了後にコードを自動エクスポート",
+    "iop_toggle_auto_deploy": "コード完了後にシミュレーションを自動配置",
+    "iop_toggle_auto_feedback": "シミュレーション完了後に設計へ自動フィードバック",
+    "iop_sec_data_mgmt": "データ管理",
+    "iop_max_history_fmt": "最大履歴: %d",
+    "iop_sec_note": "説明",
+    "iop_note_desc": "連携機能により Design、Code、Simulation モジュール間でデータを自動転送し、設計→コード→シミュレーションの完全なループを実現します。",
     "fc_preview": "プレビュー",
     "fc_live": "ライブ",
     "fc_html_preview_empty": "HTML生成後にここにプレビューが表示されます",
@@ -24474,6 +24571,30 @@ let koKRTranslations: [String: String] = [
     "mml_tf_negative_prompt": "네거티브 프롬프트 (선택)",
     "mml_tf_prompt": "프롬프트 설명...",
     "mml_tf_tts_text": "음성으로 변환할 텍스트 입력...",
+
+    "iop_tab_flow": "연동 흐름",
+    "iop_tab_history": "데이터 전송",
+    "iop_tab_config": "연동 설정",
+    "iop_node_design": "UI 디자인",
+    "iop_node_code": "코드 생성",
+    "iop_node_simulation": "시뮬레이션",
+    "iop_arrow_export_code": "코드 내보내기",
+    "iop_arrow_deploy_panel": "패널 배치",
+    "iop_sec_capabilities": "연동 기능",
+    "iop_cap_design_to_code": "디자인에서 SwiftUI/React 코드 내보내기",
+    "iop_cap_code_to_sim": "코드를 시뮬레이션 패널로 배치",
+    "iop_cap_sim_to_design": "시뮬레이션 피드백으로 설계 최적화",
+    "iop_cap_design_to_sim": "디자인에서 시뮬레이션 장면 생성",
+    "iop_empty_history": "데이터 전송 없음",
+    "iop_empty_history_hint": "모듈 연동 시 데이터 전송 기록이 여기에 표시됩니다",
+    "iop_sec_auto": "자동 연동",
+    "iop_toggle_auto_export": "디자인 완료 후 코드 자동 내보내기",
+    "iop_toggle_auto_deploy": "코드 완료 후 시뮬레이션 자동 배치",
+    "iop_toggle_auto_feedback": "시뮬레이션 완료 후 설계 자동 피드백",
+    "iop_sec_data_mgmt": "데이터 관리",
+    "iop_max_history_fmt": "최대 기록: %d",
+    "iop_sec_note": "설명",
+    "iop_note_desc": "연동 기능으로 Design, Code, Simulation 모듈 간 데이터 자동 흐름을 만들어 설계→코드→시뮬레이션 완전한 루프를 구현합니다.",
     "fc_preview": "미리보기",
     "fc_live": "실시간",
     "fc_html_preview_empty": "HTML 생성 후 여기에 미리보기가 표시됩니다",
