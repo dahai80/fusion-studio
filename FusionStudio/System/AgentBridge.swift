@@ -1965,48 +1965,11 @@ final class AgentBridge: ObservableObject {
     }
 
     // MARK: - Connector Operations
+    // ARCH-1: fetchConnectors/connectorCreate/connectorDelete/connectorConnect/connectorDisconnect/connectorTest
+    //   抽至 AgentConnectorService.swift facade extension。叶 silo: 0 private 静态依赖, 0 lastError 写。
+    //   connectorCreate/Delete 调 fetchConnectors (同域, extension 内可达)。@Published connectors 留主类 (有外部读)。
 
     @Published var connectors: [[String: Any]] = []
-
-    func fetchConnectors() async {
-        guard let client = ipcClient else { return }
-        do {
-            let result = try await client.connectorList()
-            self.connectors = result["connectors"] as? [[String: Any]] ?? []
-            logger.info("Fetched \(self.connectors.count) connectors")
-        } catch {
-            logger.debug("fetchConnectors failed: \(error.localizedDescription)")
-        }
-    }
-
-    func connectorCreate(name: String, type: String, config: [String: Any]) async throws -> [String: Any] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        let result = try await client.connectorCreate(name: name, type: type, config: config)
-        await fetchConnectors()
-        return result
-    }
-
-    func connectorDelete(connectorId: String) async throws -> [String: Any] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        let result = try await client.connectorDelete(connectorId: connectorId)
-        await fetchConnectors()
-        return result
-    }
-
-    func connectorConnect(connectorId: String) async throws -> [String: Any] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        return try await client.connectorConnect(connectorId: connectorId)
-    }
-
-    func connectorDisconnect(connectorId: String) async throws -> [String: Any] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        return try await client.connectorDisconnect(connectorId: connectorId)
-    }
-
-    func connectorTest(connectorId: String) async throws -> [String: Any] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        return try await client.connectorTest(connectorId: connectorId)
-    }
 
     // MARK: - API Key Operations
 
@@ -2046,33 +2009,11 @@ final class AgentBridge: ObservableObject {
     }
 
     // MARK: - Style Operations
+    // ARCH-1: fetchStyles/styleCreate/styleDelete 抽至 AgentStyleService.swift facade extension。
+    // 本域最薄叶 silo: 0 private 静态依赖, 0 lastError 写。styleCreate/Delete 调 fetchStyles (同域, extension 内可达)。
+    // @Published styles 留主类 (有外部读)。
 
     @Published var styles: [[String: Any]] = []
-
-    func fetchStyles() async {
-        guard let client = ipcClient else { return }
-        do {
-            let result = try await client.styleList()
-            self.styles = result["styles"] as? [[String: Any]] ?? []
-            logger.info("Fetched \(self.styles.count) styles")
-        } catch {
-            logger.debug("fetchStyles failed: \(error.localizedDescription)")
-        }
-    }
-
-    func styleCreate(name: String, template: String, rules: [String: Any] = [:]) async throws -> [String: Any] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        let result = try await client.styleCreate(name: name, template: template, rules: rules)
-        await fetchStyles()
-        return result
-    }
-
-    func styleDelete(styleId: String) async throws -> [String: Any] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        let result = try await client.styleDelete(styleId: styleId)
-        await fetchStyles()
-        return result
-    }
 
     // MARK: - Analytics & Alert Operations
     // ARCH-1: fetchAnalytics/fetchAlerts/alertAcknowledge 抽至 AgentAnalyticsService.swift facade extension。
@@ -2558,29 +2499,8 @@ final class AgentBridge: ObservableObject {
     }
 
     // MARK: - Hooks Operations
-
-    func fetchHooks() async {
-        guard let client = ipcClient else { return }
-        do {
-            let result = try await client.hooksList()
-            self.hooks = result["hooks"] as? [[String: Any]] ?? []
-            logger.info("Fetched \(self.hooks.count) hooks")
-        } catch {
-            logger.debug("fetchHooks failed: \(error.localizedDescription)")
-        }
-    }
-
-    func hooksRegister(event: String, agentId: String, action: String) async throws -> [String: Any] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        let result = try await client.hooksRegister(event: event, agentId: agentId, action: action)
-        await fetchHooks()
-        return result
-    }
-
-    func hooksTest(hookId: String) async throws -> [String: Any] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        return try await client.hooksTest(hookId: hookId)
-    }
+    // ARCH-1: fetchHooks/hooksRegister/hooksTest 抽至 AgentHooksService.swift facade extension。
+    // 本域最薄叶 silo: 0 private 静态依赖, 0 lastError 写, 0 跨域调用。@Published hooks (L2111) 留主类 (有外部读)。
 
     // MARK: - Context Operations
     // ARCH-1: contextCompact/contextUsage 抽至 AgentContextService.swift facade extension。本域最简单: 2 薄透传, 0 @Published, 0 private 静态依赖。
