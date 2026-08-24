@@ -231,7 +231,9 @@ struct EnvironmentHealthSheet: View {
                 detail = try await probeUDS("/tmp/fusion-project-svc.sock", method: "project.list")
             case "code":
                 // fusion-code 无 /health 端点(404)，用真实业务接口 /api/projects + Bearer 鉴权探活
-                detail = try await probeHTTP("http://127.0.0.1:\(cfg.fusionCodePort)/api/projects", headers: ["Authorization": "Bearer fg-admin-key"])
+                // token 用 per-instance 随机值 (HIGH-2), 不再硬编码 fg-admin-key (服务端 authToken
+                // 默认空=鉴权 fail-open, 固定串被忽略且无法轮换; 见 fusion-code issue #132)
+                detail = try await probeHTTP("http://127.0.0.1:\(cfg.fusionCodePort)/api/projects", headers: ["Authorization": "Bearer \(cfg.fusionCodeApiKey)"])
             case "science":
                 detail = try await probeHTTP("\(cfg.scienceBaseURL)/api/v1/health", headers: [:])
             case "health":
