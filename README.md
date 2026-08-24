@@ -537,6 +537,18 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 
 ## 📋 Changelog
 
+### v0.1.44 — i18n 非延后批次全量完成 + 端口对齐 (2026-08-24)
+
+补丁版本，i18n 全量本地化工程非延后批次全部完成 + 引擎端口对齐：
+
+- **i18n 全量本地化 Batch 16c-16z3**（PR #232-#260）：Training 16c / Trainer 16d / DocGenerator 16e / PluginService 16f / MLXOptimizer 16g / Security 16h / Onboarding 16i / Industry 16j / AutoTuning 16k / DesignBridge 16l / FusionDesignSystem 16m / FCWorkflowViews 16n / TaskQueueView 16o / AdvancedSettingsView 16p / AppState 16q / CollaborationService 16r / WelcomeView 16s / ProfilerView 16t / ConfigSyncManager 16u / AccessibilityService 16v / OperationsView 16w / AnalyticsDashboardView 16x / MultiModalView 16y / InteropService 16z / SpaceListView 16z2 / AgentBridge 16z3
+  - **AgentBridge 16z3 是最后一个非延后模块**（PR #260）：BridgeError.userMessage + AgentModel.statusLabel 全量 t()/tf()；12 `ab_` × 4 语言
+  - 非延后模块 UI 字符串 CJK 残留全部归零；延后类保留明确理由（LLM prompt 内容 / API 耦合 / 预设数据）
+- **端口对齐** (PR #253, fixes #251)：mlx-daemon/env-daemon/IPC 5 处旧端口 8000 → 11434 对齐 fusion-mlx 实际引擎端口
+- **文档改名** (PR #261, fixes #250)：studio-integration.md 7 处 `fusion-desk` → `fusion-cowork`（上游已改名，pyproject.toml 确认 CLI 名）
+- **I18nService 字典**：3568 → 4951 keys × 4 语言（zhCN/enUS/jaJP/koKR）全量平衡（+1383 keys）
+- **CI 全绿**：Swift Build & Test / Rust Check / Code Quality / Security Audit 4/4 pass；master 仅 master 分支
+
 ### v0.1.43 — i18n Doc Admin + License 全量本地化 (2026-08-22)
 
 补丁版本，推进 i18n 全量本地化工程 Batch 16a/16b，分支清理：
