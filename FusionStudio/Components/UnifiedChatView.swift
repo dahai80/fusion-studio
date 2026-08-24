@@ -1044,19 +1044,18 @@ struct UnifiedChatView: View {
         chatViewLog.info("cowork bubble: kind=\(ev.kind.rawValue) text='\(ev.text.prefix(40))'")
     }
 
+    // HIGH-4: 旧实现 DispatchQueue.global(.userInitiated) + waitUntilExit 阻塞协作线程池,
+    // 重复调用可耗尽; Process 出作用域被 ARC 回回收 -> 交互截图变孤儿。
+    // 改用 ScreenCapture 单例 (保活 + try run + terminationHandler) async 不阻塞协作线程池。
     private func takeScreenshot() {
-        DispatchQueue.global(qos: .userInitiated).async {
-            let task = Process()
-            task.launchPath = "/usr/sbin/screencapture"
-            task.arguments = ["-i", "-c"]
-            task.launch()
-            task.waitUntilExit()
-            chatViewLog.info("Screenshot process exited with code \(task.terminationStatus)")
-            guard task.terminationStatus == 0 else {
-                chatViewLog.warning("Screenshot cancelled or failed")
+        Task {
+            let code = await ScreenCapture.shared.captureInteractive()
+            chatViewLog.info("Screenshot process exited with code \(code)")
+            guard code == 0 else {
+                chatViewLog.warning("Screenshot cancelled or failed code=\(code)")
                 return
             }
-            DispatchQueue.main.async {
+            await MainActor.run {
                 let pb = NSPasteboard.general
                 let imgData = pb.data(forType: .tiff)
                     ?? pb.data(forType: .png)
