@@ -4558,6 +4558,62 @@ enum I18nKey: String, CaseIterable {
     case wel_unknown = "wel_unknown"
     case wel_usecase_chat = "wel_usecase_chat"
     case wel_usecase_coding = "wel_usecase_coding"
+    case prof_alert_cpu_high_fmt = "prof_alert_cpu_high_fmt"
+    case prof_alert_mem_high_fmt = "prof_alert_mem_high_fmt"
+    case prof_alert_thermal_high = "prof_alert_thermal_high"
+    case prof_alerts_empty = "prof_alerts_empty"
+    case prof_btn_clear = "prof_btn_clear"
+    case prof_btn_close = "prof_btn_close"
+    case prof_btn_leak = "prof_btn_leak"
+    case prof_btn_refresh = "prof_btn_refresh"
+    case prof_btn_start = "prof_btn_start"
+    case prof_btn_stop = "prof_btn_stop"
+    case prof_leak_desc = "prof_leak_desc"
+    case prof_leak_no_data = "prof_leak_no_data"
+    case prof_leak_scanning_fmt = "prof_leak_scanning_fmt"
+    case prof_leak_start = "prof_leak_start"
+    case prof_leak_title = "prof_leak_title"
+    case prof_mem_advice = "prof_mem_advice"
+    case prof_mem_app = "prof_mem_app"
+    case prof_mem_dist = "prof_mem_dist"
+    case prof_mem_inuse = "prof_mem_inuse"
+    case prof_mem_no_dist = "prof_mem_no_dist"
+    case prof_mem_other = "prof_mem_other"
+    case prof_mem_overview = "prof_mem_overview"
+    case prof_mem_syscache = "prof_mem_syscache"
+    case prof_mem_usage_fmt = "prof_mem_usage_fmt"
+    case prof_mem_weights = "prof_mem_weights"
+    case prof_metric_draw = "prof_metric_draw"
+    case prof_metric_frame = "prof_metric_frame"
+    case prof_metric_mem = "prof_metric_mem"
+    case prof_metric_mlx = "prof_metric_mlx"
+    case prof_metric_thermal = "prof_metric_thermal"
+    case prof_opt_empty = "prof_opt_empty"
+    case prof_opt_empty_hint = "prof_opt_empty_hint"
+    case prof_rec_effort_fmt = "prof_rec_effort_fmt"
+    case prof_rec_impact_fmt = "prof_rec_impact_fmt"
+    case prof_recent_seconds_fmt = "prof_recent_seconds_fmt"
+    case prof_score_fmt = "prof_score_fmt"
+    case prof_sev_critical = "prof_sev_critical"
+    case prof_sev_info = "prof_sev_info"
+    case prof_sev_warning = "prof_sev_warning"
+    case prof_sugg_check_bg = "prof_sugg_check_bg"
+    case prof_sugg_close_model = "prof_sugg_close_model"
+    case prof_sugg_pause_infer = "prof_sugg_pause_infer"
+    case prof_tab_alerts = "prof_tab_alerts"
+    case prof_tab_dashboard = "prof_tab_dashboard"
+    case prof_tab_optimize = "prof_tab_optimize"
+    case prof_tab_timeline = "prof_tab_timeline"
+    case prof_tbl_cpu_fmt = "prof_tbl_cpu_fmt"
+    case prof_tbl_fps_fmt = "prof_tbl_fps_fmt"
+    case prof_tbl_gpu_fmt = "prof_tbl_gpu_fmt"
+    case prof_tbl_mem_fmt = "prof_tbl_mem_fmt"
+    case prof_tbl_mlx_fmt = "prof_tbl_mlx_fmt"
+    case prof_thermal_critical = "prof_thermal_critical"
+    case prof_thermal_normal = "prof_thermal_normal"
+    case prof_thermal_warning = "prof_thermal_warning"
+    case prof_timeline_empty = "prof_timeline_empty"
+    case prof_title = "prof_title"
     case fc_preview = "fc_preview"
     case fc_live = "fc_live"
     case fc_html_preview_empty = "fc_html_preview_empty"
@@ -9264,6 +9320,62 @@ let zhCNTranslations: [String: String] = [
     "wel_unknown": "未知",
     "wel_usecase_chat": "对话",
     "wel_usecase_coding": "编程",
+    "prof_alert_cpu_high_fmt": "CPU 负载过高: %d%%",
+    "prof_alert_mem_high_fmt": "内存使用过高: %dGB",
+    "prof_alert_thermal_high": "设备温度过高",
+    "prof_alerts_empty": "性能良好，无告警",
+    "prof_btn_clear": "清空",
+    "prof_btn_close": "关闭",
+    "prof_btn_leak": "运行内存泄漏检测",
+    "prof_btn_refresh": "刷新建议",
+    "prof_btn_start": "开始",
+    "prof_btn_stop": "停止",
+    "prof_leak_desc": "检测将扫描应用中的循环引用和未释放对象",
+    "prof_leak_no_data": "内存泄漏检测尚未接入真实诊断，暂无数据",
+    "prof_leak_scanning_fmt": "扫描中... %d%%",
+    "prof_leak_start": "开始检测",
+    "prof_leak_title": "内存泄漏检测",
+    "prof_mem_advice": "建议保持在 28GB 以下以保证推理性能",
+    "prof_mem_app": "应用",
+    "prof_mem_dist": "内存分布",
+    "prof_mem_inuse": "使用中",
+    "prof_mem_no_dist": "暂无内存分布数据",
+    "prof_mem_other": "其他",
+    "prof_mem_overview": "内存使用概览",
+    "prof_mem_syscache": "系统缓存",
+    "prof_mem_usage_fmt": "%d GB / 32 GB",
+    "prof_mem_weights": "模型权重",
+    "prof_metric_draw": "绘制调用",
+    "prof_metric_frame": "帧时间",
+    "prof_metric_mem": "内存",
+    "prof_metric_mlx": "MLX 推理",
+    "prof_metric_thermal": "热状态",
+    "prof_opt_empty": "暂无优化建议",
+    "prof_opt_empty_hint": "接通真实性能分析后将基于实际指标生成",
+    "prof_rec_effort_fmt": "工作量: %s",
+    "prof_rec_impact_fmt": "影响: %s",
+    "prof_recent_seconds_fmt": "最近 %d 秒",
+    "prof_score_fmt": "评分: %d/100",
+    "prof_sev_critical": "严重",
+    "prof_sev_info": "提示",
+    "prof_sev_warning": "警告",
+    "prof_sugg_check_bg": "检查后台任务或减少并行推理",
+    "prof_sugg_close_model": "关闭未使用的模型或降低量化精度",
+    "prof_sugg_pause_infer": "暂停推理任务，让设备降温",
+    "prof_tab_alerts": "告警",
+    "prof_tab_dashboard": "仪表盘",
+    "prof_tab_optimize": "优化建议",
+    "prof_tab_timeline": "时间线",
+    "prof_tbl_cpu_fmt": "CPU: %d%%",
+    "prof_tbl_fps_fmt": "FPS: %d",
+    "prof_tbl_gpu_fmt": "GPU: %d%%",
+    "prof_tbl_mem_fmt": "MEM: %dGB",
+    "prof_tbl_mlx_fmt": "MLX: %dms",
+    "prof_thermal_critical": "严重",
+    "prof_thermal_normal": "正常",
+    "prof_thermal_warning": "警告",
+    "prof_timeline_empty": "开始 Profiling 以查看时间线",
+    "prof_title": "性能 Profiler",
     "fc_preview": "预览",
     "fc_live": "实时",
     "fc_html_preview_empty": "生成HTML后此处显示预览",
@@ -13923,6 +14035,62 @@ let enUSTranslations: [String: String] = [
     "wel_unknown": "Unknown",
     "wel_usecase_chat": "Chat",
     "wel_usecase_coding": "Coding",
+    "prof_alert_cpu_high_fmt": "CPU load too high: %d%%",
+    "prof_alert_mem_high_fmt": "Memory usage too high: %dGB",
+    "prof_alert_thermal_high": "Device temperature too high",
+    "prof_alerts_empty": "Performance good, no alerts",
+    "prof_btn_clear": "Clear",
+    "prof_btn_close": "Close",
+    "prof_btn_leak": "Run Memory Leak Check",
+    "prof_btn_refresh": "Refresh Suggestions",
+    "prof_btn_start": "Start",
+    "prof_btn_stop": "Stop",
+    "prof_leak_desc": "The check scans the app for retain cycles and un-released objects",
+    "prof_leak_no_data": "Memory leak check is not connected to real diagnostics; no data yet",
+    "prof_leak_scanning_fmt": "Scanning... %d%%",
+    "prof_leak_start": "Start Check",
+    "prof_leak_title": "Memory Leak Check",
+    "prof_mem_advice": "Recommend keeping below 28GB for inference performance",
+    "prof_mem_app": "App",
+    "prof_mem_dist": "Memory Distribution",
+    "prof_mem_inuse": "In Use",
+    "prof_mem_no_dist": "No memory distribution data yet",
+    "prof_mem_other": "Other",
+    "prof_mem_overview": "Memory Usage Overview",
+    "prof_mem_syscache": "System Cache",
+    "prof_mem_usage_fmt": "%d GB / 32 GB",
+    "prof_mem_weights": "Model Weights",
+    "prof_metric_draw": "Draw Calls",
+    "prof_metric_frame": "Frame Time",
+    "prof_metric_mem": "Memory",
+    "prof_metric_mlx": "MLX Inference",
+    "prof_metric_thermal": "Thermal State",
+    "prof_opt_empty": "No optimization suggestions yet",
+    "prof_opt_empty_hint": "Will be generated from real metrics after connecting real performance analysis",
+    "prof_rec_effort_fmt": "Effort: %s",
+    "prof_rec_impact_fmt": "Impact: %s",
+    "prof_recent_seconds_fmt": "Last %d seconds",
+    "prof_score_fmt": "Score: %d/100",
+    "prof_sev_critical": "Critical",
+    "prof_sev_info": "Info",
+    "prof_sev_warning": "Warning",
+    "prof_sugg_check_bg": "Check background tasks or reduce parallel inference",
+    "prof_sugg_close_model": "Close unused models or lower quantization precision",
+    "prof_sugg_pause_infer": "Pause inference tasks to cool the device",
+    "prof_tab_alerts": "Alerts",
+    "prof_tab_dashboard": "Dashboard",
+    "prof_tab_optimize": "Optimize",
+    "prof_tab_timeline": "Timeline",
+    "prof_tbl_cpu_fmt": "CPU: %d%%",
+    "prof_tbl_fps_fmt": "FPS: %d",
+    "prof_tbl_gpu_fmt": "GPU: %d%%",
+    "prof_tbl_mem_fmt": "MEM: %dGB",
+    "prof_tbl_mlx_fmt": "MLX: %dms",
+    "prof_thermal_critical": "Critical",
+    "prof_thermal_normal": "Normal",
+    "prof_thermal_warning": "Warning",
+    "prof_timeline_empty": "Start profiling to view the timeline",
+    "prof_title": "Performance Profiler",
     "fc_preview": "Preview",
     "fc_live": "Live",
     "fc_html_preview_empty": "Preview appears here after HTML is generated",
@@ -18576,6 +18744,62 @@ let jaJPTranslations: [String: String] = [
     "wel_unknown": "不明",
     "wel_usecase_chat": "チャット",
     "wel_usecase_coding": "コーディング",
+    "prof_alert_cpu_high_fmt": "CPU 負荷过高: %d%%",
+    "prof_alert_mem_high_fmt": "メモリ使用量が高すぎます: %dGB",
+    "prof_alert_thermal_high": "デバイス温度が高すぎます",
+    "prof_alerts_empty": "パフォーマンス良好、アラートなし",
+    "prof_btn_clear": "クリア",
+    "prof_btn_close": "閉じる",
+    "prof_btn_leak": "メモリリーク検出を実行",
+    "prof_btn_refresh": "提案を更新",
+    "prof_btn_start": "開始",
+    "prof_btn_stop": "停止",
+    "prof_leak_desc": "アプリ内の循環参照と未解放オブジェクトをスキャンします",
+    "prof_leak_no_data": "メモリリーク検出はまだ実際の診断に接続されていません。データなし",
+    "prof_leak_scanning_fmt": "スキャン中... %d%%",
+    "prof_leak_start": "検出を開始",
+    "prof_leak_title": "メモリリーク検出",
+    "prof_mem_advice": "推論パフォーマンスのため 28GB 以下を推奨",
+    "prof_mem_app": "アプリ",
+    "prof_mem_dist": "メモリ分布",
+    "prof_mem_inuse": "使用中",
+    "prof_mem_no_dist": "メモリ分布データなし",
+    "prof_mem_other": "その他",
+    "prof_mem_overview": "メモリ使用量の概要",
+    "prof_mem_syscache": "システムキャッシュ",
+    "prof_mem_usage_fmt": "%d GB / 32 GB",
+    "prof_mem_weights": "モデル重み",
+    "prof_metric_draw": "ドローコール",
+    "prof_metric_frame": "フレーム時間",
+    "prof_metric_mem": "メモリ",
+    "prof_metric_mlx": "MLX 推論",
+    "prof_metric_thermal": "サーマル状態",
+    "prof_opt_empty": "最適化の提案はありません",
+    "prof_opt_empty_hint": "実際のパフォーマンス分析接続後に実メトリクスから生成されます",
+    "prof_rec_effort_fmt": "作業量: %s",
+    "prof_rec_impact_fmt": "影響: %s",
+    "prof_recent_seconds_fmt": "直近 %d 秒",
+    "prof_score_fmt": "スコア: %d/100",
+    "prof_sev_critical": "重大",
+    "prof_sev_info": "情報",
+    "prof_sev_warning": "警告",
+    "prof_sugg_check_bg": "バックグラウンドタスクを確認するか並列推論を減らしてください",
+    "prof_sugg_close_model": "未使用のモデルを閉じるか量子化精度を下げてください",
+    "prof_sugg_pause_infer": "推論タスクを一時停止してデバイスを冷やしてください",
+    "prof_tab_alerts": "アラート",
+    "prof_tab_dashboard": "ダッシュボード",
+    "prof_tab_optimize": "最適化",
+    "prof_tab_timeline": "タイムライン",
+    "prof_tbl_cpu_fmt": "CPU: %d%%",
+    "prof_tbl_fps_fmt": "FPS: %d",
+    "prof_tbl_gpu_fmt": "GPU: %d%%",
+    "prof_tbl_mem_fmt": "MEM: %dGB",
+    "prof_tbl_mlx_fmt": "MLX: %dms",
+    "prof_thermal_critical": "重大",
+    "prof_thermal_normal": "正常",
+    "prof_thermal_warning": "警告",
+    "prof_timeline_empty": "プロファイリングを開始してタイムラインを表示",
+    "prof_title": "パフォーマンスプロファイラ",
     "fc_preview": "プレビュー",
     "fc_live": "ライブ",
     "fc_html_preview_empty": "HTML生成後にここにプレビューが表示されます",
@@ -23229,6 +23453,62 @@ let koKRTranslations: [String: String] = [
     "wel_unknown": "알 수 없음",
     "wel_usecase_chat": "채팅",
     "wel_usecase_coding": "코딩",
+    "prof_alert_cpu_high_fmt": "CPU 부하 과高: %d%%",
+    "prof_alert_mem_high_fmt": "메모리 사용량 너무 높음: %dGB",
+    "prof_alert_thermal_high": "기기 온도 너무 높음",
+    "prof_alerts_empty": "성능 양호, 알림 없음",
+    "prof_btn_clear": "지우기",
+    "prof_btn_close": "닫기",
+    "prof_btn_leak": "메모리 누수 검사 실행",
+    "prof_btn_refresh": "제안 새로고침",
+    "prof_btn_start": "시작",
+    "prof_btn_stop": "정지",
+    "prof_leak_desc": "앱의 순환 참조 및 미해제 객체를 스캔합니다",
+    "prof_leak_no_data": "메모리 누수 검사가 실제 진단에 연결되지 않음, 데이터 없음",
+    "prof_leak_scanning_fmt": "스캔 중... %d%%",
+    "prof_leak_start": "검사 시작",
+    "prof_leak_title": "메모리 누수 검사",
+    "prof_mem_advice": "추론 성능을 위해 28GB 이하 유지 권장",
+    "prof_mem_app": "앱",
+    "prof_mem_dist": "메모리 분포",
+    "prof_mem_inuse": "사용 중",
+    "prof_mem_no_dist": "메모리 분포 데이터 없음",
+    "prof_mem_other": "기타",
+    "prof_mem_overview": "메모리 사용량 개요",
+    "prof_mem_syscache": "시스템 캐시",
+    "prof_mem_usage_fmt": "%d GB / 32 GB",
+    "prof_mem_weights": "모델 가중치",
+    "prof_metric_draw": "드로우 콜",
+    "prof_metric_frame": "프레임 시간",
+    "prof_metric_mem": "메모리",
+    "prof_metric_mlx": "MLX 추론",
+    "prof_metric_thermal": "열 상태",
+    "prof_opt_empty": "최적화 제안 없음",
+    "prof_opt_empty_hint": "실제 성능 분석 연결 후 실제 지표로 생성됩니다",
+    "prof_rec_effort_fmt": "작업량: %s",
+    "prof_rec_impact_fmt": "영향: %s",
+    "prof_recent_seconds_fmt": "최근 %d초",
+    "prof_score_fmt": "점수: %d/100",
+    "prof_sev_critical": "심각",
+    "prof_sev_info": "정보",
+    "prof_sev_warning": "경고",
+    "prof_sugg_check_bg": "백그라운드 작업 확인 또는 병렬 추론 감소",
+    "prof_sugg_close_model": "미사용 모델 종료 또는 양자화 정밀도 낮추기",
+    "prof_sugg_pause_infer": "추론 작업 일시정지로 기기 온도 낮추기",
+    "prof_tab_alerts": "알림",
+    "prof_tab_dashboard": "대시보드",
+    "prof_tab_optimize": "최적화",
+    "prof_tab_timeline": "타임라인",
+    "prof_tbl_cpu_fmt": "CPU: %d%%",
+    "prof_tbl_fps_fmt": "FPS: %d",
+    "prof_tbl_gpu_fmt": "GPU: %d%%",
+    "prof_tbl_mem_fmt": "MEM: %dGB",
+    "prof_tbl_mlx_fmt": "MLX: %dms",
+    "prof_thermal_critical": "심각",
+    "prof_thermal_normal": "정상",
+    "prof_thermal_warning": "경고",
+    "prof_timeline_empty": "프로파일링 시작으로 타임라인 보기",
+    "prof_title": "성능 프로파일러",
     "fc_preview": "미리보기",
     "fc_live": "실시간",
     "fc_html_preview_empty": "HTML 생성 후 여기에 미리보기가 표시됩니다",
