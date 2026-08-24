@@ -573,15 +573,61 @@ class DesignBridge: ObservableObject {
 
     /// 调用 fusion-design parse-html CLI 将 HTML 转为 PenDocument JSON。
     func parseHtmlViaCLI(_ html: String) -> String? {
+        // HIGH-6: currentArtifactCode 来自 LLM 不可信输出, 可被 prompt 注入操纵 emit 含
+        // <script> 的 HTML。送 CLI 解析 + 后续 wasm 渲染 = XSS 等价, 可调原生 bridge 读本地资源。
+        // 渲染前净化 (纵深防御, 与 CLI 解析侧校验正交): 剥 <script>/<iframe>/<object>/<embed>,
+        // 剥 on* 事件处理器属性, 剥 javascript:/vbscript: URL。style 保留 (合法设计 token)。
+        let safe = Self.sanitizeHtml(html)
         let result = runFusionDesign(
             ["parse-html", "--page", currentArtifactTitle.isEmpty ? "Page" : currentArtifactTitle],
-            stdin: html
+            stdin: safe
         )
         guard result.exitCode == 0 else {
             designBridgeLog.warning("DesignBridge: parse-html failed: \(result.error)")
             return nil
         }
         return result.output.isEmpty ? nil : result.output
+    }
+
+    /// 净化不可信 HTML: 剥 script/iframe/object/embed 块 + on* 事件属性 + javascript:/vbscript: URL。
+    /// 纵深防御层 — LLM 产物 (currentArtifactCode) 经此过滤后再送 CLI 解析与 wasm 渲染。
+    /// nonisolated: 纯函数无实例状态, 不需 MainActor 隔离, 便于测试与后台调用。
+    nonisolated static func sanitizeHtml(_ html: String) -> String {
+        var out = html
+        // 1. 剥 <script>...</script> (含 <script src=...> 空体), 跨行大小写不敏感
+        if let re = try? NSRegularExpression(pattern: #"<script[\s\S]*?</script>"#, options: [.caseInsensitive]) {
+            out = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "")
+        }
+        if let re = try? NSRegularExpression(pattern: #"<script\b[^>]*>"#, options: [.caseInsensitive]) {
+            out = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "")
+        }
+        // 2. 剥 <iframe>/<object>/<embed>...</iframe|object|embed> 及空体
+        for tag in ["iframe", "object", "embed"] {
+            if let re = try? NSRegularExpression(pattern: "<\(tag)[\\s\\S]*?</\(tag)>", options: [.caseInsensitive]) {
+                out = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "")
+            }
+            if let re = try? NSRegularExpression(pattern: "<\(tag)\\b[^>]*/?>", options: [.caseInsensitive]) {
+                out = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "")
+            }
+        }
+        // 3. 剥 on* 事件处理器属性 (on\w+="..." / on\w+='...' / on\w+=\S+), 大小写不敏感
+        if let re = try? NSRegularExpression(pattern: #"\son\w+\s*=\s*"[^"]*""#, options: [.caseInsensitive]) {
+            out = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "")
+        }
+        if let re = try? NSRegularExpression(pattern: #"\son\w+\s*=\s*'[^']*'"#, options: [.caseInsensitive]) {
+            out = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "")
+        }
+        if let re = try? NSRegularExpression(pattern: #"\son\w+\s*=\s*[^\s>]+"#, options: [.caseInsensitive]) {
+            out = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "")
+        }
+        // 4. 剥 javascript:/vbscript: URL (href/src 属性值内), 大小写不敏感
+        if let re = try? NSRegularExpression(pattern: #"(?i)(href|src)\s*=\s*("javascript:[^"]*"|'javascript:[^']*'|javascript:[^\s>]+)"#, options: []) {
+            out = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "$1=\"#\"")
+        }
+        if let re = try? NSRegularExpression(pattern: #"(?i)(href|src)\s*=\s*("vbscript:[^"]*"|'vbscript:[^']*'|vbscript:[^\s>]+)"#, options: []) {
+            out = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "$1=\"#\"")
+        }
+        return out
     }
 
     /// 调用 fusion-design token-css CLI 获取当前设计规范的 CSS Custom Properties。
@@ -597,27 +643,15 @@ class DesignBridge: ObservableObject {
         if let bundlePath = Bundle.main.path(forResource: "fusion-design", ofType: nil) {
             return bundlePath
         }
-        // 开发模式：使用 cargo build 输出
+        // 开发模式：使用 cargo build 输出 (固定已知安全目录, 非 PATH 查找)
         let devPath = NSHomeDirectory() + "/fusion/fusion-design/target/debug/fusion-design"
         if FileManager.default.fileExists(atPath: devPath) {
             return devPath
         }
-        // 尝试 PATH
-        let result = Process()
-        result.executableURL = URL(fileURLWithPath: "/usr/bin/which")
-        result.arguments = ["fusion-design"]
-        let pipe = Pipe()
-        result.standardOutput = pipe
-        do {
-            try result.run()
-            result.waitUntilExit()
-            if result.terminationStatus == 0 {
-                let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                if let path = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines), !path.isEmpty {
-                    return path
-                }
-            }
-        } catch {}
+        // HIGH-7: 不再走 PATH 回退。PATH 前段若有可写目录, 攻击者放入恶意 fusion-design,
+        // app 以自身权限执行并把用户 prompt 经参数传入 -> prompt 外泄 + 任意代码执行。
+        // 桌面 app 不应信任 PATH 查找接收敏感输入的可执行文件。找不到则报错不执行。
+        designBridgeLog.error("DesignBridge: fusion-design CLI 未在 bundle 或开发目录找到, 拒绝 PATH 回退 (HIGH-7)")
         return ""
     }
 
