@@ -2742,16 +2742,7 @@ final class AgentBridge: ObservableObject {
     }
 
     // MARK: - Context Operations
-
-    func contextCompact(sessionId: String) async throws -> [String: Any] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        return try await client.contextCompact(sessionId: sessionId)
-    }
-
-    func contextUsage(sessionId: String) async throws -> [String: Any] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        return try await client.contextUsage(sessionId: sessionId)
-    }
+    // ARCH-1: contextCompact/contextUsage 抽至 AgentContextService.swift facade extension。本域最简单: 2 薄透传, 0 @Published, 0 private 静态依赖。
 
     // MARK: - Parsing Helpers
 
