@@ -4860,6 +4860,18 @@ enum I18nKey: String, CaseIterable {
     case spl_mkt_cat_frontend = "spl_mkt_cat_frontend"
     case spl_mkt_cat_viz = "spl_mkt_cat_viz"
     case spl_mkt_cat_tool = "spl_mkt_cat_tool"
+    case ab_err_not_connected = "ab_err_not_connected"
+    case ab_err_service_down = "ab_err_service_down"
+    case ab_err_auth_failed = "ab_err_auth_failed"
+    case ab_err_timeout = "ab_err_timeout"
+    case ab_err_service_anomaly = "ab_err_service_anomaly"
+    case ab_err_unavailable = "ab_err_unavailable"
+    case ab_err_decode_mismatch = "ab_err_decode_mismatch"
+    case ab_err_unavailable_code_fmt = "ab_err_unavailable_code_fmt"
+    case ab_status_published = "ab_status_published"
+    case ab_status_draft = "ab_status_draft"
+    case ab_status_active = "ab_status_active"
+    case ab_status_archived = "ab_status_archived"
     case fc_preview = "fc_preview"
     case fc_live = "fc_live"
     case fc_html_preview_empty = "fc_html_preview_empty"
@@ -9866,6 +9878,18 @@ let zhCNTranslations: [String: String] = [
     "spl_mkt_cat_frontend": "前端",
     "spl_mkt_cat_viz": "可视化",
     "spl_mkt_cat_tool": "工具",
+    "ab_err_not_connected": "未连接到后端服务，请检查服务是否正常运行。",
+    "ab_err_service_down": "AI 推理服务未启动，请先启动 fusion-mlx 服务后重试。",
+    "ab_err_auth_failed": "AI 服务认证失败，请检查 API Key 配置是否正确。",
+    "ab_err_timeout": "请求超时，AI 服务响应时间过长，请稍后重试。",
+    "ab_err_service_anomaly": "AI 服务返回异常，请检查服务状态或稍后重试。",
+    "ab_err_unavailable": "AI 服务暂时不可用，请稍后重试。",
+    "ab_err_decode_mismatch": "AI 服务返回数据异常，请检查服务版本是否匹配。",
+    "ab_err_unavailable_code_fmt": "AI 服务暂时不可用（错误码：%d），请稍后重试。",
+    "ab_status_published": "已发布",
+    "ab_status_draft": "草稿",
+    "ab_status_active": "运行中",
+    "ab_status_archived": "已归档",
     "fc_preview": "预览",
     "fc_live": "实时",
     "fc_html_preview_empty": "生成HTML后此处显示预览",
@@ -14825,6 +14849,18 @@ let enUSTranslations: [String: String] = [
     "spl_mkt_cat_frontend": "Frontend",
     "spl_mkt_cat_viz": "Viz",
     "spl_mkt_cat_tool": "Tool",
+    "ab_err_not_connected": "Not connected to backend service. Please check whether the service is running normally.",
+    "ab_err_service_down": "AI inference service is not running. Please start the fusion-mlx service and try again.",
+    "ab_err_auth_failed": "AI service authentication failed. Please check the API Key configuration.",
+    "ab_err_timeout": "Request timed out. The AI service took too long to respond. Please try again later.",
+    "ab_err_service_anomaly": "AI service returned an error. Please check the service status or try again later.",
+    "ab_err_unavailable": "AI service is temporarily unavailable. Please try again later.",
+    "ab_err_decode_mismatch": "AI service returned unexpected data. Please check whether the service version matches.",
+    "ab_err_unavailable_code_fmt": "AI service is temporarily unavailable (error code: %d). Please try again later.",
+    "ab_status_published": "Published",
+    "ab_status_draft": "Draft",
+    "ab_status_active": "Running",
+    "ab_status_archived": "Archived",
     "fc_preview": "Preview",
     "fc_live": "Live",
     "fc_html_preview_empty": "Preview appears here after HTML is generated",
@@ -19778,6 +19814,18 @@ let jaJPTranslations: [String: String] = [
     "spl_mkt_cat_frontend": "フロントエンド",
     "spl_mkt_cat_viz": "可視化",
     "spl_mkt_cat_tool": "ツール",
+    "ab_err_not_connected": "バックエンドサービスに接続されていません。サービスが正常に実行されているか確認してください。",
+    "ab_err_service_down": "AI 推論サービスが起動していません。fusion-mlx サービスを起動してから再試行してください。",
+    "ab_err_auth_failed": "AI サービスの認証に失敗しました。API Key の設定を確認してください。",
+    "ab_err_timeout": "リクエストがタイムアウトしました。AI サービスの応答に時間がかかっています。後でもう一度お試しください。",
+    "ab_err_service_anomaly": "AI サービスが異常を返しました。サービスの状態を確認するか、後でもう一度お試しください。",
+    "ab_err_unavailable": "AI サービスは一時的に利用できません。後でもう一度お試しください。",
+    "ab_err_decode_mismatch": "AI サービスが異常なデータを返しました。サービスのバージョンが一致しているか確認してください。",
+    "ab_err_unavailable_code_fmt": "AI サービスは一時的に利用できません（エラーコード：%d）。後でもう一度お試しください。",
+    "ab_status_published": "公開済み",
+    "ab_status_draft": "下書き",
+    "ab_status_active": "実行中",
+    "ab_status_archived": "アーカイブ済み",
     "fc_preview": "プレビュー",
     "fc_live": "ライブ",
     "fc_html_preview_empty": "HTML生成後にここにプレビューが表示されます",
@@ -24731,6 +24779,18 @@ let koKRTranslations: [String: String] = [
     "spl_mkt_cat_frontend": "프론트엔드",
     "spl_mkt_cat_viz": "시각화",
     "spl_mkt_cat_tool": "도구",
+    "ab_err_not_connected": "백엔드 서비스에 연결되지 않았습니다. 서비스가 정상적으로 실행 중인지 확인하세요.",
+    "ab_err_service_down": "AI 추론 서비스가 실행되지 않았습니다. fusion-mlx 서비스를 시작한 후 다시 시도하세요.",
+    "ab_err_auth_failed": "AI 서비스 인증에 실패했습니다. API Key 설정을 확인하세요.",
+    "ab_err_timeout": "요청 시간이 초과되었습니다. AI 서비스 응답이 너무 느립니다. 나중에 다시 시도하세요.",
+    "ab_err_service_anomaly": "AI 서비스가 오류를 반환했습니다. 서비스 상태를 확인하거나 나중에 다시 시도하세요.",
+    "ab_err_unavailable": "AI 서비스를 일시적으로 사용할 수 없습니다. 나중에 다시 시도하세요.",
+    "ab_err_decode_mismatch": "AI 서비스가 비정상 데이터를 반환했습니다. 서비스 버전이 일치하는지 확인하세요.",
+    "ab_err_unavailable_code_fmt": "AI 서비스를 일시적으로 사용할 수 없습니다(오류 코드: %d). 나중에 다시 시도하세요.",
+    "ab_status_published": "게시됨",
+    "ab_status_draft": "초안",
+    "ab_status_active": "실행 중",
+    "ab_status_archived": "보관됨",
     "fc_preview": "미리보기",
     "fc_live": "실시간",
     "fc_html_preview_empty": "HTML 생성 후 여기에 미리보기가 표시됩니다",

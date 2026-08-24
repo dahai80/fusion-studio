@@ -147,36 +147,37 @@ enum BridgeError: Error, Equatable, LocalizedError {
     }
 
     var userMessage: String {
+        let i18n = I18nManager.shared
         switch self {
         case .notConnected:
-            return "未连接到后端服务，请检查服务是否正常运行。"
+            return i18n.t(.ab_err_not_connected)
         case .serviceUnavailable:
-            return "AI 推理服务未启动，请先启动 fusion-mlx 服务后重试。"
+            return i18n.t(.ab_err_service_down)
         case .authFailed:
-            return "AI 服务认证失败，请检查 API Key 配置是否正确。"
+            return i18n.t(.ab_err_auth_failed)
         case .timeout:
-            return "请求超时，AI 服务响应时间过长，请稍后重试。"
+            return i18n.t(.ab_err_timeout)
         case .ipcError(let msg):
-            if msg.contains("connection refused") || msg.contains("Could not connect") || msg.contains("网络不可达") || msg.contains("No route to host") {
-                return "AI 推理服务未启动，请先启动 fusion-mlx 服务后重试。"
+            if msg.contains("connection refused") || msg.contains("Could not connect") || msg.contains("No route to host") {
+                return i18n.t(.ab_err_service_down)
             }
-            if msg.contains("timed out") || msg.contains("超时") {
-                return "请求超时，AI 服务响应时间过长，请稍后重试。"
+            if msg.contains("timed out") {
+                return i18n.t(.ab_err_timeout)
             }
             if msg.contains("non-200") || msg.contains("HTTP 4") || msg.contains("HTTP 5") {
-                return "AI 服务返回异常，请检查服务状态或稍后重试。"
+                return i18n.t(.ab_err_service_anomaly)
             }
-            return "AI 服务暂时不可用，请稍后重试。"
+            return i18n.t(.ab_err_unavailable)
         case .decodeError:
-            return "AI 服务返回数据异常，请检查服务版本是否匹配。"
+            return i18n.t(.ab_err_decode_mismatch)
         case .rpcError(let code, _):
             if code == 401 || code == 403 {
-                return "AI 服务认证失败，请检查 API Key 配置是否正确。"
+                return i18n.t(.ab_err_auth_failed)
             }
             if code == 404 {
-                return "AI 推理服务未启动，请先启动 fusion-mlx 服务后重试。"
+                return i18n.t(.ab_err_service_down)
             }
-            return "AI 服务暂时不可用（错误码：\(code)），请稍后重试。"
+            return i18n.tf(.ab_err_unavailable_code_fmt, code)
         }
     }
 }
@@ -278,12 +279,13 @@ struct AgentModel: Codable, Equatable, Identifiable {
     var rate_limit_qps: Int?
 
     var statusLabel: String {
+        let i18n = I18nManager.shared
         switch status ?? "draft" {
-        case "published": return "已发布"
-        case "draft": return "草稿"
-        case "active": return "运行中"
-        case "archived": return "已归档"
-        default: return status ?? "草稿"
+        case "published": return i18n.t(.ab_status_published)
+        case "draft": return i18n.t(.ab_status_draft)
+        case "active": return i18n.t(.ab_status_active)
+        case "archived": return i18n.t(.ab_status_archived)
+        default: return status ?? i18n.t(.ab_status_draft)
         }
     }
 }
