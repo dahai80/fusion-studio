@@ -1710,18 +1710,8 @@ final class AgentBridge: ObservableObject {
     }
 
     // MARK: - Deploy Operations
-
-    func deployExport(graphId: String, format: String = "json", filepath: String = "", withServer: Bool = true, port: Int = 8000) async throws -> [String: Any] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        logger.info("deployExport: graphId=\(graphId) format=\(format)")
-        do {
-            return try await client.deployExport(graphId: graphId, format: format, filepath: filepath, withServer: withServer, port: port)
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            throw bridgeErr
-        }
-    }
+    // ARCH-1: deployExport + fetchDeployFormats 抽至 AgentDeployService.swift facade extension。
+    // deployImport 留此: 依赖 Self.parseGraphModel (private static 跨文件不可访问), 待 Graph 域抽取时同搬。
 
     func deployImport(filepath: String) async throws -> AgentGraphModel {
         guard let client = ipcClient else { throw BridgeError.notConnected }
@@ -1732,28 +1722,6 @@ final class AgentBridge: ObservableObject {
                 throw BridgeError.decodeError("Failed to parse deploy.import response")
             }
             return graph
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
-            throw bridgeErr
-        }
-    }
-
-    func fetchDeployFormats() async throws -> [DeployFormatModel] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        do {
-            let result = try await client.deployListFormats()
-            let formatsData = result["formats"] as? [[String: Any]] ?? []
-            var parsed: [DeployFormatModel] = []
-            for f in formatsData {
-                parsed.append(DeployFormatModel(
-                    id: f["format"] as? String ?? UUID().uuidString,
-                    format: f["format"] as? String ?? "",
-                    description: f["description"] as? String ?? ""
-                ))
-            }
-            self.deployFormats = parsed
-            return parsed
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
             self.lastError = bridgeErr
