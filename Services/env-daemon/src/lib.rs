@@ -348,16 +348,23 @@ impl RepairEngine {
     }
 
     async fn repair_homebrew(&self) -> RepairResult {
-        let script = "/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"";
-        let (success, logs) = Self::run_command("/bin/bash", &["-c", script]).await;
+        let mut logs = Vec::new();
+        logs.push("安全策略: 拒绝在本进程执行远程脚本 (curl|bash)".into());
+        let brew_on_path = Command::new("brew").arg("--version").output().is_ok();
+        if brew_on_path {
+            logs.push("brew 已在 PATH, 无需修复".into());
+            return RepairResult {
+                item_id: "homebrew".into(),
+                success: true,
+                message: "Homebrew 已就绪".into(),
+                logs,
+            };
+        }
+        logs.push("brew 未找到, 请手动安装: https://docs.brew.sh/Installation".into());
         RepairResult {
             item_id: "homebrew".into(),
-            success,
-            message: if success {
-                "Homebrew 安装成功".into()
-            } else {
-                "安装失败".into()
-            },
+            success: false,
+            message: "出于安全考虑不自动执行远程脚本, 请手动安装 Homebrew".into(),
             logs,
         }
     }
@@ -426,31 +433,35 @@ impl RepairEngine {
     }
 
     async fn repair_rust(&self) -> RepairResult {
-        let (success, logs) = Self::run_command(
-            "curl",
-            &[
-                "--proto",
-                "=https",
-                "--tlsv1.2",
-                "-sSf",
-                "https://sh.rustup.rs",
-                "|",
-                "sh",
-                "-s",
-                "--",
-                "-y",
-            ],
-        )
-        .await;
-        RepairResult {
-            item_id: "rust".into(),
-            success,
-            message: if success {
-                "Rust 工具链安装成功".into()
-            } else {
-                "安装失败".into()
-            },
-            logs,
+        let mut logs = Vec::new();
+        logs.push("安全策略: 拒绝在本进程执行 curl|sh 远程脚本".into());
+        let rustup_on_path = Command::new("rustup-init").arg("--version").output();
+        match rustup_on_path {
+            Ok(o) if o.status.success() => {
+                logs.push("rustup-init 已存在, 执行本地安装".into());
+                let (ok, l) =
+                    Self::run_command("rustup-init", &["-y", "--no-modify-path"]).await;
+                logs.extend(l);
+                RepairResult {
+                    item_id: "rust".into(),
+                    success: ok,
+                    message: if ok {
+                        "Rust 工具链安装成功".into()
+                    } else {
+                        "rustup-init 执行失败".into()
+                    },
+                    logs,
+                }
+            }
+            _ => {
+                logs.push("rustup-init 未找到, 请手动安装: https://rustup.rs".into());
+                RepairResult {
+                    item_id: "rust".into(),
+                    success: false,
+                    message: "出于安全考虑不自动执行远程脚本, 请手动安装 rustup".into(),
+                    logs,
+                }
+            }
         }
     }
 
