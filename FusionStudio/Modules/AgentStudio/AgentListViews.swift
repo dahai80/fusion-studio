@@ -419,7 +419,16 @@ struct BackendAgentDetailView: View {
             }
         }
         .onAppear {
+            // ARCH-2: 首帧先清旧 agent 残留的 soul/skills, 避免加载完成前渲染上一 agent 的数据。
+            // .id(agent.id) 重建视图但 onAppear 在首帧后才跑, 首帧仍读 bridge 共享态的旧值。
+            bridge.agentSoul = ""
+            bridge.agentSkills = []
             loadSkillsAndSoul()
+        }
+        .onDisappear {
+            // ARCH-2: 离开时清 soul/skills, 下次切 agent 不带残留。
+            bridge.agentSoul = ""
+            bridge.agentSkills = []
         }
     }
 
