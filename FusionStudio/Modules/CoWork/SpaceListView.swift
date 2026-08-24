@@ -21,10 +21,10 @@ struct SpaceListView: View {
     @State private var showMarketplace = false
 
     private enum SpaceFilterStatus: String, CaseIterable {
-        case all = "全部"
-        case created = "我创建的"
-        case joined = "我加入的"
-        case archived = "已归档"
+        case all
+        case created
+        case joined
+        case archived
 
         var localLabel: String {
             switch self {
@@ -505,15 +505,15 @@ struct SpaceMainView: View {
     private let spaceManager = CoworkSpaceManager.shared
 
     private enum SpaceSidebarSection: String, CaseIterable {
-        case members = "成员"
-        case files = "文件"
-        case knowledge = "知识库"
+        case members
+        case files
+        case knowledge
         case agents = "Agent"
-        case artifacts = "产物"
-        case workflows = "工作流"
-        case snapshots = "快照"
-        case desktop = "桌面"
-        case settings = "设置"
+        case artifacts
+        case workflows
+        case snapshots
+        case desktop
+        case settings
 
         var localLabel: String {
             switch self {
@@ -2657,7 +2657,7 @@ struct WorkflowDagCanvas: View {
 
     private func generateDagNodes() -> [DagNode] {
         let count = max(nodeCount, 3)
-        let labels = ["输入"] + (1...(count - 2)).map { "Step \($0)" } + ["输出"]
+        let labels = [I18nManager.shared.t(.spl_step_input)] + (1...(count - 2)).map { "Step \($0)" } + [I18nManager.shared.t(.spl_step_output)]
         let colors: [Color] = [.blue] + (1...(count - 2)).map { _ in theme.accent } + [.green]
         let w: CGFloat = 260
         let h: CGFloat = 120
@@ -3214,7 +3214,7 @@ struct SpaceDeepResearchView: View {
             for agent in agents {
                 let resp = try? await ipc.spaceAgentCall(
                     spaceId: spaceId, agentId: agent.id,
-                    message: "深度研究任务 [深度\(depth)]: \(query)"
+                    message: i18n.tf(.spl_deep_research_fmt, depth, query)
                 )
                 responses.append(resp)
                 await MainActor.run {
@@ -3917,7 +3917,7 @@ struct SpaceMarketplaceView: View {
                     .font(.system(size: theme.iconM))
                     .foregroundStyle(theme.accent)
                 Spacer()
-                Text(item.category)
+                Text(i18n.t(item.category))
                     .font(.system(size: 9))
                     .padding(.horizontal, 4)
                     .padding(.vertical, 1)
@@ -3925,10 +3925,10 @@ struct SpaceMarketplaceView: View {
                     .clipShape(Capsule())
                     .foregroundStyle(theme.accent)
             }
-            Text(item.name)
+            Text(i18n.t(item.name))
                 .font(.system(size: theme.captionSize, weight: .semibold))
                 .foregroundStyle(theme.text)
-            Text(item.description)
+            Text(i18n.t(item.description))
                 .font(.system(size: 9))
                 .foregroundStyle(theme.textTertiary)
                 .lineLimit(2)
@@ -3952,16 +3952,16 @@ struct SpaceMarketplaceView: View {
 
     private func loadSampleData() {
         workflows = [
-            MarketplaceItem(name: "代码审查流水线", description: "自动代码审查：语法检查 → 安全扫描 → Agent 评审", icon: "arrow.triangle.branch", category: "开发", useCount: 128),
-            MarketplaceItem(name: "文档生成器", description: "根据代码自动生成文档和 API 说明", icon: "doc.text", category: "文档", useCount: 95),
-            MarketplaceItem(name: "数据分析流程", description: "CSV导入 → 清洗 → 可视化 → 报告生成", icon: "chart.bar", category: "数据", useCount: 73),
-            MarketplaceItem(name: "多轮翻译", description: "原文 → 机器翻译 → 人工校对 → 术语统一", icon: "globe", category: "翻译", useCount: 61),
+            MarketplaceItem(name: "spl_mkt_name_code_review", description: "spl_mkt_desc_code_review", icon: "arrow.triangle.branch", category: "spl_mkt_cat_dev", useCount: 128),
+            MarketplaceItem(name: "spl_mkt_name_doc_gen", description: "spl_mkt_desc_doc_gen", icon: "doc.text", category: "spl_mkt_cat_doc", useCount: 95),
+            MarketplaceItem(name: "spl_mkt_name_data_analysis", description: "spl_mkt_desc_data_analysis", icon: "chart.bar", category: "spl_mkt_cat_data", useCount: 73),
+            MarketplaceItem(name: "spl_mkt_name_multi_translate", description: "spl_mkt_desc_multi_translate", icon: "globe", category: "spl_mkt_cat_translate", useCount: 61),
         ]
         artifacts = [
-            MarketplaceItem(name: "React Dashboard", description: "现代 React 仪表盘模板，含图表和表格", icon: "shippingbox", category: "前端", useCount: 256),
-            MarketplaceItem(name: "API 文档模板", description: "OpenAPI 规范的文档模板", icon: "doc.text", category: "文档", useCount: 189),
-            MarketplaceItem(name: "数据可视化套件", description: "D3.js/ECharts 可复用图表组件", icon: "chart.bar", category: "可视化", useCount: 142),
-            MarketplaceItem(name: "CLI 脚手架", description: "CLI 工具生成器模板", icon: "terminal", category: "工具", useCount: 98),
+            MarketplaceItem(name: "spl_mkt_name_react_dashboard", description: "spl_mkt_desc_react_dashboard", icon: "shippingbox", category: "spl_mkt_cat_frontend", useCount: 256),
+            MarketplaceItem(name: "spl_mkt_name_api_doc", description: "spl_mkt_desc_api_doc", icon: "doc.text", category: "spl_mkt_cat_doc", useCount: 189),
+            MarketplaceItem(name: "spl_mkt_name_data_viz", description: "spl_mkt_desc_data_viz", icon: "chart.bar", category: "spl_mkt_cat_viz", useCount: 142),
+            MarketplaceItem(name: "spl_mkt_name_cli_scaffold", description: "spl_mkt_desc_cli_scaffold", icon: "terminal", category: "spl_mkt_cat_tool", useCount: 98),
         ]
     }
 }
