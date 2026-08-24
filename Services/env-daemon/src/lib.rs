@@ -243,7 +243,7 @@ impl HealthChecker {
                 "/dev/null",
                 "-w",
                 "%{http_code}",
-                "http://localhost:8000/v1/models",
+                "http://localhost:11434/v1/models",
             ])
             .output();
         match output {
@@ -254,7 +254,7 @@ impl HealthChecker {
                         id: "fusion-mlx".into(),
                         label: "fusion-mlx 服务".into(),
                         status: CheckStatus::Passed,
-                        detail: Some("运行中 (localhost:8000)".into()),
+                        detail: Some("运行中 (localhost:11434)".into()),
                         fixable: true,
                     }
                 } else {
@@ -466,7 +466,7 @@ impl RepairEngine {
         if mlx_path.exists() {
             let (success, cmd_logs) = Self::run_command(
                 "python3",
-                &["-m", "fusion_mlx.serve", "--port", "8000", "--daemon"],
+                &["-m", "fusion_mlx.serve", "--port", "11434", "--daemon"],
             )
             .await;
             logs.extend(cmd_logs);

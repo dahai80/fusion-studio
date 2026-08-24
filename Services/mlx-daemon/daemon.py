@@ -35,7 +35,7 @@ logger = logging.getLogger("mlx-daemon")
 class MLXConfig:
     mlx_path: str = str(Path.home() / "claude-home" / "fusion-mlx")
     host: str = "localhost"
-    port: int = 8000
+    port: int = 11434
     model: str = ""  # 默认模型，为空则使用 fusion-mlx 默认
     quant: str = "4bit"
     max_memory_gb: int = 16
@@ -378,7 +378,7 @@ def main():
     parser = argparse.ArgumentParser(description="Fusion Studio MLX Daemon")
     parser.add_argument("--mlx-path", default=str(Path.home() / "claude-home" / "fusion-mlx"))
     parser.add_argument("--host", default="localhost")
-    parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument("--port", type=int, default=11434)
     parser.add_argument("--model", default="")
     parser.add_argument("--quant", default="4bit")
     parser.add_argument("--max-memory", type=int, default=16)

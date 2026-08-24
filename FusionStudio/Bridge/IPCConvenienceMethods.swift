@@ -181,7 +181,7 @@ extension IPCClient {
 
     // MARK: - Deploy
 
-    func deployExport(graphId: String, format: String = "json", filepath: String = "", withServer: Bool = true, port: Int = 8000) async throws -> [String: Any] {
+    func deployExport(graphId: String, format: String = "json", filepath: String = "", withServer: Bool = true, port: Int = 11434) async throws -> [String: Any] {
         var params: [String: Any] = ["graph_id": graphId, "format": format]
         if !filepath.isEmpty { params["filepath"] = filepath }
         params["with_server"] = withServer
