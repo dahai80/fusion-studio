@@ -183,10 +183,39 @@ class FusionCoderBridge: ObservableObject {
         return try await runPrompt(prompt)
     }
 
+    // F-I6: 临时文件统一目录 ~/.fusion-studio/tmp/ (0700), 替代公共 /tmp。
+    // 隔离用户代码文件防窥探+跨会话泄漏; startup 清理陈旧 fusion_run_*。
+    static var tmpDir: URL {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let dir = home.appendingPathComponent(".fusion-studio/tmp", isDirectory: true)
+        if !FileManager.default.fileExists(atPath: dir.path) {
+            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        }
+        return dir
+    }
+
+    // F-I6: 启动清理陈旧 fusion_run_* 临时文件 (前次崩溃/kill 残留)。
+    static func cleanupStaleTempFiles() {
+        let dir = tmpDir
+        guard let entries = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) else { return }
+        var removed = 0
+        for entry in entries where entry.lastPathComponent.hasPrefix("fusion_run_") {
+            try? FileManager.default.removeItem(at: entry)
+            removed += 1
+        }
+        if removed > 0 {
+            coderLog.info("F-I6 cleanup stale temp files removed=\(removed, privacy: .public)")
+        }
+    }
+
     /// 运行代码 — 通过子进程执行代码文件 (无 shell, executableURL + 参数数组)
     func runCode(_ code: String, language: String) async throws -> String {
-        let tempFile = FileManager.default.temporaryDirectory.appendingPathComponent("fusion_run_\(UUID().uuidString.prefix(8)).\(languageExtension(language))")
+        // F-I6: 私有 0700 目录, 防 /tmp 公共区窥探泄漏用户代码。
+        let tempFile = FusionCoderBridge.tmpDir.appendingPathComponent("fusion_run_\(UUID().uuidString.prefix(8)).\(languageExtension(language))")
         try code.write(to: tempFile, atomically: true, encoding: .utf8)
+        try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: tempFile.path)
+        // F-I6: defer 兜底清理, 即便 timeout/崩溃路径也删, 不依赖 waitUntilExit 后路径。
+        defer { try? FileManager.default.removeItem(at: tempFile) }
 
         let executable: String
         var args: [String]
@@ -227,7 +256,6 @@ class FusionCoderBridge: ObservableObject {
 
         let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
         let output = String(data: outputData, encoding: .utf8) ?? ""
-        try? FileManager.default.removeItem(at: tempFile)
         return output
     }
 

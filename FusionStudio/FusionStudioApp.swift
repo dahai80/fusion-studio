@@ -110,6 +110,8 @@ struct FusionStudioApp: App {
                     Task {
                         await performStartupHealthCheck()
                     }
+                    // F-I6: 启动清理陈旧 fusion_run_* 临时文件 (前次崩溃/timeout 残留于 ~/.fusion-studio/tmp/)。
+                    FusionCoderBridge.cleanupStaleTempFiles()
                     // F-R13: 启动进程内 RSS 监控, 软阈值告警 + 日志, 防 @Published/长会话 OOM 静默。
                     StudioMemoryMonitor.shared.start()
                 }
