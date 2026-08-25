@@ -54,8 +54,6 @@ struct AlertCenterView: View {
             .padding(.bottom, theme.spacing2XL)
         }
         .background(theme.contentBg)
-        .onAppear { engine.startPolling() }
-        .onDisappear { engine.stopPolling() }
     }
 
     private var tabBar: some View {

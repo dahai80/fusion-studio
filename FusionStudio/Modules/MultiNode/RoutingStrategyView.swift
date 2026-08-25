@@ -33,10 +33,8 @@ struct RoutingStrategyView: View {
         }
         .background(theme.contentBg)
         .onAppear {
-            engine.startPolling()
             loadSummary()
         }
-        .onDisappear { engine.stopPolling() }
     }
 
     private var strategySection: some View {
