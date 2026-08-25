@@ -1,6 +1,6 @@
 // ARCH-1: Connector Operations 从 AgentBridge God-object 抽出, facade extension。
 // 6 方法 (fetchConnectors/connectorCreate/connectorDelete/connectorConnect/connectorDisconnect/connectorTest),
-//   0 private 静态依赖, 0 lastError 写, 0 跨域实例调用。叶 silo。
+//   0 private 静态依赖, 0 持久状态, 0 跨域实例调用。叶 silo。
 // connectorCreate/connectorDelete 调 await fetchConnectors() (本文件同域, extension 内可达)。
 // @Published connectors (L1969) 留主类 (extension 不可声明存储, 有外部 SwiftUI 读 AgentConfigTabs/AgentConfigViews)。
 //   extension 写 self.connectors, 观察链不变。

@@ -1,5 +1,5 @@
 // ARCH-1: RAG 操作从 AgentBridge God-object (3167行) 抽出, facade extension。
-// @Published ragResults/ragSources/lastError + ipcClient 仍存 AgentBridge (extension 不可声明存储属性),
+// @Published ragResults/ragSources + ipcClient 仍存 AgentBridge (extension 不可声明存储属性),
 // 本文件只搬方法体, 行为零变。外部唯一调用方: AgentConfigTabs RAGTabView (ragQuery/ragRetrieve/ragVectorSearch)。
 // ragResults/ragSources 经查 0 外部 SwiftUI 读 (write-only 状态), 抽取纯代码组织无行为风险。
 
@@ -29,7 +29,7 @@ extension AgentBridge {
             return ragResult
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -41,7 +41,7 @@ extension AgentBridge {
             return result["documents"] as? [String] ?? []
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -56,7 +56,7 @@ extension AgentBridge {
             return docs
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }

@@ -46,7 +46,7 @@ extension AgentBridge {
             return parsed
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             agentGraphLog.error("fetchGraphs: \(error)")
             throw bridgeErr
         }
@@ -93,7 +93,7 @@ extension AgentBridge {
             return model
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             agentGraphLog.error("createGraph: \(error)")
             throw bridgeErr
         }
@@ -111,7 +111,7 @@ extension AgentBridge {
             return Self.parseGraphModel(from: graphData)
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             agentGraphLog.error("graphGet: \(error)")
             throw bridgeErr
         }
@@ -139,7 +139,7 @@ extension AgentBridge {
             return Self.parseGraphModel(from: result)
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             agentGraphLog.error("updateGraph: \(error)")
             throw bridgeErr
         }
@@ -158,7 +158,7 @@ extension AgentBridge {
             return graph
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -176,7 +176,7 @@ extension AgentBridge {
             return graph
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }

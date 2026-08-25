@@ -1,5 +1,5 @@
 // ARCH-1: Team Operations 从 AgentBridge God-object 抽出, facade extension。
-// 3 方法 (teamOrchestrate/fetchSwarmAgents/fetchPlazaChannels), 0 private 静态依赖, 0 lastError 写, 0 跨域实例调用。叶 silo。
+// 3 方法 (teamOrchestrate/fetchSwarmAgents/fetchPlazaChannels), 0 private 静态依赖, 0 持久状态, 0 跨域实例调用。叶 silo。
 // MAINT: teamSwarmRegister/Delegate/Stats + teamPlazaCreate/Broadcast 删 (0 前端调用方, UI 只读列表)。后端 RPC 不动 (跨工程)。
 // @Published swarmAgents(L2108)/plazaChannels(L2109) 留主类 (extension 不可声明存储, 有外部 SwiftUI 读 AgentConfigTabs)。
 //   extension 写 self.prop, 观察链不变。

@@ -1,5 +1,5 @@
 // ARCH-1: Template Operations 从 AgentBridge God-object 抽出, facade extension。
-// @Published templates/lastError + ipcClient 仍存 AgentBridge (extension 不可声明存储), 本文件只搬方法体, 行为零变。
+// @Published templates + ipcClient 仍存 AgentBridge (extension 不可声明存储), 本文件只搬方法体, 行为零变。
 // templateInstantiate 留 AgentBridge.swift: 依赖 Self.parseGraphModel (private static L2948, 跨文件不可访问),
 // 待 Graph 域抽取时与 parseGraphModel 同搬。外部唯一 AgentBridge 调用方: TemplateMarketView (templateInstantiate)。
 // templates @Published 经查 0 外部 SwiftUI 读 (write-only), 抽取纯代码组织无行为风险。
@@ -33,7 +33,7 @@ extension AgentBridge {
             return parsed
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -51,7 +51,7 @@ extension AgentBridge {
             )
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }

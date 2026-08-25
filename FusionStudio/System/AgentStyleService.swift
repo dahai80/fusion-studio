@@ -1,5 +1,5 @@
 // ARCH-1: Style Operations 从 AgentBridge God-object 抽出, facade extension。
-// 3 方法 (fetchStyles/styleCreate/styleDelete), 0 private 静态依赖, 0 lastError 写, 0 跨域实例调用。最薄叶 silo。
+// 3 方法 (fetchStyles/styleCreate/styleDelete), 0 private 静态依赖, 0 持久状态, 0 跨域实例调用。最薄叶 silo。
 // styleCreate/styleDelete 调 await fetchStyles() (本文件同域, extension 内可达)。
 // @Published styles (L2050) 留主类 (extension 不可声明存储, 有外部 SwiftUI 读 AgentConfigTabs/AgentConfigViews)。
 //   extension 写 self.styles, 观察链不变。
