@@ -129,6 +129,17 @@ struct MLXModelInfo: Codable, Equatable, Identifiable {
 // Callers: ChatSessionStore, DesignBridge, CodeEditorView. Affected API: BridgeError.userMessage. Data: error classification for user-facing messages.
 enum BridgeError: Error, Equatable, LocalizedError {
     var errorDescription: String? { userMessage }
+
+    // F-I10: 统一脱敏出口。catch 块把任意 Error 转 i18n 用户消息, 不裸抛底层错误 (含路径/端口/堆栈)。
+    // BridgeError 走 userMessage (已 i18n+按 token 脱敏); 非 BridgeError 走 generic 通用兜底, 不泄露 detail。
+    static func sanitize(_ error: Error) -> String {
+        if let bridgeErr = error as? BridgeError {
+            return bridgeErr.userMessage
+        }
+        agentBridgeStaticLog.error("F-I10 sanitize non-bridge error (detail suppressed): \(String(describing: error), privacy: .public)")
+        return I18nManager.shared.t(.ab_err_generic)
+    }
+
     case notConnected
     case ipcError(String)
     case decodeError(String)
@@ -1681,7 +1692,10 @@ final class AgentBridge: ObservableObject {
             return content
         } catch {
             isAgentStreaming = false
-            throw error
+            // F-I10: 裸抛原始 error 含 IPC 路径/方法名, UI 直展示无意义且泄细节。转 BridgeError 走 userMessage 脱敏。
+            let bridgeErr = (error as? BridgeError) ?? BridgeError.ipcError(error.localizedDescription)
+            logger.error("agentChat failed: \(error.localizedDescription, privacy: .public)")
+            throw bridgeErr
         }
     }
 
@@ -2055,7 +2069,7 @@ final class AgentBridge: ObservableObject {
                 logger.info("taskExecuteImmediate cancelled: id=\(taskId)")
             } catch {
                 self.updateTask(taskId) { t in
-                    t.lastError = error.localizedDescription
+                    t.lastError = BridgeError.sanitize(error)
                     t.lastRunAt = Date()
                     t.retryCount += 1
                 }
@@ -2201,7 +2215,7 @@ final class AgentBridge: ObservableObject {
             } catch {
                 self.updateTask(taskId) { t in
                     t.status = .failed
-                    t.lastError = error.localizedDescription
+                    t.lastError = BridgeError.sanitize(error)
                 }
                 logger.error("taskScheduleCron failed: id=\(taskId) err=\(error.localizedDescription)")
             }
@@ -2240,7 +2254,7 @@ final class AgentBridge: ObservableObject {
             } catch {
                 self.updateTask(taskId) { t in
                     t.status = .failed
-                    t.lastError = error.localizedDescription
+                    t.lastError = BridgeError.sanitize(error)
                 }
                 logger.error("taskScheduleRunAt failed: id=\(taskId) err=\(error.localizedDescription)")
             }

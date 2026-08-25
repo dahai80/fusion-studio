@@ -4870,6 +4870,7 @@ enum I18nKey: String, CaseIterable {
     case ab_err_unavailable = "ab_err_unavailable"
     case ab_err_decode_mismatch = "ab_err_decode_mismatch"
     case ab_err_unavailable_code_fmt = "ab_err_unavailable_code_fmt"
+    case ab_err_generic = "ab_err_generic"
     case ab_status_published = "ab_status_published"
     case ab_status_draft = "ab_status_draft"
     case ab_status_active = "ab_status_active"
@@ -9894,6 +9895,7 @@ let zhCNTranslations: [String: String] = [
     "ab_err_unavailable": "AI 服务暂时不可用，请稍后重试。",
     "ab_err_decode_mismatch": "AI 服务返回数据异常，请检查服务版本是否匹配。",
     "ab_err_unavailable_code_fmt": "AI 服务暂时不可用（错误码：%d），请稍后重试。",
+    "ab_err_generic": "操作未能完成，请稍后重试。",
     "ab_status_published": "已发布",
     "ab_status_draft": "草稿",
     "ab_status_active": "运行中",
@@ -14871,6 +14873,7 @@ let enUSTranslations: [String: String] = [
     "ab_err_unavailable": "AI service is temporarily unavailable. Please try again later.",
     "ab_err_decode_mismatch": "AI service returned unexpected data. Please check whether the service version matches.",
     "ab_err_unavailable_code_fmt": "AI service is temporarily unavailable (error code: %d). Please try again later.",
+    "ab_err_generic": "The operation could not be completed. Please try again later.",
     "ab_status_published": "Published",
     "ab_status_draft": "Draft",
     "ab_status_active": "Running",
@@ -19842,6 +19845,7 @@ let jaJPTranslations: [String: String] = [
     "ab_err_unavailable": "AI サービスは一時的に利用できません。後でもう一度お試しください。",
     "ab_err_decode_mismatch": "AI サービスが異常なデータを返しました。サービスのバージョンが一致しているか確認してください。",
     "ab_err_unavailable_code_fmt": "AI サービスは一時的に利用できません（エラーコード：%d）。後でもう一度お試しください。",
+    "ab_err_generic": "操作を完了できませんでした。後でもう一度お試しください。",
     "ab_status_published": "公開済み",
     "ab_status_draft": "下書き",
     "ab_status_active": "実行中",
@@ -24813,6 +24817,7 @@ let koKRTranslations: [String: String] = [
     "ab_err_unavailable": "AI 서비스를 일시적으로 사용할 수 없습니다. 나중에 다시 시도하세요.",
     "ab_err_decode_mismatch": "AI 서비스가 비정상 데이터를 반환했습니다. 서비스 버전이 일치하는지 확인하세요.",
     "ab_err_unavailable_code_fmt": "AI 서비스를 일시적으로 사용할 수 없습니다(오류 코드: %d). 나중에 다시 시도하세요.",
+    "ab_err_generic": "작업을 완료할 수 없습니다. 나중에 다시 시도하세요.",
     "ab_status_published": "게시됨",
     "ab_status_draft": "초안",
     "ab_status_active": "실행 중",
