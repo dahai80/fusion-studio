@@ -325,7 +325,6 @@ final class AgentBridge: ObservableObject {
     @Published var graphs: [AgentGraphModel] = []
     @Published var events: [AgentEventModel] = []
     @Published var isExecuting: Bool = false
-    @Published var lastError: BridgeError?
     @Published var models: [MLXModelInfo] = []
     @Published var chatMessages: [ChatMessageRecord] = []
     @Published var isInferring: Bool = false
@@ -411,7 +410,7 @@ final class AgentBridge: ObservableObject {
         } catch let error as IPCError {
             self.isConnected = false
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             logger.error("checkHealth: \(error)")
             throw bridgeErr
         }
@@ -439,7 +438,6 @@ final class AgentBridge: ObservableObject {
             }
         } catch BridgeError.timeout {
             self.isConnected = false
-            self.lastError = .timeout
             logger.error("fullHealthCheck: timeout after 8s (env.health_check did not respond)")
             throw BridgeError.timeout
         }
@@ -534,7 +532,7 @@ final class AgentBridge: ObservableObject {
             logger.info("deleteGraph: deleted id=\(id, privacy: .public)")
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             logger.error("deleteGraph id=\(id, privacy: .public) failed: \(error.errorDescription ?? "unknown", privacy: .public)")
             throw bridgeErr
         }
@@ -571,13 +569,13 @@ final class AgentBridge: ObservableObject {
         } catch let error as IPCError {
             self.isExecuting = false
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             logger.error("executeGraph: \(error)")
             throw bridgeErr
         } catch {
             self.isExecuting = false
             let bridgeErr = BridgeError.decodeError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             logger.error("executeGraph decode: \(error)")
             throw bridgeErr
         }
@@ -600,7 +598,7 @@ final class AgentBridge: ObservableObject {
             return tools
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             logger.error("fetchTools: \(error)")
             throw bridgeErr
         }
@@ -615,7 +613,7 @@ final class AgentBridge: ObservableObject {
             return result
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -629,7 +627,7 @@ final class AgentBridge: ObservableObject {
             return true
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -643,7 +641,7 @@ final class AgentBridge: ObservableObject {
             return try await client.call(method: "tool.get", params: ["name": name])
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             logger.error("getTool: \(error)")
             throw bridgeErr
         }
@@ -662,7 +660,7 @@ final class AgentBridge: ObservableObject {
             return []
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             logger.error("listSessions: \(error)")
             throw bridgeErr
         }
@@ -688,7 +686,7 @@ final class AgentBridge: ObservableObject {
             return try await client.call(method: "cron.register", params: params)
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -702,7 +700,7 @@ final class AgentBridge: ObservableObject {
             return try await client.call(method: "cron.unregister", params: ["id": id])
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -720,7 +718,7 @@ final class AgentBridge: ObservableObject {
             return []
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             logger.error("cronList: \(error)")
             throw bridgeErr
         }
@@ -741,7 +739,7 @@ final class AgentBridge: ObservableObject {
             return []
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -755,7 +753,7 @@ final class AgentBridge: ObservableObject {
             return try await client.hardwareMetrics()
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             logger.error("hardwareMetrics: \(error)")
             throw bridgeErr
         }
@@ -770,7 +768,7 @@ final class AgentBridge: ObservableObject {
             return try await client.knowledgeSearch(query: query, limit: limit)
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             logger.error("knowledgeSearch: \(error)")
             throw bridgeErr
         }
@@ -831,11 +829,10 @@ final class AgentBridge: ObservableObject {
             logger.info("fetchModels: received \(parsed.count) models from \(baseURL)")
             return parsed
         } catch let error as BridgeError {
-            self.lastError = error
             throw error
         } catch {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             logger.error("fetchModels: \(error)")
             throw bridgeErr
         }
@@ -1247,7 +1244,7 @@ final class AgentBridge: ObservableObject {
             return plan
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -1263,7 +1260,7 @@ final class AgentBridge: ObservableObject {
             return plan
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -1279,7 +1276,7 @@ final class AgentBridge: ObservableObject {
             return plan
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -1295,7 +1292,7 @@ final class AgentBridge: ObservableObject {
             return plan
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -1311,7 +1308,7 @@ final class AgentBridge: ObservableObject {
             return plan
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -1327,7 +1324,7 @@ final class AgentBridge: ObservableObject {
             return plan
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -1348,7 +1345,7 @@ final class AgentBridge: ObservableObject {
             return parsed
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -1364,13 +1361,13 @@ final class AgentBridge: ObservableObject {
             return plan
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
 
     // ARCH-1: RAG Operations (ragQuery/ragRetrieve/ragVectorSearch) 抽至 AgentRAGService.swift facade extension。
-    // @Published ragResults/ragSources/lastError + ipcClient 留本类 (extension 不可声明存储), 0 行为零变。
+    // @Published ragResults/ragSources + ipcClient 留本类 (extension 不可声明存储), 0 行为零变。
 
     func skillExecute(agentId: String, skillName: String, input: String, tools: [String] = []) async throws -> String {
         guard let client = ipcClient else { throw BridgeError.notConnected }
@@ -1382,7 +1379,7 @@ final class AgentBridge: ObservableObject {
             return output
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -1397,7 +1394,7 @@ final class AgentBridge: ObservableObject {
             return summary
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -1406,12 +1403,12 @@ final class AgentBridge: ObservableObject {
     // ARCH-1: memoryStore/memoryRecall/fetchRecentMemories/memoryDelete/memoryDeleteScope/fetchMemoryCount
     //   + parseMemoryEntry (域内专属 parser, 4 调用方全 Memory 域) 抽至 AgentMemoryService.swift facade extension。
     //   parser 同搬范式 (同 #287 parseMarketplaceEntry): private = 文件作用域, 同文件 extension Self.parseMemoryEntry 可达。
-    //   0 跨域调用, 写 lastError + 域内 @Published memoryEntries/memoryCount。@Published 留主类 (有外部读)。
+    //   0 跨域调用, 域内 @Published memoryEntries/memoryCount。@Published 留主类 (有外部读)。
     //   MAINT: memoryGet 删 (0 前端调用方, UI 无单条详情视图)。
 
     // MARK: - Safety Operations
     // ARCH-1: safetyCheck/safetyEvaluateAction/safetyApproveAction/safetyRejectAction/fetchPendingSafetyActions/safetyAddPolicy
-    //   抽至 AgentSafetyService.swift facade extension。叶 silo (写 lastError, 域内 Model 构造, 无 parser)。
+    //   抽至 AgentSafetyService.swift facade extension。叶 silo (域内 Model 构造, 无 parser, 无持久状态)。
     //   safetyEvaluateAction/fetchPendingSafetyActions 用 UUID → Foundation。@Published safetyCheckResult/safetyPendingActions 留主类 (有外部读)。
 
     // ARCH-1: Template Operations 全量抽完 (fetchTemplates/templateGet → AgentTemplateService #284, templateInstantiate → AgentGraphService 本批次)。
@@ -1433,7 +1430,7 @@ final class AgentBridge: ObservableObject {
             return agent
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -1449,7 +1446,7 @@ final class AgentBridge: ObservableObject {
             return agent
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -1494,7 +1491,7 @@ final class AgentBridge: ObservableObject {
             return try await task.value
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -1514,7 +1511,7 @@ final class AgentBridge: ObservableObject {
             return agent
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -1536,7 +1533,7 @@ final class AgentBridge: ObservableObject {
             return deleted
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -1729,7 +1726,7 @@ final class AgentBridge: ObservableObject {
             return agent
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -1741,7 +1738,7 @@ final class AgentBridge: ObservableObject {
             return try await client.agentExecute(agentId: agentId, input: input)
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -1761,7 +1758,7 @@ final class AgentBridge: ObservableObject {
             return skills
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -1780,7 +1777,7 @@ final class AgentBridge: ObservableObject {
             return added
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -1797,7 +1794,7 @@ final class AgentBridge: ObservableObject {
             return deleted
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -1817,7 +1814,7 @@ final class AgentBridge: ObservableObject {
             return soul
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -1834,14 +1831,14 @@ final class AgentBridge: ObservableObject {
             return updated
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
 
     // MARK: - Connector Operations
     // ARCH-1: fetchConnectors/connectorCreate/connectorDelete/connectorConnect/connectorDisconnect/connectorTest
-    //   抽至 AgentConnectorService.swift facade extension。叶 silo: 0 private 静态依赖, 0 lastError 写。
+    //   抽至 AgentConnectorService.swift facade extension。叶 silo: 0 private 静态依赖, 0 持久状态。
     //   connectorCreate/Delete 调 fetchConnectors (同域, extension 内可达)。@Published connectors 留主类 (有外部读)。
 
     @Published var connectors: [[String: Any]] = []
@@ -1885,7 +1882,7 @@ final class AgentBridge: ObservableObject {
 
     // MARK: - Style Operations
     // ARCH-1: fetchStyles/styleCreate/styleDelete 抽至 AgentStyleService.swift facade extension。
-    // 本域最薄叶 silo: 0 private 静态依赖, 0 lastError 写。styleCreate/Delete 调 fetchStyles (同域, extension 内可达)。
+    // 本域最薄叶 silo: 0 private 静态依赖, 0 持久状态。styleCreate/Delete 调 fetchStyles (同域, extension 内可达)。
     // @Published styles 留主类 (有外部读)。
 
     @Published var styles: [[String: Any]] = []
@@ -1914,14 +1911,14 @@ final class AgentBridge: ObservableObject {
             return agent
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
 
     // MARK: - Team Operations
     // ARCH-1: teamOrchestrate/fetchSwarmAgents/fetchPlazaChannels 抽至 AgentTeamService.swift facade extension。
-    //   叶 silo: 0 private static, 0 lastError。fetchSwarmAgents/fetchPlazaChannels UI onAppear 刷新读。
+    //   叶 silo: 0 private static, 0 持久状态。fetchSwarmAgents/fetchPlazaChannels UI onAppear 刷新读。
     //   @Published swarmAgents/plazaChannels 留主类 (有外部读)。
     //   MAINT: teamSwarmRegister/Delegate/Stats + teamPlazaCreate/Broadcast 删 (0 前端调用方, UI 只读列表)。
 
@@ -2355,7 +2352,7 @@ final class AgentBridge: ObservableObject {
 
     // MARK: - Hooks Operations
     // ARCH-1: fetchHooks/hooksRegister/hooksTest 抽至 AgentHooksService.swift facade extension。
-    // 本域最薄叶 silo: 0 private 静态依赖, 0 lastError 写, 0 跨域调用。@Published hooks 留主类 (有外部读)。
+    // 本域最薄叶 silo: 0 private 静态依赖, 0 持久状态, 0 跨域调用。@Published hooks 留主类 (有外部读)。
 
     @Published var hooks: [[String: Any]] = []
 

@@ -3,7 +3,7 @@
 //   + 域内专属 parser parseMemoryEntry (private static, 4 调用方全在 Memory 域) 同搬本文件。
 // parser 同搬范式 (同 #287 parseMarketplaceEntry): private = Swift 文件作用域, 同文件 extension 方法 Self.parseMemoryEntry 编译不变。
 //   parseMemoryEntry 无 UUID/Date 依赖 → 仅 import os.log, 无 Foundation。
-// Memory 域: 0 跨域实例调用, 写通用 lastError error sink + 域内 memoryEntries/memoryCount @Published。
+// Memory 域: 0 跨域实例调用, 域内 memoryEntries/memoryCount @Published (extension 写, 主类存)。
 // @Published memoryEntries(L334)/memoryCount(L335) 留主类 (extension 不可声明存储, 有外部 SwiftUI 读 MemoryView/AgentConfigTabs)。
 //   extension 写 self.prop, 观察链不变。
 // ipcClient 仍存 AgentBridge, extension 读 self.ipcClient。logger private → 文件级 agentMemoryLog。
@@ -27,7 +27,7 @@ extension AgentBridge {
             return entry
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -47,7 +47,7 @@ extension AgentBridge {
             return parsed
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -68,7 +68,7 @@ extension AgentBridge {
             return parsed
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -82,7 +82,7 @@ extension AgentBridge {
             return result["deleted"] as? Bool ?? false
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -94,7 +94,7 @@ extension AgentBridge {
             return result["count"] as? Int ?? 0
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -108,7 +108,7 @@ extension AgentBridge {
             return count
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }

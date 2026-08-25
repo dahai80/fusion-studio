@@ -1,6 +1,6 @@
 // ARCH-1: Safety Operations 从 AgentBridge God-object 抽出, facade extension。
 // 6 方法 (safetyCheck/safetyEvaluateAction/safetyApproveAction/safetyRejectAction/fetchPendingSafetyActions/safetyAddPolicy),
-//   0 private 静态依赖, 0 跨域实例调用。叶 silo (写 lastError error sink, 域内 SafetyCheckModel/SafetyActionModel 构造, 无 parser)。
+//   0 private 静态依赖, 0 跨域实例调用。叶 silo (域内 SafetyCheckModel/SafetyActionModel 构造, 无 parser, 无持久状态)。
 // safetyEvaluateAction/fetchPendingSafetyActions 用 UUID().uuidString → import Foundation。
 // @Published safetyCheckResult(L336)/safetyPendingActions(L337) 留主类 (extension 不可声明存储, 有外部 SwiftUI 读 AgentConfigTabs/SafetyView)。
 //   extension 写 self.prop, 观察链不变。
@@ -29,7 +29,7 @@ extension AgentBridge {
             return check
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -46,7 +46,7 @@ extension AgentBridge {
             )
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -58,7 +58,7 @@ extension AgentBridge {
             return result["approved"] as? Bool ?? true
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -70,7 +70,7 @@ extension AgentBridge {
             return result["rejected"] as? Bool ?? true
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -94,7 +94,7 @@ extension AgentBridge {
             return parsed
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
@@ -106,7 +106,7 @@ extension AgentBridge {
             return result["added"] as? Bool ?? true
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-            self.lastError = bridgeErr
+
             throw bridgeErr
         }
     }
