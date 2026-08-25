@@ -731,7 +731,16 @@ class DesignBridge: ObservableObject {
             errData = errPipe.fileHandleForReading.readDataToEndOfFile()
             readGroup.leave()
         }
+        // F-R1: 180s 超时兜底, 防 fusion-design LLM CLI 永挂 (并行 drain 已无死锁, 但 waitUntilExit 无超时可永挂)。
+        let timeoutTask = Task {
+            try? await Task.sleep(nanoseconds: 180_000_000_000)
+            if process.isRunning {
+                process.terminate()
+                designBridgeLog.warning("DesignBridge: CLI timeout 180s, force terminate args=\(args.first ?? "", privacy: .public)")
+            }
+        }
         process.waitUntilExit()
+        timeoutTask.cancel()
         readGroup.wait()
         let output = String(data: outData, encoding: .utf8) ?? ""
         let errorStr = String(data: errData, encoding: .utf8) ?? ""
@@ -783,13 +792,30 @@ class DesignBridge: ObservableObject {
                     }
                 }
             }
+            // F-R1: drain stderr 防 64KB 满阻塞写死锁 (旧实现 errPipe 从不读)。
+            errPipe.fileHandleForReading.readabilityHandler = { handle in
+                let data = handle.availableData
+                if !data.isEmpty, let errChunk = String(data: data, encoding: .utf8) {
+                    designBridgeLog.warning("DesignBridge: CLI stream stderr: \(errChunk, privacy: .public)")
+                }
+            }
             do { try process.run() } catch {
                 designBridgeLog.error("DesignBridge: CLI stream run failed: \(error)")
                 DispatchQueue.main.async { onDone("") }
                 return
             }
+            // F-R1: 180s 超时兜底, 防 stream 永挂。
+            let timeoutTask = Task {
+                try? await Task.sleep(nanoseconds: 180_000_000_000)
+                if process.isRunning {
+                    process.terminate()
+                    designBridgeLog.warning("DesignBridge: CLI stream timeout 180s, force terminate args=\(args.first ?? "", privacy: .public)")
+                }
+            }
             process.waitUntilExit()
+            timeoutTask.cancel()
             outPipe.fileHandleForReading.readabilityHandler = nil
+            errPipe.fileHandleForReading.readabilityHandler = nil
             let remaining = outPipe.fileHandleForReading.readDataToEndOfFile()
             if let tail = String(data: remaining, encoding: .utf8) { fullOutput += tail }
             designBridgeLog.info("DesignBridge: CLI stream \(args.first ?? "") exit=\(process.terminationStatus) len=\(fullOutput.count)")

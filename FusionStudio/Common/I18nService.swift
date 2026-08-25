@@ -5058,6 +5058,10 @@ enum I18nKey: String, CaseIterable {
     case cli_btn_cancel = "cli_btn_cancel"
     case cli_btn_continue = "cli_btn_continue"
     case cli_err_exec_failed = "cli_err_exec_failed"
+    case cli_exec_timeout = "cli_exec_timeout"
+    case cli_block_title = "cli_block_title"
+    case cli_block_msg = "cli_block_msg"
+    case cli_block_continue = "cli_block_continue"
     case health_tab_dashboard = "health_tab_dashboard"
     case health_tab_ehr = "health_tab_ehr"
     case health_tab_vitals = "health_tab_vitals"
@@ -10076,6 +10080,10 @@ let zhCNTranslations: [String: String] = [
     "cli_btn_cancel": "取消",
     "cli_btn_continue": "继续",
     "cli_err_exec_failed": "执行失败: %@",
+    "cli_exec_timeout": "执行超时（30s 未退出，已强制终止）",
+    "cli_block_title": "危险命令拦截",
+    "cli_block_msg": "检测到高危操作关键字（rm -rf / curl|sh / > 覆盖等）。确认要执行吗？",
+    "cli_block_continue": "仍然执行",
     "health_tab_dashboard": "概览",
     "health_tab_ehr": "病历摘要",
     "health_tab_vitals": "体征提取",
@@ -15049,6 +15057,10 @@ let enUSTranslations: [String: String] = [
     "cli_btn_cancel": "Cancel",
     "cli_btn_continue": "Continue",
     "cli_err_exec_failed": "Execution failed: %@",
+    "cli_exec_timeout": "Execution timed out (no exit within 30s, force-terminated)",
+    "cli_block_title": "Dangerous Command Blocked",
+    "cli_block_msg": "High-risk keyword detected (rm -rf / curl|sh / > overwrite, etc.). Proceed anyway?",
+    "cli_block_continue": "Run Anyway",
     "health_tab_dashboard": "Overview",
     "health_tab_ehr": "Medical Summary",
     "health_tab_vitals": "Vital Signs",
@@ -20016,6 +20028,10 @@ let jaJPTranslations: [String: String] = [
     "cli_btn_cancel": "キャンセル",
     "cli_btn_continue": "続行",
     "cli_err_exec_failed": "実行失敗: %@",
+    "cli_exec_timeout": "実行タイムアウト（30s 終了せず強制終了）",
+    "cli_block_title": "危険コマンドブロック",
+    "cli_block_msg": "高危険キーワード検出（rm -rf / curl|sh / > 上書き等）。実行しますか？",
+    "cli_block_continue": "実行",
     "health_tab_dashboard": "概览",
     "health_tab_ehr": "カルテサマリー",
     "health_tab_vitals": "バイタルサイン",
@@ -24983,6 +24999,10 @@ let koKRTranslations: [String: String] = [
     "cli_btn_cancel": "취소",
     "cli_btn_continue": "계속",
     "cli_err_exec_failed": "실행 실패: %@",
+    "cli_exec_timeout": "실행 시간 초과 (30s 내 종료 안 함, 강제 종료)",
+    "cli_block_title": "위험 명령 차단",
+    "cli_block_msg": "고위험 키워드 감지 (rm -rf / curl|sh / > 덮어쓰기 등). 실행하시겠습니까?",
+    "cli_block_continue": "실행",
     "health_tab_dashboard": "개요",
     "health_tab_ehr": "진료기록 요약",
     "health_tab_vitals": "바이탈 징후",

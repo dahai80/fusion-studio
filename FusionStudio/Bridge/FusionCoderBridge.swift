@@ -2,6 +2,8 @@ import Foundation
 import Combine
 import os.log
 
+private let coderLog = Logger(subsystem: "com.fusion.studio", category: "FusionCoderBridge")
+
 /// FusionCoder 桥接 — 调用真实的 fusion-coder CLI
 /// 通过子进程执行 fusion-coder 命令，获取 AI 编码辅助
 class FusionCoderBridge: ObservableObject {
@@ -92,12 +94,33 @@ class FusionCoderBridge: ObservableObject {
 
                 do {
                     try task.run()
+                    // F-R1: 并发 drain stdout+stderr 至 EOF (无 64KB 死锁) + 120s 超时兜底防 waitUntilExit 永挂。
+                    // 旧实现 waitUntilExit 后顺序读两 pipe: stderr 满阻塞写, 主程阻塞读 stdout -> 死锁; 且 AI 编码无超时可永挂。
+                    let drainGroup = DispatchGroup()
+                    var output = ""
+                    var error = ""
+                    drainGroup.enter()
+                    DispatchQueue.global(qos: .userInitiated).async {
+                        let d = outputPipe.fileHandleForReading.readDataToEndOfFile()
+                        output = String(data: d, encoding: .utf8) ?? ""
+                        drainGroup.leave()
+                    }
+                    drainGroup.enter()
+                    DispatchQueue.global(qos: .userInitiated).async {
+                        let d = errorPipe.fileHandleForReading.readDataToEndOfFile()
+                        error = String(data: d, encoding: .utf8) ?? ""
+                        drainGroup.leave()
+                    }
+                    let timeoutTask = Task {
+                        try? await Task.sleep(nanoseconds: 120_000_000_000)
+                        if task.isRunning {
+                            task.terminate()
+                            coderLog.warning("fusion-coder execute timeout 120s, force terminate args=\(arguments, privacy: .public)")
+                        }
+                    }
                     task.waitUntilExit()
-
-                    let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
-                    let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
-                    let output = String(data: outputData, encoding: .utf8) ?? ""
-                    let error = String(data: errorData, encoding: .utf8) ?? ""
+                    timeoutTask.cancel()
+                    drainGroup.wait()
 
                     DispatchQueue.main.async {
                         self.lastOutput = output
@@ -191,7 +214,16 @@ class FusionCoderBridge: ObservableObject {
         task.standardError = outputPipe
 
         try task.run()
+        // F-R1: 用户代码 30s 超时兜底, 防死循环代码永挂阻塞。stdout==stderr 同 pipe 无死锁。
+        let timeoutTask = Task {
+            try? await Task.sleep(nanoseconds: 30_000_000_000)
+            if task.isRunning {
+                task.terminate()
+                coderLog.warning("runCode timeout 30s, force terminate lang=\(language, privacy: .public)")
+            }
+        }
         task.waitUntilExit()
+        timeoutTask.cancel()
 
         let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
         let output = String(data: outputData, encoding: .utf8) ?? ""

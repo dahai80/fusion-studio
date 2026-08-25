@@ -16,6 +16,8 @@ struct HardwareMonitorView: View {
     @State private var gpuUsage: Double = -1
     @State private var mlxActive: Bool = false
     @State private var dataSource: String = "等待…"
+    // F-R13: 本进程 RSS (phys_footprint), StudioMemoryMonitor 10s 采样。
+    @ObservedObject private var memMonitor = StudioMemoryMonitor.shared
 
     private let logger = Logger(subsystem: "com.fusion.studio", category: "HardwareMonitor")
     /// 使用 Timer.publish 自动管理生命周期，View 销毁时自动取消

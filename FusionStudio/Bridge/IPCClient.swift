@@ -309,21 +309,51 @@ class IPCClient: ObservableObject {
     }
 
     private func handleResponse(_ data: Data) {
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let id = json["id"] as? Int else { return }
+        // F-R5: 旧 try? 吞 JSON 解码错无日志, malformed 帧静默丢, 无 RPC 契约诊断。
+        // 改 do/catch: 解码失败记日志 (数据片段截断 200B), 早退 (无 id 无法匹配续体)。
+        var json: [String: Any]
+        do {
+            guard let parsed = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                let snippet = String(data: data.prefix(200), encoding: .utf8) ?? "<bin>"
+                ipcLog.error("handleResponse JSON not a dict: \(snippet, privacy: .public)")
+                return
+            }
+            json = parsed
+        } catch {
+            let snippet = String(data: data.prefix(200), encoding: .utf8) ?? "<bin>"
+            ipcLog.error("handleResponse JSON decode failed: \(error.localizedDescription, privacy: .public) data=\(snippet, privacy: .public)")
+            return
+        }
+        guard let id = json["id"] as? Int else {
+            ipcLog.warning("handleResponse missing id, dropping frame")
+            return
+        }
 
         lock.lock()
         let cont = pendingRequests.removeValue(forKey: id)
         lock.unlock()
-        guard let cont = cont else { return }
+        guard let cont = cont else {
+            ipcLog.warning("handleResponse no pending continuation for id=\(id)")
+            return
+        }
 
         if let error = json["error"] as? [String: Any] {
             let code = error["code"] as? Int ?? -1
             let msg = error["message"] as? String ?? "未知错误"
             cont.resume(throwing: IPCError.rpcError(code: code, message: msg))
         } else if let result = json["result"] {
-            cont.resume(returning: result as? [String: Any] ?? [:])
+            // F-R5: 旧 `as? [String: Any] ?? [:]` 静默吞非 dict result (array/scalar 降级空 dict)。
+            // array 包 items, scalar 包 _result, dict 原样, 其他记日志再降级。
+            if let dict = result as? [String: Any] {
+                cont.resume(returning: dict)
+            } else if let arr = result as? [Any] {
+                cont.resume(returning: ["items": arr])
+            } else {
+                ipcLog.warning("handleResponse result non-dict/array id=\(id), wrapping _result")
+                cont.resume(returning: ["_result": result])
+            }
         } else {
+            ipcLog.warning("handleResponse no result field id=\(id), returning empty")
             cont.resume(returning: [:])
         }
     }

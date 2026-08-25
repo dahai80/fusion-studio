@@ -4,6 +4,9 @@
 // User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
 
 import SwiftUI
+import os.log
+
+private let cliLog = Logger(subsystem: "com.fusion.studio", category: "CLI")
 
 /// CLI 命令预设
 struct CLIPreset: Identifiable {
@@ -223,6 +226,8 @@ struct CLIView: View {
 
     private func executeCommand(_ cmd: String) {
         guard !cmd.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        // F-A17: 高危关键字拦截, 用户确认后放行
+        guard confirmDangerous(cmd) else { return }
         isExecuting = true
         let startTime = Date()
 
@@ -239,6 +244,10 @@ struct CLIView: View {
                     duration: duration
                 )
                 history.append(entry)
+                // F-A2: history 无界 append 加 cap 200, 超出 drop 最旧
+                if history.count > 200 {
+                    history.removeFirst(history.count - 200)
+                }
                 commandInput = ""
                 isExecuting = false
             }
@@ -257,18 +266,50 @@ struct CLIView: View {
 
         do {
             try task.run()
-            // 并发全量读: 各管道阻塞至 EOF(进程退出关管道), 无 64KB 上限, 无死锁
-            // async let 在并发执行器跑, 避免 waitUntilExit 后单线程串行读的死锁
+            // F-R1/F-R7: 并发 drain stdout+stderr 至 EOF (无 64KB 死锁) + 30s 超时兜底防 waitUntilExit 永挂
             async let outData = outputPipe.fileHandleForReading.readDataToEndOfFile()
             async let errData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+            let timeoutTask = Task {
+                try? await Task.sleep(nanoseconds: 30_000_000_000)
+                if task.isRunning {
+                    task.terminate()
+                    cliLog.warning("runShell timeout 30s, force terminate: \(cmd, privacy: .public)")
+                }
+            }
             task.waitUntilExit()
+            timeoutTask.cancel()
             let output = String(data: await outData, encoding: .utf8) ?? ""
             let error = String(data: await errData, encoding: .utf8) ?? ""
-            let combined = [output, error].filter { !$0.isEmpty }.joined(separator: "\n")
-            return (combined, task.terminationStatus)
+            var combined = [output, error].filter { !$0.isEmpty }.joined(separator: "\n")
+            var exitCode = task.terminationStatus
+            // 超时强杀: terminationReason = .uncaughtSignal, 标注超时给用户
+            if task.terminationReason == .uncaughtSignal && exitCode != 0 && combined.isEmpty {
+                combined = I18nManager.shared.t(.cli_exec_timeout)
+                exitCode = -1
+            }
+            return (combined, exitCode)
         } catch {
             return (String(format: I18nManager.shared.t(.cli_err_exec_failed), error.localizedDescription), -1)
         }
+    }
+
+    // F-A17: 高危关键字拦截确认 (rm -rf / curl|sh / > 覆盖 / dd / mkfs)。CLI 模拟器用户可意执行命令,
+    // 但粘贴不可信文本时拦截破坏性操作, 二次确认后放行 (用户知情同意, 不静默执行)。
+    private static let dangerPatterns: [String] = [
+        "rm -rf", "rm -fr", "curl | sh", "curl|sh", "wget | sh", "wget|sh",
+        "mkfs", "dd if=", "> /dev/sd", "shutdown", "halt", "reboot", "kill -9"
+    ]
+
+    private func confirmDangerous(_ cmd: String) -> Bool {
+        let lower = cmd.lowercased()
+        guard Self.dangerPatterns.contains(where: { lower.contains($0) }) else { return true }
+        let alert = NSAlert()
+        alert.messageText = I18nManager.shared.t(.cli_block_title)
+        alert.informativeText = I18nManager.shared.t(.cli_block_msg)
+        alert.addButton(withTitle: I18nManager.shared.t(.cli_btn_cancel))
+        alert.addButton(withTitle: I18nManager.shared.t(.cli_block_continue))
+        alert.alertStyle = .critical
+        return alert.runModal() == .alertSecondButtonReturn
     }
 }
 

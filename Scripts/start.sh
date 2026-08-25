@@ -215,26 +215,19 @@ status_one() {
     fi
 }
 
-# ─── env-daemon (Rust, 内置) ────────────────────────────────
+# ─── env-daemon (Rust, 死代码 F-A14) ────────────────────────
+# F-A14: env-daemon Rust 二进制是死代码。fusion-studio IPCClient 走 /tmp/fusion-studio.sock
+# 到 fusion-agent-studio 中央路由 (daemon_server.py), 该路由自己在 Python 实现 env.* 命名空间,
+# 从不连接 env-daemon socket; env.repair 上游返回 stub "not implemented" (已提上游 issue)。
+# 故不再启动/构建 env-daemon, 保留 Services/env-daemon 源码供上游 issue 跟踪后决定删除。
 
 start_env_daemon() {
-    info "启动 env-daemon..."
-    local env_bin="$PROJECT_DIR/Services/env-daemon/target/release/env-daemon"
-    if [ ! -f "$env_bin" ]; then
-        warn "env-daemon 未构建，正在构建..."
-        (cd "$PROJECT_DIR/Services/env-daemon" && cargo build --release 2>&1)
-    fi
-    if [ -f "$env_bin" ]; then
-        "$env_bin" &
-        info "env-daemon 已启动 (PID: $!)"
-    else
-        warn "env-daemon 构建失败，跳过"
-    fi
+    info "env-daemon (Rust) 为死代码, 跳过启动 (env.* 由中央路由 daemon_server.py 实现)"
 }
 
 stop_env_daemon() {
     pkill -f "env-daemon" 2>/dev/null || true
-    info "env-daemon 已停止"
+    info "env-daemon 已停止 (死代码, 正常不运行)"
 }
 
 # ─── SwiftUI App ──────────────────────────────────────────────
@@ -311,11 +304,8 @@ do_status() {
     echo "─── 服务状态 ─────────────────────────────────────"
     printf "  %-4s %-20s %s\n" "" "服务" "状态"
     echo "  ────────────────────────────────────────────────"
-    if pgrep -f "env-daemon" >/dev/null 2>&1; then
-        printf "  ${GREEN}●${NC} %-20s %s\n" "env-daemon" "运行中"
-    else
-        printf "  ${RED}○${NC} %-20s %s\n" "env-daemon" "未启动"
-    fi
+    # F-A14: env-daemon 死代码, 不再启动, 状态标注死代码
+    printf "  ${YELLOW}○${NC} %-20s %s\n" "env-daemon" "死代码(已禁用,F-A14)"
     for entry in "${SERVICES[@]}"; do
         status_one "$entry"
     done
