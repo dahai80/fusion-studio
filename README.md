@@ -539,6 +539,20 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 
 ## 📋 Changelog
 
+### v0.1.46 — 死代码删除 + 架构 facade 抽取 + 审计 P0 修复 (2026-08-25)
+
+补丁版本，删除两处死代码后台服务 + ARCH-1 AgentBridge facade 抽取收尾 + 审计 P0 阻断项修复:
+
+- **死代码删除** (PR #298, fixes #296)：删除 `Services/env-daemon/` (Rust, 0 调用方) + `Services/mlx-daemon/` (Python, 从未启动)
+  - **env-daemon**: Swift `IPCClient` 全走 `/tmp/fusion-studio.sock` 到中央路由 `daemon_server.py` (fusion-agent-studio), 0 直连 env-daemon socket; `env.*` 由中央路由 Python 实现, Rust 副本永不被调用
+  - **mlx-daemon**: `start.sh` 从未拉起, Bearer 鉴权空转 (鉴权已由 #209 UDS peer-UID + #128 gateway key 覆盖); `StreamingBridge` TCP 连 11432 (fusion-mlx gateway) 非 mlx-daemon 8001
+  - Scripts/start.sh/build.sh/setup.sh 清 env-daemon 启停/构建/skip; 9 Swift 文件注释/mock-data/i18n (4 语言) 修正; 7 文档更新 (含 CLAUDE.md)
+  - 顺带闭合 F-A4 `IPCClient` pending 容量上限 100 (防狂切 Tab + daemon 慢响应堆续体致 OOM) + F-R11 `FileWatcher` 路径过滤 (排除 .git/.build/node_modules/.DS_Store 等)
+- **审计 P0 阻断项** (PR #293/#294/#295)：删 6 dead wrapper method (0 前端调用方) + 修正错摆 @Published (cronJobs/hooks/tasks/projects) + 审计 0825 P0 外科式修复 (B1-B10 子集)
+- **ARCH-1 facade 抽取** (PR #277-#282)：Analytics/Alert/Deploy/Template/RAG/Context/Marketplace/Graph/Hooks-Style-Connector/Safety+Team/Memory 11 facade 从 AgentBridge 抽出 extension; 59K 文件拆分降耦合
+- **i18n + 性能** (PR #278-#280)：DesignWorkflow 种子 prompt 迁 i18n; CodeEditorView git status 移后台 `Task.detached`; AgentBridge 删 17 冗余 `await MainActor.run` + RAG LRU + version history 清理 + 文件 I/O 移出 MainActor
+- **CI 全绿**：Swift Build & Test / Rust Check (skipped, 无 Rust 服务) / Code Quality / Security Audit pass
+
 ### v0.1.45 — deployExport 端口回归修复 (2026-08-24)
 
 补丁版本，修复 v0.1.44 引入的端口回归：
