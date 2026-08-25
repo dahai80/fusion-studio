@@ -34,17 +34,24 @@ class MultiNodeEngine: ObservableObject {
     private var inflightFetches: Set<String> = []
     private let inflightLock = NSLock()
 
-    private let baseURL: String
-    private let agentBaseURL: String
-    private let authToken: String
+    // F-A7: init 阶段 let 快照 baseURL/agentBaseURL/authToken → 改计算属性实时读 FusionConfig.shared。
+    // FusionConfig host/port/token 全 @AppStorage 可运行时改, 但旧 let 快照让 engine 永远拿旧值,
+    // 设置面板/WelcomeView/env 改后 engine 仍连旧地址旧 token, 与 IPCMultiNodeMethods 实时读口径打架。
+    // 保留 init 显式 override (测试/注入), 仅 override 存 stored, 默认 path 走计算属性实时读。
+    private let overrideBaseURL: String?
+    private let overrideAgentBaseURL: String?
+    private let overrideAuthToken: String?
     private let session: URLSession
     private var pollTimers: [Timer] = []
 
+    private var baseURL: String { overrideBaseURL ?? FusionConfig.shared.multiNodeBaseURL }
+    private var agentBaseURL: String { overrideAgentBaseURL ?? FusionConfig.shared.multiNodeAgentBaseURL }
+    private var authToken: String { overrideAuthToken ?? FusionConfig.shared.multiNodeResolvedToken }
+
     init(baseURL: String? = nil, agentBaseURL: String? = nil, authToken: String? = nil) {
-        let cfg = FusionConfig.shared
-        self.baseURL = baseURL ?? cfg.multiNodeBaseURL
-        self.agentBaseURL = agentBaseURL ?? cfg.multiNodeAgentBaseURL
-        self.authToken = authToken ?? cfg.multiNodeResolvedToken
+        self.overrideBaseURL = baseURL
+        self.overrideAgentBaseURL = agentBaseURL
+        self.overrideAuthToken = authToken
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 5
         config.timeoutIntervalForResource = 8
