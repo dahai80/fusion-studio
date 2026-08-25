@@ -8,6 +8,7 @@ enum IPCError: Error, LocalizedError {
     case timeout
     case invalidRequest
     case invalidResponse
+    case pendingFull
     case rpcError(code: Int, message: String)
 
     var errorDescription: String? {
@@ -16,6 +17,7 @@ enum IPCError: Error, LocalizedError {
         case .timeout:           return "IPC 调用超时"
         case .invalidRequest:    return "无效的请求"
         case .invalidResponse:   return "无效的响应"
+        case .pendingFull:       return "IPC 请求队列已满, 请稍后重试"
         case .rpcError(_, let m): return "RPC 错误: \(m)"
         }
     }

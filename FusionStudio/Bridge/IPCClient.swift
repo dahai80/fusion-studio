@@ -19,6 +19,9 @@ class IPCClient: ObservableObject {
     // 续体直接存储：handleResponse / 超时 / 断连 三处 removeValue 取出并 resume，保证恰好一次
     private var pendingRequests: [Int: CheckedContinuation<[String: Any], Error>] = [:]
     private let lock = NSLock()
+    // F-A4: pending 容量上限, 防高频 onAppear fetch 风暴 + daemon 慢响应堆续体致 OOM。
+    // 超限直接 reject 抛错并日志, 不注册新续体 (8s 窗口内狂切 Tab 可堆数千 pending)。
+    private let pendingCap = 100
 
     init(socketPath: String = "/tmp/fusion-studio.sock") {
         self.socketPath = socketPath
@@ -152,6 +155,13 @@ class IPCClient: ObservableObject {
 
                 // 注册续体
                 self.lock.lock()
+                // F-A4: pending 容量上限, daemon 慢响应/断连 + 狂切 Tab 堆续体致 OOM。超限直接 reject。
+                if self.pendingRequests.count >= self.pendingCap {
+                    self.lock.unlock()
+                    ipcLog.error("IPC pending cap exceeded (\(self.pendingCap, privacy: .public)), reject method=\(method, privacy: .public) id=\(reqId)")
+                    continuation.resume(throwing: IPCError.pendingFull)
+                    return
+                }
                 self.pendingRequests[reqId] = continuation
                 self.lock.unlock()
 
