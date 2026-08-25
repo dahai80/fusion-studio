@@ -7,6 +7,9 @@ import Foundation
 import SwiftUI
 import Combine
 import Network
+import os.log
+
+private let collabLog = Logger(subsystem: "com.fusion.studio", category: "CollaborationService")
 
 // MARK: - 协作节点
 
@@ -215,11 +218,11 @@ class CollaborationService: ObservableObject {
             listener?.stateUpdateHandler = { state in
                 switch state {
                 case .ready:
-                    print(I18nManager.shared.t(.col_log_advertise_start))
+                    collabLog.info("\(I18nManager.shared.t(.col_log_advertise_start), privacy: .public)")
                 case .failed(let error):
-                    print(I18nManager.shared.tf(.col_log_advertise_failed, error.localizedDescription))
+                    collabLog.error("\(I18nManager.shared.tf(.col_log_advertise_failed, error.localizedDescription), privacy: .public)")
                 case .cancelled:
-                    print(I18nManager.shared.t(.col_log_advertise_stopped))
+                    collabLog.info("\(I18nManager.shared.t(.col_log_advertise_stopped), privacy: .public)")
                 default: break
                 }
             }
@@ -230,7 +233,7 @@ class CollaborationService: ObservableObject {
 
             listener?.start(queue: queue)
         } catch {
-            print(I18nManager.shared.tf(.col_log_advertise_error, error.localizedDescription))
+            collabLog.error("\(I18nManager.shared.tf(.col_log_advertise_error, error.localizedDescription), privacy: .public)")
         }
     }
 
@@ -246,9 +249,9 @@ class CollaborationService: ObservableObject {
         browser?.stateUpdateHandler = { state in
             switch state {
             case .ready:
-                print(I18nManager.shared.t(.col_log_browse_start))
+                collabLog.info("\(I18nManager.shared.t(.col_log_browse_start), privacy: .public)")
             case .failed(let error):
-                print(I18nManager.shared.tf(.col_log_browse_failed, error.localizedDescription))
+                collabLog.error("\(I18nManager.shared.tf(.col_log_browse_failed, error.localizedDescription), privacy: .public)")
             default: break
             }
         }
@@ -272,7 +275,7 @@ class CollaborationService: ObservableObject {
         // 处理入站连接
         connection.stateUpdateHandler = { state in
             if state == .ready {
-                print(I18nManager.shared.tf(.col_log_conn_ready, connection.endpoint.debugDescription))
+                collabLog.info("\(I18nManager.shared.tf(.col_log_conn_ready, connection.endpoint.debugDescription), privacy: .public)")
             }
         }
         connection.start(queue: queue)

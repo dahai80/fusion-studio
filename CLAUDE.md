@@ -58,7 +58,7 @@ FusionStudio/
 ├── Bridge/                  # IPCClient (JSON-RPC 2.0 client), FusionCoderBridge
 ├── System/                  # AgentBridge (59K, agent orchestration), SandboxManager, ScreenContext, FileWatcher
 ├── Navigation/              # FusionSidebarView, IconRailView, InspectorPanel, ChatsPanel, ProjectsPanel, ArtifactsPanel
-├── Modules/                 # 25 module views (largest: AgentStudioView 109K, CodeEditorView 63K)
+├── Modules/                 # 46 module view entries (27 subdirs + 19 root files); largest: AgentBridge 108K (System/), CodeEditorView 74K
 ├── Components/              # Reusable UI: FusionButton, FusionCard, FusionProgressRing, FusionTabBar, FusionTag, FusionToast
 ├── Theme/                   # StudioTheme (dark/light themes)
 ├── DAG/                     # DAGCanvasView
@@ -99,7 +99,7 @@ Services/                    # 空 (env-daemon/mlx-daemon 已删除, 见 #296)
 - Swift tools version 5.9, macOS 14+ target
 - Indentation: multiples of 4 spaces
 - Logging: use `os.log` with `Logger(subsystem: "com.fusion.studio", category: "...")`
-- Large monolithic module views are the norm (AgentStudioView 109K, AgentBridge 59K, CodeEditorView 63K) — follow existing pattern when adding features
+- Large monolithic views are the norm (AgentBridge 108K, CodeEditorView 74K; AgentStudioView refactored to 8.9K via ARCH-1 facade split) — follow existing pattern when adding features
 - Module views live in `FusionStudio/Modules/` as single files or subdirectories
 - Chinese UI strings are used in Module enum rawValues and some labels
 - Backend services: 无本地守护进程 (Services/ 空, 见 #296); env.* · hardware.metrics 等由中央路由 daemon_server.py (fusion-agent-studio) 经 UDS 提供
