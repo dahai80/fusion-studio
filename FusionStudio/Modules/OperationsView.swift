@@ -86,10 +86,10 @@ class OperationsManager: ObservableObject {
         ]
 
         logs = [
-            OpsLogEntry(timestamp: Date().addingTimeInterval(-60), level: "INFO", source: "env-daemon", message: "ops_log_health_check_ok", duration: nil),
-            OpsLogEntry(timestamp: Date().addingTimeInterval(-300), level: "WARN", source: "mlx-daemon", message: "ops_log_inference_latency_rise", duration: "2.3s"),
+            OpsLogEntry(timestamp: Date().addingTimeInterval(-60), level: "INFO", source: "fusion-mlx", message: "ops_log_health_check_ok", duration: nil),
+            OpsLogEntry(timestamp: Date().addingTimeInterval(-300), level: "WARN", source: "fusion-mlx", message: "ops_log_inference_latency_rise", duration: "2.3s"),
             OpsLogEntry(timestamp: Date().addingTimeInterval(-600), level: "INFO", source: "system", message: "ops_log_auto_backup_done", duration: "45s"),
-            OpsLogEntry(timestamp: Date().addingTimeInterval(-1800), level: "ERROR", source: "mlx-daemon", message: "ops_log_inference_timeout", duration: "30s"),
+            OpsLogEntry(timestamp: Date().addingTimeInterval(-1800), level: "ERROR", source: "fusion-mlx", message: "ops_log_inference_timeout", duration: "30s"),
             OpsLogEntry(timestamp: Date().addingTimeInterval(-3600), level: "INFO", source: "system", message: "ops_log_service_restart_done", duration: "12s"),
         ]
     }
@@ -226,8 +226,6 @@ struct OpsServicesView: View {
     @StateObject private var ops = OperationsManager.shared
 
     let services: [(name: String, status: String, port: Int, pid: Int, cpu: String, mem: String)] = [
-        ("env-daemon", "ops_status_running", 0, 12345, "0.2%", "4 MB"),
-        ("mlx-daemon", "ops_status_running", 8001, 12346, "1.5%", "28 MB"),
         ("fusion-mlx", "ops_status_running", 8000, 12347, "45.2%", "5.2 GB"),
     ]
 

@@ -24,9 +24,7 @@ swift test
 # Start all backend services
 ./Scripts/start.sh
 
-# Rust backend services (individual)
-cd Services/env-daemon && cargo build --release
-cd Services/env-daemon && cargo check
+# 无本地 Rust 后台服务 (env-daemon 已删除, env.* 由中央路由 daemon_server.py 实现)
 ```
 
 ## Architecture
@@ -38,7 +36,7 @@ Fusion Studio is a unified macOS native desktop client for the Fusion-MLX local 
 1. **App Layer** — SwiftUI main program (navigation, settings, health check, task manager)
 2. **Container Layer** — Module containers (WKWebView for Design, native editors for Code, Metal views for Simulation)
 3. **Bridge Layer** — JSON-RPC 2.0 over Unix Domain Socket (`/tmp/fusion-studio.sock`)
-4. **Service Layer** — Backend daemons (Rust: env-daemon, supervisor, file-daemon; Python: mlx-daemon)
+4. **Service Layer** — 中央路由 daemon_server.py (Python, fusion-agent-studio): env.* · hardware.metrics · memory · safety · mlx.* 经此统一
 5. **Base Layer** — Apple Silicon native (MLX, Metal, ANE, VideoToolbox, PyBullet)
 
 ### Key Patterns
@@ -69,11 +67,9 @@ FusionStudio/
 ├── TaskManager/             # TaskQueueView, HardwareMonitorView
 └── Resources/               # AppIcon PNGs, Entitlements.plist
 
-Services/                    # Backend daemons
-├── env-daemon/              # Rust — environment health + repair
-├── mlx-daemon/              # Python — MLX inference service
-├── file-daemon/             # Rust — file watching/management
-└── supervisor/              # Rust — process supervision
+Services/                    # 空 (env-daemon/mlx-daemon 已删除, 见 #296)
+                             # env.* · hardware.metrics 由中央路由 daemon_server.py 实现
+                             # IPCClient 走 /tmp/fusion-studio.sock UDS 到该路由
 ```
 
 ### Environment Objects (injected at app root)
@@ -106,4 +102,4 @@ Services/                    # Backend daemons
 - Large monolithic module views are the norm (AgentStudioView 109K, AgentBridge 59K, CodeEditorView 63K) — follow existing pattern when adding features
 - Module views live in `FusionStudio/Modules/` as single files or subdirectories
 - Chinese UI strings are used in Module enum rawValues and some labels
-- Backend services use Rust (env-daemon, supervisor) with tokio/serde/tracing or Python (mlx-daemon)
+- Backend services: 无本地守护进程 (Services/ 空, 见 #296); env.* · hardware.metrics 等由中央路由 daemon_server.py (fusion-agent-studio) 经 UDS 提供

@@ -278,10 +278,9 @@ Updates every 2 seconds via `Timer.publish`.
 ### Logs
 
 ```bash
-# View env-daemon logs
-./Services/env-daemon/target/release/env-daemon
-# View mlx-daemon logs
-python3 Services/mlx-daemon/daemon.py --no-daemon
+# env.* / hardware.metrics 由中央路由 daemon_server.py (fusion-agent-studio) 实现
+# 查看中央路由日志:
+tail -f ~/.fusion-agent-studio/logs/daemon.log
 ```
 
 ---

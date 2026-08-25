@@ -98,8 +98,8 @@ Fusion Studio (统一 macOS 桌面客户端)
 ├──────────────────────────────────────────────────────────────┤
 │  🔗 桥接层 — Unix Domain Socket + JSON-RPC 2.0              │
 ├──────────────────────────────────────────────────────────────┤
-│  ⚙️ 服务层 — Rust/Python 守护进程                            │
-│  env-daemon · mlx-daemon · supervisor                       │
+│  ⚙️ 服务层 — 中央路由 (daemon_server.py)                      │
+│  env.* · hardware.metrics · memory · safety (Python)         │
 ├──────────────────────────────────────────────────────────────┤
 │  🧠 底座层 — fusion-mlx（Apple Silicon 原生）                │
 │  LLM · 文生图 · 语音 · OCR · 视频 · 训练                    │
@@ -142,7 +142,6 @@ cd fusion-studio
 ```bash
 brew install cmake glfw glew
 pip3 install mlx pybullet psutil
-cd Services/env-daemon && cargo build --release && cd ../..
 swift build -c release
 ./Scripts/start.sh
 ```
@@ -193,9 +192,7 @@ fusion-studio/
 │   ├── Bridge/                   # IPC 客户端
 │   ├── Modules/                  # 模块容器（20+ 模块）
 │   └── Common/                   # 共享服务（20+ 文件）
-├── Services/                     # 后台守护进程
-│   ├── env-daemon/               # Rust — 环境自检 + 修复
-│   └── mlx-daemon/               # Python — MLX 服务管理
+├── Services/                     # (空 — env-daemon/mlx-daemon 已删除, env.* 由中央路由 daemon_server.py 实现)
 ├── Scripts/                      # 构建脚本
 ├── Tests/                        # 60+ 测试用例
 ├── .github/workflows/            # CI/CD 流水线

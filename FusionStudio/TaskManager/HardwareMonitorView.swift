@@ -1,5 +1,5 @@
 // Callers: ModuleDetailView routing.
-// Affected API: HardwareMonitorView — refreshMetrics() 改走真实 IPC `hardware.metrics`（mlx-daemon psutil/powermetrics）。
+// Affected API: HardwareMonitorView — refreshMetrics() 改走真实 IPC `hardware.metrics`（中央路由 daemon_server.py psutil/powermetrics）。
 // Data schemas: IPC 返回 {memory:{used_gb,total_gb,percent}, cpu:{percent,count}, gpu:{raw|error}, mlx:{info|error}}。
 // User instruction: "27、对fusion-studio的核心特性进行验收…硬件监控：实时 CPU/GPU/内存/MLX 指标…达到生产发布标准"
 

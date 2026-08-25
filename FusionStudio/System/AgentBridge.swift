@@ -421,7 +421,7 @@ final class AgentBridge: ObservableObject {
         return result
     }
 
-    // 复核 MLX 是否可达：直接走 HTTP /v1/models（app 复用外部 mlx，env-daemon 不一定在线）。
+    // 复核 MLX 是否可达：直接走 HTTP /v1/models（app 复用外部 mlx gateway :11432）。
     // 用于启动竞态后重试 / Design 等模块进入时复核，避免 isMLXRunning 滞留 false (bug3/bug7/bug8)。
     func probeMLXRunningStatus() async -> Bool {
         let config = FusionConfig.shared
