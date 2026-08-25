@@ -58,10 +58,8 @@ struct ClusterTopologyView: View {
         }
         .background(theme.contentBg)
         .onAppear {
-            engine.startPolling()
             layoutNodes()
         }
-        .onDisappear { engine.stopPolling() }
         .onChange(of: engine.nodes.count) { _ in layoutNodes() }
     }
 

@@ -20,8 +20,6 @@ struct NodeActionsView: View {
             .padding(.bottom, theme.spacing2XL)
         }
         .background(theme.contentBg)
-        .onAppear { engine.startPolling() }
-        .onDisappear { engine.stopPolling() }
     }
 
     private var pendingApprovalSection: some View {

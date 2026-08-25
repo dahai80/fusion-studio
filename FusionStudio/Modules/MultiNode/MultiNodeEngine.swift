@@ -68,6 +68,12 @@ class MultiNodeEngine: ObservableObject {
     // MARK: - Polling
 
     func startPolling() {
+        // F-A9: App 级生命周期调用 (scenePhase active), 多叶子 View onAppear 不再各自调。
+        // 幂等: 已有 timer 在跑则跳过, 防重复 schedule 致请求风暴。
+        if !pollTimers.isEmpty {
+            engineLog.info("MultiNode polling already running, skip")
+            return
+        }
         engineLog.info("MultiNode polling started")
         schedulePoll(interval: 2.0, label: "stats_nodes") { [weak self] in
             self?.fetchClusterStats()

@@ -127,11 +127,18 @@ struct FusionStudioApp: App {
                     setupDockIcon()
                     NSApp.setActivationPolicy(.regular)
                     NSApp.activate(ignoringOtherApps: true)
+                    // F-A9: 启动即开始 MultiNode 轮询 (scenePhase onChange 不在首渲触发)。
+                    multiNodeEngine.startPolling()
                 }
                 // HIGH-4: app 进后台或退出时终止遗留 screencapture 进程, 防孤儿。
+                // F-A9: MultiNode 轮询提升到 App 级生命周期 — active 常驻, 后台降频/停转。
+                // 旧设计绑 8 叶子 View onAppear/onDisappear, 离开 MultiNode tab 即停, 其他子 View 拿死数据。
                 .onChange(of: scenePhase) { phase in
                     if phase == .background || phase == .inactive {
                         ScreenCapture.shared.cleanup()
+                        multiNodeEngine.stopPolling()
+                    } else if phase == .active {
+                        multiNodeEngine.startPolling()
                     }
                 }
         }
