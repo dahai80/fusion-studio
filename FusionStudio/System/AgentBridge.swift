@@ -322,9 +322,16 @@ final class AgentBridge: ObservableObject {
 
     // ARCH-2: 逃逸 Task 生命周期管理。taskExecuteImmediate 的 fire-and-forget Task 存 handle,
     // 按 taskId 索引。任务删除/对象销毁时 cancel, 防 view 销毁后后台 Task 仍写 @Published。
-    // nonisolated(unsafe): Task<Void, Never> 是 Sendable, deinit (nonisolated) 需遍历 cancel,
-    // 不走 actor 隔离检查。仅 @MainActor 方法读写, 无真并发竞态。
+    // F-R9: nonisolated(unsafe) 字典 + deinit(nonisolated)遍历cancel + @MainActor写 = 真竞态崩溃。
+    // NSLock 保护所有读写, deinit 也持锁, 消除 Dictionary 并发修改 EXC_BAD_ACCESS。
+    nonisolated private let taskHandlesLock = NSLock()
     nonisolated(unsafe) private var taskRunHandles: [String: Task<Void, Never>] = [:]
+
+    nonisolated private func lockedTaskHandle<T>(_ body: () -> T) -> T {
+        taskHandlesLock.lock()
+        defer { taskHandlesLock.unlock() }
+        return body()
+    }
 
     // MARK: - Module Published Properties
 
@@ -948,15 +955,28 @@ final class AgentBridge: ObservableObject {
         // assistant 占位, onToken 逐 token 原位追加, 流结束不再重复 append (response 即占位累计内容)。
         let assistantRecord = ChatMessageRecord(role: "assistant", content: "")
         chatMessages.append(assistantRecord)
+        // F-R2: 旧 onToken 每 token 一个 Task { @MainActor } = 千 token 千 Task 派发风暴。
+        // 改 throttle 聚合: 累积 token 到 buffer, 距上次刷新 >50ms 才 hop 到 MainActor 写 @Published。
+        // 末帧残量不单独 flush: 流结束 L984 `chatMessages[last].content = response` 用完整 response 回填占位。
+        var tokenBuffer = ""
+        var lastFlush = DispatchTime.now()
+        let throttleNs: UInt64 = 50_000_000
         let response = try await inferStream(
             messages: messages,
             model: chatModel,
             temperature: projectSettings.temperature,
             maxTokens: projectSettings.maxTokens,
             onToken: { token in
-                Task { @MainActor in
-                    if let lastIdx = self.chatMessages.indices.last, self.chatMessages[lastIdx].role == "assistant" {
-                        self.chatMessages[lastIdx].content += token
+                tokenBuffer += token
+                let now = DispatchTime.now()
+                if now.uptimeNanoseconds - lastFlush.uptimeNanoseconds >= throttleNs {
+                    lastFlush = now
+                    let snapshot = tokenBuffer
+                    tokenBuffer = ""
+                    Task { @MainActor in
+                        if let lastIdx = self.chatMessages.indices.last, self.chatMessages[lastIdx].role == "assistant" {
+                            self.chatMessages[lastIdx].content += snapshot
+                        }
                     }
                 }
             }
@@ -1408,9 +1428,28 @@ final class AgentBridge: ObservableObject {
         }
     }
 
+    // F-R4: onAppear fetch 风暴去重。快切 View 触发多次同参 fetchAgents, 后端 N 次重算。
+    // 同 tags key 已有 in-flight fetch 时直接 await 复用结果, 不发新 RPC。
+    private static var agentFetchInFlight: [String: Task<[AgentModel], Error>] = [:]
+    private static let agentFetchLock = NSLock()
+
     func fetchAgents(tags: [String] = []) async throws -> [AgentModel] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        do {
+        let key = tags.sorted().joined(separator: ",")
+        // 复用 in-flight 同 key Task
+        Self.agentFetchLock.lock()
+        if let existing = Self.agentFetchInFlight[key] {
+            Self.agentFetchLock.unlock()
+            logger.info("fetchAgents: dedup reuse in-flight key=\(key)")
+            return try await existing.value
+        }
+        let task = Task<[AgentModel], Error> { [weak self] in
+            guard let self = self else { throw BridgeError.notConnected }
+            defer {
+                Self.agentFetchLock.lock()
+                Self.agentFetchInFlight.removeValue(forKey: key)
+                Self.agentFetchLock.unlock()
+            }
+            guard let client = self.ipcClient else { throw BridgeError.notConnected }
             let result = try await client.agentList(tags: tags)
             let agentsData = result["agents"] as? [[String: Any]] ?? []
             var parsed: [AgentModel] = []
@@ -1422,6 +1461,11 @@ final class AgentBridge: ObservableObject {
             self.agents = parsed
             logger.info("fetchAgents: received \(parsed.count) agents")
             return parsed
+        }
+        Self.agentFetchInFlight[key] = task
+        Self.agentFetchLock.unlock()
+        do {
+            return try await task.value
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
             self.lastError = bridgeErr
@@ -1972,7 +2016,8 @@ final class AgentBridge: ObservableObject {
         reportTaskStatus(taskId, status: "running")
         logger.info("taskExecuteImmediate: id=\(taskId) agent=\(agentId) graph=\(graphId)")
         // ARCH-2: 存 Task handle。重复执行同 taskId 先 cancel 旧 handle (防并发重复跑)。
-        taskRunHandles[taskId]?.cancel()
+        // F-R9: 持锁读写, 防与 deinit 并发崩溃。
+        lockedTaskHandle { taskRunHandles[taskId]?.cancel() }
         let handle = Task {
             do {
                 var eventsParsed: [AgentEventModel] = []
@@ -1999,7 +2044,8 @@ final class AgentBridge: ObservableObject {
                     t.sessionId = sessionId
                     t.lastRunAt = Date()
                 }
-                self.taskRunHandles.removeValue(forKey: taskId)
+                // F-R9: 持锁删, 防并发崩溃。
+                self.lockedTaskHandle { self.taskRunHandles.removeValue(forKey: taskId) }
                 logger.info("taskExecuteImmediate done: id=\(taskId) events=\(eventsParsed.count)")
                 self.reportTaskStatus(taskId, status: "completed", lastResult: ["summary": summary, "events": eventsParsed.count])
             } catch is CancellationError {
@@ -2037,21 +2083,26 @@ final class AgentBridge: ObservableObject {
                     }
                 } else {
                     self.updateTask(taskId) { t in t.status = .failed }
-                    self.taskRunHandles.removeValue(forKey: taskId)
+                    // F-R9: 持锁删, 防并发崩溃。
+                    self.lockedTaskHandle { self.taskRunHandles.removeValue(forKey: taskId) }
                     logger.error("taskExecuteImmediate failed: id=\(taskId) retryCount=\(cur.retryCount) err=\(error.localizedDescription)")
                 }
                 self.reportTaskStatus(taskId, status: "failed", lastError: error.localizedDescription)
             }
         }
-        taskRunHandles[taskId] = handle
+        // F-R9: 持锁写入, 防与 deinit/taskCancel 并发崩溃。
+        lockedTaskHandle { taskRunHandles[taskId] = handle }
     }
 
     // 上游 task.delete RPC 已落地 (PR#148); 真删 + 注销关联 cron job (后端处理).
     func taskDelete(_ taskId: String) {
         guard let client = ipcClient else { return }
         // ARCH-2: 删任务先 cancel 在跑的执行 Task, 防 RPC 删后后台 Task 仍写已删任务状态。
-        taskRunHandles[taskId]?.cancel()
-        taskRunHandles.removeValue(forKey: taskId)
+        // F-R9: 持锁读写, 防并发崩溃。
+        lockedTaskHandle {
+            taskRunHandles[taskId]?.cancel()
+            taskRunHandles.removeValue(forKey: taskId)
+        }
         Task {
             do {
                 _ = try await client.taskDelete(taskId: taskId)
@@ -2076,10 +2127,16 @@ final class AgentBridge: ObservableObject {
     }
 
     func taskCancel(_ taskId: String) async {
+        // F-R3: 真取消。先 cancel 本地 Task handle (停止前端轮询/写状态), 再通知后端 RPC。
+        // 旧实现只 RPC + 置 .cancelled, 本地 Task 仍跑完写 .completed 覆盖。
+        // F-R9: 持锁读写, 防并发崩溃。
+        lockedTaskHandle { taskRunHandles[taskId]?.cancel() }
         guard let client = ipcClient else { return }
         do {
             _ = try await client.taskCancel(taskId: taskId)
-            self.updateTask(taskId) { t in t.status = .cancelled }
+            self.updateTask(taskId) { t in
+                if t.status != .completed { t.status = .cancelled }
+            }
             logger.info("taskCancel: id=\(taskId)")
         } catch {
             logger.error("taskCancel failed: id=\(taskId) err=\(error.localizedDescription)")
@@ -2394,7 +2451,9 @@ final class AgentBridge: ObservableObject {
     // ARCH-2: 对象销毁取消所有逃逸执行 Task, 防 bridge 释放后后台 Task 仍持 self 写 @Published。
     // taskRunHandles 声明 nonisolated(unsafe), deinit (nonisolated) 可遍历 cancel。
     deinit {
-        for (_, handle) in taskRunHandles {
+        // F-R9: 持锁拷贝再遍历 cancel, 避免遍历中 @MainActor 写入并发修改崩溃
+        let handles = lockedTaskHandle { Array(taskRunHandles.values) }
+        for handle in handles {
             handle.cancel()
         }
     }

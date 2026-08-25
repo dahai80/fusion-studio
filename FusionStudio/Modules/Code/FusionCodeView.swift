@@ -125,6 +125,10 @@ let FC_SLASH_COMMANDS: [FCSlashCommand] = [
 
 // MARK: - Main View
 
+// F-R2: 流式 token throttle 聚合缓冲 (文件级, onToken 跑在 URLSession 后台线程, 跨 View 实例共享)。
+nonisolated(unsafe) private var fcStreamBuffer: String = ""
+nonisolated(unsafe) private var fcLastStreamFlush: DispatchTime = .now()
+
 struct FusionCodeView: View {
     @Environment(\.studioTheme) private var theme
     @EnvironmentObject var appState: AppState
@@ -1190,9 +1194,20 @@ struct FusionCodeView: View {
                     model: model,
                     temperature: 0.7,
                     maxTokens: 4096,
+                    // F-R2: throttle 聚合 token, 距上次刷新 >50ms 才 hop MainActor 写 @Published,
+                    // 防每 token 直接跨线程写 @Published (竞态) + 千次 MainActor hop 风暴。
                     onToken: { token in
-                        if let idx = self.messages.firstIndex(where: { $0.id == assistantId }) {
-                            self.messages[idx].content += token
+                        fcStreamBuffer.append(token)
+                        let now = DispatchTime.now()
+                        if now.uptimeNanoseconds - fcLastStreamFlush.uptimeNanoseconds >= 50_000_000 {
+                            fcLastStreamFlush = now
+                            let snapshot = fcStreamBuffer
+                            fcStreamBuffer = ""
+                            Task { @MainActor in
+                                if let idx = self.messages.firstIndex(where: { $0.id == assistantId }) {
+                                    self.messages[idx].content += snapshot
+                                }
+                            }
                         }
                     }
                 )

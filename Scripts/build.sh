@@ -30,15 +30,10 @@ step()  { echo -e "${CYAN}━━━ $1 ━━━${NC}"; }
 build_services() {
     step "构建 Rust 后台服务"
 
-    local services=("env-daemon")
-    for svc in "${services[@]}"; do
-        local svc_dir="$PROJECT_DIR/Services/$svc"
-        if [ -f "$svc_dir/Cargo.toml" ]; then
-            info "构建 $svc..."
-            (cd "$svc_dir" && cargo build --release 2>&1 | tail -3)
-            info "✅ $svc 构建完成"
-        fi
-    done
+    # F-A14: env-daemon Rust 二进制是死代码 (IPCClient 走 /tmp/fusion-studio.sock 到中央路由
+    # daemon_server.py, 该路由自己在 Python 实现 env.*, 从不连 env-daemon socket; env.repair 上游
+    # stub "not implemented")。不再构建, 保留源码待上游 issue 跟踪后决定删除。
+    info "env-daemon (Rust) 为死代码, 跳过构建 (env.* 由中央路由 daemon_server.py 实现)"
 }
 
 # ─── 阶段 2: 构建 SwiftUI App ─────────────────────────────────
@@ -127,14 +122,7 @@ PLIST
         info "✅ 复制 Entitlements"
     fi
 
-    # 复制后台服务
-    for svc in env-daemon; do
-        local svc_bin="$PROJECT_DIR/Services/$svc/target/release/$svc"
-        if [ -f "$svc_bin" ]; then
-            cp "$svc_bin" "$app_dir/Services/"
-            info "✅ 复制 $svc 服务"
-        fi
-    done
+    # F-A14: env-daemon 死代码, 不复制 (env.* 由中央路由 daemon_server.py 实现)
 
     # 复制 Python 服务
     local mlx_daemon="$PROJECT_DIR/Services/mlx-daemon/daemon.py"
@@ -338,9 +326,8 @@ main() {
         clean)
             step "清理构建产物"
             rm -rf "$BUILD_DIR" 2>/dev/null || true
-            for svc in env-daemon; do
-                (cd "$PROJECT_DIR/Services/$svc" && cargo clean 2>/dev/null) || true
-            done
+            # F-A14: env-daemon 死代码, 仅清产物
+            (cd "$PROJECT_DIR/Services/env-daemon" && cargo clean 2>/dev/null) || true
             (cd "$PROJECT_DIR" && swift package clean 2>/dev/null) || true
             info "✅ 清理完成"
             ;;

@@ -110,6 +110,8 @@ struct FusionStudioApp: App {
                     Task {
                         await performStartupHealthCheck()
                     }
+                    // F-R13: 启动进程内 RSS 监控, 软阈值告警 + 日志, 防 @Published/长会话 OOM 静默。
+                    StudioMemoryMonitor.shared.start()
                 }
                 .frame(minWidth: 1100, minHeight: 700)
                 .sheet(isPresented: $appState.showWelcome) {
