@@ -46,7 +46,7 @@ struct NodeRow: View {
     @StateObject private var i18n = I18nManager.shared
 
     private var statusColor: Color {
-        switch node.status {
+        switch node.effectiveStatus {
         case .online: theme.greenDot
         case .busy: theme.amberDot
         case .offline: theme.textTertiary
@@ -58,7 +58,7 @@ struct NodeRow: View {
         HStack(spacing: theme.spacingM) {
             Circle().fill(statusColor)
                 .frame(width: 8, height: 8)
-                .accessibilityLabel(String(format: i18n.t(.mn_node_statusA11yFmt), node.status.rawValue))
+                .accessibilityLabel(String(format: i18n.t(.mn_node_statusA11yFmt), node.effectiveStatus.rawValue))
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: theme.spacingS) {

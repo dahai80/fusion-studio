@@ -23,6 +23,10 @@ class MultiNodeEngine: ObservableObject {
     // UI 据 stale 显示"数据可能过期"而非惊吓性"集群全没了"。连续失败达阈值才降级 isConnected。
     @Published var nodesStale: Bool = false
 
+    // F-A11: 脑裂检测。>1 master = 网络分区两区各选 master, 客户端不应静默并排展示,
+    // 须 critical alert + 阻断写操作 (remove/approve/migrate) 直到 quorum 恢复。
+    var splitBrainDetected: Bool { nodes.filter { $0.isMaster }.count > 1 }
+
     // F-R6/F-R10: 连续失败计数 + 降级阈值。单次网络抖动不计 disconnected, 连续 N 轮失败才置离线。
     private var consecutiveFailures: Int = 0
     private let maxConsecutiveFailures: Int = 3
@@ -136,6 +140,11 @@ class MultiNodeEngine: ObservableObject {
                 DispatchQueue.main.async {
                     self?.nodes = resp.nodes
                     self?.resetFailureState()
+                    // F-A11: 检测多 master 脑裂, 日志告警 (UI 侧 ClusterTopologyView 展示 banner)。
+                    let masterCount = resp.nodes.filter { $0.isMaster }.count
+                    if masterCount > 1 {
+                        engineLog.error("F-A11 split-brain detected: \(masterCount) masters present — quorum broken, writes should be blocked")
+                    }
                 }
             case .failure(let err):
                 self?.handleError(err, context: "nodes")
@@ -255,13 +264,23 @@ class MultiNodeEngine: ObservableObject {
 
     // MARK: - Mutation endpoints
 
+    // F-A11: 脑裂时阻断写操作 (remove/approve/migrate/submit), 防 removeNode 操作到另一分区 master。
+    private func assertNoSplitBrain() throws {
+        if splitBrainDetected {
+            engineLog.error("F-A11 write blocked: split-brain active (>1 master)")
+            throw EngineError.splitBrain
+        }
+    }
+
     func removeNode(nodeId: String) async throws {
+        try assertNoSplitBrain()
         try await delete("/api/nodes/\(nodeId)")
         fetchNodes()
         fetchClusterStats()
     }
 
     func approveNode(nodeId: String, approvedBy: String = "admin") async throws {
+        try assertNoSplitBrain()
         _ = try await post("/api/nodes/approve", body: ["node_id": nodeId, "approved_by": approvedBy])
         fetchPendingNodes()
         fetchNodes()
@@ -286,6 +305,7 @@ class MultiNodeEngine: ObservableObject {
     }
 
     func migrateTask(taskId: String, targetNodeId: String) async throws {
+        try assertNoSplitBrain()
         _ = try await post("/api/tasks/\(taskId)/migrate", body: ["target_node_id": targetNodeId])
         fetchTasks()
     }
@@ -302,6 +322,7 @@ class MultiNodeEngine: ObservableObject {
     }
 
     func submitTask(name: String, mode: String, modelName: String, priority: Int = 5, requiredCapability: String? = nil) async throws -> [String: Any] {
+        try assertNoSplitBrain()
         var body: [String: Any] = ["name": name, "mode": mode, "model_name": modelName, "priority": priority]
         if let cap = requiredCapability { body["required_capability"] = cap }
         let result = try await post("/api/tasks/submit", body: body)
@@ -415,7 +436,7 @@ class MultiNodeEngine: ObservableObject {
     }
 
     func fetchAllNodeLoads() {
-        for node in nodes where node.status == .online || node.status == .busy {
+        for node in nodes where node.effectiveStatus == .online || node.effectiveStatus == .busy {
             fetchNodeLoad(nodeId: node.id) { _ in }
         }
     }
@@ -657,11 +678,13 @@ struct AlertsResponse: Codable {
 enum EngineError: Error, LocalizedError {
     case invalidURL
     case noData
+    case splitBrain
 
     var errorDescription: String? {
         switch self {
         case .invalidURL: return I18nManager.shared.t(.mn_err_invalidURL)
         case .noData: return I18nManager.shared.t(.mn_err_noData)
+        case .splitBrain: return I18nManager.shared.t(.mn_err_splitBrain)
         }
     }
 }

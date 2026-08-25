@@ -77,7 +77,7 @@ struct NodeActionsView: View {
             ForEach(engine.nodes) { node in
                 HStack(spacing: theme.spacingM) {
                     Circle()
-                        .fill(node.status == .online ? theme.greenDot : theme.redDot)
+                        .fill(node.effectiveStatus == .online ? theme.greenDot : theme.redDot)
                         .frame(width: 8, height: 8)
                     Text(node.hostname)
                         .font(.system(size: theme.textSize, weight: .medium))

@@ -3338,6 +3338,7 @@ enum I18nKey: String, CaseIterable {
     case mn_alert_ackBtn = "mn_alert_ackBtn"
     case mn_err_invalidURL = "mn_err_invalidURL"
     case mn_err_noData = "mn_err_noData"
+    case mn_err_splitBrain = "mn_err_splitBrain"
     case mn_overview_title = "mn_overview_title"
     case mn_overview_subtitle = "mn_overview_subtitle"
     case mn_overview_disconnectedFmt = "mn_overview_disconnectedFmt"
@@ -3418,6 +3419,8 @@ enum I18nKey: String, CaseIterable {
     case mn_web_retryBtn = "mn_web_retryBtn"
     case mn_topo_title = "mn_topo_title"
     case mn_topo_subtitle = "mn_topo_subtitle"
+    case mn_topo_splitBrainTitle = "mn_topo_splitBrainTitle"
+    case mn_topo_splitBrainMsg = "mn_topo_splitBrainMsg"
     case mn_topo_legendOnline = "mn_topo_legendOnline"
     case mn_topo_legendBusy = "mn_topo_legendBusy"
     case mn_topo_legendOffline = "mn_topo_legendOffline"
@@ -8365,6 +8368,7 @@ let zhCNTranslations: [String: String] = [
     "mn_alert_ackBtn": "确认",
     "mn_err_invalidURL": "无效 URL",
     "mn_err_noData": "无数据返回",
+    "mn_err_splitBrain": "检测到脑裂（多个 Master），写操作已阻断，请等待 Quorum 恢复。",
     "mn_overview_title": "集群总览",
     "mn_overview_subtitle": "实时监控集群节点状态与资源",
     "mn_overview_disconnectedFmt": "Multi-Node 服务未连接 — 请确认服务已启动 (port %d)",
@@ -8445,6 +8449,8 @@ let zhCNTranslations: [String: String] = [
     "mn_web_retryBtn": "重试",
     "mn_topo_title": "拓扑图",
     "mn_topo_subtitle": "可视化 Master-Worker 连接关系",
+    "mn_topo_splitBrainTitle": "脑裂告警：检测到多个 Master",
+    "mn_topo_splitBrainMsg": "集群存在多个 Master 节点，可能发生网络分区。请暂停写操作（移除/批准/迁移）直到 Quorum 恢复，否则可能操作到错误分区的节点。",
     "mn_topo_legendOnline": "在线",
     "mn_topo_legendBusy": "忙碌",
     "mn_topo_legendOffline": "离线",
@@ -13343,6 +13349,7 @@ let enUSTranslations: [String: String] = [
     "mn_alert_ackBtn": "Acknowledge",
     "mn_err_invalidURL": "Invalid URL",
     "mn_err_noData": "No data returned",
+    "mn_err_splitBrain": "Split-brain detected (multiple masters). Write operations are blocked. Wait for quorum to recover.",
     "mn_overview_title": "Cluster Overview",
     "mn_overview_subtitle": "Monitor cluster node status and resources in real time",
     "mn_overview_disconnectedFmt": "Multi-Node service not connected — ensure the service is running (port %d)",
@@ -13423,6 +13430,8 @@ let enUSTranslations: [String: String] = [
     "mn_web_retryBtn": "Retry",
     "mn_topo_title": "Topology",
     "mn_topo_subtitle": "Visualize Master-Worker connections",
+    "mn_topo_splitBrainTitle": "Split-Brain Warning: Multiple Masters Detected",
+    "mn_topo_splitBrainMsg": "The cluster has multiple master nodes, indicating a possible network partition. Pause write operations (remove/approve/migrate) until quorum recovers, or you may act on the wrong partition's node.",
     "mn_topo_legendOnline": "Online",
     "mn_topo_legendBusy": "Busy",
     "mn_topo_legendOffline": "Offline",
@@ -18315,6 +18324,7 @@ let jaJPTranslations: [String: String] = [
     "mn_alert_ackBtn": "確認",
     "mn_err_invalidURL": "無効な URL",
     "mn_err_noData": "データが返されませんでした",
+    "mn_err_splitBrain": "スプリットブレインを検出（複数マスター）。書き込み操作はブロックされています。クォーラムの復旧をお待ちください。",
     "mn_overview_title": "クラスター概要",
     "mn_overview_subtitle": "クラスターノードの状態とリソースをリアルタイム監視",
     "mn_overview_disconnectedFmt": "Multi-Node サービス未接続 — サービス起動を確認 (port %d)",
@@ -18395,6 +18405,8 @@ let jaJPTranslations: [String: String] = [
     "mn_web_retryBtn": "再試行",
     "mn_topo_title": "トポロジー",
     "mn_topo_subtitle": "Master-Worker 接続関係を可視化",
+    "mn_topo_splitBrainTitle": "スプリットブレイン警告：複数マスター検出",
+    "mn_topo_splitBrainMsg": "クラスタに複数のマスター ノードがあり、ネットワーク分断の可能性があります。クォーラムが回復するまで書き込み操作（削除/承認/移行）を一時停止してください。そうしないと誤ったパーティションのノードを操作する可能性があります。",
     "mn_topo_legendOnline": "オンライン",
     "mn_topo_legendBusy": "ビジー",
     "mn_topo_legendOffline": "オフライン",
@@ -23287,6 +23299,7 @@ let koKRTranslations: [String: String] = [
     "mn_alert_ackBtn": "확인",
     "mn_err_invalidURL": "잘못된 URL",
     "mn_err_noData": "반환된 데이터 없음",
+    "mn_err_splitBrain": "스플릿 브레인 감지(다중 마스터). 쓰기 작업이 차단되었습니다. 쿼럼 복구를 기다리세요.",
     "mn_overview_title": "클러스터 개요",
     "mn_overview_subtitle": "클러스터 노드 상태와 리소스 실시간 모니터링",
     "mn_overview_disconnectedFmt": "Multi-Node 서비스 미연결 — 서비스 실행 확인 (port %d)",
@@ -23367,6 +23380,8 @@ let koKRTranslations: [String: String] = [
     "mn_web_retryBtn": "재시도",
     "mn_topo_title": "토폴로지",
     "mn_topo_subtitle": "Master-Worker 연결 관계 시각화",
+    "mn_topo_splitBrainTitle": "스플릿 브레인 경고: 다중 마스터 감지",
+    "mn_topo_splitBrainMsg": "클러스터에 여러 마스터 노드가 있어 네트워크 분할 가능성이 있습니다. 쿼럼이 복구될 때까지 쓰기 작업(제거/승인/마이그레이션)을 일시 중지하세요. 그렇지 않으면 잘못된 파티션의 노드를 조작할 수 있습니다.",
     "mn_topo_legendOnline": "온라인",
     "mn_topo_legendBusy": "사용 중",
     "mn_topo_legendOffline": "오프라인",
