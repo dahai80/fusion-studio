@@ -1065,6 +1065,11 @@ final class AgentBridge: ObservableObject {
             self.tasks[idx] = saved
         } else {
             self.tasks.append(saved)
+            // F-A2: tasks 无界 append, 连续提交不 fetch 时单调增长。保留最近 500 (LRU),
+            // 超额丢弃最旧。PERF-3 ragResults 范式。
+            if self.tasks.count > 500 {
+                self.tasks.removeFirst(self.tasks.count - 500)
+            }
         }
         logger.info("taskSubmit: id=\(saved.id) title=\(title) trigger=\(trigger.rawValue) cron_job=\(saved.cronJobId)")
         return saved

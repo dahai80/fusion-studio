@@ -496,6 +496,11 @@ class FusionCodeBridge: ObservableObject {
 
             DispatchQueue.main.async {
                 self.chatEvents.append(fcEvent)
+                // F-A2: chatEvents 流式无界 append, 长会话内存单调增长。保留最近 500 事件 (LRU),
+                // 超额丢弃最旧。PERF-3 ragResults 范式。
+                if self.chatEvents.count > 500 {
+                    self.chatEvents.removeFirst(self.chatEvents.count - 500)
+                }
                 if !content.isEmpty {
                     self.currentStreamContent += content
                 }
