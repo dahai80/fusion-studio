@@ -406,6 +406,15 @@ class DocBridge: ObservableObject {
         }
     }
 
+    // F-A2: DocBridge 流式 @Published 数组无界 append (create/clone/install 回调内),
+    // 连续操作不 fetch 时内存单调增长。统一 LRU cap 入口, 保留最近 cap 条, 超额丢弃最旧。
+    // PERF-3 ragResults 范式。各调用方在 append 后调 capXxx 限流。
+    private static func cap<T>(_ arr: inout [T], _ cap: Int) {
+        if arr.count > cap {
+            arr.removeFirst(arr.count - cap)
+        }
+    }
+
     private let baseURL: String
     private let session: URLSession
 
@@ -561,7 +570,11 @@ class DocBridge: ObservableObject {
         post("/api/books", body: body) { [weak self] (result: Result<DocBook, Error>) in
             switch result {
             case .success(let book):
-                DispatchQueue.main.async { self?.books.append(book) }
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.books.append(book)
+                    Self.cap(&self.books, 200)
+                }
             case .failure(let err):
                 self?.handleError(err, context: "createBook")
             }
@@ -585,7 +598,11 @@ class DocBridge: ObservableObject {
         post("/api/chapters", body: ["book_id": bookId, "title": title]) { [weak self] (result: Result<DocChapter, Error>) in
             switch result {
             case .success(let ch):
-                DispatchQueue.main.async { self?.chapters.append(ch) }
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.chapters.append(ch)
+                    Self.cap(&self.chapters, 500)
+                }
             case .failure(let err):
                 self?.handleError(err, context: "createChapter")
             }
@@ -629,7 +646,11 @@ class DocBridge: ObservableObject {
         post("/api/pages", body: body) { [weak self] (result: Result<DocPage, Error>) in
             switch result {
             case .success(let page):
-                DispatchQueue.main.async { self?.pages.append(page) }
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.pages.append(page)
+                    Self.cap(&self.pages, 1000)
+                }
             case .failure(let err):
                 self?.handleError(err, context: "createPage")
             }
@@ -716,7 +737,11 @@ class DocBridge: ObservableObject {
         post("/api/pages/\(pageId)/versions", body: ["title": title, "content": content]) { [weak self] (result: Result<DocVersion, Error>) in
             switch result {
             case .success(let v):
-                DispatchQueue.main.async { self?.versions.append(v) }
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.versions.append(v)
+                    Self.cap(&self.versions, 200)
+                }
             case .failure(let err):
                 self?.handleError(err, context: "createVersion")
             }
@@ -788,7 +813,11 @@ class DocBridge: ObservableObject {
         post("/api/templates/\(id)/instantiate", body: ["variables": variables]) { [weak self] (result: Result<DocPage, Error>) in
             switch result {
             case .success(let page):
-                DispatchQueue.main.async { self?.pages.append(page) }
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.pages.append(page)
+                    Self.cap(&self.pages, 1000)
+                }
             case .failure(let err):
                 self?.handleError(err, context: "instantiateTemplate")
             }
@@ -826,7 +855,11 @@ class DocBridge: ObservableObject {
         post("/api/office/import", body: body) { [weak self] (result: Result<DocPage, Error>) in
             switch result {
             case .success(let page):
-                DispatchQueue.main.async { self?.pages.append(page) }
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.pages.append(page)
+                    Self.cap(&self.pages, 1000)
+                }
             case .failure(let err):
                 self?.handleError(err, context: "importOffice")
             }
@@ -975,7 +1008,11 @@ class DocBridge: ObservableObject {
         post("/api/templates", body: body) { [weak self] (result: Result<DocTemplate, Error>) in
             switch result {
             case .success(let tmpl):
-                DispatchQueue.main.async { self?.templates.append(tmpl) }
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.templates.append(tmpl)
+                    Self.cap(&self.templates, 200)
+                }
                 completion(.success(tmpl))
             case .failure(let err):
                 self?.handleError(err, context: "createTemplate")
@@ -1017,7 +1054,11 @@ class DocBridge: ObservableObject {
         post("/api/workflows", body: body) { [weak self] (result: Result<DocWorkflow, Error>) in
             switch result {
             case .success(let wf):
-                DispatchQueue.main.async { self?.workflows.append(wf) }
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.workflows.append(wf)
+                    Self.cap(&self.workflows, 200)
+                }
                 completion(.success(wf))
             case .failure(let err):
                 self?.handleError(err, context: "createWorkflow")
@@ -1087,7 +1128,11 @@ class DocBridge: ObservableObject {
         post("/api/pages/\(pageId)/files", body: ["name": name, "mime": mime, "content": content]) { [weak self] (result: Result<DocFileUpload, Error>) in
             switch result {
             case .success(let file):
-                DispatchQueue.main.async { self?.files.append(file) }
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.files.append(file)
+                    Self.cap(&self.files, 500)
+                }
                 completion(.success(file))
             case .failure(let err):
                 self?.handleError(err, context: "uploadFile")
@@ -1130,7 +1175,11 @@ class DocBridge: ObservableObject {
         post("/api/pages/\(pageId)/comments", body: body) { [weak self] (result: Result<DocComment, Error>) in
             switch result {
             case .success(let comment):
-                DispatchQueue.main.async { self?.comments.append(comment) }
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.comments.append(comment)
+                    Self.cap(&self.comments, 500)
+                }
                 completion(.success(comment))
             case .failure(let err):
                 self?.handleError(err, context: "createComment")
@@ -1171,7 +1220,11 @@ class DocBridge: ObservableObject {
         post("/api/favorites", body: ["page_id": pageId]) { [weak self] (result: Result<DocFavorite, Error>) in
             switch result {
             case .success(let fav):
-                DispatchQueue.main.async { self?.favorites.append(fav) }
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.favorites.append(fav)
+                    Self.cap(&self.favorites, 200)
+                }
                 completion(.success(fav))
             case .failure(let err):
                 self?.handleError(err, context: "addFavorite")
@@ -1364,7 +1417,12 @@ class DocBridge: ObservableObject {
         post("/api/workspaces", body: body) { [weak self] (result: Result<DocWorkspace, Error>) in
             switch result {
             case .success(let ws):
-                DispatchQueue.main.async { self?.workspaces.append(ws); self?.currentWorkspace = ws }
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.workspaces.append(ws)
+                    Self.cap(&self.workspaces, 50)
+                    self.currentWorkspace = ws
+                }
                 docBridgeLog.info("createWorkspace success: \(ws.id)")
                 completion(.success(ws))
             case .failure(let err):
@@ -1511,7 +1569,11 @@ class DocBridge: ObservableObject {
         if let d = isDark { body["is_dark"] = d }
         post("/api/themes", body: body) { [weak self] (result: Result<DocTheme, Error>) in
             switch result {
-            case .success(let t): DispatchQueue.main.async { self?.themes.append(t) }; completion(.success(t))
+            case .success(let t): DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.themes.append(t)
+                Self.cap(&self.themes, 100)
+            }; completion(.success(t))
             case .failure(let err): self?.handleError(err, context: "createTheme"); completion(.failure(err))
             }
         }
@@ -1548,7 +1610,11 @@ class DocBridge: ObservableObject {
         if let c = category { body["category"] = c }
         post("/api/vocabulary", body: body) { [weak self] (result: Result<DocVocabulary, Error>) in
             switch result {
-            case .success(let v): DispatchQueue.main.async { self?.vocabulary.append(v) }; completion(.success(v))
+            case .success(let v): DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.vocabulary.append(v)
+                Self.cap(&self.vocabulary, 500)
+            }; completion(.success(v))
             case .failure(let err): self?.handleError(err, context: "createVocabulary"); completion(.failure(err))
             }
         }
@@ -1585,7 +1651,11 @@ class DocBridge: ObservableObject {
         if let s = secret { body["secret"] = s }
         post("/api/webhooks", body: body) { [weak self] (result: Result<DocWebhook, Error>) in
             switch result {
-            case .success(let w): DispatchQueue.main.async { self?.webhooks.append(w) }; completion(.success(w))
+            case .success(let w): DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.webhooks.append(w)
+                Self.cap(&self.webhooks, 100)
+            }; completion(.success(w))
             case .failure(let err): self?.handleError(err, context: "createWebhook"); completion(.failure(err))
             }
         }
@@ -1691,7 +1761,11 @@ class DocBridge: ObservableObject {
         docBridgeLog.info("exportBook: bookId=\(bookId) format=\(format)")
         post("/api/export/\(format)", body: ["book_id": bookId]) { [weak self] (result: Result<DocExportJob, Error>) in
             switch result {
-            case .success(let job): DispatchQueue.main.async { self?.exportJobs.append(job) }; completion(.success(job))
+            case .success(let job): DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.exportJobs.append(job)
+                Self.cap(&self.exportJobs, 100)
+            }; completion(.success(job))
             case .failure(let err): self?.handleError(err, context: "exportBook"); completion(.failure(err))
             }
         }

@@ -28,6 +28,7 @@ extension AgentBridge {
                 throw BridgeError.decodeError("Failed to parse agent.create response")
             }
             self.agents.append(agent)
+            Self.capAgents(&self.agents)
             self.currentAgent = agent
             return agent
         } catch let error as IPCError {
@@ -191,6 +192,7 @@ extension AgentBridge {
             throw BridgeError.ipcError("Invalid clone response")
         }
         agents.append(cloned)
+        Self.capAgents(&self.agents)
         return cloned
     }
 
@@ -246,8 +248,9 @@ extension AgentBridge {
             if let e = endDate { params["end_date"] = e }
             let result = try await client.call(method: "agent_studio.audit.trail", params: params)
             let items = result["entries"] as? [[String: Any]] ?? (result as? [[String: Any]] ?? [])
-            auditTrail = items
-            agentOpsLog.info("Audit trail fetched: \(items.count) entries")
+            // F-A2: auditTrail 全量 fetch 无 cap, 服务端返海量条目时内存暴涨。保留最近 500 (LRU)。
+            auditTrail = Array(items.suffix(500))
+            agentOpsLog.info("Audit trail fetched: \(items.count) entries (capped to 500)")
         } catch {
             agentOpsLog.debug("Audit trail fetch failed: \(error.localizedDescription)")
         }
@@ -262,8 +265,9 @@ extension AgentBridge {
             if let e = endDate { params["end_date"] = e }
             let result = try await client.call(method: "agent_studio.session.logs", params: params)
             let items = result["sessions"] as? [[String: Any]] ?? (result as? [[String: Any]] ?? [])
-            sessionLogs = items
-            agentOpsLog.info("Session logs fetched: \(items.count) entries")
+            // F-A2: sessionLogs 全量 fetch 无 cap, 服务端返海量条目时内存暴涨。保留最近 500 (LRU)。
+            sessionLogs = Array(items.suffix(500))
+            agentOpsLog.info("Session logs fetched: \(items.count) entries (capped to 500)")
         } catch {
             agentOpsLog.debug("Session logs fetch failed: \(error.localizedDescription)")
         }
@@ -439,6 +443,7 @@ extension AgentBridge {
                 throw BridgeError.decodeError("Failed to parse marketplace.install response")
             }
             self.agents.append(agent)
+            Self.capAgents(&self.agents)
             return agent
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
@@ -486,5 +491,16 @@ extension AgentBridge {
             context_window: dict["context_window"] as? Int,
             rate_limit_qps: dict["rate_limit_qps"] as? Int
         )
+    }
+
+    // F-A2: agents 无界 append, 连续 create/clone/install 不 fetch 时单调增长。保留最近 200 (LRU),
+    // 超额丢弃最旧。PERF-3 ragResults 范式。
+    static func capAgents(_ arr: inout [AgentModel]) {
+        let cap = 200
+        if arr.count > cap {
+            let dropped = arr.count - cap
+            arr.removeFirst(dropped)
+            agentOpsLog.info("capAgents: trimmed to \(cap) (dropped \(dropped))")
+        }
     }
 }

@@ -30,6 +30,7 @@ extension AgentBridge {
 
         let userRecord = ChatMessageRecord(role: "user", content: userMessage)
         chatMessages.append(userRecord)
+        Self.capChatMessages(&chatMessages)
         if let session = pm.activeSession {
             pm.addMessage(toSession: session.id, role: "user", content: userMessage)
         }
@@ -54,6 +55,7 @@ extension AgentBridge {
         // assistant 占位, onToken 逐 token 原位追加, 流结束不再重复 append (response 即占位累计内容)。
         let assistantRecord = ChatMessageRecord(role: "assistant", content: "")
         chatMessages.append(assistantRecord)
+        Self.capChatMessages(&chatMessages)
         // F-R2: 旧 onToken 每 token 一个 Task { @MainActor } = 千 token 千 Task 派发风暴。
         // 改 throttle 聚合: 累积 token 到 buffer, 距上次刷新 >50ms 才 hop 到 MainActor 写 @Published。
         // 末帧残量不单独 flush: 流结束 L984 `chatMessages[last].content = response` 用完整 response 回填占位。
@@ -304,5 +306,16 @@ extension AgentBridge {
         }
         agentProjectChatLog.info("inferStream: received \(fullContent.count) chars total")
         return fullContent
+    }
+
+    // F-A2: chatMessages 无界 append, 长会话内存单调增长。保留最近 200 条 (LRU 语义:
+    // 旧消息越早越无回看价值, 且 LLM 上下文本身有限), 超额丢弃最旧。PERF-3 ragResults 范式。
+    static func capChatMessages(_ msgs: inout [ChatMessageRecord]) {
+        let cap = 200
+        if msgs.count > cap {
+            let dropped = msgs.count - cap
+            msgs.removeFirst(dropped)
+            agentProjectChatLog.info("capChatMessages: trimmed to \(cap) (dropped \(dropped))")
+        }
     }
 }
