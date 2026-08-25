@@ -344,6 +344,21 @@ final class AgentBridge: ObservableObject {
         return body()
     }
 
+    // F-R12: 跨任务后端熔断 + 统一退避。
+    // 后端 (MLX/daemon) 故障时, N 个排队任务各自重试 maxRetries 次 = 雪崩放大器。
+    // 熔断: 连续 failureThreshold 次失败后开路, 新重试 fast-fail 不再打后端;
+    // 任一成功复位。退避: 指数 1s→2s→4s 封顶 + ±12.5% jitter, 避免瞬时重打恢复中的引擎。
+    private let backendFailureThreshold = 5
+    private var backendConsecutiveFailures: Int = 0
+    private var backendCircuitOpen: Bool = false
+
+    // 指数退避 (s): 1 → 2 → 4 封顶, 按 retryCount 取, 加 ±12.5% jitter。
+    private func retryBackoffSeconds(retryCount: Int) -> Double {
+        let base = min(Double(1 << min(retryCount, 2)), 4.0)
+        let jitter = Double.random(in: 0.875...1.125)
+        return base * jitter
+    }
+
     // MARK: - Module Published Properties
 
     @Published var plans: [PlanModel] = []
@@ -2061,6 +2076,12 @@ final class AgentBridge: ObservableObject {
                 // F-R9: 持锁删, 防并发崩溃。
                 self.lockedTaskHandle { self.taskRunHandles.removeValue(forKey: taskId) }
                 logger.info("taskExecuteImmediate done: id=\(taskId) events=\(eventsParsed.count)")
+                // F-R12: 成功复位熔断器, 允许后续任务恢复正常重试。
+                if self.backendCircuitOpen || self.backendConsecutiveFailures > 0 {
+                    logger.info("F-R12 backend recovered, circuit closed failures=\(self.backendConsecutiveFailures)")
+                    self.backendConsecutiveFailures = 0
+                    self.backendCircuitOpen = false
+                }
                 self.reportTaskStatus(taskId, status: "completed", lastResult: ["summary": summary, "events": eventsParsed.count])
             } catch is CancellationError {
                 self.updateTask(taskId) { t in
@@ -2082,13 +2103,22 @@ final class AgentBridge: ObservableObject {
                     return
                 }
                 let cur = self.tasks[idx]
+                // F-R12: 计入后端连续失败, 达阈值开路熔断。
+                backendConsecutiveFailures += 1
+                if backendConsecutiveFailures >= backendFailureThreshold && !backendCircuitOpen {
+                    backendCircuitOpen = true
+                    logger.error("F-R12 backend circuit OPEN failures=\(self.backendConsecutiveFailures) — fast-fail retries until a task succeeds")
+                }
                 // ARCH-2: retry 上限收紧 + 退避, 防 maxRetries 过大时高频重试风暴。
-                // retryCount 已 +1, 仅当未超 maxRetries 才重排; 退避 1s 避免立即重试打满后端。
-                if cur.retryCount <= cur.maxRetries {
+                // retryCount 已 +1, 仅当未超 maxRetries 才重排。
+                // F-R12: 熔断开路时跳过重试 fast-fail, 避免雪崩放大; 退避改指数 + jitter。
+                let shouldRetry = cur.retryCount <= cur.maxRetries && !backendCircuitOpen
+                if shouldRetry {
+                    let backoffNs = UInt64(retryBackoffSeconds(retryCount: cur.retryCount) * 1_000_000_000)
                     self.updateTask(taskId) { t in t.status = .queued }
-                    logger.warning("taskExecuteImmediate retry: id=\(taskId) retryCount=\(cur.retryCount)/\(cur.maxRetries)")
+                    logger.warning("taskExecuteImmediate retry: id=\(taskId) retryCount=\(cur.retryCount)/\(cur.maxRetries) backoffMs=\(backoffNs / 1_000_000) circuit=\(self.backendCircuitOpen)")
                     Task {
-                        try? await Task.sleep(nanoseconds: 1_000_000_000)
+                        try? await Task.sleep(nanoseconds: backoffNs)
                         if Task.isCancelled {
                             logger.info("taskExecuteImmediate retry cancelled: id=\(taskId)")
                             return
@@ -2096,10 +2126,11 @@ final class AgentBridge: ObservableObject {
                         self.taskExecuteImmediate(taskId)
                     }
                 } else {
+                    let reason = backendCircuitOpen ? "circuit-open" : "retries-exhausted"
                     self.updateTask(taskId) { t in t.status = .failed }
                     // F-R9: 持锁删, 防并发崩溃。
                     self.lockedTaskHandle { self.taskRunHandles.removeValue(forKey: taskId) }
-                    logger.error("taskExecuteImmediate failed: id=\(taskId) retryCount=\(cur.retryCount) err=\(error.localizedDescription)")
+                    logger.error("taskExecuteImmediate failed: id=\(taskId) reason=\(reason) retryCount=\(cur.retryCount) err=\(error.localizedDescription)")
                 }
                 self.reportTaskStatus(taskId, status: "failed", lastError: error.localizedDescription)
             }
