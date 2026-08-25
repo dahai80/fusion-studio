@@ -776,67 +776,9 @@ final class AgentBridge: ObservableObject {
 
     // MARK: - MLX Operations
 
-    func fetchModels() async throws -> [MLXModelInfo] {
-        try await fetchModels(withApiKey: FusionConfig.shared.mlxResolvedApiKey)
-    }
-
-    private func fetchModels(withApiKey apiKey: String) async throws -> [MLXModelInfo] {
-        let config = FusionConfig.shared
-        let baseURL = config.mlxBaseURL
-        guard let url = URL(string: "\(baseURL)/v1/models") else {
-            throw BridgeError.ipcError("Invalid MLX URL: \(baseURL)")
-        }
-        do {
-            var request = URLRequest(url: url)
-            request.httpMethod = "GET"
-            request.timeoutInterval = 10
-            request.setValue("studio", forHTTPHeaderField: "X-Fusion-Route")
-            if !apiKey.isEmpty {
-                request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-            }
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard let httpResp = response as? HTTPURLResponse else {
-                throw BridgeError.serviceUnavailable("MLX non-HTTP response")
-            }
-            guard httpResp.statusCode == 200 else {
-                let body = String(data: data, encoding: .utf8) ?? ""
-                logger.error("fetchModels: HTTP \(httpResp.statusCode) — \(body)")
-                let code = httpResp.statusCode
-                if code == 401 || code == 403 {
-                    if let fallback = await Self.mlxSettingsJsonApiKey(), !fallback.isEmpty, fallback != apiKey {
-                        logger.warning("fetchModels: auth failed with resolved key (len \(apiKey.count)), retrying with settings.json key")
-                        return try await fetchModels(withApiKey: fallback)
-                    }
-                    throw BridgeError.authFailed("MLX returned HTTP \(code)")
-                }
-                throw BridgeError.serviceUnavailable("MLX returned HTTP \(code)")
-            }
-            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  let modelList = json["data"] as? [[String: Any]] else {
-                throw BridgeError.decodeError("Invalid /v1/models response")
-            }
-            var parsed: [MLXModelInfo] = []
-            for m in modelList {
-                let id = m["id"] as? String ?? ""
-                parsed.append(MLXModelInfo(
-                    id: id,
-                    name: id,
-                    object: m["object"] as? String,
-                    owned_by: m["owned_by"] as? String
-                ))
-            }
-            self.models = parsed
-            logger.info("fetchModels: received \(parsed.count) models from \(baseURL)")
-            return parsed
-        } catch let error as BridgeError {
-            throw error
-        } catch {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-
-            logger.error("fetchModels: \(error)")
-            throw bridgeErr
-        }
-    }
+    // ARCH-1 / F-A1: fetchModels (×2) + startMLX/stopMLX/restartMLX/mlxStatus/mlxSetModel 6 方法抽至
+    // AgentMlxService.swift facade extension。@Published models 仍存主类, extension 写 self.models, 观察链不变。
+    // 下方 3 个 nonisolated static 留主类: Project Chat selfHealApiKeyForInfer 跨域调 Self.mlxSelfHealKeyCandidates。
 
     // PERF-4: nonisolated async — 文件 I/O 跑 cooperative 线程池, 不阻塞 MainActor。sync 版删除: 全部调用方已 async await。
     nonisolated static func mlxSettingsJsonApiKey() async -> String? {
@@ -897,47 +839,6 @@ final class AgentBridge: ObservableObject {
         if let s = await mlxSettingsJsonApiKey(), !s.isEmpty, s != currentResolved { cands.append(s) }
         if !cands.contains("fg-admin-key") { cands.append("fg-admin-key") }
         return cands
-    }
-
-    func startMLX(model: String = "") async throws -> [String: Any] {
-        guard let client = ipcClient else {
-            throw BridgeError.notConnected
-        }
-        var params: [String: Any] = [:]
-        if !model.isEmpty {
-            params["model"] = model
-        }
-        return try await client.call(method: "mlx.start", params: params)
-    }
-
-    func stopMLX() async throws -> [String: Any] {
-        guard let client = ipcClient else {
-            throw BridgeError.notConnected
-        }
-        return try await client.call(method: "mlx.stop")
-    }
-
-    func restartMLX(model: String = "") async throws -> [String: Any] {
-        guard let client = ipcClient else {
-            throw BridgeError.notConnected
-        }
-        var params: [String: Any] = [:]
-        if !model.isEmpty { params["model"] = model }
-        return try await client.call(method: "mlx.restart", params: params)
-    }
-
-    func mlxStatus() async throws -> [String: Any] {
-        guard let client = ipcClient else {
-            throw BridgeError.notConnected
-        }
-        return try await client.call(method: "mlx.status")
-    }
-
-    func mlxSetModel(model: String) async throws -> [String: Any] {
-        guard let client = ipcClient else {
-            throw BridgeError.notConnected
-        }
-        return try await client.call(method: "mlx.set_model", params: ["model": model])
     }
 
     // MARK: - Project Chat
