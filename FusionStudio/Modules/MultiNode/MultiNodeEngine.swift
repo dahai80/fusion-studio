@@ -19,6 +19,16 @@ class MultiNodeEngine: ObservableObject {
     @Published var pendingNodes: [PendingNode] = []
     @Published var isConnected: Bool = false
     @Published var lastError: String?
+    // F-R6: 数据可能过期标志。fetch 失败时置 true (保留旧 nodes 不清空), 成功时清 false。
+    // UI 据 stale 显示"数据可能过期"而非惊吓性"集群全没了"。连续失败达阈值才降级 isConnected。
+    @Published var nodesStale: Bool = false
+
+    // F-R6/F-R10: 连续失败计数 + 降级阈值。单次网络抖动不计 disconnected, 连续 N 轮失败才置离线。
+    private var consecutiveFailures: Int = 0
+    private let maxConsecutiveFailures: Int = 3
+    // F-R10: 单飞保护。慢响应时 Timer 下一 tick 重复 fire 同一 fetch 致请求风暴, in-flight 跳过。
+    private var inflightFetches: Set<String> = []
+    private let inflightLock = NSLock()
 
     private let baseURL: String
     private let agentBaseURL: String
@@ -48,19 +58,19 @@ class MultiNodeEngine: ObservableObject {
 
     func startPolling() {
         engineLog.info("MultiNode polling started")
-        schedulePoll(interval: 2.0) { [weak self] in
+        schedulePoll(interval: 2.0, label: "stats_nodes") { [weak self] in
             self?.fetchClusterStats()
             self?.fetchNodes()
         }
-        schedulePoll(interval: 3.0) { [weak self] in
+        schedulePoll(interval: 3.0, label: "tasks_sync") { [weak self] in
             self?.fetchTasks()
             self?.fetchClusterSyncStatus()
             self?.fetchPendingNodes()
         }
-        schedulePoll(interval: 5.0) { [weak self] in
+        schedulePoll(interval: 5.0, label: "node_loads") { [weak self] in
             self?.fetchAllNodeLoads()
         }
-        schedulePoll(interval: 10.0) { [weak self] in
+        schedulePoll(interval: 10.0, label: "suggestions_alerts") { [weak self] in
             self?.fetchSuggestions()
             self?.fetchAlerts()
         }
@@ -73,13 +83,36 @@ class MultiNodeEngine: ObservableObject {
         engineLog.info("MultiNode polling stopped")
     }
 
-    private func schedulePoll(interval: TimeInterval, action: @escaping () -> Void) {
+    private func schedulePoll(interval: TimeInterval, label: String, action: @escaping () -> Void) {
         action()
-        let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { _ in action() }
+        let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+            // F-R10: 单飞保护。慢响应 (>interval) 时上一轮 action 未返回, 下一 tick 重复 fire 同 fetch,
+            // 叠加致请求风暴 + 续体堆积。label 作 in-flight key, 在途则跳过本轮。
+            guard let self = self else { return }
+            self.inflightLock.lock()
+            let already = self.inflightFetches.contains(label)
+            if !already { self.inflightFetches.insert(label) }
+            self.inflightLock.unlock()
+            guard !already else {
+                engineLog.debug("Poll skip (in-flight): \(label)")
+                return
+            }
+            action()
+            self.inflightLock.lock()
+            self.inflightFetches.remove(label)
+            self.inflightLock.unlock()
+        }
         pollTimers.append(timer)
     }
 
     // MARK: - GET endpoints
+
+    // F-R6: 成功路径重置失败状态。任一 fetch 成功即清 stale + 连续失败计数, 恢复 online。
+    private func resetFailureState() {
+        nodesStale = false
+        consecutiveFailures = 0
+        isConnected = true
+    }
 
     func fetchClusterStats() {
         get("/api/v1/cluster/stats") { [weak self] (result: Result<V1ClusterStatsResponse, Error>) in
@@ -87,7 +120,7 @@ class MultiNodeEngine: ObservableObject {
             case .success(let resp):
                 DispatchQueue.main.async {
                     self?.clusterStats = ClusterStats.from(resp)
-                    self?.isConnected = true
+                    self?.resetFailureState()
                     self?.lastError = nil
                 }
             case .failure(let err):
@@ -102,7 +135,7 @@ class MultiNodeEngine: ObservableObject {
             case .success(let resp):
                 DispatchQueue.main.async {
                     self?.nodes = resp.nodes
-                    self?.isConnected = true
+                    self?.resetFailureState()
                 }
             case .failure(let err):
                 self?.handleError(err, context: "nodes")
@@ -127,6 +160,7 @@ class MultiNodeEngine: ObservableObject {
             case .success(let resp):
                 DispatchQueue.main.async {
                     self?.tasks = resp.tasks
+                    self?.resetFailureState()
                 }
             case .failure(let err):
                 self?.handleError(err, context: "tasks")
@@ -593,9 +627,15 @@ class MultiNodeEngine: ObservableObject {
         let msg = error.localizedDescription
         engineLog.error("MultiNode error [\(context)]: \(msg)")
         DispatchQueue.main.async { [weak self] in
-            self?.lastError = "\(context): \(msg)"
-            if msg.contains("connect") || msg.contains("refused") {
-                self?.isConnected = false
+            guard let self = self else { return }
+            self.lastError = "\(context): \(msg)"
+            // F-R6: 失败不清空 nodes (保留旧数据), 仅置 stale 标志。UI 据 stale 显示"数据可能过期"。
+            self.nodesStale = true
+            // F-R6/F-R10: 连续失败计数。单次抖动不计 disconnected, 连续 N 轮失败才降级 isConnected。
+            self.consecutiveFailures += 1
+            if self.consecutiveFailures >= self.maxConsecutiveFailures {
+                self.isConnected = false
+                engineLog.warning("MultiNode disconnected after \(self.consecutiveFailures) consecutive failures")
             }
         }
     }
