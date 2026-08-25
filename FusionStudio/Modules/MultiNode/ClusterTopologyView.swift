@@ -19,6 +19,29 @@ struct ClusterTopologyView: View {
             ScreenHeader(eyebrow: "Multi-Node", title: i18n.t(.mn_topo_title), subtitle: i18n.t(.mn_topo_subtitle))
                 .frame(maxWidth: .infinity, alignment: .leading)
 
+            // F-A11: 脑裂告警 banner。>1 master = 网络分区, 阻断写操作直到 quorum 恢复。
+            if engine.splitBrainDetected {
+                HStack(alignment: .top, spacing: theme.spacingS) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(theme.redDot)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(i18n.t(.mn_topo_splitBrainTitle))
+                            .font(.system(size: theme.bodySize, weight: .semibold))
+                            .foregroundStyle(theme.redDot)
+                        Text(i18n.t(.mn_topo_splitBrainMsg))
+                            .font(.system(size: theme.captionSize))
+                            .foregroundStyle(theme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer()
+                }
+                .padding(theme.spacingM)
+                .background(theme.redDot.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous))
+                .padding(.horizontal, theme.spacingL)
+                .padding(.top, theme.spacingS)
+            }
+
             GeometryReader { geo in
                 ZStack {
                     connectionsLayer(in: geo.size)
@@ -112,7 +135,7 @@ struct ClusterTopologyView: View {
                     .fill(theme.surfaceElevated)
                     .frame(width: size, height: size)
                     .overlay(Circle().stroke(borderColor, lineWidth: 2))
-                if node.status == .online {
+                if node.effectiveStatus == .online {
                     PulseCircle(color: theme.greenDot, size: size + 8)
                 }
                 Text(String(node.hostname.prefix(2)))
@@ -141,7 +164,7 @@ struct ClusterTopologyView: View {
     }
 
     private func statusColor(for node: ClusterNode) -> Color {
-        switch node.status {
+        switch node.effectiveStatus {
         case .online: theme.greenDot
         case .busy: theme.amberDot
         case .offline: theme.textTertiary

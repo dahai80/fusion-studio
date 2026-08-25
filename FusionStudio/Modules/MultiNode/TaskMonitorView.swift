@@ -224,7 +224,7 @@ struct TaskMonitorView: View {
     @ViewBuilder
     private var nodeMenuItems: some View {
         ForEach(Array(engine.nodes.enumerated()), id: \.offset) { _, node in
-            Button("\(node.hostname) (\(node.status.rawValue))") {
+            Button("\(node.hostname) (\(node.effectiveStatus.rawValue))") {
                 migrateTargetNode = node.id
             }
         }

@@ -140,6 +140,26 @@ struct ClusterNode: Codable, Identifiable, Hashable {
 
     var isMaster: Bool { role == "master" }
 
+    // F-A10: 客户端本地心跳陈旧度判定。lastHeartbeat 服务器时间戳 (epoch s),
+    // 超过 30s 视为陈旧 — 服务端可能心跳漏判或返回脏 status, 客户端不无条件信任,
+    // 本地降级为 offline 防 migrate 任务到死节点挂死。
+    static let heartbeatStaleSeconds: Double = 30
+
+    var heartbeatAge: Double? {
+        guard let hb = lastHeartbeat, hb > 0 else { return nil }
+        return Date().timeIntervalSince1970 - hb
+    }
+
+    var heartbeatStale: Bool {
+        guard let age = heartbeatAge else { return false }
+        return age > Self.heartbeatStaleSeconds
+    }
+
+    // 客户端最终判定的状态: 服务端 status 被 stale 心跳覆盖为 offline。
+    var effectiveStatus: NodeStatus {
+        heartbeatStale ? .offline : status
+    }
+
     var memoryUsageRatio: Double {
         guard totalMemoryGB > 0 else { return 0 }
         return 1.0 - (availableMemoryGB / totalMemoryGB)
