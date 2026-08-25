@@ -3323,6 +3323,9 @@ enum I18nKey: String, CaseIterable {
     case mn_route_desc_round_robin = "mn_route_desc_round_robin"
     case mn_route_desc_random = "mn_route_desc_random"
     case mn_route_desc_capability_aware = "mn_route_desc_capability_aware"
+    case mn_route_scopeNote = "mn_route_scopeNote"
+    case mn_route_scopeTask = "mn_route_scopeTask"
+    case mn_route_scopeInfer = "mn_route_scopeInfer"
     case mn_alert_title = "mn_alert_title"
     case mn_alert_subtitle = "mn_alert_subtitle"
     case mn_alert_tab_active = "mn_alert_tab_active"
@@ -8353,6 +8356,9 @@ let zhCNTranslations: [String: String] = [
     "mn_route_desc_round_robin": "轮流分配到各节点",
     "mn_route_desc_random": "随机选择节点",
     "mn_route_desc_capability_aware": "根据节点能力和任务需求匹配",
+    "mn_route_scopeNote": "此策略仅作用于集群任务提交(task.*)路由，不影响本地推理。",
+    "mn_route_scopeTask": "任务提交：经多节点 master 按本策略选节点",
+    "mn_route_scopeInfer": "对话推理：直连本地 MLX，需经 gateway(:11432) 方走分布式路由",
     "mn_alert_title": "告警中心",
     "mn_alert_subtitle": "集群异常检测与智能建议",
     "mn_alert_tab_active": "活跃告警",
@@ -13334,6 +13340,9 @@ let enUSTranslations: [String: String] = [
     "mn_route_desc_round_robin": "Round-robin assignment to each node",
     "mn_route_desc_random": "Randomly select a node",
     "mn_route_desc_capability_aware": "Match by node capability and task requirements",
+    "mn_route_scopeNote": "This strategy only routes cluster task submissions (task.*), not local inference.",
+    "mn_route_scopeTask": "Task submission: multi-node master selects a node by this strategy",
+    "mn_route_scopeInfer": "Chat inference: hits local MLX directly; distributed routing requires gateway (:11432)",
     "mn_alert_title": "Alert Center",
     "mn_alert_subtitle": "Cluster anomaly detection and smart suggestions",
     "mn_alert_tab_active": "Active Alerts",
@@ -18309,6 +18318,9 @@ let jaJPTranslations: [String: String] = [
     "mn_route_desc_round_robin": "各ノードにラウンドロビン割当",
     "mn_route_desc_random": "ノードをランダム選択",
     "mn_route_desc_capability_aware": "ノード能力とタスク要件でマッチング",
+    "mn_route_scopeNote": "この戦略はクラスタタスク送信(task.*)のルーティングのみに作用し、ローカル推論には影響しません。",
+    "mn_route_scopeTask": "タスク送信：マルチノード master が本戦略でノードを選択",
+    "mn_route_scopeInfer": "チャット推論：ローカル MLX に直接接続、分散ルーティングは gateway(:11432) 経由が必要",
     "mn_alert_title": "アラートセンター",
     "mn_alert_subtitle": "クラスタ異常検出とスマート提案",
     "mn_alert_tab_active": "アクティブアラート",
@@ -23284,6 +23296,9 @@ let koKRTranslations: [String: String] = [
     "mn_route_desc_round_robin": "각 노드에 라운드로빈 할당",
     "mn_route_desc_random": "노드 무작위 선택",
     "mn_route_desc_capability_aware": "노드 능력과 작업 요건 매칭",
+    "mn_route_scopeNote": "이 전략은 클러스터 작업 제출(task.*) 라우팅에만 적용되며 로컬 추론에는 영향 없음.",
+    "mn_route_scopeTask": "작업 제출: 멀티노드 master가 이 전략으로 노드 선택",
+    "mn_route_scopeInfer": "채팅 추론: 로컬 MLX 직접 연결, 분산 라우팅은 gateway(:11432) 경유 필요",
     "mn_alert_title": "알림 센터",
     "mn_alert_subtitle": "클러스터 이상 감지 및 스마트 제안",
     "mn_alert_tab_active": "활성 알림",

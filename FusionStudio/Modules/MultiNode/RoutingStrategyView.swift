@@ -26,6 +26,8 @@ struct RoutingStrategyView: View {
             VStack(alignment: .leading, spacing: 0) {
                 ScreenHeader(eyebrow: "Multi-Node", title: i18n.t(.mn_route_title), subtitle: i18n.t(.mn_route_subtitle))
 
+                scopeNote
+
                 strategySection
                 loadSection
             }
@@ -35,6 +37,32 @@ struct RoutingStrategyView: View {
         .onAppear {
             loadSummary()
         }
+    }
+
+    // F-A8 ③: 审计投诉 RoutingStrategyView 暗示本策略影响推理, 实际仅路由 task.* 提交。
+    // 推理直连本地 MLX, 走分布式须经 gateway(:11432)。澄清作用域消除误导, 跨工程两套路由统一见 issue。
+    private var scopeNote: some View {
+        HStack(alignment: .top, spacing: theme.spacingS) {
+            Image(systemName: "info.circle.fill")
+                .foregroundStyle(theme.blueDot)
+            VStack(alignment: .leading, spacing: theme.spacingXS) {
+                Text(i18n.t(.mn_route_scopeNote))
+                    .font(.system(size: theme.footnoteSize, weight: .medium))
+                    .foregroundStyle(theme.text)
+                Text(i18n.t(.mn_route_scopeTask))
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(theme.textSecondary)
+                Text(i18n.t(.mn_route_scopeInfer))
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(theme.textSecondary)
+            }
+            Spacer()
+        }
+        .padding(theme.spacingM)
+        .background(theme.infoBg)
+        .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
+        .padding(.horizontal, theme.spacingL)
+        .padding(.bottom, theme.spacingM)
     }
 
     private var strategySection: some View {

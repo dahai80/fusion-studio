@@ -107,6 +107,9 @@ extension AgentBridge {
         let config = FusionConfig.shared
         let baseURL = config.mlxBaseURL
         let apiKey = config.mlxResolvedApiKey
+        // F-A8 ③: 推理直连 mlxBaseURL (默认 :11434 直连 MLX, 零多节点路由)。
+        // 多节点推理路由须经 fusion-gateway(:11432, FUSION_GATEWAY_URL env), 非本 MultiNodeEngine 路由策略。
+        agentProjectChatLog.info("infer: route=direct-mlx baseURL=\(baseURL, privacy: .public) (gateway routing only via FUSION_GATEWAY_URL env)")
         guard let url = URL(string: "\(baseURL)/v1/chat/completions") else {
             throw BridgeError.ipcError("Invalid MLX URL: \(baseURL)")
         }
@@ -209,7 +212,9 @@ extension AgentBridge {
         let config = FusionConfig.shared
         let baseURL = config.mlxBaseURL
         let apiKey = config.mlxResolvedApiKey
-        agentProjectChatLog.debug("inferStream baseURL=\(baseURL, privacy: .public) model=\(model, privacy: .public) apiKey=\(apiKey.isEmpty ? "empty" : "set", privacy: .public) webSearch=\(webSearch, privacy: .public)")
+        // F-A8 ③: 推理直连 mlxBaseURL (默认 :11434 直连 MLX, 零多节点路由)。
+        // 多节点推理路由须经 fusion-gateway(:11432, FUSION_GATEWAY_URL env), 非本 MultiNodeEngine 路由策略。
+        agentProjectChatLog.info("inferStream: route=direct-mlx baseURL=\(baseURL, privacy: .public) model=\(model, privacy: .public) apiKey=\(apiKey.isEmpty ? "empty" : "set", privacy: .public) webSearch=\(webSearch, privacy: .public) (gateway routing only via FUSION_GATEWAY_URL env)")
         guard let url = URL(string: "\(baseURL)/v1/chat/completions") else {
             throw BridgeError.ipcError("Invalid MLX URL: \(baseURL)")
         }
