@@ -5,6 +5,9 @@
 
 import SwiftUI
 import AppKit
+import os.log
+
+private let a11yLog = Logger(subsystem: "com.fusion.studio", category: "AccessibilityService")
 
 // MARK: - 无障碍配置
 
@@ -59,7 +62,7 @@ class AccessibilityManager: ObservableObject {
         lastAnnouncement = message
         // macOS VoiceOver 播报 — 使用 NSAccessibilityElement
         #if DEBUG
-        print("[VoiceOver] \(message)")
+        a11yLog.debug("VoiceOver announce: \(message, privacy: .public)")
         #endif
     }
 

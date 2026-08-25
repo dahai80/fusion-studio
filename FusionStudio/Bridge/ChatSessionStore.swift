@@ -605,7 +605,7 @@ class ChatSessionStore: ObservableObject {
             let fallbackModel = FusionConfig.shared.mlxModelSmall.isEmpty ? "Qwen3.5-9B-4bit" : FusionConfig.shared.mlxModelSmall
             let defaultModel = MLXModelInfo.preferredDefault(in: bridge.models)?.id ?? fallbackModel
             let model = !selectedModel.isEmpty ? selectedModel : defaultModel
-            print("[ChatStore] sendMessage: resolved model='\(model)', selectedModel='\(selectedModel)', bridgeModels=\(bridge.models.map { $0.id }), configSmall='\(FusionConfig.shared.mlxModelSmall)'")
+            chatStoreLog.debug("sendMessage resolved model=\(model, privacy: .public) selected=\(self.selectedModel, privacy: .public) modelCount=\(bridge.models.count, privacy: .public) configSmall=\(FusionConfig.shared.mlxModelSmall, privacy: .public)")
             // caller: ChatSessionStore.sendMessage → builds message array with optional system prompt + multimodal
             var messages: [[String: Any]] = []
             var systemParts: [String] = []
@@ -733,7 +733,7 @@ class ChatSessionStore: ObservableObject {
                     }
                 }
             )
-            print("[ChatStore] sendMessage: inferStream returned successfully")
+            chatStoreLog.info("sendMessage inferStream returned successfully")
             let assistantMsg = ChatMessageData(
                 role: "assistant",
                 content: response,
@@ -769,10 +769,10 @@ class ChatSessionStore: ObservableObject {
                 }
             }
         } catch {
-            print("[ChatStore] sendMessage: inferStream FAILED: \(error), type=\(type(of: error))")
+            chatStoreLog.error("sendMessage inferStream FAILED: \(error.localizedDescription, privacy: .public) type=\(String(describing: type(of: error)), privacy: .public)")
             let errorDetail = (error as? BridgeError)?.detail ?? "\(type(of: error)): \(error.localizedDescription)"
             let friendlyMsg = (error as? BridgeError)?.userMessage ?? "AI 服务暂时不可用，请稍后重试。"
-            print("[ChatStore] errorDetail: \(errorDetail)")
+            chatStoreLog.error("sendMessage errorDetail: \(errorDetail, privacy: .public)")
             let errMsg = ChatMessageData(
                 role: "assistant",
                 content: "⚠️ \(friendlyMsg)",

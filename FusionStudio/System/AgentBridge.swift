@@ -1108,7 +1108,7 @@ final class AgentBridge: ObservableObject {
         let config = FusionConfig.shared
         let baseURL = config.mlxBaseURL
         let apiKey = config.mlxResolvedApiKey
-        print("[inferStream] baseURL=\(baseURL), model=\(model), apiKey=\(apiKey.isEmpty ? "empty" : "set"), webSearch=\(webSearch)")
+        agentBridgeStaticLog.debug("inferStream baseURL=\(baseURL, privacy: .public) model=\(model, privacy: .public) apiKey=\(apiKey.isEmpty ? "empty" : "set", privacy: .public) webSearch=\(webSearch, privacy: .public)")
         guard let url = URL(string: "\(baseURL)/v1/chat/completions") else {
             throw BridgeError.ipcError("Invalid MLX URL: \(baseURL)")
         }
