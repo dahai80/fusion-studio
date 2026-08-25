@@ -48,6 +48,9 @@ private func fileWatcherCallback(
     }
     for i in 0..<numEvents {
         let path = paths[i]
+        // F-R11: 路径过滤 — 排除 .git/.build/node_modules/.swp/.DS_Store 等噪音目录/临时文件。
+        // 旧实现全量 post, 大仓库 git checkout 产生数千 .git/ 对象 FSEvents 打满主线程致 UI 冻结。
+        if fileWatcherShouldPropagatePath(path) == false { continue }
         let flags = eventFlags[i]
         let userInfo: [String: Any] = [
             "path": path,
@@ -60,6 +63,19 @@ private func fileWatcherCallback(
             userInfo: userInfo
         )
     }
+}
+
+/// F-R11: 判断路径是否应向上传播。排除版本控制/构建产物/依赖/临时文件噪音。
+private func fileWatcherShouldPropagatePath(_ path: String) -> Bool {
+    let excludedComponents: Set<String> = [".git", ".build", "node_modules", "DerivedData", ".swiftpm"]
+    let excludedSuffixes: [String] = [".swp", ".swo", ".DS_Store", ".tmp", ".log"]
+    let comps = path.split(separator: "/")
+    for comp in comps {
+        let s = String(comp)
+        if excludedComponents.contains(s) { return false }
+    }
+    for suf in excludedSuffixes where path.hasSuffix(suf) { return false }
+    return true
 }
 
 @MainActor

@@ -46,7 +46,7 @@ class StreamingBridge: ObservableObject {
 
     private static let maxStreamEvents = 500
 
-    // TCP+NDJSON mode (mlx-daemon)
+    // TCP+NDJSON mode (fusion-mlx gateway :11432)
     private var connection: NWConnection?
     private let queue = DispatchQueue(label: "com.fusion-studio.ws", qos: .userInitiated)
     private let wsHost: String
@@ -71,7 +71,7 @@ class StreamingBridge: ObservableObject {
         self.wsPort = port
     }
 
-    // MARK: - TCP+NDJSON mode (mlx-daemon)
+    // MARK: - TCP+NDJSON mode (fusion-mlx gateway :11432)
 
     func connect() {
         let endpoint = NWEndpoint.hostPort(host: NWEndpoint.Host(wsHost), port: NWEndpoint.Port(rawValue: wsPort)!)

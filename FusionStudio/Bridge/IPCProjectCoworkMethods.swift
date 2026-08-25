@@ -643,7 +643,7 @@ extension IPCClient {
     // MARK: - CoWork Space (UDS /tmp/fusion-cowork.sock desk.space.*, Issue #38)
 
     // Callers: SpaceListView / SpaceMainView 等 CoWork GUI. Affected API: spaceCall + 11 desk.space.* methods.
-    // 注意: desk_rpc 监听 /tmp/fusion-cowork.sock, 非 /tmp/fusion-studio.sock (env-daemon 不转发 desk.*)
+    // 注意: desk_rpc 监听 /tmp/fusion-cowork.sock, 非 /tmp/fusion-studio.sock (中央路由 daemon_server.py 不转发 desk.*)
     private static let coworkDeskSock = "/tmp/fusion-cowork.sock"
 
     @discardableResult

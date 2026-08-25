@@ -3,7 +3,7 @@ import os.log
 
 private let envSheetLog = Logger(subsystem: "com.fusion.studio", category: "EnvHealthSheet")
 
-// 环境健康检查弹窗：纯 HTTP/UDS 探活，覆盖所有 Fusion 子系统，不依赖 env-daemon。
+// 环境健康检查弹窗：纯 HTTP/UDS 探活，覆盖所有 Fusion 子系统，无需本地守护进程。
 // 由右上角 HealthStatusBadge 点击弹出。
 struct EnvironmentHealthSheet: View {
     @EnvironmentObject var appState: AppState

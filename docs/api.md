@@ -134,8 +134,8 @@ Get current hardware metrics: memory, CPU, GPU, MLX.
 ├──────────────────────────────────────────────────────────────┤
 │  Bridge Layer — Unix Socket + JSON-RPC 2.0                   │
 ├──────────────────────────────────────────────────────────────┤
-│  Service Layer — Rust/Python Daemon Processes                │
-│  env-daemon · mlx-daemon · supervisor                        │
+│  Service Layer — Central Router (daemon_server.py)           │
+│  env.* · hardware.metrics · memory · safety (Python)         │
 ├──────────────────────────────────────────────────────────────┤
 │  Base Layer — fusion-mlx (Apple Silicon Native)              │
 │  LLM · Image · Speech · OCR · Video · Training               │
@@ -205,21 +205,9 @@ catch IPCError.rpcError(let code, let message) { /* handle RPC error */ }
 
 ## Backend Services
 
-### env-daemon (Rust)
-
-- Async JSON-RPC server using `tokio`
-- Automatic crash recovery with exponential backoff (max 5 retries)
-- 30-second accept timeout for heartbeat
-- Socket permissions: `0600`
-- **Source**: `Services/env-daemon/src/main.rs`
-
-### mlx-daemon (Python)
-
-- MLX process lifecycle management
-- Health check via HTTP polling
-- Hardware metrics collection
-- HTTP JSON-RPC server on port `8001`
-- **Source**: `Services/mlx-daemon/daemon.py`
+> **Note**: `Services/env-daemon` (Rust) 和 `Services/mlx-daemon` (Python) 已删除 (死代码, F-A14/F-A15).
+> `env.*` (health_check/repair/repair_all) 与 `hardware.metrics` 由中央路由 `daemon_server.py` (fusion-agent-studio)
+> 统一实现, fusion-studio IPCClient 走 `/tmp/fusion-studio.sock` UDS 到该路由, 不再有本地独立守护进程.
 
 ---
 

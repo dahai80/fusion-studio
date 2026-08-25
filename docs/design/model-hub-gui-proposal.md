@@ -63,8 +63,8 @@
            │                                   │
            ▼                                   ▼
 ┌─────────────────────┐            ┌────────────────────┐
-│   fusion-mlx        │            │   env-daemon       │
-│   HTTP :11434       │            │   IPC UDS          │
+│   fusion-mlx        │            │   central router   │
+│   HTTP :11434       │            │   daemon_server.py │
 │                     │            │                    │
 │  /admin/api/models  │            │  mlx.set_model     │
 │  /admin/api/hf/*    │            │  mlx.start/stop    │
@@ -220,5 +220,5 @@
 | 下载模型 | WelcomeView/ModelHub | MlxHTTPClient.startHFDownload | fusion-mlx POST /admin/api/hf/download |
 | 下载进度 | ModelHub | MlxHTTPClient.listHFTasks | fusion-mlx GET /admin/api/hf/tasks |
 | 取消下载 | ModelHub | MlxHTTPClient.cancelHFDownload | fusion-mlx POST /admin/api/hf/cancel/{id} |
-| 切换模型 | QuickSheet/Code | AgentBridge.mlxSetModel | env-daemon IPC mlx.set_model |
+| 切换模型 | QuickSheet/Code | AgentBridge.mlxSetModel | 中央路由 daemon_server.py IPC mlx.set_model |
 | 删除模型 | ModelHub | MlxHTTPClient (DELETE) | fusion-mlx DELETE /admin/api/models/{id} |

@@ -29,11 +29,7 @@ step()  { echo -e "${CYAN}━━━ $1 ━━━${NC}"; }
 
 build_services() {
     step "构建 Rust 后台服务"
-
-    # F-A14: env-daemon Rust 二进制是死代码 (IPCClient 走 /tmp/fusion-studio.sock 到中央路由
-    # daemon_server.py, 该路由自己在 Python 实现 env.*, 从不连 env-daemon socket; env.repair 上游
-    # stub "not implemented")。不再构建, 保留源码待上游 issue 跟踪后决定删除。
-    info "env-daemon (Rust) 为死代码, 跳过构建 (env.* 由中央路由 daemon_server.py 实现)"
+    info "无 Rust 后台服务需构建 (env-daemon 已删除, env.* 由中央路由 daemon_server.py 实现)"
 }
 
 # ─── 阶段 2: 构建 SwiftUI App ─────────────────────────────────
@@ -120,15 +116,6 @@ PLIST
     if [ -f "$PROJECT_DIR/FusionStudio/Resources/Entitlements.plist" ]; then
         cp "$PROJECT_DIR/FusionStudio/Resources/Entitlements.plist" "$app_dir/"
         info "✅ 复制 Entitlements"
-    fi
-
-    # F-A14: env-daemon 死代码, 不复制 (env.* 由中央路由 daemon_server.py 实现)
-
-    # 复制 Python 服务
-    local mlx_daemon="$PROJECT_DIR/Services/mlx-daemon/daemon.py"
-    if [ -f "$mlx_daemon" ]; then
-        cp "$mlx_daemon" "$app_dir/Services/"
-        info "✅ 复制 mlx-daemon"
     fi
 
     # 复制资源
@@ -326,8 +313,6 @@ main() {
         clean)
             step "清理构建产物"
             rm -rf "$BUILD_DIR" 2>/dev/null || true
-            # F-A14: env-daemon 死代码, 仅清产物
-            (cd "$PROJECT_DIR/Services/env-daemon" && cargo clean 2>/dev/null) || true
             (cd "$PROJECT_DIR" && swift package clean 2>/dev/null) || true
             info "✅ 清理完成"
             ;;

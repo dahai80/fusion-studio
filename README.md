@@ -347,8 +347,8 @@ python -c "from fusion_simulation.cli import main; main()" service start \
 ├──────────────────────────────────────────────────────────────┤
 │  🔗 Bridge Layer — Unix Domain Socket + JSON-RPC 2.0         │
 ├──────────────────────────────────────────────────────────────┤
-│  ⚙️ Service Layer — Rust/Python Daemon Processes              │
-│  env-daemon · mlx-daemon · supervisor                        │
+│  ⚙️ Service Layer — Central Router (daemon_server.py)         │
+│  env.* · hardware.metrics · memory · safety (Python)         │
 ├──────────────────────────────────────────────────────────────┤
 │  🧠 Base Layer — fusion-mlx (Apple Silicon Native)           │
 │  LLM · Image Generation · Speech · OCR · Video · Training   │
@@ -430,10 +430,7 @@ cd fusion-studio
 brew install cmake glfw glew
 pip3 install mlx pybullet psutil
 
-# 2. Build Rust services
-cd Services/env-daemon && cargo build --release && cd ../..
-
-# 3. Build SwiftUI app
+# 2. Build SwiftUI app (env.* 由中央路由 daemon_server.py 实现, 无本地 Rust 服务)
 swift build -c release
 
 # 4. Start all services
@@ -843,9 +840,7 @@ fusion-studio/
 │       ├── SecurityService.swift # Security center
 │       ├── CollaborationService.swift # LAN collaboration
 │       └── ...                   # Other services
-├── Services/                     # Background daemon processes
-│   ├── env-daemon/               # Rust — Health check + repair
-│   └── mlx-daemon/               # Python — MLX service manager
+├── Services/                     # (空 — env-daemon/mlx-daemon 已删除, env.* 由中央路由 daemon_server.py 实现)
 ├── Scripts/                      # Build & deployment scripts
 ├── Tests/                        # Unit + integration tests (60+ tests)
 ├── .github/workflows/            # CI/CD pipelines

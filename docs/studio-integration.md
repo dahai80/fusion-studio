@@ -58,7 +58,7 @@
 | **TrainingView.swift** | .training | 训练参数表单(LoRA/QLoRA选项) | CLI: `fusion-trainer sft/rlsl`, `dataset import/list/info`, SFT全参数+RLSL/DPO/ORPO |
 | **DataToolsView.swift** | .dataTools | 数据集列表+图表类型选择 | 无专属上游，应接fusion-artifacts-engine的data类型产物 |
 | **MultiModalView.swift** | .multimodal | 任务类型标签(文生图/OCR/语音) | 应调fusion-mlx的 `/v1/images/generations`, `/v1/audio/speech`, `/v1/audio/transcriptions` |
-| **OperationsView.swift** | 未路由 | CPU/内存/磁盘监控假数据 | 应接fusion-multi-node的metrics API或mlx-daemon的硬件监控 |
+| **OperationsView.swift** | 未路由 | CPU/内存/磁盘监控假数据 | 应接fusion-multi-node的metrics API或中央路由 daemon_server.py 的 hardware.metrics |
 | **IndustryScenariosView.swift** | 未路由 | 4个行业场景卡片(金融/医疗/教育/制造) | 应接fusion-finance/health/k12/science的实际能力 |
 | **LicenseView.swift** | 未路由 | 4个许可证层级(Community/Pro/Enterprise/Trial) | 无上游对应，纯本地逻辑 |
 | **InteropService.swift** | 未路由 | 设计→代码→仿真事件总线(纯本地) | 应接fusion-design的export + fusion-code的API + fusion-simulation的API |

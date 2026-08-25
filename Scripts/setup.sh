@@ -103,10 +103,6 @@ install_deps() {
 build_all() {
     info "=== 构建所有组件 ==="
 
-    # F-A14: env-daemon Rust 二进制死代码 (env.* 由中央路由 daemon_server.py 实现),
-    # 不构建, 保留源码待上游 issue 跟踪后决定删除。
-    info "env-daemon (Rust) 为死代码, 跳过构建"
-
     # 构建 Swift App
     info "构建 Fusion Studio App..."
     (cd "$PROJECT_DIR" && swift build -c release)
