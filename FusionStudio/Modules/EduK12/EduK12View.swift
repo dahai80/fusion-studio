@@ -2,7 +2,6 @@ import SwiftUI
 import os
 
 struct EduK12View: View {
-    @EnvironmentObject var appState: AppState
     @State private var selectedGrade: String = ""
     @State private var selectedCourse: CourseItem?
     @State private var navigationPath = NavigationPath()

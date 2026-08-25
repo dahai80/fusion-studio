@@ -4,7 +4,6 @@ import os.log
 private let alertLog = Logger(subsystem: "com.fusion.studio", category: "AlertCenter")
 
 struct AlertCenterView: View {
-    @EnvironmentObject var appState: AppState
     @EnvironmentObject var engine: MultiNodeEngine
     @Environment(\.studioTheme) var theme
     @StateObject private var i18n = I18nManager.shared

@@ -9,7 +9,7 @@ import os.log
 private let offlineLog = Logger(subsystem: "com.fusion.studio", category: "OfflineModeIndicator")
 
 struct OfflineModeIndicator: View {
-    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var healthState: HealthState
     @EnvironmentObject var ipc: IPCClient
     @Environment(\.studioTheme) private var theme
     @StateObject private var i18n = I18nManager.shared
@@ -100,13 +100,13 @@ struct OfflineModeIndicator: View {
             do {
                 let result = try await ipc.offlineCheck()
                 await MainActor.run {
-                    isOffline = result["offline"] as? Bool ?? !appState.isMLXRunning
+                    isOffline = result["offline"] as? Bool ?? !healthState.isMLXRunning
                     offlineReason = result["reason"] as? String
                     offlineLog.info("Offline status: \(self.isOffline)")
                 }
             } catch {
                 await MainActor.run {
-                    isOffline = !appState.isMLXRunning
+                    isOffline = !healthState.isMLXRunning
                     offlineLog.error("Offline check failed, using MLX status fallback")
                 }
             }

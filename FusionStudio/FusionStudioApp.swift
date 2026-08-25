@@ -11,7 +11,13 @@ private let appLog = Logger(subsystem: "com.fusion.studio", category: "FusionStu
 @main
 struct FusionStudioApp: App {
     @Environment(\.scenePhase) private var scenePhase
-    @StateObject private var appState = AppState()
+    // F-A5: AppState 拆 4 域子对象, 各独立 @StateObject + .environmentObject 注入。
+    // AppState 持同一子对象实例保单例一致 (init 传入), 消费方按需 @EnvironmentObject 取子对象。
+    @StateObject private var navState = NavigationState()
+    @StateObject private var uiPanelState = UIPanelState()
+    @StateObject private var healthState = HealthState()
+    @StateObject private var themeState = ThemeState()
+    @StateObject private var appState: AppState
     @StateObject private var ipcClient = IPCClient()
     @StateObject private var agentBridge = AgentBridge()
     @StateObject private var taskManager = TaskManager()
@@ -48,6 +54,16 @@ struct FusionStudioApp: App {
     @StateObject private var trainerBridge = TrainerBridge()
 
     init() {
+        // F-A5: AppState 持 4 域子对象同一实例 (init 传入), 保单例一致。
+        let nav = NavigationState()
+        let ui = UIPanelState()
+        let health = HealthState()
+        let theme = ThemeState()
+        _navState = StateObject(wrappedValue: nav)
+        _uiPanelState = StateObject(wrappedValue: ui)
+        _healthState = StateObject(wrappedValue: health)
+        _themeState = StateObject(wrappedValue: theme)
+        _appState = StateObject(wrappedValue: AppState(navState: nav, uiPanelState: ui, healthState: health, themeState: theme))
         // Dock 图标延后到 onAppear 中设置，init 阶段 NSApp 尚未就绪
     }
 
@@ -63,6 +79,10 @@ struct FusionStudioApp: App {
         WindowGroup("Fusion Studio") {
             ContentView()
                 .environmentObject(appState)
+                .environmentObject(navState)
+                .environmentObject(uiPanelState)
+                .environmentObject(healthState)
+                .environmentObject(themeState)
                 .environmentObject(ipcClient)
                 .environmentObject(agentBridge)
                 .environmentObject(taskManager)
@@ -88,7 +108,7 @@ struct FusionStudioApp: App {
                     Task { await upstreamManager.ensureCriticalRunning() }
                     // 首次启动三档模型未配置时弹出引导（复用自 fusion-mac onboarding）
                     if FusionConfig.shared.mlxModelSmall.isEmpty {
-                        appState.showWelcome = true
+                        uiPanelState.showWelcome = true
                     }
                     agentBridge.setIPCClient(ipcClient)
                     // Callers: FusionStudioApp.onAppear; Affected API: designBridge.ingestDesignTokens (RAG);
@@ -116,8 +136,8 @@ struct FusionStudioApp: App {
                     StudioMemoryMonitor.shared.start()
                 }
                 .frame(minWidth: 1100, minHeight: 700)
-                .sheet(isPresented: $appState.showWelcome) {
-                    WelcomeView(onFinish: { appState.showWelcome = false })
+                .sheet(isPresented: $uiPanelState.showWelcome) {
+                    WelcomeView(onFinish: { uiPanelState.showWelcome = false })
                         .environmentObject(mlxHTTP)
                         .environmentObject(agentBridge)
                         .environmentObject(upstreamManager)
@@ -147,12 +167,12 @@ struct FusionStudioApp: App {
         .commands {
             CommandGroup(replacing: .appInfo) {
                 Button("About Fusion Studio") {
-                    appState.showAboutPanel = true
+                    uiPanelState.showAboutPanel = true
                 }
             }
             CommandGroup(replacing: .help) {
                 Button("Fusion Studio Help") {
-                    appState.showHelp = true
+                    uiPanelState.showHelp = true
                 }
             }
             CommandGroup(after: .toolbar) {
@@ -162,14 +182,14 @@ struct FusionStudioApp: App {
                 .keyboardShortcut("h", modifiers: [.command, .shift])
                 Button("Toggle Sidebar") {
                     withAnimation(.spring(response: 0.25, dampingFraction: 0.9)) {
-                        appState.isSidebarCollapsed.toggle()
+                        uiPanelState.isSidebarCollapsed.toggle()
                     }
                 }
                 .keyboardShortcut("\\", modifiers: [.command])
 
                 Button("Toggle Inspector") {
                     withAnimation(.spring(response: 0.25, dampingFraction: 0.9)) {
-                        appState.isInspectorVisible.toggle()
+                        uiPanelState.isInspectorVisible.toggle()
                     }
                 }
                 .keyboardShortcut("i", modifiers: [.command, .shift])
@@ -177,11 +197,11 @@ struct FusionStudioApp: App {
                 Button("Next Sheet") {
                     withAnimation(.spring(response: 0.25, dampingFraction: 0.9)) {
                         let sheets = ProductSheet.allCases
-                        if let idx = sheets.firstIndex(of: appState.selectedSheet),
+                        if let idx = sheets.firstIndex(of: navState.selectedSheet),
                            idx + 1 < sheets.count {
-                            appState.selectedSheet = sheets[idx + 1]
+                            navState.selectedSheet = sheets[idx + 1]
                         } else {
-                            appState.selectedSheet = sheets[0]
+                            navState.selectedSheet = sheets[0]
                         }
                     }
                 }
@@ -190,11 +210,11 @@ struct FusionStudioApp: App {
                 Button("Previous Sheet") {
                     withAnimation(.spring(response: 0.25, dampingFraction: 0.9)) {
                         let sheets = ProductSheet.allCases
-                        if let idx = sheets.firstIndex(of: appState.selectedSheet),
+                        if let idx = sheets.firstIndex(of: navState.selectedSheet),
                            idx > 0 {
-                            appState.selectedSheet = sheets[idx - 1]
+                            navState.selectedSheet = sheets[idx - 1]
                         } else {
-                            appState.selectedSheet = sheets[sheets.count - 1]
+                            navState.selectedSheet = sheets[sheets.count - 1]
                         }
                     }
                 }
@@ -204,7 +224,7 @@ struct FusionStudioApp: App {
     }
 
     private func performStartupHealthCheck() async {
-        appState.healthStatus = .checking
+        healthState.healthStatus = .checking
         // app 复用外部 mlx(11432)：直接 HTTP 探活，无需本地 MLX 进程 IPC。
         // 重试 ~10s 覆盖启动竞态，最终必收敛到 healthy/issuesFound，不再滞留 .checking (bug3/bug8)。
         let maxAttempts = 5
@@ -219,9 +239,9 @@ struct FusionStudioApp: App {
         }
 
         await MainActor.run {
-            appState.isHealthCheckPassed = mlxOk
-            appState.isMLXRunning = mlxOk
-            appState.healthStatus = mlxOk ? .healthy : .issuesFound
+            healthState.isHealthCheckPassed = mlxOk
+            healthState.isMLXRunning = mlxOk
+            healthState.healthStatus = mlxOk ? .healthy : .issuesFound
         }
 
         if !mlxOk {

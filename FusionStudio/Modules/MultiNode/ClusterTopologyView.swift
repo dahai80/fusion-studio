@@ -4,7 +4,7 @@ import os.log
 private let topologyLog = Logger(subsystem: "com.fusion.studio", category: "ClusterTopology")
 
 struct ClusterTopologyView: View {
-    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var uiPanelState: UIPanelState
     @EnvironmentObject var engine: MultiNodeEngine
     @Environment(\.studioTheme) var theme
     @StateObject private var i18n = I18nManager.shared
@@ -156,8 +156,8 @@ struct ClusterTopologyView: View {
             }
         )
         .onTapGesture {
-            appState.inspectorContext = .node(id: node.id)
-            appState.isInspectorVisible = true
+            uiPanelState.inspectorContext = .node(id: node.id)
+            uiPanelState.isInspectorVisible = true
         }
     }
 

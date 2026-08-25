@@ -50,7 +50,7 @@ struct QuickAction: Identifiable {
 
 struct CodeMainView: View {
     @Environment(\.studioTheme) private var theme
-    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var navState: NavigationState
     @EnvironmentObject var bridge: AgentBridge
     @StateObject private var agent = CodeAgent.shared
     @StateObject private var fcBridge = FusionCodeBridge.shared
@@ -459,7 +459,7 @@ struct CodeMainView: View {
     }
 
     private func browsePlugins() {
-        appState.activeSection = .pluginEcosystem
+        navState.activeSection = .pluginEcosystem
     }
 
     private func sendMessage() {

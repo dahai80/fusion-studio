@@ -9,7 +9,7 @@ import os.log
 private let progressLog = Logger(subsystem: "com.fusion.studio", category: "TaskProgress")
 
 struct TaskProgressView: View {
-    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var uiPanelState: UIPanelState
     @EnvironmentObject var engine: MultiNodeEngine
     @Environment(\.studioTheme) var theme
     @StateObject private var i18n = I18nManager.shared
@@ -38,7 +38,7 @@ struct TaskProgressView: View {
     }
 
     private var currentTaskId: String? {
-        if case .clusterTask(let id) = appState.inspectorContext { return id }
+        if case .clusterTask(let id) = uiPanelState.inspectorContext { return id }
         return selectedTaskId.isEmpty ? nil : selectedTaskId
     }
 

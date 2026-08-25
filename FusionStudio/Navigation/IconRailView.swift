@@ -10,7 +10,8 @@ import os.log
 private let railLog = Logger(subsystem: "com.fusion.studio", category: "IconRail")
 
 struct IconRailView: View {
-    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var navState: NavigationState
+    @EnvironmentObject var uiPanelState: UIPanelState
     @Environment(\.studioTheme) private var theme
     @StateObject private var i18n = I18nManager.shared
 
@@ -70,11 +71,11 @@ struct IconRailView: View {
     private var openSidebarButton: some View {
         Button(action: {
             withAnimation(theme.springSnappy) {
-                appState.isSidebarCollapsed.toggle()
+                uiPanelState.isSidebarCollapsed.toggle()
             }
-            railLog.info("Sidebar toggled: collapsed=\(appState.isSidebarCollapsed)")
+            railLog.info("Sidebar toggled: collapsed=\(uiPanelState.isSidebarCollapsed)")
         }) {
-            Image(systemName: appState.isSidebarCollapsed ? "sidebar.left" : "sidebar.left.fill")
+            Image(systemName: uiPanelState.isSidebarCollapsed ? "sidebar.left" : "sidebar.left.fill")
                 .font(.system(size: theme.iconM))
                 .foregroundStyle(theme.textTertiary)
                 .frame(width: 52, height: 48)
@@ -86,9 +87,9 @@ struct IconRailView: View {
 
     private var newChatButton: some View {
         Button(action: {
-            appState.activeSection = .chats
-            appState.showChatsSidebar = false
-            appState.selectedSheet = .chat
+            navState.activeSection = .chats
+            uiPanelState.showChatsSidebar = false
+            navState.selectedSheet = .chat
             railLog.info("New chat started — full-screen chat view")
         }) {
             Image(systemName: "plus.circle")
@@ -102,86 +103,86 @@ struct IconRailView: View {
     }
 
     private func sectionIcon(_ section: SidebarSection) -> some View {
-        let isActive = appState.activeSection == section
+        let isActive = navState.activeSection == section
         return Button(action: {
             withAnimation(theme.springSnappy) {
-                appState.activeSection = section
+                navState.activeSection = section
                 switch section {
                 case .chats:
-                    appState.selectedModule = .chat
-                    appState.selectedSheet = .chat
-                    appState.showChatsSidebar = true
+                    navState.selectedModule = .chat
+                    navState.selectedSheet = .chat
+                    uiPanelState.showChatsSidebar = true
                 case .projects:
-                    appState.selectedModule = .fusionProjects
-                    appState.selectedSheet = .fusionProjectsSheet
+                    navState.selectedModule = .fusionProjects
+                    navState.selectedSheet = .fusionProjectsSheet
                 case .artifacts:
-                    appState.selectedModule = .artifactsRepo
-                    appState.selectedSheet = .artifactsSheet
+                    navState.selectedModule = .artifactsRepo
+                    navState.selectedSheet = .artifactsSheet
                 case .code:
-                    appState.selectedModule = .code
-                    appState.selectedSheet = .code
+                    navState.selectedModule = .code
+                    navState.selectedSheet = .code
                 case .design:
-                    appState.selectedModule = .design
-                    appState.selectedSheet = .code
-                    appState.isInspectorVisible = false
+                    navState.selectedModule = .design
+                    navState.selectedSheet = .code
+                    uiPanelState.isInspectorVisible = false
                 case .rag:
-                    appState.selectedModule = .rag
-                    appState.selectedSheet = .ragSheet
+                    navState.selectedModule = .rag
+                    navState.selectedSheet = .ragSheet
                 case .agent:
-                    appState.selectedModule = .agent
-                    appState.selectedSheet = .agentStudio
+                    navState.selectedModule = .agent
+                    navState.selectedSheet = .agentStudio
                 case .aiAgent:
-                    appState.selectedModule = .aiAgentDashboard
-                    appState.selectedSheet = .aiAgentSheet
+                    navState.selectedModule = .aiAgentDashboard
+                    navState.selectedSheet = .aiAgentSheet
                 case .cowork:
-                    appState.selectedModule = .cowork
-                    appState.selectedSheet = .coworkSheet
+                    navState.selectedModule = .cowork
+                    navState.selectedSheet = .coworkSheet
                 case .mlx:
-                    appState.selectedModule = .dashboard
-                    appState.selectedSheet = .mlx
+                    navState.selectedModule = .dashboard
+                    navState.selectedSheet = .mlx
                 // Model Hub 作为图标栏顶层独立入口，直接进 ModelHubMainView
                 case .modelHub:
-                    appState.selectedModule = .modelHub
-                    appState.selectedSheet = .mlx
+                    navState.selectedModule = .modelHub
+                    navState.selectedSheet = .mlx
                 case .multiNode:
-                    appState.selectedModule = .clusterOverview
-                    appState.selectedSheet = .multiNode
+                    navState.selectedModule = .clusterOverview
+                    navState.selectedSheet = .multiNode
                 case .fsb:
-                    appState.selectedModule = .fsb
-                    appState.selectedSheet = .fsbSheet
+                    navState.selectedModule = .fsb
+                    navState.selectedSheet = .fsbSheet
                 case .science:
-                    appState.selectedModule = .science
-                    appState.selectedSheet = .scienceSheet
+                    navState.selectedModule = .science
+                    navState.selectedSheet = .scienceSheet
                 case .finance:
-                    appState.selectedModule = .finance
-                    appState.selectedSheet = .financeSheet
+                    navState.selectedModule = .finance
+                    navState.selectedSheet = .financeSheet
                 case .health:
-                    appState.selectedModule = .health
-                    appState.selectedSheet = .healthSheet
+                    navState.selectedModule = .health
+                    navState.selectedSheet = .healthSheet
                 case .pluginEcosystem:
-                    appState.selectedModule = .pluginConfig
-                    appState.selectedSheet = .pluginEcosystemSheet
+                    navState.selectedModule = .pluginConfig
+                    navState.selectedSheet = .pluginEcosystemSheet
                 case .cliService:
-                    appState.selectedModule = .cli
-                    appState.selectedSheet = .cliServiceSheet
+                    navState.selectedModule = .cli
+                    navState.selectedSheet = .cliServiceSheet
                 case .doc:
-                    appState.selectedModule = .doc
-                    appState.selectedSheet = .docSheet
+                    navState.selectedModule = .doc
+                    navState.selectedSheet = .docSheet
                 // Callers: IconRailView rail button tap.
-                // Affected API: appState.selectedModule/.selectedSheet routing for simulation section.
+                // Affected API: navState.selectedModule/.selectedSheet routing for simulation section.
                 // Data schemas: SidebarSection.simulation -> Module.simulation -> ProductSheet.simulationSheet.
                 // User instruction: "在左侧菜单增加 fusion simulation"
                 case .simulation:
-                    appState.selectedModule = .simulation
-                    appState.selectedSheet = .simulationSheet
+                    navState.selectedModule = .simulation
+                    navState.selectedSheet = .simulationSheet
                 // Callers: IconRailView rail button tap. Affected API: selectedSheet routing for douyin section. Phase 4 GUI。
                 case .douyinOperation:
-                    appState.selectedSheet = .douyinOperationSheet
+                    navState.selectedSheet = .douyinOperationSheet
                 // Callers: IconRailView rail button tap. Affected API: selectedModule/.selectedSheet routing for trainer section.
                 // Data schemas: SidebarSection.trainer → Module.trainer → ProductSheet.trainerSheet. User instruction: "continue Task" — Task #5 (#175)
                 case .trainer:
-                    appState.selectedModule = .trainer
-                    appState.selectedSheet = .trainerSheet
+                    navState.selectedModule = .trainer
+                    navState.selectedSheet = .trainerSheet
                 }
             }
             railLog.info("Section selected: \(section.rawValue)")
@@ -252,7 +253,7 @@ struct IconRailView: View {
         let settingsItem = NSMenuItem(title: i18n.t(.settings), action: #selector(MenuActionTarget.runClosure), keyEquivalent: ",")
         settingsItem.target = target
         settingsItem.representedObject = { [self] in
-            appState.showSettings = true
+            uiPanelState.showSettings = true
             railLog.info("settings menu: open SettingsView")
         }
         menu.addItem(settingsItem)

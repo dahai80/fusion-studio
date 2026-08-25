@@ -46,11 +46,11 @@ struct SidebarRow: View {
 
 struct HealthStatusBadge: View {
     let status: AppState.HealthStatus
-    @EnvironmentObject private var appState: AppState
+    @EnvironmentObject private var uiPanelState: UIPanelState
     @Environment(\.studioTheme) private var theme
 
     var body: some View {
-        Button(action: { appState.showEnvironmentHealth = true }) {
+        Button(action: { uiPanelState.showEnvironmentHealth = true }) {
             HStack(spacing: 4) {
                 Circle()
                     .fill(color)

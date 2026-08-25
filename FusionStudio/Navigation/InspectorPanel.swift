@@ -9,7 +9,8 @@ import os.log
 private let inspectorLog = Logger(subsystem: "com.fusion.studio", category: "InspectorPanel")
 
 struct InspectorPanel: View {
-    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var navState: NavigationState
+    @EnvironmentObject var uiPanelState: UIPanelState
     @Environment(\.studioTheme) private var theme
 
     var body: some View {
@@ -34,7 +35,7 @@ struct InspectorPanel: View {
 
             Button(action: {
                 withAnimation(theme.springSnappy) {
-                    appState.isInspectorVisible = false
+                    uiPanelState.isInspectorVisible = false
                 }
             }) {
                 Image(systemName: "sidebar.right")
@@ -52,7 +53,7 @@ struct InspectorPanel: View {
     private var inspectorContent: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: theme.spacingM) {
-                switch appState.inspectorContext {
+                switch uiPanelState.inspectorContext {
                 case .none:
                     emptyInspector
                 case .agent(let id):
@@ -70,7 +71,7 @@ struct InspectorPanel: View {
                     // Affected API: InspectorPanel switch on .node context, DesignInspectorView for design section
                     // Data schemas: InspectorContext.node(id), AppState.activeSection
                     // User instruction: "按照P1~P6顺序实施所有未完成的任务" — Task #19 P2-2 选中节点→InspectorPanel联动
-                    if appState.activeSection == .design {
+                    if navState.activeSection == .design {
                         DesignInspectorView()
                     } else {
                         NodeInspectorContent(nodeId: id)
@@ -84,14 +85,14 @@ struct InspectorPanel: View {
     }
 
     private var titleForContext: String {
-        switch appState.inspectorContext {
+        switch uiPanelState.inspectorContext {
         case .none: return "Inspector"
         case .agent(let id): return "Agent"
         case .dagNode(let id): return "Node"
         case .task(let id): return "Task"
         case .settings: return "Settings"
         case .custom(let title): return title
-        case .node: return appState.activeSection == .design ? "样式检查器" : "节点"
+        case .node: return navState.activeSection == .design ? "样式检查器" : "节点"
         case .clusterTask: return "任务"
         }
     }

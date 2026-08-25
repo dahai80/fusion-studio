@@ -10,7 +10,8 @@ import os.log
 private let sidebarLog = Logger(subsystem: "com.fusion.studio", category: "FusionSidebar")
 
 struct FusionSidebarView: View {
-    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var navState: NavigationState
+    @EnvironmentObject var uiPanelState: UIPanelState
     @EnvironmentObject var douyinBridge: DouyinOperationBridge
     @Environment(\.studioTheme) private var theme
     @StateObject private var workspace = ProjectWorkspace.shared
@@ -80,7 +81,7 @@ struct FusionSidebarView: View {
             Rectangle().fill(theme.separator).frame(height: 1)
             bottomBar
         }
-        .frame(width: appState.sidebarWidth)
+        .frame(width: uiPanelState.sidebarWidth)
         .background(.ultraThinMaterial)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("Sidebar")
@@ -100,7 +101,7 @@ struct FusionSidebarView: View {
 
             Button(action: {
                 withAnimation(theme.springSnappy) {
-                    appState.isSidebarCollapsed = true
+                    uiPanelState.isSidebarCollapsed = true
                 }
             }) {
                 Image(systemName: "sidebar.left")
@@ -119,9 +120,9 @@ struct FusionSidebarView: View {
     private var newChatButton: some View {
         Button(action: {
             agent.clearConversation()
-            appState.activeSection = .code
-            appState.selectedModule = .code
-            appState.selectedSheet = .code
+            navState.activeSection = .code
+            navState.selectedModule = .code
+            navState.selectedSheet = .code
             sidebarLog.info("New chat started")
         }) {
             HStack(spacing: theme.spacingS) {
@@ -261,7 +262,7 @@ struct FusionSidebarView: View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
             Button(action: {
                 withAnimation(theme.springSnappy) {
-                    appState.activeSection = .douyinOperation
+                    navState.activeSection = .douyinOperation
                 }
                 sidebarLog.info("Open douyin operation dashboard")
             }) {
@@ -307,9 +308,9 @@ struct FusionSidebarView: View {
 
     private func chatRow(_ msg: CodeAgent.CodeMessage) -> some View {
         Button(action: {
-            appState.activeSection = .chats
-            appState.selectedModule = .code
-            appState.selectedSheet = .code
+            navState.activeSection = .chats
+            navState.selectedModule = .code
+            navState.selectedSheet = .code
         }) {
             HStack(spacing: theme.spacingS) {
                 Image(systemName: "message")
@@ -339,7 +340,7 @@ struct FusionSidebarView: View {
         VStack(spacing: 0) {
             Button(action: {
                 withAnimation(theme.springSnappy) {
-                    appState.selectedModule = .fusionProjects
+                    navState.selectedModule = .fusionProjects
                 }
             }) {
                 HStack(spacing: theme.spacingS) {
@@ -428,7 +429,7 @@ struct FusionSidebarView: View {
             }
 
             Button(action: {
-                appState.activeSection = .artifacts
+                navState.activeSection = .artifacts
                 sidebarLog.info("Navigated to artifacts panel")
             }) {
                 HStack(spacing: theme.spacingXS) {
@@ -447,7 +448,7 @@ struct FusionSidebarView: View {
 
     private func sidebarArtifactRow(_ artifact: ArtifactModel) -> some View {
         Button(action: {
-            appState.activeSection = .artifacts
+            navState.activeSection = .artifacts
             sidebarLog.info("Selected artifact: \(artifact.name)")
         }) {
             HStack(spacing: theme.spacingS) {
@@ -538,7 +539,7 @@ struct FusionSidebarView: View {
         VStack(spacing: 0) {
             Button(action: {
                 withAnimation(theme.springSnappy) {
-                    appState.selectedModule = .cowork
+                    navState.selectedModule = .cowork
                 }
             }) {
                 HStack(spacing: theme.spacingS) {
@@ -558,11 +559,11 @@ struct FusionSidebarView: View {
     }
 
     private func moduleRow(_ module: Module) -> some View {
-        let isActive = appState.selectedModule == module
+        let isActive = navState.selectedModule == module
         return Button(action: {
             withAnimation(theme.springSnappy) {
-                appState.selectedModule = module
-                appState.selectedSheet = module.sheet
+                navState.selectedModule = module
+                navState.selectedSheet = module.sheet
             }
             sidebarLog.info("Selected module: \(module.rawValue)")
         }) {
@@ -702,7 +703,7 @@ struct FusionSidebarView: View {
         VStack(spacing: 0) {
             Button(action: {
                 withAnimation(theme.springSnappy) {
-                    appState.selectedModule = .fsb
+                    navState.selectedModule = .fsb
                 }
             }) {
                 HStack(spacing: theme.spacingS) {

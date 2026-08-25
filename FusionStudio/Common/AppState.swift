@@ -4,27 +4,23 @@ import os.log
 private let appStateLog = Logger(subsystem: "com.fusion.studio", category: "AppState")
 
 class AppState: ObservableObject {
-    @Published var selectedModule: Module = .chat
-    @Published var selectedSheet: ProductSheet = .chat
-    @Published var activeSection: SidebarSection = .chats
-    @Published var showAboutPanel = false
-    @Published var showHelp = false
-    @Published var showWelcome = false
-    @Published var showSettings = false
-    @Published var showEnvironmentHealth = false
-    @Published var isHealthCheckPassed = false
-    @Published var isMLXRunning = false
-    @Published var healthStatus: HealthStatus = .checking
-    @Published var isInspectorVisible: Bool = false
-    @Published var inspectorContext: InspectorContext = .none
-    // Callers: IconRailView (+ sets false, Chats sets true), SectionContentView (switches layout).
-    // Affected API: showChatsSidebar — controls whether chats section shows sidebar history list.
-    // Data schemas: Bool flag. User instruction: "点击+号打开主对话框，Chats按钮右侧显示历史+对话两列"
-    @Published var isSidebarCollapsed: Bool = true
-    @Published var sidebarWidth: CGFloat = 260
-    @Published var showChatsSidebar: Bool = false
-    @Published var isDarkMode: Bool = UserDefaults.standard.object(forKey: "fusionStudio.isDarkMode") as? Bool ?? true {
-        didSet { UserDefaults.standard.set(isDarkMode, forKey: "fusionStudio.isDarkMode") }
+    // F-A5: 原 17 @Published 拆 4 独立 ObservableObject (AppStateDomains.swift)。状态移出本类,
+    // 本类仅持子对象引用 (注入时由 FusionStudioApp 传入同一实例, 保单例一致)。
+    // 消费方应直接 @EnvironmentObject 取用子对象 (navState/uiPanelState/healthState/themeState)。
+    let navState: NavigationState
+    let uiPanelState: UIPanelState
+    let healthState: HealthState
+    let themeState: ThemeState
+
+    init(navState: NavigationState = NavigationState(),
+         uiPanelState: UIPanelState = UIPanelState(),
+         healthState: HealthState = HealthState(),
+         themeState: ThemeState = ThemeState()) {
+        self.navState = navState
+        self.uiPanelState = uiPanelState
+        self.healthState = healthState
+        self.themeState = themeState
+        appStateLog.info("AppState composed of 4 domain sub-objects (F-A5)")
     }
 
     enum HealthStatus {

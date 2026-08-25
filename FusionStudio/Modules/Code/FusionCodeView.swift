@@ -131,7 +131,6 @@ nonisolated(unsafe) private var fcLastStreamFlush: DispatchTime = .now()
 
 struct FusionCodeView: View {
     @Environment(\.studioTheme) private var theme
-    @EnvironmentObject var appState: AppState
     @EnvironmentObject var bridge: AgentBridge
     @StateObject private var fcBridge = FusionCodeBridge.shared
     @StateObject private var workspace = ProjectWorkspace.shared

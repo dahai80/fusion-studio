@@ -332,7 +332,7 @@ struct DesignInspectorView: View {
     @StateObject private var state = DesignInspectorState.shared
     @StateObject private var i18n = I18nManager.shared
     @Environment(\.studioTheme) var theme
-    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var uiPanelState: UIPanelState
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -362,8 +362,8 @@ struct DesignInspectorView: View {
             queue: .main
         ) { notification in
             if let nodeID = notification.userInfo?["node_id"] as? String {
-                appState.inspectorContext = .node(id: nodeID)
-                appState.isInspectorVisible = true
+                uiPanelState.inspectorContext = .node(id: nodeID)
+                uiPanelState.isInspectorVisible = true
                 state.selectedElement = nodeID
                 logger.info("DesignInspectorView: show node=\(nodeID), selectedElement set")
             }
@@ -373,8 +373,8 @@ struct DesignInspectorView: View {
             object: nil,
             queue: .main
         ) { _ in
-            appState.inspectorContext = .none
-            appState.isInspectorVisible = false
+            uiPanelState.inspectorContext = .none
+            uiPanelState.isInspectorVisible = false
             state.selectedElement = nil
             logger.info("DesignInspectorView: hide, selectedElement cleared")
         }
