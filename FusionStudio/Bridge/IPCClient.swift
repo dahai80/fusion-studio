@@ -8,6 +8,15 @@ let ipcLog = Logger(subsystem: "com.fusion.studio", category: "IPCClient")
 class IPCClient: ObservableObject {
     @Published var isConnected = false
     @Published var lastError: String?
+    // F-A16: RPC schema 协商。connect 后调 rpc.discover 缓存上游 method 集,
+    // 检查关键方法存在性, schema 漂移时 error 日志 + 标志暴露, 防 B7 静默崩。
+    // nil=未知(未discover/discover失败/旧上游无此方法), true=关键方法齐, false=缺关键方法。
+    @Published var schemaCompatible: Bool? = nil
+    @Published var availableMethods: [String] = []
+    // 客户端依赖的关键方法子集 — 任一缺失即 schemaCompatible=false (schema 漂移)。
+    private let criticalMethods: Set<String> = [
+        "ping", "agent.execute", "task.submit", "env.health_check", "mlx.status"
+    ]
 
     private let socketPath: String
     private var requestId: Int = 0
@@ -86,6 +95,8 @@ class IPCClient: ObservableObject {
             self?.reconnectTimer = nil
         }
         startReading()
+        // F-A16: 连接建立后异步协商 schema, 不阻塞连接 (旧上游无 rpc.discover 时容错降级)。
+        Task { [weak self] in await self?.discoverSchema() }
     }
 
     func disconnect() {
@@ -97,6 +108,9 @@ class IPCClient: ObservableObject {
             }
             DispatchQueue.main.async {
                 self.isConnected = false
+                // F-A16: 断连清 schema 状态, 重连后重新 discover。
+                self.schemaCompatible = nil
+                self.availableMethods = []
             }
         }
     }
@@ -422,12 +436,51 @@ class IPCClient: ObservableObject {
         return result["pong"] as? Bool ?? false
     }
 
+    // F-A16: 调 rpc.discover 缓存上游 method 集 + 关键方法存在性检查。
+    // 失败/旧上游无此方法 → schemaCompatible=nil (乐观降级, 不阻断连接), 仅 warning 日志。
+    // 成功: 缺关键方法 → schemaCompatible=false + error 日志列缺失方法 (schema 漂移预警)。
+    private func discoverSchema() async {
+        do {
+            let result = try await call(method: "rpc.discover")
+            let methods = (result["methods"] as? [String]) ?? []
+            await MainActor.run {
+                self.availableMethods = methods
+                let methodSet = Set(methods)
+                let missing = criticalMethods.subtracting(methodSet)
+                if methods.isEmpty {
+                    self.schemaCompatible = nil
+                    ipcLog.warning("F-A16 discover: empty method list, schema unknown")
+                } else if missing.isEmpty {
+                    self.schemaCompatible = true
+                    ipcLog.info("F-A16 discover: schema OK, \(methods.count) methods available")
+                } else {
+                    self.schemaCompatible = false
+                    ipcLog.error("F-A16 discover: SCHEMA DRIFT — missing critical methods: \(missing.sorted().joined(separator: ", ")) — upstream RPC 不兼容, 调用这些方法将失败")
+                }
+            }
+        } catch {
+            await MainActor.run {
+                self.schemaCompatible = nil
+                ipcLog.warning("F-A16 discover: rpc.discover failed (\(error.localizedDescription)), schema unknown (旧上游?)")
+            }
+        }
+    }
+
+    // F-A16: 调用前可选守卫 — 已 discover 则查存在性, 未 discover 乐观放行 (兼容旧上游)。
+    func responds(to method: String) -> Bool {
+        if availableMethods.isEmpty { return true }
+        return availableMethods.contains(method)
+    }
+
     // MARK: - 辅助方法
 
     private func setError(_ msg: String) {
         DispatchQueue.main.async { [weak self] in
             self?.lastError = msg
             self?.isConnected = false
+            // F-A16: 断连清 schema 状态, 重连后重新 discover。
+            self?.schemaCompatible = nil
+            self?.availableMethods = []
         }
     }
 
