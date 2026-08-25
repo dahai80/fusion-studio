@@ -1,4 +1,4 @@
-// Callers: Legacy sidebar — enums moved to AppState.swift, SidebarView replaced by IconRailView + ModuleSidebarView.
+// Callers: Legacy sidebar — enums moved to AppState.swift, SidebarView replaced by IconRailView + FusionSidebarView.
 // Affected API: SheetHeader, SidebarRow, HealthStatusBadge (kept as reusable components).
 // Data schemas: ProductSheet/Module now in AppState.swift.
 // User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"

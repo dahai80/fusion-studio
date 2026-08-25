@@ -97,51 +97,6 @@ enum ProductSheet: String, CaseIterable, Identifiable {
         case .trainerSheet: "graduationcap.fill"
         }
     }
-
-    var modules: [Module] {
-        switch self {
-        case .mlx:
-            return [.dashboard, .modelHub, .training, .tuning, .bench]
-        case .code:
-            return [.code, .design, .doc, .docgen, .cli, .deploy]
-        case .agentStudio:
-            return [.agent, .plugin, .security, .dataTools, .rag, .memory, .planner]
-        case .multiNode:
-            return [.clusterOverview, .clusterTopology, .clusterSync, .taskMonitor, .alertCenter, .nodeActions, .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb, .multimodal, .analytics, .collab, .external, .operations]
-        case .chat:
-            return [.chat]
-        case .fusionProjectsSheet:
-            return [.fusionProjects]
-        case .coworkSheet:
-            return [.cowork]
-        case .artifactsSheet:
-            return [.artifactsRepo]
-        case .fsbSheet:
-            return [.fsb]
-        case .aiAgentSheet:
-            return [.aiAgentDashboard, .aiAgentList, .aiAgentChat, .aiAgentObserver, .aiAgentKnowledgeBase]
-        case .ragSheet:
-            return [.rag]
-        case .scienceSheet:
-            return [.science]
-        case .financeSheet:
-            return [.finance]
-        case .healthSheet:
-            return [.health]
-        case .pluginEcosystemSheet:
-            return [.pluginConfig, .pluginStatus, .pluginToken, .pluginVram, .pluginLog, .pluginMcp]
-        case .cliServiceSheet:
-            return [.cli]
-        case .docSheet:
-            return [.doc]
-        case .simulationSheet:
-            return [.simulation]
-        case .douyinOperationSheet:
-            return []
-        case .trainerSheet:
-            return [.trainer]
-        }
-    }
 }
 
 enum Module: String, CaseIterable, Identifiable {
@@ -366,17 +321,15 @@ enum Module: String, CaseIterable, Identifiable {
             return .docSheet
         case .agent, .plugin, .security, .dataTools:
             return .agentStudio
-        case .multimodal, .analytics, .collab, .external, .desk,
+        case .multimodal, .analytics, .collab, .external,
              .clusterOverview, .clusterTopology, .clusterSync, .taskMonitor, .alertCenter, .nodeActions,
              .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb,
-             .operations:
+             .operations, .deploy:
             return .multiNode
         case .rag:
             return .ragSheet
-        case .memory, .planner, .verification, .tokenBudget, .safety, .tools, .agentDashboard, .teamCollab:
+        case .memory, .planner, .verification, .tokenBudget, .safety, .tools, .agentDashboard, .teamCollab, .desk:
             return .agentStudio
-        case .deploy:
-            return .code
         case .eduK12:
             return .mlx
         case .fusionProjects:
