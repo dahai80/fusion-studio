@@ -4,7 +4,7 @@ import os.log
 private let taskLog = Logger(subsystem: "com.fusion.studio", category: "TaskMonitor")
 
 struct TaskMonitorView: View {
-    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var uiPanelState: UIPanelState
     @EnvironmentObject var engine: MultiNodeEngine
     @Environment(\.studioTheme) var theme
     @StateObject private var i18n = I18nManager.shared
@@ -169,8 +169,8 @@ struct TaskMonitorView: View {
 
             ForEach(filteredTasks) { task in
                 TaskRow(task: task, isSelected: selectedTaskId == task.id) {
-                    appState.inspectorContext = .clusterTask(id: task.id)
-                    appState.isInspectorVisible = true
+                    uiPanelState.inspectorContext = .clusterTask(id: task.id)
+                    uiPanelState.isInspectorVisible = true
                 }
                 .contextMenu {
                     if task.status == .running {
@@ -215,7 +215,7 @@ struct TaskMonitorView: View {
     }
 
     private var selectedTaskId: String? {
-        if case .clusterTask(let id) = appState.inspectorContext { return id }
+        if case .clusterTask(let id) = uiPanelState.inspectorContext { return id }
         return nil
     }
 

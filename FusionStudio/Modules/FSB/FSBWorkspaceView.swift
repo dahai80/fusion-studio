@@ -5,7 +5,6 @@ private let fsbLog = Logger(subsystem: "com.fusion.studio", category: "FSB")
 
 struct FSBWorkspaceView: View {
     @EnvironmentObject var ipc: IPCClient
-    @EnvironmentObject var appState: AppState
     @Environment(\.studioTheme) private var theme
     @StateObject private var i18n = I18nManager.shared
 

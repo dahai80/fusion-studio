@@ -10,12 +10,13 @@ import os.log
 private let contentViewLog = Logger(subsystem: "com.fusion.studio", category: "ContentView")
 
 struct ContentView: View {
-    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var themeState: ThemeState
+    @EnvironmentObject var uiPanelState: UIPanelState
     @EnvironmentObject var ipcClient: IPCClient
     @EnvironmentObject var taskManager: TaskManager
 
     var body: some View {
-        let theme = appState.isDarkMode ? StudioTheme.dark : StudioTheme.light
+        let theme = themeState.isDarkMode ? StudioTheme.dark : StudioTheme.light
 
         HStack(spacing: 0) {
             IconRailView()
@@ -24,7 +25,7 @@ struct ContentView: View {
                 .fill(theme.separator)
                 .frame(width: 1)
 
-            if !appState.isSidebarCollapsed {
+            if !uiPanelState.isSidebarCollapsed {
                 FusionSidebarView()
 
                 Rectangle()
@@ -34,7 +35,7 @@ struct ContentView: View {
 
             WorkspaceArea(theme: theme)
 
-            if appState.isInspectorVisible {
+            if uiPanelState.isInspectorVisible {
                 Rectangle()
                     .fill(theme.separator)
                     .frame(width: 1)
@@ -46,21 +47,21 @@ struct ContentView: View {
         .frame(minWidth: 1100, minHeight: 700)
         .background(theme.windowBg)
         .environment(\.studioTheme, theme)
-        .preferredColorScheme(appState.isDarkMode ? .dark : .light)
-        .sheet(isPresented: $appState.showSettings) {
+        .preferredColorScheme(themeState.isDarkMode ? .dark : .light)
+        .sheet(isPresented: $uiPanelState.showSettings) {
             SettingsView()
         }
-        .sheet(isPresented: $appState.showAboutPanel) {
+        .sheet(isPresented: $uiPanelState.showAboutPanel) {
             AboutView()
         }
-        .sheet(isPresented: $appState.showEnvironmentHealth) {
+        .sheet(isPresented: $uiPanelState.showEnvironmentHealth) {
             EnvironmentHealthSheet()
         }
         .onAppear {
-            applyNativeAppearance(appState.isDarkMode)
-            contentViewLog.info("ContentView appeared - 3-column layout, darkMode=\(appState.isDarkMode)")
+            applyNativeAppearance(themeState.isDarkMode)
+            contentViewLog.info("ContentView appeared - 3-column layout, darkMode=\(themeState.isDarkMode)")
         }
-        .onChange(of: appState.isDarkMode) { _, newValue in
+        .onChange(of: themeState.isDarkMode) { _, newValue in
             applyNativeAppearance(newValue)
         }
     }
@@ -73,7 +74,10 @@ struct ContentView: View {
 
 struct WorkspaceArea: View {
     let theme: StudioTheme
-    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var navState: NavigationState
+    @EnvironmentObject var uiPanelState: UIPanelState
+    @EnvironmentObject var themeState: ThemeState
+    @EnvironmentObject var healthState: HealthState
     @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
@@ -88,12 +92,12 @@ struct WorkspaceArea: View {
 
     private var workspaceToolbar: some View {
         HStack(spacing: theme.spacingM) {
-            Text(appState.activeSection.rawValue)
+            Text(navState.activeSection.rawValue)
                 .font(.system(size: theme.titleSize, weight: .semibold))
                 .foregroundStyle(theme.text)
 
-            if appState.activeSection != .code && appState.activeSection != .design {
-                Text(appState.selectedSheet.rawValue)
+            if navState.activeSection != .code && navState.activeSection != .design {
+                Text(navState.selectedSheet.rawValue)
                     .font(.system(size: theme.footnoteSize))
                     .foregroundStyle(theme.textTertiary)
                     .padding(.horizontal, theme.spacingXS)
@@ -108,31 +112,31 @@ struct WorkspaceArea: View {
 
             Button(action: {
                 withAnimation(theme.springSnappy) {
-                    appState.isDarkMode.toggle()
+                    themeState.isDarkMode.toggle()
                 }
             }) {
-                Image(systemName: appState.isDarkMode ? "sun.max" : "moon")
+                Image(systemName: themeState.isDarkMode ? "sun.max" : "moon")
                     .font(.system(size: theme.iconM))
                     .foregroundStyle(theme.textTertiary)
             }
             .buttonStyle(.plain)
-            .help(appState.isDarkMode ? i18n.t(.toggleLightMode) : i18n.t(.toggleDarkMode))
+            .help(themeState.isDarkMode ? i18n.t(.toggleLightMode) : i18n.t(.toggleDarkMode))
 
             Button(action: {
                 withAnimation(theme.springSnappy) {
-                    appState.isInspectorVisible.toggle()
+                    uiPanelState.isInspectorVisible.toggle()
                 }
             }) {
                 Image(systemName: "sidebar.right")
                     .font(.system(size: theme.iconM))
-                    .foregroundStyle(appState.isInspectorVisible ? theme.accent : theme.textTertiary)
+                    .foregroundStyle(uiPanelState.isInspectorVisible ? theme.accent : theme.textTertiary)
             }
             .buttonStyle(.plain)
             .help(i18n.t(.toggleInspector))
 
 // Replacing MLX bolt button with OfflineModeIndicator for #52
 // Affected API: OfflineModeIndicator (wraps offline check + MLX status)
-            HealthStatusBadge(status: appState.healthStatus)
+            HealthStatusBadge(status: healthState.healthStatus)
 
             OfflineModeIndicator()
         }
@@ -143,13 +147,14 @@ struct WorkspaceArea: View {
 }
 
 struct SectionContentView: View {
-    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var navState: NavigationState
+    @EnvironmentObject var uiPanelState: UIPanelState
 
     var body: some View {
         Group {
-            switch appState.activeSection {
+            switch navState.activeSection {
             case .chats:
-                if appState.showChatsSidebar {
+                if uiPanelState.showChatsSidebar {
                     ChatsPanel()
                 } else {
                     UnifiedChatView()
@@ -193,17 +198,17 @@ struct SectionContentView: View {
                 CliServiceView()
             case .doc:
                 DocView()
-            // Callers: SectionContentView switch on appState.activeSection.
+            // Callers: SectionContentView switch on navState.activeSection.
             // Affected API: renders SimulationWorkbenchView for .simulation section.
             // Data schemas: SidebarSection.simulation. User instruction: "在左侧菜单增加 fusion simulation"
             case .simulation:
                 SimulationWorkbenchView()
-            // Callers: SectionContentView switch on appState.activeSection.
+            // Callers: SectionContentView switch on navState.activeSection.
             // Affected API: renders DouyinOperationView for .douyinOperation section (Phase 4 GUI)。
             // Data schemas: SidebarSection.douyinOperation. User instruction: ~/operation/reconstruct-operation.md Phase 4。
             case .douyinOperation:
                 DouyinOperationView()
-            // Callers: ContentView switch on appState.activeSection.
+            // Callers: ContentView switch on navState.activeSection.
             // Affected API: renders TrainerView for .trainer section (RunManager GUI via trainer.* IPC).
             // Data schemas: SidebarSection.trainer → Module.trainer. User instruction: "continue Task" — Task #5 (#175)
             case .trainer:

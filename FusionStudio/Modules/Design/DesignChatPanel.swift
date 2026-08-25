@@ -12,7 +12,7 @@ private let chatPanelLog = Logger(subsystem: "com.fusion.studio", category: "Des
 struct DesignChatPanel: View {
     @Environment(\.studioTheme) private var theme
     @EnvironmentObject var designBridge: DesignBridge
-    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var healthState: HealthState
     @EnvironmentObject var agentBridge: AgentBridge
 
     @State private var inputText: String = ""
@@ -94,11 +94,11 @@ struct DesignChatPanel: View {
         }
         .onAppear {
             // 进入 Design 时复核 MLX 状态：启动竞态可能让 isMLXRunning 滞留 false (bug2)。
-            if !appState.isMLXRunning {
+            if !healthState.isMLXRunning {
                 Task {
                     let ok = await agentBridge.probeMLXRunningStatus()
                     await MainActor.run {
-                        appState.isMLXRunning = ok
+                        healthState.isMLXRunning = ok
                     }
                 }
             }
@@ -724,18 +724,18 @@ struct DesignChatPanel: View {
 
     private func sendChat(explicitMessage: String? = nil) {
         let message = explicitMessage ?? inputText
-        DesignPreviewTrace.log("sendChat: called explicitNil=\(explicitMessage == nil) msgLen=\(message.count) isGenerating=\(designBridge.isGenerating) isMLXRunning=\(appState.isMLXRunning)")
+        DesignPreviewTrace.log("sendChat: called explicitNil=\(explicitMessage == nil) msgLen=\(message.count) isGenerating=\(designBridge.isGenerating) isMLXRunning=\(healthState.isMLXRunning)")
         guard !message.isEmpty || designBridge.isGenerating else { return }
         if designBridge.isGenerating {
             chatPanelLog.info("DesignChatPanel: stop requested (not supported in current streaming)")
             return
         }
 
-        if !appState.isMLXRunning {
+        if !healthState.isMLXRunning {
             Task {
                 let ok = await agentBridge.probeMLXRunningStatus()
-                await MainActor.run { appState.isMLXRunning = ok }
-                DesignPreviewTrace.log("sendChat: live probe isMLXRunning=\(appState.isMLXRunning)")
+                await MainActor.run { healthState.isMLXRunning = ok }
+                DesignPreviewTrace.log("sendChat: live probe isMLXRunning=\(healthState.isMLXRunning)")
                 if ok {
                     await MainActor.run { proceedToSend(message: message) }
                 } else {

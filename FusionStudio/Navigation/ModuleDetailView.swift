@@ -1,11 +1,11 @@
 import SwiftUI
 
 struct ModuleDetailView: View {
-    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var navState: NavigationState
 
     var body: some View {
         Group {
-            switch appState.selectedModule {
+            switch navState.selectedModule {
             case .dashboard:
                 DashboardView()
             case .design:

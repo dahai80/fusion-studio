@@ -65,7 +65,7 @@ struct SettingsView: View {
 // MARK: - 各设置子页面
 
 struct GeneralSettingsView: View {
-    @EnvironmentObject private var appState: AppState
+    @EnvironmentObject private var uiPanelState: UIPanelState
     @StateObject private var i18n = I18nManager.shared
     @AppStorage("launchAtLogin") private var launchAtLogin = false
     @AppStorage("autoStartMLX") private var autoStartMLX = true
@@ -79,7 +79,7 @@ struct GeneralSettingsView: View {
                 Toggle(i18n.t(.launchAtLogin), isOn: $launchAtLogin)
                 Toggle(i18n.t(.autoStartMLX), isOn: $autoStartMLX)
                 Button(i18n.t(.reselectMainModel)) {
-                    appState.showWelcome = true
+                    uiPanelState.showWelcome = true
                 }
             }
             Section(i18n.t(.sec_window)) {

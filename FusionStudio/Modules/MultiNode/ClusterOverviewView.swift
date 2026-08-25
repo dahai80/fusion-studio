@@ -4,7 +4,7 @@ import os.log
 private let overviewLog = Logger(subsystem: "com.fusion.studio", category: "ClusterOverview")
 
 struct ClusterOverviewView: View {
-    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var uiPanelState: UIPanelState
     @EnvironmentObject var engine: MultiNodeEngine
     @Environment(\.studioTheme) var theme
     @StateObject private var i18n = I18nManager.shared
@@ -62,10 +62,10 @@ struct ClusterOverviewView: View {
     private var actionBar: some View {
         HStack(spacing: theme.spacingM) {
             FusionButton(i18n.t(.mn_overview_submitTaskBtn), style: .primary, size: .small) {
-                appState.inspectorContext = .custom(title: "Submit Task")
+                uiPanelState.inspectorContext = .custom(title: "Submit Task")
             }
             FusionButton("Autoscaler", style: .secondary, size: .small) {
-                appState.inspectorContext = .custom(title: "Autoscaler Config")
+                uiPanelState.inspectorContext = .custom(title: "Autoscaler Config")
             }
             Spacer()
             HStack(spacing: theme.spacingS) {
@@ -99,8 +99,8 @@ struct ClusterOverviewView: View {
             StudioSectionHeader(title: String(format: i18n.t(.mn_overview_nodeListFmt), filteredNodes.count))
             ForEach(filteredNodes) { node in
                 NodeRow(node: node, nodeLoad: engine.nodeLoads[node.id], isSelected: selectedNodeId == node.id) {
-                    appState.inspectorContext = .node(id: node.id)
-                    appState.isInspectorVisible = true
+                    uiPanelState.inspectorContext = .node(id: node.id)
+                    uiPanelState.isInspectorVisible = true
                 }
                 .contextMenu {
                     Button(i18n.t(.mn_overview_viewMetrics)) { engine.fetchNodeMetrics(nodeId: node.id) }
@@ -118,7 +118,7 @@ struct ClusterOverviewView: View {
     }
 
     private var selectedNodeId: String? {
-        if case .node(let id) = appState.inspectorContext { return id }
+        if case .node(let id) = uiPanelState.inspectorContext { return id }
         return nil
     }
 

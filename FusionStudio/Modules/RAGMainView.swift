@@ -46,7 +46,6 @@ enum RAGSection: String, CaseIterable, Identifiable {
 }
 
 struct RAGMainView: View {
-    @EnvironmentObject var appState: AppState
     @Environment(\.studioTheme) private var theme
     @StateObject private var client = RAGAPIClient.shared
     @StateObject private var i18n = I18nManager.shared

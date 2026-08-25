@@ -57,7 +57,6 @@ enum ModelHubSection: String, CaseIterable, Identifiable {
 }
 
 struct ModelHubMainView: View {
-    @EnvironmentObject var appState: AppState
     @Environment(\.studioTheme) private var theme
     @StateObject private var i18n = I18nManager.shared
     @StateObject private var client = ModelHubAPIClient.shared

@@ -50,7 +50,6 @@ enum TeamCollabArea: String, CaseIterable, Identifiable {
 }
 
 struct TeamCollabView: View {
-    @EnvironmentObject var appState: AppState
     @Environment(\.studioTheme) private var theme
     @StateObject private var store = TeamCollabStore()
     @State private var area: TeamCollabArea = .overview

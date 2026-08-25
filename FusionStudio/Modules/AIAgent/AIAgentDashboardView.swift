@@ -6,7 +6,7 @@ private let dashLog = Logger(subsystem: "com.fusion.studio", category: "AIAgent.
 struct AIAgentDashboardView: View {
     @EnvironmentObject var ipc: IPCClient
     @EnvironmentObject var bridge: AgentBridge
-    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var navState: NavigationState
     @Environment(\.studioTheme) private var theme
     @StateObject private var i18n = I18nManager.shared
 
@@ -94,13 +94,13 @@ struct AIAgentDashboardView: View {
                     title: i18n.t(.ai_dash_qaKb),
                     icon: "books.vertical.fill",
                     color: theme.auxiliary
-                ) { appState.selectedModule = .aiAgentList }
+                ) { navState.selectedModule = .aiAgentList }
 
                 QuickActionCard(
                     title: i18n.t(.ai_dash_qaConnector),
                     icon: "link.circle.fill",
                     color: theme.accentSecondary
-                ) { appState.selectedModule = .aiAgentObserver }
+                ) { navState.selectedModule = .aiAgentObserver }
 
                 QuickActionCard(
                     title: i18n.t(.ai_dash_qaApiDoc),
@@ -119,7 +119,7 @@ struct AIAgentDashboardView: View {
                     .foregroundStyle(theme.textSecondary)
                 Spacer()
                 Button(i18n.t(.ai_dash_recentViewAll)) {
-                    appState.selectedModule = .aiAgentList
+                    navState.selectedModule = .aiAgentList
                 }
                 .font(.system(size: theme.captionSize))
                 .foregroundStyle(theme.accent)

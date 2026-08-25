@@ -6,7 +6,7 @@ private let envSheetLog = Logger(subsystem: "com.fusion.studio", category: "EnvH
 // 环境健康检查弹窗：纯 HTTP/UDS 探活，覆盖所有 Fusion 子系统，无需本地守护进程。
 // 由右上角 HealthStatusBadge 点击弹出。
 struct EnvironmentHealthSheet: View {
-    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var healthState: HealthState
     @EnvironmentObject var upstream: UpstreamServiceManager
     @Environment(\.studioTheme) private var theme
     @Environment(\.dismiss) private var dismiss
@@ -174,7 +174,7 @@ struct EnvironmentHealthSheet: View {
     private func runCheckAsync() async {
         await MainActor.run {
             isChecking = true
-            appState.healthStatus = .checking
+            healthState.healthStatus = .checking
             results = subsystems.map { def in
                 HealthCheckItem(id: def.id, label: def.label, icon: def.icon, status: .checking, detail: nil)
             }
@@ -191,8 +191,8 @@ struct EnvironmentHealthSheet: View {
             self.results = checked
             self.isChecking = false
             let hasIssues = checked.contains { $0.status == .failed }
-            appState.healthStatus = hasIssues ? .issuesFound : .healthy
-            appState.isHealthCheckPassed = !hasIssues
+            healthState.healthStatus = hasIssues ? .issuesFound : .healthy
+            healthState.isHealthCheckPassed = !hasIssues
             envSheetLog.info("runCheck: done, issues=\(hasIssues)")
         }
     }

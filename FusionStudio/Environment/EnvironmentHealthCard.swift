@@ -2,7 +2,7 @@ import SwiftUI
 
 /// 环境健康检查卡片（控制台首页）
 struct EnvironmentHealthCard: View {
-    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var healthState: HealthState
     @EnvironmentObject var bridge: AgentBridge
     @State private var checkResults: [HealthCheckItem] = []
     @State private var isChecking = false
@@ -98,7 +98,7 @@ struct EnvironmentHealthCard: View {
     private func runHealthCheck() {
         isChecking = true
         checkResults = []
-        appState.healthStatus = .checking
+        healthState.healthStatus = .checking
 
         Task {
             var results: [HealthCheckItem] = []
@@ -126,7 +126,7 @@ struct EnvironmentHealthCard: View {
 
                 let mlxOk = checkDicts["mlx_api"]?["ok"] as? Bool ?? false
                 await MainActor.run {
-                    appState.isMLXRunning = mlxOk
+                    healthState.isMLXRunning = mlxOk
                 }
             } catch {
                 for def in checks {
@@ -144,8 +144,8 @@ struct EnvironmentHealthCard: View {
                 checkResults = results
                 isChecking = false
                 let hasIssues = results.contains { $0.status == .failed }
-                appState.healthStatus = hasIssues ? .issuesFound : .healthy
-                appState.isHealthCheckPassed = !hasIssues
+                healthState.healthStatus = hasIssues ? .issuesFound : .healthy
+                healthState.isHealthCheckPassed = !hasIssues
             }
         }
     }
@@ -155,13 +155,13 @@ struct EnvironmentHealthCard: View {
     }
 
     private func repairItem(_ item: HealthCheckItem) {
-        appState.healthStatus = .repairing
+        healthState.healthStatus = .repairing
         Task {
             do {
                 _ = try await bridge.repair(itemId: item.id)
             } catch {}
             await MainActor.run {
-                appState.healthStatus = .healthy
+                healthState.healthStatus = .healthy
                 runHealthCheck()
             }
         }
