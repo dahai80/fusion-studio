@@ -221,7 +221,10 @@ class FusionConfig: ObservableObject {
     /// Multi-Node Master 服务地址（FastAPI MasterServer，需 Bearer token）。
     var multiNodeBaseURL: String { "http://\(modelHubHost):\(multiNodePort)" }
     /// Multi-Node Agent 服务地址（FastAPI AgentServer，需 Bearer token）。
-    var multiNodeAgentBaseURL: String { "http://127.0.0.1:\(multiNodeAgentPort)" }
+    // F-A8: 旧硬编码 127.0.0.1, 远程集群场景下 7 Agent KV 方法 (fetchAgentKVStats/agentKVLookup/
+    // agentKVTransfer/agentKVWarm 等) 全打本地而非远程节点。改用 modelHubHost — 本地单节点
+    // modelHubHost 默认 127.0.0.1 行为不变, 远程集群走远程 host。端口与 comfyui 冲突属上游问题。
+    var multiNodeAgentBaseURL: String { "http://\(modelHubHost):\(multiNodeAgentPort)" }
 
     /// 读取 cluster token：优先手动覆盖，否则读 ~/.fusion/multi-node/.cluster_token（0600）。
     var multiNodeResolvedToken: String {
