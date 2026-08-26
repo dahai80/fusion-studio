@@ -335,8 +335,7 @@ final class AgentBridge: ObservableObject {
     @Published var graphs: [AgentGraphModel] = []
     @Published var events: [AgentEventModel] = []
     @Published var isExecuting: Bool = false
-    @Published var chatMessages: [ChatMessageRecord] = []
-    @Published var isInferring: Bool = false
+    // F-A1 Phase 4: chatMessages/isInferring 已迁 ProjectChatState 域 (AgentProjectChatService facade 写, 0 SwiftUI 读 write-only)。
     @Published var dashboardData: [String: Any] = [:]
     // F-A1 Phase 1: models/mlxRunning/mlxLoadedModels/mlxPort 已迁 MLXState 域 (AgentBridgeDomains.swift)。
     // F-A2子3: 以下 2 个 AgentMlxService facade extension 跨文件访问, 故 internal。

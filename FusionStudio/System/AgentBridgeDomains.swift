@@ -62,5 +62,7 @@ final class ConfigState: ObservableObject {
 // MARK: - Project Chat State (会话消息 / 推理中)
 
 final class ProjectChatState: ObservableObject {
+    @Published var chatMessages: [ChatMessageRecord] = []
+    @Published var isInferring: Bool = false
     init() {}
 }
