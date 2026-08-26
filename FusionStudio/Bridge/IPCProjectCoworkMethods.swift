@@ -1117,7 +1117,8 @@ extension IPCClient {
 
     func multiNodeCall(method: String, params: [String: Any] = [:]) async throws -> [String: Any] {
         let host = FusionConfig.shared.modelHubHost
-        let port = 11452
+        // F-I9: 端口走 FusionConfig.shared 集中口径, 删硬编码 11452 (改设置全生效)。
+        let port = FusionConfig.shared.multiNodePort
         let urlStr = "http://\(host):\(port)/rpc"
         guard let url = URL(string: urlStr) else {
             throw IPCError.invalidRequest
@@ -1158,7 +1159,8 @@ extension IPCClient {
         return try await multiNodeCall(method: "cluster.get_model_manifest", params: ["model_name": modelName])
     }
 
-    func triggerIncrementalSync(modelName: String, sourceHost: String, sourcePort: Int = 11452) async throws -> [String: Any] {
+    // F-I9: sourcePort 默认走 FusionConfig.shared.multiNodePort, 删硬编码 11452。
+    func triggerIncrementalSync(modelName: String, sourceHost: String, sourcePort: Int = FusionConfig.shared.multiNodePort) async throws -> [String: Any] {
         return try await multiNodeCall(method: "cluster.incremental_sync", params: [
             "model_name": modelName,
             "source_host": sourceHost,

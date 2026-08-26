@@ -61,7 +61,8 @@ extension IPCClient {
         return try await mnRequest("GET", path: "/api/models/\(encoded)/manifest")
     }
 
-    func mnIncrementalSync(modelName: String, sourceHost: String, sourcePort: Int = 11452, remoteManifest: [String: Any]? = nil) async throws -> [String: Any] {
+    // F-I9: sourcePort 默认走 FusionConfig.shared.multiNodePort, 删硬编码 11452。
+    func mnIncrementalSync(modelName: String, sourceHost: String, sourcePort: Int = FusionConfig.shared.multiNodePort, remoteManifest: [String: Any]? = nil) async throws -> [String: Any] {
         var body: [String: Any] = [
             "model_name": modelName,
             "source_host": sourceHost,
@@ -84,7 +85,8 @@ extension IPCClient {
 
     // MARK: - Manual Join (M1-05)
 
-    func mnManualJoin(nodeId: String, hostname: String, ipAddress: String, port: Int = 11445) async throws -> [String: Any] {
+    // F-I9: port 默认走 FusionConfig.shared.multiNodeAgentPort, 删硬编码 11445。
+    func mnManualJoin(nodeId: String, hostname: String, ipAddress: String, port: Int = FusionConfig.shared.multiNodeAgentPort) async throws -> [String: Any] {
         try await mnRequest("POST", path: "/api/join", body: [
             "node_id": nodeId,
             "hostname": hostname,
@@ -95,7 +97,8 @@ extension IPCClient {
 
     // MARK: - Node Management
 
-    func mnRegisterNode(nodeId: String, hostname: String, ipAddress: String, port: Int = 11445, arch: String = "arm64", totalMemoryGb: Double = 0, availableMemoryGb: Double = 0, cpuCores: Int = 0, gpuCores: Int = 0, deviceModel: String = "", umaSizeGb: Double = 0, mlxVersion: String = "", role: String = "worker", tags: [String] = [], activeTasks: Int = 0, maxTasks: Int = 4, networkRttMs: Double = 0) async throws -> [String: Any] {
+    // F-I9: port 默认走 FusionConfig.shared.multiNodeAgentPort, 删硬编码 11445。
+    func mnRegisterNode(nodeId: String, hostname: String, ipAddress: String, port: Int = FusionConfig.shared.multiNodeAgentPort, arch: String = "arm64", totalMemoryGb: Double = 0, availableMemoryGb: Double = 0, cpuCores: Int = 0, gpuCores: Int = 0, deviceModel: String = "", umaSizeGb: Double = 0, mlxVersion: String = "", role: String = "worker", tags: [String] = [], activeTasks: Int = 0, maxTasks: Int = 4, networkRttMs: Double = 0) async throws -> [String: Any] {
         try await mnRequest("POST", path: "/api/nodes/register", body: [
             "node_id": nodeId,
             "hostname": hostname,
