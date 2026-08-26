@@ -133,6 +133,9 @@ struct FusionStudioApp: App {
                     // F-R13: 启动进程内 RSS 监控, 软阈值告警 + 日志, 防 @Published/长会话 OOM 静默。
                     // critical 阈值 (>3GB) 触发注册的 eviction 回调清无界 @Published 数组 LRU。
                     StudioMemoryMonitor.shared.start()
+                    // F-I6: 启动清理统一临时目录 ~/.fusion-studio/tmp/ 陈旧 (>3d) + LRU 总大小超限 (>200MB)。
+                    // 防崩溃残留 (defer 跑不到) 累积占盘 + 文件名含项目路径泄露。
+                    FusionTempDir.shared.cleanupStale()
                     StudioMemoryMonitor.shared.registerEviction(name: "streamEvents") { [weak streamingBridge] in
                         let before = streamingBridge?.streamEvents.count ?? 0
                         if before > 100 {

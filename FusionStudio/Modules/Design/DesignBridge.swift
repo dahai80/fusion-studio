@@ -1031,11 +1031,12 @@ class DesignBridge: ObservableObject {
     func skillLint(documentJSON: String? = nil, designSystem: String = "apple-hig", fix: Bool = false, dryRun: Bool = false) -> [DesignLintIssue] {
         let docJSON = documentJSON ?? lastRenderedDocumentJSON ?? ""
         guard !docJSON.isEmpty else { return [] }
-        // BUG-11: 固定名 fd_lint_input.json 存在 TOCTOU (write 与 CLI read 间本地进程替换文件,
-        // 跑攻击者选定 JSON) + 并发调用同名互踩。改 UUID 命名 + 0600 受限权限, 用完即删。
-        let tmpPath = NSTemporaryDirectory() + "fd_lint_\(UUID().uuidString).json"
-        FileManager.default.createFile(atPath: tmpPath, contents: Data(docJSON.utf8))
-        try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: tmpPath)
+        // F-I6: 临时文件统一收口 ~/.fusion-studio/tmp/ (0700 目录 + 0600 文件 + UUID + 启动清理 LRU)。
+        // 原 BUG-11 仅修 TOCTOU (UUID+0600) 但散落系统 NSTemporaryDirectory (/tmp), 无清理无上限。
+        guard let tmpPath = FusionTempDir.shared.writeTmpFile(prefix: "fd_lint", contents: Data(docJSON.utf8)) else {
+            designBridgeLog.error("DesignBridge: lint tmp write failed")
+            return []
+        }
         var args = ["lint", "--input", tmpPath, "--design-system", designSystem]
         if fix { args.append("--fix") }
         if dryRun { args.append("--dry-run") }
@@ -1067,14 +1068,12 @@ class DesignBridge: ObservableObject {
     }
 
     func skillDiff(oldJSON: String, newJSON: String) -> [DesignDiffEntry] {
-        // BUG-11: 固定名 fd_diff_old/new.json 存在 TOCTOU + 并发互踩。改 UUID 命名 + 0600 受限权限。
-        let tmpDir = NSTemporaryDirectory()
-        let oldPath = tmpDir + "fd_diff_old_\(UUID().uuidString).json"
-        let newPath = tmpDir + "fd_diff_new_\(UUID().uuidString).json"
-        FileManager.default.createFile(atPath: oldPath, contents: Data(oldJSON.utf8))
-        FileManager.default.createFile(atPath: newPath, contents: Data(newJSON.utf8))
-        try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: oldPath)
-        try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: newPath)
+        // F-I6: 临时文件统一收口 (统一目录 + 0600 + UUID + 启动清理 LRU)。原散落系统 /tmp。
+        guard let oldPath = FusionTempDir.shared.writeTmpFile(prefix: "fd_diff_old", contents: Data(oldJSON.utf8)),
+              let newPath = FusionTempDir.shared.writeTmpFile(prefix: "fd_diff_new", contents: Data(newJSON.utf8)) else {
+            designBridgeLog.error("DesignBridge: diff tmp write failed")
+            return []
+        }
         let result = runFusionDesign(["diff", "--old", oldPath, "--new", newPath])
         try? FileManager.default.removeItem(atPath: oldPath)
         try? FileManager.default.removeItem(atPath: newPath)
@@ -1888,10 +1887,12 @@ class DesignBridge: ObservableObject {
         }
         isBatchExporting = true
         batchExportResult = ""
-        // BUG-11: 固定名 fd_export_input.json 存在 TOCTOU + 并发互踩。改 UUID 命名 + 0600 受限权限。
-        let tmpPath = NSTemporaryDirectory() + "fd_export_\(UUID().uuidString).json"
-        FileManager.default.createFile(atPath: tmpPath, contents: Data(documentJSON.utf8))
-        try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: tmpPath)
+        // F-I6: 临时文件统一收口 (统一目录 + 0600 + UUID + 启动清理 LRU)。原散落系统 /tmp。
+        guard let tmpPath = FusionTempDir.shared.writeTmpFile(prefix: "fd_export", contents: Data(documentJSON.utf8)) else {
+            errorMessage = "export tmp write failed"
+            isBatchExporting = false
+            return
+        }
         let result = runFusionDesign(["export", "--input", tmpPath, "--format", format, "--out", outputDir])
         try? FileManager.default.removeItem(atPath: tmpPath)
         if result.exitCode == 0 {

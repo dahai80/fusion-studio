@@ -32,14 +32,17 @@ jobs:
         run: swift --version
 
       - name: Build (debug)
-        run: swift build -c debug 2>&1 | tail -10
+        # F-I13: pipefail 保 swift build 退出码 (原 | tail -10 吞码 → build 失败也绿)。
+        run: set -o pipefail && swift build -c debug 2>&1 | tail -20
 
       - name: Run tests
-        run: swift test 2>&1 | tail -10
-        continue-on-error: true
+        # F-I13: 去 continue-on-error (原测试失败不阻断 CI = 假绿) + pipefail 保 swift test 退出码
+        # (原 | tail -10 吞掉 swift test 退出码, tail 恒 0 → 测试失败也绿)。
+        run: set -o pipefail && swift test 2>&1 | tail -20
 
       - name: Build (release)
-        run: swift build -c release 2>&1 | tail -10
+        # F-I13: pipefail 保退出码 (同上)。
+        run: set -o pipefail && swift build -c release 2>&1 | tail -20
 
   # ─── 代码质量 ─────────────────────────────────────────
   # Services/ 已删 (PR #298, 无本地 Rust 后台服务), Rust fmt/check 步骤移除。

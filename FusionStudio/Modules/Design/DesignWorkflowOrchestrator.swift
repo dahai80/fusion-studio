@@ -221,8 +221,14 @@ class DesignWorkflowOrchestrator: ObservableObject {
 
         case .analyzeScreenshot:
             if let clipImage = NSPasteboard.general.data(forType: .tiff) ?? NSPasteboard.general.data(forType: .png) {
-                let tmpPath = NSTemporaryDirectory() + "fd_screenshot.png"
-                try? clipImage.write(to: URL(fileURLWithPath: tmpPath))
+                // F-I6: 固定名 fd_screenshot.png 散落系统 /tmp + 无 0600 → TOCTOU + 路径泄露。
+                // 改统一目录 + UUID + 0600。用 writeTmpFile (Data 字节写入, .png ext)。
+                guard let tmpPath = FusionTempDir.shared.writeTmpFile(prefix: "fd_screenshot", ext: "png", contents: clipImage) else {
+                    statusMessage = I18nManager.shared.t(.design_wf_noScreenshot)
+                    workflowLog.error("F-I6 screenshot tmp write failed")
+                    advanceStep(designBridge: designBridge)
+                    return
+                }
                 designBridge.skillImageToUI(imagePath: tmpPath, hint: I18nManager.shared.t(.design_wf_regenHint))
                 statusMessage = I18nManager.shared.t(.design_wf_analyzing)
                 try? FileManager.default.removeItem(atPath: tmpPath)

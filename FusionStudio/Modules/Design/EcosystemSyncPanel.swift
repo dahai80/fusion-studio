@@ -436,8 +436,11 @@ struct EcosystemSyncPanel: View {
         DispatchQueue.global(qos: .userInitiated).async {
             let ipcBase = self.ecosystemBaseDir().path
             let docJSON = designBridge.lastRenderedDocumentJSON ?? ""
-            let tmpPath = NSTemporaryDirectory() + "fd_eco_export_input.json"
+            // F-I6: 固定名 fd_eco_export_input.json 散落系统 /tmp + 无 0600 → TOCTOU + 路径泄露。
+            // 改统一目录 ~/.fusion-studio/tmp/ + UUID + 0600 + 启动清理 LRU。
+            let tmpPath = FusionTempDir.shared.tmpFilePath(prefix: "fd_eco_export", ext: "json")
             try? docJSON.write(toFile: tmpPath, atomically: true, encoding: .utf8)
+            try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: tmpPath)
             let result = designBridge.runFusionDesign(
                 ["export", "--input", tmpPath, "--format", "html", "--out", ipcBase, "--ipc-base", ipcBase]
             )
