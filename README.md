@@ -539,6 +539,22 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 
 ## 📋 Changelog
 
+### v0.1.48 — AgentBridge 48 @Published 拆 7 域类型边界 + RPC 方法名集中 + 临时文件统一 (2026-08-26)
+
+补丁版本，审计 0825 P0 重大重构启动 + 仓内 surgical 收尾 + 安全/韧性收口:
+
+- **架构 (F-A1/F-I1)**：
+  - **F-A1/F-I1 AgentBridge 拆 7 域类型边界** (PR #326)：48 @Published 拆 7 独立 ObservableObject (RuntimeState/MLXState/AgentState/ModuleState/TaskState/ConfigState/ProjectChatState，新增 `AgentBridgeDomains.swift`)；AgentBridge 持 `let` 域引用 (稳定身份, SwiftUI 自动追踪每域独立重绘粒度)；facade 仍 extension 经 `self.<state>.X` reach-through；setIPCClient `.assign(to:)` 改 `.sink`+cancellables (`$domain.prop` projection 在 let 子对象非法)；9 commit 分阶段迁移 + 193 tests 含 9 域默认值测试。审计 0825 验收 P0 重大重构首项落地
+- **实现 (F-I3)**：
+  - **F-I3 IPC RPC 方法名集中** (PR #325)：204 method/237 literal/16 文件/43 命名空间 裸字符串 `call(method:)` 拼错零编译期检查 → 新 `RPCMethod.swift` flat enum + 204 static let String 常量 (MARK 分组) + 237 调用点机械替换 `agent.list`→`RPCMethod.agentList`；call 签名不变 (String)；IPCClient `criticalMethods`/`isCoalesceableRead` 整合；命名映射 `.`/`_`→camelCase 0 冲突。与 F-A16 互补 (编译期拼写 vs 运行时 schema 漂移)
+- **安全/韧性 (F-I6/F-I13/F-A13/F-I9/F-A12)**：
+  - **F-I6 临时文件统一 + F-I13 release CI 假绿** (PR #324)：`FusionTempDir.swift` 新增 (~/.fusion-studio/tmp/ 0700 + writeTmpFile 0600 + cleanupStaleTempFiles) + 3 处改走；release.yml 删死 Rust 步骤 + 签名/notarize gated；ci.yml pipefail + 删 continue-on-error (原 `|tail -10` 吞码假绿)；暴露错误全修 (captured var self 移入 Task 闭包 / @objc MainActor.assumeIsolated / 测试 force .enUS)
+  - **F-A13 重复执行告警 + F-I9 端口迁移** (PR #322)：assignedNodes>=2 且 running 且 mode!=data_parallel 无告警 → 客户端启发式止血 (duplicateExecutionTaskIds + detectDuplicateExecution + TaskMonitorView amber banner)；F-I9 追加 multiNodeAgentPort 默认 11445 STALE (与 comfyuiPort 撞) → 11458 + init migrateStalePorts 首启迁移旧 @AppStorage 残留
+  - **F-I9 端口集中** (PR #321)：multi-node 端口硬编码 11452/11445 散落 5 处绕 FusionConfig → 改设置不生效两套数据打架 → 硬编码改 `FusionConfig.shared.multiNodePort`/`multiNodeAgentPort`；3 文件 5 处
+  - **F-A12 重试节点避让** (PR #320)：失败 task 重试调 submitTask 丢原 requiredCapability/priority + 无节点避让 → 死循环重试同一失败节点；修 = `EngineError.retryNoHealthyNode` + `retryTask(_:)` 保原 requiredCapability/priority + guard 原 assignedNodes 全 offline 则阻断 (P0 仓内最后可外科项)
+- **上游缺口 (跨工程 issue，非本仓可外科)**：F-A8 推理流量不经 MultiNodeEngine 路由 → fusion-multi-nodes#27；F-A13 真因 idempotency key+pending 队列需后端 → fusion-multi-nodes#23/#31；mlx.status 不暴露池 lease/LRU/TTL → fusion-agent-studio#225；artifacts-engine v0.4.0 移除 inject → 上游；DesignBridge bypass fd-ai-adapter → fusion-design。均提 issue 遵 "上游问题先提 issue" 流程
+- **CI 全绿**：Swift Build & Test / Code Quality / Security Audit 3/3 pass；master 仅 master 分支
+
 ### v0.1.47 — 审计 0825 仓内可外科项全完 + MLX facade + AppState 4 域拆 (2026-08-26)
 
 补丁版本，外部独立审计 `audit/fusion-studio-audit-report-0825.md` (43 发现 P0-P3) 仓内可外科修复全部完成 + ARCH-1 MLX facade + F-A5 AppState 拆分 + F-A16 RPC schema 协商:
