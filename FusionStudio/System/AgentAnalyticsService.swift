@@ -3,6 +3,7 @@
 // analyticsData/alerts @Published 有外部 SwiftUI 读 (AgentConfigTabs), @Published 留主类 extension 写 self, 观察链不变。
 // 0 private 静态依赖, 0 跨域实例方法调用, 3 方法全自包含 (alertAcknowledge→fetchAlerts 域内调用同 extension 内 self 调用)。
 
+import Foundation
 import os.log
 
 private let agentAnalyticsLog = Logger(subsystem: "com.fusion.studio", category: "AgentAnalyticsService")

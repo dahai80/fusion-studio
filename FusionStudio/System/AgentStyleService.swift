@@ -5,6 +5,7 @@
 //   extension 写 self.styles, 观察链不变。
 // ipcClient 仍存 AgentBridge, extension 读 self.ipcClient。logger private → 文件级 agentStyleLog。
 
+import Foundation
 import os.log
 
 private let agentStyleLog = Logger(subsystem: "com.fusion.studio", category: "AgentStyleService")

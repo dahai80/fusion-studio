@@ -6,6 +6,7 @@
 //   extension 写 self.connectors, 观察链不变。
 // ipcClient 仍存 AgentBridge, extension 读 self.ipcClient。logger private → 文件级 agentConnectorLog。
 
+import Foundation
 import os.log
 
 private let agentConnectorLog = Logger(subsystem: "com.fusion.studio", category: "AgentConnectorService")
