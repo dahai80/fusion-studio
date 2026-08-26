@@ -36,6 +36,30 @@ struct TaskMonitorView: View {
             VStack(alignment: .leading, spacing: 0) {
                 ScreenHeader(eyebrow: "Multi-Node", title: i18n.t(.mn_task_title), subtitle: i18n.t(.mn_task_subtitle))
 
+                // F-A13: 重复执行告警 banner。assignedNodes>=2 且 running 且 mode!=data_parallel
+                // = 疑似网络抖动致 submit 重复提交。amber 警示非阻断, 用户核对后取消重复 task。
+                if engine.duplicateExecutionDetected {
+                    HStack(alignment: .top, spacing: theme.spacingS) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(theme.amberDot)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(i18n.t(.mn_topo_dupExecTitle))
+                                .font(.system(size: theme.bodySize, weight: .semibold))
+                                .foregroundStyle(theme.amberDot)
+                            Text(i18n.t(.mn_topo_dupExecMsg))
+                                .font(.system(size: theme.captionSize))
+                                .foregroundStyle(theme.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer()
+                    }
+                    .padding(theme.spacingM)
+                    .background(theme.amberDot.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous))
+                    .padding(.horizontal, theme.spacingL)
+                    .padding(.top, theme.spacingS)
+                }
+
                 tabBar
                 metricsStrip
                 taskListSection
