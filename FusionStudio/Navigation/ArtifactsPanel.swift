@@ -46,7 +46,7 @@ enum ArtifactKind: String, CaseIterable, Hashable {
     }
 }
 
-struct ArtifactModel: Identifiable, Hashable {
+struct ArtifactModel: Identifiable, Hashable, Decodable {
     let id: String
     let name: String
     let type: String
@@ -55,6 +55,41 @@ struct ArtifactModel: Identifiable, Hashable {
     let tokenCount: Int
     let summary: String?
     let updatedAt: Date
+
+    // F-I4: custom init(from:) 保 kindFallback 宽容 (缺 kind 按 type 推断)。memberwise init 被 parseArtifactModel
+    // + ArtifactSidebarCache 改调 decodeCodable 后无 caller, 抑制安全。updated_at Double(timestamp)→Date。
+    enum ArtKeys: String, CodingKey {
+        case id, name, type, kind, current_version, token_count, summary, updated_at
+    }
+    init(from decoder: Decoder) throws {
+        let top = try decoder.container(keyedBy: ArtKeys.self)
+        id = try top.decode(String.self, forKey: .id)
+        name = try top.decode(String.self, forKey: .name)
+        type = try top.decode(String.self, forKey: .type)
+        let kindRaw = (try? top.decodeIfPresent(String.self, forKey: .kind)) ?? Self.kindFallback(for: type)
+        kind = ArtifactKind(rawValue: kindRaw) ?? Self.kindFallbackEnum(for: type)
+        currentVersion = (try? top.decodeIfPresent(Int.self, forKey: .current_version)) ?? 1
+        tokenCount = (try? top.decodeIfPresent(Int.self, forKey: .token_count)) ?? 0
+        summary = try? top.decodeIfPresent(String.self, forKey: .summary)
+        if let ts = try? top.decodeIfPresent(Double.self, forKey: .updated_at) {
+            updatedAt = Date(timeIntervalSince1970: ts)
+        } else {
+            updatedAt = Date()
+        }
+    }
+    // F-I4: kindFallback 提升 static (parseArtifactModel + ArtifactSidebarCache 共用, 去重)。
+    static func kindFallback(for type: String) -> String {
+        switch type.lowercased() {
+        case "html", "react": return "app"
+        case "markdown": return "document"
+        case "code": return "code"
+        case "data": return "tool"
+        default: return "code"
+        }
+    }
+    static func kindFallbackEnum(for type: String) -> ArtifactKind {
+        ArtifactKind(rawValue: kindFallback(for: type)) ?? .code
+    }
 }
 
 struct ArtifactVersionModel: Identifiable, Hashable {
@@ -1030,36 +1065,9 @@ struct ArtifactsPanel: View {
     // MARK: - Helpers
 
     private func parseArtifactModel(from dict: [String: Any]) -> ArtifactModel? {
-        guard let id = dict["id"] as? String,
-              let name = dict["name"] as? String,
-              let type = dict["type"] as? String else { return nil }
-        let kindRaw = dict["kind"] as? String ?? kindFallback(for: type)
-        let kind = ArtifactKind(rawValue: kindRaw) ?? kindFallbackEnum(for: type)
-        let version = dict["current_version"] as? Int ?? 1
-        let tokens = dict["token_count"] as? Int ?? 0
-        let summary = dict["summary"] as? String
-        let updatedAt: Date
-        if let ts = dict["updated_at"] as? Double {
-            updatedAt = Date(timeIntervalSince1970: ts)
-        } else {
-            updatedAt = Date()
-        }
-        return ArtifactModel(id: id, name: name, type: type, kind: kind, currentVersion: version,
-                             tokenCount: tokens, summary: summary, updatedAt: updatedAt)
-    }
-
-    private func kindFallback(for type: String) -> String {
-        switch type.lowercased() {
-        case "html", "react": return "app"
-        case "markdown": return "document"
-        case "code": return "code"
-        case "data": return "tool"
-        default: return "code"
-        }
-    }
-
-    private func kindFallbackEnum(for type: String) -> ArtifactKind {
-        ArtifactKind(rawValue: kindFallback(for: type)) ?? .code
+        // F-I4: Codable 强类型解码 (ArtifactModel.init(from:) 保 kindFallback + updated_at Double)。
+        // 保留原 guard 语义: id/name/type 缺失 → 返 nil (caller continue)。
+        return AgentBridge.decodeCodable(ArtifactModel.self, from: dict, context: "artifact")
     }
 
 }

@@ -55,6 +55,16 @@ enum JSONValue: Codable, Equatable {
     }
 }
 
+// F-I4: 动态字符串键, 支持 dual-key (agent_id/id, graph_id/id, plan_id/id, step_id/id) 双读。
+// 顶层声明 (非嵌 AgentBridge), 各 model struct 的 init(from:) 同文件可达。
+struct FAnyKey: CodingKey {
+    var stringValue: String
+    var intValue: Int?
+    init?(stringValue: String) { self.stringValue = stringValue }
+    init?(intValue: Int) { self.intValue = intValue; self.stringValue = String(intValue) }
+    static func key(_ s: String) -> FAnyKey { return FAnyKey(stringValue: s)! }
+}
+
 struct PositionModel: Codable, Equatable {
     var x: Double
     var y: Double
@@ -83,6 +93,79 @@ struct AgentGraphModel: Codable, Equatable, Identifiable {
     // graph.list 只返回 node_count/edge_count (nodes 为空 dict), 列表展示用此计数
     var nodeCount: Int
     var edgeCount: Int
+
+    // F-I4: graph_id/id dual-key + nodes dict-vs-array + created_at Double-or-String + node_count/edge_count fallback。
+    // memberwise init 仅 parseGraphModel 内用, 抑制安全。nodes/edges catch-all config 不经 NodeConfigModel 合成 Codable
+    // (wire 无 config 键, config 是除 id/type/label 外全部字段的 catch-all) → 解 raw [String:JSONValue] 手建 memberwise。
+    enum GraphKeys: String, CodingKey {
+        case id, name, nodes, edges, created_at, node_count, edge_count, graph_id
+    }
+    init(from decoder: Decoder) throws {
+        let top = try decoder.container(keyedBy: GraphKeys.self)
+        let c = try decoder.container(keyedBy: FAnyKey.self)
+        if let v = try? c.decodeIfPresent(String.self, forKey: .key("graph_id")) { id = v }
+        else if let v = try? top.decodeIfPresent(String.self, forKey: .id) { id = v }
+        else { id = "" }
+        name = (try? top.decodeIfPresent(String.self, forKey: .name)) ?? ""
+        nodes = try Self.decodeNodes(from: top)
+        edges = try Self.decodeEdges(from: top)
+        created_at = try Self.decodeCreatedAt(from: top)
+        nodeCount = (try? top.decodeIfPresent(Int.self, forKey: .node_count)) ?? nodes.count
+        edgeCount = (try? top.decodeIfPresent(Int.self, forKey: .edge_count)) ?? edges.count
+    }
+    // nodes dict 形态 {nodeId: {type:.., <rest>}} — id 是 dict key, 其余全进 config。
+    // nodes array 形态 [{id:.., type:.., label:.., <rest>}] — 除 id/type/label 外全进 config。
+    private static func decodeNodes(from top: KeyedDecodingContainer<GraphKeys>) throws -> [NodeConfigModel] {
+        var out: [NodeConfigModel] = []
+        if let dict = try? top.decode([String: [String: JSONValue]].self, forKey: .nodes) {
+            for (nodeId, fields) in dict {
+                let type = strVal(fields["type"]) ?? "llm"
+                var config: [String: JSONValue] = [:]
+                for (k, v) in fields where k != "type" {
+                    config[k] = v
+                }
+                out.append(NodeConfigModel(id: nodeId, type: type, config: config, position: nil))
+            }
+        } else if let arr = try? top.decode([[String: JSONValue]].self, forKey: .nodes) {
+            for fields in arr {
+                let nodeId = strVal(fields["id"]) ?? UUID().uuidString
+                let type = strVal(fields["type"]) ?? "llm"
+                var config: [String: JSONValue] = [:]
+                for (k, v) in fields where k != "id" && k != "type" && k != "label" {
+                    config[k] = v
+                }
+                out.append(NodeConfigModel(id: nodeId, type: type, config: config, position: nil))
+            }
+        }
+        return out
+    }
+    // edges array — source_id/source, target_id/target, label/condition dual-key。
+    private static func decodeEdges(from top: KeyedDecodingContainer<GraphKeys>) throws -> [EdgeModel] {
+        var out: [EdgeModel] = []
+        guard let arr = try? top.decode([[String: JSONValue]].self, forKey: .edges) else { return out }
+        for e in arr {
+            let source = strVal(e["source_id"]) ?? strVal(e["source"]) ?? ""
+            let target = strVal(e["target_id"]) ?? strVal(e["target"]) ?? ""
+            let condition = strVal(e["label"]) ?? strVal(e["condition"])
+            let id = strVal(e["id"]) ?? UUID().uuidString
+            out.append(EdgeModel(id: id, source: source, target: target, condition: condition))
+        }
+        return out
+    }
+    // created_at Double(timestamp)→格式化字符串, 或 String 直取。
+    private static func decodeCreatedAt(from top: KeyedDecodingContainer<GraphKeys>) throws -> String {
+        if let ts = try? top.decodeIfPresent(Double.self, forKey: .created_at) {
+            let date = Date(timeIntervalSince1970: ts)
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+            return formatter.string(from: date)
+        }
+        return (try? top.decodeIfPresent(String.self, forKey: .created_at)) ?? ""
+    }
+    private static func strVal(_ v: JSONValue?) -> String? {
+        if case .string(let s) = v { return s }
+        return nil
+    }
 }
 
 struct AgentEventModel: Codable, Equatable {
@@ -205,6 +288,17 @@ struct PlanStepModel: Codable, Equatable, Identifiable, Hashable {
     var description: String
     var status: String
     var result: String?
+
+    // F-I4: step_id/id dual-key。memberwise 仅 parsePlanModel 内用, 抑制安全。
+    enum StepKeys: String, CodingKey { case id, description, status, result, step_id }
+    init(from decoder: Decoder) throws {
+        let top = try decoder.container(keyedBy: StepKeys.self)
+        let c = try decoder.container(keyedBy: FAnyKey.self)
+        id = (try? c.decodeIfPresent(String.self, forKey: .key("step_id"))) ?? (try? top.decodeIfPresent(String.self, forKey: .id)) ?? UUID().uuidString
+        description = (try? top.decodeIfPresent(String.self, forKey: .description)) ?? ""
+        status = (try? top.decodeIfPresent(String.self, forKey: .status)) ?? "pending"
+        result = try? top.decodeIfPresent(String.self, forKey: .result)
+    }
 }
 
 struct PlanModel: Codable, Equatable, Identifiable, Hashable {
@@ -214,6 +308,19 @@ struct PlanModel: Codable, Equatable, Identifiable, Hashable {
     var steps: [PlanStepModel]
     var context: String
     var created_at: String
+
+    // F-I4: plan_id/id dual-key。memberwise 仅 parsePlanModel 内用, 抑制安全。
+    enum PlanKeys: String, CodingKey { case id, task, status, steps, context, created_at, plan_id }
+    init(from decoder: Decoder) throws {
+        let top = try decoder.container(keyedBy: PlanKeys.self)
+        let c = try decoder.container(keyedBy: FAnyKey.self)
+        id = (try? c.decodeIfPresent(String.self, forKey: .key("plan_id"))) ?? (try? top.decodeIfPresent(String.self, forKey: .id)) ?? ""
+        task = (try? top.decodeIfPresent(String.self, forKey: .task)) ?? ""
+        status = (try? top.decodeIfPresent(String.self, forKey: .status)) ?? "draft"
+        steps = (try? top.decodeIfPresent([PlanStepModel].self, forKey: .steps)) ?? []
+        context = (try? top.decodeIfPresent(String.self, forKey: .context)) ?? ""
+        created_at = (try? top.decodeIfPresent(String.self, forKey: .created_at)) ?? ""
+    }
 }
 
 struct RAGResultModel: Codable, Equatable, Identifiable {
@@ -291,6 +398,78 @@ struct AgentModel: Codable, Equatable, Identifiable {
     var top_p: Double?
     var context_window: Int?
     var rate_limit_qps: Int?
+
+    // F-I4: custom init(from:) 保已知 API 变体宽容 (agent_id/id dual-key, manifest-nested fallback,
+    // ?? 空 default), 走 JSONDecoder 类型化路径。类型不符 throw 可捕获 (非 ?? 静默)。
+    // memberwise init 仅 parseAgentModel 内用, 抑制安全 (grep 0 外部 memberwise caller)。
+    enum AgentModelKeys: String, CodingKey {
+        case id, name, model, system_prompt, temperature, max_tokens, tools, capabilities
+        case safety_level, tags, author, description, version, created_at, skills, has_soul
+        case status, version_int, published_at, knowledge_base_ids, visibility, rag_strategy
+        case web_search_enabled, deep_research_enabled, connector_ids, style, top_p
+        case context_window, rate_limit_qps, manifest, agent_id
+    }
+    // F-I4: manifest??top??default 三级兜底。用 helper 拆表达式防 type-check timeout (单行 nested ?? + try? 撞类型推导上限)。
+    // SE-0230: try? + optional-chaining 已 flatten, 单 if let 得 unwrapped 值。
+    private static func mstr(_ manifest: KeyedDecodingContainer<AgentModelKeys>?, _ top: KeyedDecodingContainer<AgentModelKeys>, _ k: AgentModelKeys, _ dflt: String) -> String {
+        if let v = try? manifest?.decodeIfPresent(String.self, forKey: k) { return v }
+        if let v = try? top.decodeIfPresent(String.self, forKey: k) { return v }
+        return dflt
+    }
+    private static func mdbl(_ manifest: KeyedDecodingContainer<AgentModelKeys>?, _ top: KeyedDecodingContainer<AgentModelKeys>, _ k: AgentModelKeys, _ dflt: Double) -> Double {
+        if let v = try? manifest?.decodeIfPresent(Double.self, forKey: k) { return v }
+        if let v = try? top.decodeIfPresent(Double.self, forKey: k) { return v }
+        return dflt
+    }
+    private static func mint(_ manifest: KeyedDecodingContainer<AgentModelKeys>?, _ top: KeyedDecodingContainer<AgentModelKeys>, _ k: AgentModelKeys, _ dflt: Int) -> Int {
+        if let v = try? manifest?.decodeIfPresent(Int.self, forKey: k) { return v }
+        if let v = try? top.decodeIfPresent(Int.self, forKey: k) { return v }
+        return dflt
+    }
+    private static func marr<T: Decodable>(_ manifest: KeyedDecodingContainer<AgentModelKeys>?, _ top: KeyedDecodingContainer<AgentModelKeys>, _ k: AgentModelKeys, _ dflt: [T]) -> [T] {
+        if let v = try? manifest?.decodeIfPresent([T].self, forKey: k) { return v }
+        if let v = try? top.decodeIfPresent([T].self, forKey: k) { return v }
+        return dflt
+    }
+    private static func dualKey(_ c: KeyedDecodingContainer<FAnyKey>, _ top: KeyedDecodingContainer<AgentModelKeys>, _ alt: String, _ k: AgentModelKeys) -> String {
+        if let v = try? c.decodeIfPresent(String.self, forKey: .key(alt)) { return v }
+        if let v = try? top.decodeIfPresent(String.self, forKey: k) { return v }
+        return ""
+    }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: FAnyKey.self)
+        let top = try decoder.container(keyedBy: AgentModelKeys.self)
+        let manifest = try? top.nestedContainer(keyedBy: AgentModelKeys.self, forKey: .manifest)
+        id = Self.dualKey(c, top, "agent_id", .id)
+        name = Self.mstr(manifest, top, .name, "")
+        model = Self.mstr(manifest, top, .model, "")
+        system_prompt = Self.mstr(manifest, top, .system_prompt, "")
+        temperature = Self.mdbl(manifest, top, .temperature, 0.7)
+        max_tokens = Self.mint(manifest, top, .max_tokens, 4096)
+        tools = Self.marr(manifest, top, .tools, [])
+        capabilities = Self.marr(manifest, top, .capabilities, [])
+        safety_level = Self.mstr(manifest, top, .safety_level, "L1")
+        tags = Self.marr(manifest, top, .tags, [])
+        author = Self.mstr(manifest, top, .author, "")
+        description = Self.mstr(manifest, top, .description, "")
+        version = Self.mstr(manifest, top, .version, "1.0.0")
+        created_at = Self.mstr(manifest, top, .created_at, "")
+        skills = (try? top.decodeIfPresent([String].self, forKey: .skills)) ?? []
+        has_soul = (try? top.decodeIfPresent(Bool.self, forKey: .has_soul)) ?? false
+        status = try? top.decodeIfPresent(String.self, forKey: .status)
+        version_int = try? top.decodeIfPresent(Int.self, forKey: .version_int)
+        published_at = try? top.decodeIfPresent(String.self, forKey: .published_at)
+        knowledge_base_ids = try? top.decodeIfPresent([String].self, forKey: .knowledge_base_ids)
+        visibility = try? top.decodeIfPresent(String.self, forKey: .visibility)
+        rag_strategy = try? top.decodeIfPresent(String.self, forKey: .rag_strategy)
+        web_search_enabled = try? top.decodeIfPresent(Bool.self, forKey: .web_search_enabled)
+        deep_research_enabled = try? top.decodeIfPresent(Bool.self, forKey: .deep_research_enabled)
+        connector_ids = try? top.decodeIfPresent([String].self, forKey: .connector_ids)
+        style = try? top.decodeIfPresent(String.self, forKey: .style)
+        top_p = try? top.decodeIfPresent(Double.self, forKey: .top_p)
+        context_window = try? top.decodeIfPresent(Int.self, forKey: .context_window)
+        rate_limit_qps = try? top.decodeIfPresent(Int.self, forKey: .rate_limit_qps)
+    }
 
     var statusLabel: String {
         let i18n = I18nManager.shared
@@ -1413,23 +1592,28 @@ final class AgentBridge: ObservableObject {
     // MARK: - Parsing Helpers
     // ARCH-1: parseGraphModel 抽至 AgentGraphService.swift (private = 文件作用域, 与 6 调用方同文件)。
 
-    private static func parseEventModel(from dict: [String: Any]) -> AgentEventModel? {
-        guard let type = dict["type"] as? String else { return nil }
-        var data: [String: JSONValue]?
-        if let d = dict["data"] as? [String: Any] {
-            data = [:]
-            for (k, v) in d {
-                if let jv = anyToJSONValue(v) {
-                    data?[k] = jv
-                }
+    // F-I4: [String:Any] (IPCClient 返值) → Data → JSONDecoder 强类型解码。
+    // 保留 parseXModel(from:) signature, call site 零改。失败返 nil + log 报错 (审计: decode 报错可捕获, 不静默 nil)。
+    // 跨文件调用方: AgentOpsService/AgentGraphService/AgentPlannerService/ArtifactsPanel 经 Self./AgentBridge. 访问。
+    static func decodeCodable<T: Decodable>(_ type: T.Type, from dict: [String: Any], context: String) -> T? {
+        do {
+            guard JSONSerialization.isValidJSONObject(dict) else {
+                agentBridgeStaticLog.error("F-I4 decode \(context): invalid JSON object, keys=\(dict.keys.sorted())")
+                return nil
             }
+            let data = try JSONSerialization.data(withJSONObject: dict)
+            let decoded = try JSONDecoder().decode(type, from: data)
+            return decoded
+        } catch {
+            agentBridgeStaticLog.error("F-I4 decode \(context) failed: \(error.localizedDescription, privacy: .public) — schema drift or type mismatch, keys=\(dict.keys.sorted())")
+            return nil
         }
-        return AgentEventModel(
-            type: type,
-            node_id: dict["node_id"] as? String,
-            data: data,
-            timestamp: dict["timestamp"] as? String
-        )
+    }
+
+    // F-I4: 合成 Codable 足够 (type 必需, node_id/data/timestamp optional)。data:[String:JSONValue] 经 JSONValue custom Codable 解。
+    // 解析路径从手动 dict["x"] as? Type 切到 JSONDecoder 强类型, 缺 type 解码抛错可捕获 (非 ?? 静默)。
+    private static func parseEventModel(from dict: [String: Any]) -> AgentEventModel? {
+        return decodeCodable(AgentEventModel.self, from: dict, context: "event")
     }
 
     // ARCH-1: anyToJSONValue 通用 Any→JSONValue 转换器 (非域 parser), private→internal。

@@ -184,84 +184,16 @@ extension AgentBridge {
     // MARK: - Graph Parsing Helper (domain parser, file-private, 仅本 extension 调用)
 
     private static func parseGraphModel(from dict: [String: Any]) -> AgentGraphModel? {
-        guard let graphId = dict["graph_id"] as? String ?? dict["id"] as? String,
-              let name = dict["name"] as? String else {
+        // F-I4: Codable 强类型解码 (AgentGraphModel.init(from:) 保 graph_id/id dual-key + nodes dict/array
+        // catch-all config + created_at Double-or-String + node_count/edge_count fallback)。
+        // 保留原 guard 语义: id 或 name 缺失 → 返 nil (caller throw "Failed to parse")。
+        guard let graph = AgentBridge.decodeCodable(AgentGraphModel.self, from: dict, context: "graph") else {
             return nil
         }
-
-        var nodes: [NodeConfigModel] = []
-        if let nodesDict = dict["nodes"] as? [String: [String: Any]] {
-            for (nodeId, nodeData) in nodesDict {
-                var config: [String: JSONValue] = [:]
-                for (k, v) in nodeData {
-                    if let jv = anyToJSONValue(v) {
-                        config[k] = jv
-                    }
-                }
-                nodes.append(NodeConfigModel(
-                    id: nodeId,
-                    type: nodeData["type"] as? String ?? "llm",
-                    config: config,
-                    position: nil
-                ))
-            }
-        } else if let nodesArray = dict["nodes"] as? [[String: Any]] {
-            for nodeData in nodesArray {
-                let nodeId = nodeData["id"] as? String ?? UUID().uuidString
-                var config: [String: JSONValue] = [:]
-                for (k, v) in nodeData {
-                    if k != "id" && k != "type" && k != "label", let jv = anyToJSONValue(v) {
-                        config[k] = jv
-                    }
-                }
-                nodes.append(NodeConfigModel(
-                    id: nodeId,
-                    type: nodeData["type"] as? String ?? "llm",
-                    config: config,
-                    position: nil
-                ))
-            }
+        if graph.id.isEmpty || graph.name.isEmpty {
+            agentGraphLog.warning("parseGraphModel: id or name empty after decode, dropping — id=\(graph.id, privacy: .public)")
+            return nil
         }
-
-        var edges: [EdgeModel] = []
-        if let edgesArray = dict["edges"] as? [[String: Any]] {
-            for edgeData in edgesArray {
-                let source = edgeData["source_id"] as? String ?? edgeData["source"] as? String ?? ""
-                let target = edgeData["target_id"] as? String ?? edgeData["target"] as? String ?? ""
-                let condition = edgeData["label"] as? String ?? edgeData["condition"] as? String
-                edges.append(EdgeModel(
-                    id: edgeData["id"] as? String ?? UUID().uuidString,
-                    source: source,
-                    target: target,
-                    condition: condition
-                ))
-            }
-        }
-
-        let createdAt: String
-        if let ts = dict["created_at"] as? Double {
-            let date = Date(timeIntervalSince1970: ts)
-            let formatter = DateFormatter()
-            formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-            createdAt = formatter.string(from: date)
-        } else if let ts = dict["created_at"] as? String {
-            createdAt = ts
-        } else {
-            createdAt = ""
-        }
-
-        // node_count/edge_count 优先取后端元数据; graph.get 返回完整 nodes 时退化为实际数组长度
-        let nodeCount = dict["node_count"] as? Int ?? nodes.count
-        let edgeCount = dict["edge_count"] as? Int ?? edges.count
-
-        return AgentGraphModel(
-            id: graphId,
-            name: name,
-            nodes: nodes,
-            edges: edges,
-            created_at: createdAt,
-            nodeCount: nodeCount,
-            edgeCount: edgeCount
-        )
+        return graph
     }
 }

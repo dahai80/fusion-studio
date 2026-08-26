@@ -36,26 +36,8 @@ class ArtifactSidebarCache: ObservableObject {
                 let projectId = FusionProjectManager.shared.activeProject?.id
                 let result = try await client.artifactList(sessionId: "default", projectId: projectId)
                 let items = result["artifacts"] as? [[String: Any]] ?? []
-                var parsed: [ArtifactModel] = []
-                for item in items {
-                    guard let id = item["id"] as? String,
-                          let name = item["name"] as? String,
-                          let type = item["type"] as? String else { continue }
-                    let kindRaw = item["kind"] as? String ?? "code"
-                    let kind = ArtifactKind(rawValue: kindRaw) ?? .code
-                    let version = item["current_version"] as? Int ?? 1
-                    let tokens = item["token_count"] as? Int ?? 0
-                    let summary = item["summary"] as? String
-                    let updatedAt: Date
-                    if let ts = item["updated_at"] as? Double {
-                        updatedAt = Date(timeIntervalSince1970: ts)
-                    } else {
-                        updatedAt = Date()
-                    }
-                    parsed.append(ArtifactModel(id: id, name: name, type: type, kind: kind,
-                                                currentVersion: version, tokenCount: tokens,
-                                                summary: summary, updatedAt: updatedAt))
-                }
+                // F-I4: 复用 ArtifactModel.init(from:) 强类型解码 (kindFallback + updated_at Double), 去重手写解析。
+                let parsed = items.compactMap { AgentBridge.decodeCodable(ArtifactModel.self, from: $0, context: "artifact-cache") }
                 artifacts = parsed
                 cacheLog.info("Sidebar cache refreshed: \(parsed.count) artifacts")
             } catch {

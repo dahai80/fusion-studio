@@ -459,42 +459,16 @@ extension AgentBridge {
     // MARK: - Agent Parsing
 
     private static func parseAgentModel(from dict: [String: Any]) -> AgentModel? {
-        guard let agentId = dict["agent_id"] as? String ?? dict["id"] as? String,
-              let name = dict["name"] as? String else {
+        // F-I4: Codable 强类型解码 (AgentModel.init(from:) 保 dual-key agent_id/id + manifest-nested + ?? default 宽容)。
+        // 保留原 guard 语义: id 或 name 缺失 → 返 nil (caller throw "Failed to parse"), 非空串 agent 进列表。
+        guard let agent = AgentBridge.decodeCodable(AgentModel.self, from: dict, context: "agent") else {
             return nil
         }
-        let manifest = dict["manifest"] as? [String: Any] ?? dict
-        return AgentModel(
-            id: agentId,
-            name: name,
-            model: manifest["model"] as? String ?? dict["model"] as? String ?? "",
-            system_prompt: manifest["system_prompt"] as? String ?? dict["system_prompt"] as? String ?? "",
-            temperature: manifest["temperature"] as? Double ?? dict["temperature"] as? Double ?? 0.7,
-            max_tokens: manifest["max_tokens"] as? Int ?? dict["max_tokens"] as? Int ?? 4096,
-            tools: manifest["tools"] as? [String] ?? dict["tools"] as? [String] ?? [],
-            capabilities: manifest["capabilities"] as? [String] ?? dict["capabilities"] as? [String] ?? [],
-            safety_level: manifest["safety_level"] as? String ?? dict["safety_level"] as? String ?? "L1",
-            tags: manifest["tags"] as? [String] ?? dict["tags"] as? [String] ?? [],
-            author: manifest["author"] as? String ?? dict["author"] as? String ?? "",
-            description: manifest["description"] as? String ?? dict["description"] as? String ?? "",
-            version: manifest["version"] as? String ?? dict["version"] as? String ?? "1.0.0",
-            created_at: manifest["created_at"] as? String ?? dict["created_at"] as? String ?? "",
-            skills: dict["skills"] as? [String] ?? [],
-            has_soul: dict["has_soul"] as? Bool ?? false,
-            status: dict["status"] as? String,
-            version_int: dict["version_int"] as? Int,
-            published_at: dict["published_at"] as? String,
-            knowledge_base_ids: dict["knowledge_base_ids"] as? [String],
-            visibility: dict["visibility"] as? String,
-            rag_strategy: dict["rag_strategy"] as? String,
-            web_search_enabled: dict["web_search_enabled"] as? Bool,
-            deep_research_enabled: dict["deep_research_enabled"] as? Bool,
-            connector_ids: dict["connector_ids"] as? [String],
-            style: dict["style"] as? String,
-            top_p: dict["top_p"] as? Double,
-            context_window: dict["context_window"] as? Int,
-            rate_limit_qps: dict["rate_limit_qps"] as? Int
-        )
+        if agent.id.isEmpty || agent.name.isEmpty {
+            agentOpsLog.warning("parseAgentModel: id or name empty after decode, dropping — id=\(agent.id, privacy: .public)")
+            return nil
+        }
+        return agent
     }
 
     // F-A2: self.agentState.agents 无界 append, 连续 create/clone/install 不 fetch 时单调增长。保留最近 200 (LRU),
