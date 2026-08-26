@@ -283,12 +283,12 @@ struct ConfigureAgentSheet: View {
                 Text("Connectors")
                     .font(.system(size: theme.footnoteSize, weight: .medium))
                     .foregroundStyle(theme.textSecondary)
-                if bridge.connectors.isEmpty {
+                if bridge.configState.connectors.isEmpty {
                     Text("No connectors configured")
                         .font(.system(size: theme.footnoteSize))
                         .foregroundStyle(theme.textTertiary)
                 } else {
-                    ForEach(Array(bridge.connectors.enumerated()), id: \.offset) { idx, conn in
+                    ForEach(Array(bridge.configState.connectors.enumerated()), id: \.offset) { idx, conn in
                         let name = conn["name"] as? String ?? "Unknown"
                         let type = conn["type"] as? String ?? ""
                         let status = conn["status"] as? String ?? "unknown"
@@ -318,12 +318,12 @@ struct ConfigureAgentSheet: View {
                 Text("Output Style")
                     .font(.system(size: theme.footnoteSize, weight: .medium))
                     .foregroundStyle(theme.textSecondary)
-                if bridge.styles.isEmpty {
+                if bridge.configState.styles.isEmpty {
                     Text("No styles available")
                         .font(.system(size: theme.footnoteSize))
                         .foregroundStyle(theme.textTertiary)
                 } else {
-                    ForEach(Array(bridge.styles.prefix(10).enumerated()), id: \.offset) { idx, style in
+                    ForEach(Array(bridge.configState.styles.prefix(10).enumerated()), id: \.offset) { idx, style in
                         let name = style["name"] as? String ?? "Style"
                         HStack {
                             Image(systemName: "paintbrush")

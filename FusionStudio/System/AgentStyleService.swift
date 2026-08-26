@@ -2,7 +2,7 @@
 // 3 方法 (fetchStyles/styleCreate/styleDelete), 0 private 静态依赖, 0 持久状态, 0 跨域实例调用。最薄叶 silo。
 // styleCreate/styleDelete 调 await fetchStyles() (本文件同域, extension 内可达)。
 // @Published styles (L2050) 留主类 (extension 不可声明存储, 有外部 SwiftUI 读 AgentConfigTabs/AgentConfigViews)。
-//   extension 写 self.styles, 观察链不变。
+//   extension 写 self.configState.styles, 观察链不变。
 // ipcClient 仍存 AgentBridge, extension 读 self.ipcClient。logger private → 文件级 agentStyleLog。
 
 import Foundation
@@ -20,8 +20,8 @@ extension AgentBridge {
         guard let client = ipcClient else { return }
         do {
             let result = try await client.styleList()
-            self.styles = result["styles"] as? [[String: Any]] ?? []
-            agentStyleLog.info("Fetched \(self.styles.count) styles")
+            self.configState.styles = result["styles"] as? [[String: Any]] ?? []
+            agentStyleLog.info("Fetched \(self.configState.styles.count) styles")
         } catch {
             agentStyleLog.debug("fetchStyles failed: \(error.localizedDescription)")
         }

@@ -14,7 +14,7 @@ extension AgentBridge {
         guard let client = ipcClient else { return }
         do {
             let result = try await client.analyticsAgentUsage(agentId: agentId, range: range)
-            self.analyticsData = result
+            self.configState.analyticsData = result
             agentAnalyticsLog.info("Analytics fetched")
         } catch {
             agentAnalyticsLog.debug("fetchAnalytics failed: \(error.localizedDescription)")
@@ -27,8 +27,8 @@ extension AgentBridge {
         guard let client = ipcClient else { return }
         do {
             let result = try await client.alertList()
-            self.alerts = result["alerts"] as? [[String: Any]] ?? []
-            agentAnalyticsLog.info("Fetched \(self.alerts.count) alerts")
+            self.configState.alerts = result["alerts"] as? [[String: Any]] ?? []
+            agentAnalyticsLog.info("Fetched \(self.configState.alerts.count) alerts")
         } catch {
             agentAnalyticsLog.debug("fetchAlerts failed: \(error.localizedDescription)")
         }

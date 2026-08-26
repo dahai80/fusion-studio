@@ -25,7 +25,7 @@ struct TeamTabView: View {
             .padding(theme.spacingM)
 
             StudioSectionHeader(title: "Swarm Agents")
-            if bridge.swarmAgents.isEmpty {
+            if bridge.configState.swarmAgents.isEmpty {
                 Text("No swarm agents registered")
                     .font(.system(size: theme.footnoteSize))
                     .foregroundStyle(theme.textTertiary)
@@ -33,11 +33,11 @@ struct TeamTabView: View {
                     .padding(.vertical, theme.spacingM)
             } else {
                 ListGroup {
-                    ForEach(Array(bridge.swarmAgents.enumerated()), id: \.offset) { idx, agent in
+                    ForEach(Array(bridge.configState.swarmAgents.enumerated()), id: \.offset) { idx, agent in
                         let name = agent["name"] as? String ?? agent["agent_id"] as? String ?? "Unknown"
                         let role = agent["role"] as? String ?? "worker"
                         let status = agent["status"] as? String ?? "idle"
-                        StudioRow(label: name, sublabel: role, isLast: idx == bridge.swarmAgents.count - 1) {
+                        StudioRow(label: name, sublabel: role, isLast: idx == bridge.configState.swarmAgents.count - 1) {
                             FusionTag(status, color: status == "active" ? .green : .gray)
                         }
                     }
@@ -45,7 +45,7 @@ struct TeamTabView: View {
             }
 
             StudioSectionHeader(title: "Plaza Channels")
-            if bridge.plazaChannels.isEmpty {
+            if bridge.configState.plazaChannels.isEmpty {
                 Text("No plaza channels")
                     .font(.system(size: theme.footnoteSize))
                     .foregroundStyle(theme.textTertiary)
@@ -53,10 +53,10 @@ struct TeamTabView: View {
                     .padding(.vertical, theme.spacingM)
             } else {
                 ListGroup {
-                    ForEach(Array(bridge.plazaChannels.enumerated()), id: \.offset) { idx, ch in
+                    ForEach(Array(bridge.configState.plazaChannels.enumerated()), id: \.offset) { idx, ch in
                         let name = ch["name"] as? String ?? "Unknown"
                         let desc = ch["description"] as? String ?? ""
-                        StudioRow(label: name, sublabel: desc, isLast: idx == bridge.plazaChannels.count - 1) {
+                        StudioRow(label: name, sublabel: desc, isLast: idx == bridge.configState.plazaChannels.count - 1) {
                             FusionTag("channel", color: .purple)
                         }
                     }
@@ -166,7 +166,7 @@ struct CronTabView: View {
             }
             .padding(theme.spacingM)
 
-            if bridge.cronJobs.isEmpty {
+            if bridge.configState.cronJobs.isEmpty {
                 Spacer()
                 Image(systemName: "clock.badge.xmark")
                     .font(.system(size: 36))
@@ -183,8 +183,8 @@ struct CronTabView: View {
                 Spacer()
             } else {
                 ListGroup {
-                    ForEach(Array(bridge.cronJobs.enumerated()), id: \.offset) { idx, job in
-                        cronRow(job, isLast: idx == bridge.cronJobs.count - 1)
+                    ForEach(Array(bridge.configState.cronJobs.enumerated()), id: \.offset) { idx, job in
+                        cronRow(job, isLast: idx == bridge.configState.cronJobs.count - 1)
                     }
                 }
             }
@@ -297,7 +297,7 @@ struct HooksTabView: View {
             }
             .padding(theme.spacingM)
 
-            if bridge.hooks.isEmpty {
+            if bridge.configState.hooks.isEmpty {
                 Spacer()
                 Text("No hooks registered")
                     .font(.system(size: theme.textSize))
@@ -305,12 +305,12 @@ struct HooksTabView: View {
                 Spacer()
             } else {
                 ListGroup {
-                    ForEach(Array(bridge.hooks.enumerated()), id: \.offset) { idx, hook in
+                    ForEach(Array(bridge.configState.hooks.enumerated()), id: \.offset) { idx, hook in
                         let event = hook["event"] as? String ?? "Unknown"
                         let agentId = hook["agent_id"] as? String ?? ""
                         let action = hook["action"] as? String ?? ""
                         let hookId = hook["hook_id"] as? String ?? hook["id"] as? String ?? ""
-                        StudioRow(label: event, sublabel: "\(agentId) → \(action)", isLast: idx == bridge.hooks.count - 1) {
+                        StudioRow(label: event, sublabel: "\(agentId) → \(action)", isLast: idx == bridge.configState.hooks.count - 1) {
                             FusionTag("hook", color: .blue)
                         }
                         .contentShape(Rectangle())
@@ -421,7 +421,7 @@ struct AnalyticsTabView: View {
     }
 
     private var analyticsCards: some View {
-        let d = bridge.analyticsData
+        let d = bridge.configState.analyticsData
         let totalRequests = d["total_requests"] as? Int ?? 0
         let totalTokens = d["total_tokens"] as? Int ?? 0
         let avgLatency = d["avg_latency_ms"] as? Double ?? 0
@@ -461,7 +461,7 @@ struct AnalyticsTabView: View {
     }
 
     private var agentUsageList: some View {
-        let perAgent = bridge.analyticsData["per_agent"] as? [[String: Any]] ?? []
+        let perAgent = bridge.configState.analyticsData["per_agent"] as? [[String: Any]] ?? []
         return VStack(alignment: .leading, spacing: 0) {
             if perAgent.isEmpty {
                 Text("No per-agent analytics data")
@@ -515,7 +515,7 @@ struct AlertTabView: View {
             }
             .padding(theme.spacingM)
 
-            if bridge.alerts.isEmpty {
+            if bridge.configState.alerts.isEmpty {
                 Spacer()
                 VStack(spacing: theme.spacingS) {
                     Image(systemName: "checkmark.seal")
@@ -528,13 +528,13 @@ struct AlertTabView: View {
                 Spacer()
             } else {
                 ListGroup {
-                    ForEach(Array(bridge.alerts.enumerated()), id: \.offset) { idx, alert in
+                    ForEach(Array(bridge.configState.alerts.enumerated()), id: \.offset) { idx, alert in
                         let level = alert["level"] as? String ?? "info"
                         let message = alert["message"] as? String ?? "No message"
                         let source = alert["source"] as? String ?? ""
                         let aid = alert["alert_id"] as? String ?? alert["id"] as? String ?? ""
                         let acknowledged = alert["acknowledged"] as? Bool ?? false
-                        StudioRow(label: message, sublabel: source, isLast: idx == bridge.alerts.count - 1) {
+                        StudioRow(label: message, sublabel: source, isLast: idx == bridge.configState.alerts.count - 1) {
                             FusionTag(level, color: alertColor(for: level))
                         }
                         .contentShape(Rectangle())
@@ -1507,7 +1507,7 @@ struct ConnectorTabView: View {
             }
             .padding(theme.spacingM)
 
-            if bridge.connectors.isEmpty {
+            if bridge.configState.connectors.isEmpty {
                 Spacer()
                 Text("No connectors configured")
                     .font(.system(size: theme.textSize))
@@ -1515,12 +1515,12 @@ struct ConnectorTabView: View {
                 Spacer()
             } else {
                 ListGroup {
-                    ForEach(Array(bridge.connectors.enumerated()), id: \.offset) { idx, conn in
+                    ForEach(Array(bridge.configState.connectors.enumerated()), id: \.offset) { idx, conn in
                         let name = conn["name"] as? String ?? "Unknown"
                         let type = conn["type"] as? String ?? ""
                         let status = conn["status"] as? String ?? "unknown"
                         let cid = conn["connector_id"] as? String ?? conn["id"] as? String ?? ""
-                        StudioRow(label: name, sublabel: type, isLast: idx == bridge.connectors.count - 1) {
+                        StudioRow(label: name, sublabel: type, isLast: idx == bridge.configState.connectors.count - 1) {
                             FusionTag(status, color: status == "connected" ? .green : status == "disconnected" ? .gray : .orange)
                         }
                         .contentShape(Rectangle())
@@ -1654,7 +1654,7 @@ struct ApikeyTabView: View {
             }
             .padding(theme.spacingM)
 
-            if bridge.apikeys.isEmpty {
+            if bridge.configState.apikeys.isEmpty {
                 Spacer()
                 Text("No API keys")
                     .font(.system(size: theme.textSize))
@@ -1662,12 +1662,12 @@ struct ApikeyTabView: View {
                 Spacer()
             } else {
                 ListGroup {
-                    ForEach(Array(bridge.apikeys.enumerated()), id: \.offset) { idx, key in
+                    ForEach(Array(bridge.configState.apikeys.enumerated()), id: \.offset) { idx, key in
                         let name = key["name"] as? String ?? "Unknown"
                         let kid = key["key_id"] as? String ?? key["id"] as? String ?? ""
                         let prefix = key["key_prefix"] as? String ?? ""
                         let perms = key["permissions"] as? [String] ?? []
-                        StudioRow(label: name, sublabel: prefix.isEmpty ? kid : prefix, isLast: idx == bridge.apikeys.count - 1) {
+                        StudioRow(label: name, sublabel: prefix.isEmpty ? kid : prefix, isLast: idx == bridge.configState.apikeys.count - 1) {
                             if perms.contains("admin") {
                                 FusionTag("admin", color: .red)
                             } else if perms.contains("execute") {
@@ -1789,7 +1789,7 @@ struct StyleTabView: View {
             }
             .padding(theme.spacingM)
 
-            if bridge.styles.isEmpty {
+            if bridge.configState.styles.isEmpty {
                 Spacer()
                 Text("No custom styles")
                     .font(.system(size: theme.textSize))
@@ -1797,11 +1797,11 @@ struct StyleTabView: View {
                 Spacer()
             } else {
                 ListGroup {
-                    ForEach(Array(bridge.styles.enumerated()), id: \.offset) { idx, style in
+                    ForEach(Array(bridge.configState.styles.enumerated()), id: \.offset) { idx, style in
                         let name = style["name"] as? String ?? "Unknown"
                         let template = style["template"] as? String ?? ""
                         let sid = style["style_id"] as? String ?? style["id"] as? String ?? ""
-                        StudioRow(label: name, sublabel: template, isLast: idx == bridge.styles.count - 1) {
+                        StudioRow(label: name, sublabel: template, isLast: idx == bridge.configState.styles.count - 1) {
                             FusionTag("style", color: .purple)
                         }
                         .contentShape(Rectangle())

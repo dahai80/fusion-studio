@@ -926,13 +926,11 @@ final class AgentBridge: ObservableObject {
     // MARK: - Connector Operations
     // ARCH-1: fetchConnectors/connectorCreate/connectorDelete/connectorConnect/connectorDisconnect/connectorTest
     //   抽至 AgentConnectorService.swift facade extension。叶 silo: 0 private 静态依赖, 0 持久状态。
-    //   connectorCreate/Delete 调 fetchConnectors (同域, extension 内可达)。@Published connectors 留主类 (有外部读)。
-
-    @Published var connectors: [[String: Any]] = []
+    //   connectorCreate/Delete 调 fetchConnectors (同域, extension 内可达)。@Published connectors 已迁 ConfigState 域。
 
     // MARK: - API Key Operations
 
-    @Published var apikeys: [[String: Any]] = []
+    // F-A1 Phase 2: apikeys 已迁 ConfigState 域。
 
     func fetchApikeys() async {
         if let t = apikeysFetchedAt, Date().timeIntervalSince(t) < 30 { return }
@@ -940,8 +938,8 @@ final class AgentBridge: ObservableObject {
         guard let client = ipcClient else { return }
         do {
             let result = try await client.apikeyList()
-            self.apikeys = result["keys"] as? [[String: Any]] ?? []
-            logger.info("Fetched \(self.apikeys.count) API keys")
+            self.configState.apikeys = result["keys"] as? [[String: Any]] ?? []
+            logger.info("Fetched \(self.configState.apikeys.count) API keys")
         } catch {
             logger.debug("fetchApikeys failed: \(error.localizedDescription)")
         }
@@ -975,25 +973,17 @@ final class AgentBridge: ObservableObject {
     // MARK: - Style Operations
     // ARCH-1: fetchStyles/styleCreate/styleDelete 抽至 AgentStyleService.swift facade extension。
     // 本域最薄叶 silo: 0 private 静态依赖, 0 持久状态。styleCreate/Delete 调 fetchStyles (同域, extension 内可达)。
-    // @Published styles 留主类 (有外部读)。
-
-    @Published var styles: [[String: Any]] = []
+    // @Published styles 已迁 ConfigState 域 (有外部读)。
 
     // MARK: - Analytics & Alert Operations
     // ARCH-1: fetchAnalytics/fetchAlerts/alertAcknowledge 抽至 AgentAnalyticsService.swift facade extension。
-    // @Published analyticsData/alerts 留此 (extension 不可声明存储, 有外部 SwiftUI 读 AgentConfigTabs)。
-
-    @Published var analyticsData: [String: Any] = [:]
-    @Published var alerts: [[String: Any]] = []
+    // @Published analyticsData/alerts 已迁 ConfigState 域 (有外部 SwiftUI 读 AgentConfigTabs)。
 
     // MARK: - Team Operations
     // ARCH-1: teamOrchestrate/fetchSwarmAgents/fetchPlazaChannels 抽至 AgentTeamService.swift facade extension。
     //   叶 silo: 0 private static, 0 持久状态。fetchSwarmAgents/fetchPlazaChannels UI onAppear 刷新读。
-    //   @Published swarmAgents/plazaChannels 留主类 (有外部读)。
+    //   @Published swarmAgents/plazaChannels 已迁 ConfigState 域 (有外部读)。
     //   MAINT: teamSwarmRegister/Delegate/Stats + teamPlazaCreate/Broadcast 删 (0 前端调用方, UI 只读列表)。
-
-    @Published var swarmAgents: [[String: Any]] = []
-    @Published var plazaChannels: [[String: Any]] = []
 
     // MARK: - Task Operations
     // @Published tasks/projects 留此 (extension 不可声明存储, 有外部 SwiftUI 读 TaskQueueView/ProjectsPanel)。
@@ -1400,9 +1390,7 @@ final class AgentBridge: ObservableObject {
     }
 
     // MARK: - Cron Operations
-    // @Published cronJobs 留此 (extension 不可声明存储, 有外部 SwiftUI 读 TaskQueueView cron 区)。
-
-    @Published var cronJobs: [[String: Any]] = []
+    // @Published cronJobs 已迁 ConfigState 域 (有外部 SwiftUI 读 TaskQueueView cron 区)。
 
     func fetchCronJobs() async {
         if let t = cronJobsFetchedAt, Date().timeIntervalSince(t) < 30 { return }
@@ -1410,8 +1398,8 @@ final class AgentBridge: ObservableObject {
         guard let client = ipcClient else { return }
         do {
             let result = try await client.cronList()
-            self.cronJobs = result["jobs"] as? [[String: Any]] ?? result["crons"] as? [[String: Any]] ?? []
-            logger.info("Fetched \(self.cronJobs.count) cron jobs")
+            self.configState.cronJobs = result["jobs"] as? [[String: Any]] ?? result["crons"] as? [[String: Any]] ?? []
+            logger.info("Fetched \(self.configState.cronJobs.count) cron jobs")
         } catch {
             logger.debug("fetchCronJobs failed: \(error.localizedDescription)")
         }
@@ -1435,9 +1423,7 @@ final class AgentBridge: ObservableObject {
 
     // MARK: - Hooks Operations
     // ARCH-1: fetchHooks/hooksRegister/hooksTest 抽至 AgentHooksService.swift facade extension。
-    // 本域最薄叶 silo: 0 private 静态依赖, 0 持久状态, 0 跨域调用。@Published hooks 留主类 (有外部读)。
-
-    @Published var hooks: [[String: Any]] = []
+    // 本域最薄叶 silo: 0 private 静态依赖, 0 持久状态, 0 跨域调用。@Published hooks 已迁 ConfigState 域 (有外部读)。
 
     // MARK: - Context Operations
     // ARCH-1: contextCompact/contextUsage 抽至 AgentContextService.swift facade extension。本域最简单: 2 薄透传, 0 @Published, 0 private 静态依赖。

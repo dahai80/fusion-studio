@@ -45,6 +45,15 @@ final class TaskState: ObservableObject {
 // MARK: - Config State (Connector + APIKey + Style + Hooks + Analytics + Team + Cron)
 
 final class ConfigState: ObservableObject {
+    @Published var connectors: [[String: Any]] = []
+    @Published var apikeys: [[String: Any]] = []
+    @Published var styles: [[String: Any]] = []
+    @Published var analyticsData: [String: Any] = [:]
+    @Published var alerts: [[String: Any]] = []
+    @Published var swarmAgents: [[String: Any]] = []
+    @Published var plazaChannels: [[String: Any]] = []
+    @Published var cronJobs: [[String: Any]] = []
+    @Published var hooks: [[String: Any]] = []
     init() {}
 }
 
