@@ -310,6 +310,33 @@ struct ModelSlotsSettingsView: View {
                     .font(.caption)
                     .foregroundColor(theme.textSecondary)
             }
+            Section(i18n.t(.fa2_mlxPoolStatus)) {
+                HStack(spacing: theme.spacingS) {
+                    Circle()
+                        .fill(bridge.mlxRunning ? theme.blueDot : theme.textTertiary)
+                        .frame(width: 8, height: 8)
+                    Text(bridge.mlxRunning
+                         ? i18n.t(.fa2_mlxRunning)
+                         : i18n.t(.fa2_mlxStopped))
+                        .font(.system(size: theme.footnoteSize, weight: .medium))
+                        .foregroundStyle(theme.text)
+                    Spacer()
+                    Text("\(bridge.mlxLoadedModels.count) \(i18n.t(.fa2_mlxModelsLoaded))")
+                        .font(.system(size: theme.captionSize))
+                        .foregroundStyle(theme.textSecondary)
+                    if bridge.mlxPort > 0 {
+                        Text(":\(bridge.mlxPort)")
+                            .font(.system(size: theme.captionSize, design: .monospaced))
+                            .foregroundStyle(theme.textTertiary)
+                    }
+                }
+                if !bridge.mlxLoadedModels.isEmpty {
+                    Text(bridge.mlxLoadedModels.joined(separator: ", "))
+                        .font(.system(size: theme.captionSize))
+                        .foregroundStyle(theme.textSecondary)
+                        .lineLimit(3)
+                }
+            }
         }
         .padding()
         .onAppear {

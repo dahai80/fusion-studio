@@ -149,6 +149,8 @@ struct FusionStudioApp: App {
                     NSApp.activate(ignoringOtherApps: true)
                     // F-A9: 启动即开始 MultiNode 轮询 (scenePhase onChange 不在首渲触发)。
                     multiNodeEngine.startPolling()
+                    // F-A2子3: MLX 池可见性轮询, 复用 F-A9 scenePhase 模式。
+                    agentBridge.startMlxStatusPolling()
                 }
                 // HIGH-4: app 进后台或退出时终止遗留 screencapture 进程, 防孤儿。
                 // F-A9: MultiNode 轮询提升到 App 级生命周期 — active 常驻, 后台降频/停转。
@@ -157,8 +159,10 @@ struct FusionStudioApp: App {
                     if phase == .background || phase == .inactive {
                         ScreenCapture.shared.cleanup()
                         multiNodeEngine.stopPolling()
+                        agentBridge.stopMlxStatusPolling()
                     } else if phase == .active {
                         multiNodeEngine.startPolling()
+                        agentBridge.startMlxStatusPolling()
                     }
                 }
         }

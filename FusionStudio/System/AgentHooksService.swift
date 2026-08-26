@@ -13,6 +13,8 @@ extension AgentBridge {
     // MARK: - Hooks Operations
 
     func fetchHooks() async {
+        if let t = hooksFetchedAt, Date().timeIntervalSince(t) < 30 { return }
+        hooksFetchedAt = Date()
         guard let client = ipcClient else { return }
         do {
             let result = try await client.hooksList()
@@ -26,6 +28,7 @@ extension AgentBridge {
     func hooksRegister(event: String, agentId: String, action: String) async throws -> [String: Any] {
         guard let client = ipcClient else { throw BridgeError.notConnected }
         let result = try await client.hooksRegister(event: event, agentId: agentId, action: action)
+        hooksFetchedAt = nil
         await fetchHooks()
         return result
     }
