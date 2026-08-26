@@ -3346,6 +3346,7 @@ enum I18nKey: String, CaseIterable {
     case mn_err_invalidURL = "mn_err_invalidURL"
     case mn_err_noData = "mn_err_noData"
     case mn_err_splitBrain = "mn_err_splitBrain"
+    case mn_err_retryNoHealthyNode = "mn_err_retryNoHealthyNode"
     case mn_overview_title = "mn_overview_title"
     case mn_overview_subtitle = "mn_overview_subtitle"
     case mn_overview_disconnectedFmt = "mn_overview_disconnectedFmt"
@@ -8383,6 +8384,7 @@ let zhCNTranslations: [String: String] = [
     "mn_err_invalidURL": "无效 URL",
     "mn_err_noData": "无数据返回",
     "mn_err_splitBrain": "检测到脑裂（多个 Master），写操作已阻断，请等待 Quorum 恢复。",
+    "mn_err_retryNoHealthyNode": "原任务分配的所有节点均已离线，重试已阻断。请等待节点恢复或手动迁移到健康节点。",
     "mn_overview_title": "集群总览",
     "mn_overview_subtitle": "实时监控集群节点状态与资源",
     "mn_overview_disconnectedFmt": "Multi-Node 服务未连接 — 请确认服务已启动 (port %d)",
@@ -13371,6 +13373,7 @@ let enUSTranslations: [String: String] = [
     "mn_err_invalidURL": "Invalid URL",
     "mn_err_noData": "No data returned",
     "mn_err_splitBrain": "Split-brain detected (multiple masters). Write operations are blocked. Wait for quorum to recover.",
+    "mn_err_retryNoHealthyNode": "All nodes originally assigned to this task are offline. Retry blocked. Wait for nodes to recover or migrate to a healthy node manually.",
     "mn_overview_title": "Cluster Overview",
     "mn_overview_subtitle": "Monitor cluster node status and resources in real time",
     "mn_overview_disconnectedFmt": "Multi-Node service not connected — ensure the service is running (port %d)",
@@ -18353,6 +18356,7 @@ let jaJPTranslations: [String: String] = [
     "mn_err_invalidURL": "無効な URL",
     "mn_err_noData": "データが返されませんでした",
     "mn_err_splitBrain": "スプリットブレインを検出（複数マスター）。書き込み操作はブロックされています。クォーラムの復旧をお待ちください。",
+    "mn_err_retryNoHealthyNode": "このタスクに割り当てられた全ノードがオフラインです。再試行はブロックされました。ノードの復旧を待つか、正常なノードへ手動で移行してください。",
     "mn_overview_title": "クラスター概要",
     "mn_overview_subtitle": "クラスターノードの状態とリソースをリアルタイム監視",
     "mn_overview_disconnectedFmt": "Multi-Node サービス未接続 — サービス起動を確認 (port %d)",
@@ -23335,6 +23339,7 @@ let koKRTranslations: [String: String] = [
     "mn_err_invalidURL": "잘못된 URL",
     "mn_err_noData": "반환된 데이터 없음",
     "mn_err_splitBrain": "스플릿 브레인 감지(다중 마스터). 쓰기 작업이 차단되었습니다. 쿼럼 복구를 기다리세요.",
+    "mn_err_retryNoHealthyNode": "이 태스크에 할당된 모든 노드가 오프라인입니다. 재시도가 차단되었습니다. 노드 복구를 기다리거나 정상 노드로 수동 마이그레이션하세요.",
     "mn_overview_title": "클러스터 개요",
     "mn_overview_subtitle": "클러스터 노드 상태와 리소스 실시간 모니터링",
     "mn_overview_disconnectedFmt": "Multi-Node 서비스 미연결 — 서비스 실행 확인 (port %d)",

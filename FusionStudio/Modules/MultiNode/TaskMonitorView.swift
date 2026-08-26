@@ -188,12 +188,7 @@ struct TaskMonitorView: View {
                     }
                     if task.status == .failed {
                         Button(i18n.t(.retry)) {
-                            Task {
-                                _ = try? await engine.submitTask(
-                                    name: task.name, mode: task.mode,
-                                    modelName: task.modelName
-                                )
-                            }
+                            Task { _ = try? await engine.retryTask(task) }
                         }
                     }
                 }
