@@ -27,6 +27,12 @@ class MultiNodeEngine: ObservableObject {
     // 须 critical alert + 阻断写操作 (remove/approve/migrate) 直到 quorum 恢复。
     var splitBrainDetected: Bool { nodes.filter { $0.isMaster }.count > 1 }
 
+    // F-A13: 重复执行检测 (客户端可做项)。同一 task assignedNodes>=2 且 running 且 mode!=data_parallel
+    // → 疑似网络抖动致 submit 重复提交, 两节点跑同一份未分片输入。data_parallel 多节点 = 合法分片不告警。
+    // 真因缺 idempotency key + pending 队列需后端 (#23/#31 已提), 客户端此告警仅 UI 可见性止血。
+    @Published var duplicateExecutionTaskIds: [String] = []
+    var duplicateExecutionDetected: Bool { !duplicateExecutionTaskIds.isEmpty }
+
     // F-R6/F-R10: 连续失败计数 + 降级阈值。单次网络抖动不计 disconnected, 连续 N 轮失败才置离线。
     private var consecutiveFailures: Int = 0
     private let maxConsecutiveFailures: Int = 3
@@ -183,9 +189,28 @@ class MultiNodeEngine: ObservableObject {
                 DispatchQueue.main.async {
                     self?.tasks = resp.tasks
                     self?.resetFailureState()
+                    self?.detectDuplicateExecution()
                 }
             case .failure(let err):
                 self?.handleError(err, context: "tasks")
+            }
+        }
+    }
+
+    // F-A13: 扫 tasks 找疑似重复执行 (assignedNodes>=2 && running && mode!=data_parallel)。
+    // data_parallel 多节点 = 合法分片; pipeline/inference 单节点意图, 多节点 = 疑似 submit 重复。
+    private func detectDuplicateExecution() {
+        let dups = tasks.filter { task in
+            task.assignedNodes.count >= 2 &&
+            task.status == .running &&
+            task.mode != "data_parallel"
+        }.map { $0.id }
+        if dups != duplicateExecutionTaskIds {
+            duplicateExecutionTaskIds = dups
+            if !dups.isEmpty {
+                engineLog.error("F-A13 suspected duplicate execution: tasks=\(dups) (>=2 running nodes, mode!=data_parallel)")
+            } else {
+                engineLog.info("F-A13 duplicate execution cleared")
             }
         }
     }
@@ -489,7 +514,7 @@ class MultiNodeEngine: ObservableObject {
         get("/api/kv/find/\(modelName)") { result in completion(result) }
     }
 
-    // MARK: - Agent Server (port = cfg.multiNodeAgentPort, 默认 11445)
+    // MARK: - Agent Server (port = cfg.multiNodeAgentPort, 默认 11458, 原 11445 迁出)
 
     func fetchAgentKVStats(completion: @escaping (Result<KVStatsResponse, Error>) -> Void) {
         guard let url = URL(string: "\(agentBaseURL)/api/kv/stats") else {

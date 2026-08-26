@@ -3429,6 +3429,8 @@ enum I18nKey: String, CaseIterable {
     case mn_topo_subtitle = "mn_topo_subtitle"
     case mn_topo_splitBrainTitle = "mn_topo_splitBrainTitle"
     case mn_topo_splitBrainMsg = "mn_topo_splitBrainMsg"
+    case mn_topo_dupExecTitle = "mn_topo_dupExecTitle"
+    case mn_topo_dupExecMsg = "mn_topo_dupExecMsg"
     case mn_topo_legendOnline = "mn_topo_legendOnline"
     case mn_topo_legendBusy = "mn_topo_legendBusy"
     case mn_topo_legendOffline = "mn_topo_legendOffline"
@@ -8467,6 +8469,8 @@ let zhCNTranslations: [String: String] = [
     "mn_topo_subtitle": "可视化 Master-Worker 连接关系",
     "mn_topo_splitBrainTitle": "脑裂告警：检测到多个 Master",
     "mn_topo_splitBrainMsg": "集群存在多个 Master 节点，可能发生网络分区。请暂停写操作（移除/批准/迁移）直到 Quorum 恢复，否则可能操作到错误分区的节点。",
+    "mn_topo_dupExecTitle": "疑似重复执行告警：任务多节点运行",
+    "mn_topo_dupExecMsg": "检测到任务在 2+ 节点同时运行且非 data_parallel 分片模式，可能因网络抖动导致提交重复。请核对任务列表，必要时取消重复任务以免浪费 GPU 或冲突写入。",
     "mn_topo_legendOnline": "在线",
     "mn_topo_legendBusy": "忙碌",
     "mn_topo_legendOffline": "离线",
@@ -13456,6 +13460,8 @@ let enUSTranslations: [String: String] = [
     "mn_topo_subtitle": "Visualize Master-Worker connections",
     "mn_topo_splitBrainTitle": "Split-Brain Warning: Multiple Masters Detected",
     "mn_topo_splitBrainMsg": "The cluster has multiple master nodes, indicating a possible network partition. Pause write operations (remove/approve/migrate) until quorum recovers, or you may act on the wrong partition's node.",
+    "mn_topo_dupExecTitle": "Suspected Duplicate Execution: Task Running on Multiple Nodes",
+    "mn_topo_dupExecMsg": "A task is running on 2+ nodes simultaneously in a non-data_parallel mode, possibly due to a duplicate submit from network jitter. Review the task list and cancel duplicates if needed to avoid wasted GPU or conflicting writes.",
     "mn_topo_legendOnline": "Online",
     "mn_topo_legendBusy": "Busy",
     "mn_topo_legendOffline": "Offline",
@@ -18439,6 +18445,8 @@ let jaJPTranslations: [String: String] = [
     "mn_topo_subtitle": "Master-Worker 接続関係を可視化",
     "mn_topo_splitBrainTitle": "スプリットブレイン警告：複数マスター検出",
     "mn_topo_splitBrainMsg": "クラスタに複数のマスター ノードがあり、ネットワーク分断の可能性があります。クォーラムが回復するまで書き込み操作（削除/承認/移行）を一時停止してください。そうしないと誤ったパーティションのノードを操作する可能性があります。",
+    "mn_topo_dupExecTitle": "重複実行の疑い: タスクが複数ノードで実行中",
+    "mn_topo_dupExecMsg": "data_parallel 以外のモードでタスクが 2+ ノードで同時実行されています。ネットワークジッタによる重複送信の可能性があります。タスクリストを確認し、必要に応じて重複タスクをキャンセルして GPU の無駄や競合書き込みを防いでください。",
     "mn_topo_legendOnline": "オンライン",
     "mn_topo_legendBusy": "ビジー",
     "mn_topo_legendOffline": "オフライン",
@@ -23422,6 +23430,8 @@ let koKRTranslations: [String: String] = [
     "mn_topo_subtitle": "Master-Worker 연결 관계 시각화",
     "mn_topo_splitBrainTitle": "스플릿 브레인 경고: 다중 마스터 감지",
     "mn_topo_splitBrainMsg": "클러스터에 여러 마스터 노드가 있어 네트워크 분할 가능성이 있습니다. 쿼럼이 복구될 때까지 쓰기 작업(제거/승인/마이그레이션)을 일시 중지하세요. 그렇지 않으면 잘못된 파티션의 노드를 조작할 수 있습니다.",
+    "mn_topo_dupExecTitle": "중복 실행 의심: 작업이 다중 노드에서 실행 중",
+    "mn_topo_dupExecMsg": "data_parallel이 아닌 모드에서 작업이 2+ 노드에서 동시 실행 중입니다. 네트워크 지터로 인한 중복 제출 가능성이 있습니다. 작업 목록을 확인하고 필요시 중복 작업을 취소하여 GPU 낭비나 충돌 쓰기를 방지하세요.",
     "mn_topo_legendOnline": "온라인",
     "mn_topo_legendBusy": "사용 중",
     "mn_topo_legendOffline": "오프라인",

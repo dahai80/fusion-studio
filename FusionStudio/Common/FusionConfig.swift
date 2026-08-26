@@ -62,6 +62,26 @@ enum ModelScene: String, CaseIterable, Identifiable {
 class FusionConfig: ObservableObject {
     static let shared = FusionConfig()
 
+    // F-I9 追加: 旧用户 @AppStorage 残留 11445 (与 comfyui 撞, 2026-08-24 迁 11458)。
+    // 首启迁移一次, UserDefaults flag 兜底防重复。
+    private static let stalePortMigratedKey = "fusionConfig.stalePortMigratedV1"
+    init() {
+        migrateStalePorts()
+    }
+
+    func migrateStalePorts() {
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: Self.stalePortMigratedKey) else { return }
+        // multiNodeAgentPort: 旧默认 11445 → 11458 (fusion-multi-nodes#22/#25 迁出, 与 comfyuiPort 撞)
+        let oldAgentPort = defaults.integer(forKey: "multiNodeAgentPort")
+        if oldAgentPort == 11445 {
+            defaults.set(11458, forKey: "multiNodeAgentPort")
+            fusionConfigLog.info("F-I9 migrate: multiNodeAgentPort 11445 → 11458 (stale comfyui conflict)")
+        }
+        defaults.set(true, forKey: Self.stalePortMigratedKey)
+        fusionConfigLog.info("F-I9 migrate: stale port migration v1 done (oldAgentPort=\(oldAgentPort))")
+    }
+
     // MARK: - 通用
     @AppStorage("launchAtLogin") var launchAtLogin = false
     @AppStorage("autoStartMLX") var autoStartMLX = true
@@ -213,8 +233,10 @@ class FusionConfig: ObservableObject {
     @AppStorage("fusionBenchPort") var fusionBenchPort = 11450
     @AppStorage("agentStudioHttpPort") var agentStudioHttpPort = 11453
     @AppStorage("multiNodePort") var multiNodePort = 11452
-    // Multi-Node Agent 端口（NodeAgent /api/* 数据端点）。对齐 fusion-multi-node 默认 11445。
-    @AppStorage("multiNodeAgentPort") var multiNodeAgentPort = 11445
+    // Multi-Node Agent 端口（NodeAgent /api/* 数据端口）。原 11445 与 fusion-comfyui 实跑撞,
+    // 2026-08-24 上游迁出至 11458 (fusion-multi-nodes#22/#25, port-registry.yaml)。旧用户 @AppStorage
+    // 仍可能是 11445 → init migrateStalePorts 首启迁移。
+    @AppStorage("multiNodeAgentPort") var multiNodeAgentPort = 11458
     // 可选：手动覆盖 cluster token（留空则读取 ~/.fusion/multi-node/.cluster_token）。
     @AppStorage("multiNodeClusterToken") var multiNodeClusterToken = ""
 
@@ -424,5 +446,8 @@ class FusionConfig: ObservableObject {
         simulationPort = 11455
         healthHost = "127.0.0.1"
         healthPort = 11456
+        // F-I9 追加: reset 补 multiNode 端口 (此前 resetToDefaults 漏设, 走 @AppStorage 默认值不一致)
+        multiNodePort = 11452
+        multiNodeAgentPort = 11458
     }
 }
