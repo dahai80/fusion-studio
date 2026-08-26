@@ -562,7 +562,7 @@ class CodeAgent: ObservableObject {
             fullPrompt = "Context:\n\(context)\n\n\(prompt)"
         }
         conversation.append(CodeMessage(role: "user", content: prompt, timestamp: Date(), codeBlocks: []))
-        Task { [weak self] in
+        Task { [weak self, fullPrompt] in
             guard let self = self else { return }
             do {
                 guard let bridge = self.agentBridge else {

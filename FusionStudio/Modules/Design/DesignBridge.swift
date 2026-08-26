@@ -771,12 +771,15 @@ class DesignBridge: ObservableObject {
             let errPipe = Pipe()
             process.standardOutput = outPipe
             process.standardError = errPipe
-            var fullOutput = ""
+            // F-I13 pipefail 暴露: var fullOutput 被 readabilityHandler (非隔离逃逸闭包) 捕获并 mutation
+            // = strict-concurrency error. 改引用类型 accumulator (常量引用, .value 可变, 非 captured-var mutation)。
+            final class OutputAccumulator { var value: String = "" }
+            let fullOutput = OutputAccumulator()
             outPipe.fileHandleForReading.readabilityHandler = { handle in
                 let data = handle.availableData
                 guard !data.isEmpty else { return }
                 if let chunk = String(data: data, encoding: .utf8) {
-                    fullOutput += chunk
+                    fullOutput.value += chunk
                     for line in chunk.components(separatedBy: "\n") {
                         let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
                         guard trimmed.hasPrefix("data: ") else { continue }
@@ -817,9 +820,9 @@ class DesignBridge: ObservableObject {
             outPipe.fileHandleForReading.readabilityHandler = nil
             errPipe.fileHandleForReading.readabilityHandler = nil
             let remaining = outPipe.fileHandleForReading.readDataToEndOfFile()
-            if let tail = String(data: remaining, encoding: .utf8) { fullOutput += tail }
-            designBridgeLog.info("DesignBridge: CLI stream \(args.first ?? "") exit=\(process.terminationStatus) len=\(fullOutput.count)")
-            DispatchQueue.main.async { onDone(fullOutput) }
+            if let tail = String(data: remaining, encoding: .utf8) { fullOutput.value += tail }
+            designBridgeLog.info("DesignBridge: CLI stream \(args.first ?? "") exit=\(process.terminationStatus) len=\(fullOutput.value.count)")
+            DispatchQueue.main.async { onDone(fullOutput.value) }
         }
     }
 

@@ -50,7 +50,7 @@ struct EcosystemConfig: Hashable {
             logLevel: d["log_level"] as? String ?? "info",
             tokenBudget: d["token_budget"] as? Int ?? 32768,
             vramLimitMB: d["vram_limit_mb"] as? Int ?? 4096,
-            mcpEnabled: d["mcp_enabled"] as? Bool ?? true,
+            mcpEnabled: d["mcp_enabled"] as? Bool ?? true
         )
     }
 

@@ -55,8 +55,8 @@ class ScreenContextManager: ObservableObject {
         timer = Timer.scheduledTimer(
             withTimeInterval: pollInterval,
             repeats: true
-        ) { [weak self] _ in
-            Task { @MainActor in
+        ) { _ in
+            Task { @MainActor [weak self] in
                 self?.pollContext()
             }
         }
