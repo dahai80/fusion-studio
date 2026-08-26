@@ -150,28 +150,15 @@ extension AgentBridge {
     // MARK: - Planner Parsing
 
     private static func parsePlanModel(from dict: [String: Any]) -> PlanModel? {
-        guard let planId = dict["plan_id"] as? String ?? dict["id"] as? String,
-              let task = dict["task"] as? String else {
+        // F-I4: Codable 强类型解码 (PlanModel.init(from:) 保 plan_id/id dual-key; PlanStepModel.init(from:) 保 step_id/id)。
+        // 保留原 guard 语义: id 或 task 缺失 → 返 nil (caller throw "Failed to parse")。
+        guard let plan = AgentBridge.decodeCodable(PlanModel.self, from: dict, context: "plan") else {
             return nil
         }
-        var steps: [PlanStepModel] = []
-        if let stepsData = dict["steps"] as? [[String: Any]] {
-            for s in stepsData {
-                steps.append(PlanStepModel(
-                    id: s["step_id"] as? String ?? s["id"] as? String ?? UUID().uuidString,
-                    description: s["description"] as? String ?? "",
-                    status: s["status"] as? String ?? "pending",
-                    result: s["result"] as? String
-                ))
-            }
+        if plan.id.isEmpty || plan.task.isEmpty {
+            agentPlannerLog.warning("parsePlanModel: id or task empty after decode, dropping — id=\(plan.id, privacy: .public)")
+            return nil
         }
-        return PlanModel(
-            id: planId,
-            task: task,
-            status: dict["status"] as? String ?? "draft",
-            steps: steps,
-            context: dict["context"] as? String ?? "",
-            created_at: dict["created_at"] as? String ?? ""
-        )
+        return plan
     }
 }
