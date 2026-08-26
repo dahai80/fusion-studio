@@ -499,7 +499,7 @@ private struct KBProjectDetailView: View {
                 .font(.system(size: theme.footnoteSize, weight: .semibold))
                 .foregroundStyle(theme.textSecondary)
 
-            let boundAgents = bridge.agents.filter { agent in
+            let boundAgents = bridge.agentState.agents.filter { agent in
                 let kbIds = agent.knowledge_base_ids ?? []
                 return kbIds.contains(projectId)
             }

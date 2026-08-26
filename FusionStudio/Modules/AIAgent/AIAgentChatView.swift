@@ -164,14 +164,14 @@ struct AIAgentChatView: View {
                     .foregroundStyle(theme.textTertiary)
             }
 
-            if bridge.agents.isEmpty {
+            if bridge.agentState.agents.isEmpty {
                 Text(i18n.t(.ai_chat_noAgent))
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(theme.textTertiary)
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: theme.spacingS) {
-                        ForEach(bridge.agents.prefix(5)) { agent in
+                        ForEach(bridge.agentState.agents.prefix(5)) { agent in
                             Button(action: {
                                 selectedAgentId = agent.id
                                 showAgentPicker = false
@@ -415,7 +415,7 @@ struct AIAgentChatView: View {
                 .foregroundStyle(theme.text)
                 .padding(theme.spacingL)
 
-            if bridge.agents.isEmpty {
+            if bridge.agentState.agents.isEmpty {
                 Text(i18n.t(.ai_chat_pickEmpty))
                     .font(.system(size: theme.footnoteSize))
                     .foregroundStyle(theme.textTertiary)
@@ -423,7 +423,7 @@ struct AIAgentChatView: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: theme.spacingS) {
-                        ForEach(bridge.agents) { agent in
+                        ForEach(bridge.agentState.agents) { agent in
                             Button(action: {
                                 selectedAgentId = agent.id
                                 showAgentPicker = false
@@ -472,15 +472,15 @@ struct AIAgentChatView: View {
     }
 
     private var currentAgentName: String {
-        bridge.agents.first { $0.id == selectedAgentId }?.name ?? i18n.t(.ai_chat_pickTitle)
+        bridge.agentState.agents.first { $0.id == selectedAgentId }?.name ?? i18n.t(.ai_chat_pickTitle)
     }
 
     private var currentAgentModel: String {
-        bridge.agents.first { $0.id == selectedAgentId }?.model ?? ""
+        bridge.agentState.agents.first { $0.id == selectedAgentId }?.model ?? ""
     }
 
     private func loadDefaultAgent() {
-        if selectedAgentId.isEmpty, let first = bridge.agents.first {
+        if selectedAgentId.isEmpty, let first = bridge.agentState.agents.first {
             selectedAgentId = first.id
         }
     }

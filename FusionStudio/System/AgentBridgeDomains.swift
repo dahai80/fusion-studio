@@ -27,6 +27,21 @@ final class MLXState: ObservableObject {
 // MARK: - Agent State (Agent 生命周期 + Marketplace + 流式 + Graphs + Dashboard, 最大域)
 
 final class AgentState: ObservableObject {
+    @Published var agents: [AgentModel] = []
+    @Published var currentAgent: AgentModel? = nil
+    @Published var agentSkills: [String] = []
+    @Published var agentSoul: String = ""
+    @Published var marketplaceEntries: [MarketplaceEntryModel] = []
+    @Published var marketplaceCategories: [String] = []
+    @Published var agentVersionHistory: [String: [[String: Any]]] = [:]
+    @Published var auditTrail: [[String: Any]] = []
+    @Published var sessionLogs: [[String: Any]] = []
+    @Published var activeSessionId: String = ""
+    @Published var streamingContent: String = ""
+    @Published var isAgentStreaming: Bool = false
+    @Published var lastToolCalls: [[String: Any]] = []
+    @Published var graphs: [AgentGraphModel] = []
+    @Published var dashboardData: [String: Any] = [:]
     init() {}
 }
 

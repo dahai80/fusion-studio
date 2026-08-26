@@ -1,6 +1,6 @@
 // ARCH-1 / F-A1: Agent Operations + Lifecycle + marketplaceInstall 从 AgentBridge God-object 抽出, facade extension。
-// @Published agents/currentAgent/agentSkills/agentSoul/agentVersionHistory/auditTrail/sessionLogs/
-//   activeSessionId/streamingContent/isAgentStreaming/lastToolCalls/dashboardData 仍存 AgentBridge
+// @Published self.agentState.agents/self.agentState.currentAgent/self.agentState.agentSkills/self.agentState.agentSoul/self.agentState.agentVersionHistory/self.agentState.auditTrail/self.agentState.sessionLogs/
+//   self.agentState.activeSessionId/self.agentState.streamingContent/self.agentState.isAgentStreaming/self.agentState.lastToolCalls/self.agentState.dashboardData 仍存 AgentBridge
 //   (extension 不可声明存储属性), 本文件只搬方法体, 行为零变。11 个 @Published 集中声明在 AgentBridge
 //   header (原散落本域 MARK 中, 抽迁时迁入 header), extension 写 self.<prop>, 观察链不变。
 // parseAgentModel (private static, 13 调用方全本域+marketplaceInstall) 随域同迁 — private = 文件作用域,
@@ -27,9 +27,9 @@ extension AgentBridge {
             guard let agent = Self.parseAgentModel(from: result) else {
                 throw BridgeError.decodeError("Failed to parse agent.create response")
             }
-            self.agents.append(agent)
-            Self.capAgents(&self.agents)
-            self.currentAgent = agent
+            self.agentState.agents.append(agent)
+            Self.capAgents(&self.agentState.agents)
+            self.agentState.currentAgent = agent
             return agent
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
@@ -45,7 +45,7 @@ extension AgentBridge {
             guard let agent = Self.parseAgentModel(from: result) else {
                 throw BridgeError.decodeError("Failed to parse agent.get response")
             }
-            self.currentAgent = agent
+            self.agentState.currentAgent = agent
             return agent
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
@@ -77,15 +77,15 @@ extension AgentBridge {
             }
             guard let client = self.ipcClient else { throw BridgeError.notConnected }
             let result = try await client.agentList(tags: tags)
-            let agentsData = result["agents"] as? [[String: Any]] ?? []
+            let agentsData = result["self.agentState.agents"] as? [[String: Any]] ?? []
             var parsed: [AgentModel] = []
             for a in agentsData {
                 if let agent = Self.parseAgentModel(from: a) {
                     parsed.append(agent)
                 }
             }
-            self.agents = parsed
-            agentOpsLog.info("fetchAgents: received \(parsed.count) agents")
+            self.agentState.agents = parsed
+            agentOpsLog.info("fetchAgents: received \(parsed.count) self.agentState.agents")
             return parsed
         }
         Self.agentFetchInFlight[key] = task
@@ -107,10 +107,10 @@ extension AgentBridge {
             guard let agent = Self.parseAgentModel(from: result) else {
                 throw BridgeError.decodeError("Failed to parse agent.update response")
             }
-            if let idx = self.agents.firstIndex(where: { $0.id == agentId }) {
-                self.agents[idx] = agent
+            if let idx = self.agentState.agents.firstIndex(where: { $0.id == agentId }) {
+                self.agentState.agents[idx] = agent
             }
-            self.currentAgent = agent
+            self.agentState.currentAgent = agent
             return agent
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
@@ -126,12 +126,12 @@ extension AgentBridge {
             let result = try await client.agentDelete(agentId: agentId)
             let deleted = result["deleted"] as? Bool ?? false
             if deleted {
-                self.agents.removeAll { $0.id == agentId }
-                if self.currentAgent?.id == agentId {
-                    self.currentAgent = nil
+                self.agentState.agents.removeAll { $0.id == agentId }
+                if self.agentState.currentAgent?.id == agentId {
+                    self.agentState.currentAgent = nil
                 }
-                // PERF-3: 删 agent 时清 agentVersionHistory 该 agent 条目, 否则已删 agent 版本历史孤儿驻留 dict 永不释放。
-                self.agentVersionHistory.removeValue(forKey: agentId)
+                // PERF-3: 删 agent 时清 self.agentState.agentVersionHistory 该 agent 条目, 否则已删 agent 版本历史孤儿驻留 dict 永不释放。
+                self.agentState.agentVersionHistory.removeValue(forKey: agentId)
             }
             return deleted
         } catch let error as IPCError {
@@ -150,8 +150,8 @@ extension AgentBridge {
         guard let updated = Self.parseAgentModel(from: result) else {
             throw BridgeError.ipcError("Invalid publish response")
         }
-        if let idx = agents.firstIndex(where: { $0.id == agentId }) {
-            agents[idx] = updated
+        if let idx = self.agentState.agents.firstIndex(where: { $0.id == agentId }) {
+            self.agentState.agents[idx] = updated
         }
         return updated
     }
@@ -163,8 +163,8 @@ extension AgentBridge {
         guard let updated = Self.parseAgentModel(from: result) else {
             throw BridgeError.ipcError("Invalid archive response")
         }
-        if let idx = agents.firstIndex(where: { $0.id == agentId }) {
-            agents[idx] = updated
+        if let idx = self.agentState.agents.firstIndex(where: { $0.id == agentId }) {
+            self.agentState.agents[idx] = updated
         }
         return updated
     }
@@ -178,8 +178,8 @@ extension AgentBridge {
             throw BridgeError.ipcError(msg)
         }
         let updated = try await agentGet(agentId: agentId)
-        if let idx = agents.firstIndex(where: { $0.id == agentId }) {
-            agents[idx] = updated
+        if let idx = self.agentState.agents.firstIndex(where: { $0.id == agentId }) {
+            self.agentState.agents[idx] = updated
         }
         return updated
     }
@@ -191,8 +191,8 @@ extension AgentBridge {
         guard let cloned = Self.parseAgentModel(from: result) else {
             throw BridgeError.ipcError("Invalid clone response")
         }
-        agents.append(cloned)
-        Self.capAgents(&self.agents)
+        self.agentState.agents.append(cloned)
+        Self.capAgents(&self.agentState.agents)
         return cloned
     }
 
@@ -210,10 +210,10 @@ extension AgentBridge {
         let result = try await client.call(method: RPCMethod.agentStudioAgentVersions, params: ["agent_id": agentId])
         guard let versions = result as? [[String: Any]] else {
             let items = result["versions"] as? [[String: Any]] ?? []
-            agentVersionHistory[agentId] = items
+            self.agentState.agentVersionHistory[agentId] = items
             return items
         }
-        agentVersionHistory[agentId] = versions
+        self.agentState.agentVersionHistory[agentId] = versions
         return versions
     }
 
@@ -232,7 +232,7 @@ extension AgentBridge {
         guard let client = ipcClient else { return }
         do {
             let result = try await client.dashboardOverview()
-            self.dashboardData = result
+            self.agentState.dashboardData = result
             agentOpsLog.info("Dashboard fetched: \(result.keys.joined(separator: ","))")
         } catch {
             agentOpsLog.debug("Dashboard fetch failed: \(error.localizedDescription)")
@@ -248,8 +248,8 @@ extension AgentBridge {
             if let e = endDate { params["end_date"] = e }
             let result = try await client.call(method: RPCMethod.agentStudioAuditTrail, params: params)
             let items = result["entries"] as? [[String: Any]] ?? (result as? [[String: Any]] ?? [])
-            // F-A2: auditTrail 全量 fetch 无 cap, 服务端返海量条目时内存暴涨。保留最近 500 (LRU)。
-            auditTrail = Array(items.suffix(500))
+            // F-A2: self.agentState.auditTrail 全量 fetch 无 cap, 服务端返海量条目时内存暴涨。保留最近 500 (LRU)。
+            self.agentState.auditTrail = Array(items.suffix(500))
             agentOpsLog.info("Audit trail fetched: \(items.count) entries (capped to 500)")
         } catch {
             agentOpsLog.debug("Audit trail fetch failed: \(error.localizedDescription)")
@@ -265,8 +265,8 @@ extension AgentBridge {
             if let e = endDate { params["end_date"] = e }
             let result = try await client.call(method: RPCMethod.agentStudioSessionLogs, params: params)
             let items = result["sessions"] as? [[String: Any]] ?? (result as? [[String: Any]] ?? [])
-            // F-A2: sessionLogs 全量 fetch 无 cap, 服务端返海量条目时内存暴涨。保留最近 500 (LRU)。
-            sessionLogs = Array(items.suffix(500))
+            // F-A2: self.agentState.sessionLogs 全量 fetch 无 cap, 服务端返海量条目时内存暴涨。保留最近 500 (LRU)。
+            self.agentState.sessionLogs = Array(items.suffix(500))
             agentOpsLog.info("Session logs fetched: \(items.count) entries (capped to 500)")
         } catch {
             agentOpsLog.debug("Session logs fetch failed: \(error.localizedDescription)")
@@ -282,24 +282,24 @@ extension AgentBridge {
         ]
         if let sid = sessionId { params["session_id"] = sid }
 
-        activeSessionId = sessionId ?? ""
-        isAgentStreaming = true
-        streamingContent = ""
-        lastToolCalls = []
-        defer { isAgentStreaming = false }
+        self.agentState.activeSessionId = sessionId ?? ""
+        self.agentState.isAgentStreaming = true
+        self.agentState.streamingContent = ""
+        self.agentState.lastToolCalls = []
+        defer { self.agentState.isAgentStreaming = false }
 
         do {
             let result = try await client.call(method: RPCMethod.agentStudioAgentChat, params: params)
             let content = result["content"] as? String ?? ""
             let toolCalls = result["tool_calls"] as? [[String: Any]] ?? []
-            let sid = result["session_id"] as? String ?? activeSessionId
-            activeSessionId = sid
-            lastToolCalls = toolCalls
-            streamingContent = content
+            let sid = result["session_id"] as? String ?? self.agentState.activeSessionId
+            self.agentState.activeSessionId = sid
+            self.agentState.lastToolCalls = toolCalls
+            self.agentState.streamingContent = content
             onToken(content)
             return content
         } catch {
-            isAgentStreaming = false
+            self.agentState.isAgentStreaming = false
             // F-I10: 裸抛原始 error 含 IPC 路径/方法名, UI 直展示无意义且泄细节。转 BridgeError 走 userMessage 脱敏。
             let bridgeErr = (error as? BridgeError) ?? BridgeError.ipcError(error.localizedDescription)
             agentOpsLog.error("agentChat failed: \(error.localizedDescription, privacy: .public)")
@@ -315,10 +315,10 @@ extension AgentBridge {
             guard let agent = Self.parseAgentModel(from: result) else {
                 throw BridgeError.decodeError("Failed to parse agent.configure response")
             }
-            if let idx = self.agents.firstIndex(where: { $0.id == agentId }) {
-                self.agents[idx] = agent
+            if let idx = self.agentState.agents.firstIndex(where: { $0.id == agentId }) {
+                self.agentState.agents[idx] = agent
             }
-            self.currentAgent = agent
+            self.agentState.currentAgent = agent
             return agent
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
@@ -345,11 +345,11 @@ extension AgentBridge {
             let result = try await client.agentListSkills(agentId: agentId)
             let skills = result["skills"] as? [String] ?? []
             // ARCH-2: 仅当仍是当前选中 agent 时才回写 @Published。
-            // 切 agent 后旧 fetch 的回调若仍写 self.agentSkills = skills -> 跨 agent 残留串台。
-            if self.currentAgent?.id == agentId {
-                self.agentSkills = skills
+            // 切 agent 后旧 fetch 的回调若仍写 self.agentState.agentSkills = skills -> 跨 agent 残留串台。
+            if self.agentState.currentAgent?.id == agentId {
+                self.agentState.agentSkills = skills
             } else {
-                agentOpsLog.info("fetchAgentSkills: agent 已切换, 丢弃过期 skills agentId=\(agentId) current=\(self.currentAgent?.id ?? "nil")")
+                agentOpsLog.info("fetchAgentSkills: agent 已切换, 丢弃过期 skills agentId=\(agentId) current=\(self.agentState.currentAgent?.id ?? "nil")")
             }
             return skills
         } catch let error as IPCError {
@@ -365,12 +365,12 @@ extension AgentBridge {
         do {
             let result = try await client.agentAddSkill(agentId: agentId, skillName: skillName, skillDef: skillDef)
             let added = result["added"] as? Bool ?? true
-            if added && self.currentAgent?.id == agentId {
-                if !self.agentSkills.contains(skillName) {
-                    self.agentSkills.append(skillName)
-                    // F-R13: agentSkills 无界 append, cap 100 (LRU), 超额丢弃最旧。
-                    if self.agentSkills.count > 100 {
-                        self.agentSkills.removeFirst(self.agentSkills.count - 100)
+            if added && self.agentState.currentAgent?.id == agentId {
+                if !self.agentState.agentSkills.contains(skillName) {
+                    self.agentState.agentSkills.append(skillName)
+                    // F-R13: self.agentState.agentSkills 无界 append, cap 100 (LRU), 超额丢弃最旧。
+                    if self.agentState.agentSkills.count > 100 {
+                        self.agentState.agentSkills.removeFirst(self.agentState.agentSkills.count - 100)
                     }
                 }
             }
@@ -388,8 +388,8 @@ extension AgentBridge {
         do {
             let result = try await client.agentDeleteSkill(agentId: agentId, skillName: skillName)
             let deleted = result["deleted"] as? Bool ?? false
-            if deleted && self.currentAgent?.id == agentId {
-                self.agentSkills.removeAll { $0 == skillName }
+            if deleted && self.agentState.currentAgent?.id == agentId {
+                self.agentState.agentSkills.removeAll { $0 == skillName }
             }
             return deleted
         } catch let error as IPCError {
@@ -405,11 +405,11 @@ extension AgentBridge {
             let result = try await client.agentGetSoul(agentId: agentId)
             let soul = result["soul"] as? String ?? ""
             // ARCH-2: 仅当仍是当前选中 agent 时才回写 @Published。
-            // 切 agent 后旧 fetch 的回调若仍写 self.agentSoul = soul -> 跨 agent 残留串台。
-            if self.currentAgent?.id == agentId {
-                self.agentSoul = soul
+            // 切 agent 后旧 fetch 的回调若仍写 self.agentState.agentSoul = soul -> 跨 agent 残留串台。
+            if self.agentState.currentAgent?.id == agentId {
+                self.agentState.agentSoul = soul
             } else {
-                agentOpsLog.info("fetchAgentSoul: agent 已切换, 丢弃过期 soul agentId=\(agentId) current=\(self.currentAgent?.id ?? "nil")")
+                agentOpsLog.info("fetchAgentSoul: agent 已切换, 丢弃过期 soul agentId=\(agentId) current=\(self.agentState.currentAgent?.id ?? "nil")")
             }
             return soul
         } catch let error as IPCError {
@@ -425,8 +425,8 @@ extension AgentBridge {
         do {
             let result = try await client.agentUpdateSoul(agentId: agentId, soul: soul)
             let updated = result["updated"] as? Bool ?? true
-            if updated && self.currentAgent?.id == agentId {
-                self.agentSoul = soul
+            if updated && self.agentState.currentAgent?.id == agentId {
+                self.agentState.agentSoul = soul
             }
             return updated
         } catch let error as IPCError {
@@ -446,8 +446,8 @@ extension AgentBridge {
             guard let agent = Self.parseAgentModel(from: result) else {
                 throw BridgeError.decodeError("Failed to parse marketplace.install response")
             }
-            self.agents.append(agent)
-            Self.capAgents(&self.agents)
+            self.agentState.agents.append(agent)
+            Self.capAgents(&self.agentState.agents)
             return agent
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
@@ -497,7 +497,7 @@ extension AgentBridge {
         )
     }
 
-    // F-A2: agents 无界 append, 连续 create/clone/install 不 fetch 时单调增长。保留最近 200 (LRU),
+    // F-A2: self.agentState.agents 无界 append, 连续 create/clone/install 不 fetch 时单调增长。保留最近 200 (LRU),
     // 超额丢弃最旧。PERF-3 ragResults 范式。
     static func capAgents(_ arr: inout [AgentModel]) {
         let cap = 200

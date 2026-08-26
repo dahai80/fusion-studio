@@ -332,11 +332,11 @@ final class AgentBridge: ObservableObject {
     let projectChatState = ProjectChatState()
 
     @Published var isConnected: Bool = false
-    @Published var graphs: [AgentGraphModel] = []
+    // F-A1 Phase 6: self.agentState.graphs 已迁 AgentState 域 (AgentGraphService facade 写, 11 SwiftUI 读)。
     @Published var events: [AgentEventModel] = []
     @Published var isExecuting: Bool = false
     // F-A1 Phase 4: chatMessages/isInferring 已迁 ProjectChatState 域 (AgentProjectChatService facade 写, 0 SwiftUI 读 write-only)。
-    @Published var dashboardData: [String: Any] = [:]
+    // F-A1 Phase 6: self.agentState.dashboardData 已迁 AgentState 域 (AgentOpsService:235 跨域写, 迁入同域消除跨域写)。
     // F-A1 Phase 1: models/mlxRunning/mlxLoadedModels/mlxPort 已迁 MLXState 域 (AgentBridgeDomains.swift)。
     // F-A2子3: 以下 2 个 AgentMlxService facade extension 跨文件访问, 故 internal。
     var mlxStatusTimer: Timer?
@@ -389,21 +389,11 @@ final class AgentBridge: ObservableObject {
 
     // MARK: - Agent & Marketplace Published Properties
 
-    @Published var agents: [AgentModel] = []
-    @Published var currentAgent: AgentModel?
-    @Published var agentSkills: [String] = []
-    @Published var agentSoul: String = ""
-    @Published var marketplaceEntries: [MarketplaceEntryModel] = []
-    @Published var marketplaceCategories: [String] = []
-    // F-A1: 以下 7 个 @Published 原散落 Agent Ops/Lifecycle MARK 中, 抽 facade 时迁此集中声明
-    // (extension 不可声明存储属性)。extension 内写 self.<prop>, 观察链不变。
-    @Published var agentVersionHistory: [String: [[String: Any]]] = [:]
-    @Published var auditTrail: [[String: Any]] = []
-    @Published var sessionLogs: [[String: Any]] = []
-    @Published var activeSessionId: String = ""
-    @Published var streamingContent: String = ""
-    @Published var isAgentStreaming: Bool = false
-    @Published var lastToolCalls: [[String: Any]] = []
+    // F-A1 Phase 6: self.agentState.agents/self.agentState.currentAgent/self.agentState.agentSkills/self.agentState.agentSoul/self.agentState.marketplaceEntries/
+    //   self.agentState.marketplaceCategories/self.agentState.agentVersionHistory/self.agentState.auditTrail/self.agentState.sessionLogs/self.agentState.activeSessionId/
+    //   self.agentState.streamingContent/self.agentState.isAgentStreaming/self.agentState.lastToolCalls 13 @Published + self.agentState.graphs + self.agentState.dashboardData
+    //   (共 15) 已迁 AgentState 域 (最大域)。3 facade (Ops/Graph/Marketplace) 写 self.agentState.X,
+    //   0 跨域写 (self.agentState.dashboardData 原跨域写迁入同域消除)。
 
     // Callers: TokenBudgetView, VectorSearchView, MemoryRelevantView, ToolBrowserView, SafetyView. Affected API: all new IPC bridge methods. User instruction: "审视是否所有需要功能和api所有需要的GUI都在~/fusion/fusion-studio都已经有对应GUI了，所有有问题的都要在fusion-studio补齐GUI"
     private let logger = Logger(subsystem: "com.fusion.studio", category: "AgentBridge")
@@ -1016,11 +1006,11 @@ final class AgentBridge: ObservableObject {
     }
 
     func agentName(for id: String) -> String {
-        agents.first(where: { $0.id == id })?.name ?? id.prefix(8).description
+        self.agentState.agents.first(where: { $0.id == id })?.name ?? id.prefix(8).description
     }
 
     func graphName(for id: String) -> String {
-        graphs.first(where: { $0.id == id })?.name ?? ""
+        self.agentState.graphs.first(where: { $0.id == id })?.name ?? ""
     }
 
     private func taskIndex(_ id: String) -> Int? {

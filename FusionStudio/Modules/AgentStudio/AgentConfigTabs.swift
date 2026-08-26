@@ -93,7 +93,7 @@ struct TeamTabView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             ScrollView {
                 VStack(alignment: .leading, spacing: 4) {
-                    ForEach(bridge.agents) { agent in
+                    ForEach(bridge.agentState.agents) { agent in
                         HStack {
                             Image(systemName: selectedAgentIds.contains(agent.id) ? "checkmark.circle.fill" : "circle")
                                 .foregroundStyle(theme.accent)
@@ -339,7 +339,7 @@ struct HooksTabView: View {
                 .textFieldStyle(.roundedBorder)
             Picker("Agent", selection: $newAgentId) {
                 Text("Select agent").tag("")
-                ForEach(bridge.agents) { a in
+                ForEach(bridge.agentState.agents) { a in
                     Text(a.name).tag(a.id)
                 }
             }
@@ -1422,7 +1422,7 @@ struct SkillsTabView: View {
         VStack(spacing: theme.spacingS) {
             Picker("Agent", selection: $selectedAgentId) {
                 Text("Select agent...").tag("")
-                ForEach(bridge.agents) { agent in
+                ForEach(bridge.agentState.agents) { agent in
                     Text(agent.name).tag(agent.id)
                 }
             }
@@ -1712,7 +1712,7 @@ struct ApikeyTabView: View {
                     .foregroundStyle(theme.textSecondary)
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: theme.spacingXS) {
-                        ForEach(bridge.agents.prefix(10), id: \.id) { agent in
+                        ForEach(bridge.agentState.agents.prefix(10), id: \.id) { agent in
                             FusionTag(agent.name, color: .blue)
                         }
                     }

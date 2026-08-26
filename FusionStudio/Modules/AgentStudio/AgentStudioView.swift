@@ -110,7 +110,7 @@ struct AgentStudioView: View {
                     try await bridge.checkHealth()
                     try await bridge.fetchAgents()
                     try await bridge.fetchGraphs()
-                    agentStudioLog.info("Bridge health check passed, fetched \(bridge.agents.count) agents, \(bridge.graphs.count) graphs")
+                    agentStudioLog.info("Bridge health check passed, fetched \(bridge.agentState.agents.count) agents, \(bridge.agentState.graphs.count) graphs")
                 } catch {
                     agentStudioLog.warning("Bridge connection failed on appear: \(error)")
                 }

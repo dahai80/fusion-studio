@@ -211,7 +211,7 @@ struct AIAgentDashboardView: View {
             }
             do {
                 try await bridge.fetchAgents()
-                await MainActor.run { recentAgents = bridge.agents }
+                await MainActor.run { recentAgents = bridge.agentState.agents }
             } catch {
                 dashLog.error("Fetch agents failed: \(error.localizedDescription)")
             }

@@ -4,7 +4,7 @@
 // templateInstantiate/deployImport 原留 AgentBridge (跨域, 依赖 parseGraphModel), 现随 parseGraphModel 同搬本文件。
 // executeGraph/deleteGraph/cancelExecution 留 AgentBridge: executeGraph 依赖 Self.parseEventModel (Event 域 private static 跨文件不可访问),
 //   且写共享 events/isExecuting @Published; deleteGraph/cancelExecution 无 parseGraphModel 依赖可独立抽, 但留以保持 Graph Ops MARK 完整语义, 后续按需。
-// @Published graphs (L314) 留主类 (extension 不可声明存储, 有外部 SwiftUI 读 DAGCanvasView/AgentTaskViews/AgentStudioView)。
+// @Published self.agentState.graphs (L314) 留主类 (extension 不可声明存储, 有外部 SwiftUI 读 DAGCanvasView/AgentTaskViews/AgentStudioView)。
 //   templates (L338)/deployFormats (L339) 留主类 (各有外部读), extension 仅读 self.templates/deployFormats 无写, 观察链不变。
 // anyToJSONValue: 通用 Any→JSONValue 转换器 (非域 parser), 被 parseGraphModel (本文件) + parseEventModel (留 AgentBridge) 共用。
 //   解阻方案: anyToJSONValue private→internal (留 AgentBridge), 本文件 parseGraphModel 调 Self.anyToJSONValue (internal 跨文件可达)。
@@ -25,7 +25,7 @@ extension AgentBridge {
         }
         do {
             let result = try await client.call(method: RPCMethod.graphList)
-            let graphsData = result["graphs"] as? [[String: Any]] ?? []
+            let graphsData = result["self.agentState.graphs"] as? [[String: Any]] ?? []
             var parsed: [AgentGraphModel] = []
             for g in graphsData {
                 if let model = Self.parseGraphModel(from: g) {
@@ -33,16 +33,16 @@ extension AgentBridge {
                 }
             }
             // 仅在 id 集合或数量变化时更新 @Published, 避免 .task 反复触发 AgentStudioView body 重算导致 Workflows 转圈
-            // BUG-6: 旧实现 zip(parsed, self.graphs) 按较短序列截断, 删除项不被检测
-            // (parsed 比 graphs 短时 zip 只比到 parsed.count, 尾部多余 graphs.id 不参与比较 -> changed=false)。
+            // BUG-6: 旧实现 zip(parsed, self.agentState.graphs) 按较短序列截断, 删除项不被检测
+            // (parsed 比 self.agentState.graphs 短时 zip 只比到 parsed.count, 尾部多余 self.agentState.graphs.id 不参与比较 -> changed=false)。
             // 改用 id 集合差集, 增删均能检出。
             let parsedIds = Set(parsed.map(\.id))
-            let currentIds = Set(self.graphs.map(\.id))
-            let changed = parsed.count != self.graphs.count || parsedIds != currentIds
+            let currentIds = Set(self.agentState.graphs.map(\.id))
+            let changed = parsed.count != self.agentState.graphs.count || parsedIds != currentIds
             if changed {
-                self.graphs = parsed
+                self.agentState.graphs = parsed
             }
-            agentGraphLog.info("fetchGraphs: received \(parsed.count) graphs (changed=\(changed))")
+            agentGraphLog.info("fetchGraphs: received \(parsed.count) self.agentState.graphs (changed=\(changed))")
             return parsed
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)

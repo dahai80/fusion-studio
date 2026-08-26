@@ -577,7 +577,7 @@ struct AIAgentDebugView: View {
     // MARK: - Actions
 
     private func loadAgent() {
-        agent = bridge.agents.first { $0.id == agentId }
+        agent = bridge.agentState.agents.first { $0.id == agentId }
         Task {
             do {
                 let result = try await ipc.agentListSkills(agentId: agentId)

@@ -271,12 +271,12 @@ struct CreateTaskSheet: View {
 
                         labeledField("Assign Agent") {
                             Picker("Agent", selection: $selectedAgent) {
-                                if bridge.agents.isEmpty && orchestrator.agents.isEmpty {
+                                if bridge.agentState.agents.isEmpty && orchestrator.agents.isEmpty {
                                     Text("No agents available").tag("")
                                 }
-                                if !bridge.agents.isEmpty {
+                                if !bridge.agentState.agents.isEmpty {
                                     Section("Backend Agents") {
-                                        ForEach(bridge.agents) { agent in
+                                        ForEach(bridge.agentState.agents) { agent in
                                             Label(agent.name, systemImage: "brain.head.profile").tag(agent.id)
                                         }
                                     }
@@ -295,7 +295,7 @@ struct CreateTaskSheet: View {
                         labeledField("Workflow (optional)") {
                             Picker("Workflow", selection: $selectedGraph) {
                                 Text("None (single agent step)").tag("")
-                                ForEach(bridge.graphs) { g in
+                                ForEach(bridge.agentState.graphs) { g in
                                     Text(g.name).tag(g.id)
                                 }
                             }
@@ -779,8 +779,8 @@ struct WorkflowListView: View {
     @Environment(\.studioTheme) var theme
 
     private var filteredGraphs: [AgentGraphModel] {
-        guard !searchText.isEmpty else { return bridge.graphs }
-        return bridge.graphs.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+        guard !searchText.isEmpty else { return bridge.agentState.graphs }
+        return bridge.agentState.graphs.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
     }
 
     var body: some View {
@@ -817,7 +817,7 @@ struct WorkflowListView: View {
         }
         .task {
             // 已有数据不重拉, 避免每次切 tab 都 fetch 触发 body 重算导致转圈
-            if bridge.graphs.isEmpty {
+            if bridge.agentState.graphs.isEmpty {
                 await loadGraphs()
             }
         }
@@ -832,7 +832,7 @@ struct WorkflowListView: View {
         do {
             try await bridge.fetchGraphs()
             let elapsed = Int(Date().timeIntervalSince(t0) * 1000)
-            workflowLog.info("WorkflowListView loaded \(bridge.graphs.count) graphs in \(elapsed)ms")
+            workflowLog.info("WorkflowListView loaded \(bridge.agentState.graphs.count) graphs in \(elapsed)ms")
         } catch {
             let elapsed = Int(Date().timeIntervalSince(t0) * 1000)
             workflowLog.error("WorkflowListView loadGraphs failed in \(elapsed)ms: \(error)")
@@ -845,7 +845,7 @@ struct WorkflowListView: View {
         defer { isLoading = false }
         do {
             try await bridge.fetchGraphs()
-            workflowLog.info("WorkflowListView refreshed \(bridge.graphs.count) graphs")
+            workflowLog.info("WorkflowListView refreshed \(bridge.agentState.graphs.count) graphs")
         } catch {
             workflowLog.error("WorkflowListView refresh failed: \(error)")
         }
@@ -868,7 +868,7 @@ struct WorkflowListView: View {
             VStack(spacing: 0) {
                 StudioSectionHeader(title: "Workflows")
                 searchBox
-                if isLoading && bridge.graphs.isEmpty {
+                if isLoading && bridge.agentState.graphs.isEmpty {
                     VStack(spacing: theme.spacingS) {
                         ProgressView()
                         Text("Loading workflows...")

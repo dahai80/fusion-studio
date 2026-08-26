@@ -48,4 +48,24 @@ final class AgentBridgeTests: XCTestCase {
         XCTAssertEqual(bridge.moduleState.lastSkillResult, "")
         XCTAssertEqual(bridge.moduleState.lastResearchResult, "")
     }
+
+    // F-A1 Phase 6: AgentState 15 @Published 初值 (13 AgentOps + graphs + dashboardData)。
+    func testAgentStateDefaults() {
+        let bridge = AgentBridge()
+        XCTAssertTrue(bridge.agentState.agents.isEmpty)
+        XCTAssertNil(bridge.agentState.currentAgent)
+        XCTAssertTrue(bridge.agentState.agentSkills.isEmpty)
+        XCTAssertTrue(bridge.agentState.agentSoul.isEmpty)
+        XCTAssertTrue(bridge.agentState.marketplaceEntries.isEmpty)
+        XCTAssertTrue(bridge.agentState.marketplaceCategories.isEmpty)
+        XCTAssertTrue(bridge.agentState.agentVersionHistory.isEmpty)
+        XCTAssertTrue(bridge.agentState.auditTrail.isEmpty)
+        XCTAssertTrue(bridge.agentState.sessionLogs.isEmpty)
+        XCTAssertTrue(bridge.agentState.activeSessionId.isEmpty)
+        XCTAssertTrue(bridge.agentState.streamingContent.isEmpty)
+        XCTAssertFalse(bridge.agentState.isAgentStreaming)
+        XCTAssertTrue(bridge.agentState.lastToolCalls.isEmpty)
+        XCTAssertTrue(bridge.agentState.graphs.isEmpty)
+        XCTAssertTrue(bridge.agentState.dashboardData.isEmpty)
+    }
 }

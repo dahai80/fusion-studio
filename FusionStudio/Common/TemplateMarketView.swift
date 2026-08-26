@@ -1,5 +1,5 @@
 // Callers: ModuleDetailView routing.
-// Refactored: GUI reads bridge.marketplaceEntries directly, TemplateMarket singleton removed.
+// Refactored: GUI reads bridge.agentState.marketplaceEntries directly, TemplateMarket singleton removed.
 
 import SwiftUI
 import os
@@ -68,7 +68,7 @@ struct TemplateMarketView: View {
     }
 
     private var filteredEntries: [MarketplaceEntryModel] {
-        var result = bridge.marketplaceEntries
+        var result = bridge.agentState.marketplaceEntries
         if selectedCategory != .all {
             result = result.filter { TemplateCategory.fromBridgeKey($0.category) == selectedCategory }
         }
@@ -85,7 +85,7 @@ struct TemplateMarketView: View {
     }
 
     private func isInstalled(_ entry: MarketplaceEntryModel) -> Bool {
-        bridge.agents.contains(where: { $0.id == entry.id })
+        bridge.agentState.agents.contains(where: { $0.id == entry.id })
     }
 
     var body: some View {
