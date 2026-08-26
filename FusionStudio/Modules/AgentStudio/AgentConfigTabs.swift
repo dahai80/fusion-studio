@@ -207,7 +207,7 @@ struct CronTabView: View {
         let graphId = job["graph_id"] as? String ?? ""
         let inputRaw = job["input_data"] as? String ?? ""
         let linkedTaskId = parseTaskId(from: inputRaw)
-        let linkedTask = linkedTaskId.flatMap { id in bridge.tasks.first(where: { $0.id == id }) }
+        let linkedTask = linkedTaskId.flatMap { id in bridge.taskState.tasks.first(where: { $0.id == id }) }
 
         return StudioRow(
             label: name,

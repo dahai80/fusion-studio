@@ -986,10 +986,7 @@ final class AgentBridge: ObservableObject {
     //   MAINT: teamSwarmRegister/Delegate/Stats + teamPlazaCreate/Broadcast 删 (0 前端调用方, UI 只读列表)。
 
     // MARK: - Task Operations
-    // @Published tasks/projects 留此 (extension 不可声明存储, 有外部 SwiftUI 读 TaskQueueView/ProjectsPanel)。
-
-    @Published var tasks: [TaskModel] = []
-    @Published var projects: [ProjectBucket] = []
+    // @Published self.taskState.tasks/self.taskState.projects 已迁 TaskState 域 (有外部 SwiftUI 读 TaskQueueView/ProjectsPanel)。
 
     // 从后端 task.list 拉取持久化任务. 后端 5 态 → 前端 7 态.
     func fetchTasks() async {
@@ -998,13 +995,13 @@ final class AgentBridge: ObservableObject {
         guard let client = ipcClient else { return }
         do {
             let result = try await client.taskList(limit: 200)
-            let raw = result["tasks"] as? [[String: Any]] ?? []
+            let raw = result["self.taskState.tasks"] as? [[String: Any]] ?? []
             var parsed: [TaskModel] = []
             for d in raw {
                 if let t = TaskModel(backendDict: d) { parsed.append(t) }
             }
-            self.tasks = parsed
-            logger.info("fetchTasks: \(parsed.count) backend tasks")
+            self.taskState.tasks = parsed
+            logger.info("fetchTasks: \(parsed.count) backend self.taskState.tasks")
         } catch {
             logger.warning("fetchTasks failed: \(error.localizedDescription)")
         }
@@ -1017,13 +1014,13 @@ final class AgentBridge: ObservableObject {
         guard let client = ipcClient else { return }
         do {
             let result = try await client.projectList()
-            let raw = result["projects"] as? [[String: Any]] ?? []
+            let raw = result["self.taskState.projects"] as? [[String: Any]] ?? []
             var parsed: [ProjectBucket] = []
             for d in raw {
                 if let b = ProjectBucket(backendDict: d) { parsed.append(b) }
             }
-            self.projects = parsed
-            logger.info("fetchProjects: \(parsed.count) projects")
+            self.taskState.projects = parsed
+            logger.info("fetchProjects: \(parsed.count) self.taskState.projects")
         } catch {
             logger.warning("fetchProjects failed: \(error.localizedDescription)")
         }
@@ -1038,13 +1035,13 @@ final class AgentBridge: ObservableObject {
     }
 
     private func taskIndex(_ id: String) -> Int? {
-        tasks.firstIndex(where: { $0.id == id })
+        self.taskState.tasks.firstIndex(where: { $0.id == id })
     }
 
     private func updateTask(_ id: String, _ mutate: (inout TaskModel) -> Void) {
         guard let idx = taskIndex(id) else { return }
-        mutate(&tasks[idx])
-        tasks[idx].updatedAt = Date()
+        mutate(&self.taskState.tasks[idx])
+        self.taskState.tasks[idx].updatedAt = Date()
     }
 
     // 提交到后端 task.submit; cron 触发由后端自动注册 cron job 并回写 cron_job_id.
@@ -1085,13 +1082,13 @@ final class AgentBridge: ObservableObject {
             throw BridgeError.decodeError("task.submit missing task field")
         }
         if let idx = self.taskIndex(saved.id) {
-            self.tasks[idx] = saved
+            self.taskState.tasks[idx] = saved
         } else {
-            self.tasks.append(saved)
-            // F-A2: tasks 无界 append, 连续提交不 fetch 时单调增长。保留最近 500 (LRU),
+            self.taskState.tasks.append(saved)
+            // F-A2: self.taskState.tasks 无界 append, 连续提交不 fetch 时单调增长。保留最近 500 (LRU),
             // 超额丢弃最旧。PERF-3 ragResults 范式。
-            if self.tasks.count > 500 {
-                self.tasks.removeFirst(self.tasks.count - 500)
+            if self.taskState.tasks.count > 500 {
+                self.taskState.tasks.removeFirst(self.taskState.tasks.count - 500)
             }
         }
         logger.info("taskSubmit: id=\(saved.id) title=\(title) trigger=\(trigger.rawValue) cron_job=\(saved.cronJobId)")
@@ -1100,9 +1097,9 @@ final class AgentBridge: ObservableObject {
 
     func taskExecuteImmediate(_ taskId: String) {
         guard let idx = taskIndex(taskId) else { return }
-        let agentId = tasks[idx].agentId
-        let graphId = tasks[idx].graphId
-        let inputText = tasks[idx].input
+        let agentId = self.taskState.tasks[idx].agentId
+        let graphId = self.taskState.tasks[idx].graphId
+        let inputText = self.taskState.tasks[idx].input
         updateTask(taskId) { t in
             t.status = .running
             t.lastRunAt = Date()
@@ -1168,7 +1165,7 @@ final class AgentBridge: ObservableObject {
                     logger.warning("taskExecuteImmediate catch: 任务已删除, 放弃 retry id=\(taskId)")
                     return
                 }
-                let cur = self.tasks[idx]
+                let cur = self.taskState.tasks[idx]
                 // F-R12: 计入后端连续失败, 达阈值开路熔断。
                 backendConsecutiveFailures += 1
                 if backendConsecutiveFailures >= backendFailureThreshold && !backendCircuitOpen {
@@ -1217,7 +1214,7 @@ final class AgentBridge: ObservableObject {
         Task {
             do {
                 _ = try await client.taskDelete(taskId: taskId)
-                self.tasks.removeAll { $0.id == taskId }
+                self.taskState.tasks.removeAll { $0.id == taskId }
                 logger.info("taskDelete: id=\(taskId) deleted via RPC")
             } catch {
                 logger.error("taskDelete failed: id=\(taskId) err=\(error.localizedDescription)")
@@ -1260,7 +1257,7 @@ final class AgentBridge: ObservableObject {
             let result = try await client.taskRerun(taskId: taskId)
             if let d = result["task"] as? [String: Any], let updated = TaskModel(backendDict: d) {
                 if let idx = self.taskIndex(taskId) {
-                    self.tasks[idx] = updated
+                    self.taskState.tasks[idx] = updated
                 }
                 logger.info("taskRerun: id=\(taskId)")
                 // rerun 重置为 pending, 前端立即执行 immediate 触发.
@@ -1285,9 +1282,9 @@ final class AgentBridge: ObservableObject {
 
     func taskScheduleCron(_ taskId: String, expression: String, input: String) {
         guard let idx = taskIndex(taskId) else { return }
-        let agentId = tasks[idx].agentId
-        let graphId = tasks[idx].graphId
-        let name = tasks[idx].title
+        let agentId = self.taskState.tasks[idx].agentId
+        let graphId = self.taskState.tasks[idx].graphId
+        let name = self.taskState.tasks[idx].title
         let inputData = encodeCronInput(taskId: taskId, agentId: agentId, input: input)
         updateTask(taskId) { t in
             t.status = .scheduled
@@ -1321,9 +1318,9 @@ final class AgentBridge: ObservableObject {
 
     func taskScheduleRunAt(_ taskId: String, runAt: Date, input: String) {
         guard let idx = taskIndex(taskId) else { return }
-        let agentId = tasks[idx].agentId
-        let graphId = tasks[idx].graphId
-        let name = tasks[idx].title
+        let agentId = self.taskState.tasks[idx].agentId
+        let graphId = self.taskState.tasks[idx].graphId
+        let name = self.taskState.tasks[idx].title
         let comp = Calendar.current.dateComponents([.minute, .hour, .day, .month], from: runAt)
         let expr = "\(comp.minute ?? 0) \(comp.hour ?? 0) \(comp.day ?? 1) \(comp.month ?? 1) *"
         let inputData = encodeCronInput(taskId: taskId, agentId: agentId, input: input)

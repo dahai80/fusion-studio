@@ -39,6 +39,8 @@ final class ModuleState: ObservableObject {
 // MARK: - Task State (任务 / 项目)
 
 final class TaskState: ObservableObject {
+    @Published var tasks: [TaskModel] = []
+    @Published var projects: [ProjectBucket] = []
     init() {}
 }
 

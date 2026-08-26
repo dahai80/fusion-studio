@@ -14,7 +14,7 @@ struct AgentStudioView: View {
     @Environment(\.studioTheme) var theme
 
     private var taskCount: Int {
-        bridge.tasks.filter { !$0.status.isTerminal }.count
+        bridge.taskState.tasks.filter { !$0.status.isTerminal }.count
     }
 
     private var unreadCount: Int {

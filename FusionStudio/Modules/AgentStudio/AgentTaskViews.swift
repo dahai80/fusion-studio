@@ -18,16 +18,16 @@ struct AgentTaskListView: View {
     enum TaskViewMode { case list, board }
 
     private var activeTasks: [TaskModel] {
-        bridge.tasks.filter { !$0.status.isTerminal }
+        bridge.taskState.tasks.filter { !$0.status.isTerminal }
     }
 
     private var completedTasks: [TaskModel] {
-        bridge.tasks.filter { $0.status.isTerminal }
+        bridge.taskState.tasks.filter { $0.status.isTerminal }
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            if bridge.tasks.isEmpty {
+            if bridge.taskState.tasks.isEmpty {
                 emptyTasksPlaceholder
             } else if viewMode == .board {
                 TaskBoardView(toastManager: toastManager)
@@ -306,7 +306,7 @@ struct CreateTaskSheet: View {
                             VStack(spacing: theme.spacingXS) {
                                 Picker("Project", selection: $selectedProject) {
                                     Text("No project").tag("")
-                                    ForEach(bridge.projects) { p in
+                                    ForEach(bridge.taskState.projects) { p in
                                         Text("\(p.id) (\(p.total))").tag(p.id)
                                     }
                                     Text("New project…").tag("__new__")
@@ -472,7 +472,7 @@ struct AgentTaskDetailView: View {
     @State private var isLoadingExec = false
 
     private var task: TaskModel? {
-        bridge.tasks.first(where: { $0.id == taskId })
+        bridge.taskState.tasks.first(where: { $0.id == taskId })
     }
 
     var body: some View {
@@ -665,7 +665,7 @@ struct TaskBoardView: View {
     private var columns: [(TaskModel.TaskStatus, [TaskModel])] {
         let order: [TaskModel.TaskStatus] = [.pending, .queued, .scheduled, .running, .failed, .completed, .cancelled]
         return order.map { status in
-            (status, bridge.tasks.filter { $0.status == status })
+            (status, bridge.taskState.tasks.filter { $0.status == status })
         }.filter { !$0.1.isEmpty || $0.0 == .pending || $0.0 == .running }
     }
 
