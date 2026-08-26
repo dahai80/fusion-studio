@@ -1920,7 +1920,7 @@ struct TerminalView: View {
         switch cmd.lowercased() {
         case "help": return i18n.t(.fc_term_commands)
         case "clear": output = []; return ""
-        case "status": return "Fusion Studio v1.0 | MLX: running | fusion-coder: ready"
+        case "status": return "Fusion Studio v1.0 | MLX: running | fusion-code: ready"
         case "mlx": return "fusion-mlx: localhost:\(FusionConfig.shared.mlxPort) | model: qwen3.5-9b-4bit"
         default: return String(format: i18n.t(.fc_term_unknown), cmd)
         }
