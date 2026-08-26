@@ -430,7 +430,7 @@ final class AgentBridge: ObservableObject {
             throw BridgeError.notConnected
         }
         do {
-            let result = try await client.call(method: "ping")
+            let result = try await client.call(method: RPCMethod.ping)
             let pong = result["pong"] as? Bool ?? false
             self.isConnected = pong
             logger.info("checkHealth: connected=\(pong)")
@@ -452,7 +452,7 @@ final class AgentBridge: ObservableObject {
         do {
             result = try await withThrowingTaskGroup(of: [String: Any].self) { group in
                 group.addTask {
-                    try await client.call(method: "env.health_check")
+                    try await client.call(method: RPCMethod.envHealthCheck)
                 }
                 group.addTask {
                     try await Task.sleep(nanoseconds: 8_000_000_000)
@@ -534,14 +534,14 @@ final class AgentBridge: ObservableObject {
         guard let client = ipcClient else {
             throw BridgeError.notConnected
         }
-        return try await client.call(method: "env.repair", params: ["item_id": itemId])
+        return try await client.call(method: RPCMethod.envRepair, params: ["item_id": itemId])
     }
 
     func repairAll() async throws -> [String: Any] {
         guard let client = ipcClient else {
             throw BridgeError.notConnected
         }
-        return try await client.call(method: "env.repair_all")
+        return try await client.call(method: RPCMethod.envRepairAll)
     }
 
     // MARK: - Graph Operations
@@ -556,7 +556,7 @@ final class AgentBridge: ObservableObject {
         }
         logger.info("deleteGraph: id=\(id)")
         do {
-            _ = try await client.call(method: "graph.delete", params: ["graph_id": id])
+            _ = try await client.call(method: RPCMethod.graphDelete, params: ["graph_id": id])
             logger.info("deleteGraph: deleted id=\(id, privacy: .public)")
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
@@ -582,7 +582,7 @@ final class AgentBridge: ObservableObject {
             if !taskId.isEmpty {
                 params["task_id"] = taskId
             }
-            let result = try await client.call(method: "graph.execute", params: params)
+            let result = try await client.call(method: RPCMethod.graphExecute, params: params)
 
             let eventsData = result["events"] as? [[String: Any]] ?? []
             var parsed: [AgentEventModel] = []
@@ -620,7 +620,7 @@ final class AgentBridge: ObservableObject {
         }
         logger.info("fetchTools")
         do {
-            let result = try await client.call(method: "tool.list", params: [:])
+            let result = try await client.call(method: RPCMethod.toolList, params: [:])
             let tools = result["tools"] as? [[String: Any]] ?? []
             self.tools = tools
             return tools
@@ -666,7 +666,7 @@ final class AgentBridge: ObservableObject {
         }
         logger.info("getTool: \(name)")
         do {
-            return try await client.call(method: "tool.get", params: ["name": name])
+            return try await client.call(method: RPCMethod.toolGet, params: ["name": name])
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
 
@@ -681,7 +681,7 @@ final class AgentBridge: ObservableObject {
         }
         logger.info("listSessions")
         do {
-            let result = try await client.call(method: "session.list", params: [:]) as [String: Any]
+            let result = try await client.call(method: RPCMethod.sessionList, params: [:]) as [String: Any]
             if let sessions = result["sessions"] as? [[String: Any]] {
                 return sessions
             }
@@ -711,7 +711,7 @@ final class AgentBridge: ObservableObject {
         if !inputData.isEmpty { params["input_data"] = inputData }
         logger.info("cronRegister: \(name) \(expression)")
         do {
-            return try await client.call(method: "cron.register", params: params)
+            return try await client.call(method: RPCMethod.cronRegister, params: params)
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
 
@@ -725,7 +725,7 @@ final class AgentBridge: ObservableObject {
         }
         logger.info("cronUnregister: \(id)")
         do {
-            return try await client.call(method: "cron.unregister", params: ["id": id])
+            return try await client.call(method: RPCMethod.cronUnregister, params: ["id": id])
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
 
@@ -739,7 +739,7 @@ final class AgentBridge: ObservableObject {
         }
         logger.info("cronList")
         do {
-            let result = try await client.call(method: "cron.list", params: [:]) as [String: Any]
+            let result = try await client.call(method: RPCMethod.cronList, params: [:]) as [String: Any]
             if let jobs = result["jobs"] as? [[String: Any]] {
                 return jobs
             }
@@ -760,7 +760,7 @@ final class AgentBridge: ObservableObject {
         if !jobId.isEmpty { params["job_id"] = jobId }
         logger.info("cronListExecutions: jobId=\(jobId)")
         do {
-            let result = try await client.call(method: "cron.list_executions", params: params) as [String: Any]
+            let result = try await client.call(method: RPCMethod.cronListExecutions, params: params) as [String: Any]
             if let executions = result["executions"] as? [[String: Any]] {
                 return executions
             }
@@ -960,7 +960,7 @@ final class AgentBridge: ObservableObject {
 
     func apikeyRotate(keyId: String) async throws -> [String: Any] {
         guard let client = ipcClient else { throw BridgeError.notConnected }
-        let result = try await client.call(method: "agent_studio.apikey.rotate", params: ["key_id": keyId])
+        let result = try await client.call(method: RPCMethod.agentStudioApikeyRotate, params: ["key_id": keyId])
         apikeysFetchedAt = nil
         await fetchApikeys()
         logger.info("Rotated API key: \(keyId)")

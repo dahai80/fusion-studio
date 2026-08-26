@@ -288,7 +288,7 @@ class DouyinOperationBridge: ObservableObject {
                 var params: [String: Any] = ["graph_id": graphId]
                 if !input.isEmpty { params["input"] = input }
                 if !variables.isEmpty { params["variables"] = variables }
-                let resp = try await ipc.call(method: "graph.execute", params: params)
+                let resp = try await ipc.call(method: RPCMethod.graphExecute, params: params)
                 let status = resp["status"] as? String ?? "unknown"
                 let events = resp["events"] as? [Any] ?? []
                 let ok = status == "completed"
@@ -325,7 +325,7 @@ class DouyinOperationBridge: ObservableObject {
             throw NSError(domain: "DouyinOperationBridge", code: 2,
                           userInfo: [NSLocalizedDescriptionKey: String(format: I18nManager.shared.t(.dy_err_graph_parse), path)])
         }
-        let resp = try await ipc.call(method: "graph.create", params: [
+        let resp = try await ipc.call(method: RPCMethod.graphCreate, params: [
             "name": graphName,
             "graph_data": graphData,
         ])
@@ -391,7 +391,7 @@ class DouyinOperationBridge: ObservableObject {
             do {
                 let graphId = try await ensureGraph(graphName: Self.publishGraphName, ipc: ipc)
                 let jobId = Self.cronIdPrefix + expression.replacingOccurrences(of: " ", with: "_")
-                let resp = try await ipc.call(method: "cron.register", params: [
+                let resp = try await ipc.call(method: RPCMethod.cronRegister, params: [
                     "id": jobId,
                     "name": I18nManager.shared.t(.dy_cron_name),
                     "expression": expression,
@@ -424,7 +424,7 @@ class DouyinOperationBridge: ObservableObject {
         douyinBridgeLog.info("unregisterPlan: \(jobId, privacy: .public)")
         Task {
             do {
-                _ = try await ipc.call(method: "cron.unregister", params: ["id": jobId])
+                _ = try await ipc.call(method: RPCMethod.cronUnregister, params: ["id": jobId])
                 DispatchQueue.main.async {
                     self.cronLoading = false
                     self.refreshCron(ipc: ipc)
@@ -439,13 +439,13 @@ class DouyinOperationBridge: ObservableObject {
         guard let ipc = ipc else { return }
         Task {
             do {
-                let result = try await ipc.call(method: "cron.list", params: [:])
+                let result = try await ipc.call(method: RPCMethod.cronList, params: [:])
                 let raw = (result["jobs"] as? [[String: Any]]) ?? []
                 let jobs: [DouyinCronJob] = raw.compactMap { parseCronJob($0) }
                     .filter { $0.id.hasPrefix(Self.cronIdPrefix) }
                 DispatchQueue.main.async { self.cronJobs = jobs }
                 if let first = jobs.first {
-                    let exeResult = try await ipc.call(method: "cron.list_executions", params: ["job_id": first.id, "limit": 20])
+                    let exeResult = try await ipc.call(method: RPCMethod.cronListExecutions, params: ["job_id": first.id, "limit": 20])
                     let exes = ((exeResult["executions"] as? [[String: Any]]) ?? []).compactMap { parseCronExecution($0) }
                     DispatchQueue.main.async { self.cronExecutions = exes }
                 } else {

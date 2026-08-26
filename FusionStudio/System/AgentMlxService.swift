@@ -85,14 +85,14 @@ extension AgentBridge {
         if !model.isEmpty {
             params["model"] = model
         }
-        return try await client.call(method: "mlx.start", params: params)
+        return try await client.call(method: RPCMethod.mlxStart, params: params)
     }
 
     func stopMLX() async throws -> [String: Any] {
         guard let client = ipcClient else {
             throw BridgeError.notConnected
         }
-        return try await client.call(method: "mlx.stop")
+        return try await client.call(method: RPCMethod.mlxStop)
     }
 
     func restartMLX(model: String = "") async throws -> [String: Any] {
@@ -101,21 +101,21 @@ extension AgentBridge {
         }
         var params: [String: Any] = [:]
         if !model.isEmpty { params["model"] = model }
-        return try await client.call(method: "mlx.restart", params: params)
+        return try await client.call(method: RPCMethod.mlxRestart, params: params)
     }
 
     func mlxStatus() async throws -> [String: Any] {
         guard let client = ipcClient else {
             throw BridgeError.notConnected
         }
-        return try await client.call(method: "mlx.status")
+        return try await client.call(method: RPCMethod.mlxStatus)
     }
 
     func mlxSetModel(model: String) async throws -> [String: Any] {
         guard let client = ipcClient else {
             throw BridgeError.notConnected
         }
-        return try await client.call(method: "mlx.set_model", params: ["model": model])
+        return try await client.call(method: RPCMethod.mlxSetModel, params: ["model": model])
     }
 
     // F-A2子3: 周期轮询 mlx.status, 解析 running/port/models 填 @Published。30s TTL 守卫防重叠。

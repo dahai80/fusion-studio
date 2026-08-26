@@ -5,143 +5,143 @@ extension IPCClient {
     // MARK: - Agent Task Operations
 
     func agentSubmitCodeTask(agentId: String, code: String, language: String = "swift") async throws -> [String: Any] {
-        return try await call(method: "agent.submit_code_task", params: ["agent_id": agentId, "code": code, "language": language])
+        return try await call(method: RPCMethod.agentSubmitCodeTask, params: ["agent_id": agentId, "code": code, "language": language])
     }
 
     func agentTaskStatus(taskId: String) async throws -> [String: Any] {
-        return try await call(method: "agent.task_status", params: ["task_id": taskId])
+        return try await call(method: RPCMethod.agentTaskStatus, params: ["task_id": taskId])
     }
 
     func agentTasks(agentId: String? = nil) async throws -> [String: Any] {
         var params: [String: Any] = [:]
         if let aid = agentId { params["agent_id"] = aid }
-        return try await call(method: "agent.tasks", params: params)
+        return try await call(method: RPCMethod.agentTasks, params: params)
     }
 
     func agentCancelTask(taskId: String) async throws -> [String: Any] {
-        return try await call(method: "agent.cancel_task", params: ["task_id": taskId])
+        return try await call(method: RPCMethod.agentCancelTask, params: ["task_id": taskId])
     }
 
     // MARK: - Chat Core
 
     func chatCreate(agentId: String, title: String = "") async throws -> [String: Any] {
-        return try await call(method: "chat.create", params: ["agent_id": agentId, "title": title])
+        return try await call(method: RPCMethod.chatCreate, params: ["agent_id": agentId, "title": title])
     }
 
     func chatList(agentId: String? = nil) async throws -> [String: Any] {
         var params: [String: Any] = [:]
         if let aid = agentId { params["agent_id"] = aid }
-        return try await call(method: "chat.list", params: params)
+        return try await call(method: RPCMethod.chatList, params: params)
     }
 
     func chatDelete(chatId: String) async throws -> [String: Any] {
-        return try await call(method: "chat.delete", params: ["chat_id": chatId])
+        return try await call(method: RPCMethod.chatDelete, params: ["chat_id": chatId])
     }
 
     func chatSend(chatId: String, message: String) async throws -> [String: Any] {
-        return try await call(method: "chat.send", params: ["chat_id": chatId, "message": message])
+        return try await call(method: RPCMethod.chatSend, params: ["chat_id": chatId, "message": message])
     }
 
     func chatStream(chatId: String, message: String) async throws -> [String: Any] {
-        return try await call(method: "chat.stream", params: ["chat_id": chatId, "message": message])
+        return try await call(method: RPCMethod.chatStream, params: ["chat_id": chatId, "message": message])
     }
 
     func chatEdit(messageId: String, content: String) async throws -> [String: Any] {
-        return try await call(method: "chat.edit", params: ["message_id": messageId, "content": content])
+        return try await call(method: RPCMethod.chatEdit, params: ["message_id": messageId, "content": content])
     }
 
     func chatBranch(messageId: String) async throws -> [String: Any] {
-        return try await call(method: "chat.branch", params: ["message_id": messageId])
+        return try await call(method: RPCMethod.chatBranch, params: ["message_id": messageId])
     }
 
     // MARK: - Team (Multi-Agent Collaboration)
 
     func teamOrchestrate(task: String, agentIds: [String], mode: String = "sequential") async throws -> [String: Any] {
-        return try await call(method: "team.orchestrate", params: ["task": task, "agent_ids": agentIds, "mode": mode])
+        return try await call(method: RPCMethod.teamOrchestrate, params: ["task": task, "agent_ids": agentIds, "mode": mode])
     }
 
     func teamSwarmRegister(agentId: String, role: String = "worker") async throws -> [String: Any] {
-        return try await call(method: "team.swarm_register", params: ["agent_id": agentId, "role": role])
+        return try await call(method: RPCMethod.teamSwarmRegister, params: ["agent_id": agentId, "role": role])
     }
 
     func teamSwarmAgents() async throws -> [String: Any] {
-        return try await call(method: "team.swarm_agents")
+        return try await call(method: RPCMethod.teamSwarmAgents)
     }
 
     func teamSwarmHandoff(fromAgent: String, toAgent: String, context: [String: Any] = [:]) async throws -> [String: Any] {
-        return try await call(method: "team.swarm_handoff", params: ["from": fromAgent, "to": toAgent, "context": context])
+        return try await call(method: RPCMethod.teamSwarmHandoff, params: ["from": fromAgent, "to": toAgent, "context": context])
     }
 
     func teamSwarmDelegate(agentId: String, task: String) async throws -> [String: Any] {
-        return try await call(method: "team.swarm_delegate", params: ["agent_id": agentId, "task": task])
+        return try await call(method: RPCMethod.teamSwarmDelegate, params: ["agent_id": agentId, "task": task])
     }
 
     func teamSwarmEscalate(agentId: String, reason: String) async throws -> [String: Any] {
-        return try await call(method: "team.swarm_escalate", params: ["agent_id": agentId, "reason": reason])
+        return try await call(method: RPCMethod.teamSwarmEscalate, params: ["agent_id": agentId, "reason": reason])
     }
 
     func teamSwarmEvaluate(agentId: String) async throws -> [String: Any] {
-        return try await call(method: "team.swarm_evaluate", params: ["agent_id": agentId])
+        return try await call(method: RPCMethod.teamSwarmEvaluate, params: ["agent_id": agentId])
     }
 
     func teamSwarmStats() async throws -> [String: Any] {
-        return try await call(method: "team.swarm_stats")
+        return try await call(method: RPCMethod.teamSwarmStats)
     }
 
     func teamFmpRegister(channel: String, agentId: String) async throws -> [String: Any] {
-        return try await call(method: "team.fmp_register", params: ["channel": channel, "agent_id": agentId])
+        return try await call(method: RPCMethod.teamFmpRegister, params: ["channel": channel, "agent_id": agentId])
     }
 
     func teamFmpSend(channel: String, message: String) async throws -> [String: Any] {
-        return try await call(method: "team.fmp_send", params: ["channel": channel, "message": message])
+        return try await call(method: RPCMethod.teamFmpSend, params: ["channel": channel, "message": message])
     }
 
     func teamFmpStats() async throws -> [String: Any] {
-        return try await call(method: "team.fmp_stats")
+        return try await call(method: RPCMethod.teamFmpStats)
     }
 
     func teamPlazaCreate(name: String, description: String = "") async throws -> [String: Any] {
-        return try await call(method: "team.plaza_create", params: ["name": name, "description": description])
+        return try await call(method: RPCMethod.teamPlazaCreate, params: ["name": name, "description": description])
     }
 
     func teamPlazaChannels() async throws -> [String: Any] {
-        return try await call(method: "team.plaza_channels")
+        return try await call(method: RPCMethod.teamPlazaChannels)
     }
 
     func teamPlazaBroadcast(channelId: String, message: String) async throws -> [String: Any] {
-        return try await call(method: "team.plaza_broadcast", params: ["channel_id": channelId, "message": message])
+        return try await call(method: RPCMethod.teamPlazaBroadcast, params: ["channel_id": channelId, "message": message])
     }
 
     func teamPlazaMessages(channelId: String) async throws -> [String: Any] {
-        return try await call(method: "team.plaza_messages", params: ["channel_id": channelId])
+        return try await call(method: RPCMethod.teamPlazaMessages, params: ["channel_id": channelId])
     }
 
     func teamPlazaBreakIn(channelId: String, message: String) async throws -> [String: Any] {
-        return try await call(method: "team.plaza_break_in", params: ["channel_id": channelId, "message": message])
+        return try await call(method: RPCMethod.teamPlazaBreakIn, params: ["channel_id": channelId, "message": message])
     }
 
     func teamPlazaCircuit(channelId: String) async throws -> [String: Any] {
-        return try await call(method: "team.plaza_circuit", params: ["channel_id": channelId])
+        return try await call(method: RPCMethod.teamPlazaCircuit, params: ["channel_id": channelId])
     }
 
     // MARK: - Cron
 
     func cronRegister(name: String, schedule: String, agentId: String, input: String = "") async throws -> [String: Any] {
-        return try await call(method: "cron.register", params: ["name": name, "schedule": schedule, "agent_id": agentId, "input": input])
+        return try await call(method: RPCMethod.cronRegister, params: ["name": name, "schedule": schedule, "agent_id": agentId, "input": input])
     }
 
     func cronUnregister(cronId: String) async throws -> [String: Any] {
-        return try await call(method: "cron.unregister", params: ["cron_id": cronId])
+        return try await call(method: RPCMethod.cronUnregister, params: ["cron_id": cronId])
     }
 
     func cronList() async throws -> [String: Any] {
-        return try await call(method: "cron.list")
+        return try await call(method: RPCMethod.cronList)
     }
 
     func cronListExecutions(cronId: String? = nil) async throws -> [String: Any] {
         var params: [String: Any] = [:]
         if let cid = cronId { params["cron_id"] = cid }
-        return try await call(method: "cron.list_executions", params: params)
+        return try await call(method: RPCMethod.cronListExecutions, params: params)
     }
 
     // MARK: - Task (通用 Task 持久化, #141 PR#143)
@@ -178,7 +178,7 @@ extension IPCClient {
             "max_retries": maxRetries,
         ]
         if !projectId.isEmpty { params["project_id"] = projectId }
-        return try await call(method: "task.submit", params: params)
+        return try await call(method: RPCMethod.taskSubmit, params: params)
     }
 
     func taskList(status: String = "", agentId: String = "", projectId: String = "", limit: Int = 100) async throws -> [String: Any] {
@@ -186,75 +186,75 @@ extension IPCClient {
         if !status.isEmpty { params["status"] = status }
         if !agentId.isEmpty { params["agent_id"] = agentId }
         if !projectId.isEmpty { params["project_id"] = projectId }
-        return try await call(method: "task.list", params: params)
+        return try await call(method: RPCMethod.taskList, params: params)
     }
 
     // MARK: - Project (#141 priority-2: 多 Task 聚合容器/看板)
 
     func projectList() async throws -> [String: Any] {
-        return try await call(method: "project.list")
+        return try await call(method: RPCMethod.projectList)
     }
 
     func projectTasks(projectId: String, status: String = "", limit: Int = 500) async throws -> [String: Any] {
         var params: [String: Any] = ["project_id": projectId, "limit": limit]
         if !status.isEmpty { params["status"] = status }
-        return try await call(method: "project.tasks", params: params)
+        return try await call(method: RPCMethod.projectTasks, params: params)
     }
 
     func taskGet(taskId: String) async throws -> [String: Any] {
-        return try await call(method: "task.get", params: ["task_id": taskId])
+        return try await call(method: RPCMethod.taskGet, params: ["task_id": taskId])
     }
 
     func taskStatus(taskId: String, status: String, lastResult: [String: Any]? = nil, lastError: String = "") async throws -> [String: Any] {
         var params: [String: Any] = ["task_id": taskId, "status": status, "last_error": lastError]
         if let r = lastResult { params["last_result"] = r }
-        return try await call(method: "task.status", params: params)
+        return try await call(method: RPCMethod.taskStatus, params: params)
     }
 
     func taskCancel(taskId: String) async throws -> [String: Any] {
-        return try await call(method: "task.cancel", params: ["task_id": taskId])
+        return try await call(method: RPCMethod.taskCancel, params: ["task_id": taskId])
     }
 
     func taskRerun(taskId: String) async throws -> [String: Any] {
-        return try await call(method: "task.rerun", params: ["task_id": taskId])
+        return try await call(method: RPCMethod.taskRerun, params: ["task_id": taskId])
     }
 
     func taskDelete(taskId: String) async throws -> [String: Any] {
-        return try await call(method: "task.delete", params: ["task_id": taskId])
+        return try await call(method: RPCMethod.taskDelete, params: ["task_id": taskId])
     }
 
     func taskAddArtifacts(taskId: String, artifactIds: [String]) async throws -> [String: Any] {
-        return try await call(method: "task.add_artifacts", params: ["task_id": taskId, "artifact_ids": artifactIds])
+        return try await call(method: RPCMethod.taskAddArtifacts, params: ["task_id": taskId, "artifact_ids": artifactIds])
     }
 
     // MARK: - Hooks
 
     func hooksList() async throws -> [String: Any] {
-        return try await call(method: "hooks.list")
+        return try await call(method: RPCMethod.hooksList)
     }
 
     func hooksRegister(event: String, agentId: String, action: String) async throws -> [String: Any] {
-        return try await call(method: "hooks.register", params: ["event": event, "agent_id": agentId, "action": action])
+        return try await call(method: RPCMethod.hooksRegister, params: ["event": event, "agent_id": agentId, "action": action])
     }
 
     func hooksTest(hookId: String) async throws -> [String: Any] {
-        return try await call(method: "hooks.test", params: ["hook_id": hookId])
+        return try await call(method: RPCMethod.hooksTest, params: ["hook_id": hookId])
     }
 
     // MARK: - Context
 
     func contextCompact(sessionId: String) async throws -> [String: Any] {
-        return try await call(method: "context.compact", params: ["session_id": sessionId])
+        return try await call(method: RPCMethod.contextCompact, params: ["session_id": sessionId])
     }
 
     func contextUsage(sessionId: String) async throws -> [String: Any] {
-        return try await call(method: "context.usage", params: ["session_id": sessionId])
+        return try await call(method: RPCMethod.contextUsage, params: ["session_id": sessionId])
     }
 
     // MARK: - Marketplace Extended
 
     func marketplaceUninstall(agentId: String) async throws -> [String: Any] {
-        return try await call(method: "marketplace.uninstall", params: ["agent_id": agentId])
+        return try await call(method: RPCMethod.marketplaceUninstall, params: ["agent_id": agentId])
     }
 
     // MARK: - Project Service (UDS /tmp/fusion-project-svc.sock, Issue #40)

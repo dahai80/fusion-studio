@@ -124,7 +124,7 @@ struct AgentDropdown: View {
         isLoading = true
         Task {
             do {
-                let r = try await ipc.call(method: "agent.list", params: [:])
+                let r = try await ipc.call(method: RPCMethod.agentList, params: [:])
                 let items = r["agents"] as? [[String: Any]] ?? r["items"] as? [[String: Any]] ?? []
                 await MainActor.run { agents = items; isLoading = false }
             } catch {

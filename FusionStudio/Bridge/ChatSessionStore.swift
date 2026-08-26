@@ -469,7 +469,7 @@ class ChatSessionStore: ObservableObject {
                 chatStoreLog.info("No IPC, loaded \(self.sessions.count) local sessions")
                 return
             }
-            let result = try await ipc.call(method: "chat.list")
+            let result = try await ipc.call(method: RPCMethod.chatList)
             if let list = result["sessions"] as? [[String: Any]] {
                 sessions = list.compactMap { parseSessionData($0) }
                 chatStoreLog.info("Loaded \(self.sessions.count) chat sessions via IPC")
@@ -492,7 +492,7 @@ class ChatSessionStore: ObservableObject {
                 var params: [String: Any] = ["mode": mode]
                 if !title.isEmpty { params["title"] = title }
                 if !graphId.isEmpty { params["graph_id"] = graphId }
-                let result = try await ipc.call(method: "chat.create", params: params)
+                let result = try await ipc.call(method: RPCMethod.chatCreate, params: params)
                 if let remote = parseSessionData(result) {
                     deleteSessionLocal(session.id)
                     sessions.remove(at: 0)
@@ -562,7 +562,7 @@ class ChatSessionStore: ObservableObject {
         chatStoreLog.info("Deleted chat session: \(sessionId)")
         if let ipc = ipc {
             do {
-                _ = try await ipc.call(method: "chat.delete", params: ["session_id": sessionId])
+                _ = try await ipc.call(method: RPCMethod.chatDelete, params: ["session_id": sessionId])
             } catch {
                 chatStoreLog.warning("chat.delete IPC failed, local delete done")
             }
@@ -581,7 +581,7 @@ class ChatSessionStore: ObservableObject {
         if let ipc = ipc {
             for id in ids {
                 do {
-                    _ = try await ipc.call(method: "chat.delete", params: ["session_id": id])
+                    _ = try await ipc.call(method: RPCMethod.chatDelete, params: ["session_id": id])
                 } catch {
                     chatStoreLog.warning("chat.delete IPC failed for \(id)")
                 }
@@ -845,7 +845,7 @@ class ChatSessionStore: ObservableObject {
                 "content": content,
             ]
             if !mode.isEmpty { params["mode"] = mode }
-            let result = try await ipc.call(method: "chat.send", params: params)
+            let result = try await ipc.call(method: RPCMethod.chatSend, params: params)
 
             if let errorCode = result["code"] as? Int, errorCode == 422 {
                 errorMessage = result["message"] as? String ?? "Vision model required for image input"
@@ -886,7 +886,7 @@ class ChatSessionStore: ObservableObject {
     func branch(at messageId: String) async {
         guard let session = activeSession else { return }
         do {
-            let result = try await ipc!.call(method: "chat.branch", params: [
+            let result = try await ipc!.call(method: RPCMethod.chatBranch, params: [
                 "session_id": session.id,
                 "message_id": messageId,
             ])
@@ -954,7 +954,7 @@ class ChatSessionStore: ObservableObject {
 
         if let ipcClient = ipc {
             do {
-                let result = try await ipcClient.call(method: "chat.edit", params: [
+                let result = try await ipcClient.call(method: RPCMethod.chatEdit, params: [
                     "session_id": session.id,
                     "message_id": messageId,
                     "content": newContent,
