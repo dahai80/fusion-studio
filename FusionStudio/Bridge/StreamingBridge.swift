@@ -333,6 +333,7 @@ class StreamingBridge: ObservableObject {
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
                 self.streamEvents.append(event)
+                self.trimStreamEvents()
                 self.isStreaming = false
                 bridgeLog.error("StreamingBridge: WebSocket error: \(errorMsg)")
             }

@@ -138,7 +138,17 @@ class GitManager: ObservableObject {
 
         do {
             try process.run()
+            // F-R7: waitUntilExit 30s 超时兜底防 git 挂起 (交互式凭证提示/网络 stall)。
+            // 30s 容纳 push/fetch 正常网络耗时, 挡真挂起。超时强杀, 返回 nil 不永阻塞。
+            let timeoutTask = Task {
+                try? await Task.sleep(nanoseconds: 30_000_000_000)
+                if process.isRunning {
+                    process.terminate()
+                    gitLog.warning("git \(args.first ?? "") timeout 30s, force terminate")
+                }
+            }
             process.waitUntilExit()
+            timeoutTask.cancel()
             let data = outPipe.fileHandleForReading.readDataToEndOfFile()
             if process.terminationStatus != 0 {
                 let errData = errPipe.fileHandleForReading.readDataToEndOfFile()

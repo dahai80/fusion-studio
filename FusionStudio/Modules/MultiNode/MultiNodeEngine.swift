@@ -107,10 +107,10 @@ class MultiNodeEngine: ObservableObject {
     }
 
     private func schedulePoll(interval: TimeInterval, label: String, action: @escaping () -> Void) {
-        action()
-        let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
-            // F-R10: 单飞保护。慢响应 (>interval) 时上一轮 action 未返回, 下一 tick 重复 fire 同 fetch,
-            // 叠加致请求风暴 + 续体堆积。label 作 in-flight key, 在途则跳过本轮。
+        // F-R10: 指数退避轮询。失败时 interval × 2^min(consecutiveFailures,5), 封顶 60s; 成功复位 base。
+        // 单发递归 Timer 每轮重算 delay (固定 repeats Timer 无法动态调 interval)。单飞保护防慢响应风暴。
+        var runOnce: (() -> Void)?
+        runOnce = { [weak self] in
             guard let self = self else { return }
             self.inflightLock.lock()
             let already = self.inflightFetches.contains(label)
@@ -118,13 +118,30 @@ class MultiNodeEngine: ObservableObject {
             self.inflightLock.unlock()
             guard !already else {
                 engineLog.debug("Poll skip (in-flight): \(label)")
+                self.reschedulePoll(interval: interval, label: label, action: action, runOnce: runOnce!)
                 return
             }
             action()
             self.inflightLock.lock()
             self.inflightFetches.remove(label)
             self.inflightLock.unlock()
+            self.reschedulePoll(interval: interval, label: label, action: action, runOnce: runOnce!)
         }
+        action()
+        reschedulePoll(interval: interval, label: label, action: action, runOnce: runOnce!)
+    }
+
+    private func reschedulePoll(interval: TimeInterval, label: String, action: @escaping () -> Void, runOnce: @escaping () -> Void) {
+        // F-R10: delay = base × 2^min(consecutiveFailures,5), 封顶 60s。consecutiveFailures=0 复位 base。
+        let backoff = TimeInterval(min(consecutiveFailures, 5))
+        let delay = min(interval * pow(2.0, backoff), 60.0)
+        if delay > interval {
+            engineLog.info("Poll backoff \(label): \(interval)s -> \(Int(delay))s (failures=\(self.consecutiveFailures))")
+        }
+        let timer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { _ in
+            runOnce()
+        }
+        // 旧 timer 已 fire (单发), 仅持有最新待 fire 的。stopPolling 清全部。
         pollTimers.append(timer)
     }
 

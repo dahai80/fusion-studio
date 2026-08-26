@@ -473,7 +473,16 @@ class ProjectWorkspace: ObservableObject {
 
         do {
             try process.run()
+            // F-R7: waitUntilExit 10s 超时兜底防 git 挂起 (如交互式凭证提示)。超时强杀。
+            let timeoutTask = Task {
+                try? await Task.sleep(nanoseconds: 10_000_000_000)
+                if process.isRunning {
+                    process.terminate()
+                    codeLog.warning("detectGitBranch timeout 10s, force terminate")
+                }
+            }
             process.waitUntilExit()
+            timeoutTask.cancel()
             if process.terminationStatus == 0 {
                 let data = pipe.fileHandleForReading.readDataToEndOfFile()
                 let branch = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -1596,7 +1605,16 @@ struct GitStatusView: View {
 
             do {
                 try process.run()
+                // F-R7: waitUntilExit 10s 超时兜底防 git status 挂起 (交互式凭证提示等)。
+                let timeoutTask = Task {
+                    try? await Task.sleep(nanoseconds: 10_000_000_000)
+                    if process.isRunning {
+                        process.terminate()
+                        codeLog.warning("loadGitChanges git status timeout 10s, force terminate")
+                    }
+                }
                 process.waitUntilExit()
+                timeoutTask.cancel()
                 let data = pipe.fileHandleForReading.readDataToEndOfFile()
                 let output = String(data: data, encoding: .utf8) ?? ""
                 let parsed = output.split(separator: "\n").compactMap { line -> (String, String)? in

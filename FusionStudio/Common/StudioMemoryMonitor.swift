@@ -1,5 +1,6 @@
 // F-R13: 进程内 RSS/phys_footprint 监控。旧实现零内存监控, @Published 无界 + 长会话 OOM 静默崩溃无告警。
 // 本监控周期采样本进程 phys_footprint (Apple Silicon 统一内存真实占用), 超软阈值告警 + 日志, 不阻断运行。
+// critical 阈值触发注册的 eviction 回调 (清 @Published 无界数组 LRU), 防 OOM。
 // Callers: FusionStudioApp 启动 start(), HardwareMonitorView 读 currentRSSMB。
 import Foundation
 import os.log
@@ -11,21 +12,32 @@ final class StudioMemoryMonitor: ObservableObject {
     @Published private(set) var currentRSSMB: Double = 0
     @Published private(set) var peakRSSMB: Double = 0
     @Published private(set) var warningLevel: WarningLevel = .normal
+    @Published private(set) var lastEvictionTriggeredMB: Double = 0
 
-    // Apple Silicon 统一内存, studio 单进程软阈值。8GB 机器 1.5GB 已偏重, 4GB+ 危险。
+    // Apple Silicon 统一内存, studio 单进程软阈值。审计: 2GB 警告, 3GB 自动清理。
     enum WarningLevel: String {
         case normal
-        case high      // > 1.5 GB
-        case critical  // > 4.0 GB
+        case high      // > 2 GB 警告
+        case critical  // > 3 GB 自动清理
     }
 
     private let logger = Logger(subsystem: "com.fusion.studio", category: "MemoryMonitor")
     private var sampleTask: Task<Void, Never>?
-    private let softLimitMB: Double = 1500
-    private let criticalLimitMB: Double = 4000
+    private let softLimitMB: Double = 2000
+    private let criticalLimitMB: Double = 3000
     private var lastWarnedLevel: WarningLevel = .normal
 
+    // F-R13: eviction 回调注册表。各持有 @Published 无界数组的 owner 注册清 LRU 闭包,
+    // critical 阈值触发全部调一遍。闭包返回释放条目数, 便于日志统计。
+    private var evictionHandlers: [(String, () -> Int)] = []
+
     private init() {}
+
+    /// 注册内存压力 eviction 回调。name 标识来源 (日志), handler 清无界 @Published 数组 LRU 返回释放条目数。
+    func registerEviction(name: String, _ handler: @escaping () -> Int) {
+        evictionHandlers.append((name, handler))
+        logger.info("eviction handler registered: \(name, privacy: .public)")
+    }
 
     func start(intervalSeconds: UInt64 = 10) {
         guard sampleTask == nil else { return }
@@ -63,13 +75,34 @@ final class StudioMemoryMonitor: ObservableObject {
         if level != lastWarnedLevel {
             switch level {
             case .critical:
-                logger.error("RSS CRITICAL: \(Int(mb))MB >= \(Int(self.criticalLimitMB))MB, 检查 @Published 无界数组/长会话泄漏")
+                logger.error("RSS CRITICAL: \(Int(mb))MB >= \(Int(self.criticalLimitMB))MB, 触发 eviction 清无界 @Published 数组")
             case .high:
                 logger.warning("RSS HIGH: \(Int(mb))MB >= \(Int(self.softLimitMB))MB, 关注内存增长")
             case .normal:
                 logger.info("RSS 回落到正常: \(Int(mb))MB")
             }
             lastWarnedLevel = level
+        }
+
+        // F-R13: critical 阈值触发 eviction (每次 sample 达 critical 都清, 非仅跨级 — 压力持续就持续清)。
+        if level == .critical {
+            triggerEviction(atMB: mb)
+        }
+    }
+
+    private func triggerEviction(atMB mb: Double) {
+        guard !evictionHandlers.isEmpty else { return }
+        lastEvictionTriggeredMB = mb
+        var totalFreed = 0
+        for (name, handler) in evictionHandlers {
+            let freed = handler()
+            totalFreed += freed
+            if freed > 0 {
+                logger.info("eviction \(name, privacy: .public): freed \(freed) entries")
+            }
+        }
+        if totalFreed > 0 {
+            logger.warning("RSS eviction triggered at \(Int(mb))MB, total freed \(totalFreed) entries across \(self.evictionHandlers.count) handlers")
         }
     }
 

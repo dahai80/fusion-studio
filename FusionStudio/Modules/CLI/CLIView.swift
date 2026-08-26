@@ -257,7 +257,20 @@ struct CLIView: View {
     private func runShell(_ cmd: String) async -> (String, Int32) {
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/bin/zsh")
+        // F-A17: -c 用户输入保留 shell 语义 (CLI 模拟器本身即执行用户命令)。安全靠:
+        // (1) executableURL 固定 /bin/zsh 不可控; (2) environment 置空敏感键 + 锁 PATH 防 PATH 劫持;
+        // (3) confirmDangerous 高危关键字拦截含 substitution/exfil/反弹 shell 向量, 粘贴不可信文本二次确认。
         task.arguments = ["-c", cmd]
+        var env = ProcessInfo.processInfo.environment
+        let sensitiveKeys = env.keys.filter {
+            $0.contains("TOKEN") || $0.contains("KEY") || $0.contains("SECRET") ||
+            $0.contains("PASSWORD") || $0.contains("CREDENTIAL") || $0 == "API_KEY"
+        }
+        for k in sensitiveKeys {
+            env.removeValue(forKey: k)
+        }
+        env["PATH"] = "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin"
+        task.environment = env
 
         let outputPipe = Pipe()
         let errorPipe = Pipe()
@@ -297,7 +310,9 @@ struct CLIView: View {
     // 但粘贴不可信文本时拦截破坏性操作, 二次确认后放行 (用户知情同意, 不静默执行)。
     private static let dangerPatterns: [String] = [
         "rm -rf", "rm -fr", "curl | sh", "curl|sh", "wget | sh", "wget|sh",
-        "mkfs", "dd if=", "> /dev/sd", "shutdown", "halt", "reboot", "kill -9"
+        "mkfs", "dd if=", "> /dev/sd", "shutdown", "halt", "reboot", "kill -9",
+        // F-A17: substitution/exfil 向量 — $(...) / 反引号 / 反弹 shell 标志。粘贴不可信文本时拦截。
+        "$(", "`", "/dev/tcp/", "nc -e", "bash -i", "mkfifo", "chmod +x"
     ]
 
     private func confirmDangerous(_ cmd: String) -> Bool {
