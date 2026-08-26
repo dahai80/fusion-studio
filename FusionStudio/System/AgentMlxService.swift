@@ -117,4 +117,41 @@ extension AgentBridge {
         }
         return try await client.call(method: "mlx.set_model", params: ["model": model])
     }
+
+    // F-A2子3: 周期轮询 mlx.status, 解析 running/port/models 填 @Published。30s TTL 守卫防重叠。
+    func pollMlxStatus() async {
+        if let t = mlxStatusFetchedAt, Date().timeIntervalSince(t) < 30 { return }
+        mlxStatusFetchedAt = Date()
+        do {
+            let st = try await mlxStatus()
+            await MainActor.run {
+                self.mlxRunning = st["running"] as? Bool ?? false
+                self.mlxPort = st["port"] as? Int ?? 0
+                if let arr = st["models"] as? [String] {
+                    self.mlxLoadedModels = arr
+                } else if let arr = st["models"] as? [[String: Any]] {
+                    self.mlxLoadedModels = arr.compactMap { $0["id"] as? String }
+                } else {
+                    self.mlxLoadedModels = []
+                }
+                agentMlxLog.info("F-A2子3 pollMlxStatus: running=\(self.mlxRunning) models=\(self.mlxLoadedModels.count) port=\(self.mlxPort)")
+            }
+        } catch {
+            agentMlxLog.debug("F-A2子3 pollMlxStatus failed: \(error.localizedDescription)")
+        }
+    }
+
+    // F-A2子3: 30s 周期轮询 + 首次立即。复用 F-A9 scenePhase 启停模式。
+    func startMlxStatusPolling() {
+        mlxStatusTimer?.invalidate()
+        mlxStatusTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+            Task { await self?.pollMlxStatus() }
+        }
+        Task { await pollMlxStatus() }
+    }
+
+    func stopMlxStatusPolling() {
+        mlxStatusTimer?.invalidate()
+        mlxStatusTimer = nil
+    }
 }

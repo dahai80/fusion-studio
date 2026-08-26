@@ -15,6 +15,8 @@ extension AgentBridge {
     // MARK: - Connector Operations
 
     func fetchConnectors() async {
+        if let t = connectorsFetchedAt, Date().timeIntervalSince(t) < 30 { return }
+        connectorsFetchedAt = Date()
         guard let client = ipcClient else { return }
         do {
             let result = try await client.connectorList()
@@ -28,6 +30,7 @@ extension AgentBridge {
     func connectorCreate(name: String, type: String, config: [String: Any]) async throws -> [String: Any] {
         guard let client = ipcClient else { throw BridgeError.notConnected }
         let result = try await client.connectorCreate(name: name, type: type, config: config)
+        connectorsFetchedAt = nil
         await fetchConnectors()
         return result
     }
@@ -35,6 +38,7 @@ extension AgentBridge {
     func connectorDelete(connectorId: String) async throws -> [String: Any] {
         guard let client = ipcClient else { throw BridgeError.notConnected }
         let result = try await client.connectorDelete(connectorId: connectorId)
+        connectorsFetchedAt = nil
         await fetchConnectors()
         return result
     }

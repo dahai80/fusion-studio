@@ -329,6 +329,25 @@ final class AgentBridge: ObservableObject {
     @Published var chatMessages: [ChatMessageRecord] = []
     @Published var isInferring: Bool = false
     @Published var dashboardData: [String: Any] = [:]
+    // F-A2子3: MLX 池可见性。周期轮询 mlx.status, 暴露 running + 已加载模型列表 + port。
+    // lease/LRU/TTL 驱逐生命周期在上游 fusion-mlx, daemon mlx.status 不暴露 → 仅 running+models, 缺口提 upstream issue。
+    @Published var mlxRunning: Bool = false
+    @Published var mlxLoadedModels: [String] = []
+    @Published var mlxPort: Int = 0
+    // F-A2子3: 以下 2 个 AgentMlxService facade extension 跨文件访问, 故 internal。
+    var mlxStatusTimer: Timer?
+    var mlxStatusFetchedAt: Date?
+    // F-A2子2: 30s TTL 客户端缓存, 防 onAppear fetch 风暴。写操作置 nil 强制下次重拉。
+    // extension 不可声明存储属性, 故 8 个 fetch 时间戳集中主类, facade extension 读 self.xxxFetchedAt。
+    private var apikeysFetchedAt: Date?
+    private var projectsFetchedAt: Date?
+    private var tasksFetchedAt: Date?
+    private var cronJobsFetchedAt: Date?
+    // F-A2子2: 以下 4 个 facade extension 跨文件访问, 故 internal (非 private, Swift private=文件作用域)。
+    var stylesFetchedAt: Date?
+    var hooksFetchedAt: Date?
+    var connectorsFetchedAt: Date?
+    var alertsFetchedAt: Date?
 
     // ARCH-2: 逃逸 Task 生命周期管理。taskExecuteImmediate 的 fire-and-forget Task 存 handle,
     // 按 taskId 索引。任务删除/对象销毁时 cancel, 防 view 销毁后后台 Task 仍写 @Published。
@@ -911,6 +930,8 @@ final class AgentBridge: ObservableObject {
     @Published var apikeys: [[String: Any]] = []
 
     func fetchApikeys() async {
+        if let t = apikeysFetchedAt, Date().timeIntervalSince(t) < 30 { return }
+        apikeysFetchedAt = Date()
         guard let client = ipcClient else { return }
         do {
             let result = try await client.apikeyList()
@@ -924,6 +945,7 @@ final class AgentBridge: ObservableObject {
     func apikeyCreate(name: String, permissions: [String] = [], agentIds: [String] = []) async throws -> [String: Any] {
         guard let client = ipcClient else { throw BridgeError.notConnected }
         let result = try await client.apikeyCreate(name: name, permissions: permissions, agentIds: agentIds)
+        apikeysFetchedAt = nil
         await fetchApikeys()
         return result
     }
@@ -931,6 +953,7 @@ final class AgentBridge: ObservableObject {
     func apikeyRevoke(keyId: String) async throws -> [String: Any] {
         guard let client = ipcClient else { throw BridgeError.notConnected }
         let result = try await client.apikeyRevoke(keyId: keyId)
+        apikeysFetchedAt = nil
         await fetchApikeys()
         return result
     }
@@ -938,6 +961,7 @@ final class AgentBridge: ObservableObject {
     func apikeyRotate(keyId: String) async throws -> [String: Any] {
         guard let client = ipcClient else { throw BridgeError.notConnected }
         let result = try await client.call(method: "agent_studio.apikey.rotate", params: ["key_id": keyId])
+        apikeysFetchedAt = nil
         await fetchApikeys()
         logger.info("Rotated API key: \(keyId)")
         return result
@@ -974,6 +998,8 @@ final class AgentBridge: ObservableObject {
 
     // 从后端 task.list 拉取持久化任务. 后端 5 态 → 前端 7 态.
     func fetchTasks() async {
+        if let t = tasksFetchedAt, Date().timeIntervalSince(t) < 30 { return }
+        tasksFetchedAt = Date()
         guard let client = ipcClient else { return }
         do {
             let result = try await client.taskList(limit: 200)
@@ -991,6 +1017,8 @@ final class AgentBridge: ObservableObject {
 
     // 拉取 Project 聚合看板桶 (#141 priority-2). 后端 project.list 按 project_id 分组统计.
     func fetchProjects() async {
+        if let t = projectsFetchedAt, Date().timeIntervalSince(t) < 30 { return }
+        projectsFetchedAt = Date()
         guard let client = ipcClient else { return }
         do {
             let result = try await client.projectList()
@@ -1372,6 +1400,8 @@ final class AgentBridge: ObservableObject {
     @Published var cronJobs: [[String: Any]] = []
 
     func fetchCronJobs() async {
+        if let t = cronJobsFetchedAt, Date().timeIntervalSince(t) < 30 { return }
+        cronJobsFetchedAt = Date()
         guard let client = ipcClient else { return }
         do {
             let result = try await client.cronList()
@@ -1385,6 +1415,7 @@ final class AgentBridge: ObservableObject {
     func cronRegister(name: String, schedule: String, agentId: String, input: String = "") async throws -> [String: Any] {
         guard let client = ipcClient else { throw BridgeError.notConnected }
         let result = try await client.cronRegister(name: name, schedule: schedule, agentId: agentId, input: input)
+        cronJobsFetchedAt = nil
         await fetchCronJobs()
         return result
     }
@@ -1392,6 +1423,7 @@ final class AgentBridge: ObservableObject {
     func cronUnregister(cronId: String) async throws -> [String: Any] {
         guard let client = ipcClient else { throw BridgeError.notConnected }
         let result = try await client.cronUnregister(cronId: cronId)
+        cronJobsFetchedAt = nil
         await fetchCronJobs()
         return result
     }

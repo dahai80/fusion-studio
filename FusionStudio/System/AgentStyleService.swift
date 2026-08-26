@@ -14,6 +14,8 @@ extension AgentBridge {
     // MARK: - Style Operations
 
     func fetchStyles() async {
+        if let t = stylesFetchedAt, Date().timeIntervalSince(t) < 30 { return }
+        stylesFetchedAt = Date()
         guard let client = ipcClient else { return }
         do {
             let result = try await client.styleList()
@@ -27,6 +29,7 @@ extension AgentBridge {
     func styleCreate(name: String, template: String, rules: [String: Any] = [:]) async throws -> [String: Any] {
         guard let client = ipcClient else { throw BridgeError.notConnected }
         let result = try await client.styleCreate(name: name, template: template, rules: rules)
+        stylesFetchedAt = nil
         await fetchStyles()
         return result
     }
@@ -34,6 +37,7 @@ extension AgentBridge {
     func styleDelete(styleId: String) async throws -> [String: Any] {
         guard let client = ipcClient else { throw BridgeError.notConnected }
         let result = try await client.styleDelete(styleId: styleId)
+        stylesFetchedAt = nil
         await fetchStyles()
         return result
     }

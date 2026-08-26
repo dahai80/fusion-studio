@@ -21,6 +21,8 @@ extension AgentBridge {
     }
 
     func fetchAlerts() async {
+        if let t = alertsFetchedAt, Date().timeIntervalSince(t) < 30 { return }
+        alertsFetchedAt = Date()
         guard let client = ipcClient else { return }
         do {
             let result = try await client.alertList()
@@ -34,6 +36,7 @@ extension AgentBridge {
     func alertAcknowledge(alertId: String) async throws -> [String: Any] {
         guard let client = ipcClient else { throw BridgeError.notConnected }
         let result = try await client.alertAcknowledge(alertId: alertId)
+        alertsFetchedAt = nil
         await fetchAlerts()
         return result
     }
