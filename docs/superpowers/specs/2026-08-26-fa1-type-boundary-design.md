@@ -26,13 +26,15 @@
 
 | 域 | @Published (count) | 写来源 (facade / 主类) |
 |---|---|---|
-| **RuntimeState** | isConnected, isExecuting, events, dashboardData (4) | 主类 (checkHealth/executeGraph/fetchTasks events) |
+| **RuntimeState** | isConnected, isExecuting, events (3) | 主类 (checkHealth/executeGraph/fetchTasks events) |
 | **MLXState** | models, mlxRunning, mlxLoadedModels, mlxPort (4) | AgentMlxService facade + 主类 mlxStatus |
-| **AgentState** | agents, currentAgent, agentSkills, agentSoul, marketplaceEntries, marketplaceCategories, agentVersionHistory, auditTrail, sessionLogs, activeSessionId, streamingContent, isAgentStreaming, lastToolCalls (13) | AgentOpsService facade (最大域) |
+| **AgentState** | agents, currentAgent, agentSkills, agentSoul, marketplaceEntries, marketplaceCategories, agentVersionHistory, auditTrail, sessionLogs, activeSessionId, streamingContent, isAgentStreaming, lastToolCalls, graphs, dashboardData (15) | AgentOpsService + AgentGraphService + AgentMarketplaceService facade (最大域) |
 | **ModuleState** | plans, currentPlan, ragResults, memoryEntries, memoryCount, safetyCheckResult, safetyPendingActions, templates, deployFormats, tools, ragSources, lastSkillResult, lastResearchResult (13) | AgentPlanner/RAG/Memory/Safety/Template/Deploy facade + 主类 (fetchTools/skillExecute/researchAdaptive) |
 | **TaskState** | tasks, projects (2) | 主类 (fetchTasks/taskSubmit/taskDelete/taskCancel/taskRerun/taskSchedule*/updateTask 等 21 func) |
 | **ConfigState** | connectors, apikeys, styles, hooks, analyticsData, alerts, swarmAgents, plazaChannels, cronJobs (9) | Connector/Style/Hooks/Analytics/Team/Cron facade + 主类 (fetchApikeys/fetchCronJobs) |
 | **ProjectChatState** | chatMessages, isInferring (2) | AgentProjectChatService facade (0 SwiftUI 读, write-only) |
+
+**合计 48 @Published** (3+4+15+13+2+9+2)。原 spec 漏 `graphs` (AgentGraphService:43 唯一写) + 误摆 `dashboardData` 到 RuntimeState (其唯一写 AgentOpsService:235 = AgentState facade, 交叉域写)。两独立 investigator 复核修正: `graphs`→AgentState, `dashboardData`→AgentState (消除唯一交叉域写, 恢复 "0 跨域写")。
 
 **留在 AgentBridge** (不入任何域 — 跨域基础设施):
 - `ipcClient: IPCClient?` (var) — 所有 facade 经 `self.ipcClient` reach
@@ -41,12 +43,14 @@
 - parsing helper: anyToJSONValue (internal static, 跨文件 AgentGraphService 调); parseEventModel / jsonValueToAny (private static, 主类同文件)
 - `private let logger` / `private let agentBridgeStaticLog`
 
-**调研结论** (3 个独立 investigator agent 验证, 非自述):
-- 48 个真实 @Published (grep "63" 含 14 行注释提及)。
-- **0 跨域 @Published 写** — 每个 facade 只写自己域。重大去风险。
+**调研结论** (4 个独立 investigator agent 验证, 非自述; 第 4 轮复核修 3 处 spec 漏):
+- 48 个真实 @Published (grep "63" 含注释提及; 实测 48)。
+- **0 跨域 @Published 写** (修正后) — 原漏 `graphs` + 误摆 `dashboardData`。修正后 `graphs`/`dashboardData` 归 AgentState, 消除唯一交叉域写 (AgentOpsService:235 写 dashboardData = 同域 AgentState)。重大去风险成立。
 - **1 跨域读**: AgentProjectChatService:50 读 `models` (MLXState 域) 经 `MLXModelInfo.preferredDefault(in: models)`。
 - **0 `$bridge.X` 绑定** — 迁移是纯属性重命名, 无 Binding<> 管道。
 - 38 读端文件; ChatSessionStore 唯一非视图读端 (models); AgentConfigTabs 最重 (12 distinct props)。
+- **`ragResults` 0 写者** (ModuleState 域, reader-only @Published, 无人写) — 迁声明不动写; 保留 @Published, 待上游/未来补写。文档化。
+- **`graphs` 11 读端** (DAGCanvasView:114/155 + AgentTaskViews:298/782/783/820/835/848/871 + AgentStudioView:113 + AgentGraphService 自身 diff guard) — 原 spec 漏, 本修正补入 AgentState。
 - 11 个 write-only @Published (0 SwiftUI 读)。
 - 21 个主类 func 写 @Published (留协调者, reach 域)。
 - 3 个搁浅方法 (parser 耦合, 不写 @Published): marketplaceInstall 在 Ops (写 agentState.agents — 同域, 无隐患); templateInstantiate / deployImport 在 Graph (写无 @Published)。
@@ -121,9 +125,9 @@ bridge.configState.connectors
 
 | 属性 | 新路径 |
 |---|---|
-| isConnected, isExecuting, events, dashboardData | bridge.runtimeState.X |
+| isConnected, isExecuting, events | bridge.runtimeState.X |
 | models, mlxRunning, mlxLoadedModels, mlxPort | bridge.mlxState.X |
-| agents, currentAgent, agentSkills, agentSoul, marketplaceEntries, marketplaceCategories, agentVersionHistory, auditTrail, sessionLogs, activeSessionId, streamingContent, isAgentStreaming, lastToolCalls | bridge.agentState.X |
+| agents, currentAgent, agentSkills, agentSoul, marketplaceEntries, marketplaceCategories, agentVersionHistory, auditTrail, sessionLogs, activeSessionId, streamingContent, isAgentStreaming, lastToolCalls, graphs, dashboardData | bridge.agentState.X |
 | plans, currentPlan, ragResults, memoryEntries, memoryCount, safetyCheckResult, safetyPendingActions, templates, deployFormats, tools, ragSources, lastSkillResult, lastResearchResult | bridge.moduleState.X |
 | tasks, projects | bridge.taskState.X |
 | connectors, apikeys, styles, hooks, analyticsData, alerts, swarmAgents, plazaChannels, cronJobs | bridge.configState.X |
@@ -153,8 +157,10 @@ bridge.configState.connectors
 | 3 | TaskState | 2 | 主类 (21 task func) | AgentTaskViews/ConfigTabs/StudioView | build + tests |
 | 4 | ProjectChatState | 2 | AgentProjectChatService | 0 (write-only) | build + tests |
 | 5 | ModuleState | 13 | Planner/RAG/Memory/Safety/Template/Deploy + 主类 | MemoryView/SafetyView/Planner/Deploy/AgentConfigTabs/Desk/DocTemplate | build + tests |
-| 6 | AgentState | 13 | AgentOpsService | AgentListViews/AgentDashboardViews/TemplateMarketView/AIAgent*(7) | build + tests |
-| 7 | RuntimeState | 4 | 主类 (checkHealth/executeGraph/events/dashboard) | AgentStudioView/DeskView/PluginEcosystem/DocSidebar/AgentDashboardViews | build + tests, 最终 |
+| 6 | AgentState | 15 | AgentOpsService + AgentGraphService + AgentMarketplaceService | AgentListViews/AgentDashboardViews/TemplateMarketView/AIAgent*(7)/DAGCanvasView/AgentTaskViews(graphs) | build + tests |
+| 7 | RuntimeState | 3 | 主类 (checkHealth/executeGraph/events) | AgentStudioView/DeskView/PluginEcosystem/DocSidebar/AgentDashboardViews | build + tests, 最终 |
+
+**修正注** (第 4 轮复核): 原 Phase 6=13 (漏 graphs) / Phase 7=4 (误含 dashboardData)。`graphs` (AgentGraphService:43 写) + `dashboardData` (AgentOpsService:235 写, 原 RuntimeState = 唯一交叉域写) 归 AgentState (Phase 6)。消除交叉域写, Phase 7 降至 3 props。`graphs` 11 读端 (DAGCanvasView + AgentTaskViews + AgentStudioView) 随 Phase 6 迁。
 
 ### 每阶段 mechanics (确定性, 每阶段同)
 
