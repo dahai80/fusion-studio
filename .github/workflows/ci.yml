@@ -36,9 +36,10 @@ jobs:
         run: set -o pipefail && swift build -c debug 2>&1 | tail -20
 
       - name: Run tests
-        # F-I13: 去 continue-on-error (原测试失败不阻断 CI = 假绿) + pipefail 保 swift test 退出码
-        # (原 | tail -10 吞掉 swift test 退出码, tail 恒 0 → 测试失败也绿)。
-        run: set -o pipefail && swift test 2>&1 | tail -20
+        # F-I13: 去 continue-on-error (原测试失败不阻断 CI = 假绿) + pipefail 保 swift test 退出码。
+        # 不接 tail: tail -20 在失败时吞掉逐用例 "Test Case ... failed" 行, 只留末尾 Executed 摘要,
+        # 看不到哪个用例 fail → 无法定位。pipefail 已保退出码, 全量输出便于定位失败用例。
+        run: set -o pipefail && swift test 2>&1
 
       - name: Build (release)
         # F-I13: pipefail 保退出码 (同上)。
