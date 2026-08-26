@@ -69,7 +69,7 @@ struct DashboardTabView: View {
     }
 
     private var auditTrailSection: some View {
-        let trail = bridge.auditTrail
+        let trail = bridge.agentState.auditTrail
         if trail.isEmpty {
             return AnyView(
                 HStack {
@@ -120,7 +120,7 @@ struct DashboardTabView: View {
     }
 
     private var sessionLogsSection: some View {
-        let logs = bridge.sessionLogs
+        let logs = bridge.agentState.sessionLogs
         if logs.isEmpty {
             return AnyView(
                 HStack {
@@ -177,10 +177,10 @@ struct DashboardTabView: View {
     }
 
     private var dashboardCards: some View {
-        let d = bridge.dashboardData
+        let d = bridge.agentState.dashboardData
         let cards: [(String, String, String, Color)] = [
-            ("Total Agents", "\(d["total_agents"] as? Int ?? bridge.agents.count)", "person.2", .blue),
-            ("Published", "\(d["published_agents"] as? Int ?? bridge.agents.filter { $0.status == "published" }.count)", "arrow.up.circle", .green),
+            ("Total Agents", "\(d["total_agents"] as? Int ?? bridge.agentState.agents.count)", "person.2", .blue),
+            ("Published", "\(d["published_agents"] as? Int ?? bridge.agentState.agents.filter { $0.status == "published" }.count)", "arrow.up.circle", .green),
             ("Active", "\(d["active_agents"] as? Int ?? 0)", "bolt", .orange),
             ("Today Requests", "\(d["today_requests"] as? Int ?? 0)", "text.bubble", .purple),
             ("Total Tokens", "\(d["total_tokens"] as? Int ?? 0)", "number", .cyan),
@@ -216,9 +216,9 @@ struct DashboardTabView: View {
 
     private var agentStatusList: some View {
         VStack(spacing: 0) {
-            let draft = bridge.agents.filter { $0.status == "draft" || $0.status == nil }
-            let published = bridge.agents.filter { $0.status == "published" }
-            let archived = bridge.agents.filter { $0.status == "archived" }
+            let draft = bridge.agentState.agents.filter { $0.status == "draft" || $0.status == nil }
+            let published = bridge.agentState.agents.filter { $0.status == "published" }
+            let archived = bridge.agentState.agents.filter { $0.status == "archived" }
             statusRow(label: "Draft", count: draft.count, color: .gray)
             statusRow(label: "Published", count: published.count, color: .green)
             statusRow(label: "Archived", count: archived.count, color: .orange)
@@ -244,7 +244,7 @@ struct DashboardTabView: View {
     }
 
     private var recentErrorsSection: some View {
-        let errors = bridge.dashboardData["recent_errors"] as? [[String: Any]] ?? []
+        let errors = bridge.agentState.dashboardData["recent_errors"] as? [[String: Any]] ?? []
         if errors.isEmpty {
             return AnyView(
                 HStack {
@@ -290,7 +290,7 @@ struct DashboardTabView: View {
     }
 
     private var recentAgentsSection: some View {
-        let recent = bridge.agents.prefix(5)
+        let recent = bridge.agentState.agents.prefix(5)
         if recent.isEmpty {
             return AnyView(
                 HStack {
@@ -661,15 +661,15 @@ struct ConversationView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if !bridge.activeSessionId.isEmpty {
+            if !bridge.agentState.activeSessionId.isEmpty {
                 HStack {
                     Image(systemName: "link")
                         .foregroundStyle(theme.textTertiary)
-                    Text("Session: \(bridge.activeSessionId.prefix(12))...")
+                    Text("Session: \(bridge.agentState.activeSessionId.prefix(12))...")
                         .font(.system(size: theme.captionSize, design: .monospaced))
                         .foregroundStyle(theme.textTertiary)
                     Spacer()
-                    if bridge.isAgentStreaming {
+                    if bridge.agentState.isAgentStreaming {
                         HStack(spacing: theme.spacingXS) {
                             ProgressView()
                                 .scaleEffect(0.6)
@@ -688,7 +688,7 @@ struct ConversationView: View {
             } else {
                 messageList
             }
-            if !bridge.lastToolCalls.isEmpty {
+            if !bridge.agentState.lastToolCalls.isEmpty {
                 toolCallsBar
             }
             inputBar
@@ -698,9 +698,9 @@ struct ConversationView: View {
             ToolbarItem {
                 FusionButton("Clear", icon: "trash", style: .ghost, size: .small) {
                     orchestrator.clearConversation()
-                    bridge.activeSessionId = ""
-                    bridge.lastToolCalls = []
-                    bridge.streamingContent = ""
+                    bridge.agentState.activeSessionId = ""
+                    bridge.agentState.lastToolCalls = []
+                    bridge.agentState.streamingContent = ""
                     toastManager.show(style: .info, title: "Chat Cleared", message: "Conversation history removed")
                 }
             }
@@ -712,7 +712,7 @@ struct ConversationView: View {
             HStack(spacing: theme.spacingXS) {
                 Image(systemName: "wrench")
                     .foregroundStyle(theme.textTertiary)
-                ForEach(Array(bridge.lastToolCalls.enumerated()), id: \.offset) { idx, tc in
+                ForEach(Array(bridge.agentState.lastToolCalls.enumerated()), id: \.offset) { idx, tc in
                     let name = tc["name"] as? String ?? tc["function"] as? String ?? "tool"
                     FusionTag(name, color: .purple)
                 }

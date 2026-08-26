@@ -81,7 +81,7 @@ struct DeployExportView: View {
                     TextField("Graph ID", text: $graphId)
                         .textFieldStyle(.roundedBorder)
                     Picker("Format", selection: $format) {
-                        ForEach(bridge.deployFormats) { f in
+                        ForEach(bridge.moduleState.deployFormats) { f in
                             Text("\(f.format) - \(f.description)").tag(f.format)
                         }
                         Text("JSON").tag("json")
@@ -205,7 +205,7 @@ struct DeployFormatsView: View {
 
     var body: some View {
         Group {
-            if bridge.deployFormats.isEmpty {
+            if bridge.moduleState.deployFormats.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "doc.text")
                         .font(.system(size: 48))
@@ -215,7 +215,7 @@ struct DeployFormatsView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List(bridge.deployFormats) { fmt in
+                List(bridge.moduleState.deployFormats) { fmt in
                     HStack(spacing: 12) {
                         Image(systemName: "doc.badge.plus")
                             .foregroundColor(.blue)

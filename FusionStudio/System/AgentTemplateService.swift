@@ -28,7 +28,7 @@ extension AgentBridge {
                     variables: t["variables"] as? [String] ?? []
                 ))
             }
-            self.templates = parsed
+            self.moduleState.templates = parsed
             agentTemplateLog.info("fetchTemplates: received \(parsed.count) templates")
             return parsed
         } catch let error as IPCError {

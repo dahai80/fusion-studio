@@ -58,8 +58,8 @@ struct MemoryView: View {
                 Label("Refresh", systemImage: "arrow.clockwise")
             }
             Spacer()
-            if bridge.memoryCount > 0 {
-                Text("\(bridge.memoryCount) entries")
+            if bridge.moduleState.memoryCount > 0 {
+                Text("\(bridge.moduleState.memoryCount) entries")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -85,7 +85,7 @@ struct MemoryRecentView: View {
     @EnvironmentObject var bridge: AgentBridge
 
     var body: some View {
-        List(bridge.memoryEntries) { entry in
+        List(bridge.moduleState.memoryEntries) { entry in
             MemoryEntryRow(entry: entry)
         }
         .listStyle(.inset)
@@ -180,7 +180,7 @@ struct MemoryRecallView: View {
             if isSearching {
                 ProgressView("Searching...")
             } else {
-                List(bridge.memoryEntries) { entry in
+                List(bridge.moduleState.memoryEntries) { entry in
                     MemoryEntryRow(entry: entry)
                 }
                 .listStyle(.inset)
@@ -296,7 +296,7 @@ struct MemoryManageView: View {
             GroupBox("Memory Stats") {
                 HStack(spacing: 24) {
                     VStack {
-                        Text("\(bridge.memoryEntries.count)")
+                        Text("\(bridge.moduleState.memoryEntries.count)")
                             .font(.title)
                             .fontWeight(.bold)
                         Text("Loaded")
@@ -304,7 +304,7 @@ struct MemoryManageView: View {
                             .foregroundColor(.secondary)
                     }
                     VStack {
-                        Text("\(bridge.memoryCount)")
+                        Text("\(bridge.moduleState.memoryCount)")
                             .font(.title)
                             .fontWeight(.bold)
                         Text("Total")
@@ -320,7 +320,7 @@ struct MemoryManageView: View {
             .padding(.horizontal)
 
             List {
-                ForEach(bridge.memoryEntries) { entry in
+                ForEach(bridge.moduleState.memoryEntries) { entry in
                     HStack {
                         MemoryEntryRow(entry: entry)
                         Spacer()

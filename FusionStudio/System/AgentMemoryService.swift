@@ -43,7 +43,7 @@ extension AgentBridge {
                     parsed.append(entry)
                 }
             }
-            self.memoryEntries = parsed
+            self.moduleState.memoryEntries = parsed
             return parsed
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
@@ -63,7 +63,7 @@ extension AgentBridge {
                     parsed.append(entry)
                 }
             }
-            self.memoryEntries = parsed
+            self.moduleState.memoryEntries = parsed
             agentMemoryLog.info("fetchRecentMemories: received \(parsed.count) entries")
             return parsed
         } catch let error as IPCError {
@@ -104,7 +104,7 @@ extension AgentBridge {
         do {
             let result = try await client.memoryCount(scope: scope, tier: tier)
             let count = result["count"] as? Int ?? 0
-            self.memoryCount = count
+            self.moduleState.memoryCount = count
             return count
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)

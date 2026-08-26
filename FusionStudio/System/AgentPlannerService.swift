@@ -21,7 +21,7 @@ extension AgentBridge {
             guard let plan = Self.parsePlanModel(from: result) else {
                 throw BridgeError.decodeError("Failed to parse planner.create_plan response")
             }
-            self.currentPlan = plan
+            self.moduleState.currentPlan = plan
             return plan
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
@@ -37,7 +37,7 @@ extension AgentBridge {
             guard let plan = Self.parsePlanModel(from: result) else {
                 throw BridgeError.decodeError("Failed to parse planner.get_plan response")
             }
-            self.currentPlan = plan
+            self.moduleState.currentPlan = plan
             return plan
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
@@ -53,7 +53,7 @@ extension AgentBridge {
             guard let plan = Self.parsePlanModel(from: result) else {
                 throw BridgeError.decodeError("Failed to parse planner.approve_plan response")
             }
-            self.currentPlan = plan
+            self.moduleState.currentPlan = plan
             return plan
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
@@ -69,7 +69,7 @@ extension AgentBridge {
             guard let plan = Self.parsePlanModel(from: result) else {
                 throw BridgeError.decodeError("Failed to parse planner.reject_plan response")
             }
-            self.currentPlan = plan
+            self.moduleState.currentPlan = plan
             return plan
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
@@ -85,7 +85,7 @@ extension AgentBridge {
             guard let plan = Self.parsePlanModel(from: result) else {
                 throw BridgeError.decodeError("Failed to parse planner.execute_step response")
             }
-            self.currentPlan = plan
+            self.moduleState.currentPlan = plan
             return plan
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
@@ -101,7 +101,7 @@ extension AgentBridge {
             guard let plan = Self.parsePlanModel(from: result) else {
                 throw BridgeError.decodeError("Failed to parse planner.execute_plan response")
             }
-            self.currentPlan = plan
+            self.moduleState.currentPlan = plan
             return plan
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
@@ -121,7 +121,7 @@ extension AgentBridge {
                     parsed.append(plan)
                 }
             }
-            self.plans = parsed
+            self.moduleState.plans = parsed
             agentPlannerLog.info("fetchPlans: received \(parsed.count) plans")
             return parsed
         } catch let error as IPCError {
@@ -138,7 +138,7 @@ extension AgentBridge {
             guard let plan = Self.parsePlanModel(from: result) else {
                 throw BridgeError.decodeError("Failed to parse planner.cancel_plan response")
             }
-            self.currentPlan = plan
+            self.moduleState.currentPlan = plan
             return plan
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)

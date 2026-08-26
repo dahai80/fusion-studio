@@ -24,10 +24,10 @@ struct AgentListView: View {
                     if let backendAgent = selectedBackendAgent {
                         BackendAgentDetailView(agent: backendAgent, toastManager: toastManager)
                             .id(backendAgent.id)
-                            .onAppear { bridge.currentAgent = backendAgent }
+                            .onAppear { bridge.agentState.currentAgent = backendAgent }
                     } else if let agent = selectedAgent {
                         AgentDetailView(agent: agent, toastManager: toastManager)
-                            .onAppear { bridge.currentAgent = nil }
+                            .onAppear { bridge.agentState.currentAgent = nil }
                     } else {
                         emptyDetailPlaceholder
                     }
@@ -79,7 +79,7 @@ struct AgentListView: View {
         ScrollView {
             VStack(spacing: 0) {
                 StudioSectionHeader(title: "Backend Agents")
-                if bridge.agents.isEmpty {
+                if bridge.agentState.agents.isEmpty {
                     Text("No backend agents — create one")
                         .font(.system(size: theme.footnoteSize))
                         .foregroundStyle(theme.textTertiary)
@@ -87,8 +87,8 @@ struct AgentListView: View {
                         .padding(.vertical, theme.spacingM)
                 } else {
                     ListGroup {
-                        ForEach(Array(bridge.agents.enumerated()), id: \.element.id) { index, agent in
-                            StudioRow(label: agent.name, sublabel: agent.model, isLast: index == bridge.agents.count - 1) {
+                        ForEach(Array(bridge.agentState.agents.enumerated()), id: \.element.id) { index, agent in
+                            StudioRow(label: agent.name, sublabel: agent.model, isLast: index == bridge.agentState.agents.count - 1) {
                                 HStack(spacing: theme.spacingS) {
                                     if let status = agent.status {
                                         FusionTag(status, color: statusColor(for: status))
@@ -421,27 +421,27 @@ struct BackendAgentDetailView: View {
         .onAppear {
             // ARCH-2: 首帧先清旧 agent 残留的 soul/skills, 避免加载完成前渲染上一 agent 的数据。
             // .id(agent.id) 重建视图但 onAppear 在首帧后才跑, 首帧仍读 bridge 共享态的旧值。
-            bridge.agentSoul = ""
-            bridge.agentSkills = []
+            bridge.agentState.agentSoul = ""
+            bridge.agentState.agentSkills = []
             loadSkillsAndSoul()
         }
         .onDisappear {
             // ARCH-2: 离开时清 soul/skills, 下次切 agent 不带残留。
-            bridge.agentSoul = ""
-            bridge.agentSkills = []
+            bridge.agentState.agentSoul = ""
+            bridge.agentState.agentSkills = []
         }
     }
 
     private var skillsSection: some View {
-        FusionCard(style: .inset, header: "Skills (\(bridge.agentSkills.count))", headerIcon: "sparkles") {
+        FusionCard(style: .inset, header: "Skills (\(bridge.agentState.agentSkills.count))", headerIcon: "sparkles") {
             VStack(alignment: .leading, spacing: theme.spacingS) {
-                if bridge.agentSkills.isEmpty {
+                if bridge.agentState.agentSkills.isEmpty {
                     Text("No skills assigned")
                         .font(.system(size: theme.footnoteSize))
                         .foregroundStyle(theme.textTertiary)
                 } else {
                     FlowLayout(spacing: theme.spacingXS) {
-                        ForEach(bridge.agentSkills, id: \.self) { skill in
+                        ForEach(bridge.agentState.agentSkills, id: \.self) { skill in
                             HStack(spacing: theme.spacingXS) {
                                 Text(skill)
                                     .font(.system(size: theme.captionSize, weight: .medium))
@@ -482,19 +482,19 @@ struct BackendAgentDetailView: View {
     private var soulSection: some View {
         FusionCard(style: .inset, header: "Soul", headerIcon: "heart.fill") {
             VStack(alignment: .leading, spacing: theme.spacingS) {
-                if bridge.agentSoul.isEmpty {
+                if bridge.agentState.agentSoul.isEmpty {
                     Text("No soul defined")
                         .font(.system(size: theme.footnoteSize))
                         .foregroundStyle(theme.textTertiary)
                 } else {
-                    Text(bridge.agentSoul)
+                    Text(bridge.agentState.agentSoul)
                         .font(.system(size: theme.footnoteSize, design: .monospaced))
                         .foregroundStyle(theme.textSecondary)
                         .lineLimit(5)
                         .textSelection(.enabled)
                 }
                 FusionButton("Edit Soul", icon: "pencil", style: .secondary, size: .small) {
-                    editSoulContent = bridge.agentSoul
+                    editSoulContent = bridge.agentState.agentSoul
                     showSoulEditor = true
                 }
             }

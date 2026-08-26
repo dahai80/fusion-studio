@@ -64,7 +64,7 @@ extension AgentBridge {
                     owned_by: m["owned_by"] as? String
                 ))
             }
-            self.models = parsed
+            self.mlxState.models = parsed
             agentMlxLog.info("fetchModels: received \(parsed.count) models from \(baseURL)")
             return parsed
         } catch let error as BridgeError {
@@ -125,16 +125,16 @@ extension AgentBridge {
         do {
             let st = try await mlxStatus()
             await MainActor.run {
-                self.mlxRunning = st["running"] as? Bool ?? false
-                self.mlxPort = st["port"] as? Int ?? 0
+                self.mlxState.mlxRunning = st["running"] as? Bool ?? false
+                self.mlxState.mlxPort = st["port"] as? Int ?? 0
                 if let arr = st["models"] as? [String] {
-                    self.mlxLoadedModels = arr
+                    self.mlxState.mlxLoadedModels = arr
                 } else if let arr = st["models"] as? [[String: Any]] {
-                    self.mlxLoadedModels = arr.compactMap { $0["id"] as? String }
+                    self.mlxState.mlxLoadedModels = arr.compactMap { $0["id"] as? String }
                 } else {
-                    self.mlxLoadedModels = []
+                    self.mlxState.mlxLoadedModels = []
                 }
-                agentMlxLog.info("F-A2子3 pollMlxStatus: running=\(self.mlxRunning) models=\(self.mlxLoadedModels.count) port=\(self.mlxPort)")
+                agentMlxLog.info("F-A2子3 pollMlxStatus: running=\(self.mlxState.mlxRunning) models=\(self.mlxState.mlxLoadedModels.count) port=\(self.mlxState.mlxPort)")
             }
         } catch {
             agentMlxLog.debug("F-A2子3 pollMlxStatus failed: \(error.localizedDescription)")

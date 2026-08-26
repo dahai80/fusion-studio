@@ -637,9 +637,9 @@ class ChatSessionStore: ObservableObject {
                 return
             }
             let fallbackModel = FusionConfig.shared.mlxModelSmall.isEmpty ? "Qwen3.5-9B-4bit" : FusionConfig.shared.mlxModelSmall
-            let defaultModel = MLXModelInfo.preferredDefault(in: bridge.models)?.id ?? fallbackModel
+            let defaultModel = MLXModelInfo.preferredDefault(in: bridge.mlxState.models)?.id ?? fallbackModel
             let model = !selectedModel.isEmpty ? selectedModel : defaultModel
-            chatStoreLog.debug("sendMessage resolved model=\(model, privacy: .public) selected=\(self.selectedModel, privacy: .public) modelCount=\(bridge.models.count, privacy: .public) configSmall=\(FusionConfig.shared.mlxModelSmall, privacy: .public)")
+            chatStoreLog.debug("sendMessage resolved model=\(model, privacy: .public) selected=\(self.selectedModel, privacy: .public) modelCount=\(bridge.mlxState.models.count, privacy: .public) configSmall=\(FusionConfig.shared.mlxModelSmall, privacy: .public)")
             // caller: ChatSessionStore.sendMessage → builds message array with optional system prompt + multimodal
             var messages: [[String: Any]] = []
             var systemParts: [String] = []
@@ -1051,7 +1051,7 @@ class ChatSessionStore: ObservableObject {
             return
         }
         let fallbackModel = FusionConfig.shared.mlxModelSmall.isEmpty ? "Qwen3.5-9B-4bit" : FusionConfig.shared.mlxModelSmall
-        let defaultModel = MLXModelInfo.preferredDefault(in: bridge.models)?.id ?? fallbackModel
+        let defaultModel = MLXModelInfo.preferredDefault(in: bridge.mlxState.models)?.id ?? fallbackModel
         let model = !selectedModel.isEmpty ? selectedModel : defaultModel
 
         let editedMsgIdx = session.messages.firstIndex(where: { $0.id == editedMsgId })

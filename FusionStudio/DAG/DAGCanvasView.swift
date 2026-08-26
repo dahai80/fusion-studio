@@ -111,7 +111,7 @@ class DAGViewModel: ObservableObject {
                     isAnimated: false
                 )}
                 loadFromGraph(nodes: nodes, edges: edges)
-            } else if let first = bridge.graphs.first {
+            } else if let first = bridge.agentState.graphs.first {
                 currentGraphId = first.id
                 currentGraphName = first.name
                 let nodes = first.nodes.map { DAGNode(
@@ -152,7 +152,7 @@ class DAGViewModel: ObservableObject {
                 )}
                 _ = try await bridge.createGraph(name: currentGraphName.isEmpty ? "Untitled" : currentGraphName, nodes: nodes, edges: edges)
                 try? await bridge.fetchGraphs()
-                if let created = bridge.graphs.first { currentGraphId = created.id }
+                if let created = bridge.agentState.graphs.first { currentGraphId = created.id }
                 logger.info("Created new graph via bridge")
             } catch {
                 errorMessage = error.localizedDescription
@@ -185,7 +185,7 @@ class DAGViewModel: ObservableObject {
         for i in layout.edges.indices { layout.edges[i].isAnimated = false }
         do {
             try await bridge.executeGraph(id: graphId, input: "")
-            let events = bridge.events
+            let events = bridge.runtimeState.events
             for (idx, ev) in events.enumerated() {
                 if idx < layout.nodes.count {
                     layout.nodes[idx].state = .running

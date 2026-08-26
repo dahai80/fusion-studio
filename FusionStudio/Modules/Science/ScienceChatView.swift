@@ -279,7 +279,7 @@ struct ScienceChatView: View {
                     .onTapGesture { selectedPipeline = nil }
                 }
                 Spacer()
-                FusionModelPicker(scene: .chat, selection: $selectedModel, models: agentBridge.models, onChange: { id in
+                FusionModelPicker(scene: .chat, selection: $selectedModel, models: agentBridge.mlxState.models, onChange: { id in
                     chatLog.info("Science model selected: \(id)")
                 })
                 VoiceInputButton(voice: voiceInput, text: $inputText, onSend: sendMessage)

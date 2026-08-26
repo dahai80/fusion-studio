@@ -22,8 +22,8 @@ extension AgentBridge {
         guard let client = ipcClient else { return }
         do {
             let result = try await client.teamSwarmAgents()
-            self.swarmAgents = result["agents"] as? [[String: Any]] ?? []
-            agentTeamLog.info("Fetched \(self.swarmAgents.count) swarm agents")
+            self.configState.swarmAgents = result["agents"] as? [[String: Any]] ?? []
+            agentTeamLog.info("Fetched \(self.configState.swarmAgents.count) swarm agents")
         } catch {
             agentTeamLog.debug("fetchSwarmAgents failed: \(error.localizedDescription)")
         }
@@ -35,8 +35,8 @@ extension AgentBridge {
         guard let client = ipcClient else { return }
         do {
             let result = try await client.teamPlazaChannels()
-            self.plazaChannels = result["channels"] as? [[String: Any]] ?? []
-            agentTeamLog.info("Fetched \(self.plazaChannels.count) plaza channels")
+            self.configState.plazaChannels = result["channels"] as? [[String: Any]] ?? []
+            agentTeamLog.info("Fetched \(self.configState.plazaChannels.count) plaza channels")
         } catch {
             agentTeamLog.debug("fetchPlazaChannels failed: \(error.localizedDescription)")
         }

@@ -18,16 +18,16 @@ struct AgentTaskListView: View {
     enum TaskViewMode { case list, board }
 
     private var activeTasks: [TaskModel] {
-        bridge.tasks.filter { !$0.status.isTerminal }
+        bridge.taskState.tasks.filter { !$0.status.isTerminal }
     }
 
     private var completedTasks: [TaskModel] {
-        bridge.tasks.filter { $0.status.isTerminal }
+        bridge.taskState.tasks.filter { $0.status.isTerminal }
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            if bridge.tasks.isEmpty {
+            if bridge.taskState.tasks.isEmpty {
                 emptyTasksPlaceholder
             } else if viewMode == .board {
                 TaskBoardView(toastManager: toastManager)
@@ -271,12 +271,12 @@ struct CreateTaskSheet: View {
 
                         labeledField("Assign Agent") {
                             Picker("Agent", selection: $selectedAgent) {
-                                if bridge.agents.isEmpty && orchestrator.agents.isEmpty {
+                                if bridge.agentState.agents.isEmpty && orchestrator.agents.isEmpty {
                                     Text("No agents available").tag("")
                                 }
-                                if !bridge.agents.isEmpty {
+                                if !bridge.agentState.agents.isEmpty {
                                     Section("Backend Agents") {
-                                        ForEach(bridge.agents) { agent in
+                                        ForEach(bridge.agentState.agents) { agent in
                                             Label(agent.name, systemImage: "brain.head.profile").tag(agent.id)
                                         }
                                     }
@@ -295,7 +295,7 @@ struct CreateTaskSheet: View {
                         labeledField("Workflow (optional)") {
                             Picker("Workflow", selection: $selectedGraph) {
                                 Text("None (single agent step)").tag("")
-                                ForEach(bridge.graphs) { g in
+                                ForEach(bridge.agentState.graphs) { g in
                                     Text(g.name).tag(g.id)
                                 }
                             }
@@ -306,7 +306,7 @@ struct CreateTaskSheet: View {
                             VStack(spacing: theme.spacingXS) {
                                 Picker("Project", selection: $selectedProject) {
                                     Text("No project").tag("")
-                                    ForEach(bridge.projects) { p in
+                                    ForEach(bridge.taskState.projects) { p in
                                         Text("\(p.id) (\(p.total))").tag(p.id)
                                     }
                                     Text("New project…").tag("__new__")
@@ -472,7 +472,7 @@ struct AgentTaskDetailView: View {
     @State private var isLoadingExec = false
 
     private var task: TaskModel? {
-        bridge.tasks.first(where: { $0.id == taskId })
+        bridge.taskState.tasks.first(where: { $0.id == taskId })
     }
 
     var body: some View {
@@ -665,7 +665,7 @@ struct TaskBoardView: View {
     private var columns: [(TaskModel.TaskStatus, [TaskModel])] {
         let order: [TaskModel.TaskStatus] = [.pending, .queued, .scheduled, .running, .failed, .completed, .cancelled]
         return order.map { status in
-            (status, bridge.tasks.filter { $0.status == status })
+            (status, bridge.taskState.tasks.filter { $0.status == status })
         }.filter { !$0.1.isEmpty || $0.0 == .pending || $0.0 == .running }
     }
 
@@ -779,8 +779,8 @@ struct WorkflowListView: View {
     @Environment(\.studioTheme) var theme
 
     private var filteredGraphs: [AgentGraphModel] {
-        guard !searchText.isEmpty else { return bridge.graphs }
-        return bridge.graphs.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+        guard !searchText.isEmpty else { return bridge.agentState.graphs }
+        return bridge.agentState.graphs.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
     }
 
     var body: some View {
@@ -817,7 +817,7 @@ struct WorkflowListView: View {
         }
         .task {
             // 已有数据不重拉, 避免每次切 tab 都 fetch 触发 body 重算导致转圈
-            if bridge.graphs.isEmpty {
+            if bridge.agentState.graphs.isEmpty {
                 await loadGraphs()
             }
         }
@@ -832,7 +832,7 @@ struct WorkflowListView: View {
         do {
             try await bridge.fetchGraphs()
             let elapsed = Int(Date().timeIntervalSince(t0) * 1000)
-            workflowLog.info("WorkflowListView loaded \(bridge.graphs.count) graphs in \(elapsed)ms")
+            workflowLog.info("WorkflowListView loaded \(bridge.agentState.graphs.count) graphs in \(elapsed)ms")
         } catch {
             let elapsed = Int(Date().timeIntervalSince(t0) * 1000)
             workflowLog.error("WorkflowListView loadGraphs failed in \(elapsed)ms: \(error)")
@@ -845,7 +845,7 @@ struct WorkflowListView: View {
         defer { isLoading = false }
         do {
             try await bridge.fetchGraphs()
-            workflowLog.info("WorkflowListView refreshed \(bridge.graphs.count) graphs")
+            workflowLog.info("WorkflowListView refreshed \(bridge.agentState.graphs.count) graphs")
         } catch {
             workflowLog.error("WorkflowListView refresh failed: \(error)")
         }
@@ -868,7 +868,7 @@ struct WorkflowListView: View {
             VStack(spacing: 0) {
                 StudioSectionHeader(title: "Workflows")
                 searchBox
-                if isLoading && bridge.graphs.isEmpty {
+                if isLoading && bridge.agentState.graphs.isEmpty {
                     VStack(spacing: theme.spacingS) {
                         ProgressView()
                         Text("Loading workflows...")
@@ -1111,7 +1111,7 @@ struct WorkflowDetailView: View {
             do {
                 try await bridge.executeGraph(id: graph.id, input: executeInput)
                 var output = ""
-                for ev in bridge.events {
+                for ev in bridge.runtimeState.events {
                     let nodeId = ev.node_id ?? "?"
                     output += "[\(ev.type)] \(nodeId)"
                     if let data = ev.data, !data.isEmpty {

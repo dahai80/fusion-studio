@@ -90,7 +90,7 @@ struct PermissionTagView: View {
 
     private func permissionRow(_ perm: [String: Any]) -> some View {
         let agentId = perm["agent_id"] as? String ?? ""
-        let agentName = bridge.agents.first { $0.id == agentId }?.name ?? String(format: I18nManager.shared.t(.ai_perm_agentFmt), String(agentId.prefix(8)))
+        let agentName = bridge.agentState.agents.first { $0.id == agentId }?.name ?? String(format: I18nManager.shared.t(.ai_perm_agentFmt), String(agentId.prefix(8)))
         return VStack(alignment: .leading, spacing: theme.spacingXS) {
             HStack(spacing: theme.spacingXS) {
                 Image(systemName: "person.crop.circle")

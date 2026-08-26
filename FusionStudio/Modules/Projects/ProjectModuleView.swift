@@ -2011,7 +2011,7 @@ struct ProjectChatsPanel: View {
                 )
                 .frame(minHeight: 36, maxHeight: 60)
 
-                FusionModelPicker(scene: .agent, selection: $selectedModel, models: agentBridge.models, onChange: { id in
+                FusionModelPicker(scene: .agent, selection: $selectedModel, models: agentBridge.mlxState.models, onChange: { id in
                     projLog.info("Project chat model selected: \(id)")
                 })
 

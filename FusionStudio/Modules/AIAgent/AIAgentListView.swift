@@ -287,7 +287,7 @@ struct AIAgentListView: View {
     }
 
     private var filteredAgents: [AgentModel] {
-        var result = bridge.agents
+        var result = bridge.agentState.agents
         if !searchText.isEmpty {
             result = result.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
         }
@@ -318,7 +318,7 @@ struct AIAgentListView: View {
         Task {
             do {
                 try await bridge.fetchAgents()
-                listLog.info("Agents loaded: \(bridge.agents.count)")
+                listLog.info("Agents loaded: \(bridge.agentState.agents.count)")
             } catch {
                 listLog.error("Load agents failed: \(error.localizedDescription)")
             }

@@ -512,7 +512,7 @@ struct UnifiedChatView: View {
     }
 
     private var modelPickerButton: some View {
-        FusionModelPicker(scene: .chat, selection: $chatStore.selectedModel, models: bridge.models, onChange: { id in
+        FusionModelPicker(scene: .chat, selection: $chatStore.selectedModel, models: bridge.mlxState.models, onChange: { id in
             chatViewLog.info("Chat model selected: \(id)")
         })
     }
@@ -1177,7 +1177,7 @@ struct UnifiedChatView: View {
             let model = cfg.defaultModel(for: .chat)
             if !model.isEmpty {
                 chatStore.selectedModel = model
-            } else if let pref = MLXModelInfo.preferredDefault(in: bridge.models) {
+            } else if let pref = MLXModelInfo.preferredDefault(in: bridge.mlxState.models) {
                 chatStore.selectedModel = pref.id
             }
             chatViewLog.info("Chat default model: \(chatStore.selectedModel)")

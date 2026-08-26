@@ -321,19 +321,22 @@ struct MarketplaceEntryModel: Codable, Equatable, Identifiable {
 @MainActor
 final class AgentBridge: ObservableObject {
 
-    @Published var isConnected: Bool = false
-    @Published var graphs: [AgentGraphModel] = []
-    @Published var events: [AgentEventModel] = []
-    @Published var isExecuting: Bool = false
-    @Published var models: [MLXModelInfo] = []
-    @Published var chatMessages: [ChatMessageRecord] = []
-    @Published var isInferring: Bool = false
-    @Published var dashboardData: [String: Any] = [:]
-    // F-A2子3: MLX 池可见性。周期轮询 mlx.status, 暴露 running + 已加载模型列表 + port。
-    // lease/LRU/TTL 驱逐生命周期在上游 fusion-mlx, daemon mlx.status 不暴露 → 仅 running+models, 缺口提 upstream issue。
-    @Published var mlxRunning: Bool = false
-    @Published var mlxLoadedModels: [String] = []
-    @Published var mlxPort: Int = 0
+    // F-A1/F-I1: 7 域子对象, 各独立 ObservableObject 持自己的 @Published (见 AgentBridgeDomains.swift)。
+    // 持同一实例 (let 稳定身份), SwiftUI 经 bridge.<state>.X 自动追踪。@Published 分阶段从主类迁入域。
+    let runtimeState = RuntimeState()
+    let mlxState = MLXState()
+    let agentState = AgentState()
+    let moduleState = ModuleState()
+    let taskState = TaskState()
+    let configState = ConfigState()
+    let projectChatState = ProjectChatState()
+
+    // F-A1 Phase 7: isConnected/isExecuting/events 已迁 RuntimeState 域 (主类 checkHealth/executeGraph/
+    //   cancelExecution/taskExecuteImmediate 写 self.runtimeState.X; setIPCClient sink 重定向 $runtimeState.isConnected)。
+    //   AgentBridge 主类 @Published 块已全空 (48 全迁 7 域)。
+    // F-A1 Phase 4: chatMessages/isInferring 已迁 ProjectChatState 域 (AgentProjectChatService facade 写, 0 SwiftUI 读 write-only)。
+    // F-A1 Phase 6: self.agentState.dashboardData 已迁 AgentState 域 (AgentOpsService:235 跨域写, 迁入同域消除跨域写)。
+    // F-A1 Phase 1: models/mlxRunning/mlxLoadedModels/mlxPort 已迁 MLXState 域 (AgentBridgeDomains.swift)。
     // F-A2子3: 以下 2 个 AgentMlxService facade extension 跨文件访问, 故 internal。
     var mlxStatusTimer: Timer?
     var mlxStatusFetchedAt: Date?
@@ -379,47 +382,34 @@ final class AgentBridge: ObservableObject {
 
     // MARK: - Module Published Properties
 
-    @Published var plans: [PlanModel] = []
-    @Published var currentPlan: PlanModel?
-    @Published var ragResults: [RAGResultModel] = []
-    @Published var memoryEntries: [MemoryEntryModel] = []
-    @Published var memoryCount: Int = 0
-    @Published var safetyCheckResult: SafetyCheckModel?
-    @Published var safetyPendingActions: [SafetyActionModel] = []
-    @Published var templates: [TemplateModel] = []
-    @Published var deployFormats: [DeployFormatModel] = []
-    @Published var tools: [[String: Any]] = []
-    @Published var ragSources: [String] = []
-    @Published var lastSkillResult: String = ""
-    @Published var lastResearchResult: String = ""
+    // F-A1 Phase 5: plans/currentPlan/ragResults/memoryEntries/memoryCount/safetyCheckResult/
+    //   safetyPendingActions/templates/deployFormats/tools/ragSources/lastSkillResult/
+    //   lastResearchResult 13 @Published 已迁 ModuleState 域。
 
     // MARK: - Agent & Marketplace Published Properties
 
-    @Published var agents: [AgentModel] = []
-    @Published var currentAgent: AgentModel?
-    @Published var agentSkills: [String] = []
-    @Published var agentSoul: String = ""
-    @Published var marketplaceEntries: [MarketplaceEntryModel] = []
-    @Published var marketplaceCategories: [String] = []
-    // F-A1: 以下 7 个 @Published 原散落 Agent Ops/Lifecycle MARK 中, 抽 facade 时迁此集中声明
-    // (extension 不可声明存储属性)。extension 内写 self.<prop>, 观察链不变。
-    @Published var agentVersionHistory: [String: [[String: Any]]] = [:]
-    @Published var auditTrail: [[String: Any]] = []
-    @Published var sessionLogs: [[String: Any]] = []
-    @Published var activeSessionId: String = ""
-    @Published var streamingContent: String = ""
-    @Published var isAgentStreaming: Bool = false
-    @Published var lastToolCalls: [[String: Any]] = []
+    // F-A1 Phase 6: self.agentState.agents/self.agentState.currentAgent/self.agentState.agentSkills/self.agentState.agentSoul/self.agentState.marketplaceEntries/
+    //   self.agentState.marketplaceCategories/self.agentState.agentVersionHistory/self.agentState.auditTrail/self.agentState.sessionLogs/self.agentState.activeSessionId/
+    //   self.agentState.streamingContent/self.agentState.isAgentStreaming/self.agentState.lastToolCalls 13 @Published + self.agentState.graphs + self.agentState.dashboardData
+    //   (共 15) 已迁 AgentState 域 (最大域)。3 facade (Ops/Graph/Marketplace) 写 self.agentState.X,
+    //   0 跨域写 (self.agentState.dashboardData 原跨域写迁入同域消除)。
 
     // Callers: TokenBudgetView, VectorSearchView, MemoryRelevantView, ToolBrowserView, SafetyView. Affected API: all new IPC bridge methods. User instruction: "审视是否所有需要功能和api所有需要的GUI都在~/fusion/fusion-studio都已经有对应GUI了，所有有问题的都要在fusion-studio补齐GUI"
     private let logger = Logger(subsystem: "com.fusion.studio", category: "AgentBridge")
+    // F-A1 Phase 7: setIPCClient sink 订阅持有 (原 .assign(to:) 不需显式持, 改 .sink 需 store)。
+    private var cancellables = Set<AnyCancellable>()
     var ipcClient: IPCClient?
 
     func setIPCClient(_ client: IPCClient) {
         self.ipcClient = client
+        // F-A1 Phase 7: runtimeState 是 let 子对象, $runtimeState.isConnected 非法 ($投影仅限直接 @Published 属性)。
+        // 改 .sink 手动写 runtimeState.isConnected, cancellable 持久化防订阅立即释放。
         client.$isConnected
             .receive(on: DispatchQueue.main)
-            .assign(to: &$isConnected)
+            .sink { [weak self] connected in
+                self?.runtimeState.isConnected = connected
+            }
+            .store(in: &cancellables)
         logger.info("AgentBridge connected to IPCClient")
     }
 
@@ -432,11 +422,11 @@ final class AgentBridge: ObservableObject {
         do {
             let result = try await client.call(method: RPCMethod.ping)
             let pong = result["pong"] as? Bool ?? false
-            self.isConnected = pong
+            self.runtimeState.isConnected = pong
             logger.info("checkHealth: connected=\(pong)")
             return pong
         } catch let error as IPCError {
-            self.isConnected = false
+            self.runtimeState.isConnected = false
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
 
             logger.error("checkHealth: \(error)")
@@ -465,11 +455,11 @@ final class AgentBridge: ObservableObject {
                 return value
             }
         } catch BridgeError.timeout {
-            self.isConnected = false
+            self.runtimeState.isConnected = false
             logger.error("fullHealthCheck: timeout after 8s (env.health_check did not respond)")
             throw BridgeError.timeout
         }
-        self.isConnected = true
+        self.runtimeState.isConnected = true
         return result
     }
 
@@ -571,8 +561,8 @@ final class AgentBridge: ObservableObject {
             throw BridgeError.notConnected
         }
         logger.info("executeGraph: id=\(id) task=\(taskId.isEmpty ? "-" : taskId)")
-        self.isExecuting = true
-        self.events = []
+        self.runtimeState.isExecuting = true
+        self.runtimeState.events = []
 
         do {
             var params: [String: Any] = [
@@ -591,17 +581,17 @@ final class AgentBridge: ObservableObject {
                     parsed.append(model)
                 }
             }
-            self.events = parsed
-            self.isExecuting = false
+            self.runtimeState.events = parsed
+            self.runtimeState.isExecuting = false
             logger.info("executeGraph: received \(parsed.count) events")
         } catch let error as IPCError {
-            self.isExecuting = false
+            self.runtimeState.isExecuting = false
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
 
             logger.error("executeGraph: \(error)")
             throw bridgeErr
         } catch {
-            self.isExecuting = false
+            self.runtimeState.isExecuting = false
             let bridgeErr = BridgeError.decodeError(error.localizedDescription)
 
             logger.error("executeGraph decode: \(error)")
@@ -611,7 +601,7 @@ final class AgentBridge: ObservableObject {
 
     func cancelExecution() {
         logger.info("cancelExecution")
-        self.isExecuting = false
+        self.runtimeState.isExecuting = false
     }
 
     func fetchTools() async throws -> [[String: Any]] {
@@ -622,7 +612,7 @@ final class AgentBridge: ObservableObject {
         do {
             let result = try await client.call(method: RPCMethod.toolList, params: [:])
             let tools = result["tools"] as? [[String: Any]] ?? []
-            self.tools = tools
+            self.moduleState.tools = tools
             return tools
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
@@ -805,7 +795,7 @@ final class AgentBridge: ObservableObject {
     // MARK: - MLX Operations
 
     // ARCH-1 / F-A1: fetchModels (×2) + startMLX/stopMLX/restartMLX/mlxStatus/mlxSetModel 6 方法抽至
-    // AgentMlxService.swift facade extension。@Published models 仍存主类, extension 写 self.models, 观察链不变。
+    // AgentMlxService.swift facade extension。@Published models/mlxRunning/mlxLoadedModels/mlxPort 已迁 MLXState 域, extension 写 self.mlxState.X。
     // 下方 3 个 nonisolated static 留主类: Project Chat selfHealApiKeyForInfer 跨域调 Self.mlxSelfHealKeyCandidates。
 
     // PERF-4: nonisolated async — 文件 I/O 跑 cooperative 线程池, 不阻塞 MainActor。sync 版删除: 全部调用方已 async await。
@@ -878,7 +868,7 @@ final class AgentBridge: ObservableObject {
         do {
             let result = try await client.skillExecute(agentId: agentId, skillName: skillName, input: input, tools: tools)
             let output = result["result"] as? String ?? result["output"] as? String ?? ""
-            self.lastSkillResult = output
+            self.moduleState.lastSkillResult = output
             return output
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
@@ -893,7 +883,7 @@ final class AgentBridge: ObservableObject {
         do {
             let result = try await client.researchAdaptive(question: question, maxSteps: maxSteps, webSearch: webSearch)
             let summary = result["summary"] as? String ?? result["result"] as? String ?? ""
-            self.lastResearchResult = summary
+            self.moduleState.lastResearchResult = summary
             return summary
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
@@ -921,13 +911,11 @@ final class AgentBridge: ObservableObject {
     // MARK: - Connector Operations
     // ARCH-1: fetchConnectors/connectorCreate/connectorDelete/connectorConnect/connectorDisconnect/connectorTest
     //   抽至 AgentConnectorService.swift facade extension。叶 silo: 0 private 静态依赖, 0 持久状态。
-    //   connectorCreate/Delete 调 fetchConnectors (同域, extension 内可达)。@Published connectors 留主类 (有外部读)。
-
-    @Published var connectors: [[String: Any]] = []
+    //   connectorCreate/Delete 调 fetchConnectors (同域, extension 内可达)。@Published connectors 已迁 ConfigState 域。
 
     // MARK: - API Key Operations
 
-    @Published var apikeys: [[String: Any]] = []
+    // F-A1 Phase 2: apikeys 已迁 ConfigState 域。
 
     func fetchApikeys() async {
         if let t = apikeysFetchedAt, Date().timeIntervalSince(t) < 30 { return }
@@ -935,8 +923,8 @@ final class AgentBridge: ObservableObject {
         guard let client = ipcClient else { return }
         do {
             let result = try await client.apikeyList()
-            self.apikeys = result["keys"] as? [[String: Any]] ?? []
-            logger.info("Fetched \(self.apikeys.count) API keys")
+            self.configState.apikeys = result["keys"] as? [[String: Any]] ?? []
+            logger.info("Fetched \(self.configState.apikeys.count) API keys")
         } catch {
             logger.debug("fetchApikeys failed: \(error.localizedDescription)")
         }
@@ -970,31 +958,20 @@ final class AgentBridge: ObservableObject {
     // MARK: - Style Operations
     // ARCH-1: fetchStyles/styleCreate/styleDelete 抽至 AgentStyleService.swift facade extension。
     // 本域最薄叶 silo: 0 private 静态依赖, 0 持久状态。styleCreate/Delete 调 fetchStyles (同域, extension 内可达)。
-    // @Published styles 留主类 (有外部读)。
-
-    @Published var styles: [[String: Any]] = []
+    // @Published styles 已迁 ConfigState 域 (有外部读)。
 
     // MARK: - Analytics & Alert Operations
     // ARCH-1: fetchAnalytics/fetchAlerts/alertAcknowledge 抽至 AgentAnalyticsService.swift facade extension。
-    // @Published analyticsData/alerts 留此 (extension 不可声明存储, 有外部 SwiftUI 读 AgentConfigTabs)。
-
-    @Published var analyticsData: [String: Any] = [:]
-    @Published var alerts: [[String: Any]] = []
+    // @Published analyticsData/alerts 已迁 ConfigState 域 (有外部 SwiftUI 读 AgentConfigTabs)。
 
     // MARK: - Team Operations
     // ARCH-1: teamOrchestrate/fetchSwarmAgents/fetchPlazaChannels 抽至 AgentTeamService.swift facade extension。
     //   叶 silo: 0 private static, 0 持久状态。fetchSwarmAgents/fetchPlazaChannels UI onAppear 刷新读。
-    //   @Published swarmAgents/plazaChannels 留主类 (有外部读)。
+    //   @Published swarmAgents/plazaChannels 已迁 ConfigState 域 (有外部读)。
     //   MAINT: teamSwarmRegister/Delegate/Stats + teamPlazaCreate/Broadcast 删 (0 前端调用方, UI 只读列表)。
 
-    @Published var swarmAgents: [[String: Any]] = []
-    @Published var plazaChannels: [[String: Any]] = []
-
     // MARK: - Task Operations
-    // @Published tasks/projects 留此 (extension 不可声明存储, 有外部 SwiftUI 读 TaskQueueView/ProjectsPanel)。
-
-    @Published var tasks: [TaskModel] = []
-    @Published var projects: [ProjectBucket] = []
+    // @Published self.taskState.tasks/self.taskState.projects 已迁 TaskState 域 (有外部 SwiftUI 读 TaskQueueView/ProjectsPanel)。
 
     // 从后端 task.list 拉取持久化任务. 后端 5 态 → 前端 7 态.
     func fetchTasks() async {
@@ -1003,13 +980,13 @@ final class AgentBridge: ObservableObject {
         guard let client = ipcClient else { return }
         do {
             let result = try await client.taskList(limit: 200)
-            let raw = result["tasks"] as? [[String: Any]] ?? []
+            let raw = result["self.taskState.tasks"] as? [[String: Any]] ?? []
             var parsed: [TaskModel] = []
             for d in raw {
                 if let t = TaskModel(backendDict: d) { parsed.append(t) }
             }
-            self.tasks = parsed
-            logger.info("fetchTasks: \(parsed.count) backend tasks")
+            self.taskState.tasks = parsed
+            logger.info("fetchTasks: \(parsed.count) backend self.taskState.tasks")
         } catch {
             logger.warning("fetchTasks failed: \(error.localizedDescription)")
         }
@@ -1022,34 +999,34 @@ final class AgentBridge: ObservableObject {
         guard let client = ipcClient else { return }
         do {
             let result = try await client.projectList()
-            let raw = result["projects"] as? [[String: Any]] ?? []
+            let raw = result["self.taskState.projects"] as? [[String: Any]] ?? []
             var parsed: [ProjectBucket] = []
             for d in raw {
                 if let b = ProjectBucket(backendDict: d) { parsed.append(b) }
             }
-            self.projects = parsed
-            logger.info("fetchProjects: \(parsed.count) projects")
+            self.taskState.projects = parsed
+            logger.info("fetchProjects: \(parsed.count) self.taskState.projects")
         } catch {
             logger.warning("fetchProjects failed: \(error.localizedDescription)")
         }
     }
 
     func agentName(for id: String) -> String {
-        agents.first(where: { $0.id == id })?.name ?? id.prefix(8).description
+        self.agentState.agents.first(where: { $0.id == id })?.name ?? id.prefix(8).description
     }
 
     func graphName(for id: String) -> String {
-        graphs.first(where: { $0.id == id })?.name ?? ""
+        self.agentState.graphs.first(where: { $0.id == id })?.name ?? ""
     }
 
     private func taskIndex(_ id: String) -> Int? {
-        tasks.firstIndex(where: { $0.id == id })
+        self.taskState.tasks.firstIndex(where: { $0.id == id })
     }
 
     private func updateTask(_ id: String, _ mutate: (inout TaskModel) -> Void) {
         guard let idx = taskIndex(id) else { return }
-        mutate(&tasks[idx])
-        tasks[idx].updatedAt = Date()
+        mutate(&self.taskState.tasks[idx])
+        self.taskState.tasks[idx].updatedAt = Date()
     }
 
     // 提交到后端 task.submit; cron 触发由后端自动注册 cron job 并回写 cron_job_id.
@@ -1090,13 +1067,13 @@ final class AgentBridge: ObservableObject {
             throw BridgeError.decodeError("task.submit missing task field")
         }
         if let idx = self.taskIndex(saved.id) {
-            self.tasks[idx] = saved
+            self.taskState.tasks[idx] = saved
         } else {
-            self.tasks.append(saved)
-            // F-A2: tasks 无界 append, 连续提交不 fetch 时单调增长。保留最近 500 (LRU),
+            self.taskState.tasks.append(saved)
+            // F-A2: self.taskState.tasks 无界 append, 连续提交不 fetch 时单调增长。保留最近 500 (LRU),
             // 超额丢弃最旧。PERF-3 ragResults 范式。
-            if self.tasks.count > 500 {
-                self.tasks.removeFirst(self.tasks.count - 500)
+            if self.taskState.tasks.count > 500 {
+                self.taskState.tasks.removeFirst(self.taskState.tasks.count - 500)
             }
         }
         logger.info("taskSubmit: id=\(saved.id) title=\(title) trigger=\(trigger.rawValue) cron_job=\(saved.cronJobId)")
@@ -1105,9 +1082,9 @@ final class AgentBridge: ObservableObject {
 
     func taskExecuteImmediate(_ taskId: String) {
         guard let idx = taskIndex(taskId) else { return }
-        let agentId = tasks[idx].agentId
-        let graphId = tasks[idx].graphId
-        let inputText = tasks[idx].input
+        let agentId = self.taskState.tasks[idx].agentId
+        let graphId = self.taskState.tasks[idx].graphId
+        let inputText = self.taskState.tasks[idx].input
         updateTask(taskId) { t in
             t.status = .running
             t.lastRunAt = Date()
@@ -1124,7 +1101,7 @@ final class AgentBridge: ObservableObject {
                 var sessionId = ""
                 if !graphId.isEmpty {
                     try await executeGraph(id: graphId, input: inputText, taskId: taskId)
-                    eventsParsed = self.events
+                    eventsParsed = self.runtimeState.events
                 } else {
                     let result = try await agentExecute(agentId: agentId, input: inputText)
                     sessionId = result["session_id"] as? String ?? ""
@@ -1173,7 +1150,7 @@ final class AgentBridge: ObservableObject {
                     logger.warning("taskExecuteImmediate catch: 任务已删除, 放弃 retry id=\(taskId)")
                     return
                 }
-                let cur = self.tasks[idx]
+                let cur = self.taskState.tasks[idx]
                 // F-R12: 计入后端连续失败, 达阈值开路熔断。
                 backendConsecutiveFailures += 1
                 if backendConsecutiveFailures >= backendFailureThreshold && !backendCircuitOpen {
@@ -1222,7 +1199,7 @@ final class AgentBridge: ObservableObject {
         Task {
             do {
                 _ = try await client.taskDelete(taskId: taskId)
-                self.tasks.removeAll { $0.id == taskId }
+                self.taskState.tasks.removeAll { $0.id == taskId }
                 logger.info("taskDelete: id=\(taskId) deleted via RPC")
             } catch {
                 logger.error("taskDelete failed: id=\(taskId) err=\(error.localizedDescription)")
@@ -1265,7 +1242,7 @@ final class AgentBridge: ObservableObject {
             let result = try await client.taskRerun(taskId: taskId)
             if let d = result["task"] as? [String: Any], let updated = TaskModel(backendDict: d) {
                 if let idx = self.taskIndex(taskId) {
-                    self.tasks[idx] = updated
+                    self.taskState.tasks[idx] = updated
                 }
                 logger.info("taskRerun: id=\(taskId)")
                 // rerun 重置为 pending, 前端立即执行 immediate 触发.
@@ -1290,9 +1267,9 @@ final class AgentBridge: ObservableObject {
 
     func taskScheduleCron(_ taskId: String, expression: String, input: String) {
         guard let idx = taskIndex(taskId) else { return }
-        let agentId = tasks[idx].agentId
-        let graphId = tasks[idx].graphId
-        let name = tasks[idx].title
+        let agentId = self.taskState.tasks[idx].agentId
+        let graphId = self.taskState.tasks[idx].graphId
+        let name = self.taskState.tasks[idx].title
         let inputData = encodeCronInput(taskId: taskId, agentId: agentId, input: input)
         updateTask(taskId) { t in
             t.status = .scheduled
@@ -1326,9 +1303,9 @@ final class AgentBridge: ObservableObject {
 
     func taskScheduleRunAt(_ taskId: String, runAt: Date, input: String) {
         guard let idx = taskIndex(taskId) else { return }
-        let agentId = tasks[idx].agentId
-        let graphId = tasks[idx].graphId
-        let name = tasks[idx].title
+        let agentId = self.taskState.tasks[idx].agentId
+        let graphId = self.taskState.tasks[idx].graphId
+        let name = self.taskState.tasks[idx].title
         let comp = Calendar.current.dateComponents([.minute, .hour, .day, .month], from: runAt)
         let expr = "\(comp.minute ?? 0) \(comp.hour ?? 0) \(comp.day ?? 1) \(comp.month ?? 1) *"
         let inputData = encodeCronInput(taskId: taskId, agentId: agentId, input: input)
@@ -1395,9 +1372,7 @@ final class AgentBridge: ObservableObject {
     }
 
     // MARK: - Cron Operations
-    // @Published cronJobs 留此 (extension 不可声明存储, 有外部 SwiftUI 读 TaskQueueView cron 区)。
-
-    @Published var cronJobs: [[String: Any]] = []
+    // @Published cronJobs 已迁 ConfigState 域 (有外部 SwiftUI 读 TaskQueueView cron 区)。
 
     func fetchCronJobs() async {
         if let t = cronJobsFetchedAt, Date().timeIntervalSince(t) < 30 { return }
@@ -1405,8 +1380,8 @@ final class AgentBridge: ObservableObject {
         guard let client = ipcClient else { return }
         do {
             let result = try await client.cronList()
-            self.cronJobs = result["jobs"] as? [[String: Any]] ?? result["crons"] as? [[String: Any]] ?? []
-            logger.info("Fetched \(self.cronJobs.count) cron jobs")
+            self.configState.cronJobs = result["jobs"] as? [[String: Any]] ?? result["crons"] as? [[String: Any]] ?? []
+            logger.info("Fetched \(self.configState.cronJobs.count) cron jobs")
         } catch {
             logger.debug("fetchCronJobs failed: \(error.localizedDescription)")
         }
@@ -1430,9 +1405,7 @@ final class AgentBridge: ObservableObject {
 
     // MARK: - Hooks Operations
     // ARCH-1: fetchHooks/hooksRegister/hooksTest 抽至 AgentHooksService.swift facade extension。
-    // 本域最薄叶 silo: 0 private 静态依赖, 0 持久状态, 0 跨域调用。@Published hooks 留主类 (有外部读)。
-
-    @Published var hooks: [[String: Any]] = []
+    // 本域最薄叶 silo: 0 private 静态依赖, 0 持久状态, 0 跨域调用。@Published hooks 已迁 ConfigState 域 (有外部读)。
 
     // MARK: - Context Operations
     // ARCH-1: contextCompact/contextUsage 抽至 AgentContextService.swift facade extension。本域最简单: 2 薄透传, 0 @Published, 0 private 静态依赖。

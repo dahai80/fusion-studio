@@ -1,7 +1,7 @@
 // ARCH-1 / F-A1: Project Chat Operations 从 AgentBridge God-object 抽出, facade extension。
-// @Published chatMessages/isInferring/models 仍存 AgentBridge (extension 不可声明存储属性),
-//   本文件只搬方法体, 行为零变。chatMessages 多 SwiftUI 读, @Published 留主类, extension 写
-//   self.chatMessages, 观察链不变。
+// @Published self.projectChatState.chatMessages/self.projectChatState.isInferring/models 仍存 AgentBridge (extension 不可声明存储属性),
+//   本文件只搬方法体, 行为零变。self.projectChatState.chatMessages 多 SwiftUI 读, @Published 留主类, extension 写
+//   self.projectChatState.chatMessages, 观察链不变。
 // 耦合未迁: Self.mlxSelfHealKeyCandidates (internal static 留 AgentBridge.swift),
 //   selfHealApiKeyForInfer 跨文件调 Self.mlxSelfHealKeyCandidates, internal 跨文件可达, 不需同文件。
 // Logger: 主类 private logger/agentBridgeStaticLog 均 file-scoped 不可跨文件访问,
@@ -29,36 +29,36 @@ extension AgentBridge {
         }
 
         let userRecord = ChatMessageRecord(role: "user", content: userMessage)
-        chatMessages.append(userRecord)
-        Self.capChatMessages(&chatMessages)
+        self.projectChatState.chatMessages.append(userRecord)
+        Self.capChatMessages(&self.projectChatState.chatMessages)
         if let session = pm.activeSession {
             pm.addMessage(toSession: session.id, role: "user", content: userMessage)
         }
 
         let systemPrompt = await ContextAssembler.shared.assembleWithRAG(project: pm.activeProject, query: userMessage)
         var messages: [[String: Any]] = [["role": "system", "content": systemPrompt]]
-        for msg in chatMessages {
+        for msg in self.projectChatState.chatMessages {
             messages.append(["role": msg.role, "content": msg.content])
         }
 
-        isInferring = true
-        defer { isInferring = false }
+        self.projectChatState.isInferring = true
+        defer { self.projectChatState.isInferring = false }
 
         let projectSettings = pm.activeProject?.settings ?? ProjectSettings()
         var chatModel = projectSettings.defaultModel
         if chatModel.isEmpty {
-            chatModel = MLXModelInfo.preferredDefault(in: models)?.name ?? ""
+            chatModel = MLXModelInfo.preferredDefault(in: self.mlxState.models)?.name ?? ""
             agentProjectChatLog.info("sendProjectChat: default model empty, picked \(chatModel)")
         }
         // BUG-1: 旧实现流结束才在 :1049 追加 assistantRecord, 与 onToken 的流式追加竞争 ->
         // 最终 record 覆盖流式部分 (或并行 Task 乱序导致 token 丢失/错位)。修正: 流开始前预置空
         // assistant 占位, onToken 逐 token 原位追加, 流结束不再重复 append (response 即占位累计内容)。
         let assistantRecord = ChatMessageRecord(role: "assistant", content: "")
-        chatMessages.append(assistantRecord)
-        Self.capChatMessages(&chatMessages)
+        self.projectChatState.chatMessages.append(assistantRecord)
+        Self.capChatMessages(&self.projectChatState.chatMessages)
         // F-R2: 旧 onToken 每 token 一个 Task { @MainActor } = 千 token 千 Task 派发风暴。
         // 改 throttle 聚合: 累积 token 到 buffer, 距上次刷新 >50ms 才 hop 到 MainActor 写 @Published。
-        // 末帧残量不单独 flush: 流结束 L984 `chatMessages[last].content = response` 用完整 response 回填占位。
+        // 末帧残量不单独 flush: 流结束 L984 `self.projectChatState.chatMessages[last].content = response` 用完整 response 回填占位。
         var tokenBuffer = ""
         var lastFlush = DispatchTime.now()
         let throttleNs: UInt64 = 50_000_000
@@ -75,8 +75,8 @@ extension AgentBridge {
                     let snapshot = tokenBuffer
                     tokenBuffer = ""
                     Task { @MainActor in
-                        if let lastIdx = self.chatMessages.indices.last, self.chatMessages[lastIdx].role == "assistant" {
-                            self.chatMessages[lastIdx].content += snapshot
+                        if let lastIdx = self.projectChatState.chatMessages.indices.last, self.projectChatState.chatMessages[lastIdx].role == "assistant" {
+                            self.projectChatState.chatMessages[lastIdx].content += snapshot
                         }
                     }
                 }
@@ -85,8 +85,8 @@ extension AgentBridge {
 
         // 流结束: 若 inferStream 返回值与占位累计不一致 (如含 thinking 前缀), 以完整 response 回填占位记录,
         // 并持久化到 session。不再重复 append (避免双条 assistant 消息)。
-        if let lastIdx = chatMessages.indices.last, chatMessages[lastIdx].role == "assistant" {
-            chatMessages[lastIdx].content = response
+        if let lastIdx = self.projectChatState.chatMessages.indices.last, self.projectChatState.chatMessages[lastIdx].role == "assistant" {
+            self.projectChatState.chatMessages[lastIdx].content = response
         }
         if let session = pm.activeSession {
             pm.addMessage(toSession: session.id, role: "assistant", content: response)
@@ -96,11 +96,11 @@ extension AgentBridge {
     }
 
     func clearChat() {
-        chatMessages = []
+        self.projectChatState.chatMessages = []
         FusionProjectManager.shared.activeSession = nil
     }
 
-    // BUG-4: 原 loadSessionMessages 仅 chatMessages=[] 不回填 session 历史且无调用方 (死方法,
+    // BUG-4: 原 loadSessionMessages 仅 self.projectChatState.chatMessages=[] 不回填 session 历史且无调用方 (死方法,
     // 切 session 走 pm.loadSession + pm.loadMessages 路径不经此), 历史丢失且方法误导。已删除。
 
     func infer(messages: [[String: Any]], model: String = "", temperature: Double = 0.7, maxTokens: Int = 2048, effort: String = "medium", thinking: Bool = false, webSearch: Bool = false) async throws -> String {
@@ -313,7 +313,7 @@ extension AgentBridge {
         return fullContent
     }
 
-    // F-A2: chatMessages 无界 append, 长会话内存单调增长。保留最近 200 条 (LRU 语义:
+    // F-A2: self.projectChatState.chatMessages 无界 append, 长会话内存单调增长。保留最近 200 条 (LRU 语义:
     // 旧消息越早越无回看价值, 且 LLM 上下文本身有限), 超额丢弃最旧。PERF-3 ragResults 范式。
     static func capChatMessages(_ msgs: inout [ChatMessageRecord]) {
         let cap = 200

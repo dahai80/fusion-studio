@@ -14,7 +14,7 @@ struct AgentStudioView: View {
     @Environment(\.studioTheme) var theme
 
     private var taskCount: Int {
-        bridge.tasks.filter { !$0.status.isTerminal }.count
+        bridge.taskState.tasks.filter { !$0.status.isTerminal }.count
     }
 
     private var unreadCount: Int {
@@ -30,7 +30,7 @@ struct AgentStudioView: View {
     }
 
     private var bridgeSubtitle: String {
-        bridge.isConnected ? "Backend Connected" : "Backend Offline"
+        bridge.runtimeState.isConnected ? "Backend Connected" : "Backend Offline"
     }
 
     var body: some View {
@@ -110,7 +110,7 @@ struct AgentStudioView: View {
                     try await bridge.checkHealth()
                     try await bridge.fetchAgents()
                     try await bridge.fetchGraphs()
-                    agentStudioLog.info("Bridge health check passed, fetched \(bridge.agents.count) agents, \(bridge.graphs.count) graphs")
+                    agentStudioLog.info("Bridge health check passed, fetched \(bridge.agentState.agents.count) agents, \(bridge.agentState.graphs.count) graphs")
                 } catch {
                     agentStudioLog.warning("Bridge connection failed on appear: \(error)")
                 }

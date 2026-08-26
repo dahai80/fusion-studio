@@ -547,7 +547,7 @@ struct FusionCodeView: View {
                     .foregroundStyle(theme.textTertiary)
             }
 
-            FusionModelPicker(scene: .code, selection: $selectedModel, models: bridge.models, onChange: { id in
+            FusionModelPicker(scene: .code, selection: $selectedModel, models: bridge.mlxState.models, onChange: { id in
                 fcLog.info("Model switched: \(id)")
             })
 
