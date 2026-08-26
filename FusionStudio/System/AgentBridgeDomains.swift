@@ -1,0 +1,50 @@
+import SwiftUI
+import os.log
+
+// F-A1/F-I1: AgentBridge 48 @Published 拆 7 独立 ObservableObject 域类型 (审计 0825 验收 P0,
+//   复用 F-A5 PR#315 AppState 拆 4 域已验证模式)。AgentBridge 持 let 域引用, facade 仍是
+//   extension AgentBridge 经 self.<state>.X reach-through。SwiftUI 经 body 内 bridge.<state>.X
+//   自动追踪域 (let 稳定身份), 每域独立重绘粒度 = 审计根治。0 跨域写确认 → 干净可分阶段。
+// 域: RuntimeState / MLXState / AgentState / ModuleState / TaskState / ConfigState / ProjectChatState。
+
+// MARK: - Runtime State (连接 / 执行 / 事件)
+
+final class RuntimeState: ObservableObject {
+    init() {}
+}
+
+// MARK: - MLX State (模型列表 / 池可见性)
+
+final class MLXState: ObservableObject {
+    init() {}
+}
+
+// MARK: - Agent State (Agent 生命周期 + Marketplace + 流式 + Graphs + Dashboard, 最大域)
+
+final class AgentState: ObservableObject {
+    init() {}
+}
+
+// MARK: - Module State (Planner + RAG + Memory + Safety + Template + Deploy + tools)
+
+final class ModuleState: ObservableObject {
+    init() {}
+}
+
+// MARK: - Task State (任务 / 项目)
+
+final class TaskState: ObservableObject {
+    init() {}
+}
+
+// MARK: - Config State (Connector + APIKey + Style + Hooks + Analytics + Team + Cron)
+
+final class ConfigState: ObservableObject {
+    init() {}
+}
+
+// MARK: - Project Chat State (会话消息 / 推理中)
+
+final class ProjectChatState: ObservableObject {
+    init() {}
+}

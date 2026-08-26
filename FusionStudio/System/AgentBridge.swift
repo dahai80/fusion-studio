@@ -321,6 +321,16 @@ struct MarketplaceEntryModel: Codable, Equatable, Identifiable {
 @MainActor
 final class AgentBridge: ObservableObject {
 
+    // F-A1/F-I1: 7 域子对象, 各独立 ObservableObject 持自己的 @Published (见 AgentBridgeDomains.swift)。
+    // 持同一实例 (let 稳定身份), SwiftUI 经 bridge.<state>.X 自动追踪。@Published 分阶段从主类迁入域。
+    let runtimeState = RuntimeState()
+    let mlxState = MLXState()
+    let agentState = AgentState()
+    let moduleState = ModuleState()
+    let taskState = TaskState()
+    let configState = ConfigState()
+    let projectChatState = ProjectChatState()
+
     @Published var isConnected: Bool = false
     @Published var graphs: [AgentGraphModel] = []
     @Published var events: [AgentEventModel] = []
