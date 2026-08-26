@@ -94,7 +94,7 @@ struct KBChatView: View {
 
     private var inputControls: some View {
         HStack(spacing: 8) {
-            FusionModelPicker(scene: .chat, selection: $selectedModel, models: agentBridge.models, onChange: { id in
+            FusionModelPicker(scene: .chat, selection: $selectedModel, models: agentBridge.mlxState.models, onChange: { id in
                 logger.info("KB model selected: \(id)")
             })
             VoiceInputButton(voice: voiceInput, text: $question, onSend: submitQuestion)

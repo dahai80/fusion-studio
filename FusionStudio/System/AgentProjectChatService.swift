@@ -47,7 +47,7 @@ extension AgentBridge {
         let projectSettings = pm.activeProject?.settings ?? ProjectSettings()
         var chatModel = projectSettings.defaultModel
         if chatModel.isEmpty {
-            chatModel = MLXModelInfo.preferredDefault(in: models)?.name ?? ""
+            chatModel = MLXModelInfo.preferredDefault(in: self.mlxState.models)?.name ?? ""
             agentProjectChatLog.info("sendProjectChat: default model empty, picked \(chatModel)")
         }
         // BUG-1: 旧实现流结束才在 :1049 追加 assistantRecord, 与 onToken 的流式追加竞争 ->

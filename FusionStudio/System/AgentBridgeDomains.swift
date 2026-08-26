@@ -16,6 +16,11 @@ final class RuntimeState: ObservableObject {
 // MARK: - MLX State (模型列表 / 池可见性)
 
 final class MLXState: ObservableObject {
+    @Published var models: [MLXModelInfo] = []
+    // F-A2子3: MLX 池可见性。周期轮询 mlx.status, 暴露 running + 已加载模型列表 + port。
+    @Published var mlxRunning: Bool = false
+    @Published var mlxLoadedModels: [String] = []
+    @Published var mlxPort: Int = 0
     init() {}
 }
 

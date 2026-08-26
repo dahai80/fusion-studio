@@ -736,14 +736,14 @@ private struct SettingsTabContent: View {
                 Text(i18n.t(.proj_panelDefaultModel))
                     .font(.system(size: theme.footnoteSize))
                     .foregroundStyle(theme.textSecondary)
-                if agentBridge.models.isEmpty {
+                if agentBridge.mlxState.models.isEmpty {
                 TextField(i18n.t(.proj_panelModelPh), text: $defaultModel)
                     .textFieldStyle(.roundedBorder)
                     .font(.system(size: theme.footnoteSize))
                 } else {
                 Picker(i18n.t(.proj_panelDefaultModel), selection: $defaultModel) {
                     Text(i18n.t(.proj_panelDefault)).tag("")
-                    ForEach(agentBridge.models, id: \.id) { m in
+                    ForEach(agentBridge.mlxState.models, id: \.id) { m in
                         Text(m.id).tag(m.id)
                     }
                 }

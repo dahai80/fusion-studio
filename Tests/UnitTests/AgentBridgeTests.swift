@@ -21,4 +21,13 @@ final class AgentBridgeTests: XCTestCase {
         XCTAssertTrue(bridge.mlxState === bridge.mlxState)
         XCTAssertTrue(bridge.agentState === bridge.agentState)
     }
+
+    // F-A1 Phase 1: MLXState 4 props 迁入域类后初值正确。
+    func testMLXStateDefaults() {
+        let bridge = AgentBridge()
+        XCTAssertTrue(bridge.mlxState.models.isEmpty)
+        XCTAssertFalse(bridge.mlxState.mlxRunning)
+        XCTAssertTrue(bridge.mlxState.mlxLoadedModels.isEmpty)
+        XCTAssertEqual(bridge.mlxState.mlxPort, 0)
+    }
 }

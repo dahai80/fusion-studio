@@ -884,7 +884,7 @@ struct AIAgentConfigView: View {
         }
         Task {
             do {
-                let modelIds = bridge.models.map { $0.id }
+                let modelIds = bridge.mlxState.models.map { $0.id }
                 await MainActor.run { availableModels = modelIds }
             }
             do {

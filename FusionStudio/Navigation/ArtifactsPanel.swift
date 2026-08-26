@@ -518,7 +518,7 @@ struct ArtifactsPanel: View {
                     .lineLimit(1...5)
                     .onSubmit { sendChat() }
 
-                FusionModelPicker(scene: .artifacts, selection: $selectedModel, models: agentBridge.models, onChange: { id in
+                FusionModelPicker(scene: .artifacts, selection: $selectedModel, models: agentBridge.mlxState.models, onChange: { id in
                     artifactsLog.info("Artifacts model selected: \(id)")
                 })
 

@@ -164,7 +164,7 @@ struct CodeMainView: View {
                 if !dm.isEmpty {
                     selectedModel = dm
                     agent.selectedModel = selectedModel
-                } else if let def = MLXModelInfo.preferredDefault(in: bridge.models) {
+                } else if let def = MLXModelInfo.preferredDefault(in: bridge.mlxState.models) {
                     selectedModel = def.name
                     agent.selectedModel = selectedModel
                 }
@@ -176,7 +176,7 @@ struct CodeMainView: View {
                     if !dm.isEmpty {
                         selectedModel = dm
                         agent.selectedModel = dm
-                    } else if let def = MLXModelInfo.preferredDefault(in: bridge.models) {
+                    } else if let def = MLXModelInfo.preferredDefault(in: bridge.mlxState.models) {
                         selectedModel = def.name
                         agent.selectedModel = def.name
                     }
@@ -251,7 +251,7 @@ struct CodeMainView: View {
             FusionModelPicker(
                 scene: .code,
                 selection: $selectedModel,
-                models: bridge.models,
+                models: bridge.mlxState.models,
                 onChange: { id in
                     agent.selectedModel = id
                     Task { try? await bridge.mlxSetModel(model: id) }

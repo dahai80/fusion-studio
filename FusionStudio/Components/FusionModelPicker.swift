@@ -1,6 +1,6 @@
 // Importers/callers: CodeMainView (modelSelector), AgentStudioView (2 Pickers), SettingsView (slot config), WelcomeView (3-slot onboarding).
 // Affected API: FusionModelPicker view - Menu-based unified model selector (3 slots + More Models submenu), scene-based default.
-// Data schemas: reads MLXModelInfo[] (bridge.models), FusionConfig slot/scene @AppStorage (mlxModelSmall/Code/Heavy, defaultSlot*). User instruction: "在所有选额模型的地方都默认展示这三个模型+More Models（More Model子菜单里面展示其他模型），系统初始选择模型的时候默认是小模型，客户要有地方设置默认模型，设置后所有加载模型的地方都默认是客户设置的模型，所有对话框，code和agent，artifacts等等用到模型的地方默认的都是客户设置的模型"
+// Data schemas: reads MLXModelInfo[] (bridge.mlxState.models), FusionConfig slot/scene @AppStorage (mlxModelSmall/Code/Heavy, defaultSlot*). User instruction: "在所有选额模型的地方都默认展示这三个模型+More Models（More Model子菜单里面展示其他模型），系统初始选择模型的时候默认是小模型，客户要有地方设置默认模型，设置后所有加载模型的地方都默认是客户设置的模型，所有对话框，code和agent，artifacts等等用到模型的地方默认的都是客户设置的模型"
 
 import SwiftUI
 import os.log

@@ -387,7 +387,7 @@ struct DesignChatPanel: View {
 
             Spacer()
 
-            FusionModelPicker(scene: .artifacts, selection: $selectedModel, models: agentBridge.models, onChange: { id in
+            FusionModelPicker(scene: .artifacts, selection: $selectedModel, models: agentBridge.mlxState.models, onChange: { id in
                 designBridge.selectedModel = id
                 chatPanelLog.info("Design model selected: \(id)")
             })

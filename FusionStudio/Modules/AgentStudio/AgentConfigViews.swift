@@ -26,8 +26,8 @@ struct ConfigureAgentSheet: View {
     ]
 
     private var availableModels: [MLXModelInfo] {
-        let chat = bridge.models.filter { $0.isTextChatModel }
-        return chat.isEmpty ? bridge.models : chat
+        let chat = bridge.mlxState.models.filter { $0.isTextChatModel }
+        return chat.isEmpty ? bridge.mlxState.models : chat
     }
 
     var body: some View {
@@ -145,7 +145,7 @@ struct ConfigureAgentSheet: View {
                             .font(.system(size: theme.captionSize))
                             .foregroundStyle(theme.textTertiary)
                     } else {
-                        FusionModelPicker(scene: .agent, selection: $model, models: bridge.models)
+                        FusionModelPicker(scene: .agent, selection: $model, models: bridge.mlxState.models)
                     }
                 }
                 VStack(alignment: .leading, spacing: theme.spacingXS) {
@@ -513,8 +513,8 @@ struct CreateAgentSheet: View {
     ]
 
     private var availableModels: [MLXModelInfo] {
-        let chat = bridge.models.filter { $0.isTextChatModel }
-        return chat.isEmpty ? bridge.models : chat
+        let chat = bridge.mlxState.models.filter { $0.isTextChatModel }
+        return chat.isEmpty ? bridge.mlxState.models : chat
     }
 
     var body: some View {
@@ -572,7 +572,7 @@ struct CreateAgentSheet: View {
                                     .font(.system(size: theme.captionSize))
                                     .foregroundStyle(theme.textTertiary)
                             } else {
-                                FusionModelPicker(scene: .agent, selection: $model, models: bridge.models, defaultTag: "")
+                                FusionModelPicker(scene: .agent, selection: $model, models: bridge.mlxState.models, defaultTag: "")
                             }
                         }
 
@@ -802,8 +802,8 @@ struct EditAgentSheet: View {
     ]
 
     private var availableModels: [MLXModelInfo] {
-        let chat = bridge.models.filter { $0.isTextChatModel }
-        return chat.isEmpty ? bridge.models : chat
+        let chat = bridge.mlxState.models.filter { $0.isTextChatModel }
+        return chat.isEmpty ? bridge.mlxState.models : chat
     }
 
     var body: some View {
@@ -856,7 +856,7 @@ struct EditAgentSheet: View {
                                         .stroke(theme.inputBorder, lineWidth: 1)
                                 }
                         } else {
-                            FusionModelPicker(scene: .agent, selection: $model, models: bridge.models, defaultTag: "")
+                            FusionModelPicker(scene: .agent, selection: $model, models: bridge.mlxState.models, defaultTag: "")
                         }
 
                         fieldLabel("System Prompt")

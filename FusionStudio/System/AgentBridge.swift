@@ -335,15 +335,10 @@ final class AgentBridge: ObservableObject {
     @Published var graphs: [AgentGraphModel] = []
     @Published var events: [AgentEventModel] = []
     @Published var isExecuting: Bool = false
-    @Published var models: [MLXModelInfo] = []
     @Published var chatMessages: [ChatMessageRecord] = []
     @Published var isInferring: Bool = false
     @Published var dashboardData: [String: Any] = [:]
-    // F-A2子3: MLX 池可见性。周期轮询 mlx.status, 暴露 running + 已加载模型列表 + port。
-    // lease/LRU/TTL 驱逐生命周期在上游 fusion-mlx, daemon mlx.status 不暴露 → 仅 running+models, 缺口提 upstream issue。
-    @Published var mlxRunning: Bool = false
-    @Published var mlxLoadedModels: [String] = []
-    @Published var mlxPort: Int = 0
+    // F-A1 Phase 1: models/mlxRunning/mlxLoadedModels/mlxPort 已迁 MLXState 域 (AgentBridgeDomains.swift)。
     // F-A2子3: 以下 2 个 AgentMlxService facade extension 跨文件访问, 故 internal。
     var mlxStatusTimer: Timer?
     var mlxStatusFetchedAt: Date?
@@ -815,7 +810,7 @@ final class AgentBridge: ObservableObject {
     // MARK: - MLX Operations
 
     // ARCH-1 / F-A1: fetchModels (×2) + startMLX/stopMLX/restartMLX/mlxStatus/mlxSetModel 6 方法抽至
-    // AgentMlxService.swift facade extension。@Published models 仍存主类, extension 写 self.models, 观察链不变。
+    // AgentMlxService.swift facade extension。@Published models/mlxRunning/mlxLoadedModels/mlxPort 已迁 MLXState 域, extension 写 self.mlxState.X。
     // 下方 3 个 nonisolated static 留主类: Project Chat selfHealApiKeyForInfer 跨域调 Self.mlxSelfHealKeyCandidates。
 
     // PERF-4: nonisolated async — 文件 I/O 跑 cooperative 线程池, 不阻塞 MainActor。sync 版删除: 全部调用方已 async await。
