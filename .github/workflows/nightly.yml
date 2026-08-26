@@ -17,8 +17,8 @@ jobs:
 
       - name: Build
         run: |
+          # Services/ 已删 (PR #298, 无本地 Rust 后台服务), 仅 Swift build。
           swift build -c release 2>&1 | tail -5
-          cd Services/env-daemon && cargo build --release 2>&1 | tail -5
 
       - name: Run tests
         run: swift test 2>&1 | tail -10

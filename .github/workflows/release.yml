@@ -22,13 +22,7 @@ jobs:
       - name: Show versions
         run: |
           swift --version
-          rustc --version
-          cargo --version
-
-      - name: Build Rust services
-        run: |
-          cd Services/env-daemon
-          cargo build --release 2>&1
+          # Services/ 已删 (PR #298, 无本地 Rust 后台服务), 无 Rust toolchain 步骤。
 
       - name: Build SwiftUI app (release)
         run: swift build -c release 2>&1
@@ -83,7 +77,9 @@ jobs:
         id: changelog
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          CHANGELOG=$(sed -n "/## \[${VERSION}\]/,/## \[/p" FusionStudio/Common/DocGeneratorView.swift | head -20 | grep -v "## \[" | sed 's/^            //' | sed '/^$/d')
+          # 从 README.md Changelog 段提取本版本块 (### v0.1.X 标题到下一个 ### v 标题前)。
+          # 旧源 DocGeneratorView.swift 无 ## [VERSION] 格式, 提取恒空 → 改 README.md。
+          CHANGELOG=$(sed -n "/^### v${VERSION} /,/^### v[0-9]/p" README.md | sed '1d;$d' | sed '/^$/N;/^\n$/D')
           {
             echo "version=$VERSION"
             echo "changelog<<EOF"
