@@ -539,6 +539,34 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 
 ## 📋 Changelog
 
+### v0.1.47 — 审计 0825 仓内可外科项全完 + MLX facade + AppState 4 域拆 (2026-08-26)
+
+补丁版本，外部独立审计 `audit/fusion-studio-audit-report-0825.md` (43 发现 P0-P3) 仓内可外科修复全部完成 + ARCH-1 MLX facade + F-A5 AppState 拆分 + F-A16 RPC schema 协商:
+
+- **架构 (F-A1/A5/A6)**：
+  - **F-A1 MLX Operations facade** (PR #311)：MLX start/stop/status/fetchModels 等从 AgentBridge God-object 抽 `AgentMlxService.swift` extension；行为零变
+  - **F-A5 AppState 拆 4 域** (PR #315)：AppState 17 @Published 拆 NavigationState/UIPanelState/HealthState/ThemeState 4 ObservableObject (新增 AppStateDomains.swift)，各独立 @StateObject + .environmentObject 注入；27 文件 appState.X→sub.X
+  - **F-A6 路由枚举对齐** (PR #302)：删死 ProductSheet.modules + ModuleSidebarView.swift；4-switch→3-switch 消死列表矛盾；修 .deploy/.desk 反向映射
+- **运行时韧性 (F-R6/R10/R12)**：
+  - **F-R12 重试退避+熔断** (PR #304)：retryBackoffSeconds 指数 1→2→4 封顶 + ±12.5% jitter 替固定 1s；后端连续失败达 5 触发 backendCircuitOpen fast-fail
+  - **F-R6/R10 轮询韧性** (PR #299)：nodesStale 连续失败 3 轮才降级不清 nodes；schedulePoll 加 label 单飞防慢响应请求风暴
+- **多节点健壮性 (F-A7/A8③/A9/A10/A11)**：
+  - **F-A7 配置实时读** (PR #307)：MultiNodeEngine init let 快照 baseURL/authToken → private var 计算属性实时读 FusionConfig.shared (防改地址后 401 两套数据打架)
+  - **F-A8③ 推理路由作用域澄清** (PR #316)：两套独立路由系统 (master task.* 无 chat 代理 / gateway 推理独立集群) 文档标注 + RoutingStrategyView scopeNote 横幅 + infer/inferStream route=direct-mlx info 日志；host 硬编码 127.0.0.1 改 modelHubHost (PR #309)
+  - **F-A9 轮询 App 级** (PR #308)：8 叶子 View onAppear/onDisappear startPolling/stopPolling → FusionStudioApp scenePhase active 常驻/background 停；startPolling 幂等守卫防重复 schedule 风暴
+  - **F-A10/A11 掉线+脑裂** (PR #305)：ClusterNode.effectiveStatus 心跳 >30s 本地降级 offline 不无条件信服务端 status；splitBrainDetected >1master → critical banner + assertNoSplitBrain 守卫阻断 removeNode/approveNode/submitTask
+- **状态机/缓存 (F-A2/A3/A16)**：
+  - **F-A2 TTL 缓存 + MLX 池可见性** (PR #318 + #313)：8 fetch 方法加 30s TTL 守卫防 onAppear fetch 风暴 + 写操作置 nil；@Published 数组无界 append 改 LRU cap 50；新增 mlxRunning/mlxLoadedModels/mlxPort 周期轮询 (复用 F-A9 scenePhase) + SettingsView MLX 状态行
+  - **F-A3 删死 lastError sink** (PR #306)：@Published lastError 跨域共享错误 sink 0 外部读 + 72 写点全 throw 后 = 死状态，删声明 + 72 写点
+  - **F-A16 RPC schema 协商** (PR #317)：客户端零调 rpc.discover 致 schema 漂移静默崩；performConnect 后异步 discover 缓存 method 集 + criticalMethods 存在性检查 + @Published schemaCompatible 预警
+- **实现/安全 (F-I2/I6/I8/I10)**：
+  - **F-I6 临时文件统一目录** (PR #301)：/tmp 公共区 → ~/.fusion-studio/tmp/ 0700 + 0600 防窥探；defer 兜底清理
+  - **F-I10 错误脱敏** (PR #303)：BridgeError.sanitize 统一出口走 userMessage 非 BridgeError 走兜底不泄 detail；agentChat 裸抛 error → 转 ipcError
+  - **F-I2/I8** (PR #300)：print → os.log + CLAUDE.md 事实修正
+- **死代码清理** (PR #319, fixes #312)：删除 `FusionCoderBridge.swift` (shelled 到不存在的 fusion-coder 二进制，180+ 行死代码)；CodeEditorView status literal `fusion-coder: ready` → `fusion-code: ready`
+- **上游缺口 (跨工程 issue，非本仓可外科)**：F-A8 推理流量不经 MultiNodeEngine 路由 → fusion-multi-nodes#27；mlx.status 不暴露池 lease/LRU/TTL → fusion-agent-studio#225；artifacts-engine v0.4.0 移除 inject → 上游；DesignBridge bypass fd-ai-adapter → fusion-design。均提 issue 遵 "上游问题先提 issue" 流程
+- **CI 全绿**：Notification / Code Quality / Security Audit / Rust Check / Swift Build & Test 5/5 pass；master 仅 master 分支
+
 ### v0.1.46 — 死代码删除 + 架构 facade 抽取 + 审计 P0 修复 (2026-08-25)
 
 补丁版本，删除两处死代码后台服务 + ARCH-1 AgentBridge facade 抽取收尾 + 审计 P0 阻断项修复:
