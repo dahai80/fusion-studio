@@ -46,11 +46,13 @@ jobs:
           df -h / | tail -1
           ./Scripts/build.sh dmg 2>&1
 
-      # F-I13: CI 验全流程 — 签名 (gate by secrets, 缺凭证跳过不阻断 CI)。
-      # 需仓库配 secrets: MACOS_CERTIFICATE_P12 (base64), MACOS_CERTIFICATE_PWD, DEVELOPER_ID。
-      # 未配 → 日志告警 + 跳过 (DMG 未签名, 用户被 Gatekeeper 拦 — 见审计 F-I13)。
+      # F-I13: CI 验全流程 — 签名 (gate by vars, 缺凭证跳过不阻断 CI)。
+      # 需仓库配 secrets: MACOS_CERTIFICATE_P12 (base64), MACOS_CERTIFICATE_PWD, DEVELOPER_ID
+      # + 配 Repository Variable SIGN_ENABLED=true 开启。未配 → 跳过 (DMG 未签名, 用户被 Gatekeeper 拦 — 见审计 F-I13)。
+      # F-I13fix: secrets 上下文不允许在 if: 内引用 (GitHub 拒绝整个 workflow = 0 jobs, 见 actionlint)。
+      #   改用 vars 上下文 (if: 内合法) 作开关, secrets 仅在 env: 内透传实值。
       - name: Import signing certificate
-        if: ${{ secrets.DEVELOPER_ID != '' && secrets.MACOS_CERTIFICATE_P12 != '' }}
+        if: ${{ vars.SIGN_ENABLED == 'true' }}
         env:
           MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
           MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
@@ -66,7 +68,7 @@ jobs:
           echo "SIGN_KEYCHAIN=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
 
       - name: Sign .app (codesign + spctl verify)
-        if: ${{ secrets.DEVELOPER_ID != '' && secrets.MACOS_CERTIFICATE_P12 != '' }}
+        if: ${{ vars.SIGN_ENABLED == 'true' }}
         env:
           DEVELOPER_ID: ${{ secrets.DEVELOPER_ID }}
         run: |
@@ -75,9 +77,10 @@ jobs:
           rm -f .build/FusionStudio-*-arm64.dmg
           ./Scripts/build.sh dmg 2>&1
 
-      # F-I13: 公证 (gate by secrets, 缺凭证跳过)。需 secrets: APPLE_ID, APPLE_TEAM_ID, APPLE_APP_SPECIFIC_PASSWORD。
+      # F-I13: 公证 (gate by vars, 缺凭证跳过)。需 secrets: APPLE_ID, APPLE_TEAM_ID, APPLE_APP_SPECIFIC_PASSWORD
+      # + Repository Variable NOTARIZE_ENABLED=true 开启。
       - name: Notarize DMG (notarytool + stapler)
-        if: ${{ secrets.APPLE_ID != '' && secrets.APPLE_TEAM_ID != '' && secrets.APPLE_APP_SPECIFIC_PASSWORD != '' }}
+        if: ${{ vars.NOTARIZE_ENABLED == 'true' }}
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
