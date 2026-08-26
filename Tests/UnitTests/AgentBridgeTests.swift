@@ -76,4 +76,32 @@ final class AgentBridgeTests: XCTestCase {
         XCTAssertTrue(bridge.agentState.graphs.isEmpty)
         XCTAssertTrue(bridge.agentState.dashboardData.isEmpty)
     }
+
+    // F-A1 Phase 3: TaskState 2 @Published 初值。
+    func testTaskStateDefaults() {
+        let bridge = AgentBridge()
+        XCTAssertTrue(bridge.taskState.tasks.isEmpty)
+        XCTAssertTrue(bridge.taskState.projects.isEmpty)
+    }
+
+    // F-A1 Phase 2: ConfigState 9 @Published 初值。
+    func testConfigStateDefaults() {
+        let bridge = AgentBridge()
+        XCTAssertTrue(bridge.configState.connectors.isEmpty)
+        XCTAssertTrue(bridge.configState.apikeys.isEmpty)
+        XCTAssertTrue(bridge.configState.styles.isEmpty)
+        XCTAssertTrue(bridge.configState.analyticsData.isEmpty)
+        XCTAssertTrue(bridge.configState.alerts.isEmpty)
+        XCTAssertTrue(bridge.configState.swarmAgents.isEmpty)
+        XCTAssertTrue(bridge.configState.plazaChannels.isEmpty)
+        XCTAssertTrue(bridge.configState.cronJobs.isEmpty)
+        XCTAssertTrue(bridge.configState.hooks.isEmpty)
+    }
+
+    // F-A1 Phase 4: ProjectChatState 2 @Published 初值 (write-only, 0 SwiftUI 读)。
+    func testProjectChatStateDefaults() {
+        let bridge = AgentBridge()
+        XCTAssertTrue(bridge.projectChatState.chatMessages.isEmpty)
+        XCTAssertFalse(bridge.projectChatState.isInferring)
+    }
 }
