@@ -79,8 +79,8 @@ class StreamingBridge: ObservableObject {
         let conn = NWConnection(to: endpoint, using: parameters)
         self.connection = conn
 
-        conn.stateUpdateHandler = { [weak self] state in
-            Task { @MainActor in
+        conn.stateUpdateHandler = { state in
+            Task { @MainActor [weak self] in
                 guard let self = self else { return }
                 switch state {
                 case .ready:

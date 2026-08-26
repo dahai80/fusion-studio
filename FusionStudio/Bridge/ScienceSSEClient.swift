@@ -38,8 +38,8 @@ class ScienceSSEClient: ObservableObject {
         let body: [String: Any] = ["message": message, "stream": true]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
-        let task = session.dataTask(with: request) { [weak self] data, response, error in
-            Task { @MainActor in
+        let task = session.dataTask(with: request) { data, response, error in
+            Task { @MainActor [weak self] in
                 guard let self = self else { return }
                 self.isStreaming = false
 
