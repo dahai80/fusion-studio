@@ -331,10 +331,9 @@ final class AgentBridge: ObservableObject {
     let configState = ConfigState()
     let projectChatState = ProjectChatState()
 
-    @Published var isConnected: Bool = false
-    // F-A1 Phase 6: self.agentState.graphs 已迁 AgentState 域 (AgentGraphService facade 写, 11 SwiftUI 读)。
-    @Published var events: [AgentEventModel] = []
-    @Published var isExecuting: Bool = false
+    // F-A1 Phase 7: isConnected/isExecuting/events 已迁 RuntimeState 域 (主类 checkHealth/executeGraph/
+    //   cancelExecution/taskExecuteImmediate 写 self.runtimeState.X; setIPCClient sink 重定向 $runtimeState.isConnected)。
+    //   AgentBridge 主类 @Published 块已全空 (48 全迁 7 域)。
     // F-A1 Phase 4: chatMessages/isInferring 已迁 ProjectChatState 域 (AgentProjectChatService facade 写, 0 SwiftUI 读 write-only)。
     // F-A1 Phase 6: self.agentState.dashboardData 已迁 AgentState 域 (AgentOpsService:235 跨域写, 迁入同域消除跨域写)。
     // F-A1 Phase 1: models/mlxRunning/mlxLoadedModels/mlxPort 已迁 MLXState 域 (AgentBridgeDomains.swift)。
@@ -397,13 +396,20 @@ final class AgentBridge: ObservableObject {
 
     // Callers: TokenBudgetView, VectorSearchView, MemoryRelevantView, ToolBrowserView, SafetyView. Affected API: all new IPC bridge methods. User instruction: "审视是否所有需要功能和api所有需要的GUI都在~/fusion/fusion-studio都已经有对应GUI了，所有有问题的都要在fusion-studio补齐GUI"
     private let logger = Logger(subsystem: "com.fusion.studio", category: "AgentBridge")
+    // F-A1 Phase 7: setIPCClient sink 订阅持有 (原 .assign(to:) 不需显式持, 改 .sink 需 store)。
+    private var cancellables = Set<AnyCancellable>()
     var ipcClient: IPCClient?
 
     func setIPCClient(_ client: IPCClient) {
         self.ipcClient = client
+        // F-A1 Phase 7: runtimeState 是 let 子对象, $runtimeState.isConnected 非法 ($投影仅限直接 @Published 属性)。
+        // 改 .sink 手动写 runtimeState.isConnected, cancellable 持久化防订阅立即释放。
         client.$isConnected
             .receive(on: DispatchQueue.main)
-            .assign(to: &$isConnected)
+            .sink { [weak self] connected in
+                self?.runtimeState.isConnected = connected
+            }
+            .store(in: &cancellables)
         logger.info("AgentBridge connected to IPCClient")
     }
 
@@ -416,11 +422,11 @@ final class AgentBridge: ObservableObject {
         do {
             let result = try await client.call(method: RPCMethod.ping)
             let pong = result["pong"] as? Bool ?? false
-            self.isConnected = pong
+            self.runtimeState.isConnected = pong
             logger.info("checkHealth: connected=\(pong)")
             return pong
         } catch let error as IPCError {
-            self.isConnected = false
+            self.runtimeState.isConnected = false
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
 
             logger.error("checkHealth: \(error)")
@@ -449,11 +455,11 @@ final class AgentBridge: ObservableObject {
                 return value
             }
         } catch BridgeError.timeout {
-            self.isConnected = false
+            self.runtimeState.isConnected = false
             logger.error("fullHealthCheck: timeout after 8s (env.health_check did not respond)")
             throw BridgeError.timeout
         }
-        self.isConnected = true
+        self.runtimeState.isConnected = true
         return result
     }
 
@@ -555,8 +561,8 @@ final class AgentBridge: ObservableObject {
             throw BridgeError.notConnected
         }
         logger.info("executeGraph: id=\(id) task=\(taskId.isEmpty ? "-" : taskId)")
-        self.isExecuting = true
-        self.events = []
+        self.runtimeState.isExecuting = true
+        self.runtimeState.events = []
 
         do {
             var params: [String: Any] = [
@@ -575,17 +581,17 @@ final class AgentBridge: ObservableObject {
                     parsed.append(model)
                 }
             }
-            self.events = parsed
-            self.isExecuting = false
+            self.runtimeState.events = parsed
+            self.runtimeState.isExecuting = false
             logger.info("executeGraph: received \(parsed.count) events")
         } catch let error as IPCError {
-            self.isExecuting = false
+            self.runtimeState.isExecuting = false
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
 
             logger.error("executeGraph: \(error)")
             throw bridgeErr
         } catch {
-            self.isExecuting = false
+            self.runtimeState.isExecuting = false
             let bridgeErr = BridgeError.decodeError(error.localizedDescription)
 
             logger.error("executeGraph decode: \(error)")
@@ -595,7 +601,7 @@ final class AgentBridge: ObservableObject {
 
     func cancelExecution() {
         logger.info("cancelExecution")
-        self.isExecuting = false
+        self.runtimeState.isExecuting = false
     }
 
     func fetchTools() async throws -> [[String: Any]] {
@@ -1095,7 +1101,7 @@ final class AgentBridge: ObservableObject {
                 var sessionId = ""
                 if !graphId.isEmpty {
                     try await executeGraph(id: graphId, input: inputText, taskId: taskId)
-                    eventsParsed = self.events
+                    eventsParsed = self.runtimeState.events
                 } else {
                     let result = try await agentExecute(agentId: agentId, input: inputText)
                     sessionId = result["session_id"] as? String ?? ""

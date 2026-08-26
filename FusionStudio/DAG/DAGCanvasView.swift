@@ -185,7 +185,7 @@ class DAGViewModel: ObservableObject {
         for i in layout.edges.indices { layout.edges[i].isAnimated = false }
         do {
             try await bridge.executeGraph(id: graphId, input: "")
-            let events = bridge.events
+            let events = bridge.runtimeState.events
             for (idx, ev) in events.enumerated() {
                 if idx < layout.nodes.count {
                     layout.nodes[idx].state = .running

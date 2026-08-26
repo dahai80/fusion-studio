@@ -30,7 +30,7 @@ struct AgentStudioView: View {
     }
 
     private var bridgeSubtitle: String {
-        bridge.isConnected ? "Backend Connected" : "Backend Offline"
+        bridge.runtimeState.isConnected ? "Backend Connected" : "Backend Offline"
     }
 
     var body: some View {

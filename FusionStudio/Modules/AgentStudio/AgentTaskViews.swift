@@ -1111,7 +1111,7 @@ struct WorkflowDetailView: View {
             do {
                 try await bridge.executeGraph(id: graph.id, input: executeInput)
                 var output = ""
-                for ev in bridge.events {
+                for ev in bridge.runtimeState.events {
                     let nodeId = ev.node_id ?? "?"
                     output += "[\(ev.type)] \(nodeId)"
                     if let data = ev.data, !data.isEmpty {

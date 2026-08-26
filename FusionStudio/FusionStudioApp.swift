@@ -145,9 +145,9 @@ struct FusionStudioApp: App {
                         return 0
                     }
                     StudioMemoryMonitor.shared.registerEviction(name: "events") { [weak agentBridge] in
-                        let before = agentBridge?.events.count ?? 0
+                        let before = agentBridge?.runtimeState.events.count ?? 0
                         if before > 200 {
-                            agentBridge?.events = Array((agentBridge?.events ?? []).suffix(200))
+                            agentBridge?.runtimeState.events = Array((agentBridge?.runtimeState.events ?? []).suffix(200))
                             return before - 200
                         }
                         return 0

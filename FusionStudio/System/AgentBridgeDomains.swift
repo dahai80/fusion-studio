@@ -10,6 +10,9 @@ import os.log
 // MARK: - Runtime State (连接 / 执行 / 事件)
 
 final class RuntimeState: ObservableObject {
+    @Published var isConnected: Bool = false
+    @Published var isExecuting: Bool = false
+    @Published var events: [AgentEventModel] = []
     init() {}
 }
 

@@ -49,6 +49,14 @@ final class AgentBridgeTests: XCTestCase {
         XCTAssertEqual(bridge.moduleState.lastResearchResult, "")
     }
 
+    // F-A1 Phase 7: RuntimeState 3 @Published 初值 (dashboardData 在 Phase 6 AgentState)。
+    func testRuntimeStateDefaults() {
+        let bridge = AgentBridge()
+        XCTAssertFalse(bridge.runtimeState.isConnected)
+        XCTAssertFalse(bridge.runtimeState.isExecuting)
+        XCTAssertTrue(bridge.runtimeState.events.isEmpty)
+    }
+
     // F-A1 Phase 6: AgentState 15 @Published 初值 (13 AgentOps + graphs + dashboardData)。
     func testAgentStateDefaults() {
         let bridge = AgentBridge()
