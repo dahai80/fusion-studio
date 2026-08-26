@@ -649,8 +649,15 @@ extension DesignBridgeTests {
 
     func testComponentSizeAllCases() {
         XCTAssertEqual(ComponentSize.allCases.count, 3)
-        // displayName 经 i18n 本地化; 测试环境默认 enUS → "S"
+        // displayName 经 i18n 本地化。I18nManager 默认 zh-CN (读 UserDefaults "app_language", 无则 "zh-CN"),
+        // 非测试环境恒 enUS。旧测试假设默认 enUS → 仅当机器恰存了 en-US 时绿, 干净 CI 恒红。
+        // 显式切 enUS 断言英文, defer 复位, 确定性 + 不污染共享单例。
+        let saved = I18nManager.shared.currentLanguage
+        I18nManager.shared.currentLanguage = .enUS
+        defer { I18nManager.shared.currentLanguage = saved }
         XCTAssertEqual(ComponentSize.small.displayName, "S")
+        XCTAssertEqual(ComponentSize.medium.displayName, "M")
+        XCTAssertEqual(ComponentSize.large.displayName, "L")
     }
 
     func testComponentCategoryAllCases() {
@@ -692,13 +699,21 @@ extension DesignBridgeTests {
     }
 
     func testJustifyContentDisplayNames() {
-        // displayName 经 i18n 本地化; 测试环境默认 enUS → "Center"/"Space Between"
+        // displayName 经 i18n 本地化; I18nManager 默认 zh-CN 非恒 enUS (见 testComponentSizeAllCases 注)。
+        // 显式切 enUS 断言英文, defer 复位, 确定性。
+        let saved = I18nManager.shared.currentLanguage
+        I18nManager.shared.currentLanguage = .enUS
+        defer { I18nManager.shared.currentLanguage = saved }
         XCTAssertEqual(JustifyContent.center.displayName, "Center")
         XCTAssertEqual(JustifyContent.between.displayName, "Space Between")
     }
 
     func testAlignItemsDisplayNames() {
-        // displayName 经 i18n 本地化; 测试环境默认 enUS → "Stretch"
+        // displayName 经 i18n 本地化; I18nManager 默认 zh-CN 非恒 enUS (见 testComponentSizeAllCases 注)。
+        // 显式切 enUS 断言英文, defer 复位, 确定性。
+        let saved = I18nManager.shared.currentLanguage
+        I18nManager.shared.currentLanguage = .enUS
+        defer { I18nManager.shared.currentLanguage = saved }
         XCTAssertEqual(AlignItems.stretch.displayName, "Stretch")
     }
 

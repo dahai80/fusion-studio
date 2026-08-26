@@ -24,6 +24,11 @@ jobs:
           swift --version
           # Services/ 已删 (PR #298, 无本地 Rust 后台服务), 无 Rust toolchain 步骤。
 
+      - name: Run tests (release gate)
+        # F-I13: release pipeline 须验全流程 (build+test+dmg+sign)。原 release.yml 不跑测试 = 靠本地构建者手验。
+        # pipefail 保 swift test 退出码 (tail 不吞码)。测试挂 → release 阻断。
+        run: set -o pipefail && swift test 2>&1 | tail -20
+
       - name: Build SwiftUI app (release)
         run: swift build -c release 2>&1
 
@@ -40,6 +45,50 @@ jobs:
           rm -rf .build/release 2>/dev/null || true
           df -h / | tail -1
           ./Scripts/build.sh dmg 2>&1
+
+      # F-I13: CI 验全流程 — 签名 (gate by secrets, 缺凭证跳过不阻断 CI)。
+      # 需仓库配 secrets: MACOS_CERTIFICATE_P12 (base64), MACOS_CERTIFICATE_PWD, DEVELOPER_ID。
+      # 未配 → 日志告警 + 跳过 (DMG 未签名, 用户被 Gatekeeper 拦 — 见审计 F-I13)。
+      - name: Import signing certificate
+        if: ${{ secrets.DEVELOPER_ID != '' && secrets.MACOS_CERTIFICATE_P12 != '' }}
+        env:
+          MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+        run: |
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          echo -n "$MACOS_CERTIFICATE_P12" | base64 --decode -o "$CERTIFICATE_PATH"
+          security create-keychain -p "$(head -c 32 /dev/urandom | base64)" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$MACOS_CERTIFICATE_PWD" "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" -P "$MACOS_CERTIFICATE_PWD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain
+          echo "SIGN_KEYCHAIN=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+
+      - name: Sign .app (codesign + spctl verify)
+        if: ${{ secrets.DEVELOPER_ID != '' && secrets.MACOS_CERTIFICATE_P12 != '' }}
+        env:
+          DEVELOPER_ID: ${{ secrets.DEVELOPER_ID }}
+        run: |
+          ./Scripts/build.sh sign "$DEVELOPER_ID" 2>&1
+          # 重新打 DMG (签名后 app 变更, 旧 DMG 失效)
+          rm -f .build/FusionStudio-*-arm64.dmg
+          ./Scripts/build.sh dmg 2>&1
+
+      # F-I13: 公证 (gate by secrets, 缺凭证跳过)。需 secrets: APPLE_ID, APPLE_TEAM_ID, APPLE_APP_SPECIFIC_PASSWORD。
+      - name: Notarize DMG (notarytool + stapler)
+        if: ${{ secrets.APPLE_ID != '' && secrets.APPLE_TEAM_ID != '' && secrets.APPLE_APP_SPECIFIC_PASSWORD != '' }}
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: |
+          ./Scripts/build.sh notarize "$APPLE_ID" "$APPLE_TEAM_ID" "$APPLE_APP_SPECIFIC_PASSWORD" 2>&1
+
+      - name: Cleanup keychain
+        if: ${{ always() && env.SIGN_KEYCHAIN != '' }}
+        run: |
+          security delete-keychain "$SIGN_KEYCHAIN" 2>/dev/null || true
 
       - name: List artifacts
         id: artifacts

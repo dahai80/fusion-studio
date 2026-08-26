@@ -572,41 +572,57 @@ struct DesignCanvasView: NSViewRepresentable {
         }
 
         @objc private func duplicateNodeAction() {
-            guard let nid = parent.designBridge.selectedNodeID else { return }
-            parent.designBridge.duplicateNode(nid)
+            // F-I13 pipefail 暴露: parent.designBridge (main-actor-isolated) 在 @objc 非 isolated 选择器引用 = error。
+            // NSView 菜单动作在主线程 → MainActor.assumeIsolated 安全。
+            MainActor.assumeIsolated {
+                guard let nid = parent.designBridge.selectedNodeID else { return }
+                parent.designBridge.duplicateNode(nid)
+            }
         }
 
         @objc private func deleteNodeAction() {
-            guard let nid = parent.designBridge.selectedNodeID else { return }
-            parent.designBridge.deleteNode(nid)
+            MainActor.assumeIsolated {
+                guard let nid = parent.designBridge.selectedNodeID else { return }
+                parent.designBridge.deleteNode(nid)
+            }
         }
 
         @objc private func toggleLockAction() {
-            guard let nid = parent.designBridge.selectedNodeID else { return }
-            let isLocked = isNodeLocked(nid)
-            parent.designBridge.setNodeLocked(nid, locked: !isLocked)
+            MainActor.assumeIsolated {
+                guard let nid = parent.designBridge.selectedNodeID else { return }
+                let isLocked = isNodeLocked(nid)
+                parent.designBridge.setNodeLocked(nid, locked: !isLocked)
+            }
         }
 
         @objc private func toggleVisibilityAction() {
-            guard let nid = parent.designBridge.selectedNodeID else { return }
-            let isVisible = isNodeVisible(nid)
-            parent.designBridge.setNodeVisibility(nid, visible: !isVisible)
+            MainActor.assumeIsolated {
+                guard let nid = parent.designBridge.selectedNodeID else { return }
+                let isVisible = isNodeVisible(nid)
+                parent.designBridge.setNodeVisibility(nid, visible: !isVisible)
+            }
         }
 
         @objc private func partialRepaintAction() {
-            guard let nid = parent.designBridge.selectedNodeID else { return }
-            parent.designBridge.marqueeSelectedNodeIDs = [nid]
-            parent.designBridge.skillPartialEdit(nodesJSON: "[]", instruction: "重新设计选中元素的视觉样式")
+            MainActor.assumeIsolated {
+                guard let nid = parent.designBridge.selectedNodeID else { return }
+                parent.designBridge.marqueeSelectedNodeIDs = [nid]
+                parent.designBridge.skillPartialEdit(nodesJSON: "[]", instruction: "重新设计选中元素的视觉样式")
+            }
         }
 
         @objc private func bringToFrontAction() {
-            guard let nid = parent.designBridge.selectedNodeID else { return }
-            parent.designBridge.bringToFront(nid)
+            MainActor.assumeIsolated {
+                guard let nid = parent.designBridge.selectedNodeID else { return }
+                parent.designBridge.bringToFront(nid)
+            }
         }
 
         @objc private func sendToBackAction() {
-            guard let nid = parent.designBridge.selectedNodeID else { return }
-            parent.designBridge.sendToBack(nid)
+            MainActor.assumeIsolated {
+                guard let nid = parent.designBridge.selectedNodeID else { return }
+                parent.designBridge.sendToBack(nid)
+            }
         }
 
         @objc private func selectAllAction() {
@@ -622,34 +638,42 @@ struct DesignCanvasView: NSViewRepresentable {
         }
 
         private func isNodeLocked(_ nodeID: String) -> Bool {
-            guard let docJSON = parent.designBridge.lastRenderedDocumentJSON,
-                  let data = docJSON.data(using: .utf8),
-                  let doc = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  let pages = doc["pages"] as? [[String: Any]] else { return false }
-            for page in pages {
-                guard let nodes = page["nodes"] as? [[String: Any]] else { continue }
-                if let node = nodes.first(where: { ($0["id"] as? String) == nodeID }),
-                   let style = node["style"] as? [String: Any],
-                   let opacity = style["opacity"] as? Double, opacity < 0.5 {
-                    return true
+            // F-I13 pipefail 暴露: parent.designBridge.lastRenderedDocumentJSON 是 main-actor-isolated,
+            // @objc 动作选择器跑在 NSView 非 isolated 上下文 → strict-concurrency error。
+            // NSView 菜单动作实际在主线程执行 → MainActor.assumeIsolated 运行时安全 + 满足编译器隔离检查。
+            MainActor.assumeIsolated {
+                guard let docJSON = parent.designBridge.lastRenderedDocumentJSON,
+                      let data = docJSON.data(using: .utf8),
+                      let doc = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let pages = doc["pages"] as? [[String: Any]] else { return false }
+                for page in pages {
+                    guard let nodes = page["nodes"] as? [[String: Any]] else { continue }
+                    if let node = nodes.first(where: { ($0["id"] as? String) == nodeID }),
+                       let style = node["style"] as? [String: Any],
+                       let opacity = style["opacity"] as? Double, opacity < 0.5 {
+                        return true
+                    }
                 }
+                return false
             }
-            return false
         }
 
         private func isNodeVisible(_ nodeID: String) -> Bool {
-            guard let docJSON = parent.designBridge.lastRenderedDocumentJSON,
-                  let data = docJSON.data(using: .utf8),
-                  let doc = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  let pages = doc["pages"] as? [[String: Any]] else { return true }
-            for page in pages {
-                guard let nodes = page["nodes"] as? [[String: Any]] else { continue }
-                if let node = nodes.first(where: { ($0["id"] as? String) == nodeID }),
-                   let vis = node["visible"] as? Bool {
-                    return vis
+            // F-I13 pipefail 暴露: 同 isNodeLocked — lastRenderedDocumentJSON main-actor-isolated, 菜单动作在主线程。
+            MainActor.assumeIsolated {
+                guard let docJSON = parent.designBridge.lastRenderedDocumentJSON,
+                      let data = docJSON.data(using: .utf8),
+                      let doc = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let pages = doc["pages"] as? [[String: Any]] else { return true }
+                for page in pages {
+                    guard let nodes = page["nodes"] as? [[String: Any]] else { continue }
+                    if let node = nodes.first(where: { ($0["id"] as? String) == nodeID }),
+                       let vis = node["visible"] as? Bool {
+                        return vis
+                    }
                 }
+                return true
             }
-            return true
         }
     }
 }
