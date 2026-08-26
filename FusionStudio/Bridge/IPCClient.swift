@@ -31,6 +31,11 @@ class IPCClient: ObservableObject {
     // F-A4: pending 容量上限, 防高频 onAppear fetch 风暴 + daemon 慢响应堆续体致 OOM。
     // 超限直接 reject 抛错并日志, 不注册新续体 (8s 窗口内狂切 Tab 可堆数千 pending)。
     private let pendingCap = 100
+    // F-R4: 方法级 in-flight 去重 (同 method 在途不重发)。仅对幂等读 (空 params + *.list/status/ping/health_check)
+    // 合并: 第一个 caller 驱动 socket, 后续 caller 续体挂 inflightReads 等结果 fan-out, 不重发。
+    // 变更类 (mlx.stop/agent.create/*.delete/env.repair_all 等) 永不合并 — 幂等性不同, 重发是正确语义。
+    private var inflightReads: [String: [CheckedContinuation<[String: Any], Error>]] = [:]
+    private var reqIdToMethod: [Int: String] = [:]
 
     init(socketPath: String = "/tmp/fusion-studio.sock") {
         self.socketPath = socketPath
@@ -136,6 +141,34 @@ class IPCClient: ObservableObject {
         return id
     }
 
+    // F-R4: 幂等读判定 — 同 method 在途可合并。空 params + 读动词 (后缀 .list 或 ping/mlx.status/env.health_check)。
+    // 变更类 (stop/create/delete/update/register/repair_all 等) 即使空 params 也绝不合并 (幂等性不同)。
+    private func isCoalesceableRead(_ method: String) -> Bool {
+        if method == "ping" || method == "mlx.status" || method == "env.health_check" {
+            return true
+        }
+        if method.hasSuffix(".list") {
+            return true
+        }
+        return false
+    }
+
+    // F-R4: fan-out 同 method 在途读的挂起续体。handleResponse/timeout/drainPending 三路完成时调。
+    private func resumeInflightReads(_ method: String, result: Result<[String: Any], Error>) {
+        lock.lock()
+        let waiters = inflightReads.removeValue(forKey: method)
+        reqIdToMethod = reqIdToMethod.filter { $0.value != method }
+        lock.unlock()
+        guard let waiters = waiters, !waiters.isEmpty else { return }
+        ipcLog.debug("IPC inflight coalesce fan-out method=\(method, privacy: .public) waiters=\(waiters.count)")
+        for w in waiters {
+            switch result {
+            case .success(let v): w.resume(returning: v)
+            case .failure(let e): w.resume(throwing: e)
+            }
+        }
+    }
+
     /// 调用远程方法
     @discardableResult
     func call(method: String, params: [String: Any] = [:]) async throws -> [String: Any] {
@@ -147,6 +180,21 @@ class IPCClient: ObservableObject {
                 }
 
                 let reqId = self.nextRequestId()
+
+                // F-R4: 幂等读 in-flight 合并。同 method 已在途 (首个 caller 驱动) → 挂当前续体等结果, 不重发。
+                // 仅对空 params 读 (params.isEmpty 守卫: 带参读如 tool.get/cron.list_executions 不合并, 入参不同结果不同)。
+                if params.isEmpty && self.isCoalesceableRead(method) {
+                    self.lock.lock()
+                    if self.inflightReads[method] != nil {
+                        self.inflightReads[method, default: []].append(continuation)
+                        self.lock.unlock()
+                        ipcLog.debug("IPC inflight coalesce: skip re-fire method=\(method, privacy: .public) id=\(reqId), awaiting in-flight")
+                        return
+                    }
+                    self.inflightReads[method] = []
+                    self.reqIdToMethod[reqId] = method
+                    self.lock.unlock()
+                }
 
                 var request: [String: Any] = [
                     "jsonrpc": "2.0",
@@ -189,6 +237,8 @@ class IPCClient: ObservableObject {
                         ipcLog.warning("IPC call timeout: method=\(method, privacy: .public) id=\(reqId)")
                         pending.resume(throwing: IPCError.timeout)
                     }
+                    // F-R4: 合并读超时也 fan-out 给挂起的在途 waiters
+                    self.resumeInflightReads(method, result: .failure(IPCError.timeout))
                 }
 
                 // 发送数据
@@ -355,30 +405,40 @@ class IPCClient: ObservableObject {
 
         lock.lock()
         let cont = pendingRequests.removeValue(forKey: id)
+        let coalescedMethod = reqIdToMethod.removeValue(forKey: id)
         lock.unlock()
         guard let cont = cont else {
             ipcLog.warning("handleResponse no pending continuation for id=\(id)")
             return
         }
 
+        // F-R5: 旧 `as? [String: Any] ?? [:]` 静默吞非 dict result (array/scalar 降级空 dict)。
+        // array 包 items, scalar 包 _result, dict 原样, 其他记日志再降级。
+        let outcome: Result<[String: Any], Error>
         if let error = json["error"] as? [String: Any] {
             let code = error["code"] as? Int ?? -1
             let msg = error["message"] as? String ?? "未知错误"
-            cont.resume(throwing: IPCError.rpcError(code: code, message: msg))
+            outcome = .failure(IPCError.rpcError(code: code, message: msg))
         } else if let result = json["result"] {
-            // F-R5: 旧 `as? [String: Any] ?? [:]` 静默吞非 dict result (array/scalar 降级空 dict)。
-            // array 包 items, scalar 包 _result, dict 原样, 其他记日志再降级。
             if let dict = result as? [String: Any] {
-                cont.resume(returning: dict)
+                outcome = .success(dict)
             } else if let arr = result as? [Any] {
-                cont.resume(returning: ["items": arr])
+                outcome = .success(["items": arr])
             } else {
                 ipcLog.warning("handleResponse result non-dict/array id=\(id), wrapping _result")
-                cont.resume(returning: ["_result": result])
+                outcome = .success(["_result": result])
             }
         } else {
             ipcLog.warning("handleResponse no result field id=\(id), returning empty")
-            cont.resume(returning: [:])
+            outcome = .success([:])
+        }
+        switch outcome {
+        case .success(let v): cont.resume(returning: v)
+        case .failure(let e): cont.resume(throwing: e)
+        }
+        // F-R4: 合并读 (coalescedMethod 非 nil) → fan-out 同 method 在途 waiters
+        if let method = coalescedMethod {
+            resumeInflightReads(method, result: outcome)
         }
     }
 
@@ -387,11 +447,20 @@ class IPCClient: ObservableObject {
         lock.lock()
         let pending = pendingRequests
         pendingRequests.removeAll()
+        // F-R4: 同步排空合并读的挂起 waiters
+        let coalesced = inflightReads
+        inflightReads.removeAll()
+        reqIdToMethod.removeAll()
         lock.unlock()
-        guard !pending.isEmpty else { return }
-        ipcLog.warning("IPC drain \(pending.count, privacy: .public) pending requests on disconnect")
+        guard !pending.isEmpty || !coalesced.isEmpty else { return }
+        ipcLog.warning("IPC drain \(pending.count, privacy: .public) pending + \(coalesced.count, privacy: .public) coalesced reads on disconnect")
         for (_, cont) in pending {
             cont.resume(throwing: IPCError.disconnected)
+        }
+        for (_, waiters) in coalesced {
+            for w in waiters {
+                w.resume(throwing: IPCError.disconnected)
+            }
         }
     }
 

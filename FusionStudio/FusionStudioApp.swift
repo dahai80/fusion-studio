@@ -131,7 +131,24 @@ struct FusionStudioApp: App {
                         await performStartupHealthCheck()
                     }
                     // F-R13: 启动进程内 RSS 监控, 软阈值告警 + 日志, 防 @Published/长会话 OOM 静默。
+                    // critical 阈值 (>3GB) 触发注册的 eviction 回调清无界 @Published 数组 LRU。
                     StudioMemoryMonitor.shared.start()
+                    StudioMemoryMonitor.shared.registerEviction(name: "streamEvents") { [weak streamingBridge] in
+                        let before = streamingBridge?.streamEvents.count ?? 0
+                        if before > 100 {
+                            streamingBridge?.streamEvents = Array((streamingBridge?.streamEvents ?? []).suffix(100))
+                            return before - 100
+                        }
+                        return 0
+                    }
+                    StudioMemoryMonitor.shared.registerEviction(name: "events") { [weak agentBridge] in
+                        let before = agentBridge?.events.count ?? 0
+                        if before > 200 {
+                            agentBridge?.events = Array((agentBridge?.events ?? []).suffix(200))
+                            return before - 200
+                        }
+                        return 0
+                    }
                 }
                 .frame(minWidth: 1100, minHeight: 700)
                 .sheet(isPresented: $uiPanelState.showWelcome) {

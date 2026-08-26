@@ -288,6 +288,40 @@ class ChatSessionStore: ObservableObject {
     @Published var selectedModel: String = ""
     @Published var isWebSearchEnabled: Bool = false
 
+    // F-R2: onToken 节流状态。3 处 inferStream onToken 累积 token 到 buffer,
+    // 距上次刷新 >50ms 才 hop MainActor 写 streamingContent, 防千 token 千 Task 风暴。
+    // 每次 inferStream 开始前 resetStreamThrottle() 重置, 流结束 streamingContent 置空兜底残量。
+    private var streamTokenBuffer = ""
+    private var streamLastFlush = DispatchTime.now()
+    private let streamThrottleNs: UInt64 = 50_000_000
+
+    private func resetStreamThrottle() {
+        streamTokenBuffer = ""
+        streamLastFlush = DispatchTime.now()
+    }
+
+    private func appendStreamToken(_ token: String) {
+        streamTokenBuffer += token
+        let now = DispatchTime.now()
+        if now.uptimeNanoseconds - streamLastFlush.uptimeNanoseconds >= streamThrottleNs {
+            streamLastFlush = now
+            let snapshot = streamTokenBuffer
+            streamTokenBuffer = ""
+            Task { @MainActor in
+                self.streamingContent += snapshot
+            }
+        }
+    }
+
+    private func flushStreamBuffer() {
+        guard !streamTokenBuffer.isEmpty else { return }
+        let snapshot = streamTokenBuffer
+        streamTokenBuffer = ""
+        Task { @MainActor in
+            self.streamingContent += snapshot
+        }
+    }
+
     private var ipc: IPCClient?
     weak var agentBridge: AgentBridge?
     private let storeDir = NSHomeDirectory() + "/.fusion-studio/chats"
@@ -721,6 +755,7 @@ class ChatSessionStore: ObservableObject {
                 return
             }
 
+            resetStreamThrottle()
             let response = try await bridge.inferStream(
                 messages: messages,
                 model: model,
@@ -728,11 +763,10 @@ class ChatSessionStore: ObservableObject {
                 maxTokens: 2048,
                 webSearch: self.isWebSearchEnabled,
                 onToken: { [weak self] token in
-                    Task { @MainActor in
-                        self?.streamingContent += token
-                    }
+                    self?.appendStreamToken(token)
                 }
             )
+            flushStreamBuffer()
             chatStoreLog.info("sendMessage inferStream returned successfully")
             let assistantMsg = ChatMessageData(
                 role: "assistant",
@@ -979,6 +1013,7 @@ class ChatSessionStore: ObservableObject {
             } else {
                 stepMessages.append(["role": "user", "content": "Research mode: \(step)"])
             }
+            resetStreamThrottle()
             let result = try await agentBridge!.inferStream(
                 messages: stepMessages,
                 model: model,
@@ -986,11 +1021,10 @@ class ChatSessionStore: ObservableObject {
                 maxTokens: 4096,
                 webSearch: true,
                 onToken: { [weak self] token in
-                    Task { @MainActor in
-                        self?.streamingContent += token
-                    }
+                    self?.appendStreamToken(token)
                 }
             )
+            flushStreamBuffer()
             allFindings += "\n\n--- Step \(idx + 1) ---\n\(result)"
         }
         return allFindings
@@ -1140,17 +1174,17 @@ class ChatSessionStore: ObservableObject {
         }
 
         do {
+            resetStreamThrottle()
             let response = try await bridge.inferStream(
                 messages: finalMessages,
                 model: model,
                 temperature: 0.7,
                 maxTokens: 2048,
                 onToken: { [weak self] token in
-                    Task { @MainActor in
-                        self?.streamingContent += token
-                    }
+                    self?.appendStreamToken(token)
                 }
             )
+            flushStreamBuffer()
             let assistantMsg = ChatMessageData(
                 role: "assistant",
                 content: response,

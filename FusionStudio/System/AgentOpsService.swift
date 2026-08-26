@@ -368,6 +368,10 @@ extension AgentBridge {
             if added && self.currentAgent?.id == agentId {
                 if !self.agentSkills.contains(skillName) {
                     self.agentSkills.append(skillName)
+                    // F-R13: agentSkills 无界 append, cap 100 (LRU), 超额丢弃最旧。
+                    if self.agentSkills.count > 100 {
+                        self.agentSkills.removeFirst(self.agentSkills.count - 100)
+                    }
                 }
             }
             return added
