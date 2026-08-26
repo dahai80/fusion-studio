@@ -199,7 +199,7 @@ extension AgentBridge {
     func agentSnapshot(agentId: String) async throws -> [String: Any] {
         guard let client = ipcClient else { throw BridgeError.notConnected }
         agentOpsLog.info("agentSnapshot: id=\(agentId)")
-        let result = try await client.call(method: "agent_studio.agent.snapshot", params: ["agent_id": agentId])
+        let result = try await client.call(method: RPCMethod.agentStudioAgentSnapshot, params: ["agent_id": agentId])
         try await fetchAgents()
         return result
     }
@@ -207,7 +207,7 @@ extension AgentBridge {
     func agentVersions(agentId: String) async throws -> [[String: Any]] {
         guard let client = ipcClient else { throw BridgeError.notConnected }
         agentOpsLog.info("agentVersions: id=\(agentId)")
-        let result = try await client.call(method: "agent_studio.agent.versions", params: ["agent_id": agentId])
+        let result = try await client.call(method: RPCMethod.agentStudioAgentVersions, params: ["agent_id": agentId])
         guard let versions = result as? [[String: Any]] else {
             let items = result["versions"] as? [[String: Any]] ?? []
             agentVersionHistory[agentId] = items
@@ -220,7 +220,7 @@ extension AgentBridge {
     func agentRestoreVersion(agentId: String, versionId: String) async throws -> AgentModel {
         guard let client = ipcClient else { throw BridgeError.notConnected }
         agentOpsLog.info("agentRestoreVersion: id=\(agentId) version=\(versionId)")
-        let result = try await client.call(method: "agent_studio.agent.restore_version", params: ["agent_id": agentId, "version_id": versionId])
+        let result = try await client.call(method: RPCMethod.agentStudioAgentRestoreVersion, params: ["agent_id": agentId, "version_id": versionId])
         guard let restored = Self.parseAgentModel(from: result) else {
             throw BridgeError.ipcError("Invalid restore response")
         }
@@ -246,7 +246,7 @@ extension AgentBridge {
             if let aid = agentId { params["agent_id"] = aid }
             if let s = startDate { params["start_date"] = s }
             if let e = endDate { params["end_date"] = e }
-            let result = try await client.call(method: "agent_studio.audit.trail", params: params)
+            let result = try await client.call(method: RPCMethod.agentStudioAuditTrail, params: params)
             let items = result["entries"] as? [[String: Any]] ?? (result as? [[String: Any]] ?? [])
             // F-A2: auditTrail 全量 fetch 无 cap, 服务端返海量条目时内存暴涨。保留最近 500 (LRU)。
             auditTrail = Array(items.suffix(500))
@@ -263,7 +263,7 @@ extension AgentBridge {
             if let aid = agentId { params["agent_id"] = aid }
             if let s = startDate { params["start_date"] = s }
             if let e = endDate { params["end_date"] = e }
-            let result = try await client.call(method: "agent_studio.session.logs", params: params)
+            let result = try await client.call(method: RPCMethod.agentStudioSessionLogs, params: params)
             let items = result["sessions"] as? [[String: Any]] ?? (result as? [[String: Any]] ?? [])
             // F-A2: sessionLogs 全量 fetch 无 cap, 服务端返海量条目时内存暴涨。保留最近 500 (LRU)。
             sessionLogs = Array(items.suffix(500))
@@ -289,7 +289,7 @@ extension AgentBridge {
         defer { isAgentStreaming = false }
 
         do {
-            let result = try await client.call(method: "agent_studio.agent.chat", params: params)
+            let result = try await client.call(method: RPCMethod.agentStudioAgentChat, params: params)
             let content = result["content"] as? String ?? ""
             let toolCalls = result["tool_calls"] as? [[String: Any]] ?? []
             let sid = result["session_id"] as? String ?? activeSessionId

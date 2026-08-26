@@ -70,7 +70,7 @@ extension AgentBridge {
         }
         agentMarketplaceLog.info("marketplaceUninstall: \(entryId)")
         do {
-            let result = try await client.call(method: "marketplace.uninstall", params: ["entry_id": entryId]) as [String: Any]
+            let result = try await client.call(method: RPCMethod.marketplaceUninstall, params: ["entry_id": entryId]) as [String: Any]
             return result["success"] as? Bool ?? false
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)

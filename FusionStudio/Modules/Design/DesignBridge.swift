@@ -2088,7 +2088,7 @@ class DesignBridge: ObservableObject {
             return
         }
         do {
-            let result = try await ipc.call(method: "design.health_check")
+            let result = try await ipc.call(method: RPCMethod.designHealthCheck)
             designHealth = result
             let ok = result["status"] as? String == "ok" || result["healthy"] as? Bool == true
             isDesignHealthy = ok
@@ -2105,7 +2105,7 @@ class DesignBridge: ObservableObject {
         }
         let b64 = imageData.base64EncodedString()
         designBridgeLog.info("DesignBridge: sending multimodal message, image size=\(imageData.count)")
-        let result = try await ipc.call(method: "design.generate", params: [
+        let result = try await ipc.call(method: RPCMethod.designGenerate, params: [
             "prompt": prompt,
             "image": [
                 "data": b64,

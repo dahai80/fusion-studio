@@ -24,7 +24,7 @@ extension AgentBridge {
             throw BridgeError.notConnected
         }
         do {
-            let result = try await client.call(method: "graph.list")
+            let result = try await client.call(method: RPCMethod.graphList)
             let graphsData = result["graphs"] as? [[String: Any]] ?? []
             var parsed: [AgentGraphModel] = []
             for g in graphsData {
@@ -80,7 +80,7 @@ extension AgentBridge {
         }
 
         do {
-            let result = try await client.call(method: "graph.create", params: [
+            let result = try await client.call(method: RPCMethod.graphCreate, params: [
                 "name": name,
                 "nodes": nodesParam,
                 "edges": edgesParam,
@@ -135,7 +135,7 @@ extension AgentBridge {
             params["edges"] = edges.map { ["source_id": $0.source, "target_id": $0.target, "label": $0.condition ?? ""] }
         }
         do {
-            let result = try await client.call(method: "graph.update", params: params)
+            let result = try await client.call(method: RPCMethod.graphUpdate, params: params)
             return Self.parseGraphModel(from: result)
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)

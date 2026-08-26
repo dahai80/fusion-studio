@@ -14,8 +14,9 @@ class IPCClient: ObservableObject {
     @Published var schemaCompatible: Bool? = nil
     @Published var availableMethods: [String] = []
     // 客户端依赖的关键方法子集 — 任一缺失即 schemaCompatible=false (schema 漂移)。
+    // F-I3: 引用 RPCMethod 常量, 单一来源, 防拼写漂移。
     private let criticalMethods: Set<String> = [
-        "ping", "agent.execute", "task.submit", "env.health_check", "mlx.status"
+        RPCMethod.ping, RPCMethod.agentExecute, RPCMethod.taskSubmit, RPCMethod.envHealthCheck, RPCMethod.mlxStatus
     ]
 
     private let socketPath: String
@@ -144,7 +145,7 @@ class IPCClient: ObservableObject {
     // F-R4: 幂等读判定 — 同 method 在途可合并。空 params + 读动词 (后缀 .list 或 ping/mlx.status/env.health_check)。
     // 变更类 (stop/create/delete/update/register/repair_all 等) 即使空 params 也绝不合并 (幂等性不同)。
     private func isCoalesceableRead(_ method: String) -> Bool {
-        if method == "ping" || method == "mlx.status" || method == "env.health_check" {
+        if method == RPCMethod.ping || method == RPCMethod.mlxStatus || method == RPCMethod.envHealthCheck {
             return true
         }
         if method.hasSuffix(".list") {
@@ -467,41 +468,41 @@ class IPCClient: ObservableObject {
     // MARK: - 便捷方法
 
     func healthCheck() async throws -> [String: Any] {
-        return try await call(method: "env.health_check")
+        return try await call(method: RPCMethod.envHealthCheck)
     }
 
     func repair(itemId: String) async throws -> [String: Any] {
-        return try await call(method: "env.repair", params: ["item_id": itemId])
+        return try await call(method: RPCMethod.envRepair, params: ["item_id": itemId])
     }
 
     func repairAll() async throws -> [String: Any] {
-        return try await call(method: "env.repair_all")
+        return try await call(method: RPCMethod.envRepairAll)
     }
 
     func startMLX(model: String = "") async throws -> [String: Any] {
-        return try await call(method: "mlx.start", params: ["model": model])
+        return try await call(method: RPCMethod.mlxStart, params: ["model": model])
     }
 
     func stopMLX() async throws -> [String: Any] {
-        return try await call(method: "mlx.stop")
+        return try await call(method: RPCMethod.mlxStop)
     }
 
     func mlxStatus() async throws -> [String: Any] {
-        return try await call(method: "mlx.status")
+        return try await call(method: RPCMethod.mlxStatus)
     }
 
     func hardwareMetrics() async throws -> [String: Any] {
-        return try await call(method: "hardware.metrics")
+        return try await call(method: RPCMethod.hardwareMetrics)
     }
 
     func submitTask(type: String, params: [String: Any] = [:]) async throws -> [String: Any] {
         var p = params
         p["type"] = type
-        return try await call(method: "task.submit", params: p)
+        return try await call(method: RPCMethod.taskSubmit, params: p)
     }
 
     func ping() async throws -> Bool {
-        let result = try await call(method: "ping")
+        let result = try await call(method: RPCMethod.ping)
         return result["pong"] as? Bool ?? false
     }
 
@@ -510,7 +511,7 @@ class IPCClient: ObservableObject {
     // 成功: 缺关键方法 → schemaCompatible=false + error 日志列缺失方法 (schema 漂移预警)。
     private func discoverSchema() async {
         do {
-            let result = try await call(method: "rpc.discover")
+            let result = try await call(method: RPCMethod.rpcDiscover)
             let methods = (result["methods"] as? [String]) ?? []
             await MainActor.run {
                 self.availableMethods = methods

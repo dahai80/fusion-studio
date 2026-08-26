@@ -348,7 +348,7 @@ class PluginManager: ObservableObject {
             return
         }
         do {
-            let response = try await client.call(method: "plugin.list", params: [:])
+            let response = try await client.call(method: RPCMethod.pluginList, params: [:])
             guard let items = response["result"] as? [[String: Any]] else { return }
 
             for item in items {
