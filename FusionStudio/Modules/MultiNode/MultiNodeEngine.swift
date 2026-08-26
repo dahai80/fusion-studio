@@ -344,6 +344,29 @@ class MultiNodeEngine: ObservableObject {
         return result
     }
 
+    // F-A12: 失败 task 重试需带原 task 的 assignedNodes 黑名单 + 原 requiredCapability/priority。
+    // 后端 submit 端点无 exclude_nodes 字段 (fusion-multi-nodes 上游缺口) → 客户端止血:
+    // 保留原参数 + assignedNodes 全 offline 则阻断重试 (防 "无限重试同一个坑"), 健康则重新 submit。
+    func retryTask(_ task: ClusterTask) async throws -> [String: Any] {
+        try assertNoSplitBrain()
+        let assigned = task.assignedNodes
+        let offlineAssigned = assigned.filter { id in
+            guard let n = nodes.first(where: { $0.id == id }) else { return true }
+            return n.effectiveStatus == .offline
+        }
+        if !assigned.isEmpty && offlineAssigned.count == assigned.count {
+            engineLog.error("F-A12 retry blocked: all assigned nodes offline. task=\(task.id) assigned=\(assigned)")
+            throw EngineError.retryNoHealthyNode
+        }
+        let origPriority = task.priority ?? 5
+        let origCap = task.requiredCapability
+        engineLog.info("F-A12 retry: task=\(task.id) assigned=\(assigned) offline=\(offlineAssigned) priority=\(origPriority) cap=\(origCap ?? "nil")")
+        return try await submitTask(
+            name: task.name, mode: task.mode, modelName: task.modelName,
+            priority: origPriority, requiredCapability: origCap
+        )
+    }
+
     func updateAutoscalerConfig(_ config: AutoscalerConfig) async throws {
         let body: [String: Any] = [
             "min_nodes": config.minNodes,
@@ -692,12 +715,14 @@ enum EngineError: Error, LocalizedError {
     case invalidURL
     case noData
     case splitBrain
+    case retryNoHealthyNode
 
     var errorDescription: String? {
         switch self {
         case .invalidURL: return I18nManager.shared.t(.mn_err_invalidURL)
         case .noData: return I18nManager.shared.t(.mn_err_noData)
         case .splitBrain: return I18nManager.shared.t(.mn_err_splitBrain)
+        case .retryNoHealthyNode: return I18nManager.shared.t(.mn_err_retryNoHealthyNode)
         }
     }
 }
