@@ -22,12 +22,12 @@ final class IPCClientTests: XCTestCase {
 final class AppStateTests: XCTestCase {
     func testDefaultModule() {
         let state = AppState()
-        XCTAssertEqual(state.selectedModule, .chat)
+        XCTAssertEqual(state.navState.selectedModule, .chat)
     }
 
     func testInitialHealthStatus() {
         let state = AppState()
-        XCTAssertEqual(state.healthStatus, .checking)
+        XCTAssertEqual(state.healthState.healthStatus, .checking)
     }
 
     func testModuleIcons() {
