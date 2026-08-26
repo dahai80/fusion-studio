@@ -30,4 +30,22 @@ final class AgentBridgeTests: XCTestCase {
         XCTAssertTrue(bridge.mlxState.mlxLoadedModels.isEmpty)
         XCTAssertEqual(bridge.mlxState.mlxPort, 0)
     }
+
+    // F-A1 Phase 5: ModuleState 13 @Published 初值 (类型 + 默认对齐 AgentBridge 原 decl)。
+    func testModuleStateDefaults() {
+        let bridge = AgentBridge()
+        XCTAssertTrue(bridge.moduleState.plans.isEmpty)
+        XCTAssertNil(bridge.moduleState.currentPlan)
+        XCTAssertTrue(bridge.moduleState.ragResults.isEmpty)
+        XCTAssertTrue(bridge.moduleState.memoryEntries.isEmpty)
+        XCTAssertEqual(bridge.moduleState.memoryCount, 0)
+        XCTAssertNil(bridge.moduleState.safetyCheckResult)
+        XCTAssertTrue(bridge.moduleState.safetyPendingActions.isEmpty)
+        XCTAssertTrue(bridge.moduleState.templates.isEmpty)
+        XCTAssertTrue(bridge.moduleState.deployFormats.isEmpty)
+        XCTAssertTrue(bridge.moduleState.tools.isEmpty)
+        XCTAssertTrue(bridge.moduleState.ragSources.isEmpty)
+        XCTAssertEqual(bridge.moduleState.lastSkillResult, "")
+        XCTAssertEqual(bridge.moduleState.lastResearchResult, "")
+    }
 }

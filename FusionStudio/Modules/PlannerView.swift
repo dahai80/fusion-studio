@@ -69,12 +69,12 @@ struct PlannerView: View {
     }
 
     private var planListView: some View {
-        List(bridge.plans, selection: $selectedPlan) { plan in
+        List(bridge.moduleState.plans, selection: $selectedPlan) { plan in
             PlanRowView(plan: plan, isSelected: selectedPlan?.id == plan.id)
                 .tag(plan)
                 .onTapGesture {
                     selectedPlan = plan
-                    bridge.currentPlan = plan
+                    bridge.moduleState.currentPlan = plan
                 }
         }
         .listStyle(.sidebar)

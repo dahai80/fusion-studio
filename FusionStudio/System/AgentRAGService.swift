@@ -21,10 +21,10 @@ extension AgentBridge {
                 sources: result["sources"] as? [String] ?? [],
                 query: query
             )
-            self.ragResults.append(ragResult)
+            self.moduleState.ragResults.append(ragResult)
             // PERF-3: ragResults 无上限 append, 长会话无限增长内存。保留最近 50 条 (LRU 语义: 旧结果越早越无回看价值), 超额丢弃最旧。
-            if self.ragResults.count > 50 {
-                self.ragResults.removeFirst(self.ragResults.count - 50)
+            if self.moduleState.ragResults.count > 50 {
+                self.moduleState.ragResults.removeFirst(self.moduleState.ragResults.count - 50)
             }
             return ragResult
         } catch let error as IPCError {
@@ -52,7 +52,7 @@ extension AgentBridge {
         do {
             let result = try await client.ragVectorSearch(query: query, limit: limit, threshold: threshold)
             let docs = result["documents"] as? [String] ?? result["results"] as? [String] ?? []
-            self.ragSources = docs
+            self.moduleState.ragSources = docs
             return docs
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)

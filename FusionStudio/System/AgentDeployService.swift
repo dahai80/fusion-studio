@@ -2,7 +2,7 @@
 // @Published deployFormats + ipcClient 仍存 AgentBridge (extension 不可声明存储), 本文件只搬方法体, 行为零变。
 // deployImport 留 AgentBridge.swift: 依赖 Self.parseGraphModel (private static 跨文件不可访问),
 // 待 Graph 域抽取时与 parseGraphModel + 5 graph 方法 + templateInstantiate 同搬。
-// deployFormats @Published 有 3 外部 SwiftUI 读 (DeployView), @Published 留主类, extension 写 self.deployFormats, 观察链不变。
+// deployFormats @Published 有 3 外部 SwiftUI 读 (DeployView), @Published 留主类, extension 写 self.moduleState.deployFormats, 观察链不变。
 
 import Foundation
 import os.log
@@ -38,7 +38,7 @@ extension AgentBridge {
                     description: f["description"] as? String ?? ""
                 ))
             }
-            self.deployFormats = parsed
+            self.moduleState.deployFormats = parsed
             return parsed
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)

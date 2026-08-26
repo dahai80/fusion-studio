@@ -383,19 +383,9 @@ final class AgentBridge: ObservableObject {
 
     // MARK: - Module Published Properties
 
-    @Published var plans: [PlanModel] = []
-    @Published var currentPlan: PlanModel?
-    @Published var ragResults: [RAGResultModel] = []
-    @Published var memoryEntries: [MemoryEntryModel] = []
-    @Published var memoryCount: Int = 0
-    @Published var safetyCheckResult: SafetyCheckModel?
-    @Published var safetyPendingActions: [SafetyActionModel] = []
-    @Published var templates: [TemplateModel] = []
-    @Published var deployFormats: [DeployFormatModel] = []
-    @Published var tools: [[String: Any]] = []
-    @Published var ragSources: [String] = []
-    @Published var lastSkillResult: String = ""
-    @Published var lastResearchResult: String = ""
+    // F-A1 Phase 5: plans/currentPlan/ragResults/memoryEntries/memoryCount/safetyCheckResult/
+    //   safetyPendingActions/templates/deployFormats/tools/ragSources/lastSkillResult/
+    //   lastResearchResult 13 @Published 已迁 ModuleState 域。
 
     // MARK: - Agent & Marketplace Published Properties
 
@@ -626,7 +616,7 @@ final class AgentBridge: ObservableObject {
         do {
             let result = try await client.call(method: RPCMethod.toolList, params: [:])
             let tools = result["tools"] as? [[String: Any]] ?? []
-            self.tools = tools
+            self.moduleState.tools = tools
             return tools
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
@@ -882,7 +872,7 @@ final class AgentBridge: ObservableObject {
         do {
             let result = try await client.skillExecute(agentId: agentId, skillName: skillName, input: input, tools: tools)
             let output = result["result"] as? String ?? result["output"] as? String ?? ""
-            self.lastSkillResult = output
+            self.moduleState.lastSkillResult = output
             return output
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
@@ -897,7 +887,7 @@ final class AgentBridge: ObservableObject {
         do {
             let result = try await client.researchAdaptive(question: question, maxSteps: maxSteps, webSearch: webSearch)
             let summary = result["summary"] as? String ?? result["result"] as? String ?? ""
-            self.lastResearchResult = summary
+            self.moduleState.lastResearchResult = summary
             return summary
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)

@@ -612,7 +612,7 @@ struct MemoryTabView: View {
             .padding(.horizontal, theme.spacingL)
             .padding(.bottom, theme.spacingS)
 
-            if bridge.memoryEntries.isEmpty {
+            if bridge.moduleState.memoryEntries.isEmpty {
                 Spacer()
                 Text("No memories yet")
                     .font(.system(size: theme.textSize))
@@ -621,8 +621,8 @@ struct MemoryTabView: View {
             } else {
                 ScrollView {
                     ListGroup {
-                        ForEach(Array(bridge.memoryEntries.enumerated()), id: \.element.id) { idx, entry in
-                            StudioRow(label: entry.content, sublabel: memorySublabel(entry), isLast: idx == bridge.memoryEntries.count - 1) {
+                        ForEach(Array(bridge.moduleState.memoryEntries.enumerated()), id: \.element.id) { idx, entry in
+                            StudioRow(label: entry.content, sublabel: memorySublabel(entry), isLast: idx == bridge.moduleState.memoryEntries.count - 1) {
                                 VStack(alignment: .trailing, spacing: 4) {
                                     FusionTag("L\(entry.importance)", color: importanceColor(entry.importance))
                                     if !entry.tier.isEmpty {
@@ -747,7 +747,7 @@ struct SafetyTabView: View {
             }
             .padding(theme.spacingM)
 
-            if let result = bridge.safetyCheckResult {
+            if let result = bridge.moduleState.safetyCheckResult {
                 StudioSectionHeader(title: "Last Check Result")
                 ListGroup {
                     StudioRow(label: "Level", sublabel: result.level, isLast: false) {
@@ -765,7 +765,7 @@ struct SafetyTabView: View {
             }
 
             StudioSectionHeader(title: "Pending Actions")
-            if bridge.safetyPendingActions.isEmpty {
+            if bridge.moduleState.safetyPendingActions.isEmpty {
                 Text("No pending safety actions")
                     .font(.system(size: theme.footnoteSize))
                     .foregroundStyle(theme.textTertiary)
@@ -773,8 +773,8 @@ struct SafetyTabView: View {
                     .padding(.vertical, theme.spacingM)
             } else {
                 ListGroup {
-                    ForEach(Array(bridge.safetyPendingActions.enumerated()), id: \.element.id) { idx, action in
-                        StudioRow(label: action.category, sublabel: action.content, isLast: idx == bridge.safetyPendingActions.count - 1) {
+                    ForEach(Array(bridge.moduleState.safetyPendingActions.enumerated()), id: \.element.id) { idx, action in
+                        StudioRow(label: action.category, sublabel: action.content, isLast: idx == bridge.moduleState.safetyPendingActions.count - 1) {
                             HStack(spacing: 6) {
                                 FusionButton("Approve", icon: "checkmark", style: .secondary, size: .small) {
                                     Task { await approveAction(action.id) }
@@ -890,7 +890,7 @@ struct PlannerTabView: View {
             }
             .padding(theme.spacingM)
 
-            if bridge.plans.isEmpty {
+            if bridge.moduleState.plans.isEmpty {
                 Spacer()
                 Text("No plans yet")
                     .font(.system(size: theme.textSize))
@@ -899,8 +899,8 @@ struct PlannerTabView: View {
             } else {
                 ScrollView {
                     ListGroup {
-                        ForEach(Array(bridge.plans.enumerated()), id: \.element.id) { idx, plan in
-                            planRow(plan, isLast: idx == bridge.plans.count - 1)
+                        ForEach(Array(bridge.moduleState.plans.enumerated()), id: \.element.id) { idx, plan in
+                            planRow(plan, isLast: idx == bridge.moduleState.plans.count - 1)
                         }
                     }
                 }
@@ -1262,7 +1262,7 @@ struct ToolsTabView: View {
             }
             .padding(theme.spacingM)
 
-            if bridge.tools.isEmpty {
+            if bridge.moduleState.tools.isEmpty {
                 Spacer()
                 Text("No tools available")
                     .font(.system(size: theme.textSize))
@@ -1271,11 +1271,11 @@ struct ToolsTabView: View {
             } else {
                 ScrollView {
                     ListGroup {
-                        ForEach(Array(bridge.tools.enumerated()), id: \.offset) { idx, tool in
+                        ForEach(Array(bridge.moduleState.tools.enumerated()), id: \.offset) { idx, tool in
                             let name = tool["name"] as? String ?? "unknown"
                             let desc = tool["description"] as? String ?? ""
                             let isDynamic = (tool["dynamic"] as? Bool ?? false) || (tool["source"] as? String == "dynamic")
-                            StudioRow(label: name, sublabel: desc, isLast: idx == bridge.tools.count - 1) {
+                            StudioRow(label: name, sublabel: desc, isLast: idx == bridge.moduleState.tools.count - 1) {
                                 HStack(spacing: 6) {
                                     if isDynamic {
                                         FusionTag("dynamic", color: .orange)

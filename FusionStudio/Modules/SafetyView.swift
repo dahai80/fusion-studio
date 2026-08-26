@@ -49,8 +49,8 @@ struct SafetyView: View {
                 Label("Refresh", systemImage: "arrow.clockwise")
             }
             Spacer()
-            if !bridge.safetyPendingActions.isEmpty {
-                Text("\(bridge.safetyPendingActions.count) pending")
+            if !bridge.moduleState.safetyPendingActions.isEmpty {
+                Text("\(bridge.moduleState.safetyPendingActions.count) pending")
                     .font(.caption)
                     .foregroundColor(.orange)
             }
@@ -97,7 +97,7 @@ struct SafetyCheckView: View {
             }
             .padding(.horizontal)
 
-            if let result = bridge.safetyCheckResult {
+            if let result = bridge.moduleState.safetyCheckResult {
                 safetyCheckResultView(result)
             }
 
@@ -279,7 +279,7 @@ struct SafetyPendingView: View {
 
     var body: some View {
         Group {
-            if bridge.safetyPendingActions.isEmpty {
+            if bridge.moduleState.safetyPendingActions.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "checkmark.shield")
                         .font(.system(size: 48))
@@ -292,7 +292,7 @@ struct SafetyPendingView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List(bridge.safetyPendingActions) { action in
+                List(bridge.moduleState.safetyPendingActions) { action in
                     SafetyActionRow(action: action)
                 }
                 .listStyle(.inset)

@@ -33,6 +33,19 @@ final class AgentState: ObservableObject {
 // MARK: - Module State (Planner + RAG + Memory + Safety + Template + Deploy + tools)
 
 final class ModuleState: ObservableObject {
+    @Published var plans: [PlanModel] = []
+    @Published var currentPlan: PlanModel?
+    @Published var ragResults: [RAGResultModel] = []
+    @Published var memoryEntries: [MemoryEntryModel] = []
+    @Published var memoryCount: Int = 0
+    @Published var safetyCheckResult: SafetyCheckModel?
+    @Published var safetyPendingActions: [SafetyActionModel] = []
+    @Published var templates: [TemplateModel] = []
+    @Published var deployFormats: [DeployFormatModel] = []
+    @Published var tools: [[String: Any]] = []
+    @Published var ragSources: [String] = []
+    @Published var lastSkillResult: String = ""
+    @Published var lastResearchResult: String = ""
     init() {}
 }
 

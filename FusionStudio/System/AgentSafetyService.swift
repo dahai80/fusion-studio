@@ -25,7 +25,7 @@ extension AgentBridge {
                 violations: result["violations"] as? [String] ?? [],
                 approved: result["approved"] as? Bool ?? true
             )
-            self.safetyCheckResult = check
+            self.moduleState.safetyCheckResult = check
             return check
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
@@ -89,7 +89,7 @@ extension AgentBridge {
                     content: a["content"] as? String ?? ""
                 ))
             }
-            self.safetyPendingActions = parsed
+            self.moduleState.safetyPendingActions = parsed
             agentSafetyLog.info("fetchPendingSafetyActions: \(parsed.count) pending")
             return parsed
         } catch let error as IPCError {
