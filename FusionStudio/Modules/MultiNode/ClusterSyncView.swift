@@ -9,7 +9,8 @@ struct ClusterSyncView: View {
     @StateObject private var i18n = I18nManager.shared
     @State private var modelNameInput = ""
     @State private var sourceHostInput = "127.0.0.1"
-    @State private var sourcePortInput = "11452"
+    // F-I9: 初始值走 FusionConfig.shared.multiNodePort 集中口径, 删硬编码 "11452"。
+    @State private var sourcePortInput = String(FusionConfig.shared.multiNodePort)
     @State private var isSyncing = false
     @State private var syncResult: String?
     @State private var manifestDisplay: ModelManifest?
@@ -260,7 +261,8 @@ struct ClusterSyncView: View {
         guard !modelNameInput.isEmpty else { return }
         isSyncing = true
         syncResult = nil
-        let port = Int(sourcePortInput) ?? 11452
+        // F-I9: fallback 走 FusionConfig.shared.multiNodePort 集中口径, 删硬编码 11452。
+        let port = Int(sourcePortInput) ?? FusionConfig.shared.multiNodePort
         engine.triggerIncrementalSync(
             modelName: modelNameInput,
             sourceHost: sourceHostInput,
