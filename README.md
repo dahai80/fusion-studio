@@ -539,6 +539,17 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 
 ## 📋 Changelog
 
+### v0.1.50 — #297 artifact.inject/interact 离线死代码删除 (2026-08-27)
+
+补丁版本，修复 issue #297 (Artifacts 模块 artifact.inject/interact 上游 v0.4.0 已废弃返回 NotImplementedError，离线单机调用恒失败):
+
+- **#297 仓内外科修复**：
+  - 删 `IPCClient.artifactInject()` + `artifactInteract()` (转发至已废弃 RPC `artifact.inject`/`artifact.interact`，0 caller 死代码)
+  - `InjectPreviewSheet` 去 inject 模式 → 纯 safety check 预览: 删 mode Picker + mode state var + injectedMessages/totalTokens 死 state + inject 结果块; 标题 "Inject / Safety Preview"→"Safety Check Preview"; 按钮统一 "Check Safety"; `runCheck()` 删 `mode==0` 分支保留 `artifactCheckSafety` 调用
+  - `artifactCheckSafety` (check_safety) 上游仍支持, 保留
+- **issue 清理**: #297 关闭 (repo 侧死代码删净); #205/#310/#327 前序已关闭 (见 v0.1.49)
+- **本地 release gate**: debug EXIT=0 + release EXIT=0 + swift test 204/204 EXIT=0
+
 ### v0.1.49 — 审计 0825 验收 5 项重大重构全完 (F-I4/5/7/11/12) (2026-08-27)
 
 补丁版本，审计 0825 验收 P0 "重大重构启动起来逐项完成" 5 项全部落地 (F-I4/I5/I7/I11/I12):
