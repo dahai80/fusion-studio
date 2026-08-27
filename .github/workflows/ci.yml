@@ -31,6 +31,14 @@ jobs:
       - name: Show Swift version
         run: swift --version
 
+      - name: Cache SPM build
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: ${{ runner.os }}-spm-${{ hashFiles('FusionStudio/**/*.swift', 'Tests/**/*.swift') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
       - name: Build (debug)
         # F-I13: pipefail 保 swift build 退出码 (原 | tail -10 吞码 → build 失败也绿)。
         run: set -o pipefail && swift build -c debug 2>&1 | tail -20
@@ -50,11 +58,19 @@ jobs:
   lint:
     name: Code Quality
     runs-on: macos-14
-    timeout-minutes: 10
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Cache SPM build
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: ${{ runner.os }}-spm-${{ hashFiles('FusionStudio/**/*.swift', 'Tests/**/*.swift') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
 
       - name: Check Swift build warnings
         run: |

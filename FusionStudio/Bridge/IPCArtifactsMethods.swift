@@ -108,10 +108,6 @@ extension IPCClient {
         return try await artifactsCall(method: "artifact.version_rollback", params: ["artifact_id": artifactId, "target_version": targetVersion])
     }
 
-    func artifactInject(messages: [[String: Any]], outputBudget: Int = 8192) async throws -> [String: Any] {
-        return try await artifactsCall(method: "artifact.inject", params: ["messages": messages, "output_budget": outputBudget])
-    }
-
     func artifactCheckSafety(messages: [[String: Any]], outputBudget: Int = 8192) async throws -> [String: Any] {
         return try await artifactsCall(method: "artifact.check_safety", params: ["messages": messages, "output_budget": outputBudget])
     }
@@ -283,12 +279,6 @@ extension IPCClient {
     // Callers: ArtifactsPanel event timeline. Affected API: artifact.list_events (new).
     func artifactListEvents(artifactId: String, limit: Int = 50, offset: Int = 0) async throws -> [String: Any] {
         return try await artifactsCall(method: "artifact.list_events", params: ["artifact_id": artifactId, "limit": limit, "offset": offset])
-    }
-
-    func artifactInteract(artifactId: String, action: String = "state_change", payload: [String: Any] = [:], sessionId: String = "") async throws -> [String: Any] {
-        var p: [String: Any] = ["artifact_id": artifactId, "action": action, "payload": payload]
-        if !sessionId.isEmpty { p["session_id"] = sessionId }
-        return try await artifactsCall(method: "artifact.interact", params: p)
     }
 
     func artifactCreateFolder(name: String, parentId: String? = nil) async throws -> [String: Any] {

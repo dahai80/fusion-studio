@@ -2154,26 +2154,17 @@ struct InjectPreviewSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var messagesText = ""
-    @State private var injectedMessages: [[String: Any]]?
-    @State private var totalTokens: Int?
     @State private var isSafe: Bool?
     @State private var currentTokens: Int?
     @State private var remainingTokens: Int?
     @State private var isRunning = false
     @State private var errorMessage: String?
-    @State private var mode = 0
 
     var body: some View {
         VStack(spacing: theme.spacingL) {
-            Text("Inject / Safety Preview")
+            Text("Safety Check Preview")
                 .font(.system(size: theme.titleSize, weight: .semibold))
                 .foregroundStyle(theme.text)
-
-            Picker("Mode", selection: $mode) {
-                Text("Inject").tag(0)
-                Text("Safety Check").tag(1)
-            }
-            .pickerStyle(.segmented)
 
             TextEditor(text: $messagesText)
                 .font(.system(size: 11, design: .monospaced))
@@ -2188,7 +2179,7 @@ struct InjectPreviewSheet: View {
                     }, alignment: .topLeading
                 )
 
-            Button(mode == 0 ? "Run Inject" : "Check Safety") { runCheck() }
+            Button("Check Safety") { runCheck() }
                 .buttonStyle(.plain)
                 .foregroundStyle(.white)
                 .padding(.horizontal, theme.spacingL)
@@ -2203,26 +2194,13 @@ struct InjectPreviewSheet: View {
                 Text(error).foregroundStyle(.red).font(.system(size: theme.footnoteSize))
             }
 
-            if let safe = isSafe, mode == 1 {
+            if let safe = isSafe {
                 HStack(spacing: theme.spacingM) {
                     Label(safe ? "Safe" : "Unsafe",
                           systemImage: safe ? "checkmark.circle" : "exclamationmark.triangle")
                         .foregroundStyle(safe ? .green : .red)
                     if let current = currentTokens, let remaining = remainingTokens {
                         Text("Current: \(current) tok | Remaining: \(remaining) tok")
-                            .font(.system(size: theme.footnoteSize))
-                            .foregroundStyle(theme.textSecondary)
-                    }
-                }
-            }
-
-            if let total = totalTokens, mode == 0 {
-                VStack(alignment: .leading, spacing: theme.spacingS) {
-                    Text("Total tokens: \(total) | Safe: \(isSafe ?? false ? "Yes" : "No")")
-                        .font(.system(size: theme.footnoteSize, weight: .medium))
-                        .foregroundStyle(theme.text)
-                    if let msgs = injectedMessages {
-                        Text("Injected \(msgs.count) messages")
                             .font(.system(size: theme.footnoteSize))
                             .foregroundStyle(theme.textSecondary)
                     }
@@ -2251,17 +2229,10 @@ struct InjectPreviewSheet: View {
         }
         Task {
             do {
-                if mode == 0 {
-                    let result = try await ipcClient.artifactInject(messages: messages)
-                    injectedMessages = result["messages"] as? [[String: Any]]
-                    totalTokens = result["total_tokens"] as? Int
-                    isSafe = result["safe"] as? Bool
-                } else {
-                    let result = try await ipcClient.artifactCheckSafety(messages: messages)
-                    isSafe = result["safe"] as? Bool
-                    currentTokens = result["current_tokens"] as? Int
-                    remainingTokens = result["remaining_tokens"] as? Int
-                }
+                let result = try await ipcClient.artifactCheckSafety(messages: messages)
+                isSafe = result["safe"] as? Bool
+                currentTokens = result["current_tokens"] as? Int
+                remainingTokens = result["remaining_tokens"] as? Int
             } catch {
                 errorMessage = "Failed: \(error.localizedDescription)"
                 artifactsLog.error("runCheck: \(error)")
