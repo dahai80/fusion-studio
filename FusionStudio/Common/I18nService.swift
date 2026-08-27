@@ -3510,6 +3510,7 @@ enum I18nKey: String, CaseIterable {
     case design_tpl_multiVariants = "design_tpl_multiVariants"
     case design_tpl_specDoc = "design_tpl_specDoc"
     case design_tpl_pageFlow = "design_tpl_pageFlow"
+    case design_skillLocalEditSelectFirst = "design_skillLocalEditSelectFirst"
     case design_ds_compLibrary = "design_ds_compLibrary"
     case design_ds_searchCompPh = "design_ds_searchCompPh"
     case design_ds_catAll = "design_ds_catAll"
@@ -8550,6 +8551,7 @@ let zhCNTranslations: [String: String] = [
     "design_tpl_multiVariants": "多方案",
     "design_tpl_specDoc": "规范文档",
     "design_tpl_pageFlow": "页面流",
+    "design_skillLocalEditSelectFirst": "请选中画布上的元素后使用精准修改技能",
     "design_ds_compLibrary": "组件库",
     "design_ds_searchCompPh": "搜索组件...",
     "design_ds_catAll": "全部",
@@ -13541,6 +13543,7 @@ let enUSTranslations: [String: String] = [
     "design_tpl_multiVariants": "Multi Variants",
     "design_tpl_specDoc": "Spec Document",
     "design_tpl_pageFlow": "Page Flow",
+    "design_skillLocalEditSelectFirst": "Please select an element on the canvas before using the precise edit skill",
     "design_ds_compLibrary": "Component Library",
     "design_ds_searchCompPh": "Search components...",
     "design_ds_catAll": "All",
@@ -18526,6 +18529,7 @@ let jaJPTranslations: [String: String] = [
     "design_tpl_multiVariants": "複数バリエーション",
     "design_tpl_specDoc": "仕様書",
     "design_tpl_pageFlow": "ページフロー",
+    "design_skillLocalEditSelectFirst": "精密編集スキルを使用する前に、キャンバス上の要素を選択してください",
     "design_ds_compLibrary": "コンポーネントライブラリ",
     "design_ds_searchCompPh": "コンポーネントを検索...",
     "design_ds_catAll": "すべて",
@@ -23511,6 +23515,7 @@ let koKRTranslations: [String: String] = [
     "design_tpl_multiVariants": "다중 변형",
     "design_tpl_specDoc": "사양 문서",
     "design_tpl_pageFlow": "페이지 흐름",
+    "design_skillLocalEditSelectFirst": "정밀 수정 스킬을 사용하기 전에 캔버스에서 요소를 선택하세요",
     "design_ds_compLibrary": "컴포넌트 라이브러리",
     "design_ds_searchCompPh": "컴포넌트 검색...",
     "design_ds_catAll": "전체",
