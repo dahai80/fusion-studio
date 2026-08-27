@@ -23,6 +23,17 @@ struct BenchResult: Identifiable {
         case context   = "上下文测试"
         case quality   = "质量评估"
 
+        // rawValue=wire payload (POST /v1/benchmarks/run, line 159) 不可换 i18n key (破坏 API)。
+        // localizedName 解耦 UI 显示, 镜像 DesignComponent.localDescription 模式。
+        var localizedName: String {
+            switch self {
+            case .speed:   return I18nManager.shared.t(.bench_type_speed)
+            case .memory:  return I18nManager.shared.t(.bench_type_memory)
+            case .context: return I18nManager.shared.t(.bench_type_context)
+            case .quality: return I18nManager.shared.t(.bench_type_quality)
+            }
+        }
+
         var icon: String {
             switch self {
             case .speed:   return "speedometer"
@@ -45,6 +56,7 @@ struct BenchResult: Identifiable {
 
 struct BenchView: View {
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     // 假基准结果已清理：初始为空，运行真实 POST /v1/benchmarks/run 后填充
     @State private var results: [BenchResult] = []
     @State private var selectedType: BenchResult.BenchType?
@@ -54,6 +66,13 @@ struct BenchView: View {
     enum BenchTab: String, CaseIterable {
         case results  = "测试结果"
         case webPanel = "完整面板"
+
+        var localizedName: String {
+            switch self {
+            case .results:  return I18nManager.shared.t(.bench_tab_results)
+            case .webPanel: return I18nManager.shared.t(.bench_tab_webPanel)
+            }
+        }
     }
 
     var filteredResults: [BenchResult] {
@@ -85,7 +104,7 @@ struct BenchView: View {
                     HStack(spacing: 6) {
                         Image(systemName: tab == .results ? "chart.bar" : "globe")
                             .font(.system(size: 12))
-                        Text(tab.rawValue)
+                        Text(tab.localizedName)
                             .font(.system(size: theme.smallTextSize, weight: tab == selectedTab ? .semibold : .regular))
                     }
                     .foregroundStyle(tab == selectedTab ? theme.accent : theme.textSecondary)
@@ -112,7 +131,7 @@ struct BenchView: View {
                         Button(action: {
                             withAnimation { selectedType = selectedType == type ? nil : type }
                         }) {
-                            Label(type.rawValue, systemImage: type.icon)
+                            Label(type.localizedName, systemImage: type.icon)
                                 .foregroundColor(selectedType == type ? .white : type.color)
                         }
                         .buttonStyle(.bordered)
@@ -129,7 +148,7 @@ struct BenchView: View {
             HStack {
                 Spacer()
                 Button(action: runBenchmark) {
-                    Label(isRunning ? "运行中..." : "运行基准测试",
+                    Label(isRunning ? i18n.t(.bench_runState_running) : i18n.t(.bench_runState_idle),
                           systemImage: isRunning ? "arrow.triangle.2.circlepath" : "play.fill")
                 }
                 .buttonStyle(.borderedProminent)
@@ -187,6 +206,7 @@ struct BenchView: View {
 
 struct BenchWebPanelView: View {
     @Environment(\.studioTheme) var theme
+    @StateObject private var i18n = I18nManager.shared
     @State private var isLoading = true
     @State private var loadError: String?
     @State private var serviceStatus: BenchServiceReachability = .unknown
@@ -207,7 +227,7 @@ struct BenchWebPanelView: View {
                 if isLoading && loadError == nil {
                     VStack(spacing: 12) {
                         ProgressView().controlSize(.large)
-                        Text("正在连接 Fusion-Bench bench-site...")
+                        Text(i18n.t(.bench_connecting))
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -218,7 +238,7 @@ struct BenchWebPanelView: View {
                         Image(systemName: "exclamationmark.triangle")
                             .font(.system(size: 36))
                             .foregroundColor(.orange)
-                        Text("无法加载基准测试面板")
+                        Text(i18n.t(.bench_loadFail))
                             .font(.title2)
                             .bold()
                         Text(error)
@@ -227,15 +247,15 @@ struct BenchWebPanelView: View {
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("启动方式:").font(.subheadline).fontWeight(.semibold)
-                            Text("1. 启动后端: cd fusion-bench && ./start.sh start").font(.caption).foregroundColor(.secondary)
-                            Text("2. 启动前端: cd fusion-bench/bench-site && npm run dev").font(.caption).foregroundColor(.secondary)
-                            Text("前端默认端口: 3000 (Next.js dev server)").font(.caption).foregroundColor(.secondary)
+                            Text(i18n.t(.bench_hint_title)).font(.subheadline).fontWeight(.semibold)
+                            Text(i18n.t(.bench_hint_backend)).font(.caption).foregroundColor(.secondary)
+                            Text(i18n.t(.bench_hint_frontend)).font(.caption).foregroundColor(.secondary)
+                            Text(i18n.t(.bench_hint_port)).font(.caption).foregroundColor(.secondary)
                         }
                         .padding()
                         .background(theme.surfaceElevated)
                         .cornerRadius(8)
-                        FusionButton("重试", style: .secondary, size: .small, isLoading: false, isDisabled: false) {
+                        FusionButton(i18n.t(.bench_retry), style: .secondary, size: .small, isLoading: false, isDisabled: false) {
                             loadError = nil
                             isLoading = true
                         }
@@ -257,7 +277,7 @@ struct BenchWebPanelView: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
             Spacer()
-            FusionButton("检查状态", style: .secondary, size: .small, isLoading: false, isDisabled: false) {
+            FusionButton(i18n.t(.bench_checkStatus), style: .secondary, size: .small, isLoading: false, isDisabled: false) {
                 checkService()
             }
         }
@@ -276,9 +296,9 @@ struct BenchWebPanelView: View {
 
     private var statusText: String {
         switch serviceStatus {
-        case .online: return "Fusion-Bench API 在线"
-        case .offline: return "Fusion-Bench API 离线"
-        case .unknown: return "检查中..."
+        case .online: return i18n.t(.bench_status_online)
+        case .offline: return i18n.t(.bench_status_offline)
+        case .unknown: return i18n.t(.bench_status_checking)
         }
     }
 
@@ -301,6 +321,7 @@ struct BenchWebPanelView: View {
 
 struct BenchResultCard: View {
     @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
     let result: BenchResult
 
     var body: some View {
@@ -308,7 +329,7 @@ struct BenchResultCard: View {
             HStack {
                 Image(systemName: result.testType.icon)
                     .foregroundColor(result.testType.color)
-                Text(result.testType.rawValue)
+                Text(result.testType.localizedName)
                     .font(.headline)
                 Spacer()
                 Text(result.timestamp, style: .time)
