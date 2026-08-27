@@ -3530,6 +3530,20 @@ enum I18nKey: String, CaseIterable {
     case bench_status_online = "bench_status_online"
     case bench_status_offline = "bench_status_offline"
     case bench_status_checking = "bench_status_checking"
+    case edu_streakDays = "edu_streakDays"
+    case edu_loading = "edu_loading"
+    case edu_loadFail = "edu_loadFail"
+    case edu_serviceHint = "edu_serviceHint"
+    case edu_grade_g2_name = "edu_grade_g2_name"
+    case edu_grade_g2_sub = "edu_grade_g2_sub"
+    case edu_grade_g6_name = "edu_grade_g6_name"
+    case edu_grade_g6_sub = "edu_grade_g6_sub"
+    case edu_grade_j1_name = "edu_grade_j1_name"
+    case edu_grade_j1_sub = "edu_grade_j1_sub"
+    case edu_grade_j2_name = "edu_grade_j2_name"
+    case edu_grade_j2_sub = "edu_grade_j2_sub"
+    case edu_grade_j3_name = "edu_grade_j3_name"
+    case edu_grade_j3_sub = "edu_grade_j3_sub"
     case design_ds_compLibrary = "design_ds_compLibrary"
     case design_ds_searchCompPh = "design_ds_searchCompPh"
     case design_ds_catAll = "design_ds_catAll"
@@ -8590,6 +8604,20 @@ let zhCNTranslations: [String: String] = [
     "bench_status_online": "Fusion-Bench API 在线",
     "bench_status_offline": "Fusion-Bench API 离线",
     "bench_status_checking": "检查中...",
+    "edu_streakDays": "%d 天",
+    "edu_loading": "正在加载课程...",
+    "edu_loadFail": "无法加载课程",
+    "edu_serviceHint": "请确保 Edu Platform 服务已启动 (localhost:3000)",
+    "edu_grade_g2_name": "二年级",
+    "edu_grade_g2_sub": "加减法 · 乘法 · 长度 · 观察",
+    "edu_grade_g6_name": "六年级",
+    "edu_grade_g6_sub": "圆 · 百分数 · 比例 · 圆柱圆锥",
+    "edu_grade_j1_name": "初一",
+    "edu_grade_j1_sub": "有理数 · 方程 · 几何初步",
+    "edu_grade_j2_name": "初二",
+    "edu_grade_j2_sub": "函数 · 三角形 · 物理",
+    "edu_grade_j3_name": "初三",
+    "edu_grade_j3_sub": "二次函数 · 圆 · 电磁",
     "design_ds_compLibrary": "组件库",
     "design_ds_searchCompPh": "搜索组件...",
     "design_ds_catAll": "全部",
@@ -13601,6 +13629,20 @@ let enUSTranslations: [String: String] = [
     "bench_status_online": "Fusion-Bench API online",
     "bench_status_offline": "Fusion-Bench API offline",
     "bench_status_checking": "Checking...",
+    "edu_streakDays": "%d days",
+    "edu_loading": "Loading lesson...",
+    "edu_loadFail": "Failed to load lesson",
+    "edu_serviceHint": "Make sure the Edu Platform service is running (localhost:3000)",
+    "edu_grade_g2_name": "Grade 2",
+    "edu_grade_g2_sub": "Addition/subtraction · Multiplication · Length · Observation",
+    "edu_grade_g6_name": "Grade 6",
+    "edu_grade_g6_sub": "Circle · Percentages · Proportion · Cylinder/Cone",
+    "edu_grade_j1_name": "Grade 7",
+    "edu_grade_j1_sub": "Rational numbers · Equations · Intro to geometry",
+    "edu_grade_j2_name": "Grade 8",
+    "edu_grade_j2_sub": "Functions · Triangles · Physics",
+    "edu_grade_j3_name": "Grade 9",
+    "edu_grade_j3_sub": "Quadratic functions · Circle · Electromagnetism",
     "design_ds_compLibrary": "Component Library",
     "design_ds_searchCompPh": "Search components...",
     "design_ds_catAll": "All",
@@ -18606,6 +18648,20 @@ let jaJPTranslations: [String: String] = [
     "bench_status_online": "Fusion-Bench API オンライン",
     "bench_status_offline": "Fusion-Bench API オフライン",
     "bench_status_checking": "確認中...",
+    "edu_streakDays": "%d 日",
+    "edu_loading": "授業を読み込み中...",
+    "edu_loadFail": "授業を読み込めません",
+    "edu_serviceHint": "Edu Platform サービスが起動していることを確認してください (localhost:3000)",
+    "edu_grade_g2_name": "小学2年",
+    "edu_grade_g2_sub": "足し算引き算 · 掛け算 · 長さ · 観察",
+    "edu_grade_g6_name": "小学6年",
+    "edu_grade_g6_sub": "円 · パーセント · 比例 · 円柱円錐",
+    "edu_grade_j1_name": "中学1年",
+    "edu_grade_j1_sub": "有理数 · 方程式 · 図形入門",
+    "edu_grade_j2_name": "中学2年",
+    "edu_grade_j2_sub": "関数 · 三角形 · 物理",
+    "edu_grade_j3_name": "中学3年",
+    "edu_grade_j3_sub": "二次関数 · 円 · 電磁気",
     "design_ds_compLibrary": "コンポーネントライブラリ",
     "design_ds_searchCompPh": "コンポーネントを検索...",
     "design_ds_catAll": "すべて",
@@ -23611,6 +23667,20 @@ let koKRTranslations: [String: String] = [
     "bench_status_online": "Fusion-Bench API 온라인",
     "bench_status_offline": "Fusion-Bench API 오프라인",
     "bench_status_checking": "확인 중...",
+    "edu_streakDays": "%d 일",
+    "edu_loading": "수업을 불러오는 중...",
+    "edu_loadFail": "수업을 불러올 수 없습니다",
+    "edu_serviceHint": "Edu Platform 서비스가 실행 중인지 확인하세요 (localhost:3000)",
+    "edu_grade_g2_name": "초등 2학년",
+    "edu_grade_g2_sub": "덧셈뺄셈 · 곱셈 · 길이 · 관찰",
+    "edu_grade_g6_name": "초등 6학년",
+    "edu_grade_g6_sub": "원 · 백분율 · 비례 · 원기둥원뿔",
+    "edu_grade_j1_name": "중학 1학년",
+    "edu_grade_j1_sub": "유리수 · 방정식 · 기하 입문",
+    "edu_grade_j2_name": "중학 2학년",
+    "edu_grade_j2_sub": "함수 · 삼각형 · 물리",
+    "edu_grade_j3_name": "중학 3학년",
+    "edu_grade_j3_sub": "이차함수 · 원 · 전자기",
     "design_ds_compLibrary": "컴포넌트 라이브러리",
     "design_ds_searchCompPh": "컴포넌트 검색...",
     "design_ds_catAll": "전체",

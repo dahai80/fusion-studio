@@ -2,6 +2,7 @@ import SwiftUI
 import os
 
 struct EduK12View: View {
+    @StateObject private var i18n = I18nManager.shared
     @State private var selectedGrade: String = ""
     @State private var selectedCourse: CourseItem?
     @State private var navigationPath = NavigationPath()
@@ -9,7 +10,7 @@ struct EduK12View: View {
     var body: some View {
         NavigationStack(path: $navigationPath) {
             GradeSelectView(selectedGrade: $selectedGrade, navigationPath: $navigationPath)
-                .navigationTitle("教育")
+                .navigationTitle(i18n.t(.mod_eduK12))
                 .navigationDestination(for: CourseItem.self) { course in
                     CourseMapView(grade: course.grade, course: course, navigationPath: $navigationPath)
                 }
@@ -83,9 +84,9 @@ struct GradeCard: View {
                     .cornerRadius(12)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(grade.name)
+                    Text(grade.localizedName)
                         .font(.headline)
-                    Text(grade.subtitle)
+                    Text(grade.localizedSubtitle)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -155,7 +156,7 @@ struct GamificationBar: View {
                 .foregroundColor(.blue)
             Label("\(state.xp) XP", systemImage: "bolt.fill")
                 .foregroundColor(.orange)
-            Label("\(state.streakDays) 天", systemImage: "flame.fill")
+            Label(I18nManager.shared.tf(.edu_streakDays, state.streakDays), systemImage: "flame.fill")
                 .foregroundColor(.red)
         }
         .font(.subheadline)
@@ -204,6 +205,7 @@ struct UnitSection: View {
 
 struct LessonPlayerView: View {
     let lesson: LessonItem
+    @StateObject private var i18n = I18nManager.shared
     @State private var isLoading = true
     @State private var loadError: String?
 
@@ -219,7 +221,7 @@ struct LessonPlayerView: View {
                 VStack(spacing: 12) {
                     ProgressView()
                         .controlSize(.large)
-                    Text("正在加载课程...")
+                    Text(i18n.t(.edu_loading))
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -230,7 +232,7 @@ struct LessonPlayerView: View {
                     Image(systemName: "exclamationmark.triangle")
                         .font(.system(size: 36))
                         .foregroundColor(.orange)
-                    Text("无法加载课程")
+                    Text(i18n.t(.edu_loadFail))
                         .font(.title2)
                         .bold()
                     Text(error)
@@ -238,10 +240,10 @@ struct LessonPlayerView: View {
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
-                    Text("请确保 Edu Platform 服务已启动 (localhost:3000)")
+                    Text(i18n.t(.edu_serviceHint))
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    Button("重试") {
+                    Button(i18n.t(.retry)) {
                         loadError = nil
                         isLoading = true
                     }
@@ -262,6 +264,30 @@ struct GradeInfo: Identifiable {
     let subtitle: String
     let icon: String
     let color: Color
+
+    // name/subtitle=zh-CN seed data (源真), localizedName/localizedSubtitle 解耦 UI 显示,
+    // 镜像 BenchType.rawValue→localizedName 模式。id 稳定作 key。
+    var localizedName: String {
+        switch id {
+        case "grade-2": return I18nManager.shared.t(.edu_grade_g2_name)
+        case "grade-6": return I18nManager.shared.t(.edu_grade_g6_name)
+        case "grade-7": return I18nManager.shared.t(.edu_grade_j1_name)
+        case "grade-8": return I18nManager.shared.t(.edu_grade_j2_name)
+        case "grade-9": return I18nManager.shared.t(.edu_grade_j3_name)
+        default: return name
+        }
+    }
+
+    var localizedSubtitle: String {
+        switch id {
+        case "grade-2": return I18nManager.shared.t(.edu_grade_g2_sub)
+        case "grade-6": return I18nManager.shared.t(.edu_grade_g6_sub)
+        case "grade-7": return I18nManager.shared.t(.edu_grade_j1_sub)
+        case "grade-8": return I18nManager.shared.t(.edu_grade_j2_sub)
+        case "grade-9": return I18nManager.shared.t(.edu_grade_j3_sub)
+        default: return subtitle
+        }
+    }
 }
 
 struct CourseItem: Hashable, Identifiable {
