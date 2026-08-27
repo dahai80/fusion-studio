@@ -3510,6 +3510,40 @@ enum I18nKey: String, CaseIterable {
     case design_tpl_multiVariants = "design_tpl_multiVariants"
     case design_tpl_specDoc = "design_tpl_specDoc"
     case design_tpl_pageFlow = "design_tpl_pageFlow"
+    case design_skillLocalEditSelectFirst = "design_skillLocalEditSelectFirst"
+    case bench_type_speed = "bench_type_speed"
+    case bench_type_memory = "bench_type_memory"
+    case bench_type_context = "bench_type_context"
+    case bench_type_quality = "bench_type_quality"
+    case bench_tab_results = "bench_tab_results"
+    case bench_tab_webPanel = "bench_tab_webPanel"
+    case bench_runState_running = "bench_runState_running"
+    case bench_runState_idle = "bench_runState_idle"
+    case bench_connecting = "bench_connecting"
+    case bench_loadFail = "bench_loadFail"
+    case bench_hint_title = "bench_hint_title"
+    case bench_hint_backend = "bench_hint_backend"
+    case bench_hint_frontend = "bench_hint_frontend"
+    case bench_hint_port = "bench_hint_port"
+    case bench_retry = "bench_retry"
+    case bench_checkStatus = "bench_checkStatus"
+    case bench_status_online = "bench_status_online"
+    case bench_status_offline = "bench_status_offline"
+    case bench_status_checking = "bench_status_checking"
+    case edu_streakDays = "edu_streakDays"
+    case edu_loading = "edu_loading"
+    case edu_loadFail = "edu_loadFail"
+    case edu_serviceHint = "edu_serviceHint"
+    case edu_grade_g2_name = "edu_grade_g2_name"
+    case edu_grade_g2_sub = "edu_grade_g2_sub"
+    case edu_grade_g6_name = "edu_grade_g6_name"
+    case edu_grade_g6_sub = "edu_grade_g6_sub"
+    case edu_grade_j1_name = "edu_grade_j1_name"
+    case edu_grade_j1_sub = "edu_grade_j1_sub"
+    case edu_grade_j2_name = "edu_grade_j2_name"
+    case edu_grade_j2_sub = "edu_grade_j2_sub"
+    case edu_grade_j3_name = "edu_grade_j3_name"
+    case edu_grade_j3_sub = "edu_grade_j3_sub"
     case design_ds_compLibrary = "design_ds_compLibrary"
     case design_ds_searchCompPh = "design_ds_searchCompPh"
     case design_ds_catAll = "design_ds_catAll"
@@ -8550,6 +8584,40 @@ let zhCNTranslations: [String: String] = [
     "design_tpl_multiVariants": "多方案",
     "design_tpl_specDoc": "规范文档",
     "design_tpl_pageFlow": "页面流",
+    "design_skillLocalEditSelectFirst": "请选中画布上的元素后使用精准修改技能",
+    "bench_type_speed": "速度测试",
+    "bench_type_memory": "内存测试",
+    "bench_type_context": "上下文测试",
+    "bench_type_quality": "质量评估",
+    "bench_tab_results": "测试结果",
+    "bench_tab_webPanel": "完整面板",
+    "bench_runState_running": "运行中...",
+    "bench_runState_idle": "运行基准测试",
+    "bench_connecting": "正在连接 Fusion-Bench bench-site...",
+    "bench_loadFail": "无法加载基准测试面板",
+    "bench_hint_title": "启动方式:",
+    "bench_hint_backend": "1. 启动后端: cd fusion-bench && ./start.sh start",
+    "bench_hint_frontend": "2. 启动前端: cd fusion-bench/bench-site && npm run dev",
+    "bench_hint_port": "前端默认端口: 3000 (Next.js dev server)",
+    "bench_retry": "重试",
+    "bench_checkStatus": "检查状态",
+    "bench_status_online": "Fusion-Bench API 在线",
+    "bench_status_offline": "Fusion-Bench API 离线",
+    "bench_status_checking": "检查中...",
+    "edu_streakDays": "%d 天",
+    "edu_loading": "正在加载课程...",
+    "edu_loadFail": "无法加载课程",
+    "edu_serviceHint": "请确保 Edu Platform 服务已启动 (localhost:3000)",
+    "edu_grade_g2_name": "二年级",
+    "edu_grade_g2_sub": "加减法 · 乘法 · 长度 · 观察",
+    "edu_grade_g6_name": "六年级",
+    "edu_grade_g6_sub": "圆 · 百分数 · 比例 · 圆柱圆锥",
+    "edu_grade_j1_name": "初一",
+    "edu_grade_j1_sub": "有理数 · 方程 · 几何初步",
+    "edu_grade_j2_name": "初二",
+    "edu_grade_j2_sub": "函数 · 三角形 · 物理",
+    "edu_grade_j3_name": "初三",
+    "edu_grade_j3_sub": "二次函数 · 圆 · 电磁",
     "design_ds_compLibrary": "组件库",
     "design_ds_searchCompPh": "搜索组件...",
     "design_ds_catAll": "全部",
@@ -13541,6 +13609,40 @@ let enUSTranslations: [String: String] = [
     "design_tpl_multiVariants": "Multi Variants",
     "design_tpl_specDoc": "Spec Document",
     "design_tpl_pageFlow": "Page Flow",
+    "design_skillLocalEditSelectFirst": "Please select an element on the canvas before using the precise edit skill",
+    "bench_type_speed": "Speed Test",
+    "bench_type_memory": "Memory Test",
+    "bench_type_context": "Context Test",
+    "bench_type_quality": "Quality Assessment",
+    "bench_tab_results": "Results",
+    "bench_tab_webPanel": "Full Panel",
+    "bench_runState_running": "Running...",
+    "bench_runState_idle": "Run Benchmark",
+    "bench_connecting": "Connecting to Fusion-Bench bench-site...",
+    "bench_loadFail": "Failed to load benchmark panel",
+    "bench_hint_title": "How to start:",
+    "bench_hint_backend": "1. Start backend: cd fusion-bench && ./start.sh start",
+    "bench_hint_frontend": "2. Start frontend: cd fusion-bench/bench-site && npm run dev",
+    "bench_hint_port": "Frontend default port: 3000 (Next.js dev server)",
+    "bench_retry": "Retry",
+    "bench_checkStatus": "Check Status",
+    "bench_status_online": "Fusion-Bench API online",
+    "bench_status_offline": "Fusion-Bench API offline",
+    "bench_status_checking": "Checking...",
+    "edu_streakDays": "%d days",
+    "edu_loading": "Loading lesson...",
+    "edu_loadFail": "Failed to load lesson",
+    "edu_serviceHint": "Make sure the Edu Platform service is running (localhost:3000)",
+    "edu_grade_g2_name": "Grade 2",
+    "edu_grade_g2_sub": "Addition/subtraction · Multiplication · Length · Observation",
+    "edu_grade_g6_name": "Grade 6",
+    "edu_grade_g6_sub": "Circle · Percentages · Proportion · Cylinder/Cone",
+    "edu_grade_j1_name": "Grade 7",
+    "edu_grade_j1_sub": "Rational numbers · Equations · Intro to geometry",
+    "edu_grade_j2_name": "Grade 8",
+    "edu_grade_j2_sub": "Functions · Triangles · Physics",
+    "edu_grade_j3_name": "Grade 9",
+    "edu_grade_j3_sub": "Quadratic functions · Circle · Electromagnetism",
     "design_ds_compLibrary": "Component Library",
     "design_ds_searchCompPh": "Search components...",
     "design_ds_catAll": "All",
@@ -18526,6 +18628,40 @@ let jaJPTranslations: [String: String] = [
     "design_tpl_multiVariants": "複数バリエーション",
     "design_tpl_specDoc": "仕様書",
     "design_tpl_pageFlow": "ページフロー",
+    "design_skillLocalEditSelectFirst": "精密編集スキルを使用する前に、キャンバス上の要素を選択してください",
+    "bench_type_speed": "速度テスト",
+    "bench_type_memory": "メモリテスト",
+    "bench_type_context": "コンテキストテスト",
+    "bench_type_quality": "品質評価",
+    "bench_tab_results": "テスト結果",
+    "bench_tab_webPanel": "完全パネル",
+    "bench_runState_running": "実行中...",
+    "bench_runState_idle": "ベンチマークを実行",
+    "bench_connecting": "Fusion-Bench bench-site に接続中...",
+    "bench_loadFail": "ベンチマークパネルを読み込めません",
+    "bench_hint_title": "起動方法:",
+    "bench_hint_backend": "1. バックエンド起動: cd fusion-bench && ./start.sh start",
+    "bench_hint_frontend": "2. フロントエンド起動: cd fusion-bench/bench-site && npm run dev",
+    "bench_hint_port": "フロントエンド既定ポート: 3000 (Next.js dev server)",
+    "bench_retry": "再試行",
+    "bench_checkStatus": "状態確認",
+    "bench_status_online": "Fusion-Bench API オンライン",
+    "bench_status_offline": "Fusion-Bench API オフライン",
+    "bench_status_checking": "確認中...",
+    "edu_streakDays": "%d 日",
+    "edu_loading": "授業を読み込み中...",
+    "edu_loadFail": "授業を読み込めません",
+    "edu_serviceHint": "Edu Platform サービスが起動していることを確認してください (localhost:3000)",
+    "edu_grade_g2_name": "小学2年",
+    "edu_grade_g2_sub": "足し算引き算 · 掛け算 · 長さ · 観察",
+    "edu_grade_g6_name": "小学6年",
+    "edu_grade_g6_sub": "円 · パーセント · 比例 · 円柱円錐",
+    "edu_grade_j1_name": "中学1年",
+    "edu_grade_j1_sub": "有理数 · 方程式 · 図形入門",
+    "edu_grade_j2_name": "中学2年",
+    "edu_grade_j2_sub": "関数 · 三角形 · 物理",
+    "edu_grade_j3_name": "中学3年",
+    "edu_grade_j3_sub": "二次関数 · 円 · 電磁気",
     "design_ds_compLibrary": "コンポーネントライブラリ",
     "design_ds_searchCompPh": "コンポーネントを検索...",
     "design_ds_catAll": "すべて",
@@ -23511,6 +23647,40 @@ let koKRTranslations: [String: String] = [
     "design_tpl_multiVariants": "다중 변형",
     "design_tpl_specDoc": "사양 문서",
     "design_tpl_pageFlow": "페이지 흐름",
+    "design_skillLocalEditSelectFirst": "정밀 수정 스킬을 사용하기 전에 캔버스에서 요소를 선택하세요",
+    "bench_type_speed": "속도 테스트",
+    "bench_type_memory": "메모리 테스트",
+    "bench_type_context": "컨텍스트 테스트",
+    "bench_type_quality": "품질 평가",
+    "bench_tab_results": "테스트 결과",
+    "bench_tab_webPanel": "전체 패널",
+    "bench_runState_running": "실행 중...",
+    "bench_runState_idle": "벤치마크 실행",
+    "bench_connecting": "Fusion-Bench bench-site 에 연결 중...",
+    "bench_loadFail": "벤치마크 패널을 불러올 수 없습니다",
+    "bench_hint_title": "시작 방법:",
+    "bench_hint_backend": "1. 백엔드 시작: cd fusion-bench && ./start.sh start",
+    "bench_hint_frontend": "2. 프론트엔드 시작: cd fusion-bench/bench-site && npm run dev",
+    "bench_hint_port": "프론트엔드 기본 포트: 3000 (Next.js dev server)",
+    "bench_retry": "재시도",
+    "bench_checkStatus": "상태 확인",
+    "bench_status_online": "Fusion-Bench API 온라인",
+    "bench_status_offline": "Fusion-Bench API 오프라인",
+    "bench_status_checking": "확인 중...",
+    "edu_streakDays": "%d 일",
+    "edu_loading": "수업을 불러오는 중...",
+    "edu_loadFail": "수업을 불러올 수 없습니다",
+    "edu_serviceHint": "Edu Platform 서비스가 실행 중인지 확인하세요 (localhost:3000)",
+    "edu_grade_g2_name": "초등 2학년",
+    "edu_grade_g2_sub": "덧셈뺄셈 · 곱셈 · 길이 · 관찰",
+    "edu_grade_g6_name": "초등 6학년",
+    "edu_grade_g6_sub": "원 · 백분율 · 비례 · 원기둥원뿔",
+    "edu_grade_j1_name": "중학 1학년",
+    "edu_grade_j1_sub": "유리수 · 방정식 · 기하 입문",
+    "edu_grade_j2_name": "중학 2학년",
+    "edu_grade_j2_sub": "함수 · 삼각형 · 물리",
+    "edu_grade_j3_name": "중학 3학년",
+    "edu_grade_j3_sub": "이차함수 · 원 · 전자기",
     "design_ds_compLibrary": "컴포넌트 라이브러리",
     "design_ds_searchCompPh": "컴포넌트 검색...",
     "design_ds_catAll": "전체",

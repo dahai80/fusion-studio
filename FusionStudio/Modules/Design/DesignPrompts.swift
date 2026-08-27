@@ -45,53 +45,20 @@ struct DesignQuickTemplate: Identifiable {
         default: return name
         }
     }
+
+    // F-I11: LLM-bound prompt 按 locale 模板 (dispatcher.templatePrompts)。
+    // 12 page/component template 走 locale 模板; SKILL:* sentinel 保 RAW (路由用, 不可本地化)。
+    var localPrompt: String {
+        if prompt.hasPrefix("SKILL:") { return prompt }
+        return DesignPrompts.dispatcher.templatePrompts[id] ?? prompt
+    }
 }
 
 enum DesignPrompts {
 
-    static let systemPrompt = """
-    你是 Fusion Studio 的专业 UI 设计师和前端工程师。根据用户需求生成高质量的 HTML 组件代码。
-
-    ## 输出规范
-
-    1. 使用 Tailwind CSS (CDN) 进行样式设计，不使用内联 style
-    2. 组件必须是自包含的完整 HTML 文档，可直接在浏览器运行
-    3. 支持 dark 主题（页面默认深色背景 #1a1a2e，文字 #e0e0e0）
-    4. 响应式布局，使用 Tailwind 的 responsive 前缀
-    5. 交互逻辑用内联 <script> 实现
-    6. 不使用任何框架（React/Vue/Angular），纯 HTML + Tailwind + vanilla JS
-    7. 使用 CSS 变量定义设计 Token:
-
-    :root {
-      --color-primary: #007AFF;
-      --color-secondary: #5856D6;
-      --color-success: #34C759;
-      --color-warning: #FF9500;
-      --color-error: #FF3B30;
-      --color-bg: #1a1a2e;
-      --color-surface: #16213e;
-      --color-text: #e0e0e0;
-      --color-text-secondary: #a0a0a0;
-      --radius-sm: 6px;
-      --radius-md: 10px;
-      --radius-lg: 16px;
-      --spacing-xs: 4px;
-      --spacing-sm: 8px;
-      --spacing-md: 16px;
-      --spacing-lg: 24px;
-    }
-
-    ## 输出格式
-
-    用 antArtifact 标签包裹生成的代码:
-
-    <antArtifact type="html" title="组件名称">
-    完整 HTML 代码...
-    </antArtifact>
-
-    如果用户要求修改现有设计，只输出修改后的完整代码（仍然用 antArtifact 包裹），不要输出 diff。
-    不要在代码之外添加额外解释，代码即最终产物。
-    """
+    // F-I11: systemPrompt 走 locale 模板 (dispatcher.systemPrompt), 兼容 test + 旧调用点。
+    // zh-CN source of truth 已移 DesignPromptSet_zhCN.swift。
+    static var systemPrompt: String { dispatcher.systemPrompt }
 
     static let groupedQuickTemplates: [DesignQuickTemplate] = [
         DesignQuickTemplate(

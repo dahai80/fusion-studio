@@ -501,8 +501,8 @@ struct DesignChatPanel: View {
                                     if tmpl.prompt.hasPrefix("SKILL:") {
                                         handleSkillTemplate(tmpl)
                                     } else {
-                                        inputText = tmpl.prompt
-                                        sendChat(explicitMessage: tmpl.prompt)
+                                        inputText = tmpl.localPrompt
+                                        sendChat(explicitMessage: tmpl.localPrompt)
                                     }
                                 }) {
                                     HStack(spacing: theme.spacingXS) {
@@ -544,30 +544,30 @@ struct DesignChatPanel: View {
         let skillID = tmpl.prompt.replacingOccurrences(of: "SKILL:", with: "")
         switch skillID {
         case "text_to_ui":
-            designBridge.skillTextToUI(prompt: inputText.isEmpty ? "设计一个现代深色主题页面" : inputText)
+            designBridge.skillTextToUI(prompt: inputText.isEmpty ? DesignPrompts.dispatcher.fallbackTextToUI : inputText)
         case "image_to_ui":
-            let hint = inputText.isEmpty ? "参考图片生成UI布局" : inputText
+            let hint = inputText.isEmpty ? DesignPrompts.dispatcher.fallbackImageToUIHint : inputText
             designBridge.skillImageToUI(imagePath: "", hint: hint)
         case "multi_variants":
-            let prompt = inputText.isEmpty ? "设计一个数据卡片组件" : inputText
+            let prompt = inputText.isEmpty ? DesignPrompts.dispatcher.fallbackMultiVariants : inputText
             designBridge.skillMultiVariants(prompt: prompt)
         case "local_edit":
             if !designBridge.marqueeSelectedNodeIDs.isEmpty {
-                designBridge.applyLocalEdit(nodesJSON: "[]", instruction: inputText.isEmpty ? "修改选中元素" : inputText)
+                designBridge.applyLocalEdit(nodesJSON: "[]", instruction: inputText.isEmpty ? DesignPrompts.dispatcher.fallbackLocalEditInstruction : inputText)
             } else {
-                inputText = "请选中画布上的元素后使用精准修改技能"
+                inputText = i18n.t(.design_skillLocalEditSelectFirst)
             }
         case "partial_edit":
-            let instruction = inputText.isEmpty ? "优化选中节点的视觉样式" : inputText
+            let instruction = inputText.isEmpty ? DesignPrompts.dispatcher.fallbackPartialEditInstruction : inputText
             designBridge.skillPartialEdit(nodesJSON: "[]", instruction: instruction)
         case "sim_panel":
-            let prompt = inputText.isEmpty ? "生成风格变体" : inputText
+            let prompt = inputText.isEmpty ? DesignPrompts.dispatcher.fallbackSimPanel : inputText
             designBridge.skillSimPanel(prompt: prompt)
         case "spec_doc":
-            let prompt = inputText.isEmpty ? "输出完整设计规范" : inputText
+            let prompt = inputText.isEmpty ? DesignPrompts.dispatcher.fallbackSpecDoc : inputText
             designBridge.skillSpecDoc(prompt: prompt)
         case "page_flow":
-            let prompt = inputText.isEmpty ? "首页→列表→详情的导航流程" : inputText
+            let prompt = inputText.isEmpty ? DesignPrompts.dispatcher.fallbackPageFlow : inputText
             designBridge.skillPageFlow(prompt: prompt)
         default:
             let skillMsg = String(format: i18n.t(.design_skillUseFmt), tmpl.localName, inputText)

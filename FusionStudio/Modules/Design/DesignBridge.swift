@@ -369,7 +369,7 @@ class DesignBridge: ObservableObject {
             } else {
                 effectiveNodesJSON = nodesJSON
             }
-            let contextMsg = "选中节点的当前状态:\n\(effectiveNodesJSON)\n\n请修改以上节点，使其满足: \(instruction)\n\n只输出修改后节点的 JSON 数组，不要输出其他内容。格式: [{\"id\":\"...\", ...修改的属性}]"
+            let contextMsg = DesignPrompts.dispatcher.applyLocalEditContext(effectiveNodesJSON, instruction)
             let result = runFusionDesign(
                 ["generate", "--prompt", contextMsg, "--page", "LocalEdit"],
                 stdin: effectiveNodesJSON
@@ -865,7 +865,7 @@ class DesignBridge: ObservableObject {
 
     func skillImageToUI(imagePath: String, hint: String, pageName: String = "Home") {
         isSkillRunning = true
-        let prompt = "参考图片路径: \(imagePath)\n补充说明: \(hint)\n生成页面「\(pageName)」对应的 UI 布局"
+        let prompt = DesignPrompts.dispatcher.skillImageToUIPrompt(imagePath, hint, pageName)
         let config = FusionConfig.shared
         let args = [
             "generate",
@@ -898,7 +898,7 @@ class DesignBridge: ObservableObject {
         } else {
             effectiveNodes = nodesJSON
         }
-        let prompt = "对以下节点进行局部修改:\n\(effectiveNodes)\n\n修改要求: \(instruction)\n\n只输出修改后节点的完整 JSON，保持 id 不变。格式: [{\"id\":\"...\", ...所有属性}]"
+        let prompt = DesignPrompts.dispatcher.skillPartialEditPrompt(effectiveNodes, instruction)
         let config = FusionConfig.shared
         let args = [
             "generate",
@@ -926,7 +926,7 @@ class DesignBridge: ObservableObject {
 
     func skillSimPanel(prompt: String, pageName: String = "Home") {
         isSkillRunning = true
-        let simPrompt = "生成与当前设计相似但风格不同的面板变体。要求: \(prompt)\n\n保持功能相同，但调整配色、间距、圆角等视觉属性，产出3个变体方案。"
+        let simPrompt = DesignPrompts.dispatcher.skillSimPanelPrompt(prompt)
         let config = FusionConfig.shared
         let args = [
             "generate",
@@ -948,7 +948,7 @@ class DesignBridge: ObservableObject {
 
     func skillSpecDoc(prompt: String) {
         isSkillRunning = true
-        let specPrompt = "根据当前设计，生成设计规范文档，包含:\n1. 设计 Token（颜色、字体、间距、圆角）\n2. 组件规范（按钮、卡片、输入框等）\n3. 布局规则\n4. 交互状态规范\n\n补充要求: \(prompt)"
+        let specPrompt = DesignPrompts.dispatcher.skillSpecDocPrompt(prompt)
         let config = FusionConfig.shared
         let args = [
             "generate",
@@ -972,16 +972,17 @@ class DesignBridge: ObservableObject {
         isSkillRunning = false
     }
 
-    func skillPageFlow(prompt: String, pageNames: [String] = ["首页", "列表", "详情"]) {
+    func skillPageFlow(prompt: String, pageNames: [String]? = nil) {
         isSkillRunning = true
         variantPages.removeAll()
-        let flowDesc = pageNames.enumerated().map { idx, name in
-            "页面\(idx+1)「\(name)」: \(prompt)"
+        let names = pageNames ?? DesignPrompts.dispatcher.pageFlowDefaultNames
+        let flowDesc = names.enumerated().map { idx, name in
+            DesignPrompts.dispatcher.pageFlowPerPage(idx, name, prompt)
         }.joined(separator: "\n")
-        let flowPrompt = "设计一个多页面流程，包含以下页面之间的导航关系:\n\(flowDesc)\n\n每页需包含导航元素（按钮/链接）指向下一页。"
+        let flowPrompt = DesignPrompts.dispatcher.pageFlowFlowPrompt(flowDesc)
         let config = FusionConfig.shared
-        for (idx, pageName) in pageNames.enumerated() {
-            let pagePrompt = "\(flowPrompt)\n\n当前生成: 页面\(idx+1)「\(pageName)」"
+        for (idx, pageName) in names.enumerated() {
+            let pagePrompt = DesignPrompts.dispatcher.pageFlowPagePrompt(flowPrompt, idx, pageName)
             let args = [
                 "generate",
                 "--prompt", pagePrompt,
@@ -1005,11 +1006,12 @@ class DesignBridge: ObservableObject {
         isSkillRunning = false
     }
 
-    func skillMultiVariants(prompt: String, styles: [String] = ["简约", "现代", "极简"], pageName: String = "Home") {
+    func skillMultiVariants(prompt: String, styles: [String]? = nil, pageName: String = "Home") {
         isSkillRunning = true
         variantPages.removeAll()
-        for (idx, style) in styles.enumerated() {
-            let styledPrompt = "\(prompt)（风格：\(style)）"
+        let resolvedStyles = styles ?? DesignPrompts.dispatcher.multiVariantsDefaultStyles
+        for (idx, style) in resolvedStyles.enumerated() {
+            let styledPrompt = DesignPrompts.dispatcher.multiVariantsStyledPrompt(prompt, style)
             let config = FusionConfig.shared
             let args = [
                 "generate",
@@ -1193,9 +1195,9 @@ class DesignBridge: ObservableObject {
         streamTokenCount = 0
         streamPreviewText = ""
 
-        var systemPrompt = DesignPrompts.systemPrompt
+        var systemPrompt = DesignPrompts.dispatcher.systemPrompt
         if !currentArtifactCode.isEmpty {
-            systemPrompt += "\n\n当前设计代码:\n```html\n\(currentArtifactCode)\n```\n请基于此代码进行迭代修改。"
+            systemPrompt += DesignPrompts.dispatcher.sendDesignChatArtifactAppend(currentArtifactCode)
         }
 
         DesignPreviewTrace.log("sendDesignChat: before fetchRAGContext")
@@ -1203,7 +1205,7 @@ class DesignBridge: ObservableObject {
         let ragContext: String? = ragEnabled ? await fetchRAGContextBounded(for: userMessage, timeoutSeconds: 5) : nil
         DesignPreviewTrace.log("sendDesignChat: fetchRAGContext done ragEnabled=\(ragEnabled) nil=\(ragContext == nil)")
         if let rag = ragContext, !rag.isEmpty {
-            systemPrompt += "\n\n项目设计规范:\n\(rag)"
+            systemPrompt += DesignPrompts.dispatcher.sendDesignChatRagAppend(rag)
             designBridgeLog.info("DesignBridge: injected RAG context (\(rag.count) chars)")
             DesignPreviewTrace.log("sendDesignChat: RAG context injected len=\(rag.count)")
         }
