@@ -4,6 +4,9 @@
 // User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
 
 import SwiftUI
+import os.log
+
+private let opsLog = Logger(subsystem: "com.fusion.studio", category: "Operations")
 
 // MARK: - 运维状态
 
@@ -69,6 +72,7 @@ class OperationsManager: ObservableObject {
     @Published var alertRules: [AlertRule] = []
     @Published var logs: [OpsLogEntry] = []
     @Published var isMonitoring = false
+    private var monitorTimer: Timer?
 
     init() {
         loadSampleData()
@@ -96,12 +100,19 @@ class OperationsManager: ObservableObject {
 
     func startMonitoring() {
         isMonitoring = true
-        Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+        monitorTimer?.invalidate()
+        monitorTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
             self?.refreshMetrics()
         }
+        opsLog.info("startMonitoring: timer armed interval=5s")
     }
 
-    func stopMonitoring() { isMonitoring = false }
+    func stopMonitoring() {
+        isMonitoring = false
+        monitorTimer?.invalidate()
+        monitorTimer = nil
+        opsLog.info("stopMonitoring: timer invalidated")
+    }
 
     private func refreshMetrics() {
         status.cpuUsage = Double.random(in: 20...70)
