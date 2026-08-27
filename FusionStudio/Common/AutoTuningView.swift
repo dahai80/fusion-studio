@@ -160,6 +160,8 @@ class AutoTuningEngine: ObservableObject {
                 score: Int.random(in: 60...95)
             )
             self.results.append(result)
+            // 审计0827 #14: results 无界 append (调优轮次可能多次), cap 100 复用 PERF-3 ragResults 范式。
+            if self.results.count > 100 { self.results.removeFirst(self.results.count - 100) }
             current += 1
         }
     }

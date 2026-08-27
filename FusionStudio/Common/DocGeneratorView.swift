@@ -116,6 +116,8 @@ class DocGenerator: ObservableObject {
         let name = type.localizedName
         let startMsg = I18nManager.shared.tf(.docgen_log_start, name)
         log.append(startMsg)
+        // 审计0827 #13: log 无界 append, 长运行累积, cap 500 复用 PERF-3 ragResults 范式。
+        if log.count > 500 { log.removeFirst(log.count - 500) }
         docGenLogger.info("start generate type=\(type.rawValue, privacy: .public)")
 
         switch type {
@@ -209,6 +211,8 @@ class DocGenerator: ObservableObject {
             self.currentFile = msg
             self.progress = prog
             self.log.append("  [\(Int(prog * 100))%] \(msg)")
+            // 审计0827 #13: log 无界 append (进度循环高频), cap 500 复用 PERF-3 ragResults 范式。
+            if self.log.count > 500 { self.log.removeFirst(self.log.count - 500) }
             stepIndex += 1
         }
     }
@@ -233,8 +237,12 @@ class DocGenerator: ObservableObject {
             format: config.outputFormat
         )
         generatedFiles.append(doc)
+        // 审计0827 #13: generatedFiles 无界 append, cap 200 复用 PERF-3 ragResults 范式。
+        if generatedFiles.count > 200 { generatedFiles.removeFirst(generatedFiles.count - 200) }
         let doneMsg = I18nManager.shared.tf(.docgen_log_done, outputName, doc.sizeFormatted)
         log.append(doneMsg)
+        // 审计0827 #13: log 无界 append, cap 500 复用 PERF-3 ragResults 范式。
+        if log.count > 500 { log.removeFirst(log.count - 500) }
         docGenLogger.info("generate done name=\(outputName, privacy: .public) size=\(size)")
 
         isGenerating = false

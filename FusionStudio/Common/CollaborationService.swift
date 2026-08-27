@@ -298,6 +298,10 @@ class CollaborationService: ObservableObject {
                 DispatchQueue.main.async {
                     if !self.peers.contains(where: { $0.id == peer.id }) {
                         self.peers.append(peer)
+                        // 审计0827 #12: peers 无界 append (协作发现), cap 100 复用 PERF-3 ragResults 范式。
+                        if self.peers.count > 100 {
+                            self.peers.removeFirst(self.peers.count - 100)
+                        }
                     } else if let idx = self.peers.firstIndex(where: { $0.id == peer.id }) {
                         self.peers[idx].lastSeen = Date()
                         self.peers[idx].status = .online
