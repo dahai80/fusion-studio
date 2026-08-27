@@ -465,14 +465,31 @@ final class UpstreamServiceManager: ObservableObject {
                 let process = Process()
                 process.executableURL = URL(fileURLWithPath: "/bin/bash")
                 process.arguments = [path, action]
-                let pipe = Pipe()
-                process.standardOutput = pipe
-                process.standardError = pipe
+                // 审计0827 #19: 双管道分流 stdout/stderr + 并发排空。单管道合并 + waitUntilExit 后才 readDataToEndOfFile:
+                // 输出 >64KB 填满管道缓冲 → 子进程阻塞在 write → waitUntilExit 永不返回 → 死锁。
+                let outPipe = Pipe()
+                let errPipe = Pipe()
+                process.standardOutput = outPipe
+                process.standardError = errPipe
                 do {
                     try process.run()
                 } catch {
                     cont.resume(returning: (-1, error.localizedDescription))
                     return
+                }
+                // 并发排空两管道 (waitUntilExit 前开始读, 防 >64KB 死锁)。
+                // 用后台线程 + 信号量同步, 而非 Task.value (本闭包非 async)。
+                var outStr = ""
+                var errStr = ""
+                let outSem = DispatchSemaphore(value: 0)
+                let errSem = DispatchSemaphore(value: 0)
+                DispatchQueue.global(qos: .userInitiated).async {
+                    outStr = String(data: outPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+                    outSem.signal()
+                }
+                DispatchQueue.global(qos: .userInitiated).async {
+                    errStr = String(data: errPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+                    errSem.signal()
                 }
                 let timeoutLock = NSLock()
                 var didTimeout = false
@@ -492,8 +509,12 @@ final class UpstreamServiceManager: ObservableObject {
                 timeoutLock.lock()
                 let timeout = didTimeout
                 timeoutLock.unlock()
-                let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                var output = String(data: data, encoding: .utf8) ?? ""
+                outSem.wait()
+                errSem.wait()
+                var output = outStr
+                if !errStr.isEmpty {
+                    output += (output.isEmpty ? "" : "\n") + "[stderr]\n" + errStr
+                }
                 if timeout { output = "启动超时(30s)\n" + output }
                 cont.resume(returning: (timeout ? -1 : process.terminationStatus, output))
             }
