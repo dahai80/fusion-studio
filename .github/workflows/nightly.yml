@@ -18,11 +18,12 @@ jobs:
       - name: Build
         run: |
           # Services/ 已删 (PR #298, 无本地 Rust 后台服务), 仅 Swift build。
-          swift build -c release 2>&1 | tail -5
+          # 审计0827 #9: set -o pipefail 保退出码, 防 swift build 失败被 tail 吞 (与 ci.yml 对齐)。
+          set -o pipefail && swift build -c release 2>&1 | tail -5
 
       - name: Run tests
-        run: swift test 2>&1 | tail -10
-        continue-on-error: true
+        # 审计0827 #9: 删 continue-on-error (假绿 — nightly 是发布前兜底门, 测试挂应阻断) + pipefail 保退出码。
+        run: set -o pipefail && swift test 2>&1 | tail -10
 
       - name: Upload build logs
         if: always()

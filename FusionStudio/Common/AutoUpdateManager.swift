@@ -5,6 +5,10 @@
 
 import SwiftUI
 import Combine
+import os.log
+
+// 审计0827 #21: AutoUpdateManager 全文 0 日志, 检查/下载/保存失败静默无法定位。加 Logger。
+private let autoUpdateLog = Logger(subsystem: "com.fusion.studio", category: "AutoUpdate")
 
 // MARK: - 版本信息
 
@@ -109,6 +113,7 @@ class AutoUpdateManager: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] completion in
                 if case .failure(let error) = completion {
+                    autoUpdateLog.error("checkForUpdates failed error=\(error.localizedDescription, privacy: .public)")
                     self?.state = .error("检查更新失败: \(error.localizedDescription)")
                 }
             } receiveValue: { [weak self] version in
@@ -137,11 +142,13 @@ class AutoUpdateManager: ObservableObject {
                 guard let self = self else { return }
 
                 if let error = error {
+                    autoUpdateLog.error("downloadAndInstall network failed tag=\(version.tagName, privacy: .public) error=\(error.localizedDescription, privacy: .public)")
                     self.state = .error("下载失败: \(error.localizedDescription)")
                     return
                 }
 
                 guard let tempURL = tempURL else {
+                    autoUpdateLog.error("downloadAndInstall tempURL nil tag=\(version.tagName, privacy: .public)")
                     self.state = .error("下载文件丢失")
                     return
                 }
@@ -169,6 +176,7 @@ class AutoUpdateManager: ObservableObject {
                         }
                     }
                 } catch {
+                    autoUpdateLog.error("downloadAndInstall moveItem failed tag=\(version.tagName, privacy: .public) dest=\(destURL.path, privacy: .public) error=\(error.localizedDescription, privacy: .public)")
                     self.state = .error("保存文件失败: \(error.localizedDescription)")
                 }
             }

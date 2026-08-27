@@ -152,7 +152,7 @@ struct SubmitTaskView: View {
                 submitLog.error("Task submission failed: \(error.localizedDescription)")
                 await MainActor.run {
                     isSubmitting = false
-                    errorMessage = error.localizedDescription
+                    errorMessage = BridgeError.sanitize(error)
                 }
             }
         }

@@ -380,22 +380,47 @@ class ChatSessionStore: ObservableObject {
     private func saveSessionLocal(_ session: ChatSessionData) {
         ensureStoreDir()
         let dict = sessionToDict(session)
-        guard let data = try? JSONSerialization.data(withJSONObject: dict, options: .prettyPrinted) else { return }
-        try? data.write(to: URL(fileURLWithPath: sessionPath(session.id)), options: .atomic)
+        guard let data = try? JSONSerialization.data(withJSONObject: dict, options: .prettyPrinted) else {
+            chatStoreLog.error("saveSessionLocal: JSON serialize failed id=\(session.id, privacy: .public)")
+            return
+        }
+        // 审计0827 #22: try? 吞写盘错, 用户消息看似发送但未持久化, 崩溃后丢失。改 do/catch 记 error。
+        do {
+            try data.write(to: URL(fileURLWithPath: sessionPath(session.id)), options: .atomic)
+        } catch {
+            chatStoreLog.error("saveSessionLocal failed id=\(session.id, privacy: .public) error=\(error.localizedDescription, privacy: .public)")
+        }
     }
 
     private func deleteSessionLocal(_ id: String) {
-        try? FileManager.default.removeItem(atPath: sessionPath(id))
+        // 审计0827 #22: try? 吞删错, 改 do/catch 记 error (文件不存在等非致命也记供定位)。
+        do {
+            try FileManager.default.removeItem(atPath: sessionPath(id))
+        } catch {
+            chatStoreLog.warning("deleteSessionLocal failed id=\(id, privacy: .public) error=\(error.localizedDescription, privacy: .public)")
+        }
     }
 
     private func loadSessionsLocal() -> [ChatSessionData] {
         ensureStoreDir()
         let fm = FileManager.default
-        guard let files = try? fm.contentsOfDirectory(atPath: storeDir) else { return [] }
+        let dir = storeDir
+        // 审计0827 #22: 目录读失败记 error, 非静默返空。
+        guard let files = try? fm.contentsOfDirectory(atPath: dir) else {
+            chatStoreLog.error("loadSessionsLocal: contentsOfDirectory failed dir=\(dir, privacy: .public)")
+            return []
+        }
         return files.filter { $0.hasSuffix(".json") }.compactMap { file -> ChatSessionData? in
             let path = storeDir + "/" + file
-            guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
-                  let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+            // 审计0827 #22: 单文件读/解析失败记 warning 跳过 (可能损坏文件), 不静默返 nil。
+            guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)) else {
+                chatStoreLog.warning("loadSessionsLocal: read failed file=\(file, privacy: .public)")
+                return nil
+            }
+            guard let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                chatStoreLog.warning("loadSessionsLocal: parse failed file=\(file, privacy: .public)")
+                return nil
+            }
             return parseSessionData(dict)
         }.sorted { $0.updatedAt > $1.updatedAt }
     }

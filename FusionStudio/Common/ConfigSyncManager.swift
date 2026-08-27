@@ -6,6 +6,10 @@
 import Foundation
 import SwiftUI
 import Combine
+import os.log
+
+// 审计0827 #20: ConfigSyncManager 全文 0 日志, 备份/恢复失败静默无法定位根因。加 Logger。
+private let configSyncLog = Logger(subsystem: "com.fusion.studio", category: "ConfigSync")
 
 // MARK: - 备份条目
 
@@ -145,6 +149,7 @@ class ConfigSyncManager: ObservableObject {
                     completion(true)
                 }
             } catch {
+                configSyncLog.error("createBackup failed type=\(type.rawValue, privacy: .public) error=\(error.localizedDescription, privacy: .public)")
                 DispatchQueue.main.async {
                     self.isSyncing = false
                     self.syncStatus = .failed(I18nManager.shared.tf(.csm_status_backup_failed_fmt, error.localizedDescription))
@@ -178,6 +183,7 @@ class ConfigSyncManager: ObservableObject {
                     completion(true)
                 }
             } catch {
+                configSyncLog.error("restoreBackup failed name=\(entry.name, privacy: .public) error=\(error.localizedDescription, privacy: .public)")
                 DispatchQueue.main.async {
                     self.isSyncing = false
                     self.syncStatus = .failed(I18nManager.shared.tf(.csm_status_restore_failed_fmt, error.localizedDescription))
@@ -189,7 +195,11 @@ class ConfigSyncManager: ObservableObject {
 
     /// 删除备份
     func deleteBackup(_ entry: BackupEntry) {
-        try? fileManager.removeItem(at: entry.fileURL)
+        do {
+            try fileManager.removeItem(at: entry.fileURL)
+        } catch {
+            configSyncLog.warning("deleteBackup removeItem failed name=\(entry.name, privacy: .public) error=\(error.localizedDescription, privacy: .public)")
+        }
         backups.removeAll { $0.id == entry.id }
     }
 
@@ -283,7 +293,9 @@ class ConfigSyncManager: ObservableObject {
                 DispatchQueue.main.async {
                     self.backups = entries.sorted { $0.date > $1.date }
                 }
-            } catch {}
+            } catch {
+                configSyncLog.warning("loadExistingBackups: contentsOfDirectory failed dir=\(self.backupDir.path, privacy: .public) error=\(error.localizedDescription, privacy: .public)")
+            }
         }
     }
 

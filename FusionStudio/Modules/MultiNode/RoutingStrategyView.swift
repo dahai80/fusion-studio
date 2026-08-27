@@ -199,7 +199,7 @@ struct RoutingStrategyView: View {
                 routingLog.error("Strategy apply failed: \(error.localizedDescription)")
                 await MainActor.run {
                     isApplying = false
-                    message = error.localizedDescription
+                    message = BridgeError.sanitize(error)
                     isError = true
                 }
             }
