@@ -500,7 +500,13 @@ class FusionProjectManager: ObservableObject {
         let result = try await ipc.projectMessageAdd(chatId: chatId, content: content,
                                                         ragMode: ragMode, ragScope: ragScope)
         let msg = ChatMessage.fromDict(result)
-        await MainActor.run { self.activeChatMessages.append(msg) }
+        await MainActor.run {
+            self.activeChatMessages.append(msg)
+            // 审计0827 #7: activeChatMessages 无界 append, 长会话单调增长, cap 200 复用 PERF-3 ragResults 范式。
+            if self.activeChatMessages.count > 200 {
+                self.activeChatMessages.removeFirst(self.activeChatMessages.count - 200)
+            }
+        }
         return msg
     }
 
@@ -714,6 +720,10 @@ class FusionProjectManager: ObservableObject {
         project.chats[sIdx].tokenUsage += estimateTokenCount(content)
         activeChat = project.chats[sIdx]
         activeChatMessages.append(record)
+        // 审计0827 #7: activeChatMessages 无界 append, 长会话单调增长, cap 200 复用 PERF-3 ragResults 范式。
+        if activeChatMessages.count > 200 {
+            activeChatMessages.removeFirst(activeChatMessages.count - 200)
+        }
         updateProject(project)
     }
 

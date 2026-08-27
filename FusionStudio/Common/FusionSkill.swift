@@ -99,6 +99,8 @@ class FusionSkillManager: ObservableObject {
     func createSkill(name: String, description: String, systemPrompt: String, icon: String = "star") -> FusionSkill {
         let skill = FusionSkill(name: name, description: description, systemPrompt: systemPrompt, icon: icon)
         skills.append(skill)
+        // 审计0827 #11: skills 无界 append, 防御性 cap 100 复用 PERF-3 ragResults 范式。
+        if skills.count > 100 { skills.removeFirst(skills.count - 100) }
         saveIndex()
         skillLog.info("Skill created: \(name)")
         return skill

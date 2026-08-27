@@ -292,6 +292,8 @@ class PluginManager: ObservableObject {
             )
             plugins.append(plugin)
         }
+        // 审计0827 #8: plugins 无界 append (builtin 路), cap 200 复用 PERF-3 ragResults 范式。
+        if plugins.count > 200 { plugins.removeFirst(plugins.count - 200) }
         pluginLog.info("Loaded \(builtins.count) built-in plugins")
     }
 
@@ -330,6 +332,8 @@ class PluginManager: ObservableObject {
                 plugins.append(plugin)
             }
         }
+        // 审计0827 #8: plugins 无界 append (installed 路), cap 200 复用 PERF-3 ragResults 范式。
+        if plugins.count > 200 { plugins.removeFirst(plugins.count - 200) }
 
         lastScanDate = Date()
         objectWillChange.send()
@@ -368,6 +372,8 @@ class PluginManager: ObservableObject {
                 )
                 plugins.append(plugin)
             }
+            // 审计0827 #8: plugins 无界 append (registry 路), cap 200 复用 PERF-3 ragResults 范式。
+            if plugins.count > 200 { plugins.removeFirst(plugins.count - 200) }
             pluginLog.info("Fetched \(items.count) plugins from registry")
         } catch {
             pluginLog.warning("Registry fetch failed: \(error.localizedDescription)")

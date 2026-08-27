@@ -124,18 +124,17 @@ extension AgentBridge {
         mlxStatusFetchedAt = Date()
         do {
             let st = try await mlxStatus()
-            await MainActor.run {
-                self.mlxState.mlxRunning = st["running"] as? Bool ?? false
-                self.mlxState.mlxPort = st["port"] as? Int ?? 0
-                if let arr = st["models"] as? [String] {
-                    self.mlxState.mlxLoadedModels = arr
-                } else if let arr = st["models"] as? [[String: Any]] {
-                    self.mlxState.mlxLoadedModels = arr.compactMap { $0["id"] as? String }
-                } else {
-                    self.mlxState.mlxLoadedModels = []
-                }
-                agentMlxLog.info("F-A2子3 pollMlxStatus: running=\(self.mlxState.mlxRunning) models=\(self.mlxState.mlxLoadedModels.count) port=\(self.mlxState.mlxPort)")
+            // 审计0827 #16: AgentMlxService 为 @MainActor AgentBridge extension, pollMlxStatus 已在 MainActor, MainActor.run 冗余, 直接赋值。
+            self.mlxState.mlxRunning = st["running"] as? Bool ?? false
+            self.mlxState.mlxPort = st["port"] as? Int ?? 0
+            if let arr = st["models"] as? [String] {
+                self.mlxState.mlxLoadedModels = arr
+            } else if let arr = st["models"] as? [[String: Any]] {
+                self.mlxState.mlxLoadedModels = arr.compactMap { $0["id"] as? String }
+            } else {
+                self.mlxState.mlxLoadedModels = []
             }
+            agentMlxLog.info("F-A2子3 pollMlxStatus: running=\(self.mlxState.mlxRunning) models=\(self.mlxState.mlxLoadedModels.count) port=\(self.mlxState.mlxPort)")
         } catch {
             agentMlxLog.debug("F-A2子3 pollMlxStatus failed: \(error.localizedDescription)")
         }

@@ -268,7 +268,8 @@ final class TrainerBridge: ObservableObject {
                 guard let self = self, let sel = self.selectedRun, sel.run_id == runId else { break }
                 if sel.status == "completed" || sel.status == "failed" || sel.status == "stopped" { break }
             }
-            await MainActor.run { self?.isPolling = false }
+            // 审计0827 #15: TrainerBridge 类已 @MainActor, pollTask Task 继承调用方 MainActor 上下文, MainActor.run 冗余, 直接赋值。
+            self?.isPolling = false
         }
     }
 

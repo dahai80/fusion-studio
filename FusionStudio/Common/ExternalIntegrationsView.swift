@@ -93,6 +93,8 @@ class ExternalIntegrationManager: ObservableObject {
             config: [:]
         )
         connections.append(conn)
+        // 审计0827 #13: connections 无界 append, cap 200 复用 PERF-3 ragResults 范式。
+        if connections.count > 200 { connections.removeFirst(connections.count - 200) }
         objectWillChange.send()
     }
 
@@ -111,6 +113,8 @@ class ExternalIntegrationManager: ObservableObject {
             syncProgress = Double(i + 1) / Double(connections.filter { $0.isConnected }.count)
         }
         syncLog.append("✅ 同步完成")
+        // 审计0827 #13: syncLog 无界 append (日志型长运行累积), cap 200 复用 PERF-3 ragResults 范式。
+        if syncLog.count > 200 { syncLog.removeFirst(syncLog.count - 200) }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
             self?.isSyncing = false

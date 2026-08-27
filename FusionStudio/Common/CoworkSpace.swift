@@ -905,7 +905,13 @@ class CoworkSpaceManager: ObservableObject {
                                                     senderId: senderId, senderName: senderName,
                                                     mentionedAgents: mentionedAgents)
         let msg = SpaceMessage.fromDict(result)
-        await MainActor.run { self.activeMessages.append(msg) }
+        await MainActor.run {
+            self.activeMessages.append(msg)
+            // 审计0827 #10: activeMessages 无界 append, 空间长会话单调增长, cap 200 复用 PERF-3 ragResults 范式。
+            if self.activeMessages.count > 200 {
+                self.activeMessages.removeFirst(self.activeMessages.count - 200)
+            }
+        }
         return msg
     }
 
