@@ -559,7 +559,7 @@ struct HubScheduleView: View {
                 showPermEditSheet = false
                 await loadAll()
             } catch {
-                lastError = error.localizedDescription
+                lastError = BridgeError.sanitize(error)
                 schedLog.error("Save permissions failed: \(error.localizedDescription)")
             }
         }
@@ -1213,7 +1213,7 @@ struct HubScheduleView: View {
                     schedLog.info("Manual benchmark triggered: \(modelId)")
                 }
             } catch {
-                lastError = error.localizedDescription
+                lastError = BridgeError.sanitize(error)
                 schedLog.error("Manual benchmark failed: \(error.localizedDescription)")
             }
         }
@@ -1233,7 +1233,7 @@ struct HubScheduleView: View {
             models = try await modelsResp.models
             clusterNodes = try await nodesResp.nodes
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
             schedLog.warning("Load failed: \(error.localizedDescription)")
         }
         isLoading = false
@@ -1248,7 +1248,7 @@ struct HubScheduleView: View {
                 newModelId = ""
                 newSourceUrl = ""
             } catch {
-                lastError = error.localizedDescription
+                lastError = BridgeError.sanitize(error)
                 schedLog.error("Download start failed: \(error.localizedDescription)")
             }
         }

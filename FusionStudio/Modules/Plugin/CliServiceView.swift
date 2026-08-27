@@ -35,17 +35,52 @@ struct CliServiceView: View {
         }.onAppear { log.info("CliServiceView appeared") }
     }
 
+    // F-A17 审计0827 #3: 对齐 CLIView — env 剥敏感键 + PATH 锁防劫持; dangerPatterns 高危关键字拦截 + confirmDangerous 二次确认
+    private static let dangerPatterns: [String] = [
+        "rm -rf", "rm -fr", "curl | sh", "curl|sh", "wget | sh", "wget|sh",
+        "mkfs", "dd if=", "> /dev/sd", "shutdown", "halt", "reboot", "kill -9",
+        "$(", "`", "/dev/tcp/", "nc -e", "bash -i", "mkfifo", "chmod +x"
+    ]
+
+    private func confirmDangerous(_ cmd: String) -> Bool {
+        let lower = cmd.lowercased()
+        guard Self.dangerPatterns.contains(where: { lower.contains($0) }) else { return true }
+        let alert = NSAlert()
+        alert.messageText = I18nManager.shared.t(.cli_block_title)
+        alert.informativeText = I18nManager.shared.t(.cli_block_msg)
+        alert.addButton(withTitle: I18nManager.shared.t(.cli_btn_cancel))
+        alert.addButton(withTitle: I18nManager.shared.t(.cli_block_continue))
+        alert.alertStyle = .critical
+        return alert.runModal() == .alertSecondButtonReturn
+    }
+
     private func executeCommand() {
         let cmd = commandInput.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cmd.isEmpty else { return }
+        // F-A17 审计0827 #3: 粘贴不可信文本高危关键字拦截, 二次确认放行 (用户知情)
+        guard confirmDangerous(cmd) else {
+            outputLines.append("> \(cmd) [\(I18nManager.shared.t(.cli_btn_cancel))]")
+            commandInput = ""
+            log.info("CLI blocked by danger check: \(cmd, privacy: .public)")
+            return
+        }
         outputLines.append("> \(cmd)")
         commandInput = ""
         isRunning = true
-        log.info("CLI executing: \(cmd)")
+        log.info("CLI executing: \(cmd, privacy: .public)")
         let process = Process()
         let pipe = Pipe()
         process.executableURL = URL(fileURLWithPath: "/bin/zsh")
         process.arguments = ["-c", cmd]
+        // F-A17 审计0827 #3: env 剥敏感键 (TOKEN/KEY/SECRET/PASSWORD/CREDENTIAL/API_KEY) + 锁 PATH 防 PATH 劫持
+        var env = ProcessInfo.processInfo.environment
+        let sensitiveKeys = env.keys.filter {
+            $0.contains("TOKEN") || $0.contains("KEY") || $0.contains("SECRET") ||
+            $0.contains("PASSWORD") || $0.contains("CREDENTIAL") || $0 == "API_KEY"
+        }
+        for k in sensitiveKeys { env.removeValue(forKey: k) }
+        env["PATH"] = "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin"
+        process.environment = env
         process.standardOutput = pipe
         process.standardError = pipe
 

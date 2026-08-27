@@ -898,7 +898,7 @@ struct HubBenchmarkView: View {
             quantizeTasks = t.tasks
             benchLog.info("Loaded \(models.count) models, \(quantizeTasks.count) quantize tasks for benchmark")
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
             benchLog.error("Load models failed: \(error.localizedDescription)")
         }
         isLoading = false
@@ -959,7 +959,7 @@ struct HubBenchmarkView: View {
                 successMsg = i18n.t(.hub_benchmarkStarted)
                 await loadHistory()
             } catch {
-                lastError = error.localizedDescription
+                lastError = BridgeError.sanitize(error)
                 benchLog.error("Benchmark failed: \(error.localizedDescription)")
             }
             isRunning = false
@@ -974,7 +974,7 @@ struct HubBenchmarkView: View {
                 benchmarks = resp.benchmarks
                 benchLog.info("Compare loaded: \(benchmarks.count) entries")
             } catch {
-                lastError = error.localizedDescription
+                lastError = BridgeError.sanitize(error)
                 benchLog.error("Compare failed: \(error.localizedDescription)")
             }
         }
@@ -992,7 +992,7 @@ struct HubBenchmarkView: View {
                 await loadEvaluations()
                 successMsg = i18n.t(.hub_evalTaskCreated)
             } catch {
-                lastError = error.localizedDescription
+                lastError = BridgeError.sanitize(error)
                 benchLog.error("Create evaluation failed: \(error.localizedDescription)")
             }
         }

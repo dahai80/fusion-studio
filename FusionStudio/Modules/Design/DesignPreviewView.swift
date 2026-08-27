@@ -90,14 +90,16 @@ struct DesignPreviewView: NSViewRepresentable {
         }
 
         config.userContentController = contentController
-        config.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
+        // P1 审计0827: 关 allowFileAccessFromFileURLs — 预览渲染 LLM 不可信 HTML, 无需 file:// 访问,
+        // 放宽沙箱扩大 prompt 注入触达面 (file 读→原生)。预览仅需 inline CSS/JS, 关之。
+        config.preferences.setValue(false, forKey: "allowFileAccessFromFileURLs")
 
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
         webView.setValue(false, forKey: "drawsTransparentBackground")
         context.coordinator.webView = webView
 
-        previewLog.info("DesignPreviewView: WKWebView created")
+        previewLog.info("DesignPreviewView: WKWebView created (fileAccess closed, HTML sanitized)")
         return webView
     }
 
@@ -105,9 +107,12 @@ struct DesignPreviewView: NSViewRepresentable {
         let newHash = htmlContent.hashValue
         if context.coordinator.lastContentHash != newHash {
             context.coordinator.lastContentHash = newHash
-            let fullHTML = buildFullHTML(htmlContent)
+            // P1 审计0827: LLM 产物 htmlContent 不可信, 渲染前必经 sanitizeHtml 剥 script/事件/JS-URL。
+            // 原直接拼 buildFullHTML→loadHTMLString = XSS 注入面 (经 fusionBridge 触达原生层)。
+            let sanitized = DesignBridge.sanitizeHtml(htmlContent)
+            let fullHTML = buildFullHTML(sanitized)
             webView.loadHTMLString(fullHTML, baseURL: nil)
-            previewLog.info("DesignPreviewView: content updated, \(htmlContent.count) chars")
+            previewLog.info("DesignPreviewView: content updated+sanitized, \(htmlContent.count) chars")
         }
     }
 

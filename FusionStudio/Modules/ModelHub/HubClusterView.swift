@@ -331,7 +331,7 @@ struct HubClusterView: View {
             localModels = modelsResult.models.filter { $0.isDownloaded == true }
             clusterLog.info("Cluster: \(nodes.count) nodes, \(localModels.count) models loaded")
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
             clusterLog.warning("Cluster load failed: \(error.localizedDescription)")
         }
         isLoading = false
@@ -352,7 +352,7 @@ struct HubClusterView: View {
                 routeResult = result
                 clusterLog.info("Inference routed: \(routeModelId) mode=\(routeMode) -> \(result.routedTo ?? "unknown")")
             } catch {
-                lastError = error.localizedDescription
+                lastError = BridgeError.sanitize(error)
                 clusterLog.error("Route inference failed: \(error.localizedDescription)")
             }
             isRouting = false
@@ -377,7 +377,7 @@ struct HubClusterView: View {
                 syncModelId = ""
                 await loadAll()
             } catch {
-                lastError = error.localizedDescription
+                lastError = BridgeError.sanitize(error)
             }
         }
     }

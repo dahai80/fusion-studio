@@ -216,7 +216,7 @@ struct HubDashboardView: View {
             recentModels = Array(models.models.prefix(10))
             dashLog.info("Dashboard loaded: \(stats.totalModels) models, \(stats.downloadedModels) downloaded, \(stats.servingModels) serving")
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
             dashLog.warning("Dashboard load failed: \(error.localizedDescription)")
         }
         isLoading = false

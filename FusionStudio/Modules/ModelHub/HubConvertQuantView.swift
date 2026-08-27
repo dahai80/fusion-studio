@@ -602,7 +602,7 @@ struct HubConvertQuantView: View {
                 quantLog.info("Quantize started: \(selectedModelId) \(selectedBits)-bit \(selectedFormat)")
                 await loadRunningTasks()
             } catch {
-                lastError = error.localizedDescription
+                lastError = BridgeError.sanitize(error)
                 quantLog.error("Quantize start failed: \(error.localizedDescription)")
             }
             isStarting = false

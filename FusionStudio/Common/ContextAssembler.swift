@@ -99,6 +99,8 @@ class ContextAssembler {
         guard !files.isEmpty else { return "" }
         var sections: [String] = []
         for file in files {
+            // 审计0827 #2: knowledgeFiles 路径可能来自导入项目, 防 symlink/.. 越界读, validateFilePath 拒则跳过。
+            guard SecurityManager.shared.validateFilePath(file.filePath) else { continue }
             guard let content = try? String(contentsOfFile: file.filePath, encoding: .utf8) else { continue }
             let truncated = truncate(content, maxChars: maxKnowledgeDirectChars)
             sections.append("### \(file.fileName)\n\(truncated)")

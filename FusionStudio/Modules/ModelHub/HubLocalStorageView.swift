@@ -451,7 +451,7 @@ struct HubLocalStorageView: View {
             models = resp.models
             storageLog.info("Loaded \(models.count) local models")
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
             storageLog.warning("Load failed: \(error.localizedDescription)")
         }
         isLoading = false
@@ -498,7 +498,7 @@ struct HubLocalStorageView: View {
                 }
                 storageLog.info("Pin \(pin) for \(model.id)")
             } catch {
-                lastError = error.localizedDescription
+                lastError = BridgeError.sanitize(error)
             }
         }
     }
@@ -512,7 +512,7 @@ struct HubLocalStorageView: View {
                 if selectedModel?.id == model.id { selectedModel = models.first }
                 storageLog.info("Deleted model: \(model.id)")
             } catch {
-                lastError = error.localizedDescription
+                lastError = BridgeError.sanitize(error)
             }
         }
     }
@@ -527,7 +527,7 @@ struct HubLocalStorageView: View {
                 storageLog.info("Batch deleted \(ids.count) models")
                 selectedIds.removeAll()
             } catch {
-                lastError = error.localizedDescription
+                lastError = BridgeError.sanitize(error)
             }
         }
     }

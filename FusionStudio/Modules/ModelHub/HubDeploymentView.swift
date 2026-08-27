@@ -207,7 +207,7 @@ struct HubDeploymentView: View {
                 deployments = resp.deployments
                 depLog.info("Loaded \(deployments.count) deployments")
             } catch {
-                lastError = error.localizedDescription
+                lastError = BridgeError.sanitize(error)
                 depLog.error("Load deployments failed: \(error.localizedDescription)")
             }
             loading = false
