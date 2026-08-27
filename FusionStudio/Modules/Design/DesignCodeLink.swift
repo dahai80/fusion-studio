@@ -97,6 +97,11 @@ class DesignCodeLink: ObservableObject {
             try? await Task.sleep(nanoseconds: 300_000_000)
             guard !Task.isCancelled else { return }
 
+            // 审计0827 #2: FileWatcher 事件 path 防 symlink/.. 越界读白名单外, validateFilePath 拒则跳过。
+            guard SecurityManager.shared.validateFilePath(filePath) else {
+                codeLinkLog.warning("DesignCodeLink: reject path outside whitelist — \(filePath, privacy: .public)")
+                return
+            }
             guard let content = try? String(contentsOfFile: filePath, encoding: .utf8) else {
                 codeLinkLog.error("DesignCodeLink: failed to read changed file — \(filePath)")
                 return

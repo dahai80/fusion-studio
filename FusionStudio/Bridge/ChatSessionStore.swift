@@ -663,6 +663,8 @@ class ChatSessionStore: ObservableObject {
                 if project.hasKnowledge {
                     var knowledgeParts = ["[Project Knowledge Files for \(project.name)]"]
                     for kf in project.knowledgeFiles {
+                        // 审计0827 #2: knowledgeFiles 路径可能来自导入项目, 防 symlink/.. 越界读, validateFilePath 拒则跳过。
+                        guard SecurityManager.shared.validateFilePath(kf.filePath) else { continue }
                         if let content = try? String(contentsOfFile: kf.filePath, encoding: .utf8) {
                             let truncated = String(content.prefix(8000))
                             knowledgeParts.append("[\(kf.fileName)]\n\(truncated)")

@@ -606,7 +606,7 @@ final class ModelHubAPIClient: ObservableObject {
             lastError = nil
         } catch {
             isConnected = false
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
             apiLog.warning("Model-Hub connection failed: \(error.localizedDescription)")
         }
     }

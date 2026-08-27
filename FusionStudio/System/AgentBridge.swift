@@ -215,9 +215,16 @@ enum BridgeError: Error, Equatable, LocalizedError {
 
     // F-I10: 统一脱敏出口。catch 块把任意 Error 转 i18n 用户消息, 不裸抛底层错误 (含路径/端口/堆栈)。
     // BridgeError 走 userMessage (已 i18n+按 token 脱敏); 非 BridgeError 走 generic 通用兜底, 不泄露 detail。
+    // 审计0827 #4: IPCError (Hub*View 经 IPCClient.call 抛) 也经此脱敏 — 映射 BridgeError.rpcError 取按 code 的 i18n 用户消息, 不裸泄 message。
     static func sanitize(_ error: Error) -> String {
         if let bridgeErr = error as? BridgeError {
             return bridgeErr.userMessage
+        }
+        if let ipcErr = error as? IPCError {
+            if case .rpcError(let code, _) = ipcErr {
+                return BridgeError.rpcError(code: code, message: "").userMessage
+            }
+            return BridgeError.ipcError("").userMessage
         }
         agentBridgeStaticLog.error("F-I10 sanitize non-bridge error (detail suppressed): \(String(describing: error), privacy: .public)")
         return I18nManager.shared.t(.ab_err_generic)

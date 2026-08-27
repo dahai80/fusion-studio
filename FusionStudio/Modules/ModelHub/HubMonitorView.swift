@@ -666,7 +666,7 @@ struct HubMonitorView: View {
 
             await loadActiveDeploymentMetrics()
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
             monLog.warning("Monitor load failed: \(error.localizedDescription)")
         }
         isLoading = false
@@ -716,7 +716,7 @@ struct HubMonitorView: View {
             _ = try await client.scanDuplicates()
             monLog.info("Duplicate scan triggered")
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
         }
     }
 
@@ -725,7 +725,7 @@ struct HubMonitorView: View {
             _ = try await client.cleanupSystem()
             monLog.info("System cleanup triggered")
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
         }
     }
 

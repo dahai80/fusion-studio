@@ -604,7 +604,7 @@ struct HubPermissionView: View {
 
             permLog.info("Permission data loaded: \(apiKeys.count) keys, \(models.count) models, \(tenants.count) tenants, \(approvals.count) approvals")
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
             permLog.warning("Load failed: \(error.localizedDescription)")
         }
         isLoading = false
@@ -653,7 +653,7 @@ struct HubPermissionView: View {
                 let resp = try await client.listTenants()
                 tenants = resp.tenants
             } catch {
-                lastError = error.localizedDescription
+                lastError = BridgeError.sanitize(error)
                 permLog.warning("Create tenant failed: \(error.localizedDescription)")
             }
         }
@@ -671,7 +671,7 @@ struct HubPermissionView: View {
                 let resp = try await client.listTenants()
                 tenants = resp.tenants
             } catch {
-                lastError = error.localizedDescription
+                lastError = BridgeError.sanitize(error)
                 permLog.warning("Delete tenant failed: \(error.localizedDescription)")
             }
         }
@@ -686,7 +686,7 @@ struct HubPermissionView: View {
                 permLog.info("Role created: \(newRoleName) in tenant \(tid)")
                 await loadRolesForTenant(tid)
             } catch {
-                lastError = error.localizedDescription
+                lastError = BridgeError.sanitize(error)
                 permLog.warning("Create role failed: \(error.localizedDescription)")
             }
         }
@@ -701,7 +701,7 @@ struct HubPermissionView: View {
                 permLog.info("Role updated: \(role.id) in tenant \(tid)")
                 await loadRolesForTenant(tid)
             } catch {
-                lastError = error.localizedDescription
+                lastError = BridgeError.sanitize(error)
                 permLog.warning("Update role failed: \(error.localizedDescription)")
             }
         }
@@ -715,7 +715,7 @@ struct HubPermissionView: View {
                 permLog.info("Role deleted: \(role.id) in tenant \(tid)")
                 await loadRolesForTenant(tid)
             } catch {
-                lastError = error.localizedDescription
+                lastError = BridgeError.sanitize(error)
                 permLog.warning("Delete role failed: \(error.localizedDescription)")
             }
         }
@@ -731,7 +731,7 @@ struct HubPermissionView: View {
                 approvalComment = ""
                 await loadApprovals()
             } catch {
-                lastError = error.localizedDescription
+                lastError = BridgeError.sanitize(error)
                 approvalActionId = nil
                 permLog.warning("Approve failed: \(error.localizedDescription)")
             }
@@ -748,7 +748,7 @@ struct HubPermissionView: View {
                 approvalComment = ""
                 await loadApprovals()
             } catch {
-                lastError = error.localizedDescription
+                lastError = BridgeError.sanitize(error)
                 approvalActionId = nil
                 permLog.warning("Reject failed: \(error.localizedDescription)")
             }
@@ -776,7 +776,7 @@ struct HubPermissionView: View {
                 await loadAll()
                 permLog.info("API key created: \(resp.name ?? resp.id ?? "?")")
             } catch {
-                lastError = error.localizedDescription
+                lastError = BridgeError.sanitize(error)
             }
         }
     }
@@ -799,7 +799,7 @@ struct HubPermissionView: View {
                 await loadAll()
                 permLog.info("API key deactivated: \(key.id)")
             } catch {
-                lastError = error.localizedDescription
+                lastError = BridgeError.sanitize(error)
             }
         }
     }
@@ -810,7 +810,7 @@ struct HubPermissionView: View {
                 _ = try await client.setModelModules(modelId: modelId, modules: modules)
                 permLog.info("Modules set for \(modelId): \(modules)")
             } catch {
-                lastError = error.localizedDescription
+                lastError = BridgeError.sanitize(error)
             }
         }
     }

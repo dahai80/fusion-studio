@@ -831,6 +831,8 @@ class FusionProjectManager: ObservableObject {
         let scope = "project:\(project.id)"
 
         for file in project.knowledgeFiles {
+            // 审计0827 #2: knowledgeFiles 路径可能来自导入项目 (非本机用户面板选择), 防 symlink/.. 越界读, validateFilePath 拒则跳过。
+            guard SecurityManager.shared.validateFilePath(file.filePath) else { continue }
             guard let content = try? String(contentsOfFile: file.filePath, encoding: .utf8) else { continue }
             let metadata: [String: Any] = [
                 "file_name": file.fileName,
@@ -933,6 +935,8 @@ class FusionProjectManager: ObservableObject {
     }
 
     private func estimateTokenCountFromFile(at path: String) -> Int {
+        // 审计0827 #2: path 来自 knowledgeFiles (可能导入项目), validateFilePath 拒则返 0 token。
+        guard SecurityManager.shared.validateFilePath(path) else { return 0 }
         guard let content = try? String(contentsOfFile: path, encoding: .utf8) else { return 0 }
         return estimateTokenCount(content)
     }

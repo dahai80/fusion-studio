@@ -309,7 +309,7 @@ struct HubMarketView: View {
                 loadRatings(for: results)
                 marketLog.info("Market search: \(searchText) → \(searchResults.count) results")
             } catch {
-                lastError = error.localizedDescription
+                lastError = BridgeError.sanitize(error)
                 marketLog.warning("Market search failed: \(error.localizedDescription)")
             }
             isSearching = false

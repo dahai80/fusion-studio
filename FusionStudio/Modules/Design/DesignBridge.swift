@@ -589,20 +589,29 @@ class DesignBridge: ObservableObject {
         return result.output.isEmpty ? nil : result.output
     }
 
-    /// 净化不可信 HTML: 剥 script/iframe/object/embed 块 + on* 事件属性 + javascript:/vbscript: URL。
-    /// 纵深防御层 — LLM 产物 (currentArtifactCode) 经此过滤后再送 CLI 解析与 wasm 渲染。
-    /// nonisolated: 纯函数无实例状态, 不需 MainActor 隔离, 便于测试与后台调用。
+    /// 净化不可信 HTML: 剥 script/iframe/object/embed/math 块 + on* 事件属性 + javascript:/vbscript: URL + style 块。svg 保留 (设计 legit), 其 XSS 向量由 step1/3/4 覆盖。
+    /// 纵深防御层 — LLM 产物 (currentArtifactCode) 经此过滤后再送 CLI 解析与 wasm/预览渲染。
+    /// 迭代剥嵌套标签 (如 <scr<script>ipt>) 防绕过。nonisolated: 纯函数, 便于测试与后台调用。
     nonisolated static func sanitizeHtml(_ html: String) -> String {
         var out = html
-        // 1. 剥 <script>...</script> (含 <script src=...> 空体), 跨行大小写不敏感
-        if let re = try? NSRegularExpression(pattern: #"<script[\s\S]*?</script>"#, options: [.caseInsensitive]) {
-            out = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "")
+        // 0. 迭代剥嵌套 script 标签防 <scr<script>ipt> 绕过, 直至稳定 (上限 5 轮)
+        var prev = ""
+        var guardCount = 0
+        while out != prev && guardCount < 5 {
+            prev = out
+            // 1. 剥 <script>...</script> (含 <script src=...> 空体), 跨行大小写不敏感
+            if let re = try? NSRegularExpression(pattern: #"<script[\s\S]*?</script>"#, options: [.caseInsensitive]) {
+                out = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "")
+            }
+            if let re = try? NSRegularExpression(pattern: #"<script\b[^>]*>"#, options: [.caseInsensitive]) {
+                out = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "")
+            }
+            guardCount += 1
         }
-        if let re = try? NSRegularExpression(pattern: #"<script\b[^>]*>"#, options: [.caseInsensitive]) {
-            out = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "")
-        }
-        // 2. 剥 <iframe>/<object>/<embed>...</iframe|object|embed> 及空体
-        for tag in ["iframe", "object", "embed"] {
+        // 2. 剥 <iframe>/<object>/<embed>/<math>...</tag> 及空体 — 纯注入面, 设计产物不用。
+        // svg 不剥 (设计图标/形状 legit 用): 其 XSS 向量 (<svg onload>/<svg><script>/xlink:href="javascript:")
+        // 已由 step 1 (script) + step 3 (on* 事件属性) + step 4 (javascript: URL) 覆盖。
+        for tag in ["iframe", "object", "embed", "math"] {
             if let re = try? NSRegularExpression(pattern: "<\(tag)[\\s\\S]*?</\(tag)>", options: [.caseInsensitive]) {
                 out = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "")
             }
@@ -626,6 +635,14 @@ class DesignBridge: ObservableObject {
         }
         if let re = try? NSRegularExpression(pattern: #"(?i)(href|src)\s*=\s*("vbscript:[^"]*"|'vbscript:[^']*'|vbscript:[^\s>]+)"#, options: []) {
             out = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "$1=\"#\"")
+        }
+        // 5. 剥 <style>...</style> — CSS expression()/url(javascript:)/@import 注入面; 预览主体样式靠 :root vars+inline, 剥整块 style 安全
+        if let re = try? NSRegularExpression(pattern: #"<style[\s\S]*?</style>"#, options: [.caseInsensitive]) {
+            let stripped = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "")
+            if stripped != out {
+                out = stripped
+                designBridgeLog.warning("sanitizeHtml: stripped <style> block (expression/url-js/@import vector)")
+            }
         }
         return out
     }
@@ -1936,6 +1953,11 @@ class DesignBridge: ObservableObject {
         let ext = currentArtifactType == "react" ? "jsx" : currentArtifactType
         let fileName = currentArtifactTitle.isEmpty ? "design.\(ext)" : "\(sanitizeFileName(currentArtifactTitle)).\(ext)"
         let filePath = (syncFolderPath as NSString).appendingPathComponent(fileName)
+        // 审计0827 #2: LLM 产物 fileName 经 syncFolderPath 拼 — 防 LLM 注入 ../ 或 symlink 越界写白名单外, validateFilePath 拒则跳过同步。
+        guard SecurityManager.shared.validateFilePath(filePath) else {
+            designBridgeLog.warning("DesignBridge: syncArtifactToFile reject path outside whitelist — \(filePath, privacy: .public)")
+            return
+        }
 
         if let ipc = ipcClient, !artifactId.isEmpty {
             do {
@@ -1969,6 +1991,11 @@ class DesignBridge: ObservableObject {
         let ext = currentArtifactType == "react" ? "jsx" : currentArtifactType
         let fileName = currentArtifactTitle.isEmpty ? "design.\(ext)" : "\(sanitizeFileName(currentArtifactTitle)).\(ext)"
         let filePath = (syncFolderPath as NSString).appendingPathComponent(fileName)
+        // 审计0827 #2: 防 LLM 注入 ../ 或 symlink 越界读白名单外文件, validateFilePath 拒则跳过同步。
+        guard SecurityManager.shared.validateFilePath(filePath) else {
+            designBridgeLog.warning("DesignBridge: syncFileToArtifact reject path outside whitelist — \(filePath, privacy: .public)")
+            return
+        }
 
         if let ipc = ipcClient, !artifactId.isEmpty {
             do {
