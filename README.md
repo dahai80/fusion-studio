@@ -539,6 +539,21 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 
 ## 📋 Changelog
 
+### v0.1.49 — 审计 0825 验收 5 项重大重构全完 (F-I4/5/7/11/12) (2026-08-27)
+
+补丁版本，审计 0825 验收 P0 "重大重构启动起来逐项完成" 5 项全部落地 (F-I4/I5/I7/I11/I12):
+
+- **实现 (F-I4/F-I5/F-I7)**：
+  - **F-I4 IPC 响应 Codable 强类型解析** (PR #328)：IPC 响应 `JSONSerialization` `[String:Any]` 下标 → `JSONDecoder` Codable 强类型 parser 子集 (5 parser: agentList/agentDetail/taskList/modelList/envHealth)；Conservative custom init 保兼容；其余 13 parser 待做。F-I5 写测试暴露 F-A1 regression (属性路径泄 4 key 字面量致 fetch 恒空) 顺手修
+  - **F-I5 AgentBridge 集成测试覆盖核心路径** (PR #329)：`MockIPCClient` (override connect no-op + call 记 args返 canned) + 19 集成测试覆盖 agent/graph/planner/task/error/parser edge；测试覆盖 184→215+；写测试暴露 F-A1 Phase 6 regression 修 4 泄漏 key
+  - **F-I7 拆 CodeEditorView 76K 巨型视图** (PR #330)：CodeEditorView 76607 bytes/1956 行单文件 → 8 功能区文件 (CodeEditorCore/DiffView/GitPanel/SearchPanel/SettingsPanel/ToastManager/CodeEditorModels + 主壳)；logger 去 private 撞名重命名 codeEditLog；test 215/215
+- **i18n (F-I11)**：
+  - **F-I11 i18n 延后 5 类清完** (PR #331)：i18n 16 批号称"全量"实 5 类延后 → 非中文 locale 用户英文界面冒中文 LLM prompt。4 块全清: 块1 Design 28 LLM payload 按.locale 分模板文件 (Prompts/ 5 文件 struct + dispatcher 单分支 currentLanguage, zh-CN byte-identical source of truth) + 块2 FusionDesignSystem 713 行死代码 DELETE (0 引用, 删>i18n Rule 2) + 块3 BenchView 21 UI label→t() (BenchType.rawValue=wire payload 保, 加 localizedName computed) + 块4 EduK12 21 UI label→t() (GradeInfo id-keyed localizedName, retry 复用通用 key)；19 bench_ + 14 edu_ key × 4 locale
+- **架构评估 (F-I12)**：
+  - **F-I12 成熟库评估 — 决策维持零依赖** (commit 2a48038, doc-only)：审计 "零依赖 reinvent 轮子" 论据实地复核 2/3 不成立 (FileWatcher=FSEventStream 薄封装 / Markdown=AttributedString 原生)；IPCClient 部分手写分帧但 JSON 走 Foundation + 6 项加固 + 19 测试；成熟库候选无更优 (swift-nio overkill / JSONRPCKit 2020 停维反噬 CVE 论点 / swift-markdown 同 cmark 引擎)；零依赖是单机离线客户端正资产。交付件 `docs/fi12-mature-lib-evaluation.md`
+- **上游缺口 (跨工程 issue，非本仓可外科)**：F-A8 推理流量不经 MultiNodeEngine 路由 → fusion-multi-nodes#27；F-A13 真因 idempotency key+pending 队列需后端 → fusion-multi-nodes#23/#31；mlx.status 不暴露池 lease/LRU/TTL → fusion-agent-studio#225。均提 issue 遵 "上游问题先提 issue" 流程
+- **CI 全绿**：Swift Build & Test / Code Quality / Security Audit 3/3 pass；master 仅 master 分支
+
 ### v0.1.48 — AgentBridge 48 @Published 拆 7 域类型边界 + RPC 方法名集中 + 临时文件统一 (2026-08-26)
 
 补丁版本，审计 0825 P0 重大重构启动 + 仓内 surgical 收尾 + 安全/韧性收口:
