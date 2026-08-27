@@ -84,15 +84,16 @@ Services/                    # 空 (env-daemon/mlx-daemon 已删除, 见 #296)
 | `ScreenContextManager` | System-level awareness (FSEvents, Accessibility) |
 | `MultiNodeEngine` | Cluster/multi-node coordination |
 
-### IPC API Namespaces
+### IPC API Namespaces (JSON-RPC 2.0 over UDS)
 
 - `env.*` — health_check, repair, repair_all
 - `mlx.*` — start, stop, restart, status, health, set_model
-- `model.*` — list, pull, del
 - `design.*` — export_code
-- `sim.*` — run, stop, status
 - `task.*` — submit, status
 - `ping` — health check
+
+> 注: `model.*` (list/pull/del) 与 `sim.*` (run/stop/status) 走 **HTTP REST**, 非 JSON-RPC。
+> `model.*` → ModelHubAPIClient 经 fusion-mlx `/admin/api/models`; `sim.*` → SimulationBridge 经 fusion-sim `:11455/api/*`。
 
 ## Conventions
 
