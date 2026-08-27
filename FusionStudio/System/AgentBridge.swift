@@ -1159,13 +1159,13 @@ final class AgentBridge: ObservableObject {
         guard let client = ipcClient else { return }
         do {
             let result = try await client.taskList(limit: 200)
-            let raw = result["self.taskState.tasks"] as? [[String: Any]] ?? []
+            let raw = result["tasks"] as? [[String: Any]] ?? []
             var parsed: [TaskModel] = []
             for d in raw {
                 if let t = TaskModel(backendDict: d) { parsed.append(t) }
             }
             self.taskState.tasks = parsed
-            logger.info("fetchTasks: \(parsed.count) backend self.taskState.tasks")
+            logger.info("fetchTasks: \(parsed.count) backend tasks")
         } catch {
             logger.warning("fetchTasks failed: \(error.localizedDescription)")
         }
@@ -1178,13 +1178,13 @@ final class AgentBridge: ObservableObject {
         guard let client = ipcClient else { return }
         do {
             let result = try await client.projectList()
-            let raw = result["self.taskState.projects"] as? [[String: Any]] ?? []
+            let raw = result["projects"] as? [[String: Any]] ?? []
             var parsed: [ProjectBucket] = []
             for d in raw {
                 if let b = ProjectBucket(backendDict: d) { parsed.append(b) }
             }
             self.taskState.projects = parsed
-            logger.info("fetchProjects: \(parsed.count) self.taskState.projects")
+            logger.info("fetchProjects: \(parsed.count) projects")
         } catch {
             logger.warning("fetchProjects failed: \(error.localizedDescription)")
         }

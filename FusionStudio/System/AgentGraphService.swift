@@ -25,7 +25,7 @@ extension AgentBridge {
         }
         do {
             let result = try await client.call(method: RPCMethod.graphList)
-            let graphsData = result["self.agentState.graphs"] as? [[String: Any]] ?? []
+            let graphsData = result["graphs"] as? [[String: Any]] ?? []
             var parsed: [AgentGraphModel] = []
             for g in graphsData {
                 if let model = Self.parseGraphModel(from: g) {
@@ -42,7 +42,7 @@ extension AgentBridge {
             if changed {
                 self.agentState.graphs = parsed
             }
-            agentGraphLog.info("fetchGraphs: received \(parsed.count) self.agentState.graphs (changed=\(changed))")
+            agentGraphLog.info("fetchGraphs: received \(parsed.count) graphs (changed=\(changed))")
             return parsed
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)

@@ -77,7 +77,7 @@ extension AgentBridge {
             }
             guard let client = self.ipcClient else { throw BridgeError.notConnected }
             let result = try await client.agentList(tags: tags)
-            let agentsData = result["self.agentState.agents"] as? [[String: Any]] ?? []
+            let agentsData = result["agents"] as? [[String: Any]] ?? []
             var parsed: [AgentModel] = []
             for a in agentsData {
                 if let agent = Self.parseAgentModel(from: a) {
@@ -85,7 +85,7 @@ extension AgentBridge {
                 }
             }
             self.agentState.agents = parsed
-            agentOpsLog.info("fetchAgents: received \(parsed.count) self.agentState.agents")
+            agentOpsLog.info("fetchAgents: received \(parsed.count) agents")
             return parsed
         }
         Self.agentFetchInFlight[key] = task
