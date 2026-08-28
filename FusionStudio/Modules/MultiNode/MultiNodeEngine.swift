@@ -141,7 +141,9 @@ class MultiNodeEngine: ObservableObject {
         let timer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { _ in
             runOnce()
         }
-        // 旧 timer 已 fire (单发), 仅持有最新待 fire 的。stopPolling 清全部。
+        // 审计0827 §2.3 (P1): pollTimers 单发 timer 已 fire (isValid=false) 仍留数组,
+        // 每轮 +1 无 prune, 长跑累积 (4 pollers × N cycles)。append 前剔失效项保数组紧致。
+        pollTimers = pollTimers.filter { $0.isValid }
         pollTimers.append(timer)
     }
 

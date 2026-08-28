@@ -186,6 +186,57 @@ struct FusionStudioApp: App {
                         }
                         return 0
                     }
+                    // 审计0827 §2.7 (P1): AgentBridge 7 域 30+ 无界 @Published 数组 + ChatSessionStore/Health/Science
+                    // 高频 append 已逐点 cap (capAgents/tasks/ragResults/chatMessages/capSessions/capMessages),
+                    // 但 cap 是 append 时软限; RSS critical 硬压需额外 eviction 兜底 (留 1/2 保留近期, 丢最早)。
+                    StudioMemoryMonitor.shared.registerEviction(name: "agents") { [weak agentBridge] in
+                        let before = agentBridge?.agentState.agents.count ?? 0
+                        if before > 100 {
+                            agentBridge?.agentState.agents = Array((agentBridge?.agentState.agents ?? []).suffix(100))
+                            return before - 100
+                        }
+                        return 0
+                    }
+                    StudioMemoryMonitor.shared.registerEviction(name: "tasks") { [weak agentBridge] in
+                        let before = agentBridge?.taskState.tasks.count ?? 0
+                        if before > 200 {
+                            agentBridge?.taskState.tasks = Array((agentBridge?.taskState.tasks ?? []).suffix(200))
+                            return before - 200
+                        }
+                        return 0
+                    }
+                    StudioMemoryMonitor.shared.registerEviction(name: "chatMessages") { [weak agentBridge] in
+                        let before = agentBridge?.projectChatState.chatMessages.count ?? 0
+                        if before > 200 {
+                            agentBridge?.projectChatState.chatMessages = Array((agentBridge?.projectChatState.chatMessages ?? []).suffix(200))
+                            return before - 200
+                        }
+                        return 0
+                    }
+                    StudioMemoryMonitor.shared.registerEviction(name: "chatSessions") { [weak chatStore] in
+                        let before = chatStore?.sessions.count ?? 0
+                        if before > 100 {
+                            chatStore?.sessions = Array((chatStore?.sessions ?? []).suffix(100))
+                            return before - 100
+                        }
+                        return 0
+                    }
+                    StudioMemoryMonitor.shared.registerEviction(name: "healthChat") { [weak healthBridge] in
+                        let before = healthBridge?.chatMessages.count ?? 0
+                        if before > 200 {
+                            healthBridge?.chatMessages = Array((healthBridge?.chatMessages ?? []).suffix(200))
+                            return before - 200
+                        }
+                        return 0
+                    }
+                    StudioMemoryMonitor.shared.registerEviction(name: "scienceChat") { [weak scienceBridge] in
+                        let before = scienceBridge?.messages.count ?? 0
+                        if before > 200 {
+                            scienceBridge?.messages = Array((scienceBridge?.messages ?? []).suffix(200))
+                            return before - 200
+                        }
+                        return 0
+                    }
                 }
                 .frame(minWidth: 1100, minHeight: 700)
                 .sheet(isPresented: $uiPanelState.showWelcome) {

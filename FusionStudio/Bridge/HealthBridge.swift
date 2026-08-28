@@ -43,6 +43,16 @@ class HealthBridge: ObservableObject {
         self.session = URLSession(configuration: config)
     }
 
+    // 审计0827 §2.8 (P1): chatMessages 无界 append, 长问诊会话单调增长 OOM。cap 500 复用 PERF-3 范式。
+    private static let maxChatMessages = 500
+    private func capChatMessages() {
+        if chatMessages.count > Self.maxChatMessages {
+            let drop = chatMessages.count - Self.maxChatMessages
+            chatMessages.removeFirst(drop)
+            healthBridgeLog.info("capChatMessages: drop \(drop) oldest (count > \(Self.maxChatMessages))")
+        }
+    }
+
     func refreshBaseURL() {
         baseURL = FusionConfig.shared.healthBaseURL
     }
@@ -120,6 +130,7 @@ class HealthBridge: ObservableObject {
         guard !message.isEmpty else { return }
         DispatchQueue.main.async {
             self.chatMessages.append(HealthChatMessage(role: "user", content: message))
+            self.capChatMessages()
             self.isGenerating = true
         }
         guard let url = URL(string: "\(baseURL)/api/v1/chat/message") else { return }
@@ -135,18 +146,21 @@ class HealthBridge: ObservableObject {
                 self?.handleError(error, context: "chat")
                 DispatchQueue.main.async {
                     self?.chatMessages.append(HealthChatMessage(role: "assistant", content: "请求失败: \(error.localizedDescription)"))
+                    self?.capChatMessages()
                 }
                 return
             }
             guard let data = data, let resp = try? JSONDecoder().decode(HealthChatResponse.self, from: data) else {
                 DispatchQueue.main.async {
                     self?.chatMessages.append(HealthChatMessage(role: "assistant", content: "解析回复失败"))
+                    self?.capChatMessages()
                 }
                 return
             }
             let text = resp.error != nil ? "错误: \(resp.error!)" : resp.response
             DispatchQueue.main.async {
                 self?.chatMessages.append(HealthChatMessage(role: "assistant", content: text))
+                self?.capChatMessages()
             }
             healthBridgeLog.info("sendChat: response len=\(text.count)")
         }
