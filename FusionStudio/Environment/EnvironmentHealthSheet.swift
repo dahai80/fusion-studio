@@ -27,6 +27,7 @@ struct EnvironmentHealthSheet: View {
         "code": "fusion-code",
         "science": "fusion-science",
         "health": "fusion-health",
+        "store": "fusion-store",
     ]
 
     // 全量子系统清单：id -> (label, icon, 探活方式)
@@ -42,6 +43,8 @@ struct EnvironmentHealthSheet: View {
         .init(id: "code", label: "Fusion Code 代码服务", icon: "chevron.left.forwardslash.chevron.right"),
         .init(id: "science", label: "Fusion Science 科研服务", icon: "flask"),
         .init(id: "health", label: "Fusion Health 健康服务", icon: "heart.text.square"),
+        // #336: fusion-store fs-serve 守护 (/health 返 ok/degraded/backpressure)。可选服务。
+        .init(id: "store", label: "Fusion Store 存储服务", icon: "externaldrive.connected.to.line.below"),
     ]
 
     var body: some View {
@@ -238,6 +241,10 @@ struct EnvironmentHealthSheet: View {
                 detail = try await probeHTTP("\(cfg.scienceBaseURL)/api/v1/health", headers: [:])
             case "health":
                 detail = try await probeHTTP("\(cfg.healthBaseURL)/api/v1/health", headers: [:])
+            // #336: fusion-store fs-serve /health 返 ok/degraded/backpressure (无鉴权)。
+            // backpressure = 上游 circuit-breaker 降级信号, 仍记 passed (服务在监听), detail 显状态。
+            case "store":
+                detail = try await probeHTTP("http://127.0.0.1:\(cfg.fusionStorePort)/health", headers: [:])
             default:
                 detail = "未配置探活"
             }
