@@ -1478,10 +1478,16 @@ final class AgentBridge: ObservableObject {
         do {
             let result = try await client.taskRerun(taskId: taskId)
             if let d = result["task"] as? [String: Any], let updated = TaskModel(backendDict: d) {
+                // 审计0827 §3.1 (P1): rerun 不重置 retryCount/lastError -> 已耗尽预算的任务 rerun
+                // 进 taskExecuteImmediate catch -> retryCount 超 maxRetries -> 立即放弃无提示。
+                // rerun 语义 = 全新执行, 须 reset retryCount=0 + lastError="" 再触发。
+                var fresh = updated
+                fresh.retryCount = 0
+                fresh.lastError = ""
                 if let idx = self.taskIndex(taskId) {
-                    self.taskState.tasks[idx] = updated
+                    self.taskState.tasks[idx] = fresh
                 }
-                logger.info("taskRerun: id=\(taskId)")
+                logger.info("taskRerun: id=\(taskId) retryCount reset to 0")
                 // rerun 重置为 pending, 前端立即执行 immediate 触发.
                 taskExecuteImmediate(taskId)
             }

@@ -26,6 +26,22 @@ class IPCClient: ObservableObject {
     // 读取循环独占的 queue, 不能与发送/超时共用串行 queue, 否则 while 死循环会饿死所有 call() 导致续体永不 resume (Workflows 转圈根因)
     private let readQueue = DispatchQueue(label: "com.fusion-studio.ipc.read", qos: .userInitiated)
     private var reconnectTimer: Timer?
+    // 审计0827 §2.4 (P1): 重连固定 3s repeats, daemon 挂时多 Bridge 每 3s 齐刷重连 = 雷群。
+    // 改指数退避 + jitter: base 2s × 2^min(attempt,5) 封顶 60s, + 确定性 jitter (attempt×137)%1000 ms。
+    // 连接成功复位 attempt=0 (performConnect 主线程块)。
+    private var reconnectAttempt: Int = 0
+    // 审计0827 §2.6 (P1): IPC 级熔断器。AgentBridge.backendCircuitOpen 只护 taskExecuteImmediate 一条,
+    // 其余 ~15 RPC (taskSubmit/cronRegister/executeGraph/KV ops/tool CRUD) 裸奔 — daemon 慢响应时
+    // 连锁 8s 超时堆 pending (叠加 pendingCap 截断) 行为不一致难诊断。
+    // 此熔断全局护所有 call(): 连续 N 次超时/断连开路, 新 call fast-fail 抛 circuitOpen;
+    // 任一成功复位 (half-open 探测)。与 AgentBridge 熔断并存: IPC 级防 pending 雪崩, task 级控重试预算。
+    private let circuitThreshold: Int = 5
+    private var circuitConsecutiveFailures: Int = 0
+    private var circuitOpen: Bool = false
+    // half-open: 开路 30s 后允许一个探测 call 穿透, 成功则复位 closed, 失败则重开并续计时。
+    private let circuitRecoverySec: Double = 30
+    private var circuitOpenedAt: Double = 0
+    private var circuitHalfOpenProbing: Bool = false
     // 续体直接存储：handleResponse / 超时 / 断连 三处 removeValue 取出并 resume，保证恰好一次
     private var pendingRequests: [Int: CheckedContinuation<[String: Any], Error>] = [:]
     private let lock = NSLock()
@@ -132,6 +148,8 @@ class IPCClient: ObservableObject {
             self?.lastError = nil
             self?.reconnectTimer?.invalidate()
             self?.reconnectTimer = nil
+            // 审计0827 §2.4: 连接成功复位重连退避计数。
+            self?.reconnectAttempt = 0
         }
         startReading()
         // F-A16: 连接建立后异步协商 schema, 不阻塞连接 (旧上游无 rpc.discover 时容错降级)。
@@ -158,8 +176,20 @@ class IPCClient: ObservableObject {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             self.reconnectTimer?.invalidate()
-            self.reconnectTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
+            // 审计0827 §2.4: 指数退避 + 确定性 jitter (无 Math.random — 避雷群 + 避长挂)。
+            // base 2s × 2^min(attempt,5) 封顶 60s, jitter (attempt×137)%1000 ms 解同步。
+            let attempt = self.reconnectAttempt
+            let base = 2.0 * pow(2.0, Double(min(attempt, 5)))
+            let capped = min(base, 60.0)
+            let jitterMs = Double((attempt * 137) % 1000) / 1000.0
+            let delay = capped + jitterMs
+            if attempt > 0 {
+                ipcLog.info("IPC reconnect backoff: attempt=\(attempt) delay=\(String(format: "%.2f", delay))s")
+            }
+            self.reconnectAttempt = attempt + 1
+            self.reconnectTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
                 self?.connect()
+                // 连接失败会再次 scheduleReconnect 续退避; 成功 performConnect 复位 attempt。
             }
         }
     }
@@ -203,6 +233,42 @@ class IPCClient: ObservableObject {
         }
     }
 
+    // 审计0827 §2.6 (P1): half-open 探测闸 — 开路满 circuitRecoverySec 后放一个 call 穿透试探。
+    // 返 true = 已转 half-open 放行该 call; false = 仍 closed-open fast-fail。跑在串行 queue 无需锁。
+    private func maybeHalfOpenProbe() -> Bool {
+        let now = Date().timeIntervalSince1970
+        if circuitHalfOpenProbing { return true }
+        if now - circuitOpenedAt >= circuitRecoverySec {
+            circuitHalfOpenProbing = true
+            return true
+        }
+        return false
+    }
+
+    // 熔断成功复位 (half-open 探测成功 or 正常成功清连续失败)。
+    private func circuitOnSuccess() {
+        if circuitOpen || circuitHalfOpenProbing {
+            ipcLog.info("IPC circuit closed (recovered) failures=\(self.circuitConsecutiveFailures)")
+        }
+        circuitConsecutiveFailures = 0
+        circuitOpen = false
+        circuitHalfOpenProbing = false
+    }
+
+    // 熔断失败计数 + 达阈值开路。half-open 探测失败立即重开并续计时。
+    private func circuitOnFailure() {
+        circuitConsecutiveFailures += 1
+        circuitHalfOpenProbing = false
+        if circuitConsecutiveFailures >= circuitThreshold && !circuitOpen {
+            circuitOpen = true
+            circuitOpenedAt = Date().timeIntervalSince1970
+            ipcLog.error("IPC circuit OPEN failures=\(self.circuitConsecutiveFailures) — fast-fail pending calls until backend recovers")
+        } else if circuitOpen {
+            // 已开路 (half-open 探测失败): 续计时, 下个 recovery 窗口再试。
+            circuitOpenedAt = Date().timeIntervalSince1970
+        }
+    }
+
     /// 调用远程方法
     @discardableResult
     func call(method: String, params: [String: Any] = [:]) async throws -> [String: Any] {
@@ -211,6 +277,18 @@ class IPCClient: ObservableObject {
                 guard let self = self else {
                     continuation.resume(throwing: IPCError.disconnected)
                     return
+                }
+
+                // 审计0827 §2.6 (P1): 熔断开路 fast-fail, 不注册续体不堆 pending。
+                // half-open 探测: 每 30s 放一个 call 穿透试探后端是否恢复 (open 计时达 30s 即半开)。
+                if self.circuitOpen {
+                    if self.maybeHalfOpenProbe() {
+                        ipcLog.info("IPC circuit half-open probe: method=\(method, privacy: .public)")
+                    } else {
+                        ipcLog.warning("IPC circuit open fast-fail: method=\(method, privacy: .public)")
+                        continuation.resume(throwing: IPCError.circuitOpen)
+                        return
+                    }
                 }
 
                 let reqId = self.nextRequestId()
@@ -277,6 +355,8 @@ class IPCClient: ObservableObject {
                     }
                     // F-R4: 合并读超时也 fan-out 给挂起的在途 waiters
                     self.resumeInflightReads(method, result: .failure(IPCError.timeout))
+                    // 审计0827 §2.6 (P1): 超时 = 后端慢/挂, 计入熔断失败; 达阈值开路防 pending 雪崩。
+                    self.circuitOnFailure()
                 }
 
                 // 发送数据
@@ -414,7 +494,13 @@ class IPCClient: ObservableObject {
                     }
                     break
                 } else if errno == EAGAIN {
-                    Thread.sleep(forTimeInterval: 0.01)
+                    // 审计0827 §3.8 (P2): Thread.sleep(0.01) busy-poll 钉死 GCD worker thread 空转,
+                    // daemon 慢响应时多 Bridge 并发耗尽线程池。改 poll() 让线程在内核阻塞等可读,
+                    // 不占 CPU; 1s 超时给 socketFd>=0 检查点 (shutdown 响应), 空闲时 1 syscall/s vs 旧 100/s。
+                    var pfd = pollfd(fd: self.socketFd, events: Int16(POLLIN), revents: 0)
+                    _ = withUnsafeMutablePointer(to: &pfd) { ptr in
+                        Darwin.poll(ptr, 1, 1000)
+                    }
                 } else {
                     self.drainPending()
                     DispatchQueue.main.async {
@@ -478,8 +564,14 @@ class IPCClient: ObservableObject {
             outcome = .success([:])
         }
         switch outcome {
-        case .success(let v): cont.resume(returning: v)
-        case .failure(let e): cont.resume(throwing: e)
+        case .success(let v):
+            cont.resume(returning: v)
+            // 审计0827 §2.6 (P1): 成功复位熔断 (含 half-open 探测成功 → closed)。
+            self.circuitOnSuccess()
+        case .failure(let e):
+            cont.resume(throwing: e)
+            // rpcError = 后端业务错 (非超时), 也计入熔断失败 — 后端异常时同应 fast-fail 防雪崩。
+            self.circuitOnFailure()
         }
         // F-R4: 合并读 (coalescedMethod 非 nil) → fan-out 同 method 在途 waiters
         if let method = coalescedMethod {
@@ -507,6 +599,9 @@ class IPCClient: ObservableObject {
                 w.resume(throwing: IPCError.disconnected)
             }
         }
+        // 审计0827 §2.6 (P1): 断连 = 后端不可达, 计入熔断失败; drain 可能排空多个 pending 但只计一次失败
+        // (一次断连事件一个失败信号, 非 N 个 pending = N 次失败, 否则单次断连即撞阈值开路)。
+        self.circuitOnFailure()
     }
 
     // MARK: - 便捷方法

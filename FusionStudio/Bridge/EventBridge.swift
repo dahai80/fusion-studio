@@ -266,7 +266,11 @@ final class EventBridge: ObservableObject {
                 return
             }
             eventBridgeLog.info("event.notification type=\(ev.type.rawValue, privacy: .public) path=\(ev.targetPath ?? "-", privacy: .public)")
-            Task { @MainActor in
+            // 审计0827 §3.7 (P2): 强引用 self 的 fire-and-forget Task 无 cancel 句柄,
+            // 高频事件堆积 Task 钉住 EventBridge (stopStream 后仍被 in-flight Task 持)。
+            // 改 [weak self]: self 释放则 Task 空转返回, 不延长生命周期。
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
                 self.events.append(ev)
                 self.trimEvents()
             }
