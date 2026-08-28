@@ -82,6 +82,10 @@ class ScreenContextManager: ObservableObject {
             let options = [kAXTrustedCheckOptionPrompt.takeRetainedValue(): true] as CFDictionary
             _ = AXIsProcessTrustedWithOptions(options)
         }
+        // #344: TCC 审计上报 fusion-guard (Phase 5, fire-and-forget 非阻塞, 守护缺席静默)。
+        // H1: macOS per-app TCC 不可跨进程委托, studio 自申请 + 上报 guard 汇聚审计。
+        let resultStr = trusted ? "granted" : (AXIsProcessTrusted() ? "granted" : "denied")
+        Task { await GuardBridge.shared?.reportTcc(permission: "accessibility", result: resultStr) }
         return trusted
     }
 

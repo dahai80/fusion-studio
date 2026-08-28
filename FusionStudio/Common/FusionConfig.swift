@@ -242,6 +242,8 @@ class FusionConfig: ObservableObject {
     @AppStorage("fusionSpeechPort") var fusionSpeechPort = 11465
     // #337: fusion-speech UDS JSON-RPC socket 路径 (FUSION_SOCKET_DIR 可覆盖父目录)。
     @AppStorage("fusionSpeechSocketPath") var fusionSpeechSocketPath = "~/.fusion-speech/run/fusion-speech.sock"
+    // #344: fusion-guard 零信任鉴权守护 UDS (UDS-only, 无 HTTP 端口; /tmp 默认, FUSION_GUARD_SOCK 可覆盖)。
+    @AppStorage("fusionGuardSocketPath") var fusionGuardSocketPath = "/tmp/fusion-guard.sock"
     @AppStorage("agentStudioHttpPort") var agentStudioHttpPort = 11453
     @AppStorage("multiNodePort") var multiNodePort = 11452
     // Multi-Node Agent 端口（NodeAgent /api/* 数据端口）。原 11445 与 fusion-comfyui 实跑撞,

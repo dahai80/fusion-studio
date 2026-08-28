@@ -37,6 +37,7 @@ SERVICES=(
     "fusion-doc|Fusion Doc|~/fusion/fusion-doc/start.sh|http|http://127.0.0.1:11449/api/health|4|0"
     "multi-node|Multi-Node|~/fusion/fusion-multi-node/start.sh|http|http://127.0.0.1:11452/api/health|5|0"
     "fusion-model-hub|Model Hub|~/fusion/fusion-model-hub/start.sh|http|http://127.0.0.1:11444/api/v1/system/info|6|0"
+    "fusion-guard|Fusion Guard|~/fusion/fusion-guard/start.sh|socket|/tmp/fusion-guard.sock|7|0"
     "fusion-code|Fusion Code|~/fusion/fusion-code/start.sh|http|http://127.0.0.1:11441/api/project/context|8|0"
     "project-svc|Fusion Projects|~/fusion/fusion-projects/start.sh|socket|/tmp/fusion-project-svc.sock|9|0"
     "cowork-desk|CoWork Desk|~/fusion/fusion-cowork|socket|/tmp/fusion-cowork.sock|10|0"

@@ -41,6 +41,8 @@ class VoiceInputManager: ObservableObject {
                 self?.isAvailable = current && granted
                 self?.log.info("Mic permission: \(granted)")
             }
+            // #344: TCC 审计上报 fusion-guard (Phase 5, fire-and-forget 非阻塞, 守护缺席静默)。
+            Task { await GuardBridge.shared?.reportTcc(permission: "microphone", result: granted ? "granted" : "denied") }
         }
     }
 

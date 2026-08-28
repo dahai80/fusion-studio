@@ -14,6 +14,7 @@ struct ContentView: View {
     @EnvironmentObject var uiPanelState: UIPanelState
     @EnvironmentObject var ipcClient: IPCClient
     @EnvironmentObject var taskManager: TaskManager
+    @EnvironmentObject var guardBridge: GuardBridge
 
     var body: some View {
         let theme = themeState.isDarkMode ? StudioTheme.dark : StudioTheme.light
@@ -56,6 +57,10 @@ struct ContentView: View {
         }
         .sheet(isPresented: $uiPanelState.showEnvironmentHealth) {
             EnvironmentHealthSheet()
+        }
+        // #344: guard L3 人机确认弹窗 (pendingChallenge 驱动, .sheet(item:))
+        .sheet(item: $guardBridge.pendingChallenge) { ch in
+            GuardChallengeModal(guardBridge: guardBridge, challenge: ch)
         }
         .onAppear {
             applyNativeAppearance(themeState.isDarkMode)
