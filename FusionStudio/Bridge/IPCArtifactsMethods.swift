@@ -11,7 +11,7 @@ extension IPCClient {
     func artifactsCall(method: String, params: [String: Any] = [:]) async throws -> [String: Any] {
         var request: [String: Any] = [
             "jsonrpc": "2.0",
-            "id": Int(Date().timeIntervalSince1970 * 1000),
+            "id": self.nextRequestId(),
             "method": method,
         ]
         if !params.isEmpty {
