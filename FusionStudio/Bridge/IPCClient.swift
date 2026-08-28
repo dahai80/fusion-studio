@@ -51,11 +51,41 @@ class IPCClient: ObservableObject {
         }
     }
 
+    // F-A18 (#23): UDS 客户端 sock 文件权限校验。审计 0827 #23 — 客户端无鉴权代码,
+    // 安全性全依赖服务端 sock 文件权限。连接前校验 stat(socketPath).st_mode:
+    // 拒 group/other 可写 (防 0666 被替换或放松), 允 owner-only (0600) 或 owner+group (0660)。
+    // 服务端侧 (daemon_server.py chmod+peer-uid) 跨工程, 已提上游 issue 对齐。
+    // 返回 nil=通过, 非 nil=拒绝原因 (含实际 mode 八进制, 便日志定位)。
+    private func validateSocketPermission() -> String? {
+        // 用 FileManager 取 posix 权限, 避 Darwin stat()/struct stat 命名冲突。
+        let url = URL(fileURLWithPath: socketPath)
+        guard let attrs = try? FileManager.default.attributesOfItem(atPath: url.path) else {
+            // sock 不存在 = 服务未起, 非权限问题, 交 connect() 报 errno。
+            return nil
+        }
+        guard let perm = attrs[.posixPermissions] as? NSNumber else { return nil }
+        let permBits = perm.int16Value & 0o777
+        // 拒 group/other 写位 (防 0666/0664/0646 等), 仅允 owner 写 (0600) 或 owner+group (0660)。
+        if permBits & 0o022 != 0 {
+            let octal = String(permBits, radix: 8)
+            ipcLog.error("IPC sock perm reject: path=\(self.socketPath, privacy: .public) mode=0\(octal) (group/other writable)")
+            return "socket 权限过松 (mode 0\(octal), 须 owner-only 0600 或 0660)"
+        }
+        return nil
+    }
+
     private func performConnect() {
         // 关闭旧连接
         if socketFd >= 0 {
             close(socketFd)
             socketFd = -1
+        }
+
+        // F-A18 (#23): 连接前校验 sock 文件权限, 拒 group/other 可写 (防服务端 sock 被改 0666/替换)。
+        if let permErr = validateSocketPermission() {
+            setError(permErr)
+            scheduleReconnect()
+            return
         }
 
         let sock = socket(AF_UNIX, SOCK_STREAM, 0)
