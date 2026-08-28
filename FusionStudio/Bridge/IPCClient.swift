@@ -31,7 +31,9 @@ class IPCClient: ObservableObject {
     private let lock = NSLock()
     // F-A4: pending 容量上限, 防高频 onAppear fetch 风暴 + daemon 慢响应堆续体致 OOM。
     // 超限直接 reject 抛错并日志, 不注册新续体 (8s 窗口内狂切 Tab 可堆数千 pending)。
-    private let pendingCap = 100
+    // 审计0827 P0-2: 100 在稳态期 (健康轮询 + 多 Tab fetch + 狂切) 触顶, 写操作静默失败。
+    // 提升到 500: 稳态并发约 80-120, 突发 3-4x 仍 < 500; 单续体 ~0.4KB, 500 项 < 200KB 内存可接受。
+    private let pendingCap = 500
     // F-R4: 方法级 in-flight 去重 (同 method 在途不重发)。仅对幂等读 (空 params + *.list/status/ping/health_check)
     // 合并: 第一个 caller 驱动 socket, 后续 caller 续体挂 inflightReads 等结果 fan-out, 不重发。
     // 变更类 (mlx.stop/agent.create/*.delete/env.repair_all 等) 永不合并 — 幂等性不同, 重发是正确语义。
@@ -56,9 +58,10 @@ class IPCClient: ObservableObject {
     // 拒 group/other 可写 (防 0666 被替换或放松), 允 owner-only (0600) 或 owner+group (0660)。
     // 服务端侧 (daemon_server.py chmod+peer-uid) 跨工程, 已提上游 issue 对齐。
     // 返回 nil=通过, 非 nil=拒绝原因 (含实际 mode 八进制, 便日志定位)。
-    private func validateSocketPermission() -> String? {
+    // 参数化 path: 主 socket (performConnect) 与短连接通道 (udsCall) 复用同一校验 (审计0827 P0-1)。
+    private func validateSocketPermission(_ path: String) -> String? {
         // 用 FileManager 取 posix 权限, 避 Darwin stat()/struct stat 命名冲突。
-        let url = URL(fileURLWithPath: socketPath)
+        let url = URL(fileURLWithPath: path)
         guard let attrs = try? FileManager.default.attributesOfItem(atPath: url.path) else {
             // sock 不存在 = 服务未起, 非权限问题, 交 connect() 报 errno。
             return nil
@@ -68,7 +71,7 @@ class IPCClient: ObservableObject {
         // 拒 group/other 写位 (防 0666/0664/0646 等), 仅允 owner 写 (0600) 或 owner+group (0660)。
         if permBits & 0o022 != 0 {
             let octal = String(permBits, radix: 8)
-            ipcLog.error("IPC sock perm reject: path=\(self.socketPath, privacy: .public) mode=0\(octal) (group/other writable)")
+            ipcLog.error("IPC sock perm reject: path=\(path, privacy: .public) mode=0\(octal) (group/other writable)")
             return "socket 权限过松 (mode 0\(octal), 须 owner-only 0600 或 0660)"
         }
         return nil
@@ -82,7 +85,7 @@ class IPCClient: ObservableObject {
         }
 
         // F-A18 (#23): 连接前校验 sock 文件权限, 拒 group/other 可写 (防服务端 sock 被改 0666/替换)。
-        if let permErr = validateSocketPermission() {
+        if let permErr = validateSocketPermission(socketPath) {
             setError(permErr)
             scheduleReconnect()
             return
@@ -248,6 +251,10 @@ class IPCClient: ObservableObject {
 
                 // 注册续体
                 self.lock.lock()
+                // 审计0827 P0-2: 接近上限 (≥80%) 即预警, 早于硬拒暴露拥塞趋势, 便定位瓶颈 method。
+                if self.pendingRequests.count >= self.pendingCap * 4 / 5 {
+                    ipcLog.warning("IPC pending near cap: \(self.pendingRequests.count)/\(self.pendingCap) method=\(method, privacy: .public)")
+                }
                 // F-A4: pending 容量上限, daemon 慢响应/断连 + 狂切 Tab 堆续体致 OOM。超限直接 reject。
                 if self.pendingRequests.count >= self.pendingCap {
                     self.lock.unlock()
@@ -296,6 +303,13 @@ class IPCClient: ObservableObject {
                     return
                 }
                 defer { close(sock) }
+                // 审计0827 P0-1: 短连接通道 (project-svc/cowork/guard/event 短连) 连前校验 sock 权限,
+                // 与主 socket performConnect 复用同一守卫, 堵 0666 冒充守护绕过门禁。
+                if let permErr = self.validateSocketPermission(socketPath) {
+                    ipcLog.error("udsCall perm reject: path=\(socketPath, privacy: .public) method=\(method, privacy: .public) reason=\(permErr, privacy: .public)")
+                    continuation.resume(throwing: IPCError.disconnected)
+                    return
+                }
                 var tv = timeval(tv_sec: timeoutSecs, tv_usec: 0)
                 _ = setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
                 var addr = sockaddr_un()

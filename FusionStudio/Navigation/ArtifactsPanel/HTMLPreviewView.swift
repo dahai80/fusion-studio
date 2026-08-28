@@ -8,13 +8,22 @@ struct HTMLPreviewView: NSViewRepresentable {
     let htmlContent: String
 
     func makeNSView(context: Context) -> WKWebView {
-        let webView = WKWebView(frame: .zero)
+        // P1 审计0827: htmlContent 来源含 LLM 产物 (ArtifactCreateChatSheet generatedContent),
+        // 默认 WKWebView 配置 allowFileAccessFromFileURLs=true, XSS 经 file:// 触达原生层。
+        // 复用 DesignPreviewView 沙箱: 关 file:// 访问 + 剥 script/事件/JS-URL (sanitizeHtml)。
+        let config = WKWebViewConfiguration()
+        config.preferences.setValue(false, forKey: "allowFileAccessFromFileURLs")
+        let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
+        webView.setValue(false, forKey: "drawsTransparentBackground")
+        artifactsLog.info("HTMLPreviewView: WKWebView created (fileAccess closed, HTML sanitized)")
         return webView
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
-        webView.loadHTMLString(htmlContent, baseURL: nil)
+        // P1 审计0827: 渲染前 sanitize 剥不可信脚本/事件处理器/JS-URL, 防 XSS 注入面。
+        let sanitized = DesignBridge.sanitizeHtml(htmlContent)
+        webView.loadHTMLString(sanitized, baseURL: nil)
     }
 
     func makeCoordinator() -> Coordinator { Coordinator() }
