@@ -196,8 +196,11 @@ class IPCClient: ObservableObject {
 
     // MARK: - JSON-RPC 调用
 
-    /// 原子自增请求 id。call() 跑在串行 queue, udsCall() 跑在并发 global queue, 共用同一计数器必须加锁, 否则并发 udsCall 同毫秒时间戳撞 id (PERF-2)
-    private func nextRequestId() -> Int {
+    /// 原子自增请求 id。call() 跑在串行 queue, udsCall() 跑在并发 global queue, 共用同一计数器必须加锁, 否则并发 udsCall 同毫秒时间戳撞 id (PERF-2)。
+    /// 审计0827 §3.9.5 (P2): 原各 raw-socket 站 (spaceChatStreamEvents/multiNodeCall/artifactsCall) 用
+    /// Int(Date().timeIntervalSince1970*1000) 生成 id, 同毫秒并发撞 id → 响应错配跨空间泄漏。
+    /// 改统一经此原子计数器, 故由 private 升 internal 供跨文件 extension 共用。
+    func nextRequestId() -> Int {
         lock.lock()
         requestId += 1
         let id = requestId

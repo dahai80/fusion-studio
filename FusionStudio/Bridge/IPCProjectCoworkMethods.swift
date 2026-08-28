@@ -772,7 +772,7 @@ extension IPCClient {
                 }
                 var request: [String: Any] = [
                     "jsonrpc": "2.0",
-                    "id": Int(Date().timeIntervalSince1970 * 1000),
+                    "id": self.nextRequestId(),
                     "method": "desk.space.chat.stream",
                     "params": p,
                 ]
@@ -1125,7 +1125,7 @@ extension IPCClient {
         }
         var request: [String: Any] = [
             "jsonrpc": "2.0",
-            "id": Int(Date().timeIntervalSince1970 * 1000),
+            "id": self.nextRequestId(),
             "method": method,
         ]
         if !params.isEmpty { request["params"] = params }

@@ -176,7 +176,10 @@ class DocBridge: ObservableObject {
     private func handleError(_ error: Error, context: String) {
         docBridgeLog.error("[\(context)] \(error.localizedDescription)")
         DispatchQueue.main.async {
-            self.lastError = "\(context): \(error.localizedDescription)"
+            // 审计0827 §3.9.4 (P2): lastError 旧裸 "\(context): \(error.localizedDescription)" 暴露底层错
+            // (URL/路径/端口) 到 UI。context 是固定标签 (health/books 等) 非用户数据可留; error 经
+            // BridgeError.sanitize 脱敏取 i18n 用户消息。日志保留 raw 供定位 (本地 os_log)。
+            self.lastError = "\(context): \(BridgeError.sanitize(error))"
             if context == "health" { self.isConnected = false }
         }
     }

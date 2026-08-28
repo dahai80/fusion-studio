@@ -876,7 +876,9 @@ class ChatSessionStore: ObservableObject {
             }
         } catch {
             chatStoreLog.error("sendMessage inferStream FAILED: \(error.localizedDescription, privacy: .public) type=\(String(describing: type(of: error)), privacy: .public)")
-            let errorDetail = (error as? BridgeError)?.detail ?? "\(type(of: error)): \(error.localizedDescription)"
+            // 审计0827 §3.9.3 (P2): errorDetail 旧裸 \(type(of:error)): \(error.localizedDescription) 暴露底层错 (路径/端口/堆栈) 到日志。
+            // 改 BridgeError.sanitize 统一脱敏出口, 仅 i18n 用户消息 + type 供定位, 不泄 detail。
+            let errorDetail = BridgeError.sanitize(error)
             let friendlyMsg = (error as? BridgeError)?.userMessage ?? "AI 服务暂时不可用，请稍后重试。"
             chatStoreLog.error("sendMessage errorDetail: \(errorDetail, privacy: .public)")
             let errMsg = ChatMessageData(
