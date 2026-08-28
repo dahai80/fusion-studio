@@ -61,6 +61,10 @@ struct FusionStudioApp: App {
     // 守护缺席 = isDaemonReady=false 优雅降级 (fail-open 普通工作流非全瘫), 已装 fail-closed 高危拦截。
     // L3 走 GuardChallengeModal 人机确认, L4 直接 guardBlocked 无弹窗。TCC 审计上报 fire-and-forget。
     @StateObject private var guardBridge = GuardBridge()
+    // #346: fusion-event 感知层守护 (UDS /tmp/fusion-event.sock, NDJSON 长连接)。
+    // 守护缺席 = isDaemonReady=false 优雅降级 (fail-open), FileWatcher 兜底 live-reload。
+    // event.notification push → SystemEvent, event.heartbeat → event.pong, 断线 5s 重连。
+    @StateObject private var eventBridge = EventBridge()
 
     init() {
         // F-A5: AppState 持 4 域子对象同一实例 (init 传入), 保单例一致。
@@ -112,6 +116,7 @@ struct FusionStudioApp: App {
                 .environmentObject(trainerBridge)
                 .environmentObject(speechBridge)
                 .environmentObject(guardBridge)
+                .environmentObject(eventBridge)
                 .studioThemed()
                 .onAppear {
                     // 启动时检测并按需自动启动上游关键服务（mlx -> agent-studio -> artifacts-engine）。
@@ -146,6 +151,15 @@ struct FusionStudioApp: App {
                     Task { await guardBridge.checkDaemonStatus() }
                     agentBridge.setGuardBridge(guardBridge)
                     GuardBridge.shared = guardBridge
+                    // #346: 注入 IPCClient + 探 fusion-event 守护状态 + 启动长连接流 + EventBridge.shared。
+                    // 守护缺席 = isDaemonReady=false (fail-open), FileWatcher 兜底。规则管理走 udsCall 短连接。
+                    eventBridge.setIPCClient(ipcClient)
+                    Task {
+                        await eventBridge.checkDaemonStatus()
+                        await eventBridge.listRules()
+                        eventBridge.startStream()
+                    }
+                    EventBridge.shared = eventBridge
                     ArtifactSidebarCache.shared.configure(ipcClient: ipcClient)
                     Task {
                         await performStartupHealthCheck()
@@ -201,6 +215,9 @@ struct FusionStudioApp: App {
                     } else if phase == .active {
                         multiNodeEngine.startPolling()
                         agentBridge.startMlxStatusPolling()
+                        // #346: 感知层长连接在唤醒后恢复 (后台/休眠可能断 UDS), 守护缺席 fail-open 不锁死。
+                        eventBridge.startStream()
+                        Task { await eventBridge.checkDaemonStatus() }
                     }
                 }
         }

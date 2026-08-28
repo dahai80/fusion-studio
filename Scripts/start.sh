@@ -43,6 +43,7 @@ SERVICES=(
     "cowork-desk|CoWork Desk|~/fusion/fusion-cowork|socket|/tmp/fusion-cowork.sock|10|0"
     "fusion-science|Fusion Science|~/fusion/fusion-science/start.sh|http|http://127.0.0.1:11462/api/v1/health|11|0"
     "fusion-health|Fusion Health|~/fusion/fusion-health/start.sh|http|http://127.0.0.1:11456/api/v1/health|12|0"
+    "fusion-event|Fusion Event|~/fusion/fusion-event/start.sh|socket|/tmp/fusion-event.sock|13|0"
 )
 
 expand_path() {

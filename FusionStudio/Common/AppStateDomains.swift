@@ -30,6 +30,8 @@ final class UIPanelState: ObservableObject {
     @Published var showWelcome = false
     @Published var showSettings = false
     @Published var showEnvironmentHealth = false
+    // #346: fusion-event 事件感知面板 (EventStreamView sheet)。
+    @Published var showEventStream = false
     @Published var isInspectorVisible: Bool = false
     @Published var inspectorContext: InspectorContext = .none
     @Published var isSidebarCollapsed: Bool = true
