@@ -34,8 +34,14 @@ class MultiNodeEngine: ObservableObject {
     var duplicateExecutionDetected: Bool { !duplicateExecutionTaskIds.isEmpty }
 
     // F-R6/F-R10: 连续失败计数 + 降级阈值。单次网络抖动不计 disconnected, 连续 N 轮失败才置离线。
-    private var consecutiveFailures: Int = 0
+    // 审计0827 §3.5 (P2): 4 路 poll 共享单一 consecutiveFailures, 交叉复位致降级失真
+    // (node_loads 偶发成功复位 → 其余 3 路持续失败被掩盖, 计数永不达 3)。
+    // 改 per-context 计数, 任一路达阈值即降级; backoff 取最差路值避免一路快一路慢。
+    private var consecutiveFailuresByContext: [String: Int] = [:]
     private let maxConsecutiveFailures: Int = 3
+    private var worstConsecutiveFailures: Int {
+        consecutiveFailuresByContext.values.max() ?? 0
+    }
     // F-R10: 单飞保护。慢响应时 Timer 下一 tick 重复 fire 同一 fetch 致请求风暴, in-flight 跳过。
     private var inflightFetches: Set<String> = []
     private let inflightLock = NSLock()
@@ -133,10 +139,11 @@ class MultiNodeEngine: ObservableObject {
 
     private func reschedulePoll(interval: TimeInterval, label: String, action: @escaping () -> Void, runOnce: @escaping () -> Void) {
         // F-R10: delay = base × 2^min(consecutiveFailures,5), 封顶 60s。consecutiveFailures=0 复位 base。
-        let backoff = TimeInterval(min(consecutiveFailures, 5))
+        // 审计0827 §3.5: 取 worstConsecutiveFailures (4 路最差值) 避免单路复位让全局 backoff 立归 base。
+        let backoff = TimeInterval(min(worstConsecutiveFailures, 5))
         let delay = min(interval * pow(2.0, backoff), 60.0)
         if delay > interval {
-            engineLog.info("Poll backoff \(label): \(interval)s -> \(Int(delay))s (failures=\(self.consecutiveFailures))")
+            engineLog.info("Poll backoff \(label): \(interval)s -> \(Int(delay))s (failures=\(self.worstConsecutiveFailures))")
         }
         let timer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { _ in
             runOnce()
@@ -149,11 +156,13 @@ class MultiNodeEngine: ObservableObject {
 
     // MARK: - GET endpoints
 
-    // F-R6: 成功路径重置失败状态。任一 fetch 成功即清 stale + 连续失败计数, 恢复 online。
-    private func resetFailureState() {
+    // F-R6: 成功路径重置失败状态。fetch 成功即清该路 stale + 该路连续失败计数, 恢复 online。
+    // 审计0827 §3.5: 按 context 复位, 非全局清零 — 避免交叉复位掩盖其余持续失败路径。
+    private func resetFailureState(context: String) {
         nodesStale = false
-        consecutiveFailures = 0
-        isConnected = true
+        consecutiveFailuresByContext[context] = 0
+        // 任一路成功即认为集群可达; 离线态由 handleError 按各路独立判定。
+        if !isConnected { isConnected = true }
     }
 
     func fetchClusterStats() {
@@ -162,7 +171,7 @@ class MultiNodeEngine: ObservableObject {
             case .success(let resp):
                 DispatchQueue.main.async {
                     self?.clusterStats = ClusterStats.from(resp)
-                    self?.resetFailureState()
+                    self?.resetFailureState(context: "cluster_stats")
                     self?.lastError = nil
                 }
             case .failure(let err):
@@ -177,7 +186,7 @@ class MultiNodeEngine: ObservableObject {
             case .success(let resp):
                 DispatchQueue.main.async {
                     self?.nodes = resp.nodes
-                    self?.resetFailureState()
+                    self?.resetFailureState(context: "nodes")
                     // F-A11: 检测多 master 脑裂, 日志告警 (UI 侧 ClusterTopologyView 展示 banner)。
                     let masterCount = resp.nodes.filter { $0.isMaster }.count
                     if masterCount > 1 {
@@ -207,7 +216,7 @@ class MultiNodeEngine: ObservableObject {
             case .success(let resp):
                 DispatchQueue.main.async {
                     self?.tasks = resp.tasks
-                    self?.resetFailureState()
+                    self?.resetFailureState(context: "tasks")
                     self?.detectDuplicateExecution()
                 }
             case .failure(let err):
@@ -312,6 +321,8 @@ class MultiNodeEngine: ObservableObject {
                 DispatchQueue.main.async {
                     self?.isConnected = true
                     self?.lastError = nil
+                    // 审计0827 §3.5: health 路 success 复位其 context 失败计数。
+                    self?.consecutiveFailuresByContext["health"] = 0
                 }
             case .failure(let err):
                 self?.handleError(err, context: "health")
@@ -638,7 +649,21 @@ class MultiNodeEngine: ObservableObject {
     }
 
     func agentKVWarm(modelName: String, prompts: [String], completion: @escaping (Result<Int, Error>) -> Void) {
+        // 审计0827 §3.6 (P2): 无 (model) 去重, 并发 warm (多 agent / 重复点按钮) → 重复 POST
+        // → MLX 后端同模型重复分配 KV cache 显存翻倍, 8-16 节点触发 GPU OOM。
+        // 按 model 名单飞: in-flight 期间同 model 跳过, 回调完成才释放 (非 defer — resume 异步)。
+        let inflightKey = "kv_warm:\(modelName)"
+        inflightLock.lock()
+        if inflightFetches.contains(inflightKey) {
+            inflightLock.unlock()
+            engineLog.warning("agentKVWarm skip (in-flight): \(modelName)")
+            completion(.failure(EngineError.duplicateRequest))
+            return
+        }
+        inflightFetches.insert(inflightKey)
+        inflightLock.unlock()
         guard let url = URL(string: "\(agentBaseURL)/api/kv/warm") else {
+            self.releaseInflight(inflightKey)
             completion(.failure(EngineError.invalidURL)); return
         }
         var req = URLRequest(url: url)
@@ -647,7 +672,8 @@ class MultiNodeEngine: ObservableObject {
         authHeaders(&req)
         let body: [String: Any] = ["model_name": modelName, "prompts": prompts]
         req.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        session.dataTask(with: req) { data, _, error in
+        session.dataTask(with: req) { [weak self] data, _, error in
+            self?.releaseInflight(inflightKey)
             if let err = error { completion(.failure(err)); return }
             guard let data = data else { completion(.failure(EngineError.noData)); return }
             do {
@@ -661,6 +687,12 @@ class MultiNodeEngine: ObservableObject {
                 completion(.failure(error))
             }
         }.resume()
+    }
+
+    private func releaseInflight(_ key: String) {
+        inflightLock.lock()
+        inflightFetches.remove(key)
+        inflightLock.unlock()
     }
 
     // MARK: - Generic HTTP helpers
@@ -733,10 +765,13 @@ class MultiNodeEngine: ObservableObject {
             // F-R6: 失败不清空 nodes (保留旧数据), 仅置 stale 标志。UI 据 stale 显示"数据可能过期"。
             self.nodesStale = true
             // F-R6/F-R10: 连续失败计数。单次抖动不计 disconnected, 连续 N 轮失败才降级 isConnected。
-            self.consecutiveFailures += 1
-            if self.consecutiveFailures >= self.maxConsecutiveFailures {
+            // 审计0827 §3.5: 按 context 独立计数, 单路失败达阈值即降级 (非全局累计),
+            // 避免交叉复位让持续失败路径永不到阈值。
+            let prev = self.consecutiveFailuresByContext[context, default: 0]
+            self.consecutiveFailuresByContext[context] = prev + 1
+            if (prev + 1) >= self.maxConsecutiveFailures {
                 self.isConnected = false
-                engineLog.warning("MultiNode disconnected after \(self.consecutiveFailures) consecutive failures")
+                engineLog.warning("MultiNode disconnected: context=\(context) failures=\(prev + 1)")
             }
         }
     }
@@ -760,6 +795,7 @@ enum EngineError: Error, LocalizedError {
     case noData
     case splitBrain
     case retryNoHealthyNode
+    case duplicateRequest
 
     var errorDescription: String? {
         switch self {
@@ -767,6 +803,7 @@ enum EngineError: Error, LocalizedError {
         case .noData: return I18nManager.shared.t(.mn_err_noData)
         case .splitBrain: return I18nManager.shared.t(.mn_err_splitBrain)
         case .retryNoHealthyNode: return I18nManager.shared.t(.mn_err_retryNoHealthyNode)
+        case .duplicateRequest: return I18nManager.shared.t(.mn_err_duplicateRequest)
         }
     }
 }

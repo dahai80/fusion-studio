@@ -392,7 +392,8 @@ class ChatSessionStore: ObservableObject {
 
     // MARK: - Local persistence
 
-    private func ensureStoreDir() {
+    // 审计0827 §3.2 (P1): nonisolated — storeDir 是 let, createDirectory 无状态依赖, 可后台跑。
+    nonisolated private func ensureStoreDir() {
         try? FileManager.default.createDirectory(atPath: storeDir, withIntermediateDirectories: true)
     }
 
@@ -408,10 +409,16 @@ class ChatSessionStore: ObservableObject {
             return
         }
         // 审计0827 #22: try? 吞写盘错, 用户消息看似发送但未持久化, 崩溃后丢失。改 do/catch 记 error。
-        do {
-            try data.write(to: URL(fileURLWithPath: sessionPath(session.id)), options: .atomic)
-        } catch {
-            chatStoreLog.error("saveSessionLocal failed id=\(session.id, privacy: .public) error=\(error.localizedDescription, privacy: .public)")
+        // 审计0827 §3.2 (P1): data.write 同步 I/O 在 @MainActor 阻塞主线程, 磁盘忙时 UI 卡顿。
+        // sessionToDict 已 capture 值类型 + data 是值, 后台线程写盘安全。派 cooperative queue。
+        let path = sessionPath(session.id)
+        let sid = session.id
+        DispatchQueue.global(qos: .utility).async {
+            do {
+                try data.write(to: URL(fileURLWithPath: path), options: .atomic)
+            } catch {
+                chatStoreLog.error("saveSessionLocal failed id=\(sid, privacy: .public) error=\(error.localizedDescription, privacy: .public)")
+            }
         }
     }
 
@@ -424,7 +431,9 @@ class ChatSessionStore: ObservableObject {
         }
     }
 
-    private func loadSessionsLocal() -> [ChatSessionData] {
+    // 审计0827 §3.2 (P1): 文件 I/O (contentsOfDirectory + Data(contentsOf:)) 在 @MainActor 阻塞主线程。
+    // 改 nonisolated async — 跑 cooperative 线程池不阻塞 MainActor; parseSessionData/parseMessageData 亦 nonisolated。
+    nonisolated private func loadSessionsLocal() async -> [ChatSessionData] {
         ensureStoreDir()
         let fm = FileManager.default
         let dir = storeDir
@@ -515,7 +524,8 @@ class ChatSessionStore: ObservableObject {
         defer { isLoading = false }
         do {
             guard let ipc = ipc else {
-                sessions = loadSessionsLocal()
+                // 审计0827 §3.2: loadSessionsLocal nonisolated, await 后台读盘不阻塞 MainActor。
+                sessions = await loadSessionsLocal()
                 capSessions()
                 chatStoreLog.info("No IPC, loaded \(self.sessions.count) local sessions")
                 return
@@ -528,7 +538,8 @@ class ChatSessionStore: ObservableObject {
             }
         } catch {
             chatStoreLog.warning("chat.list IPC failed (\(error.localizedDescription)), falling back to local")
-            sessions = loadSessionsLocal()
+            // 审计0827 §3.2: 后台读盘 fallback 不阻塞 MainActor。
+            sessions = await loadSessionsLocal()
             capSessions()
         }
     }
@@ -1289,7 +1300,8 @@ class ChatSessionStore: ObservableObject {
 
     }
 
-    private func parseSessionData(_ dict: [String: Any]) -> ChatSessionData? {
+    // 审计0827 §3.2 (P1): nonisolated — 纯解析无 self 状态, 供 loadSessionsLocal 后台调用。
+    nonisolated private func parseSessionData(_ dict: [String: Any]) -> ChatSessionData? {
         guard let id = dict["id"] as? String else { return nil }
         let title = dict["title"] as? String ?? ""
         let mode = dict["mode"] as? String ?? "simple"
@@ -1325,7 +1337,8 @@ class ChatSessionStore: ObservableObject {
         )
     }
 
-    private func parseMessageData(_ dict: [String: Any]) -> ChatMessageData? {
+    // 审计0827 §3.2 (P1): nonisolated — 纯解析, 供 parseSessionData 后台调用。
+    nonisolated private func parseMessageData(_ dict: [String: Any]) -> ChatMessageData? {
         guard let id = dict["id"] as? String,
               let role = dict["role"] as? String else { return nil }
         var attachments: [AttachmentData] = []

@@ -9,6 +9,8 @@ enum IPCError: Error, LocalizedError {
     case invalidRequest
     case invalidResponse
     case pendingFull
+    // 审计0827 §2.6 (P1): 后端连续超时达阈值开路熔断, 新 call fast-fail 不堆 pending。
+    case circuitOpen
     case rpcError(code: Int, message: String)
 
     var errorDescription: String? {
@@ -18,6 +20,7 @@ enum IPCError: Error, LocalizedError {
         case .invalidRequest:    return "无效的请求"
         case .invalidResponse:   return "无效的响应"
         case .pendingFull:       return "IPC 请求队列已满, 请稍后重试"
+        case .circuitOpen:       return "IPC 后端熔断中, 请稍后重试"
         case .rpcError(_, let m): return "RPC 错误: \(m)"
         }
     }
