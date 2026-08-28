@@ -94,6 +94,13 @@ final class EventBridge: ObservableObject {
     private var streamSock: Int32 = -1
     private var reconnectTask: Task<Void, Never>?
     private var nextReqId: Int = 1
+    // 审计0827 P0-3: 重连退避计数。连接成功清零, 失败递增 → 指数退避 (5s→10s→20s... cap 60s) + jitter,
+    // 防零抖动惊群 + 长时间守护缺席时的 fd/Task 堆积。
+    private var reconnectAttempt: Int = 0
+    // readLoop SO_RCVTIMEO: 非 0 使 read 周期性返回 EAGAIN/EWOULDBLOCK, 给 Task.isCancelled 检查点;
+    // 旧 {0,0} 阻塞读 → Task.cancel 无法中断 syscall → stopStream 不生效 → fd/Task 泄漏 (审计0827 P0-3)。
+    // 15s 对齐守护心跳间隔 (event.heartbeat 15s), 期间必有一次唤醒。
+    private static let readTimeoutSec: Int = 15
 
     init() {
         self.socketPath = FusionConfig.shared.expandedUpstreamPath(
@@ -159,7 +166,8 @@ final class EventBridge: ObservableObject {
             scheduleReconnect()
             return
         }
-        var tv = timeval(tv_sec: 0, tv_usec: 0)
+        // P0-3: 非 0 SO_RCVTIMEO 使 readLoop 周期性唤醒, 可被 Task.cancel 中断 (旧 {0,0} 阻塞死)。
+        var tv = timeval(tv_sec: Self.readTimeoutSec, tv_usec: 0)
         _ = setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
         var addr = sockaddr_un()
         addr.sun_family = sa_family_t(AF_UNIX)
@@ -203,7 +211,11 @@ final class EventBridge: ObservableObject {
             _ = Darwin.write(sock, ptr.baseAddress, writeBuf.count)
         }
         eventBridgeLog.info("event stream event.subscribe sent")
-        await MainActor.run { self.isDaemonReady = true }
+        await MainActor.run {
+            self.isDaemonReady = true
+            // 连接成功 → 重置退避计数, 下次断线从 5s 起算 (审计0827 P0-3)。
+            self.reconnectAttempt = 0
+        }
 
         var lineBuf = Data()
         var readBuf = [UInt8](repeating: 0, count: 16384)
@@ -218,7 +230,18 @@ final class EventBridge: ObservableObject {
                           let json = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any] else { continue }
                     handleLine(json, sock: sock)
                 }
+            } else if n == 0 {
+                // EOF = 对端关闭, 退出重连。
+                break
             } else {
+                // n < 0: SO_RCVTIMEO 超时返 EAGAIN/EWOULDBLOCK → 非真断, 回到 while 顶查 Task.isCancelled 后续读;
+                // 其他 errno (EINTR 等) 同样续读。真错误才 break。旧实现无超时, n<0 恒 break →
+                // 设非 0 timeout 后会误把每次超时当断线 → 无限重连风暴, 此处区分修复 (审计0827 P0-3)。
+                let e = errno
+                if e == EAGAIN || e == EWOULDBLOCK || e == EINTR {
+                    continue
+                }
+                eventBridgeLog.warning("event stream read errno=\(e) (\(String(cString: strerror(e)), privacy: .public))")
                 break
             }
         }
@@ -273,8 +296,15 @@ final class EventBridge: ObservableObject {
 
     private func scheduleReconnect() {
         reconnectTask?.cancel()
+        reconnectAttempt += 1
+        // 审计0827 P0-3: 指数退避 (5s base ×2^attempt) cap 60s + 0~1s jitter, 防零抖动惊群 + 守护长缺席时
+        // fd/Task 堆积。Math.random 不可用, 用 attempt 派生确定性偏移 (非安全随机, 仅抖动够用)。
+        let baseSec = min(5 * (1 << min(reconnectAttempt - 1, 4)), 60)
+        let jitterMs = (reconnectAttempt * 137) % 1000
+        let delayNs = UInt64(baseSec) * 1_000_000_000 + UInt64(jitterMs) * 1_000_000
+        eventBridgeLog.info("event stream reconnect in \(baseSec)s+\(jitterMs)ms (attempt #\(self.reconnectAttempt))")
         reconnectTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            try? await Task.sleep(nanoseconds: delayNs)
             guard let self = self, !Task.isCancelled else { return }
             eventBridgeLog.info("event stream reconnecting...")
             self.streamTask = nil

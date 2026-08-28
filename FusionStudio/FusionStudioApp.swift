@@ -212,6 +212,9 @@ struct FusionStudioApp: App {
                         ScreenCapture.shared.cleanup()
                         multiNodeEngine.stopPolling()
                         agentBridge.stopMlxStatusPolling()
+                        // 审计0827 P0-3: 后台停长连接流, 释放 fd + 取消 readLoop Task,
+                        // 防 fd/Task 泄漏 (旧: 后台不断, 退出亦无调用 stopStream)。
+                        eventBridge.stopStream()
                     } else if phase == .active {
                         multiNodeEngine.startPolling()
                         agentBridge.startMlxStatusPolling()

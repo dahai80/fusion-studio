@@ -246,6 +246,11 @@ struct CustomizePanel: View {
     private func saveApiKey(_ key: String) {
         let trimmed = key.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
+        // 审计0827 P0-4: 旧实现明文写 ~/.fusion-mlx/settings.json 默认 0644, 且清空 Keychain
+        // (config.mlxApiKey="") → studio 端读 Keychain 落空, 只能退读明文文件 = HIGH-2 漏主 key。
+        // 修复: (1) 主落 Keychain (studio 读源 = 优先级 1, 不再依赖明文文件);
+        //       (2) 仍写 settings.json 供 fusion-mlx 守护读 (上游 _resolve_api_key 契约),
+        //           但收紧权限 0600 (owner-only), 杜绝 group/other 读明文密钥。
         let settingsPath = NSHomeDirectory() + "/.fusion-mlx/settings.json"
         let url = URL(fileURLWithPath: settingsPath)
         do {
@@ -259,8 +264,12 @@ struct CustomizePanel: View {
             settings["auth"] = auth
             let data = try JSONSerialization.data(withJSONObject: settings, options: .prettyPrinted)
             try data.write(to: url, options: .atomic)
-            config.mlxApiKey = ""
-            customizeLog.info("API key saved to settings.json, config refreshed")
+            // 收紧明文文件权限: owner-only 0600 (默认 .atomic 落 0644, 泄 group/other)。
+            try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: settingsPath)
+            // 主落 Keychain: studio 读源走 FusionConfig.mlxResolvedApiKey 优先级 1 (Keychain),
+            // 明文文件仅作 fusion-mlx 守护的回退读源, 权限已锁。
+            config.mlxApiKey = trimmed
+            customizeLog.info("API key saved: Keychain (primary) + settings.json 0600 (upstream daemon), config refreshed")
         } catch {
             customizeLog.error("Failed to save API key: \(error.localizedDescription)")
         }
