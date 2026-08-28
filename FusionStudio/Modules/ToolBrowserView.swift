@@ -337,7 +337,7 @@ struct ToolBrowserView: View {
             }
             logger.info("Loaded \(tools.count) tools")
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = BridgeError.sanitize(error)
             logger.error("fetchTools failed: \(error.localizedDescription)")
         }
     }
@@ -349,7 +349,7 @@ struct ToolBrowserView: View {
             await loadTools()
             selectedTool = nil
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = BridgeError.sanitize(error)
             logger.error("toolDynamicUnregister failed: \(error.localizedDescription)")
         }
     }
@@ -371,7 +371,7 @@ struct ToolBrowserView: View {
             regName = ""; regDesc = ""; regParams = "{}"; regCode = ""
             await loadTools()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = BridgeError.sanitize(error)
             logger.error("toolDynamicRegister failed: \(error.localizedDescription)")
         }
     }

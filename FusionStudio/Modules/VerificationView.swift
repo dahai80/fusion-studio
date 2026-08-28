@@ -122,7 +122,7 @@ struct VerificationView: View {
                 result = res
                 logger.info("Verification complete: passed=\(res["passed"] as? Bool ?? false)")
             } catch {
-                errorMsg = error.localizedDescription
+                errorMsg = BridgeError.sanitize(error)
                 logger.error("verifyVerify failed: \(error.localizedDescription)")
             }
             isVerifying = false

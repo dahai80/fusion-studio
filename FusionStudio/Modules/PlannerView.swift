@@ -103,7 +103,7 @@ struct PlannerView: View {
         do {
             _ = try await bridge.fetchPlans(status: selectedStatus)
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = BridgeError.sanitize(error)
             logger.error("loadPlans: \(error)")
         }
         isLoading = false

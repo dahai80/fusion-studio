@@ -229,7 +229,7 @@ private struct UserAdminPanel: View {
         bridge.fetchUsers { result in
             DispatchQueue.main.async {
                 loading = false
-                if case .failure(let err) = result { error = err.localizedDescription }
+                if case .failure(let err) = result { error = BridgeError.sanitize(err) }
             }
         }
     }
@@ -562,7 +562,7 @@ private struct MetadataPanel: View {
                 loading = false
                 switch res {
                 case .success(let list): entries = list
-                case .failure(let err): error = err.localizedDescription
+                case .failure(let err): error = BridgeError.sanitize(err)
                 }
             }
         }
@@ -711,7 +711,7 @@ private struct ExportPanel: View {
         bridge.exportBook(bookId: bookId, format: format) { res in
             DispatchQueue.main.async {
                 loading = false
-                if case .failure(let err) = res { error = err.localizedDescription }
+                if case .failure(let err) = res { error = BridgeError.sanitize(err) }
             }
         }
     }
@@ -846,7 +846,7 @@ private struct GraphPanel: View {
                 loading = false
                 switch res {
                 case .success(let g): graph = g
-                case .failure(let e): error = e.localizedDescription
+                case .failure(let e): error = BridgeError.sanitize(e)
                 }
             }
         }
@@ -859,7 +859,7 @@ private struct GraphPanel: View {
                 loading = false
                 switch res {
                 case .success(let g): graph = g
-                case .failure(let e): error = e.localizedDescription
+                case .failure(let e): error = BridgeError.sanitize(e)
                 }
             }
         }
@@ -873,7 +873,7 @@ private struct GraphPanel: View {
                 switch res {
                 case .success(let clusters):
                     clusterResult = clusters.map { (k, v) in I18nManager.shared.tf(.doc_admin_fmt_cluster_line, k, v.count) }.joined(separator: "\n")
-                case .failure(let e): error = e.localizedDescription
+                case .failure(let e): error = BridgeError.sanitize(e)
                 }
             }
         }

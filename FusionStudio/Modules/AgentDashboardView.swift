@@ -308,7 +308,7 @@ struct AgentDashboardView: View {
             )
             recentEvents = Array(events.sorted { $0.timestamp > $1.timestamp }.prefix(50))
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = BridgeError.sanitize(error)
             logger.error("Dashboard load failed: \(error.localizedDescription)")
         }
         isLoading = false

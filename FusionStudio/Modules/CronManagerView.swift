@@ -228,7 +228,7 @@ struct CronManagerView: View {
                 }
             } catch {
                 await MainActor.run {
-                    self.errorMessage = error.localizedDescription
+                    self.errorMessage = BridgeError.sanitize(error)
                     self.isLoading = false
                 }
             }
@@ -267,7 +267,7 @@ struct CronManagerView: View {
                     loadData()
                 }
             } catch {
-                await MainActor.run { errorMessage = error.localizedDescription }
+                await MainActor.run { errorMessage = BridgeError.sanitize(error) }
             }
         }
     }
@@ -281,7 +281,7 @@ struct CronManagerView: View {
                     loadData()
                 }
             } catch {
-                await MainActor.run { errorMessage = error.localizedDescription }
+                await MainActor.run { errorMessage = BridgeError.sanitize(error) }
             }
         }
     }

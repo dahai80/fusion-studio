@@ -124,7 +124,7 @@ final class GuardBridge: ObservableObject {
         } catch {
             await MainActor.run {
                 self.isDaemonReady = false
-                self.lastError = error.localizedDescription
+                self.lastError = BridgeError.sanitize(error)
             }
             guardBridgeLog.warning("guard.ping failed (daemon down?): \(error.localizedDescription, privacy: .public)")
         }

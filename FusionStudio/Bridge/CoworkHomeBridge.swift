@@ -137,7 +137,7 @@ final class CoworkHomeBridge: ObservableObject {
             coworkHomeLog.error("setScopedFolder rejected: \(err)")
             return false
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
             coworkHomeLog.error("setScopedFolder failed: \(error.localizedDescription)")
             return false
         }
@@ -162,7 +162,7 @@ final class CoworkHomeBridge: ObservableObject {
             startPolling()
             return true
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
             coworkHomeLog.error("submitWorkflow failed: \(error.localizedDescription)")
             return false
         }

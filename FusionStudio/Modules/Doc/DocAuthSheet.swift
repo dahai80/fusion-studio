@@ -107,7 +107,7 @@ struct DocAuthSheet: View {
                     docAuthLog.info("auth success: \(resp.message ?? "ok")")
                     if bridge.isAuthenticated { dismiss() }
                 case .failure(let err):
-                    errorMessage = err.localizedDescription
+                    errorMessage = BridgeError.sanitize(err)
                     docAuthLog.error("auth failed: \(err.localizedDescription)")
                 }
             }

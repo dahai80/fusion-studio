@@ -134,7 +134,7 @@ class DAGViewModel: ObservableObject {
                 logger.info("No graphs available, empty canvas")
             }
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = BridgeError.sanitize(error)
             logger.error("loadFromBridge: \(error.localizedDescription)")
         }
     }
@@ -155,7 +155,7 @@ class DAGViewModel: ObservableObject {
                 if let created = bridge.agentState.graphs.first { currentGraphId = created.id }
                 logger.info("Created new graph via bridge")
             } catch {
-                errorMessage = error.localizedDescription
+                errorMessage = BridgeError.sanitize(error)
                 logger.error("saveToBridge create: \(error.localizedDescription)")
             }
             return
@@ -172,7 +172,7 @@ class DAGViewModel: ObservableObject {
             _ = try await bridge.updateGraph(id: graphId, name: currentGraphName, nodes: nodes, edges: edges)
             logger.info("Saved graph \(graphId) via bridge")
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = BridgeError.sanitize(error)
             logger.error("saveToBridge update: \(error.localizedDescription)")
         }
     }
@@ -203,7 +203,7 @@ class DAGViewModel: ObservableObject {
                 if layout.nodes[i].state == .running { layout.nodes[i].state = .error }
             }
             isSimulating = false
-            errorMessage = error.localizedDescription
+            errorMessage = BridgeError.sanitize(error)
             logger.error("executeGraph: \(error.localizedDescription)")
         }
     }

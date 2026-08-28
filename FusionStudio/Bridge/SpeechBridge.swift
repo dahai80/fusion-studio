@@ -118,7 +118,7 @@ final class SpeechBridge: ObservableObject {
         } catch {
             await MainActor.run {
                 self.isDaemonReady = false
-                self.lastError = error.localizedDescription
+                self.lastError = BridgeError.sanitize(error)
             }
             speechBridgeLog.warning("speech.status failed (daemon down?): \(error.localizedDescription, privacy: .public)")
         }
