@@ -194,7 +194,7 @@ class RAGAPIClient: ObservableObject {
             await MainActor.run { self.knowledgeBases = bases }
             return bases
         } catch {
-            await MainActor.run { self.lastError = error.localizedDescription }
+            await MainActor.run { self.lastError = BridgeError.sanitize(error) }
             logger.error("listBases failed: \(error.localizedDescription)")
             return []
         }
@@ -215,7 +215,7 @@ class RAGAPIClient: ObservableObject {
             guard let id = result["id"] as? String else { return nil }
             return KBInfo(id: id, name: name, description: description, chunkStrategy: chunkStrategy, embeddingModel: embeddingModel, fileCount: 0, chunkCount: 0, createdAt: Date().timeIntervalSince1970)
         } catch {
-            await MainActor.run { self.lastError = error.localizedDescription }
+            await MainActor.run { self.lastError = BridgeError.sanitize(error) }
             logger.error("createBase failed: \(error.localizedDescription)")
             return nil
         }
@@ -226,7 +226,7 @@ class RAGAPIClient: ObservableObject {
             let _ = try await request("/kb/bases/\(kbId)", method: "DELETE")
             return true
         } catch {
-            await MainActor.run { self.lastError = error.localizedDescription }
+            await MainActor.run { self.lastError = BridgeError.sanitize(error) }
             logger.error("deleteBase failed: \(error.localizedDescription)")
             return false
         }
@@ -301,7 +301,7 @@ class RAGAPIClient: ObservableObject {
                 "contextualize": contextualize,
             ])
         } catch {
-            await MainActor.run { self.lastError = error.localizedDescription }
+            await MainActor.run { self.lastError = BridgeError.sanitize(error) }
             logger.error("uploadDocument failed: \(error.localizedDescription)")
             return nil
         }
@@ -314,7 +314,7 @@ class RAGAPIClient: ObservableObject {
                 "contextualize": contextualize,
             ])
         } catch {
-            await MainActor.run { self.lastError = error.localizedDescription }
+            await MainActor.run { self.lastError = BridgeError.sanitize(error) }
             logger.error("batchUpload failed: \(error.localizedDescription)")
             return nil
         }
@@ -334,7 +334,7 @@ class RAGAPIClient: ObservableObject {
             }
             return try await request("/kb/bases/\(kbId)/documents/ingest", method: "POST", body: body)
         } catch {
-            await MainActor.run { self.lastError = error.localizedDescription }
+            await MainActor.run { self.lastError = BridgeError.sanitize(error) }
             logger.error("ingestContent failed: \(error.localizedDescription)")
             return nil
         }
@@ -345,7 +345,7 @@ class RAGAPIClient: ObservableObject {
             let _ = try await request("/kb/bases/\(kbId)/documents/\(docId)", method: "DELETE")
             return true
         } catch {
-            await MainActor.run { self.lastError = error.localizedDescription }
+            await MainActor.run { self.lastError = BridgeError.sanitize(error) }
             logger.error("deleteDocument failed: \(error.localizedDescription)")
             return false
         }
@@ -358,7 +358,7 @@ class RAGAPIClient: ObservableObject {
                 "contextualize": contextualize,
             ])
         } catch {
-            await MainActor.run { self.lastError = error.localizedDescription }
+            await MainActor.run { self.lastError = BridgeError.sanitize(error) }
             logger.error("replaceDocument failed: \(error.localizedDescription)")
             return nil
         }
@@ -380,7 +380,7 @@ class RAGAPIClient: ObservableObject {
                 "contextualize": contextualize,
             ])
         } catch {
-            await MainActor.run { self.lastError = error.localizedDescription }
+            await MainActor.run { self.lastError = BridgeError.sanitize(error) }
             logger.error("scanDirectory failed: \(error.localizedDescription)")
             return nil
         }

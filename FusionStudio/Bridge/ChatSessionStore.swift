@@ -905,7 +905,7 @@ class ChatSessionStore: ObservableObject {
                 }
             }
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = BridgeError.sanitize(error)
             chatStoreLog.error("chat.send multimodal failed: \(error.localizedDescription)")
         }
     }
@@ -923,7 +923,7 @@ class ChatSessionStore: ObservableObject {
                 chatStoreLog.info("Branched chat at \(messageId) -> \(branched.id)")
             }
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = BridgeError.sanitize(error)
         }
     }
 
@@ -940,7 +940,7 @@ class ChatSessionStore: ObservableObject {
                 chatStoreLog.info("Switched branch to \(branchId)")
             }
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = BridgeError.sanitize(error)
             chatStoreLog.error("chat.switch_branch failed: \(error.localizedDescription)")
         }
     }

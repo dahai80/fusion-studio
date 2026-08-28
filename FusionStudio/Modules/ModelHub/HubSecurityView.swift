@@ -404,7 +404,7 @@ private struct SecScanForm: View {
     private func run() {
         Task { @MainActor in
             do { let r = try await client.triggerSecurityScan(modelId: modelId); onResult(r); isPresented = false }
-            catch { self.error = error.localizedDescription }
+            catch { self.error = BridgeError.sanitize(error) }
         }
     }
 }
@@ -435,7 +435,7 @@ private struct SecWatermarkForm: View {
             do {
                 _ = try await client.embedWatermark(modelId: modelId, text: watermarkText.isEmpty ? nil : watermarkText)
                 isPresented = false; onAdded()
-            } catch { self.error = error.localizedDescription }
+            } catch { self.error = BridgeError.sanitize(error) }
         }
     }
 }
@@ -466,7 +466,7 @@ private struct SecEncryptForm: View {
     private func enc() {
         Task { @MainActor in
             do { _ = try await client.encryptModel(modelId: modelId, algorithm: algorithm); isPresented = false; onDone() }
-            catch { self.error = error.localizedDescription }
+            catch { self.error = BridgeError.sanitize(error) }
         }
     }
 }
@@ -509,7 +509,7 @@ private struct SecApprovalReviewSheet: View {
                     _ = try await client.rejectRequest(id: approval.id, comment: comment.isEmpty ? nil : comment)
                 }
                 dismiss(); onDone()
-            } catch { self.error = error.localizedDescription }
+            } catch { self.error = BridgeError.sanitize(error) }
         }
     }
 }

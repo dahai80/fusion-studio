@@ -123,7 +123,7 @@ struct TokenBudgetView: View {
             do {
                 status = try await bridge.ipcClient!.budgetStatus()
             } catch {
-                errorMsg = error.localizedDescription
+                errorMsg = BridgeError.sanitize(error)
                 logger.error("budgetStatus failed: \(error.localizedDescription)")
             }
             isRefreshing = false
@@ -140,7 +140,7 @@ struct TokenBudgetView: View {
                 logger.info("Budget set: \(totalBudget) tokens")
                 refreshStatus()
             } catch {
-                errorMsg = error.localizedDescription
+                errorMsg = BridgeError.sanitize(error)
                 logger.error("budgetSet failed: \(error.localizedDescription)")
             }
             isSetting = false

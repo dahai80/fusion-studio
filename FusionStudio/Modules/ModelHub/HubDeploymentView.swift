@@ -344,7 +344,7 @@ private struct CreateDepSheet: View {
                     canaryPercent: canaryPercent > 0 ? canaryPercent : nil
                 )
                 isPresented = false; onCreated()
-            } catch { self.error = error.localizedDescription }
+            } catch { self.error = BridgeError.sanitize(error) }
         }
     }
 }

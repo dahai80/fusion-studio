@@ -74,7 +74,7 @@ struct MemoryView: View {
             _ = try await bridge.fetchRecentMemories()
             _ = try await bridge.fetchMemoryCount()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = BridgeError.sanitize(error)
             logger.error("loadRecentMemories: \(error)")
         }
         isLoading = false

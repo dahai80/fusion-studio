@@ -94,12 +94,12 @@ struct WebViewContainer: NSViewRepresentable {
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
             parent.isLoading = false
-            parent.error = error.localizedDescription
+            parent.error = BridgeError.sanitize(error)
         }
 
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
             parent.isLoading = false
-            parent.error = error.localizedDescription
+            parent.error = BridgeError.sanitize(error)
         }
     }
 }

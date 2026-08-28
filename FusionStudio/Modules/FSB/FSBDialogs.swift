@@ -179,7 +179,7 @@ struct FSBConnectorDialog: View {
                 dlgLog.error("connector create failed: \(error.localizedDescription)")
                 await MainActor.run {
                     isConnecting = false
-                    errorMessage = error.localizedDescription
+                    errorMessage = BridgeError.sanitize(error)
                 }
             }
         }
@@ -352,7 +352,7 @@ struct FSBSkillDialog: View {
                 dlgLog.error("skill create failed: \(error.localizedDescription)")
                 await MainActor.run {
                     isSaving = false
-                    errorMessage = error.localizedDescription
+                    errorMessage = BridgeError.sanitize(error)
                 }
             }
         }
@@ -545,7 +545,7 @@ struct FSBScheduleDialog: View {
                 dlgLog.error("schedule set failed: \(error.localizedDescription)")
                 await MainActor.run {
                     isSaving = false
-                    errorMessage = error.localizedDescription
+                    errorMessage = BridgeError.sanitize(error)
                 }
             }
         }
@@ -722,7 +722,7 @@ struct FSBApprovalDialog: View {
                 dlgLog.error("approval failed: \(error.localizedDescription)")
                 await MainActor.run {
                     isProcessing = false
-                    errorMessage = error.localizedDescription
+                    errorMessage = BridgeError.sanitize(error)
                 }
             }
         }
@@ -745,7 +745,7 @@ struct FSBApprovalDialog: View {
                 dlgLog.error("deny failed: \(error.localizedDescription)")
                 await MainActor.run {
                     isProcessing = false
-                    errorMessage = error.localizedDescription
+                    errorMessage = BridgeError.sanitize(error)
                 }
             }
         }

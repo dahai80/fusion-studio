@@ -200,7 +200,7 @@ struct ArtifactVersionDiffView: View {
                 isLoading = false
                 diffLog.info("Diff computed: v\(self.leftVersionId)→v\(self.rightVersionId)")
             } catch {
-                errorMessage = error.localizedDescription
+                errorMessage = BridgeError.sanitize(error)
                 isLoading = false
                 diffLog.error("Diff load failed: \(error)")
             }

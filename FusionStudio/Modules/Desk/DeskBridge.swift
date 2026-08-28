@@ -172,7 +172,7 @@ final class DeskBridge: ObservableObject {
                 unavailableMethods = rpcAvail.unavailableMethods
             } else {
                 isConnected = false
-                lastError = error.localizedDescription
+                lastError = BridgeError.sanitize(error)
             }
             deskLog.error("DeskBridge: health check failed: \(error.localizedDescription)")
         }
@@ -199,7 +199,7 @@ final class DeskBridge: ObservableObject {
             if rpcAvail.handleRPCError(error, method: "desk.nodes.list") {
                 unavailableMethods = rpcAvail.unavailableMethods
             }
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
             deskLog.error("DeskBridge: loadNodes failed: \(error.localizedDescription)")
         }
     }
@@ -212,7 +212,7 @@ final class DeskBridge: ObservableObject {
                 nodeCategories = cats
             }
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
         }
     }
 
@@ -221,7 +221,7 @@ final class DeskBridge: ObservableObject {
         do {
             return try await ipc.deskNodesExecute(name: name, params: params)
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
             return nil
         }
     }
@@ -247,7 +247,7 @@ final class DeskBridge: ObservableObject {
             if rpcAvail.handleRPCError(error, method: "desk.workflow.list") {
                 unavailableMethods = rpcAvail.unavailableMethods
             }
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
         }
     }
 
@@ -256,7 +256,7 @@ final class DeskBridge: ObservableObject {
         do {
             return try await ipc.deskWorkflowCreate(prompt: prompt)
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
             return nil
         }
     }
@@ -266,7 +266,7 @@ final class DeskBridge: ObservableObject {
         do {
             return try await ipc.deskWorkflowRun(workflow: workflow)
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
             return nil
         }
     }
@@ -276,7 +276,7 @@ final class DeskBridge: ObservableObject {
         do {
             _ = try await ipc.deskWorkflowCancel(executionId: executionId)
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
         }
     }
 
@@ -299,7 +299,7 @@ final class DeskBridge: ObservableObject {
             if rpcAvail.handleRPCError(error, method: "desk.template.list") {
                 unavailableMethods = rpcAvail.unavailableMethods
             }
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
         }
     }
 
@@ -308,7 +308,7 @@ final class DeskBridge: ObservableObject {
         do {
             return try await ipc.deskTemplateRun(templateId: templateId, variables: variables)
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
             return nil
         }
     }
@@ -331,7 +331,7 @@ final class DeskBridge: ObservableObject {
             if rpcAvail.handleRPCError(error, method: "desk.agent.list") {
                 unavailableMethods = rpcAvail.unavailableMethods
             }
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
         }
     }
 
@@ -341,7 +341,7 @@ final class DeskBridge: ObservableObject {
             let result = try await ipc.deskAgentSubmit(task: task)
             return result["task_id"] as? String
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
             return nil
         }
     }
@@ -351,7 +351,7 @@ final class DeskBridge: ObservableObject {
         do {
             return try await ipc.deskAgentStatus(taskId: taskId)
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
             return nil
         }
     }
@@ -361,7 +361,7 @@ final class DeskBridge: ObservableObject {
         do {
             _ = try await ipc.deskAgentCancel(taskId: taskId)
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
         }
     }
 
@@ -377,7 +377,7 @@ final class DeskBridge: ObservableObject {
                 unavailableMethods = rpcAvail.unavailableMethods
             }
             mlxStatus = DeskMLXStatus(status: "error")
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
         }
     }
 
@@ -398,7 +398,7 @@ final class DeskBridge: ObservableObject {
             if rpcAvail.handleRPCError(error, method: "desk.system.info") {
                 unavailableMethods = rpcAvail.unavailableMethods
             }
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
         }
     }
 
@@ -420,7 +420,7 @@ final class DeskBridge: ObservableObject {
             if rpcAvail.handleRPCError(error, method: "desk.events.recent") {
                 unavailableMethods = rpcAvail.unavailableMethods
             }
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
         }
     }
 
@@ -444,7 +444,7 @@ final class DeskBridge: ObservableObject {
             if rpcAvail.handleRPCError(error, method: "desk.session.list") {
                 unavailableMethods = rpcAvail.unavailableMethods
             }
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
         }
     }
 
@@ -454,7 +454,7 @@ final class DeskBridge: ObservableObject {
             _ = try await ipc.deskSessionCreate(name: name, description: description)
             await loadSessions()
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
         }
     }
 
@@ -464,7 +464,7 @@ final class DeskBridge: ObservableObject {
             _ = try await ipc.deskSessionDelete(sessionId: sessionId)
             await loadSessions()
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
         }
     }
 
@@ -474,7 +474,7 @@ final class DeskBridge: ObservableObject {
             _ = try await ipc.deskSessionFork(sessionId: sessionId, fromStep: fromStep)
             await loadSessions()
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
         }
     }
 
@@ -499,7 +499,7 @@ final class DeskBridge: ObservableObject {
             if rpcAvail.handleRPCError(error, method: "desk.permission.list") {
                 unavailableMethods = rpcAvail.unavailableMethods
             }
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
         }
     }
 
@@ -509,7 +509,7 @@ final class DeskBridge: ObservableObject {
             _ = try await ipc.deskPermissionApprove(toolName: toolName, scope: scope)
             await loadPermissions()
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
         }
     }
 
@@ -519,7 +519,7 @@ final class DeskBridge: ObservableObject {
             _ = try await ipc.deskPermissionDeny(toolName: toolName, scope: scope)
             await loadPermissions()
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
         }
     }
 
@@ -529,7 +529,7 @@ final class DeskBridge: ObservableObject {
             _ = try await ipc.deskPermissionReset()
             await loadPermissions()
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
         }
     }
 
@@ -548,7 +548,7 @@ final class DeskBridge: ObservableObject {
             )
             deskLog.info("DeskBridge: getNodeInfo name=\(name)")
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
             deskLog.error("DeskBridge: getNodeInfo failed: \(error.localizedDescription)")
         }
     }
@@ -571,7 +571,7 @@ final class DeskBridge: ObservableObject {
             }
             deskLog.info("DeskBridge: getWorkflowStatus loaded \(self.workflowExecStatuses.count) executions")
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
         }
     }
 
@@ -593,7 +593,7 @@ final class DeskBridge: ObservableObject {
             if rpcAvail.handleRPCError(error, method: "desk.mlx.models") {
                 unavailableMethods = rpcAvail.unavailableMethods
             }
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
         }
     }
 
@@ -604,7 +604,7 @@ final class DeskBridge: ObservableObject {
             eventSubscriptionId = result["subscription_id"] as? String
             deskLog.info("DeskBridge: subscribed events id=\(self.eventSubscriptionId ?? "nil")")
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
         }
     }
 
@@ -645,7 +645,7 @@ final class DeskBridge: ObservableObject {
                 updatedAt: result["updated_at"] as? String
             )
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
             return nil
         }
     }
@@ -657,7 +657,7 @@ final class DeskBridge: ObservableObject {
             await loadSessions()
             deskLog.info("DeskBridge: updated session \(sessionId)")
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
         }
     }
 
@@ -668,7 +668,7 @@ final class DeskBridge: ObservableObject {
             permissionCheckResult = result
             deskLog.info("DeskBridge: checkPermission tool=\(toolName)")
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
         }
     }
 
@@ -685,7 +685,7 @@ final class DeskBridge: ObservableObject {
             )
             deskLog.info("DeskBridge: getTemplate id=\(templateId)")
         } catch {
-            lastError = error.localizedDescription
+            lastError = BridgeError.sanitize(error)
         }
     }
 

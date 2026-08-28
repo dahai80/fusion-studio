@@ -956,7 +956,7 @@ class DocBridge: ObservableObject {
                 }
                 completion(.success(resp))
             case .failure(let err):
-                DispatchQueue.main.async { self?.authError = err.localizedDescription }
+                DispatchQueue.main.async { self?.authError = BridgeError.sanitize(err) }
                 docBridgeLog.error("authSetup failed: \(err.localizedDescription)")
                 completion(.failure(err))
             }
@@ -975,7 +975,7 @@ class DocBridge: ObservableObject {
                 }
                 completion(.success(resp))
             case .failure(let err):
-                DispatchQueue.main.async { self?.authError = err.localizedDescription }
+                DispatchQueue.main.async { self?.authError = BridgeError.sanitize(err) }
                 docBridgeLog.error("authLogin failed: \(err.localizedDescription)")
                 completion(.failure(err))
             }

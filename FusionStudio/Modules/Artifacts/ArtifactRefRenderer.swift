@@ -54,7 +54,7 @@ struct ArtifactRefRenderer: View {
             } catch {
                 log.error("ArtifactRefRenderer load failed: \(error.localizedDescription)")
                 DispatchQueue.main.async {
-                    self.errorMsg = error.localizedDescription
+                    self.errorMsg = BridgeError.sanitize(error)
                     self.isLoading = false
                 }
             }
