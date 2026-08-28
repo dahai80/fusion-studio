@@ -52,6 +52,11 @@ struct FusionStudioApp: App {
     // Affected API: trainerBridge injected via .environmentObject; trainer.* IPC via IPCClient → fusion-agent-studio TrainerDispatcher → fusion-trainer RunManager.
     // Data schemas: TrainerRun/TrainerPreset/TrainerDataset/TrainerAdapter/TrainerProgressEvent. User instruction: "continue Task" — Task #5 (#175)
     @StateObject private var trainerBridge = TrainerBridge()
+    // Callers: FusionStudioApp body, SpeechView (@EnvironmentObject).
+    // Affected API: speechBridge injected via .environmentObject; speech.* UDS JSON-RPC via IPCClient.udsCall → fusion-speech daemon (~/.fusion-speech/run/fusion-speech.sock)。
+    // Data schemas: SpeechStatus/SpeechTranscribeResult/SpeechSynthesizeResult/SpeechModelsResult。#337。
+    // 守护缺席 = isDaemonReady=false 优雅降级 (非崩溃), 麦克风权限独立请求。
+    @StateObject private var speechBridge = SpeechBridge()
 
     init() {
         // F-A5: AppState 持 4 域子对象同一实例 (init 传入), 保单例一致。
@@ -101,6 +106,7 @@ struct FusionStudioApp: App {
                 .environmentObject(healthBridge)
                 .environmentObject(douyinOperationBridge)
                 .environmentObject(trainerBridge)
+                .environmentObject(speechBridge)
                 .studioThemed()
                 .onAppear {
                     // 启动时检测并按需自动启动上游关键服务（mlx -> agent-studio -> artifacts-engine）。
@@ -126,6 +132,9 @@ struct FusionStudioApp: App {
                     chatStore.setFusionCodeBridge(FusionCodeBridge.shared)
                     deskBridge.setIPCClient(ipcClient)
                     trainerBridge.setIPCClient(ipcClient)
+                    // #337: 注入 IPCClient + 启动时探 fusion-speech 守护状态 (缺席=优雅降级非崩溃)。
+                    speechBridge.setIPCClient(ipcClient)
+                    Task { await speechBridge.checkDaemonStatus() }
                     ArtifactSidebarCache.shared.configure(ipcClient: ipcClient)
                     Task {
                         await performStartupHealthCheck()
