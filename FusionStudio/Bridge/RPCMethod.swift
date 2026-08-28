@@ -301,4 +301,18 @@ enum RPCMethod {
     static let guardConfirm = "guard.confirm"
     static let guardTccReport = "guard.tcc.report"
     static let guardTccStatus = "guard.tcc.status"
+
+    // MARK: - event (#346: fusion-event UDS JSON-RPC, /tmp/fusion-event.sock)
+    static let eventHealth = "event.health"
+    static let eventSubscribe = "event.subscribe"
+    static let eventPong = "event.pong"
+    static let eventMetrics = "event.metrics"
+    static let eventReplay = "event.replay"
+    static let eventDryRun = "event.dry_run"
+
+    // MARK: - rule (#346: fusion-event rule mgmt via event daemon UDS)
+    static let ruleAdd = "rule.add"
+    static let ruleRemove = "rule.remove"
+    static let ruleList = "rule.list"
+    static let ruleReload = "rule.reload"
 }

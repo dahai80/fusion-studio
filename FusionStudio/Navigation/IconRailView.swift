@@ -258,6 +258,15 @@ struct IconRailView: View {
         }
         menu.addItem(settingsItem)
 
+        // #346: 事件感知面板 (EventStreamView, fusion-event 感知层消费)。
+        let eventItem = NSMenuItem(title: i18n.t(.event_title), action: #selector(MenuActionTarget.runClosure), keyEquivalent: "")
+        eventItem.target = target
+        eventItem.representedObject = { [self] in
+            uiPanelState.showEventStream = true
+            railLog.info("settings menu: open EventStreamView")
+        }
+        menu.addItem(eventItem)
+
         // Language 子菜单：切换 I18nManager.shared.currentLanguage，当前语言打勾
         let langMenu = NSMenu()
         let currentLang = I18nManager.shared.currentLanguage

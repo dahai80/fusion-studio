@@ -4925,6 +4925,19 @@ enum I18nKey: String, CaseIterable {
     case guard_content = "guard_content"
     case guard_approve = "guard_approve"
     case guard_reject = "guard_reject"
+    case event_title = "event_title"
+    case event_status_live = "event_status_live"
+    case event_status_degraded = "event_status_degraded"
+    case event_recent = "event_recent"
+    case event_rules = "event_rules"
+    case event_rule_add = "event_rule_add"
+    case event_rule_name = "event_rule_name"
+    case event_rule_eventType = "event_rule_eventType"
+    case event_rule_targetAgent = "event_rule_targetAgent"
+    case event_rule_pathPattern = "event_rule_pathPattern"
+    case event_rule_debounce = "event_rule_debounce"
+    case event_rule_delete = "event_rule_delete"
+    case event_rule_delete_confirm = "event_rule_delete_confirm"
     case ab_status_published = "ab_status_published"
     case ab_status_draft = "ab_status_draft"
     case ab_status_active = "ab_status_active"
@@ -10004,6 +10017,19 @@ let zhCNTranslations: [String: String] = [
     "guard_content": "内容预览",
     "guard_approve": "批准",
     "guard_reject": "拒绝",
+    "event_title": "事件感知",
+    "event_status_live": "守护在线",
+    "event_status_degraded": "守护离线",
+    "event_recent": "近期事件",
+    "event_rules": "触发规则",
+    "event_rule_add": "添加规则",
+    "event_rule_name": "规则名称",
+    "event_rule_eventType": "事件类型",
+    "event_rule_targetAgent": "目标 Agent",
+    "event_rule_pathPattern": "路径匹配 (可选)",
+    "event_rule_debounce": "防抖 (毫秒)",
+    "event_rule_delete": "删除",
+    "event_rule_delete_confirm": "确认删除规则？",
     "ab_status_published": "已发布",
     "ab_status_draft": "草稿",
     "ab_status_active": "运行中",
@@ -15036,6 +15062,19 @@ let enUSTranslations: [String: String] = [
     "guard_content": "Content Preview",
     "guard_approve": "Approve",
     "guard_reject": "Reject",
+    "event_title": "Event Perception",
+    "event_status_live": "Daemon online",
+    "event_status_degraded": "Daemon offline",
+    "event_recent": "Recent events",
+    "event_rules": "Trigger rules",
+    "event_rule_add": "Add rule",
+    "event_rule_name": "Rule name",
+    "event_rule_eventType": "Event type",
+    "event_rule_targetAgent": "Target agent",
+    "event_rule_pathPattern": "Path pattern (optional)",
+    "event_rule_debounce": "Debounce (ms)",
+    "event_rule_delete": "Delete",
+    "event_rule_delete_confirm": "Delete this rule?",
     "ab_status_published": "Published",
     "ab_status_draft": "Draft",
     "ab_status_active": "Running",
@@ -20062,6 +20101,19 @@ let jaJPTranslations: [String: String] = [
     "guard_content": "内容プレビュー",
     "guard_approve": "承認",
     "guard_reject": "拒否",
+    "event_title": "イベント認識",
+    "event_status_live": "デーモンオンライン",
+    "event_status_degraded": "デーモンオフライン",
+    "event_recent": "最近のイベント",
+    "event_rules": "トリガールール",
+    "event_rule_add": "ルール追加",
+    "event_rule_name": "ルール名",
+    "event_rule_eventType": "イベントタイプ",
+    "event_rule_targetAgent": "ターゲット Agent",
+    "event_rule_pathPattern": "パスパターン (任意)",
+    "event_rule_debounce": "デバウンス (ms)",
+    "event_rule_delete": "削除",
+    "event_rule_delete_confirm": "このルールを削除しますか？",
     "ab_status_published": "公開済み",
     "ab_status_draft": "下書き",
     "ab_status_active": "実行中",
@@ -25088,6 +25140,19 @@ let koKRTranslations: [String: String] = [
     "guard_content": "내용 미리보기",
     "guard_approve": "승인",
     "guard_reject": "거부",
+    "event_title": "이벤트 인식",
+    "event_status_live": "데몬 온라인",
+    "event_status_degraded": "데몬 오프라인",
+    "event_recent": "최근 이벤트",
+    "event_rules": "트리거 규칙",
+    "event_rule_add": "규칙 추가",
+    "event_rule_name": "규칙 이름",
+    "event_rule_eventType": "이벤트 유형",
+    "event_rule_targetAgent": "대상 Agent",
+    "event_rule_pathPattern": "경로 패턴 (선택)",
+    "event_rule_debounce": "디바운스 (ms)",
+    "event_rule_delete": "삭제",
+    "event_rule_delete_confirm": "이 규칙을 삭제하시겠습니까?",
     "ab_status_published": "게시됨",
     "ab_status_draft": "초안",
     "ab_status_active": "실행 중",
