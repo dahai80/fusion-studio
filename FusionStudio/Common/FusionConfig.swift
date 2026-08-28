@@ -209,6 +209,8 @@ class FusionConfig: ObservableObject {
     @AppStorage("upstreamHealthPath") var upstreamHealthPath = "~/fusion/fusion-health"
     // #336: fusion-store L1 存储 (fs-serve 守护端口见 fusionStorePort)。
     @AppStorage("upstreamFusionStorePath") var upstreamFusionStorePath = "~/fusion/fusion-store"
+    // #337: fusion-speech 语音守护 (UDS socket + HTTP 端口见 fusionSpeechSocketPath/Port)。
+    @AppStorage("upstreamFusionSpeechPath") var upstreamFusionSpeechPath = "~/fusion/fusion-speech"
     @AppStorage("fusionCodePort") var fusionCodePort = 11441
     @AppStorage("upstreamAutoStartCritical") var upstreamAutoStartCritical = true
 
@@ -236,6 +238,10 @@ class FusionConfig: ObservableObject {
     // #336: fusion-store fs-serve HTTP 守护 (端口 11463, FUSION_STORE_PORT 可覆盖)。
     // storage 层默认嵌入库 (无端口), 此端口仅独立监控模式启用。可选服务。
     @AppStorage("fusionStorePort") var fusionStorePort = 11463
+    // #337: fusion-speech 守护 HTTP 端口 (/health, /metrics, /stream/stt WebSocket)。
+    @AppStorage("fusionSpeechPort") var fusionSpeechPort = 11465
+    // #337: fusion-speech UDS JSON-RPC socket 路径 (FUSION_SOCKET_DIR 可覆盖父目录)。
+    @AppStorage("fusionSpeechSocketPath") var fusionSpeechSocketPath = "~/.fusion-speech/run/fusion-speech.sock"
     @AppStorage("agentStudioHttpPort") var agentStudioHttpPort = 11453
     @AppStorage("multiNodePort") var multiNodePort = 11452
     // Multi-Node Agent 端口（NodeAgent /api/* 数据端口）。原 11445 与 fusion-comfyui 实跑撞,
@@ -432,6 +438,7 @@ class FusionConfig: ObservableObject {
         upstreamSimulationPath = "~/fusion/fusion-simulation"
         upstreamHealthPath = "~/fusion/fusion-health"
         upstreamFusionStorePath = "~/fusion/fusion-store"
+        upstreamFusionSpeechPath = "~/fusion/fusion-speech"
         fusionCodePort = 11441
         upstreamAutoStartCritical = true
 
