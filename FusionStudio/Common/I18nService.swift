@@ -4918,6 +4918,13 @@ enum I18nKey: String, CaseIterable {
     case ab_err_decode_mismatch = "ab_err_decode_mismatch"
     case ab_err_unavailable_code_fmt = "ab_err_unavailable_code_fmt"
     case ab_err_generic = "ab_err_generic"
+    case ab_err_guard_blocked_fmt = "ab_err_guard_blocked_fmt"
+    case guard_title = "guard_title"
+    case guard_action_fmt = "guard_action_fmt"
+    case guard_reason_fmt = "guard_reason_fmt"
+    case guard_content = "guard_content"
+    case guard_approve = "guard_approve"
+    case guard_reject = "guard_reject"
     case ab_status_published = "ab_status_published"
     case ab_status_draft = "ab_status_draft"
     case ab_status_active = "ab_status_active"
@@ -9990,6 +9997,13 @@ let zhCNTranslations: [String: String] = [
     "ab_err_decode_mismatch": "AI 服务返回数据异常，请检查服务版本是否匹配。",
     "ab_err_unavailable_code_fmt": "AI 服务暂时不可用（错误码：%d），请稍后重试。",
     "ab_err_generic": "操作未能完成，请稍后重试。",
+    "ab_err_guard_blocked_fmt": "动作被安全守卫拦截：%@。",
+    "guard_title": "安全确认 (L3)",
+    "guard_action_fmt": "动作：%@",
+    "guard_reason_fmt": "原因：%@",
+    "guard_content": "内容预览",
+    "guard_approve": "批准",
+    "guard_reject": "拒绝",
     "ab_status_published": "已发布",
     "ab_status_draft": "草稿",
     "ab_status_active": "运行中",
@@ -15015,6 +15029,13 @@ let enUSTranslations: [String: String] = [
     "ab_err_decode_mismatch": "AI service returned unexpected data. Please check whether the service version matches.",
     "ab_err_unavailable_code_fmt": "AI service is temporarily unavailable (error code: %d). Please try again later.",
     "ab_err_generic": "The operation could not be completed. Please try again later.",
+    "ab_err_guard_blocked_fmt": "Action blocked by security guard: %@.",
+    "guard_title": "Security Confirmation (L3)",
+    "guard_action_fmt": "Action: %@",
+    "guard_reason_fmt": "Reason: %@",
+    "guard_content": "Content Preview",
+    "guard_approve": "Approve",
+    "guard_reject": "Reject",
     "ab_status_published": "Published",
     "ab_status_draft": "Draft",
     "ab_status_active": "Running",
@@ -20034,6 +20055,13 @@ let jaJPTranslations: [String: String] = [
     "ab_err_decode_mismatch": "AI サービスが異常なデータを返しました。サービスのバージョンが一致しているか確認してください。",
     "ab_err_unavailable_code_fmt": "AI サービスは一時的に利用できません（エラーコード：%d）。後でもう一度お試しください。",
     "ab_err_generic": "操作を完了できませんでした。後でもう一度お試しください。",
+    "ab_err_guard_blocked_fmt": "アクションはセキュリティガードによってブロックされました：%@。",
+    "guard_title": "セキュリティ確認 (L3)",
+    "guard_action_fmt": "アクション：%@",
+    "guard_reason_fmt": "理由：%@",
+    "guard_content": "内容プレビュー",
+    "guard_approve": "承認",
+    "guard_reject": "拒否",
     "ab_status_published": "公開済み",
     "ab_status_draft": "下書き",
     "ab_status_active": "実行中",
@@ -25053,6 +25081,13 @@ let koKRTranslations: [String: String] = [
     "ab_err_decode_mismatch": "AI 서비스가 비정상 데이터를 반환했습니다. 서비스 버전이 일치하는지 확인하세요.",
     "ab_err_unavailable_code_fmt": "AI 서비스를 일시적으로 사용할 수 없습니다(오류 코드: %d). 나중에 다시 시도하세요.",
     "ab_err_generic": "작업을 완료할 수 없습니다. 나중에 다시 시도하세요.",
+    "ab_err_guard_blocked_fmt": "작업이 보안 가드에 의해 차단되었습니다: %@.",
+    "guard_title": "보안 확인 (L3)",
+    "guard_action_fmt": "동작: %@",
+    "guard_reason_fmt": "이유: %@",
+    "guard_content": "내용 미리보기",
+    "guard_approve": "승인",
+    "guard_reject": "거부",
     "ab_status_published": "게시됨",
     "ab_status_draft": "초안",
     "ab_status_active": "실행 중",

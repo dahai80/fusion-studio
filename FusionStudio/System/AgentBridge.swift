@@ -237,6 +237,7 @@ enum BridgeError: Error, Equatable, LocalizedError {
     case timeout
     case serviceUnavailable(String)
     case authFailed(String)
+    case guardBlocked(String)
 
     var detail: String {
         switch self {
@@ -247,6 +248,7 @@ enum BridgeError: Error, Equatable, LocalizedError {
         case .timeout: return "timeout"
         case .serviceUnavailable(let msg): return "serviceUnavailable — \(msg)"
         case .authFailed(let msg): return "authFailed — \(msg)"
+        case .guardBlocked(let msg): return "guardBlocked — \(msg)"
         }
     }
 
@@ -282,6 +284,8 @@ enum BridgeError: Error, Equatable, LocalizedError {
                 return i18n.t(.ab_err_service_down)
             }
             return i18n.tf(.ab_err_unavailable_code_fmt, code)
+        case .guardBlocked(let msg):
+            return i18n.tf(.ab_err_guard_blocked_fmt, msg)
         }
     }
 }
@@ -585,6 +589,13 @@ final class AgentBridge: ObservableObject {
     // F-A1 Phase 7: setIPCClient sink 订阅持有 (原 .assign(to:) 不需显式持, 改 .sink 需 store)。
     private var cancellables = Set<AnyCancellable>()
     var ipcClient: IPCClient?
+    // #344: GuardBridge 延迟注入 (mirror setIPCClient), executeGraph 下发前调 guard.evaluate。
+    private var guardBridge: GuardBridge?
+
+    func setGuardBridge(_ g: GuardBridge) {
+        self.guardBridge = g
+        logger.info("AgentBridge GuardBridge wired")
+    }
 
     func setIPCClient(_ client: IPCClient) {
         self.ipcClient = client
@@ -747,6 +758,46 @@ final class AgentBridge: ObservableObject {
             throw BridgeError.notConnected
         }
         logger.info("executeGraph: id=\(id) task=\(taskId.isEmpty ? "-" : taskId)")
+
+        // #344: 高危动作运行时鉴权 — guard.evaluate before dispatch (PRD §17 Phase 6)。
+        // 已装 guard (isDaemonReady=true): 严格 fail-closed, BLOCK/L4 不下发, L3 走人机确认弹窗。
+        // 未装 guard (isDaemonReady=false): 可选上游, fail-open 普通工作流不锁死未装用户。
+        if let guardBridge = guardBridge, guardBridge.isDaemonReady {
+            do {
+                let verdict = try await guardBridge.evaluate(
+                    action: "graph.execute(\(id))",
+                    content: input,
+                    contentType: "text",
+                    categoryHint: "agent_graph"
+                )
+                if verdict.isBlock {
+                    logger.error("executeGraph BLOCKED by guard: \(verdict.reason, privacy: .public) risk=\(verdict.riskLevel, privacy: .public)")
+                    throw BridgeError.guardBlocked(verdict.reason)
+                }
+                if verdict.needsApproval {
+                    let approved = try await guardBridge.requestApproval(
+                        actionId: verdict.actionId,
+                        action: "graph.execute(\(id))",
+                        content: input,
+                        reason: verdict.reason,
+                        riskLevel: verdict.riskLevel,
+                        category: verdict.inferredCategory
+                    )
+                    if !approved {
+                        logger.warning("executeGraph L3 approval denied by user")
+                        throw BridgeError.guardBlocked("用户拒绝确认")
+                    }
+                }
+                logger.info("executeGraph guard verdict: \(verdict.action, privacy: .public) risk=\(verdict.riskLevel, privacy: .public)")
+            } catch let ge as GuardError {
+                // fail-closed: guard confirm/超时不可达 = block (R2), 不绕过
+                logger.error("executeGraph guard approval failed (fail-closed): \(ge.localizedDescription, privacy: .public)")
+                throw BridgeError.guardBlocked(ge.localizedDescription)
+            }
+        } else if guardBridge != nil {
+            logger.warning("executeGraph guard daemon not ready — skip guard (optional upstream, fail-open for未装用户)")
+        }
+
         self.runtimeState.isExecuting = true
         self.runtimeState.events = []
 

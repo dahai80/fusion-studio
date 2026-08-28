@@ -287,7 +287,7 @@ class IPCClient: ObservableObject {
     // Callers: projectCall / spaceCall. Affected API: udsCall(socketPath:method:params:) -> [String:Any].
     // 每次新建短连接, 换行分隔 JSON-RPC 2.0; 结果归一化: dict 原样 / array 包成 ["items":...] / 标量包成 ["_result":...]
     @discardableResult
-    func udsCall(socketPath: String, method: String, params: [String: Any] = [:]) async throws -> [String: Any] {
+    func udsCall(socketPath: String, method: String, params: [String: Any] = [:], timeoutSecs: Int = 8) async throws -> [String: Any] {
         try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
                 let sock = socket(AF_UNIX, SOCK_STREAM, 0)
@@ -296,7 +296,7 @@ class IPCClient: ObservableObject {
                     return
                 }
                 defer { close(sock) }
-                var tv = timeval(tv_sec: 8, tv_usec: 0)
+                var tv = timeval(tv_sec: timeoutSecs, tv_usec: 0)
                 _ = setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
                 var addr = sockaddr_un()
                 addr.sun_family = sa_family_t(AF_UNIX)

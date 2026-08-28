@@ -132,6 +132,8 @@ final class SpeechBridge: ObservableObject {
         let granted = await AVCaptureDevice.requestAccess(for: .audio)
         await MainActor.run { self.micPermission = granted ? .granted : .denied }
         speechBridgeLog.info("mic permission result=\(granted, privacy: .public)")
+        // #344: TCC 审计上报 fusion-guard (Phase 5, fire-and-forget 非阻塞, 守护缺席静默)。
+        await GuardBridge.shared?.reportTcc(permission: "microphone", result: granted ? "granted" : "denied")
         if !granted {
             await MainActor.run { self.lastError = SpeechError.micDenied.localizedDescription }
         }

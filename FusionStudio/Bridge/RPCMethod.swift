@@ -294,4 +294,11 @@ enum RPCMethod {
 
     // MARK: - verify
     static let verifyVerify = "verify.verify"
+
+    // MARK: - guard (#344: fusion-guard UDS JSON-RPC, /tmp/fusion-guard.sock)
+    static let guardPing = "guard.ping"
+    static let guardEvaluate = "guard.evaluate"
+    static let guardConfirm = "guard.confirm"
+    static let guardTccReport = "guard.tcc.report"
+    static let guardTccStatus = "guard.tcc.status"
 }

@@ -57,6 +57,10 @@ struct FusionStudioApp: App {
     // Data schemas: SpeechStatus/SpeechTranscribeResult/SpeechSynthesizeResult/SpeechModelsResult。#337。
     // 守护缺席 = isDaemonReady=false 优雅降级 (非崩溃), 麦克风权限独立请求。
     @StateObject private var speechBridge = SpeechBridge()
+    // #344: fusion-guard 零信任动作鉴权守护 (UDS /tmp/fusion-guard.sock)。
+    // 守护缺席 = isDaemonReady=false 优雅降级 (fail-open 普通工作流非全瘫), 已装 fail-closed 高危拦截。
+    // L3 走 GuardChallengeModal 人机确认, L4 直接 guardBlocked 无弹窗。TCC 审计上报 fire-and-forget。
+    @StateObject private var guardBridge = GuardBridge()
 
     init() {
         // F-A5: AppState 持 4 域子对象同一实例 (init 传入), 保单例一致。
@@ -107,6 +111,7 @@ struct FusionStudioApp: App {
                 .environmentObject(douyinOperationBridge)
                 .environmentObject(trainerBridge)
                 .environmentObject(speechBridge)
+                .environmentObject(guardBridge)
                 .studioThemed()
                 .onAppear {
                     // 启动时检测并按需自动启动上游关键服务（mlx -> agent-studio -> artifacts-engine）。
@@ -135,6 +140,12 @@ struct FusionStudioApp: App {
                     // #337: 注入 IPCClient + 启动时探 fusion-speech 守护状态 (缺席=优雅降级非崩溃)。
                     speechBridge.setIPCClient(ipcClient)
                     Task { await speechBridge.checkDaemonStatus() }
+                    // #344: 注入 IPCClient + 探 fusion-guard 守护状态 + 注入 AgentBridge/SpeechBridge/GuardBridge.shared。
+                    // 守护缺席 = isDaemonReady=false (fail-open), 已装 fail-closed 高危拦截。TCC 上报走 shared 单例便捷路径。
+                    guardBridge.setIPCClient(ipcClient)
+                    Task { await guardBridge.checkDaemonStatus() }
+                    agentBridge.setGuardBridge(guardBridge)
+                    GuardBridge.shared = guardBridge
                     ArtifactSidebarCache.shared.configure(ipcClient: ipcClient)
                     Task {
                         await performStartupHealthCheck()
