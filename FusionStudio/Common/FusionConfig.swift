@@ -207,6 +207,8 @@ class FusionConfig: ObservableObject {
     // User instruction: "在左侧菜单增加 fusion simulation,fusion-studio负责GUI，和~/fusion/fuison-simulation项目集成起来"
     @AppStorage("upstreamSimulationPath") var upstreamSimulationPath = "~/fusion/fusion-simulation"
     @AppStorage("upstreamHealthPath") var upstreamHealthPath = "~/fusion/fusion-health"
+    // #336: fusion-store L1 存储 (fs-serve 守护端口见 fusionStorePort)。
+    @AppStorage("upstreamFusionStorePath") var upstreamFusionStorePath = "~/fusion/fusion-store"
     @AppStorage("fusionCodePort") var fusionCodePort = 11441
     @AppStorage("upstreamAutoStartCritical") var upstreamAutoStartCritical = true
 
@@ -231,6 +233,9 @@ class FusionConfig: ObservableObject {
     @AppStorage("fusionDeskPort") var fusionDeskPort = 9761
     @AppStorage("fusionDocPort") var fusionDocPort = 11449
     @AppStorage("fusionBenchPort") var fusionBenchPort = 11450
+    // #336: fusion-store fs-serve HTTP 守护 (端口 11463, FUSION_STORE_PORT 可覆盖)。
+    // storage 层默认嵌入库 (无端口), 此端口仅独立监控模式启用。可选服务。
+    @AppStorage("fusionStorePort") var fusionStorePort = 11463
     @AppStorage("agentStudioHttpPort") var agentStudioHttpPort = 11453
     @AppStorage("multiNodePort") var multiNodePort = 11452
     // Multi-Node Agent 端口（NodeAgent /api/* 数据端口）。原 11445 与 fusion-comfyui 实跑撞,
@@ -426,6 +431,7 @@ class FusionConfig: ObservableObject {
         upstreamSciencePath = "~/fusion/fusion-science"
         upstreamSimulationPath = "~/fusion/fusion-simulation"
         upstreamHealthPath = "~/fusion/fusion-health"
+        upstreamFusionStorePath = "~/fusion/fusion-store"
         fusionCodePort = 11441
         upstreamAutoStartCritical = true
 

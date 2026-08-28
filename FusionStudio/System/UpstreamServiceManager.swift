@@ -244,6 +244,16 @@ final class UpstreamServiceManager: ObservableObject {
                             isCritical: false, startOrder: 12,
                             repoPathRaw: cfg.upstreamSimulationPath,
                             healthKind: .httpGet, healthEndpoint: "\(cfg.simulationBaseURL)/api/health"),
+            // Callers: EnvironmentHealthSheet case "fusion-store", refreshAll. Affected API: httpGet /health.
+            // Data: UpstreamService entry. #336: fusion-store fs-serve 守护 (端口 11463)。
+            // storage 层默认嵌入库无端口, 此注册仅独立监控模式启用 (可选服务, 非关键)。
+            // /health 返 ok/degraded/backpressure — backpressure 视作降级信号 (上游 circuit-breaker)。
+            UpstreamService(id: "fusion-store",
+                            displayName: "Fusion-Store 存储",
+                            icon: "externaldrive.connected.to.line.below",
+                            isCritical: false, startOrder: 15,
+                            repoPathRaw: cfg.upstreamFusionStorePath,
+                            healthKind: .httpGet, healthEndpoint: "http://127.0.0.1:\(cfg.fusionStorePort)/health"),
         ]
     }
 
