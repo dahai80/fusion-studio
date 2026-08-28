@@ -43,7 +43,7 @@ Fusion Studio is a unified macOS native desktop client for the Fusion-MLX local 
 
 - **State management**: `AppState` (ObservableObject) injected via `@EnvironmentObject` — the central hub for navigation (`Module`, `ProductSheet`, `SidebarSection` enums) and UI state
 - **IPC**: `IPCClient` handles all backend communication via JSON-RPC 2.0; methods are name-spaced `service.method` (e.g., `env.health_check`, `mlx.start`, `model.list`)
-- **Module routing**: `Module` enum (30 cases) → `ProductSheet` (4 groups: mlx/code/agentStudio/multiNode) → `SidebarSection` (6 sections). `SectionContentView` switches on `activeSection`
+- **Module routing**: `Module` enum (63 cases) → `ProductSheet` (20 cases) → `SidebarSection` (22 sections). `SectionContentView` switches on `activeSection`
 - **Layout**: 4-column HStack — IconRailView | FusionSidebarView | WorkspaceArea | InspectorPanel
 - **Theme**: `StudioTheme` with dark-first design, accent `#007AFF`, `.ultraThinMaterial` vibrancy. Applied via `.studioThemed()` modifier
 - **Zero external Swift dependencies** — Package.swift has no dependencies; everything is self-contained
@@ -52,13 +52,13 @@ Fusion Studio is a unified macOS native desktop client for the Fusion-MLX local 
 
 ```
 FusionStudio/
-├── FusionStudioApp.swift    # @main entry, creates 7 @StateObject, injects via .environmentObject()
+├── FusionStudioApp.swift    # @main entry, creates 27 @StateObject, injects via .environmentObject()
 ├── ContentView.swift        # 4-column layout root
 ├── Common/                  # AppState, FusionConfig, I18nService, PluginService, SecurityService, CollaborationService
 ├── Bridge/                  # IPCClient (JSON-RPC 2.0 client), FusionCoderBridge
-├── System/                  # AgentBridge (59K, agent orchestration), SandboxManager, ScreenContext, FileWatcher
+├── System/                  # AgentBridge (1736 lines, agent orchestration), AgentBridgeDomains, SandboxManager, ScreenContext, FileWatcher
 ├── Navigation/              # FusionSidebarView, IconRailView, InspectorPanel, ChatsPanel, ProjectsPanel, ArtifactsPanel
-├── Modules/                 # 46 module view entries (27 subdirs + 19 root files); largest: AgentBridge 108K (System/), CodeEditorView 74K
+├── Modules/                 # module view entries (subdirs + root files); largest single file: AgentBridge 1736 lines (System/)
 ├── Components/              # Reusable UI: FusionButton, FusionCard, FusionProgressRing, FusionTabBar, FusionTag, FusionToast
 ├── Theme/                   # StudioTheme (dark/light themes)
 ├── DAG/                     # DAGCanvasView
@@ -100,7 +100,7 @@ Services/                    # 空 (env-daemon/mlx-daemon 已删除, 见 #296)
 - Swift tools version 5.9, macOS 14+ target
 - Indentation: multiples of 4 spaces
 - Logging: use `os.log` with `Logger(subsystem: "com.fusion.studio", category: "...")`
-- Large monolithic views are the norm (AgentBridge 108K, CodeEditorView 74K; AgentStudioView refactored to 8.9K via ARCH-1 facade split) — follow existing pattern when adding features
+- Large monolithic views are the norm (AgentBridge 1736 lines; AgentStudioView refactored to 8.9K via ARCH-1 facade split) — follow existing pattern when adding features
 - Module views live in `FusionStudio/Modules/` as single files or subdirectories
 - Chinese UI strings are used in Module enum rawValues and some labels
 - Backend services: 无本地守护进程 (Services/ 空, 见 #296); env.* · hardware.metrics 等由中央路由 daemon_server.py (fusion-agent-studio) 经 UDS 提供
