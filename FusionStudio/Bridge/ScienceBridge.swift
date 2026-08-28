@@ -32,6 +32,17 @@ class ScienceBridge: ObservableObject {
         reconnectTimer?.invalidate()
     }
 
+    // 审计0827 §2.8 (P1): messages 无界 append (sendChat + analyze), 长科研对话单调增长 OOM。
+    // cap 500 复用 PERF-3 范式: 超限 removeFirst 丢最早, 保最新。
+    private static let maxMessages = 500
+    private func capMessages() {
+        if messages.count > Self.maxMessages {
+            let drop = messages.count - Self.maxMessages
+            messages.removeFirst(drop)
+            bridgeLog.info("capMessages: drop \(drop) oldest (count > \(Self.maxMessages))")
+        }
+    }
+
     // MARK: - Health & Reconnect
 
     func checkHealth() {
@@ -131,7 +142,10 @@ class ScienceBridge: ObservableObject {
         post("/api/v1/sessions/\(sessionId)/chat", body: body) { [weak self] (result: Result<ScienceMessage, Error>) in
             switch result {
             case .success(let msg):
-                DispatchQueue.main.async { self?.messages.append(msg) }
+                DispatchQueue.main.async {
+                    self?.messages.append(msg)
+                    self?.capMessages()
+                }
                 completion(.success(msg))
             case .failure(let err):
                 completion(.failure(err))
@@ -174,6 +188,11 @@ class ScienceBridge: ObservableObject {
                         artifacts: artifacts
                     )
                     msgs.append(msg)
+                    if msgs.count > Self.maxMessages {
+                        let drop = msgs.count - Self.maxMessages
+                        msgs.removeFirst(drop)
+                        bridgeLog.info("analyze capMessages: drop \(drop) oldest (count > \(Self.maxMessages))")
+                    }
                     self?.messages = msgs
                 }
                 completion(.success(artifacts))

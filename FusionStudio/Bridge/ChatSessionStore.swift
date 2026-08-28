@@ -329,6 +329,29 @@ class ChatSessionStore: ObservableObject {
     private var activeRAGWatchId: String?
     private var activeRAGWatchKbId: String?
 
+    // 审计0827 §2.2 (P0/P1): sessions + 每 session.messages 双重无界, 长会话 OOM 杀进程。
+    // cap 复用 PERF-3 ragResults 范式: 超限 removeFirst。capSessions 限总会话数, capMessages 限单会话消息数。
+    // 500 消息 ≈ 长对话上限 (超则丢最早, 保最新上下文); 200 会话 ≈ 多轮切换上限。注册 StudioMemoryMonitor 兜底。
+    private static let maxSessions = 200
+    private static let maxMessagesPerSession = 500
+
+    private func capSessions() {
+        if sessions.count > Self.maxSessions {
+            let drop = sessions.count - Self.maxSessions
+            chatStoreLog.info("capSessions: drop \(drop) oldest (count=\(self.sessions.count) > \(Self.maxSessions))")
+            sessions.removeLast(drop)
+        }
+    }
+
+    private func capMessages(_ session: inout ChatSessionData) {
+        if session.messages.count > Self.maxMessagesPerSession {
+            let drop = session.messages.count - Self.maxMessagesPerSession
+            let sid = session.id
+            session.messages.removeFirst(drop)
+            chatStoreLog.info("capMessages: session=\(sid, privacy: .public) drop \(drop) oldest (count > \(Self.maxMessagesPerSession))")
+        }
+    }
+
     init() {}
 
     func setIPCClient(_ client: IPCClient) {
@@ -462,6 +485,7 @@ class ChatSessionStore: ObservableObject {
         guard activeSession == nil else { return }
         let session = ChatSessionData(title: "New Chat", mode: mode)
         sessions.insert(session, at: 0)
+        capSessions()
         activeSession = session
         saveSessionLocal(session)
         chatStoreLog.info("ensureActiveSession: created \(session.id)")
@@ -476,6 +500,7 @@ class ChatSessionStore: ObservableObject {
         }
         var updated = session
         updated.messages.append(msg)
+        capMessages(&updated)
         updated.activeBranch = msg.id
         updated.updatedAt = Date().timeIntervalSince1970
         activeSession = updated
@@ -491,23 +516,27 @@ class ChatSessionStore: ObservableObject {
         do {
             guard let ipc = ipc else {
                 sessions = loadSessionsLocal()
+                capSessions()
                 chatStoreLog.info("No IPC, loaded \(self.sessions.count) local sessions")
                 return
             }
             let result = try await ipc.call(method: RPCMethod.chatList)
             if let list = result["sessions"] as? [[String: Any]] {
                 sessions = list.compactMap { parseSessionData($0) }
+                capSessions()
                 chatStoreLog.info("Loaded \(self.sessions.count) chat sessions via IPC")
             }
         } catch {
             chatStoreLog.warning("chat.list IPC failed (\(error.localizedDescription)), falling back to local")
             sessions = loadSessionsLocal()
+            capSessions()
         }
     }
 
     func createSession(mode: String = "simple", title: String = "", graphId: String = "") async {
         let session = ChatSessionData(title: title.isEmpty ? "New Chat" : title, mode: mode, graphId: graphId)
         sessions.insert(session, at: 0)
+        capSessions()
         activeSession = session
         saveSessionLocal(session)
         chatStoreLog.info("Created chat session: \(session.id)")
@@ -522,6 +551,7 @@ class ChatSessionStore: ObservableObject {
                     deleteSessionLocal(session.id)
                     sessions.remove(at: 0)
                     sessions.insert(remote, at: 0)
+                    capSessions()
                     activeSession = remote
                     saveSessionLocal(remote)
                 }
@@ -623,6 +653,7 @@ class ChatSessionStore: ObservableObject {
         let userMsg = ChatMessageData(role: "user", content: text, attachments: attachments)
         var updated = session
         updated.messages.append(userMsg)
+        capMessages(&updated)
         updated.activeBranch = userMsg.id
         if updated.title.isEmpty {
             updated.title = String(text.prefix(60))
@@ -652,6 +683,7 @@ class ChatSessionStore: ObservableObject {
                 )
                 var errSession = activeSession ?? updated
                 errSession.messages.append(errMsg)
+                capMessages(&errSession)
                 errSession.activeBranch = errMsg.id
                 errSession.updatedAt = Date().timeIntervalSince1970
                 activeSession = errSession
@@ -773,6 +805,7 @@ class ChatSessionStore: ObservableObject {
                 let assistantMsg = ChatMessageData(role: "assistant", content: response, mode: mode, parentId: userMsg.id)
                 var updatedSession = activeSession ?? session
                 updatedSession.messages.append(assistantMsg)
+                capMessages(&updatedSession)
                 updatedSession.activeBranch = assistantMsg.id
                 if updatedSession.title.isEmpty { updatedSession.title = String(text.prefix(60)) }
                 updatedSession.updatedAt = Date().timeIntervalSince1970
@@ -803,6 +836,7 @@ class ChatSessionStore: ObservableObject {
             )
             var updatedSession = activeSession ?? session
             updatedSession.messages.append(assistantMsg)
+            capMessages(&updatedSession)
             updatedSession.activeBranch = assistantMsg.id
             if updatedSession.title.isEmpty {
                 updatedSession.title = String(text.prefix(60))
@@ -842,6 +876,7 @@ class ChatSessionStore: ObservableObject {
             )
             var updatedSession = activeSession ?? session
             updatedSession.messages.append(errMsg)
+            capMessages(&updatedSession)
             updatedSession.activeBranch = errMsg.id
             updatedSession.updatedAt = Date().timeIntervalSince1970
             activeSession = updatedSession
@@ -863,6 +898,7 @@ class ChatSessionStore: ObservableObject {
             parentId: updated.messages.last?.id ?? ""
         )
         updated.messages.append(userMsg)
+        capMessages(&updated)
         activeSession = updated
 
         do {
@@ -899,6 +935,7 @@ class ChatSessionStore: ObservableObject {
                 )
                 var updatedSession = activeSession ?? session
                 updatedSession.messages.append(assistantMsg)
+                capMessages(&updatedSession)
                 activeSession = updatedSession
                 if let idx = sessions.firstIndex(where: { $0.id == session.id }) {
                     sessions[idx] = updatedSession
@@ -919,6 +956,7 @@ class ChatSessionStore: ObservableObject {
             ])
             if let branched = parseSessionData(result) {
                 sessions.insert(branched, at: 0)
+                capSessions()
                 activeSession = branched
                 chatStoreLog.info("Branched chat at \(messageId) -> \(branched.id)")
             }
@@ -995,6 +1033,7 @@ class ChatSessionStore: ObservableObject {
                     )
                     var updated = session
                     updated.messages.append(remoteMsg)
+                    capMessages(&updated)
                     updated.activeBranch = editedId
                     activeSession = updated
                     if let idx = sessions.firstIndex(where: { $0.id == session.id }) {
@@ -1012,6 +1051,7 @@ class ChatSessionStore: ObservableObject {
 
         var updated = session
         updated.messages.append(editedMsg)
+        capMessages(&updated)
         updated.activeBranch = editedMsg.id
         activeSession = updated
         if let idx = sessions.firstIndex(where: { $0.id == session.id }) {
@@ -1068,6 +1108,7 @@ class ChatSessionStore: ObservableObject {
             )
             var updatedSession = session
             updatedSession.messages.append(errMsg)
+            capMessages(&updatedSession)
             updatedSession.activeBranch = errMsg.id
             updatedSession.updatedAt = Date().timeIntervalSince1970
             activeSession = updatedSession
@@ -1219,6 +1260,7 @@ class ChatSessionStore: ObservableObject {
             )
             var updatedSession = activeSession ?? session
             updatedSession.messages.append(assistantMsg)
+            capMessages(&updatedSession)
             updatedSession.activeBranch = assistantMsg.id
             updatedSession.updatedAt = Date().timeIntervalSince1970
             activeSession = updatedSession
@@ -1235,6 +1277,7 @@ class ChatSessionStore: ObservableObject {
             )
             var updatedSession = activeSession ?? session
             updatedSession.messages.append(errMsg)
+            capMessages(&updatedSession)
             updatedSession.activeBranch = errMsg.id
             activeSession = updatedSession
             if let idx = sessions.firstIndex(where: { $0.id == session.id }) {
