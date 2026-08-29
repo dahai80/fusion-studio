@@ -92,6 +92,40 @@ struct FCSessionDetail: Identifiable, Codable {
     var error: String
     var clusterNode: String
 
+    // F-I4: IPC session.* 响应 → JSONDecoder 强类型解码。config 字段在 top-level 扁平 (非 nested "config" 键),
+    // 与 FCSessionConfig.memberwise 字段 camelCase 不同, 故读 flat snake_case 后构造 config。宽容: 缺键 ?? default。
+    // working_dir/cwd dual-key (后端两套键)。守卫: id 缺 → throw (匹配旧 guard nil)。
+    enum CodingKeys: String, CodingKey {
+        case id, name, state
+        case message_count, created_at, updated_at, error, cluster_node
+        case working_dir, cwd, model, temperature, max_tokens, security_mode, allowed_dirs
+    }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        guard let idVal = try? c.decodeIfPresent(String.self, forKey: .id) else {
+            throw DecodingError.keyNotFound(CodingKeys.id, .init(codingPath: decoder.codingPath, debugDescription: "session missing id"))
+        }
+        id = idVal
+        name = (try? c.decodeIfPresent(String.self, forKey: .name)) ?? ""
+        let stateStr = (try? c.decodeIfPresent(String.self, forKey: .state)) ?? "idle"
+        state = FCSessionState(rawValue: stateStr) ?? .idle
+        messageCount = (try? c.decodeIfPresent(Int.self, forKey: .message_count)) ?? 0
+        createdAt = (try? c.decodeIfPresent(Double.self, forKey: .created_at)) ?? Date().timeIntervalSince1970
+        updatedAt = (try? c.decodeIfPresent(Double.self, forKey: .updated_at)) ?? Date().timeIntervalSince1970
+        error = (try? c.decodeIfPresent(String.self, forKey: .error)) ?? ""
+        clusterNode = (try? c.decodeIfPresent(String.self, forKey: .cluster_node)) ?? ""
+        config = FCSessionConfig(
+            sessionId: id,
+            name: name,
+            workingDir: (try? c.decodeIfPresent(String.self, forKey: .working_dir)) ?? (try? c.decodeIfPresent(String.self, forKey: .cwd)) ?? "",
+            model: (try? c.decodeIfPresent(String.self, forKey: .model)) ?? "",
+            temperature: (try? c.decodeIfPresent(Double.self, forKey: .temperature)) ?? 0.1,
+            maxTokens: (try? c.decodeIfPresent(Int.self, forKey: .max_tokens)) ?? 4096,
+            securityMode: (try? c.decodeIfPresent(String.self, forKey: .security_mode)) ?? "manual",
+            allowedDirs: (try? c.decodeIfPresent([String].self, forKey: .allowed_dirs)) ?? []
+        )
+    }
+
     init(
         id: String = UUID().uuidString.prefix(12).lowercased(),
         name: String = "",
@@ -116,6 +150,26 @@ struct FCSessionDetail: Identifiable, Codable {
 
     var isRunning: Bool {
         state == .running || state == .clusterRunning
+    }
+
+    // F-I4: 显式 encode(to:) — CodingKeys 含 dual-key 备用 case (cwd) 无对应存储属性, 合成 Encodable 失败, 故显式编码。
+    // FCSessionDetail 无磁盘编码路径 (sessions 内存态), Encodable 仅为 Codable 一致性, 扁平写 config 字段。
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(name, forKey: .name)
+        try c.encode(state, forKey: .state)
+        try c.encode(messageCount, forKey: .message_count)
+        try c.encode(createdAt, forKey: .created_at)
+        try c.encode(updatedAt, forKey: .updated_at)
+        try c.encode(error, forKey: .error)
+        try c.encode(clusterNode, forKey: .cluster_node)
+        try c.encode(config.workingDir, forKey: .working_dir)
+        try c.encode(config.model, forKey: .model)
+        try c.encode(config.temperature, forKey: .temperature)
+        try c.encode(config.maxTokens, forKey: .max_tokens)
+        try c.encode(config.securityMode, forKey: .security_mode)
+        try c.encode(config.allowedDirs, forKey: .allowed_dirs)
     }
 
     var canPause: Bool {

@@ -181,6 +181,23 @@ struct MLXModelInfo: Codable, Equatable, Identifiable {
     var object: String?
     var owned_by: String?
 
+    // F-I4: MLX /v1/models 响应 → JSONDecoder。derived name=id (匹配旧 parser), object/owned_by optional 宽容。
+    enum CodingKeys: String, CodingKey { case id, name, object, owned_by }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = (try? c.decodeIfPresent(String.self, forKey: .id)) ?? ""
+        name = (try? c.decodeIfPresent(String.self, forKey: .name)) ?? id
+        object = try? c.decodeIfPresent(String.self, forKey: .object)
+        owned_by = try? c.decodeIfPresent(String.self, forKey: .owned_by)
+    }
+    // memberwise init: AgentMlxService fetchModels 构造 (derived name=id)。
+    init(id: String, name: String, object: String? = nil, owned_by: String? = nil) {
+        self.id = id
+        self.name = name
+        self.object = object
+        self.owned_by = owned_by
+    }
+
     var isTextChatModel: Bool {
         let n = name.lowercased()
         let nonText = ["flux", "stable-diffusion", "sdxl", "sd-turbo", "sd3",
@@ -339,6 +356,23 @@ struct RAGResultModel: Codable, Equatable, Identifiable {
     var answer: String
     var sources: [String]
     var query: String
+
+    // F-I4: IPC rag.query 响应 → JSONDecoder。query 调用方注入 (RagTabView/ragQuery), 缺键 ?? placeholder ""。
+    enum CodingKeys: String, CodingKey { case id, answer, sources, query }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = (try? c.decodeIfPresent(String.self, forKey: .id)) ?? UUID().uuidString
+        answer = (try? c.decodeIfPresent(String.self, forKey: .answer)) ?? ""
+        sources = (try? c.decodeIfPresent([String].self, forKey: .sources)) ?? []
+        query = (try? c.decodeIfPresent(String.self, forKey: .query)) ?? ""
+    }
+    // memberwise init: ragQuery 调用方注 query, IntegrationTests 构造。保 id/sources default。
+    init(id: String = UUID().uuidString, answer: String, sources: [String] = [], query: String = "") {
+        self.id = id
+        self.answer = answer
+        self.sources = sources
+        self.query = query
+    }
 }
 
 struct MemoryEntryModel: Codable, Equatable, Identifiable {
@@ -349,12 +383,67 @@ struct MemoryEntryModel: Codable, Equatable, Identifiable {
     var importance: Int
     var timestamp: String
     var tier: String
+
+    // F-I4: IPC memory.* 响应 → JSONDecoder。entry_id/id dual-key。守卫: id/content 缺一 → throw (匹配旧 guard nil)。
+    enum CodingKeys: String, CodingKey { case id, content, scope, tags, importance, timestamp, tier, entry_id }
+    init(from decoder: Decoder) throws {
+        let top = try decoder.container(keyedBy: CodingKeys.self)
+        let c = try decoder.container(keyedBy: FAnyKey.self)
+        let resolvedId = (try? c.decodeIfPresent(String.self, forKey: .key("entry_id"))) ?? (try? top.decodeIfPresent(String.self, forKey: .id))
+        let resolvedContent = try? top.decodeIfPresent(String.self, forKey: .content)
+        guard let entryId = resolvedId, let contentVal = resolvedContent else {
+            throw DecodingError.keyNotFound(CodingKeys.id, .init(codingPath: decoder.codingPath, debugDescription: "memory entry missing entry_id/id or content"))
+        }
+        id = entryId
+        content = contentVal
+        scope = (try? top.decodeIfPresent(String.self, forKey: .scope)) ?? "default"
+        tags = (try? top.decodeIfPresent(String.self, forKey: .tags)) ?? ""
+        importance = (try? top.decodeIfPresent(Int.self, forKey: .importance)) ?? 5
+        timestamp = (try? top.decodeIfPresent(String.self, forKey: .timestamp)) ?? ""
+        tier = (try? top.decodeIfPresent(String.self, forKey: .tier)) ?? "short_term"
+    }
+    // memberwise init: AgentMemoryService parseMemoryEntry 构造 (将被 decodeCodable 替代, 保留兼容)。
+    init(id: String, content: String, scope: String = "default", tags: String = "", importance: Int = 5, timestamp: String = "", tier: String = "short_term") {
+        self.id = id
+        self.content = content
+        self.scope = scope
+        self.tags = tags
+        self.importance = importance
+        self.timestamp = timestamp
+        self.tier = tier
+    }
+    // F-I4: 显式 encode(to:) — CodingKeys 含 dual-key 备用 case (entry_id) 无对应存储属性, 合成 Encodable 失败, 故显式编码存储属性。
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(content, forKey: .content)
+        try c.encode(scope, forKey: .scope)
+        try c.encode(tags, forKey: .tags)
+        try c.encode(importance, forKey: .importance)
+        try c.encode(timestamp, forKey: .timestamp)
+        try c.encode(tier, forKey: .tier)
+    }
 }
 
 struct SafetyCheckModel: Codable, Equatable {
     var level: String
     var violations: [String]
     var approved: Bool
+
+    // F-I4: IPC safety.check 响应 → JSONDecoder 强类型解码。宽容: 缺键 ?? default (匹配旧 fromDict)。
+    enum CodingKeys: String, CodingKey { case level, violations, approved }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        level = (try? c.decodeIfPresent(String.self, forKey: .level)) ?? ""
+        violations = (try? c.decodeIfPresent([String].self, forKey: .violations)) ?? []
+        approved = (try? c.decodeIfPresent(Bool.self, forKey: .approved)) ?? false
+    }
+    // memberwise init: safetyCheck 构造 (将被 decodeCodable 替代, 保留兼容)。
+    init(level: String = "", violations: [String] = [], approved: Bool = false) {
+        self.level = level
+        self.violations = violations
+        self.approved = approved
+    }
 }
 
 struct SafetyActionModel: Codable, Equatable, Identifiable {
@@ -363,6 +452,35 @@ struct SafetyActionModel: Codable, Equatable, Identifiable {
     var status: String
     var content: String
     var reason: String = ""
+
+    // F-I4: IPC safety.get_pending_actions 响应 → JSONDecoder。action_id/id dual-key, ?? default 宽容。
+    enum CodingKeys: String, CodingKey { case id, category, status, content, reason, action_id }
+    init(from decoder: Decoder) throws {
+        let top = try decoder.container(keyedBy: CodingKeys.self)
+        let c = try decoder.container(keyedBy: FAnyKey.self)
+        id = (try? c.decodeIfPresent(String.self, forKey: .key("action_id"))) ?? (try? top.decodeIfPresent(String.self, forKey: .id)) ?? UUID().uuidString
+        category = (try? top.decodeIfPresent(String.self, forKey: .category)) ?? ""
+        status = (try? top.decodeIfPresent(String.self, forKey: .status)) ?? "pending"
+        content = (try? top.decodeIfPresent(String.self, forKey: .content)) ?? ""
+        reason = (try? top.decodeIfPresent(String.self, forKey: .reason)) ?? ""
+    }
+    // memberwise init: safetyEvaluateAction (site A) 从方法参数注 category/content (非 IPC dict), 不能走 decode。
+    init(id: String = UUID().uuidString, category: String, status: String = "pending", content: String, reason: String = "") {
+        self.id = id
+        self.category = category
+        self.status = status
+        self.content = content
+        self.reason = reason
+    }
+    // F-I4: 显式 encode(to:) — CodingKeys 含 dual-key 备用 case (action_id) 无对应存储属性, 合成 Encodable 失败, 故显式编码存储属性。
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(category, forKey: .category)
+        try c.encode(status, forKey: .status)
+        try c.encode(content, forKey: .content)
+        try c.encode(reason, forKey: .reason)
+    }
 }
 
 struct TemplateModel: Codable, Equatable, Identifiable {
@@ -371,12 +489,55 @@ struct TemplateModel: Codable, Equatable, Identifiable {
     var category: String
     var description: String
     var variables: [String]
+
+    // F-I4: IPC template.list/get 响应 → JSONDecoder。template_id/id dual-key, ?? default 宽容。
+    enum CodingKeys: String, CodingKey { case id, name, category, description, variables, template_id }
+    init(from decoder: Decoder) throws {
+        let top = try decoder.container(keyedBy: CodingKeys.self)
+        let c = try decoder.container(keyedBy: FAnyKey.self)
+        id = (try? c.decodeIfPresent(String.self, forKey: .key("template_id"))) ?? (try? top.decodeIfPresent(String.self, forKey: .id)) ?? UUID().uuidString
+        name = (try? top.decodeIfPresent(String.self, forKey: .name)) ?? ""
+        category = (try? top.decodeIfPresent(String.self, forKey: .category)) ?? ""
+        description = (try? top.decodeIfPresent(String.self, forKey: .description)) ?? ""
+        variables = (try? top.decodeIfPresent([String].self, forKey: .variables)) ?? []
+    }
+    // memberwise init: fetchTemplates/templateGet 构造, templateGet 兜底 templateId param。
+    init(id: String = UUID().uuidString, name: String = "", category: String = "", description: String = "", variables: [String] = []) {
+        self.id = id
+        self.name = name
+        self.category = category
+        self.description = description
+        self.variables = variables
+    }
+    // F-I4: 显式 encode(to:) — CodingKeys 含 dual-key 备用 case (template_id) 无对应存储属性, 合成 Encodable 失败, 故显式编码存储属性。
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(name, forKey: .name)
+        try c.encode(category, forKey: .category)
+        try c.encode(description, forKey: .description)
+        try c.encode(variables, forKey: .variables)
+    }
 }
 
 struct DeployFormatModel: Codable, Equatable, Identifiable {
     var id: String
     var format: String
     var description: String
+
+    // F-I4: IPC deploy.list_formats 响应 → JSONDecoder。derived id=format (匹配旧 fromDict), ?? default 宽容。
+    enum CodingKeys: String, CodingKey { case id, format, description }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        format = (try? c.decodeIfPresent(String.self, forKey: .format)) ?? ""
+        description = (try? c.decodeIfPresent(String.self, forKey: .description)) ?? ""
+        id = (try? c.decodeIfPresent(String.self, forKey: .id)) ?? format
+    }
+    init(id: String = UUID().uuidString, format: String, description: String = "") {
+        self.id = id
+        self.format = format
+        self.description = description
+    }
 }
 
 struct AgentModel: Codable, Equatable, Identifiable {
@@ -506,6 +667,60 @@ struct MarketplaceEntryModel: Codable, Equatable, Identifiable {
     var downloads: Int
     var created_at: String
     var updated_at: String
+
+    // F-I4: IPC marketplace.* 响应 → JSONDecoder。entry_id/id dual-key。守卫: id/name 缺一 → throw (匹配旧 guard nil)。
+    enum CodingKeys: String, CodingKey {
+        case id, name, author, description, category, tags, version, rating, downloads, created_at, updated_at, entry_id
+    }
+    init(from decoder: Decoder) throws {
+        let top = try decoder.container(keyedBy: CodingKeys.self)
+        let c = try decoder.container(keyedBy: FAnyKey.self)
+        let resolvedId = (try? c.decodeIfPresent(String.self, forKey: .key("entry_id"))) ?? (try? top.decodeIfPresent(String.self, forKey: .id))
+        let resolvedName = try? top.decodeIfPresent(String.self, forKey: .name)
+        guard let entryId = resolvedId, let nameVal = resolvedName else {
+            throw DecodingError.keyNotFound(CodingKeys.id, .init(codingPath: decoder.codingPath, debugDescription: "marketplace entry missing entry_id/id or name"))
+        }
+        id = entryId
+        name = nameVal
+        author = (try? top.decodeIfPresent(String.self, forKey: .author)) ?? ""
+        description = (try? top.decodeIfPresent(String.self, forKey: .description)) ?? ""
+        category = (try? top.decodeIfPresent(String.self, forKey: .category)) ?? ""
+        tags = (try? top.decodeIfPresent([String].self, forKey: .tags)) ?? []
+        version = (try? top.decodeIfPresent(String.self, forKey: .version)) ?? "1.0.0"
+        rating = (try? top.decodeIfPresent(Double.self, forKey: .rating)) ?? 0.0
+        downloads = (try? top.decodeIfPresent(Int.self, forKey: .downloads)) ?? 0
+        created_at = (try? top.decodeIfPresent(String.self, forKey: .created_at)) ?? ""
+        updated_at = (try? top.decodeIfPresent(String.self, forKey: .updated_at)) ?? ""
+    }
+    // memberwise init: AgentMarketplaceService parseMarketplaceEntry 构造 (将被 decodeCodable 替代, 保留兼容)。
+    init(id: String, name: String, author: String = "", description: String = "", category: String = "", tags: [String] = [], version: String = "1.0.0", rating: Double = 0.0, downloads: Int = 0, created_at: String = "", updated_at: String = "") {
+        self.id = id
+        self.name = name
+        self.author = author
+        self.description = description
+        self.category = category
+        self.tags = tags
+        self.version = version
+        self.rating = rating
+        self.downloads = downloads
+        self.created_at = created_at
+        self.updated_at = updated_at
+    }
+    // F-I4: 显式 encode(to:) — CodingKeys 含 dual-key 备用 case (entry_id) 无对应存储属性, 合成 Encodable 失败, 故显式编码存储属性。
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(name, forKey: .name)
+        try c.encode(author, forKey: .author)
+        try c.encode(description, forKey: .description)
+        try c.encode(category, forKey: .category)
+        try c.encode(tags, forKey: .tags)
+        try c.encode(version, forKey: .version)
+        try c.encode(rating, forKey: .rating)
+        try c.encode(downloads, forKey: .downloads)
+        try c.encode(created_at, forKey: .created_at)
+        try c.encode(updated_at, forKey: .updated_at)
+    }
 }
 
 @MainActor
@@ -1659,7 +1874,7 @@ final class AgentBridge: ObservableObject {
     // F-I4: [String:Any] (IPCClient 返值) → Data → JSONDecoder 强类型解码。
     // 保留 parseXModel(from:) signature, call site 零改。失败返 nil + log 报错 (审计: decode 报错可捕获, 不静默 nil)。
     // 跨文件调用方: AgentOpsService/AgentGraphService/AgentPlannerService/ArtifactsPanel 经 Self./AgentBridge. 访问。
-    static func decodeCodable<T: Decodable>(_ type: T.Type, from dict: [String: Any], context: String) -> T? {
+    nonisolated static func decodeCodable<T: Decodable>(_ type: T.Type, from dict: [String: Any], context: String) -> T? {
         do {
             guard JSONSerialization.isValidJSONObject(dict) else {
                 agentBridgeStaticLog.error("F-I4 decode \(context): invalid JSON object, keys=\(dict.keys.sorted())")

@@ -20,11 +20,11 @@ extension AgentBridge {
         agentSafetyLog.info("safetyCheck")
         do {
             let result = try await client.safetyCheck(content: content, context: context)
-            let check = SafetyCheckModel(
-                level: result["level"] as? String ?? "L1",
-                violations: result["violations"] as? [String] ?? [],
-                approved: result["approved"] as? Bool ?? true
-            )
+            // F-I4: 手动 dict["x"] as? Type → decodeCodable 强类型解码 (init(from:) 保 ?? default 宽容)。
+            guard let check = AgentBridge.decodeCodable(SafetyCheckModel.self, from: result, context: "safetyCheck") else {
+                agentSafetyLog.error("safetyCheck decode failed, keys=\(result.keys.sorted())")
+                throw BridgeError.ipcError("safetyCheck parse failed")
+            }
             self.moduleState.safetyCheckResult = check
             return check
         } catch let error as IPCError {
@@ -38,12 +38,14 @@ extension AgentBridge {
         guard let client = ipcClient else { throw BridgeError.notConnected }
         do {
             let result = try await client.safetyEvaluateAction(category: category, content: content, context: context)
-            return SafetyActionModel(
-                id: result["action_id"] as? String ?? UUID().uuidString,
-                category: category,
-                status: result["status"] as? String ?? "pending",
-                content: content
-            )
+            // F-I4: site A — id/status/reason 从 dict 解码, category/content 调用方注入 (非 dict 字段) 解码后覆盖。
+            guard var action = AgentBridge.decodeCodable(SafetyActionModel.self, from: result, context: "safetyEvaluateAction") else {
+                agentSafetyLog.error("safetyEvaluateAction decode failed, keys=\(result.keys.sorted())")
+                throw BridgeError.ipcError("safetyEvaluateAction parse failed")
+            }
+            action.category = category
+            action.content = content
+            return action
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
 
@@ -80,14 +82,14 @@ extension AgentBridge {
         do {
             let result = try await client.safetyGetPendingActions()
             let actionsData = result["actions"] as? [[String: Any]] ?? []
+            // F-I4: site B — 列表项 dict 双键 action_id/id 由 init(from:) 解码, ?? default 宽容。
             var parsed: [SafetyActionModel] = []
             for a in actionsData {
-                parsed.append(SafetyActionModel(
-                    id: a["action_id"] as? String ?? a["id"] as? String ?? UUID().uuidString,
-                    category: a["category"] as? String ?? "",
-                    status: a["status"] as? String ?? "pending",
-                    content: a["content"] as? String ?? ""
-                ))
+                guard let action = AgentBridge.decodeCodable(SafetyActionModel.self, from: a, context: "safetyPendingAction") else {
+                    agentSafetyLog.warning("fetchPendingSafetyActions: skip undecodable item, keys=\(a.keys.sorted())")
+                    continue
+                }
+                parsed.append(action)
             }
             self.moduleState.safetyPendingActions = parsed
             agentSafetyLog.info("fetchPendingSafetyActions: \(parsed.count) pending")

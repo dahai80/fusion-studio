@@ -27,6 +27,14 @@ swift test
 # 无本地 Rust 后台服务 (env-daemon 已删除, env.* 由中央路由 daemon_server.py 实现)
 ```
 
+### 本地 0 测试 = toolchain drift, 非回归
+
+本地 `swift test` 返回 **0 tests** —— 这不是测试丢失/回归，是 toolchain drift：
+本地 Swift 6.3.3 / macOS 26 / Testing Library 1902 **不发现 XCTest** 用例（`swift test list` 能枚举 ~205 用例，但执行 = 0）。
+CI（GitHub Actions macOS-14 + Xcode 15.x）`set -o pipefail && swift test 2>&1` 是**权威 gate**（~204 用例，~13-18min cold build）。
+本地与 CI 同一 `swift test` 命令，仅 toolchain 不同；无本地 flag 可恢复发现。判定测试绿否，以 CI 为准。
+
+
 ## Architecture
 
 Fusion Studio is a unified macOS native desktop client for the Fusion-MLX local AI ecosystem. It consolidates 25+ modules into a single SwiftUI app, running 100% offline on Apple Silicon.

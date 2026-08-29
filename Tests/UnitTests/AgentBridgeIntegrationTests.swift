@@ -326,4 +326,132 @@ final class AgentBridgeIntegrationTests: XCTestCase {
         XCTAssertEqual(step?.description, "x")
         XCTAssertEqual(step?.status, "pending")
     }
+
+    // MARK: - Group 6b — F-I4 batch 迁移模型宽容 (decodeCodable 直调, 锁 custom init(from:) leniency)
+
+    // SafetyCheckModel: 缺键全 ?? default, approved 缺 → false (旧 fromDict true, 新 init 一致性 false — 测记录新行为)。
+    func testDecodeSafetyCheckMissingKeysDefaults() {
+        let d: [String: Any] = ["level": "L2"]
+        let check = AgentBridge.decodeCodable(SafetyCheckModel.self, from: d, context: "safetyCheck")
+        XCTAssertEqual(check?.level, "L2")
+        XCTAssertEqual(check?.violations, [])
+        XCTAssertEqual(check?.approved, false)
+    }
+
+    // SafetyActionModel dual-key action_id/id, 缺 → UUID 兜底。
+    func testDecodeSafetyActionDualKey() {
+        let d1: [String: Any] = ["action_id": "ac1", "status": "approved"]
+        let d2: [String: Any] = ["id": "ac2", "category": "fs_write"]
+        let a1 = AgentBridge.decodeCodable(SafetyActionModel.self, from: d1, context: "safetyAction")
+        let a2 = AgentBridge.decodeCodable(SafetyActionModel.self, from: d2, context: "safetyAction")
+        XCTAssertEqual(a1?.id, "ac1")
+        XCTAssertEqual(a1?.status, "approved")
+        XCTAssertEqual(a2?.id, "ac2")
+        XCTAssertEqual(a2?.category, "fs_write")
+    }
+
+    // DeployFormatModel 派生 id=format (无显式 id 键)。
+    func testDecodeDeployFormatDerivedId() {
+        let d: [String: Any] = ["format": "json", "description": "JSON export"]
+        let f = AgentBridge.decodeCodable(DeployFormatModel.self, from: d, context: "deployFormat")
+        XCTAssertEqual(f?.format, "json")
+        XCTAssertEqual(f?.id, "json")
+        XCTAssertEqual(f?.description, "JSON export")
+    }
+
+    // RAGResultModel: answer/sources 解码, query 解码后调用方覆盖 (本测试验解码默认)。
+    func testDecodeRAGResultAnswerSources() {
+        let d: [String: Any] = ["answer": "A", "sources": ["s1", "s2"]]
+        let r = AgentBridge.decodeCodable(RAGResultModel.self, from: d, context: "ragQuery")
+        XCTAssertEqual(r?.answer, "A")
+        XCTAssertEqual(r?.sources, ["s1", "s2"])
+        XCTAssertEqual(r?.query, "")
+        XCTAssertFalse(r?.id.isEmpty ?? true)
+    }
+
+    // TemplateModel dual-key template_id/id。
+    func testDecodeTemplateDualKey() {
+        let d1: [String: Any] = ["template_id": "t1", "name": "T1", "variables": ["a", "b"]]
+        let d2: [String: Any] = ["id": "t2", "name": "T2"]
+        let t1 = AgentBridge.decodeCodable(TemplateModel.self, from: d1, context: "template")
+        let t2 = AgentBridge.decodeCodable(TemplateModel.self, from: d2, context: "template")
+        XCTAssertEqual(t1?.id, "t1")
+        XCTAssertEqual(t1?.variables, ["a", "b"])
+        XCTAssertEqual(t2?.id, "t2")
+        XCTAssertEqual(t2?.variables, [])
+    }
+
+    // MLXModelInfo 派生 name=id (无显式 name 键)。
+    func testDecodeMLXModelInfoDerivedName() {
+        let d: [String: Any] = ["id": "qwen3.5-9b", "object": "model", "owned_by": "local"]
+        let m = AgentBridge.decodeCodable(MLXModelInfo.self, from: d, context: "mlxModel")
+        XCTAssertEqual(m?.id, "qwen3.5-9b")
+        XCTAssertEqual(m?.name, "qwen3.5-9b")
+        XCTAssertEqual(m?.object, "model")
+        XCTAssertEqual(m?.owned_by, "local")
+    }
+
+    // MarketplaceEntryModel dual-key entry_id/id + guard id/name 缺一 → nil (匹配旧 guard)。
+    func testDecodeMarketplaceEntryDualKeyAndGuard() {
+        let d1: [String: Any] = ["entry_id": "e1", "name": "Entry", "version": "2.0.0", "rating": 4.5, "downloads": 100]
+        let d2: [String: Any] = ["id": "e2", "name": "Two"]
+        let d3: [String: Any] = ["entry_id": "e3"]
+        let e1 = AgentBridge.decodeCodable(MarketplaceEntryModel.self, from: d1, context: "marketplace")
+        let e2 = AgentBridge.decodeCodable(MarketplaceEntryModel.self, from: d2, context: "marketplace")
+        let e3 = AgentBridge.decodeCodable(MarketplaceEntryModel.self, from: d3, context: "marketplace")
+        XCTAssertEqual(e1?.id, "e1")
+        XCTAssertEqual(e1?.version, "2.0.0")
+        XCTAssertEqual(e1?.rating, 4.5)
+        XCTAssertEqual(e1?.downloads, 100)
+        XCTAssertEqual(e2?.id, "e2")
+        XCTAssertNil(e3)
+    }
+
+    // MemoryEntryModel dual-key entry_id/id + guard id/content 缺一 → nil。
+    func testDecodeMemoryEntryDualKeyAndGuard() {
+        let d1: [String: Any] = ["entry_id": "m1", "content": "hello", "scope": "work", "importance": 8, "tier": "long_term"]
+        let d2: [String: Any] = ["id": "m2", "content": "world"]
+        let d3: [String: Any] = ["entry_id": "m3", "scope": "x"]
+        let e1 = AgentBridge.decodeCodable(MemoryEntryModel.self, from: d1, context: "memory")
+        let e2 = AgentBridge.decodeCodable(MemoryEntryModel.self, from: d2, context: "memory")
+        let e3 = AgentBridge.decodeCodable(MemoryEntryModel.self, from: d3, context: "memory")
+        XCTAssertEqual(e1?.id, "m1")
+        XCTAssertEqual(e1?.content, "hello")
+        XCTAssertEqual(e1?.importance, 8)
+        XCTAssertEqual(e1?.tier, "long_term")
+        XCTAssertEqual(e2?.id, "m2")
+        XCTAssertNil(e3)
+    }
+
+    // FCSessionDetail: flat top-level config 字段 + working_dir/cwd dual-key + state 枚举兜底 + 缺 Date → now(非零)。
+    func testDecodeFCSessionDetailFlatConfigDualKeyAndEnum() {
+        let d: [String: Any] = [
+            "id": "sess1", "name": "My", "state": "running",
+            "working_dir": "/tmp/proj", "model": "qwen3", "temperature": 0.3,
+            "max_tokens": 8192, "security_mode": "auto", "allowed_dirs": ["/a", "/b"],
+            "message_count": 42, "cluster_node": "node1"
+        ]
+        let s = AgentBridge.decodeCodable(FCSessionDetail.self, from: d, context: "fcSessionDetail")
+        XCTAssertEqual(s?.id, "sess1")
+        XCTAssertEqual(s?.name, "My")
+        XCTAssertEqual(s?.state, .running)
+        XCTAssertEqual(s?.config.workingDir, "/tmp/proj")
+        XCTAssertEqual(s?.config.model, "qwen3")
+        XCTAssertEqual(s?.config.temperature, 0.3)
+        XCTAssertEqual(s?.config.maxTokens, 8192)
+        XCTAssertEqual(s?.config.allowedDirs, ["/a", "/b"])
+        XCTAssertEqual(s?.messageCount, 42)
+        XCTAssertEqual(s?.clusterNode, "node1")
+    }
+
+    // FCSessionDetail cwd 替代 working_dir + 未知 state → .idle 兜底 + id 缺 → nil。
+    func testDecodeFCSessionDetailCwdFallbackAndUnknownState() {
+        let d1: [String: Any] = ["id": "s2", "cwd": "/home", "state": "weird_state"]
+        let d2: [String: Any] = ["name": "noId"]
+        let s1 = AgentBridge.decodeCodable(FCSessionDetail.self, from: d1, context: "fcSessionDetail")
+        let s2 = AgentBridge.decodeCodable(FCSessionDetail.self, from: d2, context: "fcSessionDetail")
+        XCTAssertEqual(s1?.config.workingDir, "/home")
+        XCTAssertEqual(s1?.state, .idle)
+        XCTAssertNil(s2)
+    }
 }

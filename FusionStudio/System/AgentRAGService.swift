@@ -16,11 +16,12 @@ extension AgentBridge {
         agentRAGLog.info("ragQuery: query=\(query)")
         do {
             let result = try await client.ragQuery(query: query, config: config, model: model, systemPrompt: systemPrompt)
-            let ragResult = RAGResultModel(
-                answer: result["answer"] as? String ?? "",
-                sources: result["sources"] as? [String] ?? [],
-                query: query
-            )
+            // F-I4: 手动 result["answer"] as? String → decodeCodable 强类型解码 (init(from:) ?? default 宽容)。query 调用方注入, 解码后覆盖。
+            guard var ragResult = AgentBridge.decodeCodable(RAGResultModel.self, from: result, context: "ragQuery") else {
+                agentRAGLog.error("ragQuery decode failed, keys=\(result.keys.sorted())")
+                throw BridgeError.ipcError("ragQuery parse failed")
+            }
+            ragResult.query = query
             self.moduleState.ragResults.append(ragResult)
             // PERF-3: ragResults 无上限 append, 长会话无限增长内存。保留最近 50 条 (LRU 语义: 旧结果越早越无回看价值), 超额丢弃最旧。
             if self.moduleState.ragResults.count > 50 {

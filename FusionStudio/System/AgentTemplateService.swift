@@ -18,15 +18,14 @@ extension AgentBridge {
         do {
             let result = try await client.templateList(category: category)
             let templatesData = result["templates"] as? [[String: Any]] ?? []
+            // F-I4: site A 列表项 → decodeCodable (init(from:) dual-key template_id/id + ?? default 宽容)。
             var parsed: [TemplateModel] = []
             for t in templatesData {
-                parsed.append(TemplateModel(
-                    id: t["template_id"] as? String ?? t["id"] as? String ?? UUID().uuidString,
-                    name: t["name"] as? String ?? "",
-                    category: t["category"] as? String ?? "",
-                    description: t["description"] as? String ?? "",
-                    variables: t["variables"] as? [String] ?? []
-                ))
+                guard let tpl = AgentBridge.decodeCodable(TemplateModel.self, from: t, context: "templateList") else {
+                    agentTemplateLog.warning("fetchTemplates: skip undecodable template entry, keys=\(t.keys.sorted())")
+                    continue
+                }
+                parsed.append(tpl)
             }
             self.moduleState.templates = parsed
             agentTemplateLog.info("fetchTemplates: received \(parsed.count) templates")
@@ -42,13 +41,15 @@ extension AgentBridge {
         guard let client = ipcClient else { throw BridgeError.notConnected }
         do {
             let result = try await client.templateGet(templateId: templateId)
-            return TemplateModel(
-                id: result["template_id"] as? String ?? result["id"] as? String ?? templateId,
-                name: result["name"] as? String ?? "",
-                category: result["category"] as? String ?? "",
-                description: result["description"] as? String ?? "",
-                variables: result["variables"] as? [String] ?? []
-            )
+            // F-I4: site B → decodeCodable (init(from:) dual-key template_id/id + ?? default)。id 缺全部键时 fallback 调用方 templateId (保旧行为)。
+            guard var tpl = AgentBridge.decodeCodable(TemplateModel.self, from: result, context: "templateGet") else {
+                agentTemplateLog.error("templateGet decode failed, templateId=\(templateId, privacy: .public) keys=\(result.keys.sorted())")
+                throw BridgeError.ipcError("templateGet parse failed")
+            }
+            if tpl.id.isEmpty {
+                tpl.id = templateId
+            }
+            return tpl
         } catch let error as IPCError {
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
 
