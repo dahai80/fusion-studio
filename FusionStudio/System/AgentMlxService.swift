@@ -56,13 +56,12 @@ extension AgentBridge {
             }
             var parsed: [MLXModelInfo] = []
             for m in modelList {
-                let id = m["id"] as? String ?? ""
-                parsed.append(MLXModelInfo(
-                    id: id,
-                    name: id,
-                    object: m["object"] as? String,
-                    owned_by: m["owned_by"] as? String
-                ))
+                // F-I4: 手动 m["id"] as? String → decodeCodable 强类型解码 (init(from:) 派生 name=id, 缺键 ?? "")。
+                guard let model = AgentBridge.decodeCodable(MLXModelInfo.self, from: m, context: "mlxModel") else {
+                    agentMlxLog.warning("fetchModels: skip undecodable model entry, keys=\(m.keys.sorted())")
+                    continue
+                }
+                parsed.append(model)
             }
             self.mlxState.models = parsed
             agentMlxLog.info("fetchModels: received \(parsed.count) models from \(baseURL)")

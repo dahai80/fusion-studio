@@ -106,24 +106,8 @@ extension AgentBridge {
         }
     }
 
-    // marketplace-specific parser, file-private (private = 文件作用域), 仅本 extension 3 方法调用, Self 解析不变。
+    // F-I4: marketplace-specific parser 委托 decodeCodable (init(from:) dual-key entry_id/id + guard id/name 缺一 throw → caller nil)。
     private static func parseMarketplaceEntry(from dict: [String: Any]) -> MarketplaceEntryModel? {
-        guard let entryId = dict["entry_id"] as? String ?? dict["id"] as? String,
-              let name = dict["name"] as? String else {
-            return nil
-        }
-        return MarketplaceEntryModel(
-            id: entryId,
-            name: name,
-            author: dict["author"] as? String ?? "",
-            description: dict["description"] as? String ?? "",
-            category: dict["category"] as? String ?? "",
-            tags: dict["tags"] as? [String] ?? [],
-            version: dict["version"] as? String ?? "1.0.0",
-            rating: dict["rating"] as? Double ?? 0.0,
-            downloads: dict["downloads"] as? Int ?? 0,
-            created_at: dict["created_at"] as? String ?? "",
-            updated_at: dict["updated_at"] as? String ?? ""
-        )
+        return decodeCodable(MarketplaceEntryModel.self, from: dict, context: "marketplaceEntry")
     }
 }

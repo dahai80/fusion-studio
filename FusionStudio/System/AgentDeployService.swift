@@ -30,13 +30,14 @@ extension AgentBridge {
         do {
             let result = try await client.deployListFormats()
             let formatsData = result["formats"] as? [[String: Any]] ?? []
+            // F-I4: 手动 f["format"] as? String → decodeCodable 强类型解码 (init(from:) 派生 id=format, 缺键 ?? default)。
             var parsed: [DeployFormatModel] = []
             for f in formatsData {
-                parsed.append(DeployFormatModel(
-                    id: f["format"] as? String ?? UUID().uuidString,
-                    format: f["format"] as? String ?? "",
-                    description: f["description"] as? String ?? ""
-                ))
+                guard let fmt = AgentBridge.decodeCodable(DeployFormatModel.self, from: f, context: "deployFormat") else {
+                    agentDeployLog.warning("fetchDeployFormats: skip undecodable format entry, keys=\(f.keys.sorted())")
+                    continue
+                }
+                parsed.append(fmt)
             }
             self.moduleState.deployFormats = parsed
             return parsed

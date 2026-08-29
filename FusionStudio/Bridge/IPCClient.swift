@@ -75,7 +75,8 @@ class IPCClient: ObservableObject {
     // 服务端侧 (daemon_server.py chmod+peer-uid) 跨工程, 已提上游 issue 对齐。
     // 返回 nil=通过, 非 nil=拒绝原因 (含实际 mode 八进制, 便日志定位)。
     // 参数化 path: 主 socket (performConnect) 与短连接通道 (udsCall) 复用同一校验 (审计0827 P0-1)。
-    private func validateSocketPermission(_ path: String) -> String? {
+    // F-I4: private → internal, 便 @testable import IPCClientTests 直接验权限矩阵 (0666 拒/0600 过/0644 过)。
+    internal func validateSocketPermission(_ path: String) -> String? {
         // 用 FileManager 取 posix 权限, 避 Darwin stat()/struct stat 命名冲突。
         let url = URL(fileURLWithPath: path)
         guard let attrs = try? FileManager.default.attributesOfItem(atPath: url.path) else {

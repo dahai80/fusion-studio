@@ -296,30 +296,9 @@ class FusionCodeBridge: ObservableObject {
     }
 
     private func parseSessionDetail(_ s: [String: Any]) -> FCSessionDetail? {
-        guard let id = s["id"] as? String else { return nil }
-        let stateStr = s["state"] as? String ?? "idle"
-        let state = FCSessionState(rawValue: stateStr) ?? .idle
-        let config = FCSessionConfig(
-            sessionId: id,
-            name: (s["name"] as? String) ?? "",
-            workingDir: (s["working_dir"] as? String) ?? (s["cwd"] as? String) ?? "",
-            model: (s["model"] as? String) ?? "",
-            temperature: (s["temperature"] as? Double) ?? 0.1,
-            maxTokens: (s["max_tokens"] as? Int) ?? 4096,
-            securityMode: (s["security_mode"] as? String) ?? "manual",
-            allowedDirs: (s["allowed_dirs"] as? [String]) ?? []
-        )
-        return FCSessionDetail(
-            id: id,
-            name: (s["name"] as? String) ?? "",
-            state: state,
-            config: config,
-            messageCount: (s["message_count"] as? Int) ?? 0,
-            createdAt: (s["created_at"] as? Double) ?? Date().timeIntervalSince1970,
-            updatedAt: (s["updated_at"] as? Double) ?? Date().timeIntervalSince1970,
-            error: s["error"] as? String ?? "",
-            clusterNode: s["cluster_node"] as? String ?? ""
-        )
+        // F-I4: 手动 s["id"] as? String → AgentBridge.decodeCodable 强类型解码 (init(from:) 读 flat top-level 键 +
+        //   working_dir/cwd dual-key + FCSessionState rawValue ?? .idle + Date ?? now。守卫 id 缺 → throw → caller nil)。
+        return AgentBridge.decodeCodable(FCSessionDetail.self, from: s, context: "fcSessionDetail")
     }
 
     // MARK: - Code Generation

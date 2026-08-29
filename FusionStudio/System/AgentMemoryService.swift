@@ -115,19 +115,8 @@ extension AgentBridge {
 
     // MARK: - Memory Parsing Helper (domain parser, file-private, 仅本 extension 调用)
 
+    // F-I4: parseMemoryEntry 委托 decodeCodable (init(from:) dual-key entry_id/id + guard id/content 缺一 throw → caller nil)。
     private static func parseMemoryEntry(from dict: [String: Any]) -> MemoryEntryModel? {
-        guard let entryId = dict["entry_id"] as? String ?? dict["id"] as? String,
-              let content = dict["content"] as? String else {
-            return nil
-        }
-        return MemoryEntryModel(
-            id: entryId,
-            content: content,
-            scope: dict["scope"] as? String ?? "default",
-            tags: dict["tags"] as? String ?? "",
-            importance: dict["importance"] as? Int ?? 5,
-            timestamp: dict["timestamp"] as? String ?? "",
-            tier: dict["tier"] as? String ?? "short_term"
-        )
+        return decodeCodable(MemoryEntryModel.self, from: dict, context: "memoryEntry")
     }
 }
