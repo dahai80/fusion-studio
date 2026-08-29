@@ -141,6 +141,10 @@ struct ModuleDetailView: View {
             // Data schemas: TrainerRun/TrainerPreset/TrainerDataset/TrainerAdapter. User instruction: "continue Task" — Task #5 (#175)
             case .trainer:
                 TrainerView()
+            // #358: .douyin renders DouyinOperationView (orphan closed — Module.douyin added).
+            // ContentView:218 routes .douyinOperation section directly; this branch serves selectedModule == .douyin.
+            case .douyin:
+                DouyinOperationView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

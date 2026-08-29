@@ -109,71 +109,51 @@ struct IconRailView: View {
                 navState.activeSection = section
                 switch section {
                 case .chats:
-                    navState.selectedModule = .chat
                     navState.selectedSheet = .chat
                     uiPanelState.showChatsSidebar = true
                 case .projects:
-                    navState.selectedModule = .fusionProjects
                     navState.selectedSheet = .fusionProjectsSheet
                 case .artifacts:
-                    navState.selectedModule = .artifactsRepo
                     navState.selectedSheet = .artifactsSheet
                 case .code:
-                    navState.selectedModule = .code
                     navState.selectedSheet = .code
                 case .design:
-                    navState.selectedModule = .design
                     navState.selectedSheet = .code
                     uiPanelState.isInspectorVisible = false
                 case .rag:
-                    navState.selectedModule = .rag
                     navState.selectedSheet = .ragSheet
                 case .agent:
-                    navState.selectedModule = .agent
                     navState.selectedSheet = .agentStudio
                 case .aiAgent:
-                    navState.selectedModule = .aiAgentDashboard
                     navState.selectedSheet = .aiAgentSheet
                 case .cowork:
-                    navState.selectedModule = .cowork
                     navState.selectedSheet = .coworkSheet
                 case .mlx:
-                    navState.selectedModule = .dashboard
                     navState.selectedSheet = .mlx
                 // Model Hub 作为图标栏顶层独立入口，直接进 ModelHubMainView
                 case .modelHub:
-                    navState.selectedModule = .modelHub
                     navState.selectedSheet = .mlx
                 case .multiNode:
-                    navState.selectedModule = .clusterOverview
                     navState.selectedSheet = .multiNode
                 case .fsb:
-                    navState.selectedModule = .fsb
                     navState.selectedSheet = .fsbSheet
                 case .science:
-                    navState.selectedModule = .science
                     navState.selectedSheet = .scienceSheet
                 case .finance:
-                    navState.selectedModule = .finance
                     navState.selectedSheet = .financeSheet
                 case .health:
-                    navState.selectedModule = .health
                     navState.selectedSheet = .healthSheet
                 case .pluginEcosystem:
-                    navState.selectedModule = .pluginConfig
                     navState.selectedSheet = .pluginEcosystemSheet
                 case .cliService:
-                    navState.selectedModule = .cli
                     navState.selectedSheet = .cliServiceSheet
                 case .doc:
-                    navState.selectedModule = .doc
                     navState.selectedSheet = .docSheet
                 // Callers: IconRailView rail button tap.
                 // Affected API: navState.selectedModule/.selectedSheet routing for simulation section.
                 // Data schemas: SidebarSection.simulation -> Module.simulation -> ProductSheet.simulationSheet.
                 // User instruction: "在左侧菜单增加 fusion simulation"
                 case .simulation:
-                    navState.selectedModule = .simulation
                     navState.selectedSheet = .simulationSheet
                 // Callers: IconRailView rail button tap. Affected API: selectedSheet routing for douyin section. Phase 4 GUI。
                 case .douyinOperation:
@@ -181,9 +161,17 @@ struct IconRailView: View {
                 // Callers: IconRailView rail button tap. Affected API: selectedModule/.selectedSheet routing for trainer section.
                 // Data schemas: SidebarSection.trainer → Module.trainer → ProductSheet.trainerSheet. User instruction: "continue Task" — Task #5 (#175)
                 case .trainer:
-                    navState.selectedModule = .trainer
                     navState.selectedSheet = .trainerSheet
                 }
+                // #358: selectedModule is single-sourced from SidebarSection.modules.first
+                // (no duplicated literals — every section's first module is authoritative).
+                // selectedSheet above is intentionally hand-maintained per section: the
+                // "section landing sheet" can differ from modules.first.sheet (e.g.
+                // pluginEcosystem→.pluginEcosystemSheet vs .pluginConfig.sheet=.agentStudio;
+                // cliService→.cliServiceSheet vs .cli.sheet=.code). Both switches are
+                // exhaustive (no default) so a new SidebarSection case forces compiler errors
+                // at every dependent site. ?? .chat is dead-but-safe defense for empty modules.
+                navState.selectedModule = section.modules.first ?? .chat
             }
             railLog.info("Section selected: \(section.rawValue)")
         }) {
