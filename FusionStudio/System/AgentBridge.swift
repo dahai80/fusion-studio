@@ -814,6 +814,8 @@ final class AgentBridge: ObservableObject {
         self.ipcClient = client
         // ARCH-1 PR1 (#359): MLX 域 facade-delegate — MLXState 持自己的 ipcClient ref (MLX RPC 方法读 self.ipcClient)。
         self.mlxState.ipcClient = client
+        // ARCH-1 PR2 (#359): Runtime 域 facade-delegate — RuntimeState 持自己的 ipcClient ref (健康检查 RPC 读 self.ipcClient)。
+        self.runtimeState.ipcClient = client
         // F-A1 Phase 7: runtimeState 是 let 子对象, $runtimeState.isConnected 非法 ($投影仅限直接 @Published 属性)。
         // 改 .sink 手动写 runtimeState.isConnected, cancellable 持久化防订阅立即释放。
         client.$isConnected
@@ -826,54 +828,8 @@ final class AgentBridge: ObservableObject {
     }
 
     // MARK: - Health Check
-
-    func checkHealth() async throws -> Bool {
-        guard let client = ipcClient else {
-            throw BridgeError.notConnected
-        }
-        do {
-            let result = try await client.call(method: RPCMethod.ping)
-            let pong = result["pong"] as? Bool ?? false
-            self.runtimeState.isConnected = pong
-            logger.info("checkHealth: connected=\(pong)")
-            return pong
-        } catch let error as IPCError {
-            self.runtimeState.isConnected = false
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-
-            logger.error("checkHealth: \(error)")
-            throw bridgeErr
-        }
-    }
-
-    func fullHealthCheck() async throws -> [String: Any] {
-        guard let client = ipcClient else {
-            throw BridgeError.notConnected
-        }
-        let result: [String: Any]
-        do {
-            result = try await withThrowingTaskGroup(of: [String: Any].self) { group in
-                group.addTask {
-                    try await client.call(method: RPCMethod.envHealthCheck)
-                }
-                group.addTask {
-                    try await Task.sleep(nanoseconds: 8_000_000_000)
-                    throw BridgeError.timeout
-                }
-                guard let value = try await group.next() else {
-                    throw BridgeError.timeout
-                }
-                group.cancelAll()
-                return value
-            }
-        } catch BridgeError.timeout {
-            self.runtimeState.isConnected = false
-            logger.error("fullHealthCheck: timeout after 8s (env.health_check did not respond)")
-            throw BridgeError.timeout
-        }
-        self.runtimeState.isConnected = true
-        return result
-    }
+    // ARCH-1 PR2 (#359): checkHealth/fullHealthCheck 已迁 RuntimeState 域 (AgentRuntimeService facade-delegate)。
+    //   留 1 行 stub 委托 runtimeState.X(); 健康检查 RPC 读 runtimeState.ipcClient (setIPCClient 注入)。
 
     // 复核 MLX 是否可达：直接走 HTTP /v1/models（app 复用外部 mlx gateway :11432）。
     // 用于启动竞态后重试 / Design 等模块进入时复核，避免 isMLXRunning 滞留 false (bug3/bug7/bug8)。
@@ -949,8 +905,8 @@ final class AgentBridge: ObservableObject {
     // MARK: - Graph Operations
     // ARCH-1: fetchGraphs/createGraph/graphGet/updateGraph + parseGraphModel 抽至 AgentGraphService.swift facade extension
     // (耦合同迁: parseGraphModel private static + 6 调用方 = 4 graph + templateInstantiate + deployImport, private = 文件作用域必须同文件)。
-    // deleteGraph/executeGraph/cancelExecution 留此: executeGraph 依赖 Self.parseEventModel (Event 域 private) + 写共享 events/isExecuting;
-    //   deleteGraph/cancelExecution 无 parseGraphModel 依赖, 留以保持 Graph Ops MARK 完整语义。
+    // deleteGraph/executeGraph 留此: executeGraph 依赖 Self.parseEventModel (Event 域 private) + 写共享 events/isExecuting;
+    //   deleteGraph 无 parseGraphModel 依赖, 留以保持 Graph Ops MARK 完整语义。cancelExecution 已迁 RuntimeState 域 (PR2)。
 
     func deleteGraph(id: String) async throws {
         guard let client = ipcClient else {
@@ -1051,10 +1007,7 @@ final class AgentBridge: ObservableObject {
         }
     }
 
-    func cancelExecution() {
-        logger.info("cancelExecution")
-        self.runtimeState.isExecuting = false
-    }
+    // ARCH-1 PR2 (#359): cancelExecution 已迁 RuntimeState 域 (AgentRuntimeService facade-delegate), 留 1 行 stub。
 
     func fetchTools() async throws -> [[String: Any]] {
         guard let client = ipcClient else {

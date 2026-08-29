@@ -9,10 +9,15 @@ import os.log
 
 // MARK: - Runtime State (连接 / 执行 / 事件)
 
+@MainActor
 final class RuntimeState: ObservableObject {
     @Published var isConnected: Bool = false
     @Published var isExecuting: Bool = false
     @Published var events: [AgentEventModel] = []
+    // ARCH-1 PR2 (#359 facade-delegate): Runtime 行为从 AgentBridge 迁入域。
+    //   IPCClient ref 由 AgentBridge.setIPCClient 注入 (健康检查 RPC 方法读 self.ipcClient)。
+    //   ipcClient 为 internal (非 private): AgentRuntimeService extension 跨文件访问, Swift private=文件作用域。
+    var ipcClient: IPCClient?
     init() {}
 }
 

@@ -476,4 +476,41 @@ final class AgentBridgeIntegrationTests: XCTestCase {
         XCTAssertNotNil(bridge.mlxState.ipcClient)
         XCTAssertTrue(bridge.mlxState.ipcClient === mock)
     }
+
+    // MARK: - Group 8 — ARCH-1 PR2 (#359) RuntimeState facade-delegate
+
+    // facade-delegate + 域持 ipcClient: stub→runtimeState.checkHealth→client.call 路径。
+    // 验 bridge.checkHealth() 经 runtimeState 委托命中 MockIPCClient.call(method: RPCMethod.ping), 返 pong=true 写 isConnected。
+    func testRuntimeStateFacadeDelegatesCheckHealth() async throws {
+        mock.responsesByMethod[RPCMethod.ping] = ["pong": true]
+        let pong = try await bridge.checkHealth()
+        XCTAssertTrue(pong)
+        XCTAssertTrue(bridge.runtimeState.isConnected)
+        let call = mock.lastCall(method: RPCMethod.ping)
+        XCTAssertNotNil(call)
+    }
+
+    // checkHealth 错误路径: client 抛 IPCError → runtimeState 写 isConnected=false + 重抛 BridgeError.ipcError。
+    func testRuntimeStateCheckHealthErrorSetsDisconnected() async {
+        mock.errorsByMethod[RPCMethod.ping] = IPCError.disconnected
+        do {
+            _ = try await bridge.checkHealth()
+            XCTFail("expected throw")
+        } catch {
+            XCTAssertFalse(bridge.runtimeState.isConnected)
+        }
+    }
+
+    // cancelExecution 经 runtimeState 委托写 isExecuting=false。
+    func testRuntimeStateFacadeDelegatesCancelExecution() {
+        bridge.runtimeState.isExecuting = true
+        bridge.cancelExecution()
+        XCTAssertFalse(bridge.runtimeState.isExecuting)
+    }
+
+    // RuntimeState 持自己的 ipcClient ref: setIPCClient 后 bridge.runtimeState.ipcClient === mock。
+    func testRuntimeStateHoldsOwnIPCClient() {
+        XCTAssertNotNil(bridge.runtimeState.ipcClient)
+        XCTAssertTrue(bridge.runtimeState.ipcClient === mock)
+    }
 }
