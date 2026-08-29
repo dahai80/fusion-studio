@@ -744,16 +744,10 @@ final class AgentBridge: ObservableObject {
     // F-A1 Phase 1: models/mlxRunning/mlxLoadedModels/mlxPort 已迁 MLXState 域 (AgentBridgeDomains.swift)。
     // ARCH-1 PR1 (#359): mlxStatusTimer/mlxStatusFetchedAt 已迁 MLXState 域 (AgentMlxService facade-delegate)。
     // F-A2子2: 30s TTL 客户端缓存, 防 onAppear fetch 风暴。写操作置 nil 强制下次重拉。
-    // extension 不可声明存储属性, 故 8 个 fetch 时间戳集中主类, facade extension 读 self.xxxFetchedAt。
-    private var apikeysFetchedAt: Date?
+    // ARCH-1 PR3 (#359): configState 6 个 TTL (apikeys/cronJobs/styles/hooks/connectors/alerts) 已迁 ConfigState 域。
+    //   projects/tasksFetchedAt 留主类 (TaskState 域, 未来 PR 迁)。
     private var projectsFetchedAt: Date?
     private var tasksFetchedAt: Date?
-    private var cronJobsFetchedAt: Date?
-    // F-A2子2: 以下 4 个 facade extension 跨文件访问, 故 internal (非 private, Swift private=文件作用域)。
-    var stylesFetchedAt: Date?
-    var hooksFetchedAt: Date?
-    var connectorsFetchedAt: Date?
-    var alertsFetchedAt: Date?
 
     // ARCH-2: 逃逸 Task 生命周期管理。taskExecuteImmediate 的 fire-and-forget Task 存 handle,
     // 按 taskId 索引。任务删除/对象销毁时 cancel, 防 view 销毁后后台 Task 仍写 @Published。
@@ -816,6 +810,8 @@ final class AgentBridge: ObservableObject {
         self.mlxState.ipcClient = client
         // ARCH-1 PR2 (#359): Runtime 域 facade-delegate — RuntimeState 持自己的 ipcClient ref (健康检查 RPC 读 self.ipcClient)。
         self.runtimeState.ipcClient = client
+        // ARCH-1 PR3 (#359): Config 域 facade-delegate — ConfigState 持自己的 ipcClient ref (apikeys/cron/styles/hooks/connectors/analytics RPC 读 self.ipcClient)。
+        self.configState.ipcClient = client
         // F-A1 Phase 7: runtimeState 是 let 子对象, $runtimeState.isConnected 非法 ($投影仅限直接 @Published 属性)。
         // 改 .sink 手动写 runtimeState.isConnected, cancellable 持久化防订阅立即释放。
         client.$isConnected
@@ -1320,50 +1316,11 @@ final class AgentBridge: ObservableObject {
 
     // MARK: - API Key Operations
 
-    // F-A1 Phase 2: apikeys 已迁 ConfigState 域。
-
-    func fetchApikeys() async {
-        if let t = apikeysFetchedAt, Date().timeIntervalSince(t) < 30 { return }
-        apikeysFetchedAt = Date()
-        guard let client = ipcClient else { return }
-        do {
-            let result = try await client.apikeyList()
-            self.configState.apikeys = result["keys"] as? [[String: Any]] ?? []
-            logger.info("Fetched \(self.configState.apikeys.count) API keys")
-        } catch {
-            logger.debug("fetchApikeys failed: \(error.localizedDescription)")
-        }
-    }
-
-    func apikeyCreate(name: String, permissions: [String] = [], agentIds: [String] = []) async throws -> [String: Any] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        let result = try await client.apikeyCreate(name: name, permissions: permissions, agentIds: agentIds)
-        apikeysFetchedAt = nil
-        await fetchApikeys()
-        return result
-    }
-
-    func apikeyRevoke(keyId: String) async throws -> [String: Any] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        let result = try await client.apikeyRevoke(keyId: keyId)
-        apikeysFetchedAt = nil
-        await fetchApikeys()
-        return result
-    }
-
-    func apikeyRotate(keyId: String) async throws -> [String: Any] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        let result = try await client.call(method: RPCMethod.agentStudioApikeyRotate, params: ["key_id": keyId])
-        apikeysFetchedAt = nil
-        await fetchApikeys()
-        logger.info("Rotated API key: \(keyId)")
-        return result
-    }
+    // MARK: - API Key Operations
+    // ARCH-1 PR3 (#359): apikeys fetch/create/revoke/rotate 已迁 ConfigState 域 (AgentConfigService facade-delegate), 留 1 行 stub。
 
     // MARK: - Style Operations
-    // ARCH-1: fetchStyles/styleCreate/styleDelete 抽至 AgentStyleService.swift facade extension。
-    // 本域最薄叶 silo: 0 private 静态依赖, 0 持久状态。styleCreate/Delete 调 fetchStyles (同域, extension 内可达)。
-    // @Published styles 已迁 ConfigState 域 (有外部读)。
+    // ARCH-1 PR3 (#359): fetchStyles/styleCreate/styleDelete 已迁 ConfigState 域 (AgentStyleService facade-delegate), 留 1 行 stub。
 
     // MARK: - Analytics & Alert Operations
     // ARCH-1: fetchAnalytics/fetchAlerts/alertAcknowledge 抽至 AgentAnalyticsService.swift facade extension。
@@ -1783,36 +1740,8 @@ final class AgentBridge: ObservableObject {
     }
 
     // MARK: - Cron Operations
-    // @Published cronJobs 已迁 ConfigState 域 (有外部 SwiftUI 读 TaskQueueView cron 区)。
-
-    func fetchCronJobs() async {
-        if let t = cronJobsFetchedAt, Date().timeIntervalSince(t) < 30 { return }
-        cronJobsFetchedAt = Date()
-        guard let client = ipcClient else { return }
-        do {
-            let result = try await client.cronList()
-            self.configState.cronJobs = result["jobs"] as? [[String: Any]] ?? result["crons"] as? [[String: Any]] ?? []
-            logger.info("Fetched \(self.configState.cronJobs.count) cron jobs")
-        } catch {
-            logger.debug("fetchCronJobs failed: \(error.localizedDescription)")
-        }
-    }
-
-    func cronRegister(name: String, schedule: String, agentId: String, input: String = "") async throws -> [String: Any] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        let result = try await client.cronRegister(name: name, schedule: schedule, agentId: agentId, input: input)
-        cronJobsFetchedAt = nil
-        await fetchCronJobs()
-        return result
-    }
-
-    func cronUnregister(cronId: String) async throws -> [String: Any] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        let result = try await client.cronUnregister(cronId: cronId)
-        cronJobsFetchedAt = nil
-        await fetchCronJobs()
-        return result
-    }
+    // ARCH-1 PR3 (#359): cronJobs fetch/register/unregister 已迁 ConfigState 域 (AgentConfigService facade-delegate), 留 1 行 stub。
+    //   @Published cronJobs 在 ConfigState 域 (外部读 TaskQueueView cron 区), 经 bridge.configState.cronJobs 不变。
 
     // MARK: - Hooks Operations
     // ARCH-1: fetchHooks/hooksRegister/hooksTest 抽至 AgentHooksService.swift facade extension。

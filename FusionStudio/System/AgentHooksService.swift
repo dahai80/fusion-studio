@@ -1,41 +1,57 @@
-// ARCH-1: Hooks Operations 从 AgentBridge God-object 抽出, facade extension。
-// 3 方法 (fetchHooks/hooksRegister/hooksTest), 0 private 静态依赖, 0 持久状态, 0 跨域实例调用。最薄叶 silo。
-// @Published hooks (L2111, 声明在 Team MARK block, 历史摆放) 留主类 (extension 不可声明存储, 有外部 SwiftUI 读 AgentConfigTabs)。
-//   extension 写 self.configState.hooks, 观察链不变。
-// ipcClient 仍存 AgentBridge, extension 读 self.ipcClient。logger private → 文件级 agentHooksLog。
+// ARCH-1 PR3 (#359 facade-delegate): Hooks Operations 从 AgentBridge God-object 迁入 ConfigState 域。
+//   本文件含 2 extension:
+//     1) extension ConfigState — 3 真实方法体 (fetchHooks/hooksRegister/hooksTest, 自持 ipcClient + hooksFetchedAt TTL)。
+//     2) extension AgentBridge — 3 个 1 行 facade stub 委托到 configState.X(), 保外部 call site 签名零变。
+//   0 private 静态依赖, 0 持久状态, 0 跨域实例调用。最薄叶 silo。
+//   @Published hooks 在 ConfigState 域 (外部 SwiftUI 读 AgentConfigTabs), 经 bridge.configState.hooks 不变。
 
 import Foundation
 import os.log
 
 private let agentHooksLog = Logger(subsystem: "com.fusion.studio", category: "AgentHooksService")
 
-extension AgentBridge {
-
-    // MARK: - Hooks Operations
+// MARK: - Hooks Operations (行为落地 ConfigState 域)
+extension ConfigState {
 
     func fetchHooks() async {
-        if let t = hooksFetchedAt, Date().timeIntervalSince(t) < 30 { return }
-        hooksFetchedAt = Date()
-        guard let client = ipcClient else { return }
+        if let t = self.hooksFetchedAt, Date().timeIntervalSince(t) < 30 { return }
+        self.hooksFetchedAt = Date()
+        guard let client = self.ipcClient else { return }
         do {
             let result = try await client.hooksList()
-            self.configState.hooks = result["hooks"] as? [[String: Any]] ?? []
-            agentHooksLog.info("Fetched \(self.configState.hooks.count) hooks")
+            self.hooks = result["hooks"] as? [[String: Any]] ?? []
+            agentHooksLog.info("Fetched \(self.hooks.count) hooks")
         } catch {
             agentHooksLog.debug("fetchHooks failed: \(error.localizedDescription)")
         }
     }
 
     func hooksRegister(event: String, agentId: String, action: String) async throws -> [String: Any] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
+        guard let client = self.ipcClient else { throw BridgeError.notConnected }
         let result = try await client.hooksRegister(event: event, agentId: agentId, action: action)
-        hooksFetchedAt = nil
+        self.hooksFetchedAt = nil
         await fetchHooks()
         return result
     }
 
     func hooksTest(hookId: String) async throws -> [String: Any] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
+        guard let client = self.ipcClient else { throw BridgeError.notConnected }
         return try await client.hooksTest(hookId: hookId)
+    }
+}
+
+// MARK: - Hooks Operations (facade-delegate stubs — 行为已迁 ConfigState 域)
+extension AgentBridge {
+
+    func fetchHooks() async {
+        await configState.fetchHooks()
+    }
+
+    func hooksRegister(event: String, agentId: String, action: String) async throws -> [String: Any] {
+        try await configState.hooksRegister(event: event, agentId: agentId, action: action)
+    }
+
+    func hooksTest(hookId: String) async throws -> [String: Any] {
+        try await configState.hooksTest(hookId: hookId)
     }
 }

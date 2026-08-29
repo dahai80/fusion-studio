@@ -90,6 +90,7 @@ final class TaskState: ObservableObject {
 
 // MARK: - Config State (Connector + APIKey + Style + Hooks + Analytics + Team + Cron)
 
+@MainActor
 final class ConfigState: ObservableObject {
     @Published var connectors: [[String: Any]] = []
     @Published var apikeys: [[String: Any]] = []
@@ -100,6 +101,17 @@ final class ConfigState: ObservableObject {
     @Published var plazaChannels: [[String: Any]] = []
     @Published var cronJobs: [[String: Any]] = []
     @Published var hooks: [[String: Any]] = []
+    // ARCH-1 PR3 (#359 facade-delegate): Config 行为从 AgentBridge 迁入域。
+    //   IPCClient ref 由 AgentBridge.setIPCClient 注入 (config RPC 方法读 self.ipcClient)。
+    //   6 fetch TTL 时间戳原主类 (apikeys/cronJobs/styles/hooks/connectors/alerts), 现域自持。
+    //   ipcClient/TTL 为 internal (非 private): AgentConfig*Service extension 跨文件访问, Swift private=文件作用域。
+    var ipcClient: IPCClient?
+    var apikeysFetchedAt: Date?
+    var cronJobsFetchedAt: Date?
+    var stylesFetchedAt: Date?
+    var hooksFetchedAt: Date?
+    var connectorsFetchedAt: Date?
+    var alertsFetchedAt: Date?
     init() {}
 }
 
