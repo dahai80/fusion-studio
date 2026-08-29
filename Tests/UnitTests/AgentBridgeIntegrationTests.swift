@@ -454,4 +454,26 @@ final class AgentBridgeIntegrationTests: XCTestCase {
         XCTAssertEqual(s1?.state, .idle)
         XCTAssertNil(s2)
     }
+
+    // MARK: - Group 7 — ARCH-1 PR1 (#359) MLXState facade-delegate
+
+    // facade-delegate + 域持 ipcClient: stub→mlxState.startMLX→client.call 路径。
+    // 验 bridge.startMLX(model:) 经 mlxState 委托命中 MockIPCClient.call(method: RPCMethod.mlxStart, params:)。
+    func testMLXStateFacadeDelegatesStartMLX() async throws {
+        mock.responsesByMethod[RPCMethod.mlxStart] = ["running": true, "model": "test"]
+        let result = try await bridge.startMLX(model: "test")
+        XCTAssertEqual(result["running"] as? Bool, true)
+        XCTAssertEqual(result["model"] as? String, "test")
+        // 验 stub→mlxState.startMLX→client.call 路径: recordedCalls 含 mlxStart 且 params 带 model。
+        let call = mock.lastCall(method: RPCMethod.mlxStart)
+        XCTAssertNotNil(call)
+        XCTAssertEqual(call?.params["model"] as? String, "test")
+    }
+
+    // MLXState 持自己的 ipcClient ref: setIPCClient 后 bridge.mlxState.ipcClient === mock。
+    // 证明 wiring (setIPCClient 写 mlxState.ipcClient), 非 nil, 同一实例。
+    func testMLXStateHoldsOwnIPCClient() {
+        XCTAssertNotNil(bridge.mlxState.ipcClient)
+        XCTAssertTrue(bridge.mlxState.ipcClient === mock)
+    }
 }

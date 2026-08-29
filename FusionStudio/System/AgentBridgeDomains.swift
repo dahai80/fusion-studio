@@ -18,12 +18,20 @@ final class RuntimeState: ObservableObject {
 
 // MARK: - MLX State (模型列表 / 池可见性)
 
+@MainActor
 final class MLXState: ObservableObject {
     @Published var models: [MLXModelInfo] = []
     // F-A2子3: MLX 池可见性。周期轮询 mlx.status, 暴露 running + 已加载模型列表 + port。
     @Published var mlxRunning: Bool = false
     @Published var mlxLoadedModels: [String] = []
     @Published var mlxPort: Int = 0
+    // ARCH-1 PR1 (#359 facade-delegate): MLX 行为从 AgentBridge 迁入域。
+    //   IPCClient ref 由 AgentBridge.setIPCClient 注入 (MLX RPC 方法读 self.ipcClient)。
+    //   timer/TTL 原主类 actor-local, 现域自持 (extension 可写真实类存储属性)。
+    //   timer/TTL 为 internal (非 private): AgentMlxService extension 跨文件访问, Swift private=文件作用域。
+    var ipcClient: IPCClient?
+    var mlxStatusTimer: Timer?
+    var mlxStatusFetchedAt: Date?
     init() {}
 }
 

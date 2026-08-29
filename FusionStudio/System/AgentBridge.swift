@@ -742,9 +742,7 @@ final class AgentBridge: ObservableObject {
     // F-A1 Phase 4: chatMessages/isInferring 已迁 ProjectChatState 域 (AgentProjectChatService facade 写, 0 SwiftUI 读 write-only)。
     // F-A1 Phase 6: self.agentState.dashboardData 已迁 AgentState 域 (AgentOpsService:235 跨域写, 迁入同域消除跨域写)。
     // F-A1 Phase 1: models/mlxRunning/mlxLoadedModels/mlxPort 已迁 MLXState 域 (AgentBridgeDomains.swift)。
-    // F-A2子3: 以下 2 个 AgentMlxService facade extension 跨文件访问, 故 internal。
-    var mlxStatusTimer: Timer?
-    var mlxStatusFetchedAt: Date?
+    // ARCH-1 PR1 (#359): mlxStatusTimer/mlxStatusFetchedAt 已迁 MLXState 域 (AgentMlxService facade-delegate)。
     // F-A2子2: 30s TTL 客户端缓存, 防 onAppear fetch 风暴。写操作置 nil 强制下次重拉。
     // extension 不可声明存储属性, 故 8 个 fetch 时间戳集中主类, facade extension 读 self.xxxFetchedAt。
     private var apikeysFetchedAt: Date?
@@ -814,6 +812,8 @@ final class AgentBridge: ObservableObject {
 
     func setIPCClient(_ client: IPCClient) {
         self.ipcClient = client
+        // ARCH-1 PR1 (#359): MLX 域 facade-delegate — MLXState 持自己的 ipcClient ref (MLX RPC 方法读 self.ipcClient)。
+        self.mlxState.ipcClient = client
         // F-A1 Phase 7: runtimeState 是 let 子对象, $runtimeState.isConnected 非法 ($投影仅限直接 @Published 属性)。
         // 改 .sink 手动写 runtimeState.isConnected, cancellable 持久化防订阅立即释放。
         client.$isConnected
