@@ -513,4 +513,77 @@ final class AgentBridgeIntegrationTests: XCTestCase {
         XCTAssertNotNil(bridge.runtimeState.ipcClient)
         XCTAssertTrue(bridge.runtimeState.ipcClient === mock)
     }
+
+    // MARK: - Group 9 — ARCH-1 PR3 (#359) ConfigState facade-delegate
+
+    // facade-delegate + 域持 ipcClient: stub→configState.fetchApikeys→client.call(method: RPCMethod.apikeyList) 路径。
+    // 验 bridge.fetchApikeys() 经 configState 委托命中 MockIPCClient, 解析 result["keys"] 写 @Published apikeys。
+    func testConfigStateFacadeDelegatesFetchApikeys() async throws {
+        mock.responsesByMethod[RPCMethod.apikeyList] = [
+            "keys": [
+                ["key_id": "k1", "name": "One"],
+                ["key_id": "k2", "name": "Two"],
+            ],
+        ]
+        await bridge.fetchApikeys()
+        XCTAssertEqual(bridge.configState.apikeys.count, 2)
+        XCTAssertEqual(bridge.configState.apikeys.first?["key_id"] as? String, "k1")
+        let call = mock.lastCall(method: RPCMethod.apikeyList)
+        XCTAssertNotNil(call)
+    }
+
+    // fetchApikeys TTL: 30s 内二次调用不再发 RPC (apikeysFetchedAt 守卫, @Published 不变)。
+    func testConfigStateFetchApikeysTTLGuardsSecondCall() async throws {
+        mock.responsesByMethod[RPCMethod.apikeyList] = ["keys": [["key_id": "k1", "name": "One"]]]
+        await bridge.fetchApikeys()
+        let firstCount = mock.recordedCalls.filter { $0.method == RPCMethod.apikeyList }.count
+        mock.responsesByMethod[RPCMethod.apikeyList] = ["keys": [["key_id": "k9", "name": "Changed"]]]
+        await bridge.fetchApikeys()
+        let secondCount = mock.recordedCalls.filter { $0.method == RPCMethod.apikeyList }.count
+        XCTAssertEqual(firstCount, 1)
+        XCTAssertEqual(secondCount, 1, "TTL 守卫: 30s 内不再发 RPC")
+        XCTAssertEqual(bridge.configState.apikeys.first?["key_id"] as? String, "k1", "TTL 内 @Published 不被二次响应覆盖")
+    }
+
+    // apikeyCreate 写后置 apikeysFetchedAt=nil 强制下次重拉 → 两次 RPC (create + list)。
+    func testConfigStateApikeyCreateInvalidatesTTL() async throws {
+        mock.responsesByMethod[RPCMethod.apikeyCreate] = ["key_id": "new", "name": "N"]
+        mock.responsesByMethod[RPCMethod.apikeyList] = ["keys": [["key_id": "new", "name": "N"]]]
+        _ = try await bridge.apikeyCreate(name: "N")
+        let listCalls = mock.recordedCalls.filter { $0.method == RPCMethod.apikeyList }.count
+        XCTAssertEqual(listCalls, 1, "create 置 TTL=nil 强制 fetchApikeys 重拉")
+        XCTAssertEqual(bridge.configState.apikeys.count, 1)
+    }
+
+    // facade-delegate cron: stub→configState.fetchCronJobs→client.call(method: RPCMethod.cronList), dual-key jobs/crons 兜底。
+    func testConfigStateFacadeDelegatesFetchCronJobs() async throws {
+        mock.responsesByMethod[RPCMethod.cronList] = [
+            "jobs": [
+                ["cron_id": "c1", "name": "Daily"],
+            ],
+        ]
+        await bridge.fetchCronJobs()
+        XCTAssertEqual(bridge.configState.cronJobs.count, 1)
+        XCTAssertEqual(bridge.configState.cronJobs.first?["cron_id"] as? String, "c1")
+        XCTAssertNotNil(mock.lastCall(method: RPCMethod.cronList))
+    }
+
+    // facade-delegate connector: stub→configState.fetchConnectors→client.call(method: RPCMethod.connectorList)。
+    func testConfigStateFacadeDelegatesFetchConnectors() async throws {
+        mock.responsesByMethod[RPCMethod.connectorList] = [
+            "connectors": [
+                ["connector_id": "x1", "name": "Webhook"],
+            ],
+        ]
+        await bridge.fetchConnectors()
+        XCTAssertEqual(bridge.configState.connectors.count, 1)
+        XCTAssertEqual(bridge.configState.connectors.first?["connector_id"] as? String, "x1")
+        XCTAssertNotNil(mock.lastCall(method: RPCMethod.connectorList))
+    }
+
+    // ConfigState 持自己的 ipcClient ref: setIPCClient 后 bridge.configState.ipcClient === mock。
+    func testConfigStateHoldsOwnIPCClient() {
+        XCTAssertNotNil(bridge.configState.ipcClient)
+        XCTAssertTrue(bridge.configState.ipcClient === mock)
+    }
 }
