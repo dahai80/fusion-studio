@@ -164,6 +164,7 @@ enum Module: String, CaseIterable, Identifiable {
     // Callers: ModuleDetailView, FusionSidebarView. Affected API: trainer.* IPC via TrainerBridge.
     // Data schemas: TrainerRun/TrainerPreset/TrainerAdapter. User instruction: "continue Task" — fusion-trainer RunManager GUI panel (#175)
     case trainer = "Trainer"
+    case douyin = "Douyin Operation"  // #358: close orphan — SidebarSection.douyinOperation now has a Module
 
     var id: String { rawValue }
 
@@ -233,6 +234,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .pluginLog:            key = .mod_pluginLog
         case .pluginMcp:            key = .mod_pluginMcp
         case .trainer:              key = .mod_trainer
+        case .douyin:               key = .mod_douyin
         }
         return I18nManager.shared.t(key)
     }
@@ -302,6 +304,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .pluginLog: return "list.bullet.rectangle"
         case .pluginMcp: return "link"
         case .trainer:   return "graduationcap.fill"
+        case .douyin:    return "play.rectangle.fill"
         }
     }
 
@@ -350,6 +353,8 @@ enum Module: String, CaseIterable, Identifiable {
             return .agentStudio
         case .trainer:
             return .trainerSheet
+        case .douyin:
+            return .douyinOperationSheet
         }
     }
 }
@@ -441,6 +446,13 @@ enum SidebarSection: String, CaseIterable, Identifiable {
     }
 
     var modules: [Module] {
+        // #358: this hand exhaustive switch (no default) IS the single source for the
+        // SidebarSection→[Module] grouping. A single `Module.section` property cannot
+        // model it — the mapping is many-to-many (Module.design ∈ {.design, .code};
+        // Module.code ∈ {.chats, .code}; Module.cli ∈ {.code, .cliService}). The
+        // curated order is load-bearing (FusionSidebarView ForEach renders verbatim).
+        // Adding a new Module case forces a compiler error here (must be placed in some
+        // section's array) plus at Module.sheet/localizedName/icon/ModuleDetailView.
         switch self {
         case .chats:     return [.chat, .code]
         case .projects:  return [.fusionProjects]
@@ -462,7 +474,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .health:    return [.health]
         case .pluginEcosystem: return [.pluginConfig, .pluginStatus, .pluginToken, .pluginVram, .pluginLog, .pluginMcp]
         case .cliService: return [.cli]
-        case .douyinOperation: return []
+        case .douyinOperation: return [.douyin]
         case .trainer: return [.trainer]
         }
     }
