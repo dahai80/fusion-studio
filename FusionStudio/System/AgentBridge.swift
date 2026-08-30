@@ -812,6 +812,8 @@ final class AgentBridge: ObservableObject {
         self.runtimeState.ipcClient = client
         // ARCH-1 PR3 (#359): Config 域 facade-delegate — ConfigState 持自己的 ipcClient ref (apikeys/cron/styles/hooks/connectors/analytics RPC 读 self.ipcClient)。
         self.configState.ipcClient = client
+        // ARCH-1 PR4 (#359): Module 域 facade-delegate — ModuleState 持自己的 ipcClient ref (tools/skill/research/planner/rag/memory/safety/deploy/template RPC 读 self.ipcClient)。
+        self.moduleState.ipcClient = client
         // F-A1 Phase 7: runtimeState 是 let 子对象, $runtimeState.isConnected 非法 ($投影仅限直接 @Published 属性)。
         // 改 .sink 手动写 runtimeState.isConnected, cancellable 持久化防订阅立即释放。
         client.$isConnected
@@ -1004,67 +1006,7 @@ final class AgentBridge: ObservableObject {
     }
 
     // ARCH-1 PR2 (#359): cancelExecution 已迁 RuntimeState 域 (AgentRuntimeService facade-delegate), 留 1 行 stub。
-
-    func fetchTools() async throws -> [[String: Any]] {
-        guard let client = ipcClient else {
-            throw BridgeError.notConnected
-        }
-        logger.info("fetchTools")
-        do {
-            let result = try await client.call(method: RPCMethod.toolList, params: [:])
-            let tools = result["tools"] as? [[String: Any]] ?? []
-            self.moduleState.tools = tools
-            return tools
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-
-            logger.error("fetchTools: \(error)")
-            throw bridgeErr
-        }
-    }
-
-    func toolDynamicRegister(name: String, description: String, parameters: [String: Any], code: String = "") async throws -> [String: Any] {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        logger.info("toolDynamicRegister: \(name)")
-        do {
-            let result = try await client.toolDynamicRegister(name: name, description: description, parameters: parameters, code: code)
-            try await fetchTools()
-            return result
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-
-            throw bridgeErr
-        }
-    }
-
-    func toolDynamicUnregister(name: String) async throws -> Bool {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        logger.info("toolDynamicUnregister: \(name)")
-        do {
-            _ = try await client.toolDynamicUnregister(name: name)
-            try await fetchTools()
-            return true
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-
-            throw bridgeErr
-        }
-    }
-
-    func getTool(name: String) async throws -> [String: Any] {
-        guard let client = ipcClient else {
-            throw BridgeError.notConnected
-        }
-        logger.info("getTool: \(name)")
-        do {
-            return try await client.call(method: RPCMethod.toolGet, params: ["name": name])
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-
-            logger.error("getTool: \(error)")
-            throw bridgeErr
-        }
-    }
+    // ARCH-1 PR4 (#359): fetchTools/toolDynamicRegister/toolDynamicUnregister/getTool 已迁 ModuleState 域 (AgentModuleService facade-delegate), 留 1 行 stub。
 
     func listSessions() async throws -> [[String: Any]] {
         guard let client = ipcClient else {
@@ -1262,36 +1204,7 @@ final class AgentBridge: ObservableObject {
 
     // ARCH-1: RAG Operations (ragQuery/ragRetrieve/ragVectorSearch) 抽至 AgentRAGService.swift facade extension。
     // @Published ragResults/ragSources + ipcClient 留本类 (extension 不可声明存储), 0 行为零变。
-
-    func skillExecute(agentId: String, skillName: String, input: String, tools: [String] = []) async throws -> String {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        logger.info("skillExecute: agent=\(agentId) skill=\(skillName)")
-        do {
-            let result = try await client.skillExecute(agentId: agentId, skillName: skillName, input: input, tools: tools)
-            let output = result["result"] as? String ?? result["output"] as? String ?? ""
-            self.moduleState.lastSkillResult = output
-            return output
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-
-            throw bridgeErr
-        }
-    }
-
-    func researchAdaptive(question: String, maxSteps: Int = 10, webSearch: Bool = true) async throws -> String {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
-        logger.info("researchAdaptive: question=\(question) maxSteps=\(maxSteps)")
-        do {
-            let result = try await client.researchAdaptive(question: question, maxSteps: maxSteps, webSearch: webSearch)
-            let summary = result["summary"] as? String ?? result["result"] as? String ?? ""
-            self.moduleState.lastResearchResult = summary
-            return summary
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-
-            throw bridgeErr
-        }
-    }
+    // ARCH-1 PR4 (#359): skillExecute/researchAdaptive 已迁 ModuleState 域 (AgentModuleService facade-delegate), 留 1 行 stub。
 
     // MARK: - Memory Operations
     // ARCH-1: memoryStore/memoryRecall/fetchRecentMemories/memoryDelete/memoryDeleteScope/fetchMemoryCount
