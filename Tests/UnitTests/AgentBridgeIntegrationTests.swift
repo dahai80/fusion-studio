@@ -660,4 +660,84 @@ final class AgentBridgeIntegrationTests: XCTestCase {
         XCTAssertNotNil(bridge.moduleState.ipcClient)
         XCTAssertTrue(bridge.moduleState.ipcClient === mock)
     }
+
+    // MARK: - Group 11 — ARCH-1 PR5 (#359) AgentState facade-delegate
+
+    // facade-delegate fetchAgents: stub→agentState.fetchAgents→client.agentList, parseAgentModel decode 写 @Published agents。
+    func testAgentStateFacadeDelegatesFetchAgents() async throws {
+        mock.responsesByMethod[RPCMethod.agentList] = [
+            "agents": [
+                ["agent_id": "a1", "name": "One", "model": "q"],
+                ["id": "a2", "name": "Two"],
+            ],
+        ]
+        let parsed = try await bridge.fetchAgents()
+        XCTAssertEqual(parsed.count, 2)
+        XCTAssertEqual(bridge.agentState.agents.count, 2)
+        XCTAssertEqual(bridge.agentState.agents.first?.id, "a1")
+        XCTAssertNotNil(mock.lastCall(method: RPCMethod.agentList))
+    }
+
+    // facade-delegate chatStream: stub→agentState.chatStream→client.call(agent_studio.agent.chat), 写 @Published streamingContent/activeSessionId。
+    func testAgentStateFacadeDelegatesChatStream() async throws {
+        mock.responsesByMethod[RPCMethod.agentStudioAgentChat] = [
+            "content": "hello reply",
+            "session_id": "sess-7",
+            "tool_calls": [["name": "search"]],
+        ]
+        var tokens: [String] = []
+        let content = try await bridge.chatStream(agentId: "a1", message: "hi") { token in tokens.append(token) }
+        XCTAssertEqual(content, "hello reply")
+        XCTAssertEqual(tokens, ["hello reply"])
+        XCTAssertEqual(bridge.agentState.streamingContent, "hello reply")
+        XCTAssertEqual(bridge.agentState.activeSessionId, "sess-7")
+        XCTAssertEqual(bridge.agentState.lastToolCalls.count, 1)
+        XCTAssertFalse(bridge.agentState.isAgentStreaming)
+        let call = mock.lastCall(method: RPCMethod.agentStudioAgentChat)
+        XCTAssertEqual(call?.params["agent_id"] as? String, "a1")
+        XCTAssertEqual(call?.params["message"] as? String, "hi")
+    }
+
+    // facade-delegate fetchGraphs (Graph 域): stub→agentState.fetchGraphs→client.call(graphList), parseGraphModel decode 写 @Published graphs。
+    // 验 templateInstantiate/deployImport 随 parseGraphModel 同迁 AgentState 域后 Graph 路径完整。
+    func testAgentStateFacadeDelegatesFetchGraphs() async throws {
+        mock.responsesByMethod[RPCMethod.graphList] = [
+            "graphs": [
+                ["id": "g1", "name": "G1", "nodes": [["id": "n1", "type": "llm", "label": "N1"]], "edges": []],
+            ],
+        ]
+        let parsed = try await bridge.fetchGraphs()
+        XCTAssertEqual(parsed.count, 1)
+        XCTAssertEqual(bridge.agentState.graphs.count, 1)
+        XCTAssertEqual(bridge.agentState.graphs.first?.id, "g1")
+    }
+
+    // facade-delegate deleteGraph (Graph 域, 原 main-class 叶法入域): stub→agentState.deleteGraph→client.call(graphDelete)。
+    func testAgentStateFacadeDelegatesDeleteGraph() async throws {
+        mock.responsesByMethod[RPCMethod.graphDelete] = ["deleted": true]
+        try await bridge.deleteGraph(id: "g1")
+        let call = mock.lastCall(method: RPCMethod.graphDelete)
+        XCTAssertEqual(call?.params["graph_id"] as? String, "g1")
+    }
+
+    // facade-delegate marketplaceSearch (Marketplace 域): stub→agentState.marketplaceSearch→client.marketplaceSearch,
+    // parseMarketplaceEntry (bare decodeCodable→AgentBridge.decodeCodable 限定) decode 写 @Published marketplaceEntries。
+    func testAgentStateFacadeDelegatesMarketplaceSearch() async throws {
+        mock.responsesByMethod[RPCMethod.marketplaceSearch] = [
+            "entries": [
+                ["entry_id": "e1", "name": "Agent Pack", "category": "assistant"],
+                ["entry_id": "e2", "name": "Graph Pack", "category": "workflow"],
+            ],
+        ]
+        let entries = try await bridge.marketplaceSearch(query: "pack")
+        XCTAssertEqual(entries.count, 2)
+        XCTAssertEqual(bridge.agentState.marketplaceEntries.count, 2)
+        XCTAssertEqual(bridge.agentState.marketplaceEntries.first?.id, "e1")
+    }
+
+    // AgentState 持自己的 ipcClient ref: setIPCClient 后 bridge.agentState.ipcClient === mock。
+    func testAgentStateHoldsOwnIPCClient() {
+        XCTAssertNotNil(bridge.agentState.ipcClient)
+        XCTAssertTrue(bridge.agentState.ipcClient === mock)
+    }
 }

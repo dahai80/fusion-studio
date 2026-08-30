@@ -42,6 +42,7 @@ final class MLXState: ObservableObject {
 
 // MARK: - Agent State (Agent 生命周期 + Marketplace + 流式 + Graphs + Dashboard, 最大域)
 
+@MainActor
 final class AgentState: ObservableObject {
     @Published var agents: [AgentModel] = []
     @Published var currentAgent: AgentModel? = nil
@@ -58,6 +59,11 @@ final class AgentState: ObservableObject {
     @Published var lastToolCalls: [[String: Any]] = []
     @Published var graphs: [AgentGraphModel] = []
     @Published var dashboardData: [String: Any] = [:]
+    // ARCH-1 PR5 (#359 facade-delegate): Agent 行为从 AgentBridge 迁入域。
+    //   IPCClient ref 由 AgentBridge.setIPCClient 注入 (agent/graph/marketplace RPC 方法读 self.ipcClient)。
+    //   Agent 无 fetch TTL (fetchAgents 已有 F-R4 in-flight dedup 静态守卫, 其余 fetch 即时读/写)。
+    //   ipcClient 为 internal (非 private): AgentOps/Graph/MarketplaceService extension 跨文件访问, Swift private=文件作用域。
+    var ipcClient: IPCClient?
     init() {}
 }
 

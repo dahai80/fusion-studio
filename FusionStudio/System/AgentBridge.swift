@@ -814,6 +814,8 @@ final class AgentBridge: ObservableObject {
         self.configState.ipcClient = client
         // ARCH-1 PR4 (#359): Module 域 facade-delegate — ModuleState 持自己的 ipcClient ref (tools/skill/research/planner/rag/memory/safety/deploy/template RPC 读 self.ipcClient)。
         self.moduleState.ipcClient = client
+        // ARCH-1 PR5 (#359): Agent 域 facade-delegate — AgentState 持自己的 ipcClient ref (agent/graph/marketplace lifecycle + skills/soul/chat/dashboard/audit RPC 读 self.ipcClient)。
+        self.agentState.ipcClient = client
         // F-A1 Phase 7: runtimeState 是 let 子对象, $runtimeState.isConnected 非法 ($投影仅限直接 @Published 属性)。
         // 改 .sink 手动写 runtimeState.isConnected, cancellable 持久化防订阅立即释放。
         client.$isConnected
@@ -901,26 +903,10 @@ final class AgentBridge: ObservableObject {
     }
 
     // MARK: - Graph Operations
-    // ARCH-1: fetchGraphs/createGraph/graphGet/updateGraph + parseGraphModel 抽至 AgentGraphService.swift facade extension
-    // (耦合同迁: parseGraphModel private static + 6 调用方 = 4 graph + templateInstantiate + deployImport, private = 文件作用域必须同文件)。
-    // deleteGraph/executeGraph 留此: executeGraph 依赖 Self.parseEventModel (Event 域 private) + 写共享 events/isExecuting;
-    //   deleteGraph 无 parseGraphModel 依赖, 留以保持 Graph Ops MARK 完整语义。cancelExecution 已迁 RuntimeState 域 (PR2)。
-
-    func deleteGraph(id: String) async throws {
-        guard let client = ipcClient else {
-            throw BridgeError.notConnected
-        }
-        logger.info("deleteGraph: id=\(id)")
-        do {
-            _ = try await client.call(method: RPCMethod.graphDelete, params: ["graph_id": id])
-            logger.info("deleteGraph: deleted id=\(id, privacy: .public)")
-        } catch let error as IPCError {
-            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
-
-            logger.error("deleteGraph id=\(id, privacy: .public) failed: \(error.errorDescription ?? "unknown", privacy: .public)")
-            throw bridgeErr
-        }
-    }
+    // ARCH-1 PR5 (#359 facade-delegate): fetchGraphs/createGraph/graphGet/updateGraph/deleteGraph/templateInstantiate/deployImport
+    //   + parseGraphModel 抽至 AgentGraphService.swift (extension AgentState 真实体 + extension AgentBridge stub), 已迁域。
+    // executeGraph 留此: 依赖 Self.parseEventModel (Event 域 private static 跨文件不可访问) + guard 鉴权 +
+    //   写共享 runtimeState.events/isExecuting (跨域协调器)。cancelExecution 已迁 RuntimeState 域 (PR2)。
 
     func executeGraph(id: String, input: String, taskId: String = "") async throws {
         guard let client = ipcClient else {
