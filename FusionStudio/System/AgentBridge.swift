@@ -745,9 +745,7 @@ final class AgentBridge: ObservableObject {
     // ARCH-1 PR1 (#359): mlxStatusTimer/mlxStatusFetchedAt 已迁 MLXState 域 (AgentMlxService facade-delegate)。
     // F-A2子2: 30s TTL 客户端缓存, 防 onAppear fetch 风暴。写操作置 nil 强制下次重拉。
     // ARCH-1 PR3 (#359): configState 6 个 TTL (apikeys/cronJobs/styles/hooks/connectors/alerts) 已迁 ConfigState 域。
-    //   projects/tasksFetchedAt 留主类 (TaskState 域, 未来 PR 迁)。
-    private var projectsFetchedAt: Date?
-    private var tasksFetchedAt: Date?
+    // ARCH-1 PR6 (#359): tasks/projectsFetchedAt 已迁 TaskState 域 (AgentTaskService facade-delegate)。
 
     // ARCH-2: 逃逸 Task 生命周期管理。taskExecuteImmediate 的 fire-and-forget Task 存 handle,
     // 按 taskId 索引。任务删除/对象销毁时 cancel, 防 view 销毁后后台 Task 仍写 @Published。
@@ -816,6 +814,8 @@ final class AgentBridge: ObservableObject {
         self.moduleState.ipcClient = client
         // ARCH-1 PR5 (#359): Agent 域 facade-delegate — AgentState 持自己的 ipcClient ref (agent/graph/marketplace lifecycle + skills/soul/chat/dashboard/audit RPC 读 self.ipcClient)。
         self.agentState.ipcClient = client
+        // ARCH-1 PR6 (#359): Task 域 facade-delegate — TaskState 持自己的 ipcClient ref (fetchTasks/fetchProjects RPC 读 self.ipcClient)。
+        self.taskState.ipcClient = client
         // F-A1 Phase 7: runtimeState 是 let 子对象, $runtimeState.isConnected 非法 ($投影仅限直接 @Published 属性)。
         // 改 .sink 手动写 runtimeState.isConnected, cancellable 持久化防订阅立即释放。
         client.$isConnected
@@ -1233,44 +1233,10 @@ final class AgentBridge: ObservableObject {
 
     // MARK: - Task Operations
     // @Published self.taskState.tasks/self.taskState.projects 已迁 TaskState 域 (有外部 SwiftUI 读 TaskQueueView/ProjectsPanel)。
-
-    // 从后端 task.list 拉取持久化任务. 后端 5 态 → 前端 7 态.
-    func fetchTasks() async {
-        if let t = tasksFetchedAt, Date().timeIntervalSince(t) < 30 { return }
-        tasksFetchedAt = Date()
-        guard let client = ipcClient else { return }
-        do {
-            let result = try await client.taskList(limit: 200)
-            let raw = result["tasks"] as? [[String: Any]] ?? []
-            var parsed: [TaskModel] = []
-            for d in raw {
-                if let t = TaskModel(backendDict: d) { parsed.append(t) }
-            }
-            self.taskState.tasks = parsed
-            logger.info("fetchTasks: \(parsed.count) backend tasks")
-        } catch {
-            logger.warning("fetchTasks failed: \(error.localizedDescription)")
-        }
-    }
-
-    // 拉取 Project 聚合看板桶 (#141 priority-2). 后端 project.list 按 project_id 分组统计.
-    func fetchProjects() async {
-        if let t = projectsFetchedAt, Date().timeIntervalSince(t) < 30 { return }
-        projectsFetchedAt = Date()
-        guard let client = ipcClient else { return }
-        do {
-            let result = try await client.projectList()
-            let raw = result["projects"] as? [[String: Any]] ?? []
-            var parsed: [ProjectBucket] = []
-            for d in raw {
-                if let b = ProjectBucket(backendDict: d) { parsed.append(b) }
-            }
-            self.taskState.projects = parsed
-            logger.info("fetchProjects: \(parsed.count) projects")
-        } catch {
-            logger.warning("fetchProjects failed: \(error.localizedDescription)")
-        }
-    }
+    // ARCH-1 PR6 (#359): fetchTasks/fetchProjects 已迁 TaskState 域 (AgentTaskService facade-delegate), 留 1 行 stub。
+    //   执行集群留本主类 (跨域协调器): taskExecuteImmediate/taskSubmit/taskDelete/taskCancel/taskRerun/
+    //   taskScheduleCron/taskScheduleRunAt + taskRunHandles/backendCircuit/lockedTaskHandle/retryBackoffSeconds/
+    //   taskIndex/updateTask/reportTaskStatus/encodeCronInput/summarizeEvents。依赖 executeGraph/parseEventModel/cronRegister。
 
     func agentName(for id: String) -> String {
         self.agentState.agents.first(where: { $0.id == id })?.name ?? id.prefix(8).description

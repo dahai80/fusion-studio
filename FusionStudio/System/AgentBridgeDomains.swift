@@ -94,9 +94,21 @@ final class ModuleState: ObservableObject {
 
 // MARK: - Task State (任务 / 项目)
 
+@MainActor
 final class TaskState: ObservableObject {
     @Published var tasks: [TaskModel] = []
     @Published var projects: [ProjectBucket] = []
+    // ARCH-1 PR6 (#359 facade-delegate): Task fetch 行为从 AgentBridge 迁入域。
+    //   IPCClient ref 由 AgentBridge.setIPCClient 注入 (fetchTasks/fetchProjects RPC 读 self.ipcClient)。
+    //   2 个 fetch TTL (tasks/projects 30s) 迁本域: fetch 叶 silo 自管防 onAppear 风暴。
+    //   ipcClient/TTL 为 internal (非 private): AgentTaskService extension 跨文件访问, Swift private=文件作用域。
+    //   执行集群 (taskExecuteImmediate/taskSubmit/taskDelete/taskCancel/taskRerun/taskScheduleCron/
+    //     taskScheduleRunAt + taskRunHandles/backendCircuit/lockedTaskHandle/retryBackoffSeconds/taskIndex/
+    //     updateTask/reportTaskStatus/encodeCronInput/summarizeEvents) 留 AgentBridge — 跨域协调器
+    //     (依赖 executeGraph/parseEventModel/cronRegister + 共享 taskRunHandles/backendCircuit)。
+    var ipcClient: IPCClient?
+    var tasksFetchedAt: Date?
+    var projectsFetchedAt: Date?
     init() {}
 }
 
