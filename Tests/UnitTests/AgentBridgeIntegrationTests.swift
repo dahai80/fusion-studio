@@ -740,4 +740,43 @@ final class AgentBridgeIntegrationTests: XCTestCase {
         XCTAssertNotNil(bridge.agentState.ipcClient)
         XCTAssertTrue(bridge.agentState.ipcClient === mock)
     }
+
+    // MARK: - Group 12 — ARCH-1 PR6 (#359) TaskState facade-delegate
+
+    // fetchTasks facade 委托到 taskState.fetchTasks: mock task.list → 解析 TaskModel → 写 taskState.tasks。
+    func testTaskStateFacadeDelegatesFetchTasks() async throws {
+        mock.responsesByMethod[RPCMethod.taskList] = [
+            "tasks": [
+                ["task_id": "t1", "title": "Run graph", "status": "pending"],
+                ["task_id": "t2", "title": "Rerun", "status": "completed"],
+            ],
+        ]
+        await bridge.fetchTasks()
+        XCTAssertEqual(bridge.taskState.tasks.count, 2)
+        XCTAssertEqual(bridge.taskState.tasks.first?.id, "t1")
+        XCTAssertEqual(bridge.taskState.tasks.first?.title, "Run graph")
+        XCTAssertNotNil(mock.lastCall(method: RPCMethod.taskList))
+    }
+
+    // fetchProjects facade 委托到 taskState.fetchProjects: mock project.list → 解析 ProjectBucket → 写 taskState.projects。
+    func testTaskStateFacadeDelegatesFetchProjects() async throws {
+        mock.responsesByMethod[RPCMethod.projectList] = [
+            "projects": [
+                ["project_id": "p1", "total": 5, "completed": 3, "pending": 2],
+                ["project_id": "p2", "total": 1, "failed": 1],
+            ],
+        ]
+        await bridge.fetchProjects()
+        XCTAssertEqual(bridge.taskState.projects.count, 2)
+        XCTAssertEqual(bridge.taskState.projects.first?.id, "p1")
+        XCTAssertEqual(bridge.taskState.projects.first?.total, 5)
+        XCTAssertEqual(bridge.taskState.projects.first?.completed, 3)
+        XCTAssertNotNil(mock.lastCall(method: RPCMethod.projectList))
+    }
+
+    // TaskState 持自己的 ipcClient ref: setIPCClient 后 bridge.taskState.ipcClient === mock。
+    func testTaskStateHoldsOwnIPCClient() {
+        XCTAssertNotNil(bridge.taskState.ipcClient)
+        XCTAssertTrue(bridge.taskState.ipcClient === mock)
+    }
 }
