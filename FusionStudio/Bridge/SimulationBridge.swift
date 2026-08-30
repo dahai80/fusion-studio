@@ -50,8 +50,8 @@ class SimulationBridge: ObservableObject {
                     self?.reconnectTimer?.invalidate()
                     self?.reconnectTimer = nil
                 }
-            case .failure(let err):
-                self?.handleHealthFailure(err)
+            case .failure(let error):
+                self?.handleHealthFailure(error)
             }
         }
     }
@@ -84,8 +84,8 @@ class SimulationBridge: ObservableObject {
             switch result {
             case .success(let dto):
                 DispatchQueue.main.async { self?.status = dto }
-            case .failure(let err):
-                self?.handleError(err, context: "status")
+            case .failure(let error):
+                self?.handleError(error, context: "status")
             }
         }
     }
@@ -95,8 +95,8 @@ class SimulationBridge: ObservableObject {
             switch result {
             case .success(let comps):
                 DispatchQueue.main.async { self?.envCheck = comps }
-            case .failure(let err):
-                self?.handleError(err, context: "env_check")
+            case .failure(let error):
+                self?.handleError(error, context: "env_check")
             }
         }
     }
@@ -106,8 +106,8 @@ class SimulationBridge: ObservableObject {
             handleError(SimulationBridgeError.invalidURL, context: "observations"); return
         }
         session.dataTask(with: url) { [weak self] data, _, error in
-            if let err = error {
-                self?.handleError(err, context: "observations"); return
+            if let error = error {
+                self?.handleError(error, context: "observations"); return
             }
             guard let data = data else {
                 self?.handleError(SimulationBridgeError.noData, context: "observations"); return
@@ -130,8 +130,8 @@ class SimulationBridge: ObservableObject {
                 DispatchQueue.main.async { self?.lastError = resp.error }
                 completion?(.success(resp))
                 self?.fetchStatus()
-            case .failure(let err):
-                completion?(.failure(err))
+            case .failure(let error):
+                completion?(.failure(error))
             }
         }
     }
@@ -145,8 +145,8 @@ class SimulationBridge: ObservableObject {
                 DispatchQueue.main.async { self?.lastStepResult = step }
                 completion?(.success(step))
                 self?.fetchStatus()
-            case .failure(let err):
-                completion?(.failure(err))
+            case .failure(let error):
+                completion?(.failure(error))
             }
         }
     }
@@ -161,8 +161,8 @@ class SimulationBridge: ObservableObject {
                 }
                 completion?(.success(resp))
                 self?.fetchStatus()
-            case .failure(let err):
-                completion?(.failure(err))
+            case .failure(let error):
+                completion?(.failure(error))
             }
         }
     }
@@ -174,8 +174,8 @@ class SimulationBridge: ObservableObject {
                 DispatchQueue.main.async { self?.lastError = resp.error }
                 completion?(.success(resp))
                 self?.fetchStatus()
-            case .failure(let err):
-                completion?(.failure(err))
+            case .failure(let error):
+                completion?(.failure(error))
             }
         }
     }
@@ -187,8 +187,8 @@ class SimulationBridge: ObservableObject {
                 DispatchQueue.main.async { self?.lastError = resp.error }
                 completion?(.success(resp))
                 self?.fetchStatus()
-            case .failure(let err):
-                completion?(.failure(err))
+            case .failure(let error):
+                completion?(.failure(error))
             }
         }
     }
@@ -200,8 +200,8 @@ class SimulationBridge: ObservableObject {
                 DispatchQueue.main.async { self?.lastError = resp.error }
                 completion?(.success(resp))
                 self?.fetchStatus()
-            case .failure(let err):
-                completion?(.failure(err))
+            case .failure(let error):
+                completion?(.failure(error))
             }
         }
     }
@@ -219,8 +219,8 @@ class SimulationBridge: ObservableObject {
                 }
                 completion?(.success(resp))
                 self?.fetchStatus()
-            case .failure(let err):
-                completion?(.failure(err))
+            case .failure(let error):
+                completion?(.failure(error))
             }
         }
     }
@@ -241,8 +241,8 @@ class SimulationBridge: ObservableObject {
                 }
                 completion?(.success(resp))
                 self?.fetchStatus()
-            case .failure(let err):
-                completion?(.failure(err))
+            case .failure(let error):
+                completion?(.failure(error))
             }
         }
     }
@@ -253,8 +253,8 @@ class SimulationBridge: ObservableObject {
             case .success(let resp):
                 DispatchQueue.main.async { self?.lastError = resp.error }
                 completion?(.success(resp))
-            case .failure(let err):
-                completion?(.failure(err))
+            case .failure(let error):
+                completion?(.failure(error))
             }
         }
     }
@@ -266,8 +266,8 @@ class SimulationBridge: ObservableObject {
                 DispatchQueue.main.async { self?.lastError = resp.error }
                 completion?(.success(resp))
                 self?.fetchStatus()
-            case .failure(let err):
-                completion?(.failure(err))
+            case .failure(let error):
+                completion?(.failure(error))
             }
         }
     }
@@ -279,7 +279,7 @@ class SimulationBridge: ObservableObject {
             completion(.failure(SimulationBridgeError.invalidURL)); return
         }
         session.dataTask(with: url) { data, _, error in
-            if let err = error { completion(.failure(err)); return }
+            if let error = error { completion(.failure(error)); return }
             guard let data = data else { completion(.failure(SimulationBridgeError.noData)); return }
             do {
                 let decoded = try JSONDecoder.sim.decode(T.self, from: data)
@@ -306,7 +306,7 @@ class SimulationBridge: ObservableObject {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         session.dataTask(with: request) { data, _, error in
-            if let err = error { completion(.failure(err)); return }
+            if let error = error { completion(.failure(error)); return }
             guard let data = data else { completion(.failure(SimulationBridgeError.noData)); return }
             do {
                 let decoded = try JSONDecoder.sim.decode(T.self, from: data)

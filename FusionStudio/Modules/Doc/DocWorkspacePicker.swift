@@ -117,8 +117,8 @@ struct DocWorkspacePicker: View {
 
     private func loadWorkspaces() {
         bridge.fetchWorkspaces { result in
-            if case .failure(let err) = result {
-                docWSLog.error("fetchWorkspaces failed: \(err.localizedDescription)")
+            if case .failure(let error) = result {
+                docWSLog.error("fetchWorkspaces failed: \(error.localizedDescription)")
             }
         }
     }
@@ -131,8 +131,8 @@ struct DocWorkspacePicker: View {
                 showCreate = false
                 newName = ""
                 newDesc = ""
-            case .failure(let err):
-                docWSLog.error("createWorkspace failed: \(err.localizedDescription)")
+            case .failure(let error):
+                docWSLog.error("createWorkspace failed: \(error.localizedDescription)")
             }
         }
     }

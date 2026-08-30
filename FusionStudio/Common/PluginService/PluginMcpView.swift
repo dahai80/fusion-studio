@@ -62,29 +62,29 @@ struct PluginMcpView: View {
 
     private var mcpContent: some View {
         List {
-            ForEach(Array(pm.mcpSessions.enumerated()), id: \.offset) { _, session in
+            ForEach(pm.mcpSessions.identifiable(by: "session_id"), id: \.id) { session in
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Image(systemName: "circle.fill")
                             .foregroundColor(.green)
                             .font(.caption)
-                        Text(session["session_id"] as? String ?? "")
+                        Text(session.dict["session_id"] as? String ?? "")
                             .font(.system(.caption, design: .monospaced))
                             .foregroundColor(.primary)
                         Spacer()
-                        Text(session["transport"] as? String ?? "stdio")
+                        Text(session.dict["transport"] as? String ?? "stdio")
                             .font(.caption2)
                             .padding(.horizontal, 4)
                             .padding(.vertical, 1)
                             .background(theme.accentSoft)
                             .cornerRadius(3)
                     }
-                    if let calls = session["call_count"] as? Int {
+                    if let calls = session.dict["call_count"] as? Int {
                         Text(I18nManager.shared.tf(.psvc_mcp_calls_fmt, calls))
                             .font(.caption2)
                             .foregroundColor(.secondary)
                     }
-                    if let rateLimit = session["rate_limit_remaining"] as? Int {
+                    if let rateLimit = session.dict["rate_limit_remaining"] as? Int {
                         HStack(spacing: 4) {
                             Text(I18nManager.shared.t(.psvc_mcp_ratelimit))
                                 .font(.caption2)

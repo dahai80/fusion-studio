@@ -5,9 +5,12 @@ import XCTest
 // 攻击者在允许前缀目录内放指向 /etc 等敏感路径的 symlink, 旧实现仅 standardizingPath
 // 不解析 symlink -> 白名单前缀匹配成功 -> 放行越权读。修正后 resolvingSymlinksInPath
 // 取真实 inode 路径, 敏感目标被拒。
+// 审计0830 P1-资源-1: validateFilePath 白名单已删 /tmp (世界可写共享目录, 扩大攻击面),
+//   临时文件统一走 ~/.fusion-studio/tmp (F-I6)。测试根目录须落在白名单前缀内, 否则
+//   合法用例被新白名单拒 -> 用 ~/.fusion-studio/tmp 下随机子目录作测试根。
 final class SecurityPathTests: XCTestCase {
 
-    private let tmpRoot = "/tmp/fusion-security-test-\(UUID().uuidString)"
+    private let tmpRoot = NSHomeDirectory() + "/.fusion-studio/tmp/fusion-security-test-\(UUID().uuidString)"
     private let manager = FileManager.default
 
     override func setUp() {

@@ -343,8 +343,8 @@ struct WelcomeView: View {
                     FusionButton(I18nManager.shared.t(.wel_btn_back), icon: "chevron.left", style: .secondary, size: .regular) { vm.back() }
                 }
                 Spacer()
-                if let err = vm.lastError {
-                    Text(err).font(.system(size: 11)).foregroundStyle(theme.accentDestructive).lineLimit(1)
+                if let error = vm.lastError {
+                    Text(error).font(.system(size: 11)).foregroundStyle(theme.accentDestructive).lineLimit(1)
                 }
                 Spacer()
                 primaryButton

@@ -112,9 +112,13 @@ enum KeychainStore {
     static func writeFusionCodeTokenFile(_ token: String) {
         let path = (NSHomeDirectory() as NSString).appendingPathComponent(fusionCodeTokenFile)
         let dir = (path as NSString).deletingLastPathComponent
+        // 审计0830 P1-资源-2: token 目录未显式 0700, 依赖默认 umask (可能 0755) → 其他本地用户可读 token 文件目录。
+        //   显式 0700: 仅属主可读写执行。createDirectory attributes 仅对新建生效, 已存在目录补 setAttributes 兜底。
         try? FileManager.default.createDirectory(
-            atPath: dir, withIntermediateDirectories: true
+            atPath: dir, withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
         )
+        try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: dir)
         do {
             try token.write(toFile: path, atomically: true, encoding: .utf8)
             try? FileManager.default.setAttributes(

@@ -55,8 +55,8 @@ class ScienceBridge: ObservableObject {
                     self?.reconnectTimer?.invalidate()
                     self?.reconnectTimer = nil
                 }
-            case .failure(let err):
-                self?.handleHealthFailure(err)
+            case .failure(let error):
+                self?.handleHealthFailure(error)
             }
         }
     }
@@ -89,8 +89,8 @@ class ScienceBridge: ObservableObject {
             switch result {
             case .success(let list):
                 DispatchQueue.main.async { self?.sessions = list }
-            case .failure(let err):
-                self?.handleError(err, context: "sessions")
+            case .failure(let error):
+                self?.handleError(error, context: "sessions")
             }
         }
     }
@@ -109,8 +109,8 @@ class ScienceBridge: ObservableObject {
                     self?.auditEntries = []
                 }
                 completion(.success(session))
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -120,8 +120,8 @@ class ScienceBridge: ObservableObject {
             switch result {
             case .success(let session):
                 DispatchQueue.main.async { self?.currentSession = session }
-            case .failure(let err):
-                self?.handleError(err, context: "session_detail")
+            case .failure(let error):
+                self?.handleError(error, context: "session_detail")
             }
         }
     }
@@ -147,8 +147,8 @@ class ScienceBridge: ObservableObject {
                     self?.capMessages()
                 }
                 completion(.success(msg))
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -163,8 +163,8 @@ class ScienceBridge: ObservableObject {
             case .success(let papers):
                 DispatchQueue.main.async { self?.papers = papers }
                 completion(.success(papers))
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -196,8 +196,8 @@ class ScienceBridge: ObservableObject {
                     self?.messages = msgs
                 }
                 completion(.success(artifacts))
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -211,8 +211,8 @@ class ScienceBridge: ObservableObject {
             case .success(let figures):
                 DispatchQueue.main.async { self?.figures = figures }
                 completion(.success(figures))
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -232,8 +232,8 @@ class ScienceBridge: ObservableObject {
                 } else {
                     completion(.failure(ScienceBridgeError.noData))
                 }
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -271,7 +271,7 @@ class ScienceBridge: ObservableObject {
             completion(.failure(ScienceBridgeError.invalidURL)); return
         }
         session.dataTask(with: url) { data, _, error in
-            if let err = error { completion(.failure(err)); return }
+            if let error = error { completion(.failure(error)); return }
             guard let data = data else { completion(.failure(ScienceBridgeError.noData)); return }
             do {
                 let decoded = try JSONDecoder().decode(T.self, from: data)
@@ -292,7 +292,7 @@ class ScienceBridge: ObservableObject {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         session.dataTask(with: request) { data, _, error in
-            if let err = error { completion(.failure(err)); return }
+            if let error = error { completion(.failure(error)); return }
             guard let data = data else { completion(.failure(ScienceBridgeError.noData)); return }
             do {
                 let decoded = try JSONDecoder().decode(T.self, from: data)
@@ -313,7 +313,7 @@ class ScienceBridge: ObservableObject {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         session.dataTask(with: request) { data, _, error in
-            if let err = error { completion(.failure(err)); return }
+            if let error = error { completion(.failure(error)); return }
             guard let data = data else { completion(.failure(ScienceBridgeError.noData)); return }
             completion(.success(data))
         }.resume()

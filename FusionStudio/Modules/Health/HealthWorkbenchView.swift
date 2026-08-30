@@ -135,8 +135,8 @@ struct HealthDashboardView: View {
                 HealthMetricCard(title: I18nManager.shared.t(.health_metric_model), value: healthBridge.serviceStatus?.model ?? "-", icon: "cpu", color: .orange)
             }
 
-            if let err = healthBridge.lastError {
-                Label(err, systemImage: "exclamationmark.triangle")
+            if let error = healthBridge.lastError {
+                Label(error, systemImage: "exclamationmark.triangle")
                     .foregroundColor(.red)
                     .font(.caption)
                     .padding(.horizontal, 16)

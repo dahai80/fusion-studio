@@ -394,7 +394,7 @@ private struct SecScanForm: View {
     var body: some View {
         VStack(spacing: theme.spacingM) {
             TextField(i18n.t(.hub_modelId), text: $modelId).textFieldStyle(.roundedBorder)
-            if let err = error { Text(err).font(.caption).foregroundStyle(.red) }
+            if let error = error { Text(error).font(.caption).foregroundStyle(.red) }
             HStack {
                 Button(i18n.t(.hub_cancelBtn)) { isPresented = false }.buttonStyle(.bordered)
                 Button(i18n.t(.hub_startScan)) { run() }.buttonStyle(.borderedProminent).disabled(modelId.isEmpty)
@@ -423,7 +423,7 @@ private struct SecWatermarkForm: View {
         VStack(spacing: theme.spacingM) {
             TextField(i18n.t(.hub_modelId), text: $modelId).textFieldStyle(.roundedBorder)
             TextField(i18n.t(.hub_watermarkText), text: $watermarkText).textFieldStyle(.roundedBorder)
-            if let err = error { Text(err).font(.caption).foregroundStyle(.red) }
+            if let error = error { Text(error).font(.caption).foregroundStyle(.red) }
             HStack {
                 Button(i18n.t(.hub_cancelBtn)) { isPresented = false }.buttonStyle(.bordered)
                 Button(i18n.t(.hub_add)) { add() }.buttonStyle(.borderedProminent).disabled(modelId.isEmpty)
@@ -456,7 +456,7 @@ private struct SecEncryptForm: View {
             Picker(i18n.t(.hub_encryptionAlgorithm), selection: $algorithm) {
                 Text("AES-256").tag("AES-256"); Text("ChaCha20").tag("ChaCha20"); Text("RSA-4096").tag("RSA-4096")
             }
-            if let err = error { Text(err).font(.caption).foregroundStyle(.red) }
+            if let error = error { Text(error).font(.caption).foregroundStyle(.red) }
             HStack {
                 Button(i18n.t(.hub_cancelBtn)) { isPresented = false }.buttonStyle(.bordered)
                 Button(i18n.t(.hub_encryption)) { enc() }.buttonStyle(.borderedProminent).disabled(modelId.isEmpty)
@@ -492,7 +492,7 @@ private struct SecApprovalReviewSheet: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             TextField(i18n.t(.hub_approvalComment), text: $comment).textFieldStyle(.roundedBorder)
-            if let err = error { Text(err).font(.caption).foregroundStyle(.red) }
+            if let error = error { Text(error).font(.caption).foregroundStyle(.red) }
             HStack {
                 Button(i18n.t(.hub_reject)) { review(approved: false) }.buttonStyle(.bordered).foregroundStyle(.red)
                 Button(i18n.t(.hub_approve)) { review(approved: true) }.buttonStyle(.borderedProminent)

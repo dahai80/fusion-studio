@@ -112,8 +112,8 @@ struct ProjectModuleView: View {
                 Spacer()
                 ProgressView()
                 Spacer()
-            } else if let err = errorMessage {
-                Text(err)
+            } else if let error = errorMessage {
+                Text(error)
                     .font(.system(size: theme.footnoteSize))
                     .foregroundStyle(.red)
                     .padding(.horizontal, theme.spacingM)

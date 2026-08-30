@@ -32,8 +32,8 @@ struct ScienceSessionList: View {
             Spacer()
             Button {
                 scienceBridge.createSession(title: "New Research") { result in
-                    if case .failure(let err) = result {
-                        sessionListLog.error("Create session failed: \(err.localizedDescription)")
+                    if case .failure(let error) = result {
+                        sessionListLog.error("Create session failed: \(error.localizedDescription)")
                     }
                 }
             } label: {

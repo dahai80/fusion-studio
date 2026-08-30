@@ -68,8 +68,8 @@ class SecurityBridge: ObservableObject {
             switch result {
             case .success(let dto):
                 DispatchQueue.main.async { self?.systemInfo = dto }
-            case .failure(let err):
-                self?.handleError(err, context: "system/info")
+            case .failure(let error):
+                self?.handleError(error, context: "system/info")
             }
         }
     }
@@ -79,8 +79,8 @@ class SecurityBridge: ObservableObject {
             switch result {
             case .success(let resp):
                 DispatchQueue.main.async { self?.rules = resp.rules }
-            case .failure(let err):
-                self?.handleError(err, context: "system/rules")
+            case .failure(let error):
+                self?.handleError(error, context: "system/rules")
             }
         }
     }
@@ -92,8 +92,8 @@ class SecurityBridge: ObservableObject {
             switch result {
             case .success(let list):
                 DispatchQueue.main.async { self?.projects = list }
-            case .failure(let err):
-                self?.handleError(err, context: "projects")
+            case .failure(let error):
+                self?.handleError(error, context: "projects")
             }
         }
     }
@@ -115,8 +115,8 @@ class SecurityBridge: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
         session.dataTask(with: request) { _, response, error in
-            if let err = error {
-                completion?(.failure(err)); return
+            if let error = error {
+                completion?(.failure(error)); return
             }
             let ok = (response as? HTTPURLResponse)?.statusCode ?? 0
             completion?(.success(ok == 200 || ok == 204))
@@ -130,8 +130,8 @@ class SecurityBridge: ObservableObject {
             switch result {
             case .success(let list):
                 DispatchQueue.main.async { self?.scans = list }
-            case .failure(let err):
-                self?.handleError(err, context: "scans")
+            case .failure(let error):
+                self?.handleError(error, context: "scans")
             }
         }
     }
@@ -160,9 +160,9 @@ class SecurityBridge: ObservableObject {
                     self?.fetchDashboard()
                 }
                 completion?(.success(scan))
-            case .failure(let err):
-                self?.handleError(err, context: "scans/create")
-                completion?(.failure(err))
+            case .failure(let error):
+                self?.handleError(error, context: "scans/create")
+                completion?(.failure(error))
             }
         }
     }
@@ -174,8 +174,8 @@ class SecurityBridge: ObservableObject {
             switch result {
             case .success(let list):
                 DispatchQueue.main.async { self?.vulnerabilities = list }
-            case .failure(let err):
-                self?.handleError(err, context: "vulnerabilities")
+            case .failure(let error):
+                self?.handleError(error, context: "vulnerabilities")
             }
         }
     }
@@ -185,8 +185,8 @@ class SecurityBridge: ObservableObject {
             switch result {
             case .success(let stats):
                 DispatchQueue.main.async { self?.vulnStats = stats }
-            case .failure(let err):
-                self?.handleError(err, context: "vuln/stats")
+            case .failure(let error):
+                self?.handleError(error, context: "vuln/stats")
             }
         }
     }
@@ -201,7 +201,7 @@ class SecurityBridge: ObservableObject {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         session.dataTask(with: request) { data, _, error in
-            if let err = error { completion?(.failure(err)); return }
+            if let error = error { completion?(.failure(error)); return }
             guard let data = data else { completion?(.failure(SecurityBridgeError.noData)); return }
             do {
                 let dto = try JSONDecoder.sec.decode(SecVulnDTO.self, from: data)
@@ -219,7 +219,7 @@ class SecurityBridge: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         session.dataTask(with: request) { data, _, error in
-            if let err = error { completion?(.failure(err)); return }
+            if let error = error { completion?(.failure(error)); return }
             guard let data = data else { completion?(.failure(SecurityBridgeError.noData)); return }
             do {
                 let dto = try JSONDecoder.sec.decode(SecVulnDTO.self, from: data)
@@ -237,8 +237,8 @@ class SecurityBridge: ObservableObject {
             switch result {
             case .success(let list):
                 DispatchQueue.main.async { self?.patches = list }
-            case .failure(let err):
-                self?.handleError(err, context: "patches")
+            case .failure(let error):
+                self?.handleError(error, context: "patches")
             }
         }
     }
@@ -252,7 +252,7 @@ class SecurityBridge: ObservableObject {
         DispatchQueue.main.async { self.isLoading = true }
         session.dataTask(with: request) { [weak self] data, _, error in
             DispatchQueue.main.async { self?.isLoading = false }
-            if let err = error { completion?(.failure(err)); return }
+            if let error = error { completion?(.failure(error)); return }
             guard let data = data else { completion?(.failure(SecurityBridgeError.noData)); return }
             do {
                 let resp = try JSONDecoder.sec.decode(SecPatchGenerateResponseDTO.self, from: data)
@@ -273,7 +273,7 @@ class SecurityBridge: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         session.dataTask(with: request) { data, _, error in
-            if let err = error { completion?(.failure(err)); return }
+            if let error = error { completion?(.failure(error)); return }
             guard let data = data else { completion?(.failure(SecurityBridgeError.noData)); return }
             do {
                 let dto = try JSONDecoder.sec.decode(SecPatchDTO.self, from: data)
@@ -293,7 +293,7 @@ class SecurityBridge: ObservableObject {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = Data("{}".utf8)
         session.dataTask(with: request) { data, _, error in
-            if let err = error { completion?(.failure(err)); return }
+            if let error = error { completion?(.failure(error)); return }
             guard let data = data else { completion?(.failure(SecurityBridgeError.noData)); return }
             do {
                 let dto = try JSONDecoder.sec.decode(SecPatchDTO.self, from: data)
@@ -311,8 +311,8 @@ class SecurityBridge: ObservableObject {
             switch result {
             case .success(let dto):
                 DispatchQueue.main.async { self?.dashboard = dto }
-            case .failure(let err):
-                self?.handleError(err, context: "dashboard")
+            case .failure(let error):
+                self?.handleError(error, context: "dashboard")
             }
         }
     }
@@ -326,7 +326,7 @@ class SecurityBridge: ObservableObject {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? JSONSerialization.data(withJSONObject: vulnerabilities)
         session.dataTask(with: request) { data, _, error in
-            if let err = error { completion?(.failure(err)); return }
+            if let error = error { completion?(.failure(error)); return }
             guard let data = data else { completion?(.failure(SecurityBridgeError.noData)); return }
             do {
                 let dto = try JSONDecoder.sec.decode(SecGateResultDTO.self, from: data)
@@ -342,8 +342,8 @@ class SecurityBridge: ObservableObject {
             switch result {
             case .success(let list):
                 DispatchQueue.main.async { self?.customRules = list }
-            case .failure(let err):
-                self?.handleError(err, context: "custom-rules")
+            case .failure(let error):
+                self?.handleError(error, context: "custom-rules")
             }
         }
     }
@@ -355,7 +355,7 @@ class SecurityBridge: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         session.dataTask(with: request) { data, _, error in
-            if let err = error { completion?(.failure(err)); return }
+            if let error = error { completion?(.failure(error)); return }
             guard let data = data else { completion?(.failure(SecurityBridgeError.noData)); return }
             do {
                 let dto = try JSONDecoder.sec.decode(SecCustomRuleDTO.self, from: data)
@@ -373,7 +373,7 @@ class SecurityBridge: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
         session.dataTask(with: request) { _, response, error in
-            if let err = error { completion?(.failure(err)); return }
+            if let error = error { completion?(.failure(error)); return }
             let ok = (response as? HTTPURLResponse)?.statusCode ?? 0
             completion?(.success(ok == 200 || ok == 204))
         }.resume()
@@ -386,7 +386,7 @@ class SecurityBridge: ObservableObject {
             completion(.failure(SecurityBridgeError.invalidURL)); return
         }
         session.dataTask(with: url) { data, _, error in
-            if let err = error { completion(.failure(err)); return }
+            if let error = error { completion(.failure(error)); return }
             guard let data = data else { completion(.failure(SecurityBridgeError.noData)); return }
             do {
                 let decoded = try JSONDecoder.sec.decode(T.self, from: data)
@@ -407,7 +407,7 @@ class SecurityBridge: ObservableObject {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         session.dataTask(with: request) { data, _, error in
-            if let err = error { completion?(.failure(err)); return }
+            if let error = error { completion?(.failure(error)); return }
             guard let data = data else { completion?(.failure(SecurityBridgeError.noData)); return }
             do {
                 let decoded = try JSONDecoder.sec.decode(T.self, from: data)

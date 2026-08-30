@@ -367,19 +367,25 @@ class FusionCodeBridge: ObservableObject {
     func chatStream(sessionId: String? = nil, message: String, cwd: String? = nil, model: String? = nil, executionMode: String? = nil, webSearch: Bool = false, commandMode: Bool = false) {
         guard !isStreaming else { return }
 
-        var wsURLStr = serverURL.replacingOccurrences(of: "http", with: "ws") + "/ws/chat"
+        // 审计0830 P0-7: 旧实现 token 拼接 URL query (?token=) → 明文出现在系统网络日志/代理日志/崩溃报告。
+        //   上游 fusion-code projectApiServer.ts:1117 同时接受 Authorization: Bearer header 鉴权 (L1125)。
+        //   改走 URLRequest header, token 不入 URL。URL 日志面不含密钥。
+        let wsURLStr = serverURL.replacingOccurrences(of: "http", with: "ws") + "/ws/chat"
+        let wsURL = URL(string: wsURLStr)!
+        var wsReq = URLRequest(url: wsURL)
         let token = FusionConfig.shared.fusionCodeApiKey
         if !token.isEmpty {
-            let encoded = token.addingPercentEncoding(withAllowedCharacters: CharacterSet.urlQueryAllowed) ?? token
-            wsURLStr += "?token=\(encoded)"
+            wsReq.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
-        let wsURL = URL(string: wsURLStr)!
-        webSocketTask = urlSession.webSocketTask(with: wsURL)
+        // 审计0830 P2-资源-1: 覆写前不 cancel 旧 task → 旧 WebSocket 连接 fd 泄漏 (挂到 urlSession 池不释放)。
+        //   连续 chatStream (重连/切会话) 叠加泄漏, 长 session 句柄堆积。覆写前 cancel 旧 task。
+        webSocketTask?.cancel()
+        webSocketTask = urlSession.webSocketTask(with: wsReq)
         webSocketTask?.resume()
 
         isStreaming = true
         currentStreamContent = ""
-        fcBridgeLog.info("WS chat connecting to \(wsURL.absoluteString)")
+        fcBridgeLog.info("WS chat connecting to \(wsURL.absoluteString) (auth via Authorization header, P0-7)")
 
         var sendDict: [String: Any] = ["action": "chat.stream", "message": message]
         if let sid = sessionId { sendDict["session_id"] = sid }

@@ -74,8 +74,8 @@ struct TokenBudgetView: View {
             }
             .padding(.horizontal, theme.spacingM)
 
-            if let err = errorMsg {
-                Text(err).foregroundStyle(.red).font(.caption)
+            if let error = errorMsg {
+                Text(error).foregroundStyle(.red).font(.caption)
             }
 
             Spacer()

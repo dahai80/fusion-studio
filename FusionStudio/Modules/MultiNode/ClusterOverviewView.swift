@@ -26,8 +26,8 @@ struct ClusterOverviewView: View {
                         Text(String(format: i18n.t(.mn_overview_disconnectedFmt), FusionConfig.shared.multiNodePort))
                             .font(.system(size: theme.footnoteSize))
                             .foregroundColor(.secondary)
-                        if let err = engine.lastError {
-                            Text(err)
+                        if let error = engine.lastError {
+                            Text(error)
                                 .font(.system(size: theme.captionSize))
                                 .foregroundColor(.red)
                                 .lineLimit(1)

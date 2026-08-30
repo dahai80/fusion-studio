@@ -183,8 +183,8 @@ struct HubScheduleView: View {
                 }
                 .listStyle(.plain)
             }
-            if let err = lastError {
-                Text(err).font(.caption).foregroundStyle(.red).padding(4)
+            if let error = lastError {
+                Text(error).font(.caption).foregroundStyle(.red).padding(4)
             }
         }
     }
@@ -531,8 +531,8 @@ struct HubScheduleView: View {
                 }
             }
 
-            if let err = lastError {
-                Text(err).font(.caption).foregroundStyle(.red)
+            if let error = lastError {
+                Text(error).font(.caption).foregroundStyle(.red)
             }
 
             HStack {
@@ -1322,8 +1322,8 @@ private struct DownloadTaskRow: View {
                     .lineLimit(1)
                 HStack(spacing: 8) {
                     Text(task.status ?? "unknown").font(.caption).foregroundStyle(.secondary)
-                    if let err = task.error, !err.isEmpty {
-                        Text(err).font(.caption).foregroundStyle(.red).lineLimit(1)
+                    if let error = task.error, !error.isEmpty {
+                        Text(error).font(.caption).foregroundStyle(.red).lineLimit(1)
                     }
                 }
             }

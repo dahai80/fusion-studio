@@ -132,9 +132,9 @@ final class CoworkHomeBridge: ObservableObject {
                 coworkHomeLog.info("setScopedFolder ok: folders=\(self.scopedFolders)")
                 return true
             }
-            let err = (res["error"] as? String) ?? "set_scoped_folder 返回未确认"
-            lastError = err
-            coworkHomeLog.error("setScopedFolder rejected: \(err)")
+            let error = (res["error"] as? String) ?? "set_scoped_folder 返回未确认"
+            lastError = error
+            coworkHomeLog.error("setScopedFolder rejected: \(error)")
             return false
         } catch {
             lastError = BridgeError.sanitize(error)
@@ -153,9 +153,9 @@ final class CoworkHomeBridge: ObservableObject {
                 return false
             }
             let run = try await ipc.deskWorkflowRun(workflow: workflow)
-            if let err = run["error"] as? String {
-                lastError = err
-                coworkHomeLog.error("submitWorkflow run rejected: \(err)")
+            if let error = run["error"] as? String {
+                lastError = error
+                coworkHomeLog.error("submitWorkflow run rejected: \(error)")
                 return false
             }
             coworkHomeLog.info("submitWorkflow ok, start polling")

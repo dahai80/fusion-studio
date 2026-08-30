@@ -61,10 +61,10 @@ struct TrainerView: View {
 
             Divider()
 
-            if let err = bridge.lastError {
+            if let error = bridge.lastError {
                 HStack(spacing: 6) {
                     Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.orange)
-                    Text(err).font(.caption).foregroundColor(theme.textSecondary).lineLimit(2)
+                    Text(error).font(.caption).foregroundColor(theme.textSecondary).lineLimit(2)
                     Spacer()
                     Button(I18nManager.shared.t(.tr_btn_clear)) { bridge.lastError = nil }.buttonStyle(.borderless).controlSize(.small)
                 }
@@ -178,10 +178,10 @@ struct TrainerRunsTab: View {
                         detailRow(I18nManager.shared.t(.tr_detail_status), run.status)
                         detailRow(I18nManager.shared.t(.tr_detail_progress), String(format: "%.1f%%", run.progress * 100))
                         detailRow(I18nManager.shared.t(.tr_detail_steps), "\(run.current_step) / \(run.total_steps)")
-                        if let err = run.error, !err.isEmpty {
+                        if let error = run.error, !error.isEmpty {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(I18nManager.shared.t(.tr_detail_error)).font(.caption.bold()).foregroundColor(.red)
-                                Text(err).font(.caption).foregroundColor(.red).padding(8)
+                                Text(error).font(.caption).foregroundColor(.red).padding(8)
                                     .background(theme.accentSoft.opacity(0.3)).cornerRadius(6)
                             }
                         }

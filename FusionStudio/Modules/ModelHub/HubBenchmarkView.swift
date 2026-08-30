@@ -131,8 +131,8 @@ struct HubBenchmarkView: View {
                 }
             }
 
-            if let err = lastError {
-                Text(err).font(.caption).foregroundStyle(.red)
+            if let error = lastError {
+                Text(error).font(.caption).foregroundStyle(.red)
             }
             if let msg = successMsg {
                 Text(msg).font(.caption).foregroundStyle(.green)

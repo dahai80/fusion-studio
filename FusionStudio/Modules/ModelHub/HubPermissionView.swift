@@ -178,8 +178,8 @@ struct HubPermissionView: View {
                 .listStyle(.plain)
             }
 
-            if let err = lastError {
-                Text(err).font(.caption).foregroundStyle(.red).padding(4)
+            if let error = lastError {
+                Text(error).font(.caption).foregroundStyle(.red).padding(4)
             }
         }
         .frame(minWidth: 350, maxWidth: 500)

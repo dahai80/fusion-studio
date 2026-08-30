@@ -1,4 +1,8 @@
 import SwiftUI
+import os.log
+
+// 审计0830 P1-错误-5: 旧 repairItem 空 catch 吞异常, 修复失败静默 → 用户以为修好。加 logger 可观测。
+private let envHealthLog = Logger(subsystem: "com.fusion.studio", category: "EnvironmentHealthCard")
 
 /// 环境健康检查卡片（控制台首页）
 struct EnvironmentHealthCard: View {
@@ -126,7 +130,9 @@ struct EnvironmentHealthCard: View {
 
                 let mlxOk = checkDicts["mlx_api"]?["ok"] as? Bool ?? false
                 await MainActor.run {
-                    healthState.isMLXRunning = mlxOk
+                    // 审计0830 P1-架构-1: MLXState.mlxRunning 单一真相源, HealthState 镜像同步防脑裂。
+                    bridge.mlxState.mlxRunning = mlxOk
+                    healthState.isMLXRunning = bridge.mlxState.mlxRunning
                 }
             } catch {
                 for def in checks {
@@ -159,7 +165,10 @@ struct EnvironmentHealthCard: View {
         Task {
             do {
                 _ = try await bridge.repair(itemId: item.id)
-            } catch {}
+            } catch {
+                // 审计0830 P1-错误-5: 旧空 catch 吞异常, 修复失败静默 → 用户误以为修好, 无可观测线索。
+                envHealthLog.error("repair failed itemId=\(item.id, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            }
             await MainActor.run {
                 healthState.healthStatus = .healthy
                 runHealthCheck()

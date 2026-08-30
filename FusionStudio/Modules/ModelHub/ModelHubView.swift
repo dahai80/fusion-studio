@@ -201,8 +201,8 @@ struct ModelHubView: View {
                     .listStyle(.plain)
                 }
 
-                if let err = lastError {
-                    Text(err)
+                if let error = lastError {
+                    Text(error)
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(.red)
                         .padding(.horizontal, 8)

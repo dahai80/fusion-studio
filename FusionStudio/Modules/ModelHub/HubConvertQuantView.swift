@@ -156,17 +156,17 @@ struct HubConvertQuantView: View {
                     .disabled(selectedModelId.isEmpty || isEvaluating)
                 }
 
-                if let err = lastError {
-                    Text(err).font(.caption).foregroundStyle(.red)
+                if let error = lastError {
+                    Text(error).font(.caption).foregroundStyle(.red)
                 }
                 if let msg = successMsg {
                     Text(msg).font(.caption).foregroundStyle(.green)
                 }
-                if let err = layeredErrorMsg {
-                    Text(err).font(.caption).foregroundStyle(.red)
+                if let error = layeredErrorMsg {
+                    Text(error).font(.caption).foregroundStyle(.red)
                 }
-                if let err = evaluateErrorMsg {
-                    Text(err).font(.caption).foregroundStyle(.red)
+                if let error = evaluateErrorMsg {
+                    Text(error).font(.caption).foregroundStyle(.red)
                 }
                 if let msg = evaluateSuccessMsg {
                     Text(msg).font(.caption).foregroundStyle(.green)
@@ -380,8 +380,8 @@ struct HubConvertQuantView: View {
                     .disabled(latestCompletedTaskId == nil || isComparing)
                 }
 
-                if let err = compareErrorMsg {
-                    Text(err).font(.caption).foregroundStyle(.red)
+                if let error = compareErrorMsg {
+                    Text(error).font(.caption).foregroundStyle(.red)
                 }
 
                 if let compare = compareResult, compare.benchmarks.count >= 2 {

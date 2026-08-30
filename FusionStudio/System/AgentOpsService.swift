@@ -297,7 +297,8 @@ extension AgentState {
             let toolCalls = result["tool_calls"] as? [[String: Any]] ?? []
             let sid = result["session_id"] as? String ?? self.activeSessionId
             self.activeSessionId = sid
-            self.lastToolCalls = toolCalls
+            // 审计0830 P1: toolCalls 防御性 LRU cap 200, 防后端异常返回超大 tool_calls 数组撑爆内存。
+            self.lastToolCalls = Array(toolCalls.suffix(200))
             self.streamingContent = content
             onToken(content)
             return content

@@ -252,8 +252,8 @@ struct DocAICopilotView: View {
                     } else {
                         self.chatMessages.append(CopilotMessage(role: "assistant", content: self.i18n.t(.doc_cp_ragNoResult)))
                     }
-                case .failure(let err):
-                    self.appendError(err.localizedDescription)
+                case .failure(let error):
+                    self.appendError(error.localizedDescription)
                 }
             }
         }
@@ -309,8 +309,8 @@ struct DocAICopilotView: View {
                 case .success(let resp):
                     let content = resp["result"] ?? resp["text"] ?? self.i18n.t(.doc_cp_noResult)
                     self.chatMessages.append(CopilotMessage(role: "assistant", content: self.i18n.t(.doc_cp_rewriteResultPrefix) + "\n\(content)"))
-                case .failure(let err):
-                    self.appendError(err.localizedDescription)
+                case .failure(let error):
+                    self.appendError(error.localizedDescription)
                 }
             }
         }
@@ -324,8 +324,8 @@ struct DocAICopilotView: View {
                 case .success(let resp):
                     let content = resp["result"] ?? resp["translation"] ?? self.i18n.t(.doc_cp_noResult)
                     self.chatMessages.append(CopilotMessage(role: "assistant", content: String(format: self.i18n.t(.doc_cp_translateResultFmt), self.targetLang) + "\n\(content)"))
-                case .failure(let err):
-                    self.appendError(err.localizedDescription)
+                case .failure(let error):
+                    self.appendError(error.localizedDescription)
                 }
             }
         }
@@ -339,8 +339,8 @@ struct DocAICopilotView: View {
                 case .success(let resp):
                     let content = resp["result"] ?? resp["summary"] ?? self.i18n.t(.doc_cp_noResult)
                     self.chatMessages.append(CopilotMessage(role: "assistant", content: self.i18n.t(.doc_cp_summarizePrefix) + "\n\(content)"))
-                case .failure(let err):
-                    self.appendError(err.localizedDescription)
+                case .failure(let error):
+                    self.appendError(error.localizedDescription)
                 }
             }
         }
@@ -354,8 +354,8 @@ struct DocAICopilotView: View {
                 case .success(let resp):
                     let content = resp["result"] ?? resp["expanded"] ?? self.i18n.t(.doc_cp_noResult)
                     self.chatMessages.append(CopilotMessage(role: "assistant", content: self.i18n.t(.doc_cp_expandPrefix) + "\n\(content)"))
-                case .failure(let err):
-                    self.appendError(err.localizedDescription)
+                case .failure(let error):
+                    self.appendError(error.localizedDescription)
                 }
             }
         }

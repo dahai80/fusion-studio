@@ -93,8 +93,8 @@ struct DesignSystemListView: View {
     private var systemList: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: theme.spacingXS) {
-                if let err = errorMessage {
-                    errorRow(err)
+                if let error = errorMessage {
+                    errorRow(error)
                 }
                 ForEach(availableSystems) { sys in
                     systemRow(sys)

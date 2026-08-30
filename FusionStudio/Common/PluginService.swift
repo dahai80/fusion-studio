@@ -347,14 +347,14 @@ def on_render_panel():
 
     func fetchPluginStates() async {
         let result = await ipcCallArray("plugins/states")
-        DispatchQueue.main.async { self.pluginStates = result }
+        DispatchQueue.main.async { self.pluginStates = Array(result.suffix(200)) }
     }
 
     func fetchTokenRecords(pluginId: String? = nil) async {
         var params: [String: Any] = [:]
         if let pid = pluginId { params["plugin_id"] = pid }
         let result = await ipcCallArray("plugins/token.records", params: params)
-        DispatchQueue.main.async { self.tokenRecords = result }
+        DispatchQueue.main.async { self.tokenRecords = Array(result.suffix(200)) }
     }
 
     func pruneTokenRecords(maxAge: Int = 3600) async {
@@ -374,7 +374,8 @@ def on_render_panel():
         if let lvl = level { params["level"] = lvl }
         let result = await ipcCallArray("plugins/logs.stream", params: params)
         DispatchQueue.main.async {
-            self.logEntries = result.map { item in
+            // 审计0830 P1: logEntries 日志流无界, 后端无限返回则内存单调增长。LRU cap 200 保最新。
+            let mapped = result.map { item in
                 PluginLogEntry(
                     pluginId: item["plugin_id"] as? String ?? "",
                     level: item["level"] as? String ?? "INFO",
@@ -382,12 +383,13 @@ def on_render_panel():
                     timestamp: item["timestamp"] as? String ?? ""
                 )
             }
+            self.logEntries = Array(mapped.suffix(200))
         }
     }
 
     func fetchMcpSessions() async {
         let result = await ipcCallArray("plugins/mcp.sessions")
-        DispatchQueue.main.async { self.mcpSessions = result }
+        DispatchQueue.main.async { self.mcpSessions = Array(result.suffix(200)) }
     }
 
     func pruneMcpSessions(maxAge: Int = 3600) async {

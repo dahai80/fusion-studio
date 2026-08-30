@@ -66,11 +66,11 @@ struct TaskProgressView: View {
 
     private func progressContent(taskId: String) -> some View {
         VStack(spacing: 0) {
-            if let err = error {
+            if let error = error {
                 ListGroup {
                     HStack(spacing: theme.spacingS) {
                         Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(theme.amberDot)
-                        Text(err).font(.system(size: theme.smallTextSize)).foregroundStyle(theme.textSecondary)
+                        Text(error).font(.system(size: theme.smallTextSize)).foregroundStyle(theme.textSecondary)
                     }
                     .padding(theme.spacingL)
                 }
@@ -228,9 +228,9 @@ struct TaskProgressView: View {
                 case .success(let prog):
                     self.progress = prog
                     progressLog.info("Task progress loaded: \(prog.progress)")
-                case .failure(let err):
-                    progressLog.error("Task progress failed: \(err.localizedDescription)")
-                    self.error = String(format: i18n.t(.mn_progress_loadFailFmt), err.localizedDescription)
+                case .failure(let error):
+                    progressLog.error("Task progress failed: \(error.localizedDescription)")
+                    self.error = String(format: i18n.t(.mn_progress_loadFailFmt), error.localizedDescription)
                 }
                 self.isLoading = false
             }
@@ -241,8 +241,8 @@ struct TaskProgressView: View {
                 switch result {
                 case .success(let tl):
                     self.timeline = tl
-                case .failure(let err):
-                    progressLog.debug("Timeline not available: \(err.localizedDescription)")
+                case .failure(let error):
+                    progressLog.debug("Timeline not available: \(error.localizedDescription)")
                 }
             }
         }

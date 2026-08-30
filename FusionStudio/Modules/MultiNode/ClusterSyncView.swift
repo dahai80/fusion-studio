@@ -280,9 +280,9 @@ struct ClusterSyncView: View {
                         syncResult = String(format: i18n.t(.mn_sync_syncDoneFmt), synced)
                     }
                     syncLog.info("Incremental sync result: \(json)")
-                case .failure(let err):
-                    syncResult = String(format: i18n.t(.mn_sync_syncFailFmt), err.localizedDescription)
-                    syncLog.error("Incremental sync failed: \(err.localizedDescription)")
+                case .failure(let error):
+                    syncResult = String(format: i18n.t(.mn_sync_syncFailFmt), error.localizedDescription)
+                    syncLog.error("Incremental sync failed: \(error.localizedDescription)")
                 }
             }
         }
@@ -296,9 +296,9 @@ struct ClusterSyncView: View {
                 case .success(let manifest):
                     manifestDisplay = manifest
                     syncLog.info("Manifest fetched for \(manifest.modelName), files: \(manifest.files?.count ?? 0)")
-                case .failure(let err):
+                case .failure(let error):
                     manifestDisplay = nil
-                    syncLog.error("Failed to fetch manifest: \(err.localizedDescription)")
+                    syncLog.error("Failed to fetch manifest: \(error.localizedDescription)")
                 }
             }
         }

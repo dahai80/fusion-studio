@@ -39,8 +39,8 @@ struct FSBConnectorDialog: View {
                             oauth2Fields
                         }
                     }
-                    if let err = errorMessage {
-                        Text(err)
+                    if let error = errorMessage {
+                        Text(error)
                             .font(.system(size: theme.captionSize))
                             .foregroundStyle(.red)
                     }
@@ -305,8 +305,8 @@ struct FSBSkillDialog: View {
                     }
                     .pickerStyle(.segmented)
 
-                    if let err = errorMessage {
-                        Text(err)
+                    if let error = errorMessage {
+                        Text(error)
                             .font(.system(size: theme.captionSize))
                             .foregroundStyle(.red)
                     }
@@ -455,8 +455,8 @@ struct FSBScheduleDialog: View {
                         .padding(theme.spacingS)
                 }
 
-                if let err = errorMessage {
-                    Text(err)
+                if let error = errorMessage {
+                    Text(error)
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(.red)
                 }
@@ -660,8 +660,8 @@ struct FSBApprovalDialog: View {
                     .background(fieldBg)
                     .overlay(fieldBorder)
 
-                if let err = errorMessage {
-                    Text(err)
+                if let error = errorMessage {
+                    Text(error)
                         .font(.system(size: theme.captionSize))
                         .foregroundStyle(.red)
                 }

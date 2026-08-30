@@ -96,23 +96,39 @@ extension ProjectChatState {
     private func selfHealApiKeyForInfer(currentURL: URL, routeKey: String) async -> String? {
         let cfg = FusionConfig.shared
         let candidates = await AgentBridge.mlxSelfHealKeyCandidates(currentResolved: routeKey)
+        if candidates.isEmpty {
+            // 审计0830 P1-错误-6: 区分"无候选 key"(配置缺失) 与"探针失败"(鉴权/网络), 旧实现全静默 continue→nil 不可区分。
+            agentProjectChatLog.warning("infer selfHeal: no candidate keys available (config has no mlx api key)")
+            return nil
+        }
         for key in candidates {
-            guard let probeURL = URL(string: "\(cfg.mlxBaseURL)/v1/models") else { continue }
+            guard let probeURL = URL(string: "\(cfg.mlxBaseURL)/v1/models") else {
+                agentProjectChatLog.warning("infer selfHeal: bad probe URL \(cfg.mlxBaseURL, privacy: .public)/v1/models, skip candidate")
+                continue
+            }
             var req = URLRequest(url: probeURL)
             req.setValue("studio", forHTTPHeaderField: "X-Fusion-Route")
             req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
             req.timeoutInterval = 10
             do {
                 let (_, resp) = try await URLSession.shared.data(for: req)
-                if (resp as? HTTPURLResponse)?.statusCode == 200 {
+                let code = (resp as? HTTPURLResponse)?.statusCode ?? -1
+                if code == 200 {
                     cfg.mlxApiKey = key
                     agentProjectChatLog.info("infer selfHeal: persisted key (len \(key.count))")
                     return key
+                }
+                // 审计0830 P1-错误-6/7: 非 200 (含 500) 旧实现静默 continue; 401/403 鉴权失败尤其不可观测。
+                if code == 401 || code == 403 {
+                    agentProjectChatLog.error("infer selfHeal: probe auth failed HTTP \(code) — candidate key rejected (len \(key.count))")
+                } else {
+                    agentProjectChatLog.warning("infer selfHeal: probe non-200 HTTP \(code), try next candidate")
                 }
             } catch {
                 agentProjectChatLog.warning("infer selfHeal: probe failed: \(error.localizedDescription)")
             }
         }
+        agentProjectChatLog.warning("infer selfHeal: all \(candidates.count) candidate(s) rejected, self-heal failed")
         return nil
     }
 
@@ -170,6 +186,9 @@ extension ProjectChatState {
         request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
         request.setValue("studio", forHTTPHeaderField: "X-Fusion-Route")
         request.timeoutInterval = 300
+        // 审计0830 P2-缓存-1: 推理结果非确定性, 不应命中本地缓存 (旧 URLSession.shared 默认 .useProtocolCachePolicy
+        //   可能复用陈旧响应, 同 prompt 返回旧输出)。显式 .reloadIgnoringLocalCacheData 强制每次回源。
+        request.cachePolicy = .reloadIgnoringLocalCacheData
         if !apiKey.isEmpty {
             request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         }
@@ -200,8 +219,10 @@ extension ProjectChatState {
 
     // 消费流式响应，拼装 fullContent + thinking 前缀，逐 token 回调
     private func drainStream(bytes: URLSession.AsyncBytes, thinking: Bool, onToken: @escaping (String) -> Void) async throws -> String {
-        var fullContent = ""
-        var thinkingContent = ""
+        // 审计0830 P3-缓存-1: 旧 fullContent/thinkingContent += token 在循环内逐次复制全串 = O(n²)。
+        //   长输出 (10万 token) 时复制成本陡升, 主线程卡顿。改 [String] append + 末尾 join = O(n)。
+        var fullParts: [String] = []
+        var thinkingParts: [String] = []
         var isInThinking = thinking
         for try await line in bytes.lines {
             guard line.hasPrefix("data: ") else { continue }
@@ -216,26 +237,29 @@ extension ProjectChatState {
             }
             if let token = delta["content"] as? String, !token.isEmpty {
                 if isInThinking {
-                    thinkingContent += token
+                    thinkingParts.append(token)
                 } else {
-                    fullContent += token
+                    fullParts.append(token)
                     onToken(token)
                 }
             }
             if let reasoningToken = delta["reasoning_content"] as? String, !reasoningToken.isEmpty {
-                thinkingContent += reasoningToken
+                thinkingParts.append(reasoningToken)
             }
             if delta["content"] != nil || delta["reasoning_content"] != nil { continue }
             if let finishReason = firstChoice["finish_reason"] as? String, finishReason == "stop" {
                 isInThinking = false
             }
         }
+        let thinkingContent = thinkingParts.joined()
+        var fullContent = fullParts.joined()
         if !thinkingContent.isEmpty {
             fullContent = "🤖\n\(thinkingContent)\n\n\n\(fullContent)"
         }
         agentProjectChatLog.info("inferStream: received \(fullContent.count) chars total")
         return fullContent
     }
+
 }
 
 // MARK: - Project Chat Operations (facade-delegate stubs — 行为已迁 ProjectChatState 域)

@@ -137,6 +137,16 @@ final class ConfigState: ObservableObject {
     var connectorsFetchedAt: Date?
     var alertsFetchedAt: Date?
     init() {}
+
+    // 审计0830 P0-10: ConfigState 8 @Published 数组无界。后端无限返回 + 反复 fetch →
+    //   数组无上限膨胀 → 内存涨 + SwiftUI diff 全量重算卡顿 → 长会话 OOM/卡死。
+    //   统一 LRU cap 200 (复用 capChatMessages 范式), 每个 fetch 后调用。超限裁尾保最新。
+    private static let configArrayCap = 200
+    @MainActor
+    static func capConfigArray(_ array: [[String: Any]]) -> [[String: Any]] {
+        guard array.count > configArrayCap else { return array }
+        return Array(array.suffix(configArrayCap))
+    }
 }
 
 // MARK: - Project Chat State (会话消息 / 推理中)

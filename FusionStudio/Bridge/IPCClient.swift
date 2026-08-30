@@ -239,9 +239,13 @@ class IPCClient: ObservableObject {
 
     // 审计0827 §2.6 (P1): half-open 探测闸 — 开路满 circuitRecoverySec 后放一个 call 穿透试探。
     // 返 true = 已转 half-open 放行该 call; false = 仍 closed-open fast-fail。跑在串行 queue 无需锁。
+    // 审计0830 P2-IPC-2: 旧实现 `if circuitHalfOpenProbing { return true }` → 探测 call 在途时, 后续所有 call 也被放行,
+    //   half-open 退化为批量重放 (后端仍故障则再次雪崩开路)。修复: 探测在途时后续 call fast-fail (返 false),
+    //   仅发起探测的那一个 call 穿透, 等 circuitOnSuccess/Failure 解除在途标志后才放下一个。
     private func maybeHalfOpenProbe() -> Bool {
         let now = Date().timeIntervalSince1970
-        if circuitHalfOpenProbing { return true }
+        // 探测已在途: 后续 call fast-fail, 等探测结果 (成功复位 / 失败重开) 再决定。
+        if circuitHalfOpenProbing { return false }
         if now - circuitOpenedAt >= circuitRecoverySec {
             circuitHalfOpenProbing = true
             return true
@@ -347,8 +351,12 @@ class IPCClient: ObservableObject {
                 self.pendingRequests[reqId] = continuation
                 self.lock.unlock()
 
-                // 超时保护：8s 无响应即失败，避免 daemon 不回包时续体泄露、调用永久挂起 (bug3/bug4)
-                self.queue.asyncAfter(deadline: .now() + 8) { [weak self] in
+                // 超时保护：避免 daemon 不回包时续体泄露、调用永久挂起 (bug3/bug4)。
+                // 审计0830 P2-IPC-1: 旧统一 8s, 但 graph.execute/task.execute/mlx.start/design.export
+                //   可达 120s+ (模型加载/长推理/导出) → 长任务被误杀超时计入熔断 (P0-3 熔断器雪崩)。
+                //   分级: 长 RPC 120s, 默认 8s。复用 RPCMethod 常量匹配, 避免裸字符串漂移。
+                let timeoutSecs = Self.rpcTimeout(for: method)
+                self.queue.asyncAfter(deadline: .now() + timeoutSecs) { [weak self] in
                     guard let self = self else { return }
                     self.lock.lock()
                     let pending = self.pendingRequests.removeValue(forKey: reqId)
@@ -366,9 +374,7 @@ class IPCClient: ObservableObject {
                 // 发送数据
                 var writeBuf = data
                 writeBuf.append(0x0A) // 换行符作为消息分隔符
-                writeBuf.withUnsafeBytes { ptr in
-                    Darwin.write(self.socketFd, ptr.baseAddress, writeBuf.count)
-                }
+                Self.writeAll(fd: self.socketFd, writeBuf)
             }
         }
     }
@@ -428,9 +434,7 @@ class IPCClient: ObservableObject {
                 }
                 var writeBuf = data
                 writeBuf.append(0x0A)
-                writeBuf.withUnsafeBytes { ptr in
-                    _ = Darwin.write(sock, ptr.baseAddress, writeBuf.count)
-                }
+                Self.writeAll(fd: sock, writeBuf)
                 var respData = Data()
                 var buf = [UInt8](repeating: 0, count: 8192)
                 while true {
@@ -574,8 +578,14 @@ class IPCClient: ObservableObject {
             self.circuitOnSuccess()
         case .failure(let e):
             cont.resume(throwing: e)
-            // rpcError = 后端业务错 (非超时), 也计入熔断失败 — 后端异常时同应 fast-fail 防雪崩。
-            self.circuitOnFailure()
+            // 审计0830 P0-3: rpcError = 后端业务错 (4xx 鉴权/参数/404), 非后端不可达故障。
+            //   旧逻辑把业务 4xx 计入熔断失败 → 连续 5 次鉴权失败误开路, 屏蔽全部 RPC 包括健康检查。
+            //   修复: 仅传输层/解码故障 (timeout/disconnected/invalidResponse) 计入熔断, rpcError 透传不计。
+            if let ipcErr = e as? IPCError, case .rpcError = ipcErr {
+                ipcLog.info("handleResponse rpcError (business) id=\(id) — 不计入熔断 (P0-3)")
+            } else {
+                self.circuitOnFailure()
+            }
         }
         // F-R4: 合并读 (coalescedMethod 非 nil) → fan-out 同 method 在途 waiters
         if let method = coalescedMethod {
@@ -609,6 +619,39 @@ class IPCClient: ObservableObject {
     }
 
     // MARK: - 便捷方法
+
+    // 审计0830 P2-IPC-1: RPC 超时分级。默认 8s; 长 RPC (graph.execute/agent.execute/mlx.start/stop)
+    //   可达 120s+ (模型加载/长推理/导出), 统一 8s 误杀长任务 → 超时计入熔断 (P0-3) 雪崩。
+    //   复用 RPCMethod 常量匹配, 避免裸字符串漂移。
+    private static let defaultRpcTimeout: Double = 8
+    private static let longRpcTimeout: Double = 120
+    private static let longRpcMethods: Set<String> = [
+        RPCMethod.graphExecute, RPCMethod.agentExecute, RPCMethod.agentExecuteStream,
+        RPCMethod.mlxStart, RPCMethod.mlxStop, RPCMethod.agentSubmitCodeTask,
+    ]
+    private static func rpcTimeout(for method: String) -> Double {
+        longRpcMethods.contains(method) ? longRpcTimeout : defaultRpcTimeout
+    }
+
+    // 审计0830 P0-8: Darwin.write 非阻塞 fd 可短写 (内核缓冲满返 < count), 旧代码忽略返回值 →
+    //   RPC payload 静默截断 → 后端收残缺 JSON 解析失败 → 客户端 8s 超时计入熔断级联。
+    //   循环写直到全量写出; 0 或 -1 视为故障记日志。
+    private static func writeAll(fd: Int32, _ data: Data) {
+        var remaining = data.count
+        var offset = 0
+        while remaining > 0 {
+            let written = data.withUnsafeBytes { ptr -> Int in
+                guard let base = ptr.baseAddress else { return -1 }
+                return Darwin.write(fd, base.advanced(by: offset), remaining)
+            }
+            if written <= 0 {
+                ipcLog.error("writeAll: short/fault write fd=\(fd) offset=\(offset) remaining=\(remaining) ret=\(written) (P0-8)")
+                return
+            }
+            offset += written
+            remaining -= written
+        }
+    }
 
     func healthCheck() async throws -> [String: Any] {
         return try await call(method: RPCMethod.envHealthCheck)

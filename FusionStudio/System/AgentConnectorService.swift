@@ -19,7 +19,7 @@ extension ConfigState {
         guard let client = self.ipcClient else { return }
         do {
             let result = try await client.connectorList()
-            self.connectors = result["connectors"] as? [[String: Any]] ?? []
+            self.connectors = ConfigState.capConfigArray(result["connectors"] as? [[String: Any]] ?? [])
             agentConnectorLog.info("Fetched \(self.connectors.count) connectors")
         } catch {
             agentConnectorLog.debug("fetchConnectors failed: \(error.localizedDescription)")

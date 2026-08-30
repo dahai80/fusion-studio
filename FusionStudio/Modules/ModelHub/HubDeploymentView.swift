@@ -51,8 +51,8 @@ struct HubDeploymentView: View {
                 .listStyle(.sidebar)
             }
 
-            if let err = lastError {
-                Text(err).font(.caption).foregroundStyle(.red).padding(.horizontal, theme.spacingM)
+            if let error = lastError {
+                Text(error).font(.caption).foregroundStyle(.red).padding(.horizontal, theme.spacingM)
             }
         }
         .frame(minWidth: 280)
@@ -324,7 +324,7 @@ private struct CreateDepSheet: View {
                 Stepper(String(format: i18n.t(.hub_dep_canaryStepperFmt), canaryPercent), value: $canaryPercent, in: 0...100)
             }
             .formStyle(.grouped)
-            if let err = error { Text(err).font(.caption).foregroundStyle(.red) }
+            if let error = error { Text(error).font(.caption).foregroundStyle(.red) }
             HStack {
                 Button(i18n.t(.cancel)) { isPresented = false }.buttonStyle(.bordered)
                 Button(i18n.t(.hub_dep_createDep)) { create() }

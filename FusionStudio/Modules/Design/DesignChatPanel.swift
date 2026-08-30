@@ -96,9 +96,10 @@ struct DesignChatPanel: View {
             // 进入 Design 时复核 MLX 状态：启动竞态可能让 isMLXRunning 滞留 false (bug2)。
             if !healthState.isMLXRunning {
                 Task {
-                    let ok = await agentBridge.probeMLXRunningStatus()
+                    await agentBridge.probeMLXRunningStatus()
                     await MainActor.run {
-                        healthState.isMLXRunning = ok
+                        // 审计0830 P1-架构-1: probe 已写 mlxState.mlxRunning, HealthState 镜像同步防脑裂。
+                        healthState.isMLXRunning = agentBridge.mlxState.mlxRunning
                     }
                 }
             }
@@ -734,7 +735,10 @@ struct DesignChatPanel: View {
         if !healthState.isMLXRunning {
             Task {
                 let ok = await agentBridge.probeMLXRunningStatus()
-                await MainActor.run { healthState.isMLXRunning = ok }
+                await MainActor.run {
+                    // 审计0830 P1-架构-1: probe 已写 mlxState.mlxRunning, HealthState 镜像同步防脑裂。
+                    healthState.isMLXRunning = agentBridge.mlxState.mlxRunning
+                }
                 DesignPreviewTrace.log("sendChat: live probe isMLXRunning=\(healthState.isMLXRunning)")
                 if ok {
                     await MainActor.run { proceedToSend(message: message) }

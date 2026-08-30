@@ -174,8 +174,8 @@ struct RoutingStrategyView: View {
                     self.summary = s
                     self.selectedStrategy = s.strategy
                     routingLog.info("Routing summary loaded, strategy=\(s.strategy)")
-                case .failure(let err):
-                    routingLog.error("Routing summary failed: \(err.localizedDescription)")
+                case .failure(let error):
+                    routingLog.error("Routing summary failed: \(error.localizedDescription)")
                 }
             }
         }

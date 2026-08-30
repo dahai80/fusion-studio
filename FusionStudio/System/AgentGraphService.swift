@@ -43,7 +43,9 @@ extension AgentState {
             let currentIds = Set(self.graphs.map(\.id))
             let changed = parsed.count != self.graphs.count || parsedIds != currentIds
             if changed {
-                self.graphs = parsed
+                // 审计0830 P1: 后端 graphs 无限增长则 @Published 数组无界膨胀 → 内存涨 + SwiftUI diff 全量重算。
+                //   LRU cap 200 保最新 (复用 capChatMessages 范式)。
+                self.graphs = Array(parsed.suffix(200))
             }
             agentGraphLog.info("fetchGraphs: received \(parsed.count) graphs (changed=\(changed))")
             return parsed
