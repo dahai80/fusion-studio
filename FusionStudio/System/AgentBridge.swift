@@ -1049,9 +1049,13 @@ final class AgentBridge: ObservableObject {
             //   客户端侧 300s 超时兜底 (合法长 workflow 留足余量, 真正 hang 在此截断): 到点 cancel, 复位 isExecuting。
             let result: [String: Any]
             do {
+                // 审计0830 P1-调度-6: params 为 var, group.addTask 闭包 @Sendable 捕获 var →
+                //   Swift 5.10 (CI) "reference to captured var in concurrently-executing code" 编译错。
+                //   params 在此已构建完成 (下方 group 内不再写), 复制为 let 值再捕获即合法。
+                let callParams = params
                 result = try await withThrowingTaskGroup(of: [String: Any].self) { group in
                     group.addTask {
-                        try await client.call(method: RPCMethod.graphExecute, params: params)
+                        try await client.call(method: RPCMethod.graphExecute, params: callParams)
                     }
                     group.addTask {
                         try await Task.sleep(nanoseconds: 300_000_000_000)

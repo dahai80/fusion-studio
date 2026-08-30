@@ -41,9 +41,9 @@ jobs:
 
       - name: Build (debug)
         # F-I13: pipefail 保 swift build 退出码 (原 | tail -10 吞码 → build 失败也绿)。
-        # 审计0830: tail 吞掉编译进度 + 编译器 ICE stack dump → 无法定位 CI-only (Swift 5.10) crash。
-        #   去 tail, 全量输出 + tee 落盘, 失败时 upload-artifact 供下载定位。
-        run: set -o pipefail && swift build -c debug 2>&1 | tee /tmp/build-debug.log
+        # 审计0830: tail 单独用会吞掉真实 error: 行 → CI-only (Swift 5.10) 编译错无法定位。
+        #   tee 全量落盘 (失败时 upload-artifact 供下载定位) + tail -80 控制可见日志量。
+        run: set -o pipefail && swift build -c debug 2>&1 | tee /tmp/build-debug.log | tail -80
 
       - name: Upload build log on failure
         if: failure()
