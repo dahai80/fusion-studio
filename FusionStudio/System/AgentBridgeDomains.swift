@@ -63,6 +63,7 @@ final class AgentState: ObservableObject {
 
 // MARK: - Module State (Planner + RAG + Memory + Safety + Template + Deploy + tools)
 
+@MainActor
 final class ModuleState: ObservableObject {
     @Published var plans: [PlanModel] = []
     @Published var currentPlan: PlanModel?
@@ -77,6 +78,11 @@ final class ModuleState: ObservableObject {
     @Published var ragSources: [String] = []
     @Published var lastSkillResult: String = ""
     @Published var lastResearchResult: String = ""
+    // ARCH-1 PR4 (#359 facade-delegate): Module 行为从 AgentBridge 迁入域。
+    //   IPCClient ref 由 AgentBridge.setIPCClient 注入 (module RPC 方法读 self.ipcClient)。
+    //   Module 无 fetch TTL (全即时读/写, 无 onAppear 风暴守卫)。
+    //   ipcClient 为 internal (非 private): AgentModule*Service extension 跨文件访问, Swift private=文件作用域。
+    var ipcClient: IPCClient?
     init() {}
 }
 

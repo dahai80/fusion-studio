@@ -586,4 +586,78 @@ final class AgentBridgeIntegrationTests: XCTestCase {
         XCTAssertNotNil(bridge.configState.ipcClient)
         XCTAssertTrue(bridge.configState.ipcClient === mock)
     }
+
+    // MARK: - Group 10 — ARCH-1 PR4 (#359) ModuleState facade-delegate
+
+    // facade-delegate + 域持 ipcClient: stub→moduleState.fetchTools→client.call(method: RPCMethod.toolList) 路径。
+    // 验 bridge.fetchTools() 经 moduleState 委托命中 MockIPCClient, 解析 result["tools"] 写 @Published tools。
+    func testModuleStateFacadeDelegatesFetchTools() async throws {
+        mock.responsesByMethod[RPCMethod.toolList] = [
+            "tools": [
+                ["name": "search", "description": "web search"],
+                ["name": "calc", "description": "calculator"],
+            ],
+        ]
+        let tools = try await bridge.fetchTools()
+        XCTAssertEqual(tools.count, 2)
+        XCTAssertEqual(bridge.moduleState.tools.count, 2)
+        XCTAssertEqual(bridge.moduleState.tools.first?["name"] as? String, "search")
+        XCTAssertNotNil(mock.lastCall(method: RPCMethod.toolList))
+    }
+
+    // facade-delegate getTool: stub→moduleState.getTool→client.call(method: RPCMethod.toolGet, params: ["name": name])。
+    func testModuleStateFacadeDelegatesGetTool() async throws {
+        mock.responsesByMethod[RPCMethod.toolGet] = ["name": "search", "description": "web search"]
+        let tool = try await bridge.getTool(name: "search")
+        XCTAssertEqual(tool["name"] as? String, "search")
+        let call = mock.lastCall(method: RPCMethod.toolGet)
+        XCTAssertEqual(call?.params["name"] as? String, "search")
+    }
+
+    // facade-delegate fetchPlans (Planner 域): stub→moduleState.fetchPlans→client.plannerListPlans, parsePlanModel decode 写 @Published plans。
+    func testModuleStateFacadeDelegatesFetchPlans() async throws {
+        mock.responsesByMethod[RPCMethod.plannerListPlans] = [
+            "plans": [
+                ["plan_id": "p1", "task": "build app", "steps": [["step_id": "s1", "name": "init"]]],
+            ],
+        ]
+        let plans = try await bridge.fetchPlans()
+        XCTAssertEqual(plans.count, 1)
+        XCTAssertEqual(bridge.moduleState.plans.count, 1)
+        XCTAssertEqual(bridge.moduleState.plans.first?.id, "p1")
+    }
+
+    // facade-delegate fetchRecentMemories (Memory 域): stub→moduleState.fetchRecentMemories→client.memoryListRecent, parseMemoryEntry decode 写 @Published memoryEntries。
+    // 验 parseMemoryEntry bare decodeCodable 迁移后正确 AgentBridge.decodeCodable 限定。
+    func testModuleStateFacadeDelegatesFetchRecentMemories() async throws {
+        mock.responsesByMethod[RPCMethod.memoryListRecent] = [
+            "entries": [
+                ["entry_id": "m1", "content": "hello", "scope": "default"],
+                ["entry_id": "m2", "content": "world", "scope": "default"],
+            ],
+        ]
+        let entries = try await bridge.fetchRecentMemories()
+        XCTAssertEqual(entries.count, 2)
+        XCTAssertEqual(bridge.moduleState.memoryEntries.count, 2)
+        XCTAssertEqual(bridge.moduleState.memoryEntries.first?.id, "m1")
+    }
+
+    // facade-delegate fetchTemplates (Template 域): stub→moduleState.fetchTemplates→client.templateList, decodeCodable 写 @Published templates。
+    func testModuleStateFacadeDelegatesFetchTemplates() async throws {
+        mock.responsesByMethod[RPCMethod.templateList] = [
+            "templates": [
+                ["template_id": "t1", "name": "Blank Agent"],
+            ],
+        ]
+        let templates = try await bridge.fetchTemplates()
+        XCTAssertEqual(templates.count, 1)
+        XCTAssertEqual(bridge.moduleState.templates.count, 1)
+        XCTAssertEqual(bridge.moduleState.templates.first?.id, "t1")
+    }
+
+    // ModuleState 持自己的 ipcClient ref: setIPCClient 后 bridge.moduleState.ipcClient === mock。
+    func testModuleStateHoldsOwnIPCClient() {
+        XCTAssertNotNil(bridge.moduleState.ipcClient)
+        XCTAssertTrue(bridge.moduleState.ipcClient === mock)
+    }
 }
