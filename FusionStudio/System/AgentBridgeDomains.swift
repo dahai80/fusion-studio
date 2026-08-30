@@ -141,6 +141,12 @@ final class ConfigState: ObservableObject {
 
 // MARK: - Project Chat State (会话消息 / 推理中)
 
+// ARCH-1 PR7 (#359 facade-delegate): Project Chat 行为从 AgentBridge 迁入域。
+//   6 方法 (clearChat/infer/inferStream + 3 private helper) 全纯 HTTP (URLSession + FusionConfig),
+//   0 IPC, 0 跨域读 → 无 ipcClient ref, 无 fetch TTL (同 PR1-PR6 坑: Swift private=文件作用域,
+//   本域 internal 成员跨文件 extension 可达, 但本域无 ipcClient/TTL 需暴露)。
+//   sendProjectChat 留 AgentBridge (跨域读 mlxState.models = 跨域协调器, 同 executeGraph)。
+@MainActor
 final class ProjectChatState: ObservableObject {
     @Published var chatMessages: [ChatMessageRecord] = []
     @Published var isInferring: Bool = false

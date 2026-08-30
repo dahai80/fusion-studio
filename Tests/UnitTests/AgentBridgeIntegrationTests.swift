@@ -779,4 +779,43 @@ final class AgentBridgeIntegrationTests: XCTestCase {
         XCTAssertNotNil(bridge.taskState.ipcClient)
         XCTAssertTrue(bridge.taskState.ipcClient === mock)
     }
+
+    // MARK: - Group 13 — ARCH-1 PR7 (#359) ProjectChatState facade-delegate
+
+    // clearChat facade 委托到 projectChatState.clearChat: 清空 @Published chatMessages。
+    // ProjectChatState 无 ipcClient (纯 HTTP 域), 不测 wiring。
+    func testProjectChatStateFacadeDelegatesClearChat() {
+        bridge.projectChatState.chatMessages = [
+            ChatMessageRecord(role: "user", content: "hello"),
+            ChatMessageRecord(role: "assistant", content: "hi"),
+        ]
+        XCTAssertEqual(bridge.projectChatState.chatMessages.count, 2)
+        bridge.clearChat()
+        XCTAssertTrue(bridge.projectChatState.chatMessages.isEmpty)
+    }
+
+    // capChatMessages static (留 AgentBridge): 超 200 条裁最旧, 保最近 200 (LRU 语义)。
+    // sendProjectChat 内部调 Self.capChatMessages, 此处直测 static 守卫长会话 cap。
+    func testProjectChatStateCapChatMessagesTrimsTo200() {
+        var msgs: [ChatMessageRecord] = []
+        for i in 0..<205 {
+            msgs.append(ChatMessageRecord(role: "user", content: "msg\(i)"))
+        }
+        AgentBridge.capChatMessages(&msgs)
+        XCTAssertEqual(msgs.count, 200)
+        // 裁最旧: msg0..msg4 丢弃, 保 msg5..msg204。
+        XCTAssertEqual(msgs.first?.content, "msg5")
+        XCTAssertEqual(msgs.last?.content, "msg204")
+    }
+
+    // capChatMessages 不裁未超额 (<=200 原样)。
+    func testProjectChatStateCapChatMessagesNoTrimUnderCap() {
+        var msgs: [ChatMessageRecord] = []
+        for i in 0..<200 {
+            msgs.append(ChatMessageRecord(role: "user", content: "m\(i)"))
+        }
+        AgentBridge.capChatMessages(&msgs)
+        XCTAssertEqual(msgs.count, 200)
+        XCTAssertEqual(msgs.first?.content, "m0")
+    }
 }
