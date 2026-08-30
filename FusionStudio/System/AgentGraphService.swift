@@ -1,26 +1,29 @@
-// ARCH-1: Graph Operations + parseGraphModel 从 AgentBridge God-object 抽出, facade extension。
-// 本批次耦合迁移: parseGraphModel (private static) + 6 调用方 (fetchGraphs/createGraph/graphGet/updateGraph/
-//   templateInstantiate/deployImport) 必须同文件, 因 private = Swift 文件作用域, 跨文件 extension 不可达另一文件的 private static。
-// templateInstantiate/deployImport 原留 AgentBridge (跨域, 依赖 parseGraphModel), 现随 parseGraphModel 同搬本文件。
-// executeGraph/deleteGraph/cancelExecution 留 AgentBridge: executeGraph 依赖 Self.parseEventModel (Event 域 private static 跨文件不可访问),
-//   且写共享 events/isExecuting @Published; deleteGraph/cancelExecution 无 parseGraphModel 依赖可独立抽, 但留以保持 Graph Ops MARK 完整语义, 后续按需。
-// @Published self.agentState.graphs (L314) 留主类 (extension 不可声明存储, 有外部 SwiftUI 读 DAGCanvasView/AgentTaskViews/AgentStudioView)。
-//   templates (L338)/deployFormats (L339) 留主类 (各有外部读), extension 仅读 self.templates/deployFormats 无写, 观察链不变。
-// anyToJSONValue: 通用 Any→JSONValue 转换器 (非域 parser), 被 parseGraphModel (本文件) + parseEventModel (留 AgentBridge) 共用。
-//   解阻方案: anyToJSONValue private→internal (留 AgentBridge), 本文件 parseGraphModel 调 Self.anyToJSONValue (internal 跨文件可达)。
-//   域 parser (parseGraphModel 等) 仍 private, "不 widen 域 parser" 约定不变; 仅 widen 通用 helper。
+// ARCH-1 PR5 (#359 facade-delegate): Graph Operations + parseGraphModel 从 AgentBridge God-object 迁入 AgentState 域。
+//   本文件含 2 extension:
+//     1) extension AgentState — 7 真实方法体 (fetchGraphs/createGraph/graphGet/updateGraph/templateInstantiate/deployImport/deleteGraph, 自持 ipcClient) + parseGraphModel。
+//     2) extension AgentBridge — 7 个 1 行 facade stub 委托到 agentState.X(), 保外部 call site 签名零变。
+//   本批次耦合迁移: parseGraphModel (private static) + 7 调用方 (fetchGraphs/createGraph/graphGet/updateGraph/
+//     templateInstantiate/deployImport/deleteGraph) 必须同文件, 因 private = Swift 文件作用域, 跨文件 extension 不可达另一文件的 private static。
+//   templateInstantiate/deployImport 原留 AgentBridge (跨域, 依赖 parseGraphModel), 现随 parseGraphModel 同搬本文件 (PR4 ModuleState 域时这两法依赖 cross-file parseGraphModel 留主类, PR5 AgentState 域整批抽后入域)。
+//   deleteGraph 原留 AgentBridge (保 Graph Ops MARK 完整语义), PR5 随 Graph 域整批抽入域 (纯叶: 无 parseGraphModel 依赖, 仅 client.call graphDelete)。
+//   executeGraph 留 AgentBridge: 依赖 Self.parseEventModel (Event 域 private static 跨文件不可访问) + guard 鉴权 +
+//     写共享 runtimeState.events/isExecuting (跨域协调器)。cancelExecution 已迁 RuntimeState 域 (PR2)。
+//   @Published graphs 在 AgentState 域 (外部 SwiftUI 读 DAGCanvasView/AgentTaskViews/AgentStudioView), 经 bridge.agentState.graphs 不变。
+//   Logger: 本文件自有 agentGraphLog 替代主类 private logger (跨文件不可达)。
+//   ipcClient 为 internal (非 private): 跨文件 extension 访问, Swift private=文件作用域 (同 PR1/PR2/PR3/PR4 坑)。
 
 import Foundation
 import os.log
 
 private let agentGraphLog = Logger(subsystem: "com.fusion.studio", category: "AgentGraphService")
 
-extension AgentBridge {
+// MARK: - Graph Operations (行为落地 AgentState 域)
+extension AgentState {
 
     // MARK: - Graph Operations
 
     func fetchGraphs() async throws -> [AgentGraphModel] {
-        guard let client = ipcClient else {
+        guard let client = self.ipcClient else {
             throw BridgeError.notConnected
         }
         do {
@@ -33,14 +36,14 @@ extension AgentBridge {
                 }
             }
             // 仅在 id 集合或数量变化时更新 @Published, 避免 .task 反复触发 AgentStudioView body 重算导致 Workflows 转圈
-            // BUG-6: 旧实现 zip(parsed, self.agentState.graphs) 按较短序列截断, 删除项不被检测
-            // (parsed 比 self.agentState.graphs 短时 zip 只比到 parsed.count, 尾部多余 self.agentState.graphs.id 不参与比较 -> changed=false)。
+            // BUG-6: 旧实现 zip(parsed, self.graphs) 按较短序列截断, 删除项不被检测
+            // (parsed 比 self.graphs 短时 zip 只比到 parsed.count, 尾部多余 self.graphs.id 不参与比较 -> changed=false)。
             // 改用 id 集合差集, 增删均能检出。
             let parsedIds = Set(parsed.map(\.id))
-            let currentIds = Set(self.agentState.graphs.map(\.id))
-            let changed = parsed.count != self.agentState.graphs.count || parsedIds != currentIds
+            let currentIds = Set(self.graphs.map(\.id))
+            let changed = parsed.count != self.graphs.count || parsedIds != currentIds
             if changed {
-                self.agentState.graphs = parsed
+                self.graphs = parsed
             }
             agentGraphLog.info("fetchGraphs: received \(parsed.count) graphs (changed=\(changed))")
             return parsed
@@ -53,7 +56,7 @@ extension AgentBridge {
     }
 
     func createGraph(name: String, nodes: [NodeConfigModel], edges: [EdgeModel]) async throws -> AgentGraphModel {
-        guard let client = ipcClient else {
+        guard let client = self.ipcClient else {
             throw BridgeError.notConnected
         }
         agentGraphLog.info("createGraph: name=\(name) nodes=\(nodes.count) edges=\(edges.count)")
@@ -100,7 +103,7 @@ extension AgentBridge {
     }
 
     func graphGet(graphId: String) async throws -> AgentGraphModel? {
-        guard let client = ipcClient else {
+        guard let client = self.ipcClient else {
             throw BridgeError.notConnected
         }
         agentGraphLog.info("graphGet: graphId=\(graphId)")
@@ -118,7 +121,7 @@ extension AgentBridge {
     }
 
     func updateGraph(id: String, name: String? = nil, nodes: [NodeConfigModel]? = nil, edges: [EdgeModel]? = nil) async throws -> AgentGraphModel? {
-        guard let client = ipcClient else {
+        guard let client = self.ipcClient else {
             throw BridgeError.notConnected
         }
         agentGraphLog.info("updateGraph: id=\(id)")
@@ -145,10 +148,26 @@ extension AgentBridge {
         }
     }
 
+    func deleteGraph(id: String) async throws {
+        guard let client = self.ipcClient else {
+            throw BridgeError.notConnected
+        }
+        agentGraphLog.info("deleteGraph: id=\(id)")
+        do {
+            _ = try await client.call(method: RPCMethod.graphDelete, params: ["graph_id": id])
+            agentGraphLog.info("deleteGraph: deleted id=\(id, privacy: .public)")
+        } catch let error as IPCError {
+            let bridgeErr = BridgeError.ipcError(error.localizedDescription)
+
+            agentGraphLog.error("deleteGraph id=\(id, privacy: .public) failed: \(error.errorDescription ?? "unknown", privacy: .public)")
+            throw bridgeErr
+        }
+    }
+
     // MARK: - Template Operations (cross-domain, 搬此因依赖 parseGraphModel)
 
     func templateInstantiate(templateId: String, variables: [String: String]? = nil) async throws -> AgentGraphModel {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
+        guard let client = self.ipcClient else { throw BridgeError.notConnected }
         agentGraphLog.info("templateInstantiate: templateId=\(templateId)")
         do {
             let result = try await client.templateInstantiate(templateId: templateId, variables: variables)
@@ -166,7 +185,7 @@ extension AgentBridge {
     // MARK: - Deploy Operations (cross-domain, 搬此因依赖 parseGraphModel)
 
     func deployImport(filepath: String) async throws -> AgentGraphModel {
-        guard let client = ipcClient else { throw BridgeError.notConnected }
+        guard let client = self.ipcClient else { throw BridgeError.notConnected }
         agentGraphLog.info("deployImport: filepath=\(filepath)")
         do {
             let result = try await client.deployImport(filepath: filepath)
@@ -195,5 +214,38 @@ extension AgentBridge {
             return nil
         }
         return graph
+    }
+}
+
+// MARK: - Graph Operations (facade-delegate stubs — 行为已迁 AgentState 域)
+// ARCH-1 PR5: 本 extension 仅 1 行委托, 保外部 call site (bridge.X) 签名零变。
+extension AgentBridge {
+
+    func fetchGraphs() async throws -> [AgentGraphModel] {
+        try await agentState.fetchGraphs()
+    }
+
+    func createGraph(name: String, nodes: [NodeConfigModel], edges: [EdgeModel]) async throws -> AgentGraphModel {
+        try await agentState.createGraph(name: name, nodes: nodes, edges: edges)
+    }
+
+    func graphGet(graphId: String) async throws -> AgentGraphModel? {
+        try await agentState.graphGet(graphId: graphId)
+    }
+
+    func updateGraph(id: String, name: String? = nil, nodes: [NodeConfigModel]? = nil, edges: [EdgeModel]? = nil) async throws -> AgentGraphModel? {
+        try await agentState.updateGraph(id: id, name: name, nodes: nodes, edges: edges)
+    }
+
+    func deleteGraph(id: String) async throws {
+        try await agentState.deleteGraph(id: id)
+    }
+
+    func templateInstantiate(templateId: String, variables: [String: String]? = nil) async throws -> AgentGraphModel {
+        try await agentState.templateInstantiate(templateId: templateId, variables: variables)
+    }
+
+    func deployImport(filepath: String) async throws -> AgentGraphModel {
+        try await agentState.deployImport(filepath: filepath)
     }
 }
