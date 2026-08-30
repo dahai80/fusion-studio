@@ -291,8 +291,8 @@ struct ArtifactsRepositoryView: View {
         VStack(alignment: .leading, spacing: 0) {
             if isLoading {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let err = errorMessage {
-                errorBanner(err)
+            } else if let error = errorMessage {
+                errorBanner(error)
             } else {
                 if viewMode == .grid {
                     artifactGrid

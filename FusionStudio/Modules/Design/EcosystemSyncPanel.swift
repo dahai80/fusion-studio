@@ -88,8 +88,8 @@ struct EcosystemSyncPanel: View {
         VStack(alignment: .leading, spacing: 0) {
             tabPicker
             Rectangle().fill(theme.separator).frame(height: 1)
-            if let err = errorMessage {
-                messageBanner(err, isError: true)
+            if let error = errorMessage {
+                messageBanner(error, isError: true)
             }
             if let msg = successMessage {
                 messageBanner(msg, isError: false)

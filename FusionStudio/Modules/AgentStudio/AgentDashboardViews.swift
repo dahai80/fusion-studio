@@ -262,9 +262,9 @@ struct DashboardTabView: View {
         }
         return AnyView(
             VStack(spacing: 0) {
-                ForEach(Array(errors.prefix(5).enumerated()), id: \.offset) { idx, err in
-                    let msg = err["message"] as? String ?? err["error"] as? String ?? "Unknown error"
-                    let time = err["timestamp"] as? String ?? err["time"] as? String ?? ""
+                ForEach(Array(errors.prefix(5).enumerated()), id: \.offset) { idx, error in
+                    let msg = error["message"] as? String ?? error["error"] as? String ?? "Unknown error"
+                    let time = error["timestamp"] as? String ?? error["time"] as? String ?? ""
                     HStack {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundStyle(.red)

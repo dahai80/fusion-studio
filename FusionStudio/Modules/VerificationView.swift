@@ -47,8 +47,8 @@ struct VerificationView: View {
                 ProgressView("Verifying...")
             }
 
-            if let err = errorMsg {
-                Text(err).foregroundStyle(.red).font(.caption)
+            if let error = errorMsg {
+                Text(error).foregroundStyle(.red).font(.caption)
                     .padding(.horizontal, theme.spacingM)
             }
 

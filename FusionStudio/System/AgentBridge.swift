@@ -11,6 +11,36 @@ import os.log
 // 供 static 方法 (gatewayConfigApiKey 等) 使用的文件级 logger, 实例 logger 在 class 内。
 private let agentBridgeStaticLog = Logger(subsystem: "com.fusion.studio", category: "AgentBridge")
 
+// 审计0830 P0-4: 异步并发信号量。限制 taskExecuteImmediate 并发上限, 防后端 (单机 MLX) 过载 +
+//   重试风暴雪崩。actor 保证 acquire/release 原子, async wait 不阻塞线程。
+//   单机 MLX 串行推理, 并发 graph.execute 只会挤占健康轮询连接 (P0-2) + OOM, cap 4 合理。
+actor AsyncTaskSemaphore {
+    private var available: Int
+    private let limit: Int
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+    init(limit: Int) {
+        self.limit = limit
+        self.available = limit
+    }
+    func acquire() async {
+        if available > 0 {
+            available -= 1
+            return
+        }
+        await withCheckedContinuation { cont in
+            waiters.append(cont)
+        }
+    }
+    func release() {
+        if let next = waiters.first {
+            waiters.removeFirst()
+            next.resume()
+        } else if available < limit {
+            available += 1
+        }
+    }
+}
+
 enum JSONValue: Codable, Equatable {
     case string(String)
     case double(Double)
@@ -234,16 +264,25 @@ enum BridgeError: Error, Equatable, LocalizedError {
     // BridgeError 走 userMessage (已 i18n+按 token 脱敏); 非 BridgeError 走 generic 通用兜底, 不泄露 detail。
     // 审计0827 #4: IPCError (Hub*View 经 IPCClient.call 抛) 也经此脱敏 — 映射 BridgeError.rpcError 取按 code 的 i18n 用户消息, 不裸泄 message。
     static func sanitize(_ error: Error) -> String {
+        // 审计0830 P0-9: 旧逻辑仅对非 BridgeError 记日志, rpcError/ipcError 的诊断 message 被丢弃 →
+        //   生产故障无任何诊断, 运维盲调。修复: 统一在脱敏前记录完整诊断 detail (本地 os_log, 不暴露用户面),
+        //   用户面仍返 i18n 脱敏消息。日志面/用户面分离。
         if let bridgeErr = error as? BridgeError {
+            agentBridgeStaticLog.error("F-I10 sanitize BridgeError (log detail): \(bridgeErr.detail, privacy: .public)")
             return bridgeErr.userMessage
         }
         if let ipcErr = error as? IPCError {
+            agentBridgeStaticLog.error("F-I10 sanitize IPCError (log detail): \(ipcErr.localizedDescription, privacy: .public)")
+            // 审计0830 P2-错误-1~10: 旧实现传空 message 给 ipcError/rpcError → userMessage 的 msg.contains 语义分类全部恒失败,
+            //   10 处映射 (connection refused / timed out / HTTP 4xx5xx / 401/403/404) 全失效, 统一走 ab_err_unavailable 兜底。
+            //   修复: 传 IPCError 真实诊断串 (localizedDescription 含 "connection refused"/"timed out" 等), 让 userMessage 按语义分类。
+            //   用户面仍 i18n (userMessage 不裸泄 msg, 只 contains 匹配), 不违脱敏原则。
             if case .rpcError(let code, _) = ipcErr {
-                return BridgeError.rpcError(code: code, message: "").userMessage
+                return BridgeError.rpcError(code: code, message: ipcErr.localizedDescription).userMessage
             }
-            return BridgeError.ipcError("").userMessage
+            return BridgeError.ipcError(ipcErr.localizedDescription).userMessage
         }
-        agentBridgeStaticLog.error("F-I10 sanitize non-bridge error (detail suppressed): \(String(describing: error), privacy: .public)")
+        agentBridgeStaticLog.error("F-I10 sanitize non-bridge error (log detail): \(String(describing: error), privacy: .public)")
         return I18nManager.shared.t(.ab_err_generic)
     }
 
@@ -763,10 +802,23 @@ final class AgentBridge: ObservableObject {
     // F-R12: 跨任务后端熔断 + 统一退避。
     // 后端 (MLX/daemon) 故障时, N 个排队任务各自重试 maxRetries 次 = 雪崩放大器。
     // 熔断: 连续 failureThreshold 次失败后开路, 新重试 fast-fail 不再打后端;
-    // 任一成功复位。退避: 指数 1s→2s→4s 封顶 + ±12.5% jitter, 避免瞬时重打恢复中的引擎。
+    // 退避: 指数 1s→2s→4s 封顶 + ±12.5% jitter, 避免瞬时重打恢复中的引擎。
+    // 审计0830 P1-错误-1: 旧实现开路后无 half-open → 永久开路需 app 重启复位 (与 IPCClient.swift:242 half-open 不一致)。
+    //   加 half-open: 开路后冷却 window 到期转 half-open, 放一个探针请求, 成功才关路, 失败重新开路+续冷却。
+    // 审计0830 P1-错误-2: 旧实现任一成功即复位 → 单次成功掩盖持续故障 → 抖动 (开→关→开)。
+    //   复位需连续 N 次成功 (successThreshold), 中途任一失败归零。
     private let backendFailureThreshold = 5
+    private let backendSuccessThreshold = 3
+    private let backendCircuitCooldownSec = 30.0
     private var backendConsecutiveFailures: Int = 0
+    private var backendConsecutiveSuccesses: Int = 0
     private var backendCircuitOpen: Bool = false
+    private var backendCircuitHalfOpen: Bool = false
+    private var backendCircuitOpenedAt: Date? = nil
+
+    // 审计0830 P0-4: 任务执行并发上限。无上限时 N 个任务同时 graph.execute → 单机 MLX 串行推理排队 →
+    //   连接占满阻塞健康轮询 (P0-2) + 内存涨 + 重试雪崩。cap 4 限制并发执行体。
+    nonisolated private let taskExecSemaphore = AsyncTaskSemaphore(limit: 4)
 
     // 指数退避 (s): 1 → 2 → 4 封顶, 按 retryCount 取, 加 ±12.5% jitter。
     private func retryBackoffSeconds(retryCount: Int) -> Double {
@@ -793,6 +845,21 @@ final class AgentBridge: ObservableObject {
     private let logger = Logger(subsystem: "com.fusion.studio", category: "AgentBridge")
     // F-A1 Phase 7: setIPCClient sink 订阅持有 (原 .assign(to:) 不需显式持, 改 .sink 需 store)。
     private var cancellables = Set<AnyCancellable>()
+
+    // 审计0830 P0-1: SwiftUI 不自动追踪嵌套 ObservableObject。视图经 @EnvironmentObject bridge
+    //   仅订阅 AgentBridge.objectWillChange, 域 @Published 变更触发域自身 objectWillChange 但无订阅者 →
+    //   UI 静默失活。显式转发 7 域 objectWillChange → self.objectWillChange 修复观测断裂。
+    init() {
+        runtimeState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        mlxState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        agentState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        moduleState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        taskState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        configState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        projectChatState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        logger.info("AgentBridge init: 7 域 objectWillChange 转发已接线 (P0-1)")
+    }
+
     var ipcClient: IPCClient?
     // #344: GuardBridge 延迟注入 (mirror setIPCClient), executeGraph 下发前调 guard.evaluate。
     private var guardBridge: GuardBridge?
@@ -825,6 +892,13 @@ final class AgentBridge: ObservableObject {
             }
             .store(in: &cancellables)
         logger.info("AgentBridge connected to IPCClient")
+        // 审计0830 P1-调度-1: cronJobId 仅内存态, app 崩溃后启动若不主动拉取 → 已注册 cron 任务在 UI 打开前丢失可见性
+        //   (用户不知任务停跑/还在跑)。后端持久化 cron job, 启动即 reconcile: fetchTasks 恢复 scheduled 任务 + cronJobId。
+        //   不依赖用户手动进 Task 模块触发 onAppear fetch。延迟 0.5s 等 daemon 路由就绪 (setIPCClient 早于 daemon 完全 ready)。
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            await self?.fetchTasks()
+        }
     }
 
     // MARK: - Health Check
@@ -840,6 +914,7 @@ final class AgentBridge: ObservableObject {
             _ = try await fetchModels()
             logger.info("probeMLXRunningStatus: mlx reachable (HTTP /v1/models)")
             DesignPreviewTrace.log("probeMLXRunningStatus: OK reachable")
+            self.mlxState.mlxRunning = true
             return true
         } catch BridgeError.authFailed {
             // 401/403：当前解析的 api key 无效。常见根因：~/.zshrc 注入了错误的
@@ -847,10 +922,13 @@ final class AgentBridge: ObservableObject {
             // 自愈：用 settings.json 的 auth.api_key 重试，成功则持久化到 user-settings，
             // 抬高其优先级覆盖错误 env，避免每次启动都 401。
             logger.warning("probeMLXRunningStatus: auth failed, attempting settings.json key self-heal")
-            return await selfHealApiKeyFromSettings()
+            let healed = await selfHealApiKeyFromSettings()
+            self.mlxState.mlxRunning = healed
+            return healed
         } catch {
             logger.error("probeMLXRunningStatus: mlx unreachable: \(error)")
             DesignPreviewTrace.log("probeMLXRunningStatus: FAIL \(error)")
+            self.mlxState.mlxRunning = false
             return false
         }
     }
@@ -908,7 +986,9 @@ final class AgentBridge: ObservableObject {
     // executeGraph 留此: 依赖 Self.parseEventModel (Event 域 private static 跨文件不可访问) + guard 鉴权 +
     //   写共享 runtimeState.events/isExecuting (跨域协调器)。cancelExecution 已迁 RuntimeState 域 (PR2)。
 
-    func executeGraph(id: String, input: String, taskId: String = "") async throws {
+    // 审计0830 P0-11: 旧返回 Void, 调用方读共享 runtimeState.events → 并发任务串号 (任务 A 读任务 B 事件)。
+    //   改返回 parsed events; taskExecuteImmediate 用返回值而非共享态 (并发安全), UI 手动执行仍写共享态供展示。
+    func executeGraph(id: String, input: String, taskId: String = "") async throws -> [AgentEventModel] {
         guard let client = ipcClient else {
             throw BridgeError.notConnected
         }
@@ -964,7 +1044,29 @@ final class AgentBridge: ObservableObject {
             if !taskId.isEmpty {
                 params["task_id"] = taskId
             }
-            let result = try await client.call(method: RPCMethod.graphExecute, params: params)
+            // 审计0830 P1-调度-6: 单节点 hang (后端无节点级超时) → graphExecute RPC 永阻塞 →
+            //   isExecuting 恒 true, UI 永久 "执行中", 后续手动执行被 isExecuting 守卫拒。
+            //   客户端侧 300s 超时兜底 (合法长 workflow 留足余量, 真正 hang 在此截断): 到点 cancel, 复位 isExecuting。
+            let result: [String: Any]
+            do {
+                result = try await withThrowingTaskGroup(of: [String: Any].self) { group in
+                    group.addTask {
+                        try await client.call(method: RPCMethod.graphExecute, params: params)
+                    }
+                    group.addTask {
+                        try await Task.sleep(nanoseconds: 300_000_000_000)
+                        throw BridgeError.timeout
+                    }
+                    guard let value = try await group.next() else {
+                        throw BridgeError.timeout
+                    }
+                    group.cancelAll()
+                    return value
+                }
+            } catch BridgeError.timeout {
+                logger.error("executeGraph: timeout after 300s (graph_id=\(id, privacy: .public) — node hang suspected)")
+                throw BridgeError.timeout
+            }
 
             let eventsData = result["events"] as? [[String: Any]] ?? []
             var parsed: [AgentEventModel] = []
@@ -976,6 +1078,7 @@ final class AgentBridge: ObservableObject {
             self.runtimeState.events = parsed
             self.runtimeState.isExecuting = false
             logger.info("executeGraph: received \(parsed.count) events")
+            return parsed
         } catch let error as IPCError {
             self.runtimeState.isExecuting = false
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
@@ -1323,12 +1426,17 @@ final class AgentBridge: ObservableObject {
         // F-R9: 持锁读写, 防与 deinit 并发崩溃。
         lockedTaskHandle { taskRunHandles[taskId]?.cancel() }
         let handle = Task {
+            // 审计0830 P0-4: 并发信号量 acquire, 限制同时执行的任务数 (cap 4), 防单机 MLX 过载雪崩。
+            //   各终端分支 (成功/取消/失败) 必须 release, 否则信号量永久占用锁死后续任务。
+            await self.taskExecSemaphore.acquire()
+            logger.info("taskExecuteImmediate acquired slot: id=\(taskId)")
             do {
                 var eventsParsed: [AgentEventModel] = []
                 var sessionId = ""
                 if !graphId.isEmpty {
-                    try await executeGraph(id: graphId, input: inputText, taskId: taskId)
-                    eventsParsed = self.runtimeState.events
+                    // 审计0830 P0-11: 用 executeGraph 返回值而非共享 runtimeState.events,
+                    //   防并发任务串号 (任务 A 读任务 B 事件)。共享态仅 UI 手动执行展示用。
+                    eventsParsed = try await executeGraph(id: graphId, input: inputText, taskId: taskId)
                 } else {
                     let result = try await agentExecute(agentId: agentId, input: inputText)
                     sessionId = result["session_id"] as? String ?? ""
@@ -1351,18 +1459,37 @@ final class AgentBridge: ObservableObject {
                 // F-R9: 持锁删, 防并发崩溃。
                 self.lockedTaskHandle { self.taskRunHandles.removeValue(forKey: taskId) }
                 logger.info("taskExecuteImmediate done: id=\(taskId) events=\(eventsParsed.count)")
-                // F-R12: 成功复位熔断器, 允许后续任务恢复正常重试。
-                if self.backendCircuitOpen || self.backendConsecutiveFailures > 0 {
-                    logger.info("F-R12 backend recovered, circuit closed failures=\(self.backendConsecutiveFailures)")
-                    self.backendConsecutiveFailures = 0
+                // F-R12 / 审计0830 P1-错误-1/2: 成功处理熔断器复位。
+                //   half-open 探针成功 → 关路复位 (连续成功归零, 无需攒 N)。
+                //   open 态成功 (冷却已到半开, 探针通过) → 同上关路。
+                //   否则 (closed 但仍有残余 failures) → 连续成功 +1, 达 successThreshold 才清零 failures (P1-错误-2 防 1 次成功掩盖持续故障)。
+                if self.backendCircuitHalfOpen || self.backendCircuitOpen {
+                    logger.info("F-R12 circuit probe succeeded, closing circuit halfOpen=\(self.backendCircuitHalfOpen)")
                     self.backendCircuitOpen = false
+                    self.backendCircuitHalfOpen = false
+                    self.backendConsecutiveFailures = 0
+                    self.backendConsecutiveSuccesses = 0
+                    self.backendCircuitOpenedAt = nil
+                } else if self.backendConsecutiveFailures > 0 {
+                    self.backendConsecutiveSuccesses += 1
+                    if self.backendConsecutiveSuccesses >= self.backendSuccessThreshold {
+                        logger.info("F-R12 backend recovered after \(self.backendConsecutiveSuccesses) consecutive successes, clearing failures=\(self.backendConsecutiveFailures)")
+                        self.backendConsecutiveFailures = 0
+                        self.backendConsecutiveSuccesses = 0
+                    }
                 }
                 self.reportTaskStatus(taskId, status: "completed", lastResult: ["summary": summary, "events": eventsParsed.count])
+                await self.taskExecSemaphore.release()
             } catch is CancellationError {
                 self.updateTask(taskId) { t in
                     if t.status != .completed { t.status = .cancelled }
                 }
-                logger.info("taskExecuteImmediate cancelled: id=\(taskId)")
+                // 审计0830 P0-5: cancelled 分支旧实现不 removeValue → 句柄钉在 taskRunHandles,
+                //   Task 闭包持有 runtimeState/events 等大对象 → 高频取消下 dict 单调增长 → 内存泄漏。
+                //   成功 (L1372)/失败 (L1427) 均清, 取消遗漏。补齐对齐。
+                self.lockedTaskHandle { self.taskRunHandles.removeValue(forKey: taskId) }
+                logger.info("taskExecuteImmediate cancelled: id=\(taskId) handle released (P0-5)")
+                await self.taskExecSemaphore.release()
             } catch {
                 self.updateTask(taskId) { t in
                     t.lastError = BridgeError.sanitize(error)
@@ -1375,23 +1502,43 @@ final class AgentBridge: ObservableObject {
                 // 修正: 任务已删 (taskIndex nil) 即早退, 不再读错行也不递归。
                 guard let idx = self.taskIndex(taskId) else {
                     logger.warning("taskExecuteImmediate catch: 任务已删除, 放弃 retry id=\(taskId)")
+                    await self.taskExecSemaphore.release()
                     return
                 }
                 let cur = self.taskState.tasks[idx]
+                // 审计0830 P1-错误-2: 成功复位需连续 N 次, 任一失败归零连续成功计数。
+                self.backendConsecutiveSuccesses = 0
                 // F-R12: 计入后端连续失败, 达阈值开路熔断。
-                backendConsecutiveFailures += 1
-                if backendConsecutiveFailures >= backendFailureThreshold && !backendCircuitOpen {
-                    backendCircuitOpen = true
-                    logger.error("F-R12 backend circuit OPEN failures=\(self.backendConsecutiveFailures) — fast-fail retries until a task succeeds")
+                self.backendConsecutiveFailures += 1
+                if self.backendConsecutiveFailures >= self.backendFailureThreshold && !self.backendCircuitOpen {
+                    self.backendCircuitOpen = true
+                    self.backendCircuitHalfOpen = false
+                    self.backendCircuitOpenedAt = Date()
+                    logger.error("F-R12 backend circuit OPEN failures=\(self.backendConsecutiveFailures) cooldown=\(self.backendCircuitCooldownSec)s — fast-fail until half-open probe")
+                }
+                // 审计0830 P1-错误-1: 开路后冷却到期转 half-open, 放单探针; 探针失败重新开路续冷却。
+                if self.backendCircuitOpen, let opened = self.backendCircuitOpenedAt,
+                   Date().timeIntervalSince(opened) >= self.backendCircuitCooldownSec {
+                    self.backendCircuitOpen = false
+                    self.backendCircuitHalfOpen = true
+                    logger.info("F-R12 backend circuit -> HALF-OPEN (cooldown elapsed), releasing probe")
+                } else if self.backendCircuitHalfOpen {
+                    // half-open 探针失败 → 重新开路, 重置冷却窗口。
+                    self.backendCircuitHalfOpen = false
+                    self.backendCircuitOpen = true
+                    self.backendCircuitOpenedAt = Date()
+                    logger.error("F-R12 backend circuit probe FAILED -> re-OPEN, cooldown restarted")
                 }
                 // ARCH-2: retry 上限收紧 + 退避, 防 maxRetries 过大时高频重试风暴。
                 // retryCount 已 +1, 仅当未超 maxRetries 才重排。
-                // F-R12: 熔断开路时跳过重试 fast-fail, 避免雪崩放大; 退避改指数 + jitter。
-                let shouldRetry = cur.retryCount <= cur.maxRetries && !backendCircuitOpen
+                // F-R12: 熔断开路时跳过重试 fast-fail, 避免雪崩放大; half-open 放行探针; 退避改指数 + jitter。
+                let shouldRetry = cur.retryCount <= cur.maxRetries && !self.backendCircuitOpen
                 if shouldRetry {
                     let backoffNs = UInt64(retryBackoffSeconds(retryCount: cur.retryCount) * 1_000_000_000)
                     self.updateTask(taskId) { t in t.status = .queued }
-                    logger.warning("taskExecuteImmediate retry: id=\(taskId) retryCount=\(cur.retryCount)/\(cur.maxRetries) backoffMs=\(backoffNs / 1_000_000) circuit=\(self.backendCircuitOpen)")
+                    logger.warning("taskExecuteImmediate retry: id=\(taskId) retryCount=\(cur.retryCount)/\(cur.maxRetries) backoffMs=\(backoffNs / 1_000_000) circuit=\(self.backendCircuitOpen ? "open" : (self.backendCircuitHalfOpen ? "half-open" : "closed"))")
+                    // 审计0830 P0-4: retry 释放当前槽位, sleep 期间不占并发名额; 重排的 taskExecuteImmediate 会重新 acquire。
+                    await self.taskExecSemaphore.release()
                     Task {
                         try? await Task.sleep(nanoseconds: backoffNs)
                         if Task.isCancelled {
@@ -1401,11 +1548,12 @@ final class AgentBridge: ObservableObject {
                         self.taskExecuteImmediate(taskId)
                     }
                 } else {
-                    let reason = backendCircuitOpen ? "circuit-open" : "retries-exhausted"
+                    let reason = (self.backendCircuitOpen || self.backendCircuitHalfOpen) ? "circuit-open" : "retries-exhausted"
                     self.updateTask(taskId) { t in t.status = .failed }
                     // F-R9: 持锁删, 防并发崩溃。
                     self.lockedTaskHandle { self.taskRunHandles.removeValue(forKey: taskId) }
-                    logger.error("taskExecuteImmediate failed: id=\(taskId) reason=\(reason) retryCount=\(cur.retryCount) err=\(error.localizedDescription)")
+                    logger.error("taskExecuteImmediate failed: id=\(taskId) reason=\(reason) retryCount=\(cur.retryCount) error=\(error.localizedDescription)")
+                    await self.taskExecSemaphore.release()
                 }
                 self.reportTaskStatus(taskId, status: "failed", lastError: error.localizedDescription)
             }
@@ -1429,7 +1577,7 @@ final class AgentBridge: ObservableObject {
                 self.taskState.tasks.removeAll { $0.id == taskId }
                 logger.info("taskDelete: id=\(taskId) deleted via RPC")
             } catch {
-                logger.error("taskDelete failed: id=\(taskId) err=\(error.localizedDescription)")
+                logger.error("taskDelete failed: id=\(taskId) error=\(error.localizedDescription)")
             }
         }
     }
@@ -1442,7 +1590,7 @@ final class AgentBridge: ObservableObject {
             self.updateTask(taskId) { t in t.artifactIds = aids }
             logger.info("taskAddArtifacts: id=\(taskId) +\(artifactIds.count) -> \(aids.count)")
         } catch {
-            logger.error("taskAddArtifacts failed: id=\(taskId) err=\(error.localizedDescription)")
+            logger.error("taskAddArtifacts failed: id=\(taskId) error=\(error.localizedDescription)")
         }
     }
 
@@ -1459,7 +1607,7 @@ final class AgentBridge: ObservableObject {
             }
             logger.info("taskCancel: id=\(taskId)")
         } catch {
-            logger.error("taskCancel failed: id=\(taskId) err=\(error.localizedDescription)")
+            logger.error("taskCancel failed: id=\(taskId) error=\(error.localizedDescription)")
         }
     }
 
@@ -1482,7 +1630,7 @@ final class AgentBridge: ObservableObject {
                 taskExecuteImmediate(taskId)
             }
         } catch {
-            logger.error("taskRerun failed: id=\(taskId) err=\(error.localizedDescription)")
+            logger.error("taskRerun failed: id=\(taskId) error=\(error.localizedDescription)")
         }
     }
 
@@ -1493,7 +1641,7 @@ final class AgentBridge: ObservableObject {
             do {
                 _ = try await client.taskStatus(taskId: taskId, status: status, lastResult: lastResult, lastError: lastError)
             } catch {
-                logger.warning("reportTaskStatus failed: id=\(taskId) status=\(status) err=\(error.localizedDescription)")
+                logger.warning("reportTaskStatus failed: id=\(taskId) status=\(status) error=\(error.localizedDescription)")
             }
         }
     }
@@ -1503,7 +1651,15 @@ final class AgentBridge: ObservableObject {
         let agentId = self.taskState.tasks[idx].agentId
         let graphId = self.taskState.tasks[idx].graphId
         let name = self.taskState.tasks[idx].title
-        let inputData = encodeCronInput(taskId: taskId, agentId: agentId, input: input)
+        // 审计0830 P3-资源-1: encodeCronInput 失败返 nil → 不注册 cron, 标 failed, 避免空 input 静默定时执行。
+        guard let inputData = encodeCronInput(taskId: taskId, agentId: agentId, input: input) else {
+            updateTask(taskId) { t in
+                t.status = .failed
+                t.lastError = I18nManager.shared.t(.ab_err_generic)
+            }
+            logger.error("taskScheduleCron: encodeCronInput failed, abort registration id=\(taskId)")
+            return
+        }
         updateTask(taskId) { t in
             t.status = .scheduled
             t.cronExpression = expression
@@ -1529,7 +1685,7 @@ final class AgentBridge: ObservableObject {
                     t.status = .failed
                     t.lastError = BridgeError.sanitize(error)
                 }
-                logger.error("taskScheduleCron failed: id=\(taskId) err=\(error.localizedDescription)")
+                logger.error("taskScheduleCron failed: id=\(taskId) error=\(error.localizedDescription)")
             }
         }
     }
@@ -1539,9 +1695,21 @@ final class AgentBridge: ObservableObject {
         let agentId = self.taskState.tasks[idx].agentId
         let graphId = self.taskState.tasks[idx].graphId
         let name = self.taskState.tasks[idx].title
-        let comp = Calendar.current.dateComponents([.minute, .hour, .day, .month], from: runAt)
+        // 审计0830 P1-调度-2: Calendar.current = 本地 TZ, 后端按 UTC 解释 cron → 跨时区偏移。
+        //   显式 UTC: runAt 视作绝对时刻, 按其 UTC 分量组 cron 表达式, 后端 UTC 解释即对齐。
+        var utcCal = Calendar(identifier: .gregorian)
+        utcCal.timeZone = TimeZone(identifier: "UTC") ?? TimeZone(secondsFromGMT: 0)!
+        let comp = utcCal.dateComponents([.minute, .hour, .day, .month], from: runAt)
         let expr = "\(comp.minute ?? 0) \(comp.hour ?? 0) \(comp.day ?? 1) \(comp.month ?? 1) *"
-        let inputData = encodeCronInput(taskId: taskId, agentId: agentId, input: input)
+        // 审计0830 P3-资源-1: encodeCronInput 失败返 nil → 不注册 cron, 标 failed, 避免空 input 静默定时执行。
+        guard let inputData = encodeCronInput(taskId: taskId, agentId: agentId, input: input) else {
+            updateTask(taskId) { t in
+                t.status = .failed
+                t.lastError = I18nManager.shared.t(.ab_err_generic)
+            }
+            logger.error("taskScheduleRunAt: encodeCronInput failed, abort registration id=\(taskId)")
+            return
+        }
         updateTask(taskId) { t in
             t.status = .scheduled
             t.runAt = runAt
@@ -1568,12 +1736,12 @@ final class AgentBridge: ObservableObject {
                     t.status = .failed
                     t.lastError = BridgeError.sanitize(error)
                 }
-                logger.error("taskScheduleRunAt failed: id=\(taskId) err=\(error.localizedDescription)")
+                logger.error("taskScheduleRunAt failed: id=\(taskId) error=\(error.localizedDescription)")
             }
         }
     }
 
-    private func encodeCronInput(taskId: String, agentId: String, input: String) -> String {
+    private func encodeCronInput(taskId: String, agentId: String, input: String) -> String? {
         let payload: [String: Any] = [
             "task_id": taskId,
             "agent_id": agentId,
@@ -1582,10 +1750,12 @@ final class AgentBridge: ObservableObject {
         // BUG-7: 旧 fallback 字符串插值在 input 含 "/\/换行时产出非法 JSON
         // (双引号未转义破坏结构, 送给 cron 解析端 JSONSerialization 必崩)。
         // 正常路径用 JSONSerialization (已转义); 失败说明 payload 不可序列化, 直接抛错不静默产出坏 JSON。
+        // 审计0830 P3-资源-1: 旧实现序列化失败返 "{}" 静默 → cron 注册空 input 任务, 定时执行时无输入, 静默错误行为。
+        //   改返 nil 让调用方判失败, 标 task failed + 不注册 cron, 不产 silent wrong run。
         guard let data = try? JSONSerialization.data(withJSONObject: payload),
               let str = String(data: data, encoding: .utf8) else {
-            logger.error("encodeCronInput: JSON 序列化失败 taskId=\(taskId) inputLen=\(input.count)")
-            return "{}"
+            logger.error("encodeCronInput: JSON 序列化失败 taskId=\(taskId) inputLen=\(input.count) — 不注册 cron (避免空 input 静默执行)")
+            return nil
         }
         return str
     }

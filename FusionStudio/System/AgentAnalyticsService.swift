@@ -30,7 +30,7 @@ extension ConfigState {
         guard let client = self.ipcClient else { return }
         do {
             let result = try await client.alertList()
-            self.alerts = result["alerts"] as? [[String: Any]] ?? []
+            self.alerts = ConfigState.capConfigArray(result["alerts"] as? [[String: Any]] ?? [])
             agentAnalyticsLog.info("Fetched \(self.alerts.count) alerts")
         } catch {
             agentAnalyticsLog.debug("fetchAlerts failed: \(error.localizedDescription)")

@@ -362,6 +362,9 @@ class DesignBridge: ObservableObject {
             designBridgeLog.warning("DesignBridge: applyLocalEdit with no marquee selection")
             return
         }
+        // 审计0830 P1-资源-3: 旧 Task { @MainActor in ... runFusionDesign(...) } 把 180s CLI 阻塞调用
+        //   放 MainActor → UI 完全冻结 180s (同步 Process.run)。修正: MainActor 仅采集输入 + 回写结果,
+        //   CLI 阻塞调用移 Task.detached 跑在后台线程, 不阻塞主线程渲染。
         Task { @MainActor in
             let effectiveNodesJSON: String
             if nodesJSON.isEmpty || nodesJSON == "[]" {
@@ -370,10 +373,17 @@ class DesignBridge: ObservableObject {
                 effectiveNodesJSON = nodesJSON
             }
             let contextMsg = DesignPrompts.dispatcher.applyLocalEditContext(effectiveNodesJSON, instruction)
-            let result = runFusionDesign(
-                ["generate", "--prompt", contextMsg, "--page", "LocalEdit"],
-                stdin: effectiveNodesJSON
-            )
+            // CLI 阻塞调用移出 MainActor, 后台线程执行。effectiveNodesJSON/contextMsg/cliPath 已是值快照, 无共享态竞争。
+            //   旧 runFusionDesign 整体 MainActor-isolated (依赖 resolveCLIPath 读缓存态), 不能直接 detached 调。
+            //   预解析 cliPath 在 MainActor, 传 nonisolated static runCLIProcess 跑 Process, 不阻塞主线程。
+            let cliPath = resolveCLIPath()
+            let result = await Task.detached(priority: .userInitiated) {
+                Self.runCLIProcess(
+                    cliPath: cliPath,
+                    args: ["generate", "--prompt", contextMsg, "--page", "LocalEdit"],
+                    stdin: effectiveNodesJSON
+                )
+            }.value
             if result.exitCode == 0, !result.output.isEmpty {
                 if let data = result.output.data(using: .utf8),
                    let _ = try? JSONSerialization.jsonObject(with: data) {
@@ -701,6 +711,69 @@ class DesignBridge: ObservableObject {
         let path = findFusionDesignCLI()
         cachedCLIPath = path
         return path
+    }
+
+    // 审计0830 P1-资源-3: nonisolated static CLI 执行器, 接收预解析 cliPath, 不读实例态。
+    //   供 Task.detached 后台调用, 避开 runFusionDesign 的 MainActor 隔离 (依赖 resolveCLIPath 缓存态)。
+    //   Process 阻塞调用 (可达 180s) 在后台线程跑, 不冻结 UI。逻辑镜像 runFusionDesign。
+    nonisolated static func runCLIProcess(cliPath: String, args: [String], stdin: String? = nil) -> (output: String, error: String, exitCode: Int32) {
+        guard !cliPath.isEmpty else {
+            designBridgeLog.error("DesignBridge: runCLIProcess cliPath empty")
+            return ("", "CLI not found", 1)
+        }
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: cliPath)
+        process.arguments = args
+        let outPipe = Pipe()
+        let errPipe = Pipe()
+        process.standardOutput = outPipe
+        process.standardError = errPipe
+        if let stdinStr = stdin {
+            let inPipe = Pipe()
+            process.standardInput = inPipe
+            do {
+                try process.run()
+                if let data = stdinStr.data(using: .utf8) {
+                    inPipe.fileHandleForWriting.write(data)
+                    try? inPipe.fileHandleForWriting.close()
+                }
+            } catch {
+                designBridgeLog.error("DesignBridge: CLI run failed: \(error)")
+                return ("", error.localizedDescription, 1)
+            }
+        } else {
+            do { try process.run() } catch {
+                designBridgeLog.error("DesignBridge: CLI run failed: \(error)")
+                return ("", error.localizedDescription, 1)
+            }
+        }
+        var outData = Data()
+        var errData = Data()
+        let readGroup = DispatchGroup()
+        readGroup.enter()
+        DispatchQueue.global(qos: .userInitiated).async {
+            outData = outPipe.fileHandleForReading.readDataToEndOfFile()
+            readGroup.leave()
+        }
+        readGroup.enter()
+        DispatchQueue.global(qos: .userInitiated).async {
+            errData = errPipe.fileHandleForReading.readDataToEndOfFile()
+            readGroup.leave()
+        }
+        let timeoutTask = Task {
+            try? await Task.sleep(nanoseconds: 180_000_000_000)
+            if process.isRunning {
+                process.terminate()
+                designBridgeLog.warning("DesignBridge: CLI timeout 180s, force terminate args=\(args.first ?? "", privacy: .public)")
+            }
+        }
+        process.waitUntilExit()
+        timeoutTask.cancel()
+        readGroup.wait()
+        let output = String(data: outData, encoding: .utf8) ?? ""
+        let errorStr = String(data: errData, encoding: .utf8) ?? ""
+        designBridgeLog.info("DesignBridge: CLI \(args.first ?? "") exit=\(process.terminationStatus) outLen=\(output.count)")
+        return (output, errorStr, process.terminationStatus)
     }
 
     func runFusionDesign(_ args: [String], stdin: String? = nil) -> (output: String, error: String, exitCode: Int32) {

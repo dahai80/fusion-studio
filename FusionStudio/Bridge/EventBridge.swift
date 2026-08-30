@@ -91,7 +91,24 @@ final class EventBridge: ObservableObject {
     private let socketPath: String
     private var ipc: IPCClient?
     private var streamTask: Task<Void, Never>?
+    // 审计0830 P1-IPC-1: streamSock 跨线程读写未锁。stopStream (主线程) close+置 -1 与
+    //   runStream/handleLine (后台 Task) 赋值/读 fd 并发 → use-after-close (写已关 fd) +
+    //   double-close (双方都 close 同一 fd) + -1 覆盖 (后台置 -1 覆盖 stopStream 后新连接的 fd)。
+    //   NSLock 守卫所有 streamSock 读写, close 在锁内原子完成。readLoop 用本地 sock 长读不持锁。
+    private let streamSockLock = NSLock()
     private var streamSock: Int32 = -1
+
+    private func setStreamSock(_ fd: Int32) {
+        streamSockLock.lock(); defer { streamSockLock.unlock() }
+        streamSock = fd
+    }
+    private func closeStreamSockAtomic() {
+        streamSockLock.lock(); defer { streamSockLock.unlock() }
+        if streamSock >= 0 {
+            close(streamSock)
+            streamSock = -1
+        }
+    }
     private var reconnectTask: Task<Void, Never>?
     private var nextReqId: Int = 1
     // 审计0827 P0-3: 重连退避计数。连接成功清零, 失败递增 → 指数退避 (5s→10s→20s... cap 60s) + jitter,
@@ -151,10 +168,8 @@ final class EventBridge: ObservableObject {
         reconnectTask = nil
         streamTask?.cancel()
         streamTask = nil
-        if streamSock >= 0 {
-            close(streamSock)
-            streamSock = -1
-        }
+        // 审计0830 P1-IPC-1: 原子 close+置 -1, 与后台 runStream 读写互斥, 防 use-after-close/double-close。
+        closeStreamSockAtomic()
         eventBridgeLog.info("EventBridge stopStream")
     }
 
@@ -191,7 +206,7 @@ final class EventBridge: ObservableObject {
             scheduleReconnect()
             return
         }
-        streamSock = sock
+        setStreamSock(sock)
         let reqId = nextReqId
         nextReqId += 1
         let request: [String: Any] = [
@@ -200,16 +215,14 @@ final class EventBridge: ObservableObject {
             "method": RPCMethod.eventSubscribe,
         ]
         guard let data = try? JSONSerialization.data(withJSONObject: request) else {
-            close(sock); streamSock = -1
+            closeStreamSockAtomic()
             await markDisconnected()
             scheduleReconnect()
             return
         }
         var writeBuf = data
         writeBuf.append(0x0A)
-        writeBuf.withUnsafeBytes { ptr in
-            _ = Darwin.write(sock, ptr.baseAddress, writeBuf.count)
-        }
+        writeAllSock(fd: sock, writeBuf)
         eventBridgeLog.info("event stream event.subscribe sent")
         await MainActor.run {
             self.isDaemonReady = true
@@ -246,7 +259,11 @@ final class EventBridge: ObservableObject {
             }
         }
         close(sock)
-        streamSock = -1
+        // 审计0830 P1-IPC-1: 仅当 streamSock 仍指向本 loop 的 fd 才置 -1, 防 stopStream 已关并重连后
+        //   覆盖新 fd (串号)。锁内比较+赋值原子。
+        streamSockLock.lock()
+        if streamSock == sock { streamSock = -1 }
+        streamSockLock.unlock()
         eventBridgeLog.warning("event stream readLoop ended (disconnected)")
         await markDisconnected()
         scheduleReconnect()
@@ -277,9 +294,7 @@ final class EventBridge: ObservableObject {
         } else if method == "event.heartbeat" {
             let pong = #"{"jsonrpc":"2.0","method":"event.pong"}"# + "\n"
             if let pData = pong.data(using: .utf8) {
-                _ = pData.withUnsafeBytes { ptr in
-                    Darwin.write(sock, ptr.baseAddress, pData.count)
-                }
+                writeAllSock(fd: sock, pData)
                 eventBridgeLog.info("event.pong sent (heartbeat reply)")
             }
         } else if let error = json["error"] as? [String: Any] {
@@ -302,9 +317,11 @@ final class EventBridge: ObservableObject {
         reconnectTask?.cancel()
         reconnectAttempt += 1
         // 审计0827 P0-3: 指数退避 (5s base ×2^attempt) cap 60s + 0~1s jitter, 防零抖动惊群 + 守护长缺席时
-        // fd/Task 堆积。Math.random 不可用, 用 attempt 派生确定性偏移 (非安全随机, 仅抖动够用)。
+        // fd/Task 堆积。
+        // 审计0830 P3-IPC-1: 旧 (attempt*137)%1000 确定性 jitter → 多客户端/多模块同相重连, 失去 jitter 防同步意义。
+        //   改 Double.random 真随机 (0~1000ms), 各客户端退避相位分散。
         let baseSec = min(5 * (1 << min(reconnectAttempt - 1, 4)), 60)
-        let jitterMs = (reconnectAttempt * 137) % 1000
+        let jitterMs = Int.random(in: 0..<1000)
         let delayNs = UInt64(baseSec) * 1_000_000_000 + UInt64(jitterMs) * 1_000_000
         eventBridgeLog.info("event stream reconnect in \(baseSec)s+\(jitterMs)ms (attempt #\(self.reconnectAttempt))")
         reconnectTask = Task { [weak self] in
@@ -320,6 +337,24 @@ final class EventBridge: ObservableObject {
     private func trimEvents() {
         while events.count > Self.maxEvents {
             events.removeFirst()
+        }
+    }
+
+    // 审计0830 P0-8: 非阻塞 fd 短写循环写, 防心跳 pong/subscribe payload 静默截断。
+    private func writeAllSock(fd: Int32, _ data: Data) {
+        var remaining = data.count
+        var offset = 0
+        while remaining > 0 {
+            let written = data.withUnsafeBytes { ptr -> Int in
+                guard let base = ptr.baseAddress else { return -1 }
+                return Darwin.write(fd, base.advanced(by: offset), remaining)
+            }
+            if written <= 0 {
+                eventBridgeLog.error("writeAllSock: short/fault write fd=\(fd) offset=\(offset) remaining=\(remaining) ret=\(written) (P0-8)")
+                return
+            }
+            offset += written
+            remaining -= written
         }
     }
 

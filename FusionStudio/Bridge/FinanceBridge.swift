@@ -33,8 +33,8 @@ class FinanceBridge: ObservableObject {
                     self?.isConnected = true
                     self?.lastError = nil
                 }
-            case .failure(let err):
-                self?.handleError(err, context: "health")
+            case .failure(let error):
+                self?.handleError(error, context: "health")
             }
         }
     }
@@ -54,8 +54,8 @@ class FinanceBridge: ObservableObject {
             case .success(let data):
                 DispatchQueue.main.async { self?.dashboardResult = data }
                 completion(.success(data))
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -67,8 +67,8 @@ class FinanceBridge: ObservableObject {
             case .success(let data):
                 DispatchQueue.main.async { self?.marketResult = data }
                 completion(.success(data))
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -79,8 +79,8 @@ class FinanceBridge: ObservableObject {
             case .success(let data):
                 DispatchQueue.main.async { self?.serviceStatus = data }
                 completion(.success(data))
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -106,8 +106,8 @@ class FinanceBridge: ObservableObject {
                 } else {
                     completion(.failure(FinanceBridgeError.noData))
                 }
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -129,8 +129,8 @@ class FinanceBridge: ObservableObject {
                 } else {
                     completion(.failure(FinanceBridgeError.noData))
                 }
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -151,8 +151,8 @@ class FinanceBridge: ObservableObject {
                 } else {
                     completion(.failure(FinanceBridgeError.noData))
                 }
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -173,8 +173,8 @@ class FinanceBridge: ObservableObject {
                 } else {
                     completion(.failure(FinanceBridgeError.noData))
                 }
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -190,8 +190,8 @@ class FinanceBridge: ObservableObject {
                 } else {
                     completion(.failure(FinanceBridgeError.noData))
                 }
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -210,8 +210,8 @@ class FinanceBridge: ObservableObject {
                 } else {
                     completion(.failure(FinanceBridgeError.noData))
                 }
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -230,8 +230,8 @@ class FinanceBridge: ObservableObject {
                 } else {
                     completion(.failure(FinanceBridgeError.noData))
                 }
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -250,8 +250,8 @@ class FinanceBridge: ObservableObject {
                 } else {
                     completion(.failure(FinanceBridgeError.noData))
                 }
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -265,8 +265,8 @@ class FinanceBridge: ObservableObject {
             case .success(let msg):
                 DispatchQueue.main.async { self?.copilotMessages.append(msg) }
                 completion(.success(msg))
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -284,7 +284,7 @@ class FinanceBridge: ObservableObject {
             completion(.failure(FinanceBridgeError.invalidURL)); return
         }
         session.dataTask(with: url) { data, _, error in
-            if let err = error { completion(.failure(err)); return }
+            if let error = error { completion(.failure(error)); return }
             guard let data = data else { completion(.failure(FinanceBridgeError.noData)); return }
             do {
                 let decoded = try JSONDecoder().decode(T.self, from: data)
@@ -305,7 +305,7 @@ class FinanceBridge: ObservableObject {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         session.dataTask(with: request) { data, _, error in
-            if let err = error { completion(.failure(err)); return }
+            if let error = error { completion(.failure(error)); return }
             guard let data = data else { completion(.failure(FinanceBridgeError.noData)); return }
             do {
                 let decoded = try JSONDecoder().decode(T.self, from: data)
@@ -326,7 +326,7 @@ class FinanceBridge: ObservableObject {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         session.dataTask(with: request) { data, _, error in
-            if let err = error { completion(.failure(err)); return }
+            if let error = error { completion(.failure(error)); return }
             guard let data = data else { completion(.failure(FinanceBridgeError.noData)); return }
             completion(.success(data))
         }.resume()

@@ -54,8 +54,8 @@ class PluginBridge: ObservableObject {
                     self?.isConnected = true
                     self?.lastError = nil
                 }
-            case .failure(let err):
-                self?.handleError(err, context: "health")
+            case .failure(let error):
+                self?.handleError(error, context: "health")
             }
         }
     }
@@ -69,10 +69,10 @@ class PluginBridge: ObservableObject {
             switch result {
             case .success(let resp):
                 let items = (resp["plugins"] as? [[String: Any]] ?? []).compactMap { PluginListItem.fromDict($0) }
-                DispatchQueue.main.async { self?.plugins = items }
+                DispatchQueue.main.async { self?.plugins = Array(items.suffix(200)) }
                 completion(.success(items))
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -83,7 +83,7 @@ class PluginBridge: ObservableObject {
         rpc("plugins/install", params: ["plugin_id": pluginId]) { result in
             switch result {
             case .success: completion(.success(true))
-            case .failure(let err): completion(.failure(err))
+            case .failure(let error): completion(.failure(error))
             }
         }
     }
@@ -92,7 +92,7 @@ class PluginBridge: ObservableObject {
         rpc("plugins/uninstall", params: ["plugin_id": pluginId]) { result in
             switch result {
             case .success: completion(.success(true))
-            case .failure(let err): completion(.failure(err))
+            case .failure(let error): completion(.failure(error))
             }
         }
     }
@@ -106,8 +106,8 @@ class PluginBridge: ObservableObject {
                 let c = EcosystemConfig.fromDict(resp)
                 DispatchQueue.main.async { self?.config = c }
                 completion(.success(c))
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -116,7 +116,7 @@ class PluginBridge: ObservableObject {
         rpc("plugins/config.set", params: [key: value]) { result in
             switch result {
             case .success: completion(.success(true))
-            case .failure(let err): completion(.failure(err))
+            case .failure(let error): completion(.failure(error))
             }
         }
     }
@@ -128,10 +128,10 @@ class PluginBridge: ObservableObject {
             switch result {
             case .success(let resp):
                 let states = (resp["states"] as? [[String: Any]] ?? []).compactMap { PluginStateInfo.fromDict($0) }
-                DispatchQueue.main.async { self?.pluginStates = states }
+                DispatchQueue.main.async { self?.pluginStates = Array(states.suffix(200)) }
                 completion(.success(states))
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -145,8 +145,8 @@ class PluginBridge: ObservableObject {
                 } else {
                     completion(.failure(PluginBridgeError.rpcError("解析状态失败")))
                 }
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -157,8 +157,8 @@ class PluginBridge: ObservableObject {
             case .success(let resp):
                 let items = (resp["plugins"] as? [[String: Any]] ?? []).compactMap { PluginStateInfo.fromDict($0) }
                 completion(.success(items))
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -172,10 +172,10 @@ class PluginBridge: ObservableObject {
             switch result {
             case .success(let resp):
                 let records = (resp["records"] as? [[String: Any]] ?? []).compactMap { TokenRecord.fromDict($0) }
-                DispatchQueue.main.async { self?.tokenRecords = records }
+                DispatchQueue.main.async { self?.tokenRecords = Array(records.suffix(200)) }
                 completion(.success(records))
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -184,7 +184,7 @@ class PluginBridge: ObservableObject {
         rpc("plugins/token.prune", params: ["max_age_seconds": maxAge]) { result in
             switch result {
             case .success: completion(.success(true))
-            case .failure(let err): completion(.failure(err))
+            case .failure(let error): completion(.failure(error))
             }
         }
     }
@@ -198,8 +198,8 @@ class PluginBridge: ObservableObject {
                 let usage = VRAMUsage.fromDict(resp)
                 DispatchQueue.main.async { self?.vramUsage = usage }
                 completion(.success(usage))
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -214,10 +214,10 @@ class PluginBridge: ObservableObject {
             switch result {
             case .success(let resp):
                 let entries = (resp["entries"] as? [[String: Any]] ?? []).compactMap { PluginLogEntry.fromDict($0) }
-                DispatchQueue.main.async { self?.logEntries = entries }
+                DispatchQueue.main.async { self?.logEntries = Array(entries.suffix(500)) }
                 completion(.success(entries))
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -229,10 +229,10 @@ class PluginBridge: ObservableObject {
             switch result {
             case .success(let resp):
                 let sessions = (resp["sessions"] as? [[String: Any]] ?? []).compactMap { MCPSession.fromDict($0) }
-                DispatchQueue.main.async { self?.mcpSessions = sessions }
+                DispatchQueue.main.async { self?.mcpSessions = Array(sessions.suffix(200)) }
                 completion(.success(sessions))
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -241,7 +241,7 @@ class PluginBridge: ObservableObject {
         rpc("plugins/mcp.sessions.prune", params: ["max_age_seconds": maxAge]) { result in
             switch result {
             case .success: completion(.success(true))
-            case .failure(let err): completion(.failure(err))
+            case .failure(let error): completion(.failure(error))
             }
         }
     }
@@ -264,7 +264,7 @@ class PluginBridge: ObservableObject {
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         pluginBridgeLog.info("PluginBridge RPC: \(method)")
         session.dataTask(with: request) { data, response, error in
-            if let err = error { completion(.failure(err)); return }
+            if let error = error { completion(.failure(error)); return }
             guard let data = data else { completion(.failure(PluginBridgeError.noData)); return }
             do {
                 guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {

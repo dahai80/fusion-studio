@@ -80,19 +80,42 @@ class SecurityManager: ObservableObject {
             NSHomeDirectory() + "/Downloads",
             NSHomeDirectory() + "/Documents",
             NSHomeDirectory() + "/Desktop",
-            "/tmp",
         ]
 
         // HIGH-3: standardizingPath 仅展开 ~ + 收敛 //, 不解析 symlink。
         // 攻击者在允许前缀目录内放指向 /etc/~/.ssh 的 symlink 即绕过白名单。
-        // 修正: resolvingSymlinksInPath 取真实 inode 路径, 且逐级父目录解析,
-        // 防中间 symlink 绕过; 规范化后仍含 .. 则拒。
+        // 审计0830 P1-资源-1: resolvingSymlinksInPath 对**不存在路径**原样返回 (不解析),
+        //   攻击者用不存在路径绕过 symlink 解析; 且 /tmp 为世界可写共享目录, 列入白名单扩大攻击面。
+        //   修正: (1) 删 /tmp 宽白名单, 临时文件走 ~/.fusion-studio/tmp (F-I6 已统一)。
+        //   (2) 路径必须存在才解析 symlink, 不存在直接拒 (validators 只验可访问路径)。
+        //   (3) 逐级 realpath 解析, 规范化后含 .. 则拒。
+        //   残留 TOCTOU (check→use 间符号链接替换) 属内核级 open-then-fstat 范畴,
+        //   字符串 validator 无法根除; 调用方写文件应用 open(O_NOFOLLOW) 兜底 (后续)。
         let standardized = (path as NSString).standardizingPath
         guard !standardized.contains("..") else {
             securityLog.warning("validateFilePath reject: path含.. -> \(standardized, privacy: .public)")
             return false
         }
-        let resolved = URL(fileURLWithPath: standardized).resolvingSymlinksInPath().path
+        // 审计0830 P1-资源-1: resolvingSymlinksInPath 对**不存在路径**原样返回 (不解析 symlink)。
+        //   写路径 (DesignBridge sync) 目标文件可能尚不存在, 不能一刀切拒不存在路径。
+        //   修正: 存在则解析自身 symlink; 不存在则解析**最长存在父目录**的 symlink, 再拼回 leaf,
+        //   防 symlink 在父目录层绕过白名单。
+        let resolved: String
+        if FileManager.default.fileExists(atPath: standardized) {
+            resolved = URL(fileURLWithPath: standardized).resolvingSymlinksInPath().path
+        } else {
+            // 逐级上找最长存在的父目录, 解析其 symlink, 再拼回不存在的 leaf 段。
+            var existing = standardized
+            var leafParts: [String] = []
+            while !FileManager.default.fileExists(atPath: existing) {
+                let parent = (existing as NSString).deletingLastPathComponent
+                if parent == existing { break }  // 到根仍不存在
+                leafParts.insert((existing as NSString).lastPathComponent, at: 0)
+                existing = parent
+            }
+            let resolvedParent = URL(fileURLWithPath: existing).resolvingSymlinksInPath().path
+            resolved = leafParts.isEmpty ? resolvedParent : (resolvedParent as NSString).appendingPathComponent(leafParts.joined(separator: "/"))
+        }
         guard !resolved.contains("..") else {
             securityLog.warning("validateFilePath reject: 规范化后含.. -> \(resolved, privacy: .public)")
             return false
@@ -266,8 +289,8 @@ struct SecOverviewTab: View {
                     .cornerRadius(8)
                 }
 
-                if let err = bridge.lastError {
-                    Text(err).font(.caption).foregroundColor(.red).padding(8)
+                if let error = bridge.lastError {
+                    Text(error).font(.caption).foregroundColor(.red).padding(8)
                 }
             }
             .padding()

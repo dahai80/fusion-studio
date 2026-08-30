@@ -195,8 +195,8 @@ class DocBridge: ObservableObject {
                     self?.isConnected = true
                     self?.lastError = nil
                 }
-            case .failure(let err):
-                self?.handleError(err, context: "health")
+            case .failure(let error):
+                self?.handleError(error, context: "health")
             }
         }
     }
@@ -207,9 +207,9 @@ class DocBridge: ObservableObject {
         get("/api/books") { [weak self] (result: Result<[DocBook], Error>) in
             switch result {
             case .success(let list):
-                DispatchQueue.main.async { self?.books = list }
-            case .failure(let err):
-                self?.handleError(err, context: "books")
+                DispatchQueue.main.async { self?.books = Array(list.suffix(200)) }
+            case .failure(let error):
+                self?.handleError(error, context: "books")
             }
         }
     }
@@ -226,8 +226,8 @@ class DocBridge: ObservableObject {
                     self.books.append(book)
                     Self.cap(&self.books, 200)
                 }
-            case .failure(let err):
-                self?.handleError(err, context: "createBook")
+            case .failure(let error):
+                self?.handleError(error, context: "createBook")
             }
         }
     }
@@ -238,9 +238,9 @@ class DocBridge: ObservableObject {
         get("/api/chapters?bookId=\(bookId)") { [weak self] (result: Result<[DocChapter], Error>) in
             switch result {
             case .success(let list):
-                DispatchQueue.main.async { self?.chapters = list }
-            case .failure(let err):
-                self?.handleError(err, context: "chapters")
+                DispatchQueue.main.async { self?.chapters = Array(list.suffix(200)) }
+            case .failure(let error):
+                self?.handleError(error, context: "chapters")
             }
         }
     }
@@ -254,8 +254,8 @@ class DocBridge: ObservableObject {
                     self.chapters.append(ch)
                     Self.cap(&self.chapters, 500)
                 }
-            case .failure(let err):
-                self?.handleError(err, context: "createChapter")
+            case .failure(let error):
+                self?.handleError(error, context: "createChapter")
             }
         }
     }
@@ -272,9 +272,9 @@ class DocBridge: ObservableObject {
         get(path) { [weak self] (result: Result<[DocPage], Error>) in
             switch result {
             case .success(let list):
-                DispatchQueue.main.async { self?.pages = list }
-            case .failure(let err):
-                self?.handleError(err, context: "pages")
+                DispatchQueue.main.async { self?.pages = Array(list.suffix(200)) }
+            case .failure(let error):
+                self?.handleError(error, context: "pages")
             }
         }
     }
@@ -284,8 +284,8 @@ class DocBridge: ObservableObject {
             switch result {
             case .success(let page):
                 DispatchQueue.main.async { self?.currentPage = page }
-            case .failure(let err):
-                self?.handleError(err, context: "page")
+            case .failure(let error):
+                self?.handleError(error, context: "page")
             }
         }
     }
@@ -302,8 +302,8 @@ class DocBridge: ObservableObject {
                     self.pages.append(page)
                     Self.cap(&self.pages, 1000)
                 }
-            case .failure(let err):
-                self?.handleError(err, context: "createPage")
+            case .failure(let error):
+                self?.handleError(error, context: "createPage")
             }
         }
     }
@@ -324,8 +324,8 @@ class DocBridge: ObservableObject {
                         self?.currentPage?.content = content
                     }
                 }
-            case .failure(let err):
-                self?.handleError(err, context: "updatePage")
+            case .failure(let error):
+                self?.handleError(error, context: "updatePage")
             }
         }
     }
@@ -339,8 +339,8 @@ class DocBridge: ObservableObject {
                     self?.pages.removeAll { $0.id == id }
                     if self?.currentPage?.id == id { self?.currentPage = nil }
                 }
-            case .failure(let err):
-                self?.handleError(err, context: "deletePage")
+            case .failure(let error):
+                self?.handleError(error, context: "deletePage")
             }
         }
     }
@@ -351,9 +351,9 @@ class DocBridge: ObservableObject {
         get("/api/tags") { [weak self] (result: Result<[DocTag], Error>) in
             switch result {
             case .success(let list):
-                DispatchQueue.main.async { self?.tags = list }
-            case .failure(let err):
-                self?.handleError(err, context: "tags")
+                DispatchQueue.main.async { self?.tags = Array(list.suffix(200)) }
+            case .failure(let error):
+                self?.handleError(error, context: "tags")
             }
         }
     }
@@ -365,8 +365,8 @@ class DocBridge: ObservableObject {
             switch result {
             case .success(let g):
                 DispatchQueue.main.async { self?.graph = g }
-            case .failure(let err):
-                self?.handleError(err, context: "graph")
+            case .failure(let error):
+                self?.handleError(error, context: "graph")
             }
         }
     }
@@ -377,9 +377,9 @@ class DocBridge: ObservableObject {
         get("/api/pages/\(pageId)/versions") { [weak self] (result: Result<[DocVersion], Error>) in
             switch result {
             case .success(let list):
-                DispatchQueue.main.async { self?.versions = list }
-            case .failure(let err):
-                self?.handleError(err, context: "versions")
+                DispatchQueue.main.async { self?.versions = Array(list.suffix(200)) }
+            case .failure(let error):
+                self?.handleError(error, context: "versions")
             }
         }
     }
@@ -393,8 +393,8 @@ class DocBridge: ObservableObject {
                     self.versions.append(v)
                     Self.cap(&self.versions, 200)
                 }
-            case .failure(let err):
-                self?.handleError(err, context: "createVersion")
+            case .failure(let error):
+                self?.handleError(error, context: "createVersion")
             }
         }
     }
@@ -411,8 +411,8 @@ class DocBridge: ObservableObject {
             switch result {
             case .success:
                 self?.fetchPage(id: pageId)
-            case .failure(let err):
-                self?.handleError(err, context: "restoreVersion")
+            case .failure(let error):
+                self?.handleError(error, context: "restoreVersion")
             }
         }
     }
@@ -423,9 +423,9 @@ class DocBridge: ObservableObject {
         get("/api/workflows") { [weak self] (result: Result<[DocWorkflow], Error>) in
             switch result {
             case .success(let list):
-                DispatchQueue.main.async { self?.workflows = list }
-            case .failure(let err):
-                self?.handleError(err, context: "workflows")
+                DispatchQueue.main.async { self?.workflows = Array(list.suffix(200)) }
+            case .failure(let error):
+                self?.handleError(error, context: "workflows")
             }
         }
     }
@@ -435,8 +435,8 @@ class DocBridge: ObservableObject {
             switch result {
             case .success:
                 docBridgeLog.info("Workflow \(id) started")
-            case .failure(let err):
-                self?.handleError(err, context: "runWorkflow")
+            case .failure(let error):
+                self?.handleError(error, context: "runWorkflow")
             }
         }
     }
@@ -453,9 +453,9 @@ class DocBridge: ObservableObject {
         get("/api/templates") { [weak self] (result: Result<[DocTemplate], Error>) in
             switch result {
             case .success(let list):
-                DispatchQueue.main.async { self?.templates = list }
-            case .failure(let err):
-                self?.handleError(err, context: "templates")
+                DispatchQueue.main.async { self?.templates = Array(list.suffix(200)) }
+            case .failure(let error):
+                self?.handleError(error, context: "templates")
             }
         }
     }
@@ -469,8 +469,8 @@ class DocBridge: ObservableObject {
                     self.pages.append(page)
                     Self.cap(&self.pages, 1000)
                 }
-            case .failure(let err):
-                self?.handleError(err, context: "instantiateTemplate")
+            case .failure(let error):
+                self?.handleError(error, context: "instantiateTemplate")
             }
         }
     }
@@ -482,8 +482,8 @@ class DocBridge: ObservableObject {
             switch result {
             case .success(let status):
                 DispatchQueue.main.async { self?.officeStatus = status }
-            case .failure(let err):
-                self?.handleError(err, context: "officeStatus")
+            case .failure(let error):
+                self?.handleError(error, context: "officeStatus")
             }
         }
     }
@@ -494,8 +494,8 @@ class DocBridge: ObservableObject {
             switch result {
             case .success:
                 docBridgeLog.info("Office doc created: \(name).\(format)")
-            case .failure(let err):
-                self?.handleError(err, context: "createOffice")
+            case .failure(let error):
+                self?.handleError(error, context: "createOffice")
             }
         }
     }
@@ -511,8 +511,8 @@ class DocBridge: ObservableObject {
                     self.pages.append(page)
                     Self.cap(&self.pages, 1000)
                 }
-            case .failure(let err):
-                self?.handleError(err, context: "importOffice")
+            case .failure(let error):
+                self?.handleError(error, context: "importOffice")
             }
         }
     }
@@ -558,8 +558,8 @@ class DocBridge: ObservableObject {
             switch result {
             case .success:
                 docBridgeLog.info("Page \(pageId) reindexed")
-            case .failure(let err):
-                self?.handleError(err, context: "reindex")
+            case .failure(let error):
+                self?.handleError(error, context: "reindex")
             }
         }
     }
@@ -572,8 +572,8 @@ class DocBridge: ObservableObject {
             switch result {
             case .success:
                 docBridgeLog.info("Link added: \(sourceId) -> \(targetId)")
-            case .failure(let err):
-                self?.handleError(err, context: "addLink")
+            case .failure(let error):
+                self?.handleError(error, context: "addLink")
             }
         }
     }
@@ -665,9 +665,9 @@ class DocBridge: ObservableObject {
                     Self.cap(&self.templates, 200)
                 }
                 completion(.success(tmpl))
-            case .failure(let err):
-                self?.handleError(err, context: "createTemplate")
-                completion(.failure(err))
+            case .failure(let error):
+                self?.handleError(error, context: "createTemplate")
+                completion(.failure(error))
             }
         }
     }
@@ -685,9 +685,9 @@ class DocBridge: ObservableObject {
             case .success:
                 DispatchQueue.main.async { self?.templates.removeAll { $0.id == id } }
                 completion(.success(["deleted": true]))
-            case .failure(let err):
-                self?.handleError(err, context: "deleteTemplate")
-                completion(.failure(err))
+            case .failure(let error):
+                self?.handleError(error, context: "deleteTemplate")
+                completion(.failure(error))
             }
         }
     }
@@ -711,9 +711,9 @@ class DocBridge: ObservableObject {
                     Self.cap(&self.workflows, 200)
                 }
                 completion(.success(wf))
-            case .failure(let err):
-                self?.handleError(err, context: "createWorkflow")
-                completion(.failure(err))
+            case .failure(let error):
+                self?.handleError(error, context: "createWorkflow")
+                completion(.failure(error))
             }
         }
     }
@@ -724,9 +724,9 @@ class DocBridge: ObservableObject {
             case .success:
                 DispatchQueue.main.async { self?.workflows.removeAll { $0.id == id } }
                 completion(.success(["deleted": true]))
-            case .failure(let err):
-                self?.handleError(err, context: "deleteWorkflow")
-                completion(.failure(err))
+            case .failure(let error):
+                self?.handleError(error, context: "deleteWorkflow")
+                completion(.failure(error))
             }
         }
     }
@@ -739,11 +739,11 @@ class DocBridge: ObservableObject {
         post("/api/workflows/seed", body: nil) { [weak self] (result: Result<[DocWorkflow], Error>) in
             switch result {
             case .success(let list):
-                DispatchQueue.main.async { self?.workflows = list }
+                DispatchQueue.main.async { self?.workflows = Array(list.suffix(200)) }
                 completion(.success(list))
-            case .failure(let err):
-                self?.handleError(err, context: "seedWorkflows")
-                completion(.failure(err))
+            case .failure(let error):
+                self?.handleError(error, context: "seedWorkflows")
+                completion(.failure(error))
             }
         }
     }
@@ -766,11 +766,11 @@ class DocBridge: ObservableObject {
         get("/api/pages/\(pageId)/files") { [weak self] (result: Result<[DocFileUpload], Error>) in
             switch result {
             case .success(let list):
-                DispatchQueue.main.async { self?.files = list }
+                DispatchQueue.main.async { self?.files = Array(list.suffix(200)) }
                 completion(.success(list))
-            case .failure(let err):
-                self?.handleError(err, context: "fetchFiles")
-                completion(.failure(err))
+            case .failure(let error):
+                self?.handleError(error, context: "fetchFiles")
+                completion(.failure(error))
             }
         }
     }
@@ -785,9 +785,9 @@ class DocBridge: ObservableObject {
                     Self.cap(&self.files, 500)
                 }
                 completion(.success(file))
-            case .failure(let err):
-                self?.handleError(err, context: "uploadFile")
-                completion(.failure(err))
+            case .failure(let error):
+                self?.handleError(error, context: "uploadFile")
+                completion(.failure(error))
             }
         }
     }
@@ -798,9 +798,9 @@ class DocBridge: ObservableObject {
             case .success:
                 DispatchQueue.main.async { self?.files.removeAll { $0.id == id } }
                 completion(.success(["deleted": true]))
-            case .failure(let err):
-                self?.handleError(err, context: "deleteFile")
-                completion(.failure(err))
+            case .failure(let error):
+                self?.handleError(error, context: "deleteFile")
+                completion(.failure(error))
             }
         }
     }
@@ -811,11 +811,11 @@ class DocBridge: ObservableObject {
         get("/api/pages/\(pageId)/comments") { [weak self] (result: Result<[DocComment], Error>) in
             switch result {
             case .success(let list):
-                DispatchQueue.main.async { self?.comments = list }
+                DispatchQueue.main.async { self?.comments = Array(list.suffix(200)) }
                 completion(.success(list))
-            case .failure(let err):
-                self?.handleError(err, context: "fetchComments")
-                completion(.failure(err))
+            case .failure(let error):
+                self?.handleError(error, context: "fetchComments")
+                completion(.failure(error))
             }
         }
     }
@@ -832,9 +832,9 @@ class DocBridge: ObservableObject {
                     Self.cap(&self.comments, 500)
                 }
                 completion(.success(comment))
-            case .failure(let err):
-                self?.handleError(err, context: "createComment")
-                completion(.failure(err))
+            case .failure(let error):
+                self?.handleError(error, context: "createComment")
+                completion(.failure(error))
             }
         }
     }
@@ -845,9 +845,9 @@ class DocBridge: ObservableObject {
             case .success:
                 DispatchQueue.main.async { self?.comments.removeAll { $0.id == id } }
                 completion(.success(["deleted": true]))
-            case .failure(let err):
-                self?.handleError(err, context: "deleteComment")
-                completion(.failure(err))
+            case .failure(let error):
+                self?.handleError(error, context: "deleteComment")
+                completion(.failure(error))
             }
         }
     }
@@ -858,11 +858,11 @@ class DocBridge: ObservableObject {
         get("/api/favorites") { [weak self] (result: Result<[DocFavorite], Error>) in
             switch result {
             case .success(let list):
-                DispatchQueue.main.async { self?.favorites = list }
+                DispatchQueue.main.async { self?.favorites = Array(list.suffix(200)) }
                 completion(.success(list))
-            case .failure(let err):
-                self?.handleError(err, context: "fetchFavorites")
-                completion(.failure(err))
+            case .failure(let error):
+                self?.handleError(error, context: "fetchFavorites")
+                completion(.failure(error))
             }
         }
     }
@@ -877,9 +877,9 @@ class DocBridge: ObservableObject {
                     Self.cap(&self.favorites, 200)
                 }
                 completion(.success(fav))
-            case .failure(let err):
-                self?.handleError(err, context: "addFavorite")
-                completion(.failure(err))
+            case .failure(let error):
+                self?.handleError(error, context: "addFavorite")
+                completion(.failure(error))
             }
         }
     }
@@ -890,9 +890,9 @@ class DocBridge: ObservableObject {
             case .success:
                 DispatchQueue.main.async { self?.favorites.removeAll { $0.page_id == pageId } }
                 completion(.success(["deleted": true]))
-            case .failure(let err):
-                self?.handleError(err, context: "removeFavorite")
-                completion(.failure(err))
+            case .failure(let error):
+                self?.handleError(error, context: "removeFavorite")
+                completion(.failure(error))
             }
         }
     }
@@ -903,11 +903,11 @@ class DocBridge: ObservableObject {
         get("/api/activity?limit=\(limit)") { [weak self] (result: Result<[DocActivity], Error>) in
             switch result {
             case .success(let list):
-                DispatchQueue.main.async { self?.activities = list }
+                DispatchQueue.main.async { self?.activities = Array(list.suffix(500)) }
                 completion(.success(list))
-            case .failure(let err):
-                self?.handleError(err, context: "fetchActivity")
-                completion(.failure(err))
+            case .failure(let error):
+                self?.handleError(error, context: "fetchActivity")
+                completion(.failure(error))
             }
         }
     }
@@ -928,11 +928,11 @@ class DocBridge: ObservableObject {
         get("/api/rag/chunks/\(pageId)") { [weak self] (result: Result<[DocRAGChunk], Error>) in
             switch result {
             case .success(let list):
-                DispatchQueue.main.async { self?.chunks = list }
+                DispatchQueue.main.async { self?.chunks = Array(list.suffix(500)) }
                 completion(.success(list))
-            case .failure(let err):
-                self?.handleError(err, context: "fetchChunks")
-                completion(.failure(err))
+            case .failure(let error):
+                self?.handleError(error, context: "fetchChunks")
+                completion(.failure(error))
             }
         }
     }
@@ -958,10 +958,10 @@ class DocBridge: ObservableObject {
                     docBridgeLog.info("authSetup success, token saved")
                 }
                 completion(.success(resp))
-            case .failure(let err):
-                DispatchQueue.main.async { self?.authError = BridgeError.sanitize(err) }
-                docBridgeLog.error("authSetup failed: \(err.localizedDescription)")
-                completion(.failure(err))
+            case .failure(let error):
+                DispatchQueue.main.async { self?.authError = BridgeError.sanitize(error) }
+                docBridgeLog.error("authSetup failed: \(error.localizedDescription)")
+                completion(.failure(error))
             }
         }
     }
@@ -977,10 +977,10 @@ class DocBridge: ObservableObject {
                     docBridgeLog.info("authLogin success, token saved")
                 }
                 completion(.success(resp))
-            case .failure(let err):
-                DispatchQueue.main.async { self?.authError = BridgeError.sanitize(err) }
-                docBridgeLog.error("authLogin failed: \(err.localizedDescription)")
-                completion(.failure(err))
+            case .failure(let error):
+                DispatchQueue.main.async { self?.authError = BridgeError.sanitize(error) }
+                docBridgeLog.error("authLogin failed: \(error.localizedDescription)")
+                completion(.failure(error))
             }
         }
     }
@@ -996,9 +996,9 @@ class DocBridge: ObservableObject {
                     docBridgeLog.info("authRefresh success")
                 }
                 completion(.success(resp))
-            case .failure(let err):
-                docBridgeLog.error("authRefresh failed: \(err.localizedDescription)")
-                completion(.failure(err))
+            case .failure(let error):
+                docBridgeLog.error("authRefresh failed: \(error.localizedDescription)")
+                completion(.failure(error))
             }
         }
     }
@@ -1025,8 +1025,8 @@ class DocBridge: ObservableObject {
             case .success:
                 docBridgeLog.info("restoreAuth: token still valid")
                 DispatchQueue.main.async { self?.isAuthenticated = true; self?.authError = nil }
-            case .failure(let err):
-                docBridgeLog.warning("restoreAuth: token invalid (\(err.localizedDescription)), re-login")
+            case .failure(let error):
+                docBridgeLog.warning("restoreAuth: token invalid (\(error.localizedDescription)), re-login")
                 self?.autoLogin()
             }
         }
@@ -1038,8 +1038,8 @@ class DocBridge: ObservableObject {
             switch result {
             case .success:
                 docBridgeLog.info("autoLogin success")
-            case .failure(let err):
-                docBridgeLog.error("autoLogin failed: \(err.localizedDescription) — 用户需手动登录")
+            case .failure(let error):
+                docBridgeLog.error("autoLogin failed: \(error.localizedDescription) — 用户需手动登录")
                 DispatchQueue.main.async { self?.authError = "自动登录失败，请手动登录" }
             }
         }
@@ -1052,11 +1052,11 @@ class DocBridge: ObservableObject {
         get("/api/workspaces") { [weak self] (result: Result<[DocWorkspace], Error>) in
             switch result {
             case .success(let list):
-                DispatchQueue.main.async { self?.workspaces = list }
+                DispatchQueue.main.async { self?.workspaces = Array(list.suffix(200)) }
                 completion(.success(list))
-            case .failure(let err):
-                self?.handleError(err, context: "fetchWorkspaces")
-                completion(.failure(err))
+            case .failure(let error):
+                self?.handleError(error, context: "fetchWorkspaces")
+                completion(.failure(error))
             }
         }
     }
@@ -1076,9 +1076,9 @@ class DocBridge: ObservableObject {
                 }
                 docBridgeLog.info("createWorkspace success: \(ws.id)")
                 completion(.success(ws))
-            case .failure(let err):
-                self?.handleError(err, context: "createWorkspace")
-                completion(.failure(err))
+            case .failure(let error):
+                self?.handleError(error, context: "createWorkspace")
+                completion(.failure(error))
             }
         }
     }
@@ -1096,9 +1096,9 @@ class DocBridge: ObservableObject {
                     if self?.currentWorkspace?.id == ws.id { self?.currentWorkspace = ws }
                 }
                 completion(.success(ws))
-            case .failure(let err):
-                self?.handleError(err, context: "updateWorkspace")
-                completion(.failure(err))
+            case .failure(let error):
+                self?.handleError(error, context: "updateWorkspace")
+                completion(.failure(error))
             }
         }
     }
@@ -1113,9 +1113,9 @@ class DocBridge: ObservableObject {
                     if self?.currentWorkspace?.id == id { self?.currentWorkspace = nil }
                 }
                 completion(.success(resp))
-            case .failure(let err):
-                self?.handleError(err, context: "deleteWorkspace")
-                completion(.failure(err))
+            case .failure(let error):
+                self?.handleError(error, context: "deleteWorkspace")
+                completion(.failure(error))
             }
         }
     }
@@ -1126,8 +1126,8 @@ class DocBridge: ObservableObject {
         docBridgeLog.info("fetchUsers")
         get("/api/users") { [weak self] (result: Result<[DocUser], Error>) in
             switch result {
-            case .success(let list): DispatchQueue.main.async { self?.users = list }; completion(.success(list))
-            case .failure(let err): self?.handleError(err, context: "fetchUsers"); completion(.failure(err))
+            case .success(let list): DispatchQueue.main.async { self?.users = Array(list.suffix(200)) }; completion(.success(list))
+            case .failure(let error): self?.handleError(error, context: "fetchUsers"); completion(.failure(error))
             }
         }
     }
@@ -1143,7 +1143,7 @@ class DocBridge: ObservableObject {
             case .success(let user):
                 DispatchQueue.main.async { self?.users = self?.users.map { $0.id == user.id ? user : $0 } ?? [] }
                 completion(.success(user))
-            case .failure(let err): self?.handleError(err, context: "updateUser"); completion(.failure(err))
+            case .failure(let error): self?.handleError(error, context: "updateUser"); completion(.failure(error))
             }
         }
     }
@@ -1155,7 +1155,7 @@ class DocBridge: ObservableObject {
             case .success(let resp):
                 DispatchQueue.main.async { self?.users = self?.users.filter { $0.id != id } ?? [] }
                 completion(.success(resp))
-            case .failure(let err): self?.handleError(err, context: "deleteUser"); completion(.failure(err))
+            case .failure(let error): self?.handleError(error, context: "deleteUser"); completion(.failure(error))
             }
         }
     }
@@ -1179,7 +1179,7 @@ class DocBridge: ObservableObject {
         get("/api/branding") { [weak self] (result: Result<DocBranding, Error>) in
             switch result {
             case .success(let b): DispatchQueue.main.async { self?.branding = b }; completion(.success(b))
-            case .failure(let err): self?.handleError(err, context: "fetchBranding"); completion(.failure(err))
+            case .failure(let error): self?.handleError(error, context: "fetchBranding"); completion(.failure(error))
             }
         }
     }
@@ -1196,7 +1196,7 @@ class DocBridge: ObservableObject {
         put("/api/branding", body: body.compactMapValues { $0 }) { [weak self] (result: Result<DocBranding, Error>) in
             switch result {
             case .success(let b): DispatchQueue.main.async { self?.branding = b }; completion(.success(b))
-            case .failure(let err): self?.handleError(err, context: "updateBranding"); completion(.failure(err))
+            case .failure(let error): self?.handleError(error, context: "updateBranding"); completion(.failure(error))
             }
         }
     }
@@ -1207,8 +1207,8 @@ class DocBridge: ObservableObject {
         docBridgeLog.info("fetchThemes")
         get("/api/themes") { [weak self] (result: Result<[DocTheme], Error>) in
             switch result {
-            case .success(let list): DispatchQueue.main.async { self?.themes = list }; completion(.success(list))
-            case .failure(let err): self?.handleError(err, context: "fetchThemes"); completion(.failure(err))
+            case .success(let list): DispatchQueue.main.async { self?.themes = Array(list.suffix(200)) }; completion(.success(list))
+            case .failure(let error): self?.handleError(error, context: "fetchThemes"); completion(.failure(error))
             }
         }
     }
@@ -1225,7 +1225,7 @@ class DocBridge: ObservableObject {
                 self.themes.append(t)
                 Self.cap(&self.themes, 100)
             }; completion(.success(t))
-            case .failure(let err): self?.handleError(err, context: "createTheme"); completion(.failure(err))
+            case .failure(let error): self?.handleError(error, context: "createTheme"); completion(.failure(error))
             }
         }
     }
@@ -1237,7 +1237,7 @@ class DocBridge: ObservableObject {
             case .success(let resp):
                 DispatchQueue.main.async { self?.themes = self?.themes.filter { $0.id != id } ?? [] }
                 completion(.success(resp))
-            case .failure(let err): self?.handleError(err, context: "deleteTheme"); completion(.failure(err))
+            case .failure(let error): self?.handleError(error, context: "deleteTheme"); completion(.failure(error))
             }
         }
     }
@@ -1248,8 +1248,8 @@ class DocBridge: ObservableObject {
         docBridgeLog.info("fetchVocabulary")
         get("/api/vocabulary") { [weak self] (result: Result<[DocVocabulary], Error>) in
             switch result {
-            case .success(let list): DispatchQueue.main.async { self?.vocabulary = list }; completion(.success(list))
-            case .failure(let err): self?.handleError(err, context: "fetchVocabulary"); completion(.failure(err))
+            case .success(let list): DispatchQueue.main.async { self?.vocabulary = Array(list.suffix(200)) }; completion(.success(list))
+            case .failure(let error): self?.handleError(error, context: "fetchVocabulary"); completion(.failure(error))
             }
         }
     }
@@ -1266,7 +1266,7 @@ class DocBridge: ObservableObject {
                 self.vocabulary.append(v)
                 Self.cap(&self.vocabulary, 500)
             }; completion(.success(v))
-            case .failure(let err): self?.handleError(err, context: "createVocabulary"); completion(.failure(err))
+            case .failure(let error): self?.handleError(error, context: "createVocabulary"); completion(.failure(error))
             }
         }
     }
@@ -1278,7 +1278,7 @@ class DocBridge: ObservableObject {
             case .success(let resp):
                 DispatchQueue.main.async { self?.vocabulary = self?.vocabulary.filter { $0.id != id } ?? [] }
                 completion(.success(resp))
-            case .failure(let err): self?.handleError(err, context: "deleteVocabulary"); completion(.failure(err))
+            case .failure(let error): self?.handleError(error, context: "deleteVocabulary"); completion(.failure(error))
             }
         }
     }
@@ -1289,8 +1289,8 @@ class DocBridge: ObservableObject {
         docBridgeLog.info("fetchWebhooks")
         get("/api/webhooks") { [weak self] (result: Result<[DocWebhook], Error>) in
             switch result {
-            case .success(let list): DispatchQueue.main.async { self?.webhooks = list }; completion(.success(list))
-            case .failure(let err): self?.handleError(err, context: "fetchWebhooks"); completion(.failure(err))
+            case .success(let list): DispatchQueue.main.async { self?.webhooks = Array(list.suffix(200)) }; completion(.success(list))
+            case .failure(let error): self?.handleError(error, context: "fetchWebhooks"); completion(.failure(error))
             }
         }
     }
@@ -1307,7 +1307,7 @@ class DocBridge: ObservableObject {
                 self.webhooks.append(w)
                 Self.cap(&self.webhooks, 100)
             }; completion(.success(w))
-            case .failure(let err): self?.handleError(err, context: "createWebhook"); completion(.failure(err))
+            case .failure(let error): self?.handleError(error, context: "createWebhook"); completion(.failure(error))
             }
         }
     }
@@ -1319,7 +1319,7 @@ class DocBridge: ObservableObject {
             case .success(let resp):
                 DispatchQueue.main.async { self?.webhooks = self?.webhooks.filter { $0.id != id } ?? [] }
                 completion(.success(resp))
-            case .failure(let err): self?.handleError(err, context: "deleteWebhook"); completion(.failure(err))
+            case .failure(let error): self?.handleError(error, context: "deleteWebhook"); completion(.failure(error))
             }
         }
     }
@@ -1353,7 +1353,7 @@ class DocBridge: ObservableObject {
         get("/api/system/info") { [weak self] (result: Result<DocSystemInfo, Error>) in
             switch result {
             case .success(let info): DispatchQueue.main.async { self?.systemInfo = info }; completion(.success(info))
-            case .failure(let err): self?.handleError(err, context: "fetchSystemInfo"); completion(.failure(err))
+            case .failure(let error): self?.handleError(error, context: "fetchSystemInfo"); completion(.failure(error))
             }
         }
     }
@@ -1363,7 +1363,7 @@ class DocBridge: ObservableObject {
         get("/api/system/config") { [weak self] (result: Result<[DocSystemConfig], Error>) in
             switch result {
             case .success(let cfg): DispatchQueue.main.async { self?.systemConfig = cfg }; completion(.success(cfg))
-            case .failure(let err): self?.handleError(err, context: "fetchSystemConfig"); completion(.failure(err))
+            case .failure(let error): self?.handleError(error, context: "fetchSystemConfig"); completion(.failure(error))
             }
         }
     }
@@ -1417,7 +1417,7 @@ class DocBridge: ObservableObject {
                 self.exportJobs.append(job)
                 Self.cap(&self.exportJobs, 100)
             }; completion(.success(job))
-            case .failure(let err): self?.handleError(err, context: "exportBook"); completion(.failure(err))
+            case .failure(let error): self?.handleError(error, context: "exportBook"); completion(.failure(error))
             }
         }
     }
@@ -1472,8 +1472,8 @@ class DocBridge: ObservableObject {
         docBridgeLog.info("fetchNotifications")
         get("/api/notifications") { [weak self] (result: Result<[DocNotification], Error>) in
             switch result {
-            case .success(let list): DispatchQueue.main.async { self?.notifications = list }; completion(.success(list))
-            case .failure(let err): self?.handleError(err, context: "fetchNotifications"); completion(.failure(err))
+            case .success(let list): DispatchQueue.main.async { self?.notifications = Array(list.suffix(500)) }; completion(.success(list))
+            case .failure(let error): self?.handleError(error, context: "fetchNotifications"); completion(.failure(error))
             }
         }
     }

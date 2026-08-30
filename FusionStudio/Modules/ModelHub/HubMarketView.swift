@@ -69,8 +69,8 @@ struct HubMarketView: View {
             } else {
                 resultList
             }
-            if let err = lastError {
-                Text(err).font(.caption).foregroundStyle(.red).padding(.horizontal, 8).padding(.vertical, 4)
+            if let error = lastError {
+                Text(error).font(.caption).foregroundStyle(.red).padding(.horizontal, 8).padding(.vertical, 4)
             }
         }
         .frame(minWidth: 360, maxWidth: 500)

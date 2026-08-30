@@ -22,7 +22,7 @@ extension ConfigState {
         guard let client = self.ipcClient else { return }
         do {
             let result = try await client.teamSwarmAgents()
-            self.swarmAgents = result["agents"] as? [[String: Any]] ?? []
+            self.swarmAgents = ConfigState.capConfigArray(result["agents"] as? [[String: Any]] ?? [])
             agentTeamLog.info("Fetched \(self.swarmAgents.count) swarm agents")
         } catch {
             agentTeamLog.debug("fetchSwarmAgents failed: \(error.localizedDescription)")
@@ -35,7 +35,7 @@ extension ConfigState {
         guard let client = self.ipcClient else { return }
         do {
             let result = try await client.teamPlazaChannels()
-            self.plazaChannels = result["channels"] as? [[String: Any]] ?? []
+            self.plazaChannels = ConfigState.capConfigArray(result["channels"] as? [[String: Any]] ?? [])
             agentTeamLog.info("Fetched \(self.plazaChannels.count) plaza channels")
         } catch {
             agentTeamLog.debug("fetchPlazaChannels failed: \(error.localizedDescription)")

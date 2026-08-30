@@ -110,8 +110,8 @@ struct HubLocalStorageView: View {
                 batchToolbar
                 Divider()
                 modelList
-                if let err = lastError {
-                    Text(err).font(.caption).foregroundStyle(.red).padding(4)
+                if let error = lastError {
+                    Text(error).font(.caption).foregroundStyle(.red).padding(4)
                 }
             }
         }
@@ -578,8 +578,8 @@ struct HubLocalStorageView: View {
             }
             .frame(maxHeight: 150)
 
-            if let err = lastError {
-                Text(err).font(.caption).foregroundStyle(.red)
+            if let error = lastError {
+                Text(error).font(.caption).foregroundStyle(.red)
             }
 
             HStack {

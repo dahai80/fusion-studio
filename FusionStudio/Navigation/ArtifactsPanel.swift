@@ -540,8 +540,8 @@ struct ArtifactsPanel: View {
 
     private var chatInputBar: some View {
         VStack(spacing: theme.spacingS) {
-            if let err = chatError {
-                Text(err)
+            if let error = chatError {
+                Text(error)
                     .font(.system(size: theme.captionSize))
                     .foregroundStyle(.red)
                     .padding(.horizontal, theme.spacingL)

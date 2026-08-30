@@ -51,8 +51,8 @@ struct DocAuthSheet: View {
             }
             .frame(width: 240)
 
-            if let err = errorMessage {
-                Text(err)
+            if let error = errorMessage {
+                Text(error)
                     .font(.caption)
                     .foregroundColor(.red)
                     .frame(width: 240, alignment: .leading)
@@ -106,9 +106,9 @@ struct DocAuthSheet: View {
                 case .success(let resp):
                     docAuthLog.info("auth success: \(resp.message ?? "ok")")
                     if bridge.isAuthenticated { dismiss() }
-                case .failure(let err):
-                    errorMessage = BridgeError.sanitize(err)
-                    docAuthLog.error("auth failed: \(err.localizedDescription)")
+                case .failure(let error):
+                    errorMessage = BridgeError.sanitize(error)
+                    docAuthLog.error("auth failed: \(error.localizedDescription)")
                 }
             }
         }

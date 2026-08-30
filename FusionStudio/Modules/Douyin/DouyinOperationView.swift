@@ -92,8 +92,8 @@ struct DouyinOperationView: View {
             queueBadge(i18n.t(.dy_queue_published), count: bridge.queueCounts.published, color: theme.greenDot, icon: "checkmark.circle")
             queueBadge(i18n.t(.dy_queue_failed), count: bridge.queueCounts.failed, color: theme.redDot, icon: "exclamationmark.triangle")
             Spacer()
-            if let err = bridge.lastError {
-                Text(err).font(.system(size: 11)).foregroundStyle(theme.accentDestructive).lineLimit(1).help(err)
+            if let error = bridge.lastError {
+                Text(error).font(.system(size: 11)).foregroundStyle(theme.accentDestructive).lineLimit(1).help(error)
             }
             Button {
                 bridge.refreshAll()

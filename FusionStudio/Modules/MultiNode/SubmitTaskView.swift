@@ -88,10 +88,10 @@ struct SubmitTaskView: View {
 
     private var actionSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
-            if let err = errorMessage {
+            if let error = errorMessage {
                 HStack(spacing: theme.spacingS) {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(theme.redDot)
-                    Text(err)
+                    Text(error)
                         .font(.system(size: theme.smallTextSize))
                         .foregroundStyle(theme.errorText)
                 }

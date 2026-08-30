@@ -193,8 +193,8 @@ struct DocRAGPanel: View {
                 case .success(let data):
                     self.ragAnswer = data.answer ?? ""
                     self.ragChunks = data.chunks ?? []
-                case .failure(let err):
-                    self.ragAnswer = String(format: self.i18n.t(.doc_rag_queryFailFmt), err.localizedDescription)
+                case .failure(let error):
+                    self.ragAnswer = String(format: self.i18n.t(.doc_rag_queryFailFmt), error.localizedDescription)
                     self.ragChunks = []
                 }
             }

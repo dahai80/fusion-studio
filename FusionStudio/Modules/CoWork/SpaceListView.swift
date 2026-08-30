@@ -108,8 +108,8 @@ struct SpaceListView: View {
 
             if isLoading {
                 ProgressView().padding()
-            } else if let err = errorMessage {
-                Text(err)
+            } else if let error = errorMessage {
+                Text(error)
                     .font(.system(size: theme.footnoteSize))
                     .foregroundStyle(.red)
                     .padding(.horizontal, theme.spacingM)

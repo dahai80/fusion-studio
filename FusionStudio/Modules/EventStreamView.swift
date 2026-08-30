@@ -20,8 +20,8 @@ struct EventStreamView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: theme.spacingM) {
             headerRow
-            if let err = eventBridge.lastError {
-                Text(err)
+            if let error = eventBridge.lastError {
+                Text(error)
                     .font(.caption)
                     .foregroundStyle(theme.warningText)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -255,8 +255,8 @@ struct EventRuleAddForm: View {
                 Stepper("\(debounceMs)", value: $debounceMs, in: 0...60000, step: 50)
             }
 
-            if let err = formError {
-                Text(err).font(.caption).foregroundStyle(theme.warningText)
+            if let error = formError {
+                Text(error).font(.caption).foregroundStyle(theme.warningText)
             }
 
             Spacer()

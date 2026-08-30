@@ -19,7 +19,7 @@ extension ConfigState {
         guard let client = self.ipcClient else { return }
         do {
             let result = try await client.styleList()
-            self.styles = result["styles"] as? [[String: Any]] ?? []
+            self.styles = ConfigState.capConfigArray(result["styles"] as? [[String: Any]] ?? [])
             agentStyleLog.info("Fetched \(self.styles.count) styles")
         } catch {
             agentStyleLog.debug("fetchStyles failed: \(error.localizedDescription)")

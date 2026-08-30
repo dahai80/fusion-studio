@@ -80,8 +80,8 @@ struct KBListView: View {
                 .listStyle(.sidebar)
             }
 
-            if let err = client.lastError {
-                Text(err)
+            if let error = client.lastError {
+                Text(error)
                     .font(.caption)
                     .foregroundStyle(.red)
                     .padding(8)

@@ -266,9 +266,14 @@ struct FusionStudioApp: App {
                         // 审计0827 P0-3: 后台停长连接流, 释放 fd + 取消 readLoop Task,
                         // 防 fd/Task 泄漏 (旧: 后台不断, 退出亦无调用 stopStream)。
                         eventBridge.stopStream()
+                        // 审计0830 P1-资源-5: ScreenContext 2s Accessibility 轮询未绑 scenePhase,
+                        //   app 后台仍轮询 → 耗电 + 后台读 Accessibility 隐私风险。后台停, 唤醒恢复。
+                        screenContext.stopMonitoring()
                     } else if phase == .active {
                         multiNodeEngine.startPolling()
                         agentBridge.startMlxStatusPolling()
+                        // 审计0830 P1-资源-5: 唤醒恢复 ScreenContext 监控 (后台已停)。
+                        screenContext.startMonitoring()
                         // #346: 感知层长连接在唤醒后恢复 (后台/休眠可能断 UDS), 守护缺席 fail-open 不锁死。
                         eventBridge.startStream()
                         Task { await eventBridge.checkDaemonStatus() }
@@ -353,7 +358,11 @@ struct FusionStudioApp: App {
 
         await MainActor.run {
             healthState.isHealthCheckPassed = mlxOk
-            healthState.isMLXRunning = mlxOk
+            // 审计0830 P1-架构-1: MLXState.mlxRunning 为单一真相源 (probeMLXRunningStatus 已写)。
+            //   HealthState.isMLXRunning 仅作镜像保 view 观测 (view 观察 healthState 非 bridge)。
+            //   双源同步防脑裂: 一条 UI 显示 running 一条 offline。
+            agentBridge.mlxState.mlxRunning = mlxOk
+            healthState.isMLXRunning = agentBridge.mlxState.mlxRunning
             healthState.healthStatus = mlxOk ? .healthy : .issuesFound
         }
 

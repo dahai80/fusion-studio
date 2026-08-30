@@ -315,8 +315,8 @@ struct ScienceChatView: View {
                 switch result {
                 case .success(let session):
                     sendToSession(session.id, text: text)
-                case .failure(let err):
-                    chatLog.error("Auto-create session failed: \(err.localizedDescription)")
+                case .failure(let error):
+                    chatLog.error("Auto-create session failed: \(error.localizedDescription)")
                 }
             }
             return

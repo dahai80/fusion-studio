@@ -24,7 +24,7 @@ extension ConfigState {
         guard let client = self.ipcClient else { return }
         do {
             let result = try await client.apikeyList()
-            self.apikeys = result["keys"] as? [[String: Any]] ?? []
+            self.apikeys = ConfigState.capConfigArray(result["keys"] as? [[String: Any]] ?? [])
             agentConfigLog.info("Fetched \(self.apikeys.count) API keys")
         } catch {
             agentConfigLog.debug("fetchApikeys failed: \(error.localizedDescription)")
@@ -64,7 +64,7 @@ extension ConfigState {
         guard let client = self.ipcClient else { return }
         do {
             let result = try await client.cronList()
-            self.cronJobs = result["jobs"] as? [[String: Any]] ?? result["crons"] as? [[String: Any]] ?? []
+            self.cronJobs = ConfigState.capConfigArray(result["jobs"] as? [[String: Any]] ?? result["crons"] as? [[String: Any]] ?? [])
             agentConfigLog.info("Fetched \(self.cronJobs.count) cron jobs")
         } catch {
             agentConfigLog.debug("fetchCronJobs failed: \(error.localizedDescription)")

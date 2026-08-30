@@ -310,8 +310,8 @@ struct SimulationWorkbenchView: View {
                 bridge.reset()
             }
             Spacer()
-            if let err = bridge.lastError {
-                Text(err).font(.system(size: 11)).foregroundStyle(theme.accentDestructive).lineLimit(1)
+            if let error = bridge.lastError {
+                Text(error).font(.system(size: 11)).foregroundStyle(theme.accentDestructive).lineLimit(1)
             }
         }
         .padding(.horizontal, theme.spacingL)

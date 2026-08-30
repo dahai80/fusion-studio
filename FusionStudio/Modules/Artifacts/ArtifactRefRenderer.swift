@@ -16,11 +16,11 @@ struct ArtifactRefRenderer: View {
             if isLoading {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let err = errorMsg {
+            } else if let error = errorMsg {
                 HStack(spacing: 6) {
                     Image(systemName: "exclamationmark.triangle")
                         .foregroundStyle(theme.accentDestructive)
-                    Text(err)
+                    Text(error)
                         .font(.system(size: 11))
                         .foregroundStyle(theme.accentDestructive)
                 }

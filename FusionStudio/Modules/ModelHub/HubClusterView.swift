@@ -89,8 +89,8 @@ struct HubClusterView: View {
                 .listStyle(.plain)
             }
 
-            if let err = lastError {
-                Text(err).font(.caption).foregroundStyle(.red).padding(4)
+            if let error = lastError {
+                Text(error).font(.caption).foregroundStyle(.red).padding(4)
             }
         }
         .frame(minWidth: 350, maxWidth: 500)
@@ -217,8 +217,8 @@ struct HubClusterView: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(routeModelId.isEmpty || routePrompt.isEmpty || isRouting)
 
-                if let err = lastError {
-                    Text(err).font(.caption).foregroundStyle(.red)
+                if let error = lastError {
+                    Text(error).font(.caption).foregroundStyle(.red)
                 }
             }
             .padding(8)

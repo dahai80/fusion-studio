@@ -25,7 +25,11 @@ class MultiNodeEngine: ObservableObject {
 
     // F-A11: 脑裂检测。>1 master = 网络分区两区各选 master, 客户端不应静默并排展示,
     // 须 critical alert + 阻断写操作 (remove/approve/migrate) 直到 quorum 恢复。
-    var splitBrainDetected: Bool { nodes.filter { $0.isMaster }.count > 1 }
+    // 审计0830 P1-调度-4: 旧版单次 master 快照判定脑裂, 瞬态抖动 (一次 fetch 拿到 stale 双 master) 误报。
+    //   改连续 N 轮确认才置位, 恢复 (≤1 master) 立即清零复位。stored @Published 替纯计算属性 (需跨轮状态)。
+    @Published var splitBrainDetected: Bool = false
+    private var splitBrainConfirmCount: Int = 0
+    private let splitBrainConfirmThreshold: Int = 2
 
     // F-A13: 重复执行检测 (客户端可做项)。同一 task assignedNodes>=2 且 running 且 mode!=data_parallel
     // → 疑似网络抖动致 submit 重复提交, 两节点跑同一份未分片输入。data_parallel 多节点 = 合法分片不告警。
@@ -45,6 +49,21 @@ class MultiNodeEngine: ObservableObject {
     // F-R10: 单飞保护。慢响应时 Timer 下一 tick 重复 fire 同一 fetch 致请求风暴, in-flight 跳过。
     private var inflightFetches: Set<String> = []
     private let inflightLock = NSLock()
+
+    // 审计0830 P1-调度-5: effectiveStatus 无滞后, 节点心跳抖动 → 状态频繁切换 (online↔offline)。
+    //   engine 维护 per-node 连续 offline 计数, 达阈值 K 才确认 offline (决策点用 confirmedOffline)。
+    //   model 的 effectiveStatus 仍即时 (UI 即时反馈), engine 决策 (retry/eligibility) 用滞后值防抖。
+    private var nodeOfflineStreak: [String: Int] = [:]
+    private let offlineConfirmThreshold: Int = 2
+
+    // 审计0830 P1-调度-5: 决策点 (retry/eligibility) 用滞后确认, 非 model 即时 effectiveStatus。
+    //   未知节点 (streak 无记录, 0) 默认即时状态: 避免新加入节点首轮 fetch 未到被误判健康。
+    private func confirmedOffline(nodeId: String) -> Bool {
+        let streak = nodeOfflineStreak[nodeId] ?? 0
+        if streak >= offlineConfirmThreshold { return true }
+        guard let n = nodes.first(where: { $0.id == nodeId }) else { return true }
+        return n.effectiveStatus == .offline
+    }
 
     // F-A7: init 阶段 let 快照 baseURL/agentBaseURL/authToken → 改计算属性实时读 FusionConfig.shared。
     // FusionConfig host/port/token 全 @AppStorage 可运行时改, 但旧 let 快照让 engine 永远拿旧值,
@@ -174,8 +193,8 @@ class MultiNodeEngine: ObservableObject {
                     self?.resetFailureState(context: "cluster_stats")
                     self?.lastError = nil
                 }
-            case .failure(let err):
-                self?.handleError(err, context: "cluster_stats")
+            case .failure(let error):
+                self?.handleError(error, context: "cluster_stats")
             }
         }
     }
@@ -188,13 +207,34 @@ class MultiNodeEngine: ObservableObject {
                     self?.nodes = resp.nodes
                     self?.resetFailureState(context: "nodes")
                     // F-A11: 检测多 master 脑裂, 日志告警 (UI 侧 ClusterTopologyView 展示 banner)。
+                    // 审计0830 P1-调度-4: 连续 N 轮 >1 master 才确认脑裂, 瞬态抖动不误报; ≤1 立即复位。
                     let masterCount = resp.nodes.filter { $0.isMaster }.count
                     if masterCount > 1 {
-                        engineLog.error("F-A11 split-brain detected: \(masterCount) masters present — quorum broken, writes should be blocked")
+                        self?.splitBrainConfirmCount += 1
+                        if self?.splitBrainDetected == false && (self?.splitBrainConfirmCount ?? 0) >= (self?.splitBrainConfirmThreshold ?? 2) {
+                            self?.splitBrainDetected = true
+                            engineLog.error("F-A11 split-brain confirmed: \(masterCount) masters across \(self?.splitBrainConfirmCount ?? 0) rounds — writes blocked")
+                        }
+                    } else {
+                        if self?.splitBrainDetected == true {
+                            engineLog.info("F-A11 split-brain resolved (≤1 master), unblocking writes")
+                        }
+                        self?.splitBrainConfirmCount = 0
+                        self?.splitBrainDetected = false
+                    }
+                    // 审计0830 P1-调度-5: per-node offline 连续计数, 供 confirmedOffline 滞后决策。
+                    if let self = self {
+                        for n in resp.nodes {
+                            if n.effectiveStatus == .offline {
+                                self.nodeOfflineStreak[n.id, default: 0] += 1
+                            } else {
+                                self.nodeOfflineStreak[n.id] = 0
+                            }
+                        }
                     }
                 }
-            case .failure(let err):
-                self?.handleError(err, context: "nodes")
+            case .failure(let error):
+                self?.handleError(error, context: "nodes")
             }
         }
     }
@@ -219,8 +259,8 @@ class MultiNodeEngine: ObservableObject {
                     self?.resetFailureState(context: "tasks")
                     self?.detectDuplicateExecution()
                 }
-            case .failure(let err):
-                self?.handleError(err, context: "tasks")
+            case .failure(let error):
+                self?.handleError(error, context: "tasks")
             }
         }
     }
@@ -251,8 +291,8 @@ class MultiNodeEngine: ObservableObject {
                     self?.nodeMetricsRaw[nodeId] = resp
                     self?.nodeMetrics[nodeId] = LoadMetrics.from(resp)
                 }
-            case .failure(let err):
-                engineLog.error("Failed to fetch metrics for \(nodeId): \(err.localizedDescription)")
+            case .failure(let error):
+                engineLog.error("Failed to fetch metrics for \(nodeId): \(error.localizedDescription)")
             }
         }
     }
@@ -267,8 +307,8 @@ class MultiNodeEngine: ObservableObject {
                     self?.nodeMetrics[nodeId] = metrics
                 }
                 completion(.success(metrics))
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -324,8 +364,8 @@ class MultiNodeEngine: ObservableObject {
                     // 审计0827 §3.5: health 路 success 复位其 context 失败计数。
                     self?.consecutiveFailuresByContext["health"] = 0
                 }
-            case .failure(let err):
-                self?.handleError(err, context: "health")
+            case .failure(let error):
+                self?.handleError(error, context: "health")
             }
         }
     }
@@ -389,10 +429,13 @@ class MultiNodeEngine: ObservableObject {
         }
     }
 
-    func submitTask(name: String, mode: String, modelName: String, priority: Int = 5, requiredCapability: String? = nil) async throws -> [String: Any] {
+    func submitTask(name: String, mode: String, modelName: String, priority: Int = 5, requiredCapability: String? = nil, excludeNodes: [String]? = nil) async throws -> [String: Any] {
         try assertNoSplitBrain()
         var body: [String: Any] = ["name": name, "mode": mode, "model_name": modelName, "priority": priority]
         if let cap = requiredCapability { body["required_capability"] = cap }
+        // 审计0830 P1-调度-3: retryTask 透传 exclude_nodes 含原失败节点, 后端排除则不重命中同一故障节点。
+        //   后端 submit 端点当前可能忽略此字段 (上游缺口), 客户端传递为前置; 后端支持后即生效, 无害。
+        if let ex = excludeNodes, !ex.isEmpty { body["exclude_nodes"] = ex }
         let result = try await post("/api/tasks/submit", body: body)
         fetchTasks()
         fetchClusterStats()
@@ -405,10 +448,8 @@ class MultiNodeEngine: ObservableObject {
     func retryTask(_ task: ClusterTask) async throws -> [String: Any] {
         try assertNoSplitBrain()
         let assigned = task.assignedNodes
-        let offlineAssigned = assigned.filter { id in
-            guard let n = nodes.first(where: { $0.id == id }) else { return true }
-            return n.effectiveStatus == .offline
-        }
+        // 审计0830 P1-调度-5: 用 confirmedOffline 滞后确认, 瞬态抖动不误判全 offline 阻断重试。
+        let offlineAssigned = assigned.filter { confirmedOffline(nodeId: $0) }
         if !assigned.isEmpty && offlineAssigned.count == assigned.count {
             engineLog.error("F-A12 retry blocked: all assigned nodes offline. task=\(task.id) assigned=\(assigned)")
             throw EngineError.retryNoHealthyNode
@@ -416,9 +457,11 @@ class MultiNodeEngine: ObservableObject {
         let origPriority = task.priority ?? 5
         let origCap = task.requiredCapability
         engineLog.info("F-A12 retry: task=\(task.id) assigned=\(assigned) offline=\(offlineAssigned) priority=\(origPriority) cap=\(origCap ?? "nil")")
+        // 审计0830 P1-调度-3: 透传 offlineAssigned 作 exclude_nodes, 后端排除则重试不命中同一故障节点。
         return try await submitTask(
             name: task.name, mode: task.mode, modelName: task.modelName,
-            priority: origPriority, requiredCapability: origCap
+            priority: origPriority, requiredCapability: origCap,
+            excludeNodes: offlineAssigned
         )
     }
 
@@ -482,8 +525,8 @@ class MultiNodeEngine: ObservableObject {
             case .success(let manifest):
                 DispatchQueue.main.async { self?.modelManifests[modelName] = manifest }
                 completion(.success(manifest))
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -503,7 +546,7 @@ class MultiNodeEngine: ObservableObject {
         ]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         session.dataTask(with: request) { data, _, error in
-            if let err = error { completion(.failure(err)); return }
+            if let error = error { completion(.failure(error)); return }
             guard let data = data else { completion(.failure(EngineError.noData)); return }
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
                 engineLog.info("Incremental sync triggered for \(modelName)")
@@ -520,8 +563,8 @@ class MultiNodeEngine: ObservableObject {
             case .success(let report):
                 DispatchQueue.main.async { self?.nodeLoads[nodeId] = report }
                 completion(.success(report))
-            case .failure(let err):
-                completion(.failure(err))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -553,7 +596,7 @@ class MultiNodeEngine: ObservableObject {
         var req = URLRequest(url: url)
         authHeaders(&req)
         session.dataTask(with: req) { data, _, error in
-            if let err = error { completion(.failure(err)); return }
+            if let error = error { completion(.failure(error)); return }
             guard let data = data else { completion(.failure(EngineError.noData)); return }
             do {
                 let decoded = try JSONDecoder().decode(KVStatsResponse.self, from: data)
@@ -571,7 +614,7 @@ class MultiNodeEngine: ObservableObject {
         var req = URLRequest(url: url)
         authHeaders(&req)
         session.dataTask(with: req) { data, _, error in
-            if let err = error { completion(.failure(err)); return }
+            if let error = error { completion(.failure(error)); return }
             guard let data = data else { completion(.failure(EngineError.noData)); return }
             do {
                 let decoded = try JSONDecoder().decode(AgentHardwareInfo.self, from: data)
@@ -589,7 +632,7 @@ class MultiNodeEngine: ObservableObject {
         var req = URLRequest(url: url)
         authHeaders(&req)
         session.dataTask(with: req) { data, _, error in
-            if let err = error { completion(.failure(err)); return }
+            if let error = error { completion(.failure(error)); return }
             guard let data = data else { completion(.failure(EngineError.noData)); return }
             do {
                 if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -615,7 +658,7 @@ class MultiNodeEngine: ObservableObject {
         let body = ["model_name": modelName, "prompt_hash": promptHash]
         req.httpBody = try? JSONSerialization.data(withJSONObject: body)
         session.dataTask(with: req) { data, _, error in
-            if let err = error { completion(.failure(err)); return }
+            if let error = error { completion(.failure(error)); return }
             guard let data = data else { completion(.failure(EngineError.noData)); return }
             do {
                 let decoded = try JSONDecoder().decode(KVCacheEntry.self, from: data)
@@ -637,7 +680,7 @@ class MultiNodeEngine: ObservableObject {
         let body = ["cache_id": cacheId, "target_node": targetNode]
         req.httpBody = try? JSONSerialization.data(withJSONObject: body)
         session.dataTask(with: req) { data, _, error in
-            if let err = error { completion(.failure(err)); return }
+            if let error = error { completion(.failure(error)); return }
             if let data = data,
                let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                json["status"] as? String == "ok" {
@@ -651,7 +694,10 @@ class MultiNodeEngine: ObservableObject {
     func agentKVWarm(modelName: String, prompts: [String], completion: @escaping (Result<Int, Error>) -> Void) {
         // 审计0827 §3.6 (P2): 无 (model) 去重, 并发 warm (多 agent / 重复点按钮) → 重复 POST
         // → MLX 后端同模型重复分配 KV cache 显存翻倍, 8-16 节点触发 GPU OOM。
-        // 按 model 名单飞: in-flight 期间同 model 跳过, 回调完成才释放 (非 defer — resume 异步)。
+        // 按 model 名单飞: in-flight 期间同 model 跳过, 回调完成才释放。
+        // 审计0830 P1-调度-7: 旧 [weak self] 回调若 self 已 nil → releaseInflight no-op → key 永留 inflightFetches,
+        //   后续同 model warm 恒被 skip = 永久 hang。改强引用 self 至回调结束 (engine 随 app 生命周期, 无提早释放风险),
+        //   且全路径 (URL 构造失败 / 网络错误 / 解码失败) 经统一 release 闭包释放, 无遗漏路径。
         let inflightKey = "kv_warm:\(modelName)"
         inflightLock.lock()
         if inflightFetches.contains(inflightKey) {
@@ -662,8 +708,11 @@ class MultiNodeEngine: ObservableObject {
         }
         inflightFetches.insert(inflightKey)
         inflightLock.unlock()
+        // 统一释放闭包: 任意出口 (含 early-return) 都经此, 保证 lock 不泄漏。
+        // 强引用 self: 回调持有 self 至网络完成才释放, 避免 weak-nil 跳过 releaseInflight 致 key 永留。
+        let release = { self.releaseInflight(inflightKey) }
         guard let url = URL(string: "\(agentBaseURL)/api/kv/warm") else {
-            self.releaseInflight(inflightKey)
+            release()
             completion(.failure(EngineError.invalidURL)); return
         }
         var req = URLRequest(url: url)
@@ -672,9 +721,10 @@ class MultiNodeEngine: ObservableObject {
         authHeaders(&req)
         let body: [String: Any] = ["model_name": modelName, "prompts": prompts]
         req.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        session.dataTask(with: req) { [weak self] data, _, error in
-            self?.releaseInflight(inflightKey)
-            if let err = error { completion(.failure(err)); return }
+        // 强引用 self: 回调持有 self 至网络完成才释放, 避免 weak-nil 路径跳过 releaseInflight。
+        session.dataTask(with: req) { data, _, error in
+            release()
+            if let error = error { completion(.failure(error)); return }
             guard let data = data else { completion(.failure(EngineError.noData)); return }
             do {
                 if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
@@ -704,8 +754,8 @@ class MultiNodeEngine: ObservableObject {
         var request = URLRequest(url: url)
         authHeaders(&request)
         session.dataTask(with: request) { data, response, error in
-            if let err = error {
-                completion(.failure(err)); return
+            if let error = error {
+                completion(.failure(error)); return
             }
             guard let data = data else {
                 completion(.failure(EngineError.noData)); return

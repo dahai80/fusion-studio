@@ -71,8 +71,8 @@ struct CodegenTargetPanel: View {
             Rectangle().fill(theme.separator).frame(height: 1)
             configBar
             Rectangle().fill(theme.separator).frame(height: 1)
-            if let err = errorMessage {
-                errorBanner(err)
+            if let error = errorMessage {
+                errorBanner(error)
             }
             codeOutput
         }

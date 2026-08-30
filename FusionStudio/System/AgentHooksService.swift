@@ -19,7 +19,7 @@ extension ConfigState {
         guard let client = self.ipcClient else { return }
         do {
             let result = try await client.hooksList()
-            self.hooks = result["hooks"] as? [[String: Any]] ?? []
+            self.hooks = ConfigState.capConfigArray(result["hooks"] as? [[String: Any]] ?? [])
             agentHooksLog.info("Fetched \(self.hooks.count) hooks")
         } catch {
             agentHooksLog.debug("fetchHooks failed: \(error.localizedDescription)")

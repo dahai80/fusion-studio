@@ -190,7 +190,7 @@ private struct UserAdminPanel: View {
         VStack(alignment: .leading, spacing: 12) {
             PanelHeader(title: I18nManager.shared.t(.doc_admin_panel_users))
             if loading { ProgressView() }
-            if let err = error { ErrorLine(message: err) }
+            if let error = error { ErrorLine(message: error) }
             if bridge.users.isEmpty && !loading {
                 EmptyHint(text: I18nManager.shared.t(.doc_admin_empty_users))
             } else {
@@ -229,7 +229,7 @@ private struct UserAdminPanel: View {
         bridge.fetchUsers { result in
             DispatchQueue.main.async {
                 loading = false
-                if case .failure(let err) = result { error = BridgeError.sanitize(err) }
+                if case .failure(let caughtError) = result { error = BridgeError.sanitize(caughtError) }
             }
         }
     }
@@ -539,7 +539,7 @@ private struct MetadataPanel: View {
                 Button(I18nManager.shared.t(.doc_admin_btn_query)) { load() }.buttonStyle(.borderedProminent).disabled(entity.isEmpty || entityId.isEmpty)
             }
             if loading { ProgressView() }
-            if let err = error { ErrorLine(message: err) }
+            if let error = error { ErrorLine(message: error) }
             ForEach(entries) { e in
                 HStack {
                     Text(e.key).fontWeight(.medium)
@@ -562,7 +562,7 @@ private struct MetadataPanel: View {
                 loading = false
                 switch res {
                 case .success(let list): entries = list
-                case .failure(let err): error = BridgeError.sanitize(err)
+                case .failure(let caughtError): error = BridgeError.sanitize(caughtError)
                 }
             }
         }
@@ -675,7 +675,7 @@ private struct ExportPanel: View {
                 Button(I18nManager.shared.t(.doc_admin_btn_export)) { exportBook() }.buttonStyle(.borderedProminent).disabled(bookId.isEmpty || loading)
                 if loading { ProgressView().controlSize(.small) }
             }
-            if let err = error { ErrorLine(message: err) }
+            if let error = error { ErrorLine(message: error) }
             if !bridge.exportJobs.isEmpty {
                 Text(I18nManager.shared.t(.doc_admin_label_export_jobs)).font(.subheadline).fontWeight(.medium)
                 ForEach(bridge.exportJobs) { job in
@@ -711,7 +711,7 @@ private struct ExportPanel: View {
         bridge.exportBook(bookId: bookId, format: format) { res in
             DispatchQueue.main.async {
                 loading = false
-                if case .failure(let err) = res { error = BridgeError.sanitize(err) }
+                if case .failure(let caughtError) = res { error = BridgeError.sanitize(caughtError) }
             }
         }
     }
@@ -802,7 +802,7 @@ private struct GraphPanel: View {
         VStack(alignment: .leading, spacing: 12) {
             PanelHeader(title: I18nManager.shared.t(.doc_admin_panel_graph))
             if loading { ProgressView() }
-            if let err = error { ErrorLine(message: err) }
+            if let error = error { ErrorLine(message: error) }
             VStack(alignment: .leading, spacing: 6) {
                 Text(I18nManager.shared.t(.doc_admin_label_semantic_search)).font(.subheadline).fontWeight(.medium)
                 HStack {

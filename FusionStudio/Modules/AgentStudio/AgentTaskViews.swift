@@ -1109,9 +1109,10 @@ struct WorkflowDetailView: View {
         executionResult = ""
         Task {
             do {
-                try await bridge.executeGraph(id: graph.id, input: executeInput)
+                // 审计0830 P0-11: 用返回值而非共享 runtimeState.events, 防并发手动执行串号。
+                let events = try await bridge.executeGraph(id: graph.id, input: executeInput)
                 var output = ""
-                for ev in bridge.runtimeState.events {
+                for ev in events {
                     let nodeId = ev.node_id ?? "?"
                     output += "[\(ev.type)] \(nodeId)"
                     if let data = ev.data, !data.isEmpty {

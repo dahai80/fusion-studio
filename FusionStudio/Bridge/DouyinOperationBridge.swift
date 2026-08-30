@@ -161,9 +161,9 @@ class DouyinOperationBridge: ObservableObject {
             }
 
             let connected = self.fileManager.fileExists(atPath: self.opsDir)
-            var err: String?
+            var error: String?
             if !connected {
-                err = String(format: I18nManager.shared.t(.dy_err_ops_not_found), self.opsDir)
+                error = String(format: I18nManager.shared.t(.dy_err_ops_not_found), self.opsDir)
             }
 
             DispatchQueue.main.async {
@@ -172,10 +172,12 @@ class DouyinOperationBridge: ObservableObject {
                 self.publishedItems = Array(published.prefix(20))
                 self.failedItems = Array(failed.prefix(20))
                 self.winning = win
-                self.statsSnapshots = snaps
-                self.repliedIds = replied
+                // 审计0830 P1: statsSnapshots/repliedIds 从文件读, 后端无限增长则数组无界膨胀 → 内存涨 + SwiftUI diff 全量重算。
+                //   LRU cap 200 保最新 (复用 capChatMessages 范式)。
+                self.statsSnapshots = Array(snaps.suffix(200))
+                self.repliedIds = Array(replied.suffix(200))
                 self.isConnected = connected
-                self.lastError = err
+                self.lastError = error
                 douyinBridgeLog.info("DouyinOperationBridge refresh: pending=\(counts.pending) published=\(counts.published) failed=\(counts.failed) snaps=\(snaps.count)")
             }
         }
@@ -443,11 +445,11 @@ class DouyinOperationBridge: ObservableObject {
                 let raw = (result["jobs"] as? [[String: Any]]) ?? []
                 let jobs: [DouyinCronJob] = raw.compactMap { parseCronJob($0) }
                     .filter { $0.id.hasPrefix(Self.cronIdPrefix) }
-                DispatchQueue.main.async { self.cronJobs = jobs }
+                DispatchQueue.main.async { self.cronJobs = Array(jobs.suffix(200)) }
                 if let first = jobs.first {
                     let exeResult = try await ipc.call(method: RPCMethod.cronListExecutions, params: ["job_id": first.id, "limit": 20])
                     let exes = ((exeResult["executions"] as? [[String: Any]]) ?? []).compactMap { parseCronExecution($0) }
-                    DispatchQueue.main.async { self.cronExecutions = exes }
+                    DispatchQueue.main.async { self.cronExecutions = Array(exes.suffix(200)) }
                 } else {
                     DispatchQueue.main.async { self.cronExecutions = [] }
                 }

@@ -482,8 +482,8 @@ class CodeAgent: ObservableObject {
                 }
             } catch {
                 await MainActor.run {
-                    let err = "⚠️ \((error as? BridgeError)?.userMessage ?? I18nManager.shared.t(.fc_ai_unavailable))"
-                    self.conversation.append(CodeMessage(role: "assistant", content: err, timestamp: Date(), codeBlocks: []))
+                    let error = "⚠️ \((error as? BridgeError)?.userMessage ?? I18nManager.shared.t(.fc_ai_unavailable))"
+                    self.conversation.append(CodeMessage(role: "assistant", content: error, timestamp: Date(), codeBlocks: []))
                     self.isThinking = false
                     self.objectWillChange.send()
                 }

@@ -230,8 +230,8 @@ struct DocVersionView: View {
                 case .success(let diff):
                     self.diffResult = diff
                     self.showDiff = true
-                case .failure(let err):
-                    versionLog.error("Diff failed: \(err.localizedDescription)")
+                case .failure(let error):
+                    versionLog.error("Diff failed: \(error.localizedDescription)")
                 }
             }
         }

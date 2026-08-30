@@ -6,6 +6,9 @@
 import SwiftUI
 import os.log
 
+// 审计0830 P1-错误-4: view 层 catch 需 logger, viewModel.logger 为 private 跨类不可达, 提文件级 logger。
+private let dagViewLog = Logger(subsystem: "com.fusion.studio", category: "DAGCanvasView")
+
 struct DAGNode: Identifiable, Equatable {
     let id: String
     var type: NodeType
@@ -184,8 +187,8 @@ class DAGViewModel: ObservableObject {
         for i in layout.nodes.indices { layout.nodes[i].state = .idle }
         for i in layout.edges.indices { layout.edges[i].isAnimated = false }
         do {
-            try await bridge.executeGraph(id: graphId, input: "")
-            let events = bridge.runtimeState.events
+            // 审计0830 P0-11: 用 executeGraph 返回值而非共享 runtimeState.events, 防并发手动执行串号。
+            let events = try await bridge.executeGraph(id: graphId, input: "")
             for (idx, ev) in events.enumerated() {
                 if idx < layout.nodes.count {
                     layout.nodes[idx].state = .running
@@ -486,7 +489,10 @@ struct DAGCanvasView: View {
                 _ = try await ipc.templateInstantiate(templateId: tplId)
                 await viewModel.loadFromBridge(bridge)
                 showTemplateSelector = false
-            } catch { }
+            } catch {
+                // 审计0830 P1-错误-4: 旧空 catch 吞异常, 模板实例化失败静默无痕 → 用户点按钮无反应无可观测线索。
+                dagViewLog.error("DAG templateInstantiate failed tplId=\(tplId, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            }
         }
     }
 }

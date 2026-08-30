@@ -92,10 +92,10 @@ struct KVCacheView: View {
             .padding(.horizontal, theme.spacingL)
             .padding(.vertical, theme.spacingS)
 
-            if let err = searchError {
+            if let error = searchError {
                 HStack(spacing: theme.spacingS) {
                     Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(theme.amberDot)
-                    Text(err).font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textSecondary)
+                    Text(error).font(.system(size: theme.footnoteSize)).foregroundStyle(theme.textSecondary)
                 }
                 .padding(.horizontal, theme.spacingL)
                 .padding(.vertical, theme.spacingXS)
@@ -266,8 +266,8 @@ struct KVCacheView: View {
                 case .success(let s):
                     self.kvStats = s
                     kvLog.info("KV stats loaded: \(s.totalEntries) entries")
-                case .failure(let err):
-                    kvLog.error("KV stats failed: \(err.localizedDescription)")
+                case .failure(let error):
+                    kvLog.error("KV stats failed: \(error.localizedDescription)")
                 }
             }
         }
@@ -301,9 +301,9 @@ struct KVCacheView: View {
                 case .success(let entry):
                     self.foundEntry = entry
                     kvLog.info("Found KV cache: \(entry.cacheId)")
-                case .failure(let err):
-                    self.searchError = String(format: i18n.t(.mn_kv_notFoundFmt), err.localizedDescription)
-                    kvLog.debug("KV find failed: \(err.localizedDescription)")
+                case .failure(let error):
+                    self.searchError = String(format: i18n.t(.mn_kv_notFoundFmt), error.localizedDescription)
+                    kvLog.debug("KV find failed: \(error.localizedDescription)")
                 }
             }
         }
@@ -337,8 +337,8 @@ struct KVCacheView: View {
                     self.warmResult = count
                     loadStats()
                     kvLog.info("KV warmed: \(count) entries")
-                case .failure(let err):
-                    kvLog.error("KV warm failed: \(err.localizedDescription)")
+                case .failure(let error):
+                    kvLog.error("KV warm failed: \(error.localizedDescription)")
                 }
             }
         }
@@ -360,8 +360,8 @@ struct KVCacheView: View {
                     } else {
                         kvLog.error("KV transfer returned false")
                     }
-                case .failure(let err):
-                    kvLog.error("KV transfer failed: \(err.localizedDescription)")
+                case .failure(let error):
+                    kvLog.error("KV transfer failed: \(error.localizedDescription)")
                 }
             }
         }

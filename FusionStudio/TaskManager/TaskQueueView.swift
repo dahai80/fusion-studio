@@ -188,6 +188,10 @@ class TaskManager: ObservableObject {
         )
         DispatchQueue.main.async {
             self.tasks.append(task)
+            // 审计0830 P1: tasks 无界 append, 长会话内存单调增长 + SwiftUI diff 全量重算。LRU cap 200 保最新。
+            if self.tasks.count > 200 {
+                self.tasks.removeFirst(self.tasks.count - 200)
+            }
             self.persistTasks()
         }
         return String(id)

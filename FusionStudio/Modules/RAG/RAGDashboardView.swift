@@ -56,8 +56,8 @@ struct RAGDashboardView: View {
                     kbCardGrid
                 }
 
-                if let err = client.lastError {
-                    Text(err)
+                if let error = client.lastError {
+                    Text(error)
                         .font(.system(size: theme.footnoteSize))
                         .foregroundStyle(.red)
                         .padding(theme.spacingS)
