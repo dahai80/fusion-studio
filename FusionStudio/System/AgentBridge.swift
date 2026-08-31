@@ -1461,7 +1461,7 @@ final class AgentBridge: ObservableObject {
                     t.lastRunAt = Date()
                 }
                 // F-R9: 持锁删, 防并发崩溃。
-                self.lockedTaskHandle { self.taskRunHandles.removeValue(forKey: taskId) }
+                _ = self.lockedTaskHandle { self.taskRunHandles.removeValue(forKey: taskId) }
                 logger.info("taskExecuteImmediate done: id=\(taskId) events=\(eventsParsed.count)")
                 // F-R12 / 审计0830 P1-错误-1/2: 成功处理熔断器复位。
                 //   half-open 探针成功 → 关路复位 (连续成功归零, 无需攒 N)。
@@ -1491,7 +1491,7 @@ final class AgentBridge: ObservableObject {
                 // 审计0830 P0-5: cancelled 分支旧实现不 removeValue → 句柄钉在 taskRunHandles,
                 //   Task 闭包持有 runtimeState/events 等大对象 → 高频取消下 dict 单调增长 → 内存泄漏。
                 //   成功 (L1372)/失败 (L1427) 均清, 取消遗漏。补齐对齐。
-                self.lockedTaskHandle { self.taskRunHandles.removeValue(forKey: taskId) }
+                _ = self.lockedTaskHandle { self.taskRunHandles.removeValue(forKey: taskId) }
                 logger.info("taskExecuteImmediate cancelled: id=\(taskId) handle released (P0-5)")
                 await self.taskExecSemaphore.release()
             } catch {
@@ -1555,7 +1555,7 @@ final class AgentBridge: ObservableObject {
                     let reason = (self.backendCircuitOpen || self.backendCircuitHalfOpen) ? "circuit-open" : "retries-exhausted"
                     self.updateTask(taskId) { t in t.status = .failed }
                     // F-R9: 持锁删, 防并发崩溃。
-                    self.lockedTaskHandle { self.taskRunHandles.removeValue(forKey: taskId) }
+                    _ = self.lockedTaskHandle { self.taskRunHandles.removeValue(forKey: taskId) }
                     logger.error("taskExecuteImmediate failed: id=\(taskId) reason=\(reason) retryCount=\(cur.retryCount) error=\(error.localizedDescription)")
                     await self.taskExecSemaphore.release()
                 }
