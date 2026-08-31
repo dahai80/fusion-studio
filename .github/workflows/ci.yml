@@ -9,6 +9,7 @@ on:
       - '.gitignore'
   pull_request:
     branches: [master, main]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
