@@ -30,13 +30,15 @@ export interface InitOutput {
     readonly __wbg_webshell_free: (a: number, b: number) => void;
     readonly fusion_bridge_send_command: (a: number, b: number) => [number, number];
     readonly mount: (a: number, b: number) => [number, number, number];
-    readonly wasm_bindgen__convert__closures_____invoke__h079fea50a2b652de: (a: number, b: number, c: any) => void;
-    readonly wasm_bindgen__convert__closures_____invoke__h2eb7eed3600db92c: (a: number, b: number, c: any) => void;
+    readonly wasm_bindgen__convert__closures_____invoke__he56a4b665f145993: (a: number, b: number, c: any) => void;
+    readonly wasm_bindgen__convert__closures_____invoke__hec56b86a89fd6ca5: (a: number, b: number, c: any) => void;
+    readonly wasm_bindgen__convert__closures_____invoke__h7c44b051d78367e7: (a: number, b: number) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_exn_store: (a: number) => void;
     readonly __externref_table_alloc: () => number;
     readonly __wbindgen_externrefs: WebAssembly.Table;
+    readonly __wbindgen_free: (a: number, b: number, c: number) => void;
     readonly __wbindgen_destroy_closure: (a: number, b: number) => void;
     readonly __externref_table_dealloc: (a: number) => void;
     readonly __wbindgen_start: () => void;

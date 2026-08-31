@@ -9,6 +9,7 @@ on:
       - '.gitignore'
   pull_request:
     branches: [master, main]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -38,14 +39,17 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .build
-          key: ${{ runner.os }}-spm-${{ hashFiles('FusionStudio/**/*.swift', 'Tests/**/*.swift') }}
+          key: v2-${{ runner.os }}-spm-${{ hashFiles('FusionStudio/**/*.swift', 'Tests/**/*.swift') }}
 
       - name: Build (debug)
         # F-I13: pipefail 保 swift build 退出码 (原 | tail -10 吞码 → build 失败也绿)。
         # 审计0830: tail 单独用会吞掉真实 error: 行 → CI-only (Swift 5.10) 编译错无法定位。
         #   tee 全量落盘 (失败时 upload-artifact 供下载定位) + tail -80 控制可见日志量。
-        # -j 2: 限并发降 swift-frontend 峰值内存, 治 macOS-14 runner 偶发 ICE (error: fatalError 无 file:line)。
-        run: set -o pipefail && swift build -c debug -j 2 2>&1 | tee /tmp/build-debug.log | tail -80
+        # 审计0831: -j 1 串行编译。clean build (cache miss) 时 -j 2 令 2 个 swift-frontend 并发,
+        #   编译至模块末尾 [442/445] 峰值内存超 macOS-14 runner 上限 → swift-frontend OOM
+        #   (bare `error: fatalError` 无 stack dump)。-j 1 单进程串行, 峰值减半, 治 clean-build ICE。
+        #   增量编译 (cache hit) 时 -j 1 仅重编变更文件, 耗时可接受。
+        run: set -o pipefail && swift build -c debug -j 1 2>&1 | tee /tmp/build-debug.log | tail -80
 
       - name: Upload build log on failure
         if: failure()
@@ -62,8 +66,8 @@ jobs:
 
       - name: Build (release)
         # F-I13: pipefail 保退出码 (同上)。
-        # -j 2: 同 debug, 限并发降峰值内存防 ICE。
-        run: set -o pipefail && swift build -c release -j 2 2>&1 | tail -20
+        # 审计0831: -j 1 同 debug, release 全模块 type-check + 优化峰值内存更高, 串行降峰防 clean-build ICE。
+        run: set -o pipefail && swift build -c release -j 1 2>&1 | tail -20
 
   # ─── 代码质量 ─────────────────────────────────────────
   # Services/ 已删 (PR #298, 无本地 Rust 后台服务), Rust fmt/check 步骤移除。
@@ -83,11 +87,20 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .build
-          key: ${{ runner.os }}-spm-${{ hashFiles('FusionStudio/**/*.swift', 'Tests/**/*.swift') }}
+          key: v2-${{ runner.os }}-spm-${{ hashFiles('FusionStudio/**/*.swift', 'Tests/**/*.swift') }}
 
       - name: Check Swift build warnings
+        # 审计0831: build 失败必须红。原 `swift build | grep ... || echo ✅` 双重掩码:
+        # (1) grep 匹配 "error:" 返回 0, pipefail 下 pipeline 仍取 build 的 1, 但 `|| echo ✅`
+        #     吞掉非零 → step 绿 = 假绿; (2) save-always:false 本应只在 success 存 cache,
+        #     假绿令 CQ job success → 存 poisoned .build → Build&Test restore → 增量 ICE 循环。
+        # 修法: build 独立跑 (exit 入 build_exit), grep 仅展示 (无匹配 echo ✅), 末尾 exit build_exit。
         run: |
-          swift build -j 2 2>&1 | grep -E "warning:|error:" || echo "✅ 无警告和错误"
+          set -o pipefail
+          swift build -j 2 2>&1 | tee /tmp/build-lint.log
+          build_exit=${PIPESTATUS[0]}
+          grep -E "warning:|error:" /tmp/build-lint.log || echo "✅ 无警告和错误"
+          exit "$build_exit"
 
   # ─── 安全检查 ─────────────────────────────────────────
   security:

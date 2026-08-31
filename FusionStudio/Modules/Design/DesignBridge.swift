@@ -203,6 +203,17 @@ class DesignBridge: ObservableObject {
         DesignCanvasView.sendCommand(command, to: webView)
     }
 
+    // #372 OPS-13: 触发 fd-host-web 日志环形缓冲 dump。
+    // 走 window.postMessage({kind:'log.capture.dump',...}) 通道 (非 BridgeCommand, 上游 bridge.rs:187)。
+    // 触发源: DesignLintPanel 手动按钮 / WebView 进程崩溃恢复 / App 进入前台 (节流)。
+    func dumpWasmLog(clear: Bool) {
+        guard let webView = canvasWebView else {
+            designBridgeLog.warning("DesignBridge: dumpWasmLog skipped, canvasWebView nil")
+            return
+        }
+        DesignCanvasView.requestLogDump(to: webView, clear: clear)
+    }
+
     func applyDesignTokensToCanvas(_ css: String) {
         sendCanvasCommand(.applyTokens(css: css))
     }
