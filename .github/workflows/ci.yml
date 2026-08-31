@@ -90,14 +90,17 @@ jobs:
           key: v2-${{ runner.os }}-spm-${{ hashFiles('FusionStudio/**/*.swift', 'Tests/**/*.swift') }}
 
       - name: Check Swift build warnings
-        # 审计0831: pipefail + tee。原 `swift build | grep -E "warning:|error:" || echo ✅` 在
-        # swift-frontend crash (bare `error: fatalError`) 时: grep 匹配 "error:" → `||` 不触发 →
-        # step 绿, 但 build 实际 exit 1。掩码双重危害: (1) CI 假绿 (2) save-always:false 本应
-        # 只在 success 存 cache, 掩码令 CQ job success → 存 poisoned .build → Build&Test job
-        # restore 该 poison → 增量编译 ICE 循环。pipefail 保 crash 退出码, tee 落盘全量日志。
+        # 审计0831: build 失败必须红。原 `swift build | grep ... || echo ✅` 双重掩码:
+        # (1) grep 匹配 "error:" 返回 0, pipefail 下 pipeline 仍取 build 的 1, 但 `|| echo ✅`
+        #     吞掉非零 → step 绿 = 假绿; (2) save-always:false 本应只在 success 存 cache,
+        #     假绿令 CQ job success → 存 poisoned .build → Build&Test restore → 增量 ICE 循环。
+        # 修法: build 独立跑 (exit 入 build_exit), grep 仅展示 (无匹配 echo ✅), 末尾 exit build_exit。
         run: |
           set -o pipefail
-          swift build -j 2 2>&1 | tee /tmp/build-lint.log | grep -E "warning:|error:" || echo "✅ 无警告和错误"
+          swift build -j 2 2>&1 | tee /tmp/build-lint.log
+          build_exit=${PIPESTATUS[0]}
+          grep -E "warning:|error:" /tmp/build-lint.log || echo "✅ 无警告和错误"
+          exit "$build_exit"
 
   # ─── 安全检查 ─────────────────────────────────────────
   security:

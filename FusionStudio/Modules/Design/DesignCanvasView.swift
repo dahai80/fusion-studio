@@ -591,9 +591,12 @@ struct DesignCanvasView: NSViewRepresentable {
 
         // #372: WebView 内容进程终止 (OOM/SIGKILL) 时触发 dump。进程已死, 当前 buffer 随之丢失,
         // 此调用对死 webview no-op; 真正价值在重启后 (designBridge 重赋 canvasWebView) 补 dump + 留现场日志。
+        // WKNavigationDelegate 方法为 nonisolated; designBridge MainActor 隔离, 同 L627 menu 动作用 assumeIsolated。
         func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
             canvasLog.error("DesignCanvasView: content process terminated, triggering crash-recovery log dump")
-            parent.designBridge.dumpWasmLog(clear: false)
+            MainActor.assumeIsolated {
+                parent.designBridge.dumpWasmLog(clear: false)
+            }
         }
 
         // MARK: NSMenuDelegate (context menu)
