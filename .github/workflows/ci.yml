@@ -32,12 +32,13 @@ jobs:
         run: swift --version
 
       - name: Cache SPM build
+        # 审计0831: 去 restore-keys。源码变更致 exact key miss 时, 旧 restore-keys 回落到
+        # 其它分支/commit 的 stale .build → 增量编译状态错配 → swift-frontend ICE
+        # (error: fatalError 无 file:line, StudioTheme [440/443] 复现)。exact miss = clean build。
         uses: actions/cache@v4
         with:
           path: .build
           key: ${{ runner.os }}-spm-${{ hashFiles('FusionStudio/**/*.swift', 'Tests/**/*.swift') }}
-          restore-keys: |
-            ${{ runner.os }}-spm-
 
       - name: Build (debug)
         # F-I13: pipefail 保 swift build 退出码 (原 | tail -10 吞码 → build 失败也绿)。
@@ -76,12 +77,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Cache SPM build
+        # 审计0831: 去 restore-keys。源码变更致 exact key miss 时, 旧 restore-keys 回落到
+        # 其它分支/commit 的 stale .build → 增量编译状态错配 → swift-frontend ICE
+        # (error: fatalError 无 file:line, StudioTheme [440/443] 复现)。exact miss = clean build。
         uses: actions/cache@v4
         with:
           path: .build
           key: ${{ runner.os }}-spm-${{ hashFiles('FusionStudio/**/*.swift', 'Tests/**/*.swift') }}
-          restore-keys: |
-            ${{ runner.os }}-spm-
 
       - name: Check Swift build warnings
         run: |
