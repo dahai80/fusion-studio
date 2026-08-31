@@ -154,6 +154,11 @@ struct BridgeEvent {
     var nodeIDs: [String]? {
         payload["node_ids"] as? [String]
     }
+
+    // #372 OPS-13: log_capture_dump 响应 entries=LogEntry[{level,ts_ms,msg}]。
+    var entries: [[String: Any]]? {
+        payload["entries"] as? [[String: Any]]
+    }
 }
 
 // MARK: - DesignCanvasView
@@ -170,6 +175,12 @@ struct DesignCanvasView: NSViewRepresentable {
         let config = WKWebViewConfiguration()
         let userContentController = WKUserContentController()
         userContentController.add(context.coordinator, name: "fusionBridge")
+        // #372 OPS-13: 注册 fdHost handler 接收 WASM 出站事件 (node.click/node.drag/.../log_capture_dump)。
+        // 上游合约 HOST_HANDLER_NAME="fdHost" (fusion-design bridge.rs:219); send_to_host→dispatch_to_host
+        // 主路径 webkit.messageHandlers.fdHost.postMessage(json_string)。旧 wasm 无 fdHost (走 __fd_host_post
+        // 队列 studio 不轮询), 故旧 canvas 事件未达 studio; 新 wasm 全量事件经 fdHost, 注册即激活。
+        // fusionBridge 保留作入站命令 ack (wasm.ready/error 从内联 HTML 经此回)。
+        userContentController.add(context.coordinator, name: "fdHost")
 
         let bridgeScript = WKUserScript(
             source: """
@@ -339,6 +350,22 @@ struct DesignCanvasView: NSViewRepresentable {
         }
     }
 
+    // #372 OPS-13: 向 canvas WASM 发 log.capture.dump 拉取请求。
+    // log.capture.dump 仅由 wasm 的 window-message 监听器 (handle_host_message, bridge.rs:187) 处理,
+    // 非 BridgeCommand (fusion_bridge_send_command 只匹配 11 个渲染/plan arm), 故走 window.postMessage
+    // 触发同窗口 message 事件。响应异步经 fdHost handler 回 (kind=log_capture_dump)。
+    static func requestLogDump(to webView: WKWebView, clear: Bool) {
+        let clearLit = clear ? "true" : "false"
+        let js = "window.postMessage(JSON.stringify({kind:'log.capture.dump',payload:{clear:\(clearLit)}}),'*');"
+        webView.evaluateJavaScript(js) { _, error in
+            if let error = error {
+                canvasLog.error("DesignCanvasView: requestLogDump failed: \(error)")
+            } else {
+                canvasLog.info("DesignCanvasView: sent log.capture.dump (clear=\(clear))")
+            }
+        }
+    }
+
     // MARK: - Coordinator
 
     class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler, NSMenuDelegate {
@@ -346,6 +373,7 @@ struct DesignCanvasView: NSViewRepresentable {
         weak var webView: WKWebView?
         var pendingCommands: [BridgeCommand] = []
         private var isWasmReady = false
+        var lastDumpPath: String?  // #372: 最近一次 log_capture_dump 落盘路径
 
         init(parent: DesignCanvasView) {
             self.parent = parent
@@ -355,7 +383,7 @@ struct DesignCanvasView: NSViewRepresentable {
 
         func userContentController(_ userContentController: WKUserContentController,
                                     didReceive message: WKScriptMessage) {
-            guard message.name == "fusionBridge" else { return }
+            guard message.name == "fusionBridge" || message.name == "fdHost" else { return }
 
             let bodyString: String
             if let str = message.body as? String {
@@ -397,6 +425,21 @@ struct DesignCanvasView: NSViewRepresentable {
 
             case "wasm.error":
                 canvasLog.error("DesignCanvasView: wasm error: \(event.message ?? "unknown")")
+
+            case "log_capture_dump":
+                // #372: WASM 响应 log.capture.dump, entries=LogEntry[{level,ts_ms:f64,msg}] 环形缓冲快照。持久化。
+                let rawEntries = event.entries ?? []
+                let ts = Int64(Date().timeIntervalSince1970 * 1000)
+                if let path = FdHostWebLogCapture.shared.persist(entries: rawEntries, timestamp: ts) {
+                    canvasLog.info("DesignCanvasView: log_capture_dump persisted \(rawEntries.count) entries → \(path)")
+                    self.lastDumpPath = path
+                    NotificationCenter.default.post(name: .fdHostWebLogDumpDidComplete, object: nil,
+                                                    userInfo: ["count": rawEntries.count, "path": path])
+                } else {
+                    canvasLog.warning("DesignCanvasView: log_capture_dump had \(rawEntries.count) entries, persist skipped/failed")
+                    NotificationCenter.default.post(name: .fdHostWebLogDumpDidComplete, object: nil,
+                                                    userInfo: ["count": 0])
+                }
 
             case "node.click":
                 DispatchQueue.main.async {
@@ -544,6 +587,13 @@ struct DesignCanvasView: NSViewRepresentable {
 
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
             canvasLog.error("DesignCanvasView: provisional navigation failed: \(error)")
+        }
+
+        // #372: WebView 内容进程终止 (OOM/SIGKILL) 时触发 dump。进程已死, 当前 buffer 随之丢失,
+        // 此调用对死 webview no-op; 真正价值在重启后 (designBridge 重赋 canvasWebView) 补 dump + 留现场日志。
+        func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+            canvasLog.error("DesignCanvasView: content process terminated, triggering crash-recovery log dump")
+            parent.designBridge.dumpWasmLog(clear: false)
         }
 
         // MARK: NSMenuDelegate (context menu)
