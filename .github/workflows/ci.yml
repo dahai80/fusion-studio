@@ -38,7 +38,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .build
-          key: ${{ runner.os }}-spm-${{ hashFiles('FusionStudio/**/*.swift', 'Tests/**/*.swift') }}
+          key: v2-${{ runner.os }}-spm-${{ hashFiles('FusionStudio/**/*.swift', 'Tests/**/*.swift') }}
 
       - name: Build (debug)
         # F-I13: pipefail 保 swift build 退出码 (原 | tail -10 吞码 → build 失败也绿)。
@@ -83,11 +83,17 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .build
-          key: ${{ runner.os }}-spm-${{ hashFiles('FusionStudio/**/*.swift', 'Tests/**/*.swift') }}
+          key: v2-${{ runner.os }}-spm-${{ hashFiles('FusionStudio/**/*.swift', 'Tests/**/*.swift') }}
 
       - name: Check Swift build warnings
+        # 审计0831: pipefail + tee。原 `swift build | grep -E "warning:|error:" || echo ✅` 在
+        # swift-frontend crash (bare `error: fatalError`) 时: grep 匹配 "error:" → `||` 不触发 →
+        # step 绿, 但 build 实际 exit 1。掩码双重危害: (1) CI 假绿 (2) save-always:false 本应
+        # 只在 success 存 cache, 掩码令 CQ job success → 存 poisoned .build → Build&Test job
+        # restore 该 poison → 增量编译 ICE 循环。pipefail 保 crash 退出码, tee 落盘全量日志。
         run: |
-          swift build -j 2 2>&1 | grep -E "warning:|error:" || echo "✅ 无警告和错误"
+          set -o pipefail
+          swift build -j 2 2>&1 | tee /tmp/build-lint.log | grep -E "warning:|error:" || echo "✅ 无警告和错误"
 
   # ─── 安全检查 ─────────────────────────────────────────
   security:
