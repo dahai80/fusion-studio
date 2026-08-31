@@ -34,6 +34,10 @@ class SecurityBridge: ObservableObject {
         "http://127.0.0.1:\(FusionConfig.shared.securityPort)"
     }
 
+    // #373: 规则 CRUD 委托 fusion-guard UDS (guard 为规则匹配 SSOT), SAST 仍走 HTTP :11454。
+    // 注入点: FusionStudioApp 注入与 guardBridge.shared 同一实例。缺席则 fail-open 空 (规则管理非主门控)。
+    weak var guardBridge: GuardBridge?
+
     init() {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 10
@@ -337,46 +341,71 @@ class SecurityBridge: ObservableObject {
         }.resume()
     }
 
+    // #373: 规则 CRUD 迁移至 guard UDS。guard.rule.list → GuardRule[] → SecCustomRuleDTO[]。
+    // guard 无 severity, 用 risk_level 反向映射; SecCustomRuleDTO.id ← GuardRule.name (guard 按 name 寻址)。
+    // 守卫缺席/失败 fail-open 返回空 (规则管理非主门控, SAST 主门控仍走 HTTP 不受影响)。
     func fetchCustomRules() {
-        get("/api/v1/integrations/rules") { [weak self] (result: Result<[SecCustomRuleDTO], Error>) in
-            switch result {
-            case .success(let list):
-                DispatchQueue.main.async { self?.customRules = list }
-            case .failure(let error):
-                self?.handleError(error, context: "custom-rules")
+        guard let guardBridge = guardBridge else {
+            secBridgeLog.warning("fetchCustomRules: guardBridge nil, fail-open empty customRules")
+            DispatchQueue.main.async { self.customRules = [] }
+            return
+        }
+        Task { @MainActor in
+            let (rules, _) = await guardBridge.listRules()
+            let mapped = rules.map { r in
+                SecCustomRuleDTO(
+                    id: r.name,
+                    name: r.reason.isEmpty ? r.name : r.reason,
+                    pattern: r.pattern,
+                    severity: GuardBridge.riskLevelToSeverity(r.risk_level),
+                    language: nil,
+                    enabled: true
+                )
             }
+            self.customRules = mapped
+            secBridgeLog.info("fetchCustomRules via guard.rule.list: \(mapped.count) rules")
         }
     }
 
+    // #373: guard.rule.add。映射 severity→risk_level, action=block, stage=regex, scope=command, reason←name。
+    // completion 签名保留兼容 UI 调用方 (SecurityService L663), 成功回填构造 DTO。
     func createCustomRule(id: String, name: String, pattern: String, severity: String, completion: ((Result<SecCustomRuleDTO, Error>) -> Void)? = nil) {
-        guard let url = URL(string: "\(baseURL)/api/v1/integrations/rules?id=\(percentEncode(id))&name=\(percentEncode(name))&pattern=\(percentEncode(pattern))&severity=\(percentEncode(severity))") else {
+        guard let guardBridge = guardBridge else {
+            secBridgeLog.warning("createCustomRule: guardBridge nil, fail-open skip")
             completion?(.failure(SecurityBridgeError.invalidURL)); return
         }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        session.dataTask(with: request) { data, _, error in
-            if let error = error { completion?(.failure(error)); return }
-            guard let data = data else { completion?(.failure(SecurityBridgeError.noData)); return }
-            do {
-                let dto = try JSONDecoder.sec.decode(SecCustomRuleDTO.self, from: data)
+        let rule = GuardBridge.GuardRuleCodable(
+            name: id,
+            pattern: pattern,
+            stage: "regex",
+            action: "block",
+            risk_level: GuardBridge.severityToRiskLevel(severity),
+            reason: name.isEmpty ? id : name,
+            scope: "command"
+        )
+        Task { @MainActor in
+            let ok = await guardBridge.addRule(rule)
+            if ok {
+                let dto = SecCustomRuleDTO(
+                    id: id, name: name, pattern: pattern, severity: severity, language: nil, enabled: true
+                )
                 completion?(.success(dto))
-            } catch {
-                completion?(.failure(error))
+            } else {
+                completion?(.failure(SecurityBridgeError.noData))
             }
-        }.resume()
+        }
     }
 
+    // #373: guard.rule.remove。guard 按 name 寻址 = SecCustomRuleDTO.id。
     func deleteCustomRule(id: String, completion: ((Result<Bool, Error>) -> Void)? = nil) {
-        guard let url = URL(string: "\(baseURL)/api/v1/integrations/rules/\(percentEncode(id))") else {
+        guard let guardBridge = guardBridge else {
+            secBridgeLog.warning("deleteCustomRule: guardBridge nil, fail-open skip")
             completion?(.failure(SecurityBridgeError.invalidURL)); return
         }
-        var request = URLRequest(url: url)
-        request.httpMethod = "DELETE"
-        session.dataTask(with: request) { _, response, error in
-            if let error = error { completion?(.failure(error)); return }
-            let ok = (response as? HTTPURLResponse)?.statusCode ?? 0
-            completion?(.success(ok == 200 || ok == 204))
-        }.resume()
+        Task { @MainActor in
+            let ok = await guardBridge.removeRule(name: id)
+            completion?(.success(ok))
+        }
     }
 
     // MARK: - Generic HTTP

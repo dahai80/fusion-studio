@@ -301,6 +301,13 @@ enum RPCMethod {
     static let guardConfirm = "guard.confirm"
     static let guardTccReport = "guard.tcc.report"
     static let guardTccStatus = "guard.tcc.status"
+    // #373: 规则 CRUD + 租户审计读迁移至 guard UDS (guard 为规则匹配+租户审计 SSOT)。上游 fg-ipc lib.rs:636-720。
+    static let guardRuleList = "guard.rule.list"
+    static let guardRuleAdd = "guard.rule.add"
+    static let guardRuleUpdate = "guard.rule.update"
+    static let guardRuleRemove = "guard.rule.remove"
+    static let guardAuditList = "guard.audit.list"
+    static let guardAuditVerify = "guard.audit.verify"
 
     // MARK: - event (#346: fusion-event UDS JSON-RPC, /tmp/fusion-event.sock)
     static let eventHealth = "event.health"
