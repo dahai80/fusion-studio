@@ -151,6 +151,8 @@ struct FusionStudioApp: App {
                     Task { await guardBridge.checkDaemonStatus() }
                     agentBridge.setGuardBridge(guardBridge)
                     GuardBridge.shared = guardBridge
+                    // #373: 规则 CRUD 委托 guard UDS (SecurityView 走 SecurityBridge.shared 单例)。
+                    SecurityBridge.shared.guardBridge = guardBridge
                     // #346: 注入 IPCClient + 探 fusion-event 守护状态 + 启动长连接流 + EventBridge.shared。
                     // 守护缺席 = isDaemonReady=false (fail-open), FileWatcher 兜底。规则管理走 udsCall 短连接。
                     eventBridge.setIPCClient(ipcClient)

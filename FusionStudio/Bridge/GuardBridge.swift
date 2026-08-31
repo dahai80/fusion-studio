@@ -238,6 +238,119 @@ final class GuardBridge: ObservableObject {
 
     // MARK: - UDS JSON-RPC 传输 (复用 IPCClient.udsCall, guard 2s fail-closed 超时)
 
+    // #373: 规则 CRUD (GuardRule) 镜像上游 fg-rules GuardRule + fg-core 枚举 (serde rename_all=lowercase)。
+    // 字段: name/pattern/stage/action/risk_level/reason/scope。guard 按 name 寻址 (非 id)。
+    struct GuardRuleCodable: Codable {
+        var name: String
+        var pattern: String
+        var stage: String
+        var action: String
+        var risk_level: String
+        var reason: String
+        var scope: String
+    }
+
+    // SAST severity (critical/high/medium/low) ↔ guard risk_level (l4/l3/l2/l1) 双向映射。
+    // guard 无 severity 概念, 用 risk_level 表达严重度; action 固定 block (自定义规则=拒绝清单)。
+    static func severityToRiskLevel(_ severity: String) -> String {
+        switch severity.lowercased() {
+        case "critical": return "l4"
+        case "high": return "l3"
+        case "medium": return "l2"
+        default: return "l1"
+        }
+    }
+
+    static func riskLevelToSeverity(_ risk: String) -> String {
+        switch risk.lowercased() {
+        case "l4": return "critical"
+        case "l3": return "high"
+        case "l2": return "medium"
+        default: return "low"
+        }
+    }
+
+    // guard.rule.list → {rules:[GuardRule], epoch}。守卫缺席/失败 fail-open 返回空 (规则管理非主门控)。
+    func listRules() async -> (rules: [GuardRuleCodable], epoch: Int) {
+        do {
+            let res = try await rpc(method: RPCMethod.guardRuleList)
+            let epoch = res["epoch"] as? Int ?? 0
+            guard let rulesArr = res["rules"] as? [[String: Any]] else { return ([], epoch) }
+            let rules = rulesArr.compactMap { dict -> GuardRuleCodable? in
+                guard let data = try? JSONSerialization.data(withJSONObject: dict),
+                      let rule = try? JSONDecoder().decode(GuardRuleCodable.self, from: data) else { return nil }
+                return rule
+            }
+            await MainActor.run { self.rulesEpoch = epoch }
+            guardBridgeLog.info("guard.rule.list ok count=\(rules.count, privacy: .public) epoch=\(epoch)")
+            return (rules, epoch)
+        } catch {
+            guardBridgeLog.warning("guard.rule.list failed (fail-open empty): \(error.localizedDescription, privacy: .public)")
+            return ([], 0)
+        }
+    }
+
+    // guard.rule.add → params {caller_epoch, rule} → {new_epoch}。仅 admin, 非 admin -32001。
+    @discardableResult
+    func addRule(_ rule: GuardRuleCodable) async -> Bool {
+        let epoch = await MainActor.run { self.rulesEpoch }
+        guard let ruleData = try? JSONEncoder().encode(rule),
+              let ruleObj = try? JSONSerialization.jsonObject(with: ruleData) else {
+            guardBridgeLog.error("guard.rule.add: rule encode failed")
+            return false
+        }
+        let params: [String: Any] = ["caller_epoch": epoch, "rule": ruleObj]
+        do {
+            let res = try await rpc(method: RPCMethod.guardRuleAdd, params: params)
+            let newEpoch = res["new_epoch"] as? Int ?? 0
+            await MainActor.run { self.rulesEpoch = newEpoch }
+            guardBridgeLog.info("guard.rule.add ok name=\(rule.name, privacy: .public) new_epoch=\(newEpoch)")
+            return true
+        } catch {
+            guardBridgeLog.warning("guard.rule.add failed: \(error.localizedDescription, privacy: .public)")
+            return false
+        }
+    }
+
+    // guard.rule.update → params {caller_epoch, name, rule} → {new_epoch}。仅 admin。
+    @discardableResult
+    func updateRule(name: String, rule: GuardRuleCodable) async -> Bool {
+        let epoch = await MainActor.run { self.rulesEpoch }
+        guard let ruleData = try? JSONEncoder().encode(rule),
+              let ruleObj = try? JSONSerialization.jsonObject(with: ruleData) else {
+            guardBridgeLog.error("guard.rule.update: rule encode failed")
+            return false
+        }
+        let params: [String: Any] = ["caller_epoch": epoch, "name": name, "rule": ruleObj]
+        do {
+            let res = try await rpc(method: RPCMethod.guardRuleUpdate, params: params)
+            let newEpoch = res["new_epoch"] as? Int ?? 0
+            await MainActor.run { self.rulesEpoch = newEpoch }
+            guardBridgeLog.info("guard.rule.update ok name=\(name, privacy: .public) new_epoch=\(newEpoch)")
+            return true
+        } catch {
+            guardBridgeLog.warning("guard.rule.update failed: \(error.localizedDescription, privacy: .public)")
+            return false
+        }
+    }
+
+    // guard.rule.remove → params {caller_epoch, name} → {new_epoch}。仅 admin。
+    @discardableResult
+    func removeRule(name: String) async -> Bool {
+        let epoch = await MainActor.run { self.rulesEpoch }
+        let params: [String: Any] = ["caller_epoch": epoch, "name": name]
+        do {
+            let res = try await rpc(method: RPCMethod.guardRuleRemove, params: params)
+            let newEpoch = res["new_epoch"] as? Int ?? 0
+            await MainActor.run { self.rulesEpoch = newEpoch }
+            guardBridgeLog.info("guard.rule.remove ok name=\(name, privacy: .public) new_epoch=\(newEpoch)")
+            return true
+        } catch {
+            guardBridgeLog.warning("guard.rule.remove failed: \(error.localizedDescription, privacy: .public)")
+            return false
+        }
+    }
+
     private func rpc(method: String, params: [String: Any] = [:]) async throws -> [String: Any] {
         guard let ipc = ipc else {
             guardBridgeLog.error("rpc before IPCClient wired: \(method, privacy: .public)")
