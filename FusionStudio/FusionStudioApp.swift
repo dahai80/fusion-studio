@@ -279,6 +279,10 @@ struct FusionStudioApp: App {
                         // #346: 感知层长连接在唤醒后恢复 (后台/休眠可能断 UDS), 守护缺席 fail-open 不锁死。
                         eventBridge.startStream()
                         Task { await eventBridge.checkDaemonStatus() }
+                        // #372 OPS-13: 进入前台触发 WASM 日志 dump (5min 节流), 持久化上次前台段环形缓冲。
+                        if FdHostWebLogCapture.shared.triggerForegroundDump() {
+                            designBridge.dumpWasmLog(clear: false)
+                        }
                     }
                 }
         }
