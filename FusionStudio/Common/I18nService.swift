@@ -3582,6 +3582,10 @@ enum I18nKey: String, CaseIterable {
     case design_lint_infoCountFmt = "design_lint_infoCountFmt"
     case design_lint_violationCountFmt = "design_lint_violationCountFmt"
     case design_lint_nodeFmt = "design_lint_nodeFmt"
+    case design_diag_dumpWasmLog = "design_diag_dumpWasmLog"
+    case design_diag_dumpSuccess = "design_diag_dumpSuccess"
+    case design_diag_dumpEmpty = "design_diag_dumpEmpty"
+    case design_diag_dumpFailed = "design_diag_dumpFailed"
     case design_lint_rule_contrastCheck = "design_lint_rule_contrastCheck"
     case design_lint_rule_unlabeledInput = "design_lint_rule_unlabeledInput"
     case design_lint_rule_textEffects = "design_lint_rule_textEffects"
@@ -8677,6 +8681,10 @@ let zhCNTranslations: [String: String] = [
     "design_lint_infoCountFmt": "%d 提示",
     "design_lint_violationCountFmt": "%d 条违规",
     "design_lint_nodeFmt": "节点: %@",
+    "design_diag_dumpWasmLog": "导出 WASM 日志",
+    "design_diag_dumpSuccess": "已导出 %d 条日志到 %@",
+    "design_diag_dumpEmpty": "WASM 日志环形缓冲为空",
+    "design_diag_dumpFailed": "导出 WASM 日志失败",
     "design_lint_rule_contrastCheck": "对比度检查",
     "design_lint_rule_unlabeledInput": "无标签输入",
     "design_lint_rule_textEffects": "文字特效",
@@ -13723,6 +13731,10 @@ let enUSTranslations: [String: String] = [
     "design_lint_infoCountFmt": "%d info",
     "design_lint_violationCountFmt": "%d violations",
     "design_lint_nodeFmt": "Node: %@",
+    "design_diag_dumpWasmLog": "Export WASM Log",
+    "design_diag_dumpSuccess": "Exported %d log entries to %@",
+    "design_diag_dumpEmpty": "WASM log ring buffer empty",
+    "design_diag_dumpFailed": "Failed to export WASM log",
     "design_lint_rule_contrastCheck": "Contrast check",
     "design_lint_rule_unlabeledInput": "Unlabeled input",
     "design_lint_rule_textEffects": "Text effects",
@@ -18763,6 +18775,10 @@ let jaJPTranslations: [String: String] = [
     "design_lint_infoCountFmt": "%d 情報",
     "design_lint_violationCountFmt": "%d 件の違反",
     "design_lint_nodeFmt": "ノード: %@",
+    "design_diag_dumpWasmLog": "WASMログを書き出し",
+    "design_diag_dumpSuccess": "%d件のログを%@に書き出しました",
+    "design_diag_dumpEmpty": "WASMログリングバッファが空です",
+    "design_diag_dumpFailed": "WASMログの書き出しに失敗しました",
     "design_lint_rule_contrastCheck": "コントラストチェック",
     "design_lint_rule_unlabeledInput": "ラベルなし入力",
     "design_lint_rule_textEffects": "テキスト効果",
@@ -23803,6 +23819,10 @@ let koKRTranslations: [String: String] = [
     "design_lint_infoCountFmt": "%d 정보",
     "design_lint_violationCountFmt": "%d건 위반",
     "design_lint_nodeFmt": "노드: %@",
+    "design_diag_dumpWasmLog": "WASM 로그 내보내기",
+    "design_diag_dumpSuccess": "%d개 로그를 %@로 내보냈습니다",
+    "design_diag_dumpEmpty": "WASM 로그 링 버퍼가 비었습니다",
+    "design_diag_dumpFailed": "WASM 로그 내보내기 실패",
     "design_lint_rule_contrastCheck": "대비 검사",
     "design_lint_rule_unlabeledInput": "라벨 없는 입력",
     "design_lint_rule_textEffects": "텍스트 효과",

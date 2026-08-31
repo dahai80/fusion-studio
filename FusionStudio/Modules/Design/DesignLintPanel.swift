@@ -148,6 +148,11 @@ class DesignLintRuleStore: ObservableObject {
 
 // MARK: - DesignLintPanel
 
+// #372: log_capture_dump 落盘完成通知。userInfo: ["count": Int, "path": String] (空 count=0)。
+extension Notification.Name {
+    static let fdHostWebLogDumpDidComplete = Notification.Name("fdHostWebLogDumpDidComplete")
+}
+
 struct DesignLintPanel: View {
     @EnvironmentObject var designBridge: DesignBridge
     @Environment(\.studioTheme) var theme
@@ -159,6 +164,11 @@ struct DesignLintPanel: View {
     @State private var showRuleLockSheet = false
     @ObservedObject var ruleStore = DesignLintRuleStore.shared
 
+    // #372: WASM 日志 dump 手动触发反馈。dumpWasmLog 异步回 log_capture_dump 事件,
+    // 由 DesignCanvasView persist 后发 Notification, 此处订阅刷新 toast。
+    @State private var dumpToast: String?
+    @State private var isDumping = false
+
     var body: some View {
         VStack(spacing: 0) {
             HStack {
@@ -166,6 +176,10 @@ struct DesignLintPanel: View {
                     .font(.system(size: theme.titleSize, weight: .bold))
                     .foregroundStyle(theme.text)
                 Spacer()
+                FusionButton(i18n.t(.design_diag_dumpWasmLog), icon: "doc.text.magnifyingglass", style: .ghost, size: .small) {
+                    triggerDump()
+                }
+                .disabled(isDumping)
                 FusionButton(i18n.t(.design_lint_ruleLock), icon: "lock.shield", style: .ghost, size: .small) {
                     showRuleLockSheet = true
                 }
@@ -175,6 +189,21 @@ struct DesignLintPanel: View {
                 .disabled(isRunning)
             }
             .padding(theme.spacingM)
+
+            if let toast = dumpToast {
+                HStack(spacing: theme.spacingXS) {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundStyle(theme.accent)
+                    Text(toast)
+                        .font(.system(size: theme.captionSize))
+                        .foregroundStyle(theme.textSecondary)
+                    Spacer()
+                }
+                .padding(.horizontal, theme.spacingM)
+                .padding(.vertical, theme.spacingS)
+                .background(theme.surfaceSecondary)
+                .transition(.opacity)
+            }
 
             if isRunning {
                 ProgressView()
@@ -206,6 +235,16 @@ struct DesignLintPanel: View {
         }
         .sheet(isPresented: $showRuleLockSheet) {
             DesignLintRuleLockSheet()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .fdHostWebLogDumpDidComplete)) { note in
+            isDumping = false
+            let count = note.userInfo?["count"] as? Int ?? 0
+            if count > 0 {
+                let path = (note.userInfo?["path"] as? String) ?? ""
+                dumpToast = String(format: I18nManager.shared.t(.design_diag_dumpSuccess), count, path)
+            } else {
+                dumpToast = I18nManager.shared.t(.design_diag_dumpEmpty)
+            }
         }
     }
 
@@ -278,6 +317,23 @@ struct DesignLintPanel: View {
             RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
                 .fill(ruleStore.isLocked(v.rule) ? theme.surfaceSecondary.opacity(0.5) : theme.surfaceSecondary)
         )
+    }
+
+    // #372: 手动触发 WASM 日志 dump。仅发起请求 (postMessage), 实际落盘异步发生在
+    // DesignCanvasView log_capture_dump 事件回调, 完成后广播 FdHostWebLogDumpNotification。
+    private func triggerDump() {
+        guard !isDumping else { return }
+        isDumping = true
+        dumpToast = nil
+        designBridge.dumpWasmLog(clear: false)
+        lintLog.info("DesignLintPanel: manual WASM log dump requested")
+        // 5s 兜底: 若无事件回 (WebView 死/缓冲空), 解除 isDumping 并提示。
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+            if self.isDumping {
+                self.isDumping = false
+                self.dumpToast = I18nManager.shared.t(.design_diag_dumpEmpty)
+            }
+        }
     }
 
     private func runLint() {
