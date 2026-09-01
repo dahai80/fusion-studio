@@ -14,6 +14,7 @@ struct SettingsView: View {
         case network    = "网络 & 离线"
         case quant      = "量化预设"
         case workspace  = "工作区"
+        case mlxConnection = "MLX 连接"
 
         var icon: String {
             switch self {
@@ -23,6 +24,7 @@ struct SettingsView: View {
             case .network:    return "antenna.radiowaves.left.and.right"
             case .quant:      return "dial.medium"
             case .workspace:  return "folder"
+            case .mlxConnection: return "server.rack"
             }
         }
     }
@@ -52,6 +54,10 @@ struct SettingsView: View {
             WorkspaceSettingsView()
                 .tabItem { Label(i18n.t(.tab_workspace), systemImage: "folder") }
                 .tag(SettingsTab.workspace)
+
+            MlxConnectionSettingsView()
+                .tabItem { Label(i18n.t(.tab_mlxConnection), systemImage: "server.rack") }
+                .tag(SettingsTab.mlxConnection)
         }
         .frame(width: 600, height: 450)
         .toolbar {
@@ -342,5 +348,193 @@ struct ModelSlotsSettingsView: View {
         .onAppear {
             Task { try? await bridge.fetchModels() }
         }
+    }
+}
+
+// MARK: - MLX 连接设置 (#381: 控件从死代码 CustomizePanel 迁入可达 SettingsView)
+
+struct MlxConnectionSettingsView: View {
+    @Environment(\.studioTheme) private var theme
+    @ObservedObject private var config = FusionConfig.shared
+    @State private var editingApiKey = false
+    @State private var apiKeyInput = ""
+    @State private var editingMlxEndpoint = false
+    @State private var mlxHostInput = ""
+    @State private var mlxPortInput = ""
+    @StateObject private var i18n = I18nManager.shared
+    private let log = Logger(subsystem: "com.fusion.studio", category: "Settings.MlxConnection")
+
+    private var configured: Bool { !config.mlxResolvedApiKey.isEmpty }
+
+    var body: some View {
+        Form {
+            Section(i18n.t(.sec_auth)) {
+                settingRow("MLX API Key", configured ? "已配置" : "未配置") {
+                    HStack(spacing: theme.spacingS) {
+                        Image(systemName: configured ? "checkmark.seal.fill" : "exclamationmark.triangle")
+                            .foregroundStyle(configured ? theme.successText : theme.errorText)
+                        Button(editingApiKey ? "取消" : "修改") {
+                            if editingApiKey {
+                                editingApiKey = false
+                                apiKeyInput = ""
+                            } else {
+                                apiKeyInput = ""
+                                editingApiKey = true
+                            }
+                            log.info("API key edit mode: \(editingApiKey)")
+                        }
+                        .font(.system(size: theme.captionSize))
+                        .buttonStyle(.plain)
+                        .foregroundStyle(theme.accent)
+                    }
+                }
+                if editingApiKey {
+                    VStack(alignment: .leading, spacing: theme.spacingXS) {
+                        SecureField("输入新的 API Key", text: $apiKeyInput)
+                            .textFieldStyle(.plain)
+                            .font(.system(size: theme.textSize, design: .monospaced))
+                            .padding(theme.spacingS)
+                            .background(
+                                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                    .fill(theme.inputBg)
+                            )
+                            .overlay {
+                                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                    .stroke(theme.inputBorder, lineWidth: 1)
+                            }
+                        Button("保存") {
+                            saveApiKey(apiKeyInput)
+                            editingApiKey = false
+                            apiKeyInput = ""
+                        }
+                        .font(.system(size: theme.footnoteSize, weight: .medium))
+                        .buttonStyle(.plain)
+                        .foregroundStyle(theme.accent)
+                        .disabled(apiKeyInput.trimmingCharacters(in: .whitespaces).isEmpty)
+                    }
+                    .padding(.leading, theme.spacingM)
+                }
+            }
+            Section(i18n.t(.sec_endpoint)) {
+                settingRow("MLX 端点覆盖", "ON 时使用下方地址，忽略环境变量 (FUSION_MLX_PORT 等)") {
+                    Toggle("", isOn: $config.mlxEndpointOverrideEnabled)
+                        .toggleStyle(.switch).controlSize(.small).labelsHidden()
+                }
+                if config.mlxEndpointOverrideEnabled {
+                    settingRow("MLX Host", "直连 MLX 服务地址 (默认 127.0.0.1，非 gateway)") {
+                        HStack(spacing: theme.spacingS) {
+                            Image(systemName: editingMlxEndpoint ? "checkmark.seal.fill" : "pencil")
+                                .foregroundStyle(editingMlxEndpoint ? theme.successText : theme.accent)
+                            Button(editingMlxEndpoint ? "完成" : "修改") {
+                                if editingMlxEndpoint {
+                                    saveMlxEndpoint(mlxHostInput, mlxPortInput)
+                                    editingMlxEndpoint = false
+                                } else {
+                                    mlxHostInput = config.mlxHost
+                                    mlxPortInput = String(config.mlxPort)
+                                    editingMlxEndpoint = true
+                                }
+                                log.info("MLX endpoint edit mode: \(editingMlxEndpoint)")
+                            }
+                            .font(.system(size: theme.captionSize))
+                            .buttonStyle(.plain)
+                            .foregroundStyle(theme.accent)
+                        }
+                    }
+                    if editingMlxEndpoint {
+                        VStack(alignment: .leading, spacing: theme.spacingXS) {
+                            TextField("Host (如 127.0.0.1)", text: $mlxHostInput)
+                                .textFieldStyle(.plain)
+                                .font(.system(size: theme.textSize, design: .monospaced))
+                                .padding(theme.spacingS)
+                                .background(
+                                    RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                        .fill(theme.inputBg)
+                                )
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                        .stroke(theme.inputBorder, lineWidth: 1)
+                                }
+                            TextField("Port (如 11434)", text: $mlxPortInput)
+                                .textFieldStyle(.plain)
+                                .font(.system(size: theme.textSize, design: .monospaced))
+                                .padding(theme.spacingS)
+                                .background(
+                                    RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                        .fill(theme.inputBg)
+                                )
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                        .stroke(theme.inputBorder, lineWidth: 1)
+                                }
+                            Button("保存") {
+                                saveMlxEndpoint(mlxHostInput, mlxPortInput)
+                                editingMlxEndpoint = false
+                            }
+                            .font(.system(size: theme.footnoteSize, weight: .medium))
+                            .buttonStyle(.plain)
+                            .foregroundStyle(theme.accent)
+                            .disabled(mlxHostInput.trimmingCharacters(in: .whitespaces).isEmpty
+                                      || Int(mlxPortInput) == nil || (Int(mlxPortInput) ?? 0) <= 0)
+                        }
+                        .padding(.leading, theme.spacingM)
+                    }
+                }
+            }
+        }
+        .padding()
+    }
+
+    @ViewBuilder
+    private func settingRow<C: View>(_ title: String, _ desc: String, @ViewBuilder control: () -> C) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(title)
+                    .font(.system(size: theme.textSize, weight: .medium))
+                    .foregroundStyle(theme.text)
+                Spacer()
+                control()
+            }
+            Text(desc)
+                .font(.system(size: theme.captionSize))
+                .foregroundStyle(theme.textSecondary)
+        }
+    }
+
+    private func saveApiKey(_ key: String) {
+        let trimmed = key.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        let settingsPath = NSHomeDirectory() + "/.fusion-mlx/settings.json"
+        let url = URL(fileURLWithPath: settingsPath)
+        do {
+            var settings: [String: Any] = [:]
+            if let data = try? Data(contentsOf: url),
+               let existing = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                settings = existing
+            }
+            var auth = settings["auth"] as? [String: Any] ?? [:]
+            auth["api_key"] = trimmed
+            settings["auth"] = auth
+            let data = try JSONSerialization.data(withJSONObject: settings, options: .prettyPrinted)
+            try data.write(to: url, options: .atomic)
+            try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: settingsPath)
+            config.mlxApiKey = trimmed
+            log.info("API key saved: Keychain (primary) + settings.json 0600, config refreshed")
+        } catch {
+            log.error("Failed to save API key: \(error.localizedDescription)")
+        }
+    }
+
+    private func saveMlxEndpoint(_ host: String, _ port: String) {
+        let trimmedHost = host.trimmingCharacters(in: .whitespaces)
+        let trimmedPort = port.trimmingCharacters(in: .whitespaces)
+        guard !trimmedHost.isEmpty, let portInt = Int(trimmedPort), portInt > 0 else {
+            log.error("saveMlxEndpoint: invalid input host=\(trimmedHost) port=\(trimmedPort), skip")
+            return
+        }
+        config.mlxHost = trimmedHost
+        config.mlxPort = portInt
+        config.mlxEndpointOverrideEnabled = true
+        log.info("MLX endpoint saved: \(trimmedHost):\(portInt) override=on (env ignored)")
     }
 }
