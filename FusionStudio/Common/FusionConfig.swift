@@ -112,6 +112,10 @@ class FusionConfig: ObservableObject {
     // MARK: - MLX
     @AppStorage("mlxHost") var mlxHost = "localhost"
     @AppStorage("mlxPort") var mlxPort = 11434
+    // #380: 用户显式覆盖 MLX 端点。ON = mlxHost:mlxPort 覆盖所有 env (FUSION_GATEWAY_URL/
+    // FUSION_MLX_URL/FUSION_MLX_PORT); OFF = 保留 env 优先 (部署默认)。
+    // 不改 .zshrc, 用户在 Settings UI 显式 pin 端点绕开误注入的 gateway env。
+    @AppStorage("mlxEndpointOverrideEnabled") var mlxEndpointOverrideEnabled = false
     // API key 存 macOS Keychain (HIGH-2), 不再 @AppStorage 明文落 UserDefaults plist
     // didSet 写 Keychain; mlxResolvedApiKey 读取此属性 (内存缓存 = Keychain 真值)
     @Published var mlxApiKey: String = KeychainStore.get("mlxApiKey") ?? "" {
@@ -334,12 +338,17 @@ class FusionConfig: ObservableObject {
     var isOffline: Bool { offlineMode }
 
     /// MLX 服务地址
-    /// 优先级：FUSION_GATEWAY_URL / FUSION_MLX_URL（完整 URL，走 gateway 11432）
+    /// 优先级（#380）: mlxEndpointOverrideEnabled (用户显式 pin mlxHost:mlxPort)
+    ///         > FUSION_GATEWAY_URL / FUSION_MLX_URL（完整 URL，走 gateway 11432）
     ///         > FUSION_MLX_PORT（仅覆盖端口）> 默认 mlxHost:mlxPort（直连 11434）
     var mlxBaseURL: String {
-        let env = ProcessInfo.processInfo.environment
         let host = mlxHost
         let port = mlxPort
+        if mlxEndpointOverrideEnabled {
+            fusionConfigLog.error("mlxBaseURL: source=user-override (mlxHost:mlxPort) -> \(host):\(port) (env ignored)")
+            return "http://\(host):\(port)"
+        }
+        let env = ProcessInfo.processInfo.environment
         if let full = env["FUSION_GATEWAY_URL"] ?? env["FUSION_MLX_URL"], !full.isEmpty {
             fusionConfigLog.error("mlxBaseURL: source=FUSION_GATEWAY_URL/MLX_URL env -> \(full)")
             return full
@@ -411,6 +420,7 @@ class FusionConfig: ObservableObject {
         ipcSocketPath = "/tmp/fusion-studio.sock"
         mlxHost = "localhost"
         mlxPort = 11434
+        mlxEndpointOverrideEnabled = false
         mlxModel = ""
         mlxModelSmall = ""
         mlxModelCode = ""

@@ -74,6 +74,50 @@ final class FusionConfigTests: XCTestCase {
         }
     }
 
+    // #380: mlxEndpointOverrideEnabled ON 时 mlxBaseURL 用 @AppStorage host:port,
+    // 必须覆盖所有 env (FUSION_GATEWAY_URL/FUSION_MLX_URL/FUSION_MLX_PORT)。
+    func testMLXBaseURLUserOverride() {
+        let config = FusionConfig.shared
+        let savedOverride = config.mlxEndpointOverrideEnabled
+        let savedHost = config.mlxHost
+        let savedPort = config.mlxPort
+        defer {
+            config.mlxEndpointOverrideEnabled = savedOverride
+            config.mlxHost = savedHost
+            config.mlxPort = savedPort
+        }
+        config.mlxHost = "127.0.0.1"
+        config.mlxPort = 11434
+        config.mlxEndpointOverrideEnabled = true
+        // 无论 env 是否设置, override ON 必须用 @AppStorage host:port
+        XCTAssertEqual(config.mlxBaseURL, "http://127.0.0.1:11434",
+                       "override ON 应使用 @AppStorage host:port 覆盖所有 env")
+    }
+
+    // #380: override OFF (默认) 时保留原 env 优先级行为, 部署默认不变。
+    func testMLXBaseURLOverrideOffPreservesEnvPriority() {
+        let config = FusionConfig.shared
+        let savedOverride = config.mlxEndpointOverrideEnabled
+        let savedHost = config.mlxHost
+        let savedPort = config.mlxPort
+        defer {
+            config.mlxEndpointOverrideEnabled = savedOverride
+            config.mlxHost = savedHost
+            config.mlxPort = savedPort
+        }
+        config.mlxHost = "localhost"
+        config.mlxPort = 11434
+        config.mlxEndpointOverrideEnabled = false
+        let env = ProcessInfo.processInfo.environment
+        if let full = env["FUSION_GATEWAY_URL"] ?? env["FUSION_MLX_URL"], !full.isEmpty {
+            XCTAssertEqual(config.mlxBaseURL, full, "override OFF 时 env FUSION_GATEWAY_URL/MLX_URL 仍优先")
+        } else if let portStr = env["FUSION_MLX_PORT"], let port = Int(portStr), port > 0 {
+            XCTAssertEqual(config.mlxBaseURL, "http://localhost:\(port)", "override OFF 时 env FUSION_MLX_PORT 仍覆盖端口")
+        } else {
+            XCTAssertEqual(config.mlxBaseURL, "http://localhost:11434", "override OFF 无 env 时用默认")
+        }
+    }
+
     // mlxResolvedApiKey 必须从环境变量 FUSION_MLX_API_KEY 取值
     // （gateway 入站鉴权）。用户设置(Keychain-backed mlxApiKey)优先；
     // 为空时回退 env，再回退 ~/.fusion-mlx/settings.json auth.api_key。
