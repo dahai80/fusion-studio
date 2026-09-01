@@ -3468,6 +3468,7 @@ enum I18nKey: String, CaseIterable {
     case design_rollback = "design_rollback"
     case design_errMLXNotRunning = "design_errMLXNotRunning"
     case design_errNoModel = "design_errNoModel"
+    case design_warnTruncated = "design_warnTruncated"
     case design_marqueeFmt = "design_marqueeFmt"
     case design_previewFmt = "design_previewFmt"
     case design_previewHint = "design_previewHint"
@@ -8567,6 +8568,7 @@ let zhCNTranslations: [String: String] = [
     "design_rollback": "回退",
     "design_errMLXNotRunning": "MLX 服务未运行，请先在 MLX 面板启动服务后再发送",
     "design_errNoModel": "未选择对话模型，请在顶部模型选择器选一个模型后再发送",
+    "design_warnTruncated": "生成超出 token 上限被截断，代码可能不完整。请简化需求或分步生成后重试",
     "design_marqueeFmt": "已框选 %d 个节点",
     "design_previewFmt": "预览: %@",
     "design_previewHint": "AI 建议的更改，确认后写入画布",
@@ -13617,6 +13619,7 @@ let enUSTranslations: [String: String] = [
     "design_rollback": "Rollback",
     "design_errMLXNotRunning": "MLX service is not running, start it in the MLX panel before sending",
     "design_errNoModel": "No chat model selected, pick one in the top model selector before sending",
+    "design_warnTruncated": "Generation hit the token limit and was truncated; code may be incomplete. Simplify the request or generate in steps, then retry",
     "design_marqueeFmt": "%d nodes selected",
     "design_previewFmt": "Preview: %@",
     "design_previewHint": "AI-suggested changes, confirm to apply to canvas",
@@ -18661,6 +18664,7 @@ let jaJPTranslations: [String: String] = [
     "design_rollback": "ロールバック",
     "design_errMLXNotRunning": "MLXサービスが実行されていません。MLXパネルでサービスを開始してから送信してください",
     "design_errNoModel": "対話モデルが選択されていません。上部のモデルセレクターでモデルを選択してから送信してください",
+    "design_warnTruncated": "生成がトークン上限に達して切り捨てられました。コードが不完全な可能性があります。要求を簡略化するか段階的に生成して再試行してください",
     "design_marqueeFmt": "%d 個のノードを選択",
     "design_previewFmt": "プレビュー: %@",
     "design_previewHint": "AI提案の変更、確認後にキャンバスに書き込み",
@@ -23705,6 +23709,7 @@ let koKRTranslations: [String: String] = [
     "design_rollback": "롤백",
     "design_errMLXNotRunning": "MLX 서비스가 실행 중이 아닙니다. MLX 패널에서 서비스를 시작한 후 전송하세요",
     "design_errNoModel": "대화 모델이 선택되지 않았습니다. 상단 모델 선택기에서 모델을 선택한 후 전송하세요",
+    "design_warnTruncated": "생성이 토큰 한도에 도달해 잘렸습니다. 코드가 불완전할 수 있습니다. 요청을 단순화하거나 단계적으로 생성한 후 다시 시도하세요",
     "design_marqueeFmt": "%d개 노드 선택됨",
     "design_previewFmt": "미리보기: %@",
     "design_previewHint": "AI 제안 변경, 확인 후 캔버스에 적용",
