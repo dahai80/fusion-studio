@@ -1,12 +1,12 @@
 #!/bin/bash
 # ──────────────────────────────────────────────────────────────
 # Fusion Studio 全量服务启动脚本
-# 按 SidebarSection 顺序启动所有后台服务
+# Issue #377: 服务编排委派给 fusion-supervisor (fusion-sv up/down/status)。
+# Studio 仅保留 UI/launch 关注点 (启动 App, --no-app) + fusion-sv 缺失时的 legacy 兜底。
 # Usage: ./start.sh [start|stop|restart|status] [--no-app]
 # Callers: developer CLI, CI pipeline
-# Affected API: health endpoints for all services (port-aligned to FusionConfig.swift)
-# Data: SERVICES array (id|display_name|start_sh|health_type|health_target|order|critical)
-# User instruction: "修复issue #111" — align ports to FusionConfig authoritative table
+# Affected API: fusion-sv UDS /tmp/fusion-sv.sock → 41 服务 start.sh (registry: architecture/port-registry.yaml)
+# User instruction: "修复issue #377" — delegate to fusion-sv, fix stale fusion-health port 11456→11469
 # ──────────────────────────────────────────────────────────────
 
 set -euo pipefail
@@ -24,10 +24,63 @@ warn()  { printf "${YELLOW}[WARN]${NC}  %s\n" "$*"; }
 error() { printf "${RED}[ERROR]${NC} %s\n" "$*"; }
 skip()  { printf "${CYAN}[SKIP]${NC}  %s\n" "$*"; }
 
-# ─── 服务注册表（与 SidebarSection + UpstreamServiceManager 对齐）──
+# ─── fusion-sv 定位 (PATH 优先, 回退 monorepo 构建产物) ──────────
+# fusion-sv 二进制: cargo build --release in fusion-supervisor。不在 PATH 时用绝对路径。
+# monorepo 根: fusion-sv daemon 需从该目录启动 (registry_path=architecture/port-registry.yaml 相对路径,
+#   非 CWD 启动则读注册表失败)。FUSION_ROOT 令 start_sh_path 解析 <root>/<repo>/start.sh。
+MONO_ROOT="${MONO_ROOT:-$HOME/fusion}"
+SV_SOCK="/tmp/fusion-sv.sock"
+SV_LOG_DIR="$HOME/.fusion-sv/logs"
+SV_DAEMON_LOG="$SV_LOG_DIR/daemon.log"
+
+locate_fusion_sv() {
+    if command -v fusion-sv >/dev/null 2>&1; then
+        echo "fusion-sv"
+        return 0
+    fi
+    local candidate="$MONO_ROOT/fusion-supervisor/target/release/fusion-sv"
+    if [ -x "$candidate" ]; then
+        echo "$candidate"
+        return 0
+    fi
+    return 1
+}
+
+FUSION_SV="$(locate_fusion_sv 2>/dev/null || true)"
+
+# ─── fusion-sv daemon 就绪检测 + 自举 ─────────────────────────
+# ping 通 = daemon 在跑。否则从 MONO_ROOT 自举 (registry 相对路径需 CWD=MONO_ROOT),
+# FUSION_ROOT 同步设给 start_sh_path 解析。等待 socket 就绪最多 8s。
+sv_ping() {
+    "$FUSION_SV" ping >/dev/null 2>&1
+}
+
+ensure_daemon() {
+    if sv_ping; then
+        return 0
+    fi
+    info "fusion-sv daemon 未运行, 自举 (CWD=$MONO_ROOT, FUSION_ROOT=$MONO_ROOT)..."
+    mkdir -p "$SV_LOG_DIR"
+    (
+        cd "$MONO_ROOT"
+        FUSION_ROOT="$MONO_ROOT" nohup "$FUSION_SV" daemon >> "$SV_DAEMON_LOG" 2>&1 &
+    )
+    for _i in $(seq 1 8); do
+        sleep 1
+        if sv_ping; then
+            info "fusion-sv daemon 就绪"
+            return 0
+        fi
+    done
+    error "fusion-sv daemon 自举超时 (8s), 日志: $SV_DAEMON_LOG"
+    return 1
+}
+
+# ─── legacy 兜底服务注册表 (fusion-sv 缺失时用) ──────────────────
 # 格式: id|display_name|start_sh_path|health_type|health_target|start_order|critical
 # health_type: socket | http | jsonrpc | none
 # critical: 1=关键服务 0=可选
+# #377: fusion-health 端口 11456→11469 (11456 现归 simulation-metrics, 见 port-registry.yaml + issue#16)
 
 SERVICES=(
     "agent-studio|Agent Studio|~/fusion/fusion-agent-studio/start.sh|socket|/tmp/fusion-studio.sock|1|1"
@@ -42,7 +95,7 @@ SERVICES=(
     "project-svc|Fusion Projects|~/fusion/fusion-projects/start.sh|socket|/tmp/fusion-project-svc.sock|9|0"
     "cowork-desk|CoWork Desk|~/fusion/fusion-cowork|socket|/tmp/fusion-cowork.sock|10|0"
     "fusion-science|Fusion Science|~/fusion/fusion-science/start.sh|http|http://127.0.0.1:11462/api/v1/health|11|0"
-    "fusion-health|Fusion Health|~/fusion/fusion-health/start.sh|http|http://127.0.0.1:11456/api/v1/health|12|0"
+    "fusion-health|Fusion Health|~/fusion/fusion-health/start.sh|http|http://127.0.0.1:11469/api/v1/health|12|0"
     "fusion-event|Fusion Event|~/fusion/fusion-event/start.sh|socket|/tmp/fusion-event.sock|13|0"
 )
 
@@ -50,7 +103,7 @@ expand_path() {
     echo "${1/#\~/$HOME}"
 }
 
-# ─── 健康探测 ──────────────────────────────────────────────────
+# ─── 健康探测 (legacy 兜底用) ─────────────────────────────────
 
 probe_socket() {
     local sock="$1"
@@ -80,7 +133,7 @@ probe_health() {
     esac
 }
 
-# ─── 解析服务条目 ──────────────────────────────────────────────
+# ─── 解析服务条目 (legacy 兜底用) ──────────────────────────────
 
 parse_service() {
     local entry="$1"
@@ -88,7 +141,7 @@ parse_service() {
     S_START_SH=$(expand_path "$S_START_SH")
 }
 
-# ─── 启动单个服务 ──────────────────────────────────────────────
+# ─── legacy: 启动单个服务 ──────────────────────────────────────
 
 start_one() {
     local entry="$1"
@@ -174,7 +227,7 @@ start_one() {
     fi
 }
 
-# ─── 停止单个服务 ──────────────────────────────────────────────
+# ─── legacy: 停止单个服务 ──────────────────────────────────────
 
 stop_one() {
     local entry="$1"
@@ -196,7 +249,7 @@ stop_one() {
     info "${S_NAME} 已停止"
 }
 
-# ─── 查询单个服务状态 ──────────────────────────────────────────
+# ─── legacy: 查询单个服务状态 ──────────────────────────────────
 
 status_one() {
     local entry="$1"
@@ -217,7 +270,7 @@ status_one() {
     fi
 }
 
-# ─── SwiftUI App ──────────────────────────────────────────────
+# ─── SwiftUI App (Studio 自身 UI/launch, 不委派) ───────────────
 
 start_app() {
     info "启动 Fusion Studio App..."
@@ -231,12 +284,65 @@ start_app() {
     fi
 }
 
-# ─── 主流程 ───────────────────────────────────────────────────
+# ─── fusion-sv 委派路径 (#377) ────────────────────────────────
 
-do_start() {
+sv_start() {
     echo ""
     echo "╔══════════════════════════════════════════════════╗"
-    echo "║        Fusion Studio — 全量服务启动              ║"
+    echo "║        Fusion Studio — 服务启动 (fusion-sv)      ║"
+    echo "╚══════════════════════════════════════════════════╝"
+    echo ""
+
+    if ! ensure_daemon; then
+        error "fusion-sv daemon 不可用, 回退 legacy 启动路径"
+        legacy_start
+        return
+    fi
+
+    info "fusion-sv up (启动全部已注册服务, 按层级 core→cluster)..."
+    "$FUSION_SV" up || warn "fusion-sv up 部分服务启动失败 (见 $SV_DAEMON_LOG + ~/.fusion-sv/logs/<svc>.log)"
+
+    echo ""
+    if [[ "${NO_APP:-0}" != "1" ]]; then
+        start_app
+    else
+        info "跳过 App 启动 (--no-app)"
+    fi
+
+    echo ""
+    info "服务启动完成 (fusion-sv)"
+    echo ""
+    sv_status
+}
+
+sv_stop() {
+    echo ""
+    info "停止全部服务 (fusion-sv down, 逆序 cluster→core)..."
+    if ! sv_ping; then
+        warn "fusion-sv daemon 未运行, 无需停止"
+        return
+    fi
+    "$FUSION_SV" down || warn "fusion-sv down 部分服务停止失败"
+    info "全部服务已停止 (fusion-sv)"
+}
+
+sv_status() {
+    echo ""
+    echo "─── 服务状态 (fusion-sv) ─────────────────────────"
+    if sv_ping; then
+        "$FUSION_SV" status
+    else
+        warn "fusion-sv daemon 未运行"
+    fi
+    echo ""
+}
+
+# ─── legacy 兜底路径 (fusion-sv 缺失时) ───────────────────────
+
+legacy_start() {
+    echo ""
+    echo "╔══════════════════════════════════════════════════╗"
+    echo "║     Fusion Studio — 全量服务启动 (legacy)        ║"
     echo "╚══════════════════════════════════════════════════╝"
     echo ""
 
@@ -257,14 +363,14 @@ do_start() {
     fi
 
     echo ""
-    info "所有服务启动完成"
+    info "所有服务启动完成 (legacy)"
     echo ""
-    do_status
+    legacy_status
 }
 
-do_stop() {
+legacy_stop() {
     echo ""
-    info "停止所有服务..."
+    info "停止所有服务 (legacy)..."
     local sorted
     sorted=$(printf '%s\n' "${SERVICES[@]}" | sort -t'|' -k6 -nr)
     while IFS= read -r entry; do
@@ -272,19 +378,12 @@ do_stop() {
         stop_one "$entry"
     done <<< "$sorted"
     echo ""
-    info "所有服务已停止"
+    info "所有服务已停止 (legacy)"
 }
 
-do_restart() {
-    do_stop
+legacy_status() {
     echo ""
-    sleep 2
-    do_start
-}
-
-do_status() {
-    echo ""
-    echo "─── 服务状态 ─────────────────────────────────────"
+    echo "─── 服务状态 (legacy) ─────────────────────────────"
     printf "  %-4s %-20s %s\n" "" "服务" "状态"
     echo "  ────────────────────────────────────────────────"
     for entry in "${SERVICES[@]}"; do
@@ -301,26 +400,51 @@ if [[ " ${@:2} " == *" --no-app "* ]]; then
 fi
 
 case "$ACTION" in
-    start)   do_start ;;
-    stop)    do_stop ;;
-    restart) do_restart ;;
-    status)  do_status ;;
+    start)
+        if [ -n "$FUSION_SV" ]; then
+            sv_start
+        else
+            warn "fusion-sv 未找到 (PATH + $MONO_ROOT/fusion-supervisor/target/release/fusion-sv 均无), 回退 legacy 14 服务路径"
+            legacy_start
+        fi
+        ;;
+    stop)
+        if [ -n "$FUSION_SV" ] && sv_ping; then
+            sv_stop
+        else
+            legacy_stop
+        fi
+        ;;
+    restart)
+        if [ -n "$FUSION_SV" ]; then
+            sv_stop
+            echo ""
+            sleep 2
+            sv_start
+        else
+            legacy_stop
+            echo ""
+            sleep 2
+            legacy_start
+        fi
+        ;;
+    status)
+        if [ -n "$FUSION_SV" ] && sv_ping; then
+            sv_status
+        else
+            legacy_status
+        fi
+        ;;
     *)
         echo "Usage: $0 {start|stop|restart|status} [--no-app]"
         echo ""
-        echo "服务列表 (按 SidebarSection):"
-        echo "  Projects     → project-svc (UDS /tmp/fusion-project-svc.sock)"
-        echo "  Artifacts    → artifacts-engine (JSON-RPC :11451)"
-        echo "  Code         → fusion-code (HTTP :11441)"
-        echo "  Design       → fd-cli (内置，无需启动)"
-        echo "  Agent        → agent-studio (UDS /tmp/fusion-studio.sock)"
-        echo "  AI Agent     → agent-studio (同上)"
-        echo "  CoWork       → cowork-desk (UDS /tmp/fusion-cowork.sock)"
-        echo "  FSB          → (开发中)"
-        echo "  Fusion-MLX   → fusion-mlx (HTTP :11432)"
-        echo "  Multi-Node   → multi-node (HTTP :11452)"
+        echo "服务编排: fusion-sv (fusion-supervisor) up/down/status, registry=architecture/port-registry.yaml"
+        echo "fusion-sv 缺失时回退 legacy 14 服务路径 (SERVICES 数组)"
         echo ""
-        echo "关键服务: agent-studio, fusion-mlx, artifacts-engine"
+        echo "关键服务 (registry): fusion-mlx, fusion-gateway, fusion-agent-studio, fusion-artifacts-engine"
+        echo ""
+        echo "环境变量:"
+        echo "  MONO_ROOT  monorepo 根目录 (默认 \$HOME/fusion, fusion-sv daemon 启动 CWD)"
         exit 1
         ;;
 esac
