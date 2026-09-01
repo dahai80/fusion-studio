@@ -110,7 +110,9 @@ class FusionConfig: ObservableObject {
     @AppStorage("ipcSocketPath") var ipcSocketPath = "/tmp/fusion-studio.sock"
 
     // MARK: - MLX
-    @AppStorage("mlxHost") var mlxHost = "localhost"
+    // #382: 默认 127.0.0.1 非 localhost。OrbStack/Docker 绑 *:11434 (IPv6 ::1) 时,
+    // localhost 解析优先 ::1 → 命中容器非 mlx → 502 包 401。127.0.0.1 显式 IPv4 绕开。
+    @AppStorage("mlxHost") var mlxHost = "127.0.0.1"
     @AppStorage("mlxPort") var mlxPort = 11434
     // #380: 用户显式覆盖 MLX 端点。ON = mlxHost:mlxPort 覆盖所有 env (FUSION_GATEWAY_URL/
     // FUSION_MLX_URL/FUSION_MLX_PORT); OFF = 保留 env 优先 (部署默认)。
@@ -418,7 +420,7 @@ class FusionConfig: ObservableObject {
 
         workspacePath = "~/FusionStudio/workspace"
         ipcSocketPath = "/tmp/fusion-studio.sock"
-        mlxHost = "localhost"
+        mlxHost = "127.0.0.1"
         mlxPort = 11434
         mlxEndpointOverrideEnabled = false
         mlxModel = ""
