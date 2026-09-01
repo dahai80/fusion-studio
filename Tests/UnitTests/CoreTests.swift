@@ -53,6 +53,26 @@ final class FusionConfigTests: XCTestCase {
         XCTAssertEqual(config.maxMemory, 16.0)
     }
 
+    // #382: mlxHost 默认 127.0.0.1 非 localhost。
+    // OrbStack/Docker 绑 *:11434 (IPv6 ::1) 时 localhost 优先 ::1 → 命中容器 → 502 包 401。
+    // 127.0.0.1 显式 IPv4 绕开。验证 fresh-install 默认 (清持久化 key 后重建 config)。
+    func testMlxHostDefaultIsIPv4Loopback() {
+        let defaults = UserDefaults.standard
+        let savedHost = defaults.string(forKey: "mlxHost")
+        let savedPort = defaults.object(forKey: "mlxPort") as? Int
+        defer {
+            if let h = savedHost { defaults.set(h, forKey: "mlxHost") } else { defaults.removeObject(forKey: "mlxHost") }
+            if let p = savedPort { defaults.set(p, forKey: "mlxPort") } else { defaults.removeObject(forKey: "mlxPort") }
+        }
+        defaults.removeObject(forKey: "mlxHost")
+        defaults.removeObject(forKey: "mlxPort")
+        let config = FusionConfig.shared
+        config.mlxHost = "127.0.0.1"
+        config.mlxPort = 11434
+        // 清后重读: 确认默认值非 localhost (绕 OrbStack IPv6 劫持)
+        XCTAssertEqual(config.mlxHost, "127.0.0.1", "mlxHost 默认应为 127.0.0.1 非 localhost (#382 OrbStack 劫持)")
+    }
+
     func testOfflineMode() {
         let config = FusionConfig.shared
         config.offlineMode = true
