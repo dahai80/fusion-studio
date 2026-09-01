@@ -32,6 +32,26 @@ final class DesignBridgeTests: XCTestCase {
         XCTAssertNil(result)
     }
 
+    // max_tokens 截断 (finish_reason=length): 无 </antArtifact> 闭合, JS 砍在中段.
+    // extractArtifactFromComplete 须仍提取 partial code (不崩, 不返回 nil),
+    // 供用户看到已生成部分 + 上层 finish_reason=length 检测设 warning.
+    func testExtractArtifactTruncatedNoCloseTag() async {
+        let content = """
+        <antArtifact type="html" title="Login" identifier="login-trunc">
+        <form id="loginForm">
+          <input id="email" />
+          <script>
+            form.addEventListener('submit', (e) => {
+              e.preventDefault();
+              submit.disabled = true;
+        """
+        let result = await DesignBridge().extractArtifactFromComplete(content)
+        XCTAssertNotNil(result, "截断 (无闭合标签) 应仍提取 partial code 非 nil")
+        XCTAssertEqual(result?.type, "html")
+        XCTAssertEqual(result?.title, "Login")
+        XCTAssertTrue(result?.code.contains("submit.disabled = true;") == true, "partial code 须含截断点前内容")
+    }
+
     func testExtractArtifactWithReact() async {
         let content = """
         <antArtifact type="react" title="Dashboard" identifier="dash-002">

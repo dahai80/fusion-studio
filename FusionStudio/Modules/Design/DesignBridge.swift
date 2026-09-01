@@ -1328,7 +1328,10 @@ class DesignBridge: ObservableObject {
         var body: [String: Any] = [
             "messages": chatMessages,
             "temperature": 0.7,
-            "max_tokens": 8192,
+            // 完整设计页 (HTML+CSS+JS) 常超 8192 tokens, 8192 时 mlx finish_reason=length 截断
+            // 无 </antArtifact> 闭合 → 提取到 partial code (JS 被砍在 submit handler 中段).
+            // 提至 16384 给完整页面余地; 仍超时由下方 finish_reason=length 检测显式告警, 不静默.
+            "max_tokens": 16384,
             "stream": true,
         ]
         let model = selectedModel.isEmpty ? config.defaultModel(for: .code) : selectedModel
@@ -1383,6 +1386,7 @@ class DesignBridge: ObservableObject {
 
             inferenceStep = "generating"
             var assistantContent = ""
+            var streamFinishReason: String?
             DesignPreviewTrace.log("sendDesignChat: stream connected, status=\(httpResp.statusCode) model=\(model)")
             for try await line in bytes.lines {
                 guard line.hasPrefix("data: ") else { continue }
@@ -1392,8 +1396,15 @@ class DesignBridge: ObservableObject {
                 guard let data = payload.data(using: .utf8),
                       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                       let choices = json["choices"] as? [[String: Any]],
-                      let firstChoice = choices.first,
-                      let delta = firstChoice["delta"] as? [String: Any],
+                      let firstChoice = choices.first else {
+                    continue
+                }
+                // finish chunk: delta 无 content, 旧 guard 直接 continue 丢弃 finish_reason,
+                // 导致 max_tokens 截断 (finish_reason="length") 被静默. 先捕获再处理 content.
+                if let fr = firstChoice["finish_reason"] as? String, !fr.isEmpty {
+                    streamFinishReason = fr
+                }
+                guard let delta = firstChoice["delta"] as? [String: Any],
                       let token = delta["content"] as? String, !token.isEmpty else {
                     continue
                 }
@@ -1441,6 +1452,14 @@ class DesignBridge: ObservableObject {
                 inferenceStep = "rendering"
                 await renderArtifactToCanvas()
                 DesignPreviewTrace.log("sendDesignChat: renderArtifactToCanvas done, docJSON.len=\(self.lastRenderedDocumentJSON?.count ?? 0) canvasWebViewNotNil=\(self.canvasWebView != nil)")
+            }
+
+            // finish_reason=length: mlx 在 max_tokens 处截断, 无 </antArtifact> 闭合 → 代码不完整.
+            // 不阻断已渲染的 partial artifact, 仅 orange warning 提示用户简化/分步重试 (Rule 12 fail visibly).
+            if streamFinishReason == "length" {
+                errorMessage = I18nManager.shared.t(.design_warnTruncated)
+                designBridgeLog.warning("DesignBridge: stream truncated by max_tokens (finish_reason=length), partial code \(self.currentArtifactCode.count) chars")
+                DesignPreviewTrace.log("sendDesignChat: TRUNCATED by length, rawLen=\(rawAssistantContent.count) tokens=\(streamTokenCount)")
             }
 
         } catch {
