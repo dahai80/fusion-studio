@@ -51,6 +51,9 @@ struct CustomizePanel: View {
     @State private var selectedItem: CustomizeItem? = CustomizeSection.settings.items.first
     @State private var editingApiKey = false
     @State private var apiKeyInput = ""
+    @State private var editingMlxEndpoint = false
+    @State private var mlxHostInput = ""
+    @State private var mlxPortInput = ""
 
     var body: some View {
         HStack(spacing: 0) {
@@ -240,6 +243,70 @@ struct CustomizePanel: View {
                 }
                 .padding(.leading, theme.spacingM)
             }
+            settingRow("MLX 端点覆盖", "ON 时使用下方地址，忽略环境变量 (FUSION_MLX_PORT 等)") {
+                Toggle("", isOn: $config.mlxEndpointOverrideEnabled)
+                    .toggleStyle(.switch).controlSize(.small).labelsHidden()
+            }
+            if config.mlxEndpointOverrideEnabled {
+                settingRow("MLX Host", "直连 MLX 服务地址 (默认 localhost，非 gateway)") {
+                    HStack(spacing: theme.spacingS) {
+                        Image(systemName: editingMlxEndpoint ? "checkmark.seal.fill" : "pencil")
+                            .foregroundStyle(editingMlxEndpoint ? theme.successText : theme.accent)
+                        Button(editingMlxEndpoint ? "完成" : "修改") {
+                            if editingMlxEndpoint {
+                                saveMlxEndpoint(mlxHostInput, mlxPortInput)
+                                editingMlxEndpoint = false
+                            } else {
+                                mlxHostInput = config.mlxHost
+                                mlxPortInput = String(config.mlxPort)
+                                editingMlxEndpoint = true
+                            }
+                            customizeLog.info("MLX endpoint edit mode: \(editingMlxEndpoint)")
+                        }
+                        .font(.system(size: theme.captionSize))
+                        .buttonStyle(.plain)
+                        .foregroundStyle(theme.accent)
+                    }
+                }
+                if editingMlxEndpoint {
+                    VStack(alignment: .leading, spacing: theme.spacingXS) {
+                        TextField("Host (如 localhost / 127.0.0.1)", text: $mlxHostInput)
+                            .textFieldStyle(.plain)
+                            .font(.system(size: theme.textSize, design: .monospaced))
+                            .padding(theme.spacingS)
+                            .background(
+                                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                    .fill(theme.inputBg)
+                            )
+                            .overlay {
+                                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                    .stroke(theme.inputBorder, lineWidth: 1)
+                            }
+                        TextField("Port (如 11434)", text: $mlxPortInput)
+                            .textFieldStyle(.plain)
+                            .font(.system(size: theme.textSize, design: .monospaced))
+                            .padding(theme.spacingS)
+                            .background(
+                                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                    .fill(theme.inputBg)
+                            )
+                            .overlay {
+                                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                                    .stroke(theme.inputBorder, lineWidth: 1)
+                            }
+                        Button("保存") {
+                            saveMlxEndpoint(mlxHostInput, mlxPortInput)
+                            editingMlxEndpoint = false
+                        }
+                        .font(.system(size: theme.footnoteSize, weight: .medium))
+                        .buttonStyle(.plain)
+                        .foregroundStyle(theme.accent)
+                        .disabled(mlxHostInput.trimmingCharacters(in: .whitespaces).isEmpty
+                                  || Int(mlxPortInput) == nil || (Int(mlxPortInput) ?? 0) <= 0)
+                    }
+                    .padding(.leading, theme.spacingM)
+                }
+            }
         }
     }
 
@@ -273,6 +340,20 @@ struct CustomizePanel: View {
         } catch {
             customizeLog.error("Failed to save API key: \(error.localizedDescription)")
         }
+    }
+
+    private func saveMlxEndpoint(_ host: String, _ port: String) {
+        let trimmedHost = host.trimmingCharacters(in: .whitespaces)
+        let trimmedPort = port.trimmingCharacters(in: .whitespaces)
+        guard !trimmedHost.isEmpty, let portInt = Int(trimmedPort), portInt > 0 else {
+            customizeLog.error("saveMlxEndpoint: invalid input host=\(trimmedHost) port=\(trimmedPort), skip")
+            return
+        }
+        config.mlxHost = trimmedHost
+        config.mlxPort = portInt
+        // #380: 显式开启覆盖，使 mlxBaseURL 用 @AppStorage host:port 忽略 env
+        config.mlxEndpointOverrideEnabled = true
+        customizeLog.info("MLX endpoint saved: \(trimmedHost):\(portInt) override=on (env ignored)")
     }
 
     private func comingSoon(_ item: CustomizeItem) -> some View {
