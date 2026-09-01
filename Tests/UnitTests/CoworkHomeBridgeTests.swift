@@ -133,4 +133,20 @@ final class CoworkHomeBridgeStateTests: XCTestCase {
         // 无 subId 被设置 (因短路 return), 仍无轮询任务.
         XCTAssertNil(bridge.subId)
     }
+
+    // 工作流服务不可用 (本地单机 fusion-cowork 路由 gateway 失败 / 服务未启动) 时,
+    // submitWorkflow 必须返回 false 并置 lastError — 该信号驱动 UnifiedChatView 回退直连推理 (#380 override).
+    func testSubmitWorkflowFailsSetsLastErrorWhenServiceDown() {
+        let bridge = CoworkHomeBridge(ipc: IPCClient(socketPath: "/tmp/test-cowork-down.sock"))
+        let exp = XCTestExpectation(description: "submitWorkflow fails")
+        Task {
+            let ok = await bridge.submitWorkflow(prompt: "你是谁")
+            // 无真实 socket → udsCall 抛 IPCError.disconnected → catch → 返回 false + lastError.
+            XCTAssertFalse(ok, "服务不可用时 submitWorkflow 应返回 false (回退直连推理信号)")
+            XCTAssertNotNil(bridge.lastError, "失败应置 lastError 供日志/回退决策")
+            XCTAssertFalse(bridge.isPolling, "失败不应启动事件轮询")
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: 3.0)
+    }
 }

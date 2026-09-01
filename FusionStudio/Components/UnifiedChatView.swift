@@ -1021,13 +1021,17 @@ struct UnifiedChatView: View {
         // 否则走原有聊天流.
         if homeMode == .cowork {
             chatStore.ensureActiveSession(mode: "cowork")
-            let userMsg = ChatMessageData(role: "user", content: text)
-            chatStore.appendMessage(userMsg)
             Task {
                 let ok = await coworkHome.submitWorkflow(prompt: text)
-                if !ok {
-                    let failMsg = coworkHome.lastError ?? i18n.t(.cw_home_submit_fail)
-                    chatStore.appendMessage(ChatMessageData(role: "assistant", content: i18n.t(.cw_home_submit_fail) + failMsg, mode: "cowork"))
+                if ok {
+                    // 成功: 用户消息即时显示, desk.events 轮询驱动 assistant 进度气泡.
+                    chatStore.appendMessage(ChatMessageData(role: "user", content: text))
+                } else {
+                    // 工作流服务不可用 (如本地单机 fusion-cowork 路由 gateway 11432 失败).
+                    // 回退直连推理 (经 #380 override → mlx 127.0.0.1:11434), 让 cowork tab 仍能对话.
+                    let failReason = coworkHome.lastError ?? i18n.t(.cw_home_submit_fail)
+                    chatViewLog.warning("cowork submitWorkflow failed (\(failReason, privacy: .public)), fallback to direct inferStream")
+                    await chatStore.sendMessage(text, mode: "cowork", attachments: attachments)
                 }
             }
             return
