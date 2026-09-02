@@ -250,10 +250,13 @@ struct ArtifactCanvasView: View {
         let lowerType = artifactType.lowercased()
         switch lowerType {
         case "html", "react", "app":
-            ArtifactSandboxView(htmlContent: content)
+            // 审计0902 E7 (P1): artifact 内容来自 LLM/用户, 经 sanitizeHtml 剥 script/on*/js-URL/CSS-XSS
+            // 再进 WKWebView。mermaid/markdown wrapper 自带可信 CDN 脚本 + 转义用户输入, 不走此净化。
+            ArtifactSandboxView(htmlContent: DesignBridge.sanitizeHtml(content))
                 .id(previewKey)
         case "svg":
-            ArtifactSandboxView(htmlContent: svgWrapper(content))
+            // SVG 可含 <svg onload>/<script>, sanitizeHtml 剥 on*/script 但保 <svg> 本体
+            ArtifactSandboxView(htmlContent: svgWrapper(DesignBridge.sanitizeHtml(content)))
                 .id(previewKey)
         case "mermaid":
             ArtifactSandboxView(htmlContent: mermaidWrapper(content))
@@ -586,7 +589,9 @@ struct ArtifactSandboxView: NSViewRepresentable {
     func makeNSView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         config.userContentController = WKUserContentController()
-        config.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
+        // 审计0902 E7 (P1): 移除 allowFileAccessFromFileURLs=true。artifact 内容经 loadHTMLString(baseURL:nil)
+        // 渲染 (无 file:// 上下文), 开放 file access 无收益但扩大 XSS→本地文件读取面。内容已先经
+        // sanitizeHtml 剥 script/on*/js-URL, 此处纵深防御默认关闭文件访问。
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
         webView.setValue(true, forKey: "drawsTransparentBackground")

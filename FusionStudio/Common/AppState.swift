@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 import os.log
 
 private let appStateLog = Logger(subsystem: "com.fusion.studio", category: "AppState")
@@ -12,6 +13,10 @@ class AppState: ObservableObject {
     let healthState: HealthState
     let themeState: ThemeState
 
+    // 审计0902 A2 (P1): 子对象 @Published 变更不触发本 AppState.objectWillChange, 致仅观察 AppState
+    // (未直取子对象) 的 View 收不到更新。订阅 4 子对象 objectWillChange 并转发到本类 publisher。
+    private var cancellables = Set<AnyCancellable>()
+
     init(navState: NavigationState = NavigationState(),
          uiPanelState: UIPanelState = UIPanelState(),
          healthState: HealthState = HealthState(),
@@ -20,7 +25,20 @@ class AppState: ObservableObject {
         self.uiPanelState = uiPanelState
         self.healthState = healthState
         self.themeState = themeState
-        appStateLog.info("AppState composed of 4 domain sub-objects (F-A5)")
+        // 转发子对象变更: 子 emit -> 本类 objectWillChange.send() -> 仅绑 AppState 的 View 更新
+        navState.objectWillChange
+            .sink { [weak self] in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+        uiPanelState.objectWillChange
+            .sink { [weak self] in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+        healthState.objectWillChange
+            .sink { [weak self] in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+        themeState.objectWillChange
+            .sink { [weak self] in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+        appStateLog.info("AppState composed of 4 domain sub-objects (F-A5, objectWillChange forwarded)")
     }
 
     enum HealthStatus {

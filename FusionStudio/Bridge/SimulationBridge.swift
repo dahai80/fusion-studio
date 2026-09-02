@@ -278,8 +278,12 @@ class SimulationBridge: ObservableObject {
         guard let url = URL(string: "\(baseURL)\(path)") else {
             completion(.failure(SimulationBridgeError.invalidURL)); return
         }
-        session.dataTask(with: url) { data, _, error in
+        session.dataTask(with: url) { data, response, error in
             if let error = error { completion(.failure(error)); return }
+            if let code = (response as? HTTPURLResponse)?.statusCode, !(200...299).contains(code) {
+                simBridgeLog.error("SimulationBridge HTTP \(code) (不解码响应体, 避免掩盖真实故障)")
+                completion(.failure(SimulationBridgeError.httpError(code))); return
+            }
             guard let data = data else { completion(.failure(SimulationBridgeError.noData)); return }
             do {
                 let decoded = try JSONDecoder.sim.decode(T.self, from: data)
@@ -305,8 +309,12 @@ class SimulationBridge: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        session.dataTask(with: request) { data, _, error in
+        session.dataTask(with: request) { data, response, error in
             if let error = error { completion(.failure(error)); return }
+            if let code = (response as? HTTPURLResponse)?.statusCode, !(200...299).contains(code) {
+                simBridgeLog.error("SimulationBridge POST HTTP \(code) (不解码响应体, 避免掩盖真实故障)")
+                completion(.failure(SimulationBridgeError.httpError(code))); return
+            }
             guard let data = data else { completion(.failure(SimulationBridgeError.noData)); return }
             do {
                 let decoded = try JSONDecoder.sim.decode(T.self, from: data)
@@ -387,11 +395,20 @@ struct SimEntityInfo: Identifiable, Equatable {
 enum SimulationBridgeError: Error, LocalizedError {
     case invalidURL
     case noData
+    case httpError(Int)
 
     var errorDescription: String? {
         switch self {
         case .invalidURL: return "Invalid URL"
         case .noData: return "No data returned"
+        case .httpError(let code):
+            switch code {
+            case 401: return "Unauthorized (401): fusion-sim 鉴权失败"
+            case 403: return "Forbidden (403): 无权限"
+            case 404: return "Not Found (404): 端点或资源不存在"
+            case 500...599: return "Server error (\(code)): fusion-sim 服务端故障"
+            default: return "HTTP \(code)"
+            }
         }
     }
 }

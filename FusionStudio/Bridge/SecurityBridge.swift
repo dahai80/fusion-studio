@@ -414,8 +414,12 @@ class SecurityBridge: ObservableObject {
         guard let url = URL(string: "\(baseURL)\(path)") else {
             completion(.failure(SecurityBridgeError.invalidURL)); return
         }
-        session.dataTask(with: url) { data, _, error in
+        session.dataTask(with: url) { data, response, error in
             if let error = error { completion(.failure(error)); return }
+            if let code = (response as? HTTPURLResponse)?.statusCode, !(200...299).contains(code) {
+                secBridgeLog.error("SecurityBridge HTTP \(code) (不解码响应体, 避免掩盖真实故障)")
+                completion(.failure(SecurityBridgeError.httpError(code))); return
+            }
             guard let data = data else { completion(.failure(SecurityBridgeError.noData)); return }
             do {
                 let decoded = try JSONDecoder.sec.decode(T.self, from: data)
@@ -435,8 +439,12 @@ class SecurityBridge: ObservableObject {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        session.dataTask(with: request) { data, _, error in
+        session.dataTask(with: request) { data, response, error in
             if let error = error { completion?(.failure(error)); return }
+            if let code = (response as? HTTPURLResponse)?.statusCode, !(200...299).contains(code) {
+                secBridgeLog.error("SecurityBridge POST HTTP \(code) (不解码响应体, 避免掩盖真实故障)")
+                completion?(.failure(SecurityBridgeError.httpError(code))); return
+            }
             guard let data = data else { completion?(.failure(SecurityBridgeError.noData)); return }
             do {
                 let decoded = try JSONDecoder.sec.decode(T.self, from: data)
@@ -611,11 +619,20 @@ struct SecCustomRuleDTO: Identifiable, Decodable {
 enum SecurityBridgeError: Error, LocalizedError {
     case invalidURL
     case noData
+    case httpError(Int)
 
     var errorDescription: String? {
         switch self {
         case .invalidURL: return "无效 URL"
         case .noData: return "无数据返回"
+        case .httpError(let code):
+            switch code {
+            case 401: return "Unauthorized (401): fusion-security 鉴权失败"
+            case 403: return "Forbidden (403): 无权限"
+            case 404: return "Not Found (404): 端点或资源不存在"
+            case 500...599: return "Server error (\(code)): fusion-security 服务端故障"
+            default: return "HTTP \(code)"
+            }
         }
     }
 }
