@@ -1583,7 +1583,10 @@ final class AgentBridge: ObservableObject {
                     logger.warning("taskExecuteImmediate retry: id=\(taskId) retryCount=\(cur.retryCount)/\(cur.maxRetries) backoffMs=\(backoffNs / 1_000_000) circuit=\(self.backendCircuitOpen ? "open" : (self.backendCircuitHalfOpen ? "half-open" : "closed"))")
                     // 审计0830 P0-4: retry 释放当前槽位, sleep 期间不占并发名额; 重排的 taskExecuteImmediate 会重新 acquire。
                     await self.taskExecSemaphore.release()
-                    Task {
+                    // 审计0902 R3 (P2): retry-reschedule 逃逸 Task 存入 taskRunHandles, 否则 taskDelete/
+                    //   taskCancel/deinit 只取消父 handle 不取消此 sleep Task → 删/取消在退避期间孤儿 sleep 后续仍触发。
+                    //   存入后 taskDelete/taskCancel 的 cancel 即覆盖退避 sleep; 重排的 taskExecuteImmediate 会重新 acquire + 覆盖此 handle。
+                    let retryTask = Task {
                         try? await Task.sleep(nanoseconds: backoffNs)
                         if Task.isCancelled {
                             logger.info("taskExecuteImmediate retry cancelled: id=\(taskId)")
@@ -1591,6 +1594,7 @@ final class AgentBridge: ObservableObject {
                         }
                         self.taskExecuteImmediate(taskId)
                     }
+                    _ = self.lockedTaskHandle { self.taskRunHandles[taskId] = retryTask }
                 } else {
                     let reason = (self.backendCircuitOpen || self.backendCircuitHalfOpen) ? "circuit-open" : "retries-exhausted"
                     self.updateTask(taskId) { t in t.status = .failed }
@@ -1621,7 +1625,12 @@ final class AgentBridge: ObservableObject {
                 self.taskState.tasks.removeAll { $0.id == taskId }
                 logger.info("taskDelete: id=\(taskId) deleted via RPC")
             } catch {
-                logger.error("taskDelete failed: id=\(taskId) error=\(error.localizedDescription)")
+                // 审计0902 R3 (P2): taskDelete RPC 失败 → 本地 handle 已取消, 任务未从本地列表移除 (保可见性),
+                //   但后端 cron 可能孤儿执行。标记 lastError 让用户知情 (非静默失败)。
+                logger.error("taskDelete RPC failed: id=\(taskId) backend may retain orphan cron, error=\(error.localizedDescription)")
+                self.updateTask(taskId) { t in
+                    t.lastError = "后端删除失败, 可能残留定时执行: \(error.localizedDescription)"
+                }
             }
         }
     }
@@ -1651,7 +1660,13 @@ final class AgentBridge: ObservableObject {
             }
             logger.info("taskCancel: id=\(taskId)")
         } catch {
-            logger.error("taskCancel failed: id=\(taskId) error=\(error.localizedDescription)")
+            // 审计0902 R3 (P2): taskCancel RPC 失败 → 本地 handle 已取消 (前端停写状态), 但后端仍跑。
+            //   无法回滚已 cancel 的本地 handle; 标记 lastError 让用户知情后端未真正取消 (非静默成功)。
+            logger.error("taskCancel RPC failed: id=\(taskId) local handle cancelled but backend may still run, error=\(error.localizedDescription)")
+            self.updateTask(taskId) { t in
+                if t.status != .completed { t.status = .cancelled }
+                t.lastError = "后端取消失败, 可能仍在执行: \(error.localizedDescription)"
+            }
         }
     }
 
