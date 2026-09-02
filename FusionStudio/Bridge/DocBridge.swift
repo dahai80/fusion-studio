@@ -43,13 +43,33 @@ class DocBridge: ObservableObject {
     @Published var isAuthenticated: Bool = false
     @Published var authError: String?
 
+    // HIGH-2 / 审计0902 R6 (P0): bearer token 存 macOS Keychain, 不再明文落 UserDefaults plist。
+    // 旧版本曾存 UserDefaults "fusion_doc_auth_token", 首次读时迁移到 Keychain 并清旧明文条目。
+    private static let authTokenKeychainAccount = "fusion_doc_auth_token"
+    private static let authTokenLegacyKey = "fusion_doc_auth_token"
     private var authToken: String? {
-        get { UserDefaults.standard.string(forKey: "fusion_doc_auth_token") }
+        get {
+            if let token = KeychainStore.get(Self.authTokenKeychainAccount), !token.isEmpty {
+                return token
+            }
+            // 迁移: 旧明文 UserDefaults 值一次性搬入 Keychain, 然后清旧条目。
+            if let legacy = UserDefaults.standard.string(forKey: Self.authTokenLegacyKey), !legacy.isEmpty {
+                docBridgeLog.info("authToken: migrating legacy UserDefaults token to Keychain (len \(legacy.count))")
+                _ = KeychainStore.set(Self.authTokenKeychainAccount, legacy)
+                UserDefaults.standard.removeObject(forKey: Self.authTokenLegacyKey)
+                return legacy
+            }
+            return nil
+        }
         set {
-            if let token = newValue {
-                UserDefaults.standard.set(token, forKey: "fusion_doc_auth_token")
+            if let token = newValue, !token.isEmpty {
+                _ = KeychainStore.set(Self.authTokenKeychainAccount, token)
+                docBridgeLog.info("authToken: persisted to Keychain (len \(token.count))")
             } else {
-                UserDefaults.standard.removeObject(forKey: "fusion_doc_auth_token")
+                _ = KeychainStore.delete(Self.authTokenKeychainAccount)
+                // 兜底清可能残留的旧明文条目。
+                UserDefaults.standard.removeObject(forKey: Self.authTokenLegacyKey)
+                docBridgeLog.info("authToken: cleared from Keychain (and legacy UserDefaults if present)")
             }
         }
     }
@@ -66,6 +86,12 @@ class DocBridge: ObservableObject {
     private let baseURL: String
     private let session: URLSession
 
+    // 审计0902 R5 (P2): 无重连定时器 (仅 checkHealth 翻状态, 无自动重试), fusion-doc 宕 = 永久
+    //   isConnected=false 无自愈。对齐 IPCClient/SimulationBridge 退避: base 2s × 2^min(attempt,5)
+    //   封顶 60s + jitter, 成功复位 attempt=0。
+    private var reconnectTimer: Timer?
+    private var reconnectAttempt: Int = 0
+
     init(baseURL: String = "http://127.0.0.1:11449") {
         self.baseURL = baseURL
         let config = URLSessionConfiguration.default
@@ -74,7 +100,31 @@ class DocBridge: ObservableObject {
         self.session = URLSession(configuration: config)
     }
 
+    deinit {
+        reconnectTimer?.invalidate()
+    }
+
     // MARK: - Generic HTTP
+
+    // 审计0902 A4 (P1): 旧实现 dataTask completion 仅查 error, 无视 HTTP statusCode, 直接把响应体喂
+    // JSONDecoder -> 401/403/500 body 触发 decodeError, UI 报"解码错误"而非真实鉴权/服务端故障。
+    // 此守卫在解码前校验 statusCode, 4xx/5xx 抛语义化错误 (脱敏, 不回显响应体可能含的密钥/内部路径)。
+    // 审计0902 #234 test hook: private→internal (status 校验纯函数, 单测覆盖 4xx/5xx 语义错误)。
+    static func httpStatusError(_ response: URLResponse?, _ data: Data?) -> Error? {
+        guard let http = response as? HTTPURLResponse else { return nil }
+        let code = http.statusCode
+        guard !(200...299).contains(code) else { return nil }
+        let desc: String
+        switch code {
+        case 401: desc = "Unauthorized (401): 鉴权失败, 检查 fusion-doc 工作区令牌"
+        case 403: desc = "Forbidden (403): 无权限访问该资源"
+        case 404: desc = "Not Found (404): 端点或资源不存在"
+        case 500...599: desc = "Server error (\(code)): fusion-doc 服务端故障"
+        default: desc = "HTTP \(code)"
+        }
+        docBridgeLog.error("DocBridge HTTP \(code) (不解码响应体, 避免掩盖真实故障)")
+        return NSError(domain: "DocBridge", code: code, userInfo: [NSLocalizedDescriptionKey: desc])
+    }
 
     private func get<T: Decodable>(_ path: String, completion: @escaping (Result<T, Error>) -> Void) {
         guard let url = URL(string: "\(baseURL)\(path)") else {
@@ -83,8 +133,9 @@ class DocBridge: ObservableObject {
         }
         var request = URLRequest(url: url)
         if let token = authToken { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
-        session.dataTask(with: request) { data, _, error in
+        session.dataTask(with: request) { data, response, error in
             if let error = error { completion(.failure(error)); return }
+            if let statusErr = Self.httpStatusError(response, data) { completion(.failure(statusErr)); return }
             guard let data = data else {
                 completion(.failure(NSError(domain: "DocBridge", code: -2, userInfo: [NSLocalizedDescriptionKey: "No data"])))
                 return
@@ -110,8 +161,9 @@ class DocBridge: ObservableObject {
         if let body = body {
             request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         }
-        session.dataTask(with: request) { data, _, error in
+        session.dataTask(with: request) { data, response, error in
             if let error = error { completion(.failure(error)); return }
+            if let statusErr = Self.httpStatusError(response, data) { completion(.failure(statusErr)); return }
             guard let data = data else {
                 completion(.failure(NSError(domain: "DocBridge", code: -2, userInfo: [NSLocalizedDescriptionKey: "No data"])))
                 return
@@ -135,8 +187,9 @@ class DocBridge: ObservableObject {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let token = authToken { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        session.dataTask(with: request) { data, _, error in
+        session.dataTask(with: request) { data, response, error in
             if let error = error { completion(.failure(error)); return }
+            if let statusErr = Self.httpStatusError(response, data) { completion(.failure(statusErr)); return }
             guard let data = data else {
                 completion(.failure(NSError(domain: "DocBridge", code: -2, userInfo: [NSLocalizedDescriptionKey: "No data"])))
                 return
@@ -158,8 +211,9 @@ class DocBridge: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
         if let token = authToken { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
-        session.dataTask(with: request) { data, _, error in
+        session.dataTask(with: request) { data, response, error in
             if let error = error { completion(.failure(error)); return }
+            if let statusErr = Self.httpStatusError(response, data) { completion(.failure(statusErr)); return }
             guard let data = data else {
                 completion(.failure(NSError(domain: "DocBridge", code: -2, userInfo: [NSLocalizedDescriptionKey: "No data"])))
                 return
@@ -180,7 +234,28 @@ class DocBridge: ObservableObject {
             // (URL/路径/端口) 到 UI。context 是固定标签 (health/books 等) 非用户数据可留; error 经
             // BridgeError.sanitize 脱敏取 i18n 用户消息。日志保留 raw 供定位 (本地 os_log)。
             self.lastError = "\(context): \(BridgeError.sanitize(error))"
-            if context == "health" { self.isConnected = false }
+            // 审计0902 R5 (P2): health 失败触发退避重连, 非"翻一次状态即永久 false"。
+            if context == "health" {
+                self.isConnected = false
+                self.scheduleReconnect()
+            }
+        }
+    }
+
+    // 审计0902 R5 (P2): 指数退避 + jitter。base 2s × 2^min(attempt,5) 封顶 60s, jitter (attempt×137)%1000ms;
+    //   单次 fire (非 repeats) 每次重算 interval, 成功复位 attempt=0。
+    private func scheduleReconnect() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.reconnectTimer?.invalidate()
+            let attempt = self.reconnectAttempt
+            let base = 2.0 * pow(2.0, Double(min(attempt, 5)))
+            let interval = min(base, 60.0) + Double((attempt * 137) % 1000) / 1000.0
+            self.reconnectAttempt += 1
+            docBridgeLog.warning("DocBridge reconnect backoff: attempt=\(attempt) interval=\(String(format: "%.2f", interval))s")
+            self.reconnectTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] _ in
+                self?.checkHealth()
+            }
         }
     }
 
@@ -194,6 +269,9 @@ class DocBridge: ObservableObject {
                 DispatchQueue.main.async {
                     self?.isConnected = true
                     self?.lastError = nil
+                    self?.reconnectTimer?.invalidate()
+                    self?.reconnectTimer = nil
+                    self?.reconnectAttempt = 0
                 }
             case .failure(let error):
                 self?.handleError(error, context: "health")

@@ -196,6 +196,8 @@ final class MlxHTTPClient: ObservableObject {
         return try decoder.decode(T.self, from: data)
     }
 
+    // 审计0902 E2 (P2): login() 无重试预算, 瞬态 5xx (502/503/504) 或网络错直接抛 → 原 req 也失败。
+    //   login 仅重试 1 次 (base 0.4s + jitter); 401/4xx 不重试 = 凭据错非瞬态。
     private func login(apiKey: String) async throws {
         struct LoginReq: Encodable { let apiKey: String; let remember: Bool }
         var components = URLComponents()
@@ -210,13 +212,38 @@ final class MlxHTTPClient: ObservableObject {
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try encoder.encode(LoginReq(apiKey: apiKey, remember: true))
 
-        let (data, resp) = try await session.data(for: req)
-        guard let http = resp as? HTTPURLResponse else { throw MlxHTTPError.invalidResponse }
-        guard 200..<300 ~= http.statusCode else {
-            let bodyStr = String(data: data, encoding: .utf8)
-            log.error("login -> HTTP \(http.statusCode, privacy: .public) \(bodyStr ?? "", privacy: .public)")
-            throw MlxHTTPError.http(status: http.statusCode, body: bodyStr)
+        let maxAttempts = 2
+        for attempt in 0..<maxAttempts {
+            do {
+                let (data, resp) = try await session.data(for: req)
+                guard let http = resp as? HTTPURLResponse else { throw MlxHTTPError.invalidResponse }
+                guard 200..<300 ~= http.statusCode else {
+                    let bodyStr = String(data: data, encoding: .utf8)
+                    let transient = http.statusCode == 502 || http.statusCode == 503 || http.statusCode == 504
+                    if transient, attempt + 1 < maxAttempts {
+                        let base = 0.4 * pow(2.0, Double(attempt))
+                        let jitter = Double((attempt * 137) % 200) / 1000.0
+                        let delay = base + jitter
+                        log.warning("login transient \(http.statusCode), retry attempt=\(attempt) backoff=\(String(format: "%.3f", delay))s")
+                        try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                        continue
+                    }
+                    log.error("login -> HTTP \(http.statusCode, privacy: .public) \(bodyStr ?? "", privacy: .public)")
+                    throw MlxHTTPError.http(status: http.statusCode, body: bodyStr)
+                }
+                log.info("login ok")
+                return
+            } catch let urlErr as URLError {
+                let transient = urlErr.code == .timedOut || urlErr.code == .networkConnectionLost
+                    || urlErr.code == .cannotConnectToHost || urlErr.code == .notConnectedToInternet
+                guard transient, attempt + 1 < maxAttempts else { throw urlErr }
+                let base = 0.4 * pow(2.0, Double(attempt))
+                let jitter = Double((attempt * 137) % 200) / 1000.0
+                let delay = base + jitter
+                log.warning("login network err \(urlErr.code.rawValue), retry attempt=\(attempt) backoff=\(String(format: "%.3f", delay))s")
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            }
         }
-        log.info("login ok")
+        throw MlxHTTPError.http(status: -1, body: "login exhausted retries")
     }
 }

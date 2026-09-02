@@ -11,6 +11,10 @@ import os.log
 // 供 static 方法 (gatewayConfigApiKey 等) 使用的文件级 logger, 实例 logger 在 class 内。
 private let agentBridgeStaticLog = Logger(subsystem: "com.fusion.studio", category: "AgentBridge")
 
+// 审计0902 R1 (P1): executeGraph 并发串行锁。limit=1 = mutex, 串行化所有 executeGraph 调用
+//   (UI 手动 + 任务调度底层), 防共享 runtimeState.events/isExecuting 并发互覆。
+nonisolated private let graphInflightLock = AsyncTaskSemaphore(limit: 1)
+
 // 审计0830 P0-4: 异步并发信号量。限制 taskExecuteImmediate 并发上限, 防后端 (单机 MLX) 过载 +
 //   重试风暴雪崩。actor 保证 acquire/release 原子, async wait 不阻塞线程。
 //   单机 MLX 串行推理, 并发 graph.execute 只会挤占健康轮询连接 (P0-2) + OOM, cap 4 合理。
@@ -815,6 +819,10 @@ final class AgentBridge: ObservableObject {
     private var backendCircuitOpen: Bool = false
     private var backendCircuitHalfOpen: Bool = false
     private var backendCircuitOpenedAt: Date? = nil
+    // 审计0902 R2 (P1): half-open 单探针 gate。旧实现在每个失败任务 catch 内独立判冷却→转 half-open,
+    //   N 个并发失败任务 = N 个探针同时放出, 探针风暴击穿熔断意义。本标志保证同一 half-open 窗口只放 1 探针,
+    //   其余 fast-fail。探针成功/失败复位时清。
+    private var backendProbeInFlight: Bool = false
 
     // 审计0830 P0-4: 任务执行并发上限。无上限时 N 个任务同时 graph.execute → 单机 MLX 串行推理排队 →
     //   连接占满阻塞健康轮询 (P0-2) + 内存涨 + 重试雪崩。cap 4 限制并发执行体。
@@ -845,6 +853,10 @@ final class AgentBridge: ObservableObject {
     private let logger = Logger(subsystem: "com.fusion.studio", category: "AgentBridge")
     // F-A1 Phase 7: setIPCClient sink 订阅持有 (原 .assign(to:) 不需显式持, 改 .sink 需 store)。
     private var cancellables = Set<AnyCancellable>()
+    // 审计0902 E3 (P2): setIPCClient 重连去重 — connectionSink 单 cancellable 取代旧 cancellables 无界追加;
+    //   initialFetchTask 存逃逸 fetch Task, 重连前 cancel 旧 task 避孤儿累积, deinit 一并 cancel。
+    private var connectionSink: AnyCancellable?
+    private var initialFetchTask: Task<Void, Never>?
 
     // 审计0830 P0-1: SwiftUI 不自动追踪嵌套 ObservableObject。视图经 @EnvironmentObject bridge
     //   仅订阅 AgentBridge.objectWillChange, 域 @Published 变更触发域自身 objectWillChange 但无订阅者 →
@@ -885,17 +897,22 @@ final class AgentBridge: ObservableObject {
         self.taskState.ipcClient = client
         // F-A1 Phase 7: runtimeState 是 let 子对象, $runtimeState.isConnected 非法 ($投影仅限直接 @Published 属性)。
         // 改 .sink 手动写 runtimeState.isConnected, cancellable 持久化防订阅立即释放。
-        client.$isConnected
+        // 审计0902 E3 (P2): setIPCClient 每次重连调用, 旧实现每次追加 1 sink 无去重 → N 重连 = N stale sink 无界追加。
+        //   修复: 先取消并清空旧 connectionSink, 再存新 sink (去重, 常驻仅 1)。
+        connectionSink?.cancel()
+        connectionSink = client.$isConnected
             .receive(on: DispatchQueue.main)
             .sink { [weak self] connected in
-                self?.runtimeState.isConnected = connected
+                self?.runtimeState.setConnected(connected)
             }
-            .store(in: &cancellables)
         logger.info("AgentBridge connected to IPCClient")
         // 审计0830 P1-调度-1: cronJobId 仅内存态, app 崩溃后启动若不主动拉取 → 已注册 cron 任务在 UI 打开前丢失可见性
         //   (用户不知任务停跑/还在跑)。后端持久化 cron job, 启动即 reconcile: fetchTasks 恢复 scheduled 任务 + cronJobId。
         //   不依赖用户手动进 Task 模块触发 onAppear fetch。延迟 0.5s 等 daemon 路由就绪 (setIPCClient 早于 daemon 完全 ready)。
-        Task { [weak self] in
+        // 审计0902 E3 (P2): 旧实现起逃逸 Task 未存 → N 重连 = N fetch Task 竞争 TTL guard + deinit 不取消。
+        //   修复: 存入 initialFetchTask, 重连前取消旧 task 避孤儿累积。
+        initialFetchTask?.cancel()
+        initialFetchTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 500_000_000)
             await self?.fetchTasks()
         }
@@ -914,7 +931,7 @@ final class AgentBridge: ObservableObject {
             _ = try await fetchModels()
             logger.info("probeMLXRunningStatus: mlx reachable (HTTP /v1/models)")
             DesignPreviewTrace.log("probeMLXRunningStatus: OK reachable")
-            self.mlxState.mlxRunning = true
+            self.mlxState.setMlxRunning(true)
             return true
         } catch BridgeError.authFailed {
             // 401/403：当前解析的 api key 无效。常见根因：~/.zshrc 注入了错误的
@@ -923,12 +940,12 @@ final class AgentBridge: ObservableObject {
             // 抬高其优先级覆盖错误 env，避免每次启动都 401。
             logger.warning("probeMLXRunningStatus: auth failed, attempting settings.json key self-heal")
             let healed = await selfHealApiKeyFromSettings()
-            self.mlxState.mlxRunning = healed
+            self.mlxState.setMlxRunning(healed)
             return healed
         } catch {
             logger.error("probeMLXRunningStatus: mlx unreachable: \(error)")
             DesignPreviewTrace.log("probeMLXRunningStatus: FAIL \(error)")
-            self.mlxState.mlxRunning = false
+            self.mlxState.setMlxRunning(false)
             return false
         }
     }
@@ -994,6 +1011,13 @@ final class AgentBridge: ObservableObject {
         }
         logger.info("executeGraph: id=\(id) task=\(taskId.isEmpty ? "-" : taskId)")
 
+        // 审计0902 R1 (P1): 并发 guard。UI 手动执行 (taskId 空) 写共享 runtimeState.events/isExecuting,
+        //   两路并发互覆 (A 清空 B 的事件)。taskExecuteImmediate 路用返回值不踩共享态 (P0-11 已修),
+        //   但其底层仍走本方法, 故以 graphInflightLock 串行化所有 executeGraph, 同一时刻只允许一个在跑。
+        //   不拒绝 (任务调度路径合法并发), 而是按到达顺序串行 → 后者等前者完成再执行, 共享态不被互覆。
+        await graphInflightLock.acquire()
+        // 审计0902 R1: release 非 defer (actor-isolated 需 await), 沿既有 taskExecSemaphore 模式
+        //   在每个出口显式 await release。
         // #344: 高危动作运行时鉴权 — guard.evaluate before dispatch (PRD §17 Phase 6)。
         // 已装 guard (isDaemonReady=true): 严格 fail-closed, BLOCK/L4 不下发, L3 走人机确认弹窗。
         // 未装 guard (isDaemonReady=false): 可选上游, fail-open 普通工作流不锁死未装用户。
@@ -1007,6 +1031,7 @@ final class AgentBridge: ObservableObject {
                 )
                 if verdict.isBlock {
                     logger.error("executeGraph BLOCKED by guard: \(verdict.reason, privacy: .public) risk=\(verdict.riskLevel, privacy: .public)")
+                    await graphInflightLock.release()
                     throw BridgeError.guardBlocked(verdict.reason)
                 }
                 if verdict.needsApproval {
@@ -1020,6 +1045,7 @@ final class AgentBridge: ObservableObject {
                     )
                     if !approved {
                         logger.warning("executeGraph L3 approval denied by user")
+                        await graphInflightLock.release()
                         throw BridgeError.guardBlocked("用户拒绝确认")
                     }
                 }
@@ -1027,14 +1053,15 @@ final class AgentBridge: ObservableObject {
             } catch let ge as GuardError {
                 // fail-closed: guard confirm/超时不可达 = block (R2), 不绕过
                 logger.error("executeGraph guard approval failed (fail-closed): \(ge.localizedDescription, privacy: .public)")
+                await graphInflightLock.release()
                 throw BridgeError.guardBlocked(ge.localizedDescription)
             }
         } else if guardBridge != nil {
             logger.warning("executeGraph guard daemon not ready — skip guard (optional upstream, fail-open for未装用户)")
         }
 
-        self.runtimeState.isExecuting = true
-        self.runtimeState.events = []
+        self.runtimeState.setExecuting(true)
+        self.runtimeState.setEvents([])
 
         do {
             var params: [String: Any] = [
@@ -1079,21 +1106,24 @@ final class AgentBridge: ObservableObject {
                     parsed.append(model)
                 }
             }
-            self.runtimeState.events = parsed
-            self.runtimeState.isExecuting = false
+            self.runtimeState.setEvents(parsed)
+            self.runtimeState.setExecuting(false)
             logger.info("executeGraph: received \(parsed.count) events")
+            await graphInflightLock.release()
             return parsed
         } catch let error as IPCError {
-            self.runtimeState.isExecuting = false
+            self.runtimeState.setExecuting(false)
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
 
             logger.error("executeGraph: \(error)")
+            await graphInflightLock.release()
             throw bridgeErr
         } catch {
-            self.runtimeState.isExecuting = false
+            self.runtimeState.setExecuting(false)
             let bridgeErr = BridgeError.decodeError(error.localizedDescription)
 
             logger.error("executeGraph decode: \(error)")
+            await graphInflightLock.release()
             throw bridgeErr
         }
     }
@@ -1474,6 +1504,8 @@ final class AgentBridge: ObservableObject {
                     self.backendConsecutiveFailures = 0
                     self.backendConsecutiveSuccesses = 0
                     self.backendCircuitOpenedAt = nil
+                    // 审计0902 R2: 探针成功关路, 释放探针占位。
+                    self.backendProbeInFlight = false
                 } else if self.backendConsecutiveFailures > 0 {
                     self.backendConsecutiveSuccesses += 1
                     if self.backendConsecutiveSuccesses >= self.backendSuccessThreshold {
@@ -1493,6 +1525,14 @@ final class AgentBridge: ObservableObject {
                 //   成功 (L1372)/失败 (L1427) 均清, 取消遗漏。补齐对齐。
                 _ = self.lockedTaskHandle { self.taskRunHandles.removeValue(forKey: taskId) }
                 logger.info("taskExecuteImmediate cancelled: id=\(taskId) handle released (P0-5)")
+                // 审计0902 R2: 探针任务若被取消, 释放探针占位 + 回退到 open 续冷却, 防标志泄漏锁死后续探针。
+                if self.backendProbeInFlight && self.backendCircuitHalfOpen {
+                    self.backendCircuitHalfOpen = false
+                    self.backendCircuitOpen = true
+                    self.backendCircuitOpenedAt = Date()
+                    self.backendProbeInFlight = false
+                    logger.warning("F-R12 backend circuit probe CANCELLED -> re-OPEN, probe released (R2)")
+                }
                 await self.taskExecSemaphore.release()
             } catch {
                 self.updateTask(taskId) { t in
@@ -1520,18 +1560,27 @@ final class AgentBridge: ObservableObject {
                     self.backendCircuitOpenedAt = Date()
                     logger.error("F-R12 backend circuit OPEN failures=\(self.backendConsecutiveFailures) cooldown=\(self.backendCircuitCooldownSec)s — fast-fail until half-open probe")
                 }
-                // 审计0830 P1-错误-1: 开路后冷却到期转 half-open, 放单探针; 探针失败重新开路续冷却。
+                // 审计0830 P1-错误-1 / 0902 R2: 开路后冷却到期转 half-open 放单探针; 探针失败重新开路续冷却。
+                //   R2 修正: 旧实现在每个失败 catch 内独立转 half-open, N 并发失败 = N 探针击穿熔断。
+                //   仅当无探针在途 (backendProbeInFlight=false) 时首个任务转 half-open 并占探针; 其余 fast-fail。
                 if self.backendCircuitOpen, let opened = self.backendCircuitOpenedAt,
                    Date().timeIntervalSince(opened) >= self.backendCircuitCooldownSec {
-                    self.backendCircuitOpen = false
-                    self.backendCircuitHalfOpen = true
-                    logger.info("F-R12 backend circuit -> HALF-OPEN (cooldown elapsed), releasing probe")
+                    if !self.backendProbeInFlight {
+                        self.backendCircuitOpen = false
+                        self.backendCircuitHalfOpen = true
+                        self.backendProbeInFlight = true
+                        logger.info("F-R12 backend circuit -> HALF-OPEN (cooldown elapsed), releasing single probe (R2 gate acquired)")
+                    } else {
+                        // 探针已被并发首个任务占, 本任务 fast-fail 不放第二探针。
+                        logger.warning("F-R12 backend circuit cooldown elapsed but probe in-flight, fast-fail id=\(taskId) (R2)")
+                    }
                 } else if self.backendCircuitHalfOpen {
-                    // half-open 探针失败 → 重新开路, 重置冷却窗口。
+                    // half-open 探针失败 → 重新开路, 重置冷却窗口, 释放探针占位。
                     self.backendCircuitHalfOpen = false
                     self.backendCircuitOpen = true
                     self.backendCircuitOpenedAt = Date()
-                    logger.error("F-R12 backend circuit probe FAILED -> re-OPEN, cooldown restarted")
+                    self.backendProbeInFlight = false
+                    logger.error("F-R12 backend circuit probe FAILED -> re-OPEN, cooldown restarted, probe released")
                 }
                 // ARCH-2: retry 上限收紧 + 退避, 防 maxRetries 过大时高频重试风暴。
                 // retryCount 已 +1, 仅当未超 maxRetries 才重排。
@@ -1543,7 +1592,10 @@ final class AgentBridge: ObservableObject {
                     logger.warning("taskExecuteImmediate retry: id=\(taskId) retryCount=\(cur.retryCount)/\(cur.maxRetries) backoffMs=\(backoffNs / 1_000_000) circuit=\(self.backendCircuitOpen ? "open" : (self.backendCircuitHalfOpen ? "half-open" : "closed"))")
                     // 审计0830 P0-4: retry 释放当前槽位, sleep 期间不占并发名额; 重排的 taskExecuteImmediate 会重新 acquire。
                     await self.taskExecSemaphore.release()
-                    Task {
+                    // 审计0902 R3 (P2): retry-reschedule 逃逸 Task 存入 taskRunHandles, 否则 taskDelete/
+                    //   taskCancel/deinit 只取消父 handle 不取消此 sleep Task → 删/取消在退避期间孤儿 sleep 后续仍触发。
+                    //   存入后 taskDelete/taskCancel 的 cancel 即覆盖退避 sleep; 重排的 taskExecuteImmediate 会重新 acquire + 覆盖此 handle。
+                    let retryTask = Task {
                         try? await Task.sleep(nanoseconds: backoffNs)
                         if Task.isCancelled {
                             logger.info("taskExecuteImmediate retry cancelled: id=\(taskId)")
@@ -1551,6 +1603,7 @@ final class AgentBridge: ObservableObject {
                         }
                         self.taskExecuteImmediate(taskId)
                     }
+                    _ = self.lockedTaskHandle { self.taskRunHandles[taskId] = retryTask }
                 } else {
                     let reason = (self.backendCircuitOpen || self.backendCircuitHalfOpen) ? "circuit-open" : "retries-exhausted"
                     self.updateTask(taskId) { t in t.status = .failed }
@@ -1581,7 +1634,12 @@ final class AgentBridge: ObservableObject {
                 self.taskState.tasks.removeAll { $0.id == taskId }
                 logger.info("taskDelete: id=\(taskId) deleted via RPC")
             } catch {
-                logger.error("taskDelete failed: id=\(taskId) error=\(error.localizedDescription)")
+                // 审计0902 R3 (P2): taskDelete RPC 失败 → 本地 handle 已取消, 任务未从本地列表移除 (保可见性),
+                //   但后端 cron 可能孤儿执行。标记 lastError 让用户知情 (非静默失败)。
+                logger.error("taskDelete RPC failed: id=\(taskId) backend may retain orphan cron, error=\(error.localizedDescription)")
+                self.updateTask(taskId) { t in
+                    t.lastError = "后端删除失败, 可能残留定时执行: \(error.localizedDescription)"
+                }
             }
         }
     }
@@ -1611,7 +1669,13 @@ final class AgentBridge: ObservableObject {
             }
             logger.info("taskCancel: id=\(taskId)")
         } catch {
-            logger.error("taskCancel failed: id=\(taskId) error=\(error.localizedDescription)")
+            // 审计0902 R3 (P2): taskCancel RPC 失败 → 本地 handle 已取消 (前端停写状态), 但后端仍跑。
+            //   无法回滚已 cancel 的本地 handle; 标记 lastError 让用户知情后端未真正取消 (非静默成功)。
+            logger.error("taskCancel RPC failed: id=\(taskId) local handle cancelled but backend may still run, error=\(error.localizedDescription)")
+            self.updateTask(taskId) { t in
+                if t.status != .completed { t.status = .cancelled }
+                t.lastError = "后端取消失败, 可能仍在执行: \(error.localizedDescription)"
+            }
         }
     }
 
@@ -1868,5 +1932,8 @@ final class AgentBridge: ObservableObject {
         for handle in handles {
             handle.cancel()
         }
+        // 审计0902 E3 (P2): deinit 取消逃逸 initialFetchTask + connectionSink, 防释放后后台 Task/sink 持 self。
+        initialFetchTask?.cancel()
+        connectionSink?.cancel()
     }
 }

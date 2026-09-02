@@ -50,6 +50,12 @@ class IPCClient: ObservableObject {
     // 审计0827 P0-2: 100 在稳态期 (健康轮询 + 多 Tab fetch + 狂切) 触顶, 写操作静默失败。
     // 提升到 500: 稳态并发约 80-120, 突发 3-4x 仍 < 500; 单续体 ~0.4KB, 500 项 < 200KB 内存可接受。
     private let pendingCap = 500
+    // 审计0902 A5 (P2): inflightReads 每 key waiter cap (见 call 合并块)。
+    private let inflightWaiterCap = 100
+    // 审计0902 R5 (P2): udsCall 短连通道在飞上限。旧每调用起 DispatchQueue.global worker + 新 socket,
+    //   200 并发 projectCall/spaceCall = 200 GCD worker + 200 socket, 突发线程池耗尽。cap 32 并发短连,
+    //   超限 caller 在 semaphore 排队等槽位 (阻塞 GCD worker, 但限总数防线程池耗尽)。
+    private static let udsCallSemaphore = DispatchSemaphore(value: 32)
     // F-R4: 方法级 in-flight 去重 (同 method 在途不重发)。仅对幂等读 (空 params + *.list/status/ping/health_check)
     // 合并: 第一个 caller 驱动 socket, 后续 caller 续体挂 inflightReads 等结果 fan-out, 不重发。
     // 变更类 (mlx.stop/agent.create/*.delete/env.repair_all 等) 永不合并 — 幂等性不同, 重发是正确语义。
@@ -278,9 +284,64 @@ class IPCClient: ObservableObject {
     }
 
     /// 调用远程方法
+    // 审计0902 E2 (P2): 旧 call() 零瞬态重试 (仅熔断 fast-fail) — 单瞬态超时/disconnected = 调用者错误,
+    //   多节点 cluster.incremental_sync 过抖网络首次 hiccup 即败, 无退避重试, 与各桥策略不一致。
+    //   修复: 公开 call() 套一层瞬态重试 (仅 timeout/disconnected, 指数退避), 业务错 rpcError/circuitOpen/
+    //   pendingFull 不重试 (非瞬态)。最多 1 次重试 (共 2 次尝试), base 0.4s + jitter。长 RPC (rpcTimeout
+    //   ≥ longRpcTimeout) 不重试 (本身 120s, 重试翻倍阻塞调用方不合理)。
     @discardableResult
     func call(method: String, params: [String: Any] = [:]) async throws -> [String: Any] {
+        let maxAttempts = Self.rpcTimeout(for: method) >= Self.longRpcTimeout ? 1 : 2
+        var lastError: Error?
+        for attempt in 0..<maxAttempts {
+            do {
+                return try await callOnce(method: method, params: params)
+            } catch {
+                lastError = error
+                let transient: Bool
+                if let ipcErr = error as? IPCError {
+                    switch ipcErr {
+                    case .timeout, .disconnected: transient = true
+                    default: transient = false
+                    }
+                } else {
+                    transient = false
+                }
+                guard transient, attempt + 1 < maxAttempts else { throw error }
+                let base = 0.4 * pow(2.0, Double(attempt))
+                let jitter = Double((attempt * 137) % 200) / 1000.0
+                let delay = base + jitter
+                ipcLog.warning("IPC call transient retry: method=\(method, privacy: .public) attempt=\(attempt) backoff=\(String(format: "%.3f", delay))s err=\(String(describing: error), privacy: .public)")
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            }
+        }
+        throw lastError ?? IPCError.invalidResponse
+    }
+
+    @discardableResult
+    private func callOnce(method: String, params: [String: Any] = [:]) async throws -> [String: Any] {
         return try await withCheckedThrowingContinuation { continuation in
+            // 审计0902 A1 (P1) 写侧头阻塞缓解: JSONSerialization (大参数 graph.execute/design.export/
+            //   model.list) 移出串行 queue, 在调用方并发上下文完成。旧在 queue.async 内序列化, 一个胖
+            //   参数拖垮其后全部 call() 注册 → 全 App IPC 串行卡顿。reqId 原子自增 (lock) 可安全在
+            //   queue 外取; writeAll + pending 注册仍串行保帧不交错。
+            //   读侧头阻塞 (单 reader + 大响应挡道) 需请求级 socket 池, 大改, 后续 deferred。
+            let reqId = self.nextRequestId()
+            var request: [String: Any] = [
+                "jsonrpc": "2.0",
+                "id": reqId,
+                "method": method,
+            ]
+            if !params.isEmpty {
+                request["params"] = params
+            }
+            guard let data = try? JSONSerialization.data(withJSONObject: request) else {
+                continuation.resume(throwing: IPCError.invalidRequest)
+                return
+            }
+            var writeBuf = data
+            writeBuf.append(0x0A) // 换行符作为消息分隔符
+
             queue.async { [weak self] in
                 guard let self = self else {
                     continuation.resume(throwing: IPCError.disconnected)
@@ -299,13 +360,21 @@ class IPCClient: ObservableObject {
                     }
                 }
 
-                let reqId = self.nextRequestId()
-
                 // F-R4: 幂等读 in-flight 合并。同 method 已在途 (首个 caller 驱动) → 挂当前续体等结果, 不重发。
                 // 仅对空 params 读 (params.isEmpty 守卫: 带参读如 tool.get/cron.list_executions 不合并, 入参不同结果不同)。
+                // 注 (A1): reqId 已在 queue 外预分配, 合并命中时该 id 废弃 — 合并仅针对空 params 读 (序列化本廉价), 可接受。
+                // 审计0902 A5 (P2): inflightReads 按 method key (受限于 ~20 个可合并读动词, 键非无界), 但每 key 下
+                //   waiter 列表无 cap — 1000 并发 mlxStatus 全挂同一 in-flight 读 → 无界续体堆。cap 每 key waiter 100,
+                //   超限直接 fast-fail (不挂不重发), 与 pendingCap 同语义防 OOM。
                 if params.isEmpty && self.isCoalesceableRead(method) {
                     self.lock.lock()
                     if self.inflightReads[method] != nil {
+                        if self.inflightReads[method]!.count >= self.inflightWaiterCap {
+                            self.lock.unlock()
+                            ipcLog.warning("IPC inflight waiter cap exceeded (\(self.inflightWaiterCap)) method=\(method, privacy: .public), fast-fail")
+                            continuation.resume(throwing: IPCError.pendingFull)
+                            return
+                        }
                         self.inflightReads[method, default: []].append(continuation)
                         self.lock.unlock()
                         ipcLog.debug("IPC inflight coalesce: skip re-fire method=\(method, privacy: .public) id=\(reqId), awaiting in-flight")
@@ -316,19 +385,6 @@ class IPCClient: ObservableObject {
                     self.lock.unlock()
                 }
 
-                var request: [String: Any] = [
-                    "jsonrpc": "2.0",
-                    "id": reqId,
-                    "method": method,
-                ]
-                if !params.isEmpty {
-                    request["params"] = params
-                }
-
-                guard let data = try? JSONSerialization.data(withJSONObject: request) else {
-                    continuation.resume(throwing: IPCError.invalidRequest)
-                    return
-                }
 
                 guard self.socketFd >= 0 else {
                     continuation.resume(throwing: IPCError.disconnected)
@@ -371,9 +427,7 @@ class IPCClient: ObservableObject {
                     self.circuitOnFailure()
                 }
 
-                // 发送数据
-                var writeBuf = data
-                writeBuf.append(0x0A) // 换行符作为消息分隔符
+                // 发送数据 (A1: writeBuf 已在 queue 外预序列化, queue 内仅写)
                 Self.writeAll(fd: self.socketFd, writeBuf)
             }
         }
@@ -387,6 +441,9 @@ class IPCClient: ObservableObject {
     func udsCall(socketPath: String, method: String, params: [String: Any] = [:], timeoutSecs: Int = 8) async throws -> [String: Any] {
         try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
+                // 审计0902 R5 (P2): 限并发短连, acquire 在阻塞 worker 前排队; release 随 close 释放槽位。
+                Self.udsCallSemaphore.wait()
+                defer { Self.udsCallSemaphore.signal() }
                 let sock = socket(AF_UNIX, SOCK_STREAM, 0)
                 guard sock >= 0 else {
                     continuation.resume(throwing: IPCError.invalidRequest)
@@ -402,6 +459,9 @@ class IPCClient: ObservableObject {
                 }
                 var tv = timeval(tv_sec: timeoutSecs, tv_usec: 0)
                 _ = setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
+                // 审计0902 R4 (P1): SO_SNDTIMEO 防写端永久阻塞 (对端慢消费/窗口满)。旧仅设 RCFTIMEO,
+                //   writeAll 阻塞写可挂死整个短连通道。与 RCFTIMEO 对称设发送超时。
+                _ = setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
                 var addr = sockaddr_un()
                 addr.sun_family = sa_family_t(AF_UNIX)
                 let pathC = socketPath.utf8CString
@@ -442,7 +502,21 @@ class IPCClient: ObservableObject {
                     if n > 0 {
                         respData.append(contentsOf: buf[0..<n])
                         if respData.last == 0x0A { break }
+                    } else if n == 0 {
+                        break // EOF: 对端关闭
                     } else {
+                        // 审计0902 R4 (P1): n<0 分类 errno。SO_RCVTIMEO 超时返 EAGAIN/EWOULDBLOCK,
+                        //   旧代码统一 break → 残缺/空 respData → invalidResponse (语义错, 实为超时)。
+                        //   EINTR → 信号打断重试; EAGAIN/EWOULDBLOCK → 读超时 (已收部分或全未收), 报断连非非法响应;
+                        //   其他 errno → 真故障, break 走 invalidResponse 兜底。
+                        let rerr = errno
+                        if rerr == EINTR { continue }
+                        if rerr == EAGAIN || rerr == EWOULDBLOCK {
+                            ipcLog.warning("udsCall read timeout method=\(method, privacy: .public) path=\(socketPath, privacy: .public) got=\(respData.count)B")
+                            continuation.resume(throwing: IPCError.disconnected)
+                            return
+                        }
+                        ipcLog.warning("udsCall read error method=\(method, privacy: .public) errno=\(rerr)")
                         break
                     }
                 }
@@ -633,9 +707,12 @@ class IPCClient: ObservableObject {
         longRpcMethods.contains(method) ? longRpcTimeout : defaultRpcTimeout
     }
 
-    // 审计0830 P0-8: Darwin.write 非阻塞 fd 可短写 (内核缓冲满返 < count), 旧代码忽略返回值 →
-    //   RPC payload 静默截断 → 后端收残缺 JSON 解析失败 → 客户端 8s 超时计入熔断级联。
-    //   循环写直到全量写出; 0 或 -1 视为故障记日志。
+    // 审计0830 P0-8 + 审计0902 R4 (P1): Darwin.write 非阻塞 fd 可短写 (内核缓冲满返 < count),
+    //   旧代码忽略返回值 → RPC payload 静默截断 → 后端收残缺 JSON 解析失败 → 客户端超时计入熔断级联。
+    //   循环写直到全量写出。written<=0 分类 errno:
+    //     EAGAIN/EWOULDBLOCK → poll(POLLOUT) 等缓冲可写后重试 (复用主 socket 读循环 EAGAIN 范式);
+    //     EINTR → 信号打断, 直接重试;
+    //     其他 → 真故障 (fd 断/对端关), 记日志后放弃。SO_SNDTIMEO (udsCall 设) 兜底防永久阻塞。
     private static func writeAll(fd: Int32, _ data: Data) {
         var remaining = data.count
         var offset = 0
@@ -644,12 +721,23 @@ class IPCClient: ObservableObject {
                 guard let base = ptr.baseAddress else { return -1 }
                 return Darwin.write(fd, base.advanced(by: offset), remaining)
             }
-            if written <= 0 {
-                ipcLog.error("writeAll: short/fault write fd=\(fd) offset=\(offset) remaining=\(remaining) ret=\(written) (P0-8)")
+            if written > 0 {
+                offset += written
+                remaining -= written
+                continue
+            }
+            // written <= 0: 分类 errno
+            let err = errno
+            if err == EAGAIN || err == EWOULDBLOCK {
+                var pfd = pollfd(fd: fd, events: Int16(POLLOUT), revents: 0)
+                let pr = withUnsafeMutablePointer(to: &pfd) { ptr in Darwin.poll(ptr, 1, 5000) }
+                if pr > 0 { continue } // 缓冲可写, 重试 write
+                ipcLog.error("writeAll: poll POLLOUT fd=\(fd) ret=\(pr) errno=\(err) (R4 超时/故障, 放弃)")
                 return
             }
-            offset += written
-            remaining -= written
+            if err == EINTR { continue } // 信号打断, 重试
+            ipcLog.error("writeAll: fault write fd=\(fd) offset=\(offset) remaining=\(remaining) ret=\(written) errno=\(err) (P0-8/R4 真故障, 放弃)")
+            return
         }
     }
 

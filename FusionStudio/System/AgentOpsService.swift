@@ -213,11 +213,14 @@ extension AgentState {
         let result = try await client.call(method: RPCMethod.agentStudioAgentVersions, params: ["agent_id": agentId])
         guard let versions = result as? [[String: Any]] else {
             let items = result["versions"] as? [[String: Any]] ?? []
-            self.agentVersionHistory[agentId] = items
-            return items
+            // 审计0902 A5 (P2): 每 agent 版本历史无 cap, 50 agent × 100 版本 → 无界 dict。cap 每键 50 保近期版本。
+            let capped = Array(items.prefix(50))
+            self.agentVersionHistory[agentId] = capped
+            return capped
         }
-        self.agentVersionHistory[agentId] = versions
-        return versions
+        let cappedVersions = Array(versions.prefix(50))
+        self.agentVersionHistory[agentId] = cappedVersions
+        return cappedVersions
     }
 
     func agentRestoreVersion(agentId: String, versionId: String) async throws -> AgentModel {
@@ -234,7 +237,16 @@ extension AgentState {
     func fetchDashboard() async {
         guard let client = self.ipcClient else { return }
         do {
-            let result = try await client.dashboardOverview()
+            var result = try await client.dashboardOverview()
+            // 审计0902 A5 (P2): dashboardData 嵌套数组无 cap (auditTrail/sessionLogs 已各自 cap 500, 此处漏网)。
+            //   对已知大数组键 (auditTrail/sessionLogs/recentEvents/activityFeed) 各 cap 500, 防 dashboard 拉取无界增长。
+            let arrayKeys: [String] = ["auditTrail", "sessionLogs", "recentEvents", "activityFeed"]
+            for k in arrayKeys {
+                if var arr = result[k] as? [Any], arr.count > 500 {
+                    arr = Array(arr.prefix(500))
+                    result[k] = arr
+                }
+            }
             self.dashboardData = result
             agentOpsLog.info("Dashboard fetched: \(result.keys.joined(separator: ","))")
         } catch {

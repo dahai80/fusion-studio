@@ -19,6 +19,15 @@ final class RuntimeState: ObservableObject {
     //   ipcClient 为 internal (非 private): AgentRuntimeService extension 跨文件访问, Swift private=文件作用域。
     var ipcClient: IPCClient?
     init() {}
+
+    // 审计0902 A3 (P2): AgentBridge 跨域 reach-through 写消灭。@Published 写收归域内 facade setter,
+    //   AgentBridge (setIPCClient sink / executeGraph 协调器) 经方法调边界, 不再裸写对方 @Published。
+    //   setConnected: IPCClient.$isConnected sink 回灌。
+    func setConnected(_ value: Bool) { isConnected = value }
+    //   setExecuting: executeGraph 入口/出口/异常复位 isExecuting。
+    func setExecuting(_ value: Bool) { isExecuting = value }
+    //   setEvents / appendEvents: executeGraph 写执行事件流。
+    func setEvents(_ value: [AgentEventModel]) { events = value }
 }
 
 // MARK: - MLX State (模型列表 / 池可见性)
@@ -38,6 +47,10 @@ final class MLXState: ObservableObject {
     var mlxStatusTimer: Timer?
     var mlxStatusFetchedAt: Date?
     init() {}
+
+    // 审计0902 A3 (P2): AgentBridge.probeMLXRunningStatus 跨域 reach-through 写消灭。
+    //   mlxRunning @Published 写收归域内 facade setter, probe 经方法调边界, 不再裸写域 @Published。
+    func setMlxRunning(_ value: Bool) { mlxRunning = value }
 }
 
 // MARK: - Agent State (Agent 生命周期 + Marketplace + 流式 + Graphs + Dashboard, 最大域)
@@ -109,6 +122,9 @@ final class TaskState: ObservableObject {
     var ipcClient: IPCClient?
     var tasksFetchedAt: Date?
     var projectsFetchedAt: Date?
+    // 审计0902 E4 (P2): fetch in-flight flag (await 前置), 防并发重复 fetch; TTL 仅成功后置避盲窗。
+    var isFetchingTasks = false
+    var isFetchingProjects = false
     init() {}
 }
 

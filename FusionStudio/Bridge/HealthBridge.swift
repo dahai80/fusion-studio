@@ -63,10 +63,30 @@ class HealthBridge: ObservableObject {
 
     private func applyAuth(_ req: inout URLRequest) {
         let key = apiKey()
-        if !key.isEmpty {
+        if key.isEmpty {
+            // 审计0902 R7 (P2): 空 key 静默不发认证头 = fail-open。记录告警, 调用方收到上游 401 时
+            // UI 应报"未配置 FUSION_HEALTH_API_KEY"而非误判服务端 401。
+            healthBridgeLog.error("applyAuth: FUSION_HEALTH_API_KEY 为空, 请求将不带鉴权头 (可能 401)")
+        } else {
             req.setValue(key, forHTTPHeaderField: "X-API-Key")
         }
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    }
+
+    // 审计0902 A4 (P1): HTTP 4xx/5xx 抛语义化错误, 不把错误体喂解码器 (否则 decodeError 掩盖 401/500)。
+    // 审计0902 #234 test hook: private→internal (status 校验纯函数, 单测覆盖 4xx/5xx 语义错误)。
+    static func healthStatusError(_ response: URLResponse?) -> Error? {
+        guard let code = (response as? HTTPURLResponse)?.statusCode, !(200...299).contains(code) else { return nil }
+        healthBridgeLog.error("HealthBridge HTTP \(code) (不解码响应体, 避免掩盖真实故障)")
+        let desc: String
+        switch code {
+        case 401: desc = "Unauthorized (401): 鉴权失败, 检查 FUSION_HEALTH_API_KEY"
+        case 403: desc = "Forbidden (403): 无权限"
+        case 404: desc = "Not Found (404): 端点不存在"
+        case 500...599: desc = "Server error (\(code)): fusion-health 服务端故障"
+        default: desc = "HTTP \(code)"
+        }
+        return NSError(domain: "HealthBridge", code: code, userInfo: [NSLocalizedDescriptionKey: desc])
     }
 
     // MARK: - Health
@@ -117,7 +137,12 @@ class HealthBridge: ObservableObject {
         let sid = sessionId.isEmpty ? "studio-\(UUID().uuidString.prefix(8))" : sessionId
         let body: [String: Any] = ["session_id": sid, "system_prompt": systemPrompt]
         req.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        let task = session.dataTask(with: req) { [weak self] data, _, _ in
+        let task = session.dataTask(with: req) { [weak self] data, response, _ in
+            // 审计0902 A4: 4xx/5xx 记录语义化错误, 不喂错误体给解码器
+            if let statusErr = Self.healthStatusError(response) {
+                self?.handleError(statusErr, context: "chat-start")
+                return
+            }
             if let data = data, let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any], let returned = obj["session_id"] as? String {
                 DispatchQueue.main.async { self?.sessionId = returned }
                 healthBridgeLog.info("startChat: session_id=\(returned, privacy: .public)")
@@ -146,6 +171,15 @@ class HealthBridge: ObservableObject {
                 self?.handleError(error, context: "chat")
                 DispatchQueue.main.async {
                     self?.chatMessages.append(HealthChatMessage(role: "assistant", content: "请求失败: \(error.localizedDescription)"))
+                    self?.capChatMessages()
+                }
+                return
+            }
+            // 审计0902 A4: 4xx/5xx 报语义化错误, 不喂错误体给解码器
+            if let statusErr = Self.healthStatusError(response) {
+                self?.handleError(statusErr, context: "chat")
+                DispatchQueue.main.async {
+                    self?.chatMessages.append(HealthChatMessage(role: "assistant", content: statusErr.localizedDescription))
                     self?.capChatMessages()
                 }
                 return
@@ -183,6 +217,12 @@ class HealthBridge: ObservableObject {
                 completion(.failure(error))
                 return
             }
+            // 审计0902 A4: 4xx/5xx 报语义化错误, 不喂错误体给解码器
+            if let statusErr = Self.healthStatusError(response) {
+                self?.handleError(statusErr, context: "ehr-summary")
+                completion(.failure(statusErr))
+                return
+            }
             guard let data = data, let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
                 completion(.failure(NSError(domain: "HealthBridge", code: -3, userInfo: nil)))
                 return
@@ -207,6 +247,11 @@ class HealthBridge: ObservableObject {
         let task = session.dataTask(with: req) { data, response, error in
             if let error = error {
                 completion(.failure(error))
+                return
+            }
+            // 审计0902 A4: 4xx/5xx 报语义化错误, 不喂错误体给解码器
+            if let statusErr = Self.healthStatusError(response) {
+                completion(.failure(statusErr))
                 return
             }
             guard let data = data, let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {

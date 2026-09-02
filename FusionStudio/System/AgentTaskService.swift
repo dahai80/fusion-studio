@@ -22,9 +22,17 @@ extension TaskState {
     // MARK: - Task Fetch Operations
 
     // 从后端 task.list 拉取持久化任务. 后端 5 态 → 前端 7 态.
+    // 审计0902 E4 (P2): 旧实现 await 前置 tasksFetchedAt → 拉取失败时 30s 盲窗, UI 过期任务。
+    //   修复: 用 isFetchingTasks flag (await 前置) 防并发重复; TTL 仅 await 成功后置, 失败留旧 TTL
+    //   (下次立即可重试, 不进盲窗)。fetchProjects 同理。
     func fetchTasks() async {
         if let t = tasksFetchedAt, Date().timeIntervalSince(t) < 30 { return }
-        tasksFetchedAt = Date()
+        guard !isFetchingTasks else {
+            agentTaskLog.info("fetchTasks: already in-flight, skip")
+            return
+        }
+        isFetchingTasks = true
+        defer { isFetchingTasks = false }
         guard let client = self.ipcClient else { return }
         do {
             let result = try await client.taskList(limit: 200)
@@ -34,16 +42,22 @@ extension TaskState {
                 if let t = TaskModel(backendDict: d) { parsed.append(t) }
             }
             self.tasks = parsed
+            tasksFetchedAt = Date()
             agentTaskLog.info("fetchTasks: \(parsed.count) backend tasks")
         } catch {
-            agentTaskLog.warning("fetchTasks failed: \(error.localizedDescription)")
+            agentTaskLog.warning("fetchTasks failed: \(error.localizedDescription) (TTL not advanced, retry next cycle)")
         }
     }
 
     // 拉取 Project 聚合看板桶 (#141 priority-2). 后端 project.list 按 project_id 分组统计.
     func fetchProjects() async {
         if let t = projectsFetchedAt, Date().timeIntervalSince(t) < 30 { return }
-        projectsFetchedAt = Date()
+        guard !isFetchingProjects else {
+            agentTaskLog.info("fetchProjects: already in-flight, skip")
+            return
+        }
+        isFetchingProjects = true
+        defer { isFetchingProjects = false }
         guard let client = self.ipcClient else { return }
         do {
             let result = try await client.projectList()
@@ -53,9 +67,10 @@ extension TaskState {
                 if let b = ProjectBucket(backendDict: d) { parsed.append(b) }
             }
             self.projects = parsed
+            projectsFetchedAt = Date()
             agentTaskLog.info("fetchProjects: \(parsed.count) projects")
         } catch {
-            agentTaskLog.warning("fetchProjects failed: \(error.localizedDescription)")
+            agentTaskLog.warning("fetchProjects failed: \(error.localizedDescription) (TTL not advanced, retry next cycle)")
         }
     }
 }
