@@ -12,10 +12,28 @@ class ArtifactSidebarCache: ObservableObject {
     private var refreshTimer: Timer?
 
     private init() {
+        startTimer()
+    }
+
+    // F-perf-5: singleton deinit 永不触发, 30s Timer 后台仍跑 = 耗电 + 无谓 UDS 调用。
+    // 改 scenePhase 驱动 startTimer/stopTimer, 后台停, 前台恢复。
+    private func startTimer() {
+        guard refreshTimer == nil else { return }
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
             self?.refresh()
         }
+        cacheLog.info("F-perf-5: artifact refresh timer started")
     }
+
+    private func stopTimer() {
+        refreshTimer?.invalidate()
+        refreshTimer = nil
+        cacheLog.info("F-perf-5: artifact refresh timer stopped (background)")
+    }
+
+    // scenePhase 调用入口 (FusionStudioApp.onChange scenePhase)。
+    func pauseForBackground() { stopTimer() }
+    func resumeForForeground() { startTimer(); refresh() }
 
     deinit {
         refreshTimer?.invalidate()

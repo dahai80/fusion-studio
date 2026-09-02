@@ -552,24 +552,30 @@ struct MlxConnectionSettingsView: View {
     private func saveApiKey(_ key: String) {
         let trimmed = key.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
+        // F-perf-6: 文件读写移出 MainActor (Task.detached), 避免同步 I/O 阻塞 UI 线程。
+        // config.mlxApiKey 在写盘成功后回主线程刷新。
         let settingsPath = NSHomeDirectory() + "/.fusion-mlx/settings.json"
-        let url = URL(fileURLWithPath: settingsPath)
-        do {
-            var settings: [String: Any] = [:]
-            if let data = try? Data(contentsOf: url),
-               let existing = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                settings = existing
+        Task.detached(priority: .userInitiated) {
+            let url = URL(fileURLWithPath: settingsPath)
+            do {
+                var settings: [String: Any] = [:]
+                if let data = try? Data(contentsOf: url),
+                   let existing = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    settings = existing
+                }
+                var auth = settings["auth"] as? [String: Any] ?? [:]
+                auth["api_key"] = trimmed
+                settings["auth"] = auth
+                let data = try JSONSerialization.data(withJSONObject: settings, options: .prettyPrinted)
+                try data.write(to: url, options: .atomic)
+                try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: settingsPath)
+                await MainActor.run {
+                    config.mlxApiKey = trimmed
+                }
+                log.info("API key saved: Keychain (primary) + settings.json 0600, config refreshed")
+            } catch {
+                log.error("Failed to save API key: \(error.localizedDescription)")
             }
-            var auth = settings["auth"] as? [String: Any] ?? [:]
-            auth["api_key"] = trimmed
-            settings["auth"] = auth
-            let data = try JSONSerialization.data(withJSONObject: settings, options: .prettyPrinted)
-            try data.write(to: url, options: .atomic)
-            try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: settingsPath)
-            config.mlxApiKey = trimmed
-            log.info("API key saved: Keychain (primary) + settings.json 0600, config refreshed")
-        } catch {
-            log.error("Failed to save API key: \(error.localizedDescription)")
         }
     }
 

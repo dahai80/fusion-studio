@@ -54,13 +54,13 @@ check_requirements() {
     fi
     info "Swift: $(swift --version | head -1)"
 
-    # Rust
-    if ! command -v rustc &>/dev/null; then
-        warn "Rust 未安装，正在安装..."
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-        source "$HOME/.cargo/env"
+    # Rust — F-ops-9: Services/env-daemon 已删除 (#296), Rust 现为可选 (仅本地 Rust 后台服务需要)。
+    # 不再强制安装; 缺失则 warn 跳过, 不阻断 setup。
+    if command -v rustc &>/dev/null; then
+        info "Rust: $(rustc --version)"
+    else
+        warn "Rust 未安装 (可选, 本地 Rust 后台服务已移除 — 见 #296)。跳过。"
     fi
-    info "Rust: $(rustc --version)"
 
     # Python
     if ! command -v python3 &>/dev/null; then

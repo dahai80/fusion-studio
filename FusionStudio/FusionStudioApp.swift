@@ -280,11 +280,15 @@ struct FusionStudioApp: App {
                         // 审计0830 P1-资源-5: ScreenContext 2s Accessibility 轮询未绑 scenePhase,
                         //   app 后台仍轮询 → 耗电 + 后台读 Accessibility 隐私风险。后台停, 唤醒恢复。
                         screenContext.stopMonitoring()
+                        // F-perf-5: ArtifactSidebarCache 30s Timer 后台停 (singleton deinit 不触发)。
+                        ArtifactSidebarCache.shared.pauseForBackground()
                     } else if phase == .active {
                         multiNodeEngine.startPolling()
                         agentBridge.startMlxStatusPolling()
                         // 审计0830 P1-资源-5: 唤醒恢复 ScreenContext 监控 (后台已停)。
                         screenContext.startMonitoring()
+                        // F-perf-5: 唤醒恢复 artifact refresh timer + 立即刷新一次。
+                        ArtifactSidebarCache.shared.resumeForForeground()
                         // #346: 感知层长连接在唤醒后恢复 (后台/休眠可能断 UDS), 守护缺席 fail-open 不锁死。
                         eventBridge.startStream()
                         Task { await eventBridge.checkDaemonStatus() }

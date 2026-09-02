@@ -38,7 +38,8 @@ build_app() {
     step "构建 Fusion Studio App"
 
     # 使用 Swift Package Manager 构建
-    (cd "$PROJECT_DIR" && swift build -c $CONFIGURATION 2>&1 | tail -5)
+    # F-ops-10: tail -5 → tail -20 + tee 落盘, 提升构建失败可诊断性 (pipefail 保 exit code 透传)。
+    (cd "$PROJECT_DIR" && swift build -c $CONFIGURATION 2>&1 | tee /tmp/fusion-studio-spm-build.log | tail -20)
     info "✅ SPM 构建完成"
 
     # 将 Info.plist 复制到 SPM 构建产物旁（裸二进制运行需要隐私描述）
