@@ -1,11 +1,13 @@
 // Callers: FusionStudioApp.init (opt-in gate via FusionConfig.enableCrashTelemetry).
-// Affected API: CrashReporter.shared.start() — installs uncaught-exception handler + MetricKit subscriber.
+// Affected API: CrashReporter.shared.start() — installs uncaught-exception handler + POSIX signal handlers.
 // Data schemas: crash-<timestamp>.log under ~/.fusion-studio/logs/ (0700 dir, 0600 file).
-// F-ops-8: zero-dependency local crash telemetry (NSSetUncaughtExceptionHandler + MetricKit MXCrashDiagnostic).
+// F-ops-8: zero-dependency local crash telemetry.
 //   Opt-in only (Settings toggle, default OFF). No network upload — local file only.
+//   捕获路径: NSSetUncaughtExceptionHandler (NSException/Swift fatalError bridge) +
+//   POSIX signal() (SIGABRT/SIGILL/SIGSEGV/SIGBUS/SIGFPE/SIGPIPE/SIGTRAP)。
+//   注: 不用 MetricKit — MXMetricPayload 在 macOS 标 unavailable (iOS-only), CI macOS-14 拒编。
 
 import Foundation
-import MetricKit
 import os.log
 
 private let crashLog = Logger(subsystem: "com.fusion.studio", category: "CrashReporter")
@@ -30,7 +32,7 @@ final class CrashReporter: NSObject {
         started = true
         ensureLogDir()
         installUncaughtExceptionHandler()
-        installMetricKitSubscriber()
+        installSignalHandlers()
         crashLog.info("F-ops-8: crash reporter started, logDir=\(self.logDir, privacy: .public)")
     }
 
@@ -60,10 +62,33 @@ final class CrashReporter: NSObject {
         }
     }
 
-    // MARK: - MetricKit (MXCrashDiagnostic — system crash reports next launch)
+    // MARK: - POSIX signal handlers (致命信号 → 落盘后重抛默认处理让进程崩)
 
-    private func installMetricKitSubscriber() {
-        MXMetricManager.shared.add(self)
+    private func installSignalHandlers() {
+        let fatalSignals: [Int32] = [SIGABRT, SIGILL, SIGSEGV, SIGBUS, SIGFPE, SIGPIPE, SIGTRAP]
+        for sig in fatalSignals {
+            signal(sig) { rawSig in
+                let name: String
+                switch rawSig {
+                case SIGABRT: name = "SIGABRT"
+                case SIGILL: name = "SIGILL"
+                case SIGSEGV: name = "SIGSEGV"
+                case SIGBUS: name = "SIGBUS"
+                case SIGFPE: name = "SIGFPE"
+                case SIGPIPE: name = "SIGPIPE"
+                case SIGTRAP: name = "SIGTRAP"
+                default: name = "SIG\(rawSig)"
+                }
+                // signal handler 上下文禁用大多数 API; 仅调 async-signal-safe 写盘。
+                CrashReporter.shared.writeCrashFromSignal(
+                    signalName: name,
+                    stack: Thread.callStackSymbols
+                )
+                // 恢复默认处置并重发, 让进程按原行为终止 (不吞崩溃)。
+                signal(rawSig, SIG_DFL)
+                raise(rawSig)
+            }
+        }
     }
 
     // MARK: - Write
@@ -90,29 +115,21 @@ final class CrashReporter: NSObject {
             crashLog.error("F-ops-8: write crash report failed: \(error.localizedDescription)")
         }
     }
-}
 
-// MARK: - MXMetricManagerSubscriber
-
-extension CrashReporter: MXMetricManagerSubscriber {
-    func didReceive(_ payloads: [MXMetricPayload]) {
-        // 性能指标非崩溃, 此处不落盘 (F-ops-8 仅捕获崩溃)。
-    }
-
-    func didReceive(_ payloads: [MXDiagnosticPayload]) {
-        for payload in payloads {
-            let crashDiags = payload.crashDiagnostics ?? []
-            for diag in crashDiags {
-                // F-ops-8: MXCallStackTree 仅暴露 JSONRepresentation, 无法逐帧遍历。
-                // 落盘整棵调用树 JSON, 供离线符号化 (binaryName/UUID/offset 全在内)。
-                let stackJSON = String(data: diag.callStackTree.jsonRepresentation(), encoding: .utf8) ?? "(unavailable stack json)"
-                CrashReporter.shared.writeCrash(
-                    kind: "MXCrashDiagnostic",
-                    name: diag.terminationReason ?? "(no termination reason)",
-                    reason: "signal=\(diag.signal?.stringValue ?? "?") exceptionType=\(diag.exceptionType?.stringValue ?? "?")",
-                    stack: ["<callStackTree JSON>", stackJSON]
-                )
-            }
-        }
+    // signal handler 专用落盘: 最小依赖, 不记 os_log (非 async-signal-safe)。
+    func writeCrashFromSignal(signalName: String, stack: [String]) {
+        let ts = Int(Date().timeIntervalSince1970)
+        let path = logDir + "/crash-\(ts).log"
+        var lines: [String] = []
+        lines.append("=== Fusion Studio crash report ===")
+        lines.append("kind: FatalSignal")
+        lines.append("signal: \(signalName)")
+        lines.append("timestamp: \(ts)")
+        lines.append("--- stack ---")
+        lines.append(contentsOf: stack)
+        lines.append("=== end ===\n")
+        let content = lines.joined(separator: "\n")
+        try? content.write(toFile: path, atomically: true, encoding: .utf8)
+        try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: path)
     }
 }
