@@ -84,19 +84,41 @@ class FileWatcher: ObservableObject {
     @Published var isWatching: Bool = false
 
     private let logger = Logger(subsystem: "com.fusion.studio", category: "FileWatcher")
-    private var stream: FSEventStreamRef?
+    // 审计0902 E5 (P2): stream/notificationObserver/debounceTimers 在 deinit (nonisolated) 与
+    //   stopWatching (main) 并发访问 → double-release/use-after-invalidate 崩溃。用 NSLock 串行化
+    //   生命周期, deinit 与 stopWatching 共用 nonisolated teardownStream() 持锁释放。FSEventStream/
+    //   removeObserver 本身线程安全, 但需防 deinit 与 stopWatching 各释放一次 (double-release)。
+    private let lifecycleLock = NSLock()
+    // nonisolated(unsafe): deinit/teardownStream nonisolated 持锁访问 (lifecycleLock 串行化), 跨 @MainActor 边界。
+    nonisolated(unsafe) private var stream: FSEventStreamRef?
     private var lastEvents: [String: Date] = [:]
-    private var debounceTimers: [String: Task<Void, Never>] = [:]
-    private var notificationObserver: NSObjectProtocol?
+    nonisolated(unsafe) private var debounceTimers: [String: Task<Void, Never>] = [:]
+    nonisolated(unsafe) private var notificationObserver: NSObjectProtocol?
 
     deinit {
-        if let observer = notificationObserver {
+        teardownStream()
+    }
+
+    // nonisolated: deinit 非 @MainActor 调用, 持锁释放 CF 资源 (线程安全) + 取消 observer/timers。
+    private nonisolated func teardownStream() {
+        lifecycleLock.lock()
+        let streamToRelease = stream
+        let observerToRemove = notificationObserver
+        let timersToCancel = debounceTimers
+        stream = nil
+        notificationObserver = nil
+        debounceTimers.removeAll()
+        lifecycleLock.unlock()
+        if let observer = observerToRemove {
             NotificationCenter.default.removeObserver(observer)
         }
-        if let stream = stream {
+        if let stream = streamToRelease {
             FSEventStreamStop(stream)
             FSEventStreamInvalidate(stream)
             FSEventStreamRelease(stream)
+        }
+        for (_, timer) in timersToCancel {
+            timer.cancel()
         }
     }
 
@@ -158,34 +180,23 @@ class FileWatcher: ObservableObject {
                 flags: FSEventStreamEventFlags(flagsNum.uint32Value),
                 timestamp: timestamp
             )
-            self.appendEvent(event)
+            // 审计0902 E5 (P2): block 已在 queue:.main, 但 @Sendable 闭包需显式 MainActor.run 跳 @MainActor appendEvent。
+            Task { @MainActor [weak self] in
+                self?.appendEvent(event)
+            }
         }
     }
 
     func stopWatching() {
-        guard let stream = stream else {
+        guard stream != nil else {
             logger.warning("FileWatcher not active, ignoring stopWatching call")
             return
         }
 
         logger.info("FileWatcher stopping")
-
-        FSEventStreamStop(stream)
-        FSEventStreamInvalidate(stream)
-        FSEventStreamRelease(stream)
-        self.stream = nil
+        // 审计0902 E5 (P2): 与 deinit 共用 teardownStream (持锁释放), 杜绝 stopWatching 与 deinit 各释放一次。
+        teardownStream()
         isWatching = false
-
-        if let observer = notificationObserver {
-            NotificationCenter.default.removeObserver(observer)
-            notificationObserver = nil
-        }
-
-        for (_, timer) in debounceTimers {
-            timer.cancel()
-        }
-        debounceTimers.removeAll()
-
         logger.info("FSEventStream stopped and released")
     }
 
@@ -209,12 +220,14 @@ class FileWatcher: ObservableObject {
         return true
     }
 
-    nonisolated private func appendEvent(_ event: FileChangeEvent) {
-        MainActor.assumeIsolated {
-            self.fileChanges.append(event)
-            if self.fileChanges.count > 500 {
-                self.fileChanges.removeFirst(self.fileChanges.count - 500)
-            }
+    // 审计0902 E5 (P2): notificationObserver block 在 queue:.main 触发 → appendEvent 本在主线程。
+    //   旧 nonisolated + MainActor.assumeIsolated 是脆弱契约 (FSEventStream 改调度即 trap)。
+    //   改 @MainActor 显式隔离, 编译器静态保证主线程, 不依赖运行时 assume。
+    @MainActor
+    private func appendEvent(_ event: FileChangeEvent) {
+        self.fileChanges.append(event)
+        if self.fileChanges.count > 500 {
+            self.fileChanges.removeFirst(self.fileChanges.count - 500)
         }
     }
 }

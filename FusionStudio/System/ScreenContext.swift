@@ -32,12 +32,26 @@ class ScreenContextManager: ObservableObject {
     @Published var isMonitoring: Bool = false
 
     private let logger = Logger(subsystem: "com.fusion.studio", category: "ScreenContext")
-    private var timer: Timer?
+    // 审计0902 E5 (P2): deinit (nonisolated) 访问 @MainActor timer 不安全 (Timer invalidate 跨线程
+    //   use-after-invalidate 崩溃); 与 stopMonitoring (main) 并发各 invalidate 一次。NSLock 串行化,
+    //   nonisolated(unsafe) timer 跨 @MainActor 边界 (lifecycleLock 保护)。
+    private let lifecycleLock = NSLock()
+    nonisolated(unsafe) private var timer: Timer?
     private var pollInterval: TimeInterval = 2.0
+    // 审计0902 E5 (P2): pollContext 阻塞慢 AX API, Timer 每 2s 起新 Task 排队快于排空 → 主 actor 积压。
+    //   isPolling flag 跳过重叠 poll, 上一轮未完不起新轮。
+    private var isPolling = false
 
     deinit {
-        timer?.invalidate()
+        teardownTimer()
+    }
+
+    private nonisolated func teardownTimer() {
+        lifecycleLock.lock()
+        let timerToInvalidate = timer
         timer = nil
+        lifecycleLock.unlock()
+        timerToInvalidate?.invalidate()
     }
 
     func startMonitoring() {
@@ -71,8 +85,8 @@ class ScreenContextManager: ObservableObject {
         }
 
         logger.info("ScreenContextManager stopping polling")
-        timer?.invalidate()
-        timer = nil
+        // 审计0902 E5 (P2): 与 deinit 共用 teardownTimer (持锁 invalidate), 杜绝并发各 invalidate 一次。
+        teardownTimer()
         isMonitoring = false
     }
 
@@ -90,6 +104,10 @@ class ScreenContextManager: ObservableObject {
     }
 
     private func pollContext() {
+        // 审计0902 E5 (P2): 跳过重叠 poll — 上一轮慢 AX API 未完, Timer 又起新轮 → 主 actor 积压 UI 抖。
+        guard !isPolling else { return }
+        isPolling = true
+        defer { isPolling = false }
         let systemWide = AXUIElementCreateSystemWide()
 
         var focusedApp: AnyObject?
