@@ -52,6 +52,10 @@ class IPCClient: ObservableObject {
     private let pendingCap = 500
     // 审计0902 A5 (P2): inflightReads 每 key waiter cap (见 call 合并块)。
     private let inflightWaiterCap = 100
+    // 审计0902 R5 (P2): udsCall 短连通道在飞上限。旧每调用起 DispatchQueue.global worker + 新 socket,
+    //   200 并发 projectCall/spaceCall = 200 GCD worker + 200 socket, 突发线程池耗尽。cap 32 并发短连,
+    //   超限 caller 在 semaphore 排队等槽位 (阻塞 GCD worker, 但限总数防线程池耗尽)。
+    private static let udsCallSemaphore = DispatchSemaphore(value: 32)
     // F-R4: 方法级 in-flight 去重 (同 method 在途不重发)。仅对幂等读 (空 params + *.list/status/ping/health_check)
     // 合并: 第一个 caller 驱动 socket, 后续 caller 续体挂 inflightReads 等结果 fan-out, 不重发。
     // 变更类 (mlx.stop/agent.create/*.delete/env.repair_all 等) 永不合并 — 幂等性不同, 重发是正确语义。
@@ -403,6 +407,9 @@ class IPCClient: ObservableObject {
     func udsCall(socketPath: String, method: String, params: [String: Any] = [:], timeoutSecs: Int = 8) async throws -> [String: Any] {
         try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
+                // 审计0902 R5 (P2): 限并发短连, acquire 在阻塞 worker 前排队; release 随 close 释放槽位。
+                Self.udsCallSemaphore.wait()
+                defer { Self.udsCallSemaphore.signal() }
                 let sock = socket(AF_UNIX, SOCK_STREAM, 0)
                 guard sock >= 0 else {
                     continuation.resume(throwing: IPCError.invalidRequest)

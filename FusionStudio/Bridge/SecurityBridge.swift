@@ -34,6 +34,12 @@ class SecurityBridge: ObservableObject {
         "http://127.0.0.1:\(FusionConfig.shared.securityPort)"
     }
 
+    // 审计0902 R5 (P2): 无重连定时器 (仅 checkHealth 翻状态, 无自动重试), fusion-security 宕 = 永久
+    //   isConnected=false 无自愈。对齐 IPCClient/SimulationBridge 退避: base 2s × 2^min(attempt,5)
+    //   封顶 60s + jitter, 成功复位 attempt=0。
+    private var reconnectTimer: Timer?
+    private var reconnectAttempt: Int = 0
+
     // #373: 规则 CRUD 委托 fusion-guard UDS (guard 为规则匹配 SSOT), SAST 仍走 HTTP :11454。
     // 注入点: FusionStudioApp 注入与 guardBridge.shared 同一实例。缺席则 fail-open 空 (规则管理非主门控)。
     weak var guardBridge: GuardBridge?
@@ -43,6 +49,27 @@ class SecurityBridge: ObservableObject {
         config.timeoutIntervalForRequest = 10
         config.timeoutIntervalForResource = 60
         self.session = URLSession(configuration: config)
+    }
+
+    deinit {
+        reconnectTimer?.invalidate()
+    }
+
+    // 审计0902 R5 (P2): 指数退避 + jitter。base 2s × 2^min(attempt,5) 封顶 60s, jitter (attempt×137)%1000ms;
+    //   单次 fire (非 repeats) 每次重算 interval, 成功复位 attempt=0。
+    private func scheduleReconnect() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.reconnectTimer?.invalidate()
+            let attempt = self.reconnectAttempt
+            let base = 2.0 * pow(2.0, Double(min(attempt, 5)))
+            let interval = min(base, 60.0) + Double((attempt * 137) % 1000) / 1000.0
+            self.reconnectAttempt += 1
+            secBridgeLog.warning("SecurityBridge reconnect backoff: attempt=\(attempt) interval=\(String(format: "%.2f", interval))s")
+            self.reconnectTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] _ in
+                self?.checkHealth()
+            }
+        }
     }
 
     // MARK: - Health
@@ -57,8 +84,13 @@ class SecurityBridge: ObservableObject {
                 && data != nil
             DispatchQueue.main.async {
                 self?.isConnected = ok
-                if !ok {
+                if ok {
+                    self?.reconnectTimer?.invalidate()
+                    self?.reconnectTimer = nil
+                    self?.reconnectAttempt = 0
+                } else {
                     secBridgeLog.error("SecurityBridge health failed: \(error?.localizedDescription ?? "no response")")
+                    self?.scheduleReconnect()
                 }
                 completion?(ok)
             }

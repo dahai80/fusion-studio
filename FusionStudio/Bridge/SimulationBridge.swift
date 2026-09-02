@@ -23,6 +23,9 @@ class SimulationBridge: ObservableObject {
     private let baseURL: String
     private let session: URLSession
     private var reconnectTimer: Timer?
+    // 审计0902 R5 (P2): 重连固定 3s 无退避, fusion-sim 宕机 = 每 3s 永久锤击 + 多实例恢复雷群。
+    //   对齐 IPCClient 退避: base 2s × 2^min(attempt,5) 封顶 60s, 连接成功复位 attempt=0。
+    private var reconnectAttempt: Int = 0
 
     init(baseURL: String = FusionConfig.shared.simulationBaseURL) {
         self.baseURL = baseURL
@@ -49,6 +52,7 @@ class SimulationBridge: ObservableObject {
                     self?.status = dto
                     self?.reconnectTimer?.invalidate()
                     self?.reconnectTimer = nil
+                    self?.reconnectAttempt = 0
                 }
             case .failure(let error):
                 self?.handleHealthFailure(error)
@@ -66,12 +70,18 @@ class SimulationBridge: ObservableObject {
         }
     }
 
-    // 对齐 IPCClient 3s 重连策略：健康探测失败后每 3s 重试，成功即停止
+    // 审计0902 R5 (P2): 指数退避 + jitter 替固定 3s。base 2s × 2^min(attempt,5) 封顶 60s,
+    //   确定性 jitter (attempt×137)%1000ms; 单次 fire (非 repeats) 每次重新算 interval, 成功复位。
     private func scheduleReconnect() {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             self.reconnectTimer?.invalidate()
-            self.reconnectTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
+            let attempt = self.reconnectAttempt
+            let base = 2.0 * pow(2.0, Double(min(attempt, 5)))
+            let interval = min(base, 60.0) + Double((attempt * 137) % 1000) / 1000.0
+            self.reconnectAttempt += 1
+            simBridgeLog.warning("SimulationBridge reconnect backoff: attempt=\(attempt) interval=\(String(format: "%.2f", interval))s")
+            self.reconnectTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] _ in
                 self?.checkHealth()
             }
         }

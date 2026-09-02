@@ -86,12 +86,22 @@ class DocBridge: ObservableObject {
     private let baseURL: String
     private let session: URLSession
 
+    // 审计0902 R5 (P2): 无重连定时器 (仅 checkHealth 翻状态, 无自动重试), fusion-doc 宕 = 永久
+    //   isConnected=false 无自愈。对齐 IPCClient/SimulationBridge 退避: base 2s × 2^min(attempt,5)
+    //   封顶 60s + jitter, 成功复位 attempt=0。
+    private var reconnectTimer: Timer?
+    private var reconnectAttempt: Int = 0
+
     init(baseURL: String = "http://127.0.0.1:11449") {
         self.baseURL = baseURL
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 8
         config.timeoutIntervalForResource = 30
         self.session = URLSession(configuration: config)
+    }
+
+    deinit {
+        reconnectTimer?.invalidate()
     }
 
     // MARK: - Generic HTTP
@@ -223,7 +233,28 @@ class DocBridge: ObservableObject {
             // (URL/路径/端口) 到 UI。context 是固定标签 (health/books 等) 非用户数据可留; error 经
             // BridgeError.sanitize 脱敏取 i18n 用户消息。日志保留 raw 供定位 (本地 os_log)。
             self.lastError = "\(context): \(BridgeError.sanitize(error))"
-            if context == "health" { self.isConnected = false }
+            // 审计0902 R5 (P2): health 失败触发退避重连, 非"翻一次状态即永久 false"。
+            if context == "health" {
+                self.isConnected = false
+                self.scheduleReconnect()
+            }
+        }
+    }
+
+    // 审计0902 R5 (P2): 指数退避 + jitter。base 2s × 2^min(attempt,5) 封顶 60s, jitter (attempt×137)%1000ms;
+    //   单次 fire (非 repeats) 每次重算 interval, 成功复位 attempt=0。
+    private func scheduleReconnect() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.reconnectTimer?.invalidate()
+            let attempt = self.reconnectAttempt
+            let base = 2.0 * pow(2.0, Double(min(attempt, 5)))
+            let interval = min(base, 60.0) + Double((attempt * 137) % 1000) / 1000.0
+            self.reconnectAttempt += 1
+            docBridgeLog.warning("DocBridge reconnect backoff: attempt=\(attempt) interval=\(String(format: "%.2f", interval))s")
+            self.reconnectTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] _ in
+                self?.checkHealth()
+            }
         }
     }
 
@@ -237,6 +268,9 @@ class DocBridge: ObservableObject {
                 DispatchQueue.main.async {
                     self?.isConnected = true
                     self?.lastError = nil
+                    self?.reconnectTimer?.invalidate()
+                    self?.reconnectTimer = nil
+                    self?.reconnectAttempt = 0
                 }
             case .failure(let error):
                 self?.handleError(error, context: "health")
