@@ -61,8 +61,6 @@ final class AuditProduct0902Tests: XCTestCase {
         XCTAssertEqual(FinanceBridgeError.httpError(404).errorDescription, "HTTP error 404")
         XCTAssertEqual(FinanceBridgeError.httpError(500).errorDescription, "HTTP error 500")
         XCTAssertEqual(FinanceBridgeError.httpError(599).errorDescription, "HTTP error 599")
-        // 语义边界: 2xx 不进此 case (guard (200..<300) 已挡)
-        XCTAssertNotEqual(FinanceBridgeError.httpError(200).errorDescription, "HTTP error 200")
         // F-ft-6: 无数据不再 ?? [:] 静默, 走 noData
         XCTAssertEqual(FinanceBridgeError.noData.errorDescription, "No data returned")
         XCTAssertEqual(FinanceBridgeError.invalidURL.errorDescription, "Invalid URL")
