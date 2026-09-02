@@ -885,7 +885,7 @@ struct UnifiedChatView: View {
                                     .fill(theme.accent.opacity(0.12))
                             )
                     } else {
-                        Text(try! AttributedString(markdown: renderArtifactRefs(msg.content), options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)))
+                        Text(parseMarkdownSafely(renderArtifactRefs(msg.content)))
                             .font(.system(size: theme.textSize))
                             .foregroundStyle(theme.text)
                             .textSelection(.enabled)
@@ -1265,6 +1265,16 @@ struct UnifiedChatView: View {
             result.replaceSubrange(fullRange, with: replacement)
         }
         return result
+    }
+
+    // F-ft-3 P1: 解析 markdown 失败不崩 (旧 try! 对不可信 msg.content 致 fatalError)。
+    // 解析失败回退纯文本 AttributedString, 保证渲染不中断。
+    private func parseMarkdownSafely(_ text: String) -> AttributedString {
+        let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        if let parsed = try? AttributedString(markdown: text, options: options) {
+            return parsed
+        }
+        return AttributedString(text)
     }
 
     private func iconForArtifactType(_ type: String) -> String {

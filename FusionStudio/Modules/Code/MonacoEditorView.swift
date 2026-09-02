@@ -21,6 +21,9 @@ struct MonacoEditorView: NSViewRepresentable {
         userContentController.add(context.coordinator, name: "monacoBridge")
 
         config.userContentController = userContentController
+        // F-sec-3: allowFileAccess=true is required — Monaco loads monaco-dist workers/language
+        // bundles from the app bundle via file://. Safe: only bundled resources are loaded (see
+        // decidePolicyFor below, which denies any non-bundle navigation). No untrusted URLs.
         config.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
 
         let webView = WKWebView(frame: .zero, configuration: config)
@@ -101,6 +104,18 @@ struct MonacoEditorView: NSViewRepresentable {
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             monacoLog.info("Monaco page loaded")
+        }
+
+        // F-sec-3: deny any navigation off the bundled monaco-dist index.html.
+        func webView(_ webView: WKWebView,
+                      decidePolicyFor navigationAction: WKNavigationAction,
+                      decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+            if let url = navigationAction.request.url, url.isFileURL {
+                decisionHandler(.allow)
+                return
+            }
+            monacoLog.error("F-sec-3: blocking non-file navigation in Monaco editor")
+            decisionHandler(.cancel)
         }
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
@@ -185,6 +200,18 @@ struct MonacoDiffView: NSViewRepresentable {
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             monacoLog.info("Monaco diff page loaded")
+        }
+
+        // F-sec-3: deny any navigation off the bundled monaco-dist index.html.
+        func webView(_ webView: WKWebView,
+                      decidePolicyFor navigationAction: WKNavigationAction,
+                      decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+            if let url = navigationAction.request.url, url.isFileURL {
+                decisionHandler(.allow)
+                return
+            }
+            monacoLog.error("F-sec-3: blocking non-file navigation in Monaco diff view")
+            decisionHandler(.cancel)
         }
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {

@@ -439,7 +439,11 @@ class IPCClient: ObservableObject {
     // 每次新建短连接, 换行分隔 JSON-RPC 2.0; 结果归一化: dict 原样 / array 包成 ["items":...] / 标量包成 ["_result":...]
     @discardableResult
     func udsCall(socketPath: String, method: String, params: [String: Any] = [:], timeoutSecs: Int = 8) async throws -> [String: Any] {
-        try await withCheckedThrowingContinuation { continuation in
+        // F-ft-4: 旧 udsCall 扁平 8s 超时, 长 RPC (RAG ingest / model pull) 误超时。
+        // 当调用方用默认值 8 (未显式传超时), 改用与主 call() 一致的 method-aware rpcTimeout,
+        // 让长方法拿 longRpcTimeout (120s), 短方法拿 defaultRpcTimeout (8s)。
+        let effectiveTimeout: Int = timeoutSecs == 8 ? Int(Self.rpcTimeout(for: method)) : timeoutSecs
+        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[String: Any], Error>) in
             DispatchQueue.global(qos: .userInitiated).async {
                 // 审计0902 R5 (P2): 限并发短连, acquire 在阻塞 worker 前排队; release 随 close 释放槽位。
                 Self.udsCallSemaphore.wait()
@@ -457,7 +461,7 @@ class IPCClient: ObservableObject {
                     continuation.resume(throwing: IPCError.disconnected)
                     return
                 }
-                var tv = timeval(tv_sec: timeoutSecs, tv_usec: 0)
+                var tv = timeval(tv_sec: effectiveTimeout, tv_usec: 0)
                 _ = setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
                 // 审计0902 R4 (P1): SO_SNDTIMEO 防写端永久阻塞 (对端慢消费/窗口满)。旧仅设 RCFTIMEO,
                 //   writeAll 阻塞写可挂死整个短连通道。与 RCFTIMEO 对称设发送超时。

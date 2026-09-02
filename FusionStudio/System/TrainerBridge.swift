@@ -285,7 +285,14 @@ final class TrainerBridge: ObservableObject {
             let result = try await client.trainerRunsProgress(runId: runId, sinceStep: lastSeenStep)
             let events = (result["events"] as? [[String: Any]] ?? []).map { TrainerProgressEvent.from($0) }
             if let last = events.last { lastSeenStep = max(lastSeenStep, last.step) }
-            if !events.isEmpty { progressEvents.append(contentsOf: events) }
+            if !events.isEmpty {
+                progressEvents.append(contentsOf: events)
+                // F-perf-1: progressEvents 无界增长 (长训练 1k+ steps) → 内存膨胀。
+                // 保留最近 500 (镜像 StreamingBridge/DocBridge suffix cap 模式)。
+                if progressEvents.count > 500 {
+                    progressEvents = Array(progressEvents.suffix(500))
+                }
+            }
             // RunManager run_progress 返回顶层平铺 (run_id/status), 无 "run" 包装; 兼容旧返回
             let runDict = (result["run"] as? [String: Any]) ?? result
             if runDict["run_id"] != nil {

@@ -209,12 +209,27 @@ struct DesignPreviewView: NSViewRepresentable {
 
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
                      decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+            // F-sec-6: 旧策略非 .linkActivated 一律 .allow, 且 linkActivated 无 scheme 白名单
+            // → 可被 LLM 生成 HTML 注入 <a href="file:///..."> 或 javascript: / 自定义 scheme
+            //   抛给 NSWorkspace 触发系统行为 (打开本地文件/执行 JS/调起外部 app)。
+            // 收紧: 仅 .linkActivated 且 scheme ∈ {http,https} 才外抛系统浏览器, 其余一律 .cancel。
             if navigationAction.navigationType == .linkActivated, let url = navigationAction.request.url {
+                guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else {
+                    previewLog.warning("F-sec-6: blocking non-http(s) link: \(url.absoluteString)")
+                    decisionHandler(.cancel)
+                    return
+                }
                 NSWorkspace.shared.open(url)
                 decisionHandler(.cancel)
-            } else {
-                decisionHandler(.allow)
+                return
             }
+            // 非用户主动点击的导航 (重定向/JS location/iframe) 一律拒绝, 仅放行 WebView 初始 loadHTMLString。
+            if navigationAction.navigationType == .other {
+                decisionHandler(.allow)
+                return
+            }
+            previewLog.warning("F-sec-6: blocking navigation type \(navigationAction.navigationType.rawValue)")
+            decisionHandler(.cancel)
         }
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {

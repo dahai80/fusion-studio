@@ -188,6 +188,10 @@ class SecurityBridge: ObservableObject {
             case .success(let scan):
                 DispatchQueue.main.async {
                     self?.scans.insert(scan, at: 0)
+                    // F-perf-2: scans 仅 insert 无 cap, 长会话累积无界。保留最近 200。
+                    if let count = self?.scans.count, count > 200 {
+                        self?.scans = Array(self!.scans.prefix(200))
+                    }
                 }
                 // 后台扫描完成后刷新
                 DispatchQueue.global().asyncAfter(deadline: .now() + 4) {

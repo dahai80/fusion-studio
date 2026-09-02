@@ -15,11 +15,13 @@ struct ContentView: View {
     @EnvironmentObject var ipcClient: IPCClient
     @EnvironmentObject var taskManager: TaskManager
     @EnvironmentObject var guardBridge: GuardBridge
+    @EnvironmentObject var upstreamManager: UpstreamServiceManager
 
     var body: some View {
         let theme = themeState.isDarkMode ? StudioTheme.dark : StudioTheme.light
 
-        HStack(spacing: 0) {
+        ZStack(alignment: .top) {
+            HStack(spacing: 0) {
             IconRailView()
 
             Rectangle()
@@ -43,6 +45,25 @@ struct ContentView: View {
 
                 InspectorPanel()
                     .transition(.move(edge: .trailing).combined(with: .opacity))
+            }
+        }
+
+            // F-func-1/F-ops-5: 关键后端未安装顶层 banner (替代静默 IPC 失败)。
+            if upstreamManager.criticalBackendMissing {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.orange)
+                    Text(upstreamManager.criticalBackendMissingHint)
+                        .font(.callout)
+                    Spacer()
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color.orange.opacity(0.15))
+                .cornerRadius(6)
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
+                .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
         .frame(minWidth: 1100, minHeight: 700)
@@ -193,9 +214,10 @@ struct SectionContentView: View {
             case .fsb:
                 FSBWorkspaceView()
             case .science:
+                // F-arch-1: 不再每-case 造 ScienceBridge()/ScienceSSEClient() 影子实例。
+                // 复用 FusionStudioApp 根 @StateObject (L38-39) 经 .environmentObject 注入,
+                // 避免 Science 模块脱离全局状态 / 重复 SSE 连接。
                 ScienceWorkbenchView()
-                    .environmentObject(ScienceBridge())
-                    .environmentObject(ScienceSSEClient())
             case .finance:
                 FinanceWorkbenchView()
             case .health:

@@ -166,6 +166,11 @@ struct FusionStudioApp: App {
                     Task {
                         await performStartupHealthCheck()
                     }
+                    // F-ops-4: 启动按需检查更新, 受 allowUpdateCheck 开关控制 (Settings 默认 ON)。
+                    // 非强制: 复用 AutoUpdateManager 内置 1h 节流, 避免每次唤起都打 GitHub API。
+                    if FusionConfig.shared.allowUpdateCheck {
+                        AutoUpdateManager.shared.checkForUpdates()
+                    }
                     // F-R13: 启动进程内 RSS 监控, 软阈值告警 + 日志, 防 @Published/长会话 OOM 静默。
                     // critical 阈值 (>3GB) 触发注册的 eviction 回调清无界 @Published 数组 LRU。
                     StudioMemoryMonitor.shared.start()

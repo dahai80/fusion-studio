@@ -78,6 +78,12 @@ class FusionConfig: ObservableObject {
             defaults.set(11458, forKey: "multiNodeAgentPort")
             fusionConfigLog.info("F-I9 migrate: multiNodeAgentPort 11445 → 11458 (stale comfyui conflict)")
         }
+        // F-ops-1 P0: healthPort 11456 (现归 simulation-metrics) → 11469 (fusion-health, start.sh probe)。
+        let oldHealthPort = defaults.integer(forKey: "healthPort")
+        if oldHealthPort == 11456 {
+            defaults.set(11469, forKey: "healthPort")
+            fusionConfigLog.info("F-ops-1 migrate: healthPort 11456 → 11469 (stale simulation-metrics conflict)")
+        }
         defaults.set(true, forKey: Self.stalePortMigratedKey)
         fusionConfigLog.info("F-I9 migrate: stale port migration v1 done (oldAgentPort=\(oldAgentPort))")
     }
@@ -262,12 +268,24 @@ class FusionConfig: ObservableObject {
     @AppStorage("multiNodeClusterToken") var multiNodeClusterToken = ""
 
     /// Multi-Node Master 服务地址（FastAPI MasterServer，需 Bearer token）。
-    var multiNodeBaseURL: String { "http://\(modelHubHost):\(multiNodePort)" }
+    // F-sec-1 P1: 远程集群强制 https:// (明文 token 走 HTTP 跨网段泄露风险); 本地单节点 http://。
+    var multiNodeBaseURL: String { "\(schemeForHost(modelHubHost))://\(modelHubHost):\(multiNodePort)" }
     /// Multi-Node Agent 服务地址（FastAPI AgentServer，需 Bearer token）。
     // F-A8: 旧硬编码 127.0.0.1, 远程集群场景下 7 Agent KV 方法 (fetchAgentKVStats/agentKVLookup/
     // agentKVTransfer/agentKVWarm 等) 全打本地而非远程节点。改用 modelHubHost — 本地单节点
     // modelHubHost 默认 127.0.0.1 行为不变, 远程集群走远程 host。端口与 comfyui 冲突属上游问题。
-    var multiNodeAgentBaseURL: String { "http://\(modelHubHost):\(multiNodeAgentPort)" }
+    // F-sec-1 P1: 同 multiNodeBaseURL, 远程强制 https://。
+    var multiNodeAgentBaseURL: String { "\(schemeForHost(modelHubHost))://\(modelHubHost):\(multiNodeAgentPort)" }
+
+    /// F-sec-1 P1: 本地回环/链路本地地址用 http://; 远程主机强制 https:// (Bearer token 明文保护)。
+    /// 注: 仅选 scheme; TLS 证书校验由 URLSession 默认 ATS 负责, 远程部署需提供有效证书。
+    private func schemeForHost(_ host: String) -> String {
+        let h = host.lowercased()
+        if h == "127.0.0.1" || h == "localhost" || h == "0.0.0.0" || h == "::1" {
+            return "http"
+        }
+        return "https"
+    }
 
     /// 读取 cluster token：优先手动覆盖，否则读 ~/.fusion/multi-node/.cluster_token（0600）。
     var multiNodeResolvedToken: String {
@@ -293,7 +311,9 @@ class FusionConfig: ObservableObject {
     var simulationBaseURL: String { "http://\(simulationHost):\(simulationPort)" }
 
     @AppStorage("healthHost") var healthHost = "127.0.0.1"
-    @AppStorage("healthPort") var healthPort = 11456
+    // F-ops-1 P0: fusion-health 默认端口 11469 (11456 现归 simulation-metrics, start.sh probe 11469)。
+    // 旧用户 @AppStorage 残留 11456 → init migrateStalePorts 首启迁移。
+    @AppStorage("healthPort") var healthPort = 11469
 
     var healthBaseURL: String { "http://\(healthHost):\(healthPort)" }
 
@@ -347,16 +367,16 @@ class FusionConfig: ObservableObject {
         let host = mlxHost
         let port = mlxPort
         if mlxEndpointOverrideEnabled {
-            fusionConfigLog.error("mlxBaseURL: source=user-override (mlxHost:mlxPort) -> \(host):\(port) (env ignored)")
+            fusionConfigLog.info("mlxBaseURL: source=user-override (mlxHost:mlxPort) -> \(host):\(port) (env ignored)")
             return "http://\(host):\(port)"
         }
         let env = ProcessInfo.processInfo.environment
         if let full = env["FUSION_GATEWAY_URL"] ?? env["FUSION_MLX_URL"], !full.isEmpty {
-            fusionConfigLog.error("mlxBaseURL: source=FUSION_GATEWAY_URL/MLX_URL env -> \(full)")
+            fusionConfigLog.info("mlxBaseURL: source=FUSION_GATEWAY_URL/MLX_URL env -> \(full)")
             return full
         }
         if let portStr = env["FUSION_MLX_PORT"], let envPort = Int(portStr), envPort > 0 {
-            fusionConfigLog.error("mlxBaseURL: source=FUSION_MLX_PORT env -> \(host):\(envPort)")
+            fusionConfigLog.info("mlxBaseURL: source=FUSION_MLX_PORT env -> \(host):\(envPort)")
             return "http://\(host):\(envPort)"
         }
         return "http://\(host):\(port)"
@@ -368,18 +388,18 @@ class FusionConfig: ObservableObject {
     /// 3) ~/.fusion-mlx/settings.json -> auth.api_key
     var mlxResolvedApiKey: String {
         if !mlxApiKey.isEmpty {
-            fusionConfigLog.error("mlxResolvedApiKey: source=user-settings")
+            fusionConfigLog.info("mlxResolvedApiKey: source=user-settings")
             return mlxApiKey
         }
         if let envKey = ProcessInfo.processInfo.environment["FUSION_MLX_API_KEY"], !envKey.isEmpty {
-            fusionConfigLog.error("mlxResolvedApiKey: source=FUSION_MLX_API_KEY env")
+            fusionConfigLog.info("mlxResolvedApiKey: source=FUSION_MLX_API_KEY env")
             return envKey
         }
         if let data = try? Data(contentsOf: URL(fileURLWithPath: NSHomeDirectory() + "/.fusion-mlx/settings.json")),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let auth = json["auth"] as? [String: Any],
            let key = auth["api_key"] as? String, !key.isEmpty {
-            fusionConfigLog.error("mlxResolvedApiKey: source=settings.json")
+            fusionConfigLog.info("mlxResolvedApiKey: source=settings.json")
             return key
         }
         fusionConfigLog.error("mlxResolvedApiKey: no key resolved (env/settings both empty)")
@@ -474,7 +494,7 @@ class FusionConfig: ObservableObject {
         simulationHost = "127.0.0.1"
         simulationPort = 11455
         healthHost = "127.0.0.1"
-        healthPort = 11456
+        healthPort = 11469
         // F-I9 追加: reset 补 multiNode 端口 (此前 resetToDefaults 漏设, 走 @AppStorage 默认值不一致)
         multiNodePort = 11452
         multiNodeAgentPort = 11458

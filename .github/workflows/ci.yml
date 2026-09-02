@@ -111,13 +111,24 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: gitleaks secret scan
+        # F-ops-6: 替换脆弱的 grep 黑名单 (漏报多 + 测试用例误报),
+        # 用 gitleaks 规则引擎扫全仓 + 全 git 历史。.gitleaks.toml allowlist 排除测试 fixture。
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: false
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
 
       - name: Check for secrets in code
         run: |
-          # 检查常见密钥泄露模式
-          ! grep -r "API_KEY\|api_key\|secret_key\|SECRET\|password\|PASSWORD\|token.*=" \
-            --include="*.swift" --include="*.rs" --include="*.py" \
-            --exclude-dir=.build --exclude-dir=target . 2>/dev/null
+          # 兜底: gitleaks 覆盖不到的明文模式 (与 gitleaks 互补, 非替代)。
+          ! grep -rE "(sk-[a-zA-Z0-9]{20,}|AKIA[0-9A-Z]{16}|ghp_[a-zA-Z0-9]{36})" \
+            --include="*.swift" --include="*.rs" --include="*.py" --include="*.json" --include="*.yml" \
+            --exclude-dir=.build --exclude-dir=target --exclude-dir=.git . 2>/dev/null
           echo "✅ 安全检查通过"
 
   # ─── 通知 ─────────────────────────────────────────────

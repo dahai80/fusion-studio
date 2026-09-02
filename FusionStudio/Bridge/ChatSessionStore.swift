@@ -962,8 +962,12 @@ class ChatSessionStore: ObservableObject {
 
     func branch(at messageId: String) async {
         guard let session = activeSession else { return }
+        guard let ipc = ipc else {
+            chatStoreLog.warning("branch: no IPCClient, aborting")
+            return
+        }
         do {
-            let result = try await ipc!.call(method: RPCMethod.chatBranch, params: [
+            let result = try await ipc.call(method: RPCMethod.chatBranch, params: [
                 "session_id": session.id,
                 "message_id": messageId,
             ])
@@ -981,8 +985,12 @@ class ChatSessionStore: ObservableObject {
     // Callers: UnifiedChatView branch picker. Affected API: chat.switch_branch/branches/message_tree. Data schemas: branchId=String, returns ChatSessionData or [ChatMessageData]. User instruction: "审视是否所有需要功能和api所有需要的GUI都在~/fusion/fusion-studio都已经有对应GUI了，所有有问题的都要在fusion-studio补齐GUI"
     func switchBranch(to branchId: String) async {
         guard let session = activeSession else { return }
+        guard let ipc = ipc else {
+            chatStoreLog.warning("switchBranch: no IPCClient, aborting")
+            return
+        }
         do {
-            let result = try await ipc!.chatSwitchBranch(sessionId: session.id, branchId: branchId)
+            let result = try await ipc.chatSwitchBranch(sessionId: session.id, branchId: branchId)
             if let updated = parseSessionData(result) {
                 activeSession = updated
                 if let idx = sessions.firstIndex(where: { $0.id == session.id }) {
@@ -998,8 +1006,12 @@ class ChatSessionStore: ObservableObject {
 
     func listBranches(at messageId: String) async -> [ChatMessageData] {
         guard let session = activeSession else { return [] }
+        guard let ipc = ipc else {
+            chatStoreLog.warning("listBranches: no IPCClient, returning empty")
+            return []
+        }
         do {
-            let result = try await ipc!.chatBranches(sessionId: session.id, messageId: messageId)
+            let result = try await ipc.chatBranches(sessionId: session.id, messageId: messageId)
             if let branches = result["branches"] as? [[String: Any]] {
                 return branches.compactMap { parseMessageData($0) }
             }
@@ -1011,8 +1023,12 @@ class ChatSessionStore: ObservableObject {
 
     func loadMessageTree() async -> [String: Any]? {
         guard let session = activeSession else { return nil }
+        guard let ipc = ipc else {
+            chatStoreLog.warning("loadMessageTree: no IPCClient, returning nil")
+            return nil
+        }
         do {
-            return try await ipc!.chatMessageTree(sessionId: session.id)
+            return try await ipc.chatMessageTree(sessionId: session.id)
         } catch {
             chatStoreLog.error("chat.message_tree failed: \(error.localizedDescription)")
         }
@@ -1076,12 +1092,16 @@ class ChatSessionStore: ObservableObject {
     }
 
     private func runResearch(messages: [[String: Any]], model: String) async throws -> String {
+        guard let agentBridge = agentBridge else {
+            chatStoreLog.error("runResearch: no AgentBridge available")
+            throw BridgeError.notConnected
+        }
         let researchSteps = [
             "Break down the user's question into 2-3 key sub-questions that need independent research. List them concisely.",
             "For each sub-question, provide your best answer using web search results. Cite sources where possible.",
             "Synthesize all findings into a comprehensive, well-structured response with citations and cross-references."
         ]
-        var researchMessages = messages
+        let researchMessages = messages
         var allFindings = ""
         for (idx, step) in researchSteps.enumerated() {
             chatStoreLog.info("Research step \(idx + 1)/\(researchSteps.count)")
@@ -1094,7 +1114,7 @@ class ChatSessionStore: ObservableObject {
                 stepMessages.append(["role": "user", "content": "Research mode: \(step)"])
             }
             resetStreamThrottle()
-            let result = try await agentBridge!.inferStream(
+            let result = try await agentBridge.inferStream(
                 messages: stepMessages,
                 model: model,
                 temperature: 0.3,

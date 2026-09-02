@@ -1,5 +1,6 @@
 import SwiftUI
 import os.log
+import ServiceManagement
 
 /// 全局设置面板
 struct SettingsView: View {
@@ -79,10 +80,33 @@ struct GeneralSettingsView: View {
 
     private let settingsLog = Logger(subsystem: "com.fusion.studio", category: "Settings")
 
+    // F-ops-3: drive macOS SMAppService.mainApp (macOS 13+) so the Login Items toggle
+    // actually registers/unregisters with the system, not just flips a stored bool.
+    private func syncLaunchAtLogin(_ enabled: Bool) {
+        let service = SMAppService.mainApp
+        do {
+            if enabled {
+                try service.register()
+                settingsLog.info("F-ops-3: launchAtLogin registered via SMAppService")
+            } else {
+                try service.unregister()
+                settingsLog.info("F-ops-3: launchAtLogin unregistered via SMAppService")
+            }
+        } catch {
+            settingsLog.error("F-ops-3: SMAppService \(enabled ? "register" : "unregister") failed: \(error.localizedDescription)")
+        }
+    }
+
     var body: some View {
         Form {
             Section(i18n.t(.sec_startup)) {
-                Toggle(i18n.t(.launchAtLogin), isOn: $launchAtLogin)
+                Toggle(i18n.t(.launchAtLogin), isOn: Binding(
+                    get: { launchAtLogin },
+                    set: { newValue in
+                        launchAtLogin = newValue
+                        syncLaunchAtLogin(newValue)
+                    }
+                ))
                 Toggle(i18n.t(.autoStartMLX), isOn: $autoStartMLX)
                 Button(i18n.t(.reselectMainModel)) {
                     uiPanelState.showWelcome = true

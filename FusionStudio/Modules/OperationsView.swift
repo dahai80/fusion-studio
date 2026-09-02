@@ -185,6 +185,13 @@ struct OperationsView: View {
             case .logs:      OpsLogsView()
             }
         }
+        // F-perf-4: 5s monitorTimer 旧无 onDisappear 绑定, 离开 Ops 模块仍空转。
+        // 离开视图即停监控, 回来由用户 Toggle 重新开 (Toggle 状态 isMonitoring 由 ops 持久, 视觉一致)。
+        .onDisappear {
+            if ops.isMonitoring {
+                ops.stopMonitoring()
+            }
+        }
     }
 
     private func tabIcon(_ tab: OpsTab) -> String {
