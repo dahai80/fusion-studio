@@ -104,6 +104,8 @@ class FusionConfig: ObservableObject {
     @AppStorage("offlineMode") var offlineMode = true
     @AppStorage("allowModelDownload") var allowModelDownload = true
     @AppStorage("allowUpdateCheck") var allowUpdateCheck = true
+    // F-ops-8: 本地崩溃遥测 (opt-in, 默认关闭)。零网络上传, 仅落盘 ~/.fusion-studio/logs/crash-*.log。
+    @AppStorage("enableCrashTelemetry") var enableCrashTelemetry = false
 
     // MARK: - 量化预设
     @AppStorage("defaultQuant") var defaultQuant = "4bit"

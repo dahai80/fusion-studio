@@ -170,9 +170,12 @@ struct HardwareSettingsView: View {
 }
 
 struct NetworkSettingsView: View {
+    private let netSettingsLog = Logger(subsystem: "com.fusion.studio", category: "Settings.Network")
     @AppStorage("offlineMode") private var offlineMode = true
     @AppStorage("allowModelDownload") private var allowModelDownload = true
     @AppStorage("allowUpdateCheck") private var allowUpdateCheck = true
+    // F-ops-8: 本地崩溃遥测 opt-in toggle (默认 OFF, 零网络上传, 仅落盘 ~/.fusion-studio/logs/crash-*.log)。
+    @AppStorage("enableCrashTelemetry") private var enableCrashTelemetry = false
     @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
@@ -191,6 +194,19 @@ struct NetworkSettingsView: View {
                     .disabled(offlineMode)
                 Toggle(i18n.t(.checkUpdates), isOn: $allowUpdateCheck)
                     .disabled(offlineMode)
+            }
+            Section(i18n.t(.sec_telemetry)) {
+                Toggle(i18n.t(.enableCrashTelemetry), isOn: Binding(
+                    get: { enableCrashTelemetry },
+                    set: { newValue in
+                        enableCrashTelemetry = newValue
+                        if newValue {
+                            CrashReporter.shared.start()
+                            netSettingsLog.info("F-ops-8: crash telemetry enabled by user")
+                        }
+                    }
+                ))
+                .help(i18n.t(.enableCrashTelemetryHelp))
             }
         }
         .padding()

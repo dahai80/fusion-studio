@@ -16,6 +16,9 @@ struct ContentView: View {
     @EnvironmentObject var taskManager: TaskManager
     @EnvironmentObject var guardBridge: GuardBridge
     @EnvironmentObject var upstreamManager: UpstreamServiceManager
+    // F-func-2: 顶层 offline banner — 健康检查收敛后仍失败 (MLX/daemon 不可达) 时提示用户,
+    // 替代各模块各自静默 IPC 失败。criticalBackendMissing (未安装) 优先于此 banner。
+    @EnvironmentObject var healthState: HealthState
 
     var body: some View {
         let theme = themeState.isDarkMode ? StudioTheme.dark : StudioTheme.light
@@ -60,6 +63,27 @@ struct ContentView: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .background(Color.orange.opacity(0.15))
+                .cornerRadius(6)
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+
+            // F-func-2: 后端不可达 offline banner。健康检查已收敛 (非 .checking) 且未通过。
+            // 与 criticalBackendMissing (未安装, 橙) 区分: 这是已安装但进程未起/端口不通 (红)。
+            if !upstreamManager.criticalBackendMissing,
+               healthState.healthStatus != .checking,
+               !healthState.isHealthCheckPassed {
+                HStack(spacing: 8) {
+                    Image(systemName: "wifi.slash")
+                        .foregroundColor(.red)
+                    Text(I18nManager.shared.t(.offline_banner_backend_unreachable))
+                        .font(.callout)
+                    Spacer()
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color.red.opacity(0.15))
                 .cornerRadius(6)
                 .padding(.horizontal, 12)
                 .padding(.top, 8)

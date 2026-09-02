@@ -77,6 +77,10 @@ struct FusionStudioApp: App {
         _healthState = StateObject(wrappedValue: health)
         _themeState = StateObject(wrappedValue: theme)
         _appState = StateObject(wrappedValue: AppState(navState: nav, uiPanelState: ui, healthState: health, themeState: theme))
+        // F-ops-8: opt-in 本地崩溃遥测。零网络上传, NSSetUncaughtExceptionHandler + MetricKit → ~/.fusion-studio/logs/crash-*.log。
+        if FusionConfig.shared.enableCrashTelemetry {
+            CrashReporter.shared.start()
+        }
         // Dock 图标延后到 onAppear 中设置，init 阶段 NSApp 尚未就绪
     }
 

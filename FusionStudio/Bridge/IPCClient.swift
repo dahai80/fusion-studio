@@ -276,7 +276,7 @@ class IPCClient: ObservableObject {
         if circuitConsecutiveFailures >= circuitThreshold && !circuitOpen {
             circuitOpen = true
             circuitOpenedAt = Date().timeIntervalSince1970
-            ipcLog.error("IPC circuit OPEN failures=\(self.circuitConsecutiveFailures) — fast-fail pending calls until backend recovers")
+            ipcLog.error("IPC circuit OPEN failures=\(self.circuitConsecutiveFailures, privacy: .public) — fast-fail pending calls until backend recovers")
         } else if circuitOpen {
             // 已开路 (half-open 探测失败): 续计时, 下个 recovery 窗口再试。
             circuitOpenedAt = Date().timeIntervalSince1970
@@ -625,7 +625,7 @@ class IPCClient: ObservableObject {
         let coalescedMethod = reqIdToMethod.removeValue(forKey: id)
         lock.unlock()
         guard let cont = cont else {
-            ipcLog.warning("handleResponse no pending continuation for id=\(id)")
+            ipcLog.warning("handleResponse no pending continuation for id=\(id, privacy: .public)")
             return
         }
 
@@ -642,11 +642,11 @@ class IPCClient: ObservableObject {
             } else if let arr = result as? [Any] {
                 outcome = .success(["items": arr])
             } else {
-                ipcLog.warning("handleResponse result non-dict/array id=\(id), wrapping _result")
+                ipcLog.warning("handleResponse result non-dict/array id=\(id, privacy: .public), wrapping _result")
                 outcome = .success(["_result": result])
             }
         } else {
-            ipcLog.warning("handleResponse no result field id=\(id), returning empty")
+            ipcLog.warning("handleResponse no result field id=\(id, privacy: .public), returning empty")
             outcome = .success([:])
         }
         switch outcome {
@@ -736,11 +736,11 @@ class IPCClient: ObservableObject {
                 var pfd = pollfd(fd: fd, events: Int16(POLLOUT), revents: 0)
                 let pr = withUnsafeMutablePointer(to: &pfd) { ptr in Darwin.poll(ptr, 1, 5000) }
                 if pr > 0 { continue } // 缓冲可写, 重试 write
-                ipcLog.error("writeAll: poll POLLOUT fd=\(fd) ret=\(pr) errno=\(err) (R4 超时/故障, 放弃)")
+                ipcLog.error("writeAll: poll POLLOUT fd=\(fd, privacy: .public) ret=\(pr, privacy: .public) errno=\(err, privacy: .public) (R4 超时/故障, 放弃)")
                 return
             }
             if err == EINTR { continue } // 信号打断, 重试
-            ipcLog.error("writeAll: fault write fd=\(fd) offset=\(offset) remaining=\(remaining) ret=\(written) errno=\(err) (P0-8/R4 真故障, 放弃)")
+            ipcLog.error("writeAll: fault write fd=\(fd, privacy: .public) offset=\(offset, privacy: .public) remaining=\(remaining, privacy: .public) ret=\(written, privacy: .public) errno=\(err, privacy: .public) (P0-8/R4 真故障, 放弃)")
             return
         }
     }
@@ -803,7 +803,7 @@ class IPCClient: ObservableObject {
                     ipcLog.info("F-A16 discover: schema OK, \(methods.count) methods available")
                 } else {
                     self.schemaCompatible = false
-                    ipcLog.error("F-A16 discover: SCHEMA DRIFT — missing critical methods: \(missing.sorted().joined(separator: ", ")) — upstream RPC 不兼容, 调用这些方法将失败")
+                    ipcLog.error("F-A16 discover: SCHEMA DRIFT — missing critical methods: \(missing.sorted().joined(separator: ", "), privacy: .public) — upstream RPC 不兼容, 调用这些方法将失败")
                 }
             }
         } catch {
