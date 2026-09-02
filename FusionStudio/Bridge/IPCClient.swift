@@ -281,6 +281,27 @@ class IPCClient: ObservableObject {
     @discardableResult
     func call(method: String, params: [String: Any] = [:]) async throws -> [String: Any] {
         return try await withCheckedThrowingContinuation { continuation in
+            // 审计0902 A1 (P1) 写侧头阻塞缓解: JSONSerialization (大参数 graph.execute/design.export/
+            //   model.list) 移出串行 queue, 在调用方并发上下文完成。旧在 queue.async 内序列化, 一个胖
+            //   参数拖垮其后全部 call() 注册 → 全 App IPC 串行卡顿。reqId 原子自增 (lock) 可安全在
+            //   queue 外取; writeAll + pending 注册仍串行保帧不交错。
+            //   读侧头阻塞 (单 reader + 大响应挡道) 需请求级 socket 池, 大改, 后续 deferred。
+            let reqId = self.nextRequestId()
+            var request: [String: Any] = [
+                "jsonrpc": "2.0",
+                "id": reqId,
+                "method": method,
+            ]
+            if !params.isEmpty {
+                request["params"] = params
+            }
+            guard let data = try? JSONSerialization.data(withJSONObject: request) else {
+                continuation.resume(throwing: IPCError.invalidRequest)
+                return
+            }
+            var writeBuf = data
+            writeBuf.append(0x0A) // 换行符作为消息分隔符
+
             queue.async { [weak self] in
                 guard let self = self else {
                     continuation.resume(throwing: IPCError.disconnected)
@@ -299,10 +320,9 @@ class IPCClient: ObservableObject {
                     }
                 }
 
-                let reqId = self.nextRequestId()
-
                 // F-R4: 幂等读 in-flight 合并。同 method 已在途 (首个 caller 驱动) → 挂当前续体等结果, 不重发。
                 // 仅对空 params 读 (params.isEmpty 守卫: 带参读如 tool.get/cron.list_executions 不合并, 入参不同结果不同)。
+                // 注 (A1): reqId 已在 queue 外预分配, 合并命中时该 id 废弃 — 合并仅针对空 params 读 (序列化本廉价), 可接受。
                 if params.isEmpty && self.isCoalesceableRead(method) {
                     self.lock.lock()
                     if self.inflightReads[method] != nil {
@@ -316,19 +336,6 @@ class IPCClient: ObservableObject {
                     self.lock.unlock()
                 }
 
-                var request: [String: Any] = [
-                    "jsonrpc": "2.0",
-                    "id": reqId,
-                    "method": method,
-                ]
-                if !params.isEmpty {
-                    request["params"] = params
-                }
-
-                guard let data = try? JSONSerialization.data(withJSONObject: request) else {
-                    continuation.resume(throwing: IPCError.invalidRequest)
-                    return
-                }
 
                 guard self.socketFd >= 0 else {
                     continuation.resume(throwing: IPCError.disconnected)
@@ -371,9 +378,7 @@ class IPCClient: ObservableObject {
                     self.circuitOnFailure()
                 }
 
-                // 发送数据
-                var writeBuf = data
-                writeBuf.append(0x0A) // 换行符作为消息分隔符
+                // 发送数据 (A1: writeBuf 已在 queue 外预序列化, queue 内仅写)
                 Self.writeAll(fd: self.socketFd, writeBuf)
             }
         }
