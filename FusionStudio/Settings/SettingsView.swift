@@ -367,8 +367,12 @@ struct MlxConnectionSettingsView: View {
     private var configured: Bool { !config.mlxResolvedApiKey.isEmpty }
 
     var body: some View {
-        Form {
-            Section(i18n.t(.sec_auth)) {
+        ScrollView {
+            VStack(alignment: .leading, spacing: theme.spacingM) {
+                Text(i18n.t(.sec_auth))
+                    .font(.system(size: theme.captionSize, weight: .semibold))
+                    .foregroundStyle(theme.textTertiary)
+                    .padding(.bottom, theme.spacingXS)
                 settingRow("MLX API Key", configured ? "已配置" : "未配置") {
                     HStack(spacing: theme.spacingS) {
                         Image(systemName: configured ? "checkmark.seal.fill" : "exclamationmark.triangle")
@@ -414,8 +418,11 @@ struct MlxConnectionSettingsView: View {
                     }
                     .padding(.leading, theme.spacingM)
                 }
-            }
-            Section(i18n.t(.sec_endpoint)) {
+                Divider().padding(.vertical, theme.spacingXS)
+                Text(i18n.t(.sec_endpoint))
+                    .font(.system(size: theme.captionSize, weight: .semibold))
+                    .foregroundStyle(theme.textTertiary)
+                    .padding(.bottom, theme.spacingXS)
                 settingRow("MLX 端点覆盖", "ON 时使用下方地址，忽略环境变量 (FUSION_MLX_PORT 等)") {
                     Toggle("", isOn: $config.mlxEndpointOverrideEnabled)
                         .toggleStyle(.switch).controlSize(.small).labelsHidden()
@@ -481,8 +488,9 @@ struct MlxConnectionSettingsView: View {
                     }
                 }
             }
+            .padding()
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding()
     }
 
     @ViewBuilder
