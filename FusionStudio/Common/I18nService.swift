@@ -5492,8 +5492,14 @@ class I18nManager: ObservableObject {
     private func loadTranslations() {
         translations = [:]
         for lang in AppLanguage.allCases {
-            // .process 资源可能保留 i18n/ 子目录或展平到 bundle 根, 两路径都试。
-            let url = Bundle.main.url(forResource: lang.jsonFileName, withExtension: "json", subdirectory: "i18n")
+            // 审计0902 E6: SPM .process("Resources") 把 JSON 放进 package resource bundle (Bundle.module),
+            //   非 Bundle.main。test runner 下 Bundle.main = xctest runner, 不含 module 资源 -> 旧查
+            //   Bundle.main 致 testTranslation 全失败 (t() 落 raw key)。DesignCanvasView 同模式用 Bundle.module
+            //   取 wasm/js, 此处对齐。先查 i18n/ 子目录 (process 保留), 再展平根, 最后 Bundle.main 兜底
+            //   (app 打包后资源可能拷入 main bundle)。
+            let url = Bundle.module.url(forResource: lang.jsonFileName, withExtension: "json", subdirectory: "i18n")
+                ?? Bundle.module.url(forResource: lang.jsonFileName, withExtension: "json")
+                ?? Bundle.main.url(forResource: lang.jsonFileName, withExtension: "json", subdirectory: "i18n")
                 ?? Bundle.main.url(forResource: lang.jsonFileName, withExtension: "json")
             guard let url = url,
                   let data = try? Data(contentsOf: url),
