@@ -109,6 +109,9 @@ final class TaskState: ObservableObject {
     var ipcClient: IPCClient?
     var tasksFetchedAt: Date?
     var projectsFetchedAt: Date?
+    // 审计0902 E4 (P2): fetch in-flight flag (await 前置), 防并发重复 fetch; TTL 仅成功后置避盲窗。
+    var isFetchingTasks = false
+    var isFetchingProjects = false
     init() {}
 }
 

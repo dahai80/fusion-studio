@@ -853,6 +853,10 @@ final class AgentBridge: ObservableObject {
     private let logger = Logger(subsystem: "com.fusion.studio", category: "AgentBridge")
     // F-A1 Phase 7: setIPCClient sink 订阅持有 (原 .assign(to:) 不需显式持, 改 .sink 需 store)。
     private var cancellables = Set<AnyCancellable>()
+    // 审计0902 E3 (P2): setIPCClient 重连去重 — connectionSink 单 cancellable 取代旧 cancellables 无界追加;
+    //   initialFetchTask 存逃逸 fetch Task, 重连前 cancel 旧 task 避孤儿累积, deinit 一并 cancel。
+    private var connectionSink: AnyCancellable?
+    private var initialFetchTask: Task<Void, Never>?
 
     // 审计0830 P0-1: SwiftUI 不自动追踪嵌套 ObservableObject。视图经 @EnvironmentObject bridge
     //   仅订阅 AgentBridge.objectWillChange, 域 @Published 变更触发域自身 objectWillChange 但无订阅者 →
@@ -893,17 +897,22 @@ final class AgentBridge: ObservableObject {
         self.taskState.ipcClient = client
         // F-A1 Phase 7: runtimeState 是 let 子对象, $runtimeState.isConnected 非法 ($投影仅限直接 @Published 属性)。
         // 改 .sink 手动写 runtimeState.isConnected, cancellable 持久化防订阅立即释放。
-        client.$isConnected
+        // 审计0902 E3 (P2): setIPCClient 每次重连调用, 旧实现每次追加 1 sink 无去重 → N 重连 = N stale sink 无界追加。
+        //   修复: 先取消并清空旧 connectionSink, 再存新 sink (去重, 常驻仅 1)。
+        connectionSink?.cancel()
+        connectionSink = client.$isConnected
             .receive(on: DispatchQueue.main)
             .sink { [weak self] connected in
                 self?.runtimeState.isConnected = connected
             }
-            .store(in: &cancellables)
         logger.info("AgentBridge connected to IPCClient")
         // 审计0830 P1-调度-1: cronJobId 仅内存态, app 崩溃后启动若不主动拉取 → 已注册 cron 任务在 UI 打开前丢失可见性
         //   (用户不知任务停跑/还在跑)。后端持久化 cron job, 启动即 reconcile: fetchTasks 恢复 scheduled 任务 + cronJobId。
         //   不依赖用户手动进 Task 模块触发 onAppear fetch。延迟 0.5s 等 daemon 路由就绪 (setIPCClient 早于 daemon 完全 ready)。
-        Task { [weak self] in
+        // 审计0902 E3 (P2): 旧实现起逃逸 Task 未存 → N 重连 = N fetch Task 竞争 TTL guard + deinit 不取消。
+        //   修复: 存入 initialFetchTask, 重连前取消旧 task 避孤儿累积。
+        initialFetchTask?.cancel()
+        initialFetchTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 500_000_000)
             await self?.fetchTasks()
         }
@@ -1923,5 +1932,8 @@ final class AgentBridge: ObservableObject {
         for handle in handles {
             handle.cancel()
         }
+        // 审计0902 E3 (P2): deinit 取消逃逸 initialFetchTask + connectionSink, 防释放后后台 Task/sink 持 self。
+        initialFetchTask?.cancel()
+        connectionSink?.cancel()
     }
 }
