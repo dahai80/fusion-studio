@@ -402,6 +402,9 @@ class IPCClient: ObservableObject {
                 }
                 var tv = timeval(tv_sec: timeoutSecs, tv_usec: 0)
                 _ = setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
+                // 审计0902 R4 (P1): SO_SNDTIMEO 防写端永久阻塞 (对端慢消费/窗口满)。旧仅设 RCFTIMEO,
+                //   writeAll 阻塞写可挂死整个短连通道。与 RCFTIMEO 对称设发送超时。
+                _ = setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
                 var addr = sockaddr_un()
                 addr.sun_family = sa_family_t(AF_UNIX)
                 let pathC = socketPath.utf8CString
@@ -442,7 +445,21 @@ class IPCClient: ObservableObject {
                     if n > 0 {
                         respData.append(contentsOf: buf[0..<n])
                         if respData.last == 0x0A { break }
+                    } else if n == 0 {
+                        break // EOF: 对端关闭
                     } else {
+                        // 审计0902 R4 (P1): n<0 分类 errno。SO_RCVTIMEO 超时返 EAGAIN/EWOULDBLOCK,
+                        //   旧代码统一 break → 残缺/空 respData → invalidResponse (语义错, 实为超时)。
+                        //   EINTR → 信号打断重试; EAGAIN/EWOULDBLOCK → 读超时 (已收部分或全未收), 报断连非非法响应;
+                        //   其他 errno → 真故障, break 走 invalidResponse 兜底。
+                        let rerr = errno
+                        if rerr == EINTR { continue }
+                        if rerr == EAGAIN || rerr == EWOULDBLOCK {
+                            ipcLog.warning("udsCall read timeout method=\(method, privacy: .public) path=\(socketPath, privacy: .public) got=\(respData.count)B")
+                            continuation.resume(throwing: IPCError.disconnected)
+                            return
+                        }
+                        ipcLog.warning("udsCall read error method=\(method, privacy: .public) errno=\(rerr)")
                         break
                     }
                 }
@@ -633,9 +650,12 @@ class IPCClient: ObservableObject {
         longRpcMethods.contains(method) ? longRpcTimeout : defaultRpcTimeout
     }
 
-    // 审计0830 P0-8: Darwin.write 非阻塞 fd 可短写 (内核缓冲满返 < count), 旧代码忽略返回值 →
-    //   RPC payload 静默截断 → 后端收残缺 JSON 解析失败 → 客户端 8s 超时计入熔断级联。
-    //   循环写直到全量写出; 0 或 -1 视为故障记日志。
+    // 审计0830 P0-8 + 审计0902 R4 (P1): Darwin.write 非阻塞 fd 可短写 (内核缓冲满返 < count),
+    //   旧代码忽略返回值 → RPC payload 静默截断 → 后端收残缺 JSON 解析失败 → 客户端超时计入熔断级联。
+    //   循环写直到全量写出。written<=0 分类 errno:
+    //     EAGAIN/EWOULDBLOCK → poll(POLLOUT) 等缓冲可写后重试 (复用主 socket 读循环 EAGAIN 范式);
+    //     EINTR → 信号打断, 直接重试;
+    //     其他 → 真故障 (fd 断/对端关), 记日志后放弃。SO_SNDTIMEO (udsCall 设) 兜底防永久阻塞。
     private static func writeAll(fd: Int32, _ data: Data) {
         var remaining = data.count
         var offset = 0
@@ -644,12 +664,23 @@ class IPCClient: ObservableObject {
                 guard let base = ptr.baseAddress else { return -1 }
                 return Darwin.write(fd, base.advanced(by: offset), remaining)
             }
-            if written <= 0 {
-                ipcLog.error("writeAll: short/fault write fd=\(fd) offset=\(offset) remaining=\(remaining) ret=\(written) (P0-8)")
+            if written > 0 {
+                offset += written
+                remaining -= written
+                continue
+            }
+            // written <= 0: 分类 errno
+            let err = errno
+            if err == EAGAIN || err == EWOULDBLOCK {
+                var pfd = pollfd(fd: fd, events: Int16(POLLOUT), revents: 0)
+                let pr = withUnsafeMutablePointer(to: &pfd) { ptr in Darwin.poll(ptr, 1, 5000) }
+                if pr > 0 { continue } // 缓冲可写, 重试 write
+                ipcLog.error("writeAll: poll POLLOUT fd=\(fd) ret=\(pr) errno=\(err) (R4 超时/故障, 放弃)")
                 return
             }
-            offset += written
-            remaining -= written
+            if err == EINTR { continue } // 信号打断, 重试
+            ipcLog.error("writeAll: fault write fd=\(fd) offset=\(offset) remaining=\(remaining) ret=\(written) errno=\(err) (P0-8/R4 真故障, 放弃)")
+            return
         }
     }
 
