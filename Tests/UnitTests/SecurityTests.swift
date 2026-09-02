@@ -122,6 +122,53 @@ final class HtmlSanitizeTests: XCTestCase {
         XCTAssertTrue(safe.contains("<svg><circle/></svg>"), "svg 必须保留")
         XCTAssertTrue(safe.contains("<p>text</p>"), "p 元素必须保留")
     }
+
+    // #388: <style> 块本体保留 — 模型按 systemPrompt 产 :root 设计 token + 自定义 class (.surface/...),
+    // 整块剥致预览暗色主题+布局丢失 ("什么都没有")。外科净化只剥 CSS XSS 向量, 块本体+合法 CSS 必须留。
+    func testStyleBlockPreserved() {
+        let html = """
+        <html><head><style>
+        :root { --color-bg: #1a1a2e; --color-surface: #16213e; }
+        body { background: var(--color-bg); }
+        .surface { background: var(--color-surface); border-radius: 10px; }
+        .sidebar-item { display: flex; padding: 8px; }
+        </style></head><body><div class="surface sidebar-item">card</div></body></html>
+        """
+        let safe = DesignBridge.sanitizeHtml(html)
+        XCTAssertTrue(safe.contains("<style"), "<style> 块本体必须保留")
+        XCTAssertTrue(safe.contains(":root"), ":root 设计 token 必须保留")
+        XCTAssertTrue(safe.contains("--color-bg"), "CSS 变量必须保留")
+        XCTAssertTrue(safe.contains(".surface"), "自定义 class 选择器必须保留")
+        XCTAssertTrue(safe.contains("var(--color-bg)"), "合法 var() 值必须保留")
+        XCTAssertTrue(safe.contains("class=\"surface sidebar-item\""), "body 内 class 引用必须保留")
+    }
+
+    // #388: <style> 块内 CSS XSS 向量被外科净化 (块本体保留) — expression()/url(javascript:)/
+    // @import/behavior:/-moz-binding: 剥, 其余合法 CSS 留。
+    func testStyleCssVectorsNeutralized() {
+        let html = """
+        <style>
+        :root { --c: red; }
+        .evil1 { width: expression(alert(1)); }
+        .evil2 { background: url(javascript:alert(2)); }
+        .evil3 { width: expression(alert(3)); color: var(--c); }
+        .evil4 { background: url(vbscript:evil); }
+        </style>
+        <style>@import url('https://evil/x.css');</style>
+        <style>.b { behavior: url(#default#x); -moz-binding: url(evil.xml); color: blue; }</style>
+        """
+        let safe = DesignBridge.sanitizeHtml(html)
+        XCTAssertFalse(safe.contains("expression"), "expression(...) CSS 注入向量必须被剥")
+        XCTAssertFalse(safe.lowercased().contains("javascript:"), "url(javascript:) CSS 注入向量必须被剥")
+        XCTAssertFalse(safe.lowercased().contains("vbscript:"), "url(vbscript:) CSS 注入向量必须被剥")
+        XCTAssertFalse(safe.contains("@import"), "@import 外部样式表注入必须被剥")
+        XCTAssertFalse(safe.contains("behavior:"), "behavior: 行为绑定必须被剥")
+        XCTAssertFalse(safe.contains("-moz-binding"), "-moz-binding: 必须被剥")
+        XCTAssertTrue(safe.contains("<style"), "<style> 块本体必须保留 (仅剥向量)")
+        XCTAssertTrue(safe.contains(":root"), "合法 :root 必须保留")
+        XCTAssertTrue(safe.contains("color: var(--c)"), "evil3 内合法 color 值必须保留")
+        XCTAssertTrue(safe.contains("color: blue"), "evil-b 块内合法 color 必须保留")
+    }
 }
 
 // BUG-13: 验证 DesignBridge.sanitizeErrorBody 剥错误响应体中的密钥子串。

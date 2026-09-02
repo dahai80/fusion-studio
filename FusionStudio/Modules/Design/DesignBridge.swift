@@ -597,7 +597,8 @@ class DesignBridge: ObservableObject {
         // HIGH-6: currentArtifactCode 来自 LLM 不可信输出, 可被 prompt 注入操纵 emit 含
         // <script> 的 HTML。送 CLI 解析 + 后续 wasm 渲染 = XSS 等价, 可调原生 bridge 读本地资源。
         // 渲染前净化 (纵深防御, 与 CLI 解析侧校验正交): 剥 <script>/<iframe>/<object>/<embed>,
-        // 剥 on* 事件处理器属性, 剥 javascript:/vbscript: URL。style 保留 (合法设计 token)。
+        // 剥 on* 事件处理器属性, 剥 javascript:/vbscript: URL, 净化 <style> 内 CSS XSS 向量。
+        // <style> 块本体保留 (合法 :root 设计 token + 自定义 class), 仅剥 expression/url-js/@import。
         let safe = Self.sanitizeHtml(html)
         let result = runFusionDesign(
             ["parse-html", "--page", currentArtifactTitle.isEmpty ? "Page" : currentArtifactTitle],
@@ -610,7 +611,7 @@ class DesignBridge: ObservableObject {
         return result.output.isEmpty ? nil : result.output
     }
 
-    /// 净化不可信 HTML: 剥 script/iframe/object/embed/math 块 + on* 事件属性 + javascript:/vbscript: URL + style 块。svg 保留 (设计 legit), 其 XSS 向量由 step1/3/4 覆盖。
+    /// 净化不可信 HTML: 剥 script/iframe/object/embed/math 块 + on* 事件属性 + javascript:/vbscript: URL + <style> 块内 CSS XSS 向量 (expression/url-js/@import/behavior)。svg/<style> 块本体保留 (设计 legit), 其 XSS 向量由 step1/3/4/5 覆盖。
     /// 纵深防御层 — LLM 产物 (currentArtifactCode) 经此过滤后再送 CLI 解析与 wasm/预览渲染。
     /// 迭代剥嵌套标签 (如 <scr<script>ipt>) 防绕过。nonisolated: 纯函数, 便于测试与后台调用。
     nonisolated static func sanitizeHtml(_ html: String) -> String {
@@ -657,13 +658,59 @@ class DesignBridge: ObservableObject {
         if let re = try? NSRegularExpression(pattern: #"(?i)(href|src)\s*=\s*("vbscript:[^"]*"|'vbscript:[^']*'|vbscript:[^\s>]+)"#, options: []) {
             out = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "$1=\"#\"")
         }
-        // 5. 剥 <style>...</style> — CSS expression()/url(javascript:)/@import 注入面; 预览主体样式靠 :root vars+inline, 剥整块 style 安全
-        if let re = try? NSRegularExpression(pattern: #"<style[\s\S]*?</style>"#, options: [.caseInsensitive]) {
-            let stripped = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "")
-            if stripped != out {
-                out = stripped
-                designBridgeLog.warning("sanitizeHtml: stripped <style> block (expression/url-js/@import vector)")
+        // 5. <style> 块外科净化 (非整块剥): 保留模型按 systemPrompt 产出的 :root 设计 token + 自定义 class
+        // (.surface/.text-secondary/...), 仅剥 CSS 内的 XSS 注入向量 — expression()/url(javascript:)/url(vbscript:)/
+        // @import/behavior:/-moz-binding:。整块剥会丢暗色主题+布局, 致预览"什么都没有" (#388)。
+        out = sanitizeStyleBlock(out)
+        return out
+
+    }
+
+    /// 净化 <style>...</style> 块内 CSS 的 XSS 注入向量, 保留合法 CSS (:root vars/自定义 class/body 样式)。
+    /// 剥向量: expression(...) · url(javascript:...) · url(vbscript:...) · @import · behavior: · -moz-binding:。
+    /// nonisolated 纯函数 (sanitizeHtml static 调用)。
+    nonisolated static func sanitizeStyleBlock(_ html: String) -> String {
+        // 只在 <style>...</style> 块内净化, 块外 HTML 不动 (inline style 属性的 JS-URL 由 step4 覆盖)。
+        guard let re = try? NSRegularExpression(pattern: #"<style[\s\S]*?</style>"#, options: [.caseInsensitive]) else {
+            return html
+        }
+        // 收集全部 style 块匹配, 倒序原地替换 (替换会改变后续 range, 倒序保前序 range 不移位)。
+        let matches = re.matches(in: html, range: NSRange(html.startIndex..., in: html))
+        guard !matches.isEmpty else { return html }
+        let mutable = NSMutableString(string: html)
+        var neutralizedCount = 0
+        for match in matches.reversed() {
+            let raw = mutable.substring(with: match.range)
+            let neutralized = neutralizeCssXssVectors(raw)
+            if neutralized != raw {
+                mutable.replaceCharacters(in: match.range, with: neutralized)
+                neutralizedCount += 1
             }
+        }
+        if neutralizedCount > 0 {
+            designBridgeLog.info("sanitizeHtml: neutralized CSS XSS vectors in \(neutralizedCount) <style> block(s), block preserved")
+        }
+        return mutable as String
+    }
+
+    /// 剥单个 CSS 文本内的 XSS 向量子串。保留选择器/属性/值中合法部分。
+    nonisolated static func neutralizeCssXssVectors(_ css: String) -> String {
+        var out = css
+        // expression(...) — IE 表达式注入, 整个 expression(...) 调用剥
+        if let re = try? NSRegularExpression(pattern: #"(?i)expression\s*\([^)]*\)"#, options: []) {
+            out = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "")
+        }
+        // url(javascript:...) / url(vbscript:...) — 资源 URL 内脚本注入, 替换 url() 为空
+        if let re = try? NSRegularExpression(pattern: #"(?i)url\(\s*['\"]?\s*(javascript|vbscript)\s*:[^)]*\)"#, options: []) {
+            out = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "url()")
+        }
+        // @import url(...) — 拉外部恶意样式表 (含 expression), 整条 @import 行剥
+        if let re = try? NSRegularExpression(pattern: #"(?i)@import[^;]*;?"#, options: []) {
+            out = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "")
+        }
+        // behavior: / -moz-binding: — IE/旧 Firefox 行为绑定脚本注入, 值剥 (保留属性名留空)
+        if let re = try? NSRegularExpression(pattern: #"(?i)(behavior|-moz-binding)\s*:[^;]*;?"#, options: []) {
+            out = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "")
         }
         return out
     }
