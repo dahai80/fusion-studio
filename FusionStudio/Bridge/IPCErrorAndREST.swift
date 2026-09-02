@@ -80,6 +80,15 @@ extension IPCClient {
 extension IPCClient {
     private var fsbHTTPBase: String { "\(FusionConfig.shared.mlxBaseURL)/api/v1/fsb" }
 
+    // 审计0902 E2 (P2): FSB 用 URLSession.shared (无超时配置, 默认 60s) → FSB 宕每个 tab 转满 60s 海滩球。
+    //   专用短超时会话 + 瞬态重试 (仅 timeout/disconnected/网络错, 5xx/4xx 不重试 = 业务错)。
+    private static let fsbSession: URLSession = {
+        let cfg = URLSessionConfiguration.default
+        cfg.timeoutIntervalForRequest = 8
+        cfg.timeoutIntervalForResource = 20
+        return URLSession(configuration: cfg)
+    }()
+
     private func fsbRequest(_ method: String, path: String, body: [String: Any]? = nil) async throws -> [String: Any] {
         guard let url = URL(string: "\(fsbHTTPBase)\(path)") else {
             throw IPCError.invalidResponse
@@ -90,19 +99,7 @@ extension IPCClient {
         if let body = body {
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
         }
-        let (data, resp) = try await URLSession.shared.data(for: request)
-        guard let http = resp as? HTTPURLResponse else {
-            throw IPCError.invalidResponse
-        }
-        guard http.statusCode >= 200 && http.statusCode < 300 else {
-            var errMsg = "HTTP \(http.statusCode)"
-            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let detail = json["detail"] as? String {
-                errMsg = detail
-            }
-            ipcLog.error("FSB \(method) \(path) failed: status=\(http.statusCode) detail=\(errMsg)")
-            throw IPCError.rpcError(code: http.statusCode, message: errMsg)
-        }
+        let data = try await fsbExecWithRetry(request, method: method, path: path)
         if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             return json
         }
@@ -122,16 +119,54 @@ extension IPCClient {
         if let body = body {
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
         }
-        let (data, resp) = try await URLSession.shared.data(for: request)
-        guard let http = resp as? HTTPURLResponse, http.statusCode >= 200, http.statusCode < 300 else {
-            let code = (resp as? HTTPURLResponse)?.statusCode ?? -1
-            ipcLog.error("FSB \(method) \(path) failed: status=\(code)")
-            throw IPCError.rpcError(code: code, message: "FSB request failed")
-        }
+        let data = try await fsbExecWithRetry(request, method: method, path: path)
         if let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
             return arr
         }
         return []
+    }
+
+    // 审计0902 E2 (P2): FSB 瞬态重试 (timeout/网络中断, 指数退避) + 4xx/5xx 状态码校验 (旧 fsbRequestArray
+    //   把错误体喂解码, 业务错掩盖为 invalidResponse)。最多 1 次重试, base 0.4s + jitter。
+    private func fsbExecWithRetry(_ request: URLRequest, method: String, path: String) async throws -> Data {
+        let maxAttempts = 2
+        var lastError: Error?
+        for attempt in 0..<maxAttempts {
+            do {
+                let (data, resp) = try await Self.fsbSession.data(for: request)
+                guard let http = resp as? HTTPURLResponse else {
+                    throw IPCError.invalidResponse
+                }
+                guard http.statusCode >= 200 && http.statusCode < 300 else {
+                    var errMsg = "HTTP \(http.statusCode)"
+                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let detail = json["detail"] as? String {
+                        errMsg = detail
+                    }
+                    ipcLog.error("FSB \(method) \(path) failed: status=\(http.statusCode) detail=\(errMsg, privacy: .public)")
+                    throw IPCError.rpcError(code: http.statusCode, message: "FSB request failed")
+                }
+                return data
+            } catch {
+                lastError = error
+                let transient: Bool
+                if let ipcErr = error as? IPCError, case .invalidResponse = ipcErr {
+                    transient = false
+                } else if let urlErr = error as? URLError {
+                    transient = urlErr.code == .timedOut || urlErr.code == .notConnectedToInternet
+                        || urlErr.code == .networkConnectionLost || urlErr.code == .cannotConnectToHost
+                } else {
+                    transient = false
+                }
+                guard transient, attempt + 1 < maxAttempts else { throw error }
+                let base = 0.4 * pow(2.0, Double(attempt))
+                let jitter = Double((attempt * 137) % 200) / 1000.0
+                let delay = base + jitter
+                ipcLog.warning("FSB transient retry: \(method) \(path) attempt=\(attempt) backoff=\(String(format: "%.3f", delay))s")
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            }
+        }
+        throw lastError ?? IPCError.invalidResponse
     }
 
     // MARK: Workspace
@@ -396,12 +431,7 @@ extension IPCClient {
         request.httpMethod = "PUT"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: variables)
-        let (data, resp) = try await URLSession.shared.data(for: request)
-        guard let http = resp as? HTTPURLResponse, http.statusCode >= 200, http.statusCode < 300 else {
-            let code = (resp as? HTTPURLResponse)?.statusCode ?? -1
-            ipcLog.error("FSB PUT /workspace/\(wsId)/variable failed: status=\(code)")
-            throw IPCError.rpcError(code: code, message: "FSB update variables failed")
-        }
+        let data = try await fsbExecWithRetry(request, method: "PUT", path: "/workspace/\(wsId)/variable")
         if let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
             return arr
         }

@@ -284,8 +284,42 @@ class IPCClient: ObservableObject {
     }
 
     /// 调用远程方法
+    // 审计0902 E2 (P2): 旧 call() 零瞬态重试 (仅熔断 fast-fail) — 单瞬态超时/disconnected = 调用者错误,
+    //   多节点 cluster.incremental_sync 过抖网络首次 hiccup 即败, 无退避重试, 与各桥策略不一致。
+    //   修复: 公开 call() 套一层瞬态重试 (仅 timeout/disconnected, 指数退避), 业务错 rpcError/circuitOpen/
+    //   pendingFull 不重试 (非瞬态)。最多 1 次重试 (共 2 次尝试), base 0.4s + jitter。长 RPC (rpcTimeout
+    //   ≥ longRpcTimeout) 不重试 (本身 120s, 重试翻倍阻塞调用方不合理)。
     @discardableResult
     func call(method: String, params: [String: Any] = [:]) async throws -> [String: Any] {
+        let maxAttempts = Self.rpcTimeout(for: method) >= Self.longRpcTimeout ? 1 : 2
+        var lastError: Error?
+        for attempt in 0..<maxAttempts {
+            do {
+                return try await callOnce(method: method, params: params)
+            } catch {
+                lastError = error
+                let transient: Bool
+                if let ipcErr = error as? IPCError {
+                    switch ipcErr {
+                    case .timeout, .disconnected: transient = true
+                    default: transient = false
+                    }
+                } else {
+                    transient = false
+                }
+                guard transient, attempt + 1 < maxAttempts else { throw error }
+                let base = 0.4 * pow(2.0, Double(attempt))
+                let jitter = Double((attempt * 137) % 200) / 1000.0
+                let delay = base + jitter
+                ipcLog.warning("IPC call transient retry: method=\(method, privacy: .public) attempt=\(attempt) backoff=\(String(format: "%.3f", delay))s err=\(String(describing: error), privacy: .public)")
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            }
+        }
+        throw lastError ?? IPCError.invalidResponse
+    }
+
+    @discardableResult
+    private func callOnce(method: String, params: [String: Any] = [:]) async throws -> [String: Any] {
         return try await withCheckedThrowingContinuation { continuation in
             // 审计0902 A1 (P1) 写侧头阻塞缓解: JSONSerialization (大参数 graph.execute/design.export/
             //   model.list) 移出串行 queue, 在调用方并发上下文完成。旧在 queue.async 内序列化, 一个胖

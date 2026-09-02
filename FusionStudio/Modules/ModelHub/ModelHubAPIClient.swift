@@ -675,24 +675,50 @@ final class ModelHubAPIClient: ObservableObject {
         request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
     }
 
+    // 审计0902 E2 (P2): ModelHub 无重试/无熔断 → Hub 宕时 UI 全海滩球。
+    //   execute 加瞬态重试 (仅 502/503/504/网络错, 1 次, base 0.4s + jitter); 4xx 不重试 = 凭据/业务错。
     private func execute<T: Decodable>(_ request: URLRequest) async throws -> T {
         apiLog.debug("\(request.httpMethod ?? "?") \(request.url?.path ?? "?")")
-        let (data, response) = try await session.data(for: request)
-        guard let http = response as? HTTPURLResponse else {
-            throw HubAPIError.invalidResponse
+        let maxAttempts = 2
+        for attempt in 0..<maxAttempts {
+            do {
+                let (data, response) = try await session.data(for: request)
+                guard let http = response as? HTTPURLResponse else {
+                    throw HubAPIError.invalidResponse
+                }
+                guard (200..<300).contains(http.statusCode) else {
+                    let body = String(data: data, encoding: .utf8) ?? ""
+                    let transient = http.statusCode == 502 || http.statusCode == 503 || http.statusCode == 504
+                    if transient, attempt + 1 < maxAttempts {
+                        let base = 0.4 * pow(2.0, Double(attempt))
+                        let jitter = Double((attempt * 137) % 200) / 1000.0
+                        let delay = base + jitter
+                        apiLog.warning("ModelHub transient \(http.statusCode), retry attempt=\(attempt) backoff=\(String(format: "%.3f", delay))s \(request.url?.path ?? "?")")
+                        try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                        continue
+                    }
+                    apiLog.error("API \(http.statusCode): \(request.url?.path ?? "?") \(body.prefix(200))")
+                    throw HubAPIError.httpError(http.statusCode, body)
+                }
+                do {
+                    let decoded = try JSONDecoder().decode(T.self, from: data)
+                    return decoded
+                } catch {
+                    apiLog.error("Decode failed for \(request.url?.path ?? "?"): \(error.localizedDescription)")
+                    throw HubAPIError.decodeError(error.localizedDescription)
+                }
+            } catch let urlErr as URLError {
+                let transient = urlErr.code == .timedOut || urlErr.code == .networkConnectionLost
+                    || urlErr.code == .cannotConnectToHost || urlErr.code == .notConnectedToInternet
+                guard transient, attempt + 1 < maxAttempts else { throw urlErr }
+                let base = 0.4 * pow(2.0, Double(attempt))
+                let jitter = Double((attempt * 137) % 200) / 1000.0
+                let delay = base + jitter
+                apiLog.warning("ModelHub network err \(urlErr.code.rawValue), retry attempt=\(attempt) backoff=\(String(format: "%.3f", delay))s")
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            }
         }
-        guard (200..<300).contains(http.statusCode) else {
-            let body = String(data: data, encoding: .utf8) ?? ""
-            apiLog.error("API \(http.statusCode): \(request.url?.path ?? "?") \(body.prefix(200))")
-            throw HubAPIError.httpError(http.statusCode, body)
-        }
-        do {
-            let decoded = try JSONDecoder().decode(T.self, from: data)
-            return decoded
-        } catch {
-            apiLog.error("Decode failed for \(request.url?.path ?? "?"): \(error.localizedDescription)")
-            throw HubAPIError.decodeError(error.localizedDescription)
-        }
+        throw HubAPIError.invalidResponse
     }
 }
 
