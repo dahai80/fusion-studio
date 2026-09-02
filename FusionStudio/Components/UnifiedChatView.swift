@@ -885,7 +885,7 @@ struct UnifiedChatView: View {
                                     .fill(theme.accent.opacity(0.12))
                             )
                     } else {
-                        Text(parseMarkdownSafely(renderArtifactRefs(msg.content)))
+                        Text(Self.parseMarkdownSafely(renderArtifactRefs(msg.content)))
                             .font(.system(size: theme.textSize))
                             .foregroundStyle(theme.text)
                             .textSelection(.enabled)
@@ -1269,7 +1269,7 @@ struct UnifiedChatView: View {
 
     // F-ft-3 P1: 解析 markdown 失败不崩 (旧 try! 对不可信 msg.content 致 fatalError)。
     // 解析失败回退纯文本 AttributedString, 保证渲染不中断。
-    private func parseMarkdownSafely(_ text: String) -> AttributedString {
+    static func parseMarkdownSafely(_ text: String) -> AttributedString {
         let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
         if let parsed = try? AttributedString(markdown: text, options: options) {
             return parsed
