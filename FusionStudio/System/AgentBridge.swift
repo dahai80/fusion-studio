@@ -903,7 +903,7 @@ final class AgentBridge: ObservableObject {
         connectionSink = client.$isConnected
             .receive(on: DispatchQueue.main)
             .sink { [weak self] connected in
-                self?.runtimeState.isConnected = connected
+                self?.runtimeState.setConnected(connected)
             }
         logger.info("AgentBridge connected to IPCClient")
         // 审计0830 P1-调度-1: cronJobId 仅内存态, app 崩溃后启动若不主动拉取 → 已注册 cron 任务在 UI 打开前丢失可见性
@@ -931,7 +931,7 @@ final class AgentBridge: ObservableObject {
             _ = try await fetchModels()
             logger.info("probeMLXRunningStatus: mlx reachable (HTTP /v1/models)")
             DesignPreviewTrace.log("probeMLXRunningStatus: OK reachable")
-            self.mlxState.mlxRunning = true
+            self.mlxState.setMlxRunning(true)
             return true
         } catch BridgeError.authFailed {
             // 401/403：当前解析的 api key 无效。常见根因：~/.zshrc 注入了错误的
@@ -940,12 +940,12 @@ final class AgentBridge: ObservableObject {
             // 抬高其优先级覆盖错误 env，避免每次启动都 401。
             logger.warning("probeMLXRunningStatus: auth failed, attempting settings.json key self-heal")
             let healed = await selfHealApiKeyFromSettings()
-            self.mlxState.mlxRunning = healed
+            self.mlxState.setMlxRunning(healed)
             return healed
         } catch {
             logger.error("probeMLXRunningStatus: mlx unreachable: \(error)")
             DesignPreviewTrace.log("probeMLXRunningStatus: FAIL \(error)")
-            self.mlxState.mlxRunning = false
+            self.mlxState.setMlxRunning(false)
             return false
         }
     }
@@ -1060,8 +1060,8 @@ final class AgentBridge: ObservableObject {
             logger.warning("executeGraph guard daemon not ready — skip guard (optional upstream, fail-open for未装用户)")
         }
 
-        self.runtimeState.isExecuting = true
-        self.runtimeState.events = []
+        self.runtimeState.setExecuting(true)
+        self.runtimeState.setEvents([])
 
         do {
             var params: [String: Any] = [
@@ -1106,20 +1106,20 @@ final class AgentBridge: ObservableObject {
                     parsed.append(model)
                 }
             }
-            self.runtimeState.events = parsed
-            self.runtimeState.isExecuting = false
+            self.runtimeState.setEvents(parsed)
+            self.runtimeState.setExecuting(false)
             logger.info("executeGraph: received \(parsed.count) events")
             await graphInflightLock.release()
             return parsed
         } catch let error as IPCError {
-            self.runtimeState.isExecuting = false
+            self.runtimeState.setExecuting(false)
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
 
             logger.error("executeGraph: \(error)")
             await graphInflightLock.release()
             throw bridgeErr
         } catch {
-            self.runtimeState.isExecuting = false
+            self.runtimeState.setExecuting(false)
             let bridgeErr = BridgeError.decodeError(error.localizedDescription)
 
             logger.error("executeGraph decode: \(error)")
