@@ -819,6 +819,10 @@ final class AgentBridge: ObservableObject {
     private var backendCircuitOpen: Bool = false
     private var backendCircuitHalfOpen: Bool = false
     private var backendCircuitOpenedAt: Date? = nil
+    // 审计0902 R2 (P1): half-open 单探针 gate。旧实现在每个失败任务 catch 内独立判冷却→转 half-open,
+    //   N 个并发失败任务 = N 个探针同时放出, 探针风暴击穿熔断意义。本标志保证同一 half-open 窗口只放 1 探针,
+    //   其余 fast-fail。探针成功/失败复位时清。
+    private var backendProbeInFlight: Bool = false
 
     // 审计0830 P0-4: 任务执行并发上限。无上限时 N 个任务同时 graph.execute → 单机 MLX 串行推理排队 →
     //   连接占满阻塞健康轮询 (P0-2) + 内存涨 + 重试雪崩。cap 4 限制并发执行体。
@@ -1491,6 +1495,8 @@ final class AgentBridge: ObservableObject {
                     self.backendConsecutiveFailures = 0
                     self.backendConsecutiveSuccesses = 0
                     self.backendCircuitOpenedAt = nil
+                    // 审计0902 R2: 探针成功关路, 释放探针占位。
+                    self.backendProbeInFlight = false
                 } else if self.backendConsecutiveFailures > 0 {
                     self.backendConsecutiveSuccesses += 1
                     if self.backendConsecutiveSuccesses >= self.backendSuccessThreshold {
@@ -1510,6 +1516,14 @@ final class AgentBridge: ObservableObject {
                 //   成功 (L1372)/失败 (L1427) 均清, 取消遗漏。补齐对齐。
                 _ = self.lockedTaskHandle { self.taskRunHandles.removeValue(forKey: taskId) }
                 logger.info("taskExecuteImmediate cancelled: id=\(taskId) handle released (P0-5)")
+                // 审计0902 R2: 探针任务若被取消, 释放探针占位 + 回退到 open 续冷却, 防标志泄漏锁死后续探针。
+                if self.backendProbeInFlight && self.backendCircuitHalfOpen {
+                    self.backendCircuitHalfOpen = false
+                    self.backendCircuitOpen = true
+                    self.backendCircuitOpenedAt = Date()
+                    self.backendProbeInFlight = false
+                    logger.warning("F-R12 backend circuit probe CANCELLED -> re-OPEN, probe released (R2)")
+                }
                 await self.taskExecSemaphore.release()
             } catch {
                 self.updateTask(taskId) { t in
@@ -1537,18 +1551,27 @@ final class AgentBridge: ObservableObject {
                     self.backendCircuitOpenedAt = Date()
                     logger.error("F-R12 backend circuit OPEN failures=\(self.backendConsecutiveFailures) cooldown=\(self.backendCircuitCooldownSec)s — fast-fail until half-open probe")
                 }
-                // 审计0830 P1-错误-1: 开路后冷却到期转 half-open, 放单探针; 探针失败重新开路续冷却。
+                // 审计0830 P1-错误-1 / 0902 R2: 开路后冷却到期转 half-open 放单探针; 探针失败重新开路续冷却。
+                //   R2 修正: 旧实现在每个失败 catch 内独立转 half-open, N 并发失败 = N 探针击穿熔断。
+                //   仅当无探针在途 (backendProbeInFlight=false) 时首个任务转 half-open 并占探针; 其余 fast-fail。
                 if self.backendCircuitOpen, let opened = self.backendCircuitOpenedAt,
                    Date().timeIntervalSince(opened) >= self.backendCircuitCooldownSec {
-                    self.backendCircuitOpen = false
-                    self.backendCircuitHalfOpen = true
-                    logger.info("F-R12 backend circuit -> HALF-OPEN (cooldown elapsed), releasing probe")
+                    if !self.backendProbeInFlight {
+                        self.backendCircuitOpen = false
+                        self.backendCircuitHalfOpen = true
+                        self.backendProbeInFlight = true
+                        logger.info("F-R12 backend circuit -> HALF-OPEN (cooldown elapsed), releasing single probe (R2 gate acquired)")
+                    } else {
+                        // 探针已被并发首个任务占, 本任务 fast-fail 不放第二探针。
+                        logger.warning("F-R12 backend circuit cooldown elapsed but probe in-flight, fast-fail id=\(taskId) (R2)")
+                    }
                 } else if self.backendCircuitHalfOpen {
-                    // half-open 探针失败 → 重新开路, 重置冷却窗口。
+                    // half-open 探针失败 → 重新开路, 重置冷却窗口, 释放探针占位。
                     self.backendCircuitHalfOpen = false
                     self.backendCircuitOpen = true
                     self.backendCircuitOpenedAt = Date()
-                    logger.error("F-R12 backend circuit probe FAILED -> re-OPEN, cooldown restarted")
+                    self.backendProbeInFlight = false
+                    logger.error("F-R12 backend circuit probe FAILED -> re-OPEN, cooldown restarted, probe released")
                 }
                 // ARCH-2: retry 上限收紧 + 退避, 防 maxRetries 过大时高频重试风暴。
                 // retryCount 已 +1, 仅当未超 maxRetries 才重排。
