@@ -50,6 +50,8 @@ class IPCClient: ObservableObject {
     // 审计0827 P0-2: 100 在稳态期 (健康轮询 + 多 Tab fetch + 狂切) 触顶, 写操作静默失败。
     // 提升到 500: 稳态并发约 80-120, 突发 3-4x 仍 < 500; 单续体 ~0.4KB, 500 项 < 200KB 内存可接受。
     private let pendingCap = 500
+    // 审计0902 A5 (P2): inflightReads 每 key waiter cap (见 call 合并块)。
+    private let inflightWaiterCap = 100
     // F-R4: 方法级 in-flight 去重 (同 method 在途不重发)。仅对幂等读 (空 params + *.list/status/ping/health_check)
     // 合并: 第一个 caller 驱动 socket, 后续 caller 续体挂 inflightReads 等结果 fan-out, 不重发。
     // 变更类 (mlx.stop/agent.create/*.delete/env.repair_all 等) 永不合并 — 幂等性不同, 重发是正确语义。
@@ -323,9 +325,18 @@ class IPCClient: ObservableObject {
                 // F-R4: 幂等读 in-flight 合并。同 method 已在途 (首个 caller 驱动) → 挂当前续体等结果, 不重发。
                 // 仅对空 params 读 (params.isEmpty 守卫: 带参读如 tool.get/cron.list_executions 不合并, 入参不同结果不同)。
                 // 注 (A1): reqId 已在 queue 外预分配, 合并命中时该 id 废弃 — 合并仅针对空 params 读 (序列化本廉价), 可接受。
+                // 审计0902 A5 (P2): inflightReads 按 method key (受限于 ~20 个可合并读动词, 键非无界), 但每 key 下
+                //   waiter 列表无 cap — 1000 并发 mlxStatus 全挂同一 in-flight 读 → 无界续体堆。cap 每 key waiter 100,
+                //   超限直接 fast-fail (不挂不重发), 与 pendingCap 同语义防 OOM。
                 if params.isEmpty && self.isCoalesceableRead(method) {
                     self.lock.lock()
                     if self.inflightReads[method] != nil {
+                        if self.inflightReads[method]!.count >= self.inflightWaiterCap {
+                            self.lock.unlock()
+                            ipcLog.warning("IPC inflight waiter cap exceeded (\(self.inflightWaiterCap)) method=\(method, privacy: .public), fast-fail")
+                            continuation.resume(throwing: IPCError.pendingFull)
+                            return
+                        }
                         self.inflightReads[method, default: []].append(continuation)
                         self.lock.unlock()
                         ipcLog.debug("IPC inflight coalesce: skip re-fire method=\(method, privacy: .public) id=\(reqId), awaiting in-flight")

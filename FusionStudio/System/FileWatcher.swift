@@ -200,6 +200,12 @@ class FileWatcher: ObservableObject {
             }
         }
         lastEvents[key] = now
+        // 审计0902 A5 (P2): lastEvents 按 path-tier key 无淘汰, watch 大仓库 100k 路径 → 100k 键无界增长。
+        //   达 2000 阈值时清过期 (>2x 最长 tier interval 60s 的旧条目), 保近期去重有效同时回收陈旧键。
+        if lastEvents.count > 2000 {
+            let cutoff = now.addingTimeInterval(-120)
+            lastEvents = lastEvents.filter { $0.value > cutoff }
+        }
         return true
     }
 

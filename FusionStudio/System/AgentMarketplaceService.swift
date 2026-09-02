@@ -29,6 +29,11 @@ extension AgentState {
                     parsed.append(entry)
                 }
             }
+            // 审计0902 A5 (P2): marketplaceEntries 无 cap, 大目录拉取 → 无界 @Published 数组。
+            //   cap 200 (后端分页通常 ≤100/页, 200 容突发 2x), 超限只保前 200 避免大目录内存爬升。
+            if parsed.count > 200 {
+                parsed = Array(parsed.prefix(200))
+            }
             self.marketplaceEntries = parsed
             agentMarketplaceLog.info("marketplaceSearch: found \(parsed.count) entries")
             return parsed

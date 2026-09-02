@@ -255,7 +255,13 @@ class MultiNodeEngine: ObservableObject {
             switch result {
             case .success(let resp):
                 DispatchQueue.main.async {
-                    self?.tasks = resp.tasks
+                    // 审计0902 A5 (P2): tasks 全量替换无 cap, 后端返 >500 则绕过 taskSubmit LRU cap 500。
+                    //   cap 500 与单机 task 列表一致, 超限只保前 500 (按后端返回序, 通常近时间序)。
+                    var fetched = resp.tasks
+                    if fetched.count > 500 {
+                        fetched = Array(fetched.prefix(500))
+                    }
+                    self?.tasks = fetched
                     self?.resetFailureState(context: "tasks")
                     self?.detectDuplicateExecution()
                 }
