@@ -11,6 +11,10 @@ import os.log
 // 供 static 方法 (gatewayConfigApiKey 等) 使用的文件级 logger, 实例 logger 在 class 内。
 private let agentBridgeStaticLog = Logger(subsystem: "com.fusion.studio", category: "AgentBridge")
 
+// 审计0902 R1 (P1): executeGraph 并发串行锁。limit=1 = mutex, 串行化所有 executeGraph 调用
+//   (UI 手动 + 任务调度底层), 防共享 runtimeState.events/isExecuting 并发互覆。
+nonisolated private let graphInflightLock = AsyncTaskSemaphore(limit: 1)
+
 // 审计0830 P0-4: 异步并发信号量。限制 taskExecuteImmediate 并发上限, 防后端 (单机 MLX) 过载 +
 //   重试风暴雪崩。actor 保证 acquire/release 原子, async wait 不阻塞线程。
 //   单机 MLX 串行推理, 并发 graph.execute 只会挤占健康轮询连接 (P0-2) + OOM, cap 4 合理。
@@ -994,6 +998,13 @@ final class AgentBridge: ObservableObject {
         }
         logger.info("executeGraph: id=\(id) task=\(taskId.isEmpty ? "-" : taskId)")
 
+        // 审计0902 R1 (P1): 并发 guard。UI 手动执行 (taskId 空) 写共享 runtimeState.events/isExecuting,
+        //   两路并发互覆 (A 清空 B 的事件)。taskExecuteImmediate 路用返回值不踩共享态 (P0-11 已修),
+        //   但其底层仍走本方法, 故以 graphInflightLock 串行化所有 executeGraph, 同一时刻只允许一个在跑。
+        //   不拒绝 (任务调度路径合法并发), 而是按到达顺序串行 → 后者等前者完成再执行, 共享态不被互覆。
+        await graphInflightLock.acquire()
+        // 审计0902 R1: release 非 defer (actor-isolated 需 await), 沿既有 taskExecSemaphore 模式
+        //   在每个出口显式 await release。
         // #344: 高危动作运行时鉴权 — guard.evaluate before dispatch (PRD §17 Phase 6)。
         // 已装 guard (isDaemonReady=true): 严格 fail-closed, BLOCK/L4 不下发, L3 走人机确认弹窗。
         // 未装 guard (isDaemonReady=false): 可选上游, fail-open 普通工作流不锁死未装用户。
@@ -1007,6 +1018,7 @@ final class AgentBridge: ObservableObject {
                 )
                 if verdict.isBlock {
                     logger.error("executeGraph BLOCKED by guard: \(verdict.reason, privacy: .public) risk=\(verdict.riskLevel, privacy: .public)")
+                    await graphInflightLock.release()
                     throw BridgeError.guardBlocked(verdict.reason)
                 }
                 if verdict.needsApproval {
@@ -1020,6 +1032,7 @@ final class AgentBridge: ObservableObject {
                     )
                     if !approved {
                         logger.warning("executeGraph L3 approval denied by user")
+                        await graphInflightLock.release()
                         throw BridgeError.guardBlocked("用户拒绝确认")
                     }
                 }
@@ -1027,6 +1040,7 @@ final class AgentBridge: ObservableObject {
             } catch let ge as GuardError {
                 // fail-closed: guard confirm/超时不可达 = block (R2), 不绕过
                 logger.error("executeGraph guard approval failed (fail-closed): \(ge.localizedDescription, privacy: .public)")
+                await graphInflightLock.release()
                 throw BridgeError.guardBlocked(ge.localizedDescription)
             }
         } else if guardBridge != nil {
@@ -1082,18 +1096,21 @@ final class AgentBridge: ObservableObject {
             self.runtimeState.events = parsed
             self.runtimeState.isExecuting = false
             logger.info("executeGraph: received \(parsed.count) events")
+            await graphInflightLock.release()
             return parsed
         } catch let error as IPCError {
             self.runtimeState.isExecuting = false
             let bridgeErr = BridgeError.ipcError(error.localizedDescription)
 
             logger.error("executeGraph: \(error)")
+            await graphInflightLock.release()
             throw bridgeErr
         } catch {
             self.runtimeState.isExecuting = false
             let bridgeErr = BridgeError.decodeError(error.localizedDescription)
 
             logger.error("executeGraph decode: \(error)")
+            await graphInflightLock.release()
             throw bridgeErr
         }
     }
