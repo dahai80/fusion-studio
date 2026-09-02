@@ -276,7 +276,7 @@ class IPCClient: ObservableObject {
         if circuitConsecutiveFailures >= circuitThreshold && !circuitOpen {
             circuitOpen = true
             circuitOpenedAt = Date().timeIntervalSince1970
-            ipcLog.error("IPC circuit OPEN failures=\(self.circuitConsecutiveFailures) — fast-fail pending calls until backend recovers")
+            ipcLog.error("IPC circuit OPEN failures=\(self.circuitConsecutiveFailures, privacy: .public) — fast-fail pending calls until backend recovers")
         } else if circuitOpen {
             // 已开路 (half-open 探测失败): 续计时, 下个 recovery 窗口再试。
             circuitOpenedAt = Date().timeIntervalSince1970
@@ -439,7 +439,11 @@ class IPCClient: ObservableObject {
     // 每次新建短连接, 换行分隔 JSON-RPC 2.0; 结果归一化: dict 原样 / array 包成 ["items":...] / 标量包成 ["_result":...]
     @discardableResult
     func udsCall(socketPath: String, method: String, params: [String: Any] = [:], timeoutSecs: Int = 8) async throws -> [String: Any] {
-        try await withCheckedThrowingContinuation { continuation in
+        // F-ft-4: 旧 udsCall 扁平 8s 超时, 长 RPC (RAG ingest / model pull) 误超时。
+        // 当调用方用默认值 8 (未显式传超时), 改用与主 call() 一致的 method-aware rpcTimeout,
+        // 让长方法拿 longRpcTimeout (120s), 短方法拿 defaultRpcTimeout (8s)。
+        let effectiveTimeout: Int = timeoutSecs == 8 ? Int(Self.rpcTimeout(for: method)) : timeoutSecs
+        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[String: Any], Error>) in
             DispatchQueue.global(qos: .userInitiated).async {
                 // 审计0902 R5 (P2): 限并发短连, acquire 在阻塞 worker 前排队; release 随 close 释放槽位。
                 Self.udsCallSemaphore.wait()
@@ -457,7 +461,7 @@ class IPCClient: ObservableObject {
                     continuation.resume(throwing: IPCError.disconnected)
                     return
                 }
-                var tv = timeval(tv_sec: timeoutSecs, tv_usec: 0)
+                var tv = timeval(tv_sec: effectiveTimeout, tv_usec: 0)
                 _ = setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
                 // 审计0902 R4 (P1): SO_SNDTIMEO 防写端永久阻塞 (对端慢消费/窗口满)。旧仅设 RCFTIMEO,
                 //   writeAll 阻塞写可挂死整个短连通道。与 RCFTIMEO 对称设发送超时。
@@ -621,7 +625,7 @@ class IPCClient: ObservableObject {
         let coalescedMethod = reqIdToMethod.removeValue(forKey: id)
         lock.unlock()
         guard let cont = cont else {
-            ipcLog.warning("handleResponse no pending continuation for id=\(id)")
+            ipcLog.warning("handleResponse no pending continuation for id=\(id, privacy: .public)")
             return
         }
 
@@ -638,11 +642,11 @@ class IPCClient: ObservableObject {
             } else if let arr = result as? [Any] {
                 outcome = .success(["items": arr])
             } else {
-                ipcLog.warning("handleResponse result non-dict/array id=\(id), wrapping _result")
+                ipcLog.warning("handleResponse result non-dict/array id=\(id, privacy: .public), wrapping _result")
                 outcome = .success(["_result": result])
             }
         } else {
-            ipcLog.warning("handleResponse no result field id=\(id), returning empty")
+            ipcLog.warning("handleResponse no result field id=\(id, privacy: .public), returning empty")
             outcome = .success([:])
         }
         switch outcome {
@@ -732,11 +736,11 @@ class IPCClient: ObservableObject {
                 var pfd = pollfd(fd: fd, events: Int16(POLLOUT), revents: 0)
                 let pr = withUnsafeMutablePointer(to: &pfd) { ptr in Darwin.poll(ptr, 1, 5000) }
                 if pr > 0 { continue } // 缓冲可写, 重试 write
-                ipcLog.error("writeAll: poll POLLOUT fd=\(fd) ret=\(pr) errno=\(err) (R4 超时/故障, 放弃)")
+                ipcLog.error("writeAll: poll POLLOUT fd=\(fd, privacy: .public) ret=\(pr, privacy: .public) errno=\(err, privacy: .public) (R4 超时/故障, 放弃)")
                 return
             }
             if err == EINTR { continue } // 信号打断, 重试
-            ipcLog.error("writeAll: fault write fd=\(fd) offset=\(offset) remaining=\(remaining) ret=\(written) errno=\(err) (P0-8/R4 真故障, 放弃)")
+            ipcLog.error("writeAll: fault write fd=\(fd, privacy: .public) offset=\(offset, privacy: .public) remaining=\(remaining, privacy: .public) ret=\(written, privacy: .public) errno=\(err, privacy: .public) (P0-8/R4 真故障, 放弃)")
             return
         }
     }
@@ -799,7 +803,7 @@ class IPCClient: ObservableObject {
                     ipcLog.info("F-A16 discover: schema OK, \(methods.count) methods available")
                 } else {
                     self.schemaCompatible = false
-                    ipcLog.error("F-A16 discover: SCHEMA DRIFT — missing critical methods: \(missing.sorted().joined(separator: ", ")) — upstream RPC 不兼容, 调用这些方法将失败")
+                    ipcLog.error("F-A16 discover: SCHEMA DRIFT — missing critical methods: \(missing.sorted().joined(separator: ", "), privacy: .public) — upstream RPC 不兼容, 调用这些方法将失败")
                 }
             }
         } catch {

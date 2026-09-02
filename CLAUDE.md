@@ -51,7 +51,7 @@ Fusion Studio is a unified macOS native desktop client for the Fusion-MLX local 
 
 - **State management**: `AppState` (ObservableObject) injected via `@EnvironmentObject` — the central hub for navigation (`Module`, `ProductSheet`, `SidebarSection` enums) and UI state
 - **IPC**: `IPCClient` handles all backend communication via JSON-RPC 2.0; methods are name-spaced `service.method` (e.g., `env.health_check`, `mlx.start`, `model.list`)
-- **Module routing**: `Module` enum (63 cases) → `ProductSheet` (20 cases) → `SidebarSection` (22 sections). `SectionContentView` switches on `activeSection`
+- **Module routing**: `Module` enum (64 cases) → `ProductSheet` (20 cases) → `SidebarSection` (22 sections). `SectionContentView` switches on `activeSection`
 - **Layout**: 4-column HStack — IconRailView | FusionSidebarView | WorkspaceArea | InspectorPanel
 - **Theme**: `StudioTheme` with dark-first design, accent `#007AFF`, `.ultraThinMaterial` vibrancy. Applied via `.studioThemed()` modifier
 - **Zero external Swift dependencies** — Package.swift has no dependencies; everything is self-contained

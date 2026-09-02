@@ -90,6 +90,8 @@ class StreamingBridge: ObservableObject {
                     bridgeLog.info("AgentBridge connected to WS")
                 case .failed, .cancelled:
                     self.isConnected = false
+                    // F-ft-7: 连接断开未重置 isStreaming → UI 永久转圈。服务端无 chat_done 回包时卡死。
+                    self.isStreaming = false
                     self.scheduleReconnect()
                     bridgeLog.warning("AgentBridge disconnected, scheduling reconnect")
                 default:
@@ -106,6 +108,8 @@ class StreamingBridge: ObservableObject {
         connection?.cancel()
         connection = nil
         isConnected = false
+        // F-ft-7: 主动断开同样需重置 isStreaming, 否则切换连接模式时旧流状态残留。
+        isStreaming = false
         reconnectTimer?.invalidate()
         reconnectTimer = nil
     }
@@ -215,6 +219,8 @@ class StreamingBridge: ObservableObject {
         webSocketTask?.cancel(with: .goingAway, reason: nil)
         webSocketTask = nil
         isConnected = false
+        // F-ft-7: WS 主动断开重置 isStreaming, 与 TCP disconnect() 对称。
+        isStreaming = false
         wsReconnectTimer?.invalidate()
         wsReconnectTimer = nil
         bridgeLog.info("StreamingBridge: WebSocket disconnected")
@@ -276,6 +282,8 @@ class StreamingBridge: ObservableObject {
                 bridgeLog.error("StreamingBridge: WebSocket receive error: \(error.localizedDescription)")
                 Task { @MainActor in
                     self.isConnected = false
+                    // F-ft-7: WS receive 失败重置 isStreaming, 与 TCP .failed/.cancelled 对称, 防 UI 永久转圈。
+                    self.isStreaming = false
                     self.scheduleWSReconnect()
                 }
             }

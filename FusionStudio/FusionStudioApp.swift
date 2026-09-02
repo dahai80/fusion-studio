@@ -77,6 +77,10 @@ struct FusionStudioApp: App {
         _healthState = StateObject(wrappedValue: health)
         _themeState = StateObject(wrappedValue: theme)
         _appState = StateObject(wrappedValue: AppState(navState: nav, uiPanelState: ui, healthState: health, themeState: theme))
+        // F-ops-8: opt-in 本地崩溃遥测。零网络上传, NSSetUncaughtExceptionHandler + MetricKit → ~/.fusion-studio/logs/crash-*.log。
+        if FusionConfig.shared.enableCrashTelemetry {
+            CrashReporter.shared.start()
+        }
         // Dock 图标延后到 onAppear 中设置，init 阶段 NSApp 尚未就绪
     }
 
@@ -165,6 +169,11 @@ struct FusionStudioApp: App {
                     ArtifactSidebarCache.shared.configure(ipcClient: ipcClient)
                     Task {
                         await performStartupHealthCheck()
+                    }
+                    // F-ops-4: 启动按需检查更新, 受 allowUpdateCheck 开关控制 (Settings 默认 ON)。
+                    // 非强制: 复用 AutoUpdateManager 内置 1h 节流, 避免每次唤起都打 GitHub API。
+                    if FusionConfig.shared.allowUpdateCheck {
+                        AutoUpdateManager.shared.checkForUpdates()
                     }
                     // F-R13: 启动进程内 RSS 监控, 软阈值告警 + 日志, 防 @Published/长会话 OOM 静默。
                     // critical 阈值 (>3GB) 触发注册的 eviction 回调清无界 @Published 数组 LRU。
@@ -271,11 +280,15 @@ struct FusionStudioApp: App {
                         // 审计0830 P1-资源-5: ScreenContext 2s Accessibility 轮询未绑 scenePhase,
                         //   app 后台仍轮询 → 耗电 + 后台读 Accessibility 隐私风险。后台停, 唤醒恢复。
                         screenContext.stopMonitoring()
+                        // F-perf-5: ArtifactSidebarCache 30s Timer 后台停 (singleton deinit 不触发)。
+                        ArtifactSidebarCache.shared.pauseForBackground()
                     } else if phase == .active {
                         multiNodeEngine.startPolling()
                         agentBridge.startMlxStatusPolling()
                         // 审计0830 P1-资源-5: 唤醒恢复 ScreenContext 监控 (后台已停)。
                         screenContext.startMonitoring()
+                        // F-perf-5: 唤醒恢复 artifact refresh timer + 立即刷新一次。
+                        ArtifactSidebarCache.shared.resumeForForeground()
                         // #346: 感知层长连接在唤醒后恢复 (后台/休眠可能断 UDS), 守护缺席 fail-open 不锁死。
                         eventBridge.startStream()
                         Task { await eventBridge.checkDaemonStatus() }

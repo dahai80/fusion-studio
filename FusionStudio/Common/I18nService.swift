@@ -257,6 +257,7 @@ enum I18nKey: String, CaseIterable {
     case tab_mlxConnection = "tab_mlxConnection"
     case sec_startup = "sec_startup"
     case launchAtLogin = "launchAtLogin"
+    case offline_banner_backend_unreachable = "offline_banner_backend_unreachable"
     case autoStartMLX = "autoStartMLX"
     case reselectMainModel = "reselectMainModel"
     case sec_window = "sec_window"
@@ -281,6 +282,10 @@ enum I18nKey: String, CaseIterable {
     case sec_netPerms = "sec_netPerms"
     case allowModelDownload = "allowModelDownload"
     case checkUpdates = "checkUpdates"
+    // F-ops-8: 本地崩溃遥测 i18n (Settings toggle + help)。
+    case sec_telemetry = "sec_telemetry"
+    case enableCrashTelemetry = "enableCrashTelemetry"
+    case enableCrashTelemetryHelp = "enableCrashTelemetryHelp"
     case sec_quantPreset = "sec_quantPreset"
     case defaultQuant = "defaultQuant"
     case defaultFormat = "defaultFormat"

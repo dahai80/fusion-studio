@@ -35,7 +35,9 @@ struct WebViewContainer: NSViewRepresentable {
         )
         userContentController.addUserScript(userScript)
         config.userContentController = userContentController
-        config.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
+        // F-sec-2: WebViewContainer loads http(s):// URLs (Bench/EduK12/ServiceWeb),
+        // never file:// — disable file access so injected scripts cannot read local files.
+        config.preferences.setValue(false, forKey: "allowFileAccessFromFileURLs")
 
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator

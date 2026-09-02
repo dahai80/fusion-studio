@@ -556,6 +556,22 @@ struct DesignCanvasView: NSViewRepresentable {
 
         // MARK: WKNavigationDelegate
 
+        // F-sec-2: DesignCanvasView loads only bundled wasm via loadHTMLString(file baseURL).
+        // Deny any navigation/navigationAction whose target leaves the bundle (external http(s),
+        // redirected file://) — defense-in-depth against compromised wasm/scripts exfiltrating.
+        func webView(_ webView: WKWebView,
+                      decidePolicyFor navigationAction: WKNavigationAction,
+                      decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+            if let url = navigationAction.request.url {
+                if url.isFileURL {
+                    decisionHandler(.allow)
+                    return
+                }
+                canvasLog.error("F-sec-2: blocking non-file navigation to \(url.absoluteString)")
+            }
+            decisionHandler(.cancel)
+        }
+
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             canvasLog.info("DesignCanvasView: navigation finished")
 

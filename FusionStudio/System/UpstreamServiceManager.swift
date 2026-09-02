@@ -126,6 +126,10 @@ final class UpstreamServiceManager: ObservableObject {
     @Published var services: [UpstreamService] = []
     @Published var startupCompleted: Bool = false
     @Published var isRefreshing: Bool = false
+    // F-func-1/F-ops-5: 关键后端 start.sh 缺失 (未安装 monorepo/venv) 时置 true,
+    // 供 UI 顶层 banner 提示用户安装, 而非静默 IPC 失败。
+    @Published var criticalBackendMissing: Bool = false
+    @Published var criticalBackendMissingHint: String = ""
 
     private let logger = Logger(subsystem: "com.fusion.studio", category: "UpstreamService")
 
@@ -301,6 +305,10 @@ final class UpstreamServiceManager: ObservableObject {
             await MainActor.run {
                 services[idx].status = .notInstalled
                 services[idx].message = "服务不存在：未找到 start.sh"
+                if svc.isCritical {
+                    self.criticalBackendMissing = true
+                    self.criticalBackendMissingHint = "后端服务未安装: 需 ~/fusion monorepo + Python venv, 详见安装指引"
+                }
             }
             return
         }

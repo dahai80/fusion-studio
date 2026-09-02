@@ -101,10 +101,14 @@ class FinanceBridge: ObservableObject {
         postRaw("/api/v1/modeling/dcf/calculate", body: body) { result in
             switch result {
             case .success(let data):
-                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                do {
+                    guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                        completion(.failure(FinanceBridgeError.noData)); return
+                    }
                     completion(.success(json))
-                } else {
-                    completion(.failure(FinanceBridgeError.noData))
+                } catch {
+                    bridgeLog.error("DCF response not JSON object: \(error.localizedDescription)")
+                    completion(.failure(error))
                 }
             case .failure(let error):
                 completion(.failure(error))
@@ -124,10 +128,14 @@ class FinanceBridge: ObservableObject {
         postRaw("/api/v1/modeling/sensitivity", body: body) { result in
             switch result {
             case .success(let data):
-                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                do {
+                    guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                        completion(.failure(FinanceBridgeError.noData)); return
+                    }
                     completion(.success(json))
-                } else {
-                    completion(.failure(FinanceBridgeError.noData))
+                } catch {
+                    bridgeLog.error("Sensitivity response not JSON object: \(error.localizedDescription)")
+                    completion(.failure(error))
                 }
             case .failure(let error):
                 completion(.failure(error))
@@ -146,10 +154,14 @@ class FinanceBridge: ObservableObject {
         postRaw("/api/v1/modeling/portfolio/optimize", body: body) { result in
             switch result {
             case .success(let data):
-                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                do {
+                    guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                        completion(.failure(FinanceBridgeError.noData)); return
+                    }
                     completion(.success(json))
-                } else {
-                    completion(.failure(FinanceBridgeError.noData))
+                } catch {
+                    bridgeLog.error("Portfolio response not JSON object: \(error.localizedDescription)")
+                    completion(.failure(error))
                 }
             case .failure(let error):
                 completion(.failure(error))
@@ -168,10 +180,14 @@ class FinanceBridge: ObservableObject {
         postRaw("/api/v1/statements/metrics", body: body) { result in
             switch result {
             case .success(let data):
-                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                do {
+                    guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                        completion(.failure(FinanceBridgeError.noData)); return
+                    }
                     completion(.success(json))
-                } else {
-                    completion(.failure(FinanceBridgeError.noData))
+                } catch {
+                    bridgeLog.error("Metrics response not JSON object: \(error.localizedDescription)")
+                    completion(.failure(error))
                 }
             case .failure(let error):
                 completion(.failure(error))
@@ -185,10 +201,14 @@ class FinanceBridge: ObservableObject {
         postRaw("/api/v1/statements/screener", body: body) { result in
             switch result {
             case .success(let data):
-                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                do {
+                    guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                        completion(.failure(FinanceBridgeError.noData)); return
+                    }
                     completion(.success(json))
-                } else {
-                    completion(.failure(FinanceBridgeError.noData))
+                } catch {
+                    bridgeLog.error("Screener response not JSON object: \(error.localizedDescription)")
+                    completion(.failure(error))
                 }
             case .failure(let error):
                 completion(.failure(error))
@@ -205,10 +225,14 @@ class FinanceBridge: ObservableObject {
         postRaw("/api/v1/risk/kyc", body: body) { result in
             switch result {
             case .success(let data):
-                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                do {
+                    guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                        completion(.failure(FinanceBridgeError.noData)); return
+                    }
                     completion(.success(json))
-                } else {
-                    completion(.failure(FinanceBridgeError.noData))
+                } catch {
+                    bridgeLog.error("KYC response not JSON object: \(error.localizedDescription)")
+                    completion(.failure(error))
                 }
             case .failure(let error):
                 completion(.failure(error))
@@ -225,10 +249,14 @@ class FinanceBridge: ObservableObject {
         postRaw("/api/v1/risk/var", body: body) { result in
             switch result {
             case .success(let data):
-                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                do {
+                    guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                        completion(.failure(FinanceBridgeError.noData)); return
+                    }
                     completion(.success(json))
-                } else {
-                    completion(.failure(FinanceBridgeError.noData))
+                } catch {
+                    bridgeLog.error("VaR response not JSON object: \(error.localizedDescription)")
+                    completion(.failure(error))
                 }
             case .failure(let error):
                 completion(.failure(error))
@@ -245,10 +273,14 @@ class FinanceBridge: ObservableObject {
         postRaw("/api/v1/report/valuation", body: body) { result in
             switch result {
             case .success(let data):
-                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                do {
+                    guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                        completion(.failure(FinanceBridgeError.noData)); return
+                    }
                     completion(.success(json))
-                } else {
-                    completion(.failure(FinanceBridgeError.noData))
+                } catch {
+                    bridgeLog.error("Valuation report response not JSON object: \(error.localizedDescription)")
+                    completion(.failure(error))
                 }
             case .failure(let error):
                 completion(.failure(error))
@@ -283,9 +315,16 @@ class FinanceBridge: ObservableObject {
         guard let url = URL(string: "\(baseURL)\(path)") else {
             completion(.failure(FinanceBridgeError.invalidURL)); return
         }
-        session.dataTask(with: url) { data, _, error in
+        session.dataTask(with: url) { data, response, error in
             if let error = error { completion(.failure(error)); return }
+            guard let http = response as? HTTPURLResponse else {
+                completion(.failure(FinanceBridgeError.noData)); return
+            }
             guard let data = data else { completion(.failure(FinanceBridgeError.noData)); return }
+            guard (200..<300).contains(http.statusCode) else {
+                bridgeLog.error("HTTP \(http.statusCode) for GET \(path)")
+                completion(.failure(FinanceBridgeError.httpError(http.statusCode))); return
+            }
             do {
                 let decoded = try JSONDecoder().decode(T.self, from: data)
                 completion(.success(decoded))
@@ -303,10 +342,21 @@ class FinanceBridge: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        session.dataTask(with: request) { data, _, error in
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        } catch {
+            completion(.failure(error)); return
+        }
+        session.dataTask(with: request) { data, response, error in
             if let error = error { completion(.failure(error)); return }
+            guard let http = response as? HTTPURLResponse else {
+                completion(.failure(FinanceBridgeError.noData)); return
+            }
             guard let data = data else { completion(.failure(FinanceBridgeError.noData)); return }
+            guard (200..<300).contains(http.statusCode) else {
+                bridgeLog.error("HTTP \(http.statusCode) for POST \(path)")
+                completion(.failure(FinanceBridgeError.httpError(http.statusCode))); return
+            }
             do {
                 let decoded = try JSONDecoder().decode(T.self, from: data)
                 completion(.success(decoded))
@@ -324,10 +374,21 @@ class FinanceBridge: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        session.dataTask(with: request) { data, _, error in
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        } catch {
+            completion(.failure(error)); return
+        }
+        session.dataTask(with: request) { data, response, error in
             if let error = error { completion(.failure(error)); return }
+            guard let http = response as? HTTPURLResponse else {
+                completion(.failure(FinanceBridgeError.noData)); return
+            }
             guard let data = data else { completion(.failure(FinanceBridgeError.noData)); return }
+            guard (200..<300).contains(http.statusCode) else {
+                bridgeLog.error("HTTP \(http.statusCode) for POST \(path)")
+                completion(.failure(FinanceBridgeError.httpError(http.statusCode))); return
+            }
             completion(.success(data))
         }.resume()
     }
@@ -347,11 +408,13 @@ class FinanceBridge: ObservableObject {
 enum FinanceBridgeError: Error, LocalizedError {
     case invalidURL
     case noData
+    case httpError(Int)
 
     var errorDescription: String? {
         switch self {
         case .invalidURL: return "Invalid URL"
         case .noData: return "No data returned"
+        case .httpError(let code): return "HTTP error \(code)"
         }
     }
 }

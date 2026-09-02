@@ -1,5 +1,6 @@
 import SwiftUI
 import os.log
+import ServiceManagement
 
 /// 全局设置面板
 struct SettingsView: View {
@@ -79,10 +80,33 @@ struct GeneralSettingsView: View {
 
     private let settingsLog = Logger(subsystem: "com.fusion.studio", category: "Settings")
 
+    // F-ops-3: drive macOS SMAppService.mainApp (macOS 13+) so the Login Items toggle
+    // actually registers/unregisters with the system, not just flips a stored bool.
+    private func syncLaunchAtLogin(_ enabled: Bool) {
+        let service = SMAppService.mainApp
+        do {
+            if enabled {
+                try service.register()
+                settingsLog.info("F-ops-3: launchAtLogin registered via SMAppService")
+            } else {
+                try service.unregister()
+                settingsLog.info("F-ops-3: launchAtLogin unregistered via SMAppService")
+            }
+        } catch {
+            settingsLog.error("F-ops-3: SMAppService \(enabled ? "register" : "unregister") failed: \(error.localizedDescription)")
+        }
+    }
+
     var body: some View {
         Form {
             Section(i18n.t(.sec_startup)) {
-                Toggle(i18n.t(.launchAtLogin), isOn: $launchAtLogin)
+                Toggle(i18n.t(.launchAtLogin), isOn: Binding(
+                    get: { launchAtLogin },
+                    set: { newValue in
+                        launchAtLogin = newValue
+                        syncLaunchAtLogin(newValue)
+                    }
+                ))
                 Toggle(i18n.t(.autoStartMLX), isOn: $autoStartMLX)
                 Button(i18n.t(.reselectMainModel)) {
                     uiPanelState.showWelcome = true
@@ -146,9 +170,12 @@ struct HardwareSettingsView: View {
 }
 
 struct NetworkSettingsView: View {
+    private let netSettingsLog = Logger(subsystem: "com.fusion.studio", category: "Settings.Network")
     @AppStorage("offlineMode") private var offlineMode = true
     @AppStorage("allowModelDownload") private var allowModelDownload = true
     @AppStorage("allowUpdateCheck") private var allowUpdateCheck = true
+    // F-ops-8: 本地崩溃遥测 opt-in toggle (默认 OFF, 零网络上传, 仅落盘 ~/.fusion-studio/logs/crash-*.log)。
+    @AppStorage("enableCrashTelemetry") private var enableCrashTelemetry = false
     @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
@@ -167,6 +194,19 @@ struct NetworkSettingsView: View {
                     .disabled(offlineMode)
                 Toggle(i18n.t(.checkUpdates), isOn: $allowUpdateCheck)
                     .disabled(offlineMode)
+            }
+            Section(i18n.t(.sec_telemetry)) {
+                Toggle(i18n.t(.enableCrashTelemetry), isOn: Binding(
+                    get: { enableCrashTelemetry },
+                    set: { newValue in
+                        enableCrashTelemetry = newValue
+                        if newValue {
+                            CrashReporter.shared.start()
+                            netSettingsLog.info("F-ops-8: crash telemetry enabled by user")
+                        }
+                    }
+                ))
+                .help(i18n.t(.enableCrashTelemetryHelp))
             }
         }
         .padding()
@@ -512,24 +552,30 @@ struct MlxConnectionSettingsView: View {
     private func saveApiKey(_ key: String) {
         let trimmed = key.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
+        // F-perf-6: 文件读写移出 MainActor (Task.detached), 避免同步 I/O 阻塞 UI 线程。
+        // config.mlxApiKey 在写盘成功后回主线程刷新。
         let settingsPath = NSHomeDirectory() + "/.fusion-mlx/settings.json"
-        let url = URL(fileURLWithPath: settingsPath)
-        do {
-            var settings: [String: Any] = [:]
-            if let data = try? Data(contentsOf: url),
-               let existing = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                settings = existing
+        Task.detached(priority: .userInitiated) {
+            let url = URL(fileURLWithPath: settingsPath)
+            do {
+                var settings: [String: Any] = [:]
+                if let data = try? Data(contentsOf: url),
+                   let existing = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    settings = existing
+                }
+                var auth = settings["auth"] as? [String: Any] ?? [:]
+                auth["api_key"] = trimmed
+                settings["auth"] = auth
+                let data = try JSONSerialization.data(withJSONObject: settings, options: .prettyPrinted)
+                try data.write(to: url, options: .atomic)
+                try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: settingsPath)
+                await MainActor.run {
+                    config.mlxApiKey = trimmed
+                }
+                log.info("API key saved: Keychain (primary) + settings.json 0600, config refreshed")
+            } catch {
+                log.error("Failed to save API key: \(error.localizedDescription)")
             }
-            var auth = settings["auth"] as? [String: Any] ?? [:]
-            auth["api_key"] = trimmed
-            settings["auth"] = auth
-            let data = try JSONSerialization.data(withJSONObject: settings, options: .prettyPrinted)
-            try data.write(to: url, options: .atomic)
-            try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: settingsPath)
-            config.mlxApiKey = trimmed
-            log.info("API key saved: Keychain (primary) + settings.json 0600, config refreshed")
-        } catch {
-            log.error("Failed to save API key: \(error.localizedDescription)")
         }
     }
 

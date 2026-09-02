@@ -4,6 +4,9 @@
 // User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
 
 import SwiftUI
+import os.log
+
+private let mmlLog = Logger(subsystem: "com.fusion.studio", category: "MultiModal")
 
 // MARK: - 多模态任务类型
 
@@ -284,7 +287,11 @@ struct MultiModalView: View {
                 // 通过 fusion-mlx HTTP API 调用
                 switch taskType {
                 case .textToImage, .imageToImage:
-                    let url = URL(string: FusionConfig.shared.mlxBaseURL + "/v1/images/generations")!
+                    // F-ft-5: 旧 URL(string:)! 在 mlxBaseURL 含非法字符时 fatalError。
+                    guard let url = URL(string: FusionConfig.shared.mlxBaseURL + "/v1/images/generations") else {
+                        mmlLog.error("F-ft-5: invalid images/generations URL, base=\(FusionConfig.shared.mlxBaseURL)")
+                        throw URLError(.badURL)
+                    }
                     var request = URLRequest(url: url)
                     request.httpMethod = "POST"
                     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -308,7 +315,11 @@ struct MultiModalView: View {
                     }
                 case .speechToText:
                     // 调用 fusion-mlx 语音识别 API
-                    let url = URL(string: FusionConfig.shared.mlxBaseURL + "/v1/audio/transcriptions")!
+                    // F-ft-5: guard 替代 force-unwrap, 防 mlxBaseURL 非法时 fatalError。
+                    guard let url = URL(string: FusionConfig.shared.mlxBaseURL + "/v1/audio/transcriptions") else {
+                        mmlLog.error("F-ft-5: invalid audio/transcriptions URL, base=\(FusionConfig.shared.mlxBaseURL)")
+                        throw URLError(.badURL)
+                    }
                     var request = URLRequest(url: url)
                     request.httpMethod = "POST"
                     request.timeoutInterval = 120
@@ -316,7 +327,11 @@ struct MultiModalView: View {
                     let result = String(data: data, encoding: .utf8) ?? ""
                     await MainActor.run { self.generatedText = result }
                 case .textToSpeech:
-                    let url = URL(string: FusionConfig.shared.mlxBaseURL + "/v1/audio/speech")!
+                    // F-ft-5: guard 替代 force-unwrap, 防 mlxBaseURL 非法时 fatalError。
+                    guard let url = URL(string: FusionConfig.shared.mlxBaseURL + "/v1/audio/speech") else {
+                        mmlLog.error("F-ft-5: invalid audio/speech URL")
+                        throw URLError(.badURL)
+                    }
                     var request = URLRequest(url: url)
                     request.httpMethod = "POST"
                     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -327,7 +342,11 @@ struct MultiModalView: View {
                     await MainActor.run { self.generatedText = I18nManager.shared.tf(.mml_audio_generated_fmt, data.count) }
                 case .ocr, .imageDescribe:
                     // 调用 fusion-mlx 视觉模型 API
-                    let url = URL(string: FusionConfig.shared.mlxBaseURL + "/v1/chat/completions")!
+                    // F-ft-5: guard 替代 force-unwrap, 防 mlxBaseURL 非法时 fatalError。
+                    guard let url = URL(string: FusionConfig.shared.mlxBaseURL + "/v1/chat/completions") else {
+                        mmlLog.error("F-ft-5: invalid chat/completions URL")
+                        throw URLError(.badURL)
+                    }
                     var request = URLRequest(url: url)
                     request.httpMethod = "POST"
                     request.setValue("application/json", forHTTPHeaderField: "Content-Type")

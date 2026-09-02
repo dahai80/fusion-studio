@@ -290,7 +290,12 @@ struct DisplayA11yView: View {
                 Text(I18nManager.shared.t(.a11yc_system_hint))
                     .font(.caption).foregroundColor(.secondary)
                 Button(I18nManager.shared.t(.a11yc_open_settings)) {
-                    NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.universalaccess")!)
+                    // F-ft-5: guard 替代 force-unwrap; 硬编码 scheme, 失败时记日志不崩。
+                    guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.universalaccess") else {
+                        a11yLog.error("F-ft-5: invalid accessibility settings URL")
+                        return
+                    }
+                    NSWorkspace.shared.open(url)
                 }
                 .buttonStyle(.bordered)
             }

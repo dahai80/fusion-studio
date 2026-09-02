@@ -1,0 +1,19 @@
+title = "fusion-studio gitleaks config"
+
+[allowlist]
+description = "Allowlist test fixtures and known non-secret dev values"
+paths = [
+    '''Tests/.*''',
+    '''.*/monaco-dist/.*''',
+]
+regexes = [
+    # 本地开发用 MLX api_key (settings.json / env 占位, 非生产密钥)
+    '''dahai168''',
+    '''fg-admin-key''',
+    # 测试 fixture 占位 key
+    '''sk-test[a-zA-Z0-9-]*''',
+    '''test_api_key''',
+    # 文档/日志里的脱敏占位
+    '''<API_KEY>''',
+    '''your-api-key''',
+]

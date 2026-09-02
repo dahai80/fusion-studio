@@ -371,7 +371,11 @@ class FusionCodeBridge: ObservableObject {
         //   上游 fusion-code projectApiServer.ts:1117 同时接受 Authorization: Bearer header 鉴权 (L1125)。
         //   改走 URLRequest header, token 不入 URL。URL 日志面不含密钥。
         let wsURLStr = serverURL.replacingOccurrences(of: "http", with: "ws") + "/ws/chat"
-        let wsURL = URL(string: wsURLStr)!
+        // F-ft-5: guard 替代 force-unwrap, serverURL 含非法字符时 fatalError → 改为记日志 + early return。
+        guard let wsURL = URL(string: wsURLStr) else {
+            fcBridgeLog.error("F-ft-5: invalid WS chat URL: \(wsURLStr)")
+            return
+        }
         var wsReq = URLRequest(url: wsURL)
         let token = FusionConfig.shared.fusionCodeApiKey
         if !token.isEmpty {

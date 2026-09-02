@@ -23,7 +23,6 @@ class DocBridge: ObservableObject {
     @Published var officeStatus: DocOfficeStatus?
     @Published var isConnected: Bool = false
     @Published var lastError: String?
-    @Published var searchResults: [DocSearchResult] = []
     @Published var comments: [DocComment] = []
     @Published var favorites: [DocFavorite] = []
     @Published var activities: [DocActivity] = []
@@ -1440,7 +1439,10 @@ class DocBridge: ObservableObject {
         docBridgeLog.info("fetchSystemConfig")
         get("/api/system/config") { [weak self] (result: Result<[DocSystemConfig], Error>) in
             switch result {
-            case .success(let cfg): DispatchQueue.main.async { self?.systemConfig = cfg }; completion(.success(cfg))
+            case .success(let cfg):
+                // F-perf-3: systemConfig LRU cap 200 (配置项不应无界增长)。
+                let capped = Array(cfg.prefix(200))
+                DispatchQueue.main.async { self?.systemConfig = capped }; completion(.success(capped))
             case .failure(let error): self?.handleError(error, context: "fetchSystemConfig"); completion(.failure(error))
             }
         }

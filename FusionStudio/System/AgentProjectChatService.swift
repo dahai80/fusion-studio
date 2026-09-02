@@ -212,7 +212,15 @@ extension ProjectChatState {
             throw BridgeError.authFailed("MLX returned HTTP \(httpResp.statusCode)")
         }
         guard httpResp.statusCode == 200 else {
-            throw BridgeError.serviceUnavailable("MLX streaming returned HTTP \(httpResp.statusCode)")
+            // F-ft-8: 区分 404 (模型/端点不存在) vs 5xx (服务端错误) vs 其他 4xx, 语义化错误便于定位。
+            let code = httpResp.statusCode
+            if code == 404 {
+                throw BridgeError.serviceUnavailable("MLX endpoint/model not found (HTTP 404) — check model loaded & baseURL, baseURL=\(baseURL)")
+            } else if (500...599).contains(code) {
+                throw BridgeError.serviceUnavailable("MLX server error (HTTP \(code)) — backend may be overloaded or crashed")
+            } else {
+                throw BridgeError.serviceUnavailable("MLX streaming returned HTTP \(code)")
+            }
         }
         return try await drainStream(bytes: bytes, thinking: thinking, onToken: onToken)
     }
@@ -224,7 +232,11 @@ extension ProjectChatState {
         var fullParts: [String] = []
         var thinkingParts: [String] = []
         var isInThinking = thinking
+        var lineCount = 0
         for try await line in bytes.lines {
+            // F-ft-8: 每 64 行显式 checkCancellation, 让用户取消流时即时抛 CancellationError 而非等流自然结束。
+            lineCount += 1
+            if lineCount % 64 == 0 { try Task.checkCancellation() }
             guard line.hasPrefix("data: ") else { continue }
             let payload = String(line.dropFirst(6))
             if payload == "[DONE]" { break }
