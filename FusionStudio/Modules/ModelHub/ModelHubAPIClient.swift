@@ -618,7 +618,7 @@ final class ModelHubAPIClient: ObservableObject {
         if !query.isEmpty { comps.queryItems = query }
         var request = URLRequest(url: comps.url!)
         request.httpMethod = "GET"
-        addAuth(&request)
+        try addAuth(&request)
         return try await execute(request)
     }
 
@@ -626,7 +626,7 @@ final class ModelHubAPIClient: ObservableObject {
         let url = URL(string: "\(baseURL)\(path)")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        addAuth(&request)
+        try addAuth(&request)
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: json)
         return try await execute(request)
@@ -636,7 +636,7 @@ final class ModelHubAPIClient: ObservableObject {
         let url = URL(string: "\(baseURL)\(path)")!
         var request = URLRequest(url: url)
         request.httpMethod = "PUT"
-        addAuth(&request)
+        try addAuth(&request)
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: json)
         return try await execute(request)
@@ -646,7 +646,7 @@ final class ModelHubAPIClient: ObservableObject {
         let url = URL(string: "\(baseURL)\(path)")!
         var request = URLRequest(url: url)
         request.httpMethod = "PATCH"
-        addAuth(&request)
+        try addAuth(&request)
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: json)
         return try await execute(request)
@@ -656,7 +656,7 @@ final class ModelHubAPIClient: ObservableObject {
         let url = URL(string: "\(baseURL)\(path)")!
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
-        addAuth(&request)
+        try addAuth(&request)
         return try await execute(request)
     }
 
@@ -664,10 +664,15 @@ final class ModelHubAPIClient: ObservableObject {
     // Affected API: every ModelHubAPIClient HTTP request -> upstream fusion-model-hub X-API-Key header
     // Data schemas:
     // User instruction: "和~/fusion/fuison-models-hub项目集成起来...最后要完成端到端测试，确保系统可用"
-    private func addAuth(_ request: inout URLRequest) {
-        if !apiKey.isEmpty {
-            request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
+    // 审计0902 R7 (P2): 旧实现空 apiKey 静默跳过认证头 (fail-open) → 请求裸发 → 上游 401 →
+    //   httpError(401) 误诊为服务端故障, UI 报 "401" 而非 "未配置凭据"。
+    //   修复: 空 key fail-fast 抛 unauthenticated, 对齐 MlxHTTPClient L178-180。
+    private func addAuth(_ request: inout URLRequest) throws {
+        guard !apiKey.isEmpty else {
+            apiLog.error("addAuth: modelHubApiKey 为空, fail-fast unauthenticated (不裸发请求)")
+            throw HubAPIError.unauthenticated
         }
+        request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
     }
 
     private func execute<T: Decodable>(_ request: URLRequest) async throws -> T {
@@ -695,12 +700,16 @@ enum HubAPIError: LocalizedError {
     case invalidResponse
     case httpError(Int, String)
     case decodeError(String)
+    // 审计0902 R7 (P2): 空 apiKey fail-fast (非静默跳过认证头)。缺 key 误诊为服务端 401,
+    //   对齐 MlxHTTPError.unauthenticated (MlxHTTPClient L178-180)。
+    case unauthenticated
 
     var errorDescription: String? {
         switch self {
         case .invalidResponse: return "Invalid response"
         case .httpError(let code, let body): return "HTTP \(code): \(body.prefix(100))"
         case .decodeError(let msg): return "Decode error: \(msg)"
+        case .unauthenticated: return "未配置 ModelHub API Key, 请先在设置中填写凭据"
         }
     }
 }

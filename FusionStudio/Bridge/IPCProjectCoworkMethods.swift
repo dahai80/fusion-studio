@@ -1149,8 +1149,13 @@ extension IPCClient {
         }
         if let error = json["error"] as? [String: Any] {
             let code = error["code"] as? Int ?? -1
-            let msg = error["message"] as? String ?? "Unknown error"
-            throw IPCError.rpcError(code: code, message: msg)
+            // 审计0902 R7 (P2): 旧实现把上游 raw error.message 直接塞 rpcError → IPCError.errorDescription
+            //   裸泄上游内部路径/host 到 UI (与 audit-0827 §3.9 sanitize 策略矛盾)。
+            //   修复: 不透传 raw message; rpcError 仅带 code + 固定标签, 用户面经 BridgeError.sanitize 按 code
+            //   取 i18n 脱敏消息; 原始诊断 detail 记本地 os_log (不暴露用户面)。
+            let rawMsg = error["message"] as? String ?? "Unknown error"
+            ipcLog.error("multiNodeCall rpcError: method=\(method) code=\(code) raw_detail=\(rawMsg, privacy: .public)")
+            throw IPCError.rpcError(code: code, message: "multi-node RPC error")
         }
         return json["result"] as? [String: Any] ?? [:]
     }
