@@ -74,7 +74,8 @@ class HealthBridge: ObservableObject {
     }
 
     // 审计0902 A4 (P1): HTTP 4xx/5xx 抛语义化错误, 不把错误体喂解码器 (否则 decodeError 掩盖 401/500)。
-    private static func healthStatusError(_ response: URLResponse?) -> Error? {
+    // 审计0902 #234 test hook: private→internal (status 校验纯函数, 单测覆盖 4xx/5xx 语义错误)。
+    static func healthStatusError(_ response: URLResponse?) -> Error? {
         guard let code = (response as? HTTPURLResponse)?.statusCode, !(200...299).contains(code) else { return nil }
         healthBridgeLog.error("HealthBridge HTTP \(code) (不解码响应体, 避免掩盖真实故障)")
         let desc: String

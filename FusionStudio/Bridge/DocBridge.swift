@@ -109,7 +109,8 @@ class DocBridge: ObservableObject {
     // 审计0902 A4 (P1): 旧实现 dataTask completion 仅查 error, 无视 HTTP statusCode, 直接把响应体喂
     // JSONDecoder -> 401/403/500 body 触发 decodeError, UI 报"解码错误"而非真实鉴权/服务端故障。
     // 此守卫在解码前校验 statusCode, 4xx/5xx 抛语义化错误 (脱敏, 不回显响应体可能含的密钥/内部路径)。
-    private static func httpStatusError(_ response: URLResponse?, _ data: Data?) -> Error? {
+    // 审计0902 #234 test hook: private→internal (status 校验纯函数, 单测覆盖 4xx/5xx 语义错误)。
+    static func httpStatusError(_ response: URLResponse?, _ data: Data?) -> Error? {
         guard let http = response as? HTTPURLResponse else { return nil }
         let code = http.statusCode
         guard !(200...299).contains(code) else { return nil }
