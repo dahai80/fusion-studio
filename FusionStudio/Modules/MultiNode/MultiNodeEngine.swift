@@ -31,11 +31,18 @@ class MultiNodeEngine: ObservableObject {
     private var splitBrainConfirmCount: Int = 0
     private let splitBrainConfirmThreshold: Int = 2
 
+    // Track B: 当前 master host (pool 驱动), 供 UI/审计展示。recomputeCanMutate() 刷新。
+    @Published var activeMasterHost: String? = nil
+
     // F-A13: 重复执行检测 (客户端可做项)。同一 task assignedNodes>=2 且 running 且 mode!=data_parallel
     // → 疑似网络抖动致 submit 重复提交, 两节点跑同一份未分片输入。data_parallel 多节点 = 合法分片不告警。
     // 真因缺 idempotency key + pending 队列需后端 (#23/#31 已提), 客户端此告警仅 UI 可见性止血。
     @Published var duplicateExecutionTaskIds: [String] = []
     var duplicateExecutionDetected: Bool { !duplicateExecutionTaskIds.isEmpty }
+
+    // Track B: 写操作前置门。connected 且无脑裂才允许 remove/approve/migrate/submit/retry/routing/autoscaler。
+    // 计算属性 (非 @Published stored) — 永远反映 isConnected/splitBrainDetected 当前值, 无需手动刷新。
+    var canMutate: Bool { isConnected && !splitBrainDetected }
 
     // F-R6/F-R10: 连续失败计数 + 降级阈值。单次网络抖动不计 disconnected, 连续 N 轮失败才置离线。
     // 审计0827 §3.5 (P2): 4 路 poll 共享单一 consecutiveFailures, 交叉复位致降级失真
@@ -56,6 +63,9 @@ class MultiNodeEngine: ObservableObject {
     private var nodeOfflineStreak: [String: Int] = [:]
     private let offlineConfirmThreshold: Int = 2
 
+    // Track B: failover 健康探测单飞, 防 handleError 多路并发触发重复 checkHealth 风暴。
+    private var failoverProbeInflight: Bool = false
+
     // 审计0830 P1-调度-5: 决策点 (retry/eligibility) 用滞后确认, 非 model 即时 effectiveStatus。
     //   未知节点 (streak 无记录, 0) 默认即时状态: 避免新加入节点首轮 fetch 未到被误判健康。
     private func confirmedOffline(nodeId: String) -> Bool {
@@ -72,21 +82,34 @@ class MultiNodeEngine: ObservableObject {
     private let overrideBaseURL: String?
     private let overrideAgentBaseURL: String?
     private let overrideAuthToken: String?
-    private let session: URLSession
     private var pollTimers: [Timer] = []
 
-    private var baseURL: String { overrideBaseURL ?? FusionConfig.shared.multiNodeBaseURL }
+    // Track B: TLS 会话由 ClusterTransport 统一提供 (含 TLS 委托 + 超时)。engine 不再自建 URLSession。
+    private var session: URLSession { ClusterTransport.shared.session }
+
+    private var baseURL: String {
+        if let override = overrideBaseURL { return override }
+        // Track B: pool 优先, pool 空回退 FusionConfig 默认 (向后兼容单 master 部署)。
+        return MasterPool.shared.active?.urlString ?? FusionConfig.shared.multiNodeBaseURL
+    }
     private var agentBaseURL: String { overrideAgentBaseURL ?? FusionConfig.shared.multiNodeAgentBaseURL }
-    private var authToken: String { overrideAuthToken ?? FusionConfig.shared.multiNodeResolvedToken }
+    // Track B: cluster token 走 Keychain (Task 6 迁移), 保留 override 供测试注入。
+    private var authToken: String { overrideAuthToken ?? KeychainStore.readClusterToken() ?? "" }
+
+    // Track B: pool 驱动的 cluster URL, scheme 按 FusionConfig 默认 baseURL 推断 (http/https)。
+    private var clusterURL: URL? {
+        guard let ep = MasterPool.shared.active else { return nil }
+        let scheme = FusionConfig.shared.multiNodeBaseURL.hasPrefix("https") ? "https" : "http"
+        let base = ep.url ?? URL(string: "http://\(ep.host):\(ep.port)")!
+        var comps = URLComponents(url: base, resolvingAgainstBaseURL: false)
+        comps?.scheme = scheme
+        return comps?.url
+    }
 
     init(baseURL: String? = nil, agentBaseURL: String? = nil, authToken: String? = nil) {
         self.overrideBaseURL = baseURL
         self.overrideAgentBaseURL = agentBaseURL
         self.overrideAuthToken = authToken
-        let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 5
-        config.timeoutIntervalForResource = 8
-        self.session = URLSession(configuration: config)
     }
 
     /// Track C: 客户端幂等键。上游 fusion-multi-node #23/#31 暂忽略 X-Idempotency-Key header;
@@ -190,6 +213,8 @@ class MultiNodeEngine: ObservableObject {
         consecutiveFailuresByContext[context] = 0
         // 任一路成功即认为集群可达; 离线态由 handleError 按各路独立判定。
         if !isConnected { isConnected = true }
+        // Track B: 成功恢复时同步 activeMasterHost。
+        recomputeCanMutate()
     }
 
     func fetchClusterStats() {
@@ -230,6 +255,8 @@ class MultiNodeEngine: ObservableObject {
                         self?.splitBrainConfirmCount = 0
                         self?.splitBrainDetected = false
                     }
+                    // Track B: split-brain 状态变更后刷新 activeMasterHost (canMutate 计算属性自动反映)。
+                    self?.recomputeCanMutate()
                     // 审计0830 P1-调度-5: per-node offline 连续计数, 供 confirmedOffline 滞后决策。
                     if let self = self {
                         for n in resp.nodes {
@@ -377,11 +404,18 @@ class MultiNodeEngine: ObservableObject {
                     self?.lastError = nil
                     // 审计0827 §3.5: health 路 success 复位其 context 失败计数。
                     self?.consecutiveFailuresByContext["health"] = 0
+                    self?.recomputeCanMutate()
                 }
             case .failure(let error):
                 self?.handleError(error, context: "health")
             }
         }
+    }
+
+    // Track B: 刷新 activeMasterHost (pool 当前 master)。canMutate 为计算属性无需刷新, 此方法仅同步 host。
+    // 在 isConnected/splitBrainDetected 赋值点 + checkHealth 成功/失败 + poll 失败 failover 后调用。
+    internal func recomputeCanMutate() {
+        activeMasterHost = MasterPool.shared.active?.host
     }
 
     // MARK: - Mutation endpoints
@@ -395,18 +429,44 @@ class MultiNodeEngine: ObservableObject {
     }
 
     func removeNode(nodeId: String) async throws {
-        try assertNoSplitBrain()
-        try await delete("/api/nodes/\(nodeId)")
-        fetchNodes()
-        fetchClusterStats()
+        guard canMutate else {
+            ClusterAuditor.shared.record(action: "remove", targetNode: nodeId, targetTask: nil,
+                                         result: "blocked", idempotencyKey: nil, masterHost: activeMasterHost)
+            throw EngineError.writeDisabled
+        }
+        do {
+            try assertNoSplitBrain()
+            try await delete("/api/nodes/\(nodeId)")
+            fetchNodes()
+            fetchClusterStats()
+            ClusterAuditor.shared.record(action: "remove", targetNode: nodeId, targetTask: nil,
+                                         result: "ok", idempotencyKey: nil, masterHost: activeMasterHost)
+        } catch {
+            ClusterAuditor.shared.record(action: "remove", targetNode: nodeId, targetTask: nil,
+                                         result: "failed", idempotencyKey: nil, masterHost: activeMasterHost)
+            throw error
+        }
     }
 
     func approveNode(nodeId: String, approvedBy: String = "admin") async throws {
-        try assertNoSplitBrain()
-        _ = try await post("/api/nodes/approve", body: ["node_id": nodeId, "approved_by": approvedBy])
-        fetchPendingNodes()
-        fetchNodes()
-        fetchClusterStats()
+        guard canMutate else {
+            ClusterAuditor.shared.record(action: "approve", targetNode: nodeId, targetTask: nil,
+                                         result: "blocked", idempotencyKey: nil, masterHost: activeMasterHost)
+            throw EngineError.writeDisabled
+        }
+        do {
+            try assertNoSplitBrain()
+            _ = try await post("/api/nodes/approve", body: ["node_id": nodeId, "approved_by": approvedBy])
+            fetchPendingNodes()
+            fetchNodes()
+            fetchClusterStats()
+            ClusterAuditor.shared.record(action: "approve", targetNode: nodeId, targetTask: nil,
+                                         result: "ok", idempotencyKey: nil, masterHost: activeMasterHost)
+        } catch {
+            ClusterAuditor.shared.record(action: "approve", targetNode: nodeId, targetTask: nil,
+                                         result: "failed", idempotencyKey: nil, masterHost: activeMasterHost)
+            throw error
+        }
     }
 
     func rejectNode(nodeId: String, reason: String = "") async throws {
@@ -427,9 +487,22 @@ class MultiNodeEngine: ObservableObject {
     }
 
     func migrateTask(taskId: String, targetNodeId: String) async throws {
-        try assertNoSplitBrain()
-        _ = try await post("/api/tasks/\(taskId)/migrate", body: ["target_node_id": targetNodeId])
-        fetchTasks()
+        guard canMutate else {
+            ClusterAuditor.shared.record(action: "migrate", targetNode: nil, targetTask: taskId,
+                                         result: "blocked", idempotencyKey: nil, masterHost: activeMasterHost)
+            throw EngineError.writeDisabled
+        }
+        do {
+            try assertNoSplitBrain()
+            _ = try await post("/api/tasks/\(taskId)/migrate", body: ["target_node_id": targetNodeId])
+            fetchTasks()
+            ClusterAuditor.shared.record(action: "migrate", targetNode: targetNodeId, targetTask: taskId,
+                                         result: "ok", idempotencyKey: nil, masterHost: activeMasterHost)
+        } catch {
+            ClusterAuditor.shared.record(action: "migrate", targetNode: targetNodeId, targetTask: taskId,
+                                         result: "failed", idempotencyKey: nil, masterHost: activeMasterHost)
+            throw error
+        }
     }
 
     func migrateTask(taskId: String, targetNodeId: String, completion: @escaping (Result<Void, Error>) -> Void) {
@@ -444,37 +517,58 @@ class MultiNodeEngine: ObservableObject {
     }
 
     func submitTask(name: String, mode: String, modelName: String, priority: Int = 5, requiredCapability: String? = nil, excludeNodes: [String]? = nil) async throws -> [String: Any] {
-        try assertNoSplitBrain()
-        var body: [String: Any] = ["name": name, "mode": mode, "model_name": modelName, "priority": priority]
-        if let cap = requiredCapability { body["required_capability"] = cap }
-        // 审计0830 P1-调度-3: retryTask 透传 exclude_nodes 含原失败节点, 后端排除则不重命中同一故障节点。
-        //   后端 submit 端点当前可能忽略此字段 (上游缺口 https://github.com/dahai80/fusion-multi-nodes/issues/70),
-        //   客户端传递为前置; 后端支持后即生效, 无害。
-        if let ex = excludeNodes, !ex.isEmpty { body["exclude_nodes"] = ex }
         let idemKey = Self.generateIdempotencyKey()
-        engineLog.info("submitTask idempotencyKey=\(idemKey, privacy: .public)")
-        let result = try await post("/api/tasks/submit", body: body, idempotencyKey: idemKey)
-        fetchTasks()
-        fetchClusterStats()
-        return result
+        guard canMutate else {
+            ClusterAuditor.shared.record(action: "submit", targetNode: nil, targetTask: nil,
+                                         result: "blocked", idempotencyKey: idemKey, masterHost: activeMasterHost)
+            throw EngineError.writeDisabled
+        }
+        do {
+            try assertNoSplitBrain()
+            var body: [String: Any] = ["name": name, "mode": mode, "model_name": modelName, "priority": priority]
+            if let cap = requiredCapability { body["required_capability"] = cap }
+            // 审计0830 P1-调度-3: retryTask 透传 exclude_nodes 含原失败节点, 后端排除则不重命中同一故障节点。
+            //   后端 submit 端点当前可能忽略此字段 (上游缺口 https://github.com/dahai80/fusion-multi-nodes/issues/70),
+            //   客户端传递为前置; 后端支持后即生效, 无害。
+            if let ex = excludeNodes, !ex.isEmpty { body["exclude_nodes"] = ex }
+            engineLog.info("submitTask idempotencyKey=\(idemKey, privacy: .public)")
+            let result = try await post("/api/tasks/submit", body: body, idempotencyKey: idemKey)
+            fetchTasks()
+            fetchClusterStats()
+            ClusterAuditor.shared.record(action: "submit", targetNode: nil, targetTask: nil,
+                                         result: "ok", idempotencyKey: idemKey, masterHost: activeMasterHost)
+            return result
+        } catch {
+            ClusterAuditor.shared.record(action: "submit", targetNode: nil, targetTask: nil,
+                                         result: "failed", idempotencyKey: idemKey, masterHost: activeMasterHost)
+            throw error
+        }
     }
 
     // F-A12: 失败 task 重试需带原 task 的 assignedNodes 黑名单 + 原 requiredCapability/priority。
     // 后端 submit 端点无 exclude_nodes 字段 (fusion-multi-nodes 上游缺口 https://github.com/dahai80/fusion-multi-nodes/issues/70) → 客户端止血:
     // 保留原参数 + assignedNodes 全 offline 则阻断重试 (防 "无限重试同一个坑"), 健康则重新 submit。
     func retryTask(_ task: ClusterTask) async throws -> [String: Any] {
+        guard canMutate else {
+            ClusterAuditor.shared.record(action: "retry", targetNode: nil, targetTask: task.id,
+                                         result: "blocked", idempotencyKey: nil, masterHost: activeMasterHost)
+            throw EngineError.writeDisabled
+        }
         try assertNoSplitBrain()
         let assigned = task.assignedNodes
         // 审计0830 P1-调度-5: 用 confirmedOffline 滞后确认, 瞬态抖动不误判全 offline 阻断重试。
         let offlineAssigned = assigned.filter { confirmedOffline(nodeId: $0) }
         if !assigned.isEmpty && offlineAssigned.count == assigned.count {
             engineLog.error("F-A12 retry blocked: all assigned nodes offline. task=\(task.id) assigned=\(assigned)")
+            ClusterAuditor.shared.record(action: "retry", targetNode: nil, targetTask: task.id,
+                                         result: "failed", idempotencyKey: nil, masterHost: activeMasterHost)
             throw EngineError.retryNoHealthyNode
         }
         let origPriority = task.priority ?? 5
         let origCap = task.requiredCapability
         engineLog.info("F-A12 retry: task=\(task.id) assigned=\(assigned) offline=\(offlineAssigned) priority=\(origPriority) cap=\(origCap ?? "nil")")
         // 审计0830 P1-调度-3: 透传 offlineAssigned 作 exclude_nodes, 后端排除则重试不命中同一故障节点。
+        // submitTask 内部生成 idemKey 并审计 "ok"/"failed", retry 不重复审计成功路径。
         return try await submitTask(
             name: task.name, mode: task.mode, modelName: task.modelName,
             priority: origPriority, requiredCapability: origCap,
@@ -483,15 +577,28 @@ class MultiNodeEngine: ObservableObject {
     }
 
     func updateAutoscalerConfig(_ config: AutoscalerConfig) async throws {
-        let body: [String: Any] = [
-            "min_nodes": config.minNodes,
-            "max_nodes": config.maxNodes,
-            "scale_up_threshold": config.scaleUpThreshold,
-            "scale_down_threshold": config.scaleDownThreshold,
-            "cooldown_seconds": config.cooldownSeconds,
-        ]
-        _ = try await put("/api/v1/autoscaler/config", body: body)
-        fetchAutoscalerConfig()
+        guard canMutate else {
+            ClusterAuditor.shared.record(action: "autoscaler", targetNode: nil, targetTask: nil,
+                                         result: "blocked", idempotencyKey: nil, masterHost: activeMasterHost)
+            throw EngineError.writeDisabled
+        }
+        do {
+            let body: [String: Any] = [
+                "min_nodes": config.minNodes,
+                "max_nodes": config.maxNodes,
+                "scale_up_threshold": config.scaleUpThreshold,
+                "scale_down_threshold": config.scaleDownThreshold,
+                "cooldown_seconds": config.cooldownSeconds,
+            ]
+            _ = try await put("/api/v1/autoscaler/config", body: body)
+            fetchAutoscalerConfig()
+            ClusterAuditor.shared.record(action: "autoscaler", targetNode: nil, targetTask: nil,
+                                         result: "ok", idempotencyKey: nil, masterHost: activeMasterHost)
+        } catch {
+            ClusterAuditor.shared.record(action: "autoscaler", targetNode: nil, targetTask: nil,
+                                         result: "failed", idempotencyKey: nil, masterHost: activeMasterHost)
+            throw error
+        }
     }
 
     func registerKVCache(cacheId: String, modelName: String, nodeId: String, sizeMb: Double, ttlSeconds: Int = 3600) async throws {
@@ -514,7 +621,20 @@ class MultiNodeEngine: ObservableObject {
     }
 
     func setRoutingStrategy(_ strategy: String) async throws {
-        _ = try await post("/api/routing/strategy", body: ["strategy": strategy])
+        guard canMutate else {
+            ClusterAuditor.shared.record(action: "setRouting", targetNode: nil, targetTask: nil,
+                                         result: "blocked", idempotencyKey: nil, masterHost: activeMasterHost)
+            throw EngineError.writeDisabled
+        }
+        do {
+            _ = try await post("/api/routing/strategy", body: ["strategy": strategy])
+            ClusterAuditor.shared.record(action: "setRouting", targetNode: nil, targetTask: nil,
+                                         result: "ok", idempotencyKey: nil, masterHost: activeMasterHost)
+        } catch {
+            ClusterAuditor.shared.record(action: "setRouting", targetNode: nil, targetTask: nil,
+                                         result: "failed", idempotencyKey: nil, masterHost: activeMasterHost)
+            throw error
+        }
     }
 
     func joinNode(ipAddress: String, port: Int, token: String? = nil) async throws -> [String: Any] {
@@ -842,6 +962,19 @@ class MultiNodeEngine: ObservableObject {
             if (prev + 1) >= self.maxConsecutiveFailures {
                 self.isConnected = false
                 engineLog.warning("MultiNode disconnected: context=\(context) failures=\(prev + 1)")
+                // Track B: 降级时刷新 activeMasterHost, 并 failover 到 pool 下一 master + 健康探测。
+                // 单飞保护: 多路 handleError 并发触发只探一次, 避免请求风暴。保留原有 backoff 逻辑不动。
+                self.recomputeCanMutate()
+                if !self.failoverProbeInflight {
+                    self.failoverProbeInflight = true
+                    let next = MasterPool.shared.advance()
+                    engineLog.info("Track B failover to \(next?.host ?? "nil", privacy: .public) after disconnect (context=\(context))")
+                    self.recomputeCanMutate()
+                    self.checkHealth()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) { [weak self] in
+                        self?.failoverProbeInflight = false
+                    }
+                }
             }
         }
     }
@@ -866,6 +999,7 @@ enum EngineError: Error, LocalizedError {
     case splitBrain
     case retryNoHealthyNode
     case duplicateRequest
+    case writeDisabled
 
     var errorDescription: String? {
         switch self {
@@ -874,6 +1008,7 @@ enum EngineError: Error, LocalizedError {
         case .splitBrain: return I18nManager.shared.t(.mn_err_splitBrain)
         case .retryNoHealthyNode: return I18nManager.shared.t(.mn_err_retryNoHealthyNode)
         case .duplicateRequest: return I18nManager.shared.t(.mn_err_duplicateRequest)
+        case .writeDisabled: return "Write blocked: cluster not healthy or split-brain"
         }
     }
 }

@@ -152,4 +152,33 @@ final class MultiNodeTlsHaTests: XCTestCase {
         XCTAssertEqual(KeychainStore.get(account), "test-tok-123", "Keychain holds token")
         XCTAssertEqual(KeychainStore.readClusterToken(), "test-tok-123")
     }
+
+    // MARK: - canMutate state matrix
+
+    @MainActor
+    func test_b_canMutate_matrix() {
+        let engine = MultiNodeEngine()
+        engine.isConnected = true
+        engine.splitBrainDetected = false
+        engine.recomputeCanMutate()
+        XCTAssertTrue(engine.canMutate, "connected + no split -> canMutate true")
+
+        engine.isConnected = false
+        engine.recomputeCanMutate()
+        XCTAssertFalse(engine.canMutate, "disconnected -> canMutate false")
+
+        engine.isConnected = true
+        engine.splitBrainDetected = true
+        engine.recomputeCanMutate()
+        XCTAssertFalse(engine.canMutate, "split-brain -> canMutate false")
+    }
+
+    func test_b_engineUsesClusterTransportNotSharedSession() {
+        let path = (#file as NSString).deletingLastPathComponent
+            + "/../../FusionStudio/Modules/MultiNode/MultiNodeEngine.swift"
+        guard let src = try? String(contentsOfFile: path, encoding: .utf8) else {
+            XCTFail("cannot read MultiNodeEngine source"); return
+        }
+        XCTAssertTrue(src.contains("ClusterTransport.shared.session"), "engine must use ClusterTransport session")
+    }
 }
