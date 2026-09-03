@@ -120,6 +120,12 @@ class MultiNodeEngine: ObservableObject {
         return key
     }
 
+    /// Track B: 写操作前置门 (UI 侧 ClusterWriteButton 共享)。canMutate=true 才允许写,
+    /// 脑裂/离线时 UI 禁用按钮 + 审计 "blocked"。静态方法便于无 engine 引用的视图调用。
+    static func shouldEnableWrite(canMutate: Bool) -> Bool {
+        canMutate
+    }
+
     /// 给 URLRequest 附加 Bearer token（cluster 鉴权，参照 ModelHubAPIClient 模式）。
     private func authHeaders(_ request: inout URLRequest) {
         if !authToken.isEmpty {

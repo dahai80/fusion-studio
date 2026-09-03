@@ -181,4 +181,11 @@ final class MultiNodeTlsHaTests: XCTestCase {
         }
         XCTAssertTrue(src.contains("ClusterTransport.shared.session"), "engine must use ClusterTransport session")
     }
+
+    // MARK: - ClusterWriteButton enable logic
+
+    func test_b_clusterWriteButton_shouldEnable() {
+        XCTAssertTrue(MultiNodeEngine.shouldEnableWrite(canMutate: true), "canMutate=true -> enabled")
+        XCTAssertFalse(MultiNodeEngine.shouldEnableWrite(canMutate: false), "canMutate=false -> disabled")
+    }
 }
