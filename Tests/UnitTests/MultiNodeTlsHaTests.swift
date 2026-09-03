@@ -124,4 +124,15 @@ final class MultiNodeTlsHaTests: XCTestCase {
         // removeCert on nonexistent should not throw (idempotent)
         try store.removeCert(fingerprint: "test-fp-does-not-exist")
     }
+
+    // MARK: - Transport wiring (structural)
+
+    func test_b_transport_hasDelegateSession() {
+        let transport = ClusterTransport.shared
+        XCTAssertNotNil(transport.session, "transport exposes a URLSession")
+    }
+
+    func test_b_tlsDelegate_typeExists() {
+        _ = ClusterTLSDelegate()
+    }
 }
