@@ -323,7 +323,7 @@ extension IPCClient {
 
     // Callers: ArtifactShareDialog / share link resolver. Affected API: GET /api/v1/share/{share_id}.
     // No auth required; returns read-only artifact render data.
-    // Fallback: REST 端点上游未实现（fusion-artifacts-engine #38）→ 退回 RPC artifact.get_shared。
+    // Fallback: REST 端点上游未实现（fusion-artifacts-engine #38, https://github.com/dahai80/fusion-artifacts-engine/issues/55）→ 退回 RPC artifact.get_shared。
     func shareGet(shareId: String) async throws -> [String: Any] {
         let baseURL = artifactsEngineURL
         guard let url = URL(string: "\(baseURL)/api/v1/share/\(shareId)") else {

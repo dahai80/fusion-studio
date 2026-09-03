@@ -448,16 +448,19 @@ class MultiNodeEngine: ObservableObject {
         var body: [String: Any] = ["name": name, "mode": mode, "model_name": modelName, "priority": priority]
         if let cap = requiredCapability { body["required_capability"] = cap }
         // 审计0830 P1-调度-3: retryTask 透传 exclude_nodes 含原失败节点, 后端排除则不重命中同一故障节点。
-        //   后端 submit 端点当前可能忽略此字段 (上游缺口), 客户端传递为前置; 后端支持后即生效, 无害。
+        //   后端 submit 端点当前可能忽略此字段 (上游缺口 https://github.com/dahai80/fusion-multi-nodes/issues/70),
+        //   客户端传递为前置; 后端支持后即生效, 无害。
         if let ex = excludeNodes, !ex.isEmpty { body["exclude_nodes"] = ex }
-        let result = try await post("/api/tasks/submit", body: body)
+        let idemKey = Self.generateIdempotencyKey()
+        engineLog.info("submitTask idempotencyKey=\(idemKey, privacy: .public)")
+        let result = try await post("/api/tasks/submit", body: body, idempotencyKey: idemKey)
         fetchTasks()
         fetchClusterStats()
         return result
     }
 
     // F-A12: 失败 task 重试需带原 task 的 assignedNodes 黑名单 + 原 requiredCapability/priority。
-    // 后端 submit 端点无 exclude_nodes 字段 (fusion-multi-nodes 上游缺口) → 客户端止血:
+    // 后端 submit 端点无 exclude_nodes 字段 (fusion-multi-nodes 上游缺口 https://github.com/dahai80/fusion-multi-nodes/issues/70) → 客户端止血:
     // 保留原参数 + assignedNodes 全 offline 则阻断重试 (防 "无限重试同一个坑"), 健康则重新 submit。
     func retryTask(_ task: ClusterTask) async throws -> [String: Any] {
         try assertNoSplitBrain()
@@ -784,7 +787,7 @@ class MultiNodeEngine: ObservableObject {
         }.resume()
     }
 
-    private func post(_ path: String, body: [String: Any]) async throws -> [String: Any] {
+    private func post(_ path: String, body: [String: Any], idempotencyKey: String? = nil) async throws -> [String: Any] {
         guard let url = URL(string: "\(baseURL)\(path)") else {
             throw EngineError.invalidURL
         }
@@ -792,6 +795,9 @@ class MultiNodeEngine: ObservableObject {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         authHeaders(&request)
+        if let key = idempotencyKey {
+            request.setValue(key, forHTTPHeaderField: "X-Idempotency-Key")
+        }
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (data, _) = try await session.data(for: request)
         return (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
