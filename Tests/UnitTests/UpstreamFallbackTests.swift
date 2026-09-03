@@ -34,4 +34,26 @@ final class UpstreamFallbackTests: XCTestCase {
         XCTAssertFalse(key2.isEmpty, "key non-empty")
         XCTAssertNotEqual(key1, key2, "two calls differ")
     }
+
+    // MARK: - Structural
+
+    func test_upstream_submitTaskSendsIdempotencyHeader() {
+        let srcPath = (#file as NSString).deletingLastPathComponent
+            + "/../../FusionStudio/Bridge/IPCMultiNodeMethods.swift"
+        guard let src = try? String(contentsOfFile: srcPath, encoding: .utf8) else {
+            XCTFail("cannot read IPCMultiNodeMethods source"); return
+        }
+        XCTAssertTrue(src.contains("X-Idempotency-Key"), "mnRequest must set X-Idempotency-Key header")
+        XCTAssertTrue(src.contains("idempotencyKey"), "mnRequest must accept idempotencyKey param")
+    }
+
+    func test_upstream_sidebarUsesVisibleSectionsFilter() {
+        let path = (#file as NSString).deletingLastPathComponent
+            + "/../../FusionStudio/Navigation/FusionSidebarView.swift"
+        guard let src = try? String(contentsOfFile: path, encoding: .utf8) else {
+            XCTFail("cannot read FusionSidebarView source"); return
+        }
+        XCTAssertTrue(src.contains("visibleSections"), "sidebar must use visibleSections filter")
+        XCTAssertFalse(src.contains("ForEach(SidebarSection.allCases)"), "sidebar must not iterate allCases directly")
+    }
 }
