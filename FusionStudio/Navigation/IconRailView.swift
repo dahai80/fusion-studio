@@ -14,6 +14,7 @@ struct IconRailView: View {
     @EnvironmentObject var uiPanelState: UIPanelState
     @Environment(\.studioTheme) private var theme
     @StateObject private var i18n = I18nManager.shared
+    @AppStorage("showDeprecatedModules") private var showDeprecatedModules: Bool = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -27,7 +28,7 @@ struct IconRailView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
                         Color.clear.frame(height: 0).id("railScrollTop")
-                        ForEach(SidebarSection.allCases) { section in
+                        ForEach(SidebarSection.visibleSections(showDeprecated: showDeprecatedModules)) { section in
                             sectionIcon(section)
                         }
                         Color.clear.frame(height: 0).id("railScrollBottom")

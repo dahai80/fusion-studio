@@ -10,6 +10,7 @@ private let webLog = Logger(subsystem: "com.fusion.studio", category: "ServiceWe
 
 struct ServiceWebView: View {
     @Environment(\.studioTheme) var theme
+    @EnvironmentObject var engine: MultiNodeEngine
     @StateObject private var i18n = I18nManager.shared
     @State private var selectedTab: WebTab = .masterDocs
 
@@ -29,6 +30,8 @@ struct ServiceWebView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ScreenHeader(eyebrow: "Multi-Node", title: i18n.t(.mn_web_title), subtitle: i18n.t(.mn_web_subtitle))
+
+            ClusterStatusBanner(engine: engine)
 
             tabBar
 

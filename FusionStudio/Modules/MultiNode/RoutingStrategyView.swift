@@ -26,6 +26,8 @@ struct RoutingStrategyView: View {
             VStack(alignment: .leading, spacing: 0) {
                 ScreenHeader(eyebrow: "Multi-Node", title: i18n.t(.mn_route_title), subtitle: i18n.t(.mn_route_subtitle))
 
+                ClusterStatusBanner(engine: engine)
+
                 scopeNote
 
                 strategySection
@@ -92,7 +94,7 @@ struct RoutingStrategyView: View {
             }
 
             HStack(spacing: theme.spacingM) {
-                FusionButton(i18n.t(.mn_route_applyBtn), icon: "arrow.triangle.branch", style: .primary, size: .small, isLoading: isApplying, isDisabled: isApplying) {
+                FusionButton(i18n.t(.mn_route_applyBtn), icon: "arrow.triangle.branch", style: .primary, size: .small, isLoading: isApplying, isDisabled: isApplying || !engine.canMutate) {
                     applyStrategy()
                 }
                 FusionButton(i18n.t(.refresh), icon: "arrow.clockwise", style: .secondary, size: .small, isLoading: false, isDisabled: false) {

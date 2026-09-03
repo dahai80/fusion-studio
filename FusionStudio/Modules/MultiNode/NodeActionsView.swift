@@ -13,6 +13,8 @@ struct NodeActionsView: View {
             VStack(alignment: .leading, spacing: 0) {
                 ScreenHeader(eyebrow: "Multi-Node", title: i18n.t(.mn_node_title), subtitle: i18n.t(.mn_node_subtitle))
 
+                ClusterStatusBanner(engine: engine)
+
                 pendingApprovalSection
                 autoscalerSection
                 nodeManagementSection
@@ -40,10 +42,10 @@ struct NodeActionsView: View {
                             .foregroundStyle(theme.textTertiary)
                     }
                     Spacer()
-                    FusionButton(i18n.t(.mn_node_approveBtn), style: .primary, size: .small) {
+                    FusionButton(i18n.t(.mn_node_approveBtn), style: .primary, size: .small, isDisabled: !engine.canMutate) {
                         Task { try? await engine.approveNode(nodeId: node.id) }
                     }
-                    FusionButton(i18n.t(.mn_node_rejectBtn), style: .destructive, size: .small) {
+                    FusionButton(i18n.t(.mn_node_rejectBtn), style: .destructive, size: .small, isDisabled: !engine.canMutate) {
                         Task { try? await engine.rejectNode(nodeId: node.id) }
                     }
                 }
@@ -84,7 +86,7 @@ struct NodeActionsView: View {
                         .font(.system(size: theme.captionSize, design: .monospaced))
                         .foregroundStyle(theme.textTertiary)
                     Spacer()
-                    FusionButton(i18n.t(.mn_node_removeBtn), style: .destructive, size: .small) {
+                    FusionButton(i18n.t(.mn_node_removeBtn), style: .destructive, size: .small, isDisabled: !engine.canMutate) {
                         Task { try? await engine.removeNode(nodeId: node.id) }
                     }
                 }
@@ -142,10 +144,9 @@ struct AutoscalerConfigView: View {
 
             HStack {
                 Spacer()
-                FusionButton(isApplying ? i18n.t(.mn_node_applying) : i18n.t(.mn_node_applyBtn), style: .primary, size: .regular) {
+                FusionButton(isApplying ? i18n.t(.mn_node_applying) : i18n.t(.mn_node_applyBtn), style: .primary, size: .regular, isDisabled: isApplying || !engine.canMutate) {
                     applyConfig()
                 }
-                .disabled(isApplying)
             }
             .padding(.horizontal, theme.spacingL)
             .padding(.bottom, theme.spacingM)

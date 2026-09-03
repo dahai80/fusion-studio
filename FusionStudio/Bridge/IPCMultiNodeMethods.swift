@@ -14,7 +14,7 @@ extension IPCClient {
         FusionConfig.shared.multiNodeBaseURL
     }
 
-    private func mnRequest(_ method: String, path: String, body: [String: Any]? = nil, timeout: TimeInterval = 15) async throws -> [String: Any] {
+    private func mnRequest(_ method: String, path: String, body: [String: Any]? = nil, timeout: TimeInterval = 15, idempotencyKey: String? = nil) async throws -> [String: Any] {
         guard let url = URL(string: "\(multiNodeBaseURL)\(path)") else {
             throw IPCError.invalidRequest
         }
@@ -22,9 +22,13 @@ extension IPCClient {
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = timeout
-        let token = FusionConfig.shared.multiNodeResolvedToken
+        let keychainToken = KeychainStore.readClusterToken()
+        let token = keychainToken.isEmpty ? FusionConfig.shared.multiNodeResolvedToken : keychainToken
         if !token.isEmpty {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        if let key = idempotencyKey {
+            request.setValue(key, forHTTPHeaderField: "X-Idempotency-Key")
         }
         if let body = body {
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
@@ -184,7 +188,10 @@ extension IPCClient {
         if !requiredCapability.isEmpty { body["required_capability"] = requiredCapability }
         if !preferredNodeId.isEmpty { body["preferred_node_id"] = preferredNodeId }
         if priority > 0 { body["priority"] = priority }
-        return try await mnRequest("POST", path: "/api/tasks/submit", body: body, timeout: 30)
+        // Track C: 客户端幂等键。上游 fusion-multi-nodes #70 暂忽略 X-Idempotency-Key header; 客户端传递为前置。
+        let idemKey = UUID().uuidString
+        mnLog.info("mnSubmitTask idempotencyKey=\(idemKey, privacy: .public)")
+        return try await mnRequest("POST", path: "/api/tasks/submit", body: body, timeout: 30, idempotencyKey: idemKey)
     }
 
     func mnListTasks() async throws -> [String: Any] {
@@ -284,7 +291,8 @@ extension IPCClient {
         guard let url = comps.url else { throw IPCError.invalidRequest }
         var request = URLRequest(url: url)
         request.timeoutInterval = 30
-        let token = FusionConfig.shared.multiNodeResolvedToken
+        let keychainToken = KeychainStore.readClusterToken()
+        let token = keychainToken.isEmpty ? FusionConfig.shared.multiNodeResolvedToken : keychainToken
         if !token.isEmpty {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }

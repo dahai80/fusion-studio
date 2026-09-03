@@ -36,6 +36,8 @@ struct TaskMonitorView: View {
             VStack(alignment: .leading, spacing: 0) {
                 ScreenHeader(eyebrow: "Multi-Node", title: i18n.t(.mn_task_title), subtitle: i18n.t(.mn_task_subtitle))
 
+                ClusterStatusBanner(engine: engine)
+
                 // F-A13: 重复执行告警 banner。assignedNodes>=2 且 running 且 mode!=data_parallel
                 // = 疑似网络抖动致 submit 重复提交。amber 警示非阻断, 用户核对后取消重复 task。
                 if engine.duplicateExecutionDetected {
@@ -100,7 +102,7 @@ struct TaskMonitorView: View {
                     showMigrateSheet = false
                 }
                 FusionButton(i18n.t(.mn_task_confirmMigrate), icon: "arrow.right.circle", style: .primary, size: .regular,
-                    isLoading: isMigrating, isDisabled: migrateTargetNode.isEmpty) {
+                    isLoading: isMigrating, isDisabled: migrateTargetNode.isEmpty || !engine.canMutate) {
                     performMigration()
                 }
             }
@@ -214,6 +216,7 @@ struct TaskMonitorView: View {
                         Button(i18n.t(.retry)) {
                             Task { _ = try? await engine.retryTask(task) }
                         }
+                        .disabled(!engine.canMutate)
                     }
                 }
                 .overlay(alignment: .bottom) {

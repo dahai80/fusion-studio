@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ModuleDetailView: View {
     @EnvironmentObject var navState: NavigationState
+    @AppStorage("showDeprecatedModules") private var showDeprecatedModules: Bool = false
 
     var body: some View {
         Group {
@@ -22,7 +23,11 @@ struct ModuleDetailView: View {
             case .multimodal:
                 MultiModalView()
             case .training:
-                TrainingView()
+                if showDeprecatedModules {
+                    TrainingView()
+                } else {
+                    EmptyView()
+                }
             case .cli:
                 CLIView()
             case .doc:
@@ -71,6 +76,8 @@ struct ModuleDetailView: View {
                 KVCacheView()
             case .serviceWeb:
                 ServiceWebView()
+            case .audit:
+                AuditTabView()
             case .rag:
                 RAGMainView()
             case .memory:
@@ -83,7 +90,11 @@ struct ModuleDetailView: View {
                 OperationsView()
             // Callers: ModuleDetailView routing. Affected API: verify.verify, budget.set/status. User instruction: "审视是否所有需要功能和api所有需要的GUI都在~/fusion/fusion-studio都已经有对应GUI了，所有有问题的都要在fusion-studio补齐GUI"
             case .eduK12:
-                EduK12View()
+                if showDeprecatedModules {
+                    EduK12View()
+                } else {
+                    EmptyView()
+                }
             case .verification:
                 VerificationView()
             case .tokenBudget:

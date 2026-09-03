@@ -1,0 +1,226 @@
+import XCTest
+@testable import FusionStudio
+
+@MainActor
+final class MultiNodeTlsHaTests: XCTestCase {
+
+    // MARK: - ClusterEndpoint parsing
+
+    func test_b_endpoint_parsesCsv() {
+        let eps = ClusterEndpoint.parse("node1.corp:11452,node2.corp:11452")
+        XCTAssertEqual(eps.count, 2)
+        XCTAssertEqual(eps[0].host, "node1.corp")
+        XCTAssertEqual(eps[0].port, 11452)
+        XCTAssertEqual(eps[1].host, "node2.corp")
+    }
+
+    func test_b_endpoint_emptyCsvReturnsEmpty() {
+        XCTAssertEqual(ClusterEndpoint.parse("").count, 0)
+        XCTAssertEqual(ClusterEndpoint.parse("  ").count, 0)
+    }
+
+    func test_b_endpoint_skipsMalformed() {
+        let eps = ClusterEndpoint.parse("node1.corp:11452,badentry,node2.corp:11452")
+        XCTAssertEqual(eps.count, 2, "malformed entry skipped")
+    }
+
+    func test_b_endpoint_url() {
+        let ep = ClusterEndpoint(host: "node1.corp", port: 11452)
+        XCTAssertNotNil(ep.url)
+        XCTAssertEqual(ep.url?.host, "node1.corp")
+    }
+
+    // MARK: - AuditRecord Codable
+
+    func test_b_auditRecord_codableRoundTrip() {
+        let rec = AuditRecord(ts: 1700000000, actor: "macbook-pro", action: "remove",
+                              targetNode: "node-3", targetTask: nil, result: "ok",
+                              idempotencyKey: "abc-123", masterHost: "node1.corp")
+        let data = try! JSONEncoder().encode(rec)
+        let dec = try! JSONDecoder().decode(AuditRecord.self, from: data)
+        XCTAssertEqual(dec.action, "remove")
+        XCTAssertEqual(dec.targetNode, "node-3")
+        XCTAssertEqual(dec.result, "ok")
+        XCTAssertNil(dec.targetTask)
+    }
+
+    // MARK: - MasterPool failover
+
+    func test_b_masterPool_parsesAndCycles() {
+        let pool = MasterPool(csv: "a:1,b:2,c:3")
+        XCTAssertEqual(pool.active?.host, "a")
+        XCTAssertEqual(pool.advance()?.host, "b")
+        XCTAssertEqual(pool.advance()?.host, "c")
+        XCTAssertEqual(pool.advance()?.host, "a", "wrap-around to first")
+    }
+
+    func test_b_masterPool_resetReturnsToFirst() {
+        let pool = MasterPool(csv: "a:1,b:2")
+        _ = pool.advance()
+        _ = pool.advance()
+        pool.reset()
+        XCTAssertEqual(pool.active?.host, "a")
+    }
+
+    func test_b_masterPool_emptyFallsBackToLegacy() {
+        let pool = MasterPool(csv: "")
+        // empty pool -> falls back to FusionConfig single endpoint
+        XCTAssertNotNil(pool.active, "empty pool falls back to legacy single endpoint")
+    }
+
+    // MARK: - ClusterAuditor
+
+    func test_b_auditor_writesJsonlAndPerms() {
+        let auditor = ClusterAuditor()
+        let tmpDir = NSTemporaryDirectory() + "audit-test-\(UUID().uuidString)"
+        try? FileManager.default.createDirectory(atPath: tmpDir, withIntermediateDirectories: true)
+        auditor.overrideLogDir(tmpDir)
+        defer { try? FileManager.default.removeItem(atPath: tmpDir) }
+
+        auditor.record(action: "remove", targetNode: "n1", targetTask: nil,
+                       result: "ok", idempotencyKey: nil, masterHost: "m1")
+
+        let files = (try? FileManager.default.contentsOfDirectory(atPath: tmpDir)) ?? []
+        XCTAssertEqual(files.count, 1, "one audit file created")
+        let path = tmpDir + "/" + files[0]
+        let perms = try! FileManager.default.attributesOfItem(atPath: path)
+        XCTAssertEqual(perms[.posixPermissions] as? Int, 0o600, "audit file 0600")
+        let content = try! String(contentsOfFile: path, encoding: .utf8)
+        XCTAssertTrue(content.contains("\"action\":\"remove\""), "jsonl line contains action")
+        XCTAssertTrue(content.contains("\"result\":\"ok\""), "jsonl line contains result")
+    }
+
+    func test_b_auditor_tailReturnsLastN() {
+        let auditor = ClusterAuditor()
+        let tmpDir = NSTemporaryDirectory() + "audit-test-\(UUID().uuidString)"
+        try? FileManager.default.createDirectory(atPath: tmpDir, withIntermediateDirectories: true)
+        auditor.overrideLogDir(tmpDir)
+        defer { try? FileManager.default.removeItem(atPath: tmpDir) }
+
+        for i in 0..<5 {
+            auditor.record(action: "submit", targetNode: nil, targetTask: "task-\(i)",
+                           result: "ok", idempotencyKey: "key-\(i)", masterHost: nil)
+        }
+        let tail = auditor.tail(limit: 3)
+        XCTAssertEqual(tail.count, 3, "tail returns last 3")
+        XCTAssertEqual(tail.last?.targetTask, "task-4", "tail last is most recent")
+    }
+
+    // MARK: - TlsTrustStore
+
+    func test_b_tlsTrustStore_importListRemoveRoundTrip() throws {
+        let store = TlsTrustStore.shared
+        // generate a minimal self-signed cert DER in-test is impractical without a fixture;
+        // test the account-key plumbing with a sentinel: import should reject invalid DER
+        // gracefully (no crash), and list/remove on a nonexistent fingerprint is a no-op.
+        let bogusURL = URL(fileURLWithPath: "/tmp/nonexistent-cert-\(UUID().uuidString).cer")
+        XCTAssertThrowsError(try store.importCert(at: bogusURL), "missing file throws")
+
+        let list = store.listCerts()
+        // cleanup any test certs that might have a known fingerprint prefix
+        for c in list where c.fingerprint.hasPrefix("test-fp-") {
+            try? store.removeCert(fingerprint: c.fingerprint)
+        }
+        // removeCert on nonexistent should not throw (idempotent)
+        try store.removeCert(fingerprint: "test-fp-does-not-exist")
+    }
+
+    // MARK: - Transport wiring (structural)
+
+    func test_b_transport_hasDelegateSession() {
+        let transport = ClusterTransport.shared
+        XCTAssertNotNil(transport.session, "transport exposes a URLSession")
+    }
+
+    func test_b_tlsDelegate_typeExists() {
+        _ = ClusterTLSDelegate()
+    }
+
+    // MARK: - Cluster token Keychain migration
+
+    func test_b_tokenMigratesAppStorageToKeychain() {
+        let account = "multiNodeClusterToken"
+        let appStorageKey = "multiNodeClusterToken"
+        UserDefaults.standard.set("test-tok-123", forKey: appStorageKey)
+        defer {
+            UserDefaults.standard.removeObject(forKey: appStorageKey)
+            _ = KeychainStore.delete(account)
+        }
+        let token = KeychainStore.readClusterToken()
+        XCTAssertEqual(token, "test-tok-123", "migrated from UserDefaults")
+        XCTAssertNil(UserDefaults.standard.string(forKey: appStorageKey), "UserDefaults cleared post-migration")
+        XCTAssertEqual(KeychainStore.get(account), "test-tok-123", "Keychain holds token")
+        XCTAssertEqual(KeychainStore.readClusterToken(), "test-tok-123")
+    }
+
+    // MARK: - canMutate state matrix
+
+    @MainActor
+    func test_b_canMutate_matrix() {
+        let engine = MultiNodeEngine()
+        engine.isConnected = true
+        engine.splitBrainDetected = false
+        engine.recomputeCanMutate()
+        XCTAssertTrue(engine.canMutate, "connected + no split -> canMutate true")
+
+        engine.isConnected = false
+        engine.recomputeCanMutate()
+        XCTAssertFalse(engine.canMutate, "disconnected -> canMutate false")
+
+        engine.isConnected = true
+        engine.splitBrainDetected = true
+        engine.recomputeCanMutate()
+        XCTAssertFalse(engine.canMutate, "split-brain -> canMutate false")
+    }
+
+    func test_b_engineUsesClusterTransportNotSharedSession() {
+        let path = (#file as NSString).deletingLastPathComponent
+            + "/../../FusionStudio/Modules/MultiNode/MultiNodeEngine.swift"
+        guard let src = try? String(contentsOfFile: path, encoding: .utf8) else {
+            XCTFail("cannot read MultiNodeEngine source"); return
+        }
+        XCTAssertTrue(src.contains("ClusterTransport.shared.session"), "engine must use ClusterTransport session")
+    }
+
+    // MARK: - ClusterWriteButton enable logic
+
+    func test_b_clusterWriteButton_shouldEnable() {
+        XCTAssertTrue(MultiNodeEngine.shouldEnableWrite(canMutate: true), "canMutate=true -> enabled")
+        XCTAssertFalse(MultiNodeEngine.shouldEnableWrite(canMutate: false), "canMutate=false -> disabled")
+    }
+
+    // MARK: - MultiNode views wired
+
+    func test_b_allMultiNodeScreensHaveStatusBanner() {
+        let views = ["ClusterOverviewView", "ClusterTopologyView", "ClusterSyncView",
+                     "NodeActionsView", "TaskMonitorView", "AlertCenterView",
+                     "SubmitTaskView", "RoutingStrategyView", "KVCacheView",
+                     "TaskProgressView", "ServiceWebView"]
+        let dir = (#file as NSString).deletingLastPathComponent
+            + "/../../FusionStudio/Modules/MultiNode/"
+        for v in views {
+            let path = dir + v + ".swift"
+            guard let src = try? String(contentsOfFile: path, encoding: .utf8) else {
+                XCTFail("cannot read \(v).swift"); continue
+            }
+            XCTAssertTrue(src.contains("ClusterStatusBanner"), "\(v) must include ClusterStatusBanner")
+        }
+    }
+
+    func test_b_allMutatingButtonsRespectCanMutate() {
+        let path = (#file as NSString).deletingLastPathComponent
+            + "/../../FusionStudio/Modules/MultiNode/MultiNodeEngine.swift"
+        guard let src = try? String(contentsOfFile: path, encoding: .utf8) else {
+            XCTFail("cannot read MultiNodeEngine source"); return
+        }
+        let mutatingMethods = ["removeNode", "approveNode", "rejectNode", "migrateTask",
+                               "submitTask", "retryTask", "setRoutingStrategy",
+                               "updateAutoscalerConfig", "cancelTask", "degradeTask"]
+        for name in mutatingMethods {
+            XCTAssertTrue(src.contains("func \(name)("), "missing mutating method: \(name)")
+        }
+        let guardCount = src.components(separatedBy: "guard canMutate").count - 1
+        XCTAssertEqual(guardCount, mutatingMethods.count,
+                       "every mutating method (\(mutatingMethods.count)) must have a `guard canMutate` guard; found \(guardCount)")
+    }
+}

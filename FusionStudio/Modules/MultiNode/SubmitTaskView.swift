@@ -31,6 +31,8 @@ struct SubmitTaskView: View {
             VStack(alignment: .leading, spacing: 0) {
                 ScreenHeader(eyebrow: "Multi-Node", title: i18n.t(.mn_submit_title), subtitle: i18n.t(.mn_submit_subtitle))
 
+                ClusterStatusBanner(engine: engine)
+
                 formSection
                 actionSection
             }
@@ -109,7 +111,7 @@ struct SubmitTaskView: View {
             }
 
             HStack(spacing: theme.spacingM) {
-                FusionButton(i18n.t(.mn_submit_submitBtn), icon: "paperplane.fill", style: .primary, size: .regular, isLoading: isSubmitting, isDisabled: !canSubmit) {
+                FusionButton(i18n.t(.mn_submit_submitBtn), icon: "paperplane.fill", style: .primary, size: .regular, isLoading: isSubmitting, isDisabled: !canSubmit || !engine.canMutate) {
                     submitTask()
                 }
                 FusionButton(i18n.t(.cancel), style: .ghost, size: .regular, isLoading: false, isDisabled: false) {
