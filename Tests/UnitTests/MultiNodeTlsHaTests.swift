@@ -43,4 +43,28 @@ final class MultiNodeTlsHaTests: XCTestCase {
         XCTAssertEqual(dec.result, "ok")
         XCTAssertNil(dec.targetTask)
     }
+
+    // MARK: - MasterPool failover
+
+    func test_b_masterPool_parsesAndCycles() {
+        let pool = MasterPool(csv: "a:1,b:2,c:3")
+        XCTAssertEqual(pool.active?.host, "a")
+        XCTAssertEqual(pool.advance()?.host, "b")
+        XCTAssertEqual(pool.advance()?.host, "c")
+        XCTAssertEqual(pool.advance()?.host, "a", "wrap-around to first")
+    }
+
+    func test_b_masterPool_resetReturnsToFirst() {
+        let pool = MasterPool(csv: "a:1,b:2")
+        _ = pool.advance()
+        _ = pool.advance()
+        pool.reset()
+        XCTAssertEqual(pool.active?.host, "a")
+    }
+
+    func test_b_masterPool_emptyFallsBackToLegacy() {
+        let pool = MasterPool(csv: "")
+        // empty pool -> falls back to FusionConfig single endpoint
+        XCTAssertNotNil(pool.active, "empty pool falls back to legacy single endpoint")
+    }
 }
