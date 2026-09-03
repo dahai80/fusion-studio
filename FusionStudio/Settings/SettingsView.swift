@@ -1,6 +1,7 @@
 import SwiftUI
 import os.log
 import ServiceManagement
+import UniformTypeIdentifiers
 
 /// 全局设置面板
 struct SettingsView: View {
@@ -16,6 +17,7 @@ struct SettingsView: View {
         case quant      = "量化预设"
         case workspace  = "工作区"
         case mlxConnection = "MLX 连接"
+        case multiNodeSecurity = "多节点安全"
 
         var icon: String {
             switch self {
@@ -26,6 +28,7 @@ struct SettingsView: View {
             case .quant:      return "dial.medium"
             case .workspace:  return "folder"
             case .mlxConnection: return "server.rack"
+            case .multiNodeSecurity: return "lock.shield"
             }
         }
     }
@@ -59,6 +62,10 @@ struct SettingsView: View {
             MlxConnectionSettingsView()
                 .tabItem { Label(i18n.t(.tab_mlxConnection), systemImage: "server.rack") }
                 .tag(SettingsTab.mlxConnection)
+
+            MultiNodeSecuritySettingsView()
+                .tabItem { Label(i18n.t(.tab_multiNodeSecurity), systemImage: "lock.shield") }
+                .tag(SettingsTab.multiNodeSecurity)
         }
         .frame(width: 600, height: 450)
         .toolbar {
@@ -596,5 +603,137 @@ struct MlxConnectionSettingsView: View {
         config.mlxPort = portInt
         config.mlxEndpointOverrideEnabled = true
         log.info("MLX endpoint saved: \(trimmedHost):\(portInt) override=on (env ignored)")
+    }
+}
+
+// MARK: - 多节点安全设置 (Track B: TLS pinned certs / master list / cluster token)
+
+struct MultiNodeSecuritySettingsView: View {
+    @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
+    @State private var tlsCerts: [CertSummary] = []
+    @State private var masterList: String = UserDefaults.standard.string(forKey: "multiNodeMasterList") ?? ""
+    @State private var tokenInput: String = ""
+    @State private var importError: String = ""
+    private let log = Logger(subsystem: "com.fusion.studio", category: "Settings.MultiNodeSecurity")
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: theme.spacingM) {
+                Text(i18n.t(.settings_mn_security_title))
+                    .font(.system(size: theme.captionSize, weight: .semibold))
+                    .foregroundStyle(theme.textTertiary)
+                    .padding(.bottom, theme.spacingXS)
+
+                settingRow(i18n.t(.settings_mn_certImport), "TLS pinned certificates") {
+                    Button(i18n.t(.settings_mn_certImport)) { importCert() }
+                        .font(.system(size: theme.captionSize))
+                        .buttonStyle(.plain)
+                        .foregroundStyle(theme.accent)
+                }
+
+                ForEach(tlsCerts, id: \.fingerprint) { cert in
+                    settingRow(cert.subject, cert.fingerprint) {
+                        Button(i18n.t(.settings_mn_certDelete)) {
+                            try? TlsTrustStore.shared.removeCert(fingerprint: cert.fingerprint)
+                            tlsCerts = TlsTrustStore.shared.listCerts()
+                            log.info("removed pinned cert \(cert.fingerprint, privacy: .public)")
+                        }
+                        .font(.system(size: theme.captionSize))
+                        .buttonStyle(.plain)
+                        .foregroundStyle(theme.errorText)
+                    }
+                }
+
+                if !importError.isEmpty {
+                    Text(importError).font(.system(size: theme.captionSize)).foregroundStyle(theme.errorText)
+                }
+
+                Divider().padding(.vertical, theme.spacingXS)
+
+                settingRow(i18n.t(.settings_mn_masterList), "Ordered failover hosts") {
+                    TextField(i18n.t(.settings_mn_masterList), text: $masterList)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: theme.footnoteSize, design: .monospaced))
+                        .frame(width: 240)
+                        .onChange(of: masterList) { v in
+                            UserDefaults.standard.set(v, forKey: "multiNodeMasterList")
+                            MasterPool.shared.reload()
+                            log.info("master list updated")
+                        }
+                }
+
+                Divider().padding(.vertical, theme.spacingXS)
+
+                settingRow(i18n.t(.settings_mn_token), "Cluster auth token (Keychain)") {
+                    SecureField(i18n.t(.settings_mn_token), text: $tokenInput)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: theme.footnoteSize, design: .monospaced))
+                        .frame(width: 240)
+                }
+                HStack(spacing: theme.spacingS) {
+                    Button(i18n.t(.settings_mn_tokenSave)) {
+                        let trimmed = tokenInput.trimmingCharacters(in: .whitespaces)
+                        guard !trimmed.isEmpty else { return }
+                        _ = KeychainStore.writeClusterToken(trimmed)
+                        tokenInput = ""
+                        log.info("cluster token saved to Keychain")
+                    }
+                    .font(.system(size: theme.footnoteSize, weight: .medium))
+                    .buttonStyle(.plain)
+                    .foregroundStyle(theme.accent)
+                    .disabled(tokenInput.trimmingCharacters(in: .whitespaces).isEmpty)
+
+                    Button(i18n.t(.settings_mn_tokenClear)) {
+                        _ = KeychainStore.deleteClusterToken()
+                        tokenInput = ""
+                        log.info("cluster token cleared")
+                    }
+                    .font(.system(size: theme.footnoteSize, weight: .medium))
+                    .buttonStyle(.plain)
+                    .foregroundStyle(theme.errorText)
+                }
+                .padding(.leading, theme.spacingM)
+            }
+            .padding(theme.spacingM)
+        }
+        .onAppear {
+            tlsCerts = TlsTrustStore.shared.listCerts()
+            masterList = UserDefaults.standard.string(forKey: "multiNodeMasterList") ?? ""
+        }
+    }
+
+    @ViewBuilder
+    private func settingRow<C: View>(_ title: String, _ desc: String, @ViewBuilder control: () -> C) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(title)
+                    .font(.system(size: theme.textSize, weight: .medium))
+                    .foregroundStyle(theme.text)
+                Spacer()
+                control()
+            }
+            Text(desc)
+                .font(.system(size: theme.captionSize))
+                .foregroundStyle(theme.textSecondary)
+        }
+    }
+
+    private func importCert() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.x509Certificate]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        if panel.runModal() == .OK, let url = panel.url {
+            do {
+                try TlsTrustStore.shared.importCert(at: url)
+                tlsCerts = TlsTrustStore.shared.listCerts()
+                importError = ""
+                log.info("imported cert from \(url.path, privacy: .public)")
+            } catch {
+                importError = "\(error.localizedDescription)"
+                log.error("cert import failed: \(error.localizedDescription, privacy: .public)")
+            }
+        }
     }
 }
