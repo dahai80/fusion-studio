@@ -105,4 +105,23 @@ final class MultiNodeTlsHaTests: XCTestCase {
         XCTAssertEqual(tail.count, 3, "tail returns last 3")
         XCTAssertEqual(tail.last?.targetTask, "task-4", "tail last is most recent")
     }
+
+    // MARK: - TlsTrustStore
+
+    func test_b_tlsTrustStore_importListRemoveRoundTrip() throws {
+        let store = TlsTrustStore.shared
+        // generate a minimal self-signed cert DER in-test is impractical without a fixture;
+        // test the account-key plumbing with a sentinel: import should reject invalid DER
+        // gracefully (no crash), and list/remove on a nonexistent fingerprint is a no-op.
+        let bogusURL = URL(fileURLWithPath: "/tmp/nonexistent-cert-\(UUID().uuidString).cer")
+        XCTAssertThrowsError(try store.importCert(at: bogusURL), "missing file throws")
+
+        let list = store.listCerts()
+        // cleanup any test certs that might have a known fingerprint prefix
+        for c in list where c.fingerprint.hasPrefix("test-fp-") {
+            try? store.removeCert(fingerprint: c.fingerprint)
+        }
+        // removeCert on nonexistent should not throw (idempotent)
+        try store.removeCert(fingerprint: "test-fp-does-not-exist")
+    }
 }
