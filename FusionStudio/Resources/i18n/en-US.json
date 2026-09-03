@@ -145,6 +145,7 @@
 "mod_routingStrategy": "Routing",
 "mod_kvCache": "KV Cache",
 "mod_serviceWeb": "Service Panel",
+"mod_audit": "Audit",
 "mod_rag": "RAG",
 "mod_memory": "Memory",
 "mod_planner": "Planner",

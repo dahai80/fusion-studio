@@ -213,6 +213,7 @@ enum I18nKey: String, CaseIterable {
     case mod_routingStrategy = "mod_routingStrategy"
     case mod_kvCache = "mod_kvCache"
     case mod_serviceWeb = "mod_serviceWeb"
+    case mod_audit = "mod_audit"
     case mod_rag = "mod_rag"
     case mod_memory = "mod_memory"
     case mod_planner = "mod_planner"

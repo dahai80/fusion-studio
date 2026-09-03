@@ -145,6 +145,7 @@
 "mod_routingStrategy": "라우팅",
 "mod_kvCache": "KV 캐시",
 "mod_serviceWeb": "서비스 패널",
+"mod_audit": "감사",
 "mod_rag": "RAG",
 "mod_memory": "메모리",
 "mod_planner": "플래너",

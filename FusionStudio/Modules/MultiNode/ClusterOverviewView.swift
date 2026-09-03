@@ -17,27 +17,9 @@ struct ClusterOverviewView: View {
 
                 UpstreamServiceStatusBanner(serviceId: "multi-node")
 
-                clusterSyncBanner
+                ClusterStatusBanner(engine: engine)
 
-                if !engine.isConnected {
-                    HStack(spacing: 8) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.orange)
-                        Text(String(format: i18n.t(.mn_overview_disconnectedFmt), FusionConfig.shared.multiNodePort))
-                            .font(.system(size: theme.footnoteSize))
-                            .foregroundColor(.secondary)
-                        if let error = engine.lastError {
-                            Text(error)
-                                .font(.system(size: theme.captionSize))
-                                .foregroundColor(.red)
-                                .lineLimit(1)
-                        }
-                        Spacer()
-                    }
-                    .padding(.horizontal, theme.spacingL)
-                    .padding(.vertical, theme.spacingS)
-                    .background(Color.orange.opacity(0.08))
-                }
+                clusterSyncBanner
 
                 metricsStrip
                 actionBar
@@ -107,6 +89,7 @@ struct ClusterOverviewView: View {
                     Button(i18n.t(.mn_overview_removeNode), role: .destructive) {
                         Task { try? await engine.removeNode(nodeId: node.id) }
                     }
+                    .disabled(!engine.canMutate)
                 }
                 .overlay(alignment: .bottom) {
                     if node.id != filteredNodes.last?.id {

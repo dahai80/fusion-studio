@@ -32,6 +32,8 @@ struct KVCacheView: View {
             VStack(alignment: .leading, spacing: 0) {
                 ScreenHeader(eyebrow: "Multi-Node", title: i18n.t(.mn_kv_title), subtitle: i18n.t(.mn_kv_subtitle))
 
+                ClusterStatusBanner(engine: engine)
+
                 statsStrip
                 healthStrip
                 searchSection

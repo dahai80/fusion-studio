@@ -145,6 +145,7 @@
 "mod_routingStrategy": "路由策略",
 "mod_kvCache": "KV缓存",
 "mod_serviceWeb": "服务面板",
+"mod_audit": "审计",
 "mod_rag": "RAG",
 "mod_memory": "记忆",
 "mod_planner": "规划",

@@ -145,6 +145,7 @@
 "mod_routingStrategy": "ルーティング",
 "mod_kvCache": "KVキャッシュ",
 "mod_serviceWeb": "サービスパネル",
+"mod_audit": "監査",
 "mod_rag": "RAG",
 "mod_memory": "メモリ",
 "mod_planner": "プランナー",

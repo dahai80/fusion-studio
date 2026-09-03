@@ -145,6 +145,7 @@ enum Module: String, CaseIterable, Identifiable {
     case routingStrategy = "Routing Strategy"
     case kvCache = "KV Cache"
     case serviceWeb = "Service Web"
+    case audit = "Audit"
     case rag        = "RAG"
     case memory     = "Memory"
     case planner    = "Planner"
@@ -220,6 +221,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .routingStrategy:      key = .mod_routingStrategy
         case .kvCache:              key = .mod_kvCache
         case .serviceWeb:           key = .mod_serviceWeb
+        case .audit:                key = .mod_audit
         case .rag:                  key = .mod_rag
         case .memory:               key = .mod_memory
         case .planner:              key = .mod_planner
@@ -290,6 +292,7 @@ enum Module: String, CaseIterable, Identifiable {
         case .routingStrategy: return "arrow.triangle.branch"
         case .kvCache: return "internaldrive"
         case .serviceWeb: return "globe"
+        case .audit:      return "doc.text.magnifyingglass"
         case .rag:       return "magnifyingglass"
         case .memory:    return "brain.head.profile"
         case .planner:   return "list.bullet.rectangle"
@@ -340,7 +343,7 @@ enum Module: String, CaseIterable, Identifiable {
             return .agentStudio
         case .multimodal, .analytics, .collab, .external,
              .clusterOverview, .clusterTopology, .clusterSync, .taskMonitor, .alertCenter, .nodeActions,
-             .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb,
+             .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb, .audit,
              .operations, .deploy:
             return .multiNode
         case .rag:
@@ -499,7 +502,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .cowork:    return [.cowork]
         case .mlx:       return [.dashboard, .modelHub, .tuning, .bench]
         case .modelHub:  return [.modelHub]
-        case .multiNode: return [.clusterOverview, .clusterTopology, .clusterSync, .taskMonitor, .alertCenter, .nodeActions, .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb, .multimodal, .analytics, .collab, .external, .operations, .deploy]
+        case .multiNode: return [.clusterOverview, .clusterTopology, .clusterSync, .taskMonitor, .alertCenter, .nodeActions, .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb, .audit, .multimodal, .analytics, .collab, .external, .operations, .deploy]
         case .fsb:       return [.fsb]
         case .science:   return [.science]
         case .finance:   return [.finance]

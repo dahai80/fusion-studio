@@ -76,6 +76,8 @@ struct ModuleDetailView: View {
                 KVCacheView()
             case .serviceWeb:
                 ServiceWebView()
+            case .audit:
+                AuditTabView()
             case .rag:
                 RAGMainView()
             case .memory:

@@ -30,6 +30,8 @@ struct AlertCenterView: View {
             VStack(alignment: .leading, spacing: 0) {
                 ScreenHeader(eyebrow: "Multi-Node", title: i18n.t(.mn_alert_title), subtitle: i18n.t(.mn_alert_subtitle))
 
+                ClusterStatusBanner(engine: engine)
+
                 HStack {
                     Spacer()
                     FusionButton(i18n.t(.mn_alert_exportBtn), icon: "arrow.down.doc", style: .secondary, size: .small,

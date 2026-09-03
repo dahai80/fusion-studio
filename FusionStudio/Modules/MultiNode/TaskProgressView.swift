@@ -25,6 +25,8 @@ struct TaskProgressView: View {
             VStack(alignment: .leading, spacing: 0) {
                 ScreenHeader(eyebrow: "Multi-Node", title: i18n.t(.mn_progress_title), subtitle: i18n.t(.mn_progress_subtitle))
 
+                ClusterStatusBanner(engine: engine)
+
                 taskPicker
                 if let taskId = currentTaskId {
                     progressContent(taskId: taskId)
