@@ -18,6 +18,7 @@ struct FusionSidebarView: View {
     @StateObject private var agent = CodeAgent.shared
     @StateObject private var i18n = I18nManager.shared
     @State private var searchText = ""
+    @AppStorage("showDeprecatedModules") private var showDeprecatedModules: Bool = false
     // Callers: ContentView, IconRailView. Affected API: SidebarSection.doc, AppState.activeSection.
     // Data schemas: SidebarSection.allCases auto-includes .doc. User instruction: "在左侧菜单增加 fusion doc"
     @State private var expandedSections: Set<SidebarSection> = [.code, .chats, .projects, .agent, .mlx, .rag, .doc, .simulation, .douyinOperation]
@@ -35,7 +36,7 @@ struct FusionSidebarView: View {
 
                             newChatButton
 
-                            ForEach(SidebarSection.allCases) { section in
+                            ForEach(SidebarSection.visibleSections(showDeprecated: showDeprecatedModules)) { section in
                                 if section == .aiAgent || section == .mlx || section == .modelHub {
                                     Rectangle()
                                         .fill(theme.separator)

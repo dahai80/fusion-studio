@@ -89,6 +89,14 @@ class MultiNodeEngine: ObservableObject {
         self.session = URLSession(configuration: config)
     }
 
+    /// Track C: 客户端幂等键。上游 fusion-multi-node #23/#31 暂忽略 X-Idempotency-Key header;
+    /// 上游采纳后自动启用服务端去重。每次 submit/retry 生成新 UUID。
+    static func generateIdempotencyKey() -> String {
+        let key = UUID().uuidString
+        engineLog.info("idempotency key generated: \(key)")
+        return key
+    }
+
     /// 给 URLRequest 附加 Bearer token（cluster 鉴权，参照 ModelHubAPIClient 模式）。
     private func authHeaders(_ request: inout URLRequest) {
         if !authToken.isEmpty {

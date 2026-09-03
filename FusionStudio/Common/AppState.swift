@@ -407,6 +407,20 @@ enum SidebarSection: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    /// Track C: L5 domain modules not enterprise-ship-grade. Hidden from sidebar
+    /// when showDeprecatedModules=false (enterprise default). Enum case kept — removal
+    /// breaks routing switch arms + i18n. Dead arms render EmptyView.
+    var isDeprecated: Bool {
+        switch self {
+        case .simulation, .trainer: return true
+        default: return false
+        }
+    }
+
+    static func visibleSections(showDeprecated: Bool) -> [SidebarSection] {
+        showDeprecated ? Array(allCases) : allCases.filter { !$0.isDeprecated }
+    }
+
     var localizedName: String {
         let key: I18nKey
         switch self {
