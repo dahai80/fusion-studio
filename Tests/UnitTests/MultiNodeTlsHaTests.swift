@@ -67,4 +67,42 @@ final class MultiNodeTlsHaTests: XCTestCase {
         // empty pool -> falls back to FusionConfig single endpoint
         XCTAssertNotNil(pool.active, "empty pool falls back to legacy single endpoint")
     }
+
+    // MARK: - ClusterAuditor
+
+    func test_b_auditor_writesJsonlAndPerms() {
+        let auditor = ClusterAuditor()
+        let tmpDir = NSTemporaryDirectory() + "audit-test-\(UUID().uuidString)"
+        try? FileManager.default.createDirectory(atPath: tmpDir, withIntermediateDirectories: true)
+        auditor.overrideLogDir(tmpDir)
+        defer { try? FileManager.default.removeItem(atPath: tmpDir) }
+
+        auditor.record(action: "remove", targetNode: "n1", targetTask: nil,
+                       result: "ok", idempotencyKey: nil, masterHost: "m1")
+
+        let files = (try? FileManager.default.contentsOfDirectory(atPath: tmpDir)) ?? []
+        XCTAssertEqual(files.count, 1, "one audit file created")
+        let path = tmpDir + "/" + files[0]
+        let perms = try! FileManager.default.attributesOfItem(atPath: path)
+        XCTAssertEqual(perms[.posixPermissions] as? Int, 0o600, "audit file 0600")
+        let content = try! String(contentsOfFile: path, encoding: .utf8)
+        XCTAssertTrue(content.contains("\"action\":\"remove\""), "jsonl line contains action")
+        XCTAssertTrue(content.contains("\"result\":\"ok\""), "jsonl line contains result")
+    }
+
+    func test_b_auditor_tailReturnsLastN() {
+        let auditor = ClusterAuditor()
+        let tmpDir = NSTemporaryDirectory() + "audit-test-\(UUID().uuidString)"
+        try? FileManager.default.createDirectory(atPath: tmpDir, withIntermediateDirectories: true)
+        auditor.overrideLogDir(tmpDir)
+        defer { try? FileManager.default.removeItem(atPath: tmpDir) }
+
+        for i in 0..<5 {
+            auditor.record(action: "submit", targetNode: nil, targetTask: "task-\(i)",
+                           result: "ok", idempotencyKey: "key-\(i)", masterHost: nil)
+        }
+        let tail = auditor.tail(limit: 3)
+        XCTAssertEqual(tail.count, 3, "tail returns last 3")
+        XCTAssertEqual(tail.last?.targetTask, "task-4", "tail last is most recent")
+    }
 }
