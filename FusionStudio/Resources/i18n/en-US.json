@@ -193,6 +193,8 @@
 "minimizeToMenuBar": "Minimize to Menu Bar",
 "sec_language": "Language",
 "interfaceLanguage": "Interface Language",
+"sec_advanced": "Advanced",
+"settings_showDeprecatedModules": "Show unfinished modules (simulation/trainer)",
 "sec_hwPref": "Hardware Preferences",
 "preferredDevice": "Preferred Device",
 "dev_auto": "Auto",

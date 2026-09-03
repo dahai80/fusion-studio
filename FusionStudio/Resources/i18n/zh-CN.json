@@ -193,6 +193,8 @@
 "minimizeToMenuBar": "最小化到菜单栏",
 "sec_language": "语言",
 "interfaceLanguage": "界面语言",
+"sec_advanced": "高级",
+"settings_showDeprecatedModules": "显示未完成模块 (simulation/trainer)",
 "sec_hwPref": "硬件偏好",
 "preferredDevice": "首选设备",
 "dev_auto": "自动",

@@ -193,6 +193,8 @@
 "minimizeToMenuBar": "メニューバーに最小化",
 "sec_language": "言語",
 "interfaceLanguage": "インターフェイス言語",
+"sec_advanced": "詳細",
+"settings_showDeprecatedModules": "未完成モジュールを表示 (simulation/trainer)",
 "sec_hwPref": "ハードウェア設定",
 "preferredDevice": "優先デバイス",
 "dev_auto": "自動",

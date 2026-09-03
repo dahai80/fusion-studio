@@ -77,6 +77,7 @@ struct GeneralSettingsView: View {
     @AppStorage("launchAtLogin") private var launchAtLogin = false
     @AppStorage("autoStartMLX") private var autoStartMLX = true
     @AppStorage("minimizeToMenuBar") private var minimizeToMenuBar = false
+    @AppStorage("showDeprecatedModules") private var showDeprecatedModules: Bool = false
 
     private let settingsLog = Logger(subsystem: "com.fusion.studio", category: "Settings")
 
@@ -128,6 +129,11 @@ struct GeneralSettingsView: View {
                     ForEach(AppLanguage.allCases) { lang in
                         Text("\(lang.flag) \(lang.displayName)").tag(lang.rawValue)
                     }
+                }
+            }
+            Section(i18n.t(.sec_advanced)) {
+                Toggle(isOn: $showDeprecatedModules) {
+                    Text(i18n.t(.settings_showDeprecatedModules))
                 }
             }
         }

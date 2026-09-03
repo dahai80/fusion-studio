@@ -264,6 +264,8 @@ enum I18nKey: String, CaseIterable {
     case minimizeToMenuBar = "minimizeToMenuBar"
     case sec_language = "sec_language"
     case interfaceLanguage = "interfaceLanguage"
+    case sec_advanced = "sec_advanced"
+    case settings_showDeprecatedModules = "settings_showDeprecatedModules"
     case sec_hwPref = "sec_hwPref"
     case preferredDevice = "preferredDevice"
     case dev_auto = "dev_auto"
