@@ -268,6 +268,9 @@ class FusionConfig: ObservableObject {
     @AppStorage("multiNodeAgentPort") var multiNodeAgentPort = 11458
     // 可选：手动覆盖 cluster token（留空则读取 ~/.fusion/multi-node/.cluster_token）。
     @AppStorage("multiNodeClusterToken") var multiNodeClusterToken = ""
+    // Track B: ordered comma-separated master host list for failover (e.g. "node1:11452,node2:11452").
+    // Empty = fall back to single multiNodeBaseURL endpoint (backward compat).
+    @AppStorage("multiNodeMasterList") var multiNodeMasterList: String = ""
 
     /// Multi-Node Master 服务地址（FastAPI MasterServer，需 Bearer token）。
     // F-sec-1 P1: 远程集群强制 https:// (明文 token 走 HTTP 跨网段泄露风险); 本地单节点 http://。

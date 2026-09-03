@@ -129,4 +129,32 @@ enum KeychainStore {
             keychainLog.error("fusionCodeToken: write file failed: \(error.localizedDescription)")
         }
     }
+
+    // MARK: - MultiNode cluster token (Track B: out of @AppStorage plaintext → Keychain)
+
+    static let clusterTokenAccount = "multiNodeClusterToken"
+
+    static func readClusterToken() -> String {
+        if let cached = get(clusterTokenAccount), !cached.isEmpty {
+            return cached
+        }
+        let stale = UserDefaults.standard.string(forKey: "multiNodeClusterToken") ?? ""
+        if !stale.isEmpty {
+            keychainLog.info("migrating cluster token from UserDefaults to Keychain (account \(clusterTokenAccount, privacy: .public))")
+            _ = set(clusterTokenAccount, stale)
+            UserDefaults.standard.removeObject(forKey: "multiNodeClusterToken")
+            return stale
+        }
+        return ""
+    }
+
+    @discardableResult
+    static func writeClusterToken(_ value: String) -> Bool {
+        set(clusterTokenAccount, value)
+    }
+
+    @discardableResult
+    static func deleteClusterToken() -> Bool {
+        delete(clusterTokenAccount)
+    }
 }

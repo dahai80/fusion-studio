@@ -135,4 +135,21 @@ final class MultiNodeTlsHaTests: XCTestCase {
     func test_b_tlsDelegate_typeExists() {
         _ = ClusterTLSDelegate()
     }
+
+    // MARK: - Cluster token Keychain migration
+
+    func test_b_tokenMigratesAppStorageToKeychain() {
+        let account = "multiNodeClusterToken"
+        let appStorageKey = "multiNodeClusterToken"
+        UserDefaults.standard.set("test-tok-123", forKey: appStorageKey)
+        defer {
+            UserDefaults.standard.removeObject(forKey: appStorageKey)
+            _ = KeychainStore.delete(account)
+        }
+        let token = KeychainStore.readClusterToken()
+        XCTAssertEqual(token, "test-tok-123", "migrated from UserDefaults")
+        XCTAssertNil(UserDefaults.standard.string(forKey: appStorageKey), "UserDefaults cleared post-migration")
+        XCTAssertEqual(KeychainStore.get(account), "test-tok-123", "Keychain holds token")
+        XCTAssertEqual(KeychainStore.readClusterToken(), "test-tok-123")
+    }
 }
