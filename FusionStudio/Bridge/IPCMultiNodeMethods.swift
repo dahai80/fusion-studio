@@ -22,7 +22,8 @@ extension IPCClient {
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = timeout
-        let token = FusionConfig.shared.multiNodeResolvedToken
+        let keychainToken = KeychainStore.readClusterToken()
+        let token = keychainToken.isEmpty ? FusionConfig.shared.multiNodeResolvedToken : keychainToken
         if !token.isEmpty {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
@@ -290,7 +291,8 @@ extension IPCClient {
         guard let url = comps.url else { throw IPCError.invalidRequest }
         var request = URLRequest(url: url)
         request.timeoutInterval = 30
-        let token = FusionConfig.shared.multiNodeResolvedToken
+        let keychainToken = KeychainStore.readClusterToken()
+        let token = keychainToken.isEmpty ? FusionConfig.shared.multiNodeResolvedToken : keychainToken
         if !token.isEmpty {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }

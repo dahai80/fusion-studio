@@ -476,20 +476,62 @@ class MultiNodeEngine: ObservableObject {
     }
 
     func rejectNode(nodeId: String, reason: String = "") async throws {
-        _ = try await post("/api/nodes/reject", body: ["node_id": nodeId, "reason": reason])
-        fetchPendingNodes()
+        guard canMutate else {
+            ClusterAuditor.shared.record(action: "reject", targetNode: nodeId, targetTask: nil,
+                                         result: "blocked", idempotencyKey: nil, masterHost: activeMasterHost)
+            throw EngineError.writeDisabled
+        }
+        do {
+            try assertNoSplitBrain()
+            _ = try await post("/api/nodes/reject", body: ["node_id": nodeId, "reason": reason])
+            fetchPendingNodes()
+            ClusterAuditor.shared.record(action: "reject", targetNode: nodeId, targetTask: nil,
+                                         result: "ok", idempotencyKey: nil, masterHost: activeMasterHost)
+        } catch {
+            ClusterAuditor.shared.record(action: "reject", targetNode: nodeId, targetTask: nil,
+                                         result: "failed", idempotencyKey: nil, masterHost: activeMasterHost)
+            throw error
+        }
     }
 
     func cancelTask(taskId: String) async throws {
-        _ = try await post("/api/tasks/\(taskId)/cancel", body: ["reason": "cancelled_by_user"])
-        fetchTasks()
+        guard canMutate else {
+            ClusterAuditor.shared.record(action: "cancel", targetNode: nil, targetTask: taskId,
+                                         result: "blocked", idempotencyKey: nil, masterHost: activeMasterHost)
+            throw EngineError.writeDisabled
+        }
+        do {
+            try assertNoSplitBrain()
+            _ = try await post("/api/tasks/\(taskId)/cancel", body: ["reason": "cancelled_by_user"])
+            fetchTasks()
+            ClusterAuditor.shared.record(action: "cancel", targetNode: nil, targetTask: taskId,
+                                         result: "ok", idempotencyKey: nil, masterHost: activeMasterHost)
+        } catch {
+            ClusterAuditor.shared.record(action: "cancel", targetNode: nil, targetTask: taskId,
+                                         result: "failed", idempotencyKey: nil, masterHost: activeMasterHost)
+            throw error
+        }
     }
 
     func degradeTask(taskId: String, targetModel: String? = nil) async throws {
-        var body: [String: Any] = [:]
-        if let m = targetModel { body["target_model"] = m }
-        _ = try await post("/api/tasks/\(taskId)/degrade", body: body)
-        fetchTasks()
+        guard canMutate else {
+            ClusterAuditor.shared.record(action: "degrade", targetNode: nil, targetTask: taskId,
+                                         result: "blocked", idempotencyKey: nil, masterHost: activeMasterHost)
+            throw EngineError.writeDisabled
+        }
+        do {
+            try assertNoSplitBrain()
+            var body: [String: Any] = [:]
+            if let m = targetModel { body["target_model"] = m }
+            _ = try await post("/api/tasks/\(taskId)/degrade", body: body)
+            fetchTasks()
+            ClusterAuditor.shared.record(action: "degrade", targetNode: nil, targetTask: taskId,
+                                         result: "ok", idempotencyKey: nil, masterHost: activeMasterHost)
+        } catch {
+            ClusterAuditor.shared.record(action: "degrade", targetNode: nil, targetTask: taskId,
+                                         result: "failed", idempotencyKey: nil, masterHost: activeMasterHost)
+            throw error
+        }
     }
 
     func migrateTask(taskId: String, targetNodeId: String) async throws {

@@ -208,8 +208,19 @@ final class MultiNodeTlsHaTests: XCTestCase {
     }
 
     func test_b_allMutatingButtonsRespectCanMutate() {
-        // relaxed: each MultiNode view either uses ClusterWriteButton or .disabled(!engine.canMutate)
-        // — enforced during implementation; build-green is the gate
-        XCTAssertTrue(true, "relaxed structural check")
+        let path = (#file as NSString).deletingLastPathComponent
+            + "/../../FusionStudio/Modules/MultiNode/MultiNodeEngine.swift"
+        guard let src = try? String(contentsOfFile: path, encoding: .utf8) else {
+            XCTFail("cannot read MultiNodeEngine source"); return
+        }
+        let mutatingMethods = ["removeNode", "approveNode", "rejectNode", "migrateTask",
+                               "submitTask", "retryTask", "setRoutingStrategy",
+                               "updateAutoscalerConfig", "cancelTask", "degradeTask"]
+        for name in mutatingMethods {
+            XCTAssertTrue(src.contains("func \(name)("), "missing mutating method: \(name)")
+        }
+        let guardCount = src.components(separatedBy: "guard canMutate").count - 1
+        XCTAssertEqual(guardCount, mutatingMethods.count,
+                       "every mutating method (\(mutatingMethods.count)) must have a `guard canMutate` guard; found \(guardCount)")
     }
 }
