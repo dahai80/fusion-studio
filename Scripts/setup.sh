@@ -87,15 +87,48 @@ install_deps() {
     done
 
     # Python 依赖
+    # OPS-7 (审计product-0905 P2): 不污染系统 pip3 — 优先 monorepo 共享 .venv (CLAUDE.md 约定),
+    # 次选项目本地 .venv; 均无则 warn (不强制 pip3 install 入系统环境)。
     local pip_packages=("mlx" "pybullet" "psutil")
+    local venv_dir=""
+    local monorepo_venv="$PROJECT_DIR/../.venv/bin/activate"
+    if [ -f "$monorepo_venv" ]; then
+        venv_dir="$PROJECT_DIR/../.venv"
+        info "使用 monorepo 共享 venv: $venv_dir"
+        # shellcheck disable=SC1090
+        source "$monorepo_venv"
+    elif [ -f "$PROJECT_DIR/.venv/bin/activate" ]; then
+        venv_dir="$PROJECT_DIR/.venv"
+        info "使用项目本地 venv: $venv_dir"
+        # shellcheck disable=SC1090
+        source "$PROJECT_DIR/.venv/bin/activate"
+    else
+        warn "未找到 .venv (monorepo 或项目级)。Python 依赖检查将使用系统 python3 —"
+        warn "建议先在 monorepo root 执行 source .venv/bin/activate 再运行本脚本 (CLAUDE.md 约定)。"
+    fi
+
+    local pip_cmd="pip3"
+    if [ -n "$venv_dir" ]; then
+        pip_cmd="$venv_dir/bin/pip"
+    fi
+
     for pkg in "${pip_packages[@]}"; do
         if ! python3 -c "import $pkg" &>/dev/null 2>&1; then
             info "安装 $pkg..."
-            pip3 install "$pkg"
+            if [ -n "$venv_dir" ]; then
+                "$pip_cmd" install "$pkg"
+            else
+                warn "跳过 $pkg 安装 (无 venv, 避免污染系统环境) — 请在激活的 venv 中手动 pip install"
+            fi
         else
             info "$pkg: ✅"
         fi
     done
+
+    # 退出 venv (若本脚本激活了), 避免影响后续 shell 状态
+    if [ -n "$venv_dir" ]; then
+        deactivate 2>/dev/null || true
+    fi
 }
 
 # ─── 构建所有组件 ────────────────────────────────────────────────

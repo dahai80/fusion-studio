@@ -356,7 +356,12 @@ sign_app() {
         # 尝试自动查找开发者证书
         dev_id=$(security find-identity -v -p basic 2>/dev/null | grep "Developer ID Application" | head -1 | awk '{print $2}' || echo "")
         if [ -z "$dev_id" ]; then
-            warn "未找到开发者证书，跳过签名"
+            # OPS-6 (审计product-0905 P2): 凭证缺失非静默跳过 — 醒目 warn + stamp 未签名标记入 release notes。
+            warn "⚠️  未找到 Developer ID 证书 — 跳过 codesign。产物未签名，分发前须手动签名或公证。"
+            local marker="$PROJECT_DIR/.build/UNSIGNED.txt"
+            mkdir -p "$(dirname "$marker")"
+            echo "UNSIGNED build — no Developer ID certificate found at $(date -u +%FT%TZ)" > "$marker"
+            warn "⚠️  已 stamp $marker — release notes 须标注此 DMG 未签名"
             return 0
         fi
         info "自动使用证书: $dev_id"
