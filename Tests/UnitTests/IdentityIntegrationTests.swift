@@ -101,4 +101,18 @@ final class IdentityIntegrationTests: XCTestCase {
         svc.setReachableForTest(false)
         XCTAssertFalse(svc.useIdentity)
     }
+
+    // #394 Task 8: jwt/refreshToken must never leak via String(describing:)
+    //   or accidental os_log interpolation. IdentitySession redacts secrets
+    //   in its CustomStringConvertible description (structural guarantee).
+    func test_jwtNeverLogged_sessionDescriptionRedactsSecrets() {
+        let session = IdentitySession(
+            jwt: "SECRET-JWT-SHOULD-NOT-APPEAR", refreshToken: "SECRET-REFRESH-SHOULD-NOT-APPEAR",
+            tenantId: "default", tenantName: "Default", role: "tenant_admin",
+            scopes: ["tenants:read"], expiresAt: Date().addingTimeInterval(3600))
+        let described = String(describing: session)
+        XCTAssertFalse(described.contains("SECRET-JWT-SHOULD-NOT-APPEAR"), "jwt leaked in description: \(described)")
+        XCTAssertFalse(described.contains("SECRET-REFRESH-SHOULD-NOT-APPEAR"), "refreshToken leaked in description: \(described)")
+        XCTAssertTrue(described.contains("default"), "tenant id should remain in description: \(described)")
+    }
 }
