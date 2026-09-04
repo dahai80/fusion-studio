@@ -62,4 +62,18 @@ final class IdentityIntegrationTests: XCTestCase {
         XCTAssertEqual(auth?["jwt"] as? String, "jwt-123")
         XCTAssertEqual(auth?["tid"] as? String, "default")
     }
+
+    func test_handle401_refreshFail_logsOut() {
+        let svc = IdentityService()
+        svc.setSessionForTest(IdentitySession(
+            jwt: "expired", refreshToken: "bad-rf", tenantId: "default",
+            tenantName: "Default", role: "tenant_admin", scopes: [], expiresAt: Date().addingTimeInterval(-10)))
+        let exp = expectation(description: "logout")
+        Task {
+            await svc.handle401()
+            XCTAssertTrue(svc.session == nil)
+            if case .loggedOut = svc.state { exp.fulfill() }
+        }
+        wait(for: [exp], timeout: 15)
+    }
 }
