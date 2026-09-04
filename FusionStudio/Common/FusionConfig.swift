@@ -227,6 +227,9 @@ class FusionConfig: ObservableObject {
     @AppStorage("upstreamFusionSpeechPath") var upstreamFusionSpeechPath = "~/fusion/fusion-speech"
     @AppStorage("fusionCodePort") var fusionCodePort = 11441
     @AppStorage("upstreamAutoStartCritical") var upstreamAutoStartCritical = true
+    // #393 Track A: 显式覆盖 bundled 后端 start.sh 路径 (留空=走解析顺序)。
+    // 解析优先级见 resolveBackendStartSh(bundleURL:): (1) 用户覆盖 (2) ~/fusion dev (3) bundle Contents/Services (4) nil。
+    @AppStorage("backendRuntimeOverridePath") var backendRuntimeOverridePath = ""
 
     // MARK: - Upstream Service Ports
     @AppStorage("coworkHost") var coworkHost = "127.0.0.1"
@@ -325,6 +328,41 @@ class FusionConfig: ObservableObject {
     /// 展开 ~/ 路径为绝对路径
     func expandedUpstreamPath(_ raw: String) -> String {
         (raw as NSString).expandingTildeInPath
+    }
+
+    // #393 Track A: 解析 bundled 后端 start.sh 路径 (agent-studio daemon)。
+    // 优先级 (spec docs/superpowers/specs/2026-09-04-dmg-python-bundling-design.md):
+    //   1. 用户显式覆盖 (backendRuntimeOverridePath) + 可执行 → 返回
+    //   2. ~/fusion dev 路径 (upstreamAgentStudioPath/start.sh) 可执行 → 返回 (开发模式)
+    //   3. Bundle Contents/Services/start.sh 可执行 → 返回 (fresh Mac)
+    //   4. 都不在 → 返回 nil (调用方置 criticalBackendMissing)
+    // bundleURL 参数用于测试注入 (生产用 Bundle.main.bundleURL)。
+    func resolveBackendStartSh(bundleURL: URL = Bundle.main.bundleURL) -> String? {
+        // (1) 用户覆盖
+        let override = backendRuntimeOverridePath.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !override.isEmpty {
+            let p = (override as NSString).expandingTildeInPath
+            if FileManager.default.isExecutableFile(atPath: p) {
+                fusionConfigLog.info("resolveBackendStartSh: source=user-override -> \(p, privacy: .public)")
+                return p
+            }
+            fusionConfigLog.error("resolveBackendStartSh: user override 不可执行, 跳过: \(p, privacy: .public)")
+        }
+        // (2) dev 路径
+        let devPath = expandedUpstreamPath(upstreamAgentStudioPath) + "/start.sh"
+        if FileManager.default.isExecutableFile(atPath: devPath) {
+            fusionConfigLog.info("resolveBackendStartSh: source=dev (~) -> \(devPath, privacy: .public)")
+            return devPath
+        }
+        // (3) bundle
+        let bundlePath = bundleURL.appendingPathComponent("Contents/Services/start.sh").path
+        if FileManager.default.isExecutableFile(atPath: bundlePath) {
+            fusionConfigLog.info("resolveBackendStartSh: source=bundle -> \(bundlePath, privacy: .public)")
+            return bundlePath
+        }
+        // (4) nil
+        fusionConfigLog.error("resolveBackendStartSh: 无可用后端 (override/dev/bundle 均不可执行)")
+        return nil
     }
 
     // MARK: - 模型档位 helpers
@@ -482,6 +520,8 @@ class FusionConfig: ObservableObject {
         upstreamFusionSpeechPath = "~/fusion/fusion-speech"
         fusionCodePort = 11441
         upstreamAutoStartCritical = true
+        // #393 Track A: 重置后端运行时覆盖 (走解析顺序)
+        backendRuntimeOverridePath = ""
 
         coworkHost = "127.0.0.1"
         coworkSyncPort = 11437
