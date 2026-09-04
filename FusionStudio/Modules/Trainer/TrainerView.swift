@@ -299,6 +299,9 @@ struct TrainerStartTab: View {
     @State private var batchSize: Int = 2
     @State private var loraRank: Int = 16
     @State private var lr: Double = 1e-4
+    @State private var publishAdapter: Bool = false
+    @State private var hubUrl: String = "http://localhost:11432"
+    @State private var hubApiKey: String = ""
 
     enum TrainerMode: String, CaseIterable {
         case sft
@@ -348,8 +351,15 @@ struct TrainerStartTab: View {
                                 }
                             }
                         }
+                        Section(I18nManager.shared.t(.tr_start_section_publish)) {
+                            Toggle(I18nManager.shared.t(.tr_start_label_publish_adapter), isOn: $publishAdapter)
+                            if publishAdapter {
+                                TextField(I18nManager.shared.t(.tr_start_label_hub_url), text: $hubUrl)
+                                SecureField(I18nManager.shared.t(.tr_start_label_hub_api_key), text: $hubApiKey)
+                            }
+                        }
                     }
-                    .frame(maxHeight: 420)
+                    .frame(maxHeight: 480)
                 }
                 .background(theme.surfaceSecondary).cornerRadius(8)
 
@@ -358,10 +368,10 @@ struct TrainerStartTab: View {
                     Button {
                         let cfg = buildConfig()
                         if mode == .sft {
-                            trainerViewLogger.info("start SFT: model=\(model, privacy: .public) dataset=\(dataset, privacy: .public)")
+                            trainerViewLogger.info("start SFT: model=\(model, privacy: .public) dataset=\(dataset, privacy: .public) publish=\(publishAdapter, privacy: .public)")
                             Task { await bridge.startSft(config: cfg) }
                         } else {
-                            trainerViewLogger.info("start RLSL: method=\(method, privacy: .public) model=\(model, privacy: .public)")
+                            trainerViewLogger.info("start RLSL: method=\(method, privacy: .public) model=\(model, privacy: .public) publish=\(publishAdapter, privacy: .public)")
                             Task { await bridge.startRlsl(config: cfg) }
                         }
                     } label: {
@@ -392,6 +402,9 @@ struct TrainerStartTab: View {
             "dataset": datasetCfg,
             "sft": sftCfg,
             "seed": 42,
+            "publish_adapter": publishAdapter,
+            "hub_url": hubUrl,
+            "hub_api_key": hubApiKey,
         ]
         if mode == .rlsl {
             base["rlsl"] = ["method": method, "preset": preset, "iters": iters, "batch_size": batchSize] as [String: Any]
