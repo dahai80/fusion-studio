@@ -102,6 +102,65 @@ final class IdentityIntegrationTests: XCTestCase {
         XCTAssertFalse(svc.useIdentity)
     }
 
+    // MARK: - 审计v0.1.58 residual — JWT keyless claim integrity
+
+    func test_residual_validateClaims_validClaims_ok() {
+        let claims: [String: Any] = [
+            "iss": IdentityService.expectedIssuer,
+            "aud": IdentityService.expectedAudience,
+            "exp": Date().addingTimeInterval(3600).timeIntervalSince1970,
+            "tid": "default",
+        ]
+        XCTAssertEqual(IdentityService.validateClaims(claims), .ok, "valid iss/aud/future-exp → ok")
+    }
+
+    func test_residual_validateClaims_expiredToken_expired() {
+        let claims: [String: Any] = [
+            "iss": IdentityService.expectedIssuer,
+            "aud": IdentityService.expectedAudience,
+            "exp": Date().addingTimeInterval(-10).timeIntervalSince1970,
+        ]
+        XCTAssertEqual(IdentityService.validateClaims(claims), .expired, "past exp → expired")
+    }
+
+    func test_residual_validateClaims_notYetValidToken_notYetValid() {
+        let claims: [String: Any] = [
+            "iss": IdentityService.expectedIssuer,
+            "aud": IdentityService.expectedAudience,
+            "nbf": Date().addingTimeInterval(600).timeIntervalSince1970,
+        ]
+        XCTAssertEqual(IdentityService.validateClaims(claims), .notYetValid, "future nbf → notYetValid")
+    }
+
+    func test_residual_validateClaims_wrongIssuer_tampered() {
+        let claims: [String: Any] = [
+            "iss": "evil-issuer",
+            "aud": IdentityService.expectedAudience,
+        ]
+        XCTAssertEqual(IdentityService.validateClaims(claims), .tampered, "iss ≠ fusion-identity → tampered")
+    }
+
+    func test_residual_validateClaims_wrongAudience_tampered() {
+        let claims: [String: Any] = [
+            "iss": IdentityService.expectedIssuer,
+            "aud": "other-app",
+        ]
+        XCTAssertEqual(IdentityService.validateClaims(claims), .tampered, "aud ≠ fusion-studio → tampered")
+    }
+
+    func test_residual_validateClaims_emptyIssuerAud_ok() {
+        let claims: [String: Any] = [
+            "iss": "",
+            "aud": "",
+            "exp": Date().addingTimeInterval(3600).timeIntervalSince1970,
+        ]
+        XCTAssertEqual(IdentityService.validateClaims(claims), .ok, "empty iss/aud skipped (old token) → ok")
+    }
+
+    func test_residual_validateClaims_missingAllClaims_ok() {
+        XCTAssertEqual(IdentityService.validateClaims([:]), .ok, "no claims → ok (keyless, server still final authority)")
+    }
+
     // #394 Task 8: jwt/refreshToken must never leak via String(describing:)
     //   or accidental os_log interpolation. IdentitySession redacts secrets
     //   in its CustomStringConvertible description (structural guarantee).

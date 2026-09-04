@@ -107,6 +107,9 @@ class FusionConfig: ObservableObject {
     @AppStorage("allowUpdateCheck") var allowUpdateCheck = true
     // F-ops-8: 本地崩溃遥测 (opt-in, 默认关闭)。零网络上传, 仅落盘 ~/.fusion-studio/logs/crash-*.log。
     @AppStorage("enableCrashTelemetry") var enableCrashTelemetry = false
+    // 审计v0.1.58 residual — bundle MANIFEST 完整性强制 (opt-in, 默认关闭)。
+    // 关 = 仅告警 (兼容, 防 MANIFEST 损坏卡死后端); 开 = 校验失败拒 bundle 路径, 回退 dev start.sh。
+    @AppStorage("enforceBundleIntegrity") var enforceBundleIntegrity = false
 
     // MARK: - 量化预设
     @AppStorage("defaultQuant") var defaultQuant = "4bit"
@@ -371,10 +374,15 @@ class FusionConfig: ObservableObject {
         let bundlePath = svcDir.appendingPathComponent("start.sh").path
         if FileManager.default.isExecutableFile(atPath: bundlePath) {
             // 审计v0.1.58 P1-manifest: 运行时校验 MANIFEST.txt 文件完整性, 防篡改.
-            // 校验失败仅告警 (不阻断启动) — 避免误判卡死用户; 记日志供诊断.
-            verifyBundleManifest(svcDir: svcDir)
-            fusionConfigLog.info("resolveBackendStartSh: source=bundle -> \(bundlePath, privacy: .public)")
-            return bundlePath
+            // 默认仅告警 (enforceBundleIntegrity=false, 防 MANIFEST 损坏卡死用户后端);
+            // 强制模式 (企业部署 opt-in) 校验失败则拒 bundle 路径, 回退 dev start.sh (不死锁).
+            let manifestOk = verifyBundleManifest(svcDir: svcDir)
+            if !manifestOk && FusionConfig.shared.enforceBundleIntegrity {
+                fusionConfigLog.error("resolveBackendStartSh: bundle 完整性校验失败 + enforce 开, 拒 bundle 路径, 回退 dev")
+            } else {
+                fusionConfigLog.info("resolveBackendStartSh: source=bundle -> \(bundlePath, privacy: .public)")
+                return bundlePath
+            }
         }
         // (4) nil
         fusionConfigLog.error("resolveBackendStartSh: 无可用后端 (override/dev/bundle 均不可执行)")
@@ -382,12 +390,13 @@ class FusionConfig: ObservableObject {
     }
 
     // 审计v0.1.58 P1-manifest: 校验 bundle MANIFEST.txt 的 file-integrity 段, 逐文件 sha256 比对.
-    // 仅供诊断/告警, 不阻断启动 (避免 MANIFEST 损坏卡死用户后端).
-    func verifyBundleManifest(svcDir: URL) {
+    // 返回 true=通过/无 manifest (dev), false=完整性不匹配。默认仅告警; enforceBundleIntegrity 开则 caller 拒 bundle。
+    @discardableResult
+    func verifyBundleManifest(svcDir: URL) -> Bool {
         let manifestURL = svcDir.appendingPathComponent("MANIFEST.txt")
         guard let content = try? String(contentsOf: manifestURL, encoding: .utf8) else {
             fusionConfigLog.info("verifyBundleManifest: 无 MANIFEST.txt (dev 或未打包), 跳过")
-            return
+            return true
         }
         var inIntegrity = false
         var mismatches = 0
@@ -418,8 +427,10 @@ class FusionConfig: ObservableObject {
         }
         if mismatches == 0 {
             fusionConfigLog.info("verifyBundleManifest: ✅ 文件完整性校验通过")
+            return true
         } else {
             fusionConfigLog.error("verifyBundleManifest: ❌ \(mismatches) 项完整性不匹配, 后端可能被篡改")
+            return false
         }
     }
 

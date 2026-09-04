@@ -305,6 +305,10 @@ enum I18nKey: String, CaseIterable {
     case sec_telemetry = "sec_telemetry"
     case enableCrashTelemetry = "enableCrashTelemetry"
     case enableCrashTelemetryHelp = "enableCrashTelemetryHelp"
+    // 审计v0.1.58 residual — bundle 完整性强制 (Settings toggle + help)。
+    case sec_supplyChain = "sec_supplyChain"
+    case enforceBundleIntegrity = "enforceBundleIntegrity"
+    case enforceBundleIntegrityHelp = "enforceBundleIntegrityHelp"
     case sec_quantPreset = "sec_quantPreset"
     case defaultQuant = "defaultQuant"
     case defaultFormat = "defaultFormat"
