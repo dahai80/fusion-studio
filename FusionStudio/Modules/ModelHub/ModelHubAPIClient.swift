@@ -673,6 +673,11 @@ final class ModelHubAPIClient: ObservableObject {
             throw HubAPIError.unauthenticated
         }
         request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
+        // #394: 前瞻注 identity 头 (Authorization/X-Tenant-Id)。上游 model-hub 未消费前为 no-op (已记 issue)。
+        //   nonisolated 快照, 无需 MainActor 跨越。
+        for (k, v) in IdentityService.currentHeaders() {
+            request.setValue(v, forHTTPHeaderField: k)
+        }
     }
 
     // 审计0902 E2 (P2): ModelHub 无重试/无熔断 → Hub 宕时 UI 全海滩球。

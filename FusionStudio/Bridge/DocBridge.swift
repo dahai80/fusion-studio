@@ -132,6 +132,7 @@ class DocBridge: ObservableObject {
         }
         var request = URLRequest(url: url)
         if let token = authToken { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
+        IdentityService.applyIdentityHeaders(to: &request)
         session.dataTask(with: request) { data, response, error in
             if let error = error { completion(.failure(error)); return }
             if let statusErr = Self.httpStatusError(response, data) { completion(.failure(statusErr)); return }
@@ -157,6 +158,7 @@ class DocBridge: ObservableObject {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let token = authToken { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
+        IdentityService.applyIdentityHeaders(to: &request)
         if let body = body {
             request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         }
@@ -185,6 +187,7 @@ class DocBridge: ObservableObject {
         request.httpMethod = "PUT"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let token = authToken { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
+        IdentityService.applyIdentityHeaders(to: &request)
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         session.dataTask(with: request) { data, response, error in
             if let error = error { completion(.failure(error)); return }
@@ -210,6 +213,7 @@ class DocBridge: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
         if let token = authToken { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
+        IdentityService.applyIdentityHeaders(to: &request)
         session.dataTask(with: request) { data, response, error in
             if let error = error { completion(.failure(error)); return }
             if let statusErr = Self.httpStatusError(response, data) { completion(.failure(statusErr)); return }
@@ -608,6 +612,7 @@ class DocBridge: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        IdentityService.applyIdentityHeaders(to: &request)
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         return request
     }
@@ -1466,6 +1471,7 @@ class DocBridge: ObservableObject {
         request.httpMethod = "POST"
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         if let token = authToken { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
+        IdentityService.applyIdentityHeaders(to: &request)
         var body = Data()
         body.append("--\(boundary)\r\n".data(using: .utf8)!)
         body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
@@ -1582,6 +1588,7 @@ class DocBridge: ObservableObject {
         }
         var request = URLRequest(url: url)
         if let token = authToken { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
+        IdentityService.applyIdentityHeaders(to: &request)
         collabTask = session.webSocketTask(with: request)
         collabTask?.resume()
         DispatchQueue.main.async { self.collabConnected = true }

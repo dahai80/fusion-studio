@@ -290,12 +290,33 @@ class IPCClient: ObservableObject {
     //   pendingFull 不重试 (非瞬态)。最多 1 次重试 (共 2 次尝试), base 0.4s + jitter。长 RPC (rpcTimeout
     //   ≥ longRpcTimeout) 不重试 (本身 120s, 重试翻倍阻塞调用方不合理)。
     @discardableResult
+    // #394: 融合 identity — 登录后给 UDS JSON-RPC params 注入 _auth (jwt/tid)。
+    //   nonisolated 快照读取 (IdentityService.currentAuthParams), 不阻塞 async call, 不依赖 MainActor。
+    //   未登录 → 原样 params, 保留今日行为。前瞻: 上游 daemon_server 未消费 _auth 前为 no-op (已记 issue)。
+    //   mergedAuthParams 为 testable 入口 (test 传 service 设好 session → 快照已同步更新)。
+    nonisolated static func mergedAuthParams(params: [String: Any], service: IdentityService) -> [String: Any] {
+        var merged = params
+        for (k, v) in IdentityService.currentAuthParams() {
+            merged[k] = v
+        }
+        return merged
+    }
+
     func call(method: String, params: [String: Any] = [:]) async throws -> [String: Any] {
+        // #394: call 入口注 _auth。callOnce / udsCall 用 withAuth, 不重复注入。
+        //   nonisolated 快照取, 避开 MainActor 跨越 (call 可在非主 actor 调)。
+        let authParams = IdentityService.currentAuthParams()
+        let withAuth: [String: Any] = authParams.isEmpty
+            ? params
+            : IPCClient.mergedAuthParams(params: params, service: IdentityService.shared)
+        if !authParams.isEmpty {
+            ipcLog.debug("call: \(method, privacy: .public) authAttached=true")
+        }
         let maxAttempts = Self.rpcTimeout(for: method) >= Self.longRpcTimeout ? 1 : 2
         var lastError: Error?
         for attempt in 0..<maxAttempts {
             do {
-                return try await callOnce(method: method, params: params)
+                return try await callOnce(method: method, params: withAuth)
             } catch {
                 lastError = error
                 let transient: Bool
@@ -443,6 +464,14 @@ class IPCClient: ObservableObject {
         // 当调用方用默认值 8 (未显式传超时), 改用与主 call() 一致的 method-aware rpcTimeout,
         // 让长方法拿 longRpcTimeout (120s), 短方法拿 defaultRpcTimeout (8s)。
         let effectiveTimeout: Int = timeoutSecs == 8 ? Int(Self.rpcTimeout(for: method)) : timeoutSecs
+        // #394: 短连通道同样注 _auth (project/cowork/guard/event)。非主 actor 路径, 用 nonisolated 快照。
+        let authParams = IdentityService.currentAuthParams()
+        let withAuth: [String: Any] = authParams.isEmpty
+            ? params
+            : IPCClient.mergedAuthParams(params: params, service: IdentityService.shared)
+        if !authParams.isEmpty {
+            ipcLog.debug("udsCall: \(method, privacy: .public) authAttached=true")
+        }
         return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[String: Any], Error>) in
             DispatchQueue.global(qos: .userInitiated).async {
                 // 审计0902 R5 (P2): 限并发短连, acquire 在阻塞 worker 前排队; release 随 close 释放槽位。
@@ -491,7 +520,7 @@ class IPCClient: ObservableObject {
                     "id": self.nextRequestId(),
                     "method": method,
                 ]
-                if !params.isEmpty { request["params"] = params }
+                if !withAuth.isEmpty { request["params"] = withAuth }
                 guard let data = try? JSONSerialization.data(withJSONObject: request) else {
                     continuation.resume(throwing: IPCError.invalidRequest)
                     return

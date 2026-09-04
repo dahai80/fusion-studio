@@ -2,6 +2,44 @@ import Foundation
 import Combine
 import os.log
 
+// #394: 非 actor 隔离的 identity 快照 — sync/completion-based 桥 (DocBridge/SimulationBridge)
+//   在 completion handler 内构造 URLRequest, 不能 await MainActor 读 session。
+//   此 enum 持锁镜像 jwt+tid, 由 IdentityService 在 session build/clear 时同步更新。
+//   前瞻: 上游未消费 identity 头前为 no-op (已记 issue)。NEVER log jwt 值。
+enum IdentityAuthSnapshot {
+    private struct Data { let jwt: String; let tid: String }
+    private static var _data: Data?
+    private static let _lock = NSLock()
+
+    static func set(jwt: String, tid: String) {
+        _lock.lock()
+        _data = Data(jwt: jwt, tid: tid)
+        _lock.unlock()
+    }
+
+    static func clear() {
+        _lock.lock()
+        _data = nil
+        _lock.unlock()
+    }
+
+    static func headers() -> [String: String] {
+        _lock.lock()
+        let d = _data
+        _lock.unlock()
+        guard let d = d else { return [:] }
+        return ["Authorization": "Bearer \(d.jwt)", "X-Tenant-Id": d.tid]
+    }
+
+    static func authParams() -> [String: Any] {
+        _lock.lock()
+        let d = _data
+        _lock.unlock()
+        guard let d = d else { return [:] }
+        return ["_auth": ["jwt": d.jwt, "tid": d.tid] as [String: Any]]
+    }
+}
+
 // #394 fusion-identity integration — single auth-state source of truth.
 // Contract (read from fusion-identity routes/auth.py + models.py, not modified):
 //   POST /api/v1/auth/login   {username, password, tenant_id} -> {access_token, refresh_token, expires_in}
@@ -31,6 +69,39 @@ final class IdentityService: ObservableObject {
 
     var useIdentity: Bool {
         isIdentityReachable && session != nil
+    }
+
+    // MARK: - Nonisolated snapshot (sync/completion-based bridge call sites)
+    // SimulationBridge/DocBridge build URLRequest in completion handlers (not async),
+    // cannot await MainActor. Thread-safe mirror of session jwt+tid, updated on
+    // session build/clear. Forward-looking: headers no-op until upstream enforces.
+    private func updateSnapshot(jwt: String, tid: String) {
+        IdentityAuthSnapshot.set(jwt: jwt, tid: tid)
+    }
+
+    private func clearSnapshot() {
+        IdentityAuthSnapshot.clear()
+    }
+
+    nonisolated static func currentHeaders() -> [String: String] {
+        IdentityAuthSnapshot.headers()
+    }
+
+    nonisolated static func currentAuthParams() -> [String: Any] {
+        IdentityAuthSnapshot.authParams()
+    }
+
+    // #394: HTTP 桥 (DocBridge/SimulationBridge) 在 completion handler 内构造 URLRequest,
+    //   不能 await MainActor。nonisolated 应用 identity 头: X-Tenant-Id 恒注,
+    //   Authorization 仅当请求未自带时注 (DocBridge 已有自身 Bearer token, 不覆盖)。
+    //   前瞻: 上游未消费前为 no-op (已记 issue)。
+    nonisolated static func applyIdentityHeaders(to request: inout URLRequest) {
+        for (k, v) in IdentityAuthSnapshot.headers() {
+            if k == "Authorization", request.value(forHTTPHeaderField: "Authorization") != nil {
+                continue
+            }
+            request.setValue(v, forHTTPHeaderField: k)
+        }
     }
 
     // MARK: - Health
@@ -103,6 +174,7 @@ final class IdentityService: ObservableObject {
             logger.error("resolveSession: cached jwt undecodable, clearing")
             KeychainStore.clearIdentity()
             state = .loggedOut
+            clearSnapshot()
             return
         }
         let now = Date().timeIntervalSince1970
@@ -116,6 +188,7 @@ final class IdentityService: ObservableObject {
                 KeychainStore.clearIdentity()
                 session = nil
                 state = .loggedOut
+                clearSnapshot()
             }
             return
         }
@@ -171,6 +244,7 @@ final class IdentityService: ObservableObject {
         KeychainStore.clearIdentity()
         session = nil
         state = .loggedOut
+        clearSnapshot()
         logger.info("logout: cleared session")
     }
 
@@ -268,16 +342,24 @@ final class IdentityService: ObservableObject {
             scopes: scopes,
             expiresAt: exp
         )
+        updateSnapshot(jwt: jwt, tid: tid)
     }
 
     // Test hooks
     func setSessionForTest(_ s: IdentitySession) {
         self.session = s
         self.state = .loggedIn
+        updateSnapshot(jwt: s.jwt, tid: s.tenantId)
     }
 
     func setReachableForTest(_ v: Bool) {
         isIdentityReachable = v
+    }
+
+    func clearSessionForTest() {
+        self.session = nil
+        self.state = .loggedOut
+        clearSnapshot()
     }
 }
 

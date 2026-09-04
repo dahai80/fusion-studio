@@ -9,10 +9,12 @@ final class IdentityIntegrationTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
         KeychainStore.clearIdentity()
+        IdentityService.shared.clearSessionForTest()
     }
 
     override func tearDown() async throws {
         KeychainStore.clearIdentity()
+        IdentityService.shared.clearSessionForTest()
         try await super.tearDown()
     }
 
@@ -75,5 +77,28 @@ final class IdentityIntegrationTests: XCTestCase {
             if case .loggedOut = svc.state { exp.fulfill() }
         }
         wait(for: [exp], timeout: 15)
+    }
+
+    func test_ipc_callInjectsAuthParams_whenLoggedIn() {
+        let svc = IdentityService()
+        svc.setSessionForTest(IdentitySession(
+            jwt: "jwt-1", refreshToken: "rf-1", tenantId: "t-1",
+            tenantName: "T1", role: "member", scopes: [], expiresAt: Date().addingTimeInterval(3600)))
+        let merged = IPCClient.mergedAuthParams(params: ["foo": "bar"], service: svc)
+        XCTAssertEqual(merged["foo"] as? String, "bar")
+        let auth = merged["_auth"] as? [String: Any]
+        XCTAssertEqual(auth?["tid"] as? String, "t-1")
+    }
+
+    func test_useIdentity_gate() {
+        let svc = IdentityService()
+        XCTAssertFalse(svc.isIdentityReachable && svc.session != nil)
+        svc.setSessionForTest(IdentitySession(
+            jwt: "j", refreshToken: "r", tenantId: "default",
+            tenantName: "Default", role: "tenant_admin", scopes: [], expiresAt: Date().addingTimeInterval(3600)))
+        svc.setReachableForTest(true)
+        XCTAssertTrue(svc.useIdentity)
+        svc.setReachableForTest(false)
+        XCTAssertFalse(svc.useIdentity)
     }
 }

@@ -319,6 +319,7 @@ class SimulationBridge: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        IdentityService.applyIdentityHeaders(to: &request)
         session.dataTask(with: request) { data, response, error in
             if let error = error { completion(.failure(error)); return }
             if let code = (response as? HTTPURLResponse)?.statusCode, !(200...299).contains(code) {
