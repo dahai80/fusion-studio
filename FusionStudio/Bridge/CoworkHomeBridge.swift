@@ -70,14 +70,20 @@ final class CoworkHomeBridge: ObservableObject {
 
     // @StateObject 在视图 init 时构造, 无法访问 EnvironmentObject ipc;
     // 故先置空, 首次 .task 注入真实 ipc (coworkHome.ipc = ipc).
-    var ipc: IPCClient
+    // ARCH-1 (审计product-0905 P1): ipc 改可选 + 无参 init, 避免 @StateObject 构造时分配 throwaway IPCClient()
+    // (旧 IPCClient() 虽 lazy 不连 socket, 但语义不清且浪费; 现在 nil 直到 .task 注入)。
+    var ipc: IPCClient?
 
-    init(ipc: IPCClient) {
+    init(ipc: IPCClient? = nil) {
         self.ipc = ipc
     }
 
     // 查询已注册授权文件夹 (启动/切模式时回填; 已注册则跳过 NSOpenPanel).
     func loadScopedFolder() async {
+        guard let ipc else {
+            coworkHomeLog.warning("loadScopedFolder: ipc 未注入 (skip)")
+            return
+        }
         do {
             let res = try await ipc.deskSystemGetScopedFolder()
             if let folders = res["folders"] as? [String] {
@@ -123,6 +129,11 @@ final class CoworkHomeBridge: ObservableObject {
 
     // 下发授权文件夹到 ScopedFolderManager.
     func setScopedFolder(folders: [String], enforce: Bool) async -> Bool {
+        guard let ipc else {
+            lastError = "ipc 未注入"
+            coworkHomeLog.error("setScopedFolder: ipc 未注入")
+            return false
+        }
         do {
             let res = try await ipc.deskSystemSetScopedFolder(folders: folders, enforce: enforce)
             if let set = res["set"] as? Bool, set {
@@ -145,6 +156,11 @@ final class CoworkHomeBridge: ObservableObject {
 
     // 提交工作流: desk.workflow.create(prompt) -> desk.workflow.run(workflow) -> 开启事件轮询.
     func submitWorkflow(prompt: String) async -> Bool {
+        guard let ipc else {
+            lastError = "ipc 未注入"
+            coworkHomeLog.error("submitWorkflow: ipc 未注入")
+            return false
+        }
         do {
             let created = try await ipc.deskWorkflowCreate(prompt: prompt)
             guard let workflow = created["workflow"] as? [String: Any], !workflow.isEmpty else {
@@ -174,9 +190,13 @@ final class CoworkHomeBridge: ObservableObject {
         isPolling = true
         pollTask?.cancel()
         pollTask = Task { [weak self] in
-            guard let self else { return }
+            guard let self, let ipc = self.ipc else {
+                coworkHomeLog.warning("startPolling: ipc 未注入, 跳过订阅")
+                self?.isPolling = false
+                return
+            }
             do {
-                let sub = try await self.ipc.deskEventsSubscribe()
+                let sub = try await ipc.deskEventsSubscribe()
                 self.subId = (sub["sub_id"] as? String) ?? (sub["id"] as? String)
                 guard let sid = self.subId, !sid.isEmpty else {
                     self.lastError = "events.subscribe 未返回 sub_id"
@@ -187,7 +207,7 @@ final class CoworkHomeBridge: ObservableObject {
                 coworkHomeLog.info("polling started sub_id=\(sid)")
                 while !Task.isCancelled {
                     do {
-                        let polled = try await self.ipc.deskEventsPoll(subId: sid)
+                        let polled = try await ipc.deskEventsPoll(subId: sid)
                         let events = (polled["events"] as? [[String: Any]]) ?? []
                         var sawTerminal = false
                         for raw in events {

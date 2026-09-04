@@ -331,6 +331,9 @@ enum StylePreset: String, CaseIterable, Identifiable {
 struct DesignInspectorView: View {
     @StateObject private var state = DesignInspectorState.shared
     @StateObject private var i18n = I18nManager.shared
+    // ERR-5 (审计product-0905 P1): block-based NotificationCenter observer token 必须持有并在 deinit 移除,
+    // 否则永久泄漏 + observer 在 view 销毁后仍触发, 捕获悬垂 uiPanelState/state 引用。用专用 StateObject 持 token。
+    @StateObject private var observerHolder = InspectorObserverHolder()
     @Environment(\.studioTheme) var theme
     @EnvironmentObject var uiPanelState: UIPanelState
 
@@ -351,32 +354,7 @@ struct DesignInspectorView: View {
             cssOutputBar
         }
         .onAppear {
-            observeNotifications()
-        }
-    }
-
-    private func observeNotifications() {
-        NotificationCenter.default.addObserver(
-            forName: .designInspectorShowNode,
-            object: nil,
-            queue: .main
-        ) { notification in
-            if let nodeID = notification.userInfo?["node_id"] as? String {
-                uiPanelState.inspectorContext = .node(id: nodeID)
-                uiPanelState.isInspectorVisible = true
-                state.selectedElement = nodeID
-                logger.info("DesignInspectorView: show node=\(nodeID), selectedElement set")
-            }
-        }
-        NotificationCenter.default.addObserver(
-            forName: .designInspectorHide,
-            object: nil,
-            queue: .main
-        ) { _ in
-            uiPanelState.inspectorContext = .none
-            uiPanelState.isInspectorVisible = false
-            state.selectedElement = nil
-            logger.info("DesignInspectorView: hide, selectedElement cleared")
+            observerHolder.startObserving(uiPanelState: uiPanelState, state: state)
         }
     }
 
@@ -678,5 +656,46 @@ struct DesignInspectorView: View {
                 Spacer()
             }
         }
+    }
+}
+
+/// ERR-5 (审计product-0905 P1): 持有 NotificationCenter block-based observer token,
+/// deinit 时 removeObserver, 杜绝泄漏 + observer 在 view 销毁后仍触发悬垂引用。
+final class InspectorObserverHolder: ObservableObject {
+    private var tokens: [NSObjectProtocol] = []
+
+    func startObserving(uiPanelState: UIPanelState, state: DesignInspectorState) {
+        guard tokens.isEmpty else { return }
+        let t1 = NotificationCenter.default.addObserver(
+            forName: .designInspectorShowNode,
+            object: nil,
+            queue: .main
+        ) { notification in
+            if let nodeID = notification.userInfo?["node_id"] as? String {
+                uiPanelState.inspectorContext = .node(id: nodeID)
+                uiPanelState.isInspectorVisible = true
+                state.selectedElement = nodeID
+                logger.info("DesignInspectorView: show node=\(nodeID), selectedElement set")
+            }
+        }
+        tokens.append(t1)
+        let t2 = NotificationCenter.default.addObserver(
+            forName: .designInspectorHide,
+            object: nil,
+            queue: .main
+        ) { _ in
+            uiPanelState.inspectorContext = .none
+            uiPanelState.isInspectorVisible = false
+            state.selectedElement = nil
+            logger.info("DesignInspectorView: hide, selectedElement cleared")
+        }
+        tokens.append(t2)
+    }
+
+    deinit {
+        for t in tokens {
+            NotificationCenter.default.removeObserver(t)
+        }
+        logger.info("DesignInspectorView: observer tokens removed (deinit)")
     }
 }

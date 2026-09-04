@@ -1315,13 +1315,16 @@ final class AgentBridge: ObservableObject {
         return nil
     }
 
-    // 自愈候选 key 序列：gateway config.yaml > settings.json > 内置 fg-admin-key 兜底
-    // PERF-4: nonisolated async — 内部两个文件读 async, 本身也 nonisolated 跑 cooperative 池。
+    // 自愈候选 key 序列：gateway config.yaml > settings.json
+    // ARCH-2 (审计product-0905 P1): 删除 fg-admin-key 硬编码兜底。无真实 key = 不自愈 (报错), 绝不用 baked-in secret。
+    // 硬编码 secret 随 DMG 发布, MITM/反编译可提取, 且掩盖配置缺失。PERF-4: nonisolated async 文件读跑 cooperative 池。
     nonisolated static func mlxSelfHealKeyCandidates(currentResolved: String) async -> [String] {
         var cands: [String] = []
         if let g = await gatewayConfigApiKey(), !g.isEmpty, g != currentResolved { cands.append(g) }
         if let s = await mlxSettingsJsonApiKey(), !s.isEmpty, s != currentResolved { cands.append(s) }
-        if !cands.contains("fg-admin-key") { cands.append("fg-admin-key") }
+        if cands.isEmpty {
+            agentBridgeStaticLog.error("mlxSelfHealKeyCandidates: no real API key resolved (gateway/settings.json), refusing to fall back to hardcoded key")
+        }
         return cands
     }
 

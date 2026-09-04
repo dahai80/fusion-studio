@@ -25,6 +25,7 @@ jobs:
         # lacks them → agent_runtime not found → DMG build fails. Mirror local monorepo
         # layout under MONO_ROOT so bundle_python finds all sources.
         run: |
+          set -o pipefail
           export MONO_ROOT="$HOME/fusion"
           mkdir -p "$MONO_ROOT"
           for repo in fusion-agent-studio fusion-core fusion-identity fusion-plugins-ecosystem; do

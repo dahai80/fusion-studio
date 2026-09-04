@@ -2029,7 +2029,21 @@ class DesignBridge: ObservableObject {
             return
         }
         isExportingCodegen = true
-        let result = runFusionDesign(["codegen", "--target", target, "--component", componentName], stdin: documentJSON)
+        // ERR-6 (审计product-0905 P1): runFusionDesign 同步 Process 阻塞, 在 @MainActor class 直接调 = 卡 UI。
+        // 移 Task.detached 后台跑: MainActor 预解析 cliPath, nonisolated static runCLIProcess 跑 Process, 回填 @Published 在 MainActor。
+        let cliPath = resolveCLIPath()
+        guard !cliPath.isEmpty else {
+            errorMessage = "CLI not found"
+            isExportingCodegen = false
+            return
+        }
+        let result = await Task.detached(priority: .userInitiated) {
+            Self.runCLIProcess(
+                cliPath: cliPath,
+                args: ["codegen", "--target", target, "--component", componentName],
+                stdin: documentJSON
+            )
+        }.value
         if result.exitCode == 0 {
             exportedCodegenCode = result.output
             designBridgeLog.info("DesignBridge: codegen export done, target=\(target), \(result.output.count) chars")
@@ -2065,7 +2079,20 @@ class DesignBridge: ObservableObject {
             isBatchExporting = false
             return
         }
-        let result = runFusionDesign(["export", "--input", tmpPath, "--format", format, "--out", outputDir])
+        // ERR-6 (审计product-0905 P1): 同步 Process 阻塞 MainActor, 移 Task.detached 后台跑。
+        let cliPath = resolveCLIPath()
+        guard !cliPath.isEmpty else {
+            errorMessage = "CLI not found"
+            try? FileManager.default.removeItem(atPath: tmpPath)
+            isBatchExporting = false
+            return
+        }
+        let result = await Task.detached(priority: .userInitiated) {
+            Self.runCLIProcess(
+                cliPath: cliPath,
+                args: ["export", "--input", tmpPath, "--format", format, "--out", outputDir]
+            )
+        }.value
         try? FileManager.default.removeItem(atPath: tmpPath)
         if result.exitCode == 0 {
             batchExportResult = result.output

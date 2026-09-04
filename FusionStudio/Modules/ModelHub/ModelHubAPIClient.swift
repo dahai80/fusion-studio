@@ -15,7 +15,9 @@ final class ModelHubAPIClient: ObservableObject {
     @Published var lastError: String?
 
     private var baseURL: String {
-        "http://\(FusionConfig.shared.modelHubHost):\(FusionConfig.shared.modelHubPort)"
+        // SEC-6 (审计product-0905 P1): 远程主机强制 https://, 防明文 X-API-Key 跨网段泄露。本地回环 http://。
+        let cfg = FusionConfig.shared
+        return "\(cfg.schemeForHost(cfg.modelHubHost))://\(cfg.modelHubHost):\(cfg.modelHubPort)"
     }
 
     private var apiKey: String {
@@ -670,6 +672,14 @@ final class ModelHubAPIClient: ObservableObject {
     private func addAuth(_ request: inout URLRequest) throws {
         guard !apiKey.isEmpty else {
             apiLog.error("addAuth: modelHubApiKey 为空, fail-fast unauthenticated (不裸发请求)")
+            throw HubAPIError.unauthenticated
+        }
+        // SEC-6 (审计product-0905 P1): 拒绝在明文 http:// (远程主机) 上发送 X-API-Key。
+        // schemeForHost 对远程已强制 https://, 此为双保险 — 若 baseURL 仍 http 且非回环, fail-fast。
+        if let scheme = request.url?.scheme, scheme == "http",
+           let host = request.url?.host,
+           !FusionConfig.shared.isLocalHost(host) {
+            apiLog.error("addAuth: 拒绝明文 http:// 发送 API key 到远程 \(host, privacy: .public)")
             throw HubAPIError.unauthenticated
         }
         request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")

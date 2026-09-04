@@ -107,6 +107,11 @@ struct ContentView: View {
         .sheet(isPresented: $uiPanelState.showEventStream) {
             EventStreamView()
         }
+        // FUNC-8 (审计product-0905 P1): Help 菜单 CommandGroup 写 showHelp=true 但无 reader, 死菜单。
+        // 绑定 .sheet 到 HelpPanelView (OnboardingService.swift), 复用既有帮助内容, 不新建视图。
+        .sheet(isPresented: $uiPanelState.showHelp) {
+            HelpPanelView()
+        }
         // #344: guard L3 人机确认弹窗 (pendingChallenge 驱动, .sheet(item:))
         .sheet(item: $guardBridge.pendingChallenge) { ch in
             GuardChallengeModal(guardBridge: guardBridge, challenge: ch)

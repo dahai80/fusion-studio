@@ -819,8 +819,10 @@ struct FusionCodeView: View {
             }
             Button(i18n.t(.fc_save)) {
                 if let file = workspace.selectedFile {
-                    workspace.write(file: file, content: editorContent)
-                    fcLog.info("File saved: \(file.name)")
+                    Task {
+                        let ok = await workspace.write(file: file, content: editorContent)
+                        if ok { fcLog.info("File saved: \(file.name)") }
+                    }
                 }
             }
             .buttonStyle(.plain)
