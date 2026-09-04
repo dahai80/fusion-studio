@@ -649,12 +649,16 @@ class ChatSessionStore: ObservableObject {
         sessions.removeAll()
         activeSession = nil
         chatStoreLog.info("Cleared all \(count) chat sessions")
-        if let ipc = ipc {
+        // PERF-2 (审计product-0905 P2): 原 N 次顺序 await IPC = N 倍 RTT。改并发 TaskGroup 批删。
+        guard let ipc = ipc, !ids.isEmpty else { return }
+        await withTaskGroup(of: Void.self) { group in
             for id in ids {
-                do {
-                    _ = try await ipc.call(method: RPCMethod.chatDelete, params: ["session_id": id])
-                } catch {
-                    chatStoreLog.warning("chat.delete IPC failed for \(id)")
+                group.addTask { [ipc] in
+                    do {
+                        _ = try await ipc.call(method: RPCMethod.chatDelete, params: ["session_id": id])
+                    } catch {
+                        chatStoreLog.warning("chat.delete IPC failed for \(id)")
+                    }
                 }
             }
         }
