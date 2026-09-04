@@ -5421,5 +5421,6 @@
   "backend_runtime_override_label": "バックエンド start.sh 上書きパス",
   "backend_runtime_override_placeholder": "空 = 自動解決 (上書き > ~/fusion > bundle)",
   "backend_runtime_override_hint": "カスタムバックエンド start.sh パス; 空なら 上書き > ~/fusion 開発 > bundle の順で解決。",
-  "backend_runtime_corrupt_banner": "バックエンドランタイムが欠損または破損しています。Fusion Studio を再インストールしてください。"
+  "backend_runtime_corrupt_banner": "バックエンドランタイムが欠損または破損しています。Fusion Studio を再インストールしてください。",
+  "tab_backendRuntime": "バックエンド"
 }

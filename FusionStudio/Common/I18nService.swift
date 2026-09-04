@@ -271,6 +271,7 @@ enum I18nKey: String, CaseIterable {
     case backend_runtime_override_placeholder = "backend_runtime_override_placeholder"
     case backend_runtime_override_hint = "backend_runtime_override_hint"
     case backend_runtime_corrupt_banner = "backend_runtime_corrupt_banner"
+    case tab_backendRuntime = "tab_backendRuntime"
     case sec_startup = "sec_startup"
     case launchAtLogin = "launchAtLogin"
     case offline_banner_backend_unreachable = "offline_banner_backend_unreachable"

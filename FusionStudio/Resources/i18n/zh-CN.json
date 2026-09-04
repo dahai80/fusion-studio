@@ -5421,5 +5421,6 @@
   "backend_runtime_override_label": "后端 start.sh 覆盖路径",
   "backend_runtime_override_placeholder": "留空走自动解析 (用户覆盖 > ~/fusion > bundle)",
   "backend_runtime_override_hint": "指定自定义后端 start.sh 路径; 留空则按 用户覆盖 > ~/fusion 开发目录 > DMG 内置 bundle 顺序解析。",
-  "backend_runtime_corrupt_banner": "后端运行时损坏或缺失，请重新安装 Fusion Studio。"
+  "backend_runtime_corrupt_banner": "后端运行时损坏或缺失，请重新安装 Fusion Studio。",
+  "tab_backendRuntime": "后端运行时"
 }

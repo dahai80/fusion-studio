@@ -5421,5 +5421,6 @@
   "backend_runtime_override_label": "백엔드 start.sh 재정의 경로",
   "backend_runtime_override_placeholder": "비움 = 자동 해결 (재정의 > ~/fusion > bundle)",
   "backend_runtime_override_hint": "사용자 지정 백엔드 start.sh 경로; 비우면 재정의 > ~/fusion 개발 > bundle 순으로 해결.",
-  "backend_runtime_corrupt_banner": "백엔드 런타임이 없거나 손상되었습니다. Fusion Studio를 재설치하세요."
+  "backend_runtime_corrupt_banner": "백엔드 런타임이 없거나 손상되었습니다. Fusion Studio를 재설치하세요.",
+  "tab_backendRuntime": "백엔드"
 }

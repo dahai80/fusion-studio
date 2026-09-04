@@ -5421,5 +5421,6 @@
   "backend_runtime_override_label": "Backend start.sh Override Path",
   "backend_runtime_override_placeholder": "Empty = auto-resolve (override > ~/fusion > bundle)",
   "backend_runtime_override_hint": "Custom backend start.sh path; empty resolves via override > ~/fusion dev > bundled DMG.",
-  "backend_runtime_corrupt_banner": "Backend runtime missing or corrupt. Please reinstall Fusion Studio."
+  "backend_runtime_corrupt_banner": "Backend runtime missing or corrupt. Please reinstall Fusion Studio.",
+  "tab_backendRuntime": "Backend Runtime"
 }
