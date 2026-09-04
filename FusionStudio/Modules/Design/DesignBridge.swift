@@ -152,6 +152,14 @@ private enum ArtifactParseState {
 @MainActor
 class DesignBridge: ObservableObject {
     @Published var messages: [DesignMessage] = []
+    // PERF-4 (审计product-0905 P2): messages 无界 @Published, 长会话内存涨。LRU cap。
+    static let maxMessages = 200
+    private func capMessages() {
+        guard messages.count > Self.maxMessages else { return }
+        let drop = messages.count - Self.maxMessages
+        messages.removeFirst(drop)
+        designBridgeLog.info("DesignBridge capMessages: drop \(drop) oldest (count > \(Self.maxMessages))")
+    }
     @Published var currentArtifactCode: String = ""
     @Published var currentArtifactType: String = "html"
     @Published var currentArtifactTitle: String = ""
@@ -1333,6 +1341,7 @@ class DesignBridge: ObservableObject {
 
         let userMsg = DesignMessage(role: "user", content: userMessage, timestamp: Date())
         messages.append(userMsg)
+        capMessages()
         isGenerating = true
         artifactSaved = false
         errorMessage = nil
@@ -1477,6 +1486,7 @@ class DesignBridge: ObservableObject {
                 artifactInfo: finalArtifact
             )
             messages.append(assistantMsg)
+            capMessages()
 
             if finalArtifact != nil {
                 designBridgeLog.info("DesignBridge: artifact parsed — type=\(self.currentArtifactType), title=\(self.currentArtifactTitle), \(self.currentArtifactCode.count) chars")
