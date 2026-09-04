@@ -311,6 +311,13 @@ extension IPCClient {
         return try await fsbRequest("PUT", path: "/workspace/\(wsId)/workflow/\(wfId)", body: body)
     }
 
+    func fsbSaveCanvasLayout(wsId: String, wfId: String, layout: [String: [String: CGFloat]]) async throws -> [String: Any] {
+        let body: [String: Any] = ["layout": layout]
+        let log = Logger(subsystem: "com.fusion.studio", category: "FSB.Bridge")
+        log.info("canvas-layout PUT ws=\(wsId, privacy: .public) wf=\(wfId, privacy: .public) nodes=\(layout.count)")
+        return try await fsbRequest("PUT", path: "/workspace/\(wsId)/workflow/\(wfId)/canvas-layout", body: body)
+    }
+
     func fsbDeleteWorkflow(wsId: String, wfId: String) async throws -> [String: Any] {
         try await fsbRequest("DELETE", path: "/workspace/\(wsId)/workflow/\(wfId)")
     }

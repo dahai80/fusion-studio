@@ -31,6 +31,9 @@ struct FSBWorkflowCanvasView: View {
     @State private var addNodePos: CGPoint = .zero
     @State private var isRunning = false
     @State private var runningNodeId: String? = nil
+    @State private var inspectorReadOnly = true
+    @State private var layoutSaveTask: Task<Void, Never>? = nil
+    @State private var lastSavedPositions: [String: CGPoint] = [:]
 
     enum FSBNodeType: String, CaseIterable {
         case START_NODE = "START_NODE"
@@ -111,6 +114,25 @@ struct FSBWorkflowCanvasView: View {
     private let nodeWidth: CGFloat = 180
     private let nodeHeight: CGFloat = 64
 
+    static func parseNodePosition(node: [String: Any], fallbackIndex: Int) -> CGPoint {
+        func pt(_ dict: [String: Any]?) -> CGPoint? {
+            guard let dict = dict else { return nil }
+            let x = (dict["x"] as? Double) ?? (dict["x"] as? Int).map(Double.init)
+            let y = (dict["y"] as? Double) ?? (dict["y"] as? Int).map(Double.init)
+            guard let x = x, let y = y, x.isFinite, y.isFinite else { return nil }
+            return CGPoint(x: x, y: y)
+        }
+        if let p = pt(node["position"] as? [String: Any]) {
+            return p
+        }
+        if let cfg = node["config"] as? [String: Any], let p = pt(cfg["position"] as? [String: Any]) {
+            return p
+        }
+        let col = fallbackIndex % 3
+        let row = fallbackIndex / 3
+        return CGPoint(x: -200 + CGFloat(col) * 220, y: -150 + CGFloat(row) * 120)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             canvasToolbar
@@ -162,6 +184,14 @@ struct FSBWorkflowCanvasView: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
+
+                Button(action: { Task { await saveCanvasLayout() } }) {
+                    Label(i18n.t(.fsb_cv_saveLayout), systemImage: "rectangle.dashed.and.paperclip")
+                        .font(.system(size: theme.captionSize))
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(workflowId == nil || nodes.isEmpty)
 
                 Button(action: { runTest() }) {
                     Label(isRunning ? i18n.t(.fsb_cv_running) : i18n.t(.fsb_cv_testRun), systemImage: isRunning ? "arrow.trianglehead.2.clockwise" : "play")
@@ -451,6 +481,12 @@ struct FSBWorkflowCanvasView: View {
                             .font(.system(size: theme.textSize, weight: .semibold))
                             .foregroundStyle(theme.text)
                         Spacer()
+                        Button(action: { inspectorReadOnly.toggle() }) {
+                            Image(systemName: inspectorReadOnly ? "lock" : "pencil")
+                                .foregroundStyle(inspectorReadOnly ? theme.textTertiary : theme.accent)
+                        }
+                        .buttonStyle(.plain)
+                        .help(inspectorReadOnly ? i18n.t(.fsb_cv_inspectorEdit) : i18n.t(.fsb_cv_inspectorReadOnly))
                         Button(action: { selectedNodeId = nil }) {
                             Image(systemName: "xmark")
                                 .foregroundStyle(theme.textTertiary)
@@ -458,6 +494,7 @@ struct FSBWorkflowCanvasView: View {
                         .buttonStyle(.plain)
                     }
 
+                    Group {
                     VStack(alignment: .leading, spacing: theme.spacingXS) {
                         Text(i18n.t(.fsb_ws_name))
                             .font(.system(size: theme.captionSize, weight: .medium))
@@ -497,6 +534,8 @@ struct FSBWorkflowCanvasView: View {
                             .font(.system(size: theme.captionSize))
                     }
                     .controlSize(.small)
+                    }
+                    .disabled(inspectorReadOnly)
                 }
             }
             .padding(theme.spacingM)
@@ -772,6 +811,9 @@ struct FSBWorkflowCanvasView: View {
                     )
                 }
             }
+            .onEnded { _ in
+                scheduleLayoutSave()
+            }
     }
 
     // MARK: - Node Operations
@@ -904,18 +946,20 @@ struct FSBWorkflowCanvasView: View {
                     if let graph = wf["graphDefinition"] as? [String: Any] {
                         let graphNodes = graph["nodes"] as? [[String: Any]] ?? []
                         let graphEdges = graph["edges"] as? [[String: Any]] ?? []
-                        nodes = graphNodes.map { n in
-                            FSBGraphNode(
+                        var loaded: [FSBGraphNode] = []
+                        for (idx, n) in graphNodes.enumerated() {
+                            let cfg = (n["config"] as? [String: Any]) ?? [:]
+                            let pos = Self.parseNodePosition(node: n, fallbackIndex: idx)
+                            loaded.append(FSBGraphNode(
                                 id: n["id"] as? String ?? UUID().uuidString,
                                 type: FSBNodeType(rawValue: n["type"] as? String ?? "SKILL_NODE") ?? .SKILL_NODE,
-                                label: (n["config"] as? [String: Any])?["label"] as? String ?? I18nManager.shared.t(.fsb_unnamed),
-                                position: CGPoint(
-                                    x: ((n["config"] as? [String: Any])?["position"] as? [String: Any])?["x"] as? CGFloat ?? CGFloat.random(in: -200...200),
-                                    y: ((n["config"] as? [String: Any])?["position"] as? [String: Any])?["y"] as? CGFloat ?? CGFloat.random(in: -100...100)
-                                ),
-                                config: (n["config"] as? [String: Any]) ?? [:]
-                            )
+                                label: cfg["label"] as? String ?? I18nManager.shared.t(.fsb_unnamed),
+                                position: pos,
+                                config: cfg
+                            ))
+                            lastSavedPositions[n["id"] as? String ?? ""] = pos
                         }
+                        nodes = loaded
                         edges = graphEdges.map { e in
                             FSBGraphEdge(
                                 id: e["id"] as? String ?? UUID().uuidString,
@@ -925,12 +969,48 @@ struct FSBWorkflowCanvasView: View {
                             )
                         }
                     }
-                    autoLayout()
+                    wfLog.info("loaded nodes=\(nodes.count) edges=\(edges.count)")
                 }
                 wfLog.info("loaded workflow: \(wfId)")
             } catch {
                 wfLog.error("load workflow failed: \(error.localizedDescription)")
             }
+        }
+    }
+
+    private func scheduleLayoutSave() {
+        layoutSaveTask?.cancel()
+        layoutSaveTask = Task {
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            if Task.isCancelled { return }
+            await saveCanvasLayout()
+        }
+    }
+
+    private func saveCanvasLayout() async {
+        guard let wfId = workflowId, !nodes.isEmpty else { return }
+        var changed = false
+        var layout: [String: [String: CGFloat]] = [:]
+        for n in nodes {
+            layout[n.id] = ["x": n.position.x, "y": n.position.y]
+            if let last = lastSavedPositions[n.id], last != n.position {
+                changed = true
+            } else if lastSavedPositions[n.id] == nil {
+                changed = true
+            }
+        }
+        guard changed else { wfLog.info("canvas-layout skip: no change"); return }
+        do {
+            let resp = try await ipc.fsbSaveCanvasLayout(wsId: workspaceId, wfId: wfId, layout: layout)
+            let ok = resp["success"] as? Bool ?? false
+            if ok {
+                for n in nodes { lastSavedPositions[n.id] = n.position }
+                wfLog.info("canvas-layout saved wf=\(wfId, privacy: .public) nodes=\(layout.count)")
+            } else {
+                wfLog.error("canvas-layout rejected: \(resp, privacy: .public)")
+            }
+        } catch {
+            wfLog.error("canvas-layout save failed: \(error.localizedDescription)")
         }
     }
 

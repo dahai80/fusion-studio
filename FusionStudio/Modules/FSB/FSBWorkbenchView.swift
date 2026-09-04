@@ -435,7 +435,7 @@ struct FSBWorkbenchView: View {
                     editingWorkflowId = wfId
                     showWorkflowEditor = true
                 }) {
-                    Label(i18n.t(.edit), systemImage: "pencil")
+                    Label(i18n.t(.fsb_cv_editWorkflow), systemImage: "pencil")
                 }
                 Button(action: { runWorkflow(wfId: wfId) }) {
                     Label(i18n.t(.fsb_wb_run), systemImage: "play")
