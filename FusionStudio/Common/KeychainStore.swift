@@ -157,4 +157,33 @@ enum KeychainStore {
     static func deleteClusterToken() -> Bool {
         delete(clusterTokenAccount)
     }
+
+    // MARK: - Identity (fusion-identity JWT + refresh token)
+
+    static let identityJwtAccount = "identityJwt"
+    static let identityRefreshAccount = "identityRefresh"
+
+    static func readIdentityJWT() -> String {
+        get(identityJwtAccount) ?? ""
+    }
+
+    @discardableResult
+    static func writeIdentityJWT(_ value: String) -> Bool {
+        set(identityJwtAccount, value)
+    }
+
+    static func readIdentityRefresh() -> String {
+        get(identityRefreshAccount) ?? ""
+    }
+
+    @discardableResult
+    static func writeIdentityRefresh(_ value: String) -> Bool {
+        set(identityRefreshAccount, value)
+    }
+
+    static func clearIdentity() {
+        delete(identityJwtAccount)
+        delete(identityRefreshAccount)
+        keychainLog.info("clearIdentity: cleared jwt+refresh (accounts \(identityJwtAccount, privacy: .public), \(identityRefreshAccount, privacy: .public))")
+    }
 }
