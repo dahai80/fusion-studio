@@ -13,6 +13,11 @@ struct HubPermissionView: View {
     @ObservedObject var client: ModelHubAPIClient
     @Environment(\.studioTheme) private var theme
     @StateObject private var i18n = I18nManager.shared
+    @EnvironmentObject private var identityService: IdentityService
+
+    // #394: fusion-identity 启用且已登录时, 租户来源 = identity session (只读),
+    //   隐藏 model-hub 本地 create/delete 租户与角色控制。本地 API 方法不删, 仅 gate。
+    private var useIdentity: Bool { identityService.useIdentity }
 
     @State private var apiKeys: [HubAPIKey] = []
     @State private var models: [HubModel] = []
@@ -224,19 +229,29 @@ struct HubPermissionView: View {
     private var tenantListPanel: some View {
         VStack(spacing: 0) {
             HStack {
-                Text(i18n.t(.hub_tenant))
-                    .font(.system(size: theme.headlineSize, weight: .bold))
-                    .foregroundStyle(theme.text)
+                if useIdentity {
+                    Text(i18n.t(.identity_tenant_from_identity))
+                        .font(.system(size: theme.headlineSize, weight: .bold))
+                        .foregroundStyle(theme.text)
+                } else {
+                    Text(i18n.t(.hub_tenant))
+                        .font(.system(size: theme.headlineSize, weight: .bold))
+                        .foregroundStyle(theme.text)
+                }
                 Spacer()
-                Button(i18n.t(.hub_newTenant)) { showCreateTenant = true }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
+                if !useIdentity {
+                    Button(i18n.t(.hub_newTenant)) { showCreateTenant = true }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                }
             }
             .padding(theme.spacingM)
 
             Divider()
 
-            if tenants.isEmpty {
+            if useIdentity {
+                identityTenantPanel
+            } else if tenants.isEmpty {
                 VStack(spacing: theme.spacingM) {
                     Image(systemName: "building.2.crop.circle")
                         .font(.system(size: 36))
@@ -263,6 +278,39 @@ struct HubPermissionView: View {
         .frame(minWidth: 320, maxWidth: 450)
     }
 
+    // #394: useIdentity 时租户来自 identity session, 只读展示 (不可 create/delete)。
+    private var identityTenantPanel: some View {
+        VStack(spacing: theme.spacingM) {
+            Image(systemName: "building.2.crop.circle")
+                .font(.system(size: 36))
+                .foregroundStyle(theme.accent)
+            if let s = identityService.session {
+                VStack(spacing: 4) {
+                    Text(s.tenantName.isEmpty ? s.tenantId : s.tenantName)
+                        .font(.system(size: theme.textSize, weight: .semibold))
+                        .foregroundStyle(theme.text)
+                    Label(s.tenantId, systemImage: "number")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Label(s.role, systemImage: "shield")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    if !s.scopes.isEmpty {
+                        Text(s.scopes.joined(separator: " "))
+                            .font(.caption2)
+                            .foregroundStyle(theme.textTertiary)
+                            .multilineTextAlignment(.center)
+                    }
+                }
+            } else {
+                Text(i18n.t(.hub_noTenants))
+                    .foregroundStyle(theme.textSecondary)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(theme.spacingM)
+    }
+
     private var roleDetailPanel: some View {
         VStack(spacing: 0) {
             HStack {
@@ -270,7 +318,7 @@ struct HubPermissionView: View {
                     .font(.system(size: theme.headlineSize, weight: .bold))
                     .foregroundStyle(theme.text)
                 Spacer()
-                if selectedTenantId != nil {
+                if selectedTenantId != nil, !useIdentity {
                     Button(i18n.t(.hub_newRole)) {
                         newRoleName = ""
                         newRolePermissions = []
@@ -296,7 +344,7 @@ struct HubPermissionView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     List(roles) { role in
-                        RoleRow(role: role) {
+                        RoleRow(role: role, readOnly: useIdentity) {
                             editingRole = role
                             editRoleName = role.name ?? ""
                             editRolePermissions = role.permissionsList
@@ -1000,10 +1048,18 @@ private struct TenantRow: View {
 
 private struct RoleRow: View {
     let role: HubRole
+    let readOnly: Bool
     let onEdit: () -> Void
     let onDelete: () -> Void
     @Environment(\.studioTheme) private var theme
     @StateObject private var i18n = I18nManager.shared
+
+    init(role: HubRole, readOnly: Bool = false, onEdit: @escaping () -> Void, onDelete: @escaping () -> Void) {
+        self.role = role
+        self.readOnly = readOnly
+        self.onEdit = onEdit
+        self.onDelete = onDelete
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -1022,18 +1078,20 @@ private struct RoleRow: View {
                         .clipShape(Capsule())
                 }
                 Spacer()
-                Button(action: onEdit) {
-                    Image(systemName: "pencil")
-                        .font(.system(size: 11))
-                        .foregroundStyle(theme.accent)
+                if !readOnly {
+                    Button(action: onEdit) {
+                        Image(systemName: "pencil")
+                            .font(.system(size: 11))
+                            .foregroundStyle(theme.accent)
+                    }
+                    .buttonStyle(.plain)
+                    Button(action: onDelete) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.red)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
-                Button(action: onDelete) {
-                    Image(systemName: "trash")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.red)
-                }
-                .buttonStyle(.plain)
             }
 
             if !role.permissionsList.isEmpty {
