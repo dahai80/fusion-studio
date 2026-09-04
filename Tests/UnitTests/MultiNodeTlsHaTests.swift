@@ -223,4 +223,90 @@ final class MultiNodeTlsHaTests: XCTestCase {
         XCTAssertEqual(guardCount, mutatingMethods.count,
                        "every mutating method (\(mutatingMethods.count)) must have a `guard canMutate` guard; found \(guardCount)")
     }
+
+    // MARK: - #76/#77/#72 deterministic split-brain signal parsing (upstream PR#78)
+
+    func test_b_nodeListResponse_decodesPartitionedEpochLeaderId() {
+        let json = """
+        {"total":3,"online":2,"nodes":[],"partitioned":true,"epoch":4,"leader_id":"node-1","is_leader":true}
+        """.data(using: .utf8)!
+        let resp = try! JSONDecoder().decode(NodeListResponse.self, from: json)
+        XCTAssertEqual(resp.total, 3)
+        XCTAssertEqual(resp.online, 2)
+        XCTAssertEqual(resp.partitioned, true, "#72 partitioned field decoded")
+        XCTAssertEqual(resp.epoch, 4, "#76 epoch field decoded")
+        XCTAssertEqual(resp.leaderId, "node-1", "#76 leader_id decoded")
+        XCTAssertEqual(resp.isLeader, true, "#76 is_leader decoded")
+    }
+
+    func test_b_nodeListResponse_additiveFieldsOptionalForOldUpstream() {
+        let json = """
+        {"total":3,"online":2,"nodes":[]}
+        """.data(using: .utf8)!
+        let resp = try! JSONDecoder().decode(NodeListResponse.self, from: json)
+        XCTAssertNil(resp.partitioned, "old upstream omits partitioned -> nil, fallback heuristic")
+        XCTAssertNil(resp.epoch, "old upstream omits epoch -> nil")
+        XCTAssertNil(resp.leaderId, "old upstream omits leader_id -> nil")
+        XCTAssertNil(resp.isLeader, "old upstream omits is_leader -> nil")
+    }
+
+    func test_b_v1ClusterInfo_decodesEpochLeaderToken() {
+        let json = """
+        {"online_nodes":3,"total_nodes":3,"active_tasks":1,"total_memory_gb":64.0,"available_memory_gb":32.0,"utilization":0.5,"epoch":5,"leader_id":"node-2","is_leader":false,"leader_token":"hmac-token-32"}
+        """.data(using: .utf8)!
+        let info = try! JSONDecoder().decode(V1ClusterInfo.self, from: json)
+        XCTAssertEqual(info.epoch, 5)
+        XCTAssertEqual(info.leaderId, "node-2")
+        XCTAssertEqual(info.isLeader, false)
+        XCTAssertEqual(info.leaderToken, "hmac-token-32", "#77 leader_token decoded")
+    }
+
+    func test_b_clusterNode_decodesEpochLeaderId() {
+        let json = """
+        {"node_id":"n1","hostname":"node-1","ip_address":"10.0.0.1","port":11452,"status":"online","total_memory_gb":64.0,"available_memory_gb":32.0,"cpu_cores":10,"gpu_cores":10,"device_model":"M2","active_tasks":1,"max_tasks":4,"score":0.9,"role":"master","epoch":4,"leader_id":"node-1"}
+        """.data(using: .utf8)!
+        let node = try! JSONDecoder().decode(ClusterNode.self, from: json)
+        XCTAssertEqual(node.id, "n1")
+        XCTAssertTrue(node.isMaster)
+        XCTAssertEqual(node.epoch, 4, "per-node epoch decoded")
+        XCTAssertEqual(node.leaderId, "node-1", "per-node leader_id decoded")
+    }
+
+    // MARK: - 3-layer split-brain branches locked in engine source
+
+    func test_b_engineHasThreeLayerDeterministicSplitBrainBranches() {
+        let path = (#file as NSString).deletingLastPathComponent
+            + "/../../FusionStudio/Modules/MultiNode/MultiNodeEngine.swift"
+        guard let src = try? String(contentsOfFile: path, encoding: .utf8) else {
+            XCTFail("cannot read MultiNodeEngine source"); return
+        }
+        XCTAssertTrue(src.contains("nowPartitioned"), "Layer 1: #72 partitioned branch present")
+        XCTAssertTrue(src.contains("epoch < knownMax"), "Layer 2: #76 stale-leader epoch compare present")
+        XCTAssertTrue(src.contains("isSingleAuthority"),
+                      "Layer 2: single-authority (epoch==0 + empty leader) skip present")
+        XCTAssertTrue(src.contains("masterCount > 1"),
+                      "Layer 3: heuristic fallback (old upstream nil fields) present")
+        XCTAssertTrue(src.contains("knownLeaderEpoch"), "#76 cached max-epoch state present")
+    }
+
+    func test_b_engineAttachesLeaderTokenHeaderOnMutations() {
+        let path = (#file as NSString).deletingLastPathComponent
+            + "/../../FusionStudio/Modules/MultiNode/MultiNodeEngine.swift"
+        guard let src = try? String(contentsOfFile: path, encoding: .utf8) else {
+            XCTFail("cannot read MultiNodeEngine source"); return
+        }
+        XCTAssertTrue(src.contains("X-Leader-Token"), "#77 per-leader token header present")
+        XCTAssertTrue(src.contains("leaderTokenHeader"),
+                      "#77 leaderTokenHeader helper attached to mutations")
+    }
+
+    func test_b_engineRefreshesLeaderTokenFromStats() {
+        let path = (#file as NSString).deletingLastPathComponent
+            + "/../../FusionStudio/Modules/MultiNode/MultiNodeEngine.swift"
+        guard let src = try? String(contentsOfFile: path, encoding: .utf8) else {
+            XCTFail("cannot read MultiNodeEngine source"); return
+        }
+        XCTAssertTrue(src.contains("knownLeaderToken = token"),
+                      "knownLeaderToken refreshed from /api/v1/cluster/stats leader_token on failover")
+    }
 }

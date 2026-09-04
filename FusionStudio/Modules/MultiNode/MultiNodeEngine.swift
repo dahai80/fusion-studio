@@ -32,6 +32,13 @@ class MultiNodeEngine: ObservableObject {
     // 审计v0.1.58 P1-4: 脑裂解除同样需连续 N 轮 ≤1 master 确认, 防瞬态抖动误放行写入.
     private var splitBrainResolvedConfirmCount: Int = 0
     private let splitBrainConfirmThreshold: Int = 2
+    // #76: 已知最大领导纪元 + leader_id (HA failover 递增; 单 master/active-active 恒 0/"").
+    //   收到 epoch < knownLeaderEpoch = stale leader 视图 → 写禁用。failover 后刷新。
+    private var knownLeaderEpoch: Int = 0
+    private var knownLeaderId: String? = nil
+    // #77: per-leader token (从 /api/v1/cluster/stats leader_token 刷新). 变更请求带 X-Leader-Token;
+    //   server enforce 开 + token 过期 → 409 LeaderChanged, 客户端 failover 后重取。nil/空 = 旧版, 不发 header。
+    private var knownLeaderToken: String? = nil
 
     // Track B: 当前 master host (pool 驱动), 供 UI/审计展示。recomputeCanMutate() 刷新。
     @Published var activeMasterHost: String? = nil
@@ -139,6 +146,14 @@ class MultiNodeEngine: ObservableObject {
         }
     }
 
+    // #77: 变更请求附 X-Leader-Token (per-leader token)。server enforce 开 + token 过期 → 409 LeaderChanged。
+    //   缺 header server 放行 (灰度兼容), 故 token 未取到 (nil/空) 时不发 header, 行为同旧版。
+    private func leaderTokenHeader(_ request: inout URLRequest) {
+        if let token = knownLeaderToken, !token.isEmpty {
+            request.setValue(token, forHTTPHeaderField: "X-Leader-Token")
+        }
+    }
+
     // MARK: - Polling
 
     func startPolling() {
@@ -237,6 +252,16 @@ class MultiNodeEngine: ObservableObject {
                     self?.clusterStats = ClusterStats.from(resp)
                     self?.resetFailureState(context: "cluster_stats")
                     self?.lastError = nil
+                    // #76/#77: 刷新领导纪元 + per-leader token (stats cluster sub-dict 携带)。
+                    //   epoch/leader_id 与 /api/nodes 同源, 此处同步 knownLeaderEpoch/knownLeaderId 兜底
+                    //   (stats 与 nodes 轮询独立, 任一先到即缓存)。token 仅 stats 暴露, 此处刷新。
+                    if let epoch = resp.cluster.epoch {
+                        if epoch > (self?.knownLeaderEpoch ?? 0) { self?.knownLeaderEpoch = epoch }
+                        self?.knownLeaderId = resp.cluster.leaderId
+                    }
+                    if let token = resp.cluster.leaderToken, !token.isEmpty {
+                        self?.knownLeaderToken = token
+                    }
                 }
             case .failure(let error):
                 self?.handleError(error, context: "cluster_stats")
@@ -251,24 +276,75 @@ class MultiNodeEngine: ObservableObject {
                 DispatchQueue.main.async {
                     self?.nodes = resp.nodes
                     self?.resetFailureState(context: "nodes")
-                    // F-A11: 检测多 master 脑裂, 日志告警 (UI 侧 ClusterTopologyView 展示 banner)。
-                    // 审计0830 P1-调度-4: 连续 N 轮 >1 master 才确认脑裂, 瞬态抖动不误报; ≤1 立即复位。
-                    let masterCount = resp.nodes.filter { $0.isMaster }.count
-                    if masterCount > 1 {
-                        self?.splitBrainConfirmCount += 1
-                        self?.splitBrainResolvedConfirmCount = 0
-                        if self?.splitBrainDetected == false && (self?.splitBrainConfirmCount ?? 0) >= (self?.splitBrainConfirmThreshold ?? 2) {
-                            self?.splitBrainDetected = true
-                            engineLog.error("F-A11 split-brain confirmed: \(masterCount) masters across \(self?.splitBrainConfirmCount ?? 0) rounds — writes blocked")
+                    // F-A11 split-brain 检测 — 三层确定性信号, 取代旧 master-count heuristic:
+                    //   1. #72 partitioned (server 权威: 少数派, 无法达仲裁) — 有则直接用, 无歧义。
+                    //   2. #76 epoch/leader_id — epoch==0+leaderId=="" = 单权威 (单master/active-active, 无脑裂概念);
+                    //      HA 模式收到 epoch < 已知最大值 = stale leader 视图 = 写禁用。
+                    //   3. 旧版 fallback: 上游未暴露 partitioned/epoch (nil) → 退回 master-count heuristic (连续 N 轮 >1 master)。
+                    // 审计v0.1.58 P1 residual: 上游 #76/#77 已合 (PR#78), 此处接通确定性信号; heuristic 仅兼容旧版。
+                    let nowPartitioned = resp.partitioned
+                    let nowEpoch = resp.epoch
+                    let nowLeaderId = resp.leaderId
+                    let isSingleAuthority = (nowEpoch == 0 && (nowLeaderId?.isEmpty ?? true))
+
+                    if let partitioned = nowPartitioned {
+                        // #72 权威信号优先 — server 已判定少数派脑裂。
+                        if partitioned {
+                            self?.splitBrainConfirmCount += 1
+                            self?.splitBrainResolvedConfirmCount = 0
+                            if self?.splitBrainDetected == false && (self?.splitBrainConfirmCount ?? 0) >= (self?.splitBrainConfirmThreshold ?? 2) {
+                                self?.splitBrainDetected = true
+                                engineLog.error("F-A11 split-brain confirmed (#72 partitioned=true) across \(self?.splitBrainConfirmCount ?? 0) rounds — writes blocked")
+                            }
+                        } else {
+                            self?.splitBrainResolvedConfirmCount += 1
+                            if self?.splitBrainDetected == true
+                                && (self?.splitBrainResolvedConfirmCount ?? 0) >= (self?.splitBrainConfirmThreshold ?? 2) {
+                                engineLog.info("F-A11 split-brain resolved (#72 partitioned=false) across \(self?.splitBrainResolvedConfirmCount ?? 0) rounds, unblocking writes")
+                                self?.splitBrainDetected = false
+                                self?.splitBrainConfirmCount = 0
+                            }
+                        }
+                    } else if let epoch = nowEpoch, !isSingleAuthority {
+                        // #76 HA 模式 — stale leader 视图 (epoch < 已知最大) = 脑裂迹象。
+                        let knownMax = self?.knownLeaderEpoch ?? 0
+                        if epoch < knownMax {
+                            self?.splitBrainConfirmCount += 1
+                            self?.splitBrainResolvedConfirmCount = 0
+                            if self?.splitBrainDetected == false && (self?.splitBrainConfirmCount ?? 0) >= (self?.splitBrainConfirmThreshold ?? 2) {
+                                self?.splitBrainDetected = true
+                                engineLog.error("F-A11 split-brain confirmed (#76 stale epoch=\(epoch) < known=\(knownMax), leader=\(nowLeaderId ?? "-", privacy: .public)) — writes blocked")
+                            }
+                        } else {
+                            if epoch > knownMax { self?.knownLeaderEpoch = epoch }
+                            self?.knownLeaderId = nowLeaderId
+                            self?.splitBrainResolvedConfirmCount += 1
+                            if self?.splitBrainDetected == true
+                                && (self?.splitBrainResolvedConfirmCount ?? 0) >= (self?.splitBrainConfirmThreshold ?? 2) {
+                                engineLog.info("F-A11 split-brain resolved (#76 epoch=\(epoch) ≥ known, leader=\(nowLeaderId ?? "-", privacy: .public)), unblocking writes")
+                                self?.splitBrainDetected = false
+                                self?.splitBrainConfirmCount = 0
+                            }
                         }
                     } else {
-                        self?.splitBrainResolvedConfirmCount += 1
-                        // 审计v0.1.58 P1-4: 脑裂解除也需 N 轮确认, 瞬态抖动不立即放行写入.
-                        if self?.splitBrainDetected == true
-                            && (self?.splitBrainResolvedConfirmCount ?? 0) >= (self?.splitBrainConfirmThreshold ?? 2) {
-                            engineLog.info("F-A11 split-brain resolved (≤1 master across \(self?.splitBrainResolvedConfirmCount ?? 0) rounds), unblocking writes")
-                            self?.splitBrainDetected = false
-                            self?.splitBrainConfirmCount = 0
+                        // 旧版上游 (partitioned/epoch nil) — 退回 master-count heuristic。
+                        // 单权威 (epoch 0 + 空 leader) 也走此分支: 无脑裂概念, masterCount≤1 不报。
+                        let masterCount = resp.nodes.filter { $0.isMaster }.count
+                        if masterCount > 1 {
+                            self?.splitBrainConfirmCount += 1
+                            self?.splitBrainResolvedConfirmCount = 0
+                            if self?.splitBrainDetected == false && (self?.splitBrainConfirmCount ?? 0) >= (self?.splitBrainConfirmThreshold ?? 2) {
+                                self?.splitBrainDetected = true
+                                engineLog.error("F-A11 split-brain confirmed (heuristic: \(masterCount) masters across \(self?.splitBrainConfirmCount ?? 0) rounds) — writes blocked")
+                            }
+                        } else {
+                            self?.splitBrainResolvedConfirmCount += 1
+                            if self?.splitBrainDetected == true
+                                && (self?.splitBrainResolvedConfirmCount ?? 0) >= (self?.splitBrainConfirmThreshold ?? 2) {
+                                engineLog.info("F-A11 split-brain resolved (heuristic: ≤1 master across \(self?.splitBrainResolvedConfirmCount ?? 0) rounds), unblocking writes")
+                                self?.splitBrainDetected = false
+                                self?.splitBrainConfirmCount = 0
+                            }
                         }
                     }
                     // Track B: split-brain 状态变更后刷新 activeMasterHost (canMutate 计算属性自动反映)。
@@ -1011,6 +1087,7 @@ class MultiNodeEngine: ObservableObject {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         authHeaders(&request)
+        leaderTokenHeader(&request)
         if let key = idempotencyKey {
             request.setValue(key, forHTTPHeaderField: "X-Idempotency-Key")
         }
@@ -1027,6 +1104,7 @@ class MultiNodeEngine: ObservableObject {
         request.httpMethod = "PUT"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         authHeaders(&request)
+        leaderTokenHeader(&request)
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (data, _) = try await session.data(for: request)
         return (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
@@ -1039,6 +1117,7 @@ class MultiNodeEngine: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
         authHeaders(&request)
+        leaderTokenHeader(&request)
         _ = try await session.data(for: request)
     }
 
