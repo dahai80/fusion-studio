@@ -19,6 +19,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Checkout monorepo siblings (for Python backend bundling #393)
+        # build.sh bundle_python needs fusion-agent-studio/agent_runtime + tools/server
+        # + fusion-core/identity/plugins-ecosystem (in-tree deps). CI single-repo checkout
+        # lacks them → agent_runtime not found → DMG build fails. Mirror local monorepo
+        # layout under MONO_ROOT so bundle_python finds all sources.
+        run: |
+          export MONO_ROOT="$HOME/fusion"
+          mkdir -p "$MONO_ROOT"
+          for repo in fusion-agent-studio fusion-core fusion-identity fusion-plugins-ecosystem; do
+            git clone --depth 1 "https://github.com/dahai80/${repo}.git" "$MONO_ROOT/$repo" 2>&1 | tail -2
+          done
+          echo "MONO_ROOT=$MONO_ROOT" >> "$GITHUB_ENV"
+          ls -la "$MONO_ROOT"
+
       - name: Show versions
         run: |
           swift --version
