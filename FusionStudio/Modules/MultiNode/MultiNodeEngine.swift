@@ -29,6 +29,8 @@ class MultiNodeEngine: ObservableObject {
     //   改连续 N 轮确认才置位, 恢复 (≤1 master) 立即清零复位。stored @Published 替纯计算属性 (需跨轮状态)。
     @Published var splitBrainDetected: Bool = false
     private var splitBrainConfirmCount: Int = 0
+    // 审计v0.1.58 P1-4: 脑裂解除同样需连续 N 轮 ≤1 master 确认, 防瞬态抖动误放行写入.
+    private var splitBrainResolvedConfirmCount: Int = 0
     private let splitBrainConfirmThreshold: Int = 2
 
     // Track B: 当前 master host (pool 驱动), 供 UI/审计展示。recomputeCanMutate() 刷新。
@@ -254,16 +256,20 @@ class MultiNodeEngine: ObservableObject {
                     let masterCount = resp.nodes.filter { $0.isMaster }.count
                     if masterCount > 1 {
                         self?.splitBrainConfirmCount += 1
+                        self?.splitBrainResolvedConfirmCount = 0
                         if self?.splitBrainDetected == false && (self?.splitBrainConfirmCount ?? 0) >= (self?.splitBrainConfirmThreshold ?? 2) {
                             self?.splitBrainDetected = true
                             engineLog.error("F-A11 split-brain confirmed: \(masterCount) masters across \(self?.splitBrainConfirmCount ?? 0) rounds — writes blocked")
                         }
                     } else {
-                        if self?.splitBrainDetected == true {
-                            engineLog.info("F-A11 split-brain resolved (≤1 master), unblocking writes")
+                        self?.splitBrainResolvedConfirmCount += 1
+                        // 审计v0.1.58 P1-4: 脑裂解除也需 N 轮确认, 瞬态抖动不立即放行写入.
+                        if self?.splitBrainDetected == true
+                            && (self?.splitBrainResolvedConfirmCount ?? 0) >= (self?.splitBrainConfirmThreshold ?? 2) {
+                            engineLog.info("F-A11 split-brain resolved (≤1 master across \(self?.splitBrainResolvedConfirmCount ?? 0) rounds), unblocking writes")
+                            self?.splitBrainDetected = false
+                            self?.splitBrainConfirmCount = 0
                         }
-                        self?.splitBrainConfirmCount = 0
-                        self?.splitBrainDetected = false
                     }
                     // Track B: split-brain 状态变更后刷新 activeMasterHost (canMutate 计算属性自动反映)。
                     self?.recomputeCanMutate()
@@ -415,9 +421,14 @@ class MultiNodeEngine: ObservableObject {
                     // 审计0827 §3.5: health 路 success 复位其 context 失败计数。
                     self?.consecutiveFailuresByContext["health"] = 0
                     self?.recomputeCanMutate()
+                    // 审计v0.1.58 P1-2: failover 探测完成复位 (非 5s 定时器), 保证探测真正结束才放下次.
+                    self?.failoverProbeInflight = false
                 }
             case .failure(let error):
                 self?.handleError(error, context: "health")
+                DispatchQueue.main.async {
+                    self?.failoverProbeInflight = false
+                }
             }
         }
     }
@@ -1056,9 +1067,6 @@ class MultiNodeEngine: ObservableObject {
                     engineLog.info("Track B failover to \(next?.host ?? "nil", privacy: .public) after disconnect (context=\(context))")
                     self.recomputeCanMutate()
                     self.checkHealth()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) { [weak self] in
-                        self?.failoverProbeInflight = false
-                    }
                 }
             }
         }

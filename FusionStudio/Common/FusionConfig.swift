@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import CryptoKit
 import os.log
 // Callers: UpstreamServiceManager, ContentView, SettingsView
 // Affected API: multi-node health endpoint port
@@ -366,14 +367,66 @@ class FusionConfig: ObservableObject {
             return devPath
         }
         // (3) bundle
-        let bundlePath = bundleURL.appendingPathComponent("Contents/Services/start.sh").path
+        let svcDir = bundleURL.appendingPathComponent("Contents/Services")
+        let bundlePath = svcDir.appendingPathComponent("start.sh").path
         if FileManager.default.isExecutableFile(atPath: bundlePath) {
+            // 审计v0.1.58 P1-manifest: 运行时校验 MANIFEST.txt 文件完整性, 防篡改.
+            // 校验失败仅告警 (不阻断启动) — 避免误判卡死用户; 记日志供诊断.
+            verifyBundleManifest(svcDir: svcDir)
             fusionConfigLog.info("resolveBackendStartSh: source=bundle -> \(bundlePath, privacy: .public)")
             return bundlePath
         }
         // (4) nil
         fusionConfigLog.error("resolveBackendStartSh: 无可用后端 (override/dev/bundle 均不可执行)")
         return nil
+    }
+
+    // 审计v0.1.58 P1-manifest: 校验 bundle MANIFEST.txt 的 file-integrity 段, 逐文件 sha256 比对.
+    // 仅供诊断/告警, 不阻断启动 (避免 MANIFEST 损坏卡死用户后端).
+    func verifyBundleManifest(svcDir: URL) {
+        let manifestURL = svcDir.appendingPathComponent("MANIFEST.txt")
+        guard let content = try? String(contentsOf: manifestURL, encoding: .utf8) else {
+            fusionConfigLog.info("verifyBundleManifest: 无 MANIFEST.txt (dev 或未打包), 跳过")
+            return
+        }
+        var inIntegrity = false
+        var mismatches = 0
+        for raw in content.split(separator: "\n") {
+            let line = String(raw)
+            if line == "--- file-integrity ---" { inIntegrity = true; continue }
+            if !inIntegrity { continue }
+            let parts = line.split(separator: " ", maxSplits: 1).map { String($0) }
+            guard parts.count == 2 else { continue }
+            let relPath = parts[0]
+            let expectedSha = parts[1]
+            let fileURL = svcDir.appendingPathComponent(relPath)
+            guard FileManager.default.fileExists(atPath: fileURL.path) else {
+                fusionConfigLog.error("verifyBundleManifest: 缺失文件 \(relPath, privacy: .public)")
+                mismatches += 1
+                continue
+            }
+            guard let data = try? Data(contentsOf: fileURL) else {
+                fusionConfigLog.error("verifyBundleManifest: 读取失败 \(relPath, privacy: .public)")
+                mismatches += 1
+                continue
+            }
+            let actual = sha256Hex(data: data)
+            if actual != expectedSha {
+                fusionConfigLog.error("verifyBundleManifest: 完整性不匹配 \(relPath, privacy: .public) (期望 \(expectedSha, privacy: .public) 实得 \(actual, privacy: .public)) — 疑似篡改")
+                mismatches += 1
+            }
+        }
+        if mismatches == 0 {
+            fusionConfigLog.info("verifyBundleManifest: ✅ 文件完整性校验通过")
+        } else {
+            fusionConfigLog.error("verifyBundleManifest: ❌ \(mismatches) 项完整性不匹配, 后端可能被篡改")
+        }
+    }
+
+    private func sha256Hex(data: Data) -> String {
+        var hasher = SHA256()
+        hasher.update(data: data)
+        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
     }
 
     // MARK: - 模型档位 helpers

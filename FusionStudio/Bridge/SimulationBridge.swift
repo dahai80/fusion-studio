@@ -288,7 +288,12 @@ class SimulationBridge: ObservableObject {
         guard let url = URL(string: "\(baseURL)\(path)") else {
             completion(.failure(SimulationBridgeError.invalidURL)); return
         }
-        session.dataTask(with: url) { data, response, error in
+        // 审计v0.1.58 P1-sim-get: GET 也需带 identity headers (X-Tenant-Id/JWT), 与 postQuery 对齐.
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        IdentityService.applyIdentityHeaders(to: &request)
+        session.dataTask(with: request) { data, response, error in
             if let error = error { completion(.failure(error)); return }
             if let code = (response as? HTTPURLResponse)?.statusCode, !(200...299).contains(code) {
                 simBridgeLog.error("SimulationBridge HTTP \(code) (不解码响应体, 避免掩盖真实故障)")
