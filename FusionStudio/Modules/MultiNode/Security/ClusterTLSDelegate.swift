@@ -20,8 +20,10 @@ final class ClusterTLSDelegate: NSObject, URLSessionDelegate {
         if !pinned.isEmpty {
             let extraCerts = pinned as CFArray
             SecTrustSetAnchorCertificates(serverTrust, extraCerts)
-            SecTrustSetAnchorCertificatesOnly(serverTrust, false)
-            tlsDelLog.info("TLS eval with \(pinned.count, privacy: .public) pinned anchors + system roots")
+            // SEC-2 (审计product-0905 P2): 独占 pinning — 仅接受 pinned anchors, 拒绝系统根。
+            //   非 .true 时系统根 CA 误发证/被攻陷也能通过, pinning 形同虚设。企业部署须独占。
+            SecTrustSetAnchorCertificatesOnly(serverTrust, true)
+            tlsDelLog.info("TLS eval exclusive with \(pinned.count, privacy: .public) pinned anchors (system roots rejected)")
         } else {
             tlsDelLog.info("TLS eval system-only (no pinned anchors)")
         }
