@@ -215,7 +215,8 @@ final class MultiNodeTlsHaTests: XCTestCase {
         }
         let mutatingMethods = ["removeNode", "approveNode", "rejectNode", "migrateTask",
                                "submitTask", "retryTask", "setRoutingStrategy",
-                               "updateAutoscalerConfig", "cancelTask", "degradeTask"]
+                               "updateAutoscalerConfig", "cancelTask", "degradeTask",
+                               "registerKVCache", "joinNode"]
         for name in mutatingMethods {
             XCTAssertTrue(src.contains("func \(name)("), "missing mutating method: \(name)")
         }
