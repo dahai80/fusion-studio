@@ -2295,48 +2295,8 @@ class DesignBridge: ObservableObject {
         isImportingScreenshot = false
     }
 
-    @Published var designHealth: [String: Any] = [:]
-    @Published var isDesignHealthy: Bool = false
-
-    func designHealthCheck() async {
-        guard let ipc = ipcClient else {
-            designBridgeLog.warning("DesignBridge: no IPCClient for health check")
-            return
-        }
-        do {
-            let result = try await ipc.call(method: RPCMethod.designHealthCheck)
-            designHealth = result
-            let ok = result["status"] as? String == "ok" || result["healthy"] as? Bool == true
-            isDesignHealthy = ok
-            designBridgeLog.info("DesignBridge health: \(ok ? "healthy" : "unhealthy") — \(result)")
-        } catch {
-            isDesignHealthy = false
-            designBridgeLog.warning("DesignBridge health check failed: \(error)")
-        }
-    }
-
-    func sendMultimodalMessage(prompt: String, imageData: Data, imageType: String = "image/png") async throws -> String {
-        guard let ipc = ipcClient else {
-            throw BridgeError.notConnected
-        }
-        let b64 = imageData.base64EncodedString()
-        designBridgeLog.info("DesignBridge: sending multimodal message, image size=\(imageData.count)")
-        let result = try await ipc.call(method: RPCMethod.designGenerate, params: [
-            "prompt": prompt,
-            "image": [
-                "data": b64,
-                "mime_type": imageType,
-            ],
-        ])
-        let code = result["code"] as? String ?? result["artifact"] as? String ?? result["content"] as? String ?? ""
-        if !code.isEmpty {
-            currentArtifactCode = code
-            currentArtifactType = result["type"] as? String ?? "html"
-            currentArtifactTitle = result["title"] as? String ?? "Multimodal Design"
-            artifactSaved = false
-        }
-        return code
-    }
+    // FUNC-10/11 (审计product-0905 P3): designHealthCheck + sendMultimodalMessage 已删 — 0 调用方死代码。
+    // designHealth/isDesignHealthy @Published 同删 (0 读)。
 
 }
 

@@ -503,6 +503,17 @@ extension IPCClient {
             let code = (resp as? HTTPURLResponse)?.statusCode ?? -1
             throw IPCError.rpcError(code: code, message: "FSB health check failed")
         }
-        return (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
+        // ERR-4 (审计product-0905 P3): 解析失败不静默吞 — 显式 throw, 上层可见。
+        let errLog = Logger(subsystem: "com.fusion.studio", category: "IPCErrorAndREST")
+        do {
+            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                errLog.error("ERR-4: fsbHealth response not a JSON object")
+                throw IPCError.invalidResponse
+            }
+            return json
+        } catch {
+            errLog.error("ERR-4: fsbHealth JSON parse failed: \(error.localizedDescription, privacy: .public)")
+            throw IPCError.invalidResponse
+        }
     }
 }

@@ -145,45 +145,7 @@ class PluginManager: ObservableObject {
         pluginLog.info("Scanned \(newPlugins.count) installed plugins")
     }
 
-    // MARK: - IPC Registry Fetch
-
-    func fetchRegistryPlugins() async {
-        // IPCClient is injected via @EnvironmentObject at view layer;
-        // fetch is triggered from InstalledPluginsView.task with explicit client.
-        // This method is a fallback using a short-lived client.
-        let client = IPCClient()
-        guard client.isConnected else {
-            pluginLog.warning("Registry fetch skipped: IPC not connected")
-            return
-        }
-        do {
-            let response = try await client.call(method: RPCMethod.pluginList, params: [:])
-            guard let items = response["result"] as? [[String: Any]] else { return }
-
-            for item in items {
-                guard let id = item["id"] as? String else { continue }
-                if plugins.contains(where: { $0.id == id }) { continue }
-
-                guard let data = try? JSONSerialization.data(withJSONObject: item),
-                      let manifest = try? JSONDecoder().decode(PluginManifest.self, from: data) else { continue }
-
-                let plugin = Plugin(
-                    id: manifest.id,
-                    manifest: manifest,
-                    state: .registered,
-                    installDate: Date(),
-                    installPath: "registry",
-                    config: [:]
-                )
-                plugins.append(plugin)
-            }
-            // 审计0827 #8: plugins 无界 append (registry 路), cap 200 复用 PERF-3 ragResults 范式。
-            if plugins.count > 200 { plugins.removeFirst(plugins.count - 200) }
-            pluginLog.info("Fetched \(items.count) plugins from registry")
-        } catch {
-            pluginLog.warning("Registry fetch failed: \(error.localizedDescription)")
-        }
-    }
+    // FUNC-7 (审计product-0905 P3): fetchRegistryPlugins 已删 — 0 调用方死代码 (短命 IPCClient fallback, 视图层用注入 client 直查)。
 
     // MARK: - Plugin Operations
 
