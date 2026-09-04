@@ -65,6 +65,10 @@ struct FusionStudioApp: App {
     // 守护缺席 = isDaemonReady=false 优雅降级 (fail-open), FileWatcher 兜底 live-reload。
     // event.notification push → SystemEvent, event.heartbeat → event.pong, 断线 5s 重连。
     @StateObject private var eventBridge = EventBridge()
+    // #394: fusion-identity 多租户登录集成. 唯一鉴权状态来源, 注入 app root.
+    // 可达+loggedOut → 弹 LoginView; 不可达 → 单机模式跳过 (不阻塞).
+    @StateObject private var identityService = IdentityService.shared
+    @State private var showIdentityLogin = false
 
     init() {
         // F-A5: AppState 持 4 域子对象同一实例 (init 传入), 保单例一致。
@@ -121,6 +125,7 @@ struct FusionStudioApp: App {
                 .environmentObject(speechBridge)
                 .environmentObject(guardBridge)
                 .environmentObject(eventBridge)
+                .environmentObject(identityService)
                 .studioThemed()
                 .onAppear {
                     // 启动时检测并按需自动启动上游关键服务（mlx -> agent-studio -> artifacts-engine）。
@@ -248,6 +253,18 @@ struct FusionStudioApp: App {
                         }
                         return 0
                     }
+                    // #394: 探 fusion-identity 可达性 → 可达则 resolveSession (Keychain JWT 续会话).
+                    // 不可达 → 单机模式跳过, 不弹 LoginView 不阻塞.
+                    Task {
+                        let reachable = await identityService.probeHealth()
+                        appLog.info("launch: identity reachable=\(reachable, privacy: .public)")
+                        if reachable {
+                            await identityService.resolveSession()
+                            if !identityService.isLoggedIn {
+                                showIdentityLogin = true
+                            }
+                        }
+                    }
                 }
                 .frame(minWidth: 1100, minHeight: 700)
                 .sheet(isPresented: $uiPanelState.showWelcome) {
@@ -256,6 +273,14 @@ struct FusionStudioApp: App {
                         .environmentObject(agentBridge)
                         .environmentObject(upstreamManager)
                         .environmentObject(ipcClient)
+                }
+                // #394: identity 可达 + 未登录 → 弹登录窗. 登录成功 dismiss.
+                .sheet(isPresented: $showIdentityLogin) {
+                    IdentityLoginView(service: identityService)
+                        .environmentObject(identityService)
+                        .onChange(of: identityService.isLoggedIn) { loggedIn in
+                            if loggedIn { showIdentityLogin = false }
+                        }
                 }
                 .onAppear {
                     setupDockIcon()
