@@ -177,6 +177,23 @@ final class IdentityService: ObservableObject {
             clearSnapshot()
             return
         }
+        // 审计v0.1.58 residual — keyless 完整性校验 (iss/aud/nbf). exp 单独走 refresh 路径。
+        switch IdentityService.validateClaims(claims) {
+        case .ok, .expired:
+            break
+        case .tampered:
+            logger.error("resolveSession: cached jwt 完整性校验失败 (iss/aud 不符), 清除")
+            KeychainStore.clearIdentity()
+            state = .loggedOut
+            clearSnapshot()
+            return
+        case .notYetValid:
+            logger.error("resolveSession: cached jwt nbf 未到, 清除")
+            KeychainStore.clearIdentity()
+            state = .loggedOut
+            clearSnapshot()
+            return
+        }
         let now = Date().timeIntervalSince1970
         let exp = (claims["exp"] as? Double) ?? 0
         if exp < now {
@@ -285,6 +302,32 @@ final class IdentityService: ObservableObject {
         return (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
     }
 
+    // 审计v0.1.58 residual — JWT claim integrity (keyless, defense-in-depth).
+    // local-first 客户端无 issuer 密钥, 不能 HS256 验签 (验签需服务端密钥, 错模型 → 上游 issue).
+    // 但可做 keyless 完整性校验: 拒绝 iss/aud 不符、nbf 未到、exp 已过的 token,
+    // 削弱篡改/伪造/重放窗口 (结构合法但签错仍靠服务端最终拒, 此处早拒 + 清缓存).
+    static let expectedIssuer = "fusion-identity"
+    static let expectedAudience = "fusion-studio"
+
+    enum ClaimValidationResult: Equatable { case ok; case tampered; case expired; case notYetValid }
+
+    static func validateClaims(_ claims: [String: Any]) -> ClaimValidationResult {
+        let now = Date().timeIntervalSince1970
+        if let exp = claims["exp"] as? Double, exp > 0, exp < now {
+            return .expired
+        }
+        if let nbf = claims["nbf"] as? Double, nbf > 0, nbf > now {
+            return .notYetValid
+        }
+        if let iss = claims["iss"] as? String, !iss.isEmpty, iss != expectedIssuer {
+            return .tampered
+        }
+        if let aud = claims["aud"] as? String, !aud.isEmpty, aud != expectedAudience {
+            return .tampered
+        }
+        return .ok
+    }
+
     static func testBase64Encode(_ s: String) -> String {
         Data(s.utf8).base64EncodedString()
     }
@@ -302,6 +345,22 @@ final class IdentityService: ObservableObject {
         KeychainStore.writeIdentityRefresh(refreshToken)
         guard let claims = IdentityService.decodeClaims(jwt: jwt) else {
             throw IdentityError.badResponse
+        }
+        // 审计v0.1.58 residual — keyless JWT 完整性校验 (iss/aud/nbf/exp). 早拒篡改/伪造/过期/未到 token.
+        switch IdentityService.validateClaims(claims) {
+        case .ok: break
+        case .tampered:
+            logger.error("persistAndBuild: JWT 完整性校验失败 (iss/aud 不符), 拒绝建会话")
+            KeychainStore.clearIdentity()
+            throw IdentityError.tamperedToken
+        case .expired:
+            logger.error("persistAndBuild: JWT 已过期, 拒绝建会话")
+            KeychainStore.clearIdentity()
+            throw IdentityError.expiredToken
+        case .notYetValid:
+            logger.error("persistAndBuild: JWT nbf 未到, 拒绝建会话")
+            KeychainStore.clearIdentity()
+            throw IdentityError.notYetValid
         }
         // 审计v0.1.58 P1-cross-tenant: 登录指定 tenantId 时, 校验 JWT tid claim 一致,
         //   拒绝签发给错误租户的 token (防 issuer 配置错乱导致跨租户越权).
@@ -377,6 +436,9 @@ enum IdentityError: Error, LocalizedError {
     case http(Int)
     case badResponse
     case noRefreshToken
+    case tamperedToken
+    case expiredToken
+    case notYetValid
 
     var errorDescription: String? {
         switch self {
@@ -385,6 +447,9 @@ enum IdentityError: Error, LocalizedError {
         case .http(let c): return "identity http \(c)"
         case .badResponse: return "bad identity response"
         case .noRefreshToken: return "no refresh token"
+        case .tamperedToken: return "identity token failed integrity check"
+        case .expiredToken: return "identity token expired"
+        case .notYetValid: return "identity token not yet valid"
         }
     }
 }

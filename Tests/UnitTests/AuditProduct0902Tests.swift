@@ -1,4 +1,5 @@
 import XCTest
+import CryptoKit
 @testable import FusionStudio
 
 // 审计 product-0902 #247 test hook — P0/P1 已修缺陷的行为锁定测试 (product 报告 1P0/9P1)。
@@ -141,5 +142,89 @@ final class AuditProduct0902Tests: XCTestCase {
         XCTAssertTrue(mgr.criticalBackendMissing, "flag settable to true")
         // hint 字段存在且可读 (即使空也是合法初值)
         _ = mgr.criticalBackendMissingHint
+    }
+
+    // MARK: - 审计v0.1.58 residual — bundle manifest 完整性 opt-in 强制
+
+    func test_residual_manifestNoManifest_returnsTrue() {
+        // 无 MANIFEST.txt (dev / 未打包) → 跳过, 返回 true
+        let tmp = FileManager.default.temporaryDirectory
+            .appendingPathComponent("fs-manifest-test-\(UUID().uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tmp) }
+        let cfg = FusionConfig()
+        XCTAssertTrue(cfg.verifyBundleManifest(svcDir: tmp), "no MANIFEST.txt → true (dev, skip)")
+    }
+
+    func test_residual_manifestMatch_returnsTrue() {
+        let tmp = FileManager.default.temporaryDirectory
+            .appendingPathComponent("fs-manifest-test-\(UUID().uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tmp) }
+
+        let fileName = "start.sh"
+        let content = "#!/bin/bash\necho hi\n"
+        let fileURL = tmp.appendingPathComponent(fileName)
+        try? content.write(to: fileURL, atomically: true, encoding: .utf8)
+        let sha = sha256Hex(content.data(using: .utf8)!)
+
+        let manifest = "--- file-integrity ---\n\(fileName) \(sha)\n"
+        try? manifest.write(to: tmp.appendingPathComponent("MANIFEST.txt"), atomically: true, encoding: .utf8)
+
+        let cfg = FusionConfig()
+        XCTAssertTrue(cfg.verifyBundleManifest(svcDir: tmp), "matching sha256 → true")
+    }
+
+    func test_residual_manifestMismatch_returnsFalse() {
+        let tmp = FileManager.default.temporaryDirectory
+            .appendingPathComponent("fs-manifest-test-\(UUID().uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tmp) }
+
+        let fileName = "start.sh"
+        try? "#!/bin/bash\necho real\n".write(
+            to: tmp.appendingPathComponent(fileName), atomically: true, encoding: .utf8)
+        let manifest = "--- file-integrity ---\n\(fileName) deadbeef\n"
+        try? manifest.write(to: tmp.appendingPathComponent("MANIFEST.txt"), atomically: true, encoding: .utf8)
+
+        let cfg = FusionConfig()
+        XCTAssertFalse(cfg.verifyBundleManifest(svcDir: tmp), "sha256 mismatch → false (tampered)")
+    }
+
+    func test_residual_manifestMissingFile_returnsFalse() {
+        let tmp = FileManager.default.temporaryDirectory
+            .appendingPathComponent("fs-manifest-test-\(UUID().uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tmp) }
+
+        let manifest = "--- file-integrity ---\nstart.sh deadbeef\n"
+        try? manifest.write(to: tmp.appendingPathComponent("MANIFEST.txt"), atomically: true, encoding: .utf8)
+
+        let cfg = FusionConfig()
+        XCTAssertFalse(cfg.verifyBundleManifest(svcDir: tmp), "file missing from disk → false")
+    }
+
+    func test_residual_enforceBundleIntegrityDefaultOff() {
+        let cfg = FusionConfig()
+        XCTAssertFalse(cfg.enforceBundleIntegrity, "default off (warn-only, avoid MANIFEST deadlock)")
+    }
+
+    func test_residual_resolveBackendStartShRespectsEnforceFlag() {
+        // 结构锁: resolveBackendStartSh bundle 分支读 enforceBundleIntegrity 决定拒/纳 bundle。
+        let srcPath = (#file as NSString).deletingLastPathComponent
+            + "/../../FusionStudio/Common/FusionConfig.swift"
+        guard let src = try? String(contentsOfFile: srcPath, encoding: .utf8) else {
+            XCTFail("cannot read FusionConfig source"); return
+        }
+        XCTAssertTrue(src.contains("enforceBundleIntegrity"), "opt-in flag property present")
+        XCTAssertTrue(src.contains("verifyBundleManifest(svcDir:"), "manifest verify call present")
+        XCTAssertTrue(src.contains("!manifestOk && FusionConfig.shared.enforceBundleIntegrity"),
+            "bundle branch: reject bundle only when manifest mismatch AND enforce on")
+    }
+
+    private func sha256Hex(_ data: Data) -> String {
+        var hasher = SHA256()
+        hasher.update(data: data)
+        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
     }
 }

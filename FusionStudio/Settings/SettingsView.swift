@@ -195,6 +195,8 @@ struct NetworkSettingsView: View {
     @AppStorage("allowUpdateCheck") private var allowUpdateCheck = true
     // F-ops-8: 本地崩溃遥测 opt-in toggle (默认 OFF, 零网络上传, 仅落盘 ~/.fusion-studio/logs/crash-*.log)。
     @AppStorage("enableCrashTelemetry") private var enableCrashTelemetry = false
+    // 审计v0.1.58 residual — bundle 完整性强制 (企业部署 opt-in, 默认告警)。
+    @AppStorage("enforceBundleIntegrity") private var enforceBundleIntegrity = false
     @StateObject private var i18n = I18nManager.shared
 
     var body: some View {
@@ -226,6 +228,10 @@ struct NetworkSettingsView: View {
                     }
                 ))
                 .help(i18n.t(.enableCrashTelemetryHelp))
+            }
+            Section(i18n.t(.sec_supplyChain)) {
+                Toggle(i18n.t(.enforceBundleIntegrity), isOn: $enforceBundleIntegrity)
+                    .help(i18n.t(.enforceBundleIntegrityHelp))
             }
         }
         .padding()
