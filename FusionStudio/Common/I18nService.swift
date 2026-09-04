@@ -4989,6 +4989,7 @@ enum I18nKey: String, CaseIterable {
     case ab_err_timeout = "ab_err_timeout"
     case ab_err_service_anomaly = "ab_err_service_anomaly"
     case ab_err_unavailable = "ab_err_unavailable"
+    case ab_err_feature_unavailable = "ab_err_feature_unavailable"
     case ab_err_decode_mismatch = "ab_err_decode_mismatch"
     case ab_err_unavailable_code_fmt = "ab_err_unavailable_code_fmt"
     case ab_err_generic = "ab_err_generic"

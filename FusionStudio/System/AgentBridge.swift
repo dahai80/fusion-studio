@@ -298,6 +298,8 @@ enum BridgeError: Error, Equatable, LocalizedError {
     case serviceUnavailable(String)
     case authFailed(String)
     case guardBlocked(String)
+    // 审计product-0905 FUNC-2/3/4/9: 上游后端未实现 RPC (-32601) → 友好降级, 不裸泄 "Method not found"。
+    case featureUnavailable(String)
 
     var detail: String {
         switch self {
@@ -309,6 +311,7 @@ enum BridgeError: Error, Equatable, LocalizedError {
         case .serviceUnavailable(let msg): return "serviceUnavailable — \(msg)"
         case .authFailed(let msg): return "authFailed — \(msg)"
         case .guardBlocked(let msg): return "guardBlocked — \(msg)"
+        case .featureUnavailable(let method): return "featureUnavailable — \(method)"
         }
     }
 
@@ -319,6 +322,8 @@ enum BridgeError: Error, Equatable, LocalizedError {
             return i18n.t(.ab_err_not_connected)
         case .serviceUnavailable:
             return i18n.t(.ab_err_service_down)
+        case .featureUnavailable:
+            return i18n.t(.ab_err_feature_unavailable)
         case .authFailed:
             return i18n.t(.ab_err_auth_failed)
         case .timeout:

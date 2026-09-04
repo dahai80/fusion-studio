@@ -117,4 +117,39 @@ final class AuditProduct0905Tests: XCTestCase {
         XCTAssertNotNil(err.localizedDescription)
         XCTAssertFalse(err.localizedDescription.isEmpty)
     }
+
+    // MARK: - FUNC-2/3/4/9 (P1) 上游未实现 RPC 友好降级
+
+    func test_auditProduct0905_func_featureUnavailableBridgeError() {
+        // FUNC-2/3/4/9: BridgeError.featureUnavailable 须映射到 i18n 用户消息 (不裸泄 -32601 "Method not found")。
+        let err = BridgeError.featureUnavailable("agent_studio.agent.snapshot")
+        XCTAssertFalse(err.userMessage.isEmpty, "featureUnavailable must surface a user message")
+        XCTAssertNotEqual(err.userMessage, "Method not found", "must not leak raw RPC error text")
+        // errorDescription (LocalizedError) 走 userMessage 同一出口。
+        XCTAssertEqual(err.errorDescription, err.userMessage)
+    }
+
+    func test_auditProduct0905_func_rpcMethodAvailabilityMarksNotFound() {
+        // FUNC-2/3/4/5/6/9: handleRPCError 须识别 -32601 并标 unavailable, 非 -32601 不标。
+        let rpcAvail = RPCMethodAvailability.shared
+        let probe = "test.probe.\(#function)"
+        // -32601 → 标 unavailable, 返 true。
+        let notFound = IPCError.rpcError(code: kRPCMethodNotFoundCode, message: "Method not found")
+        XCTAssertTrue(rpcAvail.handleRPCError(notFound, method: probe), "-32601 must be recognized")
+        XCTAssertFalse(rpcAvail.isMethodAvailable(probe), "method marked unavailable after -32601")
+        // 清理: 标回 available, 不污染共享单例后续测试。
+        rpcAvail.markAvailable(probe)
+        XCTAssertTrue(rpcAvail.isMethodAvailable(probe))
+        // 非 -32601 (如 500) → 不标, 返 false。
+        let serverErr = IPCError.rpcError(code: 500, message: "Internal Server Error")
+        XCTAssertFalse(rpcAvail.handleRPCError(serverErr, method: probe), "non -32601 must not mark unavailable")
+        XCTAssertTrue(rpcAvail.isMethodAvailable(probe))
+    }
+
+    func test_auditProduct0905_func_agentStateUnavailableFlagsDefaultFalse() {
+        // FUNC-5/6: auditTrailUnavailable/sessionLogsUnavailable 默认 false (功能存在时面板显正常空态)。
+        let state = AgentState()
+        XCTAssertFalse(state.auditTrailUnavailable, "default must be false (no spurious unavailable banner)")
+        XCTAssertFalse(state.sessionLogsUnavailable, "default must be false (no spurious unavailable banner)")
+    }
 }

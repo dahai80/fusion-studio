@@ -66,6 +66,10 @@ final class AgentState: ObservableObject {
     @Published var agentVersionHistory: [String: [[String: Any]]] = [:]
     @Published var auditTrail: [[String: Any]] = []
     @Published var sessionLogs: [[String: Any]] = []
+    // 审计product-0905 FUNC-5/6: 上游 audit.trail/session.logs 未实现, -32601 被静默吞 → 面板永久空。
+    //   用 flag 让面板显式区分 "无数据" vs "功能不可用", 不再伪装空态。
+    @Published var auditTrailUnavailable: Bool = false
+    @Published var sessionLogsUnavailable: Bool = false
     @Published var activeSessionId: String = ""
     @Published var streamingContent: String = ""
     @Published var isAgentStreaming: Bool = false

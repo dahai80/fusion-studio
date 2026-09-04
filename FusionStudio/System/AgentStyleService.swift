@@ -36,7 +36,16 @@ extension ConfigState {
 
     func styleDelete(styleId: String) async throws -> [String: Any] {
         guard let client = self.ipcClient else { throw BridgeError.notConnected }
-        let result = try await client.styleDelete(styleId: styleId)
+        let result: [String: Any]
+        do {
+            result = try await client.styleDelete(styleId: styleId)
+        } catch {
+            // 审计product-0905 FUNC-9: 上游 style.delete 未实现 (-32601, 后端仅 apply/create/get/list) → 友好降级, 不裸泄 "Method not found"。
+            if RPCMethodAvailability.shared.handleRPCError(error, method: RPCMethod.styleDelete) {
+                throw BridgeError.featureUnavailable(RPCMethod.styleDelete)
+            }
+            throw error
+        }
         self.stylesFetchedAt = nil
         await fetchStyles()
         return result

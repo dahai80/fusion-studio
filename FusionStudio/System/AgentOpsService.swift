@@ -202,17 +202,35 @@ extension AgentState {
     func agentSnapshot(agentId: String) async throws -> [String: Any] {
         guard let client = self.ipcClient else { throw BridgeError.notConnected }
         agentOpsLog.info("agentSnapshot: id=\(agentId)")
-        let result = try await client.call(method: RPCMethod.agentStudioAgentSnapshot, params: ["agent_id": agentId])
-        try await fetchAgents()
-        return result
+        do {
+            let result = try await client.call(method: RPCMethod.agentStudioAgentSnapshot, params: ["agent_id": agentId])
+            try await fetchAgents()
+            return result
+        } catch {
+            // 审计product-0905 FUNC-2: 上游 agent_studio.agent.snapshot 未实现 (-32601) → 友好降级, 不裸泄 "Method not found"。
+            if RPCMethodAvailability.shared.handleRPCError(error, method: RPCMethod.agentStudioAgentSnapshot) {
+                throw BridgeError.featureUnavailable(RPCMethod.agentStudioAgentSnapshot)
+            }
+            throw error
+        }
     }
 
     func agentVersions(agentId: String) async throws -> [[String: Any]] {
         guard let client = self.ipcClient else { throw BridgeError.notConnected }
         agentOpsLog.info("agentVersions: id=\(agentId)")
-        let result = try await client.call(method: RPCMethod.agentStudioAgentVersions, params: ["agent_id": agentId])
+        let result: Any
+        do {
+            result = try await client.call(method: RPCMethod.agentStudioAgentVersions, params: ["agent_id": agentId])
+        } catch {
+            // 审计product-0905 FUNC-3: 上游 agent_studio.agent.versions 未实现 (-32601) → 友好降级。
+            if RPCMethodAvailability.shared.handleRPCError(error, method: RPCMethod.agentStudioAgentVersions) {
+                throw BridgeError.featureUnavailable(RPCMethod.agentStudioAgentVersions)
+            }
+            throw error
+        }
         guard let versions = result as? [[String: Any]] else {
-            let items = result["versions"] as? [[String: Any]] ?? []
+            let dict = result as? [String: Any] ?? [:]
+            let items = dict["versions"] as? [[String: Any]] ?? []
             // 审计0902 A5 (P2): 每 agent 版本历史无 cap, 50 agent × 100 版本 → 无界 dict。cap 每键 50 保近期版本。
             let capped = Array(items.prefix(50))
             self.agentVersionHistory[agentId] = capped
@@ -226,7 +244,16 @@ extension AgentState {
     func agentRestoreVersion(agentId: String, versionId: String) async throws -> AgentModel {
         guard let client = self.ipcClient else { throw BridgeError.notConnected }
         agentOpsLog.info("agentRestoreVersion: id=\(agentId) version=\(versionId)")
-        let result = try await client.call(method: RPCMethod.agentStudioAgentRestoreVersion, params: ["agent_id": agentId, "version_id": versionId])
+        let result: [String: Any]
+        do {
+            result = try await client.call(method: RPCMethod.agentStudioAgentRestoreVersion, params: ["agent_id": agentId, "version_id": versionId])
+        } catch {
+            // 审计product-0905 FUNC-4: 上游 agent_studio.agent.restore_version 未实现 (-32601) → 友好降级。
+            if RPCMethodAvailability.shared.handleRPCError(error, method: RPCMethod.agentStudioAgentRestoreVersion) {
+                throw BridgeError.featureUnavailable(RPCMethod.agentStudioAgentRestoreVersion)
+            }
+            throw error
+        }
         guard let restored = Self.parseAgentModel(from: result) else {
             throw BridgeError.ipcError("Invalid restore response")
         }
@@ -262,11 +289,19 @@ extension AgentState {
             if let s = startDate { params["start_date"] = s }
             if let e = endDate { params["end_date"] = e }
             let result = try await client.call(method: RPCMethod.agentStudioAuditTrail, params: params)
+            self.auditTrailUnavailable = false
             let items = result["entries"] as? [[String: Any]] ?? (result as? [[String: Any]] ?? [])
             // F-A2: auditTrail 全量 fetch 无 cap, 服务端返海量条目时内存暴涨。保留最近 500 (LRU)。
             self.auditTrail = Array(items.suffix(500))
             agentOpsLog.info("Audit trail fetched: \(items.count) entries (capped to 500)")
         } catch {
+            // 审计product-0905 FUNC-5: 上游 audit.trail 未实现 (-32601) → 旧逻辑 debug-only 静默吞, 面板永久空伪装 "无数据"。
+            //   改: 标 unavailable flag, 面板显式 "功能不可用", 不再伪装空态。
+            if RPCMethodAvailability.shared.handleRPCError(error, method: RPCMethod.agentStudioAuditTrail) {
+                self.auditTrailUnavailable = true
+                agentOpsLog.warning("Audit trail unavailable (backend not implemented): \(error.localizedDescription, privacy: .public)")
+                return
+            }
             agentOpsLog.debug("Audit trail fetch failed: \(error.localizedDescription)")
         }
     }
@@ -279,11 +314,18 @@ extension AgentState {
             if let s = startDate { params["start_date"] = s }
             if let e = endDate { params["end_date"] = e }
             let result = try await client.call(method: RPCMethod.agentStudioSessionLogs, params: params)
+            self.sessionLogsUnavailable = false
             let items = result["sessions"] as? [[String: Any]] ?? (result as? [[String: Any]] ?? [])
             // F-A2: sessionLogs 全量 fetch 无 cap, 服务端返海量条目时内存暴涨。保留最近 500 (LRU)。
             self.sessionLogs = Array(items.suffix(500))
             agentOpsLog.info("Session logs fetched: \(items.count) entries (capped to 500)")
         } catch {
+            // 审计product-0905 FUNC-6: 上游 session.logs 未实现 (-32601) → 同 FUNC-5 友好降级。
+            if RPCMethodAvailability.shared.handleRPCError(error, method: RPCMethod.agentStudioSessionLogs) {
+                self.sessionLogsUnavailable = true
+                agentOpsLog.warning("Session logs unavailable (backend not implemented): \(error.localizedDescription, privacy: .public)")
+                return
+            }
             agentOpsLog.debug("Session logs fetch failed: \(error.localizedDescription)")
         }
     }

@@ -4900,6 +4900,7 @@
   "ab_err_timeout": "요청 시간이 초과되었습니다. AI 서비스 응답이 너무 느립니다. 나중에 다시 시도하세요.",
   "ab_err_service_anomaly": "AI 서비스가 오류를 반환했습니다. 서비스 상태를 확인하거나 나중에 다시 시도하세요.",
   "ab_err_unavailable": "AI 서비스를 일시적으로 사용할 수 없습니다. 나중에 다시 시도하세요.",
+  "ab_err_feature_unavailable": "이 기능은 현재 백엔드에서 구현되지 않았습니다. 업스트림 지원 대기 중입니다.",
   "ab_err_decode_mismatch": "AI 서비스가 비정상 데이터를 반환했습니다. 서비스 버전이 일치하는지 확인하세요.",
   "ab_err_unavailable_code_fmt": "AI 서비스를 일시적으로 사용할 수 없습니다(오류 코드: %d). 나중에 다시 시도하세요.",
   "ab_err_generic": "작업을 완료할 수 없습니다. 나중에 다시 시도하세요.",
