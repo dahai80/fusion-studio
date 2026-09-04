@@ -116,6 +116,10 @@ class ScienceBridge: ObservableObject {
     }
 
     func fetchSession(id: String) {
+        // SEC-7: id 防 path 注入。
+        guard Self.safePathSegment(id) else {
+            bridgeLog.error("fetchSession: invalid id"); return
+        }
         get("/api/v1/sessions/\(id)") { [weak self] (result: Result<ScienceSession, Error>) in
             switch result {
             case .success(let session):
@@ -138,6 +142,9 @@ class ScienceBridge: ObservableObject {
     // MARK: - Chat (non-streaming fallback)
 
     func sendChat(sessionId: String, message: String, completion: @escaping (Result<ScienceMessage, Error>) -> Void) {
+        guard Self.safePathSegment(sessionId) else {
+            completion(.failure(ScienceBridgeError.invalidURL)); return
+        }
         let body: [String: Any] = ["message": message]
         post("/api/v1/sessions/\(sessionId)/chat", body: body) { [weak self] (result: Result<ScienceMessage, Error>) in
             switch result {
@@ -156,6 +163,9 @@ class ScienceBridge: ObservableObject {
     // MARK: - Search
 
     func searchPapers(sessionId: String, query: String, databases: [String]? = nil, completion: @escaping (Result<[SciencePaper], Error>) -> Void) {
+        guard Self.safePathSegment(sessionId) else {
+            completion(.failure(ScienceBridgeError.invalidURL)); return
+        }
         var body: [String: Any] = ["query": query]
         if let dbs = databases { body["databases"] = dbs }
         post("/api/v1/sessions/\(sessionId)/search", body: body) { [weak self] (result: Result<[SciencePaper], Error>) in
@@ -172,6 +182,9 @@ class ScienceBridge: ObservableObject {
     // MARK: - Analyze
 
     func analyzeData(sessionId: String, query: String, data: String? = nil, completion: @escaping (Result<[ScienceArtifact], Error>) -> Void) {
+        guard Self.safePathSegment(sessionId) else {
+            completion(.failure(ScienceBridgeError.invalidURL)); return
+        }
         var body: [String: Any] = ["query": query]
         if let d = data { body["data"] = d }
         post("/api/v1/sessions/\(sessionId)/analyze", body: body) { [weak self] (result: Result<[ScienceArtifact], Error>) in
@@ -205,6 +218,9 @@ class ScienceBridge: ObservableObject {
     // MARK: - Visualize
 
     func visualize(sessionId: String, query: String, completion: @escaping (Result<[ScienceFigure], Error>) -> Void) {
+        guard Self.safePathSegment(sessionId) else {
+            completion(.failure(ScienceBridgeError.invalidURL)); return
+        }
         let body: [String: Any] = ["query": query]
         post("/api/v1/sessions/\(sessionId)/visualize", body: body) { [weak self] (result: Result<[ScienceFigure], Error>) in
             switch result {
@@ -220,6 +236,9 @@ class ScienceBridge: ObservableObject {
     // MARK: - Review
 
     func review(sessionId: String, query: String, completion: @escaping (Result<String, Error>) -> Void) {
+        guard Self.safePathSegment(sessionId) else {
+            completion(.failure(ScienceBridgeError.invalidURL)); return
+        }
         let body: [String: Any] = ["query": query]
         postRaw("/api/v1/sessions/\(sessionId)/review", body: body) { result in
             switch result {
@@ -241,6 +260,9 @@ class ScienceBridge: ObservableObject {
     // MARK: - Audit
 
     func fetchAudit(sessionId: String) {
+        guard Self.safePathSegment(sessionId) else {
+            bridgeLog.error("fetchAudit: invalid sessionId"); return
+        }
         get("/api/v1/sessions/\(sessionId)/audit") { [weak self] (result: Result<[ScienceAuditEntry], Error>) in
             switch result {
             case .success(let entries):
@@ -266,12 +288,26 @@ class ScienceBridge: ObservableObject {
 
     // MARK: - Generic HTTP
 
+    // SEC-7 (审计product-0905 P2): path 段注入防御 — 拒空/含 / \ .. /控制字符的 segment。
+    static func safePathSegment(_ s: String) -> Bool {
+        guard !s.isEmpty else { return false }
+        if s.contains("/") || s.contains("\\") { return false }
+        if s.contains("..") { return false }
+        if s.unicodeScalars.contains(where: { $0.value < 0x20 || $0 == "?" || $0 == "#" }) { return false }
+        return true
+    }
+
     private func get<T: Decodable>(_ path: String, completion: @escaping (Result<T, Error>) -> Void) {
         guard let url = URL(string: "\(baseURL)\(path)") else {
             completion(.failure(ScienceBridgeError.invalidURL)); return
         }
-        session.dataTask(with: url) { data, _, error in
+        session.dataTask(with: url) { data, response, error in
             if let error = error { completion(.failure(error)); return }
+            // SEC-7: 校验 HTTP 状态, 非 2xx 显式失败 (原静默当 decode error 掩盖服务端错误)。
+            if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+                bridgeLog.error("GET \(path) HTTP \(http.statusCode)")
+                completion(.failure(ScienceBridgeError.httpError(http.statusCode))); return
+            }
             guard let data = data else { completion(.failure(ScienceBridgeError.noData)); return }
             do {
                 let decoded = try JSONDecoder().decode(T.self, from: data)
@@ -291,8 +327,13 @@ class ScienceBridge: ObservableObject {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        session.dataTask(with: request) { data, _, error in
+        session.dataTask(with: request) { data, response, error in
             if let error = error { completion(.failure(error)); return }
+            // SEC-7: 校验 HTTP 状态。
+            if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+                bridgeLog.error("POST \(path) HTTP \(http.statusCode)")
+                completion(.failure(ScienceBridgeError.httpError(http.statusCode))); return
+            }
             guard let data = data else { completion(.failure(ScienceBridgeError.noData)); return }
             do {
                 let decoded = try JSONDecoder().decode(T.self, from: data)
@@ -312,8 +353,13 @@ class ScienceBridge: ObservableObject {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        session.dataTask(with: request) { data, _, error in
+        session.dataTask(with: request) { data, response, error in
             if let error = error { completion(.failure(error)); return }
+            // SEC-7: 校验 HTTP 状态。
+            if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+                bridgeLog.error("POST(raw) \(path) HTTP \(http.statusCode)")
+                completion(.failure(ScienceBridgeError.httpError(http.statusCode))); return
+            }
             guard let data = data else { completion(.failure(ScienceBridgeError.noData)); return }
             completion(.success(data))
         }.resume()
@@ -335,11 +381,13 @@ class ScienceBridge: ObservableObject {
 enum ScienceBridgeError: Error, LocalizedError {
     case invalidURL
     case noData
+    case httpError(Int)
 
     var errorDescription: String? {
         switch self {
         case .invalidURL: return "Invalid URL"
         case .noData: return "No data returned"
+        case .httpError(let code): return "HTTP \(code)"
         }
     }
 }

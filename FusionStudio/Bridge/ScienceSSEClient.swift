@@ -21,8 +21,10 @@ class ScienceSSEClient: ObservableObject {
     }
 
     func streamChat(baseURL: String = FusionConfig.shared.scienceBaseURL, sessionId: String, message: String) {
-        guard let url = URL(string: "\(baseURL)/api/v1/sessions/\(sessionId)/chat") else {
-            sseLog.error("SSE: invalid URL")
+        // SEC-7 (审计product-0905 P2): sessionId 防 path 注入。
+        guard ScienceBridge.safePathSegment(sessionId),
+              let url = URL(string: "\(baseURL)/api/v1/sessions/\(sessionId)/chat") else {
+            sseLog.error("SSE: invalid sessionId or URL")
             return
         }
 
@@ -49,6 +51,13 @@ class ScienceSSEClient: ObservableObject {
                         sseLog.error("SSE stream error: \(msg)")
                         self.streamError = msg
                     }
+                    return
+                }
+
+                // SEC-7: 校验 HTTP 状态, 非 2xx 显式失败 (原静默当空流)。
+                if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+                    sseLog.error("SSE stream HTTP \(http.statusCode)")
+                    self.streamError = "HTTP \(http.statusCode)"
                     return
                 }
 

@@ -610,8 +610,12 @@ struct ArtifactSandboxView: NSViewRepresentable {
             if navigationAction.navigationType == .linkActivated, let url = navigationAction.request.url {
                 if url.scheme == "data" || url.scheme == "about" {
                     decisionHandler(.allow)
-                } else {
+                } else if url.scheme == "http" || url.scheme == "https" {
+                    // SEC-4 (审计product-0905 P2): artifact HTML 不可信, 仅放行 http(s) 外链。
                     NSWorkspace.shared.open(url)
+                    decisionHandler(.cancel)
+                } else {
+                    canvasLog.warning("SEC-4: blocked non-http(s) link scheme=\(url.scheme ?? "?", privacy: .public)")
                     decisionHandler(.cancel)
                 }
             } else {

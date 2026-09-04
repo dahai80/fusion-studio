@@ -32,7 +32,12 @@ struct HTMLPreviewView: NSViewRepresentable {
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
                      decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
             if navigationAction.navigationType == .linkActivated, let url = navigationAction.request.url {
-                NSWorkspace.shared.open(url)
+                // SEC-4 (审计product-0905 P2): artifact HTML 不可信, 仅放行 http(s), 拒 file/data/about/自定义 scheme 防 arbitrary launch。
+                if url.scheme == "http" || url.scheme == "https" {
+                    NSWorkspace.shared.open(url)
+                } else {
+                    artifactsLog.warning("SEC-4: blocked non-http(s) link scheme=\(url.scheme ?? "?", privacy: .public)")
+                }
                 decisionHandler(.cancel)
             } else {
                 decisionHandler(.allow)
