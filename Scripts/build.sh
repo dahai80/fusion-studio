@@ -184,16 +184,20 @@ bundle_python() {
 #!/bin/bash
 # Fusion Studio bundled backend wrapper (Track A #393).
 # Relocatable: PYTHONHOME/PYTHONPATH resolved via $SCRIPT_DIR at runtime.
+# 审计v0.1.58 P0-bundling-2: 清继承环境 (DYLD/PYTHON 注入) + -I -P 隔离用户站点.
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+unset DYLD_LIBRARY_PATH DYLD_FALLBACK_LIBRARY_PATH DYLD_INSERT_LIBRARIES \
+      PYTHONSTARTUP PYTHONHOME PYTHONPATH PYTHONUSERBASE PYTHONDONTWRITEBYTECODE 2>/dev/null || true
 export PYTHONHOME="$SCRIPT_DIR/python"
 export PYTHONPATH="$SCRIPT_DIR:$SCRIPT_DIR/python/lib/python3.12/site-packages"
-exec "$SCRIPT_DIR/python/bin/python3" -m agent_runtime.daemon_server "$@"
+exec "$SCRIPT_DIR/python/bin/python3" -I -P -m agent_runtime.daemon_server -- "$@"
 WRAPPER
     chmod +x "$svc_dir/start.sh"
     info "✅ 生成 wrapper start.sh (可重定位)"
 
-    # 生成 MANIFEST.txt (诊断/更新校验)
+    # 生成 MANIFEST.txt (诊断/更新校验 + 运行时完整性校验)
+    # 审计v0.1.58 P1-manifest: 追加关键文件 sha256, 运行时可校验防篡改.
     {
         echo "fusion-studio bundled Python runtime (Track A #393)"
         echo "python-build-standalone release: $release"
@@ -202,8 +206,15 @@ WRAPPER
         echo "python version: $("$py_dir/bin/python3" --version 2>&1)"
         echo "site-packages: $(ls "$site_dir" 2>/dev/null | tr '\n' ' ')"
         echo "generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        echo "--- file-integrity ---"
+        for f in start.sh agent_runtime/daemon_server.py python/bin/python3 python/lib/python3.12/site-packages.txt; do
+            fp="$svc_dir/$f"
+            if [ -f "$fp" ]; then
+                echo "$f $(shasum -a 256 "$fp" | awk '{print $1}')"
+            fi
+        done
     } > "$svc_dir/MANIFEST.txt"
-    info "✅ MANIFEST.txt 生成"
+    info "✅ MANIFEST.txt 生成 (含文件完整性校验)"
 
     info "✅ Python 后端运行时打包完成: $svc_dir ($(du -sh "$svc_dir" | awk '{print $1}'))"
 }
@@ -352,16 +363,25 @@ sign_app() {
     fi
 
     local entitlements="$PROJECT_DIR/FusionStudio/Resources/Entitlements.plist"
+    # 审计v0.1.58 P1-codesign: 弃用 --deep (Apple 已弃用; 对嵌套 helper 用相同身份/entitlements 签名是错的).
+    #   改叶先签: 先签 bundle 内嵌套可执行 (Python 解释器), 再签 .app 主体.
+    local svc_dir="$APP_BUNDLE/Contents/Services"
+    if [ -d "$svc_dir/python/bin" ]; then
+        for nested in "$svc_dir/python/bin/python3" "$svc_dir/start.sh"; do
+            if [ -f "$nested" ]; then
+                info "  叶先签嵌套: $(basename "$nested")"
+                codesign --force --options runtime --sign "$dev_id" "$nested" 2>&1 || warn "嵌套签名跳过: $nested"
+            fi
+        done
+    fi
     if [ -f "$entitlements" ]; then
         codesign --force --options runtime \
             --sign "$dev_id" \
-            --deep \
             --entitlements "$entitlements" \
             "$APP_BUNDLE" 2>&1
     else
         codesign --force --options runtime \
             --sign "$dev_id" \
-            --deep \
             "$APP_BUNDLE" 2>&1
     fi
 

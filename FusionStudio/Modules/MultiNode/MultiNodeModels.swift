@@ -23,6 +23,12 @@ struct V1ClusterInfo: Codable {
     let totalMemoryGB: Double
     let availableMemoryGB: Double
     let utilization: Double
+    // #76: 领导纪元 + leader_id + is_leader (v1 stats cluster sub-dict, additive)。nil = 旧版上游。
+    let epoch: Int?
+    let leaderId: String?
+    let isLeader: Bool?
+    // #77: per-leader token (failover 后客户端刷新, 发变更请求带 X-Leader-Token)。nil = 旧版/未 enforce。
+    let leaderToken: String?
 
     enum CodingKeys: String, CodingKey {
         case onlineNodes = "online_nodes"
@@ -31,6 +37,10 @@ struct V1ClusterInfo: Codable {
         case totalMemoryGB = "total_memory_gb"
         case availableMemoryGB = "available_memory_gb"
         case utilization
+        case epoch
+        case leaderId = "leader_id"
+        case isLeader = "is_leader"
+        case leaderToken = "leader_token"
     }
 }
 
@@ -81,6 +91,21 @@ struct NodeListResponse: Codable {
     let total: Int
     let online: Int
     let nodes: [ClusterNode]
+    // #72: server 权威脑裂判定 (少数派, 无法达仲裁)。nil = 旧版上游未暴露, 客户端回退 master-count heuristic。
+    let partitioned: Bool?
+    // #76: 领导纪元 (Raft current_term, 单调)。HA standby > 0; 单 master / active-active = 0。
+    // 客户端缓存已知最大 epoch, 收到更小 epoch = stale leader 视图 → 写禁用。
+    let epoch: Int?
+    let leaderId: String?
+    let isLeader: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case total, online, nodes
+        case partitioned
+        case epoch
+        case leaderId = "leader_id"
+        case isLeader = "is_leader"
+    }
 }
 
 // MARK: - /api/tasks 响应（包装结构）
@@ -118,6 +143,9 @@ struct ClusterNode: Codable, Identifiable, Hashable {
     let score: Double
     let lastHeartbeat: Double?
     let role: String?
+    // #76: 每节点同值 (同一 master 视图)。nil = 旧版上游未暴露。
+    let epoch: Int?
+    let leaderId: String?
 
     enum CodingKeys: String, CodingKey {
         case id = "node_id"
@@ -136,6 +164,8 @@ struct ClusterNode: Codable, Identifiable, Hashable {
         case score
         case lastHeartbeat = "last_heartbeat"
         case role
+        case epoch
+        case leaderId = "leader_id"
     }
 
     var isMaster: Bool { role == "master" }
@@ -175,7 +205,8 @@ struct ClusterNode: Codable, Identifiable, Hashable {
         port: 0, status: .offline, totalMemoryGB: 0,
         availableMemoryGB: 0, cpuCores: 0, gpuCores: 0,
         deviceModel: "-", umaSizeGB: nil, activeTasks: 0,
-        maxTasks: 0, score: 0, lastHeartbeat: nil, role: nil
+        maxTasks: 0, score: 0, lastHeartbeat: nil, role: nil,
+        epoch: nil, leaderId: nil
     )
 }
 

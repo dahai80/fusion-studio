@@ -40,13 +40,19 @@ enum KeychainStore {
     @discardableResult
     static func set(_ account: String, _ value: String) -> Bool {
         let data = Data(value.utf8)
+        // 审计v0.1.58 P1-keychain: token 不跨设备同步 (kSecAttrSynchronizable=false) +
+        //   仅解锁时可访问 (kSecAttrAccessibleWhenUnlocked). 防 JWT/cluster token 经 iCloud 泄漏.
+        let accessible: CFString = kSecAttrAccessibleWhenUnlocked
         var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
+            kSecAttrSynchronizable as String: kCFBooleanFalse as Any,
         ]
         let attributes: [String: Any] = [
             kSecValueData as String: data,
+            kSecAttrAccessible as String: accessible,
+            kSecAttrSynchronizable as String: kCFBooleanFalse as Any,
         ]
         // try update first (avoid duplicate-item error on re-save)
         let updateStatus = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
@@ -56,6 +62,7 @@ enum KeychainStore {
         if updateStatus == errSecItemNotFound {
             var addQuery = query
             addQuery[kSecValueData as String] = data
+            addQuery[kSecAttrAccessible as String] = accessible
             let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
             if addStatus == errSecSuccess {
                 return true

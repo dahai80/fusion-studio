@@ -950,14 +950,15 @@ struct FSBWorkflowCanvasView: View {
                         for (idx, n) in graphNodes.enumerated() {
                             let cfg = (n["config"] as? [String: Any]) ?? [:]
                             let pos = Self.parseNodePosition(node: n, fallbackIndex: idx)
+                            let nodeId = n["id"] as? String ?? UUID().uuidString
                             loaded.append(FSBGraphNode(
-                                id: n["id"] as? String ?? UUID().uuidString,
+                                id: nodeId,
                                 type: FSBNodeType(rawValue: n["type"] as? String ?? "SKILL_NODE") ?? .SKILL_NODE,
                                 label: cfg["label"] as? String ?? I18nManager.shared.t(.fsb_unnamed),
                                 position: pos,
                                 config: cfg
                             ))
-                            lastSavedPositions[n["id"] as? String ?? ""] = pos
+                            lastSavedPositions[nodeId] = pos
                         }
                         nodes = loaded
                         edges = graphEdges.map { e in
@@ -992,7 +993,9 @@ struct FSBWorkflowCanvasView: View {
         var changed = false
         var layout: [String: [String: CGFloat]] = [:]
         for n in nodes {
-            layout[n.id] = ["x": n.position.x, "y": n.position.y]
+            let x = n.position.x.isFinite ? n.position.x : 0
+            let y = n.position.y.isFinite ? n.position.y : 0
+            layout[n.id] = ["x": x, "y": y]
             if let last = lastSavedPositions[n.id], last != n.position {
                 changed = true
             } else if lastSavedPositions[n.id] == nil {

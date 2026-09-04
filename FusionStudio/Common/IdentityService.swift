@@ -303,6 +303,14 @@ final class IdentityService: ObservableObject {
         guard let claims = IdentityService.decodeClaims(jwt: jwt) else {
             throw IdentityError.badResponse
         }
+        // 审计v0.1.58 P1-cross-tenant: 登录指定 tenantId 时, 校验 JWT tid claim 一致,
+        //   拒绝签发给错误租户的 token (防 issuer 配置错乱导致跨租户越权).
+        if let claimTid = claims["tid"] as? String, !claimTid.isEmpty,
+           !tenantId.isEmpty, claimTid != tenantId {
+            logger.error("persistAndBuild: JWT tid=\(claimTid, privacy: .public) 与登录 tenant=\(tenantId, privacy: .public) 不一致, 拒绝建会话")
+            KeychainStore.clearIdentity()
+            throw IdentityError.badResponse
+        }
         buildSessionFromClaims(jwt: jwt, refreshToken: refreshToken, claims: claims, fallbackTenant: tenantId, expiresInSeconds: expiresIn)
         state = .loggedIn
     }
