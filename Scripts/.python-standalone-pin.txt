@@ -1,0 +1,5 @@
+# python-build-standalone pin (Track A #393).
+# Source: https://github.com/astral-sh/python-build-standalone
+RELEASE=20260901
+ASSET=cpython-3.12.14+20260901-aarch64-apple-darwin-install_only.tar.gz
+SHA256=3ee3ee547cedfeb7c2b16b2b7156039f7b470bb8f857e226fd3d2eb11db83c76

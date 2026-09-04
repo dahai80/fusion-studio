@@ -50,6 +50,164 @@ build_app() {
     fi
 }
 
+# ─── 阶段 2.5: 打包 Python 后端运行时 (Track A #393) ──────────
+# 下载 pinned python-build-standalone, 安装最小依赖 (copy 模式非 -e, 可重定位),
+# 拷贝 agent_runtime/, 生成可重定位 wrapper start.sh + MANIFEST.txt。
+bundle_python() {
+    step "打包 Python 后端运行时 (Contents/Services)"
+    local app_dir="$APP_BUNDLE/Contents"
+    local svc_dir="$app_dir/Services"
+    mkdir -p "$svc_dir"
+
+    local pin_file="$PROJECT_DIR/Scripts/.python-standalone-pin.txt"
+    if [ ! -f "$pin_file" ]; then
+        warn "未找到 python-build-standalone pin 文件, 跳过 Python 打包"
+        return 0
+    fi
+    # 解析 pin (RELEASE / ASSET / SHA256)
+    local release asset expected_sha
+    release=$(grep '^RELEASE=' "$pin_file" | cut -d= -f2)
+    asset=$(grep '^ASSET=' "$pin_file" | cut -d= -f2)
+    expected_sha=$(grep '^SHA256=' "$pin_file" | cut -d= -f2)
+    if [ -z "$release" ] || [ -z "$asset" ] || [ "$expected_sha" = "__PENDING_VERIFY__" ]; then
+        warn "python pin 不完整 (RELEASE/ASSET/SHA256), 跳过 Python 打包"
+        return 0
+    fi
+
+    local cache_dir="$HOME/.fusion-studio/build-cache/python"
+    mkdir -p "$cache_dir"
+    local tarball="$cache_dir/$asset"
+    local url="https://github.com/astral-sh/python-build-standalone/releases/download/$release/$asset"
+
+    # 下载 (缓存命中 + sha256 校验通过则跳过)
+    local need_download=1
+    if [ -f "$tarball" ]; then
+        local actual_sha
+        actual_sha=$(shasum -a 256 "$tarball" | awk '{print $1}')
+        if [ "$actual_sha" = "$expected_sha" ]; then
+            need_download=0
+            info "✅ python-build-standalone 缓存命中 (sha256 校验通过)"
+        else
+            warn "缓存 sha256 不匹配, 重新下载"
+        fi
+    fi
+    if [ "$need_download" = "1" ]; then
+        info "下载 python-build-standalone: $url"
+        curl -L --fail -o "$tarball" "$url" || { error "下载失败"; return 1; }
+        local actual_sha
+        actual_sha=$(shasum -a 256 "$tarball" | awk '{print $1}')
+        if [ "$actual_sha" != "$expected_sha" ]; then
+            error "python-build-standalone sha256 校验失败: 期望 $expected_sha 实得 $actual_sha"
+            return 1
+        fi
+        info "✅ sha256 校验通过: $expected_sha"
+    fi
+
+    # 解压到 Contents/Services/python
+    local py_dir="$svc_dir/python"
+    rm -rf "$py_dir"
+    mkdir -p "$py_dir"
+    tar -xzf "$tarball" -C "$svc_dir" || { error "解压失败"; return 1; }
+    # tarball 顶层是 python/ 目录, 解压后 $svc_dir/python 已就位
+    if [ ! -x "$py_dir/bin/python3" ]; then
+        error "解压后未找到 $py_dir/bin/python3"
+        return 1
+    fi
+    info "✅ Python 运行时: $("$py_dir/bin/python3" --version 2>&1)"
+
+    # 安装最小 PyPI 依赖 (copy 模式, --target 写入固定目录可重定位)
+    # 注: 不用 --no-deps —— fastapi/uvicorn/pydantic 有必需的运行时传递依赖
+    # (starlette / typing-extensions / typing-inspection 等), --no-deps 会导致
+    # daemon_server 启动时 ModuleNotFoundError. 依赖树由 bundle-requirements.txt
+    # 顶层包经 pip resolver 解析, 只装必需的, 不会拉全树.
+    local site_dir="$py_dir/lib/python3.12/site-packages"
+    local req_file="$PROJECT_DIR/Scripts/bundle-requirements.txt"
+    if [ -f "$req_file" ]; then
+        info "安装最小 PyPI 依赖到 bundle site-packages..."
+        # bundled python 可能未带 pip, 先 ensurepip (失败则回退尝试直接 pip)
+        if ! "$py_dir/bin/python3" -m pip --version >/dev/null 2>&1; then
+            warn "bundled python 缺 pip, 执行 ensurepip..."
+            "$py_dir/bin/python3" -m ensurepip --upgrade 2>&1 | tail -3 || {
+                warn "ensurepip 失败, PyPI 依赖安装将跳过"
+            }
+        fi
+        "$py_dir/bin/python3" -m pip install --target "$site_dir" -r "$req_file" 2>&1 | tail -8 || {
+            warn "PyPI 依赖安装失败 (网络?), 后端可启动但部分 RPC 可能不可用"
+        }
+    fi
+
+    # 安装 in-tree fusion-* 包 (copy 模式非 -e, 避免绝对路径 egg-link)
+    local mono_root="${MONO_ROOT:-$HOME/fusion}"
+    local pkg
+    for pkg in fusion-core fusion-identity fusion-plugins-ecosystem; do
+        local src="$mono_root/$pkg"
+        if [ -d "$src" ]; then
+            info "安装 $pkg (copy 模式)..."
+            "$py_dir/bin/python3" -m pip install --no-deps --target "$site_dir" "$src" 2>&1 | tail -3 || {
+                warn "$pkg 安装失败, 跳过"
+            }
+        else
+            warn "$pkg 源码未找到 ($src), 跳过"
+        fi
+    done
+
+    # 拷贝 agent_runtime (daemon_server.py + agent_runtime 包)
+    local ar_src="$mono_root/fusion-agent-studio/agent_runtime"
+    if [ -d "$ar_src" ]; then
+        cp -R "$ar_src" "$svc_dir/agent_runtime"
+        info "✅ 拷贝 agent_runtime ($(du -sh "$svc_dir/agent_runtime" | awk '{print $1}'))"
+    else
+        error "agent_runtime 源码未找到: $ar_src"
+        return 1
+    fi
+
+    # 拷贝 tools + server (agent_runtime 的同级包, 模块加载期直接导入, 必须随包)
+    # tools: _runtime_nodes.py 顶层 `from tools.plan_tools import ...` (非惰性)
+    # server: fusion_mlx_client / fusion_rag_client (handler 内惰性, 但体积小一并打包)
+    local sib
+    for sib in tools server; do
+        local sib_src="$mono_root/fusion-agent-studio/$sib"
+        if [ -d "$sib_src" ]; then
+            cp -R "$sib_src" "$svc_dir/$sib"
+            info "✅ 拷贝 $sib ($(du -sh "$svc_dir/$sib" | awk '{print $1}'))"
+        else
+            warn "$sib 源码未找到 ($sib_src), 跳过"
+        fi
+    done
+
+    # 生成可重定位 wrapper start.sh (fusion-studio 自有, 非上游)
+    # 注: daemon_server.py 用相对导入 (from .chat_engine import ...), 必须用
+    # `python3 -m agent_runtime.daemon_server` 运行 (而非直接运行 .py),
+    # 且 PYTHONPATH 须含 agent_runtime 的父目录 ($SCRIPT_DIR), 与上游
+    # start.sh 的 `python3 -m agent_runtime.daemon_server` 一致。
+    cat > "$svc_dir/start.sh" << 'WRAPPER'
+#!/bin/bash
+# Fusion Studio bundled backend wrapper (Track A #393).
+# Relocatable: PYTHONHOME/PYTHONPATH resolved via $SCRIPT_DIR at runtime.
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export PYTHONHOME="$SCRIPT_DIR/python"
+export PYTHONPATH="$SCRIPT_DIR:$SCRIPT_DIR/python/lib/python3.12/site-packages"
+exec "$SCRIPT_DIR/python/bin/python3" -m agent_runtime.daemon_server "$@"
+WRAPPER
+    chmod +x "$svc_dir/start.sh"
+    info "✅ 生成 wrapper start.sh (可重定位)"
+
+    # 生成 MANIFEST.txt (诊断/更新校验)
+    {
+        echo "fusion-studio bundled Python runtime (Track A #393)"
+        echo "python-build-standalone release: $release"
+        echo "asset: $asset"
+        echo "sha256: $expected_sha"
+        echo "python version: $("$py_dir/bin/python3" --version 2>&1)"
+        echo "site-packages: $(ls "$site_dir" 2>/dev/null | tr '\n' ' ')"
+        echo "generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    } > "$svc_dir/MANIFEST.txt"
+    info "✅ MANIFEST.txt 生成"
+
+    info "✅ Python 后端运行时打包完成: $svc_dir ($(du -sh "$svc_dir" | awk '{print $1}'))"
+}
+
 # ─── 阶段 3: 打包 .app Bundle ─────────────────────────────────
 
 package_app() {
@@ -66,6 +224,9 @@ package_app() {
         error "找不到构建产物: $binary_path/FusionStudio"
         return 1
     fi
+
+    # Track A #393: 打包 Python 后端运行时到 Contents/Services
+    bundle_python || { error "Python 后端运行时打包失败"; return 1; }
 
     # 生成 Info.plist
     cat > "$app_dir/Info.plist" << PLIST

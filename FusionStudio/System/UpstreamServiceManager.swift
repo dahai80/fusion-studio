@@ -404,7 +404,12 @@ final class UpstreamServiceManager: ObservableObject {
     // MARK: - 探测与执行
 
     private func startShPath(for svc: UpstreamService) -> String {
-        FusionConfig.shared.expandedUpstreamPath(svc.repoPathRaw) + "/start.sh"
+        // #393 Track A: agent-studio daemon 走 bundle 解析 (用户覆盖 > ~/fusion dev > bundle > nil)。
+        // 其他上游服务保留 ~/fusion 硬路径 (未打包, fresh Mac 上 .notInstalled 即预期)。
+        if svc.id == "agent-studio" {
+            return FusionConfig.shared.resolveBackendStartSh() ?? ""
+        }
+        return FusionConfig.shared.expandedUpstreamPath(svc.repoPathRaw) + "/start.sh"
     }
 
     private func probeHealth(_ svc: UpstreamService) async -> Bool {

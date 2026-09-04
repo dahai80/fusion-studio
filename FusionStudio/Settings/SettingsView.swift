@@ -18,6 +18,7 @@ struct SettingsView: View {
         case workspace  = "工作区"
         case mlxConnection = "MLX 连接"
         case multiNodeSecurity = "多节点安全"
+        case backendRuntime = "后端运行时"
 
         var icon: String {
             switch self {
@@ -29,6 +30,7 @@ struct SettingsView: View {
             case .workspace:  return "folder"
             case .mlxConnection: return "server.rack"
             case .multiNodeSecurity: return "lock.shield"
+            case .backendRuntime: return "externaldrive.connected.to.line.below"
             }
         }
     }
@@ -66,6 +68,10 @@ struct SettingsView: View {
             MultiNodeSecuritySettingsView()
                 .tabItem { Label(i18n.t(.tab_multiNodeSecurity), systemImage: "lock.shield") }
                 .tag(SettingsTab.multiNodeSecurity)
+
+            BackendRuntimeSettingsView()
+                .tabItem { Label(i18n.t(.tab_backendRuntime), systemImage: "externaldrive.connected.to.line.below") }
+                .tag(SettingsTab.backendRuntime)
         }
         .frame(width: 600, height: 450)
         .toolbar {
@@ -734,6 +740,81 @@ struct MultiNodeSecuritySettingsView: View {
                 importError = "\(error.localizedDescription)"
                 log.error("cert import failed: \(error.localizedDescription, privacy: .public)")
             }
+        }
+    }
+}
+
+// MARK: - 后端运行时设置 (#393 Track A: bundled daemon path resolution + override)
+
+struct BackendRuntimeSettingsView: View {
+    @Environment(\.studioTheme) private var theme
+    @StateObject private var i18n = I18nManager.shared
+    @StateObject private var config = FusionConfig.shared
+    @State private var overrideInput: String = UserDefaults.standard.string(forKey: "backendRuntimeOverridePath") ?? ""
+    @State private var resolvedPath: String = ""
+    @State private var corruptBanner: Bool = false
+    private let log = Logger(subsystem: "com.fusion.studio", category: "Settings.BackendRuntime")
+
+    private func refreshResolved() {
+        let p = FusionConfig.shared.resolveBackendStartSh()
+        resolvedPath = p ?? ""
+        corruptBanner = (p == nil)
+        log.info("backend runtime resolved: \(resolvedPath, privacy: .public) corrupt=\(corruptBanner)")
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: theme.spacingM) {
+                Text(i18n.t(.backend_runtime_title))
+                    .font(.system(size: theme.captionSize, weight: .semibold))
+                    .foregroundStyle(theme.textTertiary)
+                    .padding(.bottom, theme.spacingXS)
+
+                if corruptBanner {
+                    Text(i18n.t(.backend_runtime_corrupt_banner))
+                        .font(.system(size: theme.captionSize))
+                        .foregroundStyle(theme.errorText)
+                        .padding(theme.spacingXS)
+                        .background(theme.errorText.opacity(0.08))
+                        .cornerRadius(6)
+                }
+
+                settingRow(i18n.t(.backend_runtime_resolved_path), resolvedPath.isEmpty ? "—" : resolvedPath) {
+                    EmptyView()
+                }
+
+                Divider().padding(.vertical, theme.spacingXS)
+
+                settingRow(i18n.t(.backend_runtime_override_label), i18n.t(.backend_runtime_override_hint)) {
+                    TextField(i18n.t(.backend_runtime_override_placeholder), text: $overrideInput)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: theme.footnoteSize, design: .monospaced))
+                        .frame(width: 260)
+                        .onSubmit {
+                            let trimmed = overrideInput.trimmingCharacters(in: .whitespacesAndNewlines)
+                            config.backendRuntimeOverridePath = trimmed
+                            log.info("backend runtime override set: '\(trimmed, privacy: .public)'")
+                            refreshResolved()
+                        }
+                }
+            }
+            .padding(theme.spacingM)
+        }
+        .onAppear { refreshResolved() }
+    }
+
+    private func settingRow<C: View>(_ title: String, _ desc: String, @ViewBuilder control: () -> C) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(title)
+                    .font(.system(size: theme.textSize, weight: .medium))
+                    .foregroundStyle(theme.text)
+                Spacer()
+                control()
+            }
+            Text(desc)
+                .font(.system(size: theme.captionSize))
+                .foregroundStyle(theme.textSecondary)
         }
     }
 }
