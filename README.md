@@ -54,7 +54,7 @@ Design · Code · Simulation · MultiModal · Training · Data · Agent · KB ·
 | 🔌 **Plugin System** | Third-party extension support |
 | ♿ **Accessibility** | VoiceOver labels, keyboard navigation, reduce motion (partial — `accessibilityIdentifier` coverage in progress) |
 | 🌐 **i18n** | Chinese, English, Japanese, Korean |
-| 🔒 **Security Center** | SAST 扫描 + AI 修复 + 质量门禁 + 运行时防护（沙箱/脱敏/注入检测） |
+| 🔒 **Security Center** | SAST scan + AI fix + quality gate + runtime protection (sandbox / desensitization / injection detection) |
 
 ### 🧩 Module Overview
 
@@ -77,7 +77,7 @@ Design · Code · Simulation · MultiModal · Training · Data · Agent · KB ·
 | 13 | 📈 **Data Tools** | `tablecells` | ✅ Stable | CSV import/export, statistics, charts, SQL queries |
 | 14 | 🤝 **Agent** | `person.2.fill` | ✅ Stable | Multi-agent orchestration, workflows, task delegation |
 | 15 | 🔌 **Plugin** | `puzzlepiece.extension` | ✅ Stable | Plugin manager, marketplace, developer tools |
-| 16 | 🔒 **Security** | `shield.checkered` | ✅ Stable | 6 原生 tab：安全概览/项目与扫描/漏洞清单/AI 修复/质量门禁/运行时防护，直连 fusion-security :11454 |
+| 16 | 🔒 **Security** | `shield.checkered` | ✅ Stable | 6 native tabs: Security Overview / Projects & Scans / Vulnerability List / AI Fix / Quality Gate / Runtime Protection, direct connection to fusion-security :11454 |
 | 17 | 📊 **Analytics** | `chart.bar.xaxis` | ✅ Stable | Usage analytics, inference stats, error analysis |
 | 18 | 👥 **Collaboration** | `person.2` | ✅ Stable | LAN peer discovery, real-time chat, shared resources |
 | 19 | ⚡ **Auto Tuning** | `wand.and.rays` | ✅ Stable | MLX auto-tuning, performance optimization |
@@ -297,7 +297,7 @@ fusion-studio (GUI)  ──HTTP REST──>  fusion-simulation (:11455 dashboard
 | Banner | `UpstreamServiceStatusBanner` - fusion-simulation health (startOrder 12, `.httpGet` probe) |
 | Left - Entities | Scene picker (default/pick/push) + Load; Agent builder (name/role/action_dim/entity/model + Add); Sensor builder (7 types + Add); live entity lists |
 | Center - Monitor | Status grid (state/sim_time/frame_count/entity_count/RTF/initialized); timing bars (physics/sensor/agent/render vs total); observations summary |
-| Right - Inspector | `FusionTabBar` (状态/环境/快照): full status rows, env_check component dots, snapshot save/restore |
+| Right - Inspector | `FusionTabBar` (status/environment/snapshot): full status rows, env_check component dots, snapshot save/restore |
 | Bottom - Transport | Init / Steps picker (1/10/100) / Step / Pause / Resume / Reset + lastError |
 
 **REST API Contract** (all POSTs use query params; `JSONDecoder.sim` uses `.convertFromSnakeCase`)
@@ -369,8 +369,8 @@ python -c "from fusion_simulation.cli import main; main()" service start \
 │ PROJECTS         │  │                       │  │              │
 │   📁 project     │  └───────────────────────┘  │              │
 │ CODE             │  Toolbar: Title | Badge |⚡│  Close [⇧⌘I] │
-│   </> 编码        │                             │              │
-│   ✏️ 设计         │                             │              │
+│   </> Code        │                             │              │
+│   ✏️ Design       │                             │              │
 │ DESIGN           │                             │              │
 │ RECENTS          │                             │              │
 │ ⬇️ Get Apps      │                             │              │
@@ -430,7 +430,7 @@ cd fusion-studio
 brew install cmake glfw glew
 pip3 install mlx pybullet psutil
 
-# 2. Build SwiftUI app (env.* 由中央路由 daemon_server.py 实现, 无本地 Rust 服务)
+# 2. Build SwiftUI app (env.* implemented by central router daemon_server.py, no local Rust service)
 swift build -c release
 
 # 4. Start all services
@@ -458,36 +458,44 @@ comes up).
 - Critical services auto-start in order: mlx -> agent-studio -> artifacts-engine.
 - Optional services are detected only; start them manually from the UI.
 - Each `start.sh` supports `start | stop | restart | status` (exit 0 = running).
-- The Dashboard shows each service's status (运行中 / 未启动 / 服务不存在 /
-  启动失败) with start / stop / retry controls. A banner appears when a critical
-  service is missing or failed to start.
+- The Dashboard shows each service's status (running / not started / service
+  not found / start failed) with start / stop / retry controls. A banner
+  appears when a critical service is missing or failed to start.
 - Upstream repo paths and the auto-start toggle live in Settings
   (`FusionConfig.upstream*Path`, `upstreamAutoStartCritical`, default on).
 
-#### API Key 解析（gateway 入站鉴权）
+#### API Key Resolution (Gateway Inbound Auth)
 
-fusion-studio 默认通过 fusion-gateway(`:11432`) 连接 fusion-mlx，gateway 使用
-自己的入站 key（非 mlx `settings.json` 的 key）。`FusionConfig.mlxResolvedApiKey`
-按以下优先级解析（与上游 fusion-mlx `_resolve_api_key` 对齐）：
+fusion-studio connects to fusion-mlx via fusion-gateway (`:11432`) by default,
+which uses its own inbound key (not the mlx `settings.json` key).
+`FusionConfig.mlxResolvedApiKey` resolves the key with the following priority
+(aligned with the upstream fusion-mlx `_resolve_api_key`):
 
-1. 用户在 Settings 显式设置（`mlxApiKey`，存 macOS **Keychain**，service `com.fusion.studio`）
-2. 进程环境变量 `FUSION_MLX_API_KEY`（fusion-mlx/fusion-gateway 启动时注入）
+1. User-set value in Settings (`mlxApiKey`, stored in macOS **Keychain**,
+   service `com.fusion.studio`)
+2. Process environment variable `FUSION_MLX_API_KEY` (injected by
+   fusion-mlx / fusion-gateway at startup)
 3. `~/.fusion-mlx/settings.json` → `auth.api_key`
 
-解析来源记录到 `os.log`（subsystem `com.fusion.studio`, category `FusionConfig`）。
-启动 fusion-gateway/mlx 时导出 `FUSION_MLX_API_KEY` 即可让 studio 取到正确入站 key。
+The resolution source is logged to `os.log` (subsystem `com.fusion.studio`,
+category `FusionConfig`). Export `FUSION_MLX_API_KEY` when starting
+fusion-gateway / mlx so studio picks up the correct inbound key.
 
-> **密钥存储 (HIGH-2)**：`mlxApiKey` / `fusionRagApiKey` / `modelHubApiKey` 均存 Keychain，
-> 不再落 UserDefaults plist 明文。`fusionCodeApiKey` 为 per-instance 随机 token（首次生成落
-> Keychain + `~/.fusion-studio/fusion-code.token` 0600），旧硬编码 `fg-admin-key` 已移除。
-> fusion-code 服务端 authToken 默认空导致鉴权 fail-open，见上游 issue [dahai80/fusion-code#132](https://github.com/dahai80/fusion-code/issues/132)。
+> **Secret storage (HIGH-2)**: `mlxApiKey` / `fusionRagApiKey` /
+> `modelHubApiKey` are all stored in Keychain — no longer written to
+> UserDefaults plist in plaintext. `fusionCodeApiKey` is a per-instance
+> random token (generated on first use, stored in Keychain +
+> `~/.fusion-studio/fusion-code.token` 0600); the old hardcoded
+> `fg-admin-key` has been removed. The fusion-code server authToken defaults
+> to empty, causing an auth fail-open — see upstream issue
+> [dahai80/fusion-code#132](https://github.com/dahai80/fusion-code/issues/132).
 
-### First-Run Onboarding (三档模型引导)
+### First-Run Onboarding (3-Tier Model Guide)
 
 On first launch, if no small-model slot is set (`@AppStorage("mlxModelSmall")` empty),
 Fusion Studio shows a 6-step onboarding wizard reused from fusion-mac's
 `WelcomeWindow` and adapted to this app's architecture. It can be re-entered
-anytime via Settings → General → "重新选择主模型".
+anytime via Settings → General → "Re-select main model".
 
 | Step | Purpose |
 |------|---------|
@@ -509,8 +517,8 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
   mlx's already-downloaded models (via `listModels`) and lets the user assign
   one to each of the three slots (small / code / heavy). The small slot is
   also applied as the running model via `agentBridge.mlxSetModel`.
-- **Three-slot model system.** Three model slots - small (日常对话), code
-  (代码), heavy (复杂事务) - are persisted in `@AppStorage("mlxModelSmall" /
+- **Three-slot model system.** Three model slots - small (daily chat), code
+  (code), heavy (complex tasks) - are persisted in `@AppStorage("mlxModelSmall" /
   "mlxModelCode" / "mlxModelHeavy")` in `FusionConfig`. Every model selector
   (`FusionModelPicker`) shows the three assigned slots at the top plus a
   "More Models" submenu listing the remaining local chat models.
@@ -519,14 +527,14 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
   `FusionConfig.defaultModel(for:)` resolves a scene to its slot's model, so
   every model-consuming surface (chat, Code, Agent Studio, Artifacts, Design
   code export) defaults to the user-configured model. Defaults are editable in
-  Settings -> 模型档位.
-- **Save-and-enter (non-blocking).** The recommend step's "保存并进入" button
-  persists the three slots + port + API key instantly and dismisses the wizard
-  to the main page immediately - it does **not** wait for services. Upstream
-  services are pulled up in the background by `FusionStudioApp.onAppear`'s
-  `ensureCriticalRunning()` (the app reuses the external mlx, no spawn);
-  `setupApiKey` and `mlxSetModel` run in a detached background `Task`, so the UI
-  never blocks on service readiness.
+  Settings -> Model Tiers.
+- **Save-and-enter (non-blocking).** The recommend step's "Save and Enter"
+  button persists the three slots + port + API key instantly and dismisses
+  the wizard to the main page immediately - it does **not** wait for
+  services. Upstream services are pulled up in the background by
+  `FusionStudioApp.onAppear`'s `ensureCriticalRunning()` (the app reuses the
+  external mlx, no spawn); `setupApiKey` and `mlxSetModel` run in a detached
+  background `Task`, so the UI never blocks on service readiness.
 
 ### Build Distribution
 
@@ -539,227 +547,227 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 
 ## 📋 Changelog
 
-### v0.1.50 — #297 artifact.inject/interact 离线死代码删除 (2026-08-27)
+### v0.1.50 — #297 artifact.inject/interact offline dead code removal (2026-08-27)
 
-补丁版本，修复 issue #297 (Artifacts 模块 artifact.inject/interact 上游 v0.4.0 已废弃返回 NotImplementedError，离线单机调用恒失败):
+Patch release, fixes issue #297 (the Artifacts module's artifact.inject/interact was deprecated by upstream v0.4.0 and returns NotImplementedError; offline single-machine calls always failed):
 
-- **#297 仓内外科修复**：
-  - 删 `IPCClient.artifactInject()` + `artifactInteract()` (转发至已废弃 RPC `artifact.inject`/`artifact.interact`，0 caller 死代码)
-  - `InjectPreviewSheet` 去 inject 模式 → 纯 safety check 预览: 删 mode Picker + mode state var + injectedMessages/totalTokens 死 state + inject 结果块; 标题 "Inject / Safety Preview"→"Safety Check Preview"; 按钮统一 "Check Safety"; `runCheck()` 删 `mode==0` 分支保留 `artifactCheckSafety` 调用
-  - `artifactCheckSafety` (check_safety) 上游仍支持, 保留
-- **issue 清理**: #297 关闭 (repo 侧死代码删净); #205/#310/#327 前序已关闭 (见 v0.1.49)
-- **本地 release gate**: debug EXIT=0 + release EXIT=0 + swift test 204/204 EXIT=0
+- **#297 in-repo surgical fix**:
+  - Deleted `IPCClient.artifactInject()` + `artifactInteract()` (forwarded to deprecated RPC `artifact.inject`/`artifact.interact`, 0 callers — dead code)
+  - `InjectPreviewSheet` dropped the inject mode → pure safety-check preview: removed the mode Picker + mode state var + dead injectedMessages/totalTokens state + the inject result block; title "Inject / Safety Preview" → "Safety Check Preview"; unified button to "Check Safety"; `runCheck()` removed the `mode==0` branch, kept the `artifactCheckSafety` call
+  - `artifactCheckSafety` (check_safety) is still supported upstream, retained
+- **Issue cleanup**: #297 closed (in-repo dead code fully removed); #205/#310/#327 already closed earlier (see v0.1.49)
+- **Local release gate**: debug EXIT=0 + release EXIT=0 + swift test 204/204 EXIT=0
 
-### v0.1.49 — 审计 0825 验收 5 项重大重构全完 (F-I4/5/7/11/12) (2026-08-27)
+### v0.1.49 — Audit 0825 acceptance: all 5 major refactors complete (F-I4/5/7/11/12) (2026-08-27)
 
-补丁版本，审计 0825 验收 P0 "重大重构启动起来逐项完成" 5 项全部落地 (F-I4/I5/I7/I11/I12):
+Patch release; audit 0825 acceptance P0 "launch the major refactors and complete them item by item" — all 5 landed (F-I4/I5/I7/I11/I12):
 
-- **实现 (F-I4/F-I5/F-I7)**：
-  - **F-I4 IPC 响应 Codable 强类型解析** (PR #328)：IPC 响应 `JSONSerialization` `[String:Any]` 下标 → `JSONDecoder` Codable 强类型 parser 子集 (5 parser: agentList/agentDetail/taskList/modelList/envHealth)；Conservative custom init 保兼容；其余 13 parser 待做。F-I5 写测试暴露 F-A1 regression (属性路径泄 4 key 字面量致 fetch 恒空) 顺手修
-  - **F-I5 AgentBridge 集成测试覆盖核心路径** (PR #329)：`MockIPCClient` (override connect no-op + call 记 args返 canned) + 19 集成测试覆盖 agent/graph/planner/task/error/parser edge；测试覆盖 184→215+；写测试暴露 F-A1 Phase 6 regression 修 4 泄漏 key
-  - **F-I7 拆 CodeEditorView 76K 巨型视图** (PR #330)：CodeEditorView 76607 bytes/1956 行单文件 → 8 功能区文件 (CodeEditorCore/DiffView/GitPanel/SearchPanel/SettingsPanel/ToastManager/CodeEditorModels + 主壳)；logger 去 private 撞名重命名 codeEditLog；test 215/215
-- **i18n (F-I11)**：
-  - **F-I11 i18n 延后 5 类清完** (PR #331)：i18n 16 批号称"全量"实 5 类延后 → 非中文 locale 用户英文界面冒中文 LLM prompt。4 块全清: 块1 Design 28 LLM payload 按.locale 分模板文件 (Prompts/ 5 文件 struct + dispatcher 单分支 currentLanguage, zh-CN byte-identical source of truth) + 块2 FusionDesignSystem 713 行死代码 DELETE (0 引用, 删>i18n Rule 2) + 块3 BenchView 21 UI label→t() (BenchType.rawValue=wire payload 保, 加 localizedName computed) + 块4 EduK12 21 UI label→t() (GradeInfo id-keyed localizedName, retry 复用通用 key)；19 bench_ + 14 edu_ key × 4 locale
-- **架构评估 (F-I12)**：
-  - **F-I12 成熟库评估 — 决策维持零依赖** (commit 2a48038, doc-only)：审计 "零依赖 reinvent 轮子" 论据实地复核 2/3 不成立 (FileWatcher=FSEventStream 薄封装 / Markdown=AttributedString 原生)；IPCClient 部分手写分帧但 JSON 走 Foundation + 6 项加固 + 19 测试；成熟库候选无更优 (swift-nio overkill / JSONRPCKit 2020 停维反噬 CVE 论点 / swift-markdown 同 cmark 引擎)；零依赖是单机离线客户端正资产。交付件 `docs/fi12-mature-lib-evaluation.md`
-- **上游缺口 (跨工程 issue，非本仓可外科)**：F-A8 推理流量不经 MultiNodeEngine 路由 → fusion-multi-nodes#27；F-A13 真因 idempotency key+pending 队列需后端 → fusion-multi-nodes#23/#31；mlx.status 不暴露池 lease/LRU/TTL → fusion-agent-studio#225。均提 issue 遵 "上游问题先提 issue" 流程
-- **CI 全绿**：Swift Build & Test / Code Quality / Security Audit 3/3 pass；master 仅 master 分支
+- **Implementation (F-I4/F-I5/F-I7)**:
+  - **F-I4 IPC response Codable strong-typed parsing** (PR #328): IPC response `JSONSerialization` `[String:Any]` subscripting → `JSONDecoder` Codable strong-typed parser subset (5 parsers: agentList/agentDetail/taskList/modelList/envHealth); conservative custom init for compatibility; remaining 13 parsers pending. F-I5's tests exposed an F-A1 regression (property path leaked 4 key literals, making fetch always empty) — fixed along the way
+  - **F-I5 AgentBridge integration tests cover core paths** (PR #329): `MockIPCClient` (override connect no-op + call records args, returns canned) + 19 integration tests covering agent/graph/planner/task/error/parser edges; test coverage 184 → 215+; writing tests exposed the F-A1 Phase 6 regression, fixed 4 leaked keys
+  - **F-I7 split CodeEditorView 76K giant view** (PR #330): CodeEditorView 76607 bytes / 1956 lines single file → 8 functional-area files (CodeEditorCore/DiffView/GitPanel/SearchPanel/SettingsPanel/ToastManager/CodeEditorModels + main shell); logger de-privatized and renamed codeEditLog to avoid name clash; tests 215/215
+- **i18n (F-I11)**:
+  - **F-I11 i18n 5 deferred categories cleared** (PR #331): i18n batch 16 claimed "full coverage" but actually deferred 5 categories → non-Chinese locale users saw Chinese LLM prompts on an English UI. All 4 blocks cleared: block 1 Design 28 LLM payloads split into per-locale template files (Prompts/ 5 files struct + dispatcher single-branch currentLanguage, zh-CN byte-identical source of truth) + block 2 FusionDesignSystem 713 lines dead code DELETE (0 references, removal > i18n Rule 2) + block 3 BenchView 21 UI labels → t() (BenchType.rawValue = wire payload kept, added localizedName computed) + block 4 EduK12 21 UI labels → t() (GradeInfo id-keyed localizedName, retry reuses common key); 19 bench_ + 14 edu_ keys × 4 locales
+- **Architecture assessment (F-I12)**:
+  - **F-I12 mature-library assessment — decision: keep zero dependencies** (commit 2a48038, doc-only): the audit's "zero-dep reinvents the wheel" argument was verified on the ground — 2/3 claims don't hold (FileWatcher = thin FSEventStream wrapper / Markdown = native AttributedString); IPCClient has some hand-written framing but JSON goes through Foundation + 6 hardening items + 19 tests; mature-library candidates offer no improvement (swift-nio overkill / JSONRPCKit stopped 2020, CVE argument backfires / swift-markdown same cmark engine); zero-dep is an asset for a single-machine offline client. Deliverable: `docs/fi12-mature-lib-evaluation.md`
+- **Upstream gaps (cross-project issues, not in-repo surgical)**: F-A8 inference traffic doesn't route through MultiNodeEngine → fusion-multi-nodes#27; F-A13 root cause idempotency key + pending queue needs backend → fusion-multi-nodes#23/#31; mlx.status doesn't expose pool lease/LRU/TTL → fusion-agent-studio#225. All filed as issues following the "upstream problems: file issue first" flow
+- **CI all green**: Swift Build & Test / Code Quality / Security Audit 3/3 pass; master branch only
 
-### v0.1.48 — AgentBridge 48 @Published 拆 7 域类型边界 + RPC 方法名集中 + 临时文件统一 (2026-08-26)
+### v0.1.48 — AgentBridge 48 @Published split into 7 domain type boundaries + RPC method-name centralization + temp-file unification (2026-08-26)
 
-补丁版本，审计 0825 P0 重大重构启动 + 仓内 surgical 收尾 + 安全/韧性收口:
+Patch release; audit 0825 P0 major-refactor launch + in-repo surgical wrap-up + security/resilience close-out:
 
-- **架构 (F-A1/F-I1)**：
-  - **F-A1/F-I1 AgentBridge 拆 7 域类型边界** (PR #326)：48 @Published 拆 7 独立 ObservableObject (RuntimeState/MLXState/AgentState/ModuleState/TaskState/ConfigState/ProjectChatState，新增 `AgentBridgeDomains.swift`)；AgentBridge 持 `let` 域引用 (稳定身份, SwiftUI 自动追踪每域独立重绘粒度)；facade 仍 extension 经 `self.<state>.X` reach-through；setIPCClient `.assign(to:)` 改 `.sink`+cancellables (`$domain.prop` projection 在 let 子对象非法)；9 commit 分阶段迁移 + 193 tests 含 9 域默认值测试。审计 0825 验收 P0 重大重构首项落地
-- **实现 (F-I3)**：
-  - **F-I3 IPC RPC 方法名集中** (PR #325)：204 method/237 literal/16 文件/43 命名空间 裸字符串 `call(method:)` 拼错零编译期检查 → 新 `RPCMethod.swift` flat enum + 204 static let String 常量 (MARK 分组) + 237 调用点机械替换 `agent.list`→`RPCMethod.agentList`；call 签名不变 (String)；IPCClient `criticalMethods`/`isCoalesceableRead` 整合；命名映射 `.`/`_`→camelCase 0 冲突。与 F-A16 互补 (编译期拼写 vs 运行时 schema 漂移)
-- **安全/韧性 (F-I6/F-I13/F-A13/F-I9/F-A12)**：
-  - **F-I6 临时文件统一 + F-I13 release CI 假绿** (PR #324)：`FusionTempDir.swift` 新增 (~/.fusion-studio/tmp/ 0700 + writeTmpFile 0600 + cleanupStaleTempFiles) + 3 处改走；release.yml 删死 Rust 步骤 + 签名/notarize gated；ci.yml pipefail + 删 continue-on-error (原 `|tail -10` 吞码假绿)；暴露错误全修 (captured var self 移入 Task 闭包 / @objc MainActor.assumeIsolated / 测试 force .enUS)
-  - **F-A13 重复执行告警 + F-I9 端口迁移** (PR #322)：assignedNodes>=2 且 running 且 mode!=data_parallel 无告警 → 客户端启发式止血 (duplicateExecutionTaskIds + detectDuplicateExecution + TaskMonitorView amber banner)；F-I9 追加 multiNodeAgentPort 默认 11445 STALE (与 comfyuiPort 撞) → 11458 + init migrateStalePorts 首启迁移旧 @AppStorage 残留
-  - **F-I9 端口集中** (PR #321)：multi-node 端口硬编码 11452/11445 散落 5 处绕 FusionConfig → 改设置不生效两套数据打架 → 硬编码改 `FusionConfig.shared.multiNodePort`/`multiNodeAgentPort`；3 文件 5 处
-  - **F-A12 重试节点避让** (PR #320)：失败 task 重试调 submitTask 丢原 requiredCapability/priority + 无节点避让 → 死循环重试同一失败节点；修 = `EngineError.retryNoHealthyNode` + `retryTask(_:)` 保原 requiredCapability/priority + guard 原 assignedNodes 全 offline 则阻断 (P0 仓内最后可外科项)
-- **上游缺口 (跨工程 issue，非本仓可外科)**：F-A8 推理流量不经 MultiNodeEngine 路由 → fusion-multi-nodes#27；F-A13 真因 idempotency key+pending 队列需后端 → fusion-multi-nodes#23/#31；mlx.status 不暴露池 lease/LRU/TTL → fusion-agent-studio#225；artifacts-engine v0.4.0 移除 inject → 上游；DesignBridge bypass fd-ai-adapter → fusion-design。均提 issue 遵 "上游问题先提 issue" 流程
-- **CI 全绿**：Swift Build & Test / Code Quality / Security Audit 3/3 pass；master 仅 master 分支
+- **Architecture (F-A1/F-I1)**:
+  - **F-A1/F-I1 AgentBridge split into 7 domain type boundaries** (PR #326): 48 @Published split into 7 independent ObservableObjects (RuntimeState/MLXState/AgentState/ModuleState/TaskState/ConfigState/ProjectChatState, new `AgentBridgeDomains.swift`); AgentBridge holds `let` domain references (stable identity, SwiftUI tracks per-domain independent redraw granularity); facade still extension via `self.<state>.X` reach-through; setIPCClient `.assign(to:)` → `.sink`+cancellables (`$domain.prop` projection illegal on let sub-object); 9 commits staged migration + 193 tests including 9-domain default-value tests. Audit 0825 acceptance P0 major-refactor first item landed
+- **Implementation (F-I3)**:
+  - **F-I3 IPC RPC method-name centralization** (PR #325): 204 method/237 literal/16 file/43-namespace bare-string `call(method:)` typos get zero compile-time check → new `RPCMethod.swift` flat enum + 204 static let String constants (MARK grouped) + 237 call sites mechanically replaced `agent.list`→`RPCMethod.agentList`; call signature unchanged (String); IPCClient `criticalMethods`/`isCoalesceableRead` integrated; name mapping `.`/`_`→camelCase 0 conflicts. Complements F-A16 (compile-time spelling vs runtime schema drift)
+- **Security/resilience (F-I6/F-I13/F-A13/F-I9/F-A12)**:
+  - **F-I6 temp-file unification + F-I13 release CI false-green** (PR #324): new `FusionTempDir.swift` (~/.fusion-studio/tmp/ 0700 + writeTmpFile 0600 + cleanupStaleTempFiles) + 3 sites migrated; release.yml deleted dead Rust steps + sign/notarize gated; ci.yml pipefail + deleted continue-on-error (original `|tail -10` swallowed exit codes → false green); all exposed errors fixed (captured var self moved into Task closure / @objc MainActor.assumeIsolated / tests force .enUS)
+  - **F-A13 duplicate-execution alert + F-I9 port migration** (PR #322): assignedNodes>=2 and running and mode!=data_parallel with no alert → client-side heuristic stop-bleed (duplicateExecutionTaskIds + detectDuplicateExecution + TaskMonitorView amber banner); F-I9 added multiNodeAgentPort default 11445 STALE (clashed with comfyuiPort) → 11458 + init migrateStalePorts migrates stale @AppStorage residue on first launch
+  - **F-I9 port centralization** (PR #321): multi-node ports hardcoded 11452/11445 scattered across 5 sites bypassing FusionConfig → settings changes ineffective, two data sets fighting → hardcoded → `FusionConfig.shared.multiNodePort`/`multiNodeAgentPort`; 3 files 5 sites
+  - **F-A12 retry node avoidance** (PR #320): failed task retry calls submitTask dropping original requiredCapability/priority + no node avoidance → infinite loop retrying same failed node; fix = `EngineError.retryNoHealthyNode` + `retryTask(_:)` preserves original requiredCapability/priority + guard original assignedNodes all offline then block (P0 last in-repo surgical item)
+- **Upstream gaps (cross-project issues, not in-repo surgical)**: F-A8 inference traffic doesn't route through MultiNodeEngine → fusion-multi-nodes#27; F-A13 root cause idempotency key+pending queue needs backend → fusion-multi-nodes#23/#31; mlx.status doesn't expose pool lease/LRU/TTL → fusion-agent-studio#225; artifacts-engine v0.4.0 remove inject → upstream; DesignBridge bypass fd-ai-adapter → fusion-design. All filed as issues following the "upstream problems: file issue first" flow
+- **CI all green**: Swift Build & Test / Code Quality / Security Audit 3/3 pass; master branch only
 
-### v0.1.47 — 审计 0825 仓内可外科项全完 + MLX facade + AppState 4 域拆 (2026-08-26)
+### v0.1.47 — Audit 0825 all in-repo surgical items complete + MLX facade + AppState 4-domain split (2026-08-26)
 
-补丁版本，外部独立审计 `audit/fusion-studio-audit-report-0825.md` (43 发现 P0-P3) 仓内可外科修复全部完成 + ARCH-1 MLX facade + F-A5 AppState 拆分 + F-A16 RPC schema 协商:
+Patch release; external independent audit `audit/fusion-studio-audit-report-0825.md` (43 findings P0-P3) all in-repo surgical fixes complete + ARCH-1 MLX facade + F-A5 AppState split + F-A16 RPC schema negotiation:
 
-- **架构 (F-A1/A5/A6)**：
-  - **F-A1 MLX Operations facade** (PR #311)：MLX start/stop/status/fetchModels 等从 AgentBridge God-object 抽 `AgentMlxService.swift` extension；行为零变
-  - **F-A5 AppState 拆 4 域** (PR #315)：AppState 17 @Published 拆 NavigationState/UIPanelState/HealthState/ThemeState 4 ObservableObject (新增 AppStateDomains.swift)，各独立 @StateObject + .environmentObject 注入；27 文件 appState.X→sub.X
-  - **F-A6 路由枚举对齐** (PR #302)：删死 ProductSheet.modules + ModuleSidebarView.swift；4-switch→3-switch 消死列表矛盾；修 .deploy/.desk 反向映射
-- **运行时韧性 (F-R6/R10/R12)**：
-  - **F-R12 重试退避+熔断** (PR #304)：retryBackoffSeconds 指数 1→2→4 封顶 + ±12.5% jitter 替固定 1s；后端连续失败达 5 触发 backendCircuitOpen fast-fail
-  - **F-R6/R10 轮询韧性** (PR #299)：nodesStale 连续失败 3 轮才降级不清 nodes；schedulePoll 加 label 单飞防慢响应请求风暴
-- **多节点健壮性 (F-A7/A8③/A9/A10/A11)**：
-  - **F-A7 配置实时读** (PR #307)：MultiNodeEngine init let 快照 baseURL/authToken → private var 计算属性实时读 FusionConfig.shared (防改地址后 401 两套数据打架)
-  - **F-A8③ 推理路由作用域澄清** (PR #316)：两套独立路由系统 (master task.* 无 chat 代理 / gateway 推理独立集群) 文档标注 + RoutingStrategyView scopeNote 横幅 + infer/inferStream route=direct-mlx info 日志；host 硬编码 127.0.0.1 改 modelHubHost (PR #309)
-  - **F-A9 轮询 App 级** (PR #308)：8 叶子 View onAppear/onDisappear startPolling/stopPolling → FusionStudioApp scenePhase active 常驻/background 停；startPolling 幂等守卫防重复 schedule 风暴
-  - **F-A10/A11 掉线+脑裂** (PR #305)：ClusterNode.effectiveStatus 心跳 >30s 本地降级 offline 不无条件信服务端 status；splitBrainDetected >1master → critical banner + assertNoSplitBrain 守卫阻断 removeNode/approveNode/submitTask
-- **状态机/缓存 (F-A2/A3/A16)**：
-  - **F-A2 TTL 缓存 + MLX 池可见性** (PR #318 + #313)：8 fetch 方法加 30s TTL 守卫防 onAppear fetch 风暴 + 写操作置 nil；@Published 数组无界 append 改 LRU cap 50；新增 mlxRunning/mlxLoadedModels/mlxPort 周期轮询 (复用 F-A9 scenePhase) + SettingsView MLX 状态行
-  - **F-A3 删死 lastError sink** (PR #306)：@Published lastError 跨域共享错误 sink 0 外部读 + 72 写点全 throw 后 = 死状态，删声明 + 72 写点
-  - **F-A16 RPC schema 协商** (PR #317)：客户端零调 rpc.discover 致 schema 漂移静默崩；performConnect 后异步 discover 缓存 method 集 + criticalMethods 存在性检查 + @Published schemaCompatible 预警
-- **实现/安全 (F-I2/I6/I8/I10)**：
-  - **F-I6 临时文件统一目录** (PR #301)：/tmp 公共区 → ~/.fusion-studio/tmp/ 0700 + 0600 防窥探；defer 兜底清理
-  - **F-I10 错误脱敏** (PR #303)：BridgeError.sanitize 统一出口走 userMessage 非 BridgeError 走兜底不泄 detail；agentChat 裸抛 error → 转 ipcError
-  - **F-I2/I8** (PR #300)：print → os.log + CLAUDE.md 事实修正
-- **死代码清理** (PR #319, fixes #312)：删除 `FusionCoderBridge.swift` (shelled 到不存在的 fusion-coder 二进制，180+ 行死代码)；CodeEditorView status literal `fusion-coder: ready` → `fusion-code: ready`
-- **上游缺口 (跨工程 issue，非本仓可外科)**：F-A8 推理流量不经 MultiNodeEngine 路由 → fusion-multi-nodes#27；mlx.status 不暴露池 lease/LRU/TTL → fusion-agent-studio#225；artifacts-engine v0.4.0 移除 inject → 上游；DesignBridge bypass fd-ai-adapter → fusion-design。均提 issue 遵 "上游问题先提 issue" 流程
-- **CI 全绿**：Notification / Code Quality / Security Audit / Rust Check / Swift Build & Test 5/5 pass；master 仅 master 分支
+- **Architecture (F-A1/A5/A6)**:
+  - **F-A1 MLX Operations facade** (PR #311): MLX start/stop/status/fetchModels etc. extracted from AgentBridge God-object into `AgentMlxService.swift` extension; behavior unchanged
+  - **F-A5 AppState split into 4 domains** (PR #315): AppState 17 @Published split into NavigationState/UIPanelState/HealthState/ThemeState 4 ObservableObjects (new AppStateDomains.swift), each independent @StateObject + .environmentObject injection; 27 files appState.X→sub.X
+  - **F-A6 routing-enum alignment** (PR #302): deleted dead ProductSheet.modules + ModuleSidebarView.swift; 4-switch→3-switch eliminates dead-list contradiction; fixed .deploy/.desk reverse mapping
+- **Runtime resilience (F-R6/R10/R12)**:
+  - **F-R12 retry backoff + circuit breaker** (PR #304): retryBackoffSeconds exponential 1→2→4 capped + ±12.5% jitter replacing fixed 1s; backend 5 consecutive failures trigger backendCircuitOpen fast-fail
+  - **F-R6/R10 polling resilience** (PR #299): nodesStale degrades only after 3 consecutive failed rounds, doesn't clear nodes; schedulePoll adds label single-flight to prevent slow-response request storms
+- **Multi-node robustness (F-A7/A8③/A9/A10/A11)**:
+  - **F-A7 live config read** (PR #307): MultiNodeEngine init let-snapshot baseURL/authToken → private var computed property reads FusionConfig.shared live (prevents 401 two-data-sets-fighting after address change)
+  - **F-A8③ inference-routing scope clarification** (PR #316): two independent routing systems (master task.* has no chat proxy / gateway inference independent cluster) documented + RoutingStrategyView scopeNote banner + infer/inferStream route=direct-mlx info log; host hardcoded 127.0.0.1 → modelHubHost (PR #309)
+  - **F-A9 app-level polling** (PR #308): 8 leaf Views onAppear/onDisappear startPolling/stopPolling → FusionStudioApp scenePhase active always-on/background stopped; startPolling idempotent guard prevents duplicate schedule storms
+  - **F-A10/A11 offline + split-brain** (PR #305): ClusterNode.effectiveStatus heartbeat >30s locally degrades to offline, doesn't blindly trust server status; splitBrainDetected >1master → critical banner + assertNoSplitBrain guard blocks removeNode/approveNode/submitTask
+- **State machine/cache (F-A2/A3/A16)**:
+  - **F-A2 TTL cache + MLX pool visibility** (PR #318 + #313): 8 fetch methods add 30s TTL guard preventing onAppear fetch storms + write ops set nil; @Published arrays unbounded append → LRU cap 50; added mlxRunning/mlxLoadedModels/mlxPort periodic polling (reuses F-A9 scenePhase) + SettingsView MLX status row
+  - **F-A3 delete dead lastError sink** (PR #306): @Published lastError cross-domain shared error sink 0 external reads + 72 write sites all after throw = dead state, deleted declaration + 72 write sites
+  - **F-A16 RPC schema negotiation** (PR #317): client never calls rpc.discover → schema drift silent crash; after performConnect async discover caches method set + criticalMethods existence check + @Published schemaCompatible early warning
+- **Implementation/security (F-I2/I6/I8/I10)**:
+  - **F-I6 unified temp-file directory** (PR #301): /tmp public area → ~/.fusion-studio/tmp/ 0700 + 0600 anti-snooping; defer fallback cleanup
+  - **F-I10 error sanitization** (PR #303): BridgeError.sanitize unified exit via userMessage, non-BridgeError via fallback doesn't leak detail; agentChat bare-throw error → convert to ipcError
+  - **F-I2/I8** (PR #300): print → os.log + CLAUDE.md fact correction
+- **Dead code cleanup** (PR #319, fixes #312): deleted `FusionCoderBridge.swift` (shelled to non-existent fusion-coder binary, 180+ lines dead code); CodeEditorView status literal `fusion-coder: ready` → `fusion-code: ready`
+- **Upstream gaps (cross-project issues, not in-repo surgical)**: F-A8 inference traffic doesn't route through MultiNodeEngine → fusion-multi-nodes#27; mlx.status doesn't expose pool lease/LRU/TTL → fusion-agent-studio#225; artifacts-engine v0.4.0 remove inject → upstream; DesignBridge bypass fd-ai-adapter → fusion-design. All filed as issues following the "upstream problems: file issue first" flow
+- **CI all green**: Notification / Code Quality / Security Audit / Rust Check / Swift Build & Test 5/5 pass; master branch only
 
-### v0.1.46 — 死代码删除 + 架构 facade 抽取 + 审计 P0 修复 (2026-08-25)
+### v0.1.46 — Dead code deletion + architecture facade extraction + audit P0 fix (2026-08-25)
 
-补丁版本，删除两处死代码后台服务 + ARCH-1 AgentBridge facade 抽取收尾 + 审计 P0 阻断项修复:
+Patch release; deleted two dead-code backend services + ARCH-1 AgentBridge facade extraction wrap-up + audit P0 blocking-item fix:
 
-- **死代码删除** (PR #298, fixes #296)：删除 `Services/env-daemon/` (Rust, 0 调用方) + `Services/mlx-daemon/` (Python, 从未启动)
-  - **env-daemon**: Swift `IPCClient` 全走 `/tmp/fusion-studio.sock` 到中央路由 `daemon_server.py` (fusion-agent-studio), 0 直连 env-daemon socket; `env.*` 由中央路由 Python 实现, Rust 副本永不被调用
-  - **mlx-daemon**: `start.sh` 从未拉起, Bearer 鉴权空转 (鉴权已由 #209 UDS peer-UID + #128 gateway key 覆盖); `StreamingBridge` TCP 连 11432 (fusion-mlx gateway) 非 mlx-daemon 8001
-  - Scripts/start.sh/build.sh/setup.sh 清 env-daemon 启停/构建/skip; 9 Swift 文件注释/mock-data/i18n (4 语言) 修正; 7 文档更新 (含 CLAUDE.md)
-  - 顺带闭合 F-A4 `IPCClient` pending 容量上限 100 (防狂切 Tab + daemon 慢响应堆续体致 OOM) + F-R11 `FileWatcher` 路径过滤 (排除 .git/.build/node_modules/.DS_Store 等)
-- **审计 P0 阻断项** (PR #293/#294/#295)：删 6 dead wrapper method (0 前端调用方) + 修正错摆 @Published (cronJobs/hooks/tasks/projects) + 审计 0825 P0 外科式修复 (B1-B10 子集)
-- **ARCH-1 facade 抽取** (PR #277-#282)：Analytics/Alert/Deploy/Template/RAG/Context/Marketplace/Graph/Hooks-Style-Connector/Safety+Team/Memory 11 facade 从 AgentBridge 抽出 extension; 59K 文件拆分降耦合
-- **i18n + 性能** (PR #278-#280)：DesignWorkflow 种子 prompt 迁 i18n; CodeEditorView git status 移后台 `Task.detached`; AgentBridge 删 17 冗余 `await MainActor.run` + RAG LRU + version history 清理 + 文件 I/O 移出 MainActor
-- **CI 全绿**：Swift Build & Test / Rust Check (skipped, 无 Rust 服务) / Code Quality / Security Audit pass
+- **Dead code deletion** (PR #298, fixes #296): deleted `Services/env-daemon/` (Rust, 0 callers) + `Services/mlx-daemon/` (Python, never started)
+  - **env-daemon**: Swift `IPCClient` all goes via `/tmp/fusion-studio.sock` to central router `daemon_server.py` (fusion-agent-studio), 0 direct env-daemon socket connections; `env.*` implemented by central router Python, Rust replica never called
+  - **mlx-daemon**: `start.sh` never started it, Bearer auth spinning empty (auth already covered by #209 UDS peer-UID + #128 gateway key); `StreamingBridge` TCP connects 11432 (fusion-mlx gateway) not mlx-daemon 8001
+  - Scripts/start.sh/build.sh/setup.sh cleaned env-daemon start-stop/build/skip; 9 Swift files comments/mock-data/i18n (4 languages) fixed; 7 docs updated (incl. CLAUDE.md)
+  - Also closed F-A4 `IPCClient` pending capacity cap 100 (prevents rapid Tab-switching + slow daemon response piling continuations → OOM) + F-R11 `FileWatcher` path filter (excludes .git/.build/node_modules/.DS_Store etc.)
+- **Audit P0 blocking items** (PR #293/#294/#295): deleted 6 dead wrapper methods (0 frontend callers) + fixed misplaced @Published (cronJobs/hooks/tasks/projects) + audit 0825 P0 surgical fix (B1-B10 subset)
+- **ARCH-1 facade extraction** (PR #277-#282): Analytics/Alert/Deploy/Template/RAG/Context/Marketplace/Graph/Hooks-Style-Connector/Safety+Team/Memory 11 facades extracted from AgentBridge as extensions; 59K file split to reduce coupling
+- **i18n + performance** (PR #278-#280): DesignWorkflow seed prompt migrated to i18n; CodeEditorView git status moved to background `Task.detached`; AgentBridge deleted 17 redundant `await MainActor.run` + RAG LRU + version history cleanup + file I/O moved off MainActor
+- **CI all green**: Swift Build & Test / Rust Check (skipped, no Rust services) / Code Quality / Security Audit pass
 
-### v0.1.45 — deployExport 端口回归修复 (2026-08-24)
+### v0.1.45 — deployExport port regression fix (2026-08-24)
 
-补丁版本，修复 v0.1.44 引入的端口回归：
+Patch release; fixed the port regression introduced in v0.1.44:
 
-- **端口回归修复** (PR #264, fixes #263)：`IPCConvenienceMethods.deployExport` 默认 port `11434` 回归 `8000`，对齐 `AgentBridge.deployExport` + `DeployView` 两副本 + UI 默认值
-  - **根因**：PR#253 统一 MLX 引擎探测端口 `8000→11434`（mlx-daemon/env-daemon 正确），但误把 `deployExport` 的导出产物服务端口一并改 11434
-  - **`deployExport` port 语义**：导出 agent graph 为独立可部署服务时该服务绑的端口，**非** MLX 引擎端口；绑 11434 会与 MLX 引擎（`localhost:11434`）抢端口冲突
-  - 3 副本默认 port 一致（均 8000）：IPCConvenienceMethods.swift:184 / AgentBridge.swift:1759 / DeployView.swift:71
-  - `8000` 是 `port-registry.yaml` 标 pending 的 legacy 值（check-ports 暂允许带 warning），deploy 产物端口迁 114xx 段属多项目协调另案
-- **CI 全绿**：Swift Build & Test / Rust Check / Code Quality / Security Audit 4/4 pass
+- **Port regression fix** (PR #264, fixes #263): `IPCConvenienceMethods.deployExport` default port `11434` → `8000`, aligned with `AgentBridge.deployExport` + `DeployView` two replicas + UI default
+  - **Root cause**: PR#253 unified MLX engine probe port `8000→11434` (correct for mlx-daemon/env-daemon), but mistakenly also changed `deployExport`'s exported-artifact service port to 11434
+  - **`deployExport` port semantics**: the port the exported agent graph binds when deployed as an independent service, **not** the MLX engine port; binding 11434 conflicts with the MLX engine (`localhost:11434`)
+  - 3 replicas default port consistent (all 8000): IPCConvenienceMethods.swift:184 / AgentBridge.swift:1759 / DeployView.swift:71
+  - `8000` is a legacy value marked pending in `port-registry.yaml` (check-ports allows it with a warning for now); migrating the deploy-artifact port to the 114xx range is a separate multi-project coordination effort
+- **CI all green**: Swift Build & Test / Rust Check / Code Quality / Security Audit 4/4 pass
 
-### v0.1.44 — i18n 非延后批次全量完成 + 端口对齐 (2026-08-24)
+### v0.1.44 — i18n non-deferred batches all complete + port alignment (2026-08-24)
 
-补丁版本，i18n 全量本地化工程非延后批次全部完成 + 引擎端口对齐：
+Patch release; i18n full-localization project non-deferred batches all complete + engine port alignment:
 
-- **i18n 全量本地化 Batch 16c-16z3**（PR #232-#260）：Training 16c / Trainer 16d / DocGenerator 16e / PluginService 16f / MLXOptimizer 16g / Security 16h / Onboarding 16i / Industry 16j / AutoTuning 16k / DesignBridge 16l / FusionDesignSystem 16m / FCWorkflowViews 16n / TaskQueueView 16o / AdvancedSettingsView 16p / AppState 16q / CollaborationService 16r / WelcomeView 16s / ProfilerView 16t / ConfigSyncManager 16u / AccessibilityService 16v / OperationsView 16w / AnalyticsDashboardView 16x / MultiModalView 16y / InteropService 16z / SpaceListView 16z2 / AgentBridge 16z3
-  - **AgentBridge 16z3 是最后一个非延后模块**（PR #260）：BridgeError.userMessage + AgentModel.statusLabel 全量 t()/tf()；12 `ab_` × 4 语言
-  - 非延后模块 UI 字符串 CJK 残留全部归零；延后类保留明确理由（LLM prompt 内容 / API 耦合 / 预设数据）
-- **端口对齐** (PR #253, fixes #251)：mlx-daemon/env-daemon/IPC 5 处旧端口 8000 → 11434 对齐 fusion-mlx 实际引擎端口
-- **文档改名** (PR #261, fixes #250)：studio-integration.md 7 处 `fusion-desk` → `fusion-cowork`（上游已改名，pyproject.toml 确认 CLI 名）
-- **I18nService 字典**：3568 → 4951 keys × 4 语言（zhCN/enUS/jaJP/koKR）全量平衡（+1383 keys）
-- **CI 全绿**：Swift Build & Test / Rust Check / Code Quality / Security Audit 4/4 pass；master 仅 master 分支
+- **i18n full localization Batch 16c-16z3** (PR #232-#260): Training 16c / Trainer 16d / DocGenerator 16e / PluginService 16f / MLXOptimizer 16g / Security 16h / Onboarding 16i / Industry 16j / AutoTuning 16k / DesignBridge 16l / FusionDesignSystem 16m / FCWorkflowViews 16n / TaskQueueView 16o / AdvancedSettingsView 16p / AppState 16q / CollaborationService 16r / WelcomeView 16s / ProfilerView 16t / ConfigSyncManager 16u / AccessibilityService 16v / OperationsView 16w / AnalyticsDashboardView 16x / MultiModalView 16y / InteropService 16z / SpaceListView 16z2 / AgentBridge 16z3
+  - **AgentBridge 16z3 is the last non-deferred module** (PR #260): BridgeError.userMessage + AgentModel.statusLabel full t()/tf(); 12 `ab_` × 4 languages
+  - Non-deferred module UI strings CJK residue all zeroed; deferred categories kept with explicit reasons (LLM prompt content / API coupling / preset data)
+- **Port alignment** (PR #253, fixes #251): mlx-daemon/env-daemon/IPC 5 sites old port 8000 → 11434 aligned with fusion-mlx actual engine port
+- **Doc rename** (PR #261, fixes #250): studio-integration.md 7 sites `fusion-desk` → `fusion-cowork` (upstream renamed, pyproject.toml confirms CLI name)
+- **I18nService dictionary**: 3568 → 4951 keys × 4 languages (zhCN/enUS/jaJP/koKR) fully balanced (+1383 keys)
+- **CI all green**: Swift Build & Test / Rust Check / Code Quality / Security Audit 4/4 pass; master branch only
 
-### v0.1.43 — i18n Doc Admin + License 全量本地化 (2026-08-22)
+### v0.1.43 — i18n Doc Admin + License full localization (2026-08-22)
 
-补丁版本，推进 i18n 全量本地化工程 Batch 16a/16b，分支清理：
+Patch release; advanced the i18n full-localization project Batch 16a/16b, branch cleanup:
 
-- **Doc Admin 全量本地化** (PR #229, Batch 16a)：DocAdminView 13 API 组管理面板（UserAdmin/AIRaw/Branding/Theme/Vocabulary/Webhook/Metadata/SystemInfo/SystemConfig/Export/RAG/Graph/Notification）全量 `t()`；补完此前延后的 Batch 5c；AdminSection enum rawValue 中文→英文 + localizedName；86 `doc_admin_` × 4 语言
-- **License 全量本地化** (PR #230, Batch 16b)：LicenseView 单文件全量本地化；LicenseType + LicenseTab 2 enum rawValue 中文→英文 + localizedName（rawValue 仅 UI 显示，LicenseManager 逻辑用 case 名非 rawValue）；10 feature 项 + 4 type/desc/price + 3 tab + 8 label + 6 btn + sheet/form + `fmt_days` 格式占位符；53 `lic_` × 4 语言
-- **I18nService 字典**：3515 → 3568 keys × 4 语言（zhCN/enUS/jaJP/koKR）全量平衡
-- **分支清理**：9 个已合并 i18n 分支（Batch 15b-16b）全部删除，仓库仅留 master
-- **CI 全绿**：Swift Build & Test / Rust Check / Code Quality / Security Audit 4/4 pass；swift test 170/170
+- **Doc Admin full localization** (PR #229, Batch 16a): DocAdminView 13 API-group admin panels (UserAdmin/AIRaw/Branding/Theme/Vocabulary/Webhook/Metadata/SystemInfo/SystemConfig/Export/RAG/Graph/Notification) full `t()`; completed the previously deferred Batch 5c; AdminSection enum rawValue Chinese→English + localizedName; 86 `doc_admin_` × 4 languages
+- **License full localization** (PR #230, Batch 16b): LicenseView single file full localization; LicenseType + LicenseTab 2 enum rawValue Chinese→English + localizedName (rawValue is UI display only, LicenseManager logic uses case name not rawValue); 10 feature items + 4 type/desc/price + 3 tab + 8 label + 6 btn + sheet/form + `fmt_days` format placeholder; 53 `lic_` × 4 languages
+- **I18nService dictionary**: 3515 → 3568 keys × 4 languages (zhCN/enUS/jaJP/koKR) fully balanced
+- **Branch cleanup**: 9 merged i18n branches (Batch 15b-16b) all deleted, repo keeps only master
+- **CI all green**: Swift Build & Test / Rust Check / Code Quality / Security Audit 4/4 pass; swift test 170/170
 
-### v0.1.42 — Chat/Cowork 共用首页 + 授权文件夹 (2026-08-21)
+### v0.1.42 — Chat/Cowork shared home + authorized folder (2026-08-21)
 
-PR #220 squash→c69fa7c，含 PR #219 (#217)：
+PR #220 squash→c69fa7c, includes PR #219 (#217):
 
-- **Chat/Cowork 共用首页**：CoworkHomeBridge + `desk.system.set_scoped_folder`/`scoped_folder` + `desk.events` 进度内联气泡；NSOpenPanel 授权文件夹选择（审计 P1-1 修复）
-- **6 文件 +524 行，16 单测，170/170**，CI 4/4
+- **Chat/Cowork shared home**: CoworkHomeBridge + `desk.system.set_scoped_folder`/`scoped_folder` + `desk.events` progress inline bubbles; NSOpenPanel authorized-folder selection (audit P1-1 fix)
+- **6 files +524 lines, 16 unit tests, 170/170**, CI 4/4
 
-### v0.1.41 — TrainerBridge schema + build.sh wasm + 测试修复 (2026-08-21)
+### v0.1.41 — TrainerBridge schema + build.sh wasm + test fix (2026-08-21)
 
-PR #218 squash→c7a2779：
+PR #218 squash→c7a2779:
 
-- **TrainerBridge 对齐 RunManager 平铺 schema**；build.sh wasm 显式告警；154/154 测试修复（DesignBridge i18n / SecurityScan enum / Profiler 空桩）
-- #202 关（重复 #217）、#186 关（上游已兼容）、#205 链上游 fusion-design #17
-- CI 全绿，tag v0.1.41，DMG 35.4MB
+- **TrainerBridge aligned with RunManager flat schema**; build.sh wasm explicit warning; 154/154 tests fixed (DesignBridge i18n / SecurityScan enum / Profiler empty stub)
+- #202 closed (duplicate of #217), #186 closed (upstream already compatible), #205 linked upstream fusion-design #17
+- CI all green, tag v0.1.41, DMG 35.4MB
 
-### v0.1.40 — 多节点审批 GUI + agent 撤回发布/多语言 (2026-08-21)
+### v0.1.40 — Multi-node approval GUI + agent unpublish/multi-language (2026-08-21)
 
-PR #214 + #215：
+PR #214 + #215:
 
-- **多节点审批 GUI**：node-approval pending 队列 + approval 流程接入
-- **agent 撤回发布 + 多语言沙箱**（#214 #215）
+- **Multi-node approval GUI**: node-approval pending queue + approval flow wired in
+- **agent unpublish + multi-language sandbox** (#214 #215)
 
-### v0.1.39 — Trainer GUI + Projects/Doc 全量本地化 (2026-08-19)
+### v0.1.39 — Trainer GUI + Projects/Doc full localization (2026-08-19)
 
-合并 PR #176 (closes #175) 与 i18n Batch 2/3/4a/4b/5a/5b/6a 共 7 个 PR，全量本地化推进至 Projects 模块：
+Merged PR #176 (closes #175) with i18n Batch 2/3/4a/4b/5a/5b/6a — 7 PRs total, full localization advanced to the Projects module:
 
-- **fusion-trainer RunManager GUI 面板** (PR #176, closes #175)：TrainerView (536 行) + TrainerBridge (377 行) + IPCTrainerMethods (72 行) + TrainerTests (115 行)；接入 fusion-trainer RunManager，Sidebar/IconRail/ModuleDetailView 路由打通；AppState 新增 trainer 状态。
-- **i18n 全量本地化** (Batch 2 → 6a，PR #170/#169/#171/#172/#173/#174/#177)：
-  - 设置面板+通用组件+Inspector (Batch 2)、Module 标签 62 模块×4 语言 (Batch 3)、ModelHub 13 视图全量 (Batch 4a/4b)、Doc 15 视图全量 (Batch 5a/5b)、Projects ProjectModuleView 18 视图结构全量 (Batch 6a)
-  - I18nService 字典 1288 keys × 4 语言（zhCN/enUS/jaJP/koKR）全量平衡：694 `hub_` + 198 `doc_` + 173 `proj_` + 通用键
-  - 稳定标识符（category/section/Codable rawValue）保留原值，仅显示层本地化
-- **CI 全绿**：Swift Build & Test / Rust Check / Code Quality / Security Audit 4/4 pass
-- **分支清理**：21 个已合并分支（7 本地 + 14 远程）全部删除，仓库仅留 master
+- **fusion-trainer RunManager GUI panel** (PR #176, closes #175): TrainerView (536 lines) + TrainerBridge (377 lines) + IPCTrainerMethods (72 lines) + TrainerTests (115 lines); wired into fusion-trainer RunManager, Sidebar/IconRail/ModuleDetailView routing connected; AppState added trainer state.
+- **i18n full localization** (Batch 2 → 6a, PR #170/#169/#171/#172/#173/#174/#177):
+  - Settings panel + common components + Inspector (Batch 2), Module labels 62 modules × 4 languages (Batch 3), ModelHub 13 views full (Batch 4a/4b), Doc 15 views full (Batch 5a/5b), Projects ProjectModuleView 18 view structures full (Batch 6a)
+  - I18nService dictionary 1288 keys × 4 languages (zhCN/enUS/jaJP/koKR) fully balanced: 694 `hub_` + 198 `doc_` + 173 `proj_` + common keys
+  - Stable identifiers (category/section/Codable rawValue) kept original values, only display layer localized
+- **CI all green**: Swift Build & Test / Rust Check / Code Quality / Security Audit 4/4 pass
+- **Branch cleanup**: 21 merged branches (7 local + 14 remote) all deleted, repo keeps only master
 
-### v0.1.33 — Security 中心全量重构：6 原生 tab 接入 fusion-security (2026-08-07)
+### v0.1.33 — Security center full refactor: 6 native tabs wired to fusion-security (2026-08-07)
 
-深度对标 Claude Code 安全能力并集成 fusion-security，使 Studio 安全中心在静态分析维度全面超越 Claude Code 的运行时防护：
+Deep benchmarking against Claude Code's security capabilities and integration with fusion-security, making Studio's security center fully surpass Claude Code's runtime protection on the static-analysis dimension:
 
-- **SecurityBridge** (NEW): HTTP client 直连 fusion-security FastAPI `:11454/api/v1/*`，generic get/postJSON + convertFromSnakeCase 解码 + 15 DTO
-- **6 原生 tab** 取代旧的 5 tab（含失效的 WebView :3000 面板）：
-  1. **安全概览** — 引擎信息 + 扫描/漏洞/项目/严重度统计 + 高频规则 TOP
-  2. **项目与扫描** — 项目 CRUD + 一键发起扫描（AI 增强开关）+ 扫描历史
-  3. **漏洞清单** — 严重度过滤 + 展开看代码片段/修复建议 + 一键生成 AI 补丁 / 标记误报
-  4. **AI 修复** — 补丁列表 + 原始/修复代码对比 + 应用→验证全流程
-  5. **质量门禁** — 策略评估（pass/fail + blocked_by）+ 内置规则 + 自定义规则 CRUD
-  6. **运行时防护** — 沙箱/文件/网络/完整性 + 新增「敏感信息脱敏」「Prompt 注入检测」（超越 Claude Code 的运行时能力）
-- **端口对齐**: `securityPort` 11442 → 11454（fusion-security `serve` 默认）
-- **健康端点**: `env-daemon` 探活改 `/api/v1/system/health`（公开 200）
-- **E2E 验证**: health/info/dashboard/rules GET + 项目→扫描→5 漏洞→补丁 generate/apply/verify→门禁 全链路通过
-- 上游依赖：fusion-security PR #16/#18/#20（scan 时间戳/补丁生成/启动脚本，已合并）
+- **SecurityBridge** (NEW): HTTP client directly connects to fusion-security FastAPI `:11454/api/v1/*`, generic get/postJSON + convertFromSnakeCase decoding + 15 DTOs
+- **6 native tabs** replacing the old 5 tabs (including the defunct WebView :3000 panel):
+  1. **Security Overview** — engine info + scan/vulnerability/project/severity stats + top high-frequency rules
+  2. **Projects & Scans** — project CRUD + one-click scan launch (AI-enhancement toggle) + scan history
+  3. **Vulnerability List** — severity filter + expand to view code snippet/fix suggestion + one-click AI patch generation / mark false positive
+  4. **AI Fix** — patch list + original/fixed code comparison + apply→verify full flow
+  5. **Quality Gate** — policy evaluation (pass/fail + blocked_by) + built-in rules + custom rule CRUD
+  6. **Runtime Protection** — sandbox/file/network/integrity + added "sensitive-info desensitization" and "prompt-injection detection" (surpasses Claude Code's runtime capabilities)
+- **Port alignment**: `securityPort` 11442 → 11454 (fusion-security `serve` default)
+- **Health endpoint**: `env-daemon` probe changed to `/api/v1/system/health` (public 200)
+- **E2E verification**: health/info/dashboard/rules GET + project→scan→5 vulnerabilities→patch generate/apply/verify→gate full chain passed
+- Upstream dependencies: fusion-security PR #16/#18/#20 (scan timestamp / patch generation / startup script, merged)
 
-### v0.1.32 — Code Offline + 四产品环境检测修复 (2026-08-07)
+### v0.1.32 — Code Offline + four-product environment-detection fix (2026-08-07)
 
-修复 Code 模块 Offline 及 rag/doc/science/health 四个产品环境检测异常 (#136)：
+Fixed the Code module Offline and rag/doc/science/health four-product environment-detection anomalies (#136):
 
-- **Code Offline**: fusion-code `start.sh` 前台 `exec` 不返回，被 Studio `UpstreamServiceManager` 30s 超时强制 terminate 连同服务一起杀掉。改后台 detach（nohup + PID + start|stop|status|restart）。上游 PR [fusion-code#55](https://github.com/dahai80/fusion-code/pull/55)
-- **RAG**: `upstreamRagPath` 误指不存在的 `~/fusion/fusion-kb`，实际服务在 `~/fusion/fusion-rag`（:11436）。修正路径
-- **Science**: `sciencePort=8200` 与 fusion-science `start.sh` 默认端口 **11462** 不一致。修正为 11462
-- **Health**: 无 `start.sh` 且未运行；健康路由 `/api/v1/health`（health router prefix=/api/v1）。上游新增后台 detach 启动脚本 :11456。上游 PR [fusion-health#10](https://github.com/dahai80/fusion-health/pull/10)
-- **Doc**: 此前未纳入 `UpstreamServiceManager`（无自动启动/健康探测）；且端口 11449 被 fusion-multi-node 占用（multi-node `start.sh` 默认 11449，但 Studio `multiNodePort=11452`）。新增 fusion-doc 管理器条目（healthEndpoint `/api/health`）；multi-node 上游迁 11452 释放 11449。上游 PR [fusion-multi-nodes#13](https://github.com/dahai80/fusion-multi-nodes/pull/13) + [fusion-doc#31](https://github.com/dahai80/fusion-doc/pull/31)
-- **EnvironmentHealthSheet**: `case "doc"` 探活端点 `/health` 误用，修正为 `/api/health`
-- **验证**: 四服务经 Studio 精确探活端点均 200（RAG 11436/health、DOC 11449/api/health、SCIENCE 11462/api/v1/health、HEALTH 11456/api/v1/health）；`swift build -c release` 0 error；`swift test` 140/140 PASS
+- **Code Offline**: fusion-code `start.sh` foreground `exec` doesn't return, was force-terminated by Studio `UpstreamServiceManager` 30s timeout, killing the service along with it. Changed to background detach (nohup + PID + start|stop|status|restart). Upstream PR [fusion-code#55](https://github.com/dahai80/fusion-code/pull/55)
+- **RAG**: `upstreamRagPath` mistakenly pointed to non-existent `~/fusion/fusion-kb`; the actual service is at `~/fusion/fusion-rag` (:11436). Fixed path
+- **Science**: `sciencePort=8200` inconsistent with fusion-science `start.sh` default port **11462**. Fixed to 11462
+- **Health**: no `start.sh` and not running; health route `/api/v1/health` (health router prefix=/api/v1). Upstream added background-detach startup script :11456. Upstream PR [fusion-health#10](https://github.com/dahai80/fusion-health/pull/10)
+- **Doc**: previously not included in `UpstreamServiceManager` (no auto-start/health probe); and port 11449 occupied by fusion-multi-node (multi-node `start.sh` default 11449, but Studio `multiNodePort=11452`). Added fusion-doc manager entry (healthEndpoint `/api/health`); multi-node upstream migrated to 11452 to free 11449. Upstream PR [fusion-multi-nodes#13](https://github.com/dahai80/fusion-multi-nodes/pull/13) + [fusion-doc#31](https://github.com/dahai80/fusion-doc/pull/31)
+- **EnvironmentHealthSheet**: `case "doc"` probe endpoint `/health` misused, fixed to `/api/health`
+- **Verification**: all four services return 200 via Studio's precise probe endpoints (RAG 11436/health, DOC 11449/api/health, SCIENCE 11462/api/v1/health, HEALTH 11456/api/v1/health); `swift build -c release` 0 errors; `swift test` 140/140 PASS
 
-### v0.1.31 — 5 Issue 修复 (2026-08-07)
+### v0.1.31 — 5 issue fixes (2026-08-07)
 
-修复 5 个开放 issue (#113/#120/#121/#122/#125)：
+Fixed 5 open issues (#113/#120/#121/#122/#125):
 
-- **#113 fusion-science start.sh 注册**: `Scripts/start.sh` SERVICES 补充 fusion-science 行（health `http://127.0.0.1:8200/api/v1/health`，startOrder=11）
-- **#120 Design 检查器按钮无响应**: `DesignInspectorView.observeNotifications` 的 show observer 只设 `inspectorContext` 未设 `state.selectedElement`，导致 `pushSizeToCanvas`/`applyPreset` 提前 return。修复：同步设置 `selectedElement`，hide 时清空
-- **#121 fusion-health 侧栏集成**: 新增 `HealthBridge`（HTTP `:11456`，`X-API-Key` 来自 `FUSION_HEALTH_API_KEY` env，空则跳过鉴权）+ `HealthWorkbenchView`（概览/病历摘要/体征提取/AI咨询 4 tab）。`SidebarSection`/`Module`/`ProductSheet` 新增 `.health`，`FusionConfig` 新增 `healthHost/healthPort(11456)/upstreamHealthPath`，`UpstreamServiceManager` 注册健康探针，`EnvironmentHealthSheet` 增加 science/health 探针，`Scripts/start.sh` 注册 fusion-health（startOrder=12）。端口选 11456 避开 fusion-agent-studio http 的 11453
-- **#122 Agent / AI Agent 语义重叠**: `SidebarSection` rawValue 区分 `agent="Agent 工作台"` / `aiAgent="AI 控制台"`，边界清晰不物理合并
-- **#125 AX 主窗口未暴露为 AXWindow**: `.windowStyle(.titleBar)` 产生无边框窗口致 `AXWindows[0].AXRole==AXApplication`。改为 `WindowGroup("Fusion Studio")` + `.windowStyle(.automatic)`，GUI 自动化可识别 AXWindow
-- **上游阻塞**: fusion-health 缺 `start.sh` + `serve` 子命令，已提 issue dahai80/fusion-health#8。studio 侧已就绪，待上游启动入口后健康探针生效
-- **验证**: `swift build -c release` 0 error；`swift test` 140/140 PASS
+- **#113 fusion-science start.sh registration**: `Scripts/start.sh` SERVICES added fusion-science row (health `http://127.0.0.1:8200/api/v1/health`, startOrder=11)
+- **#120 Design inspector button no response**: `DesignInspectorView.observeNotifications` show observer only set `inspectorContext` without setting `state.selectedElement`, causing `pushSizeToCanvas`/`applyPreset` to early-return. Fix: synchronously set `selectedElement`, clear on hide
+- **#121 fusion-health sidebar integration**: added `HealthBridge` (HTTP `:11456`, `X-API-Key` from `FUSION_HEALTH_API_KEY` env, skip auth if empty) + `HealthWorkbenchView` (overview/medical-record-summary/vital-extraction/AI-consult 4 tabs). `SidebarSection`/`Module`/`ProductSheet` added `.health`, `FusionConfig` added `healthHost/healthPort(11456)/upstreamHealthPath`, `UpstreamServiceManager` registered health probe, `EnvironmentHealthSheet` added science/health probes, `Scripts/start.sh` registered fusion-health (startOrder=12). Port 11456 chosen to avoid fusion-agent-studio http's 11453
+- **#122 Agent / AI Agent semantic overlap**: `SidebarSection` rawValue distinguishes `agent="Agent Workbench"` / `aiAgent="AI Console"`, clear boundary, no physical merge
+- **#125 AX main window not exposed as AXWindow**: `.windowStyle(.titleBar)` produces a borderless window causing `AXWindows[0].AXRole==AXApplication`. Changed to `WindowGroup("Fusion Studio")` + `.windowStyle(.automatic)`, GUI automation can identify AXWindow
+- **Upstream blocker**: fusion-health lacks `start.sh` + `serve` subcommand, issue filed dahai80/fusion-health#8. Studio side ready, health probe takes effect once upstream startup entry lands
+- **Verification**: `swift build -c release` 0 errors; `swift test` 140/140 PASS
 
-### Design 模块提交/预览/Canvas 修复 (2026-08-07)
+### Design module submit/preview/Canvas fix (2026-08-07)
 
-Design 模块"生成登录页模板后预览不可见、对话框无法提交、canvas 显示功能未实现"三连修复：
+Three fixes for the Design module's "after generating a login-page template the preview is invisible, the dialog can't submit, and canvas display is unimplemented":
 
-- **提交卡死根因**: app 直连 `mlx:11434`，但启动环境 `FUSION_MLX_API_KEY` 是 gateway(`:11432`) 的 key，对 mlx 返回 401 → `isMLXRunning=false` → `sendChat` 拦截。`mlxResolvedApiKey` 解析优先级 env > settings.json，导致用了无效 key
-- **鉴权回退**: `AgentBridge.fetchModels` 与 `DesignBridge.sendDesignChat` 在 401/403 时回退到 `~/.fusion-mlx/settings.json` 的 `auth.api_key`（`AgentBridge.mlxSettingsJsonApiKey()` 静态方法读取）。sendDesignChat 流式请求遇 401 自动用 fallback key 重建请求重试
-- **sendChat 实时 probe**: `isMLXRunning=false` 时不硬拦截，先 `probeMLXRunningStatus()` 复核，成功则继续提交
-- **sendChat @State 竞态**: 模板按钮 `inputText = tmpl.prompt; sendChat()` 的同步读返回旧值，改为 `sendChat(explicitMessage:)` 显式传参；所有 `onSend: sendChat` / `Button(action: sendChat)` 包闭包
-- **预览背景白色调**: `DesignPreviewView` `drawsTransparentBackground=false`，`buildFullHTML` 片段 `--color-bg:#ffffff`，`injectTailwindIntoExisting` 剥离 CDN tailwind 脚本避免离线阻塞（用户选择"只改预览背景"）
-- **Canvas wasm 加载**: `DesignCanvasView` wasm/glue 资源改用 `Bundle.module` 优先（SPM `.process` 扁平化到 module bundle）；HTML 改 ES module `<script type="module"> import init, { mount, fusion_bridge_send_command }`（fd_host_web.js 是 wasm-bindgen ESM 输出）
-- **artifact 解析**: `max_tokens` 4096→8192 防截断；`extractArtifactFromComplete` 处理缺失 `</antArtifact>` 闭合标签；`extractCodeBlock` 兼容 ```` ```html ```` 无换行 + 截断块；fallback 改无条件触发
-- **runFusionDesign 管道死锁**: `parseHtmlViaCLI` 大输出(>64KB)时 `waitUntilExit` 与 `readDataToEndOfFile` 互锁，改用 `DispatchGroup` 并发读 stdout/stderr 后再 join
-- **Design RAG 暂禁**: `ragEnabled=false`，`fetchRAGContextBounded` 用 `nonisolated static` + `withTaskGroup` 超时保护（Swift 5.9 无 `addTask(detached:)`，用 nonisolated 函数脱离 MainActor）
-- **E2E 验证**: 提交→生成(6154 tokens, `<antArtifact>` 解析成功, codeLen 15209)→预览渲染；`DesignPreviewTrace` 文件日志(`~/.fusion-design-preview-debug.log`)辅助定位
+- **Submit stuck root cause**: the app connects directly to `mlx:11434`, but the launch environment `FUSION_MLX_API_KEY` is the gateway (`:11432`) key, which returns 401 from mlx → `isMLXRunning=false` → `sendChat` intercepted. `mlxResolvedApiKey` resolution priority env > settings.json caused use of an invalid key
+- **Auth fallback**: `AgentBridge.fetchModels` and `DesignBridge.sendDesignChat` fall back to `~/.fusion-mlx/settings.json`'s `auth.api_key` on 401/403 (read by `AgentBridge.mlxSettingsJsonApiKey()` static method). sendDesignChat streaming request on 401 auto-rebuilds the request with the fallback key and retries
+- **sendChat live probe**: when `isMLXRunning=false` don't hard-intercept, first `probeMLXRunningStatus()` to re-check, continue submitting if successful
+- **sendChat @State race**: template button `inputText = tmpl.prompt; sendChat()` synchronous read returns stale value, changed to `sendChat(explicitMessage:)` explicit param; all `onSend: sendChat` / `Button(action: sendChat)` wrapped in closures
+- **Preview background white tone**: `DesignPreviewView` `drawsTransparentBackground=false`, `buildFullHTML` fragment `--color-bg:#ffffff`, `injectTailwindIntoExisting` strips CDN tailwind script to avoid offline blocking (user chose "only change preview background")
+- **Canvas wasm loading**: `DesignCanvasView` wasm/glue resources changed to prefer `Bundle.module` (SPM `.process` flattens into module bundle); HTML changed to ES module `<script type="module"> import init, { mount, fusion_bridge_send_command }` (fd_host_web.js is the wasm-bindgen ESM output)
+- **artifact parsing**: `max_tokens` 4096→8192 to prevent truncation; `extractArtifactFromComplete` handles missing `</antArtifact>` closing tag; `extractCodeBlock` tolerates ```` ```html ```` with no newline + truncated blocks; fallback changed to unconditional trigger
+- **runFusionDesign pipe deadlock**: `parseHtmlViaCLI` with large output (>64KB) `waitUntilExit` and `readDataToEndOfFile` mutually lock, changed to `DispatchGroup` concurrent read of stdout/stderr then join
+- **Design RAG temporarily disabled**: `ragEnabled=false`, `fetchRAGContextBounded` uses `nonisolated static` + `withTaskGroup` timeout protection (Swift 5.9 has no `addTask(detached:)`, uses nonisolated function to escape MainActor)
+- **E2E verification**: submit→generate (6154 tokens, `<antArtifact>` parsed successfully, codeLen 15209)→preview render; `DesignPreviewTrace` file log (`~/.fusion-design-preview-debug.log`) aids debugging
 
 ### Project Chat Reply + Bubble UX (2026-08-06)
 
-Project module 会话两个问题修复：
+Two fixes for the Project module conversation:
 
-- **会话无 AI 回复**: `ProjectChatsPanel.sendMessage` 只调 `project.chat.message.add` 存用户消息，未触发推理。新增 `generateReply`：用会话历史调 `AgentBridge.infer` (MLX `/v1/chat/completions`)，回填本地 `ChatMessage(role:"assistant")`。模型取 `selectedModel` 或 `defaultModel(for:.agent)`，空则提示选模型
-- **气泡区分**: 用户/AI 消息此前都左对齐无区分。用户消息右对齐 + accent 背景气泡，AI 消息左对齐 + 中性气泡
-- **上游 issue**: fusion-projects#20 — `project.chat.message.add` 忽略 `role` 参数（强制 user），assistant 回复暂本地展示，待上游支持后落库
+- **No AI reply in conversation**: `ProjectChatsPanel.sendMessage` only calls `project.chat.message.add` to store the user message, didn't trigger inference. Added `generateReply`: calls `AgentBridge.infer` (MLX `/v1/chat/completions`) with conversation history, backfills local `ChatMessage(role:"assistant")`. Model taken from `selectedModel` or `defaultModel(for:.agent)`, prompts to pick a model if empty
+- **Bubble distinction**: user/AI messages were both left-aligned with no distinction. User messages right-aligned + accent background bubble, AI messages left-aligned + neutral bubble
+- **Upstream issue**: fusion-projects#20 — `project.chat.message.add` ignores the `role` param (forces user); assistant reply shown locally for now, persists once upstream supports it
 
 ### Health Check + Module Fixes (2026-08-06)
 
 Strict health check + per-subsystem startup buttons + several module UX/auth fixes:
 
-- **Strict health check**: only HTTP 200-299 (not 401/403/404) and UDS responses with `result` field count as healthy. `EnvironmentHealthSheet` now probes 9 subsystems (added **fusion-model-hub**) via strict `probeHTTP`/`probeUDS`. UDS probe loop-reads until newline (fixes 6272-byte `project.list` truncation false-negative)
-- **Per-subsystem 启动 buttons**: `upstreamServiceIdMap` maps each failing subsystem to an `UpstreamServiceManager` service id; 启动 calls `start.sh start`, waits 3s, re-probes. Covers mlx/rag/modelhub/artifacts/cowork/projects/code
+- **Strict health check**: only HTTP 200-299 (not 401/403/404) and UDS responses with a `result` field count as healthy. `EnvironmentHealthSheet` now probes 9 subsystems (added **fusion-model-hub**) via strict `probeHTTP`/`probeUDS`. UDS probe loop-reads until newline (fixes 6272-byte `project.list` truncation false-negative)
+- **Per-subsystem startup buttons**: `upstreamServiceIdMap` maps each failing subsystem to an `UpstreamServiceManager` service id; startup calls `start.sh start`, waits 3s, re-probes. Covers mlx/rag/modelhub/artifacts/cowork/projects/code
 - **fusion-model-hub lifecycle**: created upstream `start.sh` (nohup `fusion-model-hub serve`, PID file, logs/) + changed health endpoint from `/api/v1/system/info` (needs auth) to `/api/v1/system/health` (public 200)
 - **Projects delete "project not found" fix**: `FusionProject.id` `let`→`var` + direct id assignment in `fromDict`; removed fragile encode-decode `_rebuildWithId` roundtrip (date strategy mismatch produced local uppercase UUID → server 404)
 - **Code module fixes**: (1) chat input box moved from full-width bottom bar into the middle chat column only; (2) "fusion-code offline" root cause = `/api/model/status` 401 without auth → added `Bearer fg-admin-key` to all `FusionCodeBridge` HTTP + WS calls
@@ -768,7 +776,7 @@ Strict health check + per-subsystem startup buttons + several module UX/auth fix
 
 ### Fusion RAG Consolidation (2026-08-05)
 
-Single "Fusion RAG" sidebar entry -> `RAGMainView` (8 sections) wired to **fusion-rag** backend (FastAPI `127.0.0.1:11436`):
+Single "Fusion RAG" sidebar entry -> `RAGMainView` (8 sections) wired to the **fusion-rag** backend (FastAPI `127.0.0.1:11436`):
 
 - **Menu consolidation**: removed duplicate `.kb` Module case + dead `KBView`/`RAGPipelineView` branches; `IconRailView` now routes to `.rag` -> `RAGMainView`. `ragSheet` rawValue = "Fusion RAG"
 - **8 GUI sections** (all non-stub, real REST): Dashboard / Files / Embed Config / Search Config / Permissions / Vector Ops / Call Log / Bench Eval
@@ -804,25 +812,25 @@ Bug fixes & improvements:
 
 Bug fixes:
 
-- **Issue #18 闭环（上游 PR #20 + studio 对齐）**: model-hub 9 端点/schema 缺口全部解决
-  - 上游新增（fusion-model-hub PR #20, commit 02fadf5 + 19c864d）: `GET /benchmarks/compare?model_ids=` 多模型对比、`POST /deployments/{id}/stop`、`POST /deployments/{id}/gray`（`gray_version_id` 改可选）、`GET/POST /tenants/{id}/roles` + `PUT/DELETE /tenants/{id}/roles/{rid}`（新增 Role 表，auto-create_all）、`GET /monitor/model-stats`（复用 `_loaded_models`/`_model_stats`，返回 `{stats:[...]}`）
-  - studio 对齐: `HubRole`（`permissions` 改字符串 + `permissionsList` 计算、`isActive`/`updatedAt`）、`HubBranchListResponse`（`branches`->`items`）、`HubBranch`（加 `baseVersionId`/`headVersionId`/`description`/`updatedAt` + snake_case CodingKeys）、`HubModelInferenceStats`（加 CodingKeys）、`mergeBranch` 返回 `HubBranch` + 路径 `/models/branches/`、`grayReleaseDeployment` 路径 `/gray` + 字段 `gray_traffic_ratio`、`createRole`/`updateRole` body `permissions` 逗号拼接
-  - 移除死代码（0 调用）: `getBenchmarkResults`、`testWebhook`、`getSyncManifest`
-- E2E 验证: roles CRUD 201、deployment stop/gray 404 路由命中、benchmark compare `{items,model_ids}`、merge 404 路由命中、model-stats `{stats:[]}`
+- **Issue #18 closed (upstream PR #20 + studio alignment)**: model-hub 9 endpoint/schema gaps all resolved
+  - Upstream additions (fusion-model-hub PR #20, commit 02fadf5 + 19c864d): `GET /benchmarks/compare?model_ids=` multi-model comparison, `POST /deployments/{id}/stop`, `POST /deployments/{id}/gray` (`gray_version_id` made optional), `GET/POST /tenants/{id}/roles` + `PUT/DELETE /tenants/{id}/roles/{rid}` (new Role table, auto-create_all), `GET /monitor/model-stats` (reuses `_loaded_models`/`_model_stats`, returns `{stats:[...]}`)
+  - Studio alignment: `HubRole` (`permissions` → string + `permissionsList` computed, `isActive`/`updatedAt`), `HubBranchListResponse` (`branches`->`items`), `HubBranch` (added `baseVersionId`/`headVersionId`/`description`/`updatedAt` + snake_case CodingKeys), `HubModelInferenceStats` (added CodingKeys), `mergeBranch` returns `HubBranch` + path `/models/branches/`, `grayReleaseDeployment` path `/gray` + field `gray_traffic_ratio`, `createRole`/`updateRole` body `permissions` comma-joined
+  - Removed dead code (0 callers): `getBenchmarkResults`, `testWebhook`, `getSyncManifest`
+- E2E verification: roles CRUD 201, deployment stop/gray 404 route hit, benchmark compare `{items,model_ids}`, merge 404 route hit, model-stats `{stats:[]}`
 
 ### v0.1.17 (2026-08-04)
 
 Bug fixes:
 
-- **Model Hub auth 对齐**: `ModelHubAPIClient.addAuth()` 改发 `X-API-Key`（原误用 `Authorization: Bearer`），修复所有受保护端点 401；E2E 验证 create+list+6 核心读端点全通
-- **API Key schema 对齐**: `HubAPIKeyResponse` 改扁平（`key` 为原始密钥字符串，对齐上游 create_key）；`HubAPIKeyListResponse` 用 `items` + 兼容 `keys`；`HubAPIKey` 加 CodingKeys（`key_prefix`/`last_used_at`/`qps_limit`/`is_active`/`created_at`）+ 字符串/数组兼容解析 `allowed_models`/`allowed_modules`（上游为逗号字符串）
-- **createAPIKey 请求体**: `allowed_models`/`allowed_modules` 由数组改逗号拼接字符串（上游 `ApiKeyCreate` 为 str，数组会 422）
-- **Key 引导闭环**: `HubPermissionView.createKey()` 创建后自动存入 `FusionConfig.shared.modelHubApiKey`，后续调用即鉴权
-- **No-key 引导横幅**: `ModelHubMainView` 连接但无 key 时显示横幅，引导到「权限管控」创建
+- **Model Hub auth alignment**: `ModelHubAPIClient.addAuth()` changed to send `X-API-Key` (was mistakenly using `Authorization: Bearer`), fixing 401 on all protected endpoints; E2E verified create+list+6 core read endpoints all pass
+- **API Key schema alignment**: `HubAPIKeyResponse` flattened (`key` is the raw key string, aligned with upstream create_key); `HubAPIKeyListResponse` uses `items` + compatible with `keys`; `HubAPIKey` added CodingKeys (`key_prefix`/`last_used_at`/`qps_limit`/`is_active`/`created_at`) + string/array tolerant parsing for `allowed_models`/`allowed_modules` (upstream is comma string)
+- **createAPIKey request body**: `allowed_models`/`allowed_modules` changed from array to comma-joined string (upstream `ApiKeyCreate` is str, array would 422)
+- **Key onboarding closed loop**: `HubPermissionView.createKey()` auto-stores into `FusionConfig.shared.modelHubApiKey` after creation, subsequent calls authed
+- **No-key onboarding banner**: `ModelHubMainView` shows a banner when connected but no key, guiding to "Permission Management" to create one
 
 Upstream issues filed:
 
-- [fusion-model-hub#18](https://github.com/dahai80/fusion-models-hub/issues/18) - 9 端点/schema 缺口（benchmarks/compare, deployments/stop, tenants/{id}/roles, favorites, branches 等）
+- [fusion-model-hub#18](https://github.com/dahai80/fusion-models-hub/issues/18) - 9 endpoint/schema gaps (benchmarks/compare, deployments/stop, tenants/{id}/roles, favorites, branches, etc.)
 
 ### v0.1.16 (2026-08-03)
 
@@ -835,7 +843,7 @@ Bug fixes:
 
 New features:
 
-- **Model Hub GUI 全量增强**: 11 sections, 116 API methods, 98 DTOs
+- **Model Hub GUI full enhancement**: 11 sections, 116 API methods, 98 DTOs
   - HubDeploymentView (NEW): CRUD, scale, gray release, metrics
   - HubSecurityView (NEW): scan, watermark, encryption, approval
   - Dashboard: stats grid, health badges, quick actions
@@ -850,12 +858,12 @@ New features:
 
 Upstream issues filed:
 
-- [fusion-model-hub#5](https://github.com/dahai80/fusion-models-hub/issues/5) — GET /auth/keys/{id}/usage 端点不存在
-- [fusion-model-hub#6](https://github.com/dahai80/fusion-models-hub/issues/6) — GET /cluster/topology 端点不存在
-- [fusion-model-hub#7](https://github.com/dahai80/fusion-models-hub/issues/7) — GET /hardware 响应 schema 字段名需确认
-- [fusion-model-hub#8](https://github.com/dahai80/fusion-models-hub/issues/8) — GET /monitor/realtime 缺少模型级推理统计
-- [fusion-model-hub#9](https://github.com/dahai80/fusion-models-hub/issues/9) — Model 缺少 ttl_seconds 字段
-- [fusion-model-hub#10](https://github.com/dahai80/fusion-models-hub/issues/10) — Market 搜索分页参数需验证
+- [fusion-model-hub#5](https://github.com/dahai80/fusion-models-hub/issues/5) — GET /auth/keys/{id}/usage endpoint does not exist
+- [fusion-model-hub#6](https://github.com/dahai80/fusion-models-hub/issues/6) — GET /cluster/topology endpoint does not exist
+- [fusion-model-hub#7](https://github.com/dahai80/fusion-models-hub/issues/7) — GET /hardware response schema field names need confirmation
+- [fusion-model-hub#8](https://github.com/dahai80/fusion-models-hub/issues/8) — GET /monitor/realtime lacks per-model inference stats
+- [fusion-model-hub#9](https://github.com/dahai80/fusion-models-hub/issues/9) — Model lacks ttl_seconds field
+- [fusion-model-hub#10](https://github.com/dahai80/fusion-models-hub/issues/10) — Market search pagination params need verification
 
 ### v0.1.5 (2026-07-30)
 
@@ -863,7 +871,7 @@ Bug fixes (18 issues resolved):
 
 - **bug1-4**: Agent-mlx interop — default model selection, context preservation across turns, tool invocation, model switching (upstream PR #12)
 - **bug5**: Git tab + button now renders newBranchForm
-- **bug6**: Health check no longer stuck at "检测中" (8s @Sendable timeout)
+- **bug6**: Health check no longer stuck at "checking" (8s @Sendable timeout)
 - **bug7**: Chat history entries clickable/re-enterable
 - **bug8**: Terminal CSI escape sequences stripped (`[?2004h`)
 - **bug9**: All dialog/chat inputs centered on page with multi-line support (`CenteredChatInput` component — `isCentered` mode for empty conversations, bottom bar for active ones)
@@ -924,7 +932,7 @@ fusion-studio/
 │       ├── SecurityService.swift # Security center
 │       ├── CollaborationService.swift # LAN collaboration
 │       └── ...                   # Other services
-├── Services/                     # (空 — env-daemon/mlx-daemon 已删除, env.* 由中央路由 daemon_server.py 实现)
+├── Services/                     # (empty — env-daemon/mlx-daemon removed, env.* implemented by central router daemon_server.py)
 ├── Scripts/                      # Build & deployment scripts
 ├── Tests/                        # Unit + integration tests (60+ tests)
 ├── .github/workflows/            # CI/CD pipelines
