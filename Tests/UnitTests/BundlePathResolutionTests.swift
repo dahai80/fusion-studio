@@ -21,11 +21,22 @@ final class BundlePathResolutionTests: XCTestCase {
         try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: path)
     }
 
+    // allowlist 仅允许 NSHomeDirectory() 或 bundleURL 前缀 (审计v0.1.58 P0-bundling-1).
+    // CI 上 NSTemporaryDirectory()=/var/folders 不在 /Users/runner 下 → 会被拒.
+    // 测试 fixture 必须落在 home 下, 与生产 allowlist 契约一致 (非放宽安全).
+    private func homeTmpDir(_ label: String) -> String {
+        let home = NSHomeDirectory()
+        let dir = (home as NSString).appendingPathComponent(".fusion-studio-test/\(label)_\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        return dir
+    }
+
     // (1) 用户覆盖 + 可执行 → 返回 override
     func test_resolveBackendPath_prefersUserOverride() {
-        let tmp = NSTemporaryDirectory() + "fusion393_test_override_\(UUID().uuidString)/start.sh"
+        let dir = homeTmpDir("override")
+        let tmp = dir + "/start.sh"
         makeExecutable(tmp)
-        defer { try? FileManager.default.removeItem(atPath: (tmp as NSString).deletingLastPathComponent) }
+        defer { try? FileManager.default.removeItem(atPath: dir) }
 
         let cfg = FusionConfig.shared
         let origOverride = cfg.backendRuntimeOverridePath
@@ -107,7 +118,7 @@ final class BundlePathResolutionTests: XCTestCase {
         XCTAssertNil(result, "override/dev/bundle 均不可执行 → nil (调用方置 criticalBackendMissing)")
     }
 
-    // (5) override 不可执行 → 跳过 override, 走后续顺序 (不因坏覆盖阻塞)
+    // (5) override 不可执行 (in-allowlist 但不存在) → 跳过 override, 回退 bundle
     func test_resolveBackendPath_invalidOverrideSkipped() {
         let bundleDir = NSTemporaryDirectory() + "fusion393_test_bundle3_\(UUID().uuidString)"
         let bundleStart = bundleDir + "/Contents/Services/start.sh"
@@ -121,7 +132,10 @@ final class BundlePathResolutionTests: XCTestCase {
             cfg.backendRuntimeOverridePath = origOverride
             cfg.upstreamAgentStudioPath = origDev
         }
-        cfg.backendRuntimeOverridePath = "/__fusion393_nonexistent_override__"  // 坏覆盖
+        // in-allowlist (home 下) 但不存在的覆盖: 通过 allowlist, isExecutableFile=false → 跳过回退 bundle
+        let badDir = homeTmpDir("bad-override")
+        defer { try? FileManager.default.removeItem(atPath: badDir) }
+        cfg.backendRuntimeOverridePath = badDir + "/start.sh"
         cfg.upstreamAgentStudioPath = "~/__fusion393_nonexistent_dev__"
 
         let result = cfg.resolveBackendStartSh(bundleURL: URL(fileURLWithPath: bundleDir))
