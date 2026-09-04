@@ -184,11 +184,14 @@ bundle_python() {
 #!/bin/bash
 # Fusion Studio bundled backend wrapper (Track A #393).
 # Relocatable: PYTHONHOME/PYTHONPATH resolved via $SCRIPT_DIR at runtime.
+# 审计v0.1.58 P0-bundling-2: 清继承环境 (DYLD/PYTHON 注入) + -I -P 隔离用户站点.
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+unset DYLD_LIBRARY_PATH DYLD_FALLBACK_LIBRARY_PATH DYLD_INSERT_LIBRARIES \
+      PYTHONSTARTUP PYTHONHOME PYTHONPATH PYTHONUSERBASE PYTHONDONTWRITEBYTECODE 2>/dev/null || true
 export PYTHONHOME="$SCRIPT_DIR/python"
 export PYTHONPATH="$SCRIPT_DIR:$SCRIPT_DIR/python/lib/python3.12/site-packages"
-exec "$SCRIPT_DIR/python/bin/python3" -m agent_runtime.daemon_server "$@"
+exec "$SCRIPT_DIR/python/bin/python3" -I -P -m agent_runtime.daemon_server -- "$@"
 WRAPPER
     chmod +x "$svc_dir/start.sh"
     info "✅ 生成 wrapper start.sh (可重定位)"

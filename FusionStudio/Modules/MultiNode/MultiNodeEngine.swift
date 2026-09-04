@@ -89,8 +89,12 @@ class MultiNodeEngine: ObservableObject {
 
     private var baseURL: String {
         if let override = overrideBaseURL { return override }
+        // 审计v0.1.58 P2-2: pool 活跃端点用完整 URL (含 scheme), 非 urlString (无 scheme 致 URL 构造失败).
         // Track B: pool 优先, pool 空回退 FusionConfig 默认 (向后兼容单 master 部署)。
-        return MasterPool.shared.active?.urlString ?? FusionConfig.shared.multiNodeBaseURL
+        if let ep = MasterPool.shared.active, let u = ep.url {
+            return u.absoluteString
+        }
+        return FusionConfig.shared.multiNodeBaseURL
     }
     private var agentBaseURL: String { overrideAgentBaseURL ?? FusionConfig.shared.multiNodeAgentBaseURL }
     // Track B: cluster token 走 Keychain (Task 6 迁移), 保留 override 供测试注入。
@@ -650,6 +654,13 @@ class MultiNodeEngine: ObservableObject {
     }
 
     func registerKVCache(cacheId: String, modelName: String, nodeId: String, sizeMb: Double, ttlSeconds: Int = 3600) async throws {
+        // 审计v0.1.58 P0-multinode-1: KV register 是写操作, 必经 canMutate+split-brain 门.
+        guard canMutate else {
+            ClusterAuditor.shared.record(action: "registerKV", targetNode: nodeId, targetTask: nil,
+                                         result: "blocked", idempotencyKey: nil, masterHost: activeMasterHost)
+            throw EngineError.writeDisabled
+        }
+        try assertNoSplitBrain()
         let body: [String: Any] = [
             "cache_id": cacheId,
             "model_name": modelName,
@@ -657,11 +668,21 @@ class MultiNodeEngine: ObservableObject {
             "size_mb": sizeMb,
             "ttl_seconds": ttlSeconds,
         ]
-        _ = try await post("/api/kv/register", body: body)
+        do {
+            _ = try await post("/api/kv/register", body: body)
+            ClusterAuditor.shared.record(action: "registerKV", targetNode: nodeId, targetTask: nil,
+                                         result: "ok", idempotencyKey: nil, masterHost: activeMasterHost)
+        } catch {
+            ClusterAuditor.shared.record(action: "registerKV", targetNode: nodeId, targetTask: nil,
+                                         result: "failed", idempotencyKey: nil, masterHost: activeMasterHost)
+            throw error
+        }
     }
 
     func exportLogs() async throws -> Data {
-        let url = URL(string: "\(baseURL)/api/v1/observability/logs/export")!
+        guard let url = URL(string: "\(baseURL)/api/v1/observability/logs/export") else {
+            throw EngineError.invalidURL
+        }
         var request = URLRequest(url: url)
         authHeaders(&request)
         let (data, _) = try await session.data(for: request)
@@ -686,9 +707,25 @@ class MultiNodeEngine: ObservableObject {
     }
 
     func joinNode(ipAddress: String, port: Int, token: String? = nil) async throws -> [String: Any] {
+        // 审计v0.1.58 P0-multinode-1: join 是写操作, 必经 canMutate+split-brain 门.
+        guard canMutate else {
+            ClusterAuditor.shared.record(action: "join", targetNode: ipAddress, targetTask: nil,
+                                         result: "blocked", idempotencyKey: nil, masterHost: activeMasterHost)
+            throw EngineError.writeDisabled
+        }
+        try assertNoSplitBrain()
         var body: [String: Any] = ["ip_address": ipAddress, "port": port]
         if let t = token { body["token"] = t }
-        return try await post("/api/join", body: body)
+        do {
+            let resp = try await post("/api/join", body: body)
+            ClusterAuditor.shared.record(action: "join", targetNode: ipAddress, targetTask: nil,
+                                         result: "ok", idempotencyKey: nil, masterHost: activeMasterHost)
+            return resp
+        } catch {
+            ClusterAuditor.shared.record(action: "join", targetNode: ipAddress, targetTask: nil,
+                                         result: "failed", idempotencyKey: nil, masterHost: activeMasterHost)
+            throw error
+        }
     }
 
     // MARK: - Cluster Sync (#74)

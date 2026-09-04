@@ -338,15 +338,26 @@ class FusionConfig: ObservableObject {
     //   4. 都不在 → 返回 nil (调用方置 criticalBackendMissing)
     // bundleURL 参数用于测试注入 (生产用 Bundle.main.bundleURL)。
     func resolveBackendStartSh(bundleURL: URL = Bundle.main.bundleURL) -> String? {
-        // (1) 用户覆盖
+        // (1) 用户覆盖 — 审计v0.1.58 P0-bundling-1: 校验相对路径+symlink+allowlist 前缀.
         let override = backendRuntimeOverridePath.trimmingCharacters(in: .whitespacesAndNewlines)
         if !override.isEmpty {
-            let p = (override as NSString).expandingTildeInPath
-            if FileManager.default.isExecutableFile(atPath: p) {
-                fusionConfigLog.info("resolveBackendStartSh: source=user-override -> \(p, privacy: .public)")
-                return p
+            let expanded = (override as NSString).expandingTildeInPath
+            guard expanded.hasPrefix("/") else {
+                fusionConfigLog.error("resolveBackendStartSh: user override 拒绝相对路径: \(expanded, privacy: .public)")
+                return nil
             }
-            fusionConfigLog.error("resolveBackendStartSh: user override 不可执行, 跳过: \(p, privacy: .public)")
+            let resolved = (expanded as NSString).resolvingSymlinksInPath
+            let allowed = resolved.hasPrefix((NSHomeDirectory() as NSString).expandingTildeInPath)
+                || resolved.hasPrefix(bundleURL.path)
+            guard allowed else {
+                fusionConfigLog.error("resolveBackendStartSh: user override 越界 allowlist (仅允许 ~/fusion 或 bundle): \(resolved, privacy: .public)")
+                return nil
+            }
+            if FileManager.default.isExecutableFile(atPath: resolved) {
+                fusionConfigLog.info("resolveBackendStartSh: source=user-override -> \(resolved, privacy: .public)")
+                return resolved
+            }
+            fusionConfigLog.error("resolveBackendStartSh: user override 不可执行, 跳过: \(resolved, privacy: .public)")
         }
         // (2) dev 路径
         let devPath = expandedUpstreamPath(upstreamAgentStudioPath) + "/start.sh"

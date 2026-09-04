@@ -7,8 +7,14 @@ struct ClusterEndpoint: Equatable {
     let host: String
     let port: Int
 
+    // 审计v0.1.58 P0-multinode-3: 远程节点强制 https; 本地保留 http (loopback).
+    private static func isLocalHost(_ h: String) -> Bool {
+        h == "127.0.0.1" || h == "localhost" || h == "0.0.0.0" || h == "::1"
+    }
+
     var url: URL? {
-        URL(string: "http://\(host):\(port)")
+        let scheme = Self.isLocalHost(host) ? "http" : "https"
+        return URL(string: "\(scheme)://\(host):\(port)")
     }
 
     var urlString: String {

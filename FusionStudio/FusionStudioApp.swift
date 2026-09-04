@@ -275,9 +275,11 @@ struct FusionStudioApp: App {
                         .environmentObject(ipcClient)
                 }
                 // #394: identity 可达 + 未登录 → 弹登录窗. 登录成功 dismiss.
+                // 审计v0.1.58 P0-identity: interactiveDismissDisabled 防 swipe/click 绕过登录.
                 .sheet(isPresented: $showIdentityLogin) {
                     IdentityLoginView(service: identityService)
                         .environmentObject(identityService)
+                        .interactiveDismissDisabled(true)
                         .onChange(of: identityService.isLoggedIn) { loggedIn in
                             if loggedIn { showIdentityLogin = false }
                         }

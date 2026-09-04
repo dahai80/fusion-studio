@@ -33,7 +33,8 @@ extension IPCClient {
         if let body = body {
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
         }
-        let (data, response) = try await URLSession.shared.data(for: request)
+        // 审计v0.1.58 P0-multinode-2: 用 ClusterTransport 统一会话 (TLS 委托 pinning), 非 URLSession.shared 裸连.
+        let (data, response) = try await ClusterTransport.shared.session.data(for: request)
         guard let http = response as? HTTPURLResponse else {
             throw IPCError.invalidResponse
         }
@@ -296,7 +297,8 @@ extension IPCClient {
         if !token.isEmpty {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
-        let (data, response) = try await URLSession.shared.data(for: request)
+        // 审计v0.1.58 P0-multinode-2: ClusterTransport 统一会话 (TLS pinning), 非 URLSession.shared.
+        let (data, response) = try await ClusterTransport.shared.session.data(for: request)
         guard let http = response as? HTTPURLResponse, http.statusCode >= 200, http.statusCode < 300 else {
             throw IPCError.invalidResponse
         }
