@@ -107,7 +107,22 @@ class ScreenContextManager: ObservableObject {
         // 审计0902 E5 (P2): 跳过重叠 poll — 上一轮慢 AX API 未完, Timer 又起新轮 → 主 actor 积压 UI 抖。
         guard !isPolling else { return }
         isPolling = true
-        defer { isPolling = false }
+        // PERF-3 (审计product-0905 P2): AX API 同步且可阻塞 (跨进程 RPC), 原 @MainActor 直跑卡主线程。
+        //   移 Task.detached 后台采 AX, 回 MainActor 回填 @Published。isPolling 在 MainActor 置/清。
+        Task.detached(priority: .utility) { [weak self] in
+            let newContext = await Self.collectScreenContext()
+            await MainActor.run { [weak self] in
+                guard let self = self else { return }
+                self.isPolling = false
+                guard newContext != self.currentContext else { return }
+                self.logger.info("Screen context changed: app=\(newContext.activeAppName) window=\(newContext.windowTitle) bundle=\(newContext.bundleIdentifier)")
+                self.currentContext = newContext
+            }
+        }
+    }
+
+    // PERF-3: nonisolated 采集 AX 上下文 (线程安全 — AX UI element API 可后台调用), 不触 @MainActor。
+    private nonisolated static func collectScreenContext() async -> ScreenContextInfo {
         let systemWide = AXUIElementCreateSystemWide()
 
         var focusedApp: AnyObject?
@@ -116,11 +131,9 @@ class ScreenContextManager: ObservableObject {
             kAXFocusedApplicationAttribute as CFString,
             &focusedApp
         )
-        guard appResult == .success else {
-            logger.debug("pollContext: no focused app, AX error \(appResult.rawValue)")
-            return
+        guard appResult == .success, focusedApp != nil else {
+            return ScreenContextInfo.empty
         }
-
         let focusedAppElement = focusedApp as! AXUIElement
 
         var appName: AnyObject?
@@ -171,27 +184,18 @@ class ScreenContextManager: ObservableObject {
         AXUIElementGetPid(focusedAppElement, &pid)
         var bundleIdentifier: String = ""
         if pid != 0 {
-            bundleIdentifier = bundleIdentifierForPID(pid)
+            if let runningApp = NSRunningApplication(processIdentifier: pid) {
+                bundleIdentifier = runningApp.bundleIdentifier ?? ""
+            }
         }
 
-        let newContext = ScreenContextInfo(
+        return ScreenContextInfo(
             activeAppName: (appName as? String) ?? "",
             windowTitle: windowTitle,
             selectedText: selectedText,
             bundleIdentifier: bundleIdentifier,
             timestamp: Date()
         )
-
-        if newContext != currentContext {
-            logger.info("Screen context changed: app=\(newContext.activeAppName) window=\(newContext.windowTitle) bundle=\(newContext.bundleIdentifier)")
-            currentContext = newContext
-        }
     }
 
-    private func bundleIdentifierForPID(_ pid: pid_t) -> String {
-        guard let runningApp = NSRunningApplication(processIdentifier: pid) else {
-            return ""
-        }
-        return runningApp.bundleIdentifier ?? ""
-    }
 }

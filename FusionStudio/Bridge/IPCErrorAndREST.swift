@@ -31,7 +31,11 @@ extension IPCClient {
     private var mlxHTTPBase: String { FusionConfig.shared.mlxBaseURL }
 
     func ocr(image: String, model: String, outputFormat: String = "markdown") async throws -> String {
-        let url = URL(string: "\(mlxHTTPBase)/v1/ocr")!
+        // SEC-3 (审计product-0905 P2): guard 替 force-unwrap, 防 baseURL 异常致 runtime crash。
+        guard let url = URL(string: "\(mlxHTTPBase)/v1/ocr") else {
+            ipcLog.error("ocr: invalid base URL \(self.mlxHTTPBase, privacy: .public)")
+            throw IPCError.invalidResponse
+        }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -58,7 +62,10 @@ extension IPCClient {
     }
 
     func listOCRModels() async throws -> [String] {
-        let url = URL(string: "\(mlxHTTPBase)/v1/ocr/models")!
+        guard let url = URL(string: "\(mlxHTTPBase)/v1/ocr/models") else {
+            ipcLog.error("listOCRModels: invalid base URL \(self.mlxHTTPBase, privacy: .public)")
+            throw IPCError.invalidResponse
+        }
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         let (data, resp) = try await URLSession.shared.data(for: request)
@@ -496,6 +503,17 @@ extension IPCClient {
             let code = (resp as? HTTPURLResponse)?.statusCode ?? -1
             throw IPCError.rpcError(code: code, message: "FSB health check failed")
         }
-        return (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
+        // ERR-4 (审计product-0905 P3): 解析失败不静默吞 — 显式 throw, 上层可见。
+        let errLog = Logger(subsystem: "com.fusion.studio", category: "IPCErrorAndREST")
+        do {
+            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                errLog.error("ERR-4: fsbHealth response not a JSON object")
+                throw IPCError.invalidResponse
+            }
+            return json
+        } catch {
+            errLog.error("ERR-4: fsbHealth JSON parse failed: \(error.localizedDescription, privacy: .public)")
+            throw IPCError.invalidResponse
+        }
     }
 }

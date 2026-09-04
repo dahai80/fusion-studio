@@ -14,7 +14,7 @@ swift build -c release
 # Run all tests
 swift test
 
-# Full build pipeline (Rust services + SPM + app packaging)
+# Full build pipeline (SPM build + app packaging; 无本地 Rust 后台服务, 见 #296)
 ./Scripts/build.sh              # default: release
 ./Scripts/build.sh debug        # debug build
 ./Scripts/build.sh package      # package .app bundle
@@ -96,7 +96,7 @@ Services/                    # 空 (env-daemon/mlx-daemon 已删除, 见 #296)
 
 - `env.*` — health_check, repair, repair_all
 - `mlx.*` — start, stop, restart, status, health, set_model
-- `design.*` — export_code
+- `design.*` — generate, export_code
 - `task.*` — submit, status
 - `ping` — health check
 

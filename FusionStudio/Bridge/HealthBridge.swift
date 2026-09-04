@@ -205,7 +205,12 @@ class HealthBridge: ObservableObject {
 
     func generateEhrSummary(clinicalNotes: String, completion: @escaping (Result<String, Error>) -> Void = { _ in }) {
         healthBridgeLog.info("generateEhrSummary: notes len=\(clinicalNotes.count)")
-        guard let url = URL(string: "\(baseURL)/api/v1/ehr/summary") else { return }
+        // ERR-1 (审计product-0905 P1): nil URL 时 completion 永不调用, 调用方永久卡在 loading。报失败。
+        guard let url = URL(string: "\(baseURL)/api/v1/ehr/summary") else {
+            healthBridgeLog.error("generateEhrSummary invalid baseURL=\(self.baseURL, privacy: .public)")
+            completion(.failure(NSError(domain: "HealthBridge", code: -2, userInfo: [NSLocalizedDescriptionKey: "无效的健康服务地址"])))
+            return
+        }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         applyAuth(&req)
@@ -238,7 +243,12 @@ class HealthBridge: ObservableObject {
 
     func extractVitals(text: String, completion: @escaping (Result<[String: String], Error>) -> Void = { _ in }) {
         healthBridgeLog.info("extractVitals: text len=\(text.count)")
-        guard let url = URL(string: "\(baseURL)/api/v1/ehr/vitals") else { return }
+        // ERR-1 (审计product-0905 P1): nil URL 时 completion 永不调用, 调用方永久卡在 loading。报失败。
+        guard let url = URL(string: "\(baseURL)/api/v1/ehr/vitals") else {
+            healthBridgeLog.error("extractVitals invalid baseURL=\(self.baseURL, privacy: .public)")
+            completion(.failure(NSError(domain: "HealthBridge", code: -2, userInfo: [NSLocalizedDescriptionKey: "无效的健康服务地址"])))
+            return
+        }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         applyAuth(&req)

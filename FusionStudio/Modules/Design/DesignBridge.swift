@@ -152,6 +152,14 @@ private enum ArtifactParseState {
 @MainActor
 class DesignBridge: ObservableObject {
     @Published var messages: [DesignMessage] = []
+    // PERF-4 (审计product-0905 P2): messages 无界 @Published, 长会话内存涨。LRU cap。
+    static let maxMessages = 200
+    private func capMessages() {
+        guard messages.count > Self.maxMessages else { return }
+        let drop = messages.count - Self.maxMessages
+        messages.removeFirst(drop)
+        designBridgeLog.info("DesignBridge capMessages: drop \(drop) oldest (count > \(Self.maxMessages))")
+    }
     @Published var currentArtifactCode: String = ""
     @Published var currentArtifactType: String = "html"
     @Published var currentArtifactTitle: String = ""
@@ -1333,6 +1341,7 @@ class DesignBridge: ObservableObject {
 
         let userMsg = DesignMessage(role: "user", content: userMessage, timestamp: Date())
         messages.append(userMsg)
+        capMessages()
         isGenerating = true
         artifactSaved = false
         errorMessage = nil
@@ -1477,6 +1486,7 @@ class DesignBridge: ObservableObject {
                 artifactInfo: finalArtifact
             )
             messages.append(assistantMsg)
+            capMessages()
 
             if finalArtifact != nil {
                 designBridgeLog.info("DesignBridge: artifact parsed — type=\(self.currentArtifactType), title=\(self.currentArtifactTitle), \(self.currentArtifactCode.count) chars")
@@ -2029,7 +2039,21 @@ class DesignBridge: ObservableObject {
             return
         }
         isExportingCodegen = true
-        let result = runFusionDesign(["codegen", "--target", target, "--component", componentName], stdin: documentJSON)
+        // ERR-6 (审计product-0905 P1): runFusionDesign 同步 Process 阻塞, 在 @MainActor class 直接调 = 卡 UI。
+        // 移 Task.detached 后台跑: MainActor 预解析 cliPath, nonisolated static runCLIProcess 跑 Process, 回填 @Published 在 MainActor。
+        let cliPath = resolveCLIPath()
+        guard !cliPath.isEmpty else {
+            errorMessage = "CLI not found"
+            isExportingCodegen = false
+            return
+        }
+        let result = await Task.detached(priority: .userInitiated) {
+            Self.runCLIProcess(
+                cliPath: cliPath,
+                args: ["codegen", "--target", target, "--component", componentName],
+                stdin: documentJSON
+            )
+        }.value
         if result.exitCode == 0 {
             exportedCodegenCode = result.output
             designBridgeLog.info("DesignBridge: codegen export done, target=\(target), \(result.output.count) chars")
@@ -2065,7 +2089,20 @@ class DesignBridge: ObservableObject {
             isBatchExporting = false
             return
         }
-        let result = runFusionDesign(["export", "--input", tmpPath, "--format", format, "--out", outputDir])
+        // ERR-6 (审计product-0905 P1): 同步 Process 阻塞 MainActor, 移 Task.detached 后台跑。
+        let cliPath = resolveCLIPath()
+        guard !cliPath.isEmpty else {
+            errorMessage = "CLI not found"
+            try? FileManager.default.removeItem(atPath: tmpPath)
+            isBatchExporting = false
+            return
+        }
+        let result = await Task.detached(priority: .userInitiated) {
+            Self.runCLIProcess(
+                cliPath: cliPath,
+                args: ["export", "--input", tmpPath, "--format", format, "--out", outputDir]
+            )
+        }.value
         try? FileManager.default.removeItem(atPath: tmpPath)
         if result.exitCode == 0 {
             batchExportResult = result.output
@@ -2258,48 +2295,8 @@ class DesignBridge: ObservableObject {
         isImportingScreenshot = false
     }
 
-    @Published var designHealth: [String: Any] = [:]
-    @Published var isDesignHealthy: Bool = false
-
-    func designHealthCheck() async {
-        guard let ipc = ipcClient else {
-            designBridgeLog.warning("DesignBridge: no IPCClient for health check")
-            return
-        }
-        do {
-            let result = try await ipc.call(method: RPCMethod.designHealthCheck)
-            designHealth = result
-            let ok = result["status"] as? String == "ok" || result["healthy"] as? Bool == true
-            isDesignHealthy = ok
-            designBridgeLog.info("DesignBridge health: \(ok ? "healthy" : "unhealthy") — \(result)")
-        } catch {
-            isDesignHealthy = false
-            designBridgeLog.warning("DesignBridge health check failed: \(error)")
-        }
-    }
-
-    func sendMultimodalMessage(prompt: String, imageData: Data, imageType: String = "image/png") async throws -> String {
-        guard let ipc = ipcClient else {
-            throw BridgeError.notConnected
-        }
-        let b64 = imageData.base64EncodedString()
-        designBridgeLog.info("DesignBridge: sending multimodal message, image size=\(imageData.count)")
-        let result = try await ipc.call(method: RPCMethod.designGenerate, params: [
-            "prompt": prompt,
-            "image": [
-                "data": b64,
-                "mime_type": imageType,
-            ],
-        ])
-        let code = result["code"] as? String ?? result["artifact"] as? String ?? result["content"] as? String ?? ""
-        if !code.isEmpty {
-            currentArtifactCode = code
-            currentArtifactType = result["type"] as? String ?? "html"
-            currentArtifactTitle = result["title"] as? String ?? "Multimodal Design"
-            artifactSaved = false
-        }
-        return code
-    }
+    // FUNC-10/11 (审计product-0905 P3): designHealthCheck + sendMultimodalMessage 已删 — 0 调用方死代码。
+    // designHealth/isDesignHealthy @Published 同删 (0 读)。
 
 }
 

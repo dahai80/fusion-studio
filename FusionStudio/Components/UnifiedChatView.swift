@@ -42,7 +42,7 @@ struct UnifiedChatView: View {
     @State private var showArtifactCanvas: Bool = false
     // #217: 首页 Chat↔Cowork 模式切换 + 授权文件夹 + 工作流实时进度.
     @State private var homeMode: CoworkHomeMode = .chat
-    @StateObject private var coworkHome = CoworkHomeBridge(ipc: IPCClient())
+    @StateObject private var coworkHome = CoworkHomeBridge()
 
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())

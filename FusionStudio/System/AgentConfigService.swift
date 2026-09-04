@@ -49,7 +49,9 @@ extension ConfigState {
 
     func apikeyRotate(keyId: String) async throws -> [String: Any] {
         guard let client = self.ipcClient else { throw BridgeError.notConnected }
-        let result = try await client.call(method: RPCMethod.agentStudioApikeyRotate, params: ["key_id": keyId])
+        // FUNC-1 (审计product-0905 P1): 后端无 agent_studio.apikey.rotate 命名空间; 实现的是 apikey.rotate (infra.py)。
+        // 客户端已有正确常量 RPCMethod.apikeyRotate (IPCExtendedMethods:160), 直接用。
+        let result = try await client.call(method: RPCMethod.apikeyRotate, params: ["key_id": keyId])
         self.apikeysFetchedAt = nil
         await fetchApikeys()
         agentConfigLog.info("Rotated API key: \(keyId)")

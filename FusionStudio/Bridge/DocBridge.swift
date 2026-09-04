@@ -1479,8 +1479,10 @@ class DocBridge: ObservableObject {
         body.append(fileData)
         body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
         request.httpBody = body
-        session.dataTask(with: request) { data, _, error in
+        session.dataTask(with: request) { data, response, error in
             if let error = error { completion(.failure(error)); return }
+            // ERR-2 (审计product-0905 P2): 校验 HTTP status, 4xx/5xx 抛语义化错误 (非 2xx 响应体误当 DocFileUpload 解码失败)。
+            if let statusErr = Self.httpStatusError(response, data) { completion(.failure(statusErr)); return }
             guard let data = data else {
                 completion(.failure(NSError(domain: "DocBridge", code: -2, userInfo: [NSLocalizedDescriptionKey: "No data"])))
                 return

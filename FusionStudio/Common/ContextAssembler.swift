@@ -21,7 +21,9 @@ class ContextAssembler {
     private let maxClaudeMdChars = 6000
     private let maxStructureLines = 80
 
-    func assemble(project: FusionProject?, query: String? = nil) -> String {
+    // ARCH-5 (审计product-0905 P1): 文件 I/O (CLAUDE.md/knowledge/目录扫描) 移出 MainActor。
+    // nonisolated: 本类无 actor 隔离, ipcClient 仅 init 期 set, 读线程安全。标记 nonisolated 显式脱离 MainActor。
+    nonisolated func assemble(project: FusionProject?, query: String? = nil) -> String {
         var parts: [String] = []
         parts.append("You are Fusion Studio AI assistant, running locally on Apple Silicon. All inference is offline.")
 
@@ -61,8 +63,13 @@ class ContextAssembler {
         return result
     }
 
+    // ARCH-5: assembleWithRAG async — assemble (含全部磁盘 I/O) 在 Task.detached 跑, 不卡 MainActor。
     func assembleWithRAG(project: FusionProject?, query: String) async -> String {
-        var base = assemble(project: project, query: query)
+        let proj = project
+        let q = query
+        var base = await Task.detached(priority: .userInitiated) {
+            return Self.shared.assemble(project: proj, query: q)
+        }.value
 
         let ragResults = await searchKnowledge(query: query, limit: 5)
         if !ragResults.isEmpty {

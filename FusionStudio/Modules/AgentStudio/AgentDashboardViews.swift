@@ -70,6 +70,22 @@ struct DashboardTabView: View {
 
     private var auditTrailSection: some View {
         let trail = bridge.agentState.auditTrail
+        // 审计product-0905 FUNC-5: 上游 audit.trail 未实现 → 显式 "功能不可用", 不伪装 "无数据" 空态。
+        if bridge.agentState.auditTrailUnavailable {
+            return AnyView(
+                HStack {
+                    Image(systemName: "exclamationmark.triangle")
+                        .foregroundStyle(.orange)
+                    Text(I18nManager.shared.t(.ab_err_feature_unavailable))
+                        .font(.system(size: theme.footnoteSize))
+                        .foregroundStyle(theme.textSecondary)
+                    Spacer()
+                }
+                .padding(theme.spacingM)
+                .background(theme.surfaceSecondary)
+                .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous))
+            )
+        }
         if trail.isEmpty {
             return AnyView(
                 HStack {
@@ -121,6 +137,22 @@ struct DashboardTabView: View {
 
     private var sessionLogsSection: some View {
         let logs = bridge.agentState.sessionLogs
+        // 审计product-0905 FUNC-6: 上游 session.logs 未实现 → 显式 "功能不可用", 不伪装 "无数据" 空态。
+        if bridge.agentState.sessionLogsUnavailable {
+            return AnyView(
+                HStack {
+                    Image(systemName: "exclamationmark.triangle")
+                        .foregroundStyle(.orange)
+                    Text(I18nManager.shared.t(.ab_err_feature_unavailable))
+                        .font(.system(size: theme.footnoteSize))
+                        .foregroundStyle(theme.textSecondary)
+                    Spacer()
+                }
+                .padding(theme.spacingM)
+                .background(theme.surfaceSecondary)
+                .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous))
+            )
+        }
         if logs.isEmpty {
             return AnyView(
                 HStack {

@@ -4900,6 +4900,7 @@
   "ab_err_timeout": "Request timed out. The AI service took too long to respond. Please try again later.",
   "ab_err_service_anomaly": "AI service returned an error. Please check the service status or try again later.",
   "ab_err_unavailable": "AI service is temporarily unavailable. Please try again later.",
+  "ab_err_feature_unavailable": "This feature is not implemented by the current backend. Pending upstream support.",
   "ab_err_decode_mismatch": "AI service returned unexpected data. Please check whether the service version matches.",
   "ab_err_unavailable_code_fmt": "AI service is temporarily unavailable (error code: %d). Please try again later.",
   "ab_err_generic": "The operation could not be completed. Please try again later.",

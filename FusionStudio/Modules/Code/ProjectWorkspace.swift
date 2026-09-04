@@ -200,31 +200,40 @@ class ProjectWorkspace: ObservableObject {
     }
 
     @discardableResult
-    func write(file: CodeFile, content: String) -> Bool {
+    // ARCH-4 (审计product-0905 P1): 文件 I/O 移出 MainActor — 阻塞 write 卡 UI 线程。
+    // 磁盘读写跑 Task.detached (cooperative 池), 状态回填 (files/selectedFile) 回 MainActor。
+    // 调用方 (Button action) 需 Task { await workspace.write(...) }。
+    func write(file: CodeFile, content: String) async -> Bool {
         let url = URL(fileURLWithPath: file.path)
+        let path = file.path
+        let name = file.name
 
-        do {
-            let original = try? String(contentsOf: url, encoding: .utf8)
-            checkpoints[file.path] = original ?? ""
-
-            try content.write(to: url, atomically: true, encoding: .utf8)
-
-            if var found = findFile(in: files, path: file.path) {
-                found.content = content
-                found.isModified = false
-                updateFile(in: &files, path: file.path, updated: found)
+        let (original, writeOk): (String?, Bool) = await Task.detached(priority: .userInitiated) {
+            let orig = try? String(contentsOf: url, encoding: .utf8)
+            do {
+                try content.write(to: url, atomically: true, encoding: .utf8)
+                return (orig, true)
+            } catch {
+                codeEditLog.error("Failed to write file \(name): \(error.localizedDescription)")
+                return (orig, false)
             }
-            if selectedFile?.path == file.path {
-                selectedFile?.content = content
-                selectedFile?.isModified = false
-            }
+        }.value
 
-            codeEditLog.info("File saved: \(file.name), checkpoint stored")
-            return true
-        } catch {
-            codeEditLog.error("Failed to write file \(file.name): \(error.localizedDescription)")
-            return false
+        guard writeOk else { return false }
+        checkpoints[path] = original ?? ""
+
+        if var found = findFile(in: files, path: path) {
+            found.content = content
+            found.isModified = false
+            updateFile(in: &files, path: path, updated: found)
         }
+        if selectedFile?.path == path {
+            selectedFile?.content = content
+            selectedFile?.isModified = false
+        }
+
+        codeEditLog.info("File saved: \(name), checkpoint stored")
+        return true
     }
 
     func undoLastWrite(_ file: CodeFile) -> Bool {

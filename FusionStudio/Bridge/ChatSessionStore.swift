@@ -141,18 +141,23 @@ struct ChatSessionData: Identifiable {
         self.updatedAt = updatedAt
     }
 
+    // PERF-1 (审计product-0905 P1): linearBranch 每次读重算 O(depth×n) (每步 messages.first(where:) 线性扫)。
+    // struct 值类型无法跨拷贝缓存, 改用 id→msg 索引一次性构建, 链式回溯 O(depth)。长会话深度大时收益明显。
     var linearBranch: [ChatMessageData] {
         guard !messages.isEmpty else { return [] }
         var leaf = activeBranch
         if leaf.isEmpty, let first = messages.first {
             leaf = first.id
         }
+        var index: [String: ChatMessageData] = [:]
+        index.reserveCapacity(messages.count)
+        for msg in messages { index[msg.id] = msg }
         var chain: [ChatMessageData] = []
-        var current = messages.first(where: { $0.id == leaf })
+        var current = index[leaf]
         while let msg = current {
             chain.append(msg)
             if msg.parentId.isEmpty { break }
-            current = messages.first(where: { $0.id == msg.parentId })
+            current = index[msg.parentId]
         }
         return chain.reversed()
     }
@@ -644,12 +649,16 @@ class ChatSessionStore: ObservableObject {
         sessions.removeAll()
         activeSession = nil
         chatStoreLog.info("Cleared all \(count) chat sessions")
-        if let ipc = ipc {
+        // PERF-2 (审计product-0905 P2): 原 N 次顺序 await IPC = N 倍 RTT。改并发 TaskGroup 批删。
+        guard let ipc = ipc, !ids.isEmpty else { return }
+        await withTaskGroup(of: Void.self) { group in
             for id in ids {
-                do {
-                    _ = try await ipc.call(method: RPCMethod.chatDelete, params: ["session_id": id])
-                } catch {
-                    chatStoreLog.warning("chat.delete IPC failed for \(id)")
+                group.addTask { [ipc] in
+                    do {
+                        _ = try await ipc.call(method: RPCMethod.chatDelete, params: ["session_id": id])
+                    } catch {
+                        chatStoreLog.warning("chat.delete IPC failed for \(id)")
+                    }
                 }
             }
         }

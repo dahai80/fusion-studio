@@ -245,7 +245,6 @@ enum RPCMethod {
 
     // MARK: - design
     static let designGenerate = "design.generate"
-    static let designHealthCheck = "design.health_check"
 
     // MARK: - permission
     static let permissionList = "permission.list"

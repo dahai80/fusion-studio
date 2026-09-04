@@ -266,6 +266,11 @@ class PluginBridge: ObservableObject {
         session.dataTask(with: request) { data, response, error in
             if let error = error { completion(.failure(error)); return }
             guard let data = data else { completion(.failure(PluginBridgeError.noData)); return }
+            // ERR-3 (审计product-0905 P3): HTTP 非 2xx 显式失败, 不静默落 decode。
+            if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+                pluginBridgeLog.error("PluginBridge RPC \(method) HTTP \(http.statusCode)")
+                completion(.failure(PluginBridgeError.rpcError("HTTP \(http.statusCode)"))); return
+            }
             do {
                 guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
                     completion(.failure(PluginBridgeError.rpcError("非 JSON 对象"))); return

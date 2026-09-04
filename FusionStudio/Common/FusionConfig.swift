@@ -291,17 +291,29 @@ class FusionConfig: ObservableObject {
 
     /// F-sec-1 P1: 本地回环/链路本地地址用 http://; 远程主机强制 https:// (Bearer token 明文保护)。
     /// 注: 仅选 scheme; TLS 证书校验由 URLSession 默认 ATS 负责, 远程部署需提供有效证书。
-    private func schemeForHost(_ host: String) -> String {
-        let h = host.lowercased()
-        if h == "127.0.0.1" || h == "localhost" || h == "0.0.0.0" || h == "::1" {
-            return "http"
-        }
-        return "https"
+    /// SEC-6 (审计product-0905 P1): scheme 选择器公开, 供 ModelHubAPIClient 等客户端复用。
+    func schemeForHost(_ host: String) -> String {
+        isLocalHost(host) ? "http" : "https"
     }
 
-    /// 读取 cluster token：优先手动覆盖，否则读 ~/.fusion/multi-node/.cluster_token（0600）。
+    /// SEC-6: 本地回环/链路本地判定公开, 供客户端拒绝明文 key 发往远程。
+    func isLocalHost(_ host: String) -> Bool {
+        let h = host.lowercased()
+        return h == "127.0.0.1" || h == "localhost" || h == "0.0.0.0" || h == "::1"
+    }
+
+    /// 读取 cluster token。
+    // SEC-5 (审计product-0905 P1): 优先 Keychain (不再首选 @AppStorage 明文)。@AppStorage 仅作遗留迁移源, 读后清除。
+    // 文件 ~/.fusion/multi-node/.cluster_token (0600) 为最终兜底。
     var multiNodeResolvedToken: String {
-        if !multiNodeClusterToken.isEmpty { return multiNodeClusterToken }
+        let kc = KeychainStore.readClusterToken()
+        if !kc.isEmpty { return kc }
+        if !multiNodeClusterToken.isEmpty {
+            fusionConfigLog.info("migrating cluster token: @AppStorage plaintext -> Keychain (SEC-5)")
+            _ = KeychainStore.writeClusterToken(multiNodeClusterToken)
+            multiNodeClusterToken = ""
+            return KeychainStore.readClusterToken()
+        }
         let path = (NSHomeDirectory() as NSString).appendingPathComponent(".fusion/multi-node/.cluster_token")
         return (try? String(contentsOfFile: path, encoding: .utf8))?
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""

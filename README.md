@@ -547,6 +547,79 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 
 ## 📋 Changelog
 
+### v0.1.59 — DMG Python bundling fix + audit-v0.1.58 residuals closed (2026-09-04)
+
+Patch release; fixes the v0.1.58 DMG `bundle_python` failure (missing agent_runtime siblings) and closes the v0.1.58 enterprise audit residuals:
+
+- **release.yml**: `Checkout monorepo siblings` step added so DMG Python backend bundling resolves `agent_runtime`/`tools/server` (was failing in v0.1.58)
+- **audit-v0.1.58 residuals (P0+P1)**: JWT keyless-claim integrity + manifest enforcement opt-in; split-brain + shared-token residuals marked RESOLVED (commit 3bd17e3); client wired to upstream deterministic split-brain signals (#76/#77)
+- **CI**: aligned BundlePath allowlist fixture + MultiNode 12 mutating-method guards; 3 green
+- **DMG**: 88MB published 2026-09-04; master converged 0 issue / 0 PR
+
+### v0.1.58 — Enterprise MultiNode TLS+HA + identity + DMG Python bundling + audit 0902 (2026-09-04)
+
+Feature release; ships #390/#394/#393/#395 plus two audit fix PRs:
+
+- **#396 enterprise Track B+C**: MultiNode production TLS (pinned certs, master failover, split-brain write-disable, Keychain token, audit trail) + Track C deprecated-module fallback + idempotency; 10 mutating methods all guarded
+- **#394 fusion-identity**: login, Keychain JWT, downstream auth, identity-gated tenant UI
+- **#399 DMG Python bundling (Track A)**: python-build-standalone 3.12.14 relocatable runtime + agent_runtime/tools/server + resolveBackendStartSh + Settings backend-runtime tab
+- **#400 Workflow Canvas**: SwiftUI canvas (zero-dep) consuming FSB canvas-layout API; read-only inspector
+- **#397 Trainer**: expose publish-to-hub controls (#390)
+- **audit-product-0902 (#392) + audit0902 (#391)**: all P0-P3 defects resolved
+- **#389 Design**: preserve `<style>` block in sanitizeHtml, surgically neutralize CSS XSS vectors
+
+### v0.1.57 — start.sh fusion-sv migration (2026-09-01)
+
+Patch release; #377 start/stop/status delegated to `fusion-sv up/down` (daemon needs CWD=monorepo root + FUSION_ROOT); legacy fallback retained; fusion-health port 11456 → 11469.
+
+### v0.1.56 — fd-host-web log + SecurityBridge guard CRUD + audit0830 resilience (2026-09-01)
+
+Patch release; ships #372, #373, #371:
+
+- **#374**: consume fd-host-web `log.capture.dump`, persist WASM log ring buffer
+- **#375**: migrate SecurityBridge rule CRUD to guard UDS (#373)
+- **#371**: audit0830 P0-P3 in-repo resilience batch (#198)
+
+### v0.1.55 — #359 AgentBridge behavior migration 7/7 domains (2026-08-30)
+
+Patch release; cumulative #359 epic (7/7 domains: MLX/Runtime/Config/Module/Agent/Task/ProjectChat) + #358 + #197 + #357 + #356 + #360:
+
+- **#369 PR7/N**: ProjectChatState behavior migrated (facade-delegate)
+- **#368 PR6/N**: TaskState (2 @Published + ipcClient + 2 TTL)
+- **#367 PR5/N**: AgentState (15 @Published, largest domain)
+- **#366 PR4/N**: ModuleState
+- **#365 PR3/N**: ConfigState (6 TTL)
+- **#364 PR2/N**: RuntimeState
+- **#363 PR1/N**: MLXState (facade-delegate, 9 stubs preserve 250 call sites)
+- **#362**: F-I4 IPC parsers → Codable + wiring tests
+
+### v0.1.54 — fusion-event stream + module error sanitize (2026-08-28)
+
+Patch release; cumulative #346 + #18:
+
+- **#352**: consume fusion-event stream over UDS (EventBridge + EventStreamView)
+- **#351**: F-I10 module catch UI-bind error → BridgeError.sanitize
+
+### v0.1.53 — fusion-guard zero-trust + SpeechBridge + fs-serve + UDS sock guard (2026-08-28)
+
+Patch release; ships #344, #337, #336, #23:
+
+- **#349**: fusion-guard zero-trust action authorization (Phase 5+6)
+- **#348**: SpeechBridge — fusion-speech UDS JSON-RPC client + microphone permission (#337)
+- **#347**: register fusion-store fs-serve in UpstreamServiceManager + health panel (#336)
+- **#345**: F-A18 IPCClient UDS client sock permission check (#23)
+
+### v0.1.52 — God-object split batch (PluginService/DocBridge/AgentConfigTabs) (2026-08-28)
+
+Patch release; ARCH-1 God-object split continues (#25): PluginService, DocBridge, AgentConfigTabs split.
+
+### v0.1.51 — God-object split batch + audit 0827 security/perf/errtolerance (2026-08-27)
+
+Patch release; ARCH-1 God-object split (#25/#26/#6/#338) + audit 0827 batches:
+
+- **God-object split**: FusionCodeView (#26), ArtifactsPanel (#25 partial), ProjectModuleView (#6), SpaceListView (#338)
+- **audit 0827**: error-tolerance + ops-log batch3; perf batch (unbounded @Published caps + 2 redundant MainActor.run); P1+P2 security batch (DesignPreviewView XSS + path traversal + CLI guard + error sanitize)
+
 ### v0.1.50 — #297 artifact.inject/interact offline dead code removal (2026-08-27)
 
 Patch release, fixes issue #297 (the Artifacts module's artifact.inject/interact was deprecated by upstream v0.4.0 and returns NotImplementedError; offline single-machine calls always failed):

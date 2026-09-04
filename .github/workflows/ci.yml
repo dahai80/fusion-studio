@@ -134,7 +134,7 @@ jobs:
   # ─── 通知 ─────────────────────────────────────────────
   notify:
     name: Notification
-    needs: [swift-build, lint]
+    needs: [swift-build, lint, security]
     if: always() && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -144,8 +144,11 @@ jobs:
         run: |
           echo "Swift Build: ${{ needs.swift-build.result }}"
           echo "Lint: ${{ needs.lint.result }}"
+          echo "Security: ${{ needs.security.result }}"
+          # OPS-2 (审计product-0905 P1): notify 纳入 security gate; 任一非 success = 整体失败 (含 secret 泄露)。
           if [ "${{ needs.swift-build.result }}" = "success" ] && \
-             [ "${{ needs.lint.result }}" = "success" ]; then
+             [ "${{ needs.lint.result }}" = "success" ] && \
+             [ "${{ needs.security.result }}" = "success" ]; then
             echo "✅ 所有检查通过"
           else
             echo "⚠️ 部分检查未通过"

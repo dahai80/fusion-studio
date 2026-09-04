@@ -51,10 +51,25 @@ extension IPCClient {
 
     private var ragHTTPBase: String { "http://\(FusionConfig.shared.fusionRagHost):\(FusionConfig.shared.fusionRagPort)" }
 
+    // SEC-7 (审计product-0905 P2): path 段注入防御 — 拒空/含分隔符/遍历符/控制字符的 segment。
+    private func isSafePathSegment(_ s: String) -> Bool {
+        guard !s.isEmpty else { return false }
+        if s.contains("/") || s.contains("\\") { return false }
+        if s.contains("..") { return false }
+        if s.unicodeScalars.contains(where: { $0.value < 0x20 || $0 == "?" || $0 == "#" }) { return false }
+        return true
+    }
+
     func ragWatch(kbId: String, filePaths: [String], pollInterval: Int = 30) async throws -> [String: Any] {
+        // SEC-3 (审计product-0905 P2): guard 替 force-unwrap; SEC-7: kbId 防 path 注入。
+        guard isSafePathSegment(kbId),
+              let url = URL(string: "\(ragHTTPBase)/kb/bases/\(kbId)/watch") else {
+            ipcLog.error("ragWatch: invalid kbId or base URL")
+            throw IPCError.invalidResponse
+        }
         let body: [String: Any] = ["file_paths": filePaths, "poll_interval": pollInterval]
         let data = try JSONSerialization.data(withJSONObject: body)
-        var request = URLRequest(url: URL(string: "\(ragHTTPBase)/kb/bases/\(kbId)/watch")!)
+        var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.httpBody = data
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -67,9 +82,15 @@ extension IPCClient {
     }
 
     func ragUnwatch(kbId: String, watchId: String) async throws -> [String: Any] {
+        // SEC-3 + SEC-7: guard 替 force-unwrap + kbId path 注入防御。
+        guard isSafePathSegment(kbId),
+              let url = URL(string: "\(ragHTTPBase)/kb/bases/\(kbId)/unwatch") else {
+            ipcLog.error("ragUnwatch: invalid kbId or base URL")
+            throw IPCError.invalidResponse
+        }
         let body: [String: Any] = ["watch_id": watchId]
         let data = try JSONSerialization.data(withJSONObject: body)
-        var request = URLRequest(url: URL(string: "\(ragHTTPBase)/kb/bases/\(kbId)/unwatch")!)
+        var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.httpBody = data
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -82,7 +103,13 @@ extension IPCClient {
     }
 
     func ragWatchStatus(kbId: String) async throws -> [String: Any] {
-        var request = URLRequest(url: URL(string: "\(ragHTTPBase)/kb/bases/\(kbId)/watch/status")!)
+        // SEC-3 + SEC-7: guard 替 force-unwrap + kbId path 注入防御。
+        guard isSafePathSegment(kbId),
+              let url = URL(string: "\(ragHTTPBase)/kb/bases/\(kbId)/watch/status") else {
+            ipcLog.error("ragWatchStatus: invalid kbId or base URL")
+            throw IPCError.invalidResponse
+        }
+        var request = URLRequest(url: url)
         request.httpMethod = "GET"
         let (responseData, _) = try await URLSession.shared.data(for: request)
         guard let json = try JSONSerialization.jsonObject(with: responseData) as? [String: Any] else {

@@ -93,6 +93,9 @@ final class CrashReporter: NSObject {
 
     // MARK: - Write
 
+    // OPS-5 (审计product-0905 P2): 保留最近 maxCrashReports 份, 删旧防无限堆积。
+    static let maxCrashReports = 10
+
     func writeCrash(kind: String, name: String, reason: String, stack: [String]) {
         let fm = FileManager.default
         let ts = Int(Date().timeIntervalSince1970)
@@ -111,6 +114,7 @@ final class CrashReporter: NSObject {
             try content.write(toFile: path, atomically: true, encoding: .utf8)
             try? fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: path)
             crashLog.error("F-ops-8: crash report written to \(path, privacy: .public)")
+            pruneOldCrashReports()
         } catch {
             crashLog.error("F-ops-8: write crash report failed: \(error.localizedDescription)")
         }
@@ -131,5 +135,27 @@ final class CrashReporter: NSObject {
         let content = lines.joined(separator: "\n")
         try? content.write(toFile: path, atomically: true, encoding: .utf8)
         try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: path)
+        // OPS-5: signal 路径也轮转 (best-effort, 非 async-signal-safe 但失败无害)。
+        pruneOldCrashReports()
+    }
+
+    // OPS-5: 按 mtime 排序, 删超出 maxCrashReports 的最旧 crash-*.log。
+    private func pruneOldCrashReports() {
+        let fm = FileManager.default
+        guard let files = try? fm.contentsOfDirectory(atPath: logDir) else { return }
+        let crashFiles = files.filter { $0.hasPrefix("crash-") && $0.hasSuffix(".log") }
+        guard crashFiles.count > Self.maxCrashReports else { return }
+        let full = crashFiles.map { (logDir as NSString).appendingPathComponent($0) }
+        let sorted = full.sorted { a, b in
+            (try? fm.attributesOfItem(atPath: a)[.modificationDate] as? Date) ?? .distantPast
+                > (try? fm.attributesOfItem(atPath: b)[.modificationDate] as? Date) ?? .distantPast
+        }
+        let toDelete = sorted.dropFirst(Self.maxCrashReports)
+        for old in toDelete {
+            try? fm.removeItem(atPath: old)
+        }
+        if !toDelete.isEmpty {
+            crashLog.info("OPS-5: pruned \(toDelete.count) old crash report(s)")
+        }
     }
 }
