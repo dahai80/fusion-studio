@@ -33,7 +33,14 @@ final class MasterPool {
 
     func advance() -> ClusterEndpoint? {
         lock.lock(); defer { lock.unlock() }
-        guard !endpoints.isEmpty else { return active }
+        guard !endpoints.isEmpty else {
+            // NSLock non-reentrant: do NOT call self.active here (it re-locks → self-deadlock).
+            // Mirror the legacy fallback inline under the held lock.
+            let cfg = FusionConfig.shared
+            guard let url = URL(string: cfg.multiNodeBaseURL),
+                  let host = url.host, let port = url.port else { return nil }
+            return ClusterEndpoint(host: host, port: port)
+        }
         activeIndex = (activeIndex + 1) % endpoints.count
         poolLog.info("failover advance -> \(self.endpoints[self.activeIndex].host, privacy: .public)")
         return endpoints[activeIndex]
