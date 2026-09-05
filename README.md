@@ -547,6 +547,19 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 
 ## 📋 Changelog
 
+### v0.1.60 — audit-product-0905 P0-P3 all defects resolved (2026-09-05)
+
+Audit release; ships all ~50 findings (1 P0 / 16 P1 / 14 P2 / 6 P3) from the 6-dimension enterprise production audit (`audit/fusion-studio-audit-result-product-0905.md`). Verdict: enterprise ❌ (MultiNode TLS/HA + audit trail = upstream gaps, not fixable in-repo alone); single-machine developer beta ✅ publishable.
+
+- **P0 SEC-1**: DMG integrity verification — unsigned/nonexistent DMG rejected, never auto-installed (AutoUpdateManager.verifyDMGIntegrity)
+- **P1 FUNC-2/3/4/5/6/9**: 5 upstream-unimplemented RPCs (`agent.snapshot`/`.versions`/`.restore_version`, `audit.trail`/`.session.logs`, `style.delete`) now surface friendly i18n "feature unavailable" via `BridgeError.featureUnavailable` on -32601 + dashboard unavailable banners, instead of raw "Method not found" toast or misleading empty panel. Upstream issues filed: fusion-agent-studio #289/#290/#291
+- **P1 in-repo**: FUNC-1/8/10, ERR-1/2, PERF-1, OPS-1
+- **P2 SEC**: exclusive TLS pinning (SEC-2), force-unwrap→guard (SEC-3), NSWorkspace scheme allowlist (SEC-4), ScienceBridge path sanitize (SEC-7)
+- **P2 PERF**: concurrent chat delete (PERF-2), accessibility off-main (PERF-3), DesignPreview onDisappear (PERF-4)
+- **P2 ERR/OPS**: DocBridge upload status (ERR-2), secret scan + crash reporter + log privacy (OPS-3/5/6/7)
+- **P3**: dead-code removal (FUNC-7/10/11), PluginBridge HTTP status guard (ERR-3)
+- **Tests**: `AuditProduct0905Tests.swift` 11 behavior-locking cases; CI 3 green
+
 ### v0.1.59 — DMG Python bundling fix + audit-v0.1.58 residuals closed (2026-09-04)
 
 Patch release; fixes the v0.1.58 DMG `bundle_python` failure (missing agent_runtime siblings) and closes the v0.1.58 enterprise audit residuals:
