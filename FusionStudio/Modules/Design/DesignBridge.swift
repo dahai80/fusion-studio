@@ -169,6 +169,16 @@ class DesignBridge: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     init() {
+        chatState.bridge = self
+        artifactState.bridge = self
+        pageState.bridge = self
+        canvasState.bridge = self
+        planPreviewState.bridge = self
+        skillState.bridge = self
+        versionState.bridge = self
+        themeState.bridge = self
+        exportState.bridge = self
+        fileSyncState.bridge = self
         chatState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
         artifactState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
         pageState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)

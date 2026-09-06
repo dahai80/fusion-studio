@@ -26,6 +26,8 @@ final class DesignChatState: ObservableObject {
     // ARCH-1: Chat 行为 (sendDesignChat 协调器留 DesignBridge; parse/runFusion/capMessages Phase 2 迁入)。
     //   纯 HTTP (URLSession) + CLI, 0 IPC → 无 ipcClient ref。
     //   stream 解析态 (parseState/parseBuffer/currentIdentifier/rawAssistantContent) Phase 2 迁本域。
+    //   bridge ref: 跨域读 (artifact/canvas/page) 经 self.bridge?.X reach-through。
+    weak var bridge: DesignBridge?
     init() {}
 }
 
@@ -42,6 +44,7 @@ final class DesignArtifactState: ObservableObject {
     // ARCH-1: Artifact 行为 (saveAsArtifact/kindForType/importScreenshot/sanitizeFileName Phase 3 迁入)。
     //   saveAsArtifact 读 ipcClient (artifact 持久化 RPC) → 注入。
     var ipcClient: IPCClient?
+    weak var bridge: DesignBridge?
     init() {}
 }
 
@@ -53,6 +56,7 @@ final class DesignPageState: ObservableObject {
     @Published var currentPageIndex: Int = -1
     // ARCH-1: Page 行为 (addPage/deletePage/renamePage/saveCurrentPageState/loadDocumentJSON/mutateNode Phase 4 迁入)。
     //   纯本地状态 + canvas 调用, 0 IPC → 无 ipcClient ref。
+    weak var bridge: DesignBridge?
     init() {}
 }
 
@@ -66,6 +70,7 @@ final class DesignCanvasState: ObservableObject {
     // ARCH-1: Canvas 行为 (sendCanvasCommand/renderDocumentToCanvas/mutateCanvasNode/undo/redo/... Phase 5 迁入)。
     //   WKWebView only, 0 IPC → 无 ipcClient ref。
     //   canvasWebView(weak)/codeWatchTimer/mutateObserver Phase 5 迁本域 (现暂留 DesignBridge)。
+    weak var bridge: DesignBridge?
     init() {}
 }
 
@@ -77,6 +82,7 @@ final class DesignPlanPreviewState: ObservableObject {
     @Published var isPlanPreviewActive: Bool = false
     @Published var pendingPlanTitle: String = ""
     // ARCH-1: PlanPreview 行为 (acceptPlan/rejectPlan Phase 6 迁入)。纯状态, 0 IPC。
+    weak var bridge: DesignBridge?
     init() {}
 }
 
@@ -88,6 +94,7 @@ final class DesignSkillState: ObservableObject {
     @Published var isSkillRunning: Bool = false
     @Published var variantPages: [VariantPage] = []
     // ARCH-1: Skill 行为 (skillTextToUI/.../skillHealthCheck/skillTheme Phase 6 迁入)。CLI only, 0 IPC。
+    weak var bridge: DesignBridge?
     init() {}
 }
 
@@ -102,6 +109,7 @@ final class DesignVersionState: ObservableObject {
     // ARCH-1: Version 行为 (loadVersionHistory/rollbackToVersion[协调器留 DesignBridge]/diffVersions Phase 7 迁入)。
     //   loadVersionHistory/rollback 读 ipcClient (version RPC) → 注入。
     var ipcClient: IPCClient?
+    weak var bridge: DesignBridge?
     init() {}
 }
 
@@ -113,6 +121,7 @@ final class DesignThemeState: ObservableObject {
     @Published var activeDesignSystem: String = "apple-hig"
     // ARCH-1: Theme 行为 (switchTheme/switchDesignSystem/ingestDesignTokens/applyDesignTokensToCanvas(systemId:) Phase 7 迁入)。
     //   CLI only, 0 IPC。
+    weak var bridge: DesignBridge?
     init() {}
 }
 
@@ -128,6 +137,7 @@ final class DesignExportState: ObservableObject {
     @Published var batchExportResult: String = ""
     // ARCH-1: Export 行为 (exportAsSwiftUI/copyExportedSwiftUI/exportAsCodegen/.../batchExportPages/copyCurrentCode Phase 8 迁入)。
     //   CLI only, 0 IPC。
+    weak var bridge: DesignBridge?
     init() {}
 }
 
@@ -140,5 +150,6 @@ final class DesignFileSyncState: ObservableObject {
     // ARCH-1: FileSync 行为 (enableFileSync/disableFileSync/syncArtifactToFile/syncFileToArtifact Phase 8 迁入)。
     //   syncArtifactToFile/syncFileToArtifact 读 ipcClient (artifact 持久化回写) → 注入。
     var ipcClient: IPCClient?
+    weak var bridge: DesignBridge?
     init() {}
 }
