@@ -10,7 +10,6 @@ import WebKit
 import os.log
 
 private let designBridgeLog = Logger(subsystem: "com.fusion.studio", category: "DesignBridge")
-
 struct DesignMessage: Identifiable {
     let id = UUID()
     let role: String
@@ -142,12 +141,6 @@ enum DesignTemplateGroup: String, CaseIterable, Identifiable {
     }
 }
 
-private enum ArtifactParseState {
-    case idle
-    case inOpenTag
-    case inCode
-    case inCloseTag
-}
 
 @MainActor
 class DesignBridge: ObservableObject {
@@ -192,14 +185,6 @@ class DesignBridge: ObservableObject {
         designBridgeLog.info("DesignBridge init: 10 域 objectWillChange 转发已接线 (ARCH-1)")
     }
 
-    // PERF-4 (审计product-0905 P2): messages 无界, 长会话内存涨。LRU cap。
-    static let maxMessages = 200
-    private func capMessages() {
-        guard messages.count > Self.maxMessages else { return }
-        let drop = messages.count - Self.maxMessages
-        messages.removeFirst(drop)
-        designBridgeLog.info("DesignBridge capMessages: drop \(drop) oldest (count > \(Self.maxMessages))")
-    }
 
     // MARK: - Chat State 转发
     var messages: [DesignMessage] {
@@ -335,10 +320,6 @@ class DesignBridge: ObservableObject {
         get { fileSyncState.isFileSyncEnabled } set { fileSyncState.isFileSyncEnabled = newValue }
     }
 
-    private var parseState: ArtifactParseState = .idle
-    private var parseBuffer: String = ""
-    private var currentIdentifier: String = ""
-    private var rawAssistantContent: String = ""
     private var ipcClient: IPCClient?
     private var sessionId: String = "design-\(UUID().uuidString.prefix(8))"
     weak var canvasWebView: WKWebView?
@@ -749,25 +730,8 @@ class DesignBridge: ObservableObject {
     }
 
     /// 调用 fusion-design parse-html CLI 将 HTML 转为 PenDocument JSON。
-    func parseHtmlViaCLI(_ html: String) async -> String? {
-        // HIGH-6: currentArtifactCode 来自 LLM 不可信输出, 可被 prompt 注入操纵 emit 含
-        // <script> 的 HTML。送 CLI 解析 + 后续 wasm 渲染 = XSS 等价, 可调原生 bridge 读本地资源。
-        // 渲染前净化 (纵深防御, 与 CLI 解析侧校验正交): 剥 <script>/<iframe>/<object>/<embed>,
-        // 剥 on* 事件处理器属性, 剥 javascript:/vbscript: URL, 净化 <style> 内 CSS XSS 向量。
-        // <style> 块本体保留 (合法 :root 设计 token + 自定义 class), 仅剥 expression/url-js/@import。
-        // PERF-2: CLI 调用移出 MainActor (Task.detached), 避免阻塞 UI。
-        let safe = Self.sanitizeHtml(html)
-        let page = currentArtifactTitle.isEmpty ? "Page" : currentArtifactTitle
-        let cliPath = resolveCLIPath()
-        let result = await Task.detached(priority: .userInitiated) {
-            Self.runCLIProcess(cliPath: cliPath, args: ["parse-html", "--page", page], stdin: safe)
-        }.value
-        guard result.exitCode == 0 else {
-            designBridgeLog.warning("DesignBridge: parse-html failed: \(result.error)")
-            return nil
-        }
-        return result.output.isEmpty ? nil : result.output
-    }
+    func parseHtmlViaCLI(_ html: String) async -> String? { await chatState.parseHtmlViaCLI(html) }
+
 
     /// 净化不可信 HTML: 剥 script/iframe/object/embed/math 块 + on* 事件属性 + javascript:/vbscript: URL + <style> 块内 CSS XSS 向量 (expression/url-js/@import/behavior)。svg/<style> 块本体保留 (设计 legit), 其 XSS 向量由 step1/3/4/5 覆盖。
     /// 纵深防御层 — LLM 产物 (currentArtifactCode) 经此过滤后再送 CLI 解析与 wasm/预览渲染。
@@ -923,7 +887,7 @@ class DesignBridge: ObservableObject {
 
     private var cachedCLIPath: String?
 
-    private func resolveCLIPath() -> String {
+    func resolveCLIPath() -> String {
         if let cached = cachedCLIPath, !cached.isEmpty, FileManager.default.fileExists(atPath: cached) {
             return cached
         }
@@ -1472,19 +1436,7 @@ class DesignBridge: ObservableObject {
         return result.output
     }
 
-    private func parseHtmlFromPenOutput(_ output: String) -> String? {
-        if output.contains("<html") || output.contains("<!DOCTYPE") {
-            return output
-        }
-        if output.contains("<antArtifact") {
-            let pattern = try? NSRegularExpression(pattern: "<antArtifact[^>]*>([\\s\\S]*?)</antArtifact>")
-            if let match = pattern?.firstMatch(in: output, range: NSRange(output.startIndex..., in: output)),
-               let range = Range(match.range(at: 1), in: output) {
-                return String(output[range])
-            }
-        }
-        return nil
-    }
+    private func parseHtmlFromPenOutput(_ output: String) -> String? { chatState.parseHtmlFromPenOutput(output) }
 
 
     func setIPCClient(_ client: IPCClient) {
@@ -1530,13 +1482,13 @@ class DesignBridge: ObservableObject {
 
         let userMsg = DesignMessage(role: "user", content: userMessage, timestamp: Date())
         messages.append(userMsg)
-        capMessages()
+        chatState.capMessages()
         isGenerating = true
         artifactSaved = false
         errorMessage = nil
-        parseState = .idle
-        parseBuffer = ""
-        rawAssistantContent = ""
+        chatState.parseState = .idle
+        chatState.parseBuffer = ""
+        chatState.rawAssistantContent = ""
         inferenceStep = "connecting"
         streamTokenCount = 0
         streamPreviewText = ""
@@ -1655,8 +1607,8 @@ class DesignBridge: ObservableObject {
                 }
 
                 assistantContent += token
-                rawAssistantContent += token
-                processStreamToken(token)
+                chatState.rawAssistantContent += token
+                chatState.processStreamToken(token)
 
                 streamTokenCount += 1
                 let previewBase = assistantContent.suffix(120)
@@ -1666,8 +1618,8 @@ class DesignBridge: ObservableObject {
                 }
             }
 
-            let finalArtifact = extractArtifactFromComplete(rawAssistantContent)
-            DesignPreviewTrace.log("sendDesignChat: stream loop done, rawLen=\(rawAssistantContent.count) tokens=\(streamTokenCount) hasAnt=\(rawAssistantContent.contains("<antArtifact")) finalArtifact=\(finalArtifact != nil)")
+            let finalArtifact = extractArtifactFromComplete(chatState.rawAssistantContent)
+            DesignPreviewTrace.log("sendDesignChat: stream loop done, rawLen=\(chatState.rawAssistantContent.count) tokens=\(streamTokenCount) hasAnt=\(chatState.rawAssistantContent.contains("<antArtifact")) finalArtifact=\(finalArtifact != nil)")
             let assistantMsg = DesignMessage(
                 role: "assistant",
                 content: assistantContent,
@@ -1675,13 +1627,13 @@ class DesignBridge: ObservableObject {
                 artifactInfo: finalArtifact
             )
             messages.append(assistantMsg)
-            capMessages()
+            chatState.capMessages()
 
             if finalArtifact != nil {
                 designBridgeLog.info("DesignBridge: artifact parsed — type=\(self.currentArtifactType), title=\(self.currentArtifactTitle), \(self.currentArtifactCode.count) chars")
                 DesignPreviewTrace.log("sendDesignChat: finalArtifact set, codeLen=\(self.currentArtifactCode.count)")
             } else {
-                let extractedCode = extractCodeBlock(from: rawAssistantContent)
+                let extractedCode = extractCodeBlock(from: chatState.rawAssistantContent)
                 if !extractedCode.isEmpty {
                     currentArtifactCode = extractedCode
                     if currentArtifactTitle.isEmpty { currentArtifactTitle = "Design" }
@@ -1689,7 +1641,7 @@ class DesignBridge: ObservableObject {
                     designBridgeLog.info("DesignBridge: code block extracted, \(extractedCode.count) chars")
                     DesignPreviewTrace.log("sendDesignChat: codeBlock fallback, len=\(extractedCode.count)")
                 } else {
-                    DesignPreviewTrace.log("sendDesignChat: NO artifact extracted, rawLen=\(rawAssistantContent.count) hasAnt=\(rawAssistantContent.contains("<antArtifact")) hasFence=\(rawAssistantContent.contains("```html"))")
+                    DesignPreviewTrace.log("sendDesignChat: NO artifact extracted, rawLen=\(chatState.rawAssistantContent.count) hasAnt=\(chatState.rawAssistantContent.contains("<antArtifact")) hasFence=\(chatState.rawAssistantContent.contains("```html"))")
                 }
             }
 
@@ -1705,13 +1657,13 @@ class DesignBridge: ObservableObject {
             if streamFinishReason == "length" {
                 errorMessage = I18nManager.shared.t(.design_warnTruncated)
                 designBridgeLog.warning("DesignBridge: stream truncated by max_tokens (finish_reason=length), partial code \(self.currentArtifactCode.count) chars")
-                DesignPreviewTrace.log("sendDesignChat: TRUNCATED by length, rawLen=\(rawAssistantContent.count) tokens=\(streamTokenCount)")
+                DesignPreviewTrace.log("sendDesignChat: TRUNCATED by length, rawLen=\(chatState.rawAssistantContent.count) tokens=\(streamTokenCount)")
             }
 
         } catch {
             errorMessage = "Generation failed: \(error.localizedDescription)"
             designBridgeLog.error("DesignBridge sendDesignChat: \(error)")
-            DesignPreviewTrace.log("sendDesignChat CAUGHT: \(error.localizedDescription) rawLen=\(rawAssistantContent.count) tokens=\(streamTokenCount)")
+            DesignPreviewTrace.log("sendDesignChat CAUGHT: \(error.localizedDescription) rawLen=\(chatState.rawAssistantContent.count) tokens=\(streamTokenCount)")
         }
 
         isGenerating = false
@@ -1720,138 +1672,16 @@ class DesignBridge: ObservableObject {
         streamPreviewText = ""
     }
 
-    // MARK: - Stream Token Parsing (antArtifact XML)
+    // MARK: - Stream Token Parsing (antArtifact XML) — Phase 2 迁 DesignChatService
 
-    private func processStreamToken(_ token: String) {
-        parseBuffer += token
+    private func processStreamToken(_ token: String) { chatState.processStreamToken(token) }
 
-        switch parseState {
-        case .idle:
-            if let range = parseBuffer.range(of: "<antArtifact") {
-                parseState = .inOpenTag
-                let afterTag = String(parseBuffer[range.upperBound...])
-                parseBuffer = afterTag
-                parseOpenTagAttributes(afterTag)
-            } else if parseBuffer.count > 500 {
-                let keep = parseBuffer.suffix(200)
-                parseBuffer = String(keep)
-            }
 
-        case .inOpenTag:
-            if let range = parseBuffer.range(of: ">") {
-                parseState = .inCode
-                currentArtifactCode = ""
-                let afterClose = String(parseBuffer[range.upperBound...])
-                parseBuffer = afterClose
-                parseOpenTagAttributes(parseBuffer)
-                currentArtifactCode += afterClose
-            }
+    // MARK: - Post-hoc Artifact Extraction — Phase 2 迁 DesignChatService
 
-        case .inCode:
-            if let range = parseBuffer.range(of: "</antArtifact>") {
-                let beforeClose = String(parseBuffer[..<range.lowerBound])
-                currentArtifactCode += beforeClose
-                parseState = .idle
-                parseBuffer = ""
-            } else {
-                if parseBuffer.count > 200 {
-                    let flushCount = parseBuffer.count - 100
-                    let flushIdx = parseBuffer.index(parseBuffer.startIndex, offsetBy: flushCount)
-                    currentArtifactCode += String(parseBuffer[..<flushIdx])
-                    parseBuffer = String(parseBuffer[flushIdx...])
-                } else {
-                    currentArtifactCode += token
-                }
-            }
+    func extractArtifactFromComplete(_ content: String) -> ArtifactParseResult? { chatState.extractArtifactFromComplete(content) }
 
-        case .inCloseTag:
-            break
-        }
-    }
-
-    private func parseOpenTagAttributes(_ text: String) {
-        if let typeRange = text.range(of: "type=\"") {
-            let start = typeRange.upperBound
-            if let end = text[start...].firstIndex(of: "\"") {
-                currentArtifactType = String(text[start..<end])
-            }
-        }
-        if let titleRange = text.range(of: "title=\"") {
-            let start = titleRange.upperBound
-            if let end = text[start...].firstIndex(of: "\"") {
-                currentArtifactTitle = String(text[start..<end])
-            }
-        }
-        if let idRange = text.range(of: "identifier=\"") {
-            let start = idRange.upperBound
-            if let end = text[start...].firstIndex(of: "\"") {
-                currentIdentifier = String(text[start..<end])
-            }
-        }
-    }
-
-    // MARK: - Post-hoc Artifact Extraction
-
-    func extractArtifactFromComplete(_ content: String) -> ArtifactParseResult? {
-        guard let openRange = content.range(of: "<antArtifact") else { return nil }
-        guard let openTagEnd = content.range(of: ">", range: openRange.upperBound..<content.endIndex) else { return nil }
-
-        let openTag = String(content[openRange.lowerBound..<openTagEnd.upperBound])
-        var code: String
-        if let closeRange = content.range(of: "</antArtifact>", range: openTagEnd.upperBound..<content.endIndex) {
-            code = String(content[openTagEnd.upperBound..<closeRange.lowerBound])
-        } else {
-            code = String(content[openTagEnd.upperBound..<content.endIndex])
-            designBridgeLog.warning("DesignBridge: antArtifact open tag found but close tag missing (likely truncated by max_tokens), extracting partial code")
-        }
-        code = code.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        var artType = "html"
-        var artTitle = "Design"
-        var artId = ""
-
-        if let typeRange = openTag.range(of: "type=\"") {
-            let start = typeRange.upperBound
-            if let end = openTag[start...].firstIndex(of: "\"") {
-                artType = String(openTag[start..<end])
-            }
-        }
-        if let titleRange = openTag.range(of: "title=\"") {
-            let start = titleRange.upperBound
-            if let end = openTag[start...].firstIndex(of: "\"") {
-                artTitle = String(openTag[start..<end])
-            }
-        }
-        if let idRange = openTag.range(of: "identifier=\"") {
-            let start = idRange.upperBound
-            if let end = openTag[start...].firstIndex(of: "\"") {
-                artId = String(openTag[start..<end])
-            }
-        }
-
-        currentArtifactType = artType
-        currentArtifactTitle = artTitle
-        currentArtifactCode = code
-        currentIdentifier = artId
-
-        return ArtifactParseResult(type: artType, title: artTitle, identifier: artId, code: code)
-    }
-
-    func extractCodeBlock(from content: String) -> String {
-        let fenceOpeners = ["```html", "```react", "```jsx", "```"]
-        for opener in fenceOpeners {
-            guard let startRange = content.range(of: opener) else { continue }
-            let codeStart = content.index(after: startRange.upperBound)
-            let codeStartAdjusted = codeStart < content.endIndex && content[codeStart] == "\n"
-                ? content.index(after: codeStart)
-                : codeStart
-            if let endRange = content.range(of: "```", range: codeStartAdjusted..<content.endIndex) {
-                return String(content[codeStartAdjusted..<endRange.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
-            }
-            return String(content[codeStartAdjusted..<content.endIndex]).trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-        return ""
-    }
+    func extractCodeBlock(from content: String) -> String { chatState.extractCodeBlock(from: content) }
 
     // MARK: - Save Artifact
 
@@ -1941,9 +1771,9 @@ class DesignBridge: ObservableObject {
         pages = []
         currentPageIndex = -1
         errorMessage = nil
-        parseState = .idle
-        parseBuffer = ""
-        rawAssistantContent = ""
+        chatState.parseState = .idle
+        chatState.parseBuffer = ""
+        chatState.rawAssistantContent = ""
         sessionId = "design-\(UUID().uuidString.prefix(8))"
         inferenceStep = ""
         streamTokenCount = 0

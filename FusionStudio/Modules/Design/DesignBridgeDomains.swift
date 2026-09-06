@@ -12,6 +12,14 @@ import os.log
 
 private let designDomainLog = Logger(subsystem: "com.fusion.studio", category: "DesignBridgeDomains")
 
+// ARCH-1 Phase 2: antArtifact XML 增量解析状态机。internal: DesignChatState + DesignChatService + DesignBridge 协调器共享。
+enum ArtifactParseState {
+    case idle
+    case inOpenTag
+    case inCode
+    case inCloseTag
+}
+
 // MARK: - Chat State (会话 / 推理进度 / 模型选择)
 
 @MainActor
@@ -23,9 +31,13 @@ final class DesignChatState: ObservableObject {
     @Published var streamPreviewText: String = ""
     @Published var errorMessage: String?
     @Published var selectedModel: String = ""
-    // ARCH-1: Chat 行为 (sendDesignChat 协调器留 DesignBridge; parse/runFusion/capMessages Phase 2 迁入)。
+    // ARCH-1 Phase 2: stream 解析态 (antArtifact XML 增量解析) 迁本域。internal: 跨文件 extension + DesignBridge 协调器可达。
+    var parseState: ArtifactParseState = .idle
+    var parseBuffer: String = ""
+    var currentIdentifier: String = ""
+    var rawAssistantContent: String = ""
+    // ARCH-1: Chat 行为 (sendDesignChat 协调器留 DesignBridge; parse/capMessages/extract* Phase 2 迁入)。
     //   纯 HTTP (URLSession) + CLI, 0 IPC → 无 ipcClient ref。
-    //   stream 解析态 (parseState/parseBuffer/currentIdentifier/rawAssistantContent) Phase 2 迁本域。
     //   bridge ref: 跨域读 (artifact/canvas/page) 经 self.bridge?.X reach-through。
     weak var bridge: DesignBridge?
     init() {}
