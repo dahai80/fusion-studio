@@ -267,8 +267,9 @@ class ScienceBridge: ObservableObject {
             switch result {
             case .success(let entries):
                 DispatchQueue.main.async { self?.auditEntries = entries }
-            case .failure:
-                bridgeLog.debug("Audit not available for session \(sessionId)")
+            case .failure(let error):
+                // ERR-5 (审计product-0906 P2): 此前 .failure 静默 debug log, lastError 不置, UI 空态误作"无数据"。改走 handleError 显式置 lastError。
+                self?.handleError(error, context: "fetchAudit(session=\(sessionId))")
             }
         }
     }
@@ -280,8 +281,9 @@ class ScienceBridge: ObservableObject {
             switch result {
             case .success(let dbs):
                 DispatchQueue.main.async { self?.databases = dbs }
-            case .failure:
-                bridgeLog.debug("Databases endpoint not available")
+            case .failure(let error):
+                // ERR-5 (审计product-0906 P2): 此前 .failure 静默 debug log, UI 空态误作"无数据"。改走 handleError 显式置 lastError。
+                self?.handleError(error, context: "fetchDatabases")
             }
         }
     }

@@ -205,6 +205,12 @@ final class CoworkHomeBridge: ObservableObject {
                     return
                 }
                 coworkHomeLog.info("polling started sub_id=\(sid)")
+                // ERR-7 (审计product-0906 P2): 此前 catch 每 1.5s 无限重试, 无退避/上限/熔断 — 后端持续故障时打爆 IPC + UI 永久转圈。
+                //   修正: 指数退避 (1.5s→2x, cap 30s) + 连续失败 ≥8 次熔断 → 置 lastError + isPolling=false 显式失败。
+                var consecutiveFailures = 0
+                let maxFailures = 8
+                var backoffNs: UInt64 = 1_500_000_000
+                let maxBackoffNs: UInt64 = 30_000_000_000
                 while !Task.isCancelled {
                     do {
                         let polled = try await ipc.deskEventsPoll(subId: sid)
@@ -217,8 +223,19 @@ final class CoworkHomeBridge: ObservableObject {
                             }
                         }
                         if sawTerminal { break }
+                        consecutiveFailures = 0
+                        backoffNs = 1_500_000_000
                     } catch {
-                        coworkHomeLog.warning("poll iteration error (transient): \(error.localizedDescription)")
+                        consecutiveFailures += 1
+                        coworkHomeLog.warning("poll iteration error (#\(consecutiveFailures)): \(error.localizedDescription)")
+                        if consecutiveFailures >= maxFailures {
+                            self.lastError = "事件轮询连续失败 \(consecutiveFailures) 次, 已熔断停止: \(error.localizedDescription)"
+                            coworkHomeLog.error("startPolling: circuit-breaker tripped after \(consecutiveFailures) failures, stopping")
+                            break
+                        }
+                        try? await Task.sleep(nanoseconds: backoffNs)
+                        backoffNs = min(backoffNs * 2, maxBackoffNs)
+                        continue
                     }
                     try? await Task.sleep(nanoseconds: 1_500_000_000)
                 }
