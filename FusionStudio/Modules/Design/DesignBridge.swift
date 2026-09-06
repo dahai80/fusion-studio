@@ -323,8 +323,8 @@ class DesignBridge: ObservableObject {
         get { fileSyncState.isFileSyncEnabled } set { fileSyncState.isFileSyncEnabled = newValue }
     }
 
-    private var ipcClient: IPCClient?
-
+    // ARCH-1 Phase 7: internal (非 private) — Theme/Export/RAG 跨文件 extension reach-through (bridge?.ipcClient)。
+    var ipcClient: IPCClient?
     // MARK: - Canvas Bridge Commands
 
     func sendCanvasCommand(_ command: BridgeCommand) { canvasState.sendCanvasCommand(command) }
@@ -1168,22 +1168,8 @@ class DesignBridge: ObservableObject {
 
     // MARK: - Version History
 
-    func loadVersionHistory() async {
-        guard !artifactId.isEmpty, let ipc = ipcClient else { return }
-        isLoadingHistory = true
-        do {
-            let result = try await ipc.artifactVersionList(artifactId: artifactId)
-            if let versions = result["versions"] as? [[String: Any]] {
-                versionHistory = versions
-            } else if let versions = result["data"] as? [[String: Any]] {
-                versionHistory = versions
-            }
-            designBridgeLog.info("DesignBridge: loaded \(self.versionHistory.count) versions for \(self.artifactId)")
-        } catch {
-            designBridgeLog.error("DesignBridge loadVersionHistory: \(error)")
-        }
-        isLoadingHistory = false
-    }
+    // ARCH-1 Phase 7: 行为迁 DesignVersionService。rollbackToVersion 留本类 (跨域协调器)。
+    func loadVersionHistory() async { await versionState.loadVersionHistory() }
 
     func rollbackToVersion(_ targetVersion: Int) async {
         guard !artifactId.isEmpty, let ipc = ipcClient else { return }
@@ -1203,30 +1189,14 @@ class DesignBridge: ObservableObject {
     }
 
 
-    func diffVersions(oldJSON: String, newJSON: String) {
-        isDiffing = true
-        versionDiffEntries = skillDiff(oldJSON: oldJSON, newJSON: newJSON)
-        isDiffing = false
-        designBridgeLog.info("DesignBridge: version diff completed, \(self.versionDiffEntries.count) changes")
-    }
+    // ARCH-1 Phase 7: 行为迁 DesignVersionService。
+    func diffVersions(oldJSON: String, newJSON: String) { versionState.diffVersions(oldJSON: oldJSON, newJSON: newJSON) }
 
 
-    func switchTheme(_ mode: String) {
-        activeTheme = mode
-        if let css = skillTheme(designSystem: activeDesignSystem, mode: mode) {
-            applyDesignTokensToCanvas(css)
-            designBridgeLog.info("DesignBridge: switched theme to \(mode)")
-        }
-    }
+    // ARCH-1 Phase 7: 行为迁 DesignThemeService。
+    func switchTheme(_ mode: String) { themeState.switchTheme(mode) }
 
-    func switchDesignSystem(_ systemId: String) {
-        activeDesignSystem = systemId
-        let captured = systemId
-        Task { @MainActor in
-            await applyDesignTokensToCanvas(systemId: captured)
-        }
-        designBridgeLog.info("DesignBridge: switched design system to \(systemId)")
-    }
+    func switchDesignSystem(_ systemId: String) { themeState.switchDesignSystem(systemId) }
 
     func copyCurrentCode() {
         guard !currentArtifactCode.isEmpty else { return }
@@ -1269,34 +1239,8 @@ class DesignBridge: ObservableObject {
         return nil
     }
 
-    func ingestDesignTokens() async {
-        guard let ipc = ipcClient else { return }
-        let _ = StudioTheme.dark
-        let tokenDoc = """
-        # Fusion Studio Design Tokens
-        ## Colors
-        - accent: #007AFF
-        - accentDestructive: red
-        - greenDot: success green
-        - amberDot: warning amber
-        - redDot: error red
-        ## Spacing (4pt grid)
-        - XS: 4pt, S: 8pt, M: 12pt, L: 16pt, XL: 24pt, 2XL: 32pt
-        ## Typography
-        - caption: 12pt, footnote: 13pt, small: 14pt, text: 15pt, body: 16pt, title: 19pt, headline: 22pt, largeTitle: 30pt
-        ## Radius
-        - small: 8pt, default: 12pt, large: 16pt
-        ## Animation
-        - fast: 0.15s, normal: 0.25s, slow: 0.35s
-        """
-        let scope = "design:tokens"
-        do {
-            _ = try await ipc.knowledgeIngest(content: tokenDoc, scope: scope, metadata: ["type": "design_tokens"])
-            designBridgeLog.info("DesignBridge: design tokens ingested to RAG")
-        } catch {
-            designBridgeLog.warning("DesignBridge token ingest failed: \(error.localizedDescription)")
-        }
-    }
+    // ARCH-1 Phase 7: 行为迁 DesignThemeService。
+    func ingestDesignTokens() async { await themeState.ingestDesignTokens() }
 
     // MARK: - SwiftUI Export
 
