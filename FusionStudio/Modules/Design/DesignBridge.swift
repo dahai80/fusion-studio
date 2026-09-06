@@ -151,8 +151,38 @@ private enum ArtifactParseState {
 
 @MainActor
 class DesignBridge: ObservableObject {
-    @Published var messages: [DesignMessage] = []
-    // PERF-4 (审计product-0905 P2): messages 无界 @Published, 长会话内存涨。LRU cap。
+    // ARCH-1 (审计product-0906 P1): 38 @Published 拆 10 域 ObservableObject。let 域引用 = 稳定身份,
+    //   init() objectWillChange.sink 转发每域 (SwiftUI 不自动追踪嵌套 ObservableObject, P0-1 修)。
+    //   38 属性经下方计算属性 get/set 转发, 113 view 读站点 + 2 $binding 站点 0 改 (计算属性 get/set
+    //   不产 $projectedValue → $designBridge.X 报错; 惟 currentArtifactCode 2 站点改 Binding(get:set:))。
+    //   行为按域 Phase 2-8 迁入 Design<Domain>Service.swift extension。
+    let chatState = DesignChatState()
+    let artifactState = DesignArtifactState()
+    let pageState = DesignPageState()
+    let canvasState = DesignCanvasState()
+    let planPreviewState = DesignPlanPreviewState()
+    let skillState = DesignSkillState()
+    let versionState = DesignVersionState()
+    let themeState = DesignThemeState()
+    let exportState = DesignExportState()
+    let fileSyncState = DesignFileSyncState()
+    private var cancellables = Set<AnyCancellable>()
+
+    init() {
+        chatState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        artifactState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        pageState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        canvasState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        planPreviewState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        skillState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        versionState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        themeState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        exportState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        fileSyncState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        designBridgeLog.info("DesignBridge init: 10 域 objectWillChange 转发已接线 (ARCH-1)")
+    }
+
+    // PERF-4 (审计product-0905 P2): messages 无界, 长会话内存涨。LRU cap。
     static let maxMessages = 200
     private func capMessages() {
         guard messages.count > Self.maxMessages else { return }
@@ -160,37 +190,140 @@ class DesignBridge: ObservableObject {
         messages.removeFirst(drop)
         designBridgeLog.info("DesignBridge capMessages: drop \(drop) oldest (count > \(Self.maxMessages))")
     }
-    @Published var currentArtifactCode: String = ""
-    @Published var currentArtifactType: String = "html"
-    @Published var currentArtifactTitle: String = ""
-    @Published var isGenerating: Bool = false
-    @Published var artifactSaved: Bool = false
 
-    // MARK: - Inference Progress
-    @Published var inferenceStep: String = ""
-    @Published var streamTokenCount: Int = 0
-    @Published var streamPreviewText: String = ""
-    @Published var errorMessage: String?
-    @Published var artifactId: String = ""
-    @Published var selectedModel: String = ""
-    @Published var versionHistory: [[String: Any]] = []
-    @Published var isLoadingHistory: Bool = false
-    @Published var pages: [DesignPage] = []
-    @Published var currentPageIndex: Int = -1
+    // MARK: - Chat State 转发
+    var messages: [DesignMessage] {
+        get { chatState.messages } set { chatState.messages = newValue }
+    }
+    var isGenerating: Bool {
+        get { chatState.isGenerating } set { chatState.isGenerating = newValue }
+    }
+    var inferenceStep: String {
+        get { chatState.inferenceStep } set { chatState.inferenceStep = newValue }
+    }
+    var streamTokenCount: Int {
+        get { chatState.streamTokenCount } set { chatState.streamTokenCount = newValue }
+    }
+    var streamPreviewText: String {
+        get { chatState.streamPreviewText } set { chatState.streamPreviewText = newValue }
+    }
+    var errorMessage: String? {
+        get { chatState.errorMessage } set { chatState.errorMessage = newValue }
+    }
+    var selectedModel: String {
+        get { chatState.selectedModel } set { chatState.selectedModel = newValue }
+    }
 
-    // Callers: DesignCanvasView (wasm bridge), DesignView (canvas mode).
-    // Affected API: selectedNodeID Published, canvasWebView weak ref, sendCanvasCommand().
-    // Data schemas: BridgeCommand JSON via evaluateJavaScript.
-    // User instruction: "现在开始实施" — Task #5
+    // MARK: - Artifact State 转发
+    var currentArtifactCode: String {
+        get { artifactState.currentArtifactCode } set { artifactState.currentArtifactCode = newValue }
+    }
+    var currentArtifactType: String {
+        get { artifactState.currentArtifactType } set { artifactState.currentArtifactType = newValue }
+    }
+    var currentArtifactTitle: String {
+        get { artifactState.currentArtifactTitle } set { artifactState.currentArtifactTitle = newValue }
+    }
+    var artifactSaved: Bool {
+        get { artifactState.artifactSaved } set { artifactState.artifactSaved = newValue }
+    }
+    var artifactId: String {
+        get { artifactState.artifactId } set { artifactState.artifactId = newValue }
+    }
+    var isImportingScreenshot: Bool {
+        get { artifactState.isImportingScreenshot } set { artifactState.isImportingScreenshot = newValue }
+    }
 
-    @Published var selectedNodeID: String?
-    @Published var lastRenderedDocumentJSON: String?
-    @Published var marqueeSelectedNodeIDs: [String] = []
+    // MARK: - Page State 转发
+    var pages: [DesignPage] {
+        get { pageState.pages } set { pageState.pages = newValue }
+    }
+    var currentPageIndex: Int {
+        get { pageState.currentPageIndex } set { pageState.currentPageIndex = newValue }
+    }
 
-    // MARK: - Plan Preview State
-    @Published var pendingPlanCode: String?
-    @Published var isPlanPreviewActive: Bool = false
-    @Published var pendingPlanTitle: String = ""
+    // MARK: - Canvas State 转发
+    var selectedNodeID: String? {
+        get { canvasState.selectedNodeID } set { canvasState.selectedNodeID = newValue }
+    }
+    var lastRenderedDocumentJSON: String? {
+        get { canvasState.lastRenderedDocumentJSON } set { canvasState.lastRenderedDocumentJSON = newValue }
+    }
+    var marqueeSelectedNodeIDs: [String] {
+        get { canvasState.marqueeSelectedNodeIDs } set { canvasState.marqueeSelectedNodeIDs = newValue }
+    }
+
+    // MARK: - Plan Preview State 转发
+    var pendingPlanCode: String? {
+        get { planPreviewState.pendingPlanCode } set { planPreviewState.pendingPlanCode = newValue }
+    }
+    var isPlanPreviewActive: Bool {
+        get { planPreviewState.isPlanPreviewActive } set { planPreviewState.isPlanPreviewActive = newValue }
+    }
+    var pendingPlanTitle: String {
+        get { planPreviewState.pendingPlanTitle } set { planPreviewState.pendingPlanTitle = newValue }
+    }
+
+    // MARK: - Skill State 转发
+    var lastSkillOutput: String {
+        get { skillState.lastSkillOutput } set { skillState.lastSkillOutput = newValue }
+    }
+    var isSkillRunning: Bool {
+        get { skillState.isSkillRunning } set { skillState.isSkillRunning = newValue }
+    }
+    var variantPages: [VariantPage] {
+        get { skillState.variantPages } set { skillState.variantPages = newValue }
+    }
+
+    // MARK: - Version State 转发
+    var versionHistory: [[String: Any]] {
+        get { versionState.versionHistory } set { versionState.versionHistory = newValue }
+    }
+    var isLoadingHistory: Bool {
+        get { versionState.isLoadingHistory } set { versionState.isLoadingHistory = newValue }
+    }
+    var versionDiffEntries: [DesignDiffEntry] {
+        get { versionState.versionDiffEntries } set { versionState.versionDiffEntries = newValue }
+    }
+    var isDiffing: Bool {
+        get { versionState.isDiffing } set { versionState.isDiffing = newValue }
+    }
+
+    // MARK: - Theme State 转发
+    var activeTheme: String {
+        get { themeState.activeTheme } set { themeState.activeTheme = newValue }
+    }
+    var activeDesignSystem: String {
+        get { themeState.activeDesignSystem } set { themeState.activeDesignSystem = newValue }
+    }
+
+    // MARK: - Export State 转发
+    var exportedSwiftUICode: String {
+        get { exportState.exportedSwiftUICode } set { exportState.exportedSwiftUICode = newValue }
+    }
+    var isExportingSwiftUI: Bool {
+        get { exportState.isExportingSwiftUI } set { exportState.isExportingSwiftUI = newValue }
+    }
+    var exportedCodegenCode: String {
+        get { exportState.exportedCodegenCode } set { exportState.exportedCodegenCode = newValue }
+    }
+    var isExportingCodegen: Bool {
+        get { exportState.isExportingCodegen } set { exportState.isExportingCodegen = newValue }
+    }
+    var isBatchExporting: Bool {
+        get { exportState.isBatchExporting } set { exportState.isBatchExporting = newValue }
+    }
+    var batchExportResult: String {
+        get { exportState.batchExportResult } set { exportState.batchExportResult = newValue }
+    }
+
+    // MARK: - FileSync State 转发
+    var syncFolderPath: String {
+        get { fileSyncState.syncFolderPath } set { fileSyncState.syncFolderPath = newValue }
+    }
+    var isFileSyncEnabled: Bool {
+        get { fileSyncState.isFileSyncEnabled } set { fileSyncState.isFileSyncEnabled = newValue }
+    }
 
     private var parseState: ArtifactParseState = .idle
     private var parseBuffer: String = ""
@@ -1001,8 +1134,6 @@ class DesignBridge: ObservableObject {
 
     // MARK: - Design Skills (CLI Bridge)
 
-    @Published var lastSkillOutput: String = ""
-    @Published var isSkillRunning: Bool = false
 
     func skillTextToUI(prompt: String, pageName: String = "Home") {
         isSkillRunning = true
@@ -1345,11 +1476,13 @@ class DesignBridge: ObservableObject {
         return nil
     }
 
-    @Published var variantPages: [VariantPage] = []
 
     func setIPCClient(_ client: IPCClient) {
         self.ipcClient = client
-        designBridgeLog.info("DesignBridge: IPCClient injected")
+        self.artifactState.ipcClient = client
+        self.versionState.ipcClient = client
+        self.fileSyncState.ipcClient = client
+        designBridgeLog.info("DesignBridge: IPCClient injected into 3 域 (artifact/version/fileSync, ARCH-1)")
     }
 
     // MARK: - Panel Convenience Methods
@@ -1901,8 +2034,6 @@ class DesignBridge: ObservableObject {
         }
     }
 
-    @Published var versionDiffEntries: [DesignDiffEntry] = []
-    @Published var isDiffing: Bool = false
 
     func diffVersions(oldJSON: String, newJSON: String) {
         isDiffing = true
@@ -1911,8 +2042,6 @@ class DesignBridge: ObservableObject {
         designBridgeLog.info("DesignBridge: version diff completed, \(self.versionDiffEntries.count) changes")
     }
 
-    @Published var activeTheme: String = "dark"
-    @Published var activeDesignSystem: String = "apple-hig"
 
     func switchTheme(_ mode: String) {
         activeTheme = mode
@@ -2003,8 +2132,6 @@ class DesignBridge: ObservableObject {
 
     // MARK: - SwiftUI Export
 
-    @Published var exportedSwiftUICode: String = ""
-    @Published var isExportingSwiftUI: Bool = false
 
     func exportAsSwiftUI() async {
         guard !currentArtifactCode.isEmpty else { return }
@@ -2071,8 +2198,6 @@ class DesignBridge: ObservableObject {
 
     // MARK: - Codegen Export (HTML/React/Tailwind via CLI)
 
-    @Published var exportedCodegenCode: String = ""
-    @Published var isExportingCodegen: Bool = false
 
     func exportAsCodegen(target: String, componentName: String) async {
         guard let documentJSON = lastRenderedDocumentJSON, !documentJSON.isEmpty else {
@@ -2114,8 +2239,6 @@ class DesignBridge: ObservableObject {
 
     // MARK: - Batch Export (SVG/HTML/JSON via CLI)
 
-    @Published var isBatchExporting: Bool = false
-    @Published var batchExportResult: String = ""
 
     func batchExportPages(format: String, to outputDir: String) async {
         guard let documentJSON = lastRenderedDocumentJSON, !documentJSON.isEmpty else {
@@ -2157,8 +2280,6 @@ class DesignBridge: ObservableObject {
 
     // MARK: - Artifact ↔ File Sync
 
-    @Published var syncFolderPath: String = ""
-    @Published var isFileSyncEnabled: Bool = false
 
     func enableFileSync(to folderPath: String) {
         syncFolderPath = folderPath
@@ -2263,7 +2384,6 @@ class DesignBridge: ObservableObject {
 
     // MARK: - Screenshot Import (requires fusion-mlx VLM model, e.g. Qwen2.5-VL)
 
-    @Published var isImportingScreenshot: Bool = false
 
     func importScreenshot(_ image: NSImage) async {
         guard let message = ScreenshotImporter.buildImportRequest(image: image) else {
