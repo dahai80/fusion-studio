@@ -57,6 +57,10 @@ class SecurityManager: ObservableObject {
     @Published var fileAccessControl = true
     @Published var networkAccessControl = true
     @Published var integrityCheck = true
+    // FUNC-8 (审计product-0906 P2): 5 安全开关此前仅写不读 = 假保护。补齐 2 个 @Published, 与 view @AppStorage 对齐,
+    //   供调用方读取执行 (BridgeError.sanitize 脱敏 / prompt injection 检测)。fileAccessControl 已在 validateFilePath 落地。
+    @Published var secretRedaction = true
+    @Published var promptInjectionGuard = true
 
     // MARK: - 安全事件
 
@@ -74,6 +78,11 @@ class SecurityManager: ObservableObject {
     // MARK: - 安全检查函数
 
     func validateFilePath(_ path: String) -> Bool {
+        // FUNC-8 (审计product-0906 P2): fileAccessControl 开关落地执行 — 关闭时跳过白名单校验 (用户显式降级)。
+        if !fileAccessControl {
+            securityLog.warning("validateFilePath skipped: fileAccessControl=false (user disabled) path=\(path, privacy: .public)")
+            return true
+        }
         let allowedPrefixes = [
             NSHomeDirectory() + "/.fusion-studio",
             NSHomeDirectory() + "/FusionStudio",
@@ -729,6 +738,9 @@ struct SecRuntimeTab: View {
                 Toggle(I18nManager.shared.t(.secv_prompt_injection), isOn: $promptInjectionGuard)
                     .help(I18nManager.shared.t(.secv_prompt_injection_help))
             }
+            // FUNC-8: secretRedaction/promptInjectionGuard 此前 onChange 缺失 = 写 @AppStorage 不进 SecurityManager, 假保护。补齐双写。
+            .onChange(of: secretRedaction) { _, v in security.secretRedaction = v }
+            .onChange(of: promptInjectionGuard) { _, v in security.promptInjectionGuard = v }
 
             Section(I18nManager.shared.t(.secv_input_filter)) {
                 Text(I18nManager.shared.t(.secv_input_filter_desc))
