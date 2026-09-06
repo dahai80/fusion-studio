@@ -13,6 +13,14 @@ private let pluginLog = Logger(subsystem: "com.fusion.studio", category: "Plugin
 // MARK: - Plugin Manager
 
 class PluginManager: ObservableObject {
+    // ARCH-5/PERF-5 (审计product-0906 P2): ipcCall/ipcCallArray 此前每次 `let client = IPCClient()` 新建实例,
+    // 虽 IPCClient() lazy 不立即连 socket, 但每调用分配 throwaway 对象 + 复用不了 app 级单例的已建连接/重连状态。
+    //   修正: 持注入的 app 级 ipcClient (FusionStudioApp.onAppear 调 setIPCClient); nil 时降级不调 IPC。
+    private var ipc: IPCClient?
+    func setIPCClient(_ client: IPCClient) {
+        self.ipc = client
+        pluginLog.info("PluginManager: IPCClient injected")
+    }
     static let shared = PluginManager()
 
     @Published var plugins: [Plugin] = []
@@ -270,7 +278,11 @@ def on_render_panel():
     }
 
     func ipcCall(_ method: String, params: [String: Any] = [:]) async -> [String: Any]? {
-        let client = IPCClient()
+        // ARCH-5/PERF-5: 复用注入的 app 级 ipcClient, 不再每调用 new IPCClient()。nil=未注入降级。
+        guard let client = ipc else {
+            pluginLog.warning("ipcCall: ipc 未注入 (setIPCClient 未调), skip \(method)")
+            return nil
+        }
         guard client.isConnected else {
             pluginLog.warning("IPC not connected for \(method)")
             return nil
@@ -285,7 +297,11 @@ def on_render_panel():
     }
 
     func ipcCallArray(_ method: String, params: [String: Any] = [:]) async -> [[String: Any]] {
-        let client = IPCClient()
+        // ARCH-5/PERF-5: 复用注入的 app 级 ipcClient, 不再每调用 new IPCClient()。nil=未注入降级。
+        guard let client = ipc else {
+            pluginLog.warning("ipcCallArray: ipc 未注入 (setIPCClient 未调), skip \(method)")
+            return []
+        }
         guard client.isConnected else { return [] }
         do {
             let resp = try await client.call(method: method, params: params)

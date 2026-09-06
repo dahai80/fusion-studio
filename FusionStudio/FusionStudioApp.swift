@@ -172,6 +172,8 @@ struct FusionStudioApp: App {
                     }
                     EventBridge.shared = eventBridge
                     ArtifactSidebarCache.shared.configure(ipcClient: ipcClient)
+                    // ARCH-5/PERF-5 (审计product-0906 P2): PluginManager 复用 app 级 ipcClient, 不再每调用 new IPCClient()。
+                    PluginManager.shared.setIPCClient(ipcClient)
                     Task {
                         await performStartupHealthCheck()
                     }
