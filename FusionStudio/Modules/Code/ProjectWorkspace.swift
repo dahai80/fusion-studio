@@ -100,10 +100,9 @@ class ProjectWorkspace: ObservableObject {
             loadMessage = String(format: I18nManager.shared.t(.fc_scanning), url.lastPathComponent)
             projectRoot = url
             projectName = url.lastPathComponent
-            gitBranch = detectGitBranch(at: url)
+            gitBranch = await detectGitBranch(at: url)
 
             codeEditLog.info("Loading project from: \(url.path)")
-
             let scanned = await scanDirectory(url, depth: 0, maxDepth: 6)
 
             guard !Task.isCancelled else { return }
@@ -127,16 +126,25 @@ class ProjectWorkspace: ObservableObject {
             loadMessage = String(format: I18nManager.shared.t(.fc_loading), url.lastPathComponent)
 
             do {
-                let content = try String(contentsOf: url, encoding: .utf8)
-                let attrs = try FileManager.default.attributesOfItem(atPath: url.path)
-                let fileSize = (attrs[.size] as? Int64) ?? 0
-                let lang = CodeFile.languageForPath(url.path)
-                let relPath = url.lastPathComponent
+                // PERF-4 (审计product-0906 P2): String(contentsOf:) + FileManager.attributesOfItem 为同步磁盘 I/O,
+                // 原在 @MainActor Task 内直接执行会阻塞主线程 (大文件/慢盘卡顿)。移至 Task.detached 读盘,
+                // 仅最后 @Published 赋值回 MainActor。
+                let urlPath = url.path
+                let lastComp = url.lastPathComponent
+                let parent = url.deletingLastPathComponent()
+                let (content, fileSize): (String, Int64) = try await Task.detached(priority: .userInitiated) {
+                    let c = try String(contentsOf: url, encoding: .utf8)
+                    let attrs = try FileManager.default.attributesOfItem(atPath: urlPath)
+                    let sz = (attrs[.size] as? Int64) ?? 0
+                    return (c, sz)
+                }.value
+                let lang = CodeFile.languageForPath(urlPath)
+                let relPath = lastComp
 
                 let file = CodeFile(
-                    id: url.path,
-                    name: url.lastPathComponent,
-                    path: url.path,
+                    id: urlPath,
+                    name: lastComp,
+                    path: urlPath,
                     content: content,
                     language: lang,
                     isModified: false,
@@ -147,19 +155,19 @@ class ProjectWorkspace: ObservableObject {
                     fileSize: fileSize
                 )
 
-                projectRoot = url.deletingLastPathComponent()
-                projectName = url.lastPathComponent
-                gitBranch = detectGitBranch(at: url.deletingLastPathComponent())
+                projectRoot = parent
+                projectName = lastComp
+                gitBranch = await detectGitBranch(at: parent)
                 files = [file]
                 selectedFile = file
                 isLoading = false
                 loadProgress = 1.0
                 loadMessage = I18nManager.shared.t(.fc_loaded_one_file)
 
-                let recent = RecentProject(name: url.lastPathComponent, path: url.path)
+                let recent = RecentProject(name: lastComp, path: urlPath)
                 addRecentProject(recent)
 
-                codeEditLog.info("Single file loaded: \(url.lastPathComponent)")
+                codeEditLog.info("Single file loaded: \(lastComp)")
             } catch {
                 isLoading = false
                 loadMessage = String(format: I18nManager.shared.t(.fc_load_failed), error.localizedDescription)
@@ -364,37 +372,39 @@ class ProjectWorkspace: ObservableObject {
 
     // MARK: - Git
 
-    private func detectGitBranch(at url: URL) -> String {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
-        process.arguments = ["rev-parse", "--abbrev-ref", "HEAD"]
-        process.currentDirectoryURL = url
+    private func detectGitBranch(at url: URL) async -> String {
+        let cwd = url
+        return await Task.detached(priority: .userInitiated) { () -> String in
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+            process.arguments = ["rev-parse", "--abbrev-ref", "HEAD"]
+            process.currentDirectoryURL = cwd
 
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = FileHandle.nullDevice
+            let pipe = Pipe()
+            process.standardOutput = pipe
+            process.standardError = FileHandle.nullDevice
 
-        do {
-            try process.run()
-            // F-R7: waitUntilExit 10s 超时兜底防 git 挂起 (如交互式凭证提示)。超时强杀。
-            let timeoutTask = Task {
-                try? await Task.sleep(nanoseconds: 10_000_000_000)
-                if process.isRunning {
-                    process.terminate()
-                    codeEditLog.warning("detectGitBranch timeout 10s, force terminate")
+            do {
+                try process.run()
+                let timeoutTask = Task {
+                    try? await Task.sleep(nanoseconds: 10_000_000_000)
+                    if process.isRunning {
+                        process.terminate()
+                        codeEditLog.warning("detectGitBranch timeout 10s, force terminate")
+                    }
                 }
+                process.waitUntilExit()
+                timeoutTask.cancel()
+                if process.terminationStatus == 0 {
+                    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                    let branch = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                    return branch.isEmpty ? "" : branch
+                }
+            } catch {
+                codeEditLog.debug("git branch detection failed: \(error.localizedDescription)")
             }
-            process.waitUntilExit()
-            timeoutTask.cancel()
-            if process.terminationStatus == 0 {
-                let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                let branch = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                return branch.isEmpty ? "" : branch
-            }
-        } catch {
-            codeEditLog.debug("git branch detection failed: \(error.localizedDescription)")
-        }
-        return ""
+            return ""
+        }.value
     }
 
     // MARK: - Recent Projects

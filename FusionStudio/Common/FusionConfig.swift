@@ -325,7 +325,8 @@ class FusionConfig: ObservableObject {
     @AppStorage("sciencePort") var sciencePort = 11462
 
     /// Fusion-Science 服务地址
-    var scienceBaseURL: String { "http://\(scienceHost):\(sciencePort)" }
+    // SEC-6 (审计product-0906 P2): 远程 science host 强制 https:// (跨网段明文), 本地 http://。复用 schemeForHost, 与 multiNodeBaseURL/modelHubBaseURL 对齐。
+    var scienceBaseURL: String { "\(schemeForHost(scienceHost))://\(scienceHost):\(sciencePort)" }
 
     // Callers: SimulationBridge, UpstreamServiceManager. Port 11455 = fusion-sim dashboard (--gui).
     @AppStorage("simulationHost") var simulationHost = "127.0.0.1"
@@ -532,7 +533,9 @@ class FusionConfig: ObservableObject {
             fusionConfigLog.info("mlxResolvedApiKey: source=settings.json")
             return key
         }
-        fusionConfigLog.error("mlxResolvedApiKey: no key resolved (env/settings both empty)")
+        // OPS-5 (审计product-0906 P2): 首启未配 key 是正常路径 (非故障), .error→.info 降日志噪声/误报。
+        //   真失败 (settings.json 存在但解析错) 在上游 try? 静默; .error 留给健康检查/鉴权失败上报。
+        fusionConfigLog.info("mlxResolvedApiKey: no key resolved (env/settings both empty)")
         return ""
     }
 

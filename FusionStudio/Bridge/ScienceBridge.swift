@@ -267,8 +267,9 @@ class ScienceBridge: ObservableObject {
             switch result {
             case .success(let entries):
                 DispatchQueue.main.async { self?.auditEntries = entries }
-            case .failure:
-                bridgeLog.debug("Audit not available for session \(sessionId)")
+            case .failure(let error):
+                // ERR-5 (审计product-0906 P2): 此前 .failure 静默 debug log, lastError 不置, UI 空态误作"无数据"。改走 handleError 显式置 lastError。
+                self?.handleError(error, context: "fetchAudit(session=\(sessionId))")
             }
         }
     }
@@ -280,8 +281,9 @@ class ScienceBridge: ObservableObject {
             switch result {
             case .success(let dbs):
                 DispatchQueue.main.async { self?.databases = dbs }
-            case .failure:
-                bridgeLog.debug("Databases endpoint not available")
+            case .failure(let error):
+                // ERR-5 (审计product-0906 P2): 此前 .failure 静默 debug log, UI 空态误作"无数据"。改走 handleError 显式置 lastError。
+                self?.handleError(error, context: "fetchDatabases")
             }
         }
     }
@@ -326,7 +328,14 @@ class ScienceBridge: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        // ERR-8 (审计product-0906 P3): 旧 try? 序列化 body 静默 nil → 空 body 发出, 服务端 400 难定位。
+        //   改 do/catch 显式失败回调。
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        } catch {
+            bridgeLog.error("POST \(path) body serialize failed: \(error.localizedDescription)")
+            completion(.failure(error)); return
+        }
         session.dataTask(with: request) { data, response, error in
             if let error = error { completion(.failure(error)); return }
             // SEC-7: 校验 HTTP 状态。
@@ -352,7 +361,13 @@ class ScienceBridge: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        // ERR-8 (审计product-0906 P3): 旧 try? 静默 nil body。改 do/catch 显式失败。
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        } catch {
+            bridgeLog.error("POST(raw) \(path) body serialize failed: \(error.localizedDescription)")
+            completion(.failure(error)); return
+        }
         session.dataTask(with: request) { data, response, error in
             if let error = error { completion(.failure(error)); return }
             // SEC-7: 校验 HTTP 状态。

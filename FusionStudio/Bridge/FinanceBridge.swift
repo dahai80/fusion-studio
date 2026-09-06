@@ -55,6 +55,8 @@ class FinanceBridge: ObservableObject {
                 DispatchQueue.main.async { self?.dashboardResult = data }
                 completion(.success(data))
             case .failure(let error):
+                // ERR-6 (审计product-0906 P2): 此前 default completion { _ in } 吞错, lastError 不置, UI 空态误作"无数据"。改走 handleError 置 lastError 后转发。
+                self?.handleError(error, context: "fetchDashboard")
                 completion(.failure(error))
             }
         }
@@ -68,6 +70,8 @@ class FinanceBridge: ObservableObject {
                 DispatchQueue.main.async { self?.marketResult = data }
                 completion(.success(data))
             case .failure(let error):
+                // ERR-6 (审计product-0906 P2): default completion 吞错, 改走 handleError 置 lastError。
+                self?.handleError(error, context: "fetchMarketDashboard")
                 completion(.failure(error))
             }
         }
@@ -80,6 +84,8 @@ class FinanceBridge: ObservableObject {
                 DispatchQueue.main.async { self?.serviceStatus = data }
                 completion(.success(data))
             case .failure(let error):
+                // ERR-6 (审计product-0906 P2): default completion 吞错, 改走 handleError 置 lastError。
+                self?.handleError(error, context: "fetchServiceStatus")
                 completion(.failure(error))
             }
         }

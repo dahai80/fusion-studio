@@ -42,7 +42,17 @@ jobs:
       - name: Run tests (release gate)
         # F-I13: release pipeline 须验全流程 (build+test+dmg+sign)。原 release.yml 不跑测试 = 靠本地构建者手验。
         # pipefail 保 swift test 退出码 (tail 不吞码)。测试挂 → release 阻断。
-        run: set -o pipefail && swift test 2>&1 | tail -20
+        # OPS-10 (审计product-0906 P3): tail 单独用吞逐用例 fail 行, 失败无法定位。
+        #   tee 全量落盘 + tail -80, 失败时全日志可下载定位 (对齐 ci.yml/nightly.yml)。
+        run: set -o pipefail && swift test 2>&1 | tee /tmp/release-test.log | tail -80
+
+      - name: Upload test logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-test-logs
+          path: /tmp/release-test.log
+          retention-days: 7
 
       - name: Build SwiftUI app (release)
         run: swift build -c release 2>&1
@@ -116,6 +126,31 @@ jobs:
           echo "dmg=$DMG" >> "$GITHUB_OUTPUT"
           echo "app=$APP" >> "$GITHUB_OUTPUT"
           ls -lh .build/ 2>/dev/null
+
+      # OPS-1 (audit-product-0906 P0): signing gate. Production (non-prerelease)
+      # releases MUST be signed+notarized; unsigned DMG blocked at Gatekeeper,
+      # supply chain untrusted. Fail the release unless SIGN_ENABLED==true OR
+      # the tag explicitly marks a prerelease (beta/alpha). Local dev builds
+      # remain unsigned via build.sh (warn-only).
+      - name: Enforce signing gate
+        env:
+          SIGN_ENABLED: ${{ vars.SIGN_ENABLED }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          is_prerelease=0
+          case "$REF_NAME" in
+            *beta*|*alpha*) is_prerelease=1 ;;
+          esac
+          if [ "$SIGN_ENABLED" != "true" ] && [ "$is_prerelease" -eq 0 ]; then
+            echo "::error::Production release '$REF_NAME' requires signed+notarized DMG. Set repository variable SIGN_ENABLED=true and configure signing secrets. Unsigned production releases are blocked (audit OPS-1)."
+            exit 1
+          fi
+          if [ "$SIGN_ENABLED" != "true" ]; then
+            echo "::warning::Prerelease '$REF_NAME' built unsigned (SIGN_ENABLED!=true). Acceptable for beta only."
+          else
+            echo "Signing gate passed: SIGN_ENABLED=true."
+          fi
 
       - name: Upload DMG
         uses: actions/upload-artifact@v4

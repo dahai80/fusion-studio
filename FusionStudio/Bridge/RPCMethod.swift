@@ -38,23 +38,12 @@ enum RPCMethod {
     static let agentUpdateSoul = "agent.update_soul"
 
     // MARK: - team
-    static let teamFmpRegister = "team.fmp_register"
-    static let teamFmpSend = "team.fmp_send"
-    static let teamFmpStats = "team.fmp_stats"
+    // FUNC-7 (审计product-0906 P3): 删 14 死 wrapper 后孤儿常量 (teamFmpRegister/Send/Stats,
+    //   teamPlazaBreakIn/Broadcast/Circuit/Create/Messages, teamSwarmDelegate/Escalate/Evaluate/
+    //   Handoff/Register/Stats) — 0 grep refs。保留 3 live: teamOrchestrate/teamSwarmAgents/teamPlazaChannels。
     static let teamOrchestrate = "team.orchestrate"
-    static let teamPlazaBreakIn = "team.plaza_break_in"
-    static let teamPlazaBroadcast = "team.plaza_broadcast"
     static let teamPlazaChannels = "team.plaza_channels"
-    static let teamPlazaCircuit = "team.plaza_circuit"
-    static let teamPlazaCreate = "team.plaza_create"
-    static let teamPlazaMessages = "team.plaza_messages"
     static let teamSwarmAgents = "team.swarm_agents"
-    static let teamSwarmDelegate = "team.swarm_delegate"
-    static let teamSwarmEscalate = "team.swarm_escalate"
-    static let teamSwarmEvaluate = "team.swarm_evaluate"
-    static let teamSwarmHandoff = "team.swarm_handoff"
-    static let teamSwarmRegister = "team.swarm_register"
-    static let teamSwarmStats = "team.swarm_stats"
 
     // MARK: - trainer
     static let trainerAdaptersDelete = "trainer.adapters.delete"
@@ -139,7 +128,6 @@ enum RPCMethod {
     static let agentStudioAgentRestoreVersion = "agent_studio.agent.restore_version"
     static let agentStudioAgentSnapshot = "agent_studio.agent.snapshot"
     static let agentStudioAgentVersions = "agent_studio.agent.versions"
-    static let agentStudioApikeyRotate = "agent_studio.apikey.rotate"
     static let agentStudioAuditTrail = "agent_studio.audit.trail"
     static let agentStudioSessionLogs = "agent_studio.session.logs"
 
@@ -243,9 +231,6 @@ enum RPCMethod {
     static let contextCompact = "context.compact"
     static let contextUsage = "context.usage"
 
-    // MARK: - design
-    static let designGenerate = "design.generate"
-
     // MARK: - permission
     static let permissionList = "permission.list"
     static let permissionUpdate = "permission.update"
@@ -276,9 +261,6 @@ enum RPCMethod {
     // MARK: - ping
     static let ping = "ping"
 
-    // MARK: - plugin
-    static let pluginList = "plugin.list"
-
     // MARK: - research
     static let researchAdaptive = "research.adaptive"
 
@@ -305,20 +287,15 @@ enum RPCMethod {
     static let guardRuleAdd = "guard.rule.add"
     static let guardRuleUpdate = "guard.rule.update"
     static let guardRuleRemove = "guard.rule.remove"
-    static let guardAuditList = "guard.audit.list"
-    static let guardAuditVerify = "guard.audit.verify"
 
     // MARK: - event (#346: fusion-event UDS JSON-RPC, /tmp/fusion-event.sock)
     static let eventHealth = "event.health"
     static let eventSubscribe = "event.subscribe"
+    // FUNC-5 (审计product-0906 P3): eventPong 保留 — EventBridge 心跳回复用 (替换裸串, 见 EventBridge.swift)。
     static let eventPong = "event.pong"
-    static let eventMetrics = "event.metrics"
-    static let eventReplay = "event.replay"
-    static let eventDryRun = "event.dry_run"
 
     // MARK: - rule (#346: fusion-event rule mgmt via event daemon UDS)
     static let ruleAdd = "rule.add"
     static let ruleRemove = "rule.remove"
     static let ruleList = "rule.list"
-    static let ruleReload = "rule.reload"
 }

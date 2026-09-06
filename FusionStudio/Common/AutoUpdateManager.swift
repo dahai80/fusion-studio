@@ -68,7 +68,8 @@ class AutoUpdateManager: ObservableObject {
     static let shared = AutoUpdateManager()
 
     @Published var state: UpdateState = .idle
-    @Published var showUpdateSheet = false
+    // OPS-6 (审计product-0906 P2): 移除孤儿 @Published showUpdateSheet — 写 3 处, 0 读 (UpdateSheetView 本身亦未实例化)。
+    //   UpdateSettingsView 通过 .available(state) 内联显提示, 无需独立 sheet 开关。
     @Published var lastCheckDate: Date?
 
     private let repoOwner = "dahai80"
@@ -120,7 +121,6 @@ class AutoUpdateManager: ObservableObject {
                 self?.lastCheckDate = Date()
                 if version.isNewerThan {
                     self?.state = .available(version)
-                    self?.showUpdateSheet = true
                 } else {
                     self?.state = .upToDate
                 }
@@ -166,25 +166,29 @@ class AutoUpdateManager: ObservableObject {
                     // SEC-1 (审计product-0905 P0): 下载的 DMG 在呈现给用户前必须做完整性校验。
                     // 校验链: spctl --assess --type install (Gatekeeper 公证票据) + codesign --verify --strict (签名链)。
                     // 任一失败 = DMG 被篡改/未签名/未公证 = 拒绝安装, 删除文件, 报错。阻断供应链 MITM/CDN-swap。
-                    let verified = AutoUpdateManager.verifyDMGIntegrity(at: destURL)
-                    if !verified.0 {
-                        try? FileManager.default.removeItem(at: destURL)
-                        autoUpdateLog.error("downloadAndInstall integrity check FAILED tag=\(version.tagName, privacy: .public) reason=\(verified.1, privacy: .public)")
-                        self.state = .error("更新包完整性校验失败, 已删除: \(verified.1)。请勿安装来源不明的更新包。")
-                        return
-                    }
-                    autoUpdateLog.info("downloadAndInstall integrity OK tag=\(version.tagName, privacy: .public) dest=\(destURL.path, privacy: .public)")
-                    self.state = .upToDate
+                    // ARCH-4 (审计product-0906 P1): 校验 (codesign+spctl 各 30s) 移出主线程, 避免冻结 UI 60s。
+                    let verifyURL = destURL
+                    let verifyTag = version.tagName
+                    Task { @MainActor in
+                        let verified = await Task.detached(priority: .userInitiated) {
+                            AutoUpdateManager.verifyDMGIntegrity(at: verifyURL)
+                        }.value
+                        if !verified.0 {
+                            try? FileManager.default.removeItem(at: verifyURL)
+                            autoUpdateLog.error("downloadAndInstall integrity check FAILED tag=\(verifyTag, privacy: .public) reason=\(verified.1, privacy: .public)")
+                            self.state = .error("更新包完整性校验失败, 已删除: \(verified.1)。请勿安装来源不明的更新包。")
+                            return
+                        }
+                        autoUpdateLog.info("downloadAndInstall integrity OK tag=\(verifyTag, privacy: .public) dest=\(verifyURL.path, privacy: .public)")
+                        self.state = .upToDate
 
-                    // 提示用户安装
-                    DispatchQueue.main.async {
                         let alert = NSAlert()
                         alert.messageText = "更新已下载"
-                        alert.informativeText = "Fusion Studio \(version.tagName) 已下载并通过完整性校验。请关闭当前应用，打开 DMG 安装新版本。"
+                        alert.informativeText = "Fusion Studio \(verifyTag) 已下载并通过完整性校验。请关闭当前应用，打开 DMG 安装新版本。"
                         alert.addButton(withTitle: "打开下载文件夹")
                         alert.addButton(withTitle: "稍后")
                         if alert.runModal() == .alertFirstButtonReturn {
-                            NSWorkspace.shared.activateFileViewerSelecting([destURL])
+                            NSWorkspace.shared.activateFileViewerSelecting([verifyURL])
                         }
                     }
                 } catch {
@@ -212,11 +216,17 @@ class AutoUpdateManager: ObservableObject {
         }
 
         // 2) spctl --assess --type install: Gatekeeper 评估 (公证票据)
+        // SEC-7 (审计product-0906 P2): 生产 fail-closed — 未公证包拒绝安装 (阻断未签名/被吊销/CDN-swap)。
+        //   唯一豁免: 显式开发标志 allowUnsignedUpdate (UserDefaults, 默认 false), 供开发机自构建分发调试。
         let spctlResult = runProcess("/usr/bin/spctl", arguments: ["--assess", "--type", "install", "-v", dmgPath], timeout: 30)
         if spctlResult.0 != 0 {
-            // codesign 已通过 = 签名链有效未被篡改。spctl 失败多为开发自构建未公证。
-            // 记 warn 放行: 企业开发环境分发自构建包时不应被公证要求阻断 (codesign 链已保证完整性)。
-            autoUpdateLog.warning("spctl assess failed (dev build likely ok) exit=\(spctlResult.0, privacy: .public) out=\(spctlResult.1, privacy: .public)")
+            let devOverride = UserDefaults.standard.bool(forKey: "allowUnsignedUpdate")
+            if devOverride {
+                autoUpdateLog.warning("spctl assess failed but dev override allowUnsignedUpdate=true, accepting exit=\(spctlResult.0, privacy: .public) out=\(spctlResult.1, privacy: .public)")
+            } else {
+                autoUpdateLog.error("spctl assess FAILED (rejecting unsigned/unnotarized DMG) exit=\(spctlResult.0, privacy: .public) out=\(spctlResult.1, privacy: .public)")
+                return (false, "spctl Gatekeeper 评估失败 (exit=\(spctlResult.0)): \(spctlResult.1)。未公证包禁止安装。开发自构建可设置 allowUnsignedUpdate 豁免。")
+            }
         }
 
         return (true, "ok")
@@ -257,13 +267,11 @@ class AutoUpdateManager: ObservableObject {
     func skipVersion(_ version: AppVersion) {
         UserDefaults.standard.set(version.tagName, forKey: "skipped_version")
         state = .upToDate
-        showUpdateSheet = false
     }
 
     /// 重置检查状态
     func reset() {
         state = .idle
-        showUpdateSheet = false
     }
 }
 

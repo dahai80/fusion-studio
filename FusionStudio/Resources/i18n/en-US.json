@@ -5430,5 +5430,7 @@
   "backend_runtime_override_placeholder": "Empty = auto-resolve (override > ~/fusion > bundle)",
   "backend_runtime_override_hint": "Custom backend start.sh path; empty resolves via override > ~/fusion dev > bundled DMG.",
   "backend_runtime_corrupt_banner": "Backend runtime missing or corrupt. Please reinstall Fusion Studio.",
-  "tab_backendRuntime": "Backend Runtime"
+  "tab_backendRuntime": "Backend Runtime",
+  "mod_deprecatedTitle": "Coming soon",
+  "mod_deprecatedHint": "This module depends on an upstream service not yet available. Enable preview in Settings → Advanced → Show unfinished modules."
 }

@@ -151,5 +151,8 @@ jobs:
              [ "${{ needs.security.result }}" = "success" ]; then
             echo "✅ 所有检查通过"
           else
-            echo "⚠️ 部分检查未通过"
+            # OPS-11 (审计product-0906 P3): 旧 else 仅 echo 不 exit, notify job 永远 success,
+            # 掩盖 swift-build/lint/security 失败, CI 假绿。改 exit 1 让 job 真实反映 gate 结果。
+            echo "⚠️ 部分检查未通过, notify job 标记失败"
+            exit 1
           fi

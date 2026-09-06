@@ -7,10 +7,9 @@ paths = [
     '''.*/monaco-dist/.*''',
 ]
 regexes = [
-    # 本地开发用 MLX api_key (settings.json / env 占位, 非生产密钥)
-    '''dahai168''',
-    # OPS-4 (审计product-0905 P1): 删除 fg-admin-key allowlist — ARCH-2 已移除硬编码兜底,
-    # allowlist 会掩盖未来同模式 secret 泄露, 让 gitleaks 真扫。
+    # OPS-4 (审计product-0906 P2): 移除全局 dahai168 regex allowlist — 无 path scope 可掩盖真实密钥泄露。
+    #   dahai168 仅存于测试 fixture, 上面 paths=['''Tests/.*'''] 已放行 fixture, 全局 regex 多余且危险。
+    #   删除让 gitleaks 对源码真扫; 同期删除 fg-admin-key allowlist (审计product-0905)。
     # 测试 fixture 占位 key
     '''sk-test[a-zA-Z0-9-]*''',
     '''test_api_key''',

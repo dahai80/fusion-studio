@@ -118,12 +118,26 @@ struct DesignPreviewView: NSViewRepresentable {
 
     // MARK: - Local Tailwind Loading
 
+    // ARCH-10 (审计product-0906 P3): tailwind-play.js 是 app bundle 内小体积静态资源
+    //   (零网络, 不可信内容不混入)。旧每次 buildFullHTML (每条 content update) 都
+    //   String(contentsOf:) 同步读盘 = 重复主线程 I/O。缓存首次结果, 后续命中跳读。
+    private static var cachedTailwind: String??
+    private static let cacheLock = NSLock()
+
     private func loadLocalTailwind() -> String? {
+        Self.cacheLock.lock(); defer { Self.cacheLock.unlock() }
+        if let cached = Self.cachedTailwind { return cached }
         guard let url = Bundle.main.url(forResource: "tailwind-play", withExtension: "js", subdirectory: "tailwind") else {
             previewLog.warning("DesignPreviewView: tailwind-play.js not found in bundle")
+            Self.cachedTailwind = .none
             return nil
         }
-        return try? String(contentsOf: url)
+        let src = try? String(contentsOf: url)
+        Self.cachedTailwind = src
+        if src != nil {
+            previewLog.info("DesignPreviewView: tailwind-play.js cached from bundle")
+        }
+        return src
     }
 
     // MARK: - HTML Building

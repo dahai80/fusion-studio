@@ -15,7 +15,7 @@ CONFIGURATION="${CONFIGURATION:-release}"
 
 # Callers: build.sh package/dmg/sign. Affected API: VERSION variable → DMG filename + Info.plist CFBundleShortVersionString. Data: version string. User: "修复 Release workflow"
 # 版本信息
-VERSION="0.1.60"
+VERSION="0.1.61"
 BUILD_NUM=$(date +%Y%m%d%H%M)
 
 # 颜色
@@ -133,6 +133,12 @@ bundle_python() {
         fi
         "$py_dir/bin/python3" -m pip install --target "$site_dir" -r "$req_file" 2>&1 | tail -8 || {
             warn "PyPI 依赖安装失败 (网络?), 后端可启动但部分 RPC 可能不可用"
+            # OPS-2 (审计product-0906 P2): 打包后端缺依赖不应静默成功。CI (GITHUB_ACTIONS) fail-closed,
+            # 本地 dev 保 warn-only (网络/离线重构建容忍)。
+            if [ -n "$GITHUB_ACTIONS" ]; then
+                error "CI 上下文 PyPI 依赖安装失败, 中止打包 (后端不完整)"
+                return 1
+            fi
         }
     fi
 
@@ -145,9 +151,19 @@ bundle_python() {
             info "安装 $pkg (copy 模式)..."
             "$py_dir/bin/python3" -m pip install --no-deps --target "$site_dir" "$src" 2>&1 | tail -3 || {
                 warn "$pkg 安装失败, 跳过"
+                # OPS-3 (审计product-0906 P2): in-tree 包安装失败致后端 import 错。CI fail-closed。
+                if [ -n "$GITHUB_ACTIONS" ]; then
+                    error "CI 上下文 $pkg 安装失败, 中止打包 (后端运行时 import 错)"
+                    return 1
+                fi
             }
         else
             warn "$pkg 源码未找到 ($src), 跳过"
+            # OPS-3: 源码缺失同属后端不完整, CI fail-closed。
+            if [ -n "$GITHUB_ACTIONS" ]; then
+                error "CI 上下文 $pkg 源码缺失 ($src), 中止打包"
+                return 1
+            fi
         fi
     done
 
@@ -362,6 +378,12 @@ sign_app() {
             mkdir -p "$(dirname "$marker")"
             echo "UNSIGNED build — no Developer ID certificate found at $(date -u +%FT%TZ)" > "$marker"
             warn "⚠️  已 stamp $marker — release notes 须标注此 DMG 未签名"
+            # OPS-7 (审计product-0906 P2): CI/发布上下文缺证书 fail-closed (产未签名 DMG 不应静默成功);
+            # 本地 dev 保 warn-only。release.yml OPS-1 门禁已对 production release 双保险。
+            if [ -n "$GITHUB_ACTIONS" ]; then
+                error "CI 上下文缺 Developer ID 证书, 中止签名 (产物未签名 DMG 不可分发)"
+                return 1
+            fi
             return 0
         fi
         info "自动使用证书: $dev_id"

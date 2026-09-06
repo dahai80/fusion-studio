@@ -73,6 +73,21 @@ final class ClusterAuditor {
         let path = dateStampedPath()
         guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
               let text = String(data: data, encoding: .utf8) else { return [] }
+        return Self.parseRecords(text: text, limit: limit)
+    }
+
+    // ARCH-7 (审计product-0906 P2): tail 同步 Data(contentsOf:) 读盘, AuditTabView.reload() 在 MainActor
+    // 直接调会阻塞主线程 (大审计日志/慢盘卡顿)。提供 async 版读盘移至 Task.detached, 解析复用 parseRecords。
+    func tailAsync(limit: Int) async -> [AuditRecord] {
+        let path = dateStampedPath()
+        return await Task.detached(priority: .userInitiated) {
+            guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
+                  let text = String(data: data, encoding: .utf8) else { return [] }
+            return Self.parseRecords(text: text, limit: limit)
+        }.value
+    }
+
+    nonisolated private static func parseRecords(text: String, limit: Int) -> [AuditRecord] {
         let lines = text.split(separator: "\n", omittingEmptySubsequences: true)
         let suffix = lines.suffix(limit)
         var records: [AuditRecord] = []

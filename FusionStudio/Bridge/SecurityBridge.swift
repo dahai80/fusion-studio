@@ -239,7 +239,13 @@ class SecurityBridge: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "PUT"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        // ERR-8 (审计product-0906 P3): 旧 try? 静默 nil body。改 do/catch 显式失败。
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        } catch {
+            secBridgeLog.error("updateVulnStatus body serialize failed: \(error.localizedDescription)")
+            completion?(.failure(error)); return
+        }
         session.dataTask(with: request) { data, _, error in
             if let error = error { completion?(.failure(error)); return }
             guard let data = data else { completion?(.failure(SecurityBridgeError.noData)); return }
@@ -364,7 +370,13 @@ class SecurityBridge: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try? JSONSerialization.data(withJSONObject: vulnerabilities)
+        // ERR-8 (审计product-0906 P3): 旧 try? 静默 nil body。改 do/catch 显式失败。
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: vulnerabilities)
+        } catch {
+            secBridgeLog.error("evaluateGate body serialize failed: \(error.localizedDescription)")
+            completion?(.failure(error)); return
+        }
         session.dataTask(with: request) { data, _, error in
             if let error = error { completion?(.failure(error)); return }
             guard let data = data else { completion?(.failure(SecurityBridgeError.noData)); return }
@@ -474,7 +486,13 @@ class SecurityBridge: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        // ERR-8 (审计product-0906 P3): 旧 try? 静默 nil body。改 do/catch 显式失败。
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        } catch {
+            secBridgeLog.error("postJSON \(path, privacy: .public) body serialize failed: \(error.localizedDescription)")
+            completion?(.failure(error)); return
+        }
         session.dataTask(with: request) { data, response, error in
             if let error = error { completion?(.failure(error)); return }
             if let code = (response as? HTTPURLResponse)?.statusCode, !(200...299).contains(code) {

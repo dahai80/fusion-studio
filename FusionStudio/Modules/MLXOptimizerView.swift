@@ -4,6 +4,9 @@
 // User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
 
 import SwiftUI
+import os.log
+
+private let optimLog = Logger(subsystem: "com.fusion.studio", category: "MLXOptimizer")
 
 // MARK: - 模型优化配置
 
@@ -81,7 +84,10 @@ class MLXOptimizer: ObservableObject {
         Task { [weak self] in
             guard let self = self else { return }
             do {
-                let url = URL(string: "\(FusionConfig.shared.mlxBaseURL)/v1/benchmarks")!
+                guard let url = URL(string: "\(FusionConfig.shared.mlxBaseURL)/v1/benchmarks") else {
+                    optimLog.error("invalid benchmark URL mlxBaseURL=\(FusionConfig.shared.mlxBaseURL, privacy: .public)")
+                    throw URLError(.badURL)
+                }
                 var request = URLRequest(url: url)
                 request.httpMethod = "POST"
                 request.setValue("application/json", forHTTPHeaderField: "Content-Type")

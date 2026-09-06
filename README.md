@@ -547,6 +547,16 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 
 ## 📋 Changelog
 
+### v0.1.61 — audit-product-0906 P0-P3 all defects resolved (2026-09-06)
+
+Audit release; ships all 51 findings (1 P0 / 14 P1 / 20 P2 / 16 P3) from the 6-dimension enterprise production audit (`audit/fusion-studio-audit-result-product-0906.md`). Incremental re-verification over 0902/0905 prior fixes. Verdict: enterprise ❌ (MultiNode TLS/HA + audit trail = upstream gaps); single-machine developer beta ✅.
+
+- **P0 (1)**: critical defect resolved
+- **P1 (14)**: state machine, error surfacing, config live-read, resilience backoff, RPC discover, polling app-level
+- **P2 (20)**: ARCH git/dead-code cleanup, PERF off-main I/O + plugin IPC reuse, ERR swallowed failures → lastError, SEC path encoding + science TLS + spctl fail-closed, FUNC git toggles
+- **P3 (16)**: FUNC-1..7 dead RPCMethod constants + 14 team wrappers; FUNC-9 `.constant`→`@AppStorage`; FUNC-10 deprecated module placeholder + i18n; ARCH-9 lint save off-main; ARCH-10 tailwind bundle cache; SEC-8 `allowFileAccessFromFileURLs` safety doc; ERR-8 `try? JSONSerialization`→do/catch (9 sites Science/Health/Doc/Security); OPS-9 dead `sign.sh` delete; OPS-10 CI tee+tail full logs + artifact upload; OPS-11 notify gate `exit 1`; PERF-6 OpsDashboard body-triggered recompute→`@State`+onAppear
+- **Build gate**: `swift build -c debug` EXIT=0, `swift build --build-tests` EXIT=0; CI macOS-14/Xcode 15.x authoritative (~204 cases)
+
 ### v0.1.60 — audit-product-0905 P0-P3 all defects resolved (2026-09-05)
 
 Audit release; ships all ~50 findings (1 P0 / 16 P1 / 14 P2 / 6 P3) from the 6-dimension enterprise production audit (`audit/fusion-studio-audit-result-product-0905.md`). Verdict: enterprise ❌ (MultiNode TLS/HA + audit trail = upstream gaps, not fixable in-repo alone); single-machine developer beta ✅ publishable.

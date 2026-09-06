@@ -29,11 +29,14 @@ jobs:
         run: |
           # Services/ 已删 (PR #298, 无本地 Rust 后台服务), 仅 Swift build。
           # 审计0827 #9: set -o pipefail 保退出码, 防 swift build 失败被 tail 吞 (与 ci.yml 对齐)。
-          set -o pipefail && swift build -c release 2>&1 | tail -5
+          # OPS-10 (审计product-0906 P3): tail 单独用吞真实 error: 行, 失败无法定位。
+          #   tee 全量落盘 (upload-artifact 供下载) + tail -80 控可见日志量 (对齐 ci.yml)。
+          set -o pipefail && swift build -c release 2>&1 | tee /tmp/nightly-build.log | tail -80
 
       - name: Run tests
         # 审计0827 #9: 删 continue-on-error (假绿 — nightly 是发布前兜底门, 测试挂应阻断) + pipefail 保退出码。
-        run: set -o pipefail && swift test 2>&1 | tail -10
+        # OPS-10 (审计product-0906 P3): tee 全量落盘 + tail -80, 失败时全日志可定位逐用例 fail 行。
+        run: set -o pipefail && swift test 2>&1 | tee /tmp/nightly-test.log | tail -80
 
       - name: Upload build logs
         if: always()
@@ -42,4 +45,5 @@ jobs:
           name: nightly-build-logs
           path: |
             .build/**/*.log
+            /tmp/nightly-*.log
           retention-days: 7

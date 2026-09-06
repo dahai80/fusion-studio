@@ -203,7 +203,10 @@ struct OperationsView: View {
 
 struct OpsDashboard: View {
     @StateObject private var ops = OperationsManager.shared
-    let health = OperationsManager.shared.runHealthCheck()
+    // PERF-6 (审计product-0906 P3): 旧 `let health = ...runHealthCheck()` 是 stored property
+    //   每次 body 重渲染都重算 (含 Bool.random), body 内触发副作用工作。改 @State 一次计算,
+    //   onAppear/手动刷新时更新, body 仅读不触发计算。
+    @State private var health: (passed: Int, total: Int) = (0, 0)
 
     var body: some View {
         ScrollView {
@@ -215,10 +218,12 @@ struct OpsDashboard: View {
                 OpsCard(title: I18nManager.shared.t(.ops_card_services), value: "\(ops.status.serviceCount)", icon: "gearshape.2", color: .indigo, progress: 1.0)
                 OpsCard(title: I18nManager.shared.t(.ops_card_connections), value: "\(ops.status.activeConnections)", icon: "antenna.radiowaves.left.and.right", color: .cyan, progress: Double(ops.status.activeConnections) / 10)
                 OpsCard(title: I18nManager.shared.t(.ops_card_alerts_today), value: "\(ops.status.alertsToday)", icon: "bell", color: ops.status.alertsToday > 0 ? .orange : .green, progress: 0.5)
-                OpsCard(title: I18nManager.shared.t(.ops_card_health_check), value: "\(health.passed)/\(health.total)", icon: "stethoscope", color: health.passed == health.total ? .green : .red, progress: Double(health.passed) / Double(health.total))
+                OpsCard(title: I18nManager.shared.t(.ops_card_health_check), value: "\(health.passed)/\(health.total)", icon: "stethoscope", color: health.passed == health.total ? .green : .red, progress: health.total > 0 ? Double(health.passed) / Double(health.total) : 0)
             }
             .padding()
         }
+        // PERF-6: health 入视时计算一次, 不随每次 body 重渲染重算。
+        .onAppear { health = ops.runHealthCheck() }
     }
 }
 
