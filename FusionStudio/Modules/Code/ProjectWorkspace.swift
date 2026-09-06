@@ -126,16 +126,25 @@ class ProjectWorkspace: ObservableObject {
             loadMessage = String(format: I18nManager.shared.t(.fc_loading), url.lastPathComponent)
 
             do {
-                let content = try String(contentsOf: url, encoding: .utf8)
-                let attrs = try FileManager.default.attributesOfItem(atPath: url.path)
-                let fileSize = (attrs[.size] as? Int64) ?? 0
-                let lang = CodeFile.languageForPath(url.path)
-                let relPath = url.lastPathComponent
+                // PERF-4 (审计product-0906 P2): String(contentsOf:) + FileManager.attributesOfItem 为同步磁盘 I/O,
+                // 原在 @MainActor Task 内直接执行会阻塞主线程 (大文件/慢盘卡顿)。移至 Task.detached 读盘,
+                // 仅最后 @Published 赋值回 MainActor。
+                let urlPath = url.path
+                let lastComp = url.lastPathComponent
+                let parent = url.deletingLastPathComponent()
+                let (content, fileSize): (String, Int64) = try await Task.detached(priority: .userInitiated) {
+                    let c = try String(contentsOf: url, encoding: .utf8)
+                    let attrs = try FileManager.default.attributesOfItem(atPath: urlPath)
+                    let sz = (attrs[.size] as? Int64) ?? 0
+                    return (c, sz)
+                }.value
+                let lang = CodeFile.languageForPath(urlPath)
+                let relPath = lastComp
 
                 let file = CodeFile(
-                    id: url.path,
-                    name: url.lastPathComponent,
-                    path: url.path,
+                    id: urlPath,
+                    name: lastComp,
+                    path: urlPath,
                     content: content,
                     language: lang,
                     isModified: false,
@@ -146,19 +155,19 @@ class ProjectWorkspace: ObservableObject {
                     fileSize: fileSize
                 )
 
-                projectRoot = url.deletingLastPathComponent()
-                projectName = url.lastPathComponent
-                gitBranch = await detectGitBranch(at: url.deletingLastPathComponent())
+                projectRoot = parent
+                projectName = lastComp
+                gitBranch = await detectGitBranch(at: parent)
                 files = [file]
                 selectedFile = file
                 isLoading = false
                 loadProgress = 1.0
                 loadMessage = I18nManager.shared.t(.fc_loaded_one_file)
 
-                let recent = RecentProject(name: url.lastPathComponent, path: url.path)
+                let recent = RecentProject(name: lastComp, path: urlPath)
                 addRecentProject(recent)
 
-                codeEditLog.info("Single file loaded: \(url.lastPathComponent)")
+                codeEditLog.info("Single file loaded: \(lastComp)")
             } catch {
                 isLoading = false
                 loadMessage = String(format: I18nManager.shared.t(.fc_load_failed), error.localizedDescription)

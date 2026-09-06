@@ -284,6 +284,22 @@ enum OutputStyle: String, CaseIterable {
 
 @MainActor
 class ChatSessionStore: ObservableObject {
+    // ARCH-6 (审计product-0906 P2): 读 project knowledge 文件 (每文件最多 8000 字符) 原在 @MainActor sendMessage 内
+    // 同步 String(contentsOfFile:) 循环执行, 多文件大文件阻塞主线程。抽离 nonisolated, 调用方 Task.detached 读盘后回 MainActor 拼装。
+    nonisolated static func readKnowledgeOffMain(_ files: [(filePath: String, fileName: String)]) async -> [String] {
+        await Task.detached(priority: .userInitiated) {
+            var parts: [String] = []
+            for kf in files {
+                guard SecurityManager.shared.validateFilePath(kf.filePath) else { continue }
+                if let content = try? String(contentsOfFile: kf.filePath, encoding: .utf8) {
+                    let truncated = String(content.prefix(8000))
+                    parts.append("[\(kf.fileName)]\n\(truncated)")
+                }
+            }
+            return parts
+        }.value
+    }
+
     @Published var sessions: [ChatSessionData] = []
     @Published var activeSession: ChatSessionData?
     @Published var isLoading = false
@@ -739,14 +755,10 @@ class ChatSessionStore: ObservableObject {
                 }
                 if project.hasKnowledge {
                     var knowledgeParts = ["[Project Knowledge Files for \(project.name)]"]
-                    for kf in project.knowledgeFiles {
-                        // 审计0827 #2: knowledgeFiles 路径可能来自导入项目, 防 symlink/.. 越界读, validateFilePath 拒则跳过。
-                        guard SecurityManager.shared.validateFilePath(kf.filePath) else { continue }
-                        if let content = try? String(contentsOfFile: kf.filePath, encoding: .utf8) {
-                            let truncated = String(content.prefix(8000))
-                            knowledgeParts.append("[\(kf.fileName)]\n\(truncated)")
-                        }
-                    }
+                    // ARCH-6: 读盘移出主线程 (见 readKnowledgeOffMain)。
+                    let kfPairs = project.knowledgeFiles.map { (filePath: $0.filePath, fileName: $0.fileName) }
+                    let parts = await Self.readKnowledgeOffMain(kfPairs)
+                    knowledgeParts.append(contentsOf: parts)
                     systemParts.append(knowledgeParts.joined(separator: "\n\n"))
                 }
                 chatStoreLog.info("Injected project '\(project.name)': instructions=\(project.hasInstructions), knowledge=\(project.knowledgeFiles.count) files")
@@ -1262,12 +1274,10 @@ class ChatSessionStore: ObservableObject {
             }
             if project.hasKnowledge {
                 var knowledgeParts = ["[Project Knowledge Files for \(project.name)]"]
-                for kf in project.knowledgeFiles {
-                    if let content = try? String(contentsOfFile: kf.filePath, encoding: .utf8) {
-                        let truncated = String(content.prefix(8000))
-                        knowledgeParts.append("[\(kf.fileName)]\n\(truncated)")
-                    }
-                }
+                // ARCH-6 (审计product-0906 P2): 读盘移出主线程 (见 readKnowledgeOffMain); 此处原缺 validateFilePath, helper 内已补。
+                let kfPairs = project.knowledgeFiles.map { (filePath: $0.filePath, fileName: $0.fileName) }
+                let parts = await Self.readKnowledgeOffMain(kfPairs)
+                knowledgeParts.append(contentsOf: parts)
                 systemParts.append(knowledgeParts.joined(separator: "\n\n"))
             }
         }
