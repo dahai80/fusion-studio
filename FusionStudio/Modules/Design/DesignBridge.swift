@@ -1198,12 +1198,8 @@ class DesignBridge: ObservableObject {
 
     func switchDesignSystem(_ systemId: String) { themeState.switchDesignSystem(systemId) }
 
-    func copyCurrentCode() {
-        guard !currentArtifactCode.isEmpty else { return }
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(currentArtifactCode, forType: .string)
-        designBridgeLog.info("DesignBridge: code copied to clipboard")
-    }
+    // ARCH-1 Phase 8: 行为迁 DesignExportService。
+    func copyCurrentCode() { exportState.copyCurrentCode() }
 
     // MARK: - Design RAG
 
@@ -1245,249 +1241,33 @@ class DesignBridge: ObservableObject {
     // MARK: - SwiftUI Export
 
 
-    func exportAsSwiftUI() async {
-        guard !currentArtifactCode.isEmpty else { return }
-        guard ipcClient != nil else {
-            errorMessage = "IPCClient not initialized"
-            return
-        }
+    // MARK: - SwiftUI Export
 
-        isExportingSwiftUI = true
-        let request = SwiftUIExporter.buildConversionRequest(
-            htmlCode: currentArtifactCode,
-            title: currentArtifactTitle
-        )
+    // ARCH-1 Phase 8: 行为迁 DesignExportService。
+    func exportAsSwiftUI() async { await exportState.exportAsSwiftUI() }
 
-        let config = FusionConfig.shared
-        let baseURL = config.mlxBaseURL
-        let apiKey = config.mlxResolvedApiKey
-        guard let url = URL(string: "\(baseURL)/v1/chat/completions") else {
-            errorMessage = "Invalid MLX URL"
-            isExportingSwiftUI = false
-            return
-        }
-
-        var urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = "POST"
-        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        if !apiKey.isEmpty {
-            urlRequest.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        }
-
-        let body: [String: Any] = [
-            "model": config.defaultModel(for: .code),
-            "messages": [
-                ["role": "user", "content": request.prompt]
-            ],
-            "temperature": 0.3,
-            "max_tokens": 4096,
-            "stream": false
-        ]
-
-        do {
-            urlRequest.httpBody = try JSONSerialization.data(withJSONObject: body)
-            let (data, _) = try await URLSession.shared.data(for: urlRequest)
-            if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let choices = json["choices"] as? [[String: Any]],
-               let message = choices.first?["message"] as? [String: Any],
-               let content = message["content"] as? String {
-                exportedSwiftUICode = SwiftUIExporter.extractSwiftUICode(from: content)
-                designBridgeLog.info("DesignBridge: SwiftUI export done, \(self.exportedSwiftUICode.count) chars")
-            }
-        } catch {
-            errorMessage = "SwiftUI export failed: \(error.localizedDescription)"
-            designBridgeLog.error("DesignBridge exportAsSwiftUI: \(error)")
-        }
-        isExportingSwiftUI = false
-    }
-
-    func copyExportedSwiftUI() {
-        guard !exportedSwiftUICode.isEmpty else { return }
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(exportedSwiftUICode, forType: .string)
-        designBridgeLog.info("DesignBridge: SwiftUI code copied")
-    }
+    func copyExportedSwiftUI() { exportState.copyExportedSwiftUI() }
 
     // MARK: - Codegen Export (HTML/React/Tailwind via CLI)
 
+    func exportAsCodegen(target: String, componentName: String) async { await exportState.exportAsCodegen(target: target, componentName: componentName) }
 
-    func exportAsCodegen(target: String, componentName: String) async {
-        guard let documentJSON = lastRenderedDocumentJSON, !documentJSON.isEmpty else {
-            errorMessage = "No document to export"
-            return
-        }
-        isExportingCodegen = true
-        // ERR-6 (审计product-0905 P1): runFusionDesign 同步 Process 阻塞, 在 @MainActor class 直接调 = 卡 UI。
-        // 移 Task.detached 后台跑: MainActor 预解析 cliPath, nonisolated static runCLIProcess 跑 Process, 回填 @Published 在 MainActor。
-        let cliPath = resolveCLIPath()
-        guard !cliPath.isEmpty else {
-            errorMessage = "CLI not found"
-            isExportingCodegen = false
-            return
-        }
-        let result = await Task.detached(priority: .userInitiated) {
-            Self.runCLIProcess(
-                cliPath: cliPath,
-                args: ["codegen", "--target", target, "--component", componentName],
-                stdin: documentJSON
-            )
-        }.value
-        if result.exitCode == 0 {
-            exportedCodegenCode = result.output
-            designBridgeLog.info("DesignBridge: codegen export done, target=\(target), \(result.output.count) chars")
-        } else {
-            errorMessage = "codegen failed: \(result.error)"
-            designBridgeLog.error("DesignBridge exportAsCodegen: \(result.error)")
-        }
-        isExportingCodegen = false
-    }
-
-    func copyExportedCodegen() {
-        guard !exportedCodegenCode.isEmpty else { return }
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(exportedCodegenCode, forType: .string)
-        designBridgeLog.info("DesignBridge: codegen code copied")
-    }
+    func copyExportedCodegen() { exportState.copyExportedCodegen() }
 
     // MARK: - Batch Export (SVG/HTML/JSON via CLI)
 
-
-    func batchExportPages(format: String, to outputDir: String) async {
-        guard let documentJSON = lastRenderedDocumentJSON, !documentJSON.isEmpty else {
-            errorMessage = "No document to export"
-            return
-        }
-        isBatchExporting = true
-        batchExportResult = ""
-        // F-I6: 临时文件统一收口 (统一目录 + 0600 + UUID + 启动清理 LRU)。原散落系统 /tmp。
-        guard let tmpPath = FusionTempDir.shared.writeTmpFile(prefix: "fd_export", contents: Data(documentJSON.utf8)) else {
-            errorMessage = "export tmp write failed"
-            isBatchExporting = false
-            return
-        }
-        // ERR-6 (审计product-0905 P1): 同步 Process 阻塞 MainActor, 移 Task.detached 后台跑。
-        let cliPath = resolveCLIPath()
-        guard !cliPath.isEmpty else {
-            errorMessage = "CLI not found"
-            try? FileManager.default.removeItem(atPath: tmpPath)
-            isBatchExporting = false
-            return
-        }
-        let result = await Task.detached(priority: .userInitiated) {
-            Self.runCLIProcess(
-                cliPath: cliPath,
-                args: ["export", "--input", tmpPath, "--format", format, "--out", outputDir]
-            )
-        }.value
-        try? FileManager.default.removeItem(atPath: tmpPath)
-        if result.exitCode == 0 {
-            batchExportResult = result.output
-            designBridgeLog.info("DesignBridge: batch export done, format=\(format), result=\(result.output)")
-        } else {
-            errorMessage = "export failed: \(result.error)"
-            designBridgeLog.error("DesignBridge batchExportPages: \(result.error)")
-        }
-        isBatchExporting = false
-    }
+    func batchExportPages(format: String, to outputDir: String) async { await exportState.batchExportPages(format: format, to: outputDir) }
 
     // MARK: - Artifact ↔ File Sync
 
+    // ARCH-1 Phase 8: 行为迁 DesignFileSyncService。
+    func enableFileSync(to folderPath: String) { fileSyncState.enableFileSync(to: folderPath) }
 
-    func enableFileSync(to folderPath: String) {
-        syncFolderPath = folderPath
-        isFileSyncEnabled = true
-        designBridgeLog.info("DesignBridge: file sync enabled to \(folderPath)")
-    }
+    func disableFileSync() { fileSyncState.disableFileSync() }
 
-    func disableFileSync() {
-        isFileSyncEnabled = false
-        syncFolderPath = ""
-        designBridgeLog.info("DesignBridge: file sync disabled")
-    }
+    func syncArtifactToFile() async { await fileSyncState.syncArtifactToFile() }
 
-    func syncArtifactToFile() async {
-        guard isFileSyncEnabled, !syncFolderPath.isEmpty, !currentArtifactCode.isEmpty else {
-            designBridgeLog.warning("DesignBridge: syncArtifactToFile — preconditions not met")
-            return
-        }
-
-        let ext = currentArtifactType == "react" ? "jsx" : currentArtifactType
-        let fileName = currentArtifactTitle.isEmpty ? "design.\(ext)" : "\(sanitizeFileName(currentArtifactTitle)).\(ext)"
-        let filePath = (syncFolderPath as NSString).appendingPathComponent(fileName)
-        // 审计0827 #2: LLM 产物 fileName 经 syncFolderPath 拼 — 防 LLM 注入 ../ 或 symlink 越界写白名单外, validateFilePath 拒则跳过同步。
-        guard SecurityManager.shared.validateFilePath(filePath) else {
-            designBridgeLog.warning("DesignBridge: syncArtifactToFile reject path outside whitelist — \(filePath, privacy: .public)")
-            return
-        }
-
-        if let ipc = ipcClient, !artifactId.isEmpty {
-            do {
-                let result = try await ipc.artifactSync(artifactId: artifactId, filePath: filePath, direction: "artifact_to_file")
-                designBridgeLog.info("DesignBridge: artifact synced via API — \(result)")
-            } catch {
-                designBridgeLog.warning("DesignBridge: API sync failed, falling back to file write — \(error.localizedDescription)")
-                do {
-                    try currentArtifactCode.write(toFile: filePath, atomically: true, encoding: .utf8)
-                    designBridgeLog.info("DesignBridge: artifact synced to file \(filePath) (fallback)")
-                } catch {
-                    designBridgeLog.error("DesignBridge: file sync failed — \(error.localizedDescription)")
-                }
-            }
-        } else {
-            do {
-                try currentArtifactCode.write(toFile: filePath, atomically: true, encoding: .utf8)
-                designBridgeLog.info("DesignBridge: artifact synced to file \(filePath)")
-            } catch {
-                designBridgeLog.error("DesignBridge: file sync failed — \(error.localizedDescription)")
-            }
-        }
-    }
-
-    func syncFileToArtifact() async {
-        guard isFileSyncEnabled, !syncFolderPath.isEmpty else {
-            designBridgeLog.warning("DesignBridge: syncFileToArtifact — preconditions not met")
-            return
-        }
-
-        let ext = currentArtifactType == "react" ? "jsx" : currentArtifactType
-        let fileName = currentArtifactTitle.isEmpty ? "design.\(ext)" : "\(sanitizeFileName(currentArtifactTitle)).\(ext)"
-        let filePath = (syncFolderPath as NSString).appendingPathComponent(fileName)
-        // 审计0827 #2: 防 LLM 注入 ../ 或 symlink 越界读白名单外文件, validateFilePath 拒则跳过同步。
-        guard SecurityManager.shared.validateFilePath(filePath) else {
-            designBridgeLog.warning("DesignBridge: syncFileToArtifact reject path outside whitelist — \(filePath, privacy: .public)")
-            return
-        }
-
-        if let ipc = ipcClient, !artifactId.isEmpty {
-            do {
-                let result = try await ipc.artifactSync(artifactId: artifactId, filePath: filePath, direction: "file_to_artifact")
-                if let content = result["content"] as? String, content != currentArtifactCode {
-                    currentArtifactCode = content
-                    artifactSaved = false
-                    designBridgeLog.info("DesignBridge: file synced to artifact via API (\(content.count) chars)")
-                }
-                return
-            } catch {
-                designBridgeLog.warning("DesignBridge: API sync failed, falling back to file read — \(error.localizedDescription)")
-            }
-        }
-
-        guard FileManager.default.fileExists(atPath: filePath) else {
-            designBridgeLog.info("DesignBridge: no file to sync at \(filePath)")
-            return
-        }
-
-        do {
-            let content = try String(contentsOfFile: filePath, encoding: .utf8)
-            if content != currentArtifactCode {
-                currentArtifactCode = content
-                artifactSaved = false
-                designBridgeLog.info("DesignBridge: file synced to artifact (\(content.count) chars)")
-            }
-        } catch {
-            designBridgeLog.error("DesignBridge: file→artifact sync failed — \(error.localizedDescription)")
-        }
-    }
+    func syncFileToArtifact() async { await fileSyncState.syncFileToArtifact() }
 
     func sanitizeFileName(_ name: String) -> String { artifactState.sanitizeFileName(name) }
     func importScreenshot(_ image: NSImage) async { await artifactState.importScreenshot(image) }
