@@ -14,7 +14,7 @@ final class FSBCanvasLayoutTests: XCTestCase {
             "position": ["x": 120.0, "y": 45.0],
             "config": ["position": ["x": 0.0, "y": 0.0]]
         ]
-        let p = FSBWorkflowCanvasView.parseNodePosition(node: node, fallbackIndex: 0)
+        let p = FSBWorkflowCanvasDelegate.parseNodePosition(node: node, fallbackIndex: 0)
         XCTAssertEqual(p.x, 120.0, accuracy: 0.001)
         XCTAssertEqual(p.y, 45.0, accuracy: 0.001)
     }
@@ -25,7 +25,7 @@ final class FSBCanvasLayoutTests: XCTestCase {
             "type": "SKILL_NODE",
             "config": ["position": ["x": -80.0, "y": 200.0]]
         ]
-        let p = FSBWorkflowCanvasView.parseNodePosition(node: node, fallbackIndex: 0)
+        let p = FSBWorkflowCanvasDelegate.parseNodePosition(node: node, fallbackIndex: 0)
         XCTAssertEqual(p.x, -80.0, accuracy: 0.001)
         XCTAssertEqual(p.y, 200.0, accuracy: 0.001)
     }
@@ -36,7 +36,7 @@ final class FSBCanvasLayoutTests: XCTestCase {
             "type": "END_NODE",
             "position": ["x": 10, "y": 20]
         ]
-        let p = FSBWorkflowCanvasView.parseNodePosition(node: node, fallbackIndex: 0)
+        let p = FSBWorkflowCanvasDelegate.parseNodePosition(node: node, fallbackIndex: 0)
         XCTAssertEqual(p.x, 10.0, accuracy: 0.001)
         XCTAssertEqual(p.y, 20.0, accuracy: 0.001)
     }
@@ -47,8 +47,8 @@ final class FSBCanvasLayoutTests: XCTestCase {
             "type": "CONNECTOR_NODE",
             "config": ["label": "x"]
         ]
-        let p0 = FSBWorkflowCanvasView.parseNodePosition(node: node, fallbackIndex: 0)
-        let p3 = FSBWorkflowCanvasView.parseNodePosition(node: node, fallbackIndex: 3)
+        let p0 = FSBWorkflowCanvasDelegate.parseNodePosition(node: node, fallbackIndex: 0)
+        let p3 = FSBWorkflowCanvasDelegate.parseNodePosition(node: node, fallbackIndex: 3)
         XCTAssertNotEqual(p0, p3, "缺位时按 index 自动错位, 不同 index 不同坐标")
         XCTAssertFalse(p0.x.isNaN || p0.y.isNaN)
     }
@@ -59,7 +59,7 @@ final class FSBCanvasLayoutTests: XCTestCase {
             "type": "CONDITION_NODE",
             "position": ["x": Double.nan, "y": 50.0]
         ]
-        let p = FSBWorkflowCanvasView.parseNodePosition(node: node, fallbackIndex: 1)
+        let p = FSBWorkflowCanvasDelegate.parseNodePosition(node: node, fallbackIndex: 1)
         XCTAssertFalse(p.x.isNaN, "NaN x 不得通过, 回退自动错位")
         XCTAssertFalse(p.y.isNaN)
     }
