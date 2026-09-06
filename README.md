@@ -547,6 +547,16 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 
 ## 📋 Changelog
 
+### v0.1.62 — ARCH-1 DesignBridge facade split (2026-09-06)
+
+Maintainability release; resolves the ARCH-1 finding (P1, audit-product-0906) — split the `DesignBridge` god-object (2481 lines, 38 `@Published`, 74 funcs, 14+ concerns) into 10 facade-delegate domain types, mirroring the proven AgentBridge #359 pattern. Zero behavior change, zero external API change, zero view churn.
+
+- **ARCH-1**: `DesignBridge` 2481→1285 lines. 10 `@MainActor final class <Domain>State: ObservableObject` domain types in `DesignBridgeDomains.swift` (Chat/Artifact/Page/Canvas/PlanPreview/Skill/Version/Theme/Export/FileSync). 10 `Design<Domain>Service.swift` files hold `extension <Domain>State` real behavior + `extension DesignBridge` 1-line stubs. 38 `@Published` decomposed; 38 computed get/set forwarders on `DesignBridge` preserve all 113 view reads + 2 `$binding` sites (0 view churn). `objectWillChange.sink` forwarding in `init()` fixes SwiftUI nested-ObservableObject observation (P0-1 lesson).
+- **Cross-domain coordinators** retained on `DesignBridge`: `sendDesignChat`/`clearConversation`/`switchToPage`/`applyLocalEdit`/`rollbackToVersion`/`deinit`. Static utils retained: `sanitizeHtml`/`sanitizeStyleBlock`/`neutralizeCssXssVectors`/`sanitizeErrorBody`/`runCLIProcess`.
+- **deinit crash fix** (`23f9922`): CI fatal `Incorrect actor executor assumption` in `testClearConversation` — `deinit` (nonisolated in Swift 5.9) called `MainActor.assumeIsolated` off-main actor. Fix: `codeWatchTimer`/`mutateObserver` marked `nonisolated(unsafe)`, `cleanup()` made `nonisolated func`, `assumeIsolated` dropped. Mirrors AgentBridge F-R9 `deinit(nonisolated)` pattern.
+- **Build gate**: `swift build -c debug` EXIT=0, `swift build --build-tests` EXIT=0; CI macOS-14/Xcode 15.x authoritative (~204 cases), 3green.
+- **Verdict**: enterprise ❌ (MultiNode TLS/HA + audit trail = upstream gaps, unchanged); single-machine developer beta ✅.
+
 ### v0.1.61 — audit-product-0906 P0-P3 all defects resolved (2026-09-06)
 
 Audit release; ships all 51 findings (1 P0 / 14 P1 / 20 P2 / 16 P3) from the 6-dimension enterprise production audit (`audit/fusion-studio-audit-result-product-0906.md`). Incremental re-verification over 0902/0905 prior fixes. Verdict: enterprise ❌ (MultiNode TLS/HA + audit trail = upstream gaps); single-machine developer beta ✅.
