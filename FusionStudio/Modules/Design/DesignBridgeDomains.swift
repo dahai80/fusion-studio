@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import WebKit
 import os.log
 
 // ARCH-1 (审计product-0906 P1, ARCH-1): DesignBridge 38 @Published 拆 10 独立 ObservableObject 域类型。
@@ -82,9 +83,14 @@ final class DesignCanvasState: ObservableObject {
     @Published var selectedNodeID: String?
     @Published var lastRenderedDocumentJSON: String?
     @Published var marqueeSelectedNodeIDs: [String] = []
+    // ARCH-1 Phase 5: WKWebView + 反向 code-watch timer + inspector 变更观察者迁本域。
+    //   weak canvasWebView (WKWebView 持有者是 SwiftUI 视图层, 防循环引用)。
+    //   codeWatchTimer/mutateObserver: deinit 经 DesignBridge 清理 (跨域协调器留主类)。
+    weak var canvasWebView: WKWebView?
+    var codeWatchTimer: Timer?
+    var mutateObserver: NSObjectProtocol?
     // ARCH-1: Canvas 行为 (sendCanvasCommand/renderDocumentToCanvas/mutateCanvasNode/undo/redo/... Phase 5 迁入)。
     //   WKWebView only, 0 IPC → 无 ipcClient ref。
-    //   canvasWebView(weak)/codeWatchTimer/mutateObserver Phase 5 迁本域 (现暂留 DesignBridge)。
     weak var bridge: DesignBridge?
     init() {}
 }

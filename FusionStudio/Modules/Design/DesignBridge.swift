@@ -247,6 +247,9 @@ class DesignBridge: ObservableObject {
     var marqueeSelectedNodeIDs: [String] {
         get { canvasState.marqueeSelectedNodeIDs } set { canvasState.marqueeSelectedNodeIDs = newValue }
     }
+    var canvasWebView: WKWebView? {
+        get { canvasState.canvasWebView } set { canvasState.canvasWebView = newValue }
+    }
 
     // MARK: - Plan Preview State 转发
     var pendingPlanCode: String? {
@@ -321,183 +324,51 @@ class DesignBridge: ObservableObject {
     }
 
     private var ipcClient: IPCClient?
-    weak var canvasWebView: WKWebView?
-    private var codeWatchTimer: Timer?
 
     // MARK: - Canvas Bridge Commands
 
-    func sendCanvasCommand(_ command: BridgeCommand) {
-        guard let webView = canvasWebView else {
-            designBridgeLog.warning("DesignBridge: canvasWebView nil, command dropped")
-            return
-        }
-        DesignCanvasView.sendCommand(command, to: webView)
-    }
+    func sendCanvasCommand(_ command: BridgeCommand) { canvasState.sendCanvasCommand(command) }
 
     // #372 OPS-13: 触发 fd-host-web 日志环形缓冲 dump。
     // 走 window.postMessage({kind:'log.capture.dump',...}) 通道 (非 BridgeCommand, 上游 bridge.rs:187)。
     // 触发源: DesignLintPanel 手动按钮 / WebView 进程崩溃恢复 / App 进入前台 (节流)。
-    func dumpWasmLog(clear: Bool) {
-        guard let webView = canvasWebView else {
-            designBridgeLog.warning("DesignBridge: dumpWasmLog skipped, canvasWebView nil")
-            return
-        }
-        DesignCanvasView.requestLogDump(to: webView, clear: clear)
-    }
+    func dumpWasmLog(clear: Bool) { canvasState.dumpWasmLog(clear: clear) }
 
-    func applyDesignTokensToCanvas(_ css: String) {
-        sendCanvasCommand(.applyTokens(css: css))
-    }
+    func applyDesignTokensToCanvas(_ css: String) { canvasState.applyDesignTokensToCanvas(css) }
 
-    func renderDocumentToCanvas(_ documentJSON: String) {
-        lastRenderedDocumentJSON = documentJSON
-        sendCanvasCommand(.pageRender(documentJSON: documentJSON))
-    }
+    func renderDocumentToCanvas(_ documentJSON: String) { canvasState.renderDocumentToCanvas(documentJSON) }
 
-    func clearCanvas() {
-        sendCanvasCommand(.clearCanvas)
-    }
+    func clearCanvas() { canvasState.clearCanvas() }
 
-    func selectCanvasNode(_ nodeID: String) {
-        selectedNodeID = nodeID
-        sendCanvasCommand(.selectNode(nodeID: nodeID))
-    }
+    func selectCanvasNode(_ nodeID: String) { canvasState.selectCanvasNode(nodeID) }
 
     func mutateCanvasNode(_ nodeID: String, x: Float?, y: Float?, w: Float?, h: Float?,
                           fill: String? = nil, stroke: String? = nil, strokeWidth: Float? = nil,
                           radius: Float? = nil, fontSize: Float? = nil, fontFamily: String? = nil,
                           opacity: Float? = nil) {
-        sendCanvasCommand(.mutateNode(nodeID: nodeID, x: x, y: y, w: w, h: h,
-                                       fill: fill, stroke: stroke, strokeWidth: strokeWidth,
-                                       radius: radius, fontSize: fontSize, fontFamily: fontFamily,
-                                       opacity: opacity))
-        designBridgeLog.info("DesignBridge: mutateCanvasNode id=\(nodeID) w=\(w?.description ?? "nil") h=\(h?.description ?? "nil")")
+        canvasState.mutateCanvasNode(nodeID, x: x, y: y, w: w, h: h,
+                                     fill: fill, stroke: stroke, strokeWidth: strokeWidth,
+                                     radius: radius, fontSize: fontSize, fontFamily: fontFamily,
+                                     opacity: opacity)
     }
 
-    func setNodeLocked(_ nodeID: String, locked: Bool) {
-        sendCanvasCommand(.mutateNode(nodeID: nodeID, x: nil, y: nil, w: nil, h: nil,
-                                       fill: nil, stroke: nil, strokeWidth: nil, radius: nil,
-                                       fontSize: nil, fontFamily: nil, opacity: locked ? 0.3 : 1.0))
-        designBridgeLog.info("DesignBridge: set node \(nodeID) locked=\(locked)")
-    }
+    func setNodeLocked(_ nodeID: String, locked: Bool) { canvasState.setNodeLocked(nodeID, locked: locked) }
 
-    func undo() {
-        sendCanvasCommand(.undoAction)
-        designBridgeLog.info("DesignBridge: undo")
-    }
+    func undo() { canvasState.undo() }
 
-    func redo() {
-        sendCanvasCommand(.redoAction)
-        designBridgeLog.info("DesignBridge: redo")
-    }
+    func redo() { canvasState.redo() }
 
-    func setNodeVisibility(_ nodeID: String, visible: Bool) {
-        sendCanvasCommand(.setNodeVisibility(nodeID: nodeID, visible: visible))
-        designBridgeLog.info("DesignBridge: setNodeVisibility id=\(nodeID) visible=\(visible)")
-    }
+    func setNodeVisibility(_ nodeID: String, visible: Bool) { canvasState.setNodeVisibility(nodeID, visible: visible) }
 
-    func reorderNode(_ nodeID: String, newIndex: Int) {
-        sendCanvasCommand(.reorderNode(nodeID: nodeID, newIndex: newIndex))
-        designBridgeLog.info("DesignBridge: reorderNode id=\(nodeID) newIndex=\(newIndex)")
-    }
+    func reorderNode(_ nodeID: String, newIndex: Int) { canvasState.reorderNode(nodeID, newIndex: newIndex) }
 
-    func deleteNode(_ nodeID: String) {
-        guard let docJSON = lastRenderedDocumentJSON, !docJSON.isEmpty else { return }
-        guard let data = docJSON.data(using: .utf8),
-              var doc = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              var pages = doc["pages"] as? [[String: Any]] else { return }
-        for i in pages.indices {
-            guard var nodes = pages[i]["nodes"] as? [[String: Any]] else { continue }
-            let before = nodes.count
-            nodes.removeAll { ($0["id"] as? String) == nodeID }
-            if nodes.count < before {
-                pages[i]["nodes"] = nodes
-                doc["pages"] = pages
-                if let updated = try? JSONSerialization.data(withJSONObject: doc, options: .prettyPrinted),
-                   let str = String(data: updated, encoding: .utf8) {
-                    renderDocumentToCanvas(str)
-                    selectedNodeID = nil
-                    designBridgeLog.info("DesignBridge: deleted node \(nodeID)")
-                }
-                return
-            }
-        }
-        designBridgeLog.warning("DesignBridge: deleteNode — node \(nodeID) not found")
-    }
+    func deleteNode(_ nodeID: String) { canvasState.deleteNode(nodeID) }
 
-    func duplicateNode(_ nodeID: String) {
-        guard let docJSON = lastRenderedDocumentJSON, !docJSON.isEmpty else { return }
-        guard let data = docJSON.data(using: .utf8),
-              var doc = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              var pages = doc["pages"] as? [[String: Any]] else { return }
-        for i in pages.indices {
-            guard var nodes = pages[i]["nodes"] as? [[String: Any]] else { continue }
-            if let idx = nodes.firstIndex(where: { ($0["id"] as? String) == nodeID }),
-               var copy = nodes[idx] as? [String: Any] {
-                let newID = nodeID + "_copy_\(Int.random(in: 1000...9999))"
-                copy["id"] = newID
-                if var style = copy["style"] as? [String: Any] {
-                    style["x"] = ((style["x"] as? Double) ?? 0) + 20
-                    style["y"] = ((style["y"] as? Double) ?? 0) + 20
-                    copy["style"] = style
-                }
-                nodes.insert(copy, at: idx + 1)
-                pages[i]["nodes"] = nodes
-                doc["pages"] = pages
-                if let updated = try? JSONSerialization.data(withJSONObject: doc, options: .prettyPrinted),
-                   let str = String(data: updated, encoding: .utf8) {
-                    renderDocumentToCanvas(str)
-                    selectedNodeID = newID
-                    designBridgeLog.info("DesignBridge: duplicated node \(nodeID) → \(newID)")
-                }
-                return
-            }
-        }
-    }
+    func duplicateNode(_ nodeID: String) { canvasState.duplicateNode(nodeID) }
 
-    func bringToFront(_ nodeID: String) {
-        guard let docJSON = lastRenderedDocumentJSON, !docJSON.isEmpty else { return }
-        guard let data = docJSON.data(using: .utf8),
-              var doc = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              var pages = doc["pages"] as? [[String: Any]] else { return }
-        for i in pages.indices {
-            guard var nodes = pages[i]["nodes"] as? [[String: Any]] else { continue }
-            if let idx = nodes.firstIndex(where: { ($0["id"] as? String) == nodeID }) {
-                let node = nodes.remove(at: idx)
-                nodes.append(node)
-                pages[i]["nodes"] = nodes
-                doc["pages"] = pages
-                if let updated = try? JSONSerialization.data(withJSONObject: doc, options: .prettyPrinted),
-                   let str = String(data: updated, encoding: .utf8) {
-                    renderDocumentToCanvas(str)
-                    designBridgeLog.info("DesignBridge: bringToFront node \(nodeID)")
-                }
-                return
-            }
-        }
-    }
+    func bringToFront(_ nodeID: String) { canvasState.bringToFront(nodeID) }
 
-    func sendToBack(_ nodeID: String) {
-        guard let docJSON = lastRenderedDocumentJSON, !docJSON.isEmpty else { return }
-        guard let data = docJSON.data(using: .utf8),
-              var doc = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              var pages = doc["pages"] as? [[String: Any]] else { return }
-        for i in pages.indices {
-            guard var nodes = pages[i]["nodes"] as? [[String: Any]] else { continue }
-            if let idx = nodes.firstIndex(where: { ($0["id"] as? String) == nodeID }) {
-                let node = nodes.remove(at: idx)
-                nodes.insert(node, at: 0)
-                pages[i]["nodes"] = nodes
-                doc["pages"] = pages
-                if let updated = try? JSONSerialization.data(withJSONObject: doc, options: .prettyPrinted),
-                   let str = String(data: updated, encoding: .utf8) {
-                    renderDocumentToCanvas(str)
-                    designBridgeLog.info("DesignBridge: sendToBack node \(nodeID)")
-                }
-                return
-            }
-        }
-    }
+    func sendToBack(_ nodeID: String) { canvasState.sendToBack(nodeID) }
 
     func applyLocalEdit(nodesJSON: String, instruction: String) {
         guard !marqueeSelectedNodeIDs.isEmpty else {
@@ -510,7 +381,7 @@ class DesignBridge: ObservableObject {
         Task { @MainActor in
             let effectiveNodesJSON: String
             if nodesJSON.isEmpty || nodesJSON == "[]" {
-                effectiveNodesJSON = extractSelectedNodesJSON()
+                effectiveNodesJSON = canvasState.extractSelectedNodesJSON()
             } else {
                 effectiveNodesJSON = nodesJSON
             }
@@ -529,7 +400,7 @@ class DesignBridge: ObservableObject {
             if result.exitCode == 0, !result.output.isEmpty {
                 if let data = result.output.data(using: .utf8),
                    let _ = try? JSONSerialization.jsonObject(with: data) {
-                    applyPartialEditResult(result.output)
+                    canvasState.applyPartialEditResult(result.output)
                 } else {
                     await sendDesignChat(instruction)
                 }
@@ -540,151 +411,21 @@ class DesignBridge: ObservableObject {
         }
     }
 
-    private func extractSelectedNodesJSON() -> String {
-        guard let docJSON = lastRenderedDocumentJSON,
-              !docJSON.isEmpty,
-              !marqueeSelectedNodeIDs.isEmpty else { return "[]" }
-        guard let data = docJSON.data(using: .utf8),
-              let doc = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let pages = doc["pages"] as? [[String: Any]] else { return "[]" }
-        var selected: [[String: Any]] = []
-        let ids = Set(marqueeSelectedNodeIDs)
-        for page in pages {
-            guard let nodes = page["nodes"] as? [[String: Any]] else { continue }
-            for node in nodes {
-                if let id = node["id"] as? String, ids.contains(id) {
-                    selected.append(node)
-                }
-            }
-        }
-        if let data = try? JSONSerialization.data(withJSONObject: selected, options: .prettyPrinted) {
-            return String(data: data, encoding: .utf8) ?? "[]"
-        }
-        return "[]"
-    }
-
-    private func applyPartialEditResult(_ resultJSON: String) {
-        guard let data = resultJSON.data(using: .utf8),
-              let nodes = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
-            designBridgeLog.error("DesignBridge: applyPartialEditResult invalid JSON")
-            return
-        }
-        for node in nodes {
-            guard let nodeID = node["id"] as? String else { continue }
-            let x = node["x"] as? Float
-            let y = node["y"] as? Float
-            let w = node["w"] as? Float
-            let h = node["h"] as? Float
-            let fill = node["fill"] as? String
-            let stroke = node["stroke"] as? String
-            let radius = node["radius"] as? Float
-            let opacity = node["opacity"] as? Float
-            mutateCanvasNode(nodeID, x: x, y: y, w: w, h: h,
-                             fill: fill, stroke: stroke, radius: radius, opacity: opacity)
-        }
-        designBridgeLog.info("DesignBridge: applied partial edit to \(nodes.count) nodes")
-    }
-
-    private var mutateObserver: NSObjectProtocol?
-
-    func startObservingInspectorChanges() {
-        guard mutateObserver == nil else { return }
-        mutateObserver = NotificationCenter.default.addObserver(
-            forName: .designInspectorMutateNode,
-            object: nil,
-            queue: .main
-        ) { [weak self] notification in
-            guard let self = self else { return }
-            let userInfo = notification.userInfo ?? [:]
-            guard let nodeID = userInfo["node_id"] as? String else { return }
-            let w = userInfo["w"] as? Float
-            let h = userInfo["h"] as? Float
-            let fill = userInfo["fill"] as? String
-            let stroke = userInfo["stroke"] as? String
-            let strokeWidth = userInfo["stroke_width"] as? Float
-            let radius = userInfo["radius"] as? Float
-            let fontSize = userInfo["font_size"] as? Float
-            let fontFamily = userInfo["font_family"] as? String
-            let opacity = userInfo["opacity"] as? Float
-            self.mutateCanvasNode(nodeID, x: nil, y: nil, w: w, h: h,
-                                   fill: fill, stroke: stroke, strokeWidth: strokeWidth,
-                                   radius: radius, fontSize: fontSize, fontFamily: fontFamily,
-                                   opacity: opacity)
-        }
-        designBridgeLog.info("DesignBridge: started observing inspector changes")
-    }
+    func startObservingInspectorChanges() { canvasState.startObservingInspectorChanges() }
 
     deinit {
-        if let obs = mutateObserver {
-            NotificationCenter.default.removeObserver(obs)
+        // ARCH-1 Phase 5: canvasState @MainActor, deinit nonisolated → assumeIsolated (AgentBridge #359 模式)。
+        MainActor.assumeIsolated {
+            canvasState.cleanup()
         }
-        codeWatchTimer?.invalidate()
     }
 
     // MARK: - Reverse Code Watch (Fusion Code → Canvas)
 
     /// 启动反向监听：每 3 秒扫描 fusion-code IPC 目录的 style-change 消息。
-    func startWatchingCodeChanges() {
-        guard codeWatchTimer == nil else { return }
-        codeWatchTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
-            self?.pollCodeChanges()
-        }
-        designBridgeLog.info("DesignBridge: code watch started (3s interval)")
-    }
+    func startWatchingCodeChanges() { canvasState.startWatchingCodeChanges() }
 
-    func stopWatchingCodeChanges() {
-        codeWatchTimer?.invalidate()
-        codeWatchTimer = nil
-        designBridgeLog.info("DesignBridge: code watch stopped")
-    }
-
-    private func pollCodeChanges() {
-        let ipcBase = NSHomeDirectory() + "/.fusion-ipc"
-        let dir = ipcBase + "/fusion-code"
-        Task { @MainActor in
-            let parsed = await Task.detached(priority: .userInitiated) { () -> [[String: Any]] in
-                let fm = FileManager.default
-                guard let files = try? fm.contentsOfDirectory(atPath: dir).sorted() else { return [] }
-                var collected = [[String: Any]]()
-                for name in files {
-                    let path = dir + "/" + name
-                    guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
-                          let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                          let action = json["action"] as? String,
-                          action == "style-change" else {
-                        continue
-                    }
-                    try? fm.removeItem(atPath: path)
-                    guard let payload = json["payload"] as? [String: Any],
-                          let mutations = payload["mutations"] as? [[String: Any]] else {
-                        designBridgeLog.warning("DesignBridge: style-change payload missing mutations")
-                        continue
-                    }
-                    collected.append(contentsOf: mutations)
-                }
-                return collected
-            }.value
-            guard !parsed.isEmpty else { return }
-            designBridgeLog.info("DesignBridge: applying \(parsed.count) reverse mutations")
-            for m in parsed {
-                guard let nodeID = m["node_id"] as? String else { continue }
-                mutateCanvasNode(
-                    nodeID,
-                    x: m["x"] as? Float,
-                    y: m["y"] as? Float,
-                    w: m["w"] as? Float,
-                    h: m["h"] as? Float,
-                    fill: m["fill"] as? String,
-                    stroke: m["stroke"] as? String,
-                    strokeWidth: nil,
-                    radius: m["radius"] as? Float,
-                    fontSize: nil,
-                    fontFamily: nil,
-                    opacity: m["opacity"] as? Float
-                )
-            }
-        }
-    }
+    func stopWatchingCodeChanges() { canvasState.stopWatchingCodeChanges() }
 
     // MARK: - AI Artifact → Canvas Rendering
 
@@ -1177,7 +918,7 @@ class DesignBridge: ObservableObject {
         isSkillRunning = true
         let effectiveNodes: String
         if nodesJSON.isEmpty || nodesJSON == "[]" {
-            effectiveNodes = extractSelectedNodesJSON()
+            effectiveNodes = canvasState.extractSelectedNodesJSON()
         } else {
             effectiveNodes = nodesJSON
         }
@@ -1198,7 +939,7 @@ class DesignBridge: ObservableObject {
                 lastSkillOutput = result.output
                 if let data = result.output.data(using: .utf8),
                    let _ = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
-                    applyPartialEditResult(result.output)
+                    canvasState.applyPartialEditResult(result.output)
                     designBridgeLog.info("DesignBridge: partial_edit applied, \(result.output.count) chars")
                 } else {
                     renderDocumentToCanvas(result.output)
