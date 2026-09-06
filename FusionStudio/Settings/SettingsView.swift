@@ -272,8 +272,13 @@ struct QuantSettingsView: View {
 
 struct WorkspaceSettingsView: View {
     @AppStorage("workspacePath") private var workspacePath = "~/FusionStudio/workspace"
+    // FUNC-9 (审计product-0906 P3): 旧 .constant = 不可改不持久。接 @AppStorage 真持久化。
+    @AppStorage("autoProjectSubdir") private var autoProjectSubdir = true
+    @AppStorage("enableGit") private var enableGit = false
+    @AppStorage("autoBackup") private var autoBackup = true
     @State private var showFilePicker = false
     @StateObject private var i18n = I18nManager.shared
+    private let log = Logger(subsystem: "com.fusion.studio", category: "Settings.Workspace")
 
     var body: some View {
         Form {
@@ -289,10 +294,12 @@ struct WorkspaceSettingsView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
+            // FUNC-9 (审计product-0906 P3): 旧 .constant 绑定 = toggle 装饰不可改不持久。
+            //   接 @AppStorage 真 storage, 用户切换即持久 + 反映真实状态。
             Section(i18n.t(.sec_autoMgmt)) {
-                Toggle(i18n.t(.autoProjectSubdir), isOn: .constant(true))
-                Toggle(i18n.t(.enableGit), isOn: .constant(false))
-                Toggle(i18n.t(.autoBackup), isOn: .constant(true))
+                Toggle(i18n.t(.autoProjectSubdir), isOn: $autoProjectSubdir)
+                Toggle(i18n.t(.enableGit), isOn: $enableGit)
+                Toggle(i18n.t(.autoBackup), isOn: $autoBackup)
             }
         }
         .padding()
