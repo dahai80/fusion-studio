@@ -100,10 +100,9 @@ class ProjectWorkspace: ObservableObject {
             loadMessage = String(format: I18nManager.shared.t(.fc_scanning), url.lastPathComponent)
             projectRoot = url
             projectName = url.lastPathComponent
-            gitBranch = detectGitBranch(at: url)
+            gitBranch = await detectGitBranch(at: url)
 
             codeEditLog.info("Loading project from: \(url.path)")
-
             let scanned = await scanDirectory(url, depth: 0, maxDepth: 6)
 
             guard !Task.isCancelled else { return }
@@ -149,7 +148,7 @@ class ProjectWorkspace: ObservableObject {
 
                 projectRoot = url.deletingLastPathComponent()
                 projectName = url.lastPathComponent
-                gitBranch = detectGitBranch(at: url.deletingLastPathComponent())
+                gitBranch = await detectGitBranch(at: url.deletingLastPathComponent())
                 files = [file]
                 selectedFile = file
                 isLoading = false
@@ -364,37 +363,39 @@ class ProjectWorkspace: ObservableObject {
 
     // MARK: - Git
 
-    private func detectGitBranch(at url: URL) -> String {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
-        process.arguments = ["rev-parse", "--abbrev-ref", "HEAD"]
-        process.currentDirectoryURL = url
+    private func detectGitBranch(at url: URL) async -> String {
+        let cwd = url
+        return await Task.detached(priority: .userInitiated) { () -> String in
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+            process.arguments = ["rev-parse", "--abbrev-ref", "HEAD"]
+            process.currentDirectoryURL = cwd
 
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = FileHandle.nullDevice
+            let pipe = Pipe()
+            process.standardOutput = pipe
+            process.standardError = FileHandle.nullDevice
 
-        do {
-            try process.run()
-            // F-R7: waitUntilExit 10s 超时兜底防 git 挂起 (如交互式凭证提示)。超时强杀。
-            let timeoutTask = Task {
-                try? await Task.sleep(nanoseconds: 10_000_000_000)
-                if process.isRunning {
-                    process.terminate()
-                    codeEditLog.warning("detectGitBranch timeout 10s, force terminate")
+            do {
+                try process.run()
+                let timeoutTask = Task {
+                    try? await Task.sleep(nanoseconds: 10_000_000_000)
+                    if process.isRunning {
+                        process.terminate()
+                        codeEditLog.warning("detectGitBranch timeout 10s, force terminate")
+                    }
                 }
+                process.waitUntilExit()
+                timeoutTask.cancel()
+                if process.terminationStatus == 0 {
+                    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                    let branch = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                    return branch.isEmpty ? "" : branch
+                }
+            } catch {
+                codeEditLog.debug("git branch detection failed: \(error.localizedDescription)")
             }
-            process.waitUntilExit()
-            timeoutTask.cancel()
-            if process.terminationStatus == 0 {
-                let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                let branch = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                return branch.isEmpty ? "" : branch
-            }
-        } catch {
-            codeEditLog.debug("git branch detection failed: \(error.localizedDescription)")
-        }
-        return ""
+            return ""
+        }.value
     }
 
     // MARK: - Recent Projects

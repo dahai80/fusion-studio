@@ -117,6 +117,31 @@ jobs:
           echo "app=$APP" >> "$GITHUB_OUTPUT"
           ls -lh .build/ 2>/dev/null
 
+      # OPS-1 (audit-product-0906 P0): signing gate. Production (non-prerelease)
+      # releases MUST be signed+notarized; unsigned DMG blocked at Gatekeeper,
+      # supply chain untrusted. Fail the release unless SIGN_ENABLED==true OR
+      # the tag explicitly marks a prerelease (beta/alpha). Local dev builds
+      # remain unsigned via build.sh (warn-only).
+      - name: Enforce signing gate
+        env:
+          SIGN_ENABLED: ${{ vars.SIGN_ENABLED }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          is_prerelease=0
+          case "$REF_NAME" in
+            *beta*|*alpha*) is_prerelease=1 ;;
+          esac
+          if [ "$SIGN_ENABLED" != "true" ] && [ "$is_prerelease" -eq 0 ]; then
+            echo "::error::Production release '$REF_NAME' requires signed+notarized DMG. Set repository variable SIGN_ENABLED=true and configure signing secrets. Unsigned production releases are blocked (audit OPS-1)."
+            exit 1
+          fi
+          if [ "$SIGN_ENABLED" != "true" ]; then
+            echo "::warning::Prerelease '$REF_NAME' built unsigned (SIGN_ENABLED!=true). Acceptable for beta only."
+          else
+            echo "Signing gate passed: SIGN_ENABLED=true."
+          fi
+
       - name: Upload DMG
         uses: actions/upload-artifact@v4
         with:

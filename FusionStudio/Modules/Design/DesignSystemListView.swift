@@ -220,27 +220,31 @@ struct DesignSystemListView: View {
     private func refreshSystems() {
         isRefreshing = true
         errorMessage = nil
-
-        let result = designBridge.runFusionDesign(["list-design-systems"])
-        if result.exitCode == 0 {
-            let ids = result.output.split(separator: "\n").map(String.init).filter { !$0.isEmpty }
-            var systems = [DesignSystemInfo]()
-            for id in ids {
-                if let builtin = DesignSystemInfo.builtIn.first(where: { $0.cliId == id }) {
-                    systems.append(builtin)
-                } else {
-                    systems.append(DesignSystemInfo(id: id, name: id, description: "自定义设计系统", icon: "paintpalette", cliId: id, tokenCount: 0))
+        Task { @MainActor in
+            let result = await designBridge.runFusionDesignAsync(["list-design-systems"])
+            if result.exitCode == 0 {
+                let ids = result.output.split(separator: "\n").map(String.init).filter { !$0.isEmpty }
+                var systems = [DesignSystemInfo]()
+                for id in ids {
+                    if let builtin = DesignSystemInfo.builtIn.first(where: { $0.cliId == id }) {
+                        systems.append(builtin)
+                    } else {
+                        systems.append(DesignSystemInfo(id: id, name: id, description: "自定义设计系统", icon: "paintpalette", cliId: id, tokenCount: 0))
+                    }
                 }
+                availableSystems = systems
+                dsListLog.info("Refreshed design systems: \(ids)")
+            } else {
+                errorMessage = String(format: i18n.t(.design_ds_listFailFmt), String(result.error.prefix(200)))
             }
-            availableSystems = systems
-            dsListLog.info("Refreshed design systems: \(ids)")
-        } else {
-            errorMessage = String(format: i18n.t(.design_ds_listFailFmt), String(result.error.prefix(200)))
+            isRefreshing = false
         }
-        isRefreshing = false
     }
 
     private func applyActiveSystem() {
-        designBridge.applyDesignTokensToCanvas(systemId: activeSystemId)
+        let captured = activeSystemId
+        Task { @MainActor in
+            await designBridge.applyDesignTokensToCanvas(systemId: captured)
+        }
     }
 }

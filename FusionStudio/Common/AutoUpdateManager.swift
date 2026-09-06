@@ -166,25 +166,29 @@ class AutoUpdateManager: ObservableObject {
                     // SEC-1 (审计product-0905 P0): 下载的 DMG 在呈现给用户前必须做完整性校验。
                     // 校验链: spctl --assess --type install (Gatekeeper 公证票据) + codesign --verify --strict (签名链)。
                     // 任一失败 = DMG 被篡改/未签名/未公证 = 拒绝安装, 删除文件, 报错。阻断供应链 MITM/CDN-swap。
-                    let verified = AutoUpdateManager.verifyDMGIntegrity(at: destURL)
-                    if !verified.0 {
-                        try? FileManager.default.removeItem(at: destURL)
-                        autoUpdateLog.error("downloadAndInstall integrity check FAILED tag=\(version.tagName, privacy: .public) reason=\(verified.1, privacy: .public)")
-                        self.state = .error("更新包完整性校验失败, 已删除: \(verified.1)。请勿安装来源不明的更新包。")
-                        return
-                    }
-                    autoUpdateLog.info("downloadAndInstall integrity OK tag=\(version.tagName, privacy: .public) dest=\(destURL.path, privacy: .public)")
-                    self.state = .upToDate
+                    // ARCH-4 (审计product-0906 P1): 校验 (codesign+spctl 各 30s) 移出主线程, 避免冻结 UI 60s。
+                    let verifyURL = destURL
+                    let verifyTag = version.tagName
+                    Task { @MainActor in
+                        let verified = await Task.detached(priority: .userInitiated) {
+                            AutoUpdateManager.verifyDMGIntegrity(at: verifyURL)
+                        }.value
+                        if !verified.0 {
+                            try? FileManager.default.removeItem(at: verifyURL)
+                            autoUpdateLog.error("downloadAndInstall integrity check FAILED tag=\(verifyTag, privacy: .public) reason=\(verified.1, privacy: .public)")
+                            self.state = .error("更新包完整性校验失败, 已删除: \(verified.1)。请勿安装来源不明的更新包。")
+                            return
+                        }
+                        autoUpdateLog.info("downloadAndInstall integrity OK tag=\(verifyTag, privacy: .public) dest=\(verifyURL.path, privacy: .public)")
+                        self.state = .upToDate
 
-                    // 提示用户安装
-                    DispatchQueue.main.async {
                         let alert = NSAlert()
                         alert.messageText = "更新已下载"
-                        alert.informativeText = "Fusion Studio \(version.tagName) 已下载并通过完整性校验。请关闭当前应用，打开 DMG 安装新版本。"
+                        alert.informativeText = "Fusion Studio \(verifyTag) 已下载并通过完整性校验。请关闭当前应用，打开 DMG 安装新版本。"
                         alert.addButton(withTitle: "打开下载文件夹")
                         alert.addButton(withTitle: "稍后")
                         if alert.runModal() == .alertFirstButtonReturn {
-                            NSWorkspace.shared.activateFileViewerSelecting([destURL])
+                            NSWorkspace.shared.activateFileViewerSelecting([verifyURL])
                         }
                     }
                 } catch {

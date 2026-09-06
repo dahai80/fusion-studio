@@ -255,23 +255,25 @@ class DesignWorkflowOrchestrator: ObservableObject {
             advanceStep(designBridge: designBridge)
 
         case .importToDesign:
-            if let path = selectedFilePath, FileManager.default.fileExists(atPath: path) {
-                if let content = try? String(contentsOfFile: path, encoding: .utf8), !content.isEmpty {
-                    if path.hasSuffix(".html"), let docJSON = designBridge.parseHtmlViaCLI(content) {
-                        designBridge.loadDocumentJSON(docJSON)
-                        statusMessage = String(format: I18nManager.shared.t(.design_wf_importedFmt), URL(fileURLWithPath: path).lastPathComponent)
-                        workflowLog.info("Imported HTML file to design: \(path)")
-                    } else {
-                        designBridge.loadDocumentJSON(content)
-                        statusMessage = I18nManager.shared.t(.design_wf_importedDoc)
-                        workflowLog.info("Imported file to design: \(path)")
+            let path = selectedFilePath
+            Task { @MainActor in
+                if let path = path, FileManager.default.fileExists(atPath: path) {
+                    if let content = try? String(contentsOfFile: path, encoding: .utf8), !content.isEmpty {
+                        if path.hasSuffix(".html"), let docJSON = await designBridge.parseHtmlViaCLI(content) {
+                            designBridge.loadDocumentJSON(docJSON)
+                            self.statusMessage = String(format: I18nManager.shared.t(.design_wf_importedFmt), URL(fileURLWithPath: path).lastPathComponent)
+                            workflowLog.info("Imported HTML file to design: \(path)")
+                        } else {
+                            designBridge.loadDocumentJSON(content)
+                            self.statusMessage = I18nManager.shared.t(.design_wf_importedDoc)
+                            workflowLog.info("Imported file to design: \(path)")
+                        }
                     }
+                } else {
+                    self.statusMessage = I18nManager.shared.t(.design_wf_noFileSelected)
                 }
-            } else {
-                statusMessage = I18nManager.shared.t(.design_wf_noFileSelected)
-                workflowLog.warning("No file selected for importToDesign step")
+                self.advanceStep(designBridge: designBridge)
             }
-            advanceStep(designBridge: designBridge)
         }
     }
 }
