@@ -770,13 +770,18 @@ struct TaskBoardView: View {
 
 struct WorkflowListView: View {
     @EnvironmentObject private var bridge: AgentBridge
-    @State private var selectedGraph: AgentGraphModel?
-    @State private var showCreateWorkflow = false
+    @State private var detailMode: DetailMode = .empty
     @State private var searchText = ""
     @State private var isLoading = false
     let toastManager: FusionToastManager
 
     @Environment(\.studioTheme) var theme
+
+    private enum DetailMode {
+        case empty
+        case creating
+        case editing(AgentGraphModel)
+    }
 
     private var filteredGraphs: [AgentGraphModel] {
         guard !searchText.isEmpty else { return bridge.agentState.graphs }
@@ -788,15 +793,8 @@ struct WorkflowListView: View {
             workflowListPanel
                 .frame(minWidth: 240, idealWidth: 320, maxWidth: 420)
 
-            if let graph = selectedGraph {
-                WorkflowDetailView(graph: graph, toastManager: toastManager) { updated in
-                    selectedGraph = updated
-                }
-                    .frame(minWidth: 480)
-            } else {
-                emptyWorkflowPlaceholder
-                    .frame(minWidth: 480)
-            }
+            detailView
+                .frame(minWidth: 900)
         }
         .toolbar {
             ToolbarItem {
@@ -806,19 +804,31 @@ struct WorkflowListView: View {
             }
             ToolbarItem {
                 FusionButton("Create Workflow", icon: "plus", style: .primary, size: .small) {
-                    showCreateWorkflow = true
+                    workflowLog.info("detailMode -> .creating")
+                    detailMode = .creating
                 }
-            }
-        }
-        .sheet(isPresented: $showCreateWorkflow) {
-            CreateWorkflowSheet { name, nodes, edges in
-                createWorkflowViaBridge(name: name, nodes: nodes, edges: edges)
             }
         }
         .task {
             // 已有数据不重拉, 避免每次切 tab 都 fetch 触发 body 重算导致转圈
             if bridge.agentState.graphs.isEmpty {
                 await loadGraphs()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var detailView: some View {
+        switch detailMode {
+        case .empty:
+            emptyWorkflowPlaceholder
+        case .creating:
+            AgentWorkflowCanvasView(mode: .create, toastManager: toastManager) {
+                Task { await refreshGraphs() }
+            }
+        case .editing(let graph):
+            AgentWorkflowCanvasView(mode: .edit(graph), toastManager: toastManager) {
+                Task { await refreshGraphs() }
             }
         }
     }
@@ -848,18 +858,6 @@ struct WorkflowListView: View {
             workflowLog.info("WorkflowListView refreshed \(bridge.agentState.graphs.count) graphs")
         } catch {
             workflowLog.error("WorkflowListView refresh failed: \(error)")
-        }
-    }
-
-    private func createWorkflowViaBridge(name: String, nodes: [NodeConfigModel], edges: [EdgeModel]) {
-        Task {
-            do {
-                let _ = try await bridge.createGraph(name: name, nodes: nodes, edges: edges)
-                try await bridge.fetchGraphs()
-                toastManager.show(style: .success, title: "Workflow Created", message: "\(name) saved to backend")
-            } catch {
-                toastManager.show(style: .error, title: "Create Failed", message: error.localizedDescription)
-            }
         }
     }
 
@@ -894,10 +892,13 @@ struct WorkflowListView: View {
                             }
                             .contentShape(Rectangle())
                             .onTapGesture {
-                                selectedGraph = graph
                                 Task {
                                     if let fresh = try? await bridge.graphGet(graphId: graph.id) {
-                                        selectedGraph = fresh
+                                        workflowLog.info("detailMode -> .editing(\(fresh.id, privacy: .public))")
+                                        detailMode = .editing(fresh)
+                                    } else {
+                                        workflowLog.info("detailMode -> .editing(\(graph.id, privacy: .public)) fallback")
+                                        detailMode = .editing(graph)
                                     }
                                 }
                             }
@@ -931,7 +932,10 @@ struct WorkflowListView: View {
         Task {
             do {
                 try await bridge.deleteGraph(id: graph.id)
-                if selectedGraph?.id == graph.id { selectedGraph = nil }
+                if case .editing(let g) = detailMode, g.id == graph.id {
+                    workflowLog.info("detailMode -> .empty (deleted current)")
+                    detailMode = .empty
+                }
                 // 删除成功立即刷新列表, 否则列表仍显示已删项, 再次删除会触发 Graph not found
                 try await bridge.fetchGraphs()
                 toastManager.show(style: .info, title: "Workflow Deleted", message: graph.name)
@@ -953,542 +957,5 @@ struct WorkflowListView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity)
-    }
-}
-
-// MARK: - WorkflowDetailView
-
-struct WorkflowDetailView: View {
-    let graph: AgentGraphModel
-    let toastManager: FusionToastManager
-    var onGraphUpdated: ((AgentGraphModel) -> Void)?
-    @EnvironmentObject private var bridge: AgentBridge
-    @State private var executeInput = ""
-    @State private var isExecuting = false
-    @State private var executionResult = ""
-    @State private var showEditWorkflow = false
-
-    @Environment(\.studioTheme) var theme
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: theme.spacingL) {
-                HStack(spacing: theme.spacingM) {
-                    Image(systemName: "arrow.triangle.branch")
-                        .font(.system(size: theme.iconXL))
-                        .foregroundStyle(theme.accent)
-                        .frame(width: 40, height: 40)
-                        .background(theme.accentSoft)
-                        .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
-                    VStack(alignment: .leading, spacing: theme.spacingXS) {
-                        Text(graph.name)
-                            .font(.system(size: theme.titleSize, weight: .bold, design: .rounded))
-                            .foregroundStyle(theme.text)
-                        Text("ID: \(graph.id.prefix(8))")
-                            .font(.system(size: theme.captionSize, design: .monospaced))
-                            .foregroundStyle(theme.textTertiary)
-                    }
-                    Spacer()
-                    FusionButton("Edit", icon: "pencil", style: .secondary, size: .small) {
-                        showEditWorkflow = true
-                    }
-                }
-
-                FusionCard(style: .inset, header: "Nodes (\(graph.nodes.count))", headerIcon: "circle.grid.2x2") {
-                    VStack(spacing: 0) {
-                        ForEach(Array(graph.nodes.enumerated()), id: \.element.id) { index, node in
-                            HStack(spacing: theme.spacingS) {
-                                nodeTypeIcon(node.type)
-                                Text(node.id)
-                                    .font(.system(size: theme.smallTextSize, weight: .medium))
-                                    .foregroundStyle(theme.text)
-                                Spacer()
-                                FusionTag(node.type, color: nodeTypeTagColor(node.type))
-                            }
-                            .padding(.vertical, theme.spacingS)
-                            if index < graph.nodes.count - 1 {
-                                Divider().foregroundStyle(theme.rowSep)
-                            }
-                        }
-                    }
-                }
-
-                FusionCard(style: .inset, header: "Edges (\(graph.edges.count))", headerIcon: "arrow.right") {
-                    VStack(spacing: 0) {
-                        ForEach(Array(graph.edges.enumerated()), id: \.element.id) { index, edge in
-                            HStack(spacing: theme.spacingS) {
-                                Text(edge.source)
-                                    .font(.system(size: theme.smallTextSize, design: .monospaced))
-                                    .foregroundStyle(theme.text)
-                                Image(systemName: "arrow.right")
-                                    .font(.system(size: theme.iconXS))
-                                    .foregroundStyle(theme.textTertiary)
-                                Text(edge.target)
-                                    .font(.system(size: theme.smallTextSize, design: .monospaced))
-                                    .foregroundStyle(theme.text)
-                                Spacer()
-                                if let cond = edge.condition, !cond.isEmpty {
-                                    FusionTag(cond, color: .orange)
-                                }
-                            }
-                            .padding(.vertical, theme.spacingS)
-                            if index < graph.edges.count - 1 {
-                                Divider().foregroundStyle(theme.rowSep)
-                            }
-                        }
-                    }
-                }
-
-                FusionCard(style: .inset, header: "Execute", headerIcon: "play.fill") {
-                    VStack(alignment: .leading, spacing: theme.spacingS) {
-                        HStack(spacing: theme.spacingS) {
-                            TextField("Input for workflow...", text: $executeInput)
-                                .textFieldStyle(.plain)
-                                .padding(theme.spacingS)
-                                .background(theme.inputBg)
-                                .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                                        .stroke(theme.inputBorder, lineWidth: 1)
-                                }
-                            FusionButton("Run", icon: "play.fill", style: .primary, size: .small, isDisabled: isExecuting) {
-                                executeGraph()
-                            }
-                            if isExecuting {
-                                FusionButton("Cancel", icon: "stop.fill", style: .destructive, size: .small) {
-                                    bridge.cancelExecution()
-                                    isExecuting = false
-                                }
-                            }
-                        }
-                        if !executionResult.isEmpty {
-                            ScrollView {
-                                Text(executionResult)
-                                    .font(.system(size: theme.footnoteSize, design: .monospaced))
-                                    .foregroundStyle(theme.textSecondary)
-                                    .textSelection(.enabled)
-                                    .padding(theme.spacingS)
-                            }
-                            .frame(maxHeight: 200)
-                            .background(theme.surfaceSecondary)
-                            .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
-                        }
-                    }
-                }
-
-                Spacer(minLength: theme.spacing2XL)
-            }
-            .padding(.vertical, theme.spacingL)
-        }
-        .sheet(isPresented: $showEditWorkflow) {
-            EditWorkflowSheet(graph: graph) { name, nodes, edges in
-                updateWorkflowViaBridge(name: name, nodes: nodes, edges: edges)
-            }
-        }
-    }
-
-    private func updateWorkflowViaBridge(name: String, nodes: [NodeConfigModel], edges: [EdgeModel]) {
-        Task {
-            do {
-                _ = try await bridge.updateGraph(id: graph.id, name: name, nodes: nodes, edges: edges)
-                try await bridge.fetchGraphs()
-                // 重新拉取最新 graph 回传, 刷新 detail 展示
-                let fresh = try await bridge.graphGet(graphId: graph.id)
-                if let fresh {
-                    onGraphUpdated?(fresh)
-                }
-                toastManager.show(style: .success, title: "Workflow Updated", message: name)
-            } catch {
-                toastManager.show(style: .error, title: "Update Failed", message: error.localizedDescription)
-            }
-        }
-    }
-
-    private func executeGraph() {
-        isExecuting = true
-        executionResult = ""
-        Task {
-            do {
-                // 审计0830 P0-11: 用返回值而非共享 runtimeState.events, 防并发手动执行串号。
-                let events = try await bridge.executeGraph(id: graph.id, input: executeInput)
-                var output = ""
-                for ev in events {
-                    let nodeId = ev.node_id ?? "?"
-                    output += "[\(ev.type)] \(nodeId)"
-                    if let data = ev.data, !data.isEmpty {
-                        output += ": \(data.map { "\($0)=\($1)" }.joined(separator: " "))"
-                    }
-                    output += "\n"
-                }
-                if output.isEmpty { output = "Workflow completed (no events)" }
-                executionResult = output
-                toastManager.show(style: .success, title: "Workflow Complete", message: graph.name)
-            } catch {
-                executionResult = "Error: \(error.localizedDescription)"
-                toastManager.show(style: .error, title: "Execution Failed", message: error.localizedDescription)
-            }
-            isExecuting = false
-        }
-    }
-
-    private func nodeTypeIcon(_ type: String) -> some View {
-        let name: String = switch type {
-        case "start": "play.circle"
-        case "llm": "brain"
-        case "tool": "wrench"
-        case "condition": "diamond"
-        case "loop": "arrow.triangle.2.circlepath"
-        case "end": "stop.circle"
-        case "error_handler": "exclamationmark.triangle"
-        default: "circle"
-        }
-        return Image(systemName: name)
-            .font(.system(size: theme.iconS))
-            .foregroundStyle(nodeTypeColor(type))
-    }
-
-    private func nodeTypeTagColor(_ type: String) -> TagColor {
-        switch type {
-        case "start": return .green
-        case "llm": return .purple
-        case "tool": return .blue
-        case "condition": return .orange
-        case "loop": return .blue
-        case "end": return .gray
-        case "error_handler": return .red
-        default: return .gray
-        }
-    }
-
-    private func nodeTypeColor(_ type: String) -> Color {
-        switch type {
-        case "start": return .green
-        case "llm": return .purple
-        case "tool": return .blue
-        case "condition": return .orange
-        case "loop": return .cyan
-        case "end": return .gray
-        case "error_handler": return .red
-        default: return .gray
-        }
-    }
-}
-
-// MARK: - EditWorkflowSheet
-
-struct EditWorkflowSheet: View {
-    @Environment(\.dismiss) var dismiss
-    @Environment(\.studioTheme) var theme
-    let graph: AgentGraphModel
-    let onSave: (String, [NodeConfigModel], [EdgeModel]) -> Void
-
-    @State private var name = ""
-    @State private var nodeRows: [EditNodeRow] = []
-    @State private var edgeRows: [EditEdgeRow] = []
-
-    private let nodeTypes = ["start", "llm", "tool", "condition", "loop", "end", "error_handler"]
-
-    struct EditNodeRow: Identifiable {
-        let id = UUID()
-        var nodeId: String
-        var type: String
-    }
-
-    struct EditEdgeRow: Identifiable {
-        let id = UUID()
-        var source: String
-        var target: String
-        var condition: String
-    }
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: theme.spacingL) {
-                Text("Edit Workflow")
-                    .font(.system(size: theme.headlineSize, weight: .bold, design: .rounded))
-                    .foregroundStyle(theme.text)
-
-                FusionCard(style: .bordered) {
-                    VStack(alignment: .leading, spacing: theme.spacingM) {
-                        Text("Name *")
-                            .font(.system(size: theme.footnoteSize, weight: .medium))
-                            .foregroundStyle(theme.textSecondary)
-                        TextField("Workflow name", text: $name)
-                            .textFieldStyle(.plain)
-                            .padding(theme.spacingS)
-                            .background(theme.inputBg)
-                            .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
-                            .overlay {
-                                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                                    .stroke(theme.inputBorder, lineWidth: 1)
-                            }
-                    }
-                }
-
-                FusionCard(style: .bordered, header: "Nodes", headerIcon: "circle.grid.2x2") {
-                    VStack(spacing: theme.spacingS) {
-                        ForEach($nodeRows) { $row in
-                            HStack(spacing: theme.spacingS) {
-                                TextField("Node ID", text: $row.nodeId)
-                                    .textFieldStyle(.plain)
-                                    .padding(theme.spacingXS)
-                                    .background(theme.inputBg)
-                                    .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
-                                    .overlay {
-                                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                                            .stroke(theme.inputBorder, lineWidth: 1)
-                                    }
-                                Picker("Type", selection: $row.type) {
-                                    ForEach(nodeTypes, id: \.self) { t in Text(t) }
-                                }
-                                .pickerStyle(.menu)
-                                .frame(width: 130)
-                                Button(action: { nodeRows.removeAll { $0.id == row.id } }) {
-                                    Image(systemName: "minus.circle")
-                                        .foregroundStyle(.red)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                        Button(action: { nodeRows.append(EditNodeRow(nodeId: "", type: "llm")) }) {
-                            Label("Add Node", systemImage: "plus.circle")
-                                .font(.system(size: theme.footnoteSize))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-
-                FusionCard(style: .bordered, header: "Edges", headerIcon: "arrow.right") {
-                    VStack(spacing: theme.spacingS) {
-                        ForEach($edgeRows) { $row in
-                            HStack(spacing: theme.spacingS) {
-                                TextField("Source", text: $row.source)
-                                    .textFieldStyle(.plain)
-                                    .padding(theme.spacingXS)
-                                    .background(theme.inputBg)
-                                    .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
-                                    .overlay {
-                                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                                            .stroke(theme.inputBorder, lineWidth: 1)
-                                    }
-                                Image(systemName: "arrow.right")
-                                    .foregroundStyle(theme.textTertiary)
-                                TextField("Target", text: $row.target)
-                                    .textFieldStyle(.plain)
-                                    .padding(theme.spacingXS)
-                                    .background(theme.inputBg)
-                                    .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
-                                    .overlay {
-                                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                                            .stroke(theme.inputBorder, lineWidth: 1)
-                                    }
-                                TextField("Condition", text: $row.condition)
-                                    .textFieldStyle(.plain)
-                                    .frame(width: 80)
-                                    .padding(theme.spacingXS)
-                                    .background(theme.inputBg)
-                                    .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
-                                    .overlay {
-                                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                                            .stroke(theme.inputBorder, lineWidth: 1)
-                                    }
-                                Button(action: { edgeRows.removeAll { $0.id == row.id } }) {
-                                    Image(systemName: "minus.circle")
-                                        .foregroundStyle(.red)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                        Button(action: { edgeRows.append(EditEdgeRow(source: "", target: "", condition: "")) }) {
-                            Label("Add Edge", systemImage: "plus.circle")
-                                .font(.system(size: theme.footnoteSize))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-
-                HStack(spacing: theme.spacingM) {
-                    FusionButton("Cancel", icon: "xmark", style: .secondary, size: .regular) {
-                        dismiss()
-                    }
-                    FusionButton("Save", icon: "checkmark", style: .primary, size: .regular, isDisabled: name.isEmpty) {
-                        let nodes = nodeRows.filter { !$0.nodeId.isEmpty }.map {
-                            NodeConfigModel(id: $0.nodeId, type: $0.type, config: [:], position: nil)
-                        }
-                        let edges = edgeRows.filter { !$0.source.isEmpty && !$0.target.isEmpty }.map {
-                            EdgeModel(id: "\($0.source)-\($0.target)", source: $0.source, target: $0.target, condition: $0.condition.isEmpty ? nil : $0.condition)
-                        }
-                        onSave(name, nodes, edges)
-                        dismiss()
-                    }
-                }
-            }
-            .padding(theme.spacingXL)
-        }
-        .frame(width: 600, height: 600)
-        .background(theme.windowBg)
-        .onAppear { prefill() }
-    }
-
-    private func prefill() {
-        name = graph.name
-        nodeRows = graph.nodes.map { EditNodeRow(nodeId: $0.id, type: $0.type) }
-        if nodeRows.isEmpty { nodeRows = [EditNodeRow(nodeId: "", type: "llm")] }
-        edgeRows = graph.edges.map { EditEdgeRow(source: $0.source, target: $0.target, condition: $0.condition ?? "") }
-        if edgeRows.isEmpty { edgeRows = [EditEdgeRow(source: "", target: "", condition: "")] }
-    }
-}
-
-// MARK: - CreateWorkflowSheet
-
-struct CreateWorkflowSheet: View {
-    @Environment(\.dismiss) var dismiss
-    @Environment(\.studioTheme) var theme
-    @State private var name = ""
-    @State private var nodeRows: [NodeRowData] = [NodeRowData()]
-    @State private var edgeRows: [EdgeRowData] = [EdgeRowData()]
-    let onCreate: (String, [NodeConfigModel], [EdgeModel]) -> Void
-
-    private let nodeTypes = ["start", "llm", "tool", "condition", "loop", "end", "error_handler"]
-
-    struct NodeRowData: Identifiable {
-        let id = UUID()
-        var nodeId: String = ""
-        var type: String = "llm"
-    }
-
-    struct EdgeRowData: Identifiable {
-        let id = UUID()
-        var source: String = ""
-        var target: String = ""
-        var condition: String = ""
-    }
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: theme.spacingL) {
-                Text("Create Workflow")
-                    .font(.system(size: theme.headlineSize, weight: .bold, design: .rounded))
-                    .foregroundStyle(theme.text)
-
-                FusionCard(style: .bordered) {
-                    VStack(alignment: .leading, spacing: theme.spacingM) {
-                        Text("Name *")
-                            .font(.system(size: theme.footnoteSize, weight: .medium))
-                            .foregroundStyle(theme.textSecondary)
-                        TextField("Workflow name", text: $name)
-                            .textFieldStyle(.plain)
-                            .padding(theme.spacingS)
-                            .background(theme.inputBg)
-                            .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
-                            .overlay {
-                                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                                    .stroke(theme.inputBorder, lineWidth: 1)
-                            }
-                    }
-                }
-
-                FusionCard(style: .bordered, header: "Nodes", headerIcon: "circle.grid.2x2") {
-                    VStack(spacing: theme.spacingS) {
-                        ForEach($nodeRows) { $row in
-                            HStack(spacing: theme.spacingS) {
-                                TextField("Node ID", text: $row.nodeId)
-                                    .textFieldStyle(.plain)
-                                    .padding(theme.spacingXS)
-                                    .background(theme.inputBg)
-                                    .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
-                                    .overlay {
-                                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                                            .stroke(theme.inputBorder, lineWidth: 1)
-                                    }
-                                Picker("Type", selection: $row.type) {
-                                    ForEach(nodeTypes, id: \.self) { t in Text(t) }
-                                }
-                                .pickerStyle(.menu)
-                                .frame(width: 130)
-                                Button(action: { nodeRows.removeAll { $0.id == row.id } }) {
-                                    Image(systemName: "minus.circle")
-                                        .foregroundStyle(.red)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                        Button(action: { nodeRows.append(NodeRowData()) }) {
-                            Label("Add Node", systemImage: "plus.circle")
-                                .font(.system(size: theme.footnoteSize))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-
-                FusionCard(style: .bordered, header: "Edges", headerIcon: "arrow.right") {
-                    VStack(spacing: theme.spacingS) {
-                        ForEach($edgeRows) { $row in
-                            HStack(spacing: theme.spacingS) {
-                                TextField("Source", text: $row.source)
-                                    .textFieldStyle(.plain)
-                                    .padding(theme.spacingXS)
-                                    .background(theme.inputBg)
-                                    .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
-                                    .overlay {
-                                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                                            .stroke(theme.inputBorder, lineWidth: 1)
-                                    }
-                                Image(systemName: "arrow.right")
-                                    .foregroundStyle(theme.textTertiary)
-                                TextField("Target", text: $row.target)
-                                    .textFieldStyle(.plain)
-                                    .padding(theme.spacingXS)
-                                    .background(theme.inputBg)
-                                    .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
-                                    .overlay {
-                                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                                            .stroke(theme.inputBorder, lineWidth: 1)
-                                    }
-                                TextField("Condition", text: $row.condition)
-                                    .textFieldStyle(.plain)
-                                    .frame(width: 80)
-                                    .padding(theme.spacingXS)
-                                    .background(theme.inputBg)
-                                    .clipShape(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous))
-                                    .overlay {
-                                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
-                                            .stroke(theme.inputBorder, lineWidth: 1)
-                                    }
-                                Button(action: { edgeRows.removeAll { $0.id == row.id } }) {
-                                    Image(systemName: "minus.circle")
-                                        .foregroundStyle(.red)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                        Button(action: { edgeRows.append(EdgeRowData()) }) {
-                            Label("Add Edge", systemImage: "plus.circle")
-                                .font(.system(size: theme.footnoteSize))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-
-                HStack(spacing: theme.spacingM) {
-                    FusionButton("Cancel", icon: "xmark", style: .secondary, size: .regular) {
-                        dismiss()
-                    }
-                    FusionButton("Create", icon: "checkmark", style: .primary, size: .regular, isDisabled: name.isEmpty) {
-                        let nodes = nodeRows.filter { !$0.nodeId.isEmpty }.map {
-                            NodeConfigModel(id: $0.nodeId, type: $0.type, config: [:], position: nil)
-                        }
-                        let edges = edgeRows.filter { !$0.source.isEmpty && !$0.target.isEmpty }.map {
-                            EdgeModel(id: "\($0.source)-\($0.target)", source: $0.source, target: $0.target, condition: $0.condition.isEmpty ? nil : $0.condition)
-                        }
-                        onCreate(name, nodes, edges)
-                        dismiss()
-                    }
-                }
-            }
-            .padding(theme.spacingXL)
-        }
-        .frame(width: 600, height: 600)
-        .background(theme.windowBg)
     }
 }
