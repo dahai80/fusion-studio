@@ -42,7 +42,17 @@ jobs:
       - name: Run tests (release gate)
         # F-I13: release pipeline 须验全流程 (build+test+dmg+sign)。原 release.yml 不跑测试 = 靠本地构建者手验。
         # pipefail 保 swift test 退出码 (tail 不吞码)。测试挂 → release 阻断。
-        run: set -o pipefail && swift test 2>&1 | tail -20
+        # OPS-10 (审计product-0906 P3): tail 单独用吞逐用例 fail 行, 失败无法定位。
+        #   tee 全量落盘 + tail -80, 失败时全日志可下载定位 (对齐 ci.yml/nightly.yml)。
+        run: set -o pipefail && swift test 2>&1 | tee /tmp/release-test.log | tail -80
+
+      - name: Upload test logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-test-logs
+          path: /tmp/release-test.log
+          retention-days: 7
 
       - name: Build SwiftUI app (release)
         run: swift build -c release 2>&1
