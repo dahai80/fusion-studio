@@ -112,7 +112,10 @@ class TrainingManager: ObservableObject {
         Task { [weak self] in
             guard let self = self else { return }
             do {
-                let url = URL(string: "\(FusionConfig.shared.mlxBaseURL)/v1/training/start")!
+                guard let url = URL(string: "\(FusionConfig.shared.mlxBaseURL)/v1/training/start") else {
+                    trainLogger.error("invalid training URL mlxBaseURL=\(FusionConfig.shared.mlxBaseURL, privacy: .public)")
+                    throw URLError(.badURL)
+                }
                 var request = URLRequest(url: url)
                 request.httpMethod = "POST"
                 request.setValue("application/json", forHTTPHeaderField: "Content-Type")

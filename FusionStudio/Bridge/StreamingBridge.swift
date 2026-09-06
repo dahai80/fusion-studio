@@ -132,7 +132,11 @@ class StreamingBridge: ObservableObject {
         }
 
         guard let data = try? JSONSerialization.data(withJSONObject: msg),
-              let str = String(data: data, encoding: .utf8) else { return }
+              let str = String(data: data, encoding: .utf8) else {
+            isStreaming = false
+            bridgeLog.error("streamChat JSON encode failed, reset isStreaming (session=\(sessionId, privacy: .public))")
+            return
+        }
 
         let payload = (str + "\n").data(using: .utf8)!
         conn.send(content: payload, completion: .contentProcessed { error in
@@ -246,7 +250,11 @@ class StreamingBridge: ObservableObject {
         }
 
         guard let data = try? JSONSerialization.data(withJSONObject: msg),
-              let str = String(data: data, encoding: .utf8) else { return }
+              let str = String(data: data, encoding: .utf8) else {
+            isStreaming = false
+            bridgeLog.error("streamChat JSON encode failed, reset isStreaming (session=\(sessionId, privacy: .public))")
+            return
+        }
 
         let wsMsg = URLSessionWebSocketTask.Message.string(str)
         task.send(wsMsg) { [weak self] error in

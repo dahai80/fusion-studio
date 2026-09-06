@@ -397,6 +397,20 @@ final class UpstreamServiceManager: ObservableObject {
         await MainActor.run {
             self.services = refreshed
             self.isRefreshing = false
+            // OPS-12 (审计product-0906 P1): refreshAll 中关键服务→notInstalled 必须设 criticalBackendMissing,
+            // 否则 ContentView 引导 banner 永不显 (notInstalled 走 L388 continue 不经 startService 路径)。
+            // 对齐 ensureCriticalRunning/startService (L309) 的 banner 触发条件。
+            let criticalMissing = refreshed.contains { $0.isCritical && $0.status == .notInstalled }
+            if criticalMissing != self.criticalBackendMissing {
+                self.criticalBackendMissing = criticalMissing
+                if criticalMissing {
+                    self.criticalBackendMissingHint = "后端服务未安装: 需 ~/fusion monorepo + Python venv, 详见安装指引"
+                    logger.warning("critical backend notInstalled → criticalBackendMissing=true (banner shown)")
+                } else {
+                    self.criticalBackendMissingHint = ""
+                    logger.info("critical backend present → criticalBackendMissing=false (banner cleared)")
+                }
+            }
         }
         logger.info("refreshAll done")
     }

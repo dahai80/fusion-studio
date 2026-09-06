@@ -616,16 +616,26 @@ final class ModelHubAPIClient: ObservableObject {
     // MARK: - HTTP helpers
 
     private func get<T: Decodable>(_ path: String, query: [URLQueryItem] = []) async throws -> T {
-        var comps = URLComponents(string: "\(baseURL)\(path)")!
+        guard var comps = URLComponents(string: "\(baseURL)\(path)") else {
+            apiLog.error("get: invalid URL baseURL=\(self.baseURL, privacy: .public) path=\(path, privacy: .public)")
+            throw HubAPIError.invalidURL
+        }
         if !query.isEmpty { comps.queryItems = query }
-        var request = URLRequest(url: comps.url!)
+        guard let url = comps.url else {
+            apiLog.error("get: URLComponents.url nil baseURL=\(self.baseURL, privacy: .public) path=\(path, privacy: .public)")
+            throw HubAPIError.invalidURL
+        }
+        var request = URLRequest(url: url)
         request.httpMethod = "GET"
         try addAuth(&request)
         return try await execute(request)
     }
 
     func post<T: Decodable>(_ path: String, json: [String: Any] = [:]) async throws -> T {
-        let url = URL(string: "\(baseURL)\(path)")!
+        guard let url = URL(string: "\(baseURL)\(path)") else {
+            apiLog.error("post: invalid URL baseURL=\(self.baseURL, privacy: .public) path=\(path, privacy: .public)")
+            throw HubAPIError.invalidURL
+        }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         try addAuth(&request)
@@ -635,7 +645,10 @@ final class ModelHubAPIClient: ObservableObject {
     }
 
     private func put<T: Decodable>(_ path: String, json: [String: Any] = [:]) async throws -> T {
-        let url = URL(string: "\(baseURL)\(path)")!
+        guard let url = URL(string: "\(baseURL)\(path)") else {
+            apiLog.error("put: invalid URL baseURL=\(self.baseURL, privacy: .public) path=\(path, privacy: .public)")
+            throw HubAPIError.invalidURL
+        }
         var request = URLRequest(url: url)
         request.httpMethod = "PUT"
         try addAuth(&request)
@@ -645,7 +658,10 @@ final class ModelHubAPIClient: ObservableObject {
     }
 
     private func patch<T: Decodable>(_ path: String, json: [String: Any] = [:]) async throws -> T {
-        let url = URL(string: "\(baseURL)\(path)")!
+        guard let url = URL(string: "\(baseURL)\(path)") else {
+            apiLog.error("patch: invalid URL baseURL=\(self.baseURL, privacy: .public) path=\(path, privacy: .public)")
+            throw HubAPIError.invalidURL
+        }
         var request = URLRequest(url: url)
         request.httpMethod = "PATCH"
         try addAuth(&request)
@@ -655,7 +671,10 @@ final class ModelHubAPIClient: ObservableObject {
     }
 
     private func delete<T: Decodable>(_ path: String) async throws -> T {
-        let url = URL(string: "\(baseURL)\(path)")!
+        guard let url = URL(string: "\(baseURL)\(path)") else {
+            apiLog.error("delete: invalid URL baseURL=\(self.baseURL, privacy: .public) path=\(path, privacy: .public)")
+            throw HubAPIError.invalidURL
+        }
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
         try addAuth(&request)
@@ -744,6 +763,9 @@ enum HubAPIError: LocalizedError {
     // 审计0902 R7 (P2): 空 apiKey fail-fast (非静默跳过认证头)。缺 key 误诊为服务端 401,
     //   对齐 MlxHTTPError.unauthenticated (MlxHTTPClient L178-180)。
     case unauthenticated
+    // 审计product-0906 SEC-4/ERR-3 (P1): URL 强解 (URL(string:)!/URLComponents.url!) 致 baseURL/path 异常时
+    //   进程崩溃 (force-unwrap nil trap)。改 guard-let + throw invalidURL, 对齐 MlxHTTPError.invalidURL。
+    case invalidURL
 
     var errorDescription: String? {
         switch self {
@@ -751,6 +773,7 @@ enum HubAPIError: LocalizedError {
         case .httpError(let code, let body): return "HTTP \(code): \(body.prefix(100))"
         case .decodeError(let msg): return "Decode error: \(msg)"
         case .unauthenticated: return "未配置 ModelHub API Key, 请先在设置中填写凭据"
+        case .invalidURL: return "无效的 ModelHub 服务地址"
         }
     }
 }

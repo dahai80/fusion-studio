@@ -365,13 +365,25 @@ struct ArtifactCanvasView: View {
         "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><style>body{margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:transparent;}svg{max-width:100%;max-height:100vh;}</style></head><body>\(svg)</body></html>"
     }
 
+    // SEC-1/SEC-2 (审计product-0906 P1): artifact content 来自后端 (LLM/用户产物), 视为不可信。
+    // 注入 HTML 模板前先做 HTML 实体转义 (& < > "), 阻断 </pre>/</script>/标签闭合逃逸。
+    private func htmlEntityEscape(_ s: String) -> String {
+        s.replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
+    }
+
     private func mermaidWrapper(_ code: String) -> String {
-        let escaped = code.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "`", with: "\\`").replacingOccurrences(of: "$", with: "\\$")
+        // SEC-1: 先实体转义阻断 </pre> 闭合逃逸, 再转 JS 字符串元字符防模板注入。
+        let entityEscaped = htmlEntityEscape(code)
+        let escaped = entityEscaped.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "`", with: "\\`").replacingOccurrences(of: "$", with: "\\$")
         return "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><script src=\"https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js\"></script><style>body{margin:20px;background:transparent;font-family:sans-serif;}.mermaid{display:flex;justify-content:center;}</style><script>mermaid.initialize({startOnLoad:true,theme:'dark'});</script></head><body><pre class=\"mermaid\">\(escaped)</pre></body></html>"
     }
 
     private func markdownWrapper(_ md: String) -> String {
-        let escaped = md.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "`", with: "\\`").replacingOccurrences(of: "$", with: "\\$").replacingOccurrences(of: "\n", with: "\\n").replacingOccurrences(of: "\"", with: "\\\"")
+        // SEC-2: 实体转义阻断 </script> 闭合逃逸; marked.parse 接收转义后的字符串再渲染。
+        let entityEscaped = htmlEntityEscape(md)
+        let escaped = entityEscaped.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "`", with: "\\`").replacingOccurrences(of: "$", with: "\\$").replacingOccurrences(of: "\n", with: "\\n").replacingOccurrences(of: "\"", with: "\\\"")
         return "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><script src=\"https://cdn.jsdelivr.net/npm/marked/marked.min.js\"></script><style>body{margin:20px;background:transparent;color:#e0e0e0;font-family:-apple-system,sans-serif;line-height:1.6;}h1,h2,h3{color:#fff;}a{color:#007AFF;}code{background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:3px;font-size:0.9em;}pre{background:rgba(255,255,255,0.05);padding:12px;border-radius:8px;overflow-x:auto;}pre code{background:transparent;padding:0;}blockquote{border-left:3px solid #007AFF;padding-left:12px;color:#aaa;}table{border-collapse:collapse;width:100%;}th,td{border:1px solid #333;padding:8px;text-align:left;}th{background:rgba(255,255,255,0.05);}</style></head><body><div id=\"content\"></div><script>document.getElementById('content').innerHTML=marked.parse(\"\(escaped)\");</script></body></html>"
     }
 

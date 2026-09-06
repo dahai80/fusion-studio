@@ -1094,35 +1094,31 @@ class DocBridge: ObservableObject {
     func restoreAuth() {
         if authToken != nil {
             docBridgeLog.info("restoreAuth: token found, verifying via /api/auth/me")
-            verifyAndAutoLogin()
+            verifyToken()
         } else {
-            docBridgeLog.info("restoreAuth: no token, auto-login with default account")
-            autoLogin()
+            // SEC-3/OPS-8 (审计product-0906 P1): 不再用硬编码默认账号 admin@fusion.local/admin123
+            // 静默自动登录 (供应链默认凭证风险 + 上游 issue 待修)。改为提示用户手动登录。
+            docBridgeLog.warning("restoreAuth: no token, require manual login (no hardcoded default creds)")
+            DispatchQueue.main.async {
+                self.isAuthenticated = false
+                self.authError = "请登录 Fusion Doc 账号"
+            }
         }
     }
 
-    private func verifyAndAutoLogin() {
+    private func verifyToken() {
         get("/api/workspaces") { [weak self] (result: Result<[DocWorkspace], Error>) in
             switch result {
             case .success:
                 docBridgeLog.info("restoreAuth: token still valid")
                 DispatchQueue.main.async { self?.isAuthenticated = true; self?.authError = nil }
             case .failure(let error):
-                docBridgeLog.warning("restoreAuth: token invalid (\(error.localizedDescription)), re-login")
-                self?.autoLogin()
-            }
-        }
-    }
-
-    private func autoLogin() {
-        docBridgeLog.info("autoLogin: default account admin@fusion.local")
-        authLogin(username: "admin@fusion.local", password: "admin123") { [weak self] result in
-            switch result {
-            case .success:
-                docBridgeLog.info("autoLogin success")
-            case .failure(let error):
-                docBridgeLog.error("autoLogin failed: \(error.localizedDescription) — 用户需手动登录")
-                DispatchQueue.main.async { self?.authError = "自动登录失败，请手动登录" }
+                // SEC-3: token 失效不再自动用默认账号重登, 提示手动登录。
+                docBridgeLog.warning("restoreAuth: token invalid (\(error.localizedDescription)), require manual login")
+                DispatchQueue.main.async {
+                    self?.isAuthenticated = false
+                    self?.authError = "登录已失效，请重新登录"
+                }
             }
         }
     }
