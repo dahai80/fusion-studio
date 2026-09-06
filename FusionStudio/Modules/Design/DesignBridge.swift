@@ -414,10 +414,9 @@ class DesignBridge: ObservableObject {
     func startObservingInspectorChanges() { canvasState.startObservingInspectorChanges() }
 
     deinit {
-        // ARCH-1 Phase 5: canvasState @MainActor, deinit nonisolated → assumeIsolated (AgentBridge #359 模式)。
-        MainActor.assumeIsolated {
-            canvasState.cleanup()
-        }
+        // ARCH-1 Phase 5: canvasState.cleanup() nonisolated + codeWatchTimer/mutateObserver nonisolated(unsafe),
+        //   Timer.invalidate / NotificationCenter.removeObserver 线程安全 (镜像 AgentBridge F-R9 deinit 模式)。
+        canvasState.cleanup()
     }
 
     // MARK: - Reverse Code Watch (Fusion Code → Canvas)

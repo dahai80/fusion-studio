@@ -86,9 +86,11 @@ final class DesignCanvasState: ObservableObject {
     // ARCH-1 Phase 5: WKWebView + 反向 code-watch timer + inspector 变更观察者迁本域。
     //   weak canvasWebView (WKWebView 持有者是 SwiftUI 视图层, 防循环引用)。
     //   codeWatchTimer/mutateObserver: deinit 经 DesignBridge 清理 (跨域协调器留主类)。
+    //   nonisolated(unsafe): deinit(nonisolated) 经 cleanup() 持久访问, Timer.invalidate /
+    //     NotificationCenter.removeObserver 线程安全 (镜像 AgentBridge F-R9 nonisolated(unsafe) 字典 deinit 模式)。
     weak var canvasWebView: WKWebView?
-    var codeWatchTimer: Timer?
-    var mutateObserver: NSObjectProtocol?
+    nonisolated(unsafe) var codeWatchTimer: Timer?
+    nonisolated(unsafe) var mutateObserver: NSObjectProtocol?
     // ARCH-1: Canvas 行为 (sendCanvasCommand/renderDocumentToCanvas/mutateCanvasNode/undo/redo/... Phase 5 迁入)。
     //   WKWebView only, 0 IPC → 无 ipcClient ref。
     weak var bridge: DesignBridge?

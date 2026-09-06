@@ -326,7 +326,7 @@ extension DesignCanvasState {
 
     // MARK: - Cleanup (DesignBridge.deinit 调用)
 
-    func cleanup() {
+    nonisolated func cleanup() {
         if let obs = mutateObserver {
             NotificationCenter.default.removeObserver(obs)
         }
