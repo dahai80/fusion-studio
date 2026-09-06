@@ -33,7 +33,7 @@ enum CanvasToolbarLabel: String, CaseIterable {
     case autoLayout, saveLayout, testRun, save, running, saving
     case nodeTypes, hintDrag, hintRightClick, hintConnect
     case nodeName, deleteNode, inspectorReadOnly, inspectorEdit, wfName
-    case addNode
+    case addNode, close
 }
 
 @MainActor
@@ -482,7 +482,7 @@ struct WorkflowCanvasView<Delegate: WorkflowCanvasDelegate>: View where Delegate
                     .font(.system(size: theme.textSize, weight: .semibold))
                     .foregroundStyle(theme.text)
                 Spacer()
-                Button(delegate.toolbarLabel(.save)) { showAddNode = false }
+                Button(delegate.toolbarLabel(.close)) { showAddNode = false }
                     .buttonStyle(.plain)
                     .foregroundStyle(theme.textTertiary)
             }
