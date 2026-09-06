@@ -136,7 +136,12 @@ class HealthBridge: ObservableObject {
         applyAuth(&req)
         let sid = sessionId.isEmpty ? "studio-\(UUID().uuidString.prefix(8))" : sessionId
         let body: [String: Any] = ["session_id": sid, "system_prompt": systemPrompt]
-        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        // ERR-8 (审计product-0906 P3): 旧 try? 静默 nil body → 服务端 400 难定位。改 do/catch 显式失败。
+        guard let bodyData = try? JSONSerialization.data(withJSONObject: body) else {
+            healthBridgeLog.error("startChat: body serialize failed")
+            return
+        }
+        req.httpBody = bodyData
         let task = session.dataTask(with: req) { [weak self] data, response, _ in
             // 审计0902 A4: 4xx/5xx 记录语义化错误, 不喂错误体给解码器
             if let statusErr = Self.healthStatusError(response) {
@@ -163,7 +168,16 @@ class HealthBridge: ObservableObject {
         req.httpMethod = "POST"
         applyAuth(&req)
         let body: [String: Any] = ["session_id": sessionId, "message": message]
-        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        // ERR-8 (审计product-0906 P3): 旧 try? 静默 nil body。改显式失败 + 用户可见提示。
+        guard let bodyData = try? JSONSerialization.data(withJSONObject: body) else {
+            healthBridgeLog.error("sendChat: body serialize failed")
+            DispatchQueue.main.async {
+                self.chatMessages.append(HealthChatMessage(role: "assistant", content: "请求构建失败"))
+                self.capChatMessages()
+            }
+            return
+        }
+        req.httpBody = bodyData
         healthBridgeLog.info("sendChat: POST message session=\(self.sessionId, privacy: .public) len=\(message.count)")
         let task = session.dataTask(with: req) { [weak self] data, response, error in
             DispatchQueue.main.async { self?.isGenerating = false }
@@ -215,7 +229,13 @@ class HealthBridge: ObservableObject {
         req.httpMethod = "POST"
         applyAuth(&req)
         let body: [String: Any] = ["clinical_notes": clinicalNotes]
-        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        // ERR-8 (审计product-0906 P3): 旧 try? 静默 nil body → completion 不调, 调用方卡 loading。改显式失败。
+        guard let bodyData = try? JSONSerialization.data(withJSONObject: body) else {
+            healthBridgeLog.error("generateEhrSummary: body serialize failed")
+            completion(.failure(NSError(domain: "HealthBridge", code: -3, userInfo: [NSLocalizedDescriptionKey: "请求构建失败"])))
+            return
+        }
+        req.httpBody = bodyData
         let task = session.dataTask(with: req) { [weak self] data, response, error in
             if let error = error {
                 self?.handleError(error, context: "ehr-summary")
@@ -253,7 +273,13 @@ class HealthBridge: ObservableObject {
         req.httpMethod = "POST"
         applyAuth(&req)
         let body: [String: Any] = ["text": text]
-        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        // ERR-8 (审计product-0906 P3): 旧 try? 静默 nil body → completion 不调, 卡 loading。改显式失败。
+        guard let bodyData = try? JSONSerialization.data(withJSONObject: body) else {
+            healthBridgeLog.error("extractVitals: body serialize failed")
+            completion(.failure(NSError(domain: "HealthBridge", code: -3, userInfo: [NSLocalizedDescriptionKey: "请求构建失败"])))
+            return
+        }
+        req.httpBody = bodyData
         let task = session.dataTask(with: req) { data, response, error in
             if let error = error {
                 completion(.failure(error))

@@ -160,7 +160,14 @@ class DocBridge: ObservableObject {
         if let token = authToken { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
         IdentityService.applyIdentityHeaders(to: &request)
         if let body = body {
-            request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+            // ERR-8 (审计product-0906 P3): 旧 try? 静默 nil body → 空 body 发出, 服务端 400 难定位。
+            do {
+                request.httpBody = try JSONSerialization.data(withJSONObject: body)
+            } catch {
+                docBridgeLog.error("request \(path, privacy: .public) body serialize failed: \(error.localizedDescription, privacy: .public)")
+                completion(.failure(error))
+                return
+            }
         }
         session.dataTask(with: request) { data, response, error in
             if let error = error { completion(.failure(error)); return }
@@ -188,7 +195,14 @@ class DocBridge: ObservableObject {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let token = authToken { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
         IdentityService.applyIdentityHeaders(to: &request)
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        // ERR-8 (审计product-0906 P3): 旧 try? 静默 nil body。改 do/catch 显式失败。
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        } catch {
+            docBridgeLog.error("PUT \(path, privacy: .public) body serialize failed: \(error.localizedDescription, privacy: .public)")
+            completion(.failure(error))
+            return
+        }
         session.dataTask(with: request) { data, response, error in
             if let error = error { completion(.failure(error)); return }
             if let statusErr = Self.httpStatusError(response, data) { completion(.failure(statusErr)); return }
@@ -613,7 +627,13 @@ class DocBridge: ObservableObject {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         IdentityService.applyIdentityHeaders(to: &request)
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        // ERR-8 (审计product-0906 P3): 旧 try? 静默 nil body → 空 body POST, 服务端 400 难定位。
+        // 此处返回 URLRequest 无 completion 回调, 序列化失败仅日志告警 + 留空 body (调用方经 HTTP 错误发现)。
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        } catch {
+            docBridgeLog.error("buildCopilotRequest body serialize failed: \(error.localizedDescription, privacy: .public)")
+        }
         return request
     }
 
