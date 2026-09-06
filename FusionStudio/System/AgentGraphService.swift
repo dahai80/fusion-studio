@@ -8,7 +8,7 @@
 //   deleteGraph 原留 AgentBridge (保 Graph Ops MARK 完整语义), PR5 随 Graph 域整批抽入域 (纯叶: 无 parseGraphModel 依赖, 仅 client.call graphDelete)。
 //   executeGraph 留 AgentBridge: 依赖 Self.parseEventModel (Event 域 private static 跨文件不可访问) + guard 鉴权 +
 //     写共享 runtimeState.events/isExecuting (跨域协调器)。cancelExecution 已迁 RuntimeState 域 (PR2)。
-//   @Published graphs 在 AgentState 域 (外部 SwiftUI 读 DAGCanvasView/AgentTaskViews/AgentStudioView), 经 bridge.agentState.graphs 不变。
+//   @Published graphs 在 AgentState 域 (外部 SwiftUI 读 AgentWorkflowCanvasView/AgentTaskViews/AgentStudioView), 经 bridge.agentState.graphs 不变。
 //   Logger: 本文件自有 agentGraphLog 替代主类 private logger (跨文件不可达)。
 //   ipcClient 为 internal (非 private): 跨文件 extension 访问, Swift private=文件作用域 (同 PR1/PR2/PR3/PR4 坑)。
 
