@@ -292,7 +292,8 @@ final class EventBridge: ObservableObject {
                 self.trimEvents()
             }
         } else if method == "event.heartbeat" {
-            let pong = #"{"jsonrpc":"2.0","method":"event.pong"}"# + "\n"
+            // FUNC-5 (审计product-0906 P3): 用 RPCMethod.eventPong 常量替换裸串 "event.pong", 防 RPCMethod 集中常量要解决的拼写风险。
+            let pong = #"{"jsonrpc":"2.0","method":"\#(RPCMethod.eventPong)"}"# + "\n"
             if let pData = pong.data(using: .utf8) {
                 writeAllSock(fd: sock, pData)
                 eventBridgeLog.info("event.pong sent (heartbeat reply)")

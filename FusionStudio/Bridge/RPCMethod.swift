@@ -139,7 +139,6 @@ enum RPCMethod {
     static let agentStudioAgentRestoreVersion = "agent_studio.agent.restore_version"
     static let agentStudioAgentSnapshot = "agent_studio.agent.snapshot"
     static let agentStudioAgentVersions = "agent_studio.agent.versions"
-    static let agentStudioApikeyRotate = "agent_studio.apikey.rotate"
     static let agentStudioAuditTrail = "agent_studio.audit.trail"
     static let agentStudioSessionLogs = "agent_studio.session.logs"
 
@@ -243,9 +242,6 @@ enum RPCMethod {
     static let contextCompact = "context.compact"
     static let contextUsage = "context.usage"
 
-    // MARK: - design
-    static let designGenerate = "design.generate"
-
     // MARK: - permission
     static let permissionList = "permission.list"
     static let permissionUpdate = "permission.update"
@@ -276,9 +272,6 @@ enum RPCMethod {
     // MARK: - ping
     static let ping = "ping"
 
-    // MARK: - plugin
-    static let pluginList = "plugin.list"
-
     // MARK: - research
     static let researchAdaptive = "research.adaptive"
 
@@ -305,20 +298,15 @@ enum RPCMethod {
     static let guardRuleAdd = "guard.rule.add"
     static let guardRuleUpdate = "guard.rule.update"
     static let guardRuleRemove = "guard.rule.remove"
-    static let guardAuditList = "guard.audit.list"
-    static let guardAuditVerify = "guard.audit.verify"
 
     // MARK: - event (#346: fusion-event UDS JSON-RPC, /tmp/fusion-event.sock)
     static let eventHealth = "event.health"
     static let eventSubscribe = "event.subscribe"
+    // FUNC-5 (审计product-0906 P3): eventPong 保留 — EventBridge 心跳回复用 (替换裸串, 见 EventBridge.swift)。
     static let eventPong = "event.pong"
-    static let eventMetrics = "event.metrics"
-    static let eventReplay = "event.replay"
-    static let eventDryRun = "event.dry_run"
 
     // MARK: - rule (#346: fusion-event rule mgmt via event daemon UDS)
     static let ruleAdd = "rule.add"
     static let ruleRemove = "rule.remove"
     static let ruleList = "rule.list"
-    static let ruleReload = "rule.reload"
 }
