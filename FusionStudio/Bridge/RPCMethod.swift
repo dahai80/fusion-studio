@@ -38,23 +38,12 @@ enum RPCMethod {
     static let agentUpdateSoul = "agent.update_soul"
 
     // MARK: - team
-    static let teamFmpRegister = "team.fmp_register"
-    static let teamFmpSend = "team.fmp_send"
-    static let teamFmpStats = "team.fmp_stats"
+    // FUNC-7 (审计product-0906 P3): 删 14 死 wrapper 后孤儿常量 (teamFmpRegister/Send/Stats,
+    //   teamPlazaBreakIn/Broadcast/Circuit/Create/Messages, teamSwarmDelegate/Escalate/Evaluate/
+    //   Handoff/Register/Stats) — 0 grep refs。保留 3 live: teamOrchestrate/teamSwarmAgents/teamPlazaChannels。
     static let teamOrchestrate = "team.orchestrate"
-    static let teamPlazaBreakIn = "team.plaza_break_in"
-    static let teamPlazaBroadcast = "team.plaza_broadcast"
     static let teamPlazaChannels = "team.plaza_channels"
-    static let teamPlazaCircuit = "team.plaza_circuit"
-    static let teamPlazaCreate = "team.plaza_create"
-    static let teamPlazaMessages = "team.plaza_messages"
     static let teamSwarmAgents = "team.swarm_agents"
-    static let teamSwarmDelegate = "team.swarm_delegate"
-    static let teamSwarmEscalate = "team.swarm_escalate"
-    static let teamSwarmEvaluate = "team.swarm_evaluate"
-    static let teamSwarmHandoff = "team.swarm_handoff"
-    static let teamSwarmRegister = "team.swarm_register"
-    static let teamSwarmStats = "team.swarm_stats"
 
     // MARK: - trainer
     static let trainerAdaptersDelete = "trainer.adapters.delete"

@@ -60,68 +60,12 @@ extension IPCClient {
         return try await call(method: RPCMethod.teamOrchestrate, params: ["task": task, "agent_ids": agentIds, "mode": mode])
     }
 
-    func teamSwarmRegister(agentId: String, role: String = "worker") async throws -> [String: Any] {
-        return try await call(method: RPCMethod.teamSwarmRegister, params: ["agent_id": agentId, "role": role])
-    }
-
     func teamSwarmAgents() async throws -> [String: Any] {
         return try await call(method: RPCMethod.teamSwarmAgents)
     }
 
-    func teamSwarmHandoff(fromAgent: String, toAgent: String, context: [String: Any] = [:]) async throws -> [String: Any] {
-        return try await call(method: RPCMethod.teamSwarmHandoff, params: ["from": fromAgent, "to": toAgent, "context": context])
-    }
-
-    func teamSwarmDelegate(agentId: String, task: String) async throws -> [String: Any] {
-        return try await call(method: RPCMethod.teamSwarmDelegate, params: ["agent_id": agentId, "task": task])
-    }
-
-    func teamSwarmEscalate(agentId: String, reason: String) async throws -> [String: Any] {
-        return try await call(method: RPCMethod.teamSwarmEscalate, params: ["agent_id": agentId, "reason": reason])
-    }
-
-    func teamSwarmEvaluate(agentId: String) async throws -> [String: Any] {
-        return try await call(method: RPCMethod.teamSwarmEvaluate, params: ["agent_id": agentId])
-    }
-
-    func teamSwarmStats() async throws -> [String: Any] {
-        return try await call(method: RPCMethod.teamSwarmStats)
-    }
-
-    func teamFmpRegister(channel: String, agentId: String) async throws -> [String: Any] {
-        return try await call(method: RPCMethod.teamFmpRegister, params: ["channel": channel, "agent_id": agentId])
-    }
-
-    func teamFmpSend(channel: String, message: String) async throws -> [String: Any] {
-        return try await call(method: RPCMethod.teamFmpSend, params: ["channel": channel, "message": message])
-    }
-
-    func teamFmpStats() async throws -> [String: Any] {
-        return try await call(method: RPCMethod.teamFmpStats)
-    }
-
-    func teamPlazaCreate(name: String, description: String = "") async throws -> [String: Any] {
-        return try await call(method: RPCMethod.teamPlazaCreate, params: ["name": name, "description": description])
-    }
-
     func teamPlazaChannels() async throws -> [String: Any] {
         return try await call(method: RPCMethod.teamPlazaChannels)
-    }
-
-    func teamPlazaBroadcast(channelId: String, message: String) async throws -> [String: Any] {
-        return try await call(method: RPCMethod.teamPlazaBroadcast, params: ["channel_id": channelId, "message": message])
-    }
-
-    func teamPlazaMessages(channelId: String) async throws -> [String: Any] {
-        return try await call(method: RPCMethod.teamPlazaMessages, params: ["channel_id": channelId])
-    }
-
-    func teamPlazaBreakIn(channelId: String, message: String) async throws -> [String: Any] {
-        return try await call(method: RPCMethod.teamPlazaBreakIn, params: ["channel_id": channelId, "message": message])
-    }
-
-    func teamPlazaCircuit(channelId: String) async throws -> [String: Any] {
-        return try await call(method: RPCMethod.teamPlazaCircuit, params: ["channel_id": channelId])
     }
 
     // MARK: - Cron
