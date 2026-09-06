@@ -5458,6 +5458,13 @@
   "wf_cv_deleteNode": "删除节点",
   "wf_cv_inspectorReadOnly": "只读",
   "wf_cv_inspectorEdit": "编辑",
+  "wf_cv_inputSuffix": "输入",
+  "wf_cv_cancel": "取消",
+  "wf_cv_emptyResult": "—",
+  "wf_cv_noEvents": "工作流已完成（无事件）",
+  "wf_cv_executeComplete": "工作流完成",
+  "wf_cv_executeErrorPrefix": "错误：",
+  "wf_cv_executeFailed": "执行失败",
   "wf_cv_config": "配置",
   "wf_cv_newWorkflow": "新建工作流"
 }

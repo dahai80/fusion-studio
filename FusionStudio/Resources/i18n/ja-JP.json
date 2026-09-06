@@ -5458,6 +5458,13 @@
   "wf_cv_deleteNode": "ノード削除",
   "wf_cv_inspectorReadOnly": "読み取り専用",
   "wf_cv_inspectorEdit": "編集",
+  "wf_cv_inputSuffix": "入力",
+  "wf_cv_cancel": "キャンセル",
+  "wf_cv_emptyResult": "—",
+  "wf_cv_noEvents": "ワークフロー完了（イベントなし）",
+  "wf_cv_executeComplete": "ワークフロー完了",
+  "wf_cv_executeErrorPrefix": "エラー：",
+  "wf_cv_executeFailed": "実行失敗",
   "wf_cv_config": "設定",
   "wf_cv_newWorkflow": "新規ワークフロー"
 }

@@ -42,7 +42,7 @@ struct AgentWorkflowCanvasView: View {
     private var executeStrip: some View {
         VStack(alignment: .leading, spacing: theme.spacingS) {
             HStack(spacing: theme.spacingS) {
-                TextField(I18nManager.shared.t(.wf_cv_testRun) + " input", text: $executeInput)
+                TextField(I18nManager.shared.t(.wf_cv_testRun) + " " + I18nManager.shared.t(.wf_cv_inputSuffix), text: $executeInput)
                     .textFieldStyle(.roundedBorder)
                 Button(action: { executeGraph() }) {
                     Label(
@@ -54,12 +54,12 @@ struct AgentWorkflowCanvasView: View {
                 .disabled(isExecuting || delegate.graphId == nil)
                 .controlSize(.small)
                 if isExecuting {
-                    Button("Cancel") { bridge.cancelExecution() }
+                    Button(I18nManager.shared.t(.wf_cv_cancel)) { bridge.cancelExecution() }
                         .controlSize(.small)
                 }
             }
             ScrollView {
-                Text(executionResult.isEmpty ? "—" : executionResult)
+                Text(executionResult.isEmpty ? I18nManager.shared.t(.wf_cv_emptyResult) : executionResult)
                     .font(.system(size: theme.footnoteSize, design: .monospaced))
                     .foregroundStyle(theme.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -87,14 +87,14 @@ struct AgentWorkflowCanvasView: View {
                     }
                     output += "\n"
                 }
-                if output.isEmpty { output = "Workflow completed (no events)" }
+                if output.isEmpty { output = I18nManager.shared.t(.wf_cv_noEvents) }
                 executionResult = output
                 agentCanvasViewLog.info("executeGraph success id=\(gid, privacy: .public) events=\(events.count)")
-                toastManager.show(style: .success, title: "Workflow Complete", message: delegate.graphName)
+                toastManager.show(style: .success, title: I18nManager.shared.t(.wf_cv_executeComplete), message: delegate.graphName)
             } catch {
-                executionResult = "Error: \(error.localizedDescription)"
+                executionResult = I18nManager.shared.t(.wf_cv_executeErrorPrefix) + error.localizedDescription
                 agentCanvasViewLog.error("executeGraph failed id=\(gid, privacy: .public) err=\(error.localizedDescription, privacy: .public)")
-                toastManager.show(style: .error, title: "Execution Failed", message: error.localizedDescription)
+                toastManager.show(style: .error, title: I18nManager.shared.t(.wf_cv_executeFailed), message: error.localizedDescription)
             }
             isExecuting = false
         }

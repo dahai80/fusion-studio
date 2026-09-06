@@ -5458,6 +5458,13 @@
   "wf_cv_deleteNode": "Delete Node",
   "wf_cv_inspectorReadOnly": "Read Only",
   "wf_cv_inspectorEdit": "Edit",
+  "wf_cv_inputSuffix": "input",
+  "wf_cv_cancel": "Cancel",
+  "wf_cv_emptyResult": "—",
+  "wf_cv_noEvents": "Workflow completed (no events)",
+  "wf_cv_executeComplete": "Workflow Complete",
+  "wf_cv_executeErrorPrefix": "Error: ",
+  "wf_cv_executeFailed": "Execution Failed",
   "wf_cv_config": "Config",
   "wf_cv_newWorkflow": "New Workflow"
 }

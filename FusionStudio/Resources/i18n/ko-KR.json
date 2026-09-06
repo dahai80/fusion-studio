@@ -5458,6 +5458,13 @@
   "wf_cv_deleteNode": "노드 삭제",
   "wf_cv_inspectorReadOnly": "읽기 전용",
   "wf_cv_inspectorEdit": "편집",
+  "wf_cv_inputSuffix": "입력",
+  "wf_cv_cancel": "취소",
+  "wf_cv_emptyResult": "—",
+  "wf_cv_noEvents": "워크플로 완료(이벤트 없음)",
+  "wf_cv_executeComplete": "워크플로 완료",
+  "wf_cv_executeErrorPrefix": "오류: ",
+  "wf_cv_executeFailed": "실행 실패",
   "wf_cv_config": "구성",
   "wf_cv_newWorkflow": "새 워크플로"
 }

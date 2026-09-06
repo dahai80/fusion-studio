@@ -79,6 +79,7 @@ final class FSBWorkflowCanvasDelegate: ObservableObject, WorkflowCanvasDelegate 
     }
 
     var canvasNodeTypes: [FSBNodeType] { FSBNodeType.allCases }
+    var supportsTestRun: Bool { true }
     func displayName(_ t: FSBNodeType) -> String { t.displayName }
     func icon(_ t: FSBNodeType) -> String { t.icon }
     func color(_ t: FSBNodeType) -> Color { t.color }
