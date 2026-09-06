@@ -451,23 +451,11 @@ class DesignBridge: ObservableObject {
         designBridgeLog.info("DesignBridge: Plan preview staged, title=\(self.currentArtifactTitle)")
     }
 
-    /// 确认 Plan：将暂存的 PenDocument 写入画布。
-    func acceptPlan() {
-        guard let code = pendingPlanCode else { return }
-        renderDocumentToCanvas(code)
-        pendingPlanCode = nil
-        isPlanPreviewActive = false
-        sendCanvasCommand(.planApply)
-        designBridgeLog.info("DesignBridge: Plan accepted and rendered to canvas")
-    }
+    /// 确认 Plan：将暂存的 PenDocument 写入画布。ARCH-1 Phase 6: 行为迁 DesignPlanPreviewService。
+    func acceptPlan() { planPreviewState.acceptPlan() }
 
-    /// 拒绝 Plan：清除预览，恢复画布状态。
-    func rejectPlan() {
-        pendingPlanCode = nil
-        isPlanPreviewActive = false
-        sendCanvasCommand(.planReject)
-        designBridgeLog.info("DesignBridge: Plan rejected, preview cleared")
-    }
+    /// 拒绝 Plan：清除预览，恢复画布状态。ARCH-1 Phase 6: 行为迁 DesignPlanPreviewService。
+    func rejectPlan() { planPreviewState.rejectPlan() }
 
     /// 调用 fusion-design parse-html CLI 将 HTML 转为 PenDocument JSON。
     func parseHtmlViaCLI(_ html: String) async -> String? { await chatState.parseHtmlViaCLI(html) }
@@ -849,332 +837,27 @@ class DesignBridge: ObservableObject {
     // MARK: - Design Skills (CLI Bridge)
 
 
-    func skillTextToUI(prompt: String, pageName: String = "Home") {
-        isSkillRunning = true
-        let config = FusionConfig.shared
-        let model = config.defaultModel(for: .artifacts)
-        let endpoint = config.mlxBaseURL
-        let cliPath = resolveCLIPath()
-        Task { @MainActor in
-            let result = await Task.detached(priority: .userInitiated) {
-                Self.runCLIProcess(
-                    cliPath: cliPath,
-                    args: ["generate", "--prompt", prompt, "--page", pageName, "--model", model, "--endpoint", endpoint]
-                )
-            }.value
-            if result.exitCode == 0 {
-                lastSkillOutput = result.output
-                if let penDocJSON = result.output.data(using: String.Encoding.utf8),
-                   let penDoc = try? JSONSerialization.jsonObject(with: penDocJSON) as? [String: Any],
-                   let pages = penDoc["pages"] as? [[String: Any]] {
-                    renderDocumentToCanvas(result.output)
-                    designBridgeLog.info("DesignBridge: text_to_ui rendered, \(result.output.count) chars")
-                } else {
-                    designBridgeLog.warning("DesignBridge: text_to_ui output not valid PenDocument, falling back to parse-html")
-                    if let html = try? parseHtmlFromPenOutput(result.output) {
-                        if let docJSON = await parseHtmlViaCLI(html) {
-                            renderDocumentToCanvas(docJSON)
-                        }
-                    }
-                }
-            } else {
-                designBridgeLog.error("DesignBridge: text_to_ui failed: \(result.error)")
-            }
-            isSkillRunning = false
-        }
-    }
+    func skillTextToUI(prompt: String, pageName: String = "Home") { skillState.skillTextToUI(prompt: prompt, pageName: pageName) }
 
-    func skillImageToUI(imagePath: String, hint: String, pageName: String = "Home") {
-        isSkillRunning = true
-        let prompt = DesignPrompts.dispatcher.skillImageToUIPrompt(imagePath, hint, pageName)
-        let config = FusionConfig.shared
-        let model = config.defaultModel(for: .artifacts)
-        let endpoint = config.mlxBaseURL
-        let cliPath = resolveCLIPath()
-        Task { @MainActor in
-            let result = await Task.detached(priority: .userInitiated) {
-                Self.runCLIProcess(
-                    cliPath: cliPath,
-                    args: ["generate", "--prompt", prompt, "--page", pageName, "--model", model, "--endpoint", endpoint]
-                )
-            }.value
-            if result.exitCode == 0 {
-                lastSkillOutput = result.output
-                renderDocumentToCanvas(result.output)
-                designBridgeLog.info("DesignBridge: image_to_ui rendered")
-            } else {
-                designBridgeLog.error("DesignBridge: image_to_ui failed: \(result.error)")
-            }
-            isSkillRunning = false
-        }
-    }
+    func skillImageToUI(imagePath: String, hint: String, pageName: String = "Home") { skillState.skillImageToUI(imagePath: imagePath, hint: hint, pageName: pageName) }
 
-    // Callers: DesignChatPanel.handleSkillTemplate (partial_edit/sim_panel/spec_doc/page_flow).
-    // Affected API: 4 new skill methods bridging to generate CLI with structured prompts.
-    // Data schemas: generate --prompt/--page/--model/--endpoint, PenDocument output → renderDocumentToCanvas.
-    // User instruction: "Phase 6 功能增强,立即实施"
+    func skillPartialEdit(nodesJSON: String, instruction: String) { skillState.skillPartialEdit(nodesJSON: nodesJSON, instruction: instruction) }
 
-    func skillPartialEdit(nodesJSON: String, instruction: String) {
-        isSkillRunning = true
-        let effectiveNodes: String
-        if nodesJSON.isEmpty || nodesJSON == "[]" {
-            effectiveNodes = canvasState.extractSelectedNodesJSON()
-        } else {
-            effectiveNodes = nodesJSON
-        }
-        let prompt = DesignPrompts.dispatcher.skillPartialEditPrompt(effectiveNodes, instruction)
-        let config = FusionConfig.shared
-        let model = config.defaultModel(for: .artifacts)
-        let endpoint = config.mlxBaseURL
-        let cliPath = resolveCLIPath()
-        Task { @MainActor in
-            let result = await Task.detached(priority: .userInitiated) {
-                Self.runCLIProcess(
-                    cliPath: cliPath,
-                    args: ["generate", "--prompt", prompt, "--page", "PartialEdit", "--model", model, "--endpoint", endpoint],
-                    stdin: effectiveNodes
-                )
-            }.value
-            if result.exitCode == 0, !result.output.isEmpty {
-                lastSkillOutput = result.output
-                if let data = result.output.data(using: .utf8),
-                   let _ = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
-                    canvasState.applyPartialEditResult(result.output)
-                    designBridgeLog.info("DesignBridge: partial_edit applied, \(result.output.count) chars")
-                } else {
-                    renderDocumentToCanvas(result.output)
-                    designBridgeLog.info("DesignBridge: partial_edit rendered as document")
-                }
-            } else {
-                designBridgeLog.error("DesignBridge: partial_edit failed: \(result.error)")
-            }
-            isSkillRunning = false
-        }
-    }
+    func skillSimPanel(prompt: String, pageName: String = "Home") { skillState.skillSimPanel(prompt: prompt, pageName: pageName) }
 
-    func skillSimPanel(prompt: String, pageName: String = "Home") {
-        isSkillRunning = true
-        let simPrompt = DesignPrompts.dispatcher.skillSimPanelPrompt(prompt)
-        let config = FusionConfig.shared
-        let model = config.defaultModel(for: .artifacts)
-        let endpoint = config.mlxBaseURL
-        let cliPath = resolveCLIPath()
-        Task { @MainActor in
-            let result = await Task.detached(priority: .userInitiated) {
-                Self.runCLIProcess(
-                    cliPath: cliPath,
-                    args: ["generate", "--prompt", simPrompt, "--page", pageName, "--model", model, "--endpoint", endpoint]
-                )
-            }.value
-            if result.exitCode == 0 {
-                lastSkillOutput = result.output
-                renderDocumentToCanvas(result.output)
-                designBridgeLog.info("DesignBridge: sim_panel rendered")
-            } else {
-                designBridgeLog.error("DesignBridge: sim_panel failed: \(result.error)")
-            }
-            isSkillRunning = false
-        }
-    }
+    func skillSpecDoc(prompt: String) { skillState.skillSpecDoc(prompt: prompt) }
 
-    func skillSpecDoc(prompt: String) {
-        isSkillRunning = true
-        let specPrompt = DesignPrompts.dispatcher.skillSpecDocPrompt(prompt)
-        let config = FusionConfig.shared
-        let model = config.defaultModel(for: .artifacts)
-        let endpoint = config.mlxBaseURL
-        let cliPath = resolveCLIPath()
-        Task { @MainActor in
-            let result = await Task.detached(priority: .userInitiated) {
-                Self.runCLIProcess(
-                    cliPath: cliPath,
-                    args: ["generate", "--prompt", specPrompt, "--page", "SpecDoc", "--model", model, "--endpoint", endpoint]
-                )
-            }.value
-            if result.exitCode == 0 {
-                lastSkillOutput = result.output
-                if let html = try? parseHtmlFromPenOutput(result.output) {
-                    renderDocumentToCanvas(html)
-                } else {
-                    renderDocumentToCanvas(result.output)
-                }
-                designBridgeLog.info("DesignBridge: spec_doc generated")
-            } else {
-                designBridgeLog.error("DesignBridge: spec_doc failed: \(result.error)")
-            }
-            isSkillRunning = false
-        }
-    }
+    func skillPageFlow(prompt: String, pageNames: [String]? = nil) { skillState.skillPageFlow(prompt: prompt, pageNames: pageNames) }
 
-    func skillPageFlow(prompt: String, pageNames: [String]? = nil) {
-        isSkillRunning = true
-        variantPages.removeAll()
-        let names = pageNames ?? DesignPrompts.dispatcher.pageFlowDefaultNames
-        let flowDesc = names.enumerated().map { idx, name in
-            DesignPrompts.dispatcher.pageFlowPerPage(idx, name, prompt)
-        }.joined(separator: "\n")
-        let flowPrompt = DesignPrompts.dispatcher.pageFlowFlowPrompt(flowDesc)
-        let config = FusionConfig.shared
-        let model = config.defaultModel(for: .artifacts)
-        let endpoint = config.mlxBaseURL
-        let cliPath = resolveCLIPath()
-        let specs: [(idx: Int, pageName: String, pagePrompt: String)] = names.enumerated().map { idx, pageName in
-            (idx, pageName, DesignPrompts.dispatcher.pageFlowPagePrompt(flowPrompt, idx, pageName))
-        }
-        Task { @MainActor in
-            for (idx, pageName, pagePrompt) in specs {
-                let result = await Task.detached(priority: .userInitiated) {
-                    Self.runCLIProcess(
-                        cliPath: cliPath,
-                        args: ["generate", "--prompt", pagePrompt, "--page", pageName, "--model", model, "--endpoint", endpoint]
-                    )
-                }.value
-                if result.exitCode == 0 {
-                    variantPages.append(VariantPage(
-                        id: "pageflow-\(idx)",
-                        title: pageName,
-                        documentJSON: result.output
-                    ))
-                    designBridgeLog.info("DesignBridge: page_flow[\(idx)] page=\(pageName) done")
-                }
-            }
-            if let first = variantPages.first {
-                renderDocumentToCanvas(first.documentJSON)
-            }
-            isSkillRunning = false
-        }
-    }
+    func skillMultiVariants(prompt: String, styles: [String]? = nil, pageName: String = "Home") { skillState.skillMultiVariants(prompt: prompt, styles: styles, pageName: pageName) }
 
-    func skillMultiVariants(prompt: String, styles: [String]? = nil, pageName: String = "Home") {
-        isSkillRunning = true
-        variantPages.removeAll()
-        let resolvedStyles = styles ?? DesignPrompts.dispatcher.multiVariantsDefaultStyles
-        let config = FusionConfig.shared
-        let model = config.defaultModel(for: .artifacts)
-        let endpoint = config.mlxBaseURL
-        let cliPath = resolveCLIPath()
-        let specs: [(idx: Int, style: String, styledPrompt: String)] = resolvedStyles.enumerated().map { idx, style in
-            (idx, style, DesignPrompts.dispatcher.multiVariantsStyledPrompt(prompt, style))
-        }
-        Task { @MainActor in
-            for (idx, style, styledPrompt) in specs {
-                let result = await Task.detached(priority: .userInitiated) {
-                    Self.runCLIProcess(
-                        cliPath: cliPath,
-                        args: ["generate", "--prompt", styledPrompt, "--page", "\(pageName)-\(style)", "--model", model, "--endpoint", endpoint]
-                    )
-                }.value
-                if result.exitCode == 0 {
-                    variantPages.append(VariantPage(
-                        id: "variant-\(idx)",
-                        title: style,
-                        documentJSON: result.output
-                    ))
-                    designBridgeLog.info("DesignBridge: multi_variants[\(idx)] style=\(style) done")
-                }
-            }
-            isSkillRunning = false
-        }
-    }
+    func skillLint(documentJSON: String? = nil, designSystem: String = "apple-hig", fix: Bool = false, dryRun: Bool = false) -> [DesignLintIssue] { skillState.skillLint(documentJSON: documentJSON, designSystem: designSystem, fix: fix, dryRun: dryRun) }
 
-    func skillLint(documentJSON: String? = nil, designSystem: String = "apple-hig", fix: Bool = false, dryRun: Bool = false) -> [DesignLintIssue] {
-        let docJSON = documentJSON ?? lastRenderedDocumentJSON ?? ""
-        guard !docJSON.isEmpty else { return [] }
-        // F-I6: 临时文件统一收口 ~/.fusion-studio/tmp/ (0700 目录 + 0600 文件 + UUID + 启动清理 LRU)。
-        // 原 BUG-11 仅修 TOCTOU (UUID+0600) 但散落系统 NSTemporaryDirectory (/tmp), 无清理无上限。
-        guard let tmpPath = FusionTempDir.shared.writeTmpFile(prefix: "fd_lint", contents: Data(docJSON.utf8)) else {
-            designBridgeLog.error("DesignBridge: lint tmp write failed")
-            return []
-        }
-        var args = ["lint", "--input", tmpPath, "--design-system", designSystem]
-        if fix { args.append("--fix") }
-        if dryRun { args.append("--dry-run") }
-        let result = runFusionDesign(args)
-        try? FileManager.default.removeItem(atPath: tmpPath)
-        guard result.exitCode == 0, !result.output.isEmpty else {
-            designBridgeLog.error("DesignBridge: lint failed: \(result.error)")
-            return []
-        }
-        if let data = result.output.data(using: .utf8),
-           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let violations = json["violations"] as? [[String: Any]] {
-            let parsed = violations.compactMap { issue -> DesignLintIssue? in
-                guard let rule = issue["rule"] as? String,
-                      let severity = issue["severity"] as? String,
-                      let message = issue["message"] as? String else { return nil }
-                return DesignLintIssue(
-                    rule: rule,
-                    severity: severity,
-                    message: message,
-                    nodeID: issue["node_id"] as? String,
-                    suggestion: issue["suggestion"] as? String
-                )
-            }
-            designBridgeLog.info("DesignBridge: lint found \(parsed.count) issues")
-            return parsed
-        }
-        return []
-    }
+    func skillDiff(oldJSON: String, newJSON: String) -> [DesignDiffEntry] { skillState.skillDiff(oldJSON: oldJSON, newJSON: newJSON) }
 
-    func skillDiff(oldJSON: String, newJSON: String) -> [DesignDiffEntry] {
-        // F-I6: 临时文件统一收口 (统一目录 + 0600 + UUID + 启动清理 LRU)。原散落系统 /tmp。
-        guard let oldPath = FusionTempDir.shared.writeTmpFile(prefix: "fd_diff_old", contents: Data(oldJSON.utf8)),
-              let newPath = FusionTempDir.shared.writeTmpFile(prefix: "fd_diff_new", contents: Data(newJSON.utf8)) else {
-            designBridgeLog.error("DesignBridge: diff tmp write failed")
-            return []
-        }
-        let result = runFusionDesign(["diff", "--old", oldPath, "--new", newPath])
-        try? FileManager.default.removeItem(atPath: oldPath)
-        try? FileManager.default.removeItem(atPath: newPath)
-        guard result.exitCode == 0 else {
-            designBridgeLog.error("DesignBridge: diff failed: \(result.error)")
-            return []
-        }
-        if let data = result.output.data(using: .utf8) {
-            let diffArr: [[String: Any]]
-            if let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let entries = obj["entries"] as? [[String: Any]] {
-                diffArr = entries
-            } else if let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
-                diffArr = arr
-            } else {
-                return []
-            }
-            let entries = diffArr.compactMap { entry -> DesignDiffEntry? in
-                let kind = entry["change_type"] as? String ?? entry["kind"] as? String ?? ""
-                let path = entry["node_id"] as? String ?? entry["path"] as? String ?? ""
-                guard !kind.isEmpty, !path.isEmpty else { return nil }
-                let oldVal: String
-                if let o = entry["old_value"] { oldVal = String(describing: o) }
-                else if let o = entry["old"] as? String { oldVal = o }
-                else { oldVal = "" }
-                let newVal: String
-                if let n = entry["new_value"] { newVal = String(describing: n) }
-                else if let n = entry["new"] as? String { newVal = n }
-                else { newVal = "" }
-                return DesignDiffEntry(kind: kind, path: path, oldValue: oldVal, newValue: newVal)
-            }
-            designBridgeLog.info("DesignBridge: diff found \(entries.count) changes")
-            return entries
-        }
-        return []
-    }
+    func skillHealthCheck(endpoint: String = FusionConfig.shared.mlxBaseURL) -> [String: Any]? { skillState.skillHealthCheck(endpoint: endpoint) }
 
-    func skillHealthCheck(endpoint: String = FusionConfig.shared.mlxBaseURL) -> [String: Any]? {
-        let result = runFusionDesign(["health", "--endpoint", endpoint])
-        guard result.exitCode == 0 else { return nil }
-        if let data = result.output.data(using: .utf8),
-           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            return json
-        }
-        return nil
-    }
-
-    func skillTheme(designSystem: String = "apple-hig", mode: String = "dark") -> String? {
-        let result = runFusionDesign(["theme", "--design-system", designSystem, "--mode", mode])
-        guard result.exitCode == 0, !result.output.isEmpty else { return nil }
-        return result.output
-    }
+    func skillTheme(designSystem: String = "apple-hig", mode: String = "dark") -> String? { skillState.skillTheme(designSystem: designSystem, mode: mode) }
 
     private func parseHtmlFromPenOutput(_ output: String) -> String? { chatState.parseHtmlFromPenOutput(output) }
 
