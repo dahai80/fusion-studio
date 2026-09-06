@@ -26,7 +26,7 @@ struct ModuleDetailView: View {
                 if showDeprecatedModules {
                     TrainingView()
                 } else {
-                    EmptyView()
+                    DeprecatedModulePlaceholder(moduleName: "Training")
                 }
             case .cli:
                 CLIView()
@@ -93,7 +93,7 @@ struct ModuleDetailView: View {
                 if showDeprecatedModules {
                     EduK12View()
                 } else {
-                    EmptyView()
+                    DeprecatedModulePlaceholder(moduleName: "Edu K12")
                 }
             case .verification:
                 VerificationView()
@@ -546,6 +546,31 @@ enum InfoPanelTab: String, CaseIterable {
 }
 
 // MARK: - 辅助组件
+
+// FUNC-10 (审计product-0906 P3): Module.training/eduK12 deprecated (上游服务未落地)。
+//   sidebar 默认隐藏 (showDeprecatedModules=false); opt-in 后可见。旧隐藏态渲染 EmptyView =
+//   空白屏像 bug。改清晰占位: 说明模块废弃 + 如何在 Settings 开启预览。
+struct DeprecatedModulePlaceholder: View {
+    let moduleName: String
+    @StateObject private var i18n = I18nManager.shared
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "hourglass")
+                .font(.system(size: 44))
+                .foregroundStyle(.secondary)
+            Text("\(moduleName) — \(i18n.t(.mod_deprecatedTitle))")
+                .font(.title3)
+                .foregroundStyle(.secondary)
+            Text(i18n.t(.mod_deprecatedHint))
+                .font(.callout)
+                .foregroundStyle(.tertiary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
 
 struct ServiceNotRunningView: View {
     let serviceName: String

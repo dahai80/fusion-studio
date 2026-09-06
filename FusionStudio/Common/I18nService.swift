@@ -283,6 +283,8 @@ enum I18nKey: String, CaseIterable {
     case interfaceLanguage = "interfaceLanguage"
     case sec_advanced = "sec_advanced"
     case settings_showDeprecatedModules = "settings_showDeprecatedModules"
+    case mod_deprecatedTitle = "mod_deprecatedTitle"
+    case mod_deprecatedHint = "mod_deprecatedHint"
     case sec_hwPref = "sec_hwPref"
     case preferredDevice = "preferredDevice"
     case dev_auto = "dev_auto"
