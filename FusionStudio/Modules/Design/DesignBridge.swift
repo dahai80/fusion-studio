@@ -10,7 +10,6 @@ import WebKit
 import os.log
 
 private let designBridgeLog = Logger(subsystem: "com.fusion.studio", category: "DesignBridge")
-
 struct DesignMessage: Identifiable {
     let id = UUID()
     let role: String
@@ -142,239 +141,234 @@ enum DesignTemplateGroup: String, CaseIterable, Identifiable {
     }
 }
 
-private enum ArtifactParseState {
-    case idle
-    case inOpenTag
-    case inCode
-    case inCloseTag
-}
 
 @MainActor
 class DesignBridge: ObservableObject {
-    @Published var messages: [DesignMessage] = []
-    // PERF-4 (审计product-0905 P2): messages 无界 @Published, 长会话内存涨。LRU cap。
-    static let maxMessages = 200
-    private func capMessages() {
-        guard messages.count > Self.maxMessages else { return }
-        let drop = messages.count - Self.maxMessages
-        messages.removeFirst(drop)
-        designBridgeLog.info("DesignBridge capMessages: drop \(drop) oldest (count > \(Self.maxMessages))")
+    // ARCH-1 (审计product-0906 P1): 38 @Published 拆 10 域 ObservableObject。let 域引用 = 稳定身份,
+    //   init() objectWillChange.sink 转发每域 (SwiftUI 不自动追踪嵌套 ObservableObject, P0-1 修)。
+    //   38 属性经下方计算属性 get/set 转发, 113 view 读站点 + 2 $binding 站点 0 改 (计算属性 get/set
+    //   不产 $projectedValue → $designBridge.X 报错; 惟 currentArtifactCode 2 站点改 Binding(get:set:))。
+    //   行为按域 Phase 2-8 迁入 Design<Domain>Service.swift extension。
+    let chatState = DesignChatState()
+    let artifactState = DesignArtifactState()
+    let pageState = DesignPageState()
+    let canvasState = DesignCanvasState()
+    let planPreviewState = DesignPlanPreviewState()
+    let skillState = DesignSkillState()
+    let versionState = DesignVersionState()
+    let themeState = DesignThemeState()
+    let exportState = DesignExportState()
+    let fileSyncState = DesignFileSyncState()
+    private var cancellables = Set<AnyCancellable>()
+
+    init() {
+        chatState.bridge = self
+        artifactState.bridge = self
+        pageState.bridge = self
+        canvasState.bridge = self
+        planPreviewState.bridge = self
+        skillState.bridge = self
+        versionState.bridge = self
+        themeState.bridge = self
+        exportState.bridge = self
+        fileSyncState.bridge = self
+        chatState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        artifactState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        pageState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        canvasState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        planPreviewState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        skillState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        versionState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        themeState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        exportState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        fileSyncState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        designBridgeLog.info("DesignBridge init: 10 域 objectWillChange 转发已接线 (ARCH-1)")
     }
-    @Published var currentArtifactCode: String = ""
-    @Published var currentArtifactType: String = "html"
-    @Published var currentArtifactTitle: String = ""
-    @Published var isGenerating: Bool = false
-    @Published var artifactSaved: Bool = false
 
-    // MARK: - Inference Progress
-    @Published var inferenceStep: String = ""
-    @Published var streamTokenCount: Int = 0
-    @Published var streamPreviewText: String = ""
-    @Published var errorMessage: String?
-    @Published var artifactId: String = ""
-    @Published var selectedModel: String = ""
-    @Published var versionHistory: [[String: Any]] = []
-    @Published var isLoadingHistory: Bool = false
-    @Published var pages: [DesignPage] = []
-    @Published var currentPageIndex: Int = -1
 
-    // Callers: DesignCanvasView (wasm bridge), DesignView (canvas mode).
-    // Affected API: selectedNodeID Published, canvasWebView weak ref, sendCanvasCommand().
-    // Data schemas: BridgeCommand JSON via evaluateJavaScript.
-    // User instruction: "现在开始实施" — Task #5
+    // MARK: - Chat State 转发
+    var messages: [DesignMessage] {
+        get { chatState.messages } set { chatState.messages = newValue }
+    }
+    var isGenerating: Bool {
+        get { chatState.isGenerating } set { chatState.isGenerating = newValue }
+    }
+    var inferenceStep: String {
+        get { chatState.inferenceStep } set { chatState.inferenceStep = newValue }
+    }
+    var streamTokenCount: Int {
+        get { chatState.streamTokenCount } set { chatState.streamTokenCount = newValue }
+    }
+    var streamPreviewText: String {
+        get { chatState.streamPreviewText } set { chatState.streamPreviewText = newValue }
+    }
+    var errorMessage: String? {
+        get { chatState.errorMessage } set { chatState.errorMessage = newValue }
+    }
+    var selectedModel: String {
+        get { chatState.selectedModel } set { chatState.selectedModel = newValue }
+    }
 
-    @Published var selectedNodeID: String?
-    @Published var lastRenderedDocumentJSON: String?
-    @Published var marqueeSelectedNodeIDs: [String] = []
+    // MARK: - Artifact State 转发
+    var currentArtifactCode: String {
+        get { artifactState.currentArtifactCode } set { artifactState.currentArtifactCode = newValue }
+    }
+    var currentArtifactType: String {
+        get { artifactState.currentArtifactType } set { artifactState.currentArtifactType = newValue }
+    }
+    var currentArtifactTitle: String {
+        get { artifactState.currentArtifactTitle } set { artifactState.currentArtifactTitle = newValue }
+    }
+    var artifactSaved: Bool {
+        get { artifactState.artifactSaved } set { artifactState.artifactSaved = newValue }
+    }
+    var artifactId: String {
+        get { artifactState.artifactId } set { artifactState.artifactId = newValue }
+    }
+    var isImportingScreenshot: Bool {
+        get { artifactState.isImportingScreenshot } set { artifactState.isImportingScreenshot = newValue }
+    }
 
-    // MARK: - Plan Preview State
-    @Published var pendingPlanCode: String?
-    @Published var isPlanPreviewActive: Bool = false
-    @Published var pendingPlanTitle: String = ""
+    // MARK: - Page State 转发
+    var pages: [DesignPage] {
+        get { pageState.pages } set { pageState.pages = newValue }
+    }
+    var currentPageIndex: Int {
+        get { pageState.currentPageIndex } set { pageState.currentPageIndex = newValue }
+    }
 
-    private var parseState: ArtifactParseState = .idle
-    private var parseBuffer: String = ""
-    private var currentIdentifier: String = ""
-    private var rawAssistantContent: String = ""
-    private var ipcClient: IPCClient?
-    private var sessionId: String = "design-\(UUID().uuidString.prefix(8))"
-    weak var canvasWebView: WKWebView?
-    private var codeWatchTimer: Timer?
+    // MARK: - Canvas State 转发
+    var selectedNodeID: String? {
+        get { canvasState.selectedNodeID } set { canvasState.selectedNodeID = newValue }
+    }
+    var lastRenderedDocumentJSON: String? {
+        get { canvasState.lastRenderedDocumentJSON } set { canvasState.lastRenderedDocumentJSON = newValue }
+    }
+    var marqueeSelectedNodeIDs: [String] {
+        get { canvasState.marqueeSelectedNodeIDs } set { canvasState.marqueeSelectedNodeIDs = newValue }
+    }
+    var canvasWebView: WKWebView? {
+        get { canvasState.canvasWebView } set { canvasState.canvasWebView = newValue }
+    }
 
+    // MARK: - Plan Preview State 转发
+    var pendingPlanCode: String? {
+        get { planPreviewState.pendingPlanCode } set { planPreviewState.pendingPlanCode = newValue }
+    }
+    var isPlanPreviewActive: Bool {
+        get { planPreviewState.isPlanPreviewActive } set { planPreviewState.isPlanPreviewActive = newValue }
+    }
+    var pendingPlanTitle: String {
+        get { planPreviewState.pendingPlanTitle } set { planPreviewState.pendingPlanTitle = newValue }
+    }
+
+    // MARK: - Skill State 转发
+    var lastSkillOutput: String {
+        get { skillState.lastSkillOutput } set { skillState.lastSkillOutput = newValue }
+    }
+    var isSkillRunning: Bool {
+        get { skillState.isSkillRunning } set { skillState.isSkillRunning = newValue }
+    }
+    var variantPages: [VariantPage] {
+        get { skillState.variantPages } set { skillState.variantPages = newValue }
+    }
+
+    // MARK: - Version State 转发
+    var versionHistory: [[String: Any]] {
+        get { versionState.versionHistory } set { versionState.versionHistory = newValue }
+    }
+    var isLoadingHistory: Bool {
+        get { versionState.isLoadingHistory } set { versionState.isLoadingHistory = newValue }
+    }
+    var versionDiffEntries: [DesignDiffEntry] {
+        get { versionState.versionDiffEntries } set { versionState.versionDiffEntries = newValue }
+    }
+    var isDiffing: Bool {
+        get { versionState.isDiffing } set { versionState.isDiffing = newValue }
+    }
+
+    // MARK: - Theme State 转发
+    var activeTheme: String {
+        get { themeState.activeTheme } set { themeState.activeTheme = newValue }
+    }
+    var activeDesignSystem: String {
+        get { themeState.activeDesignSystem } set { themeState.activeDesignSystem = newValue }
+    }
+
+    // MARK: - Export State 转发
+    var exportedSwiftUICode: String {
+        get { exportState.exportedSwiftUICode } set { exportState.exportedSwiftUICode = newValue }
+    }
+    var isExportingSwiftUI: Bool {
+        get { exportState.isExportingSwiftUI } set { exportState.isExportingSwiftUI = newValue }
+    }
+    var exportedCodegenCode: String {
+        get { exportState.exportedCodegenCode } set { exportState.exportedCodegenCode = newValue }
+    }
+    var isExportingCodegen: Bool {
+        get { exportState.isExportingCodegen } set { exportState.isExportingCodegen = newValue }
+    }
+    var isBatchExporting: Bool {
+        get { exportState.isBatchExporting } set { exportState.isBatchExporting = newValue }
+    }
+    var batchExportResult: String {
+        get { exportState.batchExportResult } set { exportState.batchExportResult = newValue }
+    }
+
+    // MARK: - FileSync State 转发
+    var syncFolderPath: String {
+        get { fileSyncState.syncFolderPath } set { fileSyncState.syncFolderPath = newValue }
+    }
+    var isFileSyncEnabled: Bool {
+        get { fileSyncState.isFileSyncEnabled } set { fileSyncState.isFileSyncEnabled = newValue }
+    }
+
+    // ARCH-1 Phase 7: internal (非 private) — Theme/Export/RAG 跨文件 extension reach-through (bridge?.ipcClient)。
+    var ipcClient: IPCClient?
     // MARK: - Canvas Bridge Commands
 
-    func sendCanvasCommand(_ command: BridgeCommand) {
-        guard let webView = canvasWebView else {
-            designBridgeLog.warning("DesignBridge: canvasWebView nil, command dropped")
-            return
-        }
-        DesignCanvasView.sendCommand(command, to: webView)
-    }
+    func sendCanvasCommand(_ command: BridgeCommand) { canvasState.sendCanvasCommand(command) }
 
     // #372 OPS-13: 触发 fd-host-web 日志环形缓冲 dump。
     // 走 window.postMessage({kind:'log.capture.dump',...}) 通道 (非 BridgeCommand, 上游 bridge.rs:187)。
     // 触发源: DesignLintPanel 手动按钮 / WebView 进程崩溃恢复 / App 进入前台 (节流)。
-    func dumpWasmLog(clear: Bool) {
-        guard let webView = canvasWebView else {
-            designBridgeLog.warning("DesignBridge: dumpWasmLog skipped, canvasWebView nil")
-            return
-        }
-        DesignCanvasView.requestLogDump(to: webView, clear: clear)
-    }
+    func dumpWasmLog(clear: Bool) { canvasState.dumpWasmLog(clear: clear) }
 
-    func applyDesignTokensToCanvas(_ css: String) {
-        sendCanvasCommand(.applyTokens(css: css))
-    }
+    func applyDesignTokensToCanvas(_ css: String) { canvasState.applyDesignTokensToCanvas(css) }
 
-    func renderDocumentToCanvas(_ documentJSON: String) {
-        lastRenderedDocumentJSON = documentJSON
-        sendCanvasCommand(.pageRender(documentJSON: documentJSON))
-    }
+    func renderDocumentToCanvas(_ documentJSON: String) { canvasState.renderDocumentToCanvas(documentJSON) }
 
-    func clearCanvas() {
-        sendCanvasCommand(.clearCanvas)
-    }
+    func clearCanvas() { canvasState.clearCanvas() }
 
-    func selectCanvasNode(_ nodeID: String) {
-        selectedNodeID = nodeID
-        sendCanvasCommand(.selectNode(nodeID: nodeID))
-    }
+    func selectCanvasNode(_ nodeID: String) { canvasState.selectCanvasNode(nodeID) }
 
     func mutateCanvasNode(_ nodeID: String, x: Float?, y: Float?, w: Float?, h: Float?,
                           fill: String? = nil, stroke: String? = nil, strokeWidth: Float? = nil,
                           radius: Float? = nil, fontSize: Float? = nil, fontFamily: String? = nil,
                           opacity: Float? = nil) {
-        sendCanvasCommand(.mutateNode(nodeID: nodeID, x: x, y: y, w: w, h: h,
-                                       fill: fill, stroke: stroke, strokeWidth: strokeWidth,
-                                       radius: radius, fontSize: fontSize, fontFamily: fontFamily,
-                                       opacity: opacity))
-        designBridgeLog.info("DesignBridge: mutateCanvasNode id=\(nodeID) w=\(w?.description ?? "nil") h=\(h?.description ?? "nil")")
+        canvasState.mutateCanvasNode(nodeID, x: x, y: y, w: w, h: h,
+                                     fill: fill, stroke: stroke, strokeWidth: strokeWidth,
+                                     radius: radius, fontSize: fontSize, fontFamily: fontFamily,
+                                     opacity: opacity)
     }
 
-    func setNodeLocked(_ nodeID: String, locked: Bool) {
-        sendCanvasCommand(.mutateNode(nodeID: nodeID, x: nil, y: nil, w: nil, h: nil,
-                                       fill: nil, stroke: nil, strokeWidth: nil, radius: nil,
-                                       fontSize: nil, fontFamily: nil, opacity: locked ? 0.3 : 1.0))
-        designBridgeLog.info("DesignBridge: set node \(nodeID) locked=\(locked)")
-    }
+    func setNodeLocked(_ nodeID: String, locked: Bool) { canvasState.setNodeLocked(nodeID, locked: locked) }
 
-    func undo() {
-        sendCanvasCommand(.undoAction)
-        designBridgeLog.info("DesignBridge: undo")
-    }
+    func undo() { canvasState.undo() }
 
-    func redo() {
-        sendCanvasCommand(.redoAction)
-        designBridgeLog.info("DesignBridge: redo")
-    }
+    func redo() { canvasState.redo() }
 
-    func setNodeVisibility(_ nodeID: String, visible: Bool) {
-        sendCanvasCommand(.setNodeVisibility(nodeID: nodeID, visible: visible))
-        designBridgeLog.info("DesignBridge: setNodeVisibility id=\(nodeID) visible=\(visible)")
-    }
+    func setNodeVisibility(_ nodeID: String, visible: Bool) { canvasState.setNodeVisibility(nodeID, visible: visible) }
 
-    func reorderNode(_ nodeID: String, newIndex: Int) {
-        sendCanvasCommand(.reorderNode(nodeID: nodeID, newIndex: newIndex))
-        designBridgeLog.info("DesignBridge: reorderNode id=\(nodeID) newIndex=\(newIndex)")
-    }
+    func reorderNode(_ nodeID: String, newIndex: Int) { canvasState.reorderNode(nodeID, newIndex: newIndex) }
 
-    func deleteNode(_ nodeID: String) {
-        guard let docJSON = lastRenderedDocumentJSON, !docJSON.isEmpty else { return }
-        guard let data = docJSON.data(using: .utf8),
-              var doc = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              var pages = doc["pages"] as? [[String: Any]] else { return }
-        for i in pages.indices {
-            guard var nodes = pages[i]["nodes"] as? [[String: Any]] else { continue }
-            let before = nodes.count
-            nodes.removeAll { ($0["id"] as? String) == nodeID }
-            if nodes.count < before {
-                pages[i]["nodes"] = nodes
-                doc["pages"] = pages
-                if let updated = try? JSONSerialization.data(withJSONObject: doc, options: .prettyPrinted),
-                   let str = String(data: updated, encoding: .utf8) {
-                    renderDocumentToCanvas(str)
-                    selectedNodeID = nil
-                    designBridgeLog.info("DesignBridge: deleted node \(nodeID)")
-                }
-                return
-            }
-        }
-        designBridgeLog.warning("DesignBridge: deleteNode — node \(nodeID) not found")
-    }
+    func deleteNode(_ nodeID: String) { canvasState.deleteNode(nodeID) }
 
-    func duplicateNode(_ nodeID: String) {
-        guard let docJSON = lastRenderedDocumentJSON, !docJSON.isEmpty else { return }
-        guard let data = docJSON.data(using: .utf8),
-              var doc = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              var pages = doc["pages"] as? [[String: Any]] else { return }
-        for i in pages.indices {
-            guard var nodes = pages[i]["nodes"] as? [[String: Any]] else { continue }
-            if let idx = nodes.firstIndex(where: { ($0["id"] as? String) == nodeID }),
-               var copy = nodes[idx] as? [String: Any] {
-                let newID = nodeID + "_copy_\(Int.random(in: 1000...9999))"
-                copy["id"] = newID
-                if var style = copy["style"] as? [String: Any] {
-                    style["x"] = ((style["x"] as? Double) ?? 0) + 20
-                    style["y"] = ((style["y"] as? Double) ?? 0) + 20
-                    copy["style"] = style
-                }
-                nodes.insert(copy, at: idx + 1)
-                pages[i]["nodes"] = nodes
-                doc["pages"] = pages
-                if let updated = try? JSONSerialization.data(withJSONObject: doc, options: .prettyPrinted),
-                   let str = String(data: updated, encoding: .utf8) {
-                    renderDocumentToCanvas(str)
-                    selectedNodeID = newID
-                    designBridgeLog.info("DesignBridge: duplicated node \(nodeID) → \(newID)")
-                }
-                return
-            }
-        }
-    }
+    func duplicateNode(_ nodeID: String) { canvasState.duplicateNode(nodeID) }
 
-    func bringToFront(_ nodeID: String) {
-        guard let docJSON = lastRenderedDocumentJSON, !docJSON.isEmpty else { return }
-        guard let data = docJSON.data(using: .utf8),
-              var doc = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              var pages = doc["pages"] as? [[String: Any]] else { return }
-        for i in pages.indices {
-            guard var nodes = pages[i]["nodes"] as? [[String: Any]] else { continue }
-            if let idx = nodes.firstIndex(where: { ($0["id"] as? String) == nodeID }) {
-                let node = nodes.remove(at: idx)
-                nodes.append(node)
-                pages[i]["nodes"] = nodes
-                doc["pages"] = pages
-                if let updated = try? JSONSerialization.data(withJSONObject: doc, options: .prettyPrinted),
-                   let str = String(data: updated, encoding: .utf8) {
-                    renderDocumentToCanvas(str)
-                    designBridgeLog.info("DesignBridge: bringToFront node \(nodeID)")
-                }
-                return
-            }
-        }
-    }
+    func bringToFront(_ nodeID: String) { canvasState.bringToFront(nodeID) }
 
-    func sendToBack(_ nodeID: String) {
-        guard let docJSON = lastRenderedDocumentJSON, !docJSON.isEmpty else { return }
-        guard let data = docJSON.data(using: .utf8),
-              var doc = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              var pages = doc["pages"] as? [[String: Any]] else { return }
-        for i in pages.indices {
-            guard var nodes = pages[i]["nodes"] as? [[String: Any]] else { continue }
-            if let idx = nodes.firstIndex(where: { ($0["id"] as? String) == nodeID }) {
-                let node = nodes.remove(at: idx)
-                nodes.insert(node, at: 0)
-                pages[i]["nodes"] = nodes
-                doc["pages"] = pages
-                if let updated = try? JSONSerialization.data(withJSONObject: doc, options: .prettyPrinted),
-                   let str = String(data: updated, encoding: .utf8) {
-                    renderDocumentToCanvas(str)
-                    designBridgeLog.info("DesignBridge: sendToBack node \(nodeID)")
-                }
-                return
-            }
-        }
-    }
+    func sendToBack(_ nodeID: String) { canvasState.sendToBack(nodeID) }
 
     func applyLocalEdit(nodesJSON: String, instruction: String) {
         guard !marqueeSelectedNodeIDs.isEmpty else {
@@ -387,7 +381,7 @@ class DesignBridge: ObservableObject {
         Task { @MainActor in
             let effectiveNodesJSON: String
             if nodesJSON.isEmpty || nodesJSON == "[]" {
-                effectiveNodesJSON = extractSelectedNodesJSON()
+                effectiveNodesJSON = canvasState.extractSelectedNodesJSON()
             } else {
                 effectiveNodesJSON = nodesJSON
             }
@@ -406,7 +400,7 @@ class DesignBridge: ObservableObject {
             if result.exitCode == 0, !result.output.isEmpty {
                 if let data = result.output.data(using: .utf8),
                    let _ = try? JSONSerialization.jsonObject(with: data) {
-                    applyPartialEditResult(result.output)
+                    canvasState.applyPartialEditResult(result.output)
                 } else {
                     await sendDesignChat(instruction)
                 }
@@ -417,151 +411,20 @@ class DesignBridge: ObservableObject {
         }
     }
 
-    private func extractSelectedNodesJSON() -> String {
-        guard let docJSON = lastRenderedDocumentJSON,
-              !docJSON.isEmpty,
-              !marqueeSelectedNodeIDs.isEmpty else { return "[]" }
-        guard let data = docJSON.data(using: .utf8),
-              let doc = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let pages = doc["pages"] as? [[String: Any]] else { return "[]" }
-        var selected: [[String: Any]] = []
-        let ids = Set(marqueeSelectedNodeIDs)
-        for page in pages {
-            guard let nodes = page["nodes"] as? [[String: Any]] else { continue }
-            for node in nodes {
-                if let id = node["id"] as? String, ids.contains(id) {
-                    selected.append(node)
-                }
-            }
-        }
-        if let data = try? JSONSerialization.data(withJSONObject: selected, options: .prettyPrinted) {
-            return String(data: data, encoding: .utf8) ?? "[]"
-        }
-        return "[]"
-    }
-
-    private func applyPartialEditResult(_ resultJSON: String) {
-        guard let data = resultJSON.data(using: .utf8),
-              let nodes = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
-            designBridgeLog.error("DesignBridge: applyPartialEditResult invalid JSON")
-            return
-        }
-        for node in nodes {
-            guard let nodeID = node["id"] as? String else { continue }
-            let x = node["x"] as? Float
-            let y = node["y"] as? Float
-            let w = node["w"] as? Float
-            let h = node["h"] as? Float
-            let fill = node["fill"] as? String
-            let stroke = node["stroke"] as? String
-            let radius = node["radius"] as? Float
-            let opacity = node["opacity"] as? Float
-            mutateCanvasNode(nodeID, x: x, y: y, w: w, h: h,
-                             fill: fill, stroke: stroke, radius: radius, opacity: opacity)
-        }
-        designBridgeLog.info("DesignBridge: applied partial edit to \(nodes.count) nodes")
-    }
-
-    private var mutateObserver: NSObjectProtocol?
-
-    func startObservingInspectorChanges() {
-        guard mutateObserver == nil else { return }
-        mutateObserver = NotificationCenter.default.addObserver(
-            forName: .designInspectorMutateNode,
-            object: nil,
-            queue: .main
-        ) { [weak self] notification in
-            guard let self = self else { return }
-            let userInfo = notification.userInfo ?? [:]
-            guard let nodeID = userInfo["node_id"] as? String else { return }
-            let w = userInfo["w"] as? Float
-            let h = userInfo["h"] as? Float
-            let fill = userInfo["fill"] as? String
-            let stroke = userInfo["stroke"] as? String
-            let strokeWidth = userInfo["stroke_width"] as? Float
-            let radius = userInfo["radius"] as? Float
-            let fontSize = userInfo["font_size"] as? Float
-            let fontFamily = userInfo["font_family"] as? String
-            let opacity = userInfo["opacity"] as? Float
-            self.mutateCanvasNode(nodeID, x: nil, y: nil, w: w, h: h,
-                                   fill: fill, stroke: stroke, strokeWidth: strokeWidth,
-                                   radius: radius, fontSize: fontSize, fontFamily: fontFamily,
-                                   opacity: opacity)
-        }
-        designBridgeLog.info("DesignBridge: started observing inspector changes")
-    }
+    func startObservingInspectorChanges() { canvasState.startObservingInspectorChanges() }
 
     deinit {
-        if let obs = mutateObserver {
-            NotificationCenter.default.removeObserver(obs)
-        }
-        codeWatchTimer?.invalidate()
+        // ARCH-1 Phase 5: canvasState.cleanup() nonisolated + codeWatchTimer/mutateObserver nonisolated(unsafe),
+        //   Timer.invalidate / NotificationCenter.removeObserver 线程安全 (镜像 AgentBridge F-R9 deinit 模式)。
+        canvasState.cleanup()
     }
 
     // MARK: - Reverse Code Watch (Fusion Code → Canvas)
 
     /// 启动反向监听：每 3 秒扫描 fusion-code IPC 目录的 style-change 消息。
-    func startWatchingCodeChanges() {
-        guard codeWatchTimer == nil else { return }
-        codeWatchTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
-            self?.pollCodeChanges()
-        }
-        designBridgeLog.info("DesignBridge: code watch started (3s interval)")
-    }
+    func startWatchingCodeChanges() { canvasState.startWatchingCodeChanges() }
 
-    func stopWatchingCodeChanges() {
-        codeWatchTimer?.invalidate()
-        codeWatchTimer = nil
-        designBridgeLog.info("DesignBridge: code watch stopped")
-    }
-
-    private func pollCodeChanges() {
-        let ipcBase = NSHomeDirectory() + "/.fusion-ipc"
-        let dir = ipcBase + "/fusion-code"
-        Task { @MainActor in
-            let parsed = await Task.detached(priority: .userInitiated) { () -> [[String: Any]] in
-                let fm = FileManager.default
-                guard let files = try? fm.contentsOfDirectory(atPath: dir).sorted() else { return [] }
-                var collected = [[String: Any]]()
-                for name in files {
-                    let path = dir + "/" + name
-                    guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
-                          let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                          let action = json["action"] as? String,
-                          action == "style-change" else {
-                        continue
-                    }
-                    try? fm.removeItem(atPath: path)
-                    guard let payload = json["payload"] as? [String: Any],
-                          let mutations = payload["mutations"] as? [[String: Any]] else {
-                        designBridgeLog.warning("DesignBridge: style-change payload missing mutations")
-                        continue
-                    }
-                    collected.append(contentsOf: mutations)
-                }
-                return collected
-            }.value
-            guard !parsed.isEmpty else { return }
-            designBridgeLog.info("DesignBridge: applying \(parsed.count) reverse mutations")
-            for m in parsed {
-                guard let nodeID = m["node_id"] as? String else { continue }
-                mutateCanvasNode(
-                    nodeID,
-                    x: m["x"] as? Float,
-                    y: m["y"] as? Float,
-                    w: m["w"] as? Float,
-                    h: m["h"] as? Float,
-                    fill: m["fill"] as? String,
-                    stroke: m["stroke"] as? String,
-                    strokeWidth: nil,
-                    radius: m["radius"] as? Float,
-                    fontSize: nil,
-                    fontFamily: nil,
-                    opacity: m["opacity"] as? Float
-                )
-            }
-        }
-    }
+    func stopWatchingCodeChanges() { canvasState.stopWatchingCodeChanges() }
 
     // MARK: - AI Artifact → Canvas Rendering
 
@@ -587,44 +450,15 @@ class DesignBridge: ObservableObject {
         designBridgeLog.info("DesignBridge: Plan preview staged, title=\(self.currentArtifactTitle)")
     }
 
-    /// 确认 Plan：将暂存的 PenDocument 写入画布。
-    func acceptPlan() {
-        guard let code = pendingPlanCode else { return }
-        renderDocumentToCanvas(code)
-        pendingPlanCode = nil
-        isPlanPreviewActive = false
-        sendCanvasCommand(.planApply)
-        designBridgeLog.info("DesignBridge: Plan accepted and rendered to canvas")
-    }
+    /// 确认 Plan：将暂存的 PenDocument 写入画布。ARCH-1 Phase 6: 行为迁 DesignPlanPreviewService。
+    func acceptPlan() { planPreviewState.acceptPlan() }
 
-    /// 拒绝 Plan：清除预览，恢复画布状态。
-    func rejectPlan() {
-        pendingPlanCode = nil
-        isPlanPreviewActive = false
-        sendCanvasCommand(.planReject)
-        designBridgeLog.info("DesignBridge: Plan rejected, preview cleared")
-    }
+    /// 拒绝 Plan：清除预览，恢复画布状态。ARCH-1 Phase 6: 行为迁 DesignPlanPreviewService。
+    func rejectPlan() { planPreviewState.rejectPlan() }
 
     /// 调用 fusion-design parse-html CLI 将 HTML 转为 PenDocument JSON。
-    func parseHtmlViaCLI(_ html: String) async -> String? {
-        // HIGH-6: currentArtifactCode 来自 LLM 不可信输出, 可被 prompt 注入操纵 emit 含
-        // <script> 的 HTML。送 CLI 解析 + 后续 wasm 渲染 = XSS 等价, 可调原生 bridge 读本地资源。
-        // 渲染前净化 (纵深防御, 与 CLI 解析侧校验正交): 剥 <script>/<iframe>/<object>/<embed>,
-        // 剥 on* 事件处理器属性, 剥 javascript:/vbscript: URL, 净化 <style> 内 CSS XSS 向量。
-        // <style> 块本体保留 (合法 :root 设计 token + 自定义 class), 仅剥 expression/url-js/@import。
-        // PERF-2: CLI 调用移出 MainActor (Task.detached), 避免阻塞 UI。
-        let safe = Self.sanitizeHtml(html)
-        let page = currentArtifactTitle.isEmpty ? "Page" : currentArtifactTitle
-        let cliPath = resolveCLIPath()
-        let result = await Task.detached(priority: .userInitiated) {
-            Self.runCLIProcess(cliPath: cliPath, args: ["parse-html", "--page", page], stdin: safe)
-        }.value
-        guard result.exitCode == 0 else {
-            designBridgeLog.warning("DesignBridge: parse-html failed: \(result.error)")
-            return nil
-        }
-        return result.output.isEmpty ? nil : result.output
-    }
+    func parseHtmlViaCLI(_ html: String) async -> String? { await chatState.parseHtmlViaCLI(html) }
+
 
     /// 净化不可信 HTML: 剥 script/iframe/object/embed/math 块 + on* 事件属性 + javascript:/vbscript: URL + <style> 块内 CSS XSS 向量 (expression/url-js/@import/behavior)。svg/<style> 块本体保留 (设计 legit), 其 XSS 向量由 step1/3/4/5 覆盖。
     /// 纵深防御层 — LLM 产物 (currentArtifactCode) 经此过滤后再送 CLI 解析与 wasm/预览渲染。
@@ -780,7 +614,7 @@ class DesignBridge: ObservableObject {
 
     private var cachedCLIPath: String?
 
-    private func resolveCLIPath() -> String {
+    func resolveCLIPath() -> String {
         if let cached = cachedCLIPath, !cached.isEmpty, FileManager.default.fileExists(atPath: cached) {
             return cached
         }
@@ -1001,355 +835,38 @@ class DesignBridge: ObservableObject {
 
     // MARK: - Design Skills (CLI Bridge)
 
-    @Published var lastSkillOutput: String = ""
-    @Published var isSkillRunning: Bool = false
 
-    func skillTextToUI(prompt: String, pageName: String = "Home") {
-        isSkillRunning = true
-        let config = FusionConfig.shared
-        let model = config.defaultModel(for: .artifacts)
-        let endpoint = config.mlxBaseURL
-        let cliPath = resolveCLIPath()
-        Task { @MainActor in
-            let result = await Task.detached(priority: .userInitiated) {
-                Self.runCLIProcess(
-                    cliPath: cliPath,
-                    args: ["generate", "--prompt", prompt, "--page", pageName, "--model", model, "--endpoint", endpoint]
-                )
-            }.value
-            if result.exitCode == 0 {
-                lastSkillOutput = result.output
-                if let penDocJSON = result.output.data(using: String.Encoding.utf8),
-                   let penDoc = try? JSONSerialization.jsonObject(with: penDocJSON) as? [String: Any],
-                   let pages = penDoc["pages"] as? [[String: Any]] {
-                    renderDocumentToCanvas(result.output)
-                    designBridgeLog.info("DesignBridge: text_to_ui rendered, \(result.output.count) chars")
-                } else {
-                    designBridgeLog.warning("DesignBridge: text_to_ui output not valid PenDocument, falling back to parse-html")
-                    if let html = try? parseHtmlFromPenOutput(result.output) {
-                        if let docJSON = await parseHtmlViaCLI(html) {
-                            renderDocumentToCanvas(docJSON)
-                        }
-                    }
-                }
-            } else {
-                designBridgeLog.error("DesignBridge: text_to_ui failed: \(result.error)")
-            }
-            isSkillRunning = false
-        }
-    }
+    func skillTextToUI(prompt: String, pageName: String = "Home") { skillState.skillTextToUI(prompt: prompt, pageName: pageName) }
 
-    func skillImageToUI(imagePath: String, hint: String, pageName: String = "Home") {
-        isSkillRunning = true
-        let prompt = DesignPrompts.dispatcher.skillImageToUIPrompt(imagePath, hint, pageName)
-        let config = FusionConfig.shared
-        let model = config.defaultModel(for: .artifacts)
-        let endpoint = config.mlxBaseURL
-        let cliPath = resolveCLIPath()
-        Task { @MainActor in
-            let result = await Task.detached(priority: .userInitiated) {
-                Self.runCLIProcess(
-                    cliPath: cliPath,
-                    args: ["generate", "--prompt", prompt, "--page", pageName, "--model", model, "--endpoint", endpoint]
-                )
-            }.value
-            if result.exitCode == 0 {
-                lastSkillOutput = result.output
-                renderDocumentToCanvas(result.output)
-                designBridgeLog.info("DesignBridge: image_to_ui rendered")
-            } else {
-                designBridgeLog.error("DesignBridge: image_to_ui failed: \(result.error)")
-            }
-            isSkillRunning = false
-        }
-    }
+    func skillImageToUI(imagePath: String, hint: String, pageName: String = "Home") { skillState.skillImageToUI(imagePath: imagePath, hint: hint, pageName: pageName) }
 
-    // Callers: DesignChatPanel.handleSkillTemplate (partial_edit/sim_panel/spec_doc/page_flow).
-    // Affected API: 4 new skill methods bridging to generate CLI with structured prompts.
-    // Data schemas: generate --prompt/--page/--model/--endpoint, PenDocument output → renderDocumentToCanvas.
-    // User instruction: "Phase 6 功能增强,立即实施"
+    func skillPartialEdit(nodesJSON: String, instruction: String) { skillState.skillPartialEdit(nodesJSON: nodesJSON, instruction: instruction) }
 
-    func skillPartialEdit(nodesJSON: String, instruction: String) {
-        isSkillRunning = true
-        let effectiveNodes: String
-        if nodesJSON.isEmpty || nodesJSON == "[]" {
-            effectiveNodes = extractSelectedNodesJSON()
-        } else {
-            effectiveNodes = nodesJSON
-        }
-        let prompt = DesignPrompts.dispatcher.skillPartialEditPrompt(effectiveNodes, instruction)
-        let config = FusionConfig.shared
-        let model = config.defaultModel(for: .artifacts)
-        let endpoint = config.mlxBaseURL
-        let cliPath = resolveCLIPath()
-        Task { @MainActor in
-            let result = await Task.detached(priority: .userInitiated) {
-                Self.runCLIProcess(
-                    cliPath: cliPath,
-                    args: ["generate", "--prompt", prompt, "--page", "PartialEdit", "--model", model, "--endpoint", endpoint],
-                    stdin: effectiveNodes
-                )
-            }.value
-            if result.exitCode == 0, !result.output.isEmpty {
-                lastSkillOutput = result.output
-                if let data = result.output.data(using: .utf8),
-                   let _ = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
-                    applyPartialEditResult(result.output)
-                    designBridgeLog.info("DesignBridge: partial_edit applied, \(result.output.count) chars")
-                } else {
-                    renderDocumentToCanvas(result.output)
-                    designBridgeLog.info("DesignBridge: partial_edit rendered as document")
-                }
-            } else {
-                designBridgeLog.error("DesignBridge: partial_edit failed: \(result.error)")
-            }
-            isSkillRunning = false
-        }
-    }
+    func skillSimPanel(prompt: String, pageName: String = "Home") { skillState.skillSimPanel(prompt: prompt, pageName: pageName) }
 
-    func skillSimPanel(prompt: String, pageName: String = "Home") {
-        isSkillRunning = true
-        let simPrompt = DesignPrompts.dispatcher.skillSimPanelPrompt(prompt)
-        let config = FusionConfig.shared
-        let model = config.defaultModel(for: .artifacts)
-        let endpoint = config.mlxBaseURL
-        let cliPath = resolveCLIPath()
-        Task { @MainActor in
-            let result = await Task.detached(priority: .userInitiated) {
-                Self.runCLIProcess(
-                    cliPath: cliPath,
-                    args: ["generate", "--prompt", simPrompt, "--page", pageName, "--model", model, "--endpoint", endpoint]
-                )
-            }.value
-            if result.exitCode == 0 {
-                lastSkillOutput = result.output
-                renderDocumentToCanvas(result.output)
-                designBridgeLog.info("DesignBridge: sim_panel rendered")
-            } else {
-                designBridgeLog.error("DesignBridge: sim_panel failed: \(result.error)")
-            }
-            isSkillRunning = false
-        }
-    }
+    func skillSpecDoc(prompt: String) { skillState.skillSpecDoc(prompt: prompt) }
 
-    func skillSpecDoc(prompt: String) {
-        isSkillRunning = true
-        let specPrompt = DesignPrompts.dispatcher.skillSpecDocPrompt(prompt)
-        let config = FusionConfig.shared
-        let model = config.defaultModel(for: .artifacts)
-        let endpoint = config.mlxBaseURL
-        let cliPath = resolveCLIPath()
-        Task { @MainActor in
-            let result = await Task.detached(priority: .userInitiated) {
-                Self.runCLIProcess(
-                    cliPath: cliPath,
-                    args: ["generate", "--prompt", specPrompt, "--page", "SpecDoc", "--model", model, "--endpoint", endpoint]
-                )
-            }.value
-            if result.exitCode == 0 {
-                lastSkillOutput = result.output
-                if let html = try? parseHtmlFromPenOutput(result.output) {
-                    renderDocumentToCanvas(html)
-                } else {
-                    renderDocumentToCanvas(result.output)
-                }
-                designBridgeLog.info("DesignBridge: spec_doc generated")
-            } else {
-                designBridgeLog.error("DesignBridge: spec_doc failed: \(result.error)")
-            }
-            isSkillRunning = false
-        }
-    }
+    func skillPageFlow(prompt: String, pageNames: [String]? = nil) { skillState.skillPageFlow(prompt: prompt, pageNames: pageNames) }
 
-    func skillPageFlow(prompt: String, pageNames: [String]? = nil) {
-        isSkillRunning = true
-        variantPages.removeAll()
-        let names = pageNames ?? DesignPrompts.dispatcher.pageFlowDefaultNames
-        let flowDesc = names.enumerated().map { idx, name in
-            DesignPrompts.dispatcher.pageFlowPerPage(idx, name, prompt)
-        }.joined(separator: "\n")
-        let flowPrompt = DesignPrompts.dispatcher.pageFlowFlowPrompt(flowDesc)
-        let config = FusionConfig.shared
-        let model = config.defaultModel(for: .artifacts)
-        let endpoint = config.mlxBaseURL
-        let cliPath = resolveCLIPath()
-        let specs: [(idx: Int, pageName: String, pagePrompt: String)] = names.enumerated().map { idx, pageName in
-            (idx, pageName, DesignPrompts.dispatcher.pageFlowPagePrompt(flowPrompt, idx, pageName))
-        }
-        Task { @MainActor in
-            for (idx, pageName, pagePrompt) in specs {
-                let result = await Task.detached(priority: .userInitiated) {
-                    Self.runCLIProcess(
-                        cliPath: cliPath,
-                        args: ["generate", "--prompt", pagePrompt, "--page", pageName, "--model", model, "--endpoint", endpoint]
-                    )
-                }.value
-                if result.exitCode == 0 {
-                    variantPages.append(VariantPage(
-                        id: "pageflow-\(idx)",
-                        title: pageName,
-                        documentJSON: result.output
-                    ))
-                    designBridgeLog.info("DesignBridge: page_flow[\(idx)] page=\(pageName) done")
-                }
-            }
-            if let first = variantPages.first {
-                renderDocumentToCanvas(first.documentJSON)
-            }
-            isSkillRunning = false
-        }
-    }
+    func skillMultiVariants(prompt: String, styles: [String]? = nil, pageName: String = "Home") { skillState.skillMultiVariants(prompt: prompt, styles: styles, pageName: pageName) }
 
-    func skillMultiVariants(prompt: String, styles: [String]? = nil, pageName: String = "Home") {
-        isSkillRunning = true
-        variantPages.removeAll()
-        let resolvedStyles = styles ?? DesignPrompts.dispatcher.multiVariantsDefaultStyles
-        let config = FusionConfig.shared
-        let model = config.defaultModel(for: .artifacts)
-        let endpoint = config.mlxBaseURL
-        let cliPath = resolveCLIPath()
-        let specs: [(idx: Int, style: String, styledPrompt: String)] = resolvedStyles.enumerated().map { idx, style in
-            (idx, style, DesignPrompts.dispatcher.multiVariantsStyledPrompt(prompt, style))
-        }
-        Task { @MainActor in
-            for (idx, style, styledPrompt) in specs {
-                let result = await Task.detached(priority: .userInitiated) {
-                    Self.runCLIProcess(
-                        cliPath: cliPath,
-                        args: ["generate", "--prompt", styledPrompt, "--page", "\(pageName)-\(style)", "--model", model, "--endpoint", endpoint]
-                    )
-                }.value
-                if result.exitCode == 0 {
-                    variantPages.append(VariantPage(
-                        id: "variant-\(idx)",
-                        title: style,
-                        documentJSON: result.output
-                    ))
-                    designBridgeLog.info("DesignBridge: multi_variants[\(idx)] style=\(style) done")
-                }
-            }
-            isSkillRunning = false
-        }
-    }
+    func skillLint(documentJSON: String? = nil, designSystem: String = "apple-hig", fix: Bool = false, dryRun: Bool = false) -> [DesignLintIssue] { skillState.skillLint(documentJSON: documentJSON, designSystem: designSystem, fix: fix, dryRun: dryRun) }
 
-    func skillLint(documentJSON: String? = nil, designSystem: String = "apple-hig", fix: Bool = false, dryRun: Bool = false) -> [DesignLintIssue] {
-        let docJSON = documentJSON ?? lastRenderedDocumentJSON ?? ""
-        guard !docJSON.isEmpty else { return [] }
-        // F-I6: 临时文件统一收口 ~/.fusion-studio/tmp/ (0700 目录 + 0600 文件 + UUID + 启动清理 LRU)。
-        // 原 BUG-11 仅修 TOCTOU (UUID+0600) 但散落系统 NSTemporaryDirectory (/tmp), 无清理无上限。
-        guard let tmpPath = FusionTempDir.shared.writeTmpFile(prefix: "fd_lint", contents: Data(docJSON.utf8)) else {
-            designBridgeLog.error("DesignBridge: lint tmp write failed")
-            return []
-        }
-        var args = ["lint", "--input", tmpPath, "--design-system", designSystem]
-        if fix { args.append("--fix") }
-        if dryRun { args.append("--dry-run") }
-        let result = runFusionDesign(args)
-        try? FileManager.default.removeItem(atPath: tmpPath)
-        guard result.exitCode == 0, !result.output.isEmpty else {
-            designBridgeLog.error("DesignBridge: lint failed: \(result.error)")
-            return []
-        }
-        if let data = result.output.data(using: .utf8),
-           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let violations = json["violations"] as? [[String: Any]] {
-            let parsed = violations.compactMap { issue -> DesignLintIssue? in
-                guard let rule = issue["rule"] as? String,
-                      let severity = issue["severity"] as? String,
-                      let message = issue["message"] as? String else { return nil }
-                return DesignLintIssue(
-                    rule: rule,
-                    severity: severity,
-                    message: message,
-                    nodeID: issue["node_id"] as? String,
-                    suggestion: issue["suggestion"] as? String
-                )
-            }
-            designBridgeLog.info("DesignBridge: lint found \(parsed.count) issues")
-            return parsed
-        }
-        return []
-    }
+    func skillDiff(oldJSON: String, newJSON: String) -> [DesignDiffEntry] { skillState.skillDiff(oldJSON: oldJSON, newJSON: newJSON) }
 
-    func skillDiff(oldJSON: String, newJSON: String) -> [DesignDiffEntry] {
-        // F-I6: 临时文件统一收口 (统一目录 + 0600 + UUID + 启动清理 LRU)。原散落系统 /tmp。
-        guard let oldPath = FusionTempDir.shared.writeTmpFile(prefix: "fd_diff_old", contents: Data(oldJSON.utf8)),
-              let newPath = FusionTempDir.shared.writeTmpFile(prefix: "fd_diff_new", contents: Data(newJSON.utf8)) else {
-            designBridgeLog.error("DesignBridge: diff tmp write failed")
-            return []
-        }
-        let result = runFusionDesign(["diff", "--old", oldPath, "--new", newPath])
-        try? FileManager.default.removeItem(atPath: oldPath)
-        try? FileManager.default.removeItem(atPath: newPath)
-        guard result.exitCode == 0 else {
-            designBridgeLog.error("DesignBridge: diff failed: \(result.error)")
-            return []
-        }
-        if let data = result.output.data(using: .utf8) {
-            let diffArr: [[String: Any]]
-            if let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let entries = obj["entries"] as? [[String: Any]] {
-                diffArr = entries
-            } else if let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
-                diffArr = arr
-            } else {
-                return []
-            }
-            let entries = diffArr.compactMap { entry -> DesignDiffEntry? in
-                let kind = entry["change_type"] as? String ?? entry["kind"] as? String ?? ""
-                let path = entry["node_id"] as? String ?? entry["path"] as? String ?? ""
-                guard !kind.isEmpty, !path.isEmpty else { return nil }
-                let oldVal: String
-                if let o = entry["old_value"] { oldVal = String(describing: o) }
-                else if let o = entry["old"] as? String { oldVal = o }
-                else { oldVal = "" }
-                let newVal: String
-                if let n = entry["new_value"] { newVal = String(describing: n) }
-                else if let n = entry["new"] as? String { newVal = n }
-                else { newVal = "" }
-                return DesignDiffEntry(kind: kind, path: path, oldValue: oldVal, newValue: newVal)
-            }
-            designBridgeLog.info("DesignBridge: diff found \(entries.count) changes")
-            return entries
-        }
-        return []
-    }
+    func skillHealthCheck(endpoint: String = FusionConfig.shared.mlxBaseURL) -> [String: Any]? { skillState.skillHealthCheck(endpoint: endpoint) }
 
-    func skillHealthCheck(endpoint: String = FusionConfig.shared.mlxBaseURL) -> [String: Any]? {
-        let result = runFusionDesign(["health", "--endpoint", endpoint])
-        guard result.exitCode == 0 else { return nil }
-        if let data = result.output.data(using: .utf8),
-           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            return json
-        }
-        return nil
-    }
+    func skillTheme(designSystem: String = "apple-hig", mode: String = "dark") -> String? { skillState.skillTheme(designSystem: designSystem, mode: mode) }
 
-    func skillTheme(designSystem: String = "apple-hig", mode: String = "dark") -> String? {
-        let result = runFusionDesign(["theme", "--design-system", designSystem, "--mode", mode])
-        guard result.exitCode == 0, !result.output.isEmpty else { return nil }
-        return result.output
-    }
+    private func parseHtmlFromPenOutput(_ output: String) -> String? { chatState.parseHtmlFromPenOutput(output) }
 
-    private func parseHtmlFromPenOutput(_ output: String) -> String? {
-        if output.contains("<html") || output.contains("<!DOCTYPE") {
-            return output
-        }
-        if output.contains("<antArtifact") {
-            let pattern = try? NSRegularExpression(pattern: "<antArtifact[^>]*>([\\s\\S]*?)</antArtifact>")
-            if let match = pattern?.firstMatch(in: output, range: NSRange(output.startIndex..., in: output)),
-               let range = Range(match.range(at: 1), in: output) {
-                return String(output[range])
-            }
-        }
-        return nil
-    }
-
-    @Published var variantPages: [VariantPage] = []
 
     func setIPCClient(_ client: IPCClient) {
         self.ipcClient = client
-        designBridgeLog.info("DesignBridge: IPCClient injected")
+        self.artifactState.ipcClient = client
+        self.versionState.ipcClient = client
+        self.fileSyncState.ipcClient = client
+        designBridgeLog.info("DesignBridge: IPCClient injected into 3 域 (artifact/version/fileSync, ARCH-1)")
     }
 
     // MARK: - Panel Convenience Methods
@@ -1367,13 +884,10 @@ class DesignBridge: ObservableObject {
         }
     }
 
-    func loadDocumentJSON(_ json: String) {
-        renderDocumentToCanvas(json)
-        designBridgeLog.info("DesignBridge: loaded document JSON (\(json.count) chars)")
-    }
+    func loadDocumentJSON(_ json: String) { pageState.loadDocumentJSON(json) }
 
     func mutateNode(nodeId: String, fill: String? = nil, stroke: String? = nil) {
-        mutateCanvasNode(nodeId, x: nil, y: nil, w: nil, h: nil, fill: fill, stroke: stroke)
+        pageState.mutateNode(nodeId: nodeId, fill: fill, stroke: stroke)
     }
 
     // MARK: - Send Design Chat
@@ -1387,13 +901,13 @@ class DesignBridge: ObservableObject {
 
         let userMsg = DesignMessage(role: "user", content: userMessage, timestamp: Date())
         messages.append(userMsg)
-        capMessages()
+        chatState.capMessages()
         isGenerating = true
         artifactSaved = false
         errorMessage = nil
-        parseState = .idle
-        parseBuffer = ""
-        rawAssistantContent = ""
+        chatState.parseState = .idle
+        chatState.parseBuffer = ""
+        chatState.rawAssistantContent = ""
         inferenceStep = "connecting"
         streamTokenCount = 0
         streamPreviewText = ""
@@ -1512,8 +1026,8 @@ class DesignBridge: ObservableObject {
                 }
 
                 assistantContent += token
-                rawAssistantContent += token
-                processStreamToken(token)
+                chatState.rawAssistantContent += token
+                chatState.processStreamToken(token)
 
                 streamTokenCount += 1
                 let previewBase = assistantContent.suffix(120)
@@ -1523,8 +1037,8 @@ class DesignBridge: ObservableObject {
                 }
             }
 
-            let finalArtifact = extractArtifactFromComplete(rawAssistantContent)
-            DesignPreviewTrace.log("sendDesignChat: stream loop done, rawLen=\(rawAssistantContent.count) tokens=\(streamTokenCount) hasAnt=\(rawAssistantContent.contains("<antArtifact")) finalArtifact=\(finalArtifact != nil)")
+            let finalArtifact = extractArtifactFromComplete(chatState.rawAssistantContent)
+            DesignPreviewTrace.log("sendDesignChat: stream loop done, rawLen=\(chatState.rawAssistantContent.count) tokens=\(streamTokenCount) hasAnt=\(chatState.rawAssistantContent.contains("<antArtifact")) finalArtifact=\(finalArtifact != nil)")
             let assistantMsg = DesignMessage(
                 role: "assistant",
                 content: assistantContent,
@@ -1532,13 +1046,13 @@ class DesignBridge: ObservableObject {
                 artifactInfo: finalArtifact
             )
             messages.append(assistantMsg)
-            capMessages()
+            chatState.capMessages()
 
             if finalArtifact != nil {
                 designBridgeLog.info("DesignBridge: artifact parsed — type=\(self.currentArtifactType), title=\(self.currentArtifactTitle), \(self.currentArtifactCode.count) chars")
                 DesignPreviewTrace.log("sendDesignChat: finalArtifact set, codeLen=\(self.currentArtifactCode.count)")
             } else {
-                let extractedCode = extractCodeBlock(from: rawAssistantContent)
+                let extractedCode = extractCodeBlock(from: chatState.rawAssistantContent)
                 if !extractedCode.isEmpty {
                     currentArtifactCode = extractedCode
                     if currentArtifactTitle.isEmpty { currentArtifactTitle = "Design" }
@@ -1546,7 +1060,7 @@ class DesignBridge: ObservableObject {
                     designBridgeLog.info("DesignBridge: code block extracted, \(extractedCode.count) chars")
                     DesignPreviewTrace.log("sendDesignChat: codeBlock fallback, len=\(extractedCode.count)")
                 } else {
-                    DesignPreviewTrace.log("sendDesignChat: NO artifact extracted, rawLen=\(rawAssistantContent.count) hasAnt=\(rawAssistantContent.contains("<antArtifact")) hasFence=\(rawAssistantContent.contains("```html"))")
+                    DesignPreviewTrace.log("sendDesignChat: NO artifact extracted, rawLen=\(chatState.rawAssistantContent.count) hasAnt=\(chatState.rawAssistantContent.contains("<antArtifact")) hasFence=\(chatState.rawAssistantContent.contains("```html"))")
                 }
             }
 
@@ -1562,13 +1076,13 @@ class DesignBridge: ObservableObject {
             if streamFinishReason == "length" {
                 errorMessage = I18nManager.shared.t(.design_warnTruncated)
                 designBridgeLog.warning("DesignBridge: stream truncated by max_tokens (finish_reason=length), partial code \(self.currentArtifactCode.count) chars")
-                DesignPreviewTrace.log("sendDesignChat: TRUNCATED by length, rawLen=\(rawAssistantContent.count) tokens=\(streamTokenCount)")
+                DesignPreviewTrace.log("sendDesignChat: TRUNCATED by length, rawLen=\(chatState.rawAssistantContent.count) tokens=\(streamTokenCount)")
             }
 
         } catch {
             errorMessage = "Generation failed: \(error.localizedDescription)"
             designBridgeLog.error("DesignBridge sendDesignChat: \(error)")
-            DesignPreviewTrace.log("sendDesignChat CAUGHT: \(error.localizedDescription) rawLen=\(rawAssistantContent.count) tokens=\(streamTokenCount)")
+            DesignPreviewTrace.log("sendDesignChat CAUGHT: \(error.localizedDescription) rawLen=\(chatState.rawAssistantContent.count) tokens=\(streamTokenCount)")
         }
 
         isGenerating = false
@@ -1577,201 +1091,22 @@ class DesignBridge: ObservableObject {
         streamPreviewText = ""
     }
 
-    // MARK: - Stream Token Parsing (antArtifact XML)
+    // MARK: - Stream Token Parsing (antArtifact XML) — Phase 2 迁 DesignChatService
 
-    private func processStreamToken(_ token: String) {
-        parseBuffer += token
+    private func processStreamToken(_ token: String) { chatState.processStreamToken(token) }
 
-        switch parseState {
-        case .idle:
-            if let range = parseBuffer.range(of: "<antArtifact") {
-                parseState = .inOpenTag
-                let afterTag = String(parseBuffer[range.upperBound...])
-                parseBuffer = afterTag
-                parseOpenTagAttributes(afterTag)
-            } else if parseBuffer.count > 500 {
-                let keep = parseBuffer.suffix(200)
-                parseBuffer = String(keep)
-            }
 
-        case .inOpenTag:
-            if let range = parseBuffer.range(of: ">") {
-                parseState = .inCode
-                currentArtifactCode = ""
-                let afterClose = String(parseBuffer[range.upperBound...])
-                parseBuffer = afterClose
-                parseOpenTagAttributes(parseBuffer)
-                currentArtifactCode += afterClose
-            }
+    // MARK: - Post-hoc Artifact Extraction — Phase 2 迁 DesignChatService
 
-        case .inCode:
-            if let range = parseBuffer.range(of: "</antArtifact>") {
-                let beforeClose = String(parseBuffer[..<range.lowerBound])
-                currentArtifactCode += beforeClose
-                parseState = .idle
-                parseBuffer = ""
-            } else {
-                if parseBuffer.count > 200 {
-                    let flushCount = parseBuffer.count - 100
-                    let flushIdx = parseBuffer.index(parseBuffer.startIndex, offsetBy: flushCount)
-                    currentArtifactCode += String(parseBuffer[..<flushIdx])
-                    parseBuffer = String(parseBuffer[flushIdx...])
-                } else {
-                    currentArtifactCode += token
-                }
-            }
+    func extractArtifactFromComplete(_ content: String) -> ArtifactParseResult? { chatState.extractArtifactFromComplete(content) }
 
-        case .inCloseTag:
-            break
-        }
-    }
-
-    private func parseOpenTagAttributes(_ text: String) {
-        if let typeRange = text.range(of: "type=\"") {
-            let start = typeRange.upperBound
-            if let end = text[start...].firstIndex(of: "\"") {
-                currentArtifactType = String(text[start..<end])
-            }
-        }
-        if let titleRange = text.range(of: "title=\"") {
-            let start = titleRange.upperBound
-            if let end = text[start...].firstIndex(of: "\"") {
-                currentArtifactTitle = String(text[start..<end])
-            }
-        }
-        if let idRange = text.range(of: "identifier=\"") {
-            let start = idRange.upperBound
-            if let end = text[start...].firstIndex(of: "\"") {
-                currentIdentifier = String(text[start..<end])
-            }
-        }
-    }
-
-    // MARK: - Post-hoc Artifact Extraction
-
-    func extractArtifactFromComplete(_ content: String) -> ArtifactParseResult? {
-        guard let openRange = content.range(of: "<antArtifact") else { return nil }
-        guard let openTagEnd = content.range(of: ">", range: openRange.upperBound..<content.endIndex) else { return nil }
-
-        let openTag = String(content[openRange.lowerBound..<openTagEnd.upperBound])
-        var code: String
-        if let closeRange = content.range(of: "</antArtifact>", range: openTagEnd.upperBound..<content.endIndex) {
-            code = String(content[openTagEnd.upperBound..<closeRange.lowerBound])
-        } else {
-            code = String(content[openTagEnd.upperBound..<content.endIndex])
-            designBridgeLog.warning("DesignBridge: antArtifact open tag found but close tag missing (likely truncated by max_tokens), extracting partial code")
-        }
-        code = code.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        var artType = "html"
-        var artTitle = "Design"
-        var artId = ""
-
-        if let typeRange = openTag.range(of: "type=\"") {
-            let start = typeRange.upperBound
-            if let end = openTag[start...].firstIndex(of: "\"") {
-                artType = String(openTag[start..<end])
-            }
-        }
-        if let titleRange = openTag.range(of: "title=\"") {
-            let start = titleRange.upperBound
-            if let end = openTag[start...].firstIndex(of: "\"") {
-                artTitle = String(openTag[start..<end])
-            }
-        }
-        if let idRange = openTag.range(of: "identifier=\"") {
-            let start = idRange.upperBound
-            if let end = openTag[start...].firstIndex(of: "\"") {
-                artId = String(openTag[start..<end])
-            }
-        }
-
-        currentArtifactType = artType
-        currentArtifactTitle = artTitle
-        currentArtifactCode = code
-        currentIdentifier = artId
-
-        return ArtifactParseResult(type: artType, title: artTitle, identifier: artId, code: code)
-    }
-
-    func extractCodeBlock(from content: String) -> String {
-        let fenceOpeners = ["```html", "```react", "```jsx", "```"]
-        for opener in fenceOpeners {
-            guard let startRange = content.range(of: opener) else { continue }
-            let codeStart = content.index(after: startRange.upperBound)
-            let codeStartAdjusted = codeStart < content.endIndex && content[codeStart] == "\n"
-                ? content.index(after: codeStart)
-                : codeStart
-            if let endRange = content.range(of: "```", range: codeStartAdjusted..<content.endIndex) {
-                return String(content[codeStartAdjusted..<endRange.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
-            }
-            return String(content[codeStartAdjusted..<content.endIndex]).trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-        return ""
-    }
+    func extractCodeBlock(from content: String) -> String { chatState.extractCodeBlock(from: content) }
 
     // MARK: - Save Artifact
 
-    func saveAsArtifact() async {
-        guard !currentArtifactCode.isEmpty else { return }
-        guard let ipc = ipcClient else {
-            errorMessage = "IPCClient not initialized"
-            return
-        }
+    func saveAsArtifact() async { await artifactState.saveAsArtifact() }
 
-        do {
-            let projectId = FusionProjectManager.shared.activeProject?.id
-            let designMetadata: [String: Any] = [
-                "component_name": currentArtifactTitle,
-                "framework": currentArtifactType,
-                "layout_type": "responsive",
-                "source": "fusion-design"
-            ]
-            if artifactId.isEmpty {
-                let result = try await ipc.artifactCreate(
-                    sessionId: sessionId,
-                    name: currentArtifactTitle.isEmpty ? "Design \(DateFormatter.shortDate.string(from: Date()))" : currentArtifactTitle,
-                    type: currentArtifactType,
-                    kind: kindForType(currentArtifactType),
-                    content: currentArtifactCode,
-                    projectId: projectId,
-                    metadata: designMetadata
-                )
-                if let id = result["id"] as? String { artifactId = id }
-            } else {
-                _ = try await ipc.artifactUpdate(
-                    artifactId: artifactId,
-                    content: currentArtifactCode,
-                    changeLog: "Updated via Design",
-                    projectId: projectId,
-                    metadata: designMetadata
-                )
-            }
-            artifactSaved = true
-            if pages.indices.contains(currentPageIndex) {
-                pages[currentPageIndex].artifactId = artifactId
-                pages[currentPageIndex].code = currentArtifactCode
-                pages[currentPageIndex].title = currentArtifactTitle
-                pages[currentPageIndex].type = currentArtifactType
-            } else if !artifactId.isEmpty {
-                let page = DesignPage(artifactId: artifactId, title: currentArtifactTitle, type: currentArtifactType, code: currentArtifactCode)
-                pages.append(page)
-                currentPageIndex = pages.count - 1
-            }
-            designBridgeLog.info("DesignBridge: artifact saved — \(self.currentArtifactTitle), id=\(self.artifactId)")
-        } catch {
-            errorMessage = "Save failed: \(error.localizedDescription)"
-            designBridgeLog.error("DesignBridge saveAsArtifact: \(error)")
-        }
-    }
-
-    func kindForType(_ type: String) -> String {
-        switch type.lowercased() {
-        case "html", "react": return "app"
-        case "markdown": return "document"
-        default: return "code"
-        }
-    }
+    func kindForType(_ type: String) -> String { artifactState.kindForType(type) }
 
     // MARK: - Utility
 
@@ -1798,10 +1133,10 @@ class DesignBridge: ObservableObject {
         pages = []
         currentPageIndex = -1
         errorMessage = nil
-        parseState = .idle
-        parseBuffer = ""
-        rawAssistantContent = ""
-        sessionId = "design-\(UUID().uuidString.prefix(8))"
+        chatState.parseState = .idle
+        chatState.parseBuffer = ""
+        chatState.rawAssistantContent = ""
+        artifactState.sessionId = "design-\(UUID().uuidString.prefix(8))"
         inferenceStep = ""
         streamTokenCount = 0
         streamPreviewText = ""
@@ -1809,35 +1144,13 @@ class DesignBridge: ObservableObject {
 
     // MARK: - Multi-Page Management
 
-    func addPage() {
-        let page = DesignPage(title: "Page \(pages.count + 1)")
-        pages.append(page)
-        switchToPage(at: pages.count - 1)
-        designBridgeLog.info("DesignBridge: added page '\(page.title)', total=\(self.pages.count)")
-    }
+    func addPage() { pageState.addPage() }
 
-    func deletePage(at index: Int) {
-        guard pages.indices.contains(index) else { return }
-        let wasCurrent = index == currentPageIndex
-        pages.remove(at: index)
-        if pages.isEmpty {
-            currentPageIndex = -1
-            currentArtifactCode = ""
-            currentArtifactTitle = ""
-            currentArtifactType = "html"
-            artifactId = ""
-        } else if wasCurrent {
-            let newIndex = min(index, pages.count - 1)
-            switchToPage(at: newIndex)
-        } else if currentPageIndex > index {
-            currentPageIndex -= 1
-        }
-        designBridgeLog.info("DesignBridge: deleted page at \(index), remaining=\(self.pages.count)")
-    }
+    func deletePage(at index: Int) { pageState.deletePage(at: index) }
 
     func switchToPage(at index: Int) {
         guard pages.indices.contains(index) else { return }
-        saveCurrentPageState()
+        pageState.saveCurrentPageState()
         currentPageIndex = index
         let page = pages[index]
         currentArtifactCode = page.code
@@ -1848,41 +1161,14 @@ class DesignBridge: ObservableObject {
         designBridgeLog.info("DesignBridge: switched to page '\(page.title)' at \(index)")
     }
 
-    func renamePage(at index: Int, newTitle: String) {
-        guard pages.indices.contains(index) else { return }
-        pages[index].title = newTitle
-        if index == currentPageIndex {
-            currentArtifactTitle = newTitle
-        }
-        designBridgeLog.info("DesignBridge: renamed page at \(index) to '\(newTitle)'")
-    }
+    func renamePage(at index: Int, newTitle: String) { pageState.renamePage(at: index, newTitle: newTitle) }
 
-    func saveCurrentPageState() {
-        guard pages.indices.contains(currentPageIndex) else { return }
-        pages[currentPageIndex].code = currentArtifactCode
-        pages[currentPageIndex].title = currentArtifactTitle
-        pages[currentPageIndex].type = currentArtifactType
-        pages[currentPageIndex].artifactId = artifactId
-    }
+    func saveCurrentPageState() { pageState.saveCurrentPageState() }
 
     // MARK: - Version History
 
-    func loadVersionHistory() async {
-        guard !artifactId.isEmpty, let ipc = ipcClient else { return }
-        isLoadingHistory = true
-        do {
-            let result = try await ipc.artifactVersionList(artifactId: artifactId)
-            if let versions = result["versions"] as? [[String: Any]] {
-                versionHistory = versions
-            } else if let versions = result["data"] as? [[String: Any]] {
-                versionHistory = versions
-            }
-            designBridgeLog.info("DesignBridge: loaded \(self.versionHistory.count) versions for \(self.artifactId)")
-        } catch {
-            designBridgeLog.error("DesignBridge loadVersionHistory: \(error)")
-        }
-        isLoadingHistory = false
-    }
+    // ARCH-1 Phase 7: 行为迁 DesignVersionService。rollbackToVersion 留本类 (跨域协调器)。
+    func loadVersionHistory() async { await versionState.loadVersionHistory() }
 
     func rollbackToVersion(_ targetVersion: Int) async {
         guard !artifactId.isEmpty, let ipc = ipcClient else { return }
@@ -1901,42 +1187,18 @@ class DesignBridge: ObservableObject {
         }
     }
 
-    @Published var versionDiffEntries: [DesignDiffEntry] = []
-    @Published var isDiffing: Bool = false
 
-    func diffVersions(oldJSON: String, newJSON: String) {
-        isDiffing = true
-        versionDiffEntries = skillDiff(oldJSON: oldJSON, newJSON: newJSON)
-        isDiffing = false
-        designBridgeLog.info("DesignBridge: version diff completed, \(self.versionDiffEntries.count) changes")
-    }
+    // ARCH-1 Phase 7: 行为迁 DesignVersionService。
+    func diffVersions(oldJSON: String, newJSON: String) { versionState.diffVersions(oldJSON: oldJSON, newJSON: newJSON) }
 
-    @Published var activeTheme: String = "dark"
-    @Published var activeDesignSystem: String = "apple-hig"
 
-    func switchTheme(_ mode: String) {
-        activeTheme = mode
-        if let css = skillTheme(designSystem: activeDesignSystem, mode: mode) {
-            applyDesignTokensToCanvas(css)
-            designBridgeLog.info("DesignBridge: switched theme to \(mode)")
-        }
-    }
+    // ARCH-1 Phase 7: 行为迁 DesignThemeService。
+    func switchTheme(_ mode: String) { themeState.switchTheme(mode) }
 
-    func switchDesignSystem(_ systemId: String) {
-        activeDesignSystem = systemId
-        let captured = systemId
-        Task { @MainActor in
-            await applyDesignTokensToCanvas(systemId: captured)
-        }
-        designBridgeLog.info("DesignBridge: switched design system to \(systemId)")
-    }
+    func switchDesignSystem(_ systemId: String) { themeState.switchDesignSystem(systemId) }
 
-    func copyCurrentCode() {
-        guard !currentArtifactCode.isEmpty else { return }
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(currentArtifactCode, forType: .string)
-        designBridgeLog.info("DesignBridge: code copied to clipboard")
-    }
+    // ARCH-1 Phase 8: 行为迁 DesignExportService。
+    func copyCurrentCode() { exportState.copyCurrentCode() }
 
     // MARK: - Design RAG
 
@@ -1972,376 +1234,47 @@ class DesignBridge: ObservableObject {
         return nil
     }
 
-    func ingestDesignTokens() async {
-        guard let ipc = ipcClient else { return }
-        let _ = StudioTheme.dark
-        let tokenDoc = """
-        # Fusion Studio Design Tokens
-        ## Colors
-        - accent: #007AFF
-        - accentDestructive: red
-        - greenDot: success green
-        - amberDot: warning amber
-        - redDot: error red
-        ## Spacing (4pt grid)
-        - XS: 4pt, S: 8pt, M: 12pt, L: 16pt, XL: 24pt, 2XL: 32pt
-        ## Typography
-        - caption: 12pt, footnote: 13pt, small: 14pt, text: 15pt, body: 16pt, title: 19pt, headline: 22pt, largeTitle: 30pt
-        ## Radius
-        - small: 8pt, default: 12pt, large: 16pt
-        ## Animation
-        - fast: 0.15s, normal: 0.25s, slow: 0.35s
-        """
-        let scope = "design:tokens"
-        do {
-            _ = try await ipc.knowledgeIngest(content: tokenDoc, scope: scope, metadata: ["type": "design_tokens"])
-            designBridgeLog.info("DesignBridge: design tokens ingested to RAG")
-        } catch {
-            designBridgeLog.warning("DesignBridge token ingest failed: \(error.localizedDescription)")
-        }
-    }
+    // ARCH-1 Phase 7: 行为迁 DesignThemeService。
+    func ingestDesignTokens() async { await themeState.ingestDesignTokens() }
 
     // MARK: - SwiftUI Export
 
-    @Published var exportedSwiftUICode: String = ""
-    @Published var isExportingSwiftUI: Bool = false
 
-    func exportAsSwiftUI() async {
-        guard !currentArtifactCode.isEmpty else { return }
-        guard ipcClient != nil else {
-            errorMessage = "IPCClient not initialized"
-            return
-        }
+    // MARK: - SwiftUI Export
 
-        isExportingSwiftUI = true
-        let request = SwiftUIExporter.buildConversionRequest(
-            htmlCode: currentArtifactCode,
-            title: currentArtifactTitle
-        )
+    // ARCH-1 Phase 8: 行为迁 DesignExportService。
+    func exportAsSwiftUI() async { await exportState.exportAsSwiftUI() }
 
-        let config = FusionConfig.shared
-        let baseURL = config.mlxBaseURL
-        let apiKey = config.mlxResolvedApiKey
-        guard let url = URL(string: "\(baseURL)/v1/chat/completions") else {
-            errorMessage = "Invalid MLX URL"
-            isExportingSwiftUI = false
-            return
-        }
-
-        var urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = "POST"
-        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        if !apiKey.isEmpty {
-            urlRequest.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        }
-
-        let body: [String: Any] = [
-            "model": config.defaultModel(for: .code),
-            "messages": [
-                ["role": "user", "content": request.prompt]
-            ],
-            "temperature": 0.3,
-            "max_tokens": 4096,
-            "stream": false
-        ]
-
-        do {
-            urlRequest.httpBody = try JSONSerialization.data(withJSONObject: body)
-            let (data, _) = try await URLSession.shared.data(for: urlRequest)
-            if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let choices = json["choices"] as? [[String: Any]],
-               let message = choices.first?["message"] as? [String: Any],
-               let content = message["content"] as? String {
-                exportedSwiftUICode = SwiftUIExporter.extractSwiftUICode(from: content)
-                designBridgeLog.info("DesignBridge: SwiftUI export done, \(self.exportedSwiftUICode.count) chars")
-            }
-        } catch {
-            errorMessage = "SwiftUI export failed: \(error.localizedDescription)"
-            designBridgeLog.error("DesignBridge exportAsSwiftUI: \(error)")
-        }
-        isExportingSwiftUI = false
-    }
-
-    func copyExportedSwiftUI() {
-        guard !exportedSwiftUICode.isEmpty else { return }
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(exportedSwiftUICode, forType: .string)
-        designBridgeLog.info("DesignBridge: SwiftUI code copied")
-    }
+    func copyExportedSwiftUI() { exportState.copyExportedSwiftUI() }
 
     // MARK: - Codegen Export (HTML/React/Tailwind via CLI)
 
-    @Published var exportedCodegenCode: String = ""
-    @Published var isExportingCodegen: Bool = false
+    func exportAsCodegen(target: String, componentName: String) async { await exportState.exportAsCodegen(target: target, componentName: componentName) }
 
-    func exportAsCodegen(target: String, componentName: String) async {
-        guard let documentJSON = lastRenderedDocumentJSON, !documentJSON.isEmpty else {
-            errorMessage = "No document to export"
-            return
-        }
-        isExportingCodegen = true
-        // ERR-6 (审计product-0905 P1): runFusionDesign 同步 Process 阻塞, 在 @MainActor class 直接调 = 卡 UI。
-        // 移 Task.detached 后台跑: MainActor 预解析 cliPath, nonisolated static runCLIProcess 跑 Process, 回填 @Published 在 MainActor。
-        let cliPath = resolveCLIPath()
-        guard !cliPath.isEmpty else {
-            errorMessage = "CLI not found"
-            isExportingCodegen = false
-            return
-        }
-        let result = await Task.detached(priority: .userInitiated) {
-            Self.runCLIProcess(
-                cliPath: cliPath,
-                args: ["codegen", "--target", target, "--component", componentName],
-                stdin: documentJSON
-            )
-        }.value
-        if result.exitCode == 0 {
-            exportedCodegenCode = result.output
-            designBridgeLog.info("DesignBridge: codegen export done, target=\(target), \(result.output.count) chars")
-        } else {
-            errorMessage = "codegen failed: \(result.error)"
-            designBridgeLog.error("DesignBridge exportAsCodegen: \(result.error)")
-        }
-        isExportingCodegen = false
-    }
-
-    func copyExportedCodegen() {
-        guard !exportedCodegenCode.isEmpty else { return }
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(exportedCodegenCode, forType: .string)
-        designBridgeLog.info("DesignBridge: codegen code copied")
-    }
+    func copyExportedCodegen() { exportState.copyExportedCodegen() }
 
     // MARK: - Batch Export (SVG/HTML/JSON via CLI)
 
-    @Published var isBatchExporting: Bool = false
-    @Published var batchExportResult: String = ""
-
-    func batchExportPages(format: String, to outputDir: String) async {
-        guard let documentJSON = lastRenderedDocumentJSON, !documentJSON.isEmpty else {
-            errorMessage = "No document to export"
-            return
-        }
-        isBatchExporting = true
-        batchExportResult = ""
-        // F-I6: 临时文件统一收口 (统一目录 + 0600 + UUID + 启动清理 LRU)。原散落系统 /tmp。
-        guard let tmpPath = FusionTempDir.shared.writeTmpFile(prefix: "fd_export", contents: Data(documentJSON.utf8)) else {
-            errorMessage = "export tmp write failed"
-            isBatchExporting = false
-            return
-        }
-        // ERR-6 (审计product-0905 P1): 同步 Process 阻塞 MainActor, 移 Task.detached 后台跑。
-        let cliPath = resolveCLIPath()
-        guard !cliPath.isEmpty else {
-            errorMessage = "CLI not found"
-            try? FileManager.default.removeItem(atPath: tmpPath)
-            isBatchExporting = false
-            return
-        }
-        let result = await Task.detached(priority: .userInitiated) {
-            Self.runCLIProcess(
-                cliPath: cliPath,
-                args: ["export", "--input", tmpPath, "--format", format, "--out", outputDir]
-            )
-        }.value
-        try? FileManager.default.removeItem(atPath: tmpPath)
-        if result.exitCode == 0 {
-            batchExportResult = result.output
-            designBridgeLog.info("DesignBridge: batch export done, format=\(format), result=\(result.output)")
-        } else {
-            errorMessage = "export failed: \(result.error)"
-            designBridgeLog.error("DesignBridge batchExportPages: \(result.error)")
-        }
-        isBatchExporting = false
-    }
+    func batchExportPages(format: String, to outputDir: String) async { await exportState.batchExportPages(format: format, to: outputDir) }
 
     // MARK: - Artifact ↔ File Sync
 
-    @Published var syncFolderPath: String = ""
-    @Published var isFileSyncEnabled: Bool = false
+    // ARCH-1 Phase 8: 行为迁 DesignFileSyncService。
+    func enableFileSync(to folderPath: String) { fileSyncState.enableFileSync(to: folderPath) }
 
-    func enableFileSync(to folderPath: String) {
-        syncFolderPath = folderPath
-        isFileSyncEnabled = true
-        designBridgeLog.info("DesignBridge: file sync enabled to \(folderPath)")
-    }
+    func disableFileSync() { fileSyncState.disableFileSync() }
 
-    func disableFileSync() {
-        isFileSyncEnabled = false
-        syncFolderPath = ""
-        designBridgeLog.info("DesignBridge: file sync disabled")
-    }
+    func syncArtifactToFile() async { await fileSyncState.syncArtifactToFile() }
 
-    func syncArtifactToFile() async {
-        guard isFileSyncEnabled, !syncFolderPath.isEmpty, !currentArtifactCode.isEmpty else {
-            designBridgeLog.warning("DesignBridge: syncArtifactToFile — preconditions not met")
-            return
-        }
+    func syncFileToArtifact() async { await fileSyncState.syncFileToArtifact() }
 
-        let ext = currentArtifactType == "react" ? "jsx" : currentArtifactType
-        let fileName = currentArtifactTitle.isEmpty ? "design.\(ext)" : "\(sanitizeFileName(currentArtifactTitle)).\(ext)"
-        let filePath = (syncFolderPath as NSString).appendingPathComponent(fileName)
-        // 审计0827 #2: LLM 产物 fileName 经 syncFolderPath 拼 — 防 LLM 注入 ../ 或 symlink 越界写白名单外, validateFilePath 拒则跳过同步。
-        guard SecurityManager.shared.validateFilePath(filePath) else {
-            designBridgeLog.warning("DesignBridge: syncArtifactToFile reject path outside whitelist — \(filePath, privacy: .public)")
-            return
-        }
-
-        if let ipc = ipcClient, !artifactId.isEmpty {
-            do {
-                let result = try await ipc.artifactSync(artifactId: artifactId, filePath: filePath, direction: "artifact_to_file")
-                designBridgeLog.info("DesignBridge: artifact synced via API — \(result)")
-            } catch {
-                designBridgeLog.warning("DesignBridge: API sync failed, falling back to file write — \(error.localizedDescription)")
-                do {
-                    try currentArtifactCode.write(toFile: filePath, atomically: true, encoding: .utf8)
-                    designBridgeLog.info("DesignBridge: artifact synced to file \(filePath) (fallback)")
-                } catch {
-                    designBridgeLog.error("DesignBridge: file sync failed — \(error.localizedDescription)")
-                }
-            }
-        } else {
-            do {
-                try currentArtifactCode.write(toFile: filePath, atomically: true, encoding: .utf8)
-                designBridgeLog.info("DesignBridge: artifact synced to file \(filePath)")
-            } catch {
-                designBridgeLog.error("DesignBridge: file sync failed — \(error.localizedDescription)")
-            }
-        }
-    }
-
-    func syncFileToArtifact() async {
-        guard isFileSyncEnabled, !syncFolderPath.isEmpty else {
-            designBridgeLog.warning("DesignBridge: syncFileToArtifact — preconditions not met")
-            return
-        }
-
-        let ext = currentArtifactType == "react" ? "jsx" : currentArtifactType
-        let fileName = currentArtifactTitle.isEmpty ? "design.\(ext)" : "\(sanitizeFileName(currentArtifactTitle)).\(ext)"
-        let filePath = (syncFolderPath as NSString).appendingPathComponent(fileName)
-        // 审计0827 #2: 防 LLM 注入 ../ 或 symlink 越界读白名单外文件, validateFilePath 拒则跳过同步。
-        guard SecurityManager.shared.validateFilePath(filePath) else {
-            designBridgeLog.warning("DesignBridge: syncFileToArtifact reject path outside whitelist — \(filePath, privacy: .public)")
-            return
-        }
-
-        if let ipc = ipcClient, !artifactId.isEmpty {
-            do {
-                let result = try await ipc.artifactSync(artifactId: artifactId, filePath: filePath, direction: "file_to_artifact")
-                if let content = result["content"] as? String, content != currentArtifactCode {
-                    currentArtifactCode = content
-                    artifactSaved = false
-                    designBridgeLog.info("DesignBridge: file synced to artifact via API (\(content.count) chars)")
-                }
-                return
-            } catch {
-                designBridgeLog.warning("DesignBridge: API sync failed, falling back to file read — \(error.localizedDescription)")
-            }
-        }
-
-        guard FileManager.default.fileExists(atPath: filePath) else {
-            designBridgeLog.info("DesignBridge: no file to sync at \(filePath)")
-            return
-        }
-
-        do {
-            let content = try String(contentsOfFile: filePath, encoding: .utf8)
-            if content != currentArtifactCode {
-                currentArtifactCode = content
-                artifactSaved = false
-                designBridgeLog.info("DesignBridge: file synced to artifact (\(content.count) chars)")
-            }
-        } catch {
-            designBridgeLog.error("DesignBridge: file→artifact sync failed — \(error.localizedDescription)")
-        }
-    }
-
-    func sanitizeFileName(_ name: String) -> String {
-        let invalidChars = CharacterSet(charactersIn: "/\\:*?\"<>|")
-        return name.components(separatedBy: invalidChars).joined(separator: "_")
-    }
-
-    // MARK: - Screenshot Import (requires fusion-mlx VLM model, e.g. Qwen2.5-VL)
-
-    @Published var isImportingScreenshot: Bool = false
-
-    func importScreenshot(_ image: NSImage) async {
-        guard let message = ScreenshotImporter.buildImportRequest(image: image) else {
-            errorMessage = "Failed to process screenshot image"
-            return
-        }
-
-        isImportingScreenshot = true
-        designBridgeLog.info("DesignBridge: starting screenshot import")
-
-        let config = FusionConfig.shared
-        let baseURL = config.mlxBaseURL
-        let apiKey = config.mlxResolvedApiKey
-        guard let url = URL(string: "\(baseURL)/v1/chat/completions") else {
-            errorMessage = "Invalid MLX URL"
-            isImportingScreenshot = false
-            return
-        }
-
-        var urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = "POST"
-        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        if !apiKey.isEmpty {
-            urlRequest.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        }
-
-        let body: [String: Any] = [
-            "model": config.defaultModel(for: .code),
-            "messages": [message],
-            "temperature": 0.3,
-            "max_tokens": 4096,
-            "stream": false
-        ]
-
-        do {
-            urlRequest.httpBody = try JSONSerialization.data(withJSONObject: body)
-            let (data, response) = try await URLSession.shared.data(for: urlRequest)
-            guard let httpResp = response as? HTTPURLResponse else {
-                throw NSError(domain: "DesignBridge", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])
-            }
-
-            if httpResp.statusCode == 422 {
-                errorMessage = "Screenshot import requires a VLM model (e.g. Qwen2.5-VL). Current model does not support image input."
-                designBridgeLog.warning("DesignBridge: screenshot import — model does not support image input (422)")
-            } else if httpResp.statusCode == 200 {
-                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let choices = json["choices"] as? [[String: Any]],
-                   let content = choices.first?["message"] as? [String: Any],
-                   let text = content["content"] as? String {
-                    let result = ScreenshotImporter.parseImportResult(text)
-                    currentArtifactCode = result.extractedHTML
-                    currentArtifactType = "html"
-                    currentArtifactTitle = "Imported Screenshot"
-                    artifactSaved = false
-                    designBridgeLog.info("DesignBridge: screenshot imported — \(result.extractedHTML.count) chars, confidence=\(result.confidence)")
-                }
-            } else {
-                // BUG-13: 原始 body 原样插 UI 可泄密钥 — 服务端错误体可回显请求头 (Authorization/Bearer/api_key),
-                // .prefix(200) 限长拦不住密钥子串。渲染前过 sanitizeErrorBody 剥敏感子串。
-                let rawBody = String(data: data, encoding: .utf8) ?? "unknown"
-                let safeBody = Self.sanitizeErrorBody(rawBody)
-                errorMessage = "Screenshot import failed: HTTP \(httpResp.statusCode) — \(safeBody.prefix(200))"
-                designBridgeLog.error("DesignBridge: screenshot import failed — HTTP \(httpResp.statusCode)")
-            }
-        } catch {
-            errorMessage = "Screenshot import error: \(error.localizedDescription)"
-            designBridgeLog.error("DesignBridge importScreenshot: \(error)")
-        }
-
-        isImportingScreenshot = false
-    }
-
-    // FUNC-10/11 (审计product-0905 P3): designHealthCheck + sendMultimodalMessage 已删 — 0 调用方死代码。
+    func sanitizeFileName(_ name: String) -> String { artifactState.sanitizeFileName(name) }
+    func importScreenshot(_ image: NSImage) async { await artifactState.importScreenshot(image) }
     // designHealth/isDesignHealthy @Published 同删 (0 读)。
 
 }
 
-private extension DateFormatter {
+extension DateFormatter {
     static let shortDate: DateFormatter = {
         let f = DateFormatter()
         f.dateStyle = .short
