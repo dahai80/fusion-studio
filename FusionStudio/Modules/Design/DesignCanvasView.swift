@@ -197,6 +197,16 @@ struct DesignCanvasView: NSViewRepresentable {
         )
         userContentController.addUserScript(bridgeScript)
         config.userContentController = userContentController
+        // SEC-8 (审计product-0906 P3): allowFileAccessFromFileURLs=true 仅因 wasm ES 模块
+        //   `import './fd_host_web.js'` + `init('./fd_host_web_bg.wasm')` 从 file:// baseURL
+        //   fetch 同级 bundle 资源 (WKWebView 默认禁 file:// fetch, 无此 flag 模块加载失败)。
+        //   安全前提 (三层约束, 非 blank check):
+        //   1) baseURL = wasmBundleURL().deletingPathPathComponent() = app bundle 内路径 (loadWasmHTML:293),
+        //      非 LLM 产物。LLM HTML 走 DesignPreviewView (fileAccess=false, baseURL=nil, sanitized)。
+        //   2) decidePolicyFor navigationAction 拒一切非 file:// 导航 (Coordinator:562, F-sec-2),
+        //      被妥协 wasm 脚本无法跳外链 exfil。
+        //   3) 本视图加载内容 = 内联 HTML (loadHTMLString) + bundled wasm/glue, 无用户可控 URL 注入面。
+        //   移除 flag = 画布碎; 保留 flag + 上述约束 = 可接受风险。
         config.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
 
         let webView = WKWebView(frame: .zero, configuration: config)
