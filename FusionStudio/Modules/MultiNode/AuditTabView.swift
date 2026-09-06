@@ -64,7 +64,11 @@ struct AuditTabView: View {
     }
 
     private func reload() {
-        records = ClusterAuditor.shared.tail(limit: 200)
-        auditLog.info("reload loaded=\(records.count, privacy: .public)")
+        // ARCH-7 (审计product-0906 P2): 读盘移至 Task.detached (tailAsync), 避免主线程同步 Data(contentsOf:)。
+        Task {
+            let loaded = await ClusterAuditor.shared.tailAsync(limit: 200)
+            records = loaded
+            auditLog.info("reload loaded=\(loaded.count, privacy: .public)")
+        }
     }
 }
