@@ -1461,13 +1461,10 @@ class DesignBridge: ObservableObject {
         }
     }
 
-    func loadDocumentJSON(_ json: String) {
-        renderDocumentToCanvas(json)
-        designBridgeLog.info("DesignBridge: loaded document JSON (\(json.count) chars)")
-    }
+    func loadDocumentJSON(_ json: String) { pageState.loadDocumentJSON(json) }
 
     func mutateNode(nodeId: String, fill: String? = nil, stroke: String? = nil) {
-        mutateCanvasNode(nodeId, x: nil, y: nil, w: nil, h: nil, fill: fill, stroke: stroke)
+        pageState.mutateNode(nodeId: nodeId, fill: fill, stroke: stroke)
     }
 
     // MARK: - Send Design Chat
@@ -1724,35 +1721,13 @@ class DesignBridge: ObservableObject {
 
     // MARK: - Multi-Page Management
 
-    func addPage() {
-        let page = DesignPage(title: "Page \(pages.count + 1)")
-        pages.append(page)
-        switchToPage(at: pages.count - 1)
-        designBridgeLog.info("DesignBridge: added page '\(page.title)', total=\(self.pages.count)")
-    }
+    func addPage() { pageState.addPage() }
 
-    func deletePage(at index: Int) {
-        guard pages.indices.contains(index) else { return }
-        let wasCurrent = index == currentPageIndex
-        pages.remove(at: index)
-        if pages.isEmpty {
-            currentPageIndex = -1
-            currentArtifactCode = ""
-            currentArtifactTitle = ""
-            currentArtifactType = "html"
-            artifactId = ""
-        } else if wasCurrent {
-            let newIndex = min(index, pages.count - 1)
-            switchToPage(at: newIndex)
-        } else if currentPageIndex > index {
-            currentPageIndex -= 1
-        }
-        designBridgeLog.info("DesignBridge: deleted page at \(index), remaining=\(self.pages.count)")
-    }
+    func deletePage(at index: Int) { pageState.deletePage(at: index) }
 
     func switchToPage(at index: Int) {
         guard pages.indices.contains(index) else { return }
-        saveCurrentPageState()
+        pageState.saveCurrentPageState()
         currentPageIndex = index
         let page = pages[index]
         currentArtifactCode = page.code
@@ -1763,22 +1738,9 @@ class DesignBridge: ObservableObject {
         designBridgeLog.info("DesignBridge: switched to page '\(page.title)' at \(index)")
     }
 
-    func renamePage(at index: Int, newTitle: String) {
-        guard pages.indices.contains(index) else { return }
-        pages[index].title = newTitle
-        if index == currentPageIndex {
-            currentArtifactTitle = newTitle
-        }
-        designBridgeLog.info("DesignBridge: renamed page at \(index) to '\(newTitle)'")
-    }
+    func renamePage(at index: Int, newTitle: String) { pageState.renamePage(at: index, newTitle: newTitle) }
 
-    func saveCurrentPageState() {
-        guard pages.indices.contains(currentPageIndex) else { return }
-        pages[currentPageIndex].code = currentArtifactCode
-        pages[currentPageIndex].title = currentArtifactTitle
-        pages[currentPageIndex].type = currentArtifactType
-        pages[currentPageIndex].artifactId = artifactId
-    }
+    func saveCurrentPageState() { pageState.saveCurrentPageState() }
 
     // MARK: - Version History
 
