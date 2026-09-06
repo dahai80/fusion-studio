@@ -53,8 +53,11 @@ final class DesignArtifactState: ObservableObject {
     @Published var artifactSaved: Bool = false
     @Published var artifactId: String = ""
     @Published var isImportingScreenshot: Bool = false
+    // ARCH-1 Phase 3: sessionId 迁本域 (artifact 持久化会话标识, saveAsArtifact 唯一读, clearConversation 重置)。
+    var sessionId: String = "design-\(UUID().uuidString.prefix(8))"
     // ARCH-1: Artifact 行为 (saveAsArtifact/kindForType/importScreenshot/sanitizeFileName Phase 3 迁入)。
     //   saveAsArtifact 读 ipcClient (artifact 持久化 RPC) → 注入。
+    //   跨域写 (page: pages/currentPageIndex; chat: errorMessage) 经 self.bridge?.X reach-through。
     var ipcClient: IPCClient?
     weak var bridge: DesignBridge?
     init() {}

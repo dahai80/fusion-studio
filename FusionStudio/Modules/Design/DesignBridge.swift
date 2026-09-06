@@ -321,7 +321,6 @@ class DesignBridge: ObservableObject {
     }
 
     private var ipcClient: IPCClient?
-    private var sessionId: String = "design-\(UUID().uuidString.prefix(8))"
     weak var canvasWebView: WKWebView?
     private var codeWatchTimer: Timer?
 
@@ -1685,66 +1684,9 @@ class DesignBridge: ObservableObject {
 
     // MARK: - Save Artifact
 
-    func saveAsArtifact() async {
-        guard !currentArtifactCode.isEmpty else { return }
-        guard let ipc = ipcClient else {
-            errorMessage = "IPCClient not initialized"
-            return
-        }
+    func saveAsArtifact() async { await artifactState.saveAsArtifact() }
 
-        do {
-            let projectId = FusionProjectManager.shared.activeProject?.id
-            let designMetadata: [String: Any] = [
-                "component_name": currentArtifactTitle,
-                "framework": currentArtifactType,
-                "layout_type": "responsive",
-                "source": "fusion-design"
-            ]
-            if artifactId.isEmpty {
-                let result = try await ipc.artifactCreate(
-                    sessionId: sessionId,
-                    name: currentArtifactTitle.isEmpty ? "Design \(DateFormatter.shortDate.string(from: Date()))" : currentArtifactTitle,
-                    type: currentArtifactType,
-                    kind: kindForType(currentArtifactType),
-                    content: currentArtifactCode,
-                    projectId: projectId,
-                    metadata: designMetadata
-                )
-                if let id = result["id"] as? String { artifactId = id }
-            } else {
-                _ = try await ipc.artifactUpdate(
-                    artifactId: artifactId,
-                    content: currentArtifactCode,
-                    changeLog: "Updated via Design",
-                    projectId: projectId,
-                    metadata: designMetadata
-                )
-            }
-            artifactSaved = true
-            if pages.indices.contains(currentPageIndex) {
-                pages[currentPageIndex].artifactId = artifactId
-                pages[currentPageIndex].code = currentArtifactCode
-                pages[currentPageIndex].title = currentArtifactTitle
-                pages[currentPageIndex].type = currentArtifactType
-            } else if !artifactId.isEmpty {
-                let page = DesignPage(artifactId: artifactId, title: currentArtifactTitle, type: currentArtifactType, code: currentArtifactCode)
-                pages.append(page)
-                currentPageIndex = pages.count - 1
-            }
-            designBridgeLog.info("DesignBridge: artifact saved — \(self.currentArtifactTitle), id=\(self.artifactId)")
-        } catch {
-            errorMessage = "Save failed: \(error.localizedDescription)"
-            designBridgeLog.error("DesignBridge saveAsArtifact: \(error)")
-        }
-    }
-
-    func kindForType(_ type: String) -> String {
-        switch type.lowercased() {
-        case "html", "react": return "app"
-        case "markdown": return "document"
-        default: return "code"
-        }
-    }
+    func kindForType(_ type: String) -> String { artifactState.kindForType(type) }
 
     // MARK: - Utility
 
@@ -1774,7 +1716,7 @@ class DesignBridge: ObservableObject {
         chatState.parseState = .idle
         chatState.parseBuffer = ""
         chatState.rawAssistantContent = ""
-        sessionId = "design-\(UUID().uuidString.prefix(8))"
+        artifactState.sessionId = "design-\(UUID().uuidString.prefix(8))"
         inferenceStep = ""
         streamTokenCount = 0
         streamPreviewText = ""
@@ -2217,91 +2159,13 @@ class DesignBridge: ObservableObject {
         }
     }
 
-    func sanitizeFileName(_ name: String) -> String {
-        let invalidChars = CharacterSet(charactersIn: "/\\:*?\"<>|")
-        return name.components(separatedBy: invalidChars).joined(separator: "_")
-    }
-
-    // MARK: - Screenshot Import (requires fusion-mlx VLM model, e.g. Qwen2.5-VL)
-
-
-    func importScreenshot(_ image: NSImage) async {
-        guard let message = ScreenshotImporter.buildImportRequest(image: image) else {
-            errorMessage = "Failed to process screenshot image"
-            return
-        }
-
-        isImportingScreenshot = true
-        designBridgeLog.info("DesignBridge: starting screenshot import")
-
-        let config = FusionConfig.shared
-        let baseURL = config.mlxBaseURL
-        let apiKey = config.mlxResolvedApiKey
-        guard let url = URL(string: "\(baseURL)/v1/chat/completions") else {
-            errorMessage = "Invalid MLX URL"
-            isImportingScreenshot = false
-            return
-        }
-
-        var urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = "POST"
-        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        if !apiKey.isEmpty {
-            urlRequest.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        }
-
-        let body: [String: Any] = [
-            "model": config.defaultModel(for: .code),
-            "messages": [message],
-            "temperature": 0.3,
-            "max_tokens": 4096,
-            "stream": false
-        ]
-
-        do {
-            urlRequest.httpBody = try JSONSerialization.data(withJSONObject: body)
-            let (data, response) = try await URLSession.shared.data(for: urlRequest)
-            guard let httpResp = response as? HTTPURLResponse else {
-                throw NSError(domain: "DesignBridge", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])
-            }
-
-            if httpResp.statusCode == 422 {
-                errorMessage = "Screenshot import requires a VLM model (e.g. Qwen2.5-VL). Current model does not support image input."
-                designBridgeLog.warning("DesignBridge: screenshot import — model does not support image input (422)")
-            } else if httpResp.statusCode == 200 {
-                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let choices = json["choices"] as? [[String: Any]],
-                   let content = choices.first?["message"] as? [String: Any],
-                   let text = content["content"] as? String {
-                    let result = ScreenshotImporter.parseImportResult(text)
-                    currentArtifactCode = result.extractedHTML
-                    currentArtifactType = "html"
-                    currentArtifactTitle = "Imported Screenshot"
-                    artifactSaved = false
-                    designBridgeLog.info("DesignBridge: screenshot imported — \(result.extractedHTML.count) chars, confidence=\(result.confidence)")
-                }
-            } else {
-                // BUG-13: 原始 body 原样插 UI 可泄密钥 — 服务端错误体可回显请求头 (Authorization/Bearer/api_key),
-                // .prefix(200) 限长拦不住密钥子串。渲染前过 sanitizeErrorBody 剥敏感子串。
-                let rawBody = String(data: data, encoding: .utf8) ?? "unknown"
-                let safeBody = Self.sanitizeErrorBody(rawBody)
-                errorMessage = "Screenshot import failed: HTTP \(httpResp.statusCode) — \(safeBody.prefix(200))"
-                designBridgeLog.error("DesignBridge: screenshot import failed — HTTP \(httpResp.statusCode)")
-            }
-        } catch {
-            errorMessage = "Screenshot import error: \(error.localizedDescription)"
-            designBridgeLog.error("DesignBridge importScreenshot: \(error)")
-        }
-
-        isImportingScreenshot = false
-    }
-
-    // FUNC-10/11 (审计product-0905 P3): designHealthCheck + sendMultimodalMessage 已删 — 0 调用方死代码。
+    func sanitizeFileName(_ name: String) -> String { artifactState.sanitizeFileName(name) }
+    func importScreenshot(_ image: NSImage) async { await artifactState.importScreenshot(image) }
     // designHealth/isDesignHealthy @Published 同删 (0 读)。
 
 }
 
-private extension DateFormatter {
+extension DateFormatter {
     static let shortDate: DateFormatter = {
         let f = DateFormatter()
         f.dateStyle = .short
