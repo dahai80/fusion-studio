@@ -14,6 +14,16 @@ final class ModelHubAPIClient: ObservableObject {
     @Published var isConnected = false
     @Published var lastError: String?
 
+    // SEC-5 (审计product-0906 P2): path-segment percent-encoding — 防 modelId/taskId/keyId 含 / .. ? # 空格 等致 path 注入/穿越。
+    //   编码 path 保留字符 (/ ? # % 空格 控制字符), 保留合法 model id 字符 (字母数字 - _ .)。
+    static func enc(_ s: String) -> String {
+        var allowed = CharacterSet.urlPathAllowed
+        allowed.remove(charactersIn: "/?#%")
+        allowed.remove(charactersIn: " ") // 空格 urlPathAllowed 误留
+        allowed.remove(charactersIn: "\u{00}-\u{1F}") // 控制字符
+        return s.addingPercentEncoding(withAllowedCharacters: allowed) ?? ""
+    }
+
     private var baseURL: String {
         // SEC-6 (审计product-0905 P1): 远程主机强制 https://, 防明文 X-API-Key 跨网段泄露。本地回环 http://。
         let cfg = FusionConfig.shared
@@ -38,7 +48,7 @@ final class ModelHubAPIClient: ObservableObject {
     }
 
     func getModel(modelId: String) async throws -> HubModel {
-        try await get("/api/v1/models/\(modelId)")
+        try await get("/api/v1/models/\(Self.enc(modelId))")
     }
 
     func searchMarket(query: String, source: String? = nil, task: String? = nil, format: String? = nil, limit: Int = 20) async throws -> HubMarketSearchResponse {
@@ -53,7 +63,7 @@ final class ModelHubAPIClient: ObservableObject {
     }
 
     func deleteModel(modelId: String) async throws -> HubSimpleResponse {
-        try await delete("/api/v1/models/\(modelId)")
+        try await delete("/api/v1/models/\(Self.enc(modelId))")
     }
 
     func batchDeleteModels(ids: [String]) async throws -> HubSimpleResponse {
@@ -66,9 +76,9 @@ final class ModelHubAPIClient: ObservableObject {
 
     func pinModel(modelId: String, pin: Bool) async throws -> HubSimpleResponse {
         if pin {
-            return try await post("/api/v1/models/\(modelId)/pin", json: ["pinned": pin])
+            return try await post("/api/v1/models/\(Self.enc(modelId))/pin", json: ["pinned": pin])
         } else {
-            return try await delete("/api/v1/models/\(modelId)/pin")
+            return try await delete("/api/v1/models/\(Self.enc(modelId))/pin")
         }
     }
 
@@ -77,21 +87,21 @@ final class ModelHubAPIClient: ObservableObject {
     func serveModel(modelId: String, autoStart: Bool = true, ttlSeconds: Int? = nil) async throws -> HubServeResponse {
         var json: [String: Any] = ["model_id": modelId, "auto_start": autoStart]
         if let ttlSeconds { json["ttl_seconds"] = ttlSeconds }
-        return try await post("/api/v1/models/\(modelId)/serve", json: json)
+        return try await post("/api/v1/models/\(Self.enc(modelId))/serve", json: json)
     }
 
     func unserveModel(modelId: String) async throws -> HubSimpleResponse {
-        try await delete("/api/v1/models/\(modelId)/serve")
+        try await delete("/api/v1/models/\(Self.enc(modelId))/serve")
     }
 
     func getServeStatus(modelId: String) async throws -> HubServeResponse {
-        try await get("/api/v1/models/\(modelId)/serve")
+        try await get("/api/v1/models/\(Self.enc(modelId))/serve")
     }
 
     // MARK: - Modules (PUT to match upstream)
 
     func setModelModules(modelId: String, modules: [String]) async throws -> HubSimpleResponse {
-        try await put("/api/v1/models/\(modelId)/modules", json: ["allowed_modules": modules])
+        try await put("/api/v1/models/\(Self.enc(modelId))/modules", json: ["allowed_modules": modules])
     }
 
     // MARK: - Downloads
@@ -110,11 +120,11 @@ final class ModelHubAPIClient: ObservableObject {
     }
 
     func getDownload(taskId: String) async throws -> HubDownloadTask {
-        try await get("/api/v1/downloads/\(taskId)")
+        try await get("/api/v1/downloads/\(Self.enc(taskId))")
     }
 
     func cancelDownload(taskId: String) async throws -> HubSimpleResponse {
-        try await delete("/api/v1/downloads/\(taskId)")
+        try await delete("/api/v1/downloads/\(Self.enc(taskId))")
     }
 
     // MARK: - Quantize
@@ -130,7 +140,7 @@ final class ModelHubAPIClient: ObservableObject {
     }
 
     func getQuantizeTask(taskId: String) async throws -> HubQuantizeTask {
-        try await get("/api/v1/quantize/\(taskId)")
+        try await get("/api/v1/quantize/\(Self.enc(taskId))")
     }
 
     func listQuantizePresets() async throws -> HubPresetListResponse {
@@ -161,7 +171,7 @@ final class ModelHubAPIClient: ObservableObject {
     }
 
     func getLayeredQuantizeJob(taskId: String) async throws -> HubQuantizeTask {
-        try await get("/api/v1/quantize/layered/jobs/\(taskId)")
+        try await get("/api/v1/quantize/layered/jobs/\(Self.enc(taskId))")
     }
 
     func evaluateQuantize(taskId: String) async throws -> HubSimpleResponse {
@@ -169,11 +179,11 @@ final class ModelHubAPIClient: ObservableObject {
     }
 
     func applyQuantizePreset(name: String, modelId: String) async throws -> HubQuantizeTaskResponse {
-        try await post("/api/v1/quantize/presets/\(name)/apply", json: ["model_id": modelId])
+        try await post("/api/v1/quantize/presets/\(Self.enc(name))/apply", json: ["model_id": modelId])
     }
 
     func compareQuantize(taskId: String) async throws -> HubBenchmarkCompareResponse {
-        try await get("/api/v1/quantize/\(taskId)/compare")
+        try await get("/api/v1/quantize/\(Self.enc(taskId))/compare")
     }
 
     // MARK: - Benchmarks (issue #63 sub-feature 3)
@@ -195,7 +205,7 @@ final class ModelHubAPIClient: ObservableObject {
     }
 
     func getBenchmarkDetail(id: String) async throws -> HubBenchmarkDetail {
-        try await get("/api/v1/benchmarks/\(id)")
+        try await get("/api/v1/benchmarks/\(Self.enc(id))")
     }
 
     // MARK: - Cluster / Smart Scheduling (issue #63 sub-feature 4)
@@ -245,11 +255,11 @@ final class ModelHubAPIClient: ObservableObject {
     }
 
     func deactivateAPIKey(keyId: String) async throws -> HubSimpleResponse {
-        try await post("/api/v1/auth/keys/\(keyId)/deactivate", json: [:])
+        try await post("/api/v1/auth/keys/\(Self.enc(keyId))/deactivate", json: [:])
     }
 
     func getAPIKeyUsage(keyId: String) async throws -> HubAPIKeyUsageResponse {
-        try await get("/api/v1/auth/keys/\(keyId)/usage")
+        try await get("/api/v1/auth/keys/\(Self.enc(keyId))/usage")
     }
 
     // MARK: - System
@@ -283,33 +293,33 @@ final class ModelHubAPIClient: ObservableObject {
     // MARK: - Inference proxy
 
     func inferenceChat(modelId: String, messages: [[String: String]]) async throws -> HubInferenceResponse {
-        try await post("/api/v1/inference/\(modelId)/chat", json: ["messages": messages])
+        try await post("/api/v1/inference/\(Self.enc(modelId))/chat", json: ["messages": messages])
     }
 
     // MARK: - Versions
 
     func listVersions(modelId: String) async throws -> HubVersionListResponse {
-        try await get("/api/v1/models/\(modelId)/versions")
+        try await get("/api/v1/models/\(Self.enc(modelId))/versions")
     }
 
     func rollbackVersion(versionId: String) async throws -> HubSimpleResponse {
-        try await post("/api/v1/versions/\(versionId)/rollback", json: [:])
+        try await post("/api/v1/versions/\(Self.enc(versionId))/rollback", json: [:])
     }
 
     func updateVersionStatus(versionId: String, status: String) async throws -> HubSimpleResponse {
-        try await put("/api/v1/versions/\(versionId)/status", json: ["status": status])
+        try await put("/api/v1/versions/\(Self.enc(versionId))/status", json: ["status": status])
     }
 
     func promoteVersion(versionId: String) async throws -> HubSimpleResponse {
-        try await post("/api/v1/versions/\(versionId)/promote", json: [:])
+        try await post("/api/v1/versions/\(Self.enc(versionId))/promote", json: [:])
     }
 
     func deprecateVersion(versionId: String) async throws -> HubSimpleResponse {
-        try await post("/api/v1/versions/\(versionId)/deprecate", json: [:])
+        try await post("/api/v1/versions/\(Self.enc(versionId))/deprecate", json: [:])
     }
 
     func retireVersion(versionId: String) async throws -> HubSimpleResponse {
-        try await post("/api/v1/versions/\(versionId)/retire", json: [:])
+        try await post("/api/v1/versions/\(Self.enc(versionId))/retire", json: [:])
     }
 
     // MARK: - Deployments
@@ -327,27 +337,27 @@ final class ModelHubAPIClient: ObservableObject {
     }
 
     func getDeployment(id: String) async throws -> HubDeployment {
-        try await get("/api/v1/deployments/\(id)")
+        try await get("/api/v1/deployments/\(Self.enc(id))")
     }
 
     func stopDeployment(id: String) async throws -> HubSimpleResponse {
-        try await post("/api/v1/deployments/\(id)/stop", json: [:])
+        try await post("/api/v1/deployments/\(Self.enc(id))/stop", json: [:])
     }
 
     func deleteDeployment(id: String) async throws -> HubSimpleResponse {
-        try await delete("/api/v1/deployments/\(id)")
+        try await delete("/api/v1/deployments/\(Self.enc(id))")
     }
 
     func scaleDeployment(id: String, scale: Int) async throws -> HubSimpleResponse {
-        try await post("/api/v1/deployments/\(id)/scale", json: ["scale": scale])
+        try await post("/api/v1/deployments/\(Self.enc(id))/scale", json: ["scale": scale])
     }
 
     func grayReleaseDeployment(id: String, canaryPercent: Int) async throws -> HubSimpleResponse {
-        try await post("/api/v1/deployments/\(id)/gray", json: ["gray_traffic_ratio": canaryPercent])
+        try await post("/api/v1/deployments/\(Self.enc(id))/gray", json: ["gray_traffic_ratio": canaryPercent])
     }
 
     func getDeploymentMetrics(id: String) async throws -> HubDeploymentMetricsResponse {
-        try await get("/api/v1/deployments/\(id)/metrics")
+        try await get("/api/v1/deployments/\(Self.enc(id))/metrics")
     }
 
     // MARK: - Evaluations
@@ -365,11 +375,11 @@ final class ModelHubAPIClient: ObservableObject {
     }
 
     func getEvaluation(id: String) async throws -> HubEvaluation {
-        try await get("/api/v1/evaluations/\(id)")
+        try await get("/api/v1/evaluations/\(Self.enc(id))")
     }
 
     func deleteEvaluation(id: String) async throws -> HubSimpleResponse {
-        try await delete("/api/v1/evaluations/\(id)")
+        try await delete("/api/v1/evaluations/\(Self.enc(id))")
     }
 
     func compareEvaluations(ids: [String]) async throws -> HubEvaluationCompareResponse {
@@ -399,34 +409,34 @@ final class ModelHubAPIClient: ObservableObject {
         if let allowedModels { json["allowed_models"] = allowedModels }
         if let allowedModules { json["allowed_modules"] = allowedModules }
         if let qpsLimit { json["qps_limit"] = qpsLimit }
-        return try await put("/api/v1/tenants/\(id)", json: json)
+        return try await put("/api/v1/tenants/\(Self.enc(id))", json: json)
     }
 
     func deleteTenant(id: String) async throws -> HubSimpleResponse {
-        try await delete("/api/v1/tenants/\(id)")
+        try await delete("/api/v1/tenants/\(Self.enc(id))")
     }
 
     // MARK: - Roles
 
     func listRoles(tenantId: String) async throws -> HubRoleListResponse {
-        try await get("/api/v1/tenants/\(tenantId)/roles")
+        try await get("/api/v1/tenants/\(Self.enc(tenantId))/roles")
     }
 
     func createRole(tenantId: String, name: String, permissions: [String]? = nil) async throws -> HubRole {
         var json: [String: Any] = ["name": name]
         if let permissions { json["permissions"] = permissions.joined(separator: ",") }
-        return try await post("/api/v1/tenants/\(tenantId)/roles", json: json)
+        return try await post("/api/v1/tenants/\(Self.enc(tenantId))/roles", json: json)
     }
 
     func updateRole(tenantId: String, roleId: String, name: String? = nil, permissions: [String]? = nil) async throws -> HubRole {
         var json: [String: Any] = [:]
         if let name { json["name"] = name }
         if let permissions { json["permissions"] = permissions.joined(separator: ",") }
-        return try await put("/api/v1/tenants/\(tenantId)/roles/\(roleId)", json: json)
+        return try await put("/api/v1/tenants/\(Self.enc(tenantId))/roles/\(Self.enc(roleId))", json: json)
     }
 
     func deleteRole(tenantId: String, roleId: String) async throws -> HubSimpleResponse {
-        try await delete("/api/v1/tenants/\(tenantId)/roles/\(roleId)")
+        try await delete("/api/v1/tenants/\(Self.enc(tenantId))/roles/\(Self.enc(roleId))")
     }
 
     // MARK: - Webhooks
@@ -442,7 +452,7 @@ final class ModelHubAPIClient: ObservableObject {
     }
 
     func deleteWebhook(id: String) async throws -> HubSimpleResponse {
-        try await delete("/api/v1/webhooks/\(id)")
+        try await delete("/api/v1/webhooks/\(Self.enc(id))")
     }
 
     // MARK: - Security
@@ -452,7 +462,7 @@ final class ModelHubAPIClient: ObservableObject {
     }
 
     func getSecurityScanResult(modelId: String) async throws -> HubSecurityScanResponse {
-        try await get("/api/v1/security/scan/\(modelId)")
+        try await get("/api/v1/security/scan/\(Self.enc(modelId))")
     }
 
     // MARK: - Watermark
@@ -480,7 +490,7 @@ final class ModelHubAPIClient: ObservableObject {
     }
 
     func getEncryptionStatus(modelId: String) async throws -> HubEncryptionResponse {
-        try await get("/api/v1/encryption/status/\(modelId)")
+        try await get("/api/v1/encryption/status/\(Self.enc(modelId))")
     }
 
     // MARK: - Approvals
@@ -500,29 +510,29 @@ final class ModelHubAPIClient: ObservableObject {
     func approveRequest(id: String, comment: String? = nil) async throws -> HubSimpleResponse {
         var json: [String: Any] = ["approved": true]
         if let comment { json["comment"] = comment }
-        return try await post("/api/v1/approvals/\(id)/approve", json: json)
+        return try await post("/api/v1/approvals/\(Self.enc(id))/approve", json: json)
     }
 
     func rejectRequest(id: String, comment: String? = nil) async throws -> HubSimpleResponse {
         var json: [String: Any] = ["approved": false]
         if let comment { json["comment"] = comment }
-        return try await post("/api/v1/approvals/\(id)/reject", json: json)
+        return try await post("/api/v1/approvals/\(Self.enc(id))/reject", json: json)
     }
 
     // MARK: - Ratings
 
     func listRatings(modelId: String) async throws -> HubRatingListResponse {
-        try await get("/api/v1/models/\(modelId)/ratings")
+        try await get("/api/v1/models/\(Self.enc(modelId))/ratings")
     }
 
     func createRating(modelId: String, score: Int, summary: String? = nil) async throws -> HubRating {
         var json: [String: Any] = ["model_id": modelId, "score": score]
         if let summary { json["summary"] = summary }
-        return try await post("/api/v1/models/\(modelId)/ratings", json: json)
+        return try await post("/api/v1/models/\(Self.enc(modelId))/ratings", json: json)
     }
 
     func getRatingSummary(modelId: String) async throws -> HubRatingSummaryResponse {
-        try await get("/api/v1/models/\(modelId)/ratings/summary")
+        try await get("/api/v1/models/\(Self.enc(modelId))/ratings/summary")
     }
 
     // MARK: - Favorites
@@ -536,25 +546,25 @@ final class ModelHubAPIClient: ObservableObject {
     }
 
     func removeFavorite(modelId: String) async throws -> HubSimpleResponse {
-        try await delete("/api/v1/favorites/\(modelId)")
+        try await delete("/api/v1/favorites/\(Self.enc(modelId))")
     }
 
     // MARK: - Branches
 
     func listBranches(modelId: String) async throws -> HubBranchListResponse {
-        try await get("/api/v1/models/\(modelId)/branches")
+        try await get("/api/v1/models/\(Self.enc(modelId))/branches")
     }
 
     func createBranch(modelId: String, name: String) async throws -> HubBranch {
-        try await post("/api/v1/models/\(modelId)/branches", json: ["name": name])
+        try await post("/api/v1/models/\(Self.enc(modelId))/branches", json: ["name": name])
     }
 
     func mergeBranch(branchId: String) async throws -> HubBranch {
-        try await post("/api/v1/models/branches/\(branchId)/merge", json: [:])
+        try await post("/api/v1/models/branches/\(Self.enc(branchId))/merge", json: [:])
     }
 
     func deleteBranch(branchId: String) async throws -> HubSimpleResponse {
-        try await delete("/api/v1/models/branches/\(branchId)")
+        try await delete("/api/v1/models/branches/\(Self.enc(branchId))")
     }
 
     // MARK: - Recommend

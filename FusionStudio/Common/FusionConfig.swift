@@ -325,7 +325,8 @@ class FusionConfig: ObservableObject {
     @AppStorage("sciencePort") var sciencePort = 11462
 
     /// Fusion-Science 服务地址
-    var scienceBaseURL: String { "http://\(scienceHost):\(sciencePort)" }
+    // SEC-6 (审计product-0906 P2): 远程 science host 强制 https:// (跨网段明文), 本地 http://。复用 schemeForHost, 与 multiNodeBaseURL/modelHubBaseURL 对齐。
+    var scienceBaseURL: String { "\(schemeForHost(scienceHost))://\(scienceHost):\(sciencePort)" }
 
     // Callers: SimulationBridge, UpstreamServiceManager. Port 11455 = fusion-sim dashboard (--gui).
     @AppStorage("simulationHost") var simulationHost = "127.0.0.1"

@@ -216,11 +216,17 @@ class AutoUpdateManager: ObservableObject {
         }
 
         // 2) spctl --assess --type install: Gatekeeper 评估 (公证票据)
+        // SEC-7 (审计product-0906 P2): 生产 fail-closed — 未公证包拒绝安装 (阻断未签名/被吊销/CDN-swap)。
+        //   唯一豁免: 显式开发标志 allowUnsignedUpdate (UserDefaults, 默认 false), 供开发机自构建分发调试。
         let spctlResult = runProcess("/usr/bin/spctl", arguments: ["--assess", "--type", "install", "-v", dmgPath], timeout: 30)
         if spctlResult.0 != 0 {
-            // codesign 已通过 = 签名链有效未被篡改。spctl 失败多为开发自构建未公证。
-            // 记 warn 放行: 企业开发环境分发自构建包时不应被公证要求阻断 (codesign 链已保证完整性)。
-            autoUpdateLog.warning("spctl assess failed (dev build likely ok) exit=\(spctlResult.0, privacy: .public) out=\(spctlResult.1, privacy: .public)")
+            let devOverride = UserDefaults.standard.bool(forKey: "allowUnsignedUpdate")
+            if devOverride {
+                autoUpdateLog.warning("spctl assess failed but dev override allowUnsignedUpdate=true, accepting exit=\(spctlResult.0, privacy: .public) out=\(spctlResult.1, privacy: .public)")
+            } else {
+                autoUpdateLog.error("spctl assess FAILED (rejecting unsigned/unnotarized DMG) exit=\(spctlResult.0, privacy: .public) out=\(spctlResult.1, privacy: .public)")
+                return (false, "spctl Gatekeeper 评估失败 (exit=\(spctlResult.0)): \(spctlResult.1)。未公证包禁止安装。开发自构建可设置 allowUnsignedUpdate 豁免。")
+            }
         }
 
         return (true, "ok")
