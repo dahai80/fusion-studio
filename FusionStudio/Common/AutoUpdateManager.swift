@@ -68,7 +68,8 @@ class AutoUpdateManager: ObservableObject {
     static let shared = AutoUpdateManager()
 
     @Published var state: UpdateState = .idle
-    @Published var showUpdateSheet = false
+    // OPS-6 (审计product-0906 P2): 移除孤儿 @Published showUpdateSheet — 写 3 处, 0 读 (UpdateSheetView 本身亦未实例化)。
+    //   UpdateSettingsView 通过 .available(state) 内联显提示, 无需独立 sheet 开关。
     @Published var lastCheckDate: Date?
 
     private let repoOwner = "dahai80"
@@ -120,7 +121,6 @@ class AutoUpdateManager: ObservableObject {
                 self?.lastCheckDate = Date()
                 if version.isNewerThan {
                     self?.state = .available(version)
-                    self?.showUpdateSheet = true
                 } else {
                     self?.state = .upToDate
                 }
@@ -261,13 +261,11 @@ class AutoUpdateManager: ObservableObject {
     func skipVersion(_ version: AppVersion) {
         UserDefaults.standard.set(version.tagName, forKey: "skipped_version")
         state = .upToDate
-        showUpdateSheet = false
     }
 
     /// 重置检查状态
     func reset() {
         state = .idle
-        showUpdateSheet = false
     }
 }
 

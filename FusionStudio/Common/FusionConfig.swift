@@ -532,7 +532,9 @@ class FusionConfig: ObservableObject {
             fusionConfigLog.info("mlxResolvedApiKey: source=settings.json")
             return key
         }
-        fusionConfigLog.error("mlxResolvedApiKey: no key resolved (env/settings both empty)")
+        // OPS-5 (审计product-0906 P2): 首启未配 key 是正常路径 (非故障), .error→.info 降日志噪声/误报。
+        //   真失败 (settings.json 存在但解析错) 在上游 try? 静默; .error 留给健康检查/鉴权失败上报。
+        fusionConfigLog.info("mlxResolvedApiKey: no key resolved (env/settings both empty)")
         return ""
     }
 
