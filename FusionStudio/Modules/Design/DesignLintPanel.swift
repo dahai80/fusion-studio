@@ -137,12 +137,26 @@ class DesignLintRuleStore: ObservableObject {
         lintLog.info("LintRuleStore: loaded \(self.lockedRules.count) locked rules")
     }
 
+    // ARCH-9 (审计product-0906 P3): 旧同步 file I/O 在 toggleLock (UI 线程) 直接落盘。
+    //   规则集小但 JSON 序列化 + 目录建 + write 仍阻塞主线程。捕获 arr/data 副本后
+    //   Task.detached 落盘, 不持 self (值类型副本), 失败仅日志 (best-effort 持久化)。
     func saveLockedRules() {
         let arr = Array(self.lockedRules)
-        guard let data = try? JSONSerialization.data(withJSONObject: arr, options: .prettyPrinted) else { return }
-        let dir = (lockFilePath as NSString).deletingLastPathComponent
-        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
-        try? data.write(to: URL(fileURLWithPath: lockFilePath))
+        guard let data = try? JSONSerialization.data(withJSONObject: arr, options: .prettyPrinted) else {
+            lintLog.warning("LintRuleStore: serialize locked rules failed, skip persist")
+            return
+        }
+        let path = lockFilePath
+        Task.detached(priority: .utility) {
+            let dir = (path as NSString).deletingLastPathComponent
+            try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+            do {
+                try data.write(to: URL(fileURLWithPath: path))
+                lintLog.info("LintRuleStore: persisted \(arr.count) locked rules")
+            } catch {
+                lintLog.error("LintRuleStore: write locked rules failed: \(error.localizedDescription, privacy: .public)")
+            }
+        }
     }
 }
 
