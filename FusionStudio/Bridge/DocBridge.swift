@@ -366,38 +366,8 @@ class DocBridge: ObservableObject {
     }
 
     // MARK: - Versions
-
-    func fetchVersions(pageId: String) {
-        get("/api/pages/\(pageId)/versions") { [weak self] (result: Result<[DocVersion], Error>) in
-            switch result {
-            case .success(let list):
-                DispatchQueue.main.async { self?.versions = Array(list.suffix(200)) }
-            case .failure(let error):
-                self?.handleError(error, context: "versions")
-            }
-        }
-    }
-
-    func createVersion(pageId: String, title: String, content: String) {
-        post("/api/pages/\(pageId)/versions", body: ["title": title, "content": content]) { [weak self] (result: Result<DocVersion, Error>) in
-            switch result {
-            case .success(let v):
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    self.versions.append(v)
-                    Self.cap(&self.versions, 200)
-                }
-            case .failure(let error):
-                self?.handleError(error, context: "createVersion")
-            }
-        }
-    }
-
-    func fetchDiff(pageId: String, v1: Int, v2: Int, completion: @escaping (Result<DocDiffResult, Error>) -> Void) {
-        get("/api/pages/\(pageId)/diff?v1=\(v1)&v2=\(v2)") { result in
-            completion(result)
-        }
-    }
+    // ARCH-1 Phase 3 (audit-product-0907 P2-2): fetchVersions/createVersion/fetchDiff 迁入
+    // DocVersionService.swift (DocBridge 留 1 行 stub)。restoreVersion 留此 (协调器: 成功后回填页面)。
 
     func restoreVersion(pageId: String, versionId: String) {
         struct RestoreResp: Decodable { var restored: Bool? }
@@ -412,47 +382,13 @@ class DocBridge: ObservableObject {
     }
 
     // MARK: - Workflows
-
-    func fetchWorkflows() {
-        get("/api/workflows") { [weak self] (result: Result<[DocWorkflow], Error>) in
-            switch result {
-            case .success(let list):
-                DispatchQueue.main.async { self?.workflows = Array(list.suffix(200)) }
-            case .failure(let error):
-                self?.handleError(error, context: "workflows")
-            }
-        }
-    }
-
-    func runWorkflow(id: String, input: [String: Any]? = nil) {
-        post("/api/workflows/\(id)/run", body: input) { [weak self] (result: Result<DocWorkflowRun, Error>) in
-            switch result {
-            case .success:
-                docBridgeLog.info("Workflow \(id) started")
-            case .failure(let error):
-                self?.handleError(error, context: "runWorkflow")
-            }
-        }
-    }
-
-    func fetchWorkflowRuns(id: String, completion: @escaping (Result<[DocWorkflowRun], Error>) -> Void) {
-        get("/api/workflows/\(id)/runs") { result in
-            completion(result)
-        }
-    }
+    // ARCH-1 Phase 3 (audit-product-0907 P2-2): fetchWorkflows/runWorkflow/fetchWorkflowRuns + Workflow CRUD
+    // (createWorkflow/deleteWorkflow/fetchWorkflowDetail/seedWorkflows/fetchPageWorkflowStatus/
+    // fetchPageTransitions/executeTransition) 迁入 DocWorkflowService.swift (DocBridge 留 1 行 stub)。
 
     // MARK: - Templates
-
-    func fetchTemplates() {
-        get("/api/templates") { [weak self] (result: Result<[DocTemplate], Error>) in
-            switch result {
-            case .success(let list):
-                DispatchQueue.main.async { self?.templates = Array(list.suffix(200)) }
-            case .failure(let error):
-                self?.handleError(error, context: "templates")
-            }
-        }
-    }
+    // ARCH-1 Phase 3 (audit-product-0907 P2-2): fetchTemplates 迁入 DocTemplateService.swift (DocBridge
+    //   留 1 行 stub)。instantiateTemplate 留此 (协调器: 成功后写 libraryState.pages, 跨域)。
 
     func instantiateTemplate(id: String, variables: [String: Any]) {
         post("/api/templates/\(id)/instantiate", body: ["variables": variables]) { [weak self] (result: Result<DocPage, Error>) in
@@ -470,29 +406,9 @@ class DocBridge: ObservableObject {
     }
 
     // MARK: - Office
-
-    func checkOfficeStatus() {
-        get("/api/office/status") { [weak self] (result: Result<DocOfficeStatus, Error>) in
-            switch result {
-            case .success(let status):
-                DispatchQueue.main.async { self?.officeStatus = status }
-            case .failure(let error):
-                self?.handleError(error, context: "officeStatus")
-            }
-        }
-    }
-
-    func createOfficeDocument(format: String, name: String) {
-        struct OfficeCreateResp: Decodable { var id: String?; var path: String? }
-        post("/api/office/create", body: ["format": format, "name": name]) { [weak self] (result: Result<OfficeCreateResp, Error>) in
-            switch result {
-            case .success:
-                docBridgeLog.info("Office doc created: \(name).\(format)")
-            case .failure(let error):
-                self?.handleError(error, context: "createOffice")
-            }
-        }
-    }
+    // ARCH-1 Phase 3 (audit-product-0907 P2-2): checkOfficeStatus/createOfficeDocument 迁入
+    //   DocOfficeService.swift (DocBridge 留 1 行 stub)。importOfficeDocument 留此 (协调器: 成功后写
+    //   libraryState.pages, 跨域)。
 
     func importOfficeDocument(filePath: String, bookId: String? = nil) {
         var body: [String: Any] = ["file_path": filePath]
@@ -623,143 +539,17 @@ class DocBridge: ObservableObject {
     }
 
     // MARK: - Office Extended
-
-    func exportOffice(pageId: String, format: String, completion: @escaping (Result<[String: String], Error>) -> Void) {
-        post("/api/office/export", body: ["page_id": pageId, "format": format], completion: completion)
-    }
-
-    func previewOffice(id: String, completion: @escaping (Result<[String: String], Error>) -> Void) {
-        get("/api/office/preview/\(id)", completion: completion)
-    }
-
-    func mergeOffice(template: String, data: [String: Any], completion: @escaping (Result<[String: String], Error>) -> Void) {
-        var body = data
-        body["template"] = template
-        post("/api/office/merge", body: body, completion: completion)
-    }
-
-    func importOfficeDir(dirPath: String, bookId: String? = nil, completion: @escaping (Result<[DocPage], Error>) -> Void) {
-        var body: [String: Any] = ["dir_path": dirPath]
-        if let bid = bookId { body["book_id"] = bid }
-        post("/api/office/import-dir", body: body, completion: completion)
-    }
-
-    func executeOfficeCommand(file: String, command: String, args: [String: Any]? = nil, completion: @escaping (Result<[String: String], Error>) -> Void) {
-        var body: [String: Any] = ["file": file, "command": command]
-        if let args = args { body["args"] = args }
-        post("/api/office/command", body: body, completion: completion)
-    }
+    // ARCH-1 Phase 3 (audit-product-0907 P2-2): exportOffice/previewOffice/mergeOffice/importOfficeDir/
+    //   executeOfficeCommand 迁入 DocOfficeService.swift (DocBridge 留 1 行 stub)。
 
     // MARK: - Template CRUD
-
-    func createTemplate(name: String, type: String? = nil, content: String? = nil, category: String? = nil, completion: @escaping (Result<DocTemplate, Error>) -> Void) {
-        var body: [String: Any] = ["name": name]
-        if let t = type { body["type"] = t }
-        if let c = content { body["content"] = c }
-        if let cat = category { body["category"] = cat }
-        post("/api/templates", body: body) { [weak self] (result: Result<DocTemplate, Error>) in
-            switch result {
-            case .success(let tmpl):
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    self.templates.append(tmpl)
-                    Self.cap(&self.templates, 200)
-                }
-                completion(.success(tmpl))
-            case .failure(let error):
-                self?.handleError(error, context: "createTemplate")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func updateTemplate(id: String, name: String? = nil, content: String? = nil, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
-        var body: [String: Any] = [:]
-        if let n = name { body["name"] = n }
-        if let c = content { body["content"] = c }
-        put("/api/templates/\(id)", body: body, completion: completion)
-    }
-
-    func deleteTemplate(id: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
-        delete("/api/templates/\(id)") { [weak self] (result: Result<[String: Bool], Error>) in
-            switch result {
-            case .success:
-                DispatchQueue.main.async { self?.templates.removeAll { $0.id == id } }
-                completion(.success(["deleted": true]))
-            case .failure(let error):
-                self?.handleError(error, context: "deleteTemplate")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func fetchTemplateVariables(id: String, completion: @escaping (Result<[String: [String]], Error>) -> Void) {
-        get("/api/templates/\(id)/variables", completion: completion)
-    }
+    // ARCH-1 Phase 3 (audit-product-0907 P2-2): createTemplate/updateTemplate/deleteTemplate/
+    //   fetchTemplateVariables 迁入 DocTemplateService.swift (DocBridge 留 1 行 stub)。
 
     // MARK: - Workflow CRUD
-
-    func createWorkflow(name: String, description: String? = nil, yamlDef: String? = nil, completion: @escaping (Result<DocWorkflow, Error>) -> Void) {
-        var body: [String: Any] = ["name": name]
-        if let d = description { body["description"] = d }
-        if let y = yamlDef { body["yaml_def"] = y }
-        post("/api/workflows", body: body) { [weak self] (result: Result<DocWorkflow, Error>) in
-            switch result {
-            case .success(let wf):
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    self.workflows.append(wf)
-                    Self.cap(&self.workflows, 200)
-                }
-                completion(.success(wf))
-            case .failure(let error):
-                self?.handleError(error, context: "createWorkflow")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func deleteWorkflow(id: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
-        delete("/api/workflows/\(id)") { [weak self] (result: Result<[String: Bool], Error>) in
-            switch result {
-            case .success:
-                DispatchQueue.main.async { self?.workflows.removeAll { $0.id == id } }
-                completion(.success(["deleted": true]))
-            case .failure(let error):
-                self?.handleError(error, context: "deleteWorkflow")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func fetchWorkflowDetail(id: String, completion: @escaping (Result<DocWorkflow, Error>) -> Void) {
-        get("/api/workflows/\(id)", completion: completion)
-    }
-
-    func seedWorkflows(completion: @escaping (Result<[DocWorkflow], Error>) -> Void) {
-        post("/api/workflows/seed", body: nil) { [weak self] (result: Result<[DocWorkflow], Error>) in
-            switch result {
-            case .success(let list):
-                DispatchQueue.main.async { self?.workflows = Array(list.suffix(200)) }
-                completion(.success(list))
-            case .failure(let error):
-                self?.handleError(error, context: "seedWorkflows")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func fetchPageWorkflowStatus(pageId: String, completion: @escaping (Result<DocWorkflowState, Error>) -> Void) {
-        get("/api/pages/\(pageId)/workflow-status", completion: completion)
-    }
-
-    func fetchPageTransitions(pageId: String, completion: @escaping (Result<[DocWorkflowTransition], Error>) -> Void) {
-        get("/api/pages/\(pageId)/transitions", completion: completion)
-    }
-
-    func executeTransition(pageId: String, transition: String, completion: @escaping (Result<DocWorkflowState, Error>) -> Void) {
-        post("/api/pages/\(pageId)/transitions", body: ["transition": transition], completion: completion)
-    }
+    // ARCH-1 Phase 3 (audit-product-0907 P2-2): Workflow CRUD (createWorkflow/deleteWorkflow/
+    //   fetchWorkflowDetail/seedWorkflows/fetchPageWorkflowStatus/fetchPageTransitions/executeTransition)
+    //   迁入 DocWorkflowService.swift (DocBridge 留 1 行 stub)。
 
     // MARK: - Files
 
