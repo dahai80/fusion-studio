@@ -72,6 +72,10 @@ class MultiNodeEngine: ObservableObject {
     private var nodeOfflineStreak: [String: Int] = [:]
     private let offlineConfirmThreshold: Int = 2
 
+    // B2: node_loads poll throughput cap. >50 online nodes → sample top-N busiest by cpuPercent,
+    // rest rely on 2s fetchNodes heartbeat. Prevents 500 req/5s storm on large clusters.
+    private let nodeLoadSampleCap = 50
+
     // Track B: failover 健康探测单飞, 防 handleError 多路并发触发重复 checkHealth 风暴。
     private var failoverProbeInflight: Bool = false
 
@@ -911,8 +915,16 @@ class MultiNodeEngine: ObservableObject {
             for k in stale { nodeLoads.removeValue(forKey: k) }
             engineLog.info("nodeLoads evicted \(stale.count) offline entries")
         }
-        for node in live {
-            fetchNodeLoad(nodeId: node.id) { _ in }
+        if live.count > nodeLoadSampleCap {
+            let sampled = live.sorted { a, b in
+                let la = nodeLoads[a.id]?.cpuPercent ?? 0
+                let lb = nodeLoads[b.id]?.cpuPercent ?? 0
+                return la > lb
+            }.prefix(nodeLoadSampleCap)
+            engineLog.warning("node_loads sampled \(sampled.count)/\(live.count) (cap=\(nodeLoadSampleCap)); full load available via fetchNodeLoad(nodeId:)")
+            for node in sampled { fetchNodeLoad(nodeId: node.id) { _ in } }
+        } else {
+            for node in live { fetchNodeLoad(nodeId: node.id) { _ in } }
         }
     }
 
