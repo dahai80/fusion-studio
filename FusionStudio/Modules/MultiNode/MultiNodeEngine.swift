@@ -313,159 +313,15 @@ class MultiNodeEngine: ObservableObject {
         pollTimers.append(timer)
     }
 
-    // MARK: - GET endpoints
+    // MARK: - GET endpoints (ClusterHealth + Node — Phase 2 stubs, bodies in Service files)
 
-    // F-R6: 成功路径重置失败状态。fetch 成功即清该路 stale + 该路连续失败计数, 恢复 online。
-    // 审计0827 §3.5: 按 context 复位, 非全局清零 — 避免交叉复位掩盖其余持续失败路径。
-    private func resetFailureState(context: String) {
-        nodesStale = false
-        consecutiveFailuresByContext[context] = 0
-        // 任一路成功即认为集群可达; 离线态由 handleError 按各路独立判定。
-        // B3: successful recovery clears MasterPool failover cycle cap.
-        if !isConnected { isConnected = true; MasterPool.shared.markRecovered() }
-        // Track B: 成功恢复时同步 activeMasterHost。
-        recomputeCanMutate()
-    }
-
-    func fetchClusterStats() {
-        get("/api/v1/cluster/stats") { [weak self] (result: Result<V1ClusterStatsResponse, Error>) in
-            switch result {
-            case .success(let resp):
-                DispatchQueue.main.async {
-                    self?.clusterStats = ClusterStats.from(resp)
-                    self?.resetFailureState(context: "cluster_stats")
-                    self?.lastError = nil
-                    // #76/#77: 刷新领导纪元 + per-leader token (stats cluster sub-dict 携带)。
-                    //   epoch/leader_id 与 /api/nodes 同源, 此处同步 knownLeaderEpoch/knownLeaderId 兜底
-                    //   (stats 与 nodes 轮询独立, 任一先到即缓存)。token 仅 stats 暴露, 此处刷新。
-                    if let epoch = resp.cluster.epoch {
-                        if epoch > (self?.knownLeaderEpoch ?? 0) { self?.knownLeaderEpoch = epoch }
-                        self?.knownLeaderId = resp.cluster.leaderId
-                    }
-                    if let token = resp.cluster.leaderToken, !token.isEmpty {
-                        self?.knownLeaderToken = token
-                    }
-                }
-            case .failure(let error):
-                self?.handleError(error, context: "cluster_stats")
-            }
-        }
-    }
-
-    func fetchNodes() {
-        get("/api/nodes") { [weak self] (result: Result<NodeListResponse, Error>) in
-            switch result {
-            case .success(let resp):
-                DispatchQueue.main.async {
-                    self?.nodes = Array(resp.nodes.prefix(500))
-                    self?.resetFailureState(context: "nodes")
-                    // F-A11 split-brain 检测 — 三层确定性信号, 取代旧 master-count heuristic:
-                    //   1. #72 partitioned (server 权威: 少数派, 无法达仲裁) — 有则直接用, 无歧义。
-                    //   2. #76 epoch/leader_id — epoch==0+leaderId=="" = 单权威 (单master/active-active, 无脑裂概念);
-                    //      HA 模式收到 epoch < 已知最大值 = stale leader 视图 = 写禁用。
-                    //   3. 旧版 fallback: 上游未暴露 partitioned/epoch (nil) → 退回 master-count heuristic (连续 N 轮 >1 master)。
-                    // 审计v0.1.58 P1 residual: 上游 #76/#77 已合 (PR#78), 此处接通确定性信号; heuristic 仅兼容旧版。
-                    let nowPartitioned = resp.partitioned
-                    let nowEpoch = resp.epoch
-                    let nowLeaderId = resp.leaderId
-                    let isSingleAuthority = (nowEpoch == 0 && (nowLeaderId?.isEmpty ?? true))
-
-                    if let partitioned = nowPartitioned {
-                        // #72 权威信号优先 — server 已判定少数派脑裂。
-                        if partitioned {
-                            self?.splitBrainConfirmCount += 1
-                            self?.splitBrainResolvedConfirmCount = 0
-                            if self?.splitBrainDetected == false && (self?.splitBrainConfirmCount ?? 0) >= (self?.splitBrainConfirmThreshold ?? 2) {
-                                self?.splitBrainDetected = true
-                                engineLog.error("F-A11 split-brain confirmed (#72 partitioned=true) across \(self?.splitBrainConfirmCount ?? 0) rounds — writes blocked")
-                            }
-                        } else {
-                            self?.splitBrainResolvedConfirmCount += 1
-                            if self?.splitBrainDetected == true
-                                && (self?.splitBrainResolvedConfirmCount ?? 0) >= (self?.splitBrainConfirmThreshold ?? 2) {
-                                engineLog.info("F-A11 split-brain resolved (#72 partitioned=false) across \(self?.splitBrainResolvedConfirmCount ?? 0) rounds, unblocking writes")
-                                self?.splitBrainDetected = false
-                                self?.splitBrainConfirmCount = 0
-                            }
-                        }
-                    } else if let epoch = nowEpoch, !isSingleAuthority {
-                        // #76 HA 模式 — stale leader 视图 (epoch < 已知最大) = 脑裂迹象。
-                        let knownMax = self?.knownLeaderEpoch ?? 0
-                        if epoch < knownMax {
-                            self?.splitBrainConfirmCount += 1
-                            self?.splitBrainResolvedConfirmCount = 0
-                            if self?.splitBrainDetected == false && (self?.splitBrainConfirmCount ?? 0) >= (self?.splitBrainConfirmThreshold ?? 2) {
-                                self?.splitBrainDetected = true
-                                engineLog.error("F-A11 split-brain confirmed (#76 stale epoch=\(epoch) < known=\(knownMax), leader=\(nowLeaderId ?? "-", privacy: .public)) — writes blocked")
-                            }
-                        } else {
-                            if epoch > knownMax { self?.knownLeaderEpoch = epoch }
-                            self?.knownLeaderId = nowLeaderId
-                            self?.splitBrainResolvedConfirmCount += 1
-                            if self?.splitBrainDetected == true
-                                && (self?.splitBrainResolvedConfirmCount ?? 0) >= (self?.splitBrainConfirmThreshold ?? 2) {
-                                engineLog.info("F-A11 split-brain resolved (#76 epoch=\(epoch) ≥ known, leader=\(nowLeaderId ?? "-", privacy: .public)), unblocking writes")
-                                self?.splitBrainDetected = false
-                                self?.splitBrainConfirmCount = 0
-                            }
-                        }
-                    } else {
-                        // 旧版上游 (partitioned/epoch nil) — 退回 master-count heuristic。
-                        // 单权威 (epoch 0 + 空 leader) 也走此分支: 无脑裂概念, masterCount≤1 不报。
-                        let masterCount = resp.nodes.filter { $0.isMaster }.count
-                        if masterCount > 1 {
-                            self?.splitBrainConfirmCount += 1
-                            self?.splitBrainResolvedConfirmCount = 0
-                            if self?.splitBrainDetected == false && (self?.splitBrainConfirmCount ?? 0) >= (self?.splitBrainConfirmThreshold ?? 2) {
-                                self?.splitBrainDetected = true
-                                engineLog.error("F-A11 split-brain confirmed (heuristic: \(masterCount) masters across \(self?.splitBrainConfirmCount ?? 0) rounds) — writes blocked")
-                            }
-                        } else {
-                            self?.splitBrainResolvedConfirmCount += 1
-                            if self?.splitBrainDetected == true
-                                && (self?.splitBrainResolvedConfirmCount ?? 0) >= (self?.splitBrainConfirmThreshold ?? 2) {
-                                engineLog.info("F-A11 split-brain resolved (heuristic: ≤1 master across \(self?.splitBrainResolvedConfirmCount ?? 0) rounds), unblocking writes")
-                                self?.splitBrainDetected = false
-                                self?.splitBrainConfirmCount = 0
-                            }
-                        }
-                    }
-                    // Track B: split-brain 状态变更后刷新 activeMasterHost (canMutate 计算属性自动反映)。
-                    self?.recomputeCanMutate()
-                    // 审计0830 P1-调度-5: per-node offline 连续计数, 供 confirmedOffline 滞后决策。
-                    if let self = self {
-                        for n in resp.nodes {
-                            if n.effectiveStatus == .offline {
-                                self.nodeOfflineStreak[n.id, default: 0] += 1
-                            } else {
-                                self.nodeOfflineStreak[n.id] = 0
-                            }
-                        }
-                    }
-                }
-            case .failure(let error):
-                self?.handleError(error, context: "nodes")
-            }
-        }
-    }
-
-    func fetchPendingNodes() {
-        get("/api/nodes/pending") { [weak self] (result: Result<PendingNodeListResponse, Error>) in
-            switch result {
-            case .success(let resp):
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    let capped = Array(resp.pending.prefix(500))
-                    if capped.count < resp.pending.count {
-                        engineLog.warning("pendingNodes truncated: \(resp.pending.count) -> \(capped.count)")
-                    }
-                    self.pendingNodes = capped
-                }
-            case .failure:
-                engineLog.debug("Pending nodes endpoint not available")
-            }
-        }
-    }
+    // ARCH-1 PR-C1 Phase 2: resetFailureState/fetchClusterStats/checkHealth → MultiNodeClusterHealthService.
+    //   fetchNodes/fetchPendingNodes/fetchNodeMetrics×2/fetchModelManifest/fetchNodeLoad/fetchAllNodeLoads/
+    //   removeNode/approveNode/rejectNode/joinNode → MultiNodeNodeService. engine 留 1 行 stub 保外部签名。
+    func resetFailureState(context: String) { clusterHealthState.resetFailureState(context: context) }
+    func fetchClusterStats() { clusterHealthState.fetchClusterStats() }
+    func fetchNodes() { nodeState.fetchNodes() }
+    func fetchPendingNodes() { nodeState.fetchPendingNodes() }
 
     func fetchTasks() {
         get("/api/tasks") { [weak self] (result: Result<TaskListResponse, Error>) in
@@ -506,40 +362,9 @@ class MultiNodeEngine: ObservableObject {
         }
     }
 
-    func fetchNodeMetrics(nodeId: String) {
-        get("/api/v1/nodes/\(nodeId)/metrics") { [weak self] (result: Result<NodeMetricsResponse, Error>) in
-            switch result {
-            case .success(let resp):
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    self.nodeMetricsRaw[nodeId] = resp
-                    self.nodeMetrics[nodeId] = LoadMetrics.from(resp)
-                    Self.capDict(&self.nodeMetricsRaw, 100)
-                    Self.capDict(&self.nodeMetrics, 500)
-                }
-            case .failure(let error):
-                engineLog.error("Failed to fetch metrics for \(nodeId): \(error.localizedDescription)")
-            }
-        }
-    }
-
+    func fetchNodeMetrics(nodeId: String) { nodeState.fetchNodeMetrics(nodeId: nodeId) }
     func fetchNodeMetrics(nodeId: String, completion: @escaping (Result<LoadMetrics, Error>) -> Void) {
-        get("/api/v1/nodes/\(nodeId)/metrics") { [weak self] (result: Result<NodeMetricsResponse, Error>) in
-            switch result {
-            case .success(let resp):
-                let metrics = LoadMetrics.from(resp)
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    self.nodeMetricsRaw[nodeId] = resp
-                    self.nodeMetrics[nodeId] = metrics
-                    Self.capDict(&self.nodeMetricsRaw, 100)
-                    Self.capDict(&self.nodeMetrics, 500)
-                }
-                completion(.success(metrics))
-            case .failure(let error):
-                completion(.failure(error))
-            }
-        }
+        nodeState.fetchNodeMetrics(nodeId: nodeId, completion: completion)
     }
 
     func fetchTaskProgress(taskId: String, completion: @escaping (Result<TaskProgress, Error>) -> Void) {
@@ -583,27 +408,7 @@ class MultiNodeEngine: ObservableObject {
         }
     }
 
-    func checkHealth() {
-        get("/api/health") { [weak self] (result: Result<HealthResponse, Error>) in
-            switch result {
-            case .success:
-                DispatchQueue.main.async {
-                    self?.isConnected = true
-                    self?.lastError = nil
-                    // 审计0827 §3.5: health 路 success 复位其 context 失败计数。
-                    self?.consecutiveFailuresByContext["health"] = 0
-                    self?.recomputeCanMutate()
-                    // 审计v0.1.58 P1-2: failover 探测完成复位 (非 5s 定时器), 保证探测真正结束才放下次.
-                    self?.failoverProbeInflight = false
-                }
-            case .failure(let error):
-                self?.handleError(error, context: "health")
-                DispatchQueue.main.async {
-                    self?.failoverProbeInflight = false
-                }
-            }
-        }
-    }
+    func checkHealth() { clusterHealthState.checkHealth() }
 
     // Track B: 刷新 activeMasterHost (pool 当前 master)。canMutate 为计算属性无需刷新, 此方法仅同步 host。
     // 在 isConnected/splitBrainDetected 赋值点 + checkHealth 成功/失败 + poll 失败 failover 后调用。
@@ -622,64 +427,12 @@ class MultiNodeEngine: ObservableObject {
         }
     }
 
-    func removeNode(nodeId: String) async throws {
-        guard canMutate else {
-            ClusterAuditor.shared.record(action: "remove", targetNode: nodeId, targetTask: nil,
-                                         result: "blocked", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw EngineError.writeDisabled
-        }
-        do {
-            try assertNoSplitBrain()
-            try await delete("/api/nodes/\(nodeId)")
-            fetchNodes()
-            fetchClusterStats()
-            ClusterAuditor.shared.record(action: "remove", targetNode: nodeId, targetTask: nil,
-                                         result: "ok", idempotencyKey: nil, masterHost: activeMasterHost)
-        } catch {
-            ClusterAuditor.shared.record(action: "remove", targetNode: nodeId, targetTask: nil,
-                                         result: "failed", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw error
-        }
-    }
-
+    func removeNode(nodeId: String) async throws { try await nodeState.removeNode(nodeId: nodeId) }
     func approveNode(nodeId: String, approvedBy: String = "admin") async throws {
-        guard canMutate else {
-            ClusterAuditor.shared.record(action: "approve", targetNode: nodeId, targetTask: nil,
-                                         result: "blocked", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw EngineError.writeDisabled
-        }
-        do {
-            try assertNoSplitBrain()
-            _ = try await post("/api/nodes/approve", body: ["node_id": nodeId, "approved_by": approvedBy])
-            fetchPendingNodes()
-            fetchNodes()
-            fetchClusterStats()
-            ClusterAuditor.shared.record(action: "approve", targetNode: nodeId, targetTask: nil,
-                                         result: "ok", idempotencyKey: nil, masterHost: activeMasterHost)
-        } catch {
-            ClusterAuditor.shared.record(action: "approve", targetNode: nodeId, targetTask: nil,
-                                         result: "failed", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw error
-        }
+        try await nodeState.approveNode(nodeId: nodeId, approvedBy: approvedBy)
     }
-
     func rejectNode(nodeId: String, reason: String = "") async throws {
-        guard canMutate else {
-            ClusterAuditor.shared.record(action: "reject", targetNode: nodeId, targetTask: nil,
-                                         result: "blocked", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw EngineError.writeDisabled
-        }
-        do {
-            try assertNoSplitBrain()
-            _ = try await post("/api/nodes/reject", body: ["node_id": nodeId, "reason": reason])
-            fetchPendingNodes()
-            ClusterAuditor.shared.record(action: "reject", targetNode: nodeId, targetTask: nil,
-                                         result: "ok", idempotencyKey: nil, masterHost: activeMasterHost)
-        } catch {
-            ClusterAuditor.shared.record(action: "reject", targetNode: nodeId, targetTask: nil,
-                                         result: "failed", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw error
-        }
+        try await nodeState.rejectNode(nodeId: nodeId, reason: reason)
     }
 
     func cancelTask(taskId: String) async throws {
@@ -891,25 +644,7 @@ class MultiNodeEngine: ObservableObject {
     }
 
     func joinNode(ipAddress: String, port: Int, token: String? = nil) async throws -> [String: Any] {
-        // 审计v0.1.58 P0-multinode-1: join 是写操作, 必经 canMutate+split-brain 门.
-        guard canMutate else {
-            ClusterAuditor.shared.record(action: "join", targetNode: ipAddress, targetTask: nil,
-                                         result: "blocked", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw EngineError.writeDisabled
-        }
-        try assertNoSplitBrain()
-        var body: [String: Any] = ["ip_address": ipAddress, "port": port]
-        if let t = token { body["token"] = t }
-        do {
-            let resp = try await post("/api/join", body: body)
-            ClusterAuditor.shared.record(action: "join", targetNode: ipAddress, targetTask: nil,
-                                         result: "ok", idempotencyKey: nil, masterHost: activeMasterHost)
-            return resp
-        } catch {
-            ClusterAuditor.shared.record(action: "join", targetNode: ipAddress, targetTask: nil,
-                                         result: "failed", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw error
-        }
+        try await nodeState.joinNode(ipAddress: ipAddress, port: port, token: token)
     }
 
     // MARK: - Cluster Sync (#74)
@@ -926,19 +661,7 @@ class MultiNodeEngine: ObservableObject {
     }
 
     func fetchModelManifest(modelName: String, completion: @escaping (Result<ModelManifest, Error>) -> Void) {
-        get("/api/models/\(modelName)/manifest") { [weak self] (result: Result<ModelManifest, Error>) in
-            switch result {
-            case .success(let manifest):
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    self.modelManifests[modelName] = manifest
-                    Self.capDict(&self.modelManifests, 50)
-                }
-                completion(.success(manifest))
-            case .failure(let error):
-                completion(.failure(error))
-            }
-        }
+        nodeState.fetchModelManifest(modelName: modelName, completion: completion)
     }
 
     func triggerIncrementalSync(modelName: String, sourceHost: String, sourcePort: Int? = nil, completion: @escaping (Result<[String: Any], Error>) -> Void) {
@@ -968,37 +691,9 @@ class MultiNodeEngine: ObservableObject {
     }
 
     func fetchNodeLoad(nodeId: String, completion: @escaping (Result<NodeLoadReport, Error>) -> Void) {
-        get("/api/nodes/\(nodeId)/load") { [weak self] (result: Result<NodeLoadReport, Error>) in
-            switch result {
-            case .success(let report):
-                DispatchQueue.main.async { self?.nodeLoads[nodeId] = report }
-                completion(.success(report))
-            case .failure(let error):
-                completion(.failure(error))
-            }
-        }
+        nodeState.fetchNodeLoad(nodeId: nodeId, completion: completion)
     }
-
-    func fetchAllNodeLoads() {
-        let live = nodes.filter { $0.effectiveStatus == .online || $0.effectiveStatus == .busy }
-        let liveIds = Set(live.map { $0.id })
-        let stale = nodeLoads.keys.filter { !liveIds.contains($0) }
-        if !stale.isEmpty {
-            for k in stale { nodeLoads.removeValue(forKey: k) }
-            engineLog.info("nodeLoads evicted \(stale.count) offline entries")
-        }
-        if live.count > nodeLoadSampleCap {
-            let sampled = live.sorted { a, b in
-                let la = nodeLoads[a.id]?.cpuPercent ?? 0
-                let lb = nodeLoads[b.id]?.cpuPercent ?? 0
-                return la > lb
-            }.prefix(nodeLoadSampleCap)
-            engineLog.warning("node_loads sampled \(sampled.count)/\(live.count) (cap=\(self.nodeLoadSampleCap)); full load available via fetchNodeLoad(nodeId:)")
-            for node in sampled { fetchNodeLoad(nodeId: node.id) { _ in } }
-        } else {
-            for node in live { fetchNodeLoad(nodeId: node.id) { _ in } }
-        }
-    }
+    func fetchAllNodeLoads() { nodeState.fetchAllNodeLoads() }
 
     // MARK: - Routing
 
