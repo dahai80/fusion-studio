@@ -8,10 +8,14 @@ final class ClusterAuditor {
 
     private var logDir: String
     private let writeLock = NSLock()
+    // B4: per-day file size cap + age retention.
+    private let maxFileSize: Int64 = 50 * 1024 * 1024
+    private let retentionDays: Int = 30
 
     init() {
         self.logDir = NSHomeDirectory() + "/.fusion-studio/logs"
         ensureDir()
+        pruneOldLogs()
     }
 
     func overrideLogDir(_ dir: String) {
@@ -41,6 +45,39 @@ final class ClusterAuditor {
         return logDir + "/cluster-audit-" + fmt.string(from: Date()) + ".log"
     }
 
+    // B4: move oversized current-day file to a .N suffix before the next append.
+    private func rotateLog(path: String) {
+        var suffix = 1
+        var rotated = path + ".1"
+        while FileManager.default.fileExists(atPath: rotated) {
+            suffix += 1
+            rotated = path + ".\(suffix)"
+        }
+        try? FileManager.default.moveItem(atPath: path, toPath: rotated)
+        auditLog.info("audit log rotated: \(path) -> \(rotated, privacy: .public)")
+    }
+
+    // B4: delete audit logs (current + rotated) older than retentionDays.
+    private func pruneOldLogs() {
+        let fm = FileManager.default
+        guard let entries = try? fm.contentsOfDirectory(atPath: logDir) else { return }
+        let cutoff = Date().addingTimeInterval(-Double(retentionDays) * 86400)
+        var pruned = 0
+        for name in entries {
+            guard name.hasPrefix("cluster-audit-") else { continue }
+            guard name.hasSuffix(".log") || name.hasSuffix(".1") || name.hasSuffix(".2") else { continue }
+            let full = logDir + "/" + name
+            if let attrs = try? fm.attributesOfItem(atPath: full),
+               let mtime = attrs[.modificationDate] as? Date, mtime < cutoff {
+                try? fm.removeItem(atPath: full)
+                pruned += 1
+            }
+        }
+        if pruned > 0 {
+            auditLog.info("audit prune: removed \(pruned, privacy: .public) logs older than \(retentionDays) days")
+        }
+    }
+
     func record(action: String, targetNode: String?, targetTask: String?,
                 result: String, idempotencyKey: String?, masterHost: String?) {
         let rec = AuditRecord(ts: Int(Date().timeIntervalSince1970),
@@ -56,6 +93,12 @@ final class ClusterAuditor {
         line += "\n"
         writeLock.lock(); defer { writeLock.unlock() }
         let path = dateStampedPath()
+        // B4: rotate current day's file if it exceeds maxFileSize before appending.
+        if FileManager.default.fileExists(atPath: path),
+           let attrs = try? FileManager.default.attributesOfItem(atPath: path),
+           let size = attrs[.size] as? Int64, size >= maxFileSize {
+            rotateLog(path: path)
+        }
         if !FileManager.default.fileExists(atPath: path) {
             try? line.write(toFile: path, atomically: true, encoding: .utf8)
         } else {
