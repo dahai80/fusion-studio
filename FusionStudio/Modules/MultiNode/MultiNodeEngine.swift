@@ -93,47 +93,6 @@ class MultiNodeEngine: ObservableObject {
     // 计算属性 (非 @Published stored) — 永远反映 isConnected/splitBrainDetected 当前值, 无需手动刷新。
     var canMutate: Bool { isConnected && !splitBrainDetected }
 
-    // ARCH-1 PR-C1 Phase 1: stored-prop shims → 域 state。方法体暂留 engine (Phase 2-5 迁入 service
-    //   extension), 经这些 shim 访问已迁入域的 stored props。Phase 6 删 shim (方法体迁走后无引用)。
-    private var splitBrainConfirmCount: Int {
-        get { splitBrainState.splitBrainConfirmCount } set { splitBrainState.splitBrainConfirmCount = newValue }
-    }
-    private var splitBrainResolvedConfirmCount: Int {
-        get { splitBrainState.splitBrainResolvedConfirmCount } set { splitBrainState.splitBrainResolvedConfirmCount = newValue }
-    }
-    private var splitBrainConfirmThreshold: Int { splitBrainState.splitBrainConfirmThreshold }
-    private var knownLeaderEpoch: Int {
-        get { splitBrainState.knownLeaderEpoch } set { splitBrainState.knownLeaderEpoch = newValue }
-    }
-    private var knownLeaderId: String? {
-        get { splitBrainState.knownLeaderId } set { splitBrainState.knownLeaderId = newValue }
-    }
-    private var knownLeaderToken: String? {
-        get { splitBrainState.knownLeaderToken } set { splitBrainState.knownLeaderToken = newValue }
-    }
-    private var consecutiveFailuresByContext: [String: Int] {
-        get { pollingState.consecutiveFailuresByContext } set { pollingState.consecutiveFailuresByContext = newValue }
-    }
-    private var worstConsecutiveFailures: Int { pollingState.worstConsecutiveFailures }
-    private var maxConsecutiveFailures: Int { pollingState.maxConsecutiveFailures }
-    private var inflightFetches: Set<String> {
-        get { pollingState.inflightFetches } set { pollingState.inflightFetches = newValue }
-    }
-    private var inflightLock: NSLock { pollingState.inflightLock }
-    private var pollTimers: [Timer] {
-        get { pollingState.pollTimers } set { pollingState.pollTimers = newValue }
-    }
-    private var nodeOfflineStreak: [String: Int] {
-        get { nodeState.nodeOfflineStreak } set { nodeState.nodeOfflineStreak = newValue }
-    }
-    private var offlineConfirmThreshold: Int { nodeState.offlineConfirmThreshold }
-    private var nodeLoadSampleCap: Int { nodeState.nodeLoadSampleCap }
-    private var failoverProbeInflight: Bool {
-        get { clusterHealthState.failoverProbeInflight } set { clusterHealthState.failoverProbeInflight = newValue }
-    }
-    private func confirmedOffline(nodeId: String) -> Bool { nodeState.confirmedOffline(nodeId: nodeId) }
-    private func releaseInflight(_ key: String) { pollingState.releaseInflight(key) }
-
     // B1: cap unbounded mirror dicts (periodic refresh, no order — evict arbitrary excess keys)。
     // ARCH-1 PR-C1: internal — 域 service extension 经 Self.capDict reach-through。
     internal static func capDict<K: Hashable, V>(_ dict: inout [K: V], _ max: Int) {
@@ -231,7 +190,7 @@ class MultiNodeEngine: ObservableObject {
     //   缺 header server 放行 (灰度兼容), 故 token 未取到 (nil/空) 时不发 header, 行为同旧版。
     // ARCH-1 PR-C1: internal — 域 service extension 经 bridge?.leaderTokenHeader reach-through。
     internal func leaderTokenHeader(_ request: inout URLRequest) {
-        if let token = knownLeaderToken, !token.isEmpty {
+        if let token = splitBrainState.knownLeaderToken, !token.isEmpty {
             request.setValue(token, forHTTPHeaderField: "X-Leader-Token")
         }
     }
@@ -270,11 +229,6 @@ class MultiNodeEngine: ObservableObject {
         pollingState.pollTimers.forEach { $0.invalidate() }
         pollingState.pollTimers.removeAll()
         engineLog.info("MultiNode polling stopped")
-    }
-
-    // ARCH-1 PR-C1 Phase 5: schedulePoll/reschedulePoll stubs → pollingState (bodies in MultiNodePollingService.swift)。
-    private func schedulePoll(interval: TimeInterval, label: String, action: @escaping () -> Void) {
-        pollingState.schedulePoll(interval: interval, label: label, action: action)
     }
 
     // MARK: - GET endpoints (ClusterHealth + Node — Phase 2 stubs, bodies in Service files)
@@ -502,16 +456,16 @@ class MultiNodeEngine: ObservableObject {
             // F-R6/F-R10: 连续失败计数。单次抖动不计 disconnected, 连续 N 轮失败才降级 isConnected。
             // 审计0827 §3.5: 按 context 独立计数, 单路失败达阈值即降级 (非全局累计),
             // 避免交叉复位让持续失败路径永不到阈值。
-            let prev = self.consecutiveFailuresByContext[context, default: 0]
-            self.consecutiveFailuresByContext[context] = prev + 1
-            if (prev + 1) >= self.maxConsecutiveFailures {
+            let prev = self.pollingState.consecutiveFailuresByContext[context, default: 0]
+            self.pollingState.consecutiveFailuresByContext[context] = prev + 1
+            if (prev + 1) >= self.pollingState.maxConsecutiveFailures {
                 self.isConnected = false
                 engineLog.warning("MultiNode disconnected: context=\(context) failures=\(prev + 1)")
                 // Track B: 降级时刷新 activeMasterHost, 并 failover 到 pool 下一 master + 健康探测。
                 // 单飞保护: 多路 handleError 并发触发只探一次, 避免请求风暴。保留原有 backoff 逻辑不动。
                 self.recomputeCanMutate()
-                if !self.failoverProbeInflight {
-                    self.failoverProbeInflight = true
+                if !self.clusterHealthState.failoverProbeInflight {
+                    self.clusterHealthState.failoverProbeInflight = true
                     let next = MasterPool.shared.advance()
                     engineLog.info("Track B failover to \(next?.host ?? "nil", privacy: .public) after disconnect (context=\(context))")
                     self.recomputeCanMutate()
