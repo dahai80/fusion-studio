@@ -11,7 +11,24 @@ final class ClusterTLSDelegate: NSObject, URLSessionDelegate {
     func urlSession(_ session: URLSession,
                     didReceive challenge: URLAuthenticationChallenge,
                     completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
-        guard challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+        let method = challenge.protectionSpace.authenticationMethod
+
+        // 审计product-0907 P2-3 / C2: mTLS 客户端证书双向认证.
+        //   服务端要求 clientCertificate 时, 出示已导入的 SecIdentity (cert + private key).
+        //   未配置 -> .performDefaultHandling (向后兼容, 仅 Bearer + 服务端 pinning).
+        if method == NSURLAuthenticationMethodClientCertificate {
+            if let identity = clientIdentity {
+                let credential = URLCredential(identity: identity, certificates: nil, persistence: .forSession)
+                tlsDelLog.info("mTLS client cert presented for challenge host=\(challenge.protectionSpace.host, privacy: .public)")
+                completionHandler(.useCredential, credential)
+            } else {
+                tlsDelLog.error("mTLS client cert requested but no identity configured — falling back to default")
+                completionHandler(.performDefaultHandling, nil)
+            }
+            return
+        }
+
+        guard method == NSURLAuthenticationMethodServerTrust,
               let serverTrust = challenge.protectionSpace.serverTrust else {
             completionHandler(.performDefaultHandling, nil)
             return

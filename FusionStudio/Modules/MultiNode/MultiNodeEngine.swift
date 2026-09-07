@@ -6,91 +6,96 @@ private let engineLog = Logger(subsystem: "com.fusion.studio", category: "MultiN
 
 @MainActor
 class MultiNodeEngine: ObservableObject {
-    @Published var clusterStats: ClusterStats = .empty
-    @Published var nodes: [ClusterNode] = []
-    @Published var tasks: [ClusterTask] = []
-    @Published var alerts: [AlertItem] = []
-    @Published var suggestions: [OptimizationSuggestion] = []
-    @Published var autoscalerConfig: AutoscalerConfig = .default
-    @Published var nodeMetrics: [String: LoadMetrics] = [:]
-    @Published var nodeMetricsRaw: [String: NodeMetricsResponse] = [:]
-    @Published var clusterSyncStatus: ClusterSyncStatus?
-    @Published var nodeLoads: [String: NodeLoadReport] = [:]
-    @Published var modelManifests: [String: ModelManifest] = [:]
-    @Published var pendingNodes: [PendingNode] = []
-    @Published var isConnected: Bool = false
-    @Published var lastError: String?
-    // F-R6: 数据可能过期标志。fetch 失败时置 true (保留旧 nodes 不清空), 成功时清 false。
-    // UI 据 stale 显示"数据可能过期"而非惊吓性"集群全没了"。连续失败达阈值才降级 isConnected。
-    @Published var nodesStale: Bool = false
+    // ARCH-1 (PR-C1): 18 @Published 拆 10 域 ObservableObject。let 域引用 = 稳定身份,
+    //   init() objectWillChange.sink 转发每域 (SwiftUI 不自动追踪嵌套 ObservableObject, P0-1 修)。
+    //   18 属性经下方计算属性 get/set 转发, 62 view 读站点 0 改 (0 $binding, 计算属性不产 projectedValue)。
+    //   行为按域 Phase 2-5 迁入 MultiNode<Domain>Service.swift extension。
+    let clusterHealthState = MultiNodeClusterHealthState()
+    let nodeState = MultiNodeNodeState()
+    let taskState = MultiNodeTaskState()
+    let splitBrainState = MultiNodeSplitBrainState()
+    let autoscalerState = MultiNodeAutoscalerState()
+    let syncState = MultiNodeSyncState()
+    let kvCacheState = MultiNodeKVCacheState()
+    let agentServerState = MultiNodeAgentServerState()
+    let routingState = MultiNodeRoutingState()
+    let pollingState = MultiNodePollingState()
+    private var cancellables = Set<AnyCancellable>()
 
-    // F-A11: 脑裂检测。>1 master = 网络分区两区各选 master, 客户端不应静默并排展示,
-    // 须 critical alert + 阻断写操作 (remove/approve/migrate) 直到 quorum 恢复。
-    // 审计0830 P1-调度-4: 旧版单次 master 快照判定脑裂, 瞬态抖动 (一次 fetch 拿到 stale 双 master) 误报。
-    //   改连续 N 轮确认才置位, 恢复 (≤1 master) 立即清零复位。stored @Published 替纯计算属性 (需跨轮状态)。
-    @Published var splitBrainDetected: Bool = false
-    private var splitBrainConfirmCount: Int = 0
-    // 审计v0.1.58 P1-4: 脑裂解除同样需连续 N 轮 ≤1 master 确认, 防瞬态抖动误放行写入.
-    private var splitBrainResolvedConfirmCount: Int = 0
-    private let splitBrainConfirmThreshold: Int = 2
-    // #76: 已知最大领导纪元 + leader_id (HA failover 递增; 单 master/active-active 恒 0/"").
-    //   收到 epoch < knownLeaderEpoch = stale leader 视图 → 写禁用。failover 后刷新。
-    private var knownLeaderEpoch: Int = 0
-    private var knownLeaderId: String? = nil
-    // #77: per-leader token (从 /api/v1/cluster/stats leader_token 刷新). 变更请求带 X-Leader-Token;
-    //   server enforce 开 + token 过期 → 409 LeaderChanged, 客户端 failover 后重取。nil/空 = 旧版, 不发 header。
-    private var knownLeaderToken: String? = nil
+    // MARK: - Cluster Health State 转发
+    var clusterStats: ClusterStats {
+        get { clusterHealthState.clusterStats } set { clusterHealthState.clusterStats = newValue }
+    }
+    var isConnected: Bool {
+        get { clusterHealthState.isConnected } set { clusterHealthState.isConnected = newValue }
+    }
+    var lastError: String? {
+        get { clusterHealthState.lastError } set { clusterHealthState.lastError = newValue }
+    }
+    var nodesStale: Bool {
+        get { clusterHealthState.nodesStale } set { clusterHealthState.nodesStale = newValue }
+    }
+    var activeMasterHost: String? {
+        get { clusterHealthState.activeMasterHost } set { clusterHealthState.activeMasterHost = newValue }
+    }
 
-    // Track B: 当前 master host (pool 驱动), 供 UI/审计展示。recomputeCanMutate() 刷新。
-    @Published var activeMasterHost: String? = nil
+    // MARK: - Node State 转发
+    var nodes: [ClusterNode] {
+        get { nodeState.nodes } set { nodeState.nodes = newValue }
+    }
+    var pendingNodes: [PendingNode] {
+        get { nodeState.pendingNodes } set { nodeState.pendingNodes = newValue }
+    }
+    var nodeMetrics: [String: LoadMetrics] {
+        get { nodeState.nodeMetrics } set { nodeState.nodeMetrics = newValue }
+    }
+    var nodeMetricsRaw: [String: NodeMetricsResponse] {
+        get { nodeState.nodeMetricsRaw } set { nodeState.nodeMetricsRaw = newValue }
+    }
+    var nodeLoads: [String: NodeLoadReport] {
+        get { nodeState.nodeLoads } set { nodeState.nodeLoads = newValue }
+    }
+    var modelManifests: [String: ModelManifest] {
+        get { nodeState.modelManifests } set { nodeState.modelManifests = newValue }
+    }
 
-    // F-A13: 重复执行检测 (客户端可做项)。同一 task assignedNodes>=2 且 running 且 mode!=data_parallel
-    // → 疑似网络抖动致 submit 重复提交, 两节点跑同一份未分片输入。data_parallel 多节点 = 合法分片不告警。
-    // 真因缺 idempotency key + pending 队列需后端 (#23/#31 已提), 客户端此告警仅 UI 可见性止血。
-    @Published var duplicateExecutionTaskIds: [String] = []
-    var duplicateExecutionDetected: Bool { !duplicateExecutionTaskIds.isEmpty }
+    // MARK: - Task State 转发
+    var tasks: [ClusterTask] {
+        get { taskState.tasks } set { taskState.tasks = newValue }
+    }
+    var duplicateExecutionTaskIds: [String] {
+        get { taskState.duplicateExecutionTaskIds } set { taskState.duplicateExecutionTaskIds = newValue }
+    }
+    var duplicateExecutionDetected: Bool { taskState.duplicateExecutionDetected }
+
+    // MARK: - Split Brain State 转发
+    var splitBrainDetected: Bool {
+        get { splitBrainState.splitBrainDetected } set { splitBrainState.splitBrainDetected = newValue }
+    }
+
+    // MARK: - Autoscaler State 转发
+    var autoscalerConfig: AutoscalerConfig {
+        get { autoscalerState.autoscalerConfig } set { autoscalerState.autoscalerConfig = newValue }
+    }
+    var alerts: [AlertItem] {
+        get { autoscalerState.alerts } set { autoscalerState.alerts = newValue }
+    }
+    var suggestions: [OptimizationSuggestion] {
+        get { autoscalerState.suggestions } set { autoscalerState.suggestions = newValue }
+    }
+
+    // MARK: - Sync State 转发
+    var clusterSyncStatus: ClusterSyncStatus? {
+        get { syncState.clusterSyncStatus } set { syncState.clusterSyncStatus = newValue }
+    }
 
     // Track B: 写操作前置门。connected 且无脑裂才允许 remove/approve/migrate/submit/retry/routing/autoscaler。
     // 计算属性 (非 @Published stored) — 永远反映 isConnected/splitBrainDetected 当前值, 无需手动刷新。
     var canMutate: Bool { isConnected && !splitBrainDetected }
 
-    // F-R6/F-R10: 连续失败计数 + 降级阈值。单次网络抖动不计 disconnected, 连续 N 轮失败才置离线。
-    // 审计0827 §3.5 (P2): 4 路 poll 共享单一 consecutiveFailures, 交叉复位致降级失真
-    // (node_loads 偶发成功复位 → 其余 3 路持续失败被掩盖, 计数永不达 3)。
-    // 改 per-context 计数, 任一路达阈值即降级; backoff 取最差路值避免一路快一路慢。
-    private var consecutiveFailuresByContext: [String: Int] = [:]
-    private let maxConsecutiveFailures: Int = 3
-    private var worstConsecutiveFailures: Int {
-        consecutiveFailuresByContext.values.max() ?? 0
-    }
-    // F-R10: 单飞保护。慢响应时 Timer 下一 tick 重复 fire 同一 fetch 致请求风暴, in-flight 跳过。
-    private var inflightFetches: Set<String> = []
-    private let inflightLock = NSLock()
-
-    // 审计0830 P1-调度-5: effectiveStatus 无滞后, 节点心跳抖动 → 状态频繁切换 (online↔offline)。
-    //   engine 维护 per-node 连续 offline 计数, 达阈值 K 才确认 offline (决策点用 confirmedOffline)。
-    //   model 的 effectiveStatus 仍即时 (UI 即时反馈), engine 决策 (retry/eligibility) 用滞后值防抖。
-    private var nodeOfflineStreak: [String: Int] = [:]
-    private let offlineConfirmThreshold: Int = 2
-
-    // B2: node_loads poll throughput cap. >50 online nodes → sample top-N busiest by cpuPercent,
-    // rest rely on 2s fetchNodes heartbeat. Prevents 500 req/5s storm on large clusters.
-    private let nodeLoadSampleCap = 50
-
-    // Track B: failover 健康探测单飞, 防 handleError 多路并发触发重复 checkHealth 风暴。
-    private var failoverProbeInflight: Bool = false
-
-    // 审计0830 P1-调度-5: 决策点 (retry/eligibility) 用滞后确认, 非 model 即时 effectiveStatus。
-    //   未知节点 (streak 无记录, 0) 默认即时状态: 避免新加入节点首轮 fetch 未到被误判健康。
-    private func confirmedOffline(nodeId: String) -> Bool {
-        let streak = nodeOfflineStreak[nodeId] ?? 0
-        if streak >= offlineConfirmThreshold { return true }
-        guard let n = nodes.first(where: { $0.id == nodeId }) else { return true }
-        return n.effectiveStatus == .offline
-    }
-
-    // B1: cap unbounded mirror dicts (periodic refresh, no order — evict arbitrary excess keys).
-    private static func capDict<K: Hashable, V>(_ dict: inout [K: V], _ max: Int) {
+    // B1: cap unbounded mirror dicts (periodic refresh, no order — evict arbitrary excess keys)。
+    // ARCH-1 PR-C1: internal — 域 service extension 经 Self.capDict reach-through。
+    internal static func capDict<K: Hashable, V>(_ dict: inout [K: V], _ max: Int) {
         if dict.count > max {
             let drop = dict.count - max
             for k in Array(dict.keys).prefix(drop) { dict.removeValue(forKey: k) }
@@ -104,15 +109,12 @@ class MultiNodeEngine: ObservableObject {
     private let overrideBaseURL: String?
     private let overrideAgentBaseURL: String?
     private let overrideAuthToken: String?
-    // B5: nonisolated(unsafe) — timers are only mutated on main (startPolling/stopPolling/reschedulePoll
-    // are MainActor) and deinit invalidates synchronously. No cross-queue mutation; annotation
-    // satisfies nonisolated deinit access without introducing a lock.
-    nonisolated(unsafe) private var pollTimers: [Timer] = []
 
     // Track B: TLS 会话由 ClusterTransport 统一提供 (含 TLS 委托 + 超时)。engine 不再自建 URLSession。
-    private var session: URLSession { ClusterTransport.shared.session }
+    // ARCH-1 PR-C1: internal — 域 service extension 经 bridge?.session reach-through。
+    internal var session: URLSession { ClusterTransport.shared.session }
 
-    private var baseURL: String {
+    internal var baseURL: String {
         if let override = overrideBaseURL { return override }
         // 审计v0.1.58 P2-2: pool 活跃端点用完整 URL (含 scheme), 非 urlString (无 scheme 致 URL 构造失败).
         // Track B: pool 优先, pool 空回退 FusionConfig 默认 (向后兼容单 master 部署)。
@@ -121,9 +123,9 @@ class MultiNodeEngine: ObservableObject {
         }
         return FusionConfig.shared.multiNodeBaseURL
     }
-    private var agentBaseURL: String { overrideAgentBaseURL ?? FusionConfig.shared.multiNodeAgentBaseURL }
+    internal var agentBaseURL: String { overrideAgentBaseURL ?? FusionConfig.shared.multiNodeAgentBaseURL }
     // Track B: cluster token 走 Keychain (Task 6 迁移), 保留 override 供测试注入。
-    private var authToken: String { overrideAuthToken ?? KeychainStore.readClusterToken() ?? "" }
+    internal var authToken: String { overrideAuthToken ?? KeychainStore.readClusterToken() ?? "" }
 
     // Track B: pool 驱动的 cluster URL, scheme 按 FusionConfig 默认 baseURL 推断 (http/https)。
     private var clusterURL: URL? {
@@ -139,6 +141,27 @@ class MultiNodeEngine: ObservableObject {
         self.overrideBaseURL = baseURL
         self.overrideAgentBaseURL = agentBaseURL
         self.overrideAuthToken = authToken
+        clusterHealthState.bridge = self
+        nodeState.bridge = self
+        taskState.bridge = self
+        splitBrainState.bridge = self
+        autoscalerState.bridge = self
+        syncState.bridge = self
+        kvCacheState.bridge = self
+        agentServerState.bridge = self
+        routingState.bridge = self
+        pollingState.bridge = self
+        clusterHealthState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        nodeState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        taskState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        splitBrainState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        autoscalerState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        syncState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        kvCacheState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        agentServerState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        routingState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        pollingState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        engineLog.info("MultiNodeEngine init: 10 域 objectWillChange 转发已接线 (ARCH-1 PR-C1)")
     }
 
     /// Track C: 客户端幂等键。上游 fusion-multi-node #23/#31 暂忽略 X-Idempotency-Key header;
@@ -156,7 +179,8 @@ class MultiNodeEngine: ObservableObject {
     }
 
     /// 给 URLRequest 附加 Bearer token（cluster 鉴权，参照 ModelHubAPIClient 模式）。
-    private func authHeaders(_ request: inout URLRequest) {
+    // ARCH-1 PR-C1: internal — 域 service extension 经 bridge?.authHeaders reach-through。
+    internal func authHeaders(_ request: inout URLRequest) {
         if !authToken.isEmpty {
             request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
         }
@@ -164,8 +188,9 @@ class MultiNodeEngine: ObservableObject {
 
     // #77: 变更请求附 X-Leader-Token (per-leader token)。server enforce 开 + token 过期 → 409 LeaderChanged。
     //   缺 header server 放行 (灰度兼容), 故 token 未取到 (nil/空) 时不发 header, 行为同旧版。
-    private func leaderTokenHeader(_ request: inout URLRequest) {
-        if let token = knownLeaderToken, !token.isEmpty {
+    // ARCH-1 PR-C1: internal — 域 service extension 经 bridge?.leaderTokenHeader reach-through。
+    internal func leaderTokenHeader(_ request: inout URLRequest) {
+        if let token = splitBrainState.knownLeaderToken, !token.isEmpty {
             request.setValue(token, forHTTPHeaderField: "X-Leader-Token")
         }
     }
@@ -175,24 +200,25 @@ class MultiNodeEngine: ObservableObject {
     func startPolling() {
         // F-A9: App 级生命周期调用 (scenePhase active), 多叶子 View onAppear 不再各自调。
         // 幂等: 已有 timer 在跑则跳过, 防重复 schedule 致请求风暴。
-        if !pollTimers.isEmpty {
+        // ARCH-1 PR-C1 Phase 5: coordinator — 调 8 域 fetch, 留 engine。schedulePoll 委派 pollingState。
+        if !pollingState.pollTimers.isEmpty {
             engineLog.info("MultiNode polling already running, skip")
             return
         }
         engineLog.info("MultiNode polling started")
-        schedulePoll(interval: 2.0, label: "stats_nodes") { [weak self] in
+        pollingState.schedulePoll(interval: 2.0, label: "stats_nodes") { [weak self] in
             self?.fetchClusterStats()
             self?.fetchNodes()
         }
-        schedulePoll(interval: 3.0, label: "tasks_sync") { [weak self] in
+        pollingState.schedulePoll(interval: 3.0, label: "tasks_sync") { [weak self] in
             self?.fetchTasks()
             self?.fetchClusterSyncStatus()
             self?.fetchPendingNodes()
         }
-        schedulePoll(interval: 5.0, label: "node_loads") { [weak self] in
+        pollingState.schedulePoll(interval: 5.0, label: "node_loads") { [weak self] in
             self?.fetchAllNodeLoads()
         }
-        schedulePoll(interval: 10.0, label: "suggestions_alerts") { [weak self] in
+        pollingState.schedulePoll(interval: 10.0, label: "suggestions_alerts") { [weak self] in
             self?.fetchSuggestions()
             self?.fetchAlerts()
         }
@@ -200,344 +226,41 @@ class MultiNodeEngine: ObservableObject {
     }
 
     func stopPolling() {
-        pollTimers.forEach { $0.invalidate() }
-        pollTimers.removeAll()
+        pollingState.pollTimers.forEach { $0.invalidate() }
+        pollingState.pollTimers.removeAll()
         engineLog.info("MultiNode polling stopped")
     }
 
-    private func schedulePoll(interval: TimeInterval, label: String, action: @escaping () -> Void) {
-        // F-R10: 指数退避轮询。失败时 interval × 2^min(consecutiveFailures,5), 封顶 60s; 成功复位 base。
-        // 单发递归 Timer 每轮重算 delay (固定 repeats Timer 无法动态调 interval)。单飞保护防慢响应风暴。
-        var runOnce: (() -> Void)?
-        runOnce = { [weak self] in
-            guard let self = self else { return }
-            self.inflightLock.lock()
-            let already = self.inflightFetches.contains(label)
-            if !already { self.inflightFetches.insert(label) }
-            self.inflightLock.unlock()
-            guard !already else {
-                engineLog.debug("Poll skip (in-flight): \(label)")
-                self.reschedulePoll(interval: interval, label: label, action: action, runOnce: runOnce!)
-                return
-            }
-            action()
-            self.inflightLock.lock()
-            self.inflightFetches.remove(label)
-            self.inflightLock.unlock()
-            self.reschedulePoll(interval: interval, label: label, action: action, runOnce: runOnce!)
-        }
-        action()
-        reschedulePoll(interval: interval, label: label, action: action, runOnce: runOnce!)
-    }
+    // MARK: - GET endpoints (ClusterHealth + Node — Phase 2 stubs, bodies in Service files)
 
-    private func reschedulePoll(interval: TimeInterval, label: String, action: @escaping () -> Void, runOnce: @escaping () -> Void) {
-        // F-R10: delay = base × 2^min(consecutiveFailures,5), 封顶 60s。consecutiveFailures=0 复位 base。
-        // 审计0827 §3.5: 取 worstConsecutiveFailures (4 路最差值) 避免单路复位让全局 backoff 立归 base。
-        let backoff = TimeInterval(min(worstConsecutiveFailures, 5))
-        let delay = min(interval * pow(2.0, backoff), 60.0)
-        if delay > interval {
-            engineLog.info("Poll backoff \(label): \(interval)s -> \(Int(delay))s (failures=\(self.worstConsecutiveFailures))")
-        }
-        let timer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { _ in
-            runOnce()
-        }
-        // 审计0827 §2.3 (P1): pollTimers 单发 timer 已 fire (isValid=false) 仍留数组,
-        // 每轮 +1 无 prune, 长跑累积 (4 pollers × N cycles)。append 前剔失效项保数组紧致。
-        pollTimers = pollTimers.filter { $0.isValid }
-        pollTimers.append(timer)
-    }
+    // ARCH-1 PR-C1 Phase 2: resetFailureState/fetchClusterStats/checkHealth → MultiNodeClusterHealthService.
+    //   fetchNodes/fetchPendingNodes/fetchNodeMetrics×2/fetchModelManifest/fetchNodeLoad/fetchAllNodeLoads/
+    //   removeNode/approveNode/rejectNode/joinNode → MultiNodeNodeService. engine 留 1 行 stub 保外部签名。
+    func resetFailureState(context: String) { clusterHealthState.resetFailureState(context: context) }
+    func fetchClusterStats() { clusterHealthState.fetchClusterStats() }
+    func fetchNodes() { nodeState.fetchNodes() }
+    func fetchPendingNodes() { nodeState.fetchPendingNodes() }
 
-    // MARK: - GET endpoints
-
-    // F-R6: 成功路径重置失败状态。fetch 成功即清该路 stale + 该路连续失败计数, 恢复 online。
-    // 审计0827 §3.5: 按 context 复位, 非全局清零 — 避免交叉复位掩盖其余持续失败路径。
-    private func resetFailureState(context: String) {
-        nodesStale = false
-        consecutiveFailuresByContext[context] = 0
-        // 任一路成功即认为集群可达; 离线态由 handleError 按各路独立判定。
-        // B3: successful recovery clears MasterPool failover cycle cap.
-        if !isConnected { isConnected = true; MasterPool.shared.markRecovered() }
-        // Track B: 成功恢复时同步 activeMasterHost。
-        recomputeCanMutate()
-    }
-
-    func fetchClusterStats() {
-        get("/api/v1/cluster/stats") { [weak self] (result: Result<V1ClusterStatsResponse, Error>) in
-            switch result {
-            case .success(let resp):
-                DispatchQueue.main.async {
-                    self?.clusterStats = ClusterStats.from(resp)
-                    self?.resetFailureState(context: "cluster_stats")
-                    self?.lastError = nil
-                    // #76/#77: 刷新领导纪元 + per-leader token (stats cluster sub-dict 携带)。
-                    //   epoch/leader_id 与 /api/nodes 同源, 此处同步 knownLeaderEpoch/knownLeaderId 兜底
-                    //   (stats 与 nodes 轮询独立, 任一先到即缓存)。token 仅 stats 暴露, 此处刷新。
-                    if let epoch = resp.cluster.epoch {
-                        if epoch > (self?.knownLeaderEpoch ?? 0) { self?.knownLeaderEpoch = epoch }
-                        self?.knownLeaderId = resp.cluster.leaderId
-                    }
-                    if let token = resp.cluster.leaderToken, !token.isEmpty {
-                        self?.knownLeaderToken = token
-                    }
-                }
-            case .failure(let error):
-                self?.handleError(error, context: "cluster_stats")
-            }
-        }
-    }
-
-    func fetchNodes() {
-        get("/api/nodes") { [weak self] (result: Result<NodeListResponse, Error>) in
-            switch result {
-            case .success(let resp):
-                DispatchQueue.main.async {
-                    self?.nodes = Array(resp.nodes.prefix(500))
-                    self?.resetFailureState(context: "nodes")
-                    // F-A11 split-brain 检测 — 三层确定性信号, 取代旧 master-count heuristic:
-                    //   1. #72 partitioned (server 权威: 少数派, 无法达仲裁) — 有则直接用, 无歧义。
-                    //   2. #76 epoch/leader_id — epoch==0+leaderId=="" = 单权威 (单master/active-active, 无脑裂概念);
-                    //      HA 模式收到 epoch < 已知最大值 = stale leader 视图 = 写禁用。
-                    //   3. 旧版 fallback: 上游未暴露 partitioned/epoch (nil) → 退回 master-count heuristic (连续 N 轮 >1 master)。
-                    // 审计v0.1.58 P1 residual: 上游 #76/#77 已合 (PR#78), 此处接通确定性信号; heuristic 仅兼容旧版。
-                    let nowPartitioned = resp.partitioned
-                    let nowEpoch = resp.epoch
-                    let nowLeaderId = resp.leaderId
-                    let isSingleAuthority = (nowEpoch == 0 && (nowLeaderId?.isEmpty ?? true))
-
-                    if let partitioned = nowPartitioned {
-                        // #72 权威信号优先 — server 已判定少数派脑裂。
-                        if partitioned {
-                            self?.splitBrainConfirmCount += 1
-                            self?.splitBrainResolvedConfirmCount = 0
-                            if self?.splitBrainDetected == false && (self?.splitBrainConfirmCount ?? 0) >= (self?.splitBrainConfirmThreshold ?? 2) {
-                                self?.splitBrainDetected = true
-                                engineLog.error("F-A11 split-brain confirmed (#72 partitioned=true) across \(self?.splitBrainConfirmCount ?? 0) rounds — writes blocked")
-                            }
-                        } else {
-                            self?.splitBrainResolvedConfirmCount += 1
-                            if self?.splitBrainDetected == true
-                                && (self?.splitBrainResolvedConfirmCount ?? 0) >= (self?.splitBrainConfirmThreshold ?? 2) {
-                                engineLog.info("F-A11 split-brain resolved (#72 partitioned=false) across \(self?.splitBrainResolvedConfirmCount ?? 0) rounds, unblocking writes")
-                                self?.splitBrainDetected = false
-                                self?.splitBrainConfirmCount = 0
-                            }
-                        }
-                    } else if let epoch = nowEpoch, !isSingleAuthority {
-                        // #76 HA 模式 — stale leader 视图 (epoch < 已知最大) = 脑裂迹象。
-                        let knownMax = self?.knownLeaderEpoch ?? 0
-                        if epoch < knownMax {
-                            self?.splitBrainConfirmCount += 1
-                            self?.splitBrainResolvedConfirmCount = 0
-                            if self?.splitBrainDetected == false && (self?.splitBrainConfirmCount ?? 0) >= (self?.splitBrainConfirmThreshold ?? 2) {
-                                self?.splitBrainDetected = true
-                                engineLog.error("F-A11 split-brain confirmed (#76 stale epoch=\(epoch) < known=\(knownMax), leader=\(nowLeaderId ?? "-", privacy: .public)) — writes blocked")
-                            }
-                        } else {
-                            if epoch > knownMax { self?.knownLeaderEpoch = epoch }
-                            self?.knownLeaderId = nowLeaderId
-                            self?.splitBrainResolvedConfirmCount += 1
-                            if self?.splitBrainDetected == true
-                                && (self?.splitBrainResolvedConfirmCount ?? 0) >= (self?.splitBrainConfirmThreshold ?? 2) {
-                                engineLog.info("F-A11 split-brain resolved (#76 epoch=\(epoch) ≥ known, leader=\(nowLeaderId ?? "-", privacy: .public)), unblocking writes")
-                                self?.splitBrainDetected = false
-                                self?.splitBrainConfirmCount = 0
-                            }
-                        }
-                    } else {
-                        // 旧版上游 (partitioned/epoch nil) — 退回 master-count heuristic。
-                        // 单权威 (epoch 0 + 空 leader) 也走此分支: 无脑裂概念, masterCount≤1 不报。
-                        let masterCount = resp.nodes.filter { $0.isMaster }.count
-                        if masterCount > 1 {
-                            self?.splitBrainConfirmCount += 1
-                            self?.splitBrainResolvedConfirmCount = 0
-                            if self?.splitBrainDetected == false && (self?.splitBrainConfirmCount ?? 0) >= (self?.splitBrainConfirmThreshold ?? 2) {
-                                self?.splitBrainDetected = true
-                                engineLog.error("F-A11 split-brain confirmed (heuristic: \(masterCount) masters across \(self?.splitBrainConfirmCount ?? 0) rounds) — writes blocked")
-                            }
-                        } else {
-                            self?.splitBrainResolvedConfirmCount += 1
-                            if self?.splitBrainDetected == true
-                                && (self?.splitBrainResolvedConfirmCount ?? 0) >= (self?.splitBrainConfirmThreshold ?? 2) {
-                                engineLog.info("F-A11 split-brain resolved (heuristic: ≤1 master across \(self?.splitBrainResolvedConfirmCount ?? 0) rounds), unblocking writes")
-                                self?.splitBrainDetected = false
-                                self?.splitBrainConfirmCount = 0
-                            }
-                        }
-                    }
-                    // Track B: split-brain 状态变更后刷新 activeMasterHost (canMutate 计算属性自动反映)。
-                    self?.recomputeCanMutate()
-                    // 审计0830 P1-调度-5: per-node offline 连续计数, 供 confirmedOffline 滞后决策。
-                    if let self = self {
-                        for n in resp.nodes {
-                            if n.effectiveStatus == .offline {
-                                self.nodeOfflineStreak[n.id, default: 0] += 1
-                            } else {
-                                self.nodeOfflineStreak[n.id] = 0
-                            }
-                        }
-                    }
-                }
-            case .failure(let error):
-                self?.handleError(error, context: "nodes")
-            }
-        }
-    }
-
-    func fetchPendingNodes() {
-        get("/api/nodes/pending") { [weak self] (result: Result<PendingNodeListResponse, Error>) in
-            switch result {
-            case .success(let resp):
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    let capped = Array(resp.pending.prefix(500))
-                    if capped.count < resp.pending.count {
-                        engineLog.warning("pendingNodes truncated: \(resp.pending.count) -> \(capped.count)")
-                    }
-                    self.pendingNodes = capped
-                }
-            case .failure:
-                engineLog.debug("Pending nodes endpoint not available")
-            }
-        }
-    }
-
-    func fetchTasks() {
-        get("/api/tasks") { [weak self] (result: Result<TaskListResponse, Error>) in
-            switch result {
-            case .success(let resp):
-                DispatchQueue.main.async {
-                    // 审计0902 A5 (P2): tasks 全量替换无 cap, 后端返 >500 则绕过 taskSubmit LRU cap 500。
-                    //   cap 500 与单机 task 列表一致, 超限只保前 500 (按后端返回序, 通常近时间序)。
-                    var fetched = resp.tasks
-                    if fetched.count > 500 {
-                        fetched = Array(fetched.prefix(500))
-                    }
-                    self?.tasks = fetched
-                    self?.resetFailureState(context: "tasks")
-                    self?.detectDuplicateExecution()
-                }
-            case .failure(let error):
-                self?.handleError(error, context: "tasks")
-            }
-        }
-    }
-
-    // F-A13: 扫 tasks 找疑似重复执行 (assignedNodes>=2 && running && mode!=data_parallel)。
-    // data_parallel 多节点 = 合法分片; pipeline/inference 单节点意图, 多节点 = 疑似 submit 重复。
-    private func detectDuplicateExecution() {
-        let dups = tasks.filter { task in
-            task.assignedNodes.count >= 2 &&
-            task.status == .running &&
-            task.mode != "data_parallel"
-        }.map { $0.id }
-        if dups != duplicateExecutionTaskIds {
-            duplicateExecutionTaskIds = dups
-            if !dups.isEmpty {
-                engineLog.error("F-A13 suspected duplicate execution: tasks=\(dups) (>=2 running nodes, mode!=data_parallel)")
-            } else {
-                engineLog.info("F-A13 duplicate execution cleared")
-            }
-        }
-    }
-
-    func fetchNodeMetrics(nodeId: String) {
-        get("/api/v1/nodes/\(nodeId)/metrics") { [weak self] (result: Result<NodeMetricsResponse, Error>) in
-            switch result {
-            case .success(let resp):
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    self.nodeMetricsRaw[nodeId] = resp
-                    self.nodeMetrics[nodeId] = LoadMetrics.from(resp)
-                    Self.capDict(&self.nodeMetricsRaw, 100)
-                    Self.capDict(&self.nodeMetrics, 500)
-                }
-            case .failure(let error):
-                engineLog.error("Failed to fetch metrics for \(nodeId): \(error.localizedDescription)")
-            }
-        }
-    }
-
+    // ARCH-1 PR-C1 Phase 3: Task 域 stubs, bodies in MultiNodeTaskService.swift。
+    func fetchTasks() { taskState.fetchTasks() }
+    func detectDuplicateExecution() { taskState.detectDuplicateExecution() }
+    func fetchNodeMetrics(nodeId: String) { nodeState.fetchNodeMetrics(nodeId: nodeId) }
     func fetchNodeMetrics(nodeId: String, completion: @escaping (Result<LoadMetrics, Error>) -> Void) {
-        get("/api/v1/nodes/\(nodeId)/metrics") { [weak self] (result: Result<NodeMetricsResponse, Error>) in
-            switch result {
-            case .success(let resp):
-                let metrics = LoadMetrics.from(resp)
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    self.nodeMetricsRaw[nodeId] = resp
-                    self.nodeMetrics[nodeId] = metrics
-                    Self.capDict(&self.nodeMetricsRaw, 100)
-                    Self.capDict(&self.nodeMetrics, 500)
-                }
-                completion(.success(metrics))
-            case .failure(let error):
-                completion(.failure(error))
-            }
-        }
+        nodeState.fetchNodeMetrics(nodeId: nodeId, completion: completion)
     }
-
     func fetchTaskProgress(taskId: String, completion: @escaping (Result<TaskProgress, Error>) -> Void) {
-        get("/api/v1/tasks/\(taskId)/progress") { result in completion(result) }
+        taskState.fetchTaskProgress(taskId: taskId, completion: completion)
     }
-
     func fetchTaskTimeline(taskId: String, completion: @escaping (Result<TaskTimeline, Error>) -> Void) {
-        get("/api/v1/tasks/\(taskId)/timeline") { result in completion(result) }
+        taskState.fetchTaskTimeline(taskId: taskId, completion: completion)
     }
 
-    func fetchAutoscalerConfig() {
-        get("/api/v1/autoscaler/config") { [weak self] (result: Result<AutoscalerConfig, Error>) in
-            switch result {
-            case .success(let config):
-                DispatchQueue.main.async { self?.autoscalerConfig = config }
-            case .failure:
-                engineLog.debug("Autoscaler config not available, using default")
-            }
-        }
-    }
+    // ARCH-1 PR-C1 Phase 4: Autoscaler 域 stubs, bodies in MultiNodeAutoscalerService.swift。
+    func fetchAutoscalerConfig() { autoscalerState.fetchAutoscalerConfig() }
+    func fetchSuggestions() { autoscalerState.fetchSuggestions() }
+    func fetchAlerts() { autoscalerState.fetchAlerts() }
 
-    func fetchSuggestions() {
-        get("/api/v1/observability/suggestions") { [weak self] (result: Result<SuggestionsResponse, Error>) in
-            switch result {
-            case .success(let resp):
-                DispatchQueue.main.async { self?.suggestions = Array(resp.suggestions.prefix(200)) }
-            case .failure:
-                break
-            }
-        }
-    }
-
-    func fetchAlerts() {
-        get("/api/v1/observability/alerts") { [weak self] (result: Result<AlertsResponse, Error>) in
-            switch result {
-            case .success(let resp):
-                DispatchQueue.main.async { self?.alerts = Array(resp.alerts.prefix(200)) }
-            case .failure:
-                engineLog.debug("Alerts endpoint not available yet")
-            }
-        }
-    }
-
-    func checkHealth() {
-        get("/api/health") { [weak self] (result: Result<HealthResponse, Error>) in
-            switch result {
-            case .success:
-                DispatchQueue.main.async {
-                    self?.isConnected = true
-                    self?.lastError = nil
-                    // 审计0827 §3.5: health 路 success 复位其 context 失败计数。
-                    self?.consecutiveFailuresByContext["health"] = 0
-                    self?.recomputeCanMutate()
-                    // 审计v0.1.58 P1-2: failover 探测完成复位 (非 5s 定时器), 保证探测真正结束才放下次.
-                    self?.failoverProbeInflight = false
-                }
-            case .failure(let error):
-                self?.handleError(error, context: "health")
-                DispatchQueue.main.async {
-                    self?.failoverProbeInflight = false
-                }
-            }
-        }
-    }
+    func checkHealth() { clusterHealthState.checkHealth() }
 
     // Track B: 刷新 activeMasterHost (pool 当前 master)。canMutate 为计算属性无需刷新, 此方法仅同步 host。
     // 在 isConnected/splitBrainDetected 赋值点 + checkHealth 成功/失败 + poll 失败 failover 后调用。
@@ -548,252 +271,59 @@ class MultiNodeEngine: ObservableObject {
     // MARK: - Mutation endpoints
 
     // F-A11: 脑裂时阻断写操作 (remove/approve/migrate/submit), 防 removeNode 操作到另一分区 master。
-    private func assertNoSplitBrain() throws {
+    // ARCH-1 PR-C1: internal — 域 service extension 经 bridge?.assertNoSplitBrain reach-through (协调器留 engine)。
+    internal func assertNoSplitBrain() throws {
         if splitBrainDetected {
             engineLog.error("F-A11 write blocked: split-brain active (>1 master)")
             throw EngineError.splitBrain
         }
     }
 
-    func removeNode(nodeId: String) async throws {
-        guard canMutate else {
-            ClusterAuditor.shared.record(action: "remove", targetNode: nodeId, targetTask: nil,
-                                         result: "blocked", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw EngineError.writeDisabled
-        }
-        do {
-            try assertNoSplitBrain()
-            try await delete("/api/nodes/\(nodeId)")
-            fetchNodes()
-            fetchClusterStats()
-            ClusterAuditor.shared.record(action: "remove", targetNode: nodeId, targetTask: nil,
-                                         result: "ok", idempotencyKey: nil, masterHost: activeMasterHost)
-        } catch {
-            ClusterAuditor.shared.record(action: "remove", targetNode: nodeId, targetTask: nil,
-                                         result: "failed", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw error
-        }
-    }
-
+    func removeNode(nodeId: String) async throws { try await nodeState.removeNode(nodeId: nodeId) }
     func approveNode(nodeId: String, approvedBy: String = "admin") async throws {
-        guard canMutate else {
-            ClusterAuditor.shared.record(action: "approve", targetNode: nodeId, targetTask: nil,
-                                         result: "blocked", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw EngineError.writeDisabled
-        }
-        do {
-            try assertNoSplitBrain()
-            _ = try await post("/api/nodes/approve", body: ["node_id": nodeId, "approved_by": approvedBy])
-            fetchPendingNodes()
-            fetchNodes()
-            fetchClusterStats()
-            ClusterAuditor.shared.record(action: "approve", targetNode: nodeId, targetTask: nil,
-                                         result: "ok", idempotencyKey: nil, masterHost: activeMasterHost)
-        } catch {
-            ClusterAuditor.shared.record(action: "approve", targetNode: nodeId, targetTask: nil,
-                                         result: "failed", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw error
-        }
+        try await nodeState.approveNode(nodeId: nodeId, approvedBy: approvedBy)
     }
-
     func rejectNode(nodeId: String, reason: String = "") async throws {
-        guard canMutate else {
-            ClusterAuditor.shared.record(action: "reject", targetNode: nodeId, targetTask: nil,
-                                         result: "blocked", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw EngineError.writeDisabled
-        }
-        do {
-            try assertNoSplitBrain()
-            _ = try await post("/api/nodes/reject", body: ["node_id": nodeId, "reason": reason])
-            fetchPendingNodes()
-            ClusterAuditor.shared.record(action: "reject", targetNode: nodeId, targetTask: nil,
-                                         result: "ok", idempotencyKey: nil, masterHost: activeMasterHost)
-        } catch {
-            ClusterAuditor.shared.record(action: "reject", targetNode: nodeId, targetTask: nil,
-                                         result: "failed", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw error
-        }
+        try await nodeState.rejectNode(nodeId: nodeId, reason: reason)
     }
 
-    func cancelTask(taskId: String) async throws {
-        guard canMutate else {
-            ClusterAuditor.shared.record(action: "cancel", targetNode: nil, targetTask: taskId,
-                                         result: "blocked", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw EngineError.writeDisabled
-        }
-        do {
-            try assertNoSplitBrain()
-            _ = try await post("/api/tasks/\(taskId)/cancel", body: ["reason": "cancelled_by_user"])
-            fetchTasks()
-            ClusterAuditor.shared.record(action: "cancel", targetNode: nil, targetTask: taskId,
-                                         result: "ok", idempotencyKey: nil, masterHost: activeMasterHost)
-        } catch {
-            ClusterAuditor.shared.record(action: "cancel", targetNode: nil, targetTask: taskId,
-                                         result: "failed", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw error
-        }
-    }
-
+    func cancelTask(taskId: String) async throws { try await taskState.cancelTask(taskId: taskId) }
     func degradeTask(taskId: String, targetModel: String? = nil) async throws {
-        guard canMutate else {
-            ClusterAuditor.shared.record(action: "degrade", targetNode: nil, targetTask: taskId,
-                                         result: "blocked", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw EngineError.writeDisabled
-        }
-        do {
-            try assertNoSplitBrain()
-            var body: [String: Any] = [:]
-            if let m = targetModel { body["target_model"] = m }
-            _ = try await post("/api/tasks/\(taskId)/degrade", body: body)
-            fetchTasks()
-            ClusterAuditor.shared.record(action: "degrade", targetNode: nil, targetTask: taskId,
-                                         result: "ok", idempotencyKey: nil, masterHost: activeMasterHost)
-        } catch {
-            ClusterAuditor.shared.record(action: "degrade", targetNode: nil, targetTask: taskId,
-                                         result: "failed", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw error
-        }
+        try await taskState.degradeTask(taskId: taskId, targetModel: targetModel)
     }
-
     func migrateTask(taskId: String, targetNodeId: String) async throws {
-        guard canMutate else {
-            ClusterAuditor.shared.record(action: "migrate", targetNode: nil, targetTask: taskId,
-                                         result: "blocked", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw EngineError.writeDisabled
-        }
-        do {
-            try assertNoSplitBrain()
-            _ = try await post("/api/tasks/\(taskId)/migrate", body: ["target_node_id": targetNodeId])
-            fetchTasks()
-            ClusterAuditor.shared.record(action: "migrate", targetNode: targetNodeId, targetTask: taskId,
-                                         result: "ok", idempotencyKey: nil, masterHost: activeMasterHost)
-        } catch {
-            ClusterAuditor.shared.record(action: "migrate", targetNode: targetNodeId, targetTask: taskId,
-                                         result: "failed", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw error
-        }
+        try await taskState.migrateTask(taskId: taskId, targetNodeId: targetNodeId)
     }
-
     func migrateTask(taskId: String, targetNodeId: String, completion: @escaping (Result<Void, Error>) -> Void) {
-        Task {
-            do {
-                try await migrateTask(taskId: taskId, targetNodeId: targetNodeId)
-                completion(.success(()))
-            } catch {
-                completion(.failure(error))
-            }
-        }
+        taskState.migrateTask(taskId: taskId, targetNodeId: targetNodeId, completion: completion)
     }
-
     func submitTask(name: String, mode: String, modelName: String, priority: Int = 5, requiredCapability: String? = nil, excludeNodes: [String]? = nil) async throws -> [String: Any] {
-        let idemKey = Self.generateIdempotencyKey()
-        guard canMutate else {
-            ClusterAuditor.shared.record(action: "submit", targetNode: nil, targetTask: nil,
-                                         result: "blocked", idempotencyKey: idemKey, masterHost: activeMasterHost)
-            throw EngineError.writeDisabled
-        }
-        do {
-            try assertNoSplitBrain()
-            var body: [String: Any] = ["name": name, "mode": mode, "model_name": modelName, "priority": priority]
-            if let cap = requiredCapability { body["required_capability"] = cap }
-            // 审计0830 P1-调度-3: retryTask 透传 exclude_nodes 含原失败节点, 后端排除则不重命中同一故障节点。
-            //   后端 submit 端点当前可能忽略此字段 (上游缺口 https://github.com/dahai80/fusion-multi-nodes/issues/70),
-            //   客户端传递为前置; 后端支持后即生效, 无害。
-            if let ex = excludeNodes, !ex.isEmpty { body["exclude_nodes"] = ex }
-            engineLog.info("submitTask idempotencyKey=\(idemKey, privacy: .public)")
-            let result = try await post("/api/tasks/submit", body: body, idempotencyKey: idemKey)
-            fetchTasks()
-            fetchClusterStats()
-            ClusterAuditor.shared.record(action: "submit", targetNode: nil, targetTask: nil,
-                                         result: "ok", idempotencyKey: idemKey, masterHost: activeMasterHost)
-            return result
-        } catch {
-            ClusterAuditor.shared.record(action: "submit", targetNode: nil, targetTask: nil,
-                                         result: "failed", idempotencyKey: idemKey, masterHost: activeMasterHost)
-            throw error
-        }
+        try await taskState.submitTask(name: name, mode: mode, modelName: modelName, priority: priority, requiredCapability: requiredCapability, excludeNodes: excludeNodes)
     }
-
-    // F-A12: 失败 task 重试需带原 task 的 assignedNodes 黑名单 + 原 requiredCapability/priority。
-    // 后端 submit 端点无 exclude_nodes 字段 (fusion-multi-nodes 上游缺口 https://github.com/dahai80/fusion-multi-nodes/issues/70) → 客户端止血:
-    // 保留原参数 + assignedNodes 全 offline 则阻断重试 (防 "无限重试同一个坑"), 健康则重新 submit。
-    func retryTask(_ task: ClusterTask) async throws -> [String: Any] {
-        guard canMutate else {
-            ClusterAuditor.shared.record(action: "retry", targetNode: nil, targetTask: task.id,
-                                         result: "blocked", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw EngineError.writeDisabled
-        }
-        try assertNoSplitBrain()
-        let assigned = task.assignedNodes
-        // 审计0830 P1-调度-5: 用 confirmedOffline 滞后确认, 瞬态抖动不误判全 offline 阻断重试。
-        let offlineAssigned = assigned.filter { confirmedOffline(nodeId: $0) }
-        if !assigned.isEmpty && offlineAssigned.count == assigned.count {
-            engineLog.error("F-A12 retry blocked: all assigned nodes offline. task=\(task.id) assigned=\(assigned)")
-            ClusterAuditor.shared.record(action: "retry", targetNode: nil, targetTask: task.id,
-                                         result: "failed", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw EngineError.retryNoHealthyNode
-        }
-        let origPriority = task.priority ?? 5
-        let origCap = task.requiredCapability
-        engineLog.info("F-A12 retry: task=\(task.id) assigned=\(assigned) offline=\(offlineAssigned) priority=\(origPriority) cap=\(origCap ?? "nil")")
-        // 审计0830 P1-调度-3: 透传 offlineAssigned 作 exclude_nodes, 后端排除则重试不命中同一故障节点。
-        // submitTask 内部生成 idemKey 并审计 "ok"/"failed", retry 不重复审计成功路径。
-        return try await submitTask(
-            name: task.name, mode: task.mode, modelName: task.modelName,
-            priority: origPriority, requiredCapability: origCap,
-            excludeNodes: offlineAssigned
-        )
-    }
+    func retryTask(_ task: ClusterTask) async throws -> [String: Any] { try await taskState.retryTask(task) }
 
     func updateAutoscalerConfig(_ config: AutoscalerConfig) async throws {
-        guard canMutate else {
-            ClusterAuditor.shared.record(action: "autoscaler", targetNode: nil, targetTask: nil,
-                                         result: "blocked", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw EngineError.writeDisabled
-        }
-        do {
-            let body: [String: Any] = [
-                "min_nodes": config.minNodes,
-                "max_nodes": config.maxNodes,
-                "scale_up_threshold": config.scaleUpThreshold,
-                "scale_down_threshold": config.scaleDownThreshold,
-                "cooldown_seconds": config.cooldownSeconds,
-            ]
-            _ = try await put("/api/v1/autoscaler/config", body: body)
-            fetchAutoscalerConfig()
-            ClusterAuditor.shared.record(action: "autoscaler", targetNode: nil, targetTask: nil,
-                                         result: "ok", idempotencyKey: nil, masterHost: activeMasterHost)
-        } catch {
-            ClusterAuditor.shared.record(action: "autoscaler", targetNode: nil, targetTask: nil,
-                                         result: "failed", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw error
-        }
+        try await autoscalerState.updateAutoscalerConfig(config)
     }
 
+    // ARCH-1 PR-C1 Phase 5: KVCache 域 stubs, bodies in MultiNodeKVCacheService.swift。
     func registerKVCache(cacheId: String, modelName: String, nodeId: String, sizeMb: Double, ttlSeconds: Int = 3600) async throws {
-        // 审计v0.1.58 P0-multinode-1: KV register 是写操作, 必经 canMutate+split-brain 门.
-        guard canMutate else {
-            ClusterAuditor.shared.record(action: "registerKV", targetNode: nodeId, targetTask: nil,
-                                         result: "blocked", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw EngineError.writeDisabled
-        }
-        try assertNoSplitBrain()
-        let body: [String: Any] = [
-            "cache_id": cacheId,
-            "model_name": modelName,
-            "node_id": nodeId,
-            "size_mb": sizeMb,
-            "ttl_seconds": ttlSeconds,
-        ]
-        do {
-            _ = try await post("/api/kv/register", body: body)
-            ClusterAuditor.shared.record(action: "registerKV", targetNode: nodeId, targetTask: nil,
-                                         result: "ok", idempotencyKey: nil, masterHost: activeMasterHost)
-        } catch {
-            ClusterAuditor.shared.record(action: "registerKV", targetNode: nodeId, targetTask: nil,
-                                         result: "failed", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw error
-        }
+        try await kvCacheState.registerKVCache(cacheId: cacheId, modelName: modelName, nodeId: nodeId, sizeMb: sizeMb, ttlSeconds: ttlSeconds)
+    }
+    func findKVCache(modelName: String, completion: @escaping (Result<KVCacheEntry, Error>) -> Void) {
+        kvCacheState.findKVCache(modelName: modelName, completion: completion)
+    }
+    func fetchAgentKVStats(completion: @escaping (Result<KVStatsResponse, Error>) -> Void) {
+        kvCacheState.fetchAgentKVStats(completion: completion)
+    }
+    func agentKVLookup(modelName: String, promptHash: String, completion: @escaping (Result<KVCacheEntry, Error>) -> Void) {
+        kvCacheState.agentKVLookup(modelName: modelName, promptHash: promptHash, completion: completion)
+    }
+    func agentKVTransfer(cacheId: String, targetNode: String, completion: @escaping (Result<Bool, Error>) -> Void) {
+        kvCacheState.agentKVTransfer(cacheId: cacheId, targetNode: targetNode, completion: completion)
+    }
+    func agentKVWarm(modelName: String, prompts: [String], completion: @escaping (Result<Int, Error>) -> Void) {
+        kvCacheState.agentKVWarm(modelName: modelName, prompts: prompts, completion: completion)
     }
 
     func exportLogs() async throws -> Data {
@@ -806,306 +336,50 @@ class MultiNodeEngine: ObservableObject {
         return data
     }
 
-    func setRoutingStrategy(_ strategy: String) async throws {
-        guard canMutate else {
-            ClusterAuditor.shared.record(action: "setRouting", targetNode: nil, targetTask: nil,
-                                         result: "blocked", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw EngineError.writeDisabled
-        }
-        do {
-            _ = try await post("/api/routing/strategy", body: ["strategy": strategy])
-            ClusterAuditor.shared.record(action: "setRouting", targetNode: nil, targetTask: nil,
-                                         result: "ok", idempotencyKey: nil, masterHost: activeMasterHost)
-        } catch {
-            ClusterAuditor.shared.record(action: "setRouting", targetNode: nil, targetTask: nil,
-                                         result: "failed", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw error
-        }
-    }
+    // ARCH-1 PR-C1 Phase 5: Routing 域 stubs, bodies in MultiNodeRoutingService.swift。
+    func setRoutingStrategy(_ strategy: String) async throws { try await routingState.setRoutingStrategy(strategy) }
 
     func joinNode(ipAddress: String, port: Int, token: String? = nil) async throws -> [String: Any] {
-        // 审计v0.1.58 P0-multinode-1: join 是写操作, 必经 canMutate+split-brain 门.
-        guard canMutate else {
-            ClusterAuditor.shared.record(action: "join", targetNode: ipAddress, targetTask: nil,
-                                         result: "blocked", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw EngineError.writeDisabled
-        }
-        try assertNoSplitBrain()
-        var body: [String: Any] = ["ip_address": ipAddress, "port": port]
-        if let t = token { body["token"] = t }
-        do {
-            let resp = try await post("/api/join", body: body)
-            ClusterAuditor.shared.record(action: "join", targetNode: ipAddress, targetTask: nil,
-                                         result: "ok", idempotencyKey: nil, masterHost: activeMasterHost)
-            return resp
-        } catch {
-            ClusterAuditor.shared.record(action: "join", targetNode: ipAddress, targetTask: nil,
-                                         result: "failed", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw error
-        }
+        try await nodeState.joinNode(ipAddress: ipAddress, port: port, token: token)
     }
 
     // MARK: - Cluster Sync (#74)
 
-    func fetchClusterSyncStatus() {
-        get("/api/cluster/status") { [weak self] (result: Result<ClusterSyncStatus, Error>) in
-            switch result {
-            case .success(let status):
-                DispatchQueue.main.async { self?.clusterSyncStatus = status }
-            case .failure:
-                engineLog.debug("Cluster sync status not available")
-            }
-        }
-    }
+    // ARCH-1 PR-C1 Phase 4: Sync 域 stubs, bodies in MultiNodeSyncService.swift。
+    func fetchClusterSyncStatus() { syncState.fetchClusterSyncStatus() }
 
     func fetchModelManifest(modelName: String, completion: @escaping (Result<ModelManifest, Error>) -> Void) {
-        get("/api/models/\(modelName)/manifest") { [weak self] (result: Result<ModelManifest, Error>) in
-            switch result {
-            case .success(let manifest):
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    self.modelManifests[modelName] = manifest
-                    Self.capDict(&self.modelManifests, 50)
-                }
-                completion(.success(manifest))
-            case .failure(let error):
-                completion(.failure(error))
-            }
-        }
+        nodeState.fetchModelManifest(modelName: modelName, completion: completion)
     }
 
     func triggerIncrementalSync(modelName: String, sourceHost: String, sourcePort: Int? = nil, completion: @escaping (Result<[String: Any], Error>) -> Void) {
-        guard let url = URL(string: "\(baseURL)/api/sync/incremental") else {
-            completion(.failure(EngineError.invalidURL)); return
-        }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        authHeaders(&request)
-        let body: [String: Any] = [
-            "model_name": modelName,
-            "source_host": sourceHost,
-            "source_port": sourcePort ?? FusionConfig.shared.multiNodePort,
-        ]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        session.dataTask(with: request) { data, _, error in
-            if let error = error { completion(.failure(error)); return }
-            guard let data = data else { completion(.failure(EngineError.noData)); return }
-            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                engineLog.info("Incremental sync triggered for \(modelName)")
-                completion(.success(json))
-            } else {
-                completion(.failure(EngineError.noData))
-            }
-        }.resume()
+        syncState.triggerIncrementalSync(modelName: modelName, sourceHost: sourceHost, sourcePort: sourcePort, completion: completion)
     }
 
     func fetchNodeLoad(nodeId: String, completion: @escaping (Result<NodeLoadReport, Error>) -> Void) {
-        get("/api/nodes/\(nodeId)/load") { [weak self] (result: Result<NodeLoadReport, Error>) in
-            switch result {
-            case .success(let report):
-                DispatchQueue.main.async { self?.nodeLoads[nodeId] = report }
-                completion(.success(report))
-            case .failure(let error):
-                completion(.failure(error))
-            }
-        }
+        nodeState.fetchNodeLoad(nodeId: nodeId, completion: completion)
     }
-
-    func fetchAllNodeLoads() {
-        let live = nodes.filter { $0.effectiveStatus == .online || $0.effectiveStatus == .busy }
-        let liveIds = Set(live.map { $0.id })
-        let stale = nodeLoads.keys.filter { !liveIds.contains($0) }
-        if !stale.isEmpty {
-            for k in stale { nodeLoads.removeValue(forKey: k) }
-            engineLog.info("nodeLoads evicted \(stale.count) offline entries")
-        }
-        if live.count > nodeLoadSampleCap {
-            let sampled = live.sorted { a, b in
-                let la = nodeLoads[a.id]?.cpuPercent ?? 0
-                let lb = nodeLoads[b.id]?.cpuPercent ?? 0
-                return la > lb
-            }.prefix(nodeLoadSampleCap)
-            engineLog.warning("node_loads sampled \(sampled.count)/\(live.count) (cap=\(self.nodeLoadSampleCap)); full load available via fetchNodeLoad(nodeId:)")
-            for node in sampled { fetchNodeLoad(nodeId: node.id) { _ in } }
-        } else {
-            for node in live { fetchNodeLoad(nodeId: node.id) { _ in } }
-        }
-    }
+    func fetchAllNodeLoads() { nodeState.fetchAllNodeLoads() }
 
     // MARK: - Routing
 
+    // ARCH-1 PR-C1 Phase 5: Routing 域 stubs, bodies in MultiNodeRoutingService.swift。
     func fetchRoutingSummary(completion: @escaping (Result<RoutingSummary, Error>) -> Void) {
-        get("/api/routing/summary") { result in completion(result) }
+        routingState.fetchRoutingSummary(completion: completion)
     }
 
-    // MARK: - KV Cache (Master)
-
-    func findKVCache(modelName: String, completion: @escaping (Result<KVCacheEntry, Error>) -> Void) {
-        get("/api/kv/find/\(modelName)") { result in completion(result) }
-    }
-
-    // MARK: - Agent Server (port = cfg.multiNodeAgentPort, 默认 11458, 原 11445 迁出)
-
-    func fetchAgentKVStats(completion: @escaping (Result<KVStatsResponse, Error>) -> Void) {
-        guard let url = URL(string: "\(agentBaseURL)/api/kv/stats") else {
-            completion(.failure(EngineError.invalidURL)); return
-        }
-        var req = URLRequest(url: url)
-        authHeaders(&req)
-        session.dataTask(with: req) { data, _, error in
-            if let error = error { completion(.failure(error)); return }
-            guard let data = data else { completion(.failure(EngineError.noData)); return }
-            do {
-                let decoded = try JSONDecoder().decode(KVStatsResponse.self, from: data)
-                completion(.success(decoded))
-            } catch {
-                completion(.failure(error))
-            }
-        }.resume()
-    }
-
+    // ARCH-1 PR-C1 Phase 5: AgentServer 域 stubs, bodies in MultiNodeAgentServerService.swift。
     func fetchAgentHardware(completion: @escaping (Result<AgentHardwareInfo, Error>) -> Void) {
-        guard let url = URL(string: "\(agentBaseURL)/api/hardware") else {
-            completion(.failure(EngineError.invalidURL)); return
-        }
-        var req = URLRequest(url: url)
-        authHeaders(&req)
-        session.dataTask(with: req) { data, _, error in
-            if let error = error { completion(.failure(error)); return }
-            guard let data = data else { completion(.failure(EngineError.noData)); return }
-            do {
-                let decoded = try JSONDecoder().decode(AgentHardwareInfo.self, from: data)
-                completion(.success(decoded))
-            } catch {
-                completion(.failure(error))
-            }
-        }.resume()
+        agentServerState.fetchAgentHardware(completion: completion)
     }
-
     func checkAgentHealth(completion: @escaping (Result<Bool, Error>) -> Void) {
-        guard let url = URL(string: "\(agentBaseURL)/api/health") else {
-            completion(.failure(EngineError.invalidURL)); return
-        }
-        var req = URLRequest(url: url)
-        authHeaders(&req)
-        session.dataTask(with: req) { data, _, error in
-            if let error = error { completion(.failure(error)); return }
-            guard let data = data else { completion(.failure(EngineError.noData)); return }
-            do {
-                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   json["status"] as? String == "ok" {
-                    completion(.success(true))
-                } else {
-                    completion(.success(false))
-                }
-            } catch {
-                completion(.failure(error))
-            }
-        }.resume()
-    }
-
-    func agentKVLookup(modelName: String, promptHash: String, completion: @escaping (Result<KVCacheEntry, Error>) -> Void) {
-        guard let url = URL(string: "\(agentBaseURL)/api/kv/lookup") else {
-            completion(.failure(EngineError.invalidURL)); return
-        }
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        authHeaders(&req)
-        let body = ["model_name": modelName, "prompt_hash": promptHash]
-        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        session.dataTask(with: req) { data, _, error in
-            if let error = error { completion(.failure(error)); return }
-            guard let data = data else { completion(.failure(EngineError.noData)); return }
-            do {
-                let decoded = try JSONDecoder().decode(KVCacheEntry.self, from: data)
-                completion(.success(decoded))
-            } catch {
-                completion(.failure(error))
-            }
-        }.resume()
-    }
-
-    func agentKVTransfer(cacheId: String, targetNode: String, completion: @escaping (Result<Bool, Error>) -> Void) {
-        guard let url = URL(string: "\(agentBaseURL)/api/kv/transfer") else {
-            completion(.failure(EngineError.invalidURL)); return
-        }
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        authHeaders(&req)
-        let body = ["cache_id": cacheId, "target_node": targetNode]
-        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        session.dataTask(with: req) { data, _, error in
-            if let error = error { completion(.failure(error)); return }
-            if let data = data,
-               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               json["status"] as? String == "ok" {
-                completion(.success(true))
-            } else {
-                completion(.success(false))
-            }
-        }.resume()
-    }
-
-    func agentKVWarm(modelName: String, prompts: [String], completion: @escaping (Result<Int, Error>) -> Void) {
-        // 审计0827 §3.6 (P2): 无 (model) 去重, 并发 warm (多 agent / 重复点按钮) → 重复 POST
-        // → MLX 后端同模型重复分配 KV cache 显存翻倍, 8-16 节点触发 GPU OOM。
-        // 按 model 名单飞: in-flight 期间同 model 跳过, 回调完成才释放。
-        // 审计0830 P1-调度-7: 旧 [weak self] 回调若 self 已 nil → releaseInflight no-op → key 永留 inflightFetches,
-        //   后续同 model warm 恒被 skip = 永久 hang。改强引用 self 至回调结束 (engine 随 app 生命周期, 无提早释放风险),
-        //   且全路径 (URL 构造失败 / 网络错误 / 解码失败) 经统一 release 闭包释放, 无遗漏路径。
-        let inflightKey = "kv_warm:\(modelName)"
-        inflightLock.lock()
-        if inflightFetches.contains(inflightKey) {
-            inflightLock.unlock()
-            engineLog.warning("agentKVWarm skip (in-flight): \(modelName)")
-            completion(.failure(EngineError.duplicateRequest))
-            return
-        }
-        inflightFetches.insert(inflightKey)
-        inflightLock.unlock()
-        // 统一释放闭包: 任意出口 (含 early-return) 都经此, 保证 lock 不泄漏。
-        // 强引用 self: 回调持有 self 至网络完成才释放, 避免 weak-nil 跳过 releaseInflight 致 key 永留。
-        let release = { self.releaseInflight(inflightKey) }
-        guard let url = URL(string: "\(agentBaseURL)/api/kv/warm") else {
-            release()
-            completion(.failure(EngineError.invalidURL)); return
-        }
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        authHeaders(&req)
-        let body: [String: Any] = ["model_name": modelName, "prompts": prompts]
-        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        // 强引用 self: 回调持有 self 至网络完成才释放, 避免 weak-nil 路径跳过 releaseInflight。
-        session.dataTask(with: req) { data, _, error in
-            release()
-            if let error = error { completion(.failure(error)); return }
-            guard let data = data else { completion(.failure(EngineError.noData)); return }
-            do {
-                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                    let warmed = json["warmed"] as? Int ?? 0
-                    completion(.success(warmed))
-                } else {
-                    completion(.success(0))
-                }
-            } catch {
-                completion(.failure(error))
-            }
-        }.resume()
-    }
-
-    private func releaseInflight(_ key: String) {
-        inflightLock.lock()
-        inflightFetches.remove(key)
-        inflightLock.unlock()
+        agentServerState.checkAgentHealth(completion: completion)
     }
 
     // MARK: - Generic HTTP helpers
 
-    private func get<T: Decodable>(_ path: String, completion: @escaping (Result<T, Error>) -> Void) {
+    // ARCH-1 PR-C1: internal — 域 service extension 经 bridge?.get(...) reach-through。
+    internal func get<T: Decodable>(_ path: String, completion: @escaping (Result<T, Error>) -> Void) {
         guard let url = URL(string: "\(baseURL)\(path)") else {
             completion(.failure(EngineError.invalidURL)); return
         }
@@ -1128,7 +402,7 @@ class MultiNodeEngine: ObservableObject {
         }.resume()
     }
 
-    private func post(_ path: String, body: [String: Any], idempotencyKey: String? = nil) async throws -> [String: Any] {
+    internal func post(_ path: String, body: [String: Any], idempotencyKey: String? = nil) async throws -> [String: Any] {
         guard let url = URL(string: "\(baseURL)\(path)") else {
             throw EngineError.invalidURL
         }
@@ -1145,7 +419,7 @@ class MultiNodeEngine: ObservableObject {
         return (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
     }
 
-    private func put(_ path: String, body: [String: Any]) async throws -> [String: Any] {
+    internal func put(_ path: String, body: [String: Any]) async throws -> [String: Any] {
         guard let url = URL(string: "\(baseURL)\(path)") else {
             throw EngineError.invalidURL
         }
@@ -1159,7 +433,7 @@ class MultiNodeEngine: ObservableObject {
         return (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
     }
 
-    private func delete(_ path: String) async throws {
+    internal func delete(_ path: String) async throws {
         guard let url = URL(string: "\(baseURL)\(path)") else {
             throw EngineError.invalidURL
         }
@@ -1170,7 +444,8 @@ class MultiNodeEngine: ObservableObject {
         _ = try await session.data(for: request)
     }
 
-    private func handleError(_ error: Error, context: String) {
+    // ARCH-1 PR-C1: internal — 域 service extension 经 bridge?.handleError reach-through (协调器留 engine)。
+    internal func handleError(_ error: Error, context: String) {
         let msg = error.localizedDescription
         engineLog.error("MultiNode error [\(context)]: \(msg)")
         DispatchQueue.main.async { [weak self] in
@@ -1181,16 +456,16 @@ class MultiNodeEngine: ObservableObject {
             // F-R6/F-R10: 连续失败计数。单次抖动不计 disconnected, 连续 N 轮失败才降级 isConnected。
             // 审计0827 §3.5: 按 context 独立计数, 单路失败达阈值即降级 (非全局累计),
             // 避免交叉复位让持续失败路径永不到阈值。
-            let prev = self.consecutiveFailuresByContext[context, default: 0]
-            self.consecutiveFailuresByContext[context] = prev + 1
-            if (prev + 1) >= self.maxConsecutiveFailures {
+            let prev = self.pollingState.consecutiveFailuresByContext[context, default: 0]
+            self.pollingState.consecutiveFailuresByContext[context] = prev + 1
+            if (prev + 1) >= self.pollingState.maxConsecutiveFailures {
                 self.isConnected = false
                 engineLog.warning("MultiNode disconnected: context=\(context) failures=\(prev + 1)")
                 // Track B: 降级时刷新 activeMasterHost, 并 failover 到 pool 下一 master + 健康探测。
                 // 单飞保护: 多路 handleError 并发触发只探一次, 避免请求风暴。保留原有 backoff 逻辑不动。
                 self.recomputeCanMutate()
-                if !self.failoverProbeInflight {
-                    self.failoverProbeInflight = true
+                if !self.clusterHealthState.failoverProbeInflight {
+                    self.clusterHealthState.failoverProbeInflight = true
                     let next = MasterPool.shared.advance()
                     engineLog.info("Track B failover to \(next?.host ?? "nil", privacy: .public) after disconnect (context=\(context))")
                     self.recomputeCanMutate()
@@ -1201,10 +476,9 @@ class MultiNodeEngine: ObservableObject {
     }
 
     // B5: nonisolated deinit cannot call MainActor-isolated stopPolling(); inline timer
-    // invalidation (Timer.invalidate is safe from any queue). pollTimers is nonisolated(unsafe).
+    // invalidation (Timer.invalidate is safe from any queue). pollTimers is nonisolated(unsafe) on pollingState。
     deinit {
-        pollTimers.forEach { $0.invalidate() }
-        pollTimers.removeAll()
+        pollingState.cleanup()
     }
 }
 

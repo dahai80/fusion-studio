@@ -636,6 +636,9 @@ struct MultiNodeSecuritySettingsView: View {
     @State private var masterList: String = KeychainStore.readMasterList()
     @State private var tokenInput: String = ""
     @State private var importError: String = ""
+    @State private var mtlsSummary: CertSummary? = nil
+    @State private var mtlsPassword: String = ""
+    @State private var mtlsImportError: String = ""
     private let log = Logger(subsystem: "com.fusion.studio", category: "Settings.MultiNodeSecurity")
 
     var body: some View {
@@ -668,6 +671,43 @@ struct MultiNodeSecuritySettingsView: View {
 
                 if !importError.isEmpty {
                     Text(importError).font(.system(size: theme.captionSize)).foregroundStyle(theme.errorText)
+                }
+
+                // 审计product-0907 P2-3 / C2: mTLS 客户端证书双向认证 (零信任企业集群).
+                //   导入 .p12 + 密码 -> SecIdentity -> Keychain, 运行时出示 clientCertificate challenge.
+                //   未配置时无此区 (向后兼容 Bearer-only + 服务端 pinning).
+                Divider().padding(.vertical, theme.spacingXS)
+
+                settingRow(i18n.t(.settings_mn_mtlsImport), "mTLS client certificate (.p12)") {
+                    Button(i18n.t(.settings_mn_mtlsImport)) { importMtlsCert() }
+                        .font(.system(size: theme.captionSize))
+                        .buttonStyle(.plain)
+                        .foregroundStyle(theme.accent)
+                }
+
+                if let summary = mtlsSummary {
+                    settingRow(summary.subject, "fp: \(summary.fingerprint)") {
+                        VStack(alignment: .trailing, spacing: 2) {
+                            if let days = summary.daysUntilExpiry {
+                                Text(i18n.t(.settings_mn_mtlsExpiry) + ": \(days)d")
+                                    .font(.system(size: theme.captionSize))
+                                    .foregroundStyle(summary.isNearExpiry ? theme.errorText : theme.textSecondary)
+                            }
+                            Button(i18n.t(.settings_mn_mtlsDelete)) {
+                                ClusterMTLSStore.shared.deleteClientIdentity()
+                                ClusterTransport.shared.reloadClientIdentity()
+                                mtlsSummary = ClusterMTLSStore.shared.clientIdentitySummary()
+                                log.info("removed mTLS client identity")
+                            }
+                            .font(.system(size: theme.captionSize))
+                            .buttonStyle(.plain)
+                            .foregroundStyle(theme.errorText)
+                        }
+                    }
+                }
+
+                if !mtlsImportError.isEmpty {
+                    Text(mtlsImportError).font(.system(size: theme.captionSize)).foregroundStyle(theme.errorText)
                 }
 
                 Divider().padding(.vertical, theme.spacingXS)
@@ -721,6 +761,7 @@ struct MultiNodeSecuritySettingsView: View {
         .onAppear {
             tlsCerts = TlsTrustStore.shared.listCerts()
             masterList = KeychainStore.readMasterList()
+            mtlsSummary = ClusterMTLSStore.shared.clientIdentitySummary()
         }
     }
 
@@ -756,6 +797,42 @@ struct MultiNodeSecuritySettingsView: View {
                 log.error("cert import failed: \(error.localizedDescription, privacy: .public)")
             }
         }
+    }
+
+    private func importMtlsCert() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [UTType(filenameExtension: "p12") ?? .data]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        if panel.runModal() == .OK, let url = panel.url {
+            guard let password = promptMtlsPassword() else { return }
+            do {
+                try ClusterMTLSStore.shared.importIdentity(at: url, password: password)
+                ClusterTransport.shared.reloadClientIdentity()
+                mtlsSummary = ClusterMTLSStore.shared.clientIdentitySummary()
+                mtlsImportError = ""
+                log.info("imported mTLS client identity from \(url.path, privacy: .public)")
+            } catch {
+                mtlsImportError = "\(error.localizedDescription)"
+                log.error("mTLS import failed: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+    }
+
+    private func promptMtlsPassword() -> String? {
+        let alert = NSAlert()
+        alert.alertStyle = .informational
+        alert.messageText = i18n.t(.settings_mn_mtlsPassPrompt)
+        alert.informativeText = i18n.t(.settings_mn_mtlsPassDesc)
+        let input = NSSecureTextField(frame: NSRect(x: 0, y: 0, width: 260, height: 24))
+        alert.accessoryView = input
+        alert.addButton(withTitle: i18n.t(.settings_mn_mtlsImport))
+        alert.addButton(withTitle: i18n.t(.settings_mn_tokenClear))
+        let response = alert.runModal()
+        guard response == .alertFirstButtonReturn else { return nil }
+        let pw = input.stringValue
+        guard !pw.isEmpty else { return nil }
+        return pw
     }
 }
 
