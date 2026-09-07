@@ -264,6 +264,12 @@ enum I18nKey: String, CaseIterable {
     case settings_mn_token = "settings_mn_token"
     case settings_mn_tokenSave = "settings_mn_tokenSave"
     case settings_mn_tokenClear = "settings_mn_tokenClear"
+    // 审计product-0907 P2-3 / C2: mTLS 客户端证书双向认证 (零信任企业集群)
+    case settings_mn_mtlsImport = "settings_mn_mtlsImport"
+    case settings_mn_mtlsDelete = "settings_mn_mtlsDelete"
+    case settings_mn_mtlsExpiry = "settings_mn_mtlsExpiry"
+    case settings_mn_mtlsPassPrompt = "settings_mn_mtlsPassPrompt"
+    case settings_mn_mtlsPassDesc = "settings_mn_mtlsPassDesc"
     // #393 Track A: 后端运行时 (bundled daemon) 设置区 i18n
     case backend_runtime_title = "backend_runtime_title"
     case backend_runtime_resolved_path = "backend_runtime_resolved_path"
