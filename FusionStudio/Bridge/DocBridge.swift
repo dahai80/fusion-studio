@@ -10,37 +10,61 @@ import os.log
 private let docBridgeLog = Logger(subsystem: "com.fusion.studio", category: "DocBridge")
 // MARK: - DocBridge
 
+// ARCH-1 facade-delegate split (audit-product-0907 P2-2). 32 @Published 拆 13 域 ObservableObject。
+//   let 域引用 = 稳定身份, init() objectWillChange.sink 转发每域 (SwiftUI 不自动追踪嵌套
+//   ObservableObject, P0-1 修)。32 属性经下方计算属性 get/set 转发, 0 view 改动。
+//   行为按域 Phase 2-6 迁入 Doc<Domain>Service.swift extension; HTTP 基元 (get/post/put/delete +
+//   handleError + authToken + session/baseURL) 留 DocBridge 作 infra, 域经 bridge?.get 越界。
+@MainActor
 class DocBridge: ObservableObject {
-    @Published var books: [DocBook] = []
-    @Published var chapters: [DocChapter] = []
-    @Published var pages: [DocPage] = []
-    @Published var currentPage: DocPage?
-    @Published var tags: [DocTag] = []
-    @Published var graph: DocGraph?
-    @Published var versions: [DocVersion] = []
-    @Published var workflows: [DocWorkflow] = []
-    @Published var templates: [DocTemplate] = []
-    @Published var officeStatus: DocOfficeStatus?
-    @Published var isConnected: Bool = false
-    @Published var lastError: String?
-    @Published var comments: [DocComment] = []
-    @Published var favorites: [DocFavorite] = []
-    @Published var activities: [DocActivity] = []
-    @Published var files: [DocFileUpload] = []
-    @Published var chunks: [DocRAGChunk] = []
-    @Published var workspaces: [DocWorkspace] = []
-    @Published var currentWorkspace: DocWorkspace?
-    @Published var users: [DocUser] = []
-    @Published var branding: DocBranding?
-    @Published var themes: [DocTheme] = []
-    @Published var vocabulary: [DocVocabulary] = []
-    @Published var webhooks: [DocWebhook] = []
-    @Published var systemInfo: DocSystemInfo?
-    @Published var systemConfig: [DocSystemConfig] = []
-    @Published var exportJobs: [DocExportJob] = []
-    @Published var notifications: [DocNotification] = []
-    @Published var isAuthenticated: Bool = false
-    @Published var authError: String?
+    let libraryState = DocLibraryState()
+    let healthState = DocHealthState()
+    let authState = DocAuthState()
+    let workspaceState = DocWorkspaceState()
+    let versionState = DocVersionState()
+    let workflowState = DocWorkflowDomainState()
+    let templateState = DocTemplateState()
+    let officeState = DocOfficeState()
+    let graphState = DocGraphState()
+    let ragState = DocRAGState()
+    let collabState = DocCollabState()
+    let adminState = DocAdminState()
+    let socialState = DocSocialState()
+    private var cancellables = Set<AnyCancellable>()
+
+    // MARK: - Computed forwards (zero view churn — 32 @Published → domain-owned)
+    var books: [DocBook] { get { libraryState.books } set { libraryState.books = newValue } }
+    var chapters: [DocChapter] { get { libraryState.chapters } set { libraryState.chapters = newValue } }
+    var pages: [DocPage] { get { libraryState.pages } set { libraryState.pages = newValue } }
+    var currentPage: DocPage? { get { libraryState.currentPage } set { libraryState.currentPage = newValue } }
+    var tags: [DocTag] { get { libraryState.tags } set { libraryState.tags = newValue } }
+    var isConnected: Bool { get { healthState.isConnected } set { healthState.isConnected = newValue } }
+    var lastError: String? { get { healthState.lastError } set { healthState.lastError = newValue } }
+    var isAuthenticated: Bool { get { authState.isAuthenticated } set { authState.isAuthenticated = newValue } }
+    var authError: String? { get { authState.authError } set { authState.authError = newValue } }
+    var workspaces: [DocWorkspace] { get { workspaceState.workspaces } set { workspaceState.workspaces = newValue } }
+    var currentWorkspace: DocWorkspace? { get { workspaceState.currentWorkspace } set { workspaceState.currentWorkspace = newValue } }
+    var versions: [DocVersion] { get { versionState.versions } set { versionState.versions = newValue } }
+    var workflows: [DocWorkflow] { get { workflowState.workflows } set { workflowState.workflows = newValue } }
+    var templates: [DocTemplate] { get { templateState.templates } set { templateState.templates = newValue } }
+    var officeStatus: DocOfficeStatus? { get { officeState.officeStatus } set { officeState.officeStatus = newValue } }
+    var graph: DocGraph? { get { graphState.graph } set { graphState.graph = newValue } }
+    var chunks: [DocRAGChunk] { get { ragState.chunks } set { ragState.chunks = newValue } }
+    var collabConnected: Bool { get { collabState.collabConnected } set { collabState.collabConnected = newValue } }
+    var collabUsers: [String] { get { collabState.collabUsers } set { collabState.collabUsers = newValue } }
+    var users: [DocUser] { get { adminState.users } set { adminState.users = newValue } }
+    var branding: DocBranding? { get { adminState.branding } set { adminState.branding = newValue } }
+    var themes: [DocTheme] { get { adminState.themes } set { adminState.themes = newValue } }
+    var vocabulary: [DocVocabulary] { get { adminState.vocabulary } set { adminState.vocabulary = newValue } }
+    var webhooks: [DocWebhook] { get { adminState.webhooks } set { adminState.webhooks = newValue } }
+    var systemInfo: DocSystemInfo? { get { adminState.systemInfo } set { adminState.systemInfo = newValue } }
+    var systemConfig: [DocSystemConfig] { get { adminState.systemConfig } set { adminState.systemConfig = newValue } }
+    var exportJobs: [DocExportJob] { get { adminState.exportJobs } set { adminState.exportJobs = newValue } }
+    var notifications: [DocNotification] { get { adminState.notifications } set { adminState.notifications = newValue } }
+    var activities: [DocActivity] { get { socialState.activities } set { socialState.activities = newValue } }
+    var files: [DocFileUpload] { get { socialState.files } set { socialState.files = newValue } }
+    var comments: [DocComment] { get { socialState.comments } set { socialState.comments = newValue } }
+    var favorites: [DocFavorite] { get { socialState.favorites } set { socialState.favorites = newValue } }
 
     // HIGH-2 / 审计0902 R6 (P0): bearer token 存 macOS Keychain, 不再明文落 UserDefaults plist。
     // 旧版本曾存 UserDefaults "fusion_doc_auth_token", 首次读时迁移到 Keychain 并清旧明文条目。
@@ -85,24 +109,58 @@ class DocBridge: ObservableObject {
     private let baseURL: String
     private let session: URLSession
 
-    // 审计0902 R5 (P2): 无重连定时器 (仅 checkHealth 翻状态, 无自动重试), fusion-doc 宕 = 永久
-    //   isConnected=false 无自愈。对齐 IPCClient/SimulationBridge 退避: base 2s × 2^min(attempt,5)
-    //   封顶 60s + jitter, 成功复位 attempt=0。
-    private var reconnectTimer: Timer?
-    private var reconnectAttempt: Int = 0
-
     init(baseURL: String = "http://127.0.0.1:11449") {
         self.baseURL = baseURL
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 8
         config.timeoutIntervalForResource = 30
         self.session = URLSession(configuration: config)
+        // ARCH-1: back-wire weak bridge ref + objectWillChange.sink 转发每域 (P0-1 修)。
+        libraryState.bridge = self
+        healthState.bridge = self
+        authState.bridge = self
+        workspaceState.bridge = self
+        versionState.bridge = self
+        workflowState.bridge = self
+        templateState.bridge = self
+        officeState.bridge = self
+        graphState.bridge = self
+        ragState.bridge = self
+        collabState.bridge = self
+        adminState.bridge = self
+        socialState.bridge = self
+        libraryState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        healthState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        authState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        workspaceState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        versionState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        workflowState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        templateState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        officeState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        graphState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        ragState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        collabState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        adminState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        socialState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        docBridgeLog.info("DocBridge init: 13 域 objectWillChange 转发已接线 (ARCH-1)")
     }
 
     deinit {
-        reconnectTimer?.invalidate()
-        // 审计0907 P1-5: 漏 cancel collabTask (WebSocket), dealloc 续跑。
-        collabTask?.cancel(with: .goingAway, reason: nil)
+        // ARCH-1: 域持有 timer/WS task (nonisolated(unsafe)), deinit(nonisolated) 经 cleanup() 清理。
+        healthState.cleanup()
+        collabState.cleanup()
+    }
+
+    // ARCH-1 Phase 1: 旧方法体仍引用 self.reconnectTimer / self.reconnectAttempt / self.collabTask
+    //   (现属 healthState/collabState)。私有转发桥使 Phase 1 不搬行为即编译通过; Phase 6 清理时随行为迁出。
+    private var reconnectTimer: Timer? {
+        get { healthState.reconnectTimer } set { healthState.reconnectTimer = newValue }
+    }
+    private var reconnectAttempt: Int {
+        get { healthState.reconnectAttempt } set { healthState.reconnectAttempt = newValue }
+    }
+    private var collabTask: URLSessionWebSocketTask? {
+        get { collabState.collabTask } set { collabState.collabTask = newValue }
     }
 
     // MARK: - Generic HTTP
@@ -111,7 +169,7 @@ class DocBridge: ObservableObject {
     // JSONDecoder -> 401/403/500 body 触发 decodeError, UI 报"解码错误"而非真实鉴权/服务端故障。
     // 此守卫在解码前校验 statusCode, 4xx/5xx 抛语义化错误 (脱敏, 不回显响应体可能含的密钥/内部路径)。
     // 审计0902 #234 test hook: private→internal (status 校验纯函数, 单测覆盖 4xx/5xx 语义错误)。
-    static func httpStatusError(_ response: URLResponse?, _ data: Data?) -> Error? {
+    nonisolated static func httpStatusError(_ response: URLResponse?, _ data: Data?) -> Error? {
         guard let http = response as? HTTPURLResponse else { return nil }
         let code = http.statusCode
         guard !(200...299).contains(code) else { return nil }
@@ -1595,10 +1653,7 @@ class DocBridge: ObservableObject {
     }
 
     // MARK: - Collaboration (WebSocket — pending upstream #22)
-
-    @Published var collabConnected: Bool = false
-    @Published var collabUsers: [String] = []
-    private var collabTask: URLSessionWebSocketTask?
+    // ARCH-1: collabConnected/collabUsers/collabTask 已迁 DocCollabState; 下方行为 Phase 4 迁出。
 
     func connectCollab(pageId: String) {
         docBridgeLog.info("connectCollab: pageId=\(pageId)")
