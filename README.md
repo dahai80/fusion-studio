@@ -4,7 +4,7 @@
   <img src="https://img.shields.io/badge/Swift-5.9-red" alt="Swift">
   <img src="https://img.shields.io/badge/Rust-2021-purple" alt="Rust">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License">
-  <img src="https://img.shields.io/badge/status-V0.1.62-yellow" alt="V0.1.62">
+  <img src="https://img.shields.io/badge/status-V0.1.64-yellow" alt="V0.1.64">
   <img src="https://img.shields.io/badge/modules-27-success" alt="27 Modules">
 </div>
 
@@ -547,7 +547,22 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 
 ## 📋 Changelog
 
-### v0.1.62 — ARCH-1 DesignBridge facade split (2026-09-06)
+### v0.1.64 — ARCH-1 DocBridge + MultiNode split + mTLS + cluster hardening (2026-09-07)
+
+Structural release; resolves both remaining ARCH-1 god-object blockers (P2-2 DocBridge, P2-3 MultiNode) from audit-product-0907 and adds enterprise cluster hardening + mTLS. Ships 4 PRs. Verdict: enterprise ❌ narrows to (a) signing (OPS-1, no secret configured — tagged `-beta`), (b) upstream consensus/quorum (#72/#76/#77 — server must provide), (c) upstream idempotency/exclude_nodes (#23/#31/#70 — filed); single-machine developer beta ✅.
+
+- **PR#411** — audit-product-0907 P0-P3 all defects resolved (5 P0 / 21 P1 / 22 P2 / 15 P3, 63 total). Upstream field-drop issue fusion-agent-studio#297 verified CLOSED.
+- **PR#412 (P2-2)** — ARCH-1 DocBridge facade-delegate split. `DocBridge.swift` 1657→~450 lines. 13 `@MainActor final class Doc<Domain>State` domain types in `DocBridgeDomains.swift` (Library/Health/Auth/Workspace/Version/Workflow/Template/Office/Graph/RAG/Collab/Admin/Social). 13 `Doc<Domain>Service.swift` files hold `extension <Domain>State` behavior + `extension DocBridge` 1-line stubs. 32 `@Published` decomposed; computed get/set forwarders preserve all view reads (0 churn). `objectWillChange.sink` forwarding (P0-1). HTTP infra (get/post/put/delete + handleError + authToken) stays on bridge; domains reach through `bridge?.get`. `@MainActor` added (dispatch-hops dropped). Two actor-isolation fixes (fix-r1 `DocCollabState.receiveCollabMessage` nonisolated, fix-r2 `scheduleReconnect` Timer callback wrapped in `Task { @MainActor }`).
+- **PR#413 (P2-3 surgical)** — MultiNode cluster hardening. B1 unbounded dict caps (nodeMetrics/nodeMetricsRaw/nodeLoads/modelManifests 500/100/evict-offline + pendingNodes prefix 500). B2 node_loads poller throttle (sample top-50 busiest if >50 online). B3 MasterPool failover cycle cap (`poolExhausted` flag, stop after full-pool cycle). B4 audit log rotation (50MB rotate + 30d retention). B5 `@MainActor` on MultiNodeEngine (dispatch-hop removal, compiler-enforced isolation).
+- **PR#414 (P2-3 split + mTLS)** — ARCH-1 MultiNode facade-delegate split. `MultiNodeEngine.swift` 1238→~512 lines. 10 domain types in `MultiNodeEngineDomains.swift` (ClusterHealth/Node/Task/SplitBrain/Autoscaler/Sync/KVCache/AgentServer/Routing/Polling). 10 `MultiNode<Domain>Service.swift` files. 18 `@Published` decomposed; computed forwarders + `objectWillChange.sink` 11× (P0-1). Coordinators (handleError/recomputeCanMutate/assertNoSplitBrain/startPolling) stay on engine. **mTLS**: `ClusterMTLSStore` p12 import via `SecPKCS12Import` → Keychain blob+password → `loadClientIdentity` re-parse → `ClusterTLSDelegate` handles `NSURLAuthenticationMethodClientCertificate` → `URLCredential(identity:)` or `.performDefaultHandling` (backwards-compatible Bearer-only fallback). SettingsView mTLS section (NSOpenPanel .p12 + secure password + subject/fingerprint/expiry/delete).
+- **Build gate**: `swift build -c debug` EXIT=0, `swift build --build-tests` EXIT=0; CI macOS-14/Xcode 15.x authoritative (~204 cases), runner-pool contention delayed runs at release time.
+- **Release**: tag `v0.1.64-beta` (no code-signing secret → tagged `-beta` to escape OPS-1 signing gate). DMG published when signing configured.
+
+### v0.1.63 — audit-product-0907 P0-P3 all defects resolved (2026-09-07)
+
+Audit release; ships all 63 findings (5 P0 / 21 P1 / 22 P2 / 15 P3) from the 6-dimension enterprise production audit (`audit/fusion-studio-audit-result-product-0907.md`). Upstream field-drop issue fusion-agent-studio#297 (graph.create lost config + position fields) verified CLOSED/COMPLETED 2026-09-07. Folded into v0.1.64 release via PR#411 squash-merge (665f4c6).
+
+
 
 Maintainability release; resolves the ARCH-1 finding (P1, audit-product-0906) — split the `DesignBridge` god-object (2481 lines, 38 `@Published`, 74 funcs, 14+ concerns) into 10 facade-delegate domain types, mirroring the proven AgentBridge #359 pattern. Zero behavior change, zero external API change, zero view churn.
 
