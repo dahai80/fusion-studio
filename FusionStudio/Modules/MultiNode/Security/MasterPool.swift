@@ -48,17 +48,17 @@ final class MasterPool {
             return ClusterEndpoint(host: host, port: port)
         }
         if allMastersDown {
-            poolLog.error("pool exhausted: cycled all \(endpoints.count) masters with no recovery")
+            poolLog.error("pool exhausted: cycled all \(self.endpoints.count) masters with no recovery")
             return nil
         }
         advanceCount += 1
         if advanceCount >= endpoints.count {
             allMastersDown = true
-            poolLog.error("failover exhausted: cycled \(advanceCount) times across \(endpoints.count) masters, all unreachable")
+            poolLog.error("failover exhausted: cycled \(self.advanceCount) times across \(self.endpoints.count) masters, all unreachable")
             return nil
         }
         activeIndex = (activeIndex + 1) % endpoints.count
-        poolLog.info("failover advance -> \(self.endpoints[self.activeIndex].host, privacy: .public) (count=\(advanceCount))")
+        poolLog.info("failover advance -> \(self.endpoints[self.activeIndex].host, privacy: .public) (count=\(self.advanceCount))")
         return endpoints[activeIndex]
     }
 

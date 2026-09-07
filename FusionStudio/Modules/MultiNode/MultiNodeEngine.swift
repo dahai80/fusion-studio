@@ -4,6 +4,7 @@ import os.log
 
 private let engineLog = Logger(subsystem: "com.fusion.studio", category: "MultiNodeEngine")
 
+@MainActor
 class MultiNodeEngine: ObservableObject {
     @Published var clusterStats: ClusterStats = .empty
     @Published var nodes: [ClusterNode] = []
@@ -103,7 +104,10 @@ class MultiNodeEngine: ObservableObject {
     private let overrideBaseURL: String?
     private let overrideAgentBaseURL: String?
     private let overrideAuthToken: String?
-    private var pollTimers: [Timer] = []
+    // B5: nonisolated(unsafe) — timers are only mutated on main (startPolling/stopPolling/reschedulePoll
+    // are MainActor) and deinit invalidates synchronously. No cross-queue mutation; annotation
+    // satisfies nonisolated deinit access without introducing a lock.
+    nonisolated(unsafe) private var pollTimers: [Timer] = []
 
     // Track B: TLS 会话由 ClusterTransport 统一提供 (含 TLS 委托 + 超时)。engine 不再自建 URLSession。
     private var session: URLSession { ClusterTransport.shared.session }
@@ -922,7 +926,7 @@ class MultiNodeEngine: ObservableObject {
                 let lb = nodeLoads[b.id]?.cpuPercent ?? 0
                 return la > lb
             }.prefix(nodeLoadSampleCap)
-            engineLog.warning("node_loads sampled \(sampled.count)/\(live.count) (cap=\(nodeLoadSampleCap)); full load available via fetchNodeLoad(nodeId:)")
+            engineLog.warning("node_loads sampled \(sampled.count)/\(live.count) (cap=\(self.nodeLoadSampleCap)); full load available via fetchNodeLoad(nodeId:)")
             for node in sampled { fetchNodeLoad(nodeId: node.id) { _ in } }
         } else {
             for node in live { fetchNodeLoad(nodeId: node.id) { _ in } }
@@ -1196,8 +1200,11 @@ class MultiNodeEngine: ObservableObject {
         }
     }
 
+    // B5: nonisolated deinit cannot call MainActor-isolated stopPolling(); inline timer
+    // invalidation (Timer.invalidate is safe from any queue). pollTimers is nonisolated(unsafe).
     deinit {
-        stopPolling()
+        pollTimers.forEach { $0.invalidate() }
+        pollTimers.removeAll()
     }
 }
 

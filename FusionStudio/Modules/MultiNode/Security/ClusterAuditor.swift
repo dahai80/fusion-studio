@@ -74,7 +74,7 @@ final class ClusterAuditor {
             }
         }
         if pruned > 0 {
-            auditLog.info("audit prune: removed \(pruned, privacy: .public) logs older than \(retentionDays) days")
+            auditLog.info("audit prune: removed \(pruned, privacy: .public) logs older than \(self.retentionDays) days")
         }
     }
 
