@@ -6,88 +6,133 @@ private let engineLog = Logger(subsystem: "com.fusion.studio", category: "MultiN
 
 @MainActor
 class MultiNodeEngine: ObservableObject {
-    @Published var clusterStats: ClusterStats = .empty
-    @Published var nodes: [ClusterNode] = []
-    @Published var tasks: [ClusterTask] = []
-    @Published var alerts: [AlertItem] = []
-    @Published var suggestions: [OptimizationSuggestion] = []
-    @Published var autoscalerConfig: AutoscalerConfig = .default
-    @Published var nodeMetrics: [String: LoadMetrics] = [:]
-    @Published var nodeMetricsRaw: [String: NodeMetricsResponse] = [:]
-    @Published var clusterSyncStatus: ClusterSyncStatus?
-    @Published var nodeLoads: [String: NodeLoadReport] = [:]
-    @Published var modelManifests: [String: ModelManifest] = [:]
-    @Published var pendingNodes: [PendingNode] = []
-    @Published var isConnected: Bool = false
-    @Published var lastError: String?
-    // F-R6: 数据可能过期标志。fetch 失败时置 true (保留旧 nodes 不清空), 成功时清 false。
-    // UI 据 stale 显示"数据可能过期"而非惊吓性"集群全没了"。连续失败达阈值才降级 isConnected。
-    @Published var nodesStale: Bool = false
+    // ARCH-1 (PR-C1): 18 @Published 拆 10 域 ObservableObject。let 域引用 = 稳定身份,
+    //   init() objectWillChange.sink 转发每域 (SwiftUI 不自动追踪嵌套 ObservableObject, P0-1 修)。
+    //   18 属性经下方计算属性 get/set 转发, 62 view 读站点 0 改 (0 $binding, 计算属性不产 projectedValue)。
+    //   行为按域 Phase 2-5 迁入 MultiNode<Domain>Service.swift extension。
+    let clusterHealthState = MultiNodeClusterHealthState()
+    let nodeState = MultiNodeNodeState()
+    let taskState = MultiNodeTaskState()
+    let splitBrainState = MultiNodeSplitBrainState()
+    let autoscalerState = MultiNodeAutoscalerState()
+    let syncState = MultiNodeSyncState()
+    let kvCacheState = MultiNodeKVCacheState()
+    let agentServerState = MultiNodeAgentServerState()
+    let routingState = MultiNodeRoutingState()
+    let pollingState = MultiNodePollingState()
+    private var cancellables = Set<AnyCancellable>()
 
-    // F-A11: 脑裂检测。>1 master = 网络分区两区各选 master, 客户端不应静默并排展示,
-    // 须 critical alert + 阻断写操作 (remove/approve/migrate) 直到 quorum 恢复。
-    // 审计0830 P1-调度-4: 旧版单次 master 快照判定脑裂, 瞬态抖动 (一次 fetch 拿到 stale 双 master) 误报。
-    //   改连续 N 轮确认才置位, 恢复 (≤1 master) 立即清零复位。stored @Published 替纯计算属性 (需跨轮状态)。
-    @Published var splitBrainDetected: Bool = false
-    private var splitBrainConfirmCount: Int = 0
-    // 审计v0.1.58 P1-4: 脑裂解除同样需连续 N 轮 ≤1 master 确认, 防瞬态抖动误放行写入.
-    private var splitBrainResolvedConfirmCount: Int = 0
-    private let splitBrainConfirmThreshold: Int = 2
-    // #76: 已知最大领导纪元 + leader_id (HA failover 递增; 单 master/active-active 恒 0/"").
-    //   收到 epoch < knownLeaderEpoch = stale leader 视图 → 写禁用。failover 后刷新。
-    private var knownLeaderEpoch: Int = 0
-    private var knownLeaderId: String? = nil
-    // #77: per-leader token (从 /api/v1/cluster/stats leader_token 刷新). 变更请求带 X-Leader-Token;
-    //   server enforce 开 + token 过期 → 409 LeaderChanged, 客户端 failover 后重取。nil/空 = 旧版, 不发 header。
-    private var knownLeaderToken: String? = nil
+    // MARK: - Cluster Health State 转发
+    var clusterStats: ClusterStats {
+        get { clusterHealthState.clusterStats } set { clusterHealthState.clusterStats = newValue }
+    }
+    var isConnected: Bool {
+        get { clusterHealthState.isConnected } set { clusterHealthState.isConnected = newValue }
+    }
+    var lastError: String? {
+        get { clusterHealthState.lastError } set { clusterHealthState.lastError = newValue }
+    }
+    var nodesStale: Bool {
+        get { clusterHealthState.nodesStale } set { clusterHealthState.nodesStale = newValue }
+    }
+    var activeMasterHost: String? {
+        get { clusterHealthState.activeMasterHost } set { clusterHealthState.activeMasterHost = newValue }
+    }
 
-    // Track B: 当前 master host (pool 驱动), 供 UI/审计展示。recomputeCanMutate() 刷新。
-    @Published var activeMasterHost: String? = nil
+    // MARK: - Node State 转发
+    var nodes: [ClusterNode] {
+        get { nodeState.nodes } set { nodeState.nodes = newValue }
+    }
+    var pendingNodes: [PendingNode] {
+        get { nodeState.pendingNodes } set { nodeState.pendingNodes = newValue }
+    }
+    var nodeMetrics: [String: LoadMetrics] {
+        get { nodeState.nodeMetrics } set { nodeState.nodeMetrics = newValue }
+    }
+    var nodeMetricsRaw: [String: NodeMetricsResponse] {
+        get { nodeState.nodeMetricsRaw } set { nodeState.nodeMetricsRaw = newValue }
+    }
+    var nodeLoads: [String: NodeLoadReport] {
+        get { nodeState.nodeLoads } set { nodeState.nodeLoads = newValue }
+    }
+    var modelManifests: [String: ModelManifest] {
+        get { nodeState.modelManifests } set { nodeState.modelManifests = newValue }
+    }
 
-    // F-A13: 重复执行检测 (客户端可做项)。同一 task assignedNodes>=2 且 running 且 mode!=data_parallel
-    // → 疑似网络抖动致 submit 重复提交, 两节点跑同一份未分片输入。data_parallel 多节点 = 合法分片不告警。
-    // 真因缺 idempotency key + pending 队列需后端 (#23/#31 已提), 客户端此告警仅 UI 可见性止血。
-    @Published var duplicateExecutionTaskIds: [String] = []
-    var duplicateExecutionDetected: Bool { !duplicateExecutionTaskIds.isEmpty }
+    // MARK: - Task State 转发
+    var tasks: [ClusterTask] {
+        get { taskState.tasks } set { taskState.tasks = newValue }
+    }
+    var duplicateExecutionTaskIds: [String] {
+        get { taskState.duplicateExecutionTaskIds } set { taskState.duplicateExecutionTaskIds = newValue }
+    }
+    var duplicateExecutionDetected: Bool { taskState.duplicateExecutionDetected }
+
+    // MARK: - Split Brain State 转发
+    var splitBrainDetected: Bool {
+        get { splitBrainState.splitBrainDetected } set { splitBrainState.splitBrainDetected = newValue }
+    }
+
+    // MARK: - Autoscaler State 转发
+    var autoscalerConfig: AutoscalerConfig {
+        get { autoscalerState.autoscalerConfig } set { autoscalerState.autoscalerConfig = newValue }
+    }
+    var alerts: [AlertItem] {
+        get { autoscalerState.alerts } set { autoscalerState.alerts = newValue }
+    }
+    var suggestions: [OptimizationSuggestion] {
+        get { autoscalerState.suggestions } set { autoscalerState.suggestions = newValue }
+    }
+
+    // MARK: - Sync State 转发
+    var clusterSyncStatus: ClusterSyncStatus? {
+        get { syncState.clusterSyncStatus } set { syncState.clusterSyncStatus = newValue }
+    }
 
     // Track B: 写操作前置门。connected 且无脑裂才允许 remove/approve/migrate/submit/retry/routing/autoscaler。
     // 计算属性 (非 @Published stored) — 永远反映 isConnected/splitBrainDetected 当前值, 无需手动刷新。
     var canMutate: Bool { isConnected && !splitBrainDetected }
 
-    // F-R6/F-R10: 连续失败计数 + 降级阈值。单次网络抖动不计 disconnected, 连续 N 轮失败才置离线。
-    // 审计0827 §3.5 (P2): 4 路 poll 共享单一 consecutiveFailures, 交叉复位致降级失真
-    // (node_loads 偶发成功复位 → 其余 3 路持续失败被掩盖, 计数永不达 3)。
-    // 改 per-context 计数, 任一路达阈值即降级; backoff 取最差路值避免一路快一路慢。
-    private var consecutiveFailuresByContext: [String: Int] = [:]
-    private let maxConsecutiveFailures: Int = 3
-    private var worstConsecutiveFailures: Int {
-        consecutiveFailuresByContext.values.max() ?? 0
+    // ARCH-1 PR-C1 Phase 1: stored-prop shims → 域 state。方法体暂留 engine (Phase 2-5 迁入 service
+    //   extension), 经这些 shim 访问已迁入域的 stored props。Phase 6 删 shim (方法体迁走后无引用)。
+    private var splitBrainConfirmCount: Int {
+        get { splitBrainState.splitBrainConfirmCount } set { splitBrainState.splitBrainConfirmCount = newValue }
     }
-    // F-R10: 单飞保护。慢响应时 Timer 下一 tick 重复 fire 同一 fetch 致请求风暴, in-flight 跳过。
-    private var inflightFetches: Set<String> = []
-    private let inflightLock = NSLock()
-
-    // 审计0830 P1-调度-5: effectiveStatus 无滞后, 节点心跳抖动 → 状态频繁切换 (online↔offline)。
-    //   engine 维护 per-node 连续 offline 计数, 达阈值 K 才确认 offline (决策点用 confirmedOffline)。
-    //   model 的 effectiveStatus 仍即时 (UI 即时反馈), engine 决策 (retry/eligibility) 用滞后值防抖。
-    private var nodeOfflineStreak: [String: Int] = [:]
-    private let offlineConfirmThreshold: Int = 2
-
-    // B2: node_loads poll throughput cap. >50 online nodes → sample top-N busiest by cpuPercent,
-    // rest rely on 2s fetchNodes heartbeat. Prevents 500 req/5s storm on large clusters.
-    private let nodeLoadSampleCap = 50
-
-    // Track B: failover 健康探测单飞, 防 handleError 多路并发触发重复 checkHealth 风暴。
-    private var failoverProbeInflight: Bool = false
-
-    // 审计0830 P1-调度-5: 决策点 (retry/eligibility) 用滞后确认, 非 model 即时 effectiveStatus。
-    //   未知节点 (streak 无记录, 0) 默认即时状态: 避免新加入节点首轮 fetch 未到被误判健康。
-    private func confirmedOffline(nodeId: String) -> Bool {
-        let streak = nodeOfflineStreak[nodeId] ?? 0
-        if streak >= offlineConfirmThreshold { return true }
-        guard let n = nodes.first(where: { $0.id == nodeId }) else { return true }
-        return n.effectiveStatus == .offline
+    private var splitBrainResolvedConfirmCount: Int {
+        get { splitBrainState.splitBrainResolvedConfirmCount } set { splitBrainState.splitBrainResolvedConfirmCount = newValue }
     }
+    private var splitBrainConfirmThreshold: Int { splitBrainState.splitBrainConfirmThreshold }
+    private var knownLeaderEpoch: Int {
+        get { splitBrainState.knownLeaderEpoch } set { splitBrainState.knownLeaderEpoch = newValue }
+    }
+    private var knownLeaderId: String? {
+        get { splitBrainState.knownLeaderId } set { splitBrainState.knownLeaderId = newValue }
+    }
+    private var knownLeaderToken: String? {
+        get { splitBrainState.knownLeaderToken } set { splitBrainState.knownLeaderToken = newValue }
+    }
+    private var consecutiveFailuresByContext: [String: Int] {
+        get { pollingState.consecutiveFailuresByContext } set { pollingState.consecutiveFailuresByContext = newValue }
+    }
+    private var worstConsecutiveFailures: Int { pollingState.worstConsecutiveFailures }
+    private var maxConsecutiveFailures: Int { pollingState.maxConsecutiveFailures }
+    private var inflightFetches: Set<String> {
+        get { pollingState.inflightFetches } set { pollingState.inflightFetches = newValue }
+    }
+    private var inflightLock: NSLock { pollingState.inflightLock }
+    private var pollTimers: [Timer] {
+        get { pollingState.pollTimers } set { pollingState.pollTimers = newValue }
+    }
+    private var nodeOfflineStreak: [String: Int] {
+        get { nodeState.nodeOfflineStreak } set { nodeState.nodeOfflineStreak = newValue }
+    }
+    private var offlineConfirmThreshold: Int { nodeState.offlineConfirmThreshold }
+    private var nodeLoadSampleCap: Int { nodeState.nodeLoadSampleCap }
+    private var failoverProbeInflight: Bool {
+        get { clusterHealthState.failoverProbeInflight } set { clusterHealthState.failoverProbeInflight = newValue }
+    }
+    private func confirmedOffline(nodeId: String) -> Bool { nodeState.confirmedOffline(nodeId: nodeId) }
+    private func releaseInflight(_ key: String) { pollingState.releaseInflight(key) }
 
     // B1: cap unbounded mirror dicts (periodic refresh, no order — evict arbitrary excess keys).
     private static func capDict<K: Hashable, V>(_ dict: inout [K: V], _ max: Int) {
@@ -104,10 +149,6 @@ class MultiNodeEngine: ObservableObject {
     private let overrideBaseURL: String?
     private let overrideAgentBaseURL: String?
     private let overrideAuthToken: String?
-    // B5: nonisolated(unsafe) — timers are only mutated on main (startPolling/stopPolling/reschedulePoll
-    // are MainActor) and deinit invalidates synchronously. No cross-queue mutation; annotation
-    // satisfies nonisolated deinit access without introducing a lock.
-    nonisolated(unsafe) private var pollTimers: [Timer] = []
 
     // Track B: TLS 会话由 ClusterTransport 统一提供 (含 TLS 委托 + 超时)。engine 不再自建 URLSession。
     private var session: URLSession { ClusterTransport.shared.session }
@@ -139,6 +180,27 @@ class MultiNodeEngine: ObservableObject {
         self.overrideBaseURL = baseURL
         self.overrideAgentBaseURL = agentBaseURL
         self.overrideAuthToken = authToken
+        clusterHealthState.bridge = self
+        nodeState.bridge = self
+        taskState.bridge = self
+        splitBrainState.bridge = self
+        autoscalerState.bridge = self
+        syncState.bridge = self
+        kvCacheState.bridge = self
+        agentServerState.bridge = self
+        routingState.bridge = self
+        pollingState.bridge = self
+        clusterHealthState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        nodeState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        taskState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        splitBrainState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        autoscalerState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        syncState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        kvCacheState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        agentServerState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        routingState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        pollingState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        engineLog.info("MultiNodeEngine init: 10 域 objectWillChange 转发已接线 (ARCH-1 PR-C1)")
     }
 
     /// Track C: 客户端幂等键。上游 fusion-multi-node #23/#31 暂忽略 X-Idempotency-Key header;
@@ -1097,11 +1159,7 @@ class MultiNodeEngine: ObservableObject {
         }.resume()
     }
 
-    private func releaseInflight(_ key: String) {
-        inflightLock.lock()
-        inflightFetches.remove(key)
-        inflightLock.unlock()
-    }
+    // releaseInflight 已迁 pollingState (Phase 1 shim 转发)。旧 body 删。
 
     // MARK: - Generic HTTP helpers
 
@@ -1201,10 +1259,9 @@ class MultiNodeEngine: ObservableObject {
     }
 
     // B5: nonisolated deinit cannot call MainActor-isolated stopPolling(); inline timer
-    // invalidation (Timer.invalidate is safe from any queue). pollTimers is nonisolated(unsafe).
+    // invalidation (Timer.invalidate is safe from any queue). pollTimers is nonisolated(unsafe) on pollingState。
     deinit {
-        pollTimers.forEach { $0.invalidate() }
-        pollTimers.removeAll()
+        pollingState.cleanup()
     }
 }
 
