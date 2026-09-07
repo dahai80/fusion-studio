@@ -10,43 +10,73 @@ import os.log
 private let docBridgeLog = Logger(subsystem: "com.fusion.studio", category: "DocBridge")
 // MARK: - DocBridge
 
+// ARCH-1 facade-delegate split (audit-product-0907 P2-2). 32 @Published 拆 13 域 ObservableObject。
+//   let 域引用 = 稳定身份, init() objectWillChange.sink 转发每域 (SwiftUI 不自动追踪嵌套
+//   ObservableObject, P0-1 修)。32 属性经下方计算属性 get/set 转发, 0 view 改动。
+//   行为按域 Phase 2-5 迁入 13 个 Doc<Domain>Service.swift extension (DocBridge 留 1 行 stub);
+//   HTTP 基元 (get/post/put/delete + handleError + authToken + session/baseURL) 留 DocBridge 作
+//   infra, 域经 bridge?.get 越界。协调器 (scheduleReconnect/restoreVersion/instantiateTemplate/
+//   importOfficeDocument/restoreAuth/verifyToken) 留 DocBridge (跨域); 无状态 util (copilot URL/
+//   searchPages/searchAdvanced/aiChat/aiCompletions) 留 DocBridge (无 @Published 不值得建域)。
+//   DispatchQueue.main.async hops 留: 逃逸 completion handler (URLSession 后台队列回调) 非 @MainActor
+//   隔离, hop 是正确性必需非冗余。Phase 6 收尾: 1657→641 行, infra+协调器+util only, 0 重复方法体。
+@MainActor
 class DocBridge: ObservableObject {
-    @Published var books: [DocBook] = []
-    @Published var chapters: [DocChapter] = []
-    @Published var pages: [DocPage] = []
-    @Published var currentPage: DocPage?
-    @Published var tags: [DocTag] = []
-    @Published var graph: DocGraph?
-    @Published var versions: [DocVersion] = []
-    @Published var workflows: [DocWorkflow] = []
-    @Published var templates: [DocTemplate] = []
-    @Published var officeStatus: DocOfficeStatus?
-    @Published var isConnected: Bool = false
-    @Published var lastError: String?
-    @Published var comments: [DocComment] = []
-    @Published var favorites: [DocFavorite] = []
-    @Published var activities: [DocActivity] = []
-    @Published var files: [DocFileUpload] = []
-    @Published var chunks: [DocRAGChunk] = []
-    @Published var workspaces: [DocWorkspace] = []
-    @Published var currentWorkspace: DocWorkspace?
-    @Published var users: [DocUser] = []
-    @Published var branding: DocBranding?
-    @Published var themes: [DocTheme] = []
-    @Published var vocabulary: [DocVocabulary] = []
-    @Published var webhooks: [DocWebhook] = []
-    @Published var systemInfo: DocSystemInfo?
-    @Published var systemConfig: [DocSystemConfig] = []
-    @Published var exportJobs: [DocExportJob] = []
-    @Published var notifications: [DocNotification] = []
-    @Published var isAuthenticated: Bool = false
-    @Published var authError: String?
+    let libraryState = DocLibraryState()
+    let healthState = DocHealthState()
+    let authState = DocAuthState()
+    let workspaceState = DocWorkspaceState()
+    let versionState = DocVersionState()
+    let workflowState = DocWorkflowDomainState()
+    let templateState = DocTemplateState()
+    let officeState = DocOfficeState()
+    let graphState = DocGraphState()
+    let ragState = DocRAGState()
+    let collabState = DocCollabState()
+    let adminState = DocAdminState()
+    let socialState = DocSocialState()
+    private var cancellables = Set<AnyCancellable>()
+
+    // MARK: - Computed forwards (zero view churn — 32 @Published → domain-owned)
+    var books: [DocBook] { get { libraryState.books } set { libraryState.books = newValue } }
+    var chapters: [DocChapter] { get { libraryState.chapters } set { libraryState.chapters = newValue } }
+    var pages: [DocPage] { get { libraryState.pages } set { libraryState.pages = newValue } }
+    var currentPage: DocPage? { get { libraryState.currentPage } set { libraryState.currentPage = newValue } }
+    var tags: [DocTag] { get { libraryState.tags } set { libraryState.tags = newValue } }
+    var isConnected: Bool { get { healthState.isConnected } set { healthState.isConnected = newValue } }
+    var lastError: String? { get { healthState.lastError } set { healthState.lastError = newValue } }
+    var isAuthenticated: Bool { get { authState.isAuthenticated } set { authState.isAuthenticated = newValue } }
+    var authError: String? { get { authState.authError } set { authState.authError = newValue } }
+    var workspaces: [DocWorkspace] { get { workspaceState.workspaces } set { workspaceState.workspaces = newValue } }
+    var currentWorkspace: DocWorkspace? { get { workspaceState.currentWorkspace } set { workspaceState.currentWorkspace = newValue } }
+    var versions: [DocVersion] { get { versionState.versions } set { versionState.versions = newValue } }
+    var workflows: [DocWorkflow] { get { workflowState.workflows } set { workflowState.workflows = newValue } }
+    var templates: [DocTemplate] { get { templateState.templates } set { templateState.templates = newValue } }
+    var officeStatus: DocOfficeStatus? { get { officeState.officeStatus } set { officeState.officeStatus = newValue } }
+    var graph: DocGraph? { get { graphState.graph } set { graphState.graph = newValue } }
+    var chunks: [DocRAGChunk] { get { ragState.chunks } set { ragState.chunks = newValue } }
+    var collabConnected: Bool { get { collabState.collabConnected } set { collabState.collabConnected = newValue } }
+    var collabUsers: [String] { get { collabState.collabUsers } set { collabState.collabUsers = newValue } }
+    var users: [DocUser] { get { adminState.users } set { adminState.users = newValue } }
+    var branding: DocBranding? { get { adminState.branding } set { adminState.branding = newValue } }
+    var themes: [DocTheme] { get { adminState.themes } set { adminState.themes = newValue } }
+    var vocabulary: [DocVocabulary] { get { adminState.vocabulary } set { adminState.vocabulary = newValue } }
+    var webhooks: [DocWebhook] { get { adminState.webhooks } set { adminState.webhooks = newValue } }
+    var systemInfo: DocSystemInfo? { get { adminState.systemInfo } set { adminState.systemInfo = newValue } }
+    var systemConfig: [DocSystemConfig] { get { adminState.systemConfig } set { adminState.systemConfig = newValue } }
+    var exportJobs: [DocExportJob] { get { adminState.exportJobs } set { adminState.exportJobs = newValue } }
+    var notifications: [DocNotification] { get { adminState.notifications } set { adminState.notifications = newValue } }
+    var activities: [DocActivity] { get { socialState.activities } set { socialState.activities = newValue } }
+    var files: [DocFileUpload] { get { socialState.files } set { socialState.files = newValue } }
+    var comments: [DocComment] { get { socialState.comments } set { socialState.comments = newValue } }
+    var favorites: [DocFavorite] { get { socialState.favorites } set { socialState.favorites = newValue } }
 
     // HIGH-2 / 审计0902 R6 (P0): bearer token 存 macOS Keychain, 不再明文落 UserDefaults plist。
     // 旧版本曾存 UserDefaults "fusion_doc_auth_token", 首次读时迁移到 Keychain 并清旧明文条目。
     private static let authTokenKeychainAccount = "fusion_doc_auth_token"
     private static let authTokenLegacyKey = "fusion_doc_auth_token"
-    private var authToken: String? {
+    // ARCH-1 Phase 2: private→internal — DocAuthService 经 bridge?.authToken reach-through Keychain infra。
+    var authToken: String? {
         get {
             if let token = KeychainStore.get(Self.authTokenKeychainAccount), !token.isEmpty {
                 return token
@@ -76,20 +106,18 @@ class DocBridge: ObservableObject {
     // F-A2: DocBridge 流式 @Published 数组无界 append (create/clone/install 回调内),
     // 连续操作不 fetch 时内存单调增长。统一 LRU cap 入口, 保留最近 cap 条, 超额丢弃最旧。
     // PERF-3 ragResults 范式。各调用方在 append 后调 capXxx 限流。
-    private static func cap<T>(_ arr: inout [T], _ cap: Int) {
+    // ARCH-1 Phase 2 (audit-product-0907 P2-2): private→internal — 域服务扩展跨文件 reach-through
+    //   bridge?.cap(...) / DocBridge.cap(...)。纯函数 (inout 数组裁剪), 单测覆盖。
+    static func cap<T>(_ arr: inout [T], _ cap: Int) {
         if arr.count > cap {
             arr.removeFirst(arr.count - cap)
         }
     }
 
-    private let baseURL: String
-    private let session: URLSession
-
-    // 审计0902 R5 (P2): 无重连定时器 (仅 checkHealth 翻状态, 无自动重试), fusion-doc 宕 = 永久
-    //   isConnected=false 无自愈。对齐 IPCClient/SimulationBridge 退避: base 2s × 2^min(attempt,5)
-    //   封顶 60s + jitter, 成功复位 attempt=0。
-    private var reconnectTimer: Timer?
-    private var reconnectAttempt: Int = 0
+    // ARCH-1 Phase 4 (audit-product-0907 P2-2): baseURL/session private→internal — DocCollabService
+    //   reach-through (connectCollab builds WS URL from baseURL, session.webSocketTask)。
+    let baseURL: String
+    let session: URLSession
 
     init(baseURL: String = "http://127.0.0.1:11449") {
         self.baseURL = baseURL
@@ -97,12 +125,52 @@ class DocBridge: ObservableObject {
         config.timeoutIntervalForRequest = 8
         config.timeoutIntervalForResource = 30
         self.session = URLSession(configuration: config)
+        // ARCH-1: back-wire weak bridge ref + objectWillChange.sink 转发每域 (P0-1 修)。
+        libraryState.bridge = self
+        healthState.bridge = self
+        authState.bridge = self
+        workspaceState.bridge = self
+        versionState.bridge = self
+        workflowState.bridge = self
+        templateState.bridge = self
+        officeState.bridge = self
+        graphState.bridge = self
+        ragState.bridge = self
+        collabState.bridge = self
+        adminState.bridge = self
+        socialState.bridge = self
+        libraryState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        healthState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        authState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        workspaceState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        versionState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        workflowState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        templateState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        officeState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        graphState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        ragState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        collabState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        adminState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        socialState.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        docBridgeLog.info("DocBridge init: 13 域 objectWillChange 转发已接线 (ARCH-1)")
     }
 
     deinit {
-        reconnectTimer?.invalidate()
-        // 审计0907 P1-5: 漏 cancel collabTask (WebSocket), dealloc 续跑。
-        collabTask?.cancel(with: .goingAway, reason: nil)
+        // ARCH-1: 域持有 timer/WS task (nonisolated(unsafe)), deinit(nonisolated) 经 cleanup() 清理。
+        healthState.cleanup()
+        collabState.cleanup()
+    }
+
+    // ARCH-1 Phase 1: 旧方法体仍引用 self.reconnectTimer / self.reconnectAttempt / self.collabTask
+    //   (现属 healthState/collabState)。私有转发桥使 Phase 1 不搬行为即编译通过; Phase 6 清理时随行为迁出。
+    private var reconnectTimer: Timer? {
+        get { healthState.reconnectTimer } set { healthState.reconnectTimer = newValue }
+    }
+    private var reconnectAttempt: Int {
+        get { healthState.reconnectAttempt } set { healthState.reconnectAttempt = newValue }
+    }
+    private var collabTask: URLSessionWebSocketTask? {
+        get { collabState.collabTask } set { collabState.collabTask = newValue }
     }
 
     // MARK: - Generic HTTP
@@ -111,7 +179,7 @@ class DocBridge: ObservableObject {
     // JSONDecoder -> 401/403/500 body 触发 decodeError, UI 报"解码错误"而非真实鉴权/服务端故障。
     // 此守卫在解码前校验 statusCode, 4xx/5xx 抛语义化错误 (脱敏, 不回显响应体可能含的密钥/内部路径)。
     // 审计0902 #234 test hook: private→internal (status 校验纯函数, 单测覆盖 4xx/5xx 语义错误)。
-    static func httpStatusError(_ response: URLResponse?, _ data: Data?) -> Error? {
+    nonisolated static func httpStatusError(_ response: URLResponse?, _ data: Data?) -> Error? {
         guard let http = response as? HTTPURLResponse else { return nil }
         let code = http.statusCode
         guard !(200...299).contains(code) else { return nil }
@@ -127,7 +195,8 @@ class DocBridge: ObservableObject {
         return NSError(domain: "DocBridge", code: code, userInfo: [NSLocalizedDescriptionKey: desc])
     }
 
-    private func get<T: Decodable>(_ path: String, completion: @escaping (Result<T, Error>) -> Void) {
+    // ARCH-1 Phase 2: private→internal — 域服务扩展经 bridge?.get(...) reach-through HTTP infra。
+    func get<T: Decodable>(_ path: String, completion: @escaping (Result<T, Error>) -> Void) {
         guard let url = URL(string: "\(baseURL)\(path)") else {
             completion(.failure(NSError(domain: "DocBridge", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))
             return
@@ -151,7 +220,8 @@ class DocBridge: ObservableObject {
         }.resume()
     }
 
-    private func post<T: Decodable>(_ path: String, body: [String: Any]? = nil, completion: @escaping (Result<T, Error>) -> Void) {
+    // ARCH-1 Phase 2: private→internal — 域服务扩展经 bridge?.post(...) reach-through HTTP infra。
+    func post<T: Decodable>(_ path: String, body: [String: Any]? = nil, completion: @escaping (Result<T, Error>) -> Void) {
         guard let url = URL(string: "\(baseURL)\(path)") else {
             completion(.failure(NSError(domain: "DocBridge", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))
             return
@@ -187,7 +257,8 @@ class DocBridge: ObservableObject {
         }.resume()
     }
 
-    private func put<T: Decodable>(_ path: String, body: [String: Any], completion: @escaping (Result<T, Error>) -> Void) {
+    // ARCH-1 Phase 2: private→internal — 域服务扩展经 bridge?.put(...) reach-through HTTP infra。
+    func put<T: Decodable>(_ path: String, body: [String: Any], completion: @escaping (Result<T, Error>) -> Void) {
         guard let url = URL(string: "\(baseURL)\(path)") else {
             completion(.failure(NSError(domain: "DocBridge", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))
             return
@@ -221,7 +292,8 @@ class DocBridge: ObservableObject {
         }.resume()
     }
 
-    private func delete<T: Decodable>(_ path: String, completion: @escaping (Result<T, Error>) -> Void) {
+    // ARCH-1 Phase 2: private→internal — 域服务扩展经 bridge?.delete(...) reach-through HTTP infra。
+    func delete<T: Decodable>(_ path: String, completion: @escaping (Result<T, Error>) -> Void) {
         guard let url = URL(string: "\(baseURL)\(path)") else {
             completion(.failure(NSError(domain: "DocBridge", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))
             return
@@ -246,7 +318,8 @@ class DocBridge: ObservableObject {
         }.resume()
     }
 
-    private func handleError(_ error: Error, context: String) {
+    // ARCH-1 Phase 2: private→internal — 域服务扩展经 bridge?.handleError(...) 汇入中央错漏斗 (协调器留此)。
+    func handleError(_ error: Error, context: String) {
         docBridgeLog.error("[\(context)] \(error.localizedDescription)")
         DispatchQueue.main.async {
             // 审计0827 §3.9.4 (P2): lastError 旧裸 "\(context): \(error.localizedDescription)" 暴露底层错
@@ -273,234 +346,25 @@ class DocBridge: ObservableObject {
             self.reconnectAttempt += 1
             docBridgeLog.warning("DocBridge reconnect backoff: attempt=\(attempt) interval=\(String(format: "%.2f", interval))s")
             self.reconnectTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] _ in
-                self?.checkHealth()
+                Task { @MainActor [weak self] in self?.checkHealth() }
             }
         }
     }
 
     // MARK: - Health
 
-    func checkHealth() {
-        struct HealthResp: Decodable { var status: String? }
-        get("/api/health") { [weak self] (result: Result<HealthResp, Error>) in
-            switch result {
-            case .success:
-                DispatchQueue.main.async {
-                    self?.isConnected = true
-                    self?.lastError = nil
-                    self?.reconnectTimer?.invalidate()
-                    self?.reconnectTimer = nil
-                    self?.reconnectAttempt = 0
-                }
-            case .failure(let error):
-                self?.handleError(error, context: "health")
-            }
-        }
-    }
+    // ARCH-1 Phase 2: checkHealth 行为已迁 DocHealthService.swift (extension DocHealthState +
+    //   extension DocBridge stub)。scheduleReconnect 留此 (handleError 协调器调)。
 
-    // MARK: - Books
-
-    func fetchBooks() {
-        get("/api/books") { [weak self] (result: Result<[DocBook], Error>) in
-            switch result {
-            case .success(let list):
-                DispatchQueue.main.async { self?.books = Array(list.suffix(200)) }
-            case .failure(let error):
-                self?.handleError(error, context: "books")
-            }
-        }
-    }
-
-    func createBook(title: String, description: String? = nil, workspaceId: String? = nil) {
-        var body: [String: Any] = ["title": title]
-        if let desc = description { body["description"] = desc }
-        if let wsId = workspaceId { body["workspace_id"] = wsId }
-        post("/api/books", body: body) { [weak self] (result: Result<DocBook, Error>) in
-            switch result {
-            case .success(let book):
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    self.books.append(book)
-                    Self.cap(&self.books, 200)
-                }
-            case .failure(let error):
-                self?.handleError(error, context: "createBook")
-            }
-        }
-    }
-
-    // MARK: - Chapters
-
-    func fetchChapters(bookId: String) {
-        get("/api/chapters?bookId=\(bookId)") { [weak self] (result: Result<[DocChapter], Error>) in
-            switch result {
-            case .success(let list):
-                DispatchQueue.main.async { self?.chapters = Array(list.suffix(200)) }
-            case .failure(let error):
-                self?.handleError(error, context: "chapters")
-            }
-        }
-    }
-
-    func createChapter(bookId: String, title: String) {
-        post("/api/chapters", body: ["book_id": bookId, "title": title]) { [weak self] (result: Result<DocChapter, Error>) in
-            switch result {
-            case .success(let ch):
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    self.chapters.append(ch)
-                    Self.cap(&self.chapters, 500)
-                }
-            case .failure(let error):
-                self?.handleError(error, context: "createChapter")
-            }
-        }
-    }
-
-    // MARK: - Pages
-
-    func fetchPages(bookId: String? = nil, chapterId: String? = nil) {
-        var path = "/api/pages"
-        var params: [String] = []
-        if let bid = bookId { params.append("bookId=\(bid)") }
-        if let cid = chapterId { params.append("chapterId=\(cid)") }
-        if !params.isEmpty { path += "?" + params.joined(separator: "&") }
-
-        get(path) { [weak self] (result: Result<[DocPage], Error>) in
-            switch result {
-            case .success(let list):
-                DispatchQueue.main.async { self?.pages = Array(list.suffix(200)) }
-            case .failure(let error):
-                self?.handleError(error, context: "pages")
-            }
-        }
-    }
-
-    func fetchPage(id: String) {
-        get("/api/pages/\(id)") { [weak self] (result: Result<DocPage, Error>) in
-            switch result {
-            case .success(let page):
-                DispatchQueue.main.async { self?.currentPage = page }
-            case .failure(let error):
-                self?.handleError(error, context: "page")
-            }
-        }
-    }
-
-    func createPage(title: String, bookId: String? = nil, chapterId: String? = nil, content: String = "") {
-        var body: [String: Any] = ["title": title, "content": content]
-        if let bid = bookId { body["book_id"] = bid }
-        if let cid = chapterId { body["chapter_id"] = cid }
-        post("/api/pages", body: body) { [weak self] (result: Result<DocPage, Error>) in
-            switch result {
-            case .success(let page):
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    self.pages.append(page)
-                    Self.cap(&self.pages, 1000)
-                }
-            case .failure(let error):
-                self?.handleError(error, context: "createPage")
-            }
-        }
-    }
-
-    func updatePage(id: String, title: String, content: String, markdown: String? = nil) {
-        var body: [String: Any] = ["title": title, "content": content]
-        if let md = markdown { body["markdown"] = md }
-        put("/api/pages/\(id)", body: body) { [weak self] (result: Result<[String: Bool], Error>) in
-            switch result {
-            case .success:
-                DispatchQueue.main.async {
-                    if let idx = self?.pages.firstIndex(where: { $0.id == id }) {
-                        self?.pages[idx].title = title
-                        self?.pages[idx].content = content
-                    }
-                    if self?.currentPage?.id == id {
-                        self?.currentPage?.title = title
-                        self?.currentPage?.content = content
-                    }
-                }
-            case .failure(let error):
-                self?.handleError(error, context: "updatePage")
-            }
-        }
-    }
-
-    func deletePage(id: String) {
-        struct DeleteResp: Decodable { var deleted: Bool? }
-        delete("/api/pages/\(id)") { [weak self] (result: Result<DeleteResp, Error>) in
-            switch result {
-            case .success:
-                DispatchQueue.main.async {
-                    self?.pages.removeAll { $0.id == id }
-                    if self?.currentPage?.id == id { self?.currentPage = nil }
-                }
-            case .failure(let error):
-                self?.handleError(error, context: "deletePage")
-            }
-        }
-    }
-
-    // MARK: - Tags
-
-    func fetchTags() {
-        get("/api/tags") { [weak self] (result: Result<[DocTag], Error>) in
-            switch result {
-            case .success(let list):
-                DispatchQueue.main.async { self?.tags = Array(list.suffix(200)) }
-            case .failure(let error):
-                self?.handleError(error, context: "tags")
-            }
-        }
-    }
+    // ARCH-1 Phase 2: Library 行为已迁 DocLibraryService.swift (extension DocLibraryState +
+    //   extension DocBridge stub)。旧 Books/Chapters/Pages/Tags 方法体已删, call site 经 stub 零改。
 
     // MARK: - Graph
-
-    func fetchGraph() {
-        get("/api/graph") { [weak self] (result: Result<DocGraph, Error>) in
-            switch result {
-            case .success(let g):
-                DispatchQueue.main.async { self?.graph = g }
-            case .failure(let error):
-                self?.handleError(error, context: "graph")
-            }
-        }
-    }
+    // ARCH-1 Phase 4 (audit-product-0907 P2-2): fetchGraph 迁入 DocGraphService.swift (DocBridge 留 1 行 stub)。
 
     // MARK: - Versions
-
-    func fetchVersions(pageId: String) {
-        get("/api/pages/\(pageId)/versions") { [weak self] (result: Result<[DocVersion], Error>) in
-            switch result {
-            case .success(let list):
-                DispatchQueue.main.async { self?.versions = Array(list.suffix(200)) }
-            case .failure(let error):
-                self?.handleError(error, context: "versions")
-            }
-        }
-    }
-
-    func createVersion(pageId: String, title: String, content: String) {
-        post("/api/pages/\(pageId)/versions", body: ["title": title, "content": content]) { [weak self] (result: Result<DocVersion, Error>) in
-            switch result {
-            case .success(let v):
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    self.versions.append(v)
-                    Self.cap(&self.versions, 200)
-                }
-            case .failure(let error):
-                self?.handleError(error, context: "createVersion")
-            }
-        }
-    }
-
-    func fetchDiff(pageId: String, v1: Int, v2: Int, completion: @escaping (Result<DocDiffResult, Error>) -> Void) {
-        get("/api/pages/\(pageId)/diff?v1=\(v1)&v2=\(v2)") { result in
-            completion(result)
-        }
-    }
+    // ARCH-1 Phase 3 (audit-product-0907 P2-2): fetchVersions/createVersion/fetchDiff 迁入
+    // DocVersionService.swift (DocBridge 留 1 行 stub)。restoreVersion 留此 (协调器: 成功后回填页面)。
 
     func restoreVersion(pageId: String, versionId: String) {
         struct RestoreResp: Decodable { var restored: Bool? }
@@ -515,47 +379,13 @@ class DocBridge: ObservableObject {
     }
 
     // MARK: - Workflows
-
-    func fetchWorkflows() {
-        get("/api/workflows") { [weak self] (result: Result<[DocWorkflow], Error>) in
-            switch result {
-            case .success(let list):
-                DispatchQueue.main.async { self?.workflows = Array(list.suffix(200)) }
-            case .failure(let error):
-                self?.handleError(error, context: "workflows")
-            }
-        }
-    }
-
-    func runWorkflow(id: String, input: [String: Any]? = nil) {
-        post("/api/workflows/\(id)/run", body: input) { [weak self] (result: Result<DocWorkflowRun, Error>) in
-            switch result {
-            case .success:
-                docBridgeLog.info("Workflow \(id) started")
-            case .failure(let error):
-                self?.handleError(error, context: "runWorkflow")
-            }
-        }
-    }
-
-    func fetchWorkflowRuns(id: String, completion: @escaping (Result<[DocWorkflowRun], Error>) -> Void) {
-        get("/api/workflows/\(id)/runs") { result in
-            completion(result)
-        }
-    }
+    // ARCH-1 Phase 3 (audit-product-0907 P2-2): fetchWorkflows/runWorkflow/fetchWorkflowRuns + Workflow CRUD
+    // (createWorkflow/deleteWorkflow/fetchWorkflowDetail/seedWorkflows/fetchPageWorkflowStatus/
+    // fetchPageTransitions/executeTransition) 迁入 DocWorkflowService.swift (DocBridge 留 1 行 stub)。
 
     // MARK: - Templates
-
-    func fetchTemplates() {
-        get("/api/templates") { [weak self] (result: Result<[DocTemplate], Error>) in
-            switch result {
-            case .success(let list):
-                DispatchQueue.main.async { self?.templates = Array(list.suffix(200)) }
-            case .failure(let error):
-                self?.handleError(error, context: "templates")
-            }
-        }
-    }
+    // ARCH-1 Phase 3 (audit-product-0907 P2-2): fetchTemplates 迁入 DocTemplateService.swift (DocBridge
+    //   留 1 行 stub)。instantiateTemplate 留此 (协调器: 成功后写 libraryState.pages, 跨域)。
 
     func instantiateTemplate(id: String, variables: [String: Any]) {
         post("/api/templates/\(id)/instantiate", body: ["variables": variables]) { [weak self] (result: Result<DocPage, Error>) in
@@ -573,29 +403,9 @@ class DocBridge: ObservableObject {
     }
 
     // MARK: - Office
-
-    func checkOfficeStatus() {
-        get("/api/office/status") { [weak self] (result: Result<DocOfficeStatus, Error>) in
-            switch result {
-            case .success(let status):
-                DispatchQueue.main.async { self?.officeStatus = status }
-            case .failure(let error):
-                self?.handleError(error, context: "officeStatus")
-            }
-        }
-    }
-
-    func createOfficeDocument(format: String, name: String) {
-        struct OfficeCreateResp: Decodable { var id: String?; var path: String? }
-        post("/api/office/create", body: ["format": format, "name": name]) { [weak self] (result: Result<OfficeCreateResp, Error>) in
-            switch result {
-            case .success:
-                docBridgeLog.info("Office doc created: \(name).\(format)")
-            case .failure(let error):
-                self?.handleError(error, context: "createOffice")
-            }
-        }
-    }
+    // ARCH-1 Phase 3 (audit-product-0907 P2-2): checkOfficeStatus/createOfficeDocument 迁入
+    //   DocOfficeService.swift (DocBridge 留 1 行 stub)。importOfficeDocument 留此 (协调器: 成功后写
+    //   libraryState.pages, 跨域)。
 
     func importOfficeDocument(filePath: String, bookId: String? = nil) {
         var body: [String: Any] = ["file_path": filePath]
@@ -649,38 +459,9 @@ class DocBridge: ObservableObject {
             var page_id: String?
         }
     }
-
-    func ragEnhancedQuery(query: String, topK: Int = 5, completion: @escaping (Result<RAGResponse, Error>) -> Void) {
-        post("/api/rag/enhanced-query", body: ["query": query, "top_k": topK]) { result in
-            completion(result)
-        }
-    }
-
-    func reindexPage(pageId: String) {
-        struct ReindexResp: Decodable { var reindexed: Bool? }
-        post("/api/rag/reindex/\(pageId)") { [weak self] (result: Result<ReindexResp, Error>) in
-            switch result {
-            case .success:
-                docBridgeLog.info("Page \(pageId) reindexed")
-            case .failure(let error):
-                self?.handleError(error, context: "reindex")
-            }
-        }
-    }
-
-    // MARK: - Links
-
-    func addPageLink(sourceId: String, targetId: String, linkType: String = "reference") {
-        struct LinkResp: Decodable { var id: String? }
-        post("/api/pages/\(sourceId)/links", body: ["target_page_id": targetId, "link_type": linkType]) { [weak self] (result: Result<LinkResp, Error>) in
-            switch result {
-            case .success:
-                docBridgeLog.info("Link added: \(sourceId) -> \(targetId)")
-            case .failure(let error):
-                self?.handleError(error, context: "addLink")
-            }
-        }
-    }
+    // ARCH-1 Phase 4 (audit-product-0907 P2-2): ragEnhancedQuery/reindexPage 迁入 DocRAGService.swift;
+    //   addPageLink 迁入 DocGraphService.swift (页面链接 = 图边)。DocBridge 留 1 行 stub。RAGResponse
+    //   struct 留此 (类型非状态, DocRAGService 引用 DocBridge.RAGResponse)。
 
     // MARK: - Search
 
@@ -726,392 +507,42 @@ class DocBridge: ObservableObject {
     }
 
     // MARK: - Office Extended
-
-    func exportOffice(pageId: String, format: String, completion: @escaping (Result<[String: String], Error>) -> Void) {
-        post("/api/office/export", body: ["page_id": pageId, "format": format], completion: completion)
-    }
-
-    func previewOffice(id: String, completion: @escaping (Result<[String: String], Error>) -> Void) {
-        get("/api/office/preview/\(id)", completion: completion)
-    }
-
-    func mergeOffice(template: String, data: [String: Any], completion: @escaping (Result<[String: String], Error>) -> Void) {
-        var body = data
-        body["template"] = template
-        post("/api/office/merge", body: body, completion: completion)
-    }
-
-    func importOfficeDir(dirPath: String, bookId: String? = nil, completion: @escaping (Result<[DocPage], Error>) -> Void) {
-        var body: [String: Any] = ["dir_path": dirPath]
-        if let bid = bookId { body["book_id"] = bid }
-        post("/api/office/import-dir", body: body, completion: completion)
-    }
-
-    func executeOfficeCommand(file: String, command: String, args: [String: Any]? = nil, completion: @escaping (Result<[String: String], Error>) -> Void) {
-        var body: [String: Any] = ["file": file, "command": command]
-        if let args = args { body["args"] = args }
-        post("/api/office/command", body: body, completion: completion)
-    }
+    // ARCH-1 Phase 3 (audit-product-0907 P2-2): exportOffice/previewOffice/mergeOffice/importOfficeDir/
+    //   executeOfficeCommand 迁入 DocOfficeService.swift (DocBridge 留 1 行 stub)。
 
     // MARK: - Template CRUD
-
-    func createTemplate(name: String, type: String? = nil, content: String? = nil, category: String? = nil, completion: @escaping (Result<DocTemplate, Error>) -> Void) {
-        var body: [String: Any] = ["name": name]
-        if let t = type { body["type"] = t }
-        if let c = content { body["content"] = c }
-        if let cat = category { body["category"] = cat }
-        post("/api/templates", body: body) { [weak self] (result: Result<DocTemplate, Error>) in
-            switch result {
-            case .success(let tmpl):
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    self.templates.append(tmpl)
-                    Self.cap(&self.templates, 200)
-                }
-                completion(.success(tmpl))
-            case .failure(let error):
-                self?.handleError(error, context: "createTemplate")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func updateTemplate(id: String, name: String? = nil, content: String? = nil, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
-        var body: [String: Any] = [:]
-        if let n = name { body["name"] = n }
-        if let c = content { body["content"] = c }
-        put("/api/templates/\(id)", body: body, completion: completion)
-    }
-
-    func deleteTemplate(id: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
-        delete("/api/templates/\(id)") { [weak self] (result: Result<[String: Bool], Error>) in
-            switch result {
-            case .success:
-                DispatchQueue.main.async { self?.templates.removeAll { $0.id == id } }
-                completion(.success(["deleted": true]))
-            case .failure(let error):
-                self?.handleError(error, context: "deleteTemplate")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func fetchTemplateVariables(id: String, completion: @escaping (Result<[String: [String]], Error>) -> Void) {
-        get("/api/templates/\(id)/variables", completion: completion)
-    }
+    // ARCH-1 Phase 3 (audit-product-0907 P2-2): createTemplate/updateTemplate/deleteTemplate/
+    //   fetchTemplateVariables 迁入 DocTemplateService.swift (DocBridge 留 1 行 stub)。
 
     // MARK: - Workflow CRUD
-
-    func createWorkflow(name: String, description: String? = nil, yamlDef: String? = nil, completion: @escaping (Result<DocWorkflow, Error>) -> Void) {
-        var body: [String: Any] = ["name": name]
-        if let d = description { body["description"] = d }
-        if let y = yamlDef { body["yaml_def"] = y }
-        post("/api/workflows", body: body) { [weak self] (result: Result<DocWorkflow, Error>) in
-            switch result {
-            case .success(let wf):
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    self.workflows.append(wf)
-                    Self.cap(&self.workflows, 200)
-                }
-                completion(.success(wf))
-            case .failure(let error):
-                self?.handleError(error, context: "createWorkflow")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func deleteWorkflow(id: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
-        delete("/api/workflows/\(id)") { [weak self] (result: Result<[String: Bool], Error>) in
-            switch result {
-            case .success:
-                DispatchQueue.main.async { self?.workflows.removeAll { $0.id == id } }
-                completion(.success(["deleted": true]))
-            case .failure(let error):
-                self?.handleError(error, context: "deleteWorkflow")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func fetchWorkflowDetail(id: String, completion: @escaping (Result<DocWorkflow, Error>) -> Void) {
-        get("/api/workflows/\(id)", completion: completion)
-    }
-
-    func seedWorkflows(completion: @escaping (Result<[DocWorkflow], Error>) -> Void) {
-        post("/api/workflows/seed", body: nil) { [weak self] (result: Result<[DocWorkflow], Error>) in
-            switch result {
-            case .success(let list):
-                DispatchQueue.main.async { self?.workflows = Array(list.suffix(200)) }
-                completion(.success(list))
-            case .failure(let error):
-                self?.handleError(error, context: "seedWorkflows")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func fetchPageWorkflowStatus(pageId: String, completion: @escaping (Result<DocWorkflowState, Error>) -> Void) {
-        get("/api/pages/\(pageId)/workflow-status", completion: completion)
-    }
-
-    func fetchPageTransitions(pageId: String, completion: @escaping (Result<[DocWorkflowTransition], Error>) -> Void) {
-        get("/api/pages/\(pageId)/transitions", completion: completion)
-    }
-
-    func executeTransition(pageId: String, transition: String, completion: @escaping (Result<DocWorkflowState, Error>) -> Void) {
-        post("/api/pages/\(pageId)/transitions", body: ["transition": transition], completion: completion)
-    }
+    // ARCH-1 Phase 3 (audit-product-0907 P2-2): Workflow CRUD (createWorkflow/deleteWorkflow/
+    //   fetchWorkflowDetail/seedWorkflows/fetchPageWorkflowStatus/fetchPageTransitions/executeTransition)
+    //   迁入 DocWorkflowService.swift (DocBridge 留 1 行 stub)。
 
     // MARK: - Files
-
-    func fetchFiles(pageId: String, completion: @escaping (Result<[DocFileUpload], Error>) -> Void) {
-        get("/api/pages/\(pageId)/files") { [weak self] (result: Result<[DocFileUpload], Error>) in
-            switch result {
-            case .success(let list):
-                DispatchQueue.main.async { self?.files = Array(list.suffix(200)) }
-                completion(.success(list))
-            case .failure(let error):
-                self?.handleError(error, context: "fetchFiles")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func uploadFile(pageId: String, name: String, mime: String, content: String, completion: @escaping (Result<DocFileUpload, Error>) -> Void) {
-        post("/api/pages/\(pageId)/files", body: ["name": name, "mime": mime, "content": content]) { [weak self] (result: Result<DocFileUpload, Error>) in
-            switch result {
-            case .success(let file):
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    self.files.append(file)
-                    Self.cap(&self.files, 500)
-                }
-                completion(.success(file))
-            case .failure(let error):
-                self?.handleError(error, context: "uploadFile")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func deleteFile(id: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
-        delete("/api/files/\(id)") { [weak self] (result: Result<[String: Bool], Error>) in
-            switch result {
-            case .success:
-                DispatchQueue.main.async { self?.files.removeAll { $0.id == id } }
-                completion(.success(["deleted": true]))
-            case .failure(let error):
-                self?.handleError(error, context: "deleteFile")
-                completion(.failure(error))
-            }
-        }
-    }
+    // ARCH-1 Phase 5 (audit-product-0907 P2-2): fetchFiles/uploadFile(pageId)/deleteFile 迁入
+    //   DocSocialService.swift (DocBridge 留 1 行 stub)。@Published files 现属 DocSocialState。
 
     // MARK: - Comments
-
-    func fetchComments(pageId: String, completion: @escaping (Result<[DocComment], Error>) -> Void) {
-        get("/api/pages/\(pageId)/comments") { [weak self] (result: Result<[DocComment], Error>) in
-            switch result {
-            case .success(let list):
-                DispatchQueue.main.async { self?.comments = Array(list.suffix(200)) }
-                completion(.success(list))
-            case .failure(let error):
-                self?.handleError(error, context: "fetchComments")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func createComment(pageId: String, content: String, parentId: String? = nil, completion: @escaping (Result<DocComment, Error>) -> Void) {
-        var body: [String: Any] = ["content": content]
-        if let pid = parentId { body["parent_id"] = pid }
-        post("/api/pages/\(pageId)/comments", body: body) { [weak self] (result: Result<DocComment, Error>) in
-            switch result {
-            case .success(let comment):
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    self.comments.append(comment)
-                    Self.cap(&self.comments, 500)
-                }
-                completion(.success(comment))
-            case .failure(let error):
-                self?.handleError(error, context: "createComment")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func deleteComment(id: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
-        delete("/api/comments/\(id)") { [weak self] (result: Result<[String: Bool], Error>) in
-            switch result {
-            case .success:
-                DispatchQueue.main.async { self?.comments.removeAll { $0.id == id } }
-                completion(.success(["deleted": true]))
-            case .failure(let error):
-                self?.handleError(error, context: "deleteComment")
-                completion(.failure(error))
-            }
-        }
-    }
+    // ARCH-1 Phase 5 (audit-product-0907 P2-2): fetchComments/createComment/deleteComment 迁入
+    //   DocSocialService.swift (DocBridge 留 1 行 stub)。@Published comments 现属 DocSocialState。
 
     // MARK: - Favorites
-
-    func fetchFavorites(completion: @escaping (Result<[DocFavorite], Error>) -> Void) {
-        get("/api/favorites") { [weak self] (result: Result<[DocFavorite], Error>) in
-            switch result {
-            case .success(let list):
-                DispatchQueue.main.async { self?.favorites = Array(list.suffix(200)) }
-                completion(.success(list))
-            case .failure(let error):
-                self?.handleError(error, context: "fetchFavorites")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func addFavorite(pageId: String, completion: @escaping (Result<DocFavorite, Error>) -> Void) {
-        post("/api/favorites", body: ["page_id": pageId]) { [weak self] (result: Result<DocFavorite, Error>) in
-            switch result {
-            case .success(let fav):
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    self.favorites.append(fav)
-                    Self.cap(&self.favorites, 200)
-                }
-                completion(.success(fav))
-            case .failure(let error):
-                self?.handleError(error, context: "addFavorite")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func removeFavorite(pageId: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
-        delete("/api/favorites/\(pageId)") { [weak self] (result: Result<[String: Bool], Error>) in
-            switch result {
-            case .success:
-                DispatchQueue.main.async { self?.favorites.removeAll { $0.page_id == pageId } }
-                completion(.success(["deleted": true]))
-            case .failure(let error):
-                self?.handleError(error, context: "removeFavorite")
-                completion(.failure(error))
-            }
-        }
-    }
+    // ARCH-1 Phase 5 (audit-product-0907 P2-2): fetchFavorites/addFavorite/removeFavorite 迁入
+    //   DocSocialService.swift (DocBridge 留 1 行 stub)。@Published favorites 现属 DocSocialState。
 
     // MARK: - Activity
-
-    func fetchActivity(limit: Int = 50, completion: @escaping (Result<[DocActivity], Error>) -> Void) {
-        get("/api/activity?limit=\(limit)") { [weak self] (result: Result<[DocActivity], Error>) in
-            switch result {
-            case .success(let list):
-                DispatchQueue.main.async { self?.activities = Array(list.suffix(500)) }
-                completion(.success(list))
-            case .failure(let error):
-                self?.handleError(error, context: "fetchActivity")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func recordActivity(event: String, data: [String: Any]? = nil, completion: @escaping (Result<DocActivity, Error>) -> Void) {
-        var body: [String: Any] = ["event": event]
-        if let d = data { body["data"] = d }
-        post("/api/activity", body: body, completion: completion)
-    }
+    // ARCH-1 Phase 5 (audit-product-0907 P2-2): fetchActivity/recordActivity 迁入 DocSocialService.swift
+    //   (DocBridge 留 1 行 stub)。@Published activities 现属 DocSocialState。
 
     // MARK: - RAG Extended
-
-    func reindexAll(completion: @escaping (Result<[String: Bool], Error>) -> Void) {
-        post("/api/rag/reindex-all", body: nil, completion: completion)
-    }
-
-    func fetchChunks(pageId: String, completion: @escaping (Result<[DocRAGChunk], Error>) -> Void) {
-        get("/api/rag/chunks/\(pageId)") { [weak self] (result: Result<[DocRAGChunk], Error>) in
-            switch result {
-            case .success(let list):
-                DispatchQueue.main.async { self?.chunks = Array(list.suffix(500)) }
-                completion(.success(list))
-            case .failure(let error):
-                self?.handleError(error, context: "fetchChunks")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func graphSearch(query: String, completion: @escaping (Result<DocGraph, Error>) -> Void) {
-        post("/api/rag/graph/search", body: ["query": query], completion: completion)
-    }
-
-    func fetchGraphNode(id: String, completion: @escaping (Result<DocGraphNode, Error>) -> Void) {
-        get("/api/graph/\(id)", completion: completion)
-    }
+    // ARCH-1 Phase 4 (audit-product-0907 P2-2): reindexAll/fetchChunks/graphSearch 迁入 DocRAGService.swift;
+    //   fetchGraphNode 迁入 DocGraphService.swift。DocBridge 留 1 行 stub。
 
     // MARK: - Auth
 
-    func authSetup(username: String, password: String, completion: @escaping (Result<DocAuthResponse, Error>) -> Void) {
-        docBridgeLog.info("authSetup: username=\(username)")
-        post("/api/auth/setup", body: ["email": username, "password": password]) { [weak self] (result: Result<DocAuthResponse, Error>) in
-            switch result {
-            case .success(let resp):
-                if let token = resp.token {
-                    self?.authToken = token
-                    DispatchQueue.main.async { self?.isAuthenticated = true; self?.authError = nil }
-                    docBridgeLog.info("authSetup success, token saved")
-                }
-                completion(.success(resp))
-            case .failure(let error):
-                DispatchQueue.main.async { self?.authError = BridgeError.sanitize(error) }
-                docBridgeLog.error("authSetup failed: \(error.localizedDescription)")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func authLogin(username: String, password: String, completion: @escaping (Result<DocAuthResponse, Error>) -> Void) {
-        docBridgeLog.info("authLogin: username=\(username)")
-        post("/api/auth/login", body: ["email": username, "password": password]) { [weak self] (result: Result<DocAuthResponse, Error>) in
-            switch result {
-            case .success(let resp):
-                if let token = resp.token {
-                    self?.authToken = token
-                    DispatchQueue.main.async { self?.isAuthenticated = true; self?.authError = nil }
-                    docBridgeLog.info("authLogin success, token saved")
-                }
-                completion(.success(resp))
-            case .failure(let error):
-                DispatchQueue.main.async { self?.authError = BridgeError.sanitize(error) }
-                docBridgeLog.error("authLogin failed: \(error.localizedDescription)")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func authRefresh(completion: @escaping (Result<DocAuthResponse, Error>) -> Void) {
-        docBridgeLog.info("authRefresh")
-        post("/api/auth/refresh", body: nil) { [weak self] (result: Result<DocAuthResponse, Error>) in
-            switch result {
-            case .success(let resp):
-                if let token = resp.token {
-                    self?.authToken = token
-                    DispatchQueue.main.async { self?.isAuthenticated = true }
-                    docBridgeLog.info("authRefresh success")
-                }
-                completion(.success(resp))
-            case .failure(let error):
-                docBridgeLog.error("authRefresh failed: \(error.localizedDescription)")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func authLogout() {
-        docBridgeLog.info("authLogout")
-        authToken = nil
-        DispatchQueue.main.async { self.isAuthenticated = false }
-    }
+    // ARCH-1 Phase 2: authSetup/authLogin/authRefresh/authLogout 已迁 DocAuthService.swift (extension
+    //   DocAuthState + extension DocBridge stub)。restoreAuth/verifyToken 留此 (协调器, 编排 + 跨 /api/workspaces)。
 
     func restoreAuth() {
         if authToken != nil {
@@ -1147,118 +578,12 @@ class DocBridge: ObservableObject {
 
     // MARK: - Workspace CRUD
 
-    func fetchWorkspaces(completion: @escaping (Result<[DocWorkspace], Error>) -> Void) {
-        docBridgeLog.info("fetchWorkspaces")
-        get("/api/workspaces") { [weak self] (result: Result<[DocWorkspace], Error>) in
-            switch result {
-            case .success(let list):
-                DispatchQueue.main.async { self?.workspaces = Array(list.suffix(200)) }
-                completion(.success(list))
-            case .failure(let error):
-                self?.handleError(error, context: "fetchWorkspaces")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func createWorkspace(name: String, description: String? = nil, completion: @escaping (Result<DocWorkspace, Error>) -> Void) {
-        docBridgeLog.info("createWorkspace: name=\(name)")
-        var body: [String: Any] = ["name": name]
-        if let desc = description { body["description"] = desc }
-        post("/api/workspaces", body: body) { [weak self] (result: Result<DocWorkspace, Error>) in
-            switch result {
-            case .success(let ws):
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    self.workspaces.append(ws)
-                    Self.cap(&self.workspaces, 50)
-                    self.currentWorkspace = ws
-                }
-                docBridgeLog.info("createWorkspace success: \(ws.id)")
-                completion(.success(ws))
-            case .failure(let error):
-                self?.handleError(error, context: "createWorkspace")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func updateWorkspace(id: String, name: String? = nil, description: String? = nil, completion: @escaping (Result<DocWorkspace, Error>) -> Void) {
-        docBridgeLog.info("updateWorkspace: id=\(id)")
-        var body: [String: Any] = [:]
-        if let n = name { body["name"] = n }
-        if let d = description { body["description"] = d }
-        put("/api/workspaces/\(id)", body: body) { [weak self] (result: Result<DocWorkspace, Error>) in
-            switch result {
-            case .success(let ws):
-                DispatchQueue.main.async {
-                    self?.workspaces = self?.workspaces.map { $0.id == ws.id ? ws : $0 } ?? []
-                    if self?.currentWorkspace?.id == ws.id { self?.currentWorkspace = ws }
-                }
-                completion(.success(ws))
-            case .failure(let error):
-                self?.handleError(error, context: "updateWorkspace")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func deleteWorkspace(id: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
-        docBridgeLog.info("deleteWorkspace: id=\(id)")
-        delete("/api/workspaces/\(id)") { [weak self] (result: Result<[String: Bool], Error>) in
-            switch result {
-            case .success(let resp):
-                DispatchQueue.main.async {
-                    self?.workspaces = self?.workspaces.filter { $0.id != id } ?? []
-                    if self?.currentWorkspace?.id == id { self?.currentWorkspace = nil }
-                }
-                completion(.success(resp))
-            case .failure(let error):
-                self?.handleError(error, context: "deleteWorkspace")
-                completion(.failure(error))
-            }
-        }
-    }
+    // ARCH-1 Phase 2: fetchWorkspaces/createWorkspace/updateWorkspace/deleteWorkspace 已迁
+    //   DocWorkspaceService.swift (extension DocWorkspaceState + extension DocBridge stub)。
 
     // MARK: - Users
-
-    func fetchUsers(completion: @escaping (Result<[DocUser], Error>) -> Void) {
-        docBridgeLog.info("fetchUsers")
-        get("/api/users") { [weak self] (result: Result<[DocUser], Error>) in
-            switch result {
-            case .success(let list): DispatchQueue.main.async { self?.users = Array(list.suffix(200)) }; completion(.success(list))
-            case .failure(let error): self?.handleError(error, context: "fetchUsers"); completion(.failure(error))
-            }
-        }
-    }
-
-    func updateUser(id: String, username: String? = nil, email: String? = nil, role: String? = nil, completion: @escaping (Result<DocUser, Error>) -> Void) {
-        docBridgeLog.info("updateUser: id=\(id)")
-        var body: [String: Any] = [:]
-        if let u = username { body["username"] = u }
-        if let e = email { body["email"] = e }
-        if let r = role { body["role"] = r }
-        put("/api/users/\(id)", body: body) { [weak self] (result: Result<DocUser, Error>) in
-            switch result {
-            case .success(let user):
-                DispatchQueue.main.async { self?.users = self?.users.map { $0.id == user.id ? user : $0 } ?? [] }
-                completion(.success(user))
-            case .failure(let error): self?.handleError(error, context: "updateUser"); completion(.failure(error))
-            }
-        }
-    }
-
-    func deleteUser(id: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
-        docBridgeLog.info("deleteUser: id=\(id)")
-        delete("/api/users/\(id)") { [weak self] (result: Result<[String: Bool], Error>) in
-            switch result {
-            case .success(let resp):
-                DispatchQueue.main.async { self?.users = self?.users.filter { $0.id != id } ?? [] }
-                completion(.success(resp))
-            case .failure(let error): self?.handleError(error, context: "deleteUser"); completion(.failure(error))
-            }
-        }
-    }
+    // ARCH-1 Phase 5 (audit-product-0907 P2-2): fetchUsers/updateUser/deleteUser 迁入 DocAdminService.swift
+    //   (DocBridge 留 1 行 stub)。@Published users 现属 DocAdminState。
 
     // MARK: - AI Raw
 
@@ -1273,385 +598,49 @@ class DocBridge: ObservableObject {
     }
 
     // MARK: - Branding
-
-    func fetchBranding(completion: @escaping (Result<DocBranding, Error>) -> Void) {
-        docBridgeLog.info("fetchBranding")
-        get("/api/branding") { [weak self] (result: Result<DocBranding, Error>) in
-            switch result {
-            case .success(let b): DispatchQueue.main.async { self?.branding = b }; completion(.success(b))
-            case .failure(let error): self?.handleError(error, context: "fetchBranding"); completion(.failure(error))
-            }
-        }
-    }
-
-    func updateBranding(branding: DocBranding, completion: @escaping (Result<DocBranding, Error>) -> Void) {
-        docBridgeLog.info("updateBranding")
-        let body: [String: Any?] = [
-            "logo_url": branding.logo_url,
-            "primary_color": branding.primary_color,
-            "secondary_color": branding.secondary_color,
-            "font": branding.font,
-            "custom_css": branding.custom_css,
-        ]
-        put("/api/branding", body: body.compactMapValues { $0 }) { [weak self] (result: Result<DocBranding, Error>) in
-            switch result {
-            case .success(let b): DispatchQueue.main.async { self?.branding = b }; completion(.success(b))
-            case .failure(let error): self?.handleError(error, context: "updateBranding"); completion(.failure(error))
-            }
-        }
-    }
+    // ARCH-1 Phase 5 (audit-product-0907 P2-2): fetchBranding/updateBranding 迁入 DocAdminService.swift
+    //   (DocBridge 留 1 行 stub)。@Published branding 现属 DocAdminState。
 
     // MARK: - Theme CRUD
-
-    func fetchThemes(completion: @escaping (Result<[DocTheme], Error>) -> Void) {
-        docBridgeLog.info("fetchThemes")
-        get("/api/themes") { [weak self] (result: Result<[DocTheme], Error>) in
-            switch result {
-            case .success(let list): DispatchQueue.main.async { self?.themes = Array(list.suffix(200)) }; completion(.success(list))
-            case .failure(let error): self?.handleError(error, context: "fetchThemes"); completion(.failure(error))
-            }
-        }
-    }
-
-    func createTheme(name: String, css: String? = nil, isDark: Bool? = nil, completion: @escaping (Result<DocTheme, Error>) -> Void) {
-        docBridgeLog.info("createTheme: name=\(name)")
-        var body: [String: Any] = ["name": name]
-        if let c = css { body["css"] = c }
-        if let d = isDark { body["is_dark"] = d }
-        post("/api/themes", body: body) { [weak self] (result: Result<DocTheme, Error>) in
-            switch result {
-            case .success(let t): DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
-                self.themes.append(t)
-                Self.cap(&self.themes, 100)
-            }; completion(.success(t))
-            case .failure(let error): self?.handleError(error, context: "createTheme"); completion(.failure(error))
-            }
-        }
-    }
-
-    func deleteTheme(id: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
-        docBridgeLog.info("deleteTheme: id=\(id)")
-        delete("/api/themes/\(id)") { [weak self] (result: Result<[String: Bool], Error>) in
-            switch result {
-            case .success(let resp):
-                DispatchQueue.main.async { self?.themes = self?.themes.filter { $0.id != id } ?? [] }
-                completion(.success(resp))
-            case .failure(let error): self?.handleError(error, context: "deleteTheme"); completion(.failure(error))
-            }
-        }
-    }
+    // ARCH-1 Phase 5 (audit-product-0907 P2-2): fetchThemes/createTheme/deleteTheme 迁入 DocAdminService.swift
+    //   (DocBridge 留 1 行 stub)。@Published themes 现属 DocAdminState。
 
     // MARK: - Vocabulary CRUD
-
-    func fetchVocabulary(completion: @escaping (Result<[DocVocabulary], Error>) -> Void) {
-        docBridgeLog.info("fetchVocabulary")
-        get("/api/vocabulary") { [weak self] (result: Result<[DocVocabulary], Error>) in
-            switch result {
-            case .success(let list): DispatchQueue.main.async { self?.vocabulary = Array(list.suffix(200)) }; completion(.success(list))
-            case .failure(let error): self?.handleError(error, context: "fetchVocabulary"); completion(.failure(error))
-            }
-        }
-    }
-
-    func createVocabulary(term: String, definition: String? = nil, category: String? = nil, completion: @escaping (Result<DocVocabulary, Error>) -> Void) {
-        docBridgeLog.info("createVocabulary: term=\(term)")
-        var body: [String: Any] = ["term": term]
-        if let d = definition { body["definition"] = d }
-        if let c = category { body["category"] = c }
-        post("/api/vocabulary", body: body) { [weak self] (result: Result<DocVocabulary, Error>) in
-            switch result {
-            case .success(let v): DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
-                self.vocabulary.append(v)
-                Self.cap(&self.vocabulary, 500)
-            }; completion(.success(v))
-            case .failure(let error): self?.handleError(error, context: "createVocabulary"); completion(.failure(error))
-            }
-        }
-    }
-
-    func deleteVocabulary(id: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
-        docBridgeLog.info("deleteVocabulary: id=\(id)")
-        delete("/api/vocabulary/\(id)") { [weak self] (result: Result<[String: Bool], Error>) in
-            switch result {
-            case .success(let resp):
-                DispatchQueue.main.async { self?.vocabulary = self?.vocabulary.filter { $0.id != id } ?? [] }
-                completion(.success(resp))
-            case .failure(let error): self?.handleError(error, context: "deleteVocabulary"); completion(.failure(error))
-            }
-        }
-    }
+    // ARCH-1 Phase 5 (audit-product-0907 P2-2): fetchVocabulary/createVocabulary/deleteVocabulary 迁入
+    //   DocAdminService.swift (DocBridge 留 1 行 stub)。@Published vocabulary 现属 DocAdminState。
 
     // MARK: - Webhooks CRUD
-
-    func fetchWebhooks(completion: @escaping (Result<[DocWebhook], Error>) -> Void) {
-        docBridgeLog.info("fetchWebhooks")
-        get("/api/webhooks") { [weak self] (result: Result<[DocWebhook], Error>) in
-            switch result {
-            case .success(let list): DispatchQueue.main.async { self?.webhooks = Array(list.suffix(200)) }; completion(.success(list))
-            case .failure(let error): self?.handleError(error, context: "fetchWebhooks"); completion(.failure(error))
-            }
-        }
-    }
-
-    func createWebhook(url: String, events: [String]? = nil, secret: String? = nil, completion: @escaping (Result<DocWebhook, Error>) -> Void) {
-        docBridgeLog.info("createWebhook: url=\(url)")
-        var body: [String: Any] = ["url": url]
-        if let e = events { body["events"] = e }
-        if let s = secret { body["secret"] = s }
-        post("/api/webhooks", body: body) { [weak self] (result: Result<DocWebhook, Error>) in
-            switch result {
-            case .success(let w): DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
-                self.webhooks.append(w)
-                Self.cap(&self.webhooks, 100)
-            }; completion(.success(w))
-            case .failure(let error): self?.handleError(error, context: "createWebhook"); completion(.failure(error))
-            }
-        }
-    }
-
-    func deleteWebhook(id: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
-        docBridgeLog.info("deleteWebhook: id=\(id)")
-        delete("/api/webhooks/\(id)") { [weak self] (result: Result<[String: Bool], Error>) in
-            switch result {
-            case .success(let resp):
-                DispatchQueue.main.async { self?.webhooks = self?.webhooks.filter { $0.id != id } ?? [] }
-                completion(.success(resp))
-            case .failure(let error): self?.handleError(error, context: "deleteWebhook"); completion(.failure(error))
-            }
-        }
-    }
-
-    func testWebhook(id: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
-        docBridgeLog.info("testWebhook: id=\(id)")
-        post("/api/webhooks/\(id)/test", body: nil, completion: completion)
-    }
+    // ARCH-1 Phase 5 (audit-product-0907 P2-2): fetchWebhooks/createWebhook/deleteWebhook/testWebhook 迁入
+    //   DocAdminService.swift (DocBridge 留 1 行 stub)。@Published webhooks 现属 DocAdminState。
 
     // MARK: - Metadata
-
-    func fetchMetadata(entity: String, entityId: String, completion: @escaping (Result<[DocMetadataEntry], Error>) -> Void) {
-        docBridgeLog.info("fetchMetadata: \(entity)/\(entityId)")
-        get("/api/\(entity)/\(entityId)/metadata", completion: completion)
-    }
-
-    func setMetadata(entity: String, entityId: String, key: String, value: String, completion: @escaping (Result<DocMetadataEntry, Error>) -> Void) {
-        docBridgeLog.info("setMetadata: \(entity)/\(entityId) key=\(key)")
-        put("/api/\(entity)/\(entityId)/metadata", body: ["key": key, "value": value], completion: completion)
-    }
-
-    func deleteMetadata(entity: String, entityId: String, key: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
-        docBridgeLog.info("deleteMetadata: \(entity)/\(entityId) key=\(key)")
-        delete("/api/\(entity)/\(entityId)/metadata/\(key)", completion: completion)
-    }
+    // ARCH-1 Phase 5 (audit-product-0907 P2-2): fetchMetadata/setMetadata/deleteMetadata 迁入
+    //   DocAdminService.swift (DocBridge 留 1 行 stub)。无 @Published (metadata 临时态, stateless)。
 
     // MARK: - System
-
-    func fetchSystemInfo(completion: @escaping (Result<DocSystemInfo, Error>) -> Void) {
-        docBridgeLog.info("fetchSystemInfo")
-        get("/api/system/info") { [weak self] (result: Result<DocSystemInfo, Error>) in
-            switch result {
-            case .success(let info): DispatchQueue.main.async { self?.systemInfo = info }; completion(.success(info))
-            case .failure(let error): self?.handleError(error, context: "fetchSystemInfo"); completion(.failure(error))
-            }
-        }
-    }
-
-    func fetchSystemConfig(completion: @escaping (Result<[DocSystemConfig], Error>) -> Void) {
-        docBridgeLog.info("fetchSystemConfig")
-        get("/api/system/config") { [weak self] (result: Result<[DocSystemConfig], Error>) in
-            switch result {
-            case .success(let cfg):
-                // F-perf-3: systemConfig LRU cap 200 (配置项不应无界增长)。
-                let capped = Array(cfg.prefix(200))
-                DispatchQueue.main.async { self?.systemConfig = capped }; completion(.success(capped))
-            case .failure(let error): self?.handleError(error, context: "fetchSystemConfig"); completion(.failure(error))
-            }
-        }
-    }
-
-    func updateSystemConfig(key: String, value: String, completion: @escaping (Result<DocSystemConfig, Error>) -> Void) {
-        docBridgeLog.info("updateSystemConfig: key=\(key)")
-        put("/api/system/config", body: ["key": key, "value": value], completion: completion)
-    }
+    // ARCH-1 Phase 5 (audit-product-0907 P2-2): fetchSystemInfo/fetchSystemConfig/updateSystemConfig 迁入
+    //   DocAdminService.swift (DocBridge 留 1 行 stub)。@Published systemInfo/systemConfig 现属 DocAdminState。
 
     // MARK: - File Upload
-
-    func uploadFile(fileData: Data, fileName: String, mimeType: String, completion: @escaping (Result<DocFileUpload, Error>) -> Void) {
-        docBridgeLog.info("uploadFile: name=\(fileName)")
-        guard let url = URL(string: "\(baseURL)/api/files/upload") else {
-            completion(.failure(NSError(domain: "DocBridge", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))
-            return
-        }
-        let boundary = UUID().uuidString
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-        if let token = authToken { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
-        IdentityService.applyIdentityHeaders(to: &request)
-        var body = Data()
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
-        body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
-        body.append(fileData)
-        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
-        request.httpBody = body
-        session.dataTask(with: request) { data, response, error in
-            if let error = error { completion(.failure(error)); return }
-            // ERR-2 (审计product-0905 P2): 校验 HTTP status, 4xx/5xx 抛语义化错误 (非 2xx 响应体误当 DocFileUpload 解码失败)。
-            if let statusErr = Self.httpStatusError(response, data) { completion(.failure(statusErr)); return }
-            guard let data = data else {
-                completion(.failure(NSError(domain: "DocBridge", code: -2, userInfo: [NSLocalizedDescriptionKey: "No data"])))
-                return
-            }
-            do {
-                let decoded = try JSONDecoder().decode(DocFileUpload.self, from: data)
-                completion(.success(decoded))
-            } catch { completion(.failure(error)) }
-        }.resume()
-    }
+    // ARCH-1 Phase 5 (audit-product-0907 P2-2): uploadFile(fileData multipart) 迁入 DocSocialService.swift
+    //   (DocBridge 留 1 行 stub)。无 @Published 写 (仅返 DocFileUpload)。reach-through: baseURL/session/
+    //   authToken + IdentityService + httpStatusError。ERR-2 语义化错误保留。
 
     // MARK: - Export
-
-    func exportBook(bookId: String, format: String, completion: @escaping (Result<DocExportJob, Error>) -> Void) {
-        docBridgeLog.info("exportBook: bookId=\(bookId) format=\(format)")
-        post("/api/export/\(format)", body: ["book_id": bookId]) { [weak self] (result: Result<DocExportJob, Error>) in
-            switch result {
-            case .success(let job): DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
-                self.exportJobs.append(job)
-                Self.cap(&self.exportJobs, 100)
-            }; completion(.success(job))
-            case .failure(let error): self?.handleError(error, context: "exportBook"); completion(.failure(error))
-            }
-        }
-    }
-
-    func fetchExportStatus(jobId: String, completion: @escaping (Result<DocExportJob, Error>) -> Void) {
-        docBridgeLog.info("fetchExportStatus: jobId=\(jobId)")
-        get("/api/export/\(jobId)/status", completion: completion)
-    }
+    // ARCH-1 Phase 5 (audit-product-0907 P2-2): exportBook/fetchExportStatus 迁入 DocAdminService.swift
+    //   (DocBridge 留 1 行 stub)。@Published exportJobs 现属 DocAdminState。
 
     // MARK: - RAG Basic
-
-    func buildRAGIndex(completion: @escaping (Result<[String: Bool], Error>) -> Void) {
-        docBridgeLog.info("buildRAGIndex")
-        post("/api/rag/index", body: nil, completion: completion)
-    }
-
-    func fetchRAGStatus(completion: @escaping (Result<[String: String], Error>) -> Void) {
-        docBridgeLog.info("fetchRAGStatus")
-        get("/api/rag/status", completion: completion)
-    }
-
-    func clearRAGIndex(completion: @escaping (Result<[String: Bool], Error>) -> Void) {
-        docBridgeLog.info("clearRAGIndex")
-        delete("/api/rag/index", completion: completion)
-    }
-
-    func embedRAGContent(content: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
-        docBridgeLog.info("embedRAGContent")
-        post("/api/rag/embed", body: ["content": content], completion: completion)
-    }
-
-    // MARK: - Graph Search
-
-    func graphSemanticSearch(query: String, completion: @escaping (Result<DocGraph, Error>) -> Void) {
-        docBridgeLog.info("graphSemanticSearch: query=\(query.prefix(50))")
-        post("/api/graph/search", body: ["query": query], completion: completion)
-    }
-
-    func graphTraverse(startId: String, direction: String = "both", maxDepth: Int = 3, completion: @escaping (Result<DocGraph, Error>) -> Void) {
-        docBridgeLog.info("graphTraverse: start=\(startId) depth=\(maxDepth)")
-        post("/api/graph/traverse", body: ["start_id": startId, "direction": direction, "max_depth": maxDepth], completion: completion)
-    }
-
-    func graphCluster(algorithm: String = "louvain", completion: @escaping (Result<[String: [[String]]], Error>) -> Void) {
-        docBridgeLog.info("graphCluster: algorithm=\(algorithm)")
-        post("/api/graph/cluster", body: ["algorithm": algorithm], completion: completion)
-    }
+    // ARCH-1 Phase 4 (audit-product-0907 P2-2): buildRAGIndex/fetchRAGStatus/clearRAGIndex/embedRAGContent
+    //   迁入 DocRAGService.swift; graphSemanticSearch/graphTraverse/graphCluster 迁入 DocGraphService.swift。
+    //   DocBridge 留 1 行 stub。
 
     // MARK: - Notifications
-
-    func fetchNotifications(completion: @escaping (Result<[DocNotification], Error>) -> Void) {
-        docBridgeLog.info("fetchNotifications")
-        get("/api/notifications") { [weak self] (result: Result<[DocNotification], Error>) in
-            switch result {
-            case .success(let list): DispatchQueue.main.async { self?.notifications = Array(list.suffix(500)) }; completion(.success(list))
-            case .failure(let error): self?.handleError(error, context: "fetchNotifications"); completion(.failure(error))
-            }
-        }
-    }
-
-    func markNotificationRead(id: String, completion: @escaping (Result<DocNotification, Error>) -> Void) {
-        docBridgeLog.info("markNotificationRead: id=\(id)")
-        put("/api/notifications/\(id)/read", body: [:], completion: completion)
-    }
-
-    func markAllNotificationsRead(completion: @escaping (Result<[String: Bool], Error>) -> Void) {
-        docBridgeLog.info("markAllNotificationsRead")
-        put("/api/notifications/read-all", body: [:], completion: completion)
-    }
+    // ARCH-1 Phase 5 (audit-product-0907 P2-2): fetchNotifications/markNotificationRead/markAllNotificationsRead
+    //   迁入 DocAdminService.swift (DocBridge 留 1 行 stub)。@Published notifications 现属 DocAdminState。
 
     // MARK: - Collaboration (WebSocket — pending upstream #22)
-
-    @Published var collabConnected: Bool = false
-    @Published var collabUsers: [String] = []
-    private var collabTask: URLSessionWebSocketTask?
-
-    func connectCollab(pageId: String) {
-        docBridgeLog.info("connectCollab: pageId=\(pageId)")
-        guard let url = URL(string: baseURL.replacingOccurrences(of: "http", with: "ws") + "/collaboration?page=\(pageId)") else {
-            docBridgeLog.error("connectCollab: invalid WS URL")
-            return
-        }
-        var request = URLRequest(url: url)
-        if let token = authToken { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
-        IdentityService.applyIdentityHeaders(to: &request)
-        collabTask = session.webSocketTask(with: request)
-        collabTask?.resume()
-        DispatchQueue.main.async { self.collabConnected = true }
-        docBridgeLog.info("connectCollab: WS task started")
-        receiveCollabMessage()
-    }
-
-    func disconnectCollab() {
-        docBridgeLog.info("disconnectCollab")
-        collabTask?.cancel(with: .goingAway, reason: nil)
-        collabTask = nil
-        DispatchQueue.main.async { self.collabConnected = false; self.collabUsers = [] }
-    }
-
-    func sendCollabUpdate(data: Data) {
-        guard let task = collabTask else {
-            docBridgeLog.warning("sendCollabUpdate: no active WS task")
-            return
-        }
-        task.send(.data(data)) { error in
-            if let error = error {
-                docBridgeLog.error("sendCollabUpdate failed: \(error.localizedDescription)")
-            }
-        }
-    }
-
-    private func receiveCollabMessage() {
-        collabTask?.receive { [weak self] result in
-            switch result {
-            case .success(let message):
-                switch message {
-                case .string(let text):
-                    docBridgeLog.info("collab message: \(text.prefix(100))")
-                case .data(let data):
-                    docBridgeLog.info("collab binary: \(data.count) bytes")
-                @unknown default:
-                    break
-                }
-                self?.receiveCollabMessage()
-            case .failure(let error):
-                docBridgeLog.error("collab receive error: \(error.localizedDescription)")
-                DispatchQueue.main.async { self?.collabConnected = false }
-            }
-        }
-    }
+    // ARCH-1 Phase 4 (audit-product-0907 P2-2): connectCollab/disconnectCollab/sendCollabUpdate 迁入
+    //   DocCollabService.swift (DocBridge 留 1 行 stub)。collabConnected/collabUsers/collabTask 已迁
+    //   DocCollabState。WS 基础设施 reach-through: bridge?.baseURL/session/authToken。
 }
