@@ -9,6 +9,12 @@ final class MasterPool {
     private var endpoints: [ClusterEndpoint] = []
     private var activeIndex: Int = 0
     private let lock = NSLock()
+    // B3: failover cycle cap. advance() cycles masters on failure; once it has cycled
+    // through every endpoint without recovery, stop churning (return nil). Reset on
+    // successful health probe via markRecovered().
+    private var advanceCount: Int = 0
+    private var allMastersDown: Bool = false
+    var poolExhausted: Bool { allMastersDown }
 
     private init() {
         reload()
@@ -41,9 +47,27 @@ final class MasterPool {
                   let host = url.host, let port = url.port else { return nil }
             return ClusterEndpoint(host: host, port: port)
         }
+        if allMastersDown {
+            poolLog.error("pool exhausted: cycled all \(endpoints.count) masters with no recovery")
+            return nil
+        }
+        advanceCount += 1
+        if advanceCount >= endpoints.count {
+            allMastersDown = true
+            poolLog.error("failover exhausted: cycled \(advanceCount) times across \(endpoints.count) masters, all unreachable")
+            return nil
+        }
         activeIndex = (activeIndex + 1) % endpoints.count
-        poolLog.info("failover advance -> \(self.endpoints[self.activeIndex].host, privacy: .public)")
+        poolLog.info("failover advance -> \(self.endpoints[self.activeIndex].host, privacy: .public) (count=\(advanceCount))")
         return endpoints[activeIndex]
+    }
+
+    // B3: clear cycle cap on successful health probe so failover can resume after recovery.
+    func markRecovered() {
+        lock.lock(); defer { lock.unlock() }
+        advanceCount = 0
+        allMastersDown = false
+        poolLog.info("pool recovered: cycle cap cleared")
     }
 
     func reset() {

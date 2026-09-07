@@ -251,7 +251,8 @@ class MultiNodeEngine: ObservableObject {
         nodesStale = false
         consecutiveFailuresByContext[context] = 0
         // 任一路成功即认为集群可达; 离线态由 handleError 按各路独立判定。
-        if !isConnected { isConnected = true }
+        // B3: successful recovery clears MasterPool failover cycle cap.
+        if !isConnected { isConnected = true; MasterPool.shared.markRecovered() }
         // Track B: 成功恢复时同步 activeMasterHost。
         recomputeCanMutate()
     }
