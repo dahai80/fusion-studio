@@ -109,8 +109,10 @@ class DocBridge: ObservableObject {
         }
     }
 
-    private let baseURL: String
-    private let session: URLSession
+    // ARCH-1 Phase 4 (audit-product-0907 P2-2): baseURL/session private→internal — DocCollabService
+    //   reach-through (connectCollab builds WS URL from baseURL, session.webSocketTask)。
+    let baseURL: String
+    let session: URLSession
 
     init(baseURL: String = "http://127.0.0.1:11449") {
         self.baseURL = baseURL
@@ -353,17 +355,7 @@ class DocBridge: ObservableObject {
     //   extension DocBridge stub)。旧 Books/Chapters/Pages/Tags 方法体已删, call site 经 stub 零改。
 
     // MARK: - Graph
-
-    func fetchGraph() {
-        get("/api/graph") { [weak self] (result: Result<DocGraph, Error>) in
-            switch result {
-            case .success(let g):
-                DispatchQueue.main.async { self?.graph = g }
-            case .failure(let error):
-                self?.handleError(error, context: "graph")
-            }
-        }
-    }
+    // ARCH-1 Phase 4 (audit-product-0907 P2-2): fetchGraph 迁入 DocGraphService.swift (DocBridge 留 1 行 stub)。
 
     // MARK: - Versions
     // ARCH-1 Phase 3 (audit-product-0907 P2-2): fetchVersions/createVersion/fetchDiff 迁入
@@ -462,38 +454,9 @@ class DocBridge: ObservableObject {
             var page_id: String?
         }
     }
-
-    func ragEnhancedQuery(query: String, topK: Int = 5, completion: @escaping (Result<RAGResponse, Error>) -> Void) {
-        post("/api/rag/enhanced-query", body: ["query": query, "top_k": topK]) { result in
-            completion(result)
-        }
-    }
-
-    func reindexPage(pageId: String) {
-        struct ReindexResp: Decodable { var reindexed: Bool? }
-        post("/api/rag/reindex/\(pageId)") { [weak self] (result: Result<ReindexResp, Error>) in
-            switch result {
-            case .success:
-                docBridgeLog.info("Page \(pageId) reindexed")
-            case .failure(let error):
-                self?.handleError(error, context: "reindex")
-            }
-        }
-    }
-
-    // MARK: - Links
-
-    func addPageLink(sourceId: String, targetId: String, linkType: String = "reference") {
-        struct LinkResp: Decodable { var id: String? }
-        post("/api/pages/\(sourceId)/links", body: ["target_page_id": targetId, "link_type": linkType]) { [weak self] (result: Result<LinkResp, Error>) in
-            switch result {
-            case .success:
-                docBridgeLog.info("Link added: \(sourceId) -> \(targetId)")
-            case .failure(let error):
-                self?.handleError(error, context: "addLink")
-            }
-        }
-    }
+    // ARCH-1 Phase 4 (audit-product-0907 P2-2): ragEnhancedQuery/reindexPage 迁入 DocRAGService.swift;
+    //   addPageLink 迁入 DocGraphService.swift (页面链接 = 图边)。DocBridge 留 1 行 stub。RAGResponse
+    //   struct 留此 (类型非状态, DocRAGService 引用 DocBridge.RAGResponse)。
 
     // MARK: - Search
 
@@ -710,31 +673,8 @@ class DocBridge: ObservableObject {
     }
 
     // MARK: - RAG Extended
-
-    func reindexAll(completion: @escaping (Result<[String: Bool], Error>) -> Void) {
-        post("/api/rag/reindex-all", body: nil, completion: completion)
-    }
-
-    func fetchChunks(pageId: String, completion: @escaping (Result<[DocRAGChunk], Error>) -> Void) {
-        get("/api/rag/chunks/\(pageId)") { [weak self] (result: Result<[DocRAGChunk], Error>) in
-            switch result {
-            case .success(let list):
-                DispatchQueue.main.async { self?.chunks = Array(list.suffix(500)) }
-                completion(.success(list))
-            case .failure(let error):
-                self?.handleError(error, context: "fetchChunks")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func graphSearch(query: String, completion: @escaping (Result<DocGraph, Error>) -> Void) {
-        post("/api/rag/graph/search", body: ["query": query], completion: completion)
-    }
-
-    func fetchGraphNode(id: String, completion: @escaping (Result<DocGraphNode, Error>) -> Void) {
-        get("/api/graph/\(id)", completion: completion)
-    }
+    // ARCH-1 Phase 4 (audit-product-0907 P2-2): reindexAll/fetchChunks/graphSearch 迁入 DocRAGService.swift;
+    //   fetchGraphNode 迁入 DocGraphService.swift。DocBridge 留 1 行 stub。
 
     // MARK: - Auth
 
@@ -1092,43 +1032,9 @@ class DocBridge: ObservableObject {
     }
 
     // MARK: - RAG Basic
-
-    func buildRAGIndex(completion: @escaping (Result<[String: Bool], Error>) -> Void) {
-        docBridgeLog.info("buildRAGIndex")
-        post("/api/rag/index", body: nil, completion: completion)
-    }
-
-    func fetchRAGStatus(completion: @escaping (Result<[String: String], Error>) -> Void) {
-        docBridgeLog.info("fetchRAGStatus")
-        get("/api/rag/status", completion: completion)
-    }
-
-    func clearRAGIndex(completion: @escaping (Result<[String: Bool], Error>) -> Void) {
-        docBridgeLog.info("clearRAGIndex")
-        delete("/api/rag/index", completion: completion)
-    }
-
-    func embedRAGContent(content: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
-        docBridgeLog.info("embedRAGContent")
-        post("/api/rag/embed", body: ["content": content], completion: completion)
-    }
-
-    // MARK: - Graph Search
-
-    func graphSemanticSearch(query: String, completion: @escaping (Result<DocGraph, Error>) -> Void) {
-        docBridgeLog.info("graphSemanticSearch: query=\(query.prefix(50))")
-        post("/api/graph/search", body: ["query": query], completion: completion)
-    }
-
-    func graphTraverse(startId: String, direction: String = "both", maxDepth: Int = 3, completion: @escaping (Result<DocGraph, Error>) -> Void) {
-        docBridgeLog.info("graphTraverse: start=\(startId) depth=\(maxDepth)")
-        post("/api/graph/traverse", body: ["start_id": startId, "direction": direction, "max_depth": maxDepth], completion: completion)
-    }
-
-    func graphCluster(algorithm: String = "louvain", completion: @escaping (Result<[String: [[String]]], Error>) -> Void) {
-        docBridgeLog.info("graphCluster: algorithm=\(algorithm)")
-        post("/api/graph/cluster", body: ["algorithm": algorithm], completion: completion)
-    }
+    // ARCH-1 Phase 4 (audit-product-0907 P2-2): buildRAGIndex/fetchRAGStatus/clearRAGIndex/embedRAGContent
+    //   迁入 DocRAGService.swift; graphSemanticSearch/graphTraverse/graphCluster 迁入 DocGraphService.swift。
+    //   DocBridge 留 1 行 stub。
 
     // MARK: - Notifications
 
@@ -1153,60 +1059,7 @@ class DocBridge: ObservableObject {
     }
 
     // MARK: - Collaboration (WebSocket — pending upstream #22)
-    // ARCH-1: collabConnected/collabUsers/collabTask 已迁 DocCollabState; 下方行为 Phase 4 迁出。
-
-    func connectCollab(pageId: String) {
-        docBridgeLog.info("connectCollab: pageId=\(pageId)")
-        guard let url = URL(string: baseURL.replacingOccurrences(of: "http", with: "ws") + "/collaboration?page=\(pageId)") else {
-            docBridgeLog.error("connectCollab: invalid WS URL")
-            return
-        }
-        var request = URLRequest(url: url)
-        if let token = authToken { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
-        IdentityService.applyIdentityHeaders(to: &request)
-        collabTask = session.webSocketTask(with: request)
-        collabTask?.resume()
-        DispatchQueue.main.async { self.collabConnected = true }
-        docBridgeLog.info("connectCollab: WS task started")
-        receiveCollabMessage()
-    }
-
-    func disconnectCollab() {
-        docBridgeLog.info("disconnectCollab")
-        collabTask?.cancel(with: .goingAway, reason: nil)
-        collabTask = nil
-        DispatchQueue.main.async { self.collabConnected = false; self.collabUsers = [] }
-    }
-
-    func sendCollabUpdate(data: Data) {
-        guard let task = collabTask else {
-            docBridgeLog.warning("sendCollabUpdate: no active WS task")
-            return
-        }
-        task.send(.data(data)) { error in
-            if let error = error {
-                docBridgeLog.error("sendCollabUpdate failed: \(error.localizedDescription)")
-            }
-        }
-    }
-
-    private func receiveCollabMessage() {
-        collabTask?.receive { [weak self] result in
-            switch result {
-            case .success(let message):
-                switch message {
-                case .string(let text):
-                    docBridgeLog.info("collab message: \(text.prefix(100))")
-                case .data(let data):
-                    docBridgeLog.info("collab binary: \(data.count) bytes")
-                @unknown default:
-                    break
-                }
-                self?.receiveCollabMessage()
-            case .failure(let error):
-                docBridgeLog.error("collab receive error: \(error.localizedDescription)")
-                DispatchQueue.main.async { self?.collabConnected = false }
-            }
-        }
-    }
+    // ARCH-1 Phase 4 (audit-product-0907 P2-2): connectCollab/disconnectCollab/sendCollabUpdate 迁入
+    //   DocCollabService.swift (DocBridge 留 1 行 stub)。collabConnected/collabUsers/collabTask 已迁
+    //   DocCollabState。WS 基础设施 reach-through: bridge?.baseURL/session/authToken。
 }
