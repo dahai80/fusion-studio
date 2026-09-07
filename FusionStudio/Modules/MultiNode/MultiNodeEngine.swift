@@ -134,8 +134,9 @@ class MultiNodeEngine: ObservableObject {
     private func confirmedOffline(nodeId: String) -> Bool { nodeState.confirmedOffline(nodeId: nodeId) }
     private func releaseInflight(_ key: String) { pollingState.releaseInflight(key) }
 
-    // B1: cap unbounded mirror dicts (periodic refresh, no order — evict arbitrary excess keys).
-    private static func capDict<K: Hashable, V>(_ dict: inout [K: V], _ max: Int) {
+    // B1: cap unbounded mirror dicts (periodic refresh, no order — evict arbitrary excess keys)。
+    // ARCH-1 PR-C1: internal — 域 service extension 经 Self.capDict reach-through。
+    internal static func capDict<K: Hashable, V>(_ dict: inout [K: V], _ max: Int) {
         if dict.count > max {
             let drop = dict.count - max
             for k in Array(dict.keys).prefix(drop) { dict.removeValue(forKey: k) }
@@ -151,9 +152,10 @@ class MultiNodeEngine: ObservableObject {
     private let overrideAuthToken: String?
 
     // Track B: TLS 会话由 ClusterTransport 统一提供 (含 TLS 委托 + 超时)。engine 不再自建 URLSession。
-    private var session: URLSession { ClusterTransport.shared.session }
+    // ARCH-1 PR-C1: internal — 域 service extension 经 bridge?.session reach-through。
+    internal var session: URLSession { ClusterTransport.shared.session }
 
-    private var baseURL: String {
+    internal var baseURL: String {
         if let override = overrideBaseURL { return override }
         // 审计v0.1.58 P2-2: pool 活跃端点用完整 URL (含 scheme), 非 urlString (无 scheme 致 URL 构造失败).
         // Track B: pool 优先, pool 空回退 FusionConfig 默认 (向后兼容单 master 部署)。
@@ -162,9 +164,9 @@ class MultiNodeEngine: ObservableObject {
         }
         return FusionConfig.shared.multiNodeBaseURL
     }
-    private var agentBaseURL: String { overrideAgentBaseURL ?? FusionConfig.shared.multiNodeAgentBaseURL }
+    internal var agentBaseURL: String { overrideAgentBaseURL ?? FusionConfig.shared.multiNodeAgentBaseURL }
     // Track B: cluster token 走 Keychain (Task 6 迁移), 保留 override 供测试注入。
-    private var authToken: String { overrideAuthToken ?? KeychainStore.readClusterToken() ?? "" }
+    internal var authToken: String { overrideAuthToken ?? KeychainStore.readClusterToken() ?? "" }
 
     // Track B: pool 驱动的 cluster URL, scheme 按 FusionConfig 默认 baseURL 推断 (http/https)。
     private var clusterURL: URL? {
@@ -218,7 +220,8 @@ class MultiNodeEngine: ObservableObject {
     }
 
     /// 给 URLRequest 附加 Bearer token（cluster 鉴权，参照 ModelHubAPIClient 模式）。
-    private func authHeaders(_ request: inout URLRequest) {
+    // ARCH-1 PR-C1: internal — 域 service extension 经 bridge?.authHeaders reach-through。
+    internal func authHeaders(_ request: inout URLRequest) {
         if !authToken.isEmpty {
             request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
         }
@@ -226,7 +229,8 @@ class MultiNodeEngine: ObservableObject {
 
     // #77: 变更请求附 X-Leader-Token (per-leader token)。server enforce 开 + token 过期 → 409 LeaderChanged。
     //   缺 header server 放行 (灰度兼容), 故 token 未取到 (nil/空) 时不发 header, 行为同旧版。
-    private func leaderTokenHeader(_ request: inout URLRequest) {
+    // ARCH-1 PR-C1: internal — 域 service extension 经 bridge?.leaderTokenHeader reach-through。
+    internal func leaderTokenHeader(_ request: inout URLRequest) {
         if let token = knownLeaderToken, !token.isEmpty {
             request.setValue(token, forHTTPHeaderField: "X-Leader-Token")
         }
@@ -610,7 +614,8 @@ class MultiNodeEngine: ObservableObject {
     // MARK: - Mutation endpoints
 
     // F-A11: 脑裂时阻断写操作 (remove/approve/migrate/submit), 防 removeNode 操作到另一分区 master。
-    private func assertNoSplitBrain() throws {
+    // ARCH-1 PR-C1: internal — 域 service extension 经 bridge?.assertNoSplitBrain reach-through (协调器留 engine)。
+    internal func assertNoSplitBrain() throws {
         if splitBrainDetected {
             engineLog.error("F-A11 write blocked: split-brain active (>1 master)")
             throw EngineError.splitBrain
@@ -1163,7 +1168,8 @@ class MultiNodeEngine: ObservableObject {
 
     // MARK: - Generic HTTP helpers
 
-    private func get<T: Decodable>(_ path: String, completion: @escaping (Result<T, Error>) -> Void) {
+    // ARCH-1 PR-C1: internal — 域 service extension 经 bridge?.get(...) reach-through。
+    internal func get<T: Decodable>(_ path: String, completion: @escaping (Result<T, Error>) -> Void) {
         guard let url = URL(string: "\(baseURL)\(path)") else {
             completion(.failure(EngineError.invalidURL)); return
         }
@@ -1186,7 +1192,7 @@ class MultiNodeEngine: ObservableObject {
         }.resume()
     }
 
-    private func post(_ path: String, body: [String: Any], idempotencyKey: String? = nil) async throws -> [String: Any] {
+    internal func post(_ path: String, body: [String: Any], idempotencyKey: String? = nil) async throws -> [String: Any] {
         guard let url = URL(string: "\(baseURL)\(path)") else {
             throw EngineError.invalidURL
         }
@@ -1203,7 +1209,7 @@ class MultiNodeEngine: ObservableObject {
         return (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
     }
 
-    private func put(_ path: String, body: [String: Any]) async throws -> [String: Any] {
+    internal func put(_ path: String, body: [String: Any]) async throws -> [String: Any] {
         guard let url = URL(string: "\(baseURL)\(path)") else {
             throw EngineError.invalidURL
         }
@@ -1217,7 +1223,7 @@ class MultiNodeEngine: ObservableObject {
         return (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
     }
 
-    private func delete(_ path: String) async throws {
+    internal func delete(_ path: String) async throws {
         guard let url = URL(string: "\(baseURL)\(path)") else {
             throw EngineError.invalidURL
         }
@@ -1228,7 +1234,8 @@ class MultiNodeEngine: ObservableObject {
         _ = try await session.data(for: request)
     }
 
-    private func handleError(_ error: Error, context: String) {
+    // ARCH-1 PR-C1: internal — 域 service extension 经 bridge?.handleError reach-through (协调器留 engine)。
+    internal func handleError(_ error: Error, context: String) {
         let msg = error.localizedDescription
         engineLog.error("MultiNode error [\(context)]: \(msg)")
         DispatchQueue.main.async { [weak self] in
