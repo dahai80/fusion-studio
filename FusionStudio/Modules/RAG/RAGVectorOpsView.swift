@@ -1,5 +1,6 @@
 import SwiftUI
 import os
+import UniformTypeIdentifiers
 
 private let vecLog = Logger(subsystem: "com.fusion.studio", category: "RAGVectorOps")
 
@@ -16,6 +17,10 @@ struct RAGVectorOpsView: View {
     @State private var operationMsg: String?
     @State private var snapshotDesc = ""
     @State private var showCreateSnapshot = false
+    // 审计0907 P1-19: 原硬编码 directory: "/Users/dahai/fusion" — 用户机器无关 + 不可改。
+    //   改 @State 可选目录, 默认 FusionConfig 工作区; fileImporter 让用户选; 未选则用默认。
+    @State private var syncDirectory: String = FusionConfig.shared.workspacePath
+    @State private var showDirPicker = false
 
     var body: some View {
         ScrollView {
@@ -53,6 +58,18 @@ struct RAGVectorOpsView: View {
                 }
             }
             .padding(20).frame(width: 350)
+        }
+        // 审计0907 P1-19: 用户可选同步目录 (替代硬编码 /Users/dahai/fusion)。
+        .fileImporter(isPresented: $showDirPicker, allowedContentTypes: [.folder]) { result in
+            switch result {
+            case .success(let url):
+                let gotAccess = url.startAccessingSecurityScopedResource()
+                defer { if gotAccess { url.stopAccessingSecurityScopedResource() } }
+                syncDirectory = url.path
+                vecLog.info("RAGVectorOps: sync directory selected = \(url.path)")
+            case .failure(let err):
+                vecLog.warning("RAGVectorOps: dir picker failed: \(err.localizedDescription)")
+            }
         }
     }
 
@@ -122,6 +139,17 @@ struct RAGVectorOpsView: View {
                     .foregroundStyle(msg.hasPrefix("✓") ? .green : msg.hasPrefix("✗") ? .red : .orange)
             }
             VStack(spacing: theme.spacingS) {
+                // 审计0907 P1-19: 同步目录可改 (默认工作区)。选目录 → 再确认同步。
+                HStack(spacing: theme.spacingS) {
+                    Image(systemName: "folder").font(.system(size: theme.iconS)).foregroundStyle(.blue).frame(width: 24)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(i18n.t(.rag_vec_opSyncDir)).font(.system(size: theme.textSize, weight: .medium)).foregroundStyle(theme.text)
+                        Text(syncDirectory).font(.system(size: theme.captionSize)).foregroundStyle(theme.textSecondary).lineLimit(1).truncationMode(.middle)
+                    }
+                    Spacer()
+                    Button(i18n.t(.rag_vec_opChooseDir)) { showDirPicker = true }
+                        .buttonStyle(.bordered).controlSize(.small)
+                }
                 opRow(i18n.t(.rag_vec_opSync), desc: i18n.t(.rag_vec_opSyncDesc), icon: "arrow.triangle.2.circlepath", color: .orange, destructive: true) {
                     showSyncConfirm = true
                 }
@@ -231,9 +259,11 @@ struct RAGVectorOpsView: View {
     private func incrementalSync() async {
         guard !selectedKBId.isEmpty else { return }
         operationMsg = i18n.t(.rag_vec_syncing)
-        if let result = await client.incrementalSync(kbId: selectedKBId, directory: "/Users/dahai/fusion") {
+        let dir = (syncDirectory as NSString).expandingTildeInPath
+        if let result = await client.incrementalSync(kbId: selectedKBId, directory: dir) {
             let indexed = result["files_indexed"] as? Int ?? 0
             operationMsg = String(format: i18n.t(.rag_vec_syncDoneFmt), indexed)
+            vecLog.info("incrementalSync: indexed \(indexed) files in \(dir)")
             await refresh()
         } else {
             operationMsg = i18n.t(.rag_vec_syncFail)

@@ -301,7 +301,12 @@ class FinanceBridge: ObservableObject {
         post("/api/v1/copilot/chat", body: body) { [weak self] (result: Result<FinanceCopilotMessage, Error>) in
             switch result {
             case .success(let msg):
-                DispatchQueue.main.async { self?.copilotMessages.append(msg) }
+                DispatchQueue.main.async {
+                    self?.copilotMessages.append(msg)
+                    if let count = self?.copilotMessages.count, count > 500 {
+                        self?.copilotMessages.removeFirst(count - 500)
+                    }
+                }
                 completion(.success(msg))
             case .failure(let error):
                 completion(.failure(error))

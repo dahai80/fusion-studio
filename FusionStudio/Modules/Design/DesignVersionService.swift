@@ -29,9 +29,9 @@ extension DesignVersionState {
         isLoadingHistory = false
     }
 
-    func diffVersions(oldJSON: String, newJSON: String) {
+    func diffVersions(oldJSON: String, newJSON: String) async {
         isDiffing = true
-        versionDiffEntries = bridge?.skillDiff(oldJSON: oldJSON, newJSON: newJSON) ?? []
+        versionDiffEntries = await (bridge?.skillDiff(oldJSON: oldJSON, newJSON: newJSON) ?? [])
         isDiffing = false
         designVersionLog.info("DesignVersion: version diff completed, \(self.versionDiffEntries.count) changes")
     }

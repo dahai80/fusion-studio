@@ -2,14 +2,26 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <!-- 审计0907 P1-9/P2-19: 每个 hardened-runtime 逃逸的必要性说明。
+         app 非生产签名 (beta 流程, OPS-1 签名用户跟进); 真正收紧需拆独立签名 Python helper +
+         各自 entitlements — 本轮外科范围外, 记为技术债 follow-up。 -->
+    <!-- app-sandbox=false: 沙箱阻断 spawn 任意 helper (PTY 交互 shell / cargo / fusion-design CLI /
+         python-build-standalone)。Fusion Studio 核心功能 = 本地多语言执行, 沙箱与之不兼容。 -->
     <key>com.apple.security.app-sandbox</key>
     <false/>
+    <!-- allow-jit: Metal/MLX + WASM runtime 需 JIT (可执行内存写后执行)。 -->
     <key>com.apple.security.cs.allow-jit</key>
     <true/>
+    <!-- allow-unsigned-executable-memory: python-build-standalone (PR#399 bundled) 解释器未签名,
+         其可执行内存映射需此逃逸。收紧需签名 Python 二进制 (签名流程跟进)。 -->
     <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
     <true/>
+    <!-- disable-library-validation: PyO3 (Python<->Rust FFI) + python-build-standalone 载未签名 .dylib。
+         library validation 会拒载。收紧需签名所有 bundled dylib (签名流程跟进)。 -->
     <key>com.apple.security.cs.disable-library-validation</key>
     <true/>
+    <!-- files.user-selected + downloads (非 files.all): 已去全盘读写, 仅用户显选文件 + 下载目录。
+         审计0907 P1-9 fix 项 1 已落实。 -->
     <key>com.apple.security.network.client</key>
     <true/>
     <key>com.apple.security.network.server</key>
@@ -17,8 +29,6 @@
     <key>com.apple.security.files.user-selected.read-write</key>
     <true/>
     <key>com.apple.security.files.downloads.read-write</key>
-    <true/>
-    <key>com.apple.security.files.all</key>
     <true/>
     <key>com.apple.security.device.usb</key>
     <true/>

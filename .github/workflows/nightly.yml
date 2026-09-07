@@ -36,7 +36,8 @@ jobs:
       - name: Run tests
         # 审计0827 #9: 删 continue-on-error (假绿 — nightly 是发布前兜底门, 测试挂应阻断) + pipefail 保退出码。
         # OPS-10 (审计product-0906 P3): tee 全量落盘 + tail -80, 失败时全日志可定位逐用例 fail 行。
-        run: set -o pipefail && swift test 2>&1 | tee /tmp/nightly-test.log | tail -80
+        # 审计0907 P3-14: 加 -j 2 限并行编译作业, 缓解 CI runner 内存压力 (macOS-14 7GB; cold build ~204 用例)。
+        run: set -o pipefail && swift test -j 2 2>&1 | tee /tmp/nightly-test.log | tail -80
 
       - name: Upload build logs
         if: always()

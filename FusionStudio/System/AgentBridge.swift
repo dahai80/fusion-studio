@@ -1066,7 +1066,9 @@ final class AgentBridge: ObservableObject {
         }
 
         self.runtimeState.setExecuting(true)
-        self.runtimeState.setEvents([])
+        // 审计0907 P3-12: 旧此处 setEvents([]) 在 RPC 前清空 — RPC 失败 (timeout/IPC/decode) 时
+        //   上一轮结果已丢失, UI 仅剩空 + error。改: 不预清; 成功路径 setEvents(parsed) 整体替换,
+        //   失败路径保留上一轮事件, 用户不致同时丢结果+看空。
 
         do {
             var params: [String: Any] = [
@@ -1280,14 +1282,19 @@ final class AgentBridge: ObservableObject {
         return key
     }
 
-    // gateway (11432) 的有效 api key：解析 ~/fusion/fusion-gateway/config.yaml auth.api_keys[0]。
+    // gateway (11432) 的有效 api key：解析 <gateway-root>/config.yaml auth.api_keys[0]。
     // env FUSION_MLX_API_KEY 常是过期值（被 gateway 拒），自愈回退到此 key。
     // PERF-4: nonisolated async — config.yaml 读取 + 行解析跑 cooperative 线程池, 不阻塞 MainActor。
+    // 审计0907 P0-5: 移除硬编码 /Users/dahai/fusion/fusion-gateway/config.yaml 绝对路径 (开发者私有路径泄露 +
+    //   不可移植)。改为 env FUSION_GATEWAY_CONFIG 显式覆盖 > 默认 ~/fusion/fusion-gateway/config.yaml。
     nonisolated static func gatewayConfigApiKey() async -> String? {
-        let paths = [
+        let env = ProcessInfo.processInfo.environment
+        var paths = [
             NSHomeDirectory() + "/fusion/fusion-gateway/config.yaml",
-            "/Users/dahai/fusion/fusion-gateway/config.yaml",
         ]
+        if let envCfg = env["FUSION_GATEWAY_CONFIG"], !envCfg.isEmpty {
+            paths.insert(envCfg, at: 0)
+        }
         for path in paths {
             guard let content = try? String(contentsOfFile: path, encoding: .utf8) else { continue }
             // BUG-5: 旧实现 trimmed.hasPrefix("key:") 无节作用域, 可命中任意段落的 key:

@@ -78,27 +78,28 @@ extension DesignChatState {
         case .inOpenTag:
             if let range = parseBuffer.range(of: ">") {
                 parseState = .inCode
-                bridge?.artifactState.currentArtifactCode = ""
+                bridge?.artifactState.resetCodeBuffer()
                 let afterClose = String(parseBuffer[range.upperBound...])
                 parseBuffer = afterClose
                 parseOpenTagAttributes(parseBuffer)
-                bridge?.artifactState.currentArtifactCode = (bridge?.artifactState.currentArtifactCode ?? "") + afterClose
+                bridge?.artifactState.appendCodeThrottled(afterClose)
             }
 
         case .inCode:
             if let range = parseBuffer.range(of: "</antArtifact>") {
                 let beforeClose = String(parseBuffer[..<range.lowerBound])
-                bridge?.artifactState.currentArtifactCode = (bridge?.artifactState.currentArtifactCode ?? "") + beforeClose
+                bridge?.artifactState.appendCodeThrottled(beforeClose)
+                bridge?.artifactState.flushPendingCodeIfNeeded()
                 parseState = .idle
                 parseBuffer = ""
             } else {
                 if parseBuffer.count > 200 {
                     let flushCount = parseBuffer.count - 100
                     let flushIdx = parseBuffer.index(parseBuffer.startIndex, offsetBy: flushCount)
-                    bridge?.artifactState.currentArtifactCode = (bridge?.artifactState.currentArtifactCode ?? "") + String(parseBuffer[..<flushIdx])
+                    bridge?.artifactState.appendCodeThrottled(String(parseBuffer[..<flushIdx]))
                     parseBuffer = String(parseBuffer[flushIdx...])
                 } else {
-                    bridge?.artifactState.currentArtifactCode = (bridge?.artifactState.currentArtifactCode ?? "") + token
+                    bridge?.artifactState.appendCodeThrottled(token)
                 }
             }
 

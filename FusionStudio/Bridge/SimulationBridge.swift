@@ -225,6 +225,7 @@ class SimulationBridge: ObservableObject {
                     self?.lastError = resp.error
                     if resp.error == nil {
                         self?.sensors.append(SimEntityInfo(name: name, kind: type, detail: entityId))
+                        if let c = self?.sensors, c.count > 200 { self?.sensors = Array(c.suffix(200)) }
                     }
                 }
                 completion?(.success(resp))
@@ -247,6 +248,7 @@ class SimulationBridge: ObservableObject {
                     self?.lastError = resp.error
                     if resp.error == nil {
                         self?.agents.append(SimEntityInfo(name: name, kind: role, detail: modelName))
+                        if let c = self?.agents, c.count > 200 { self?.agents = Array(c.suffix(200)) }
                     }
                 }
                 completion?(.success(resp))

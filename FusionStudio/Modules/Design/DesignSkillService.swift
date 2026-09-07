@@ -236,7 +236,8 @@ extension DesignSkillState {
         }
     }
 
-    func skillLint(documentJSON: String? = nil, designSystem: String = "apple-hig", fix: Bool = false, dryRun: Bool = false) -> [DesignLintIssue] {
+    // 审计0907 P0-3: 改 async — runFusionDesignAsync 180s CLI 跑后台 Task.detached, 不冻结 MainActor。
+    func skillLint(documentJSON: String? = nil, designSystem: String = "apple-hig", fix: Bool = false, dryRun: Bool = false) async -> [DesignLintIssue] {
         let docJSON = documentJSON ?? bridge?.lastRenderedDocumentJSON ?? ""
         guard !docJSON.isEmpty else { return [] }
         guard let tmpPath = FusionTempDir.shared.writeTmpFile(prefix: "fd_lint", contents: Data(docJSON.utf8)) else {
@@ -246,7 +247,8 @@ extension DesignSkillState {
         var args = ["lint", "--input", tmpPath, "--design-system", designSystem]
         if fix { args.append("--fix") }
         if dryRun { args.append("--dry-run") }
-        let result = bridge?.runFusionDesign(args) ?? (output: "", error: "bridge nil", exitCode: -1)
+        // 审计0907 P0-3: 旧 sync runFusionDesign 在 MainActor 阻塞 180s。改 async。
+        let result = await (bridge?.runFusionDesignAsync(args) ?? (output: "", error: "bridge nil", exitCode: -1))
         try? FileManager.default.removeItem(atPath: tmpPath)
         guard result.exitCode == 0, !result.output.isEmpty else {
             designSkillLog.error("DesignSkill: lint failed: \(result.error)")
@@ -273,13 +275,14 @@ extension DesignSkillState {
         return []
     }
 
-    func skillDiff(oldJSON: String, newJSON: String) -> [DesignDiffEntry] {
+    // 审计0907 P0-3: 改 async。
+    func skillDiff(oldJSON: String, newJSON: String) async -> [DesignDiffEntry] {
         guard let oldPath = FusionTempDir.shared.writeTmpFile(prefix: "fd_diff_old", contents: Data(oldJSON.utf8)),
               let newPath = FusionTempDir.shared.writeTmpFile(prefix: "fd_diff_new", contents: Data(newJSON.utf8)) else {
             designSkillLog.error("DesignSkill: diff tmp write failed")
             return []
         }
-        let result = bridge?.runFusionDesign(["diff", "--old", oldPath, "--new", newPath]) ?? (output: "", error: "bridge nil", exitCode: -1)
+        let result = await (bridge?.runFusionDesignAsync(["diff", "--old", oldPath, "--new", newPath]) ?? (output: "", error: "bridge nil", exitCode: -1))
         try? FileManager.default.removeItem(atPath: oldPath)
         try? FileManager.default.removeItem(atPath: newPath)
         guard result.exitCode == 0 else {
@@ -316,8 +319,9 @@ extension DesignSkillState {
         return []
     }
 
-    func skillHealthCheck(endpoint: String = FusionConfig.shared.mlxBaseURL) -> [String: Any]? {
-        let result = bridge?.runFusionDesign(["health", "--endpoint", endpoint]) ?? (output: "", error: "bridge nil", exitCode: -1)
+    // 审计0907 P0-3: 改 async。
+    func skillHealthCheck(endpoint: String = FusionConfig.shared.mlxBaseURL) async -> [String: Any]? {
+        let result = await (bridge?.runFusionDesignAsync(["health", "--endpoint", endpoint]) ?? (output: "", error: "bridge nil", exitCode: -1))
         guard result.exitCode == 0 else { return nil }
         if let data = result.output.data(using: .utf8),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
@@ -326,8 +330,9 @@ extension DesignSkillState {
         return nil
     }
 
-    func skillTheme(designSystem: String = "apple-hig", mode: String = "dark") -> String? {
-        let result = bridge?.runFusionDesign(["theme", "--design-system", designSystem, "--mode", mode]) ?? (output: "", error: "bridge nil", exitCode: -1)
+    // 审计0907 P0-3: 改 async。
+    func skillTheme(designSystem: String = "apple-hig", mode: String = "dark") async -> String? {
+        let result = await (bridge?.runFusionDesignAsync(["theme", "--design-system", designSystem, "--mode", mode]) ?? (output: "", error: "bridge nil", exitCode: -1))
         guard result.exitCode == 0, !result.output.isEmpty else { return nil }
         return result.output
     }

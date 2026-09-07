@@ -17,6 +17,18 @@ import os.log
 
 private let agentGraphLog = Logger(subsystem: "com.fusion.studio", category: "AgentGraphService")
 
+// 审计0907 P0-1/P0-2: serialize NodeConfigModel.config ([String:JSONValue]→[String:Any]) + position 进 graph RPC。
+//   镜像 FSBWorkflowCanvasDelegate.fromJSONValue 范式 (跨文件 private 不可达, 本文件自持副本)。
+private func jsonValueToAny(_ v: JSONValue) -> Any {
+    switch v {
+    case .string(let s): return s
+    case .double(let d): return d
+    case .bool(let b): return b
+    case .object(let d): return d.mapValues { jsonValueToAny($0) }
+    case .array(let a): return a.map { jsonValueToAny($0) }
+    }
+}
+
 // MARK: - Graph Operations (行为落地 AgentState 域)
 extension AgentState {
 
@@ -65,11 +77,19 @@ extension AgentState {
 
         var nodesParam: [[String: Any]] = []
         for n in nodes {
-            nodesParam.append([
+            // 审计0907 P0-2: label 旧值 = n.type (节点类型当标签), 改取 config["label"], 缺省回退 type。
+            let label = n.config["label"]?.stringValue ?? n.type
+            // 审计0907 P0-1: 旧实现只发 id/type/label, 丢 config + position → 节点配置/坐标落盘丢失。
+            var nodeDict: [String: Any] = [
                 "id": n.id,
                 "type": n.type,
-                "label": n.type,
-            ])
+                "label": label,
+                "config": n.config.mapValues { jsonValueToAny($0) },
+            ]
+            if let p = n.position {
+                nodeDict["position"] = ["x": p.x, "y": p.y]
+            }
+            nodesParam.append(nodeDict)
         }
 
         var edgesParam: [[String: Any]] = []
@@ -131,9 +151,19 @@ extension AgentState {
         if let name { params["name"] = name }
         if let nodes {
             params["nodes"] = nodes.map { node -> [String: Any] in
+                // 审计0907 P0-1: 旧实现只发 id/type/label, 丢 config + position → 更新后节点配置/坐标被清空。
                 let label: String
                 if case .string(let v) = node.config["label"] { label = v } else { label = "" }
-                return ["id": node.id, "type": node.type, "label": label]
+                var nodeDict: [String: Any] = [
+                    "id": node.id,
+                    "type": node.type,
+                    "label": label,
+                    "config": node.config.mapValues { jsonValueToAny($0) },
+                ]
+                if let p = node.position {
+                    nodeDict["position"] = ["x": p.x, "y": p.y]
+                }
+                return nodeDict
             }
         }
         if let edges {

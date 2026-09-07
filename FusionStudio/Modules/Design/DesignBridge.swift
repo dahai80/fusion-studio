@@ -507,6 +507,14 @@ class DesignBridge: ObservableObject {
         if let re = try? NSRegularExpression(pattern: #"(?i)(href|src)\s*=\s*("vbscript:[^"]*"|'vbscript:[^']*'|vbscript:[^\s>]+)"#, options: []) {
             out = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "$1=\"#\"")
         }
+        // 审计0907 P2-11: xlink:href="javascript:" — svg XSS 向量 (step3 on* + step4 href/src 不覆盖 xlink:href 属性名)。
+        //   补剥 xlink:href 内 javascript:/vbscript: URL, 替换为 "#"。
+        if let re = try? NSRegularExpression(pattern: #"(?i)xlink:href\s*=\s*("javascript:[^"]*"|'javascript:[^']*'|javascript:[^\s>]+)"#, options: []) {
+            out = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "xlink:href=\"#\"")
+        }
+        if let re = try? NSRegularExpression(pattern: #"(?i)xlink:href\s*=\s*("vbscript:[^"]*"|'vbscript:[^']*'|vbscript:[^\s>]+)"#, options: []) {
+            out = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "xlink:href=\"#\"")
+        }
         // 5. <style> 块外科净化 (非整块剥): 保留模型按 systemPrompt 产出的 :root 设计 token + 自定义 class
         // (.surface/.text-secondary/...), 仅剥 CSS 内的 XSS 注入向量 — expression()/url(javascript:)/url(vbscript:)/
         // @import/behavior:/-moz-binding:。整块剥会丢暗色主题+布局, 致预览"什么都没有" (#388)。
@@ -578,6 +586,10 @@ class DesignBridge: ObservableObject {
         // 剥 api_key / api-key / apikey 字段值 (JSON "api_key":"v" 或 form api_key=v 均覆盖)
         if let re = try? NSRegularExpression(pattern: #"(?i)(api[_-]?key)\"?(\s*[:=]\s*)\"?([A-Za-z0-9._~+/=-]+)"#, options: []) {
             out = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "$1$2***")
+        }
+        // 审计0907 P3-4: X-API-Key: <token> 请求头 (fusion-mlx/mlx-gateway 鉴权头), 服务端错误体可回显。
+        if let re = try? NSRegularExpression(pattern: #"(?i)x-api-key\s*:\s*[A-Za-z0-9._~+/=-]+"#, options: []) {
+            out = re.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "X-API-Key: ***")
         }
         return out
     }
@@ -850,13 +862,14 @@ class DesignBridge: ObservableObject {
 
     func skillMultiVariants(prompt: String, styles: [String]? = nil, pageName: String = "Home") { skillState.skillMultiVariants(prompt: prompt, styles: styles, pageName: pageName) }
 
-    func skillLint(documentJSON: String? = nil, designSystem: String = "apple-hig", fix: Bool = false, dryRun: Bool = false) -> [DesignLintIssue] { skillState.skillLint(documentJSON: documentJSON, designSystem: designSystem, fix: fix, dryRun: dryRun) }
+    // 审计0907 P0-3: facade 同步 async (skillState 方法已 async)。
+    func skillLint(documentJSON: String? = nil, designSystem: String = "apple-hig", fix: Bool = false, dryRun: Bool = false) async -> [DesignLintIssue] { await skillState.skillLint(documentJSON: documentJSON, designSystem: designSystem, fix: fix, dryRun: dryRun) }
 
-    func skillDiff(oldJSON: String, newJSON: String) -> [DesignDiffEntry] { skillState.skillDiff(oldJSON: oldJSON, newJSON: newJSON) }
+    func skillDiff(oldJSON: String, newJSON: String) async -> [DesignDiffEntry] { await skillState.skillDiff(oldJSON: oldJSON, newJSON: newJSON) }
 
-    func skillHealthCheck(endpoint: String = FusionConfig.shared.mlxBaseURL) -> [String: Any]? { skillState.skillHealthCheck(endpoint: endpoint) }
+    func skillHealthCheck(endpoint: String = FusionConfig.shared.mlxBaseURL) async -> [String: Any]? { await skillState.skillHealthCheck(endpoint: endpoint) }
 
-    func skillTheme(designSystem: String = "apple-hig", mode: String = "dark") -> String? { skillState.skillTheme(designSystem: designSystem, mode: mode) }
+    func skillTheme(designSystem: String = "apple-hig", mode: String = "dark") async -> String? { await skillState.skillTheme(designSystem: designSystem, mode: mode) }
 
     private func parseHtmlFromPenOutput(_ output: String) -> String? { chatState.parseHtmlFromPenOutput(output) }
 
@@ -1004,6 +1017,11 @@ class DesignBridge: ObservableObject {
             var assistantContent = ""
             var streamFinishReason: String?
             DesignPreviewTrace.log("sendDesignChat: stream connected, status=\(httpResp.statusCode) model=\(model)")
+            // 审计0907 P2-15: 旧 per-token assistantContent += token / rawAssistantContent += token = O(n²) 字符串拼接
+            //   (每 token 复制全量)。改 [String] buffer 累入, 循环末尾 joined() 一次 O(n)。
+            //   预览用独立 previewBuffer (只留末尾 8 token), 避免每 token 全量 join 又退化 O(n²)。
+            var rawBuffer: [String] = []
+            var previewBuffer: [String] = []
             for try await line in bytes.lines {
                 guard line.hasPrefix("data: ") else { continue }
                 let payload = String(line.dropFirst(6))
@@ -1025,18 +1043,20 @@ class DesignBridge: ObservableObject {
                     continue
                 }
 
-                assistantContent += token
-                chatState.rawAssistantContent += token
+                rawBuffer.append(token)
+                previewBuffer.append(token)
                 chatState.processStreamToken(token)
 
                 streamTokenCount += 1
-                let previewBase = assistantContent.suffix(120)
-                streamPreviewText = String(previewBase)
+                if previewBuffer.count > 8 { previewBuffer.removeFirst(previewBuffer.count - 8) }
+                streamPreviewText = String(previewBuffer.joined().suffix(120))
                 if streamTokenCount == 1 {
                     inferenceStep = "streaming"
                 }
             }
 
+            assistantContent = rawBuffer.joined()
+            chatState.rawAssistantContent = assistantContent
             let finalArtifact = extractArtifactFromComplete(chatState.rawAssistantContent)
             DesignPreviewTrace.log("sendDesignChat: stream loop done, rawLen=\(chatState.rawAssistantContent.count) tokens=\(streamTokenCount) hasAnt=\(chatState.rawAssistantContent.contains("<antArtifact")) finalArtifact=\(finalArtifact != nil)")
             let assistantMsg = DesignMessage(
@@ -1189,7 +1209,7 @@ class DesignBridge: ObservableObject {
 
 
     // ARCH-1 Phase 7: 行为迁 DesignVersionService。
-    func diffVersions(oldJSON: String, newJSON: String) { versionState.diffVersions(oldJSON: oldJSON, newJSON: newJSON) }
+    func diffVersions(oldJSON: String, newJSON: String) async { await versionState.diffVersions(oldJSON: oldJSON, newJSON: newJSON) }
 
 
     // ARCH-1 Phase 7: 行为迁 DesignThemeService。

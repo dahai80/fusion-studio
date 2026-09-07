@@ -569,15 +569,27 @@ struct DesignCanvasView: NSViewRepresentable {
         // F-sec-2: DesignCanvasView loads only bundled wasm via loadHTMLString(file baseURL).
         // Deny any navigation/navigationAction whose target leaves the bundle (external http(s),
         // redirected file://) — defense-in-depth against compromised wasm/scripts exfiltrating.
+        // 审计0907 P2-10: 旧策略 allow 一切 file:// — 被 wasm 用 fetch('file:///Users/.../.ssh/id_rsa')
+        //   探盘外泄 (files.all 可达)。收紧: file:// 仅允许 bundle 资源目录前缀内 (wasm 所在目录)。
         func webView(_ webView: WKWebView,
                       decidePolicyFor navigationAction: WKNavigationAction,
                       decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
             if let url = navigationAction.request.url {
                 if url.isFileURL {
-                    decisionHandler(.allow)
-                    return
+                    if let allowedDir = parent.wasmBundleURL()?.deletingLastPathComponent() {
+                        let target = url.standardizedFileURL.path
+                        let allowed = allowedDir.standardizedFileURL.path
+                        if target.hasPrefix(allowed + "/") || target == allowed {
+                            decisionHandler(.allow)
+                            return
+                        }
+                        canvasLog.error("F-sec-2: blocking file:// navigation outside bundle dir: \(url.absoluteString, privacy: .public)")
+                    } else {
+                        canvasLog.error("F-sec-2: no bundle dir ref, blocking file:// navigation: \(url.absoluteString, privacy: .public)")
+                    }
+                } else {
+                    canvasLog.error("F-sec-2: blocking non-file navigation to \(url.absoluteString)")
                 }
-                canvasLog.error("F-sec-2: blocking non-file navigation to \(url.absoluteString)")
             }
             decisionHandler(.cancel)
         }

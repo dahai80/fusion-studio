@@ -13,9 +13,12 @@ extension DesignThemeState {
 
     func switchTheme(_ mode: String) {
         activeTheme = mode
-        if let css = bridge?.skillTheme(designSystem: activeDesignSystem, mode: mode) {
-            bridge?.applyDesignTokensToCanvas(css)
-            designThemeLog.info("DesignTheme: switched theme to \(mode)")
+        let ds = activeDesignSystem
+        Task { @MainActor in
+            if let css = await bridge?.skillTheme(designSystem: ds, mode: mode) {
+                bridge?.applyDesignTokensToCanvas(css)
+                designThemeLog.info("DesignTheme: switched theme to \(mode)")
+            }
         }
     }
 

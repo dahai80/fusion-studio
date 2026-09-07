@@ -101,6 +101,8 @@ class DocBridge: ObservableObject {
 
     deinit {
         reconnectTimer?.invalidate()
+        // 审计0907 P1-5: 漏 cancel collabTask (WebSocket), dealloc 续跑。
+        collabTask?.cancel(with: .goingAway, reason: nil)
     }
 
     // MARK: - Generic HTTP

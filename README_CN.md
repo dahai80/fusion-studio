@@ -3,8 +3,8 @@
   <img src="https://img.shields.io/badge/Apple%20Silicon-M1--M5-orange" alt="Apple Silicon">
   <img src="https://img.shields.io/badge/Swift-5.9-red" alt="Swift">
   <img src="https://img.shields.io/badge/Rust-2021-purple" alt="Rust">
-  <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
-  <img src="https://img.shields.io/badge/status-V1.0-yellow" alt="V1.0">
+  <img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License">
+  <img src="https://img.shields.io/badge/status-V0.1.62--beta-yellow" alt="V0.1.62-beta">
   <img src="https://img.shields.io/badge/modules-20-success" alt="20 Modules">
 </div>
 

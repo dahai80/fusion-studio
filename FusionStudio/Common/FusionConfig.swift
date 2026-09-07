@@ -104,7 +104,9 @@ class FusionConfig: ObservableObject {
     // MARK: - 网络 & 离线
     @AppStorage("offlineMode") var offlineMode = true
     @AppStorage("allowModelDownload") var allowModelDownload = true
-    @AppStorage("allowUpdateCheck") var allowUpdateCheck = true
+    // 审计0907 P0-4: 默认 true → 启动即 phone home api.github.com, 违背 100% offline-first。
+    //   改默认 false (opt-in), 仅用户显式开启才检查更新。
+    @AppStorage("allowUpdateCheck") var allowUpdateCheck = false
     // F-ops-8: 本地崩溃遥测 (opt-in, 默认关闭)。零网络上传, 仅落盘 ~/.fusion-studio/logs/crash-*.log。
     @AppStorage("enableCrashTelemetry") var enableCrashTelemetry = false
     // 审计v0.1.58 residual — bundle MANIFEST 完整性强制 (opt-in, 默认关闭)。
@@ -275,9 +277,9 @@ class FusionConfig: ObservableObject {
     @AppStorage("multiNodeAgentPort") var multiNodeAgentPort = 11458
     // 可选：手动覆盖 cluster token（留空则读取 ~/.fusion/multi-node/.cluster_token）。
     @AppStorage("multiNodeClusterToken") var multiNodeClusterToken = ""
-    // Track B: ordered comma-separated master host list for failover (e.g. "node1:11452,node2:11452").
-    // Empty = fall back to single multiNodeBaseURL endpoint (backward compat).
-    @AppStorage("multiNodeMasterList") var multiNodeMasterList: String = ""
+    // 审计0907 P2-8: multiNodeMasterList 旧 @AppStorage 明文存 UserDefaults plist, 助横向移动。
+    //   改 0600 文件 (~/.fusion-studio/multi-node-master-list), 经 KeychainStore.readMasterList/writeMasterList。
+    //   本 @AppStorage 已删, 避免 stale 明文副本残留 (MasterPool.reload + SettingsView 已切文件读取)。
 
     /// Multi-Node Master 服务地址（FastAPI MasterServer，需 Bearer token）。
     // F-sec-1 P1: 远程集群强制 https:// (明文 token 走 HTTP 跨网段泄露风险); 本地单节点 http://。
@@ -300,6 +302,20 @@ class FusionConfig: ObservableObject {
     func isLocalHost(_ host: String) -> Bool {
         let h = host.lowercased()
         return h == "127.0.0.1" || h == "localhost" || h == "0.0.0.0" || h == "::1"
+    }
+
+    /// 审计0907 P1-8: 完整 URL (FUSION_GATEWAY_URL/FUSION_MLX_URL) scheme 校验。
+    ///   http://localhost/127.0.0.1 → 保留 http; http://remote → 改 https:// (Bearer key 明文保护)。
+    ///   无法解析 host (格式坏) → 原样返回, 让 URLSession 报错而非静默改写。
+    func enforceHttpsForRemoteURL(_ url: String) -> String {
+        guard let parsed = URL(string: url), let host = parsed.host, !host.isEmpty else { return url }
+        if isLocalHost(host) { return url }
+        if parsed.scheme?.lowercased() == "http" {
+            var comps = URLComponents(url: parsed, resolvingAgainstBaseURL: false)
+            comps?.scheme = "https"
+            return comps?.url?.absoluteString ?? url
+        }
+        return url
     }
 
     /// 读取 cluster token。
@@ -503,8 +519,13 @@ class FusionConfig: ObservableObject {
         }
         let env = ProcessInfo.processInfo.environment
         if let full = env["FUSION_GATEWAY_URL"] ?? env["FUSION_MLX_URL"], !full.isEmpty {
-            fusionConfigLog.info("mlxBaseURL: source=FUSION_GATEWAY_URL/MLX_URL env -> \(full)")
-            return full
+            // 审计0907 P1-8: env URL 可 http://remote-host → Bearer MLX key 明文。强制远程 https://。
+            let enforced = enforceHttpsForRemoteURL(full)
+            if enforced != full {
+                fusionConfigLog.warning("mlxBaseURL: env URL \(full, privacy: .public) 远程明文 → 强制 https://")
+            }
+            fusionConfigLog.info("mlxBaseURL: source=FUSION_GATEWAY_URL/MLX_URL env -> \(enforced, privacy: .public)")
+            return enforced
         }
         if let portStr = env["FUSION_MLX_PORT"], let envPort = Int(portStr), envPort > 0 {
             fusionConfigLog.info("mlxBaseURL: source=FUSION_MLX_PORT env -> \(host):\(envPort)")
@@ -566,7 +587,7 @@ class FusionConfig: ObservableObject {
 
         offlineMode = true
         allowModelDownload = true
-        allowUpdateCheck = true
+        allowUpdateCheck = false
 
         defaultQuant = "4bit"
         defaultFormat = "mlx"

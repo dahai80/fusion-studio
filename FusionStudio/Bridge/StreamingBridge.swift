@@ -142,6 +142,9 @@ class StreamingBridge: ObservableObject {
         conn.send(content: payload, completion: .contentProcessed { error in
             if let error = error {
                 bridgeLog.error("WS send failed: \(error.localizedDescription)")
+                Task { @MainActor in
+                    self.isStreaming = false
+                }
             }
         })
     }
@@ -198,6 +201,13 @@ class StreamingBridge: ObservableObject {
                     self.isStreaming = false
                     bridgeLog.info("Stream done for session, content length: \(self.accumulatedContent.count)")
                 }
+            } else if type == "error" {
+                Task { @MainActor [weak self] in
+                    guard let self = self else { return }
+                    self.isStreaming = false
+                    let errMsg = msg["message"] as? String ?? msg["error"] as? String ?? "unknown"
+                    bridgeLog.error("Stream server error event: \(errMsg)")
+                }
             }
         }
     }
@@ -215,7 +225,9 @@ class StreamingBridge: ObservableObject {
         task.resume()
 
         bridgeLog.info("StreamingBridge: WebSocket connecting to \(url)")
-        isConnected = true
+        // 审计0907 P3-11: 旧 resume() 后立即 isConnected=true — 握手未完即报已连, UI 误判可用。
+        //   改: isConnected 仅在 receiveWebSocketLoop 首条消息成功 (握手确认) 后置 true。
+        isConnected = false
         receiveWebSocketLoop()
     }
 
@@ -228,6 +240,15 @@ class StreamingBridge: ObservableObject {
         wsReconnectTimer?.invalidate()
         wsReconnectTimer = nil
         bridgeLog.info("StreamingBridge: WebSocket disconnected")
+    }
+
+    // 审计0907 P1-3: 生命周期兜底 — dealloc 时清 timer + cancel socket, 防 leak/续跑。
+    deinit {
+        reconnectTimer?.invalidate()
+        wsReconnectTimer?.invalidate()
+        connection?.cancel()
+        webSocketTask?.cancel(with: .goingAway, reason: nil)
+        bridgeLog.info("StreamingBridge deinit: timers invalidated, sockets cancelled")
     }
 
     func streamChatWS(sessionId: String, message: String, model: String = "") {

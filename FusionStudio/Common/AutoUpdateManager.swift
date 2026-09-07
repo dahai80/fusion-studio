@@ -279,7 +279,8 @@ class AutoUpdateManager: ObservableObject {
 
 struct UpdateSettingsView: View {
     @StateObject private var updateManager = AutoUpdateManager.shared
-    @AppStorage("autoCheckUpdates") private var autoCheckUpdates = true
+    // 审计0907 P0-4: 默认 false (opt-in), 防自动 phone home api.github.com。
+    @AppStorage("autoCheckUpdates") private var autoCheckUpdates = false
     @AppStorage("checkInterval") private var checkInterval = 24.0
 
     var body: some View {

@@ -192,7 +192,8 @@ struct NetworkSettingsView: View {
     private let netSettingsLog = Logger(subsystem: "com.fusion.studio", category: "Settings.Network")
     @AppStorage("offlineMode") private var offlineMode = true
     @AppStorage("allowModelDownload") private var allowModelDownload = true
-    @AppStorage("allowUpdateCheck") private var allowUpdateCheck = true
+    // 审计0907 P0-4: 默认 false (opt-in), 防启动 phone home。
+    @AppStorage("allowUpdateCheck") private var allowUpdateCheck = false
     // F-ops-8: 本地崩溃遥测 opt-in toggle (默认 OFF, 零网络上传, 仅落盘 ~/.fusion-studio/logs/crash-*.log)。
     @AppStorage("enableCrashTelemetry") private var enableCrashTelemetry = false
     // 审计v0.1.58 residual — bundle 完整性强制 (企业部署 opt-in, 默认告警)。
@@ -631,7 +632,8 @@ struct MultiNodeSecuritySettingsView: View {
     @Environment(\.studioTheme) private var theme
     @StateObject private var i18n = I18nManager.shared
     @State private var tlsCerts: [CertSummary] = []
-    @State private var masterList: String = UserDefaults.standard.string(forKey: "multiNodeMasterList") ?? ""
+    // 审计0907 P2-8: master list 旧明文存 UserDefaults.standard plist, 助横向移动。改 0600 文件。
+    @State private var masterList: String = KeychainStore.readMasterList()
     @State private var tokenInput: String = ""
     @State private var importError: String = ""
     private let log = Logger(subsystem: "com.fusion.studio", category: "Settings.MultiNodeSecurity")
@@ -676,9 +678,9 @@ struct MultiNodeSecuritySettingsView: View {
                         .font(.system(size: theme.footnoteSize, design: .monospaced))
                         .frame(width: 240)
                         .onChange(of: masterList) { v in
-                            UserDefaults.standard.set(v, forKey: "multiNodeMasterList")
+                            _ = KeychainStore.writeMasterList(v)
                             MasterPool.shared.reload()
-                            log.info("master list updated")
+                            log.info("master list updated (0600 file)")
                         }
                 }
 
@@ -718,7 +720,7 @@ struct MultiNodeSecuritySettingsView: View {
         }
         .onAppear {
             tlsCerts = TlsTrustStore.shared.listCerts()
-            masterList = UserDefaults.standard.string(forKey: "multiNodeMasterList") ?? ""
+            masterList = KeychainStore.readMasterList()
         }
     }
 

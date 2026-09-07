@@ -4,7 +4,7 @@
   <img src="https://img.shields.io/badge/Swift-5.9-red" alt="Swift">
   <img src="https://img.shields.io/badge/Rust-2021-purple" alt="Rust">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License">
-  <img src="https://img.shields.io/badge/status-V0.1.39-yellow" alt="V0.1.39">
+  <img src="https://img.shields.io/badge/status-V0.1.62-yellow" alt="V0.1.62">
   <img src="https://img.shields.io/badge/modules-27-success" alt="27 Modules">
 </div>
 

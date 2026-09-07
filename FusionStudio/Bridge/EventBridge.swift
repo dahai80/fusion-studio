@@ -160,7 +160,7 @@ final class EventBridge: ObservableObject {
     func startStream() {
         guard streamTask == nil else { return }
         eventBridgeLog.info("EventBridge startStream socket=\(self.socketPath, privacy: .public)")
-        streamTask = Task { await self.runStream() }
+        streamTask = Task { [weak self] in await self?.runStream() }
     }
 
     func stopStream() {
@@ -171,6 +171,14 @@ final class EventBridge: ObservableObject {
         // 审计0830 P1-IPC-1: 原子 close+置 -1, 与后台 runStream 读写互斥, 防 use-after-close/double-close。
         closeStreamSockAtomic()
         eventBridgeLog.info("EventBridge stopStream")
+    }
+
+    // 审计0907 P1-21: 生命周期兜底 — dealloc cancel stream/reconnect task, 防 leak/续跑。
+    deinit {
+        reconnectTask?.cancel()
+        streamTask?.cancel()
+        closeStreamSockAtomic()
+        eventBridgeLog.info("EventBridge deinit: tasks cancelled, stream socket closed")
     }
 
     private func runStream() async {

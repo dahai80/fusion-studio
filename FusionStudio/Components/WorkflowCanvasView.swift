@@ -67,6 +67,9 @@ struct WorkflowCanvasView<Delegate: WorkflowCanvasDelegate>: View where Delegate
     @ObservedObject var delegate: Delegate
     @Binding var graphName: String
     var onSave: () -> Void
+    // 审计0907 P2-16: saveGraph 静默吞错 (仅 log, 用户无感)。可选 toastManager 注入 → 失败显 error toast。
+    //   nil = 无 toast (FSB caller 未传), 仍 log。Agent caller 传入 → 用户可见。
+    var toastManager: FusionToastManager? = nil
 
     @State private var nodes: [CanvasNode<Delegate.NodeType>] = []
     @State private var edges: [CanvasEdge] = []
@@ -105,7 +108,9 @@ struct WorkflowCanvasView<Delegate: WorkflowCanvasDelegate>: View where Delegate
             }
         }
         .frame(minWidth: 900, minHeight: 600)
-        .onAppear { Task { try? await loadGraph() } }
+        // 审计0907 P2-22/P3-9: 旧 .onAppear { Task {} } 孤儿 Task — view 消失不 cancel, 可能跑完写已释放 state。
+        //   改 .task {} — SwiftUI 绑 view 生命周期, 消失自动 cancel。
+        .task { try? await loadGraph() }
         .sheet(isPresented: $showAddNode) { addNodeSheet }
     }
 
@@ -749,6 +754,8 @@ struct WorkflowCanvasView<Delegate: WorkflowCanvasDelegate>: View where Delegate
             onSave()
         } catch {
             canvasLog.error("save graph failed: \(error.localizedDescription)")
+            // 审计0907 P2-16: 显 error toast (非仅 log), 用户可见失败原因。
+            toastManager?.show(style: .error, title: I18nManager.shared.t(.wf_cv_saveFailed), message: error.localizedDescription)
         }
     }
 

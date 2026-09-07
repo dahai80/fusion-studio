@@ -133,13 +133,16 @@ struct DesignTokenPanel: View {
     // Data schemas: DesignSystemPreset.cliName → CLI --design-system param.
     // User instruction: "跟fusion-design做集成测试，基于prd文档，和claude洞察文档，测试到菜单，子菜单，数据要素，流程和user case，从GUI到业务逻辑，要进行全面深入的集成测试"
 
+    // 审计0907 P0-3: 旧 sync runFusionDesign 在 MainActor 阻塞最长 180s → UI 冻结。改 async。
     private func applyPreset(_ preset: DesignSystemPreset) {
-        let result = designBridge.runFusionDesign(["token-css", "--design-system", preset.cliName])
-        if result.exitCode == 0, !result.output.isEmpty {
-            designBridge.applyDesignTokensToCanvas(result.output)
-            tokenLog.info("DesignTokenPanel: applied preset \(preset.rawValue), css length=\(result.output.count)")
-        } else {
-            tokenLog.error("DesignTokenPanel: token-css failed: \(result.error)")
+        Task { @MainActor in
+            let result = await designBridge.runFusionDesignAsync(["token-css", "--design-system", preset.cliName])
+            if result.exitCode == 0, !result.output.isEmpty {
+                designBridge.applyDesignTokensToCanvas(result.output)
+                tokenLog.info("DesignTokenPanel: applied preset \(preset.rawValue), css length=\(result.output.count)")
+            } else {
+                tokenLog.error("DesignTokenPanel: token-css failed: \(result.error)")
+            }
         }
     }
 
