@@ -346,7 +346,7 @@ class DocBridge: ObservableObject {
             self.reconnectAttempt += 1
             docBridgeLog.warning("DocBridge reconnect backoff: attempt=\(attempt) interval=\(String(format: "%.2f", interval))s")
             self.reconnectTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] _ in
-                self?.checkHealth()
+                Task { @MainActor [weak self] in self?.checkHealth() }
             }
         }
     }
