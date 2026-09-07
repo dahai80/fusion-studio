@@ -241,24 +241,25 @@ class MultiNodeEngine: ObservableObject {
     func startPolling() {
         // F-A9: App 级生命周期调用 (scenePhase active), 多叶子 View onAppear 不再各自调。
         // 幂等: 已有 timer 在跑则跳过, 防重复 schedule 致请求风暴。
-        if !pollTimers.isEmpty {
+        // ARCH-1 PR-C1 Phase 5: coordinator — 调 8 域 fetch, 留 engine。schedulePoll 委派 pollingState。
+        if !pollingState.pollTimers.isEmpty {
             engineLog.info("MultiNode polling already running, skip")
             return
         }
         engineLog.info("MultiNode polling started")
-        schedulePoll(interval: 2.0, label: "stats_nodes") { [weak self] in
+        pollingState.schedulePoll(interval: 2.0, label: "stats_nodes") { [weak self] in
             self?.fetchClusterStats()
             self?.fetchNodes()
         }
-        schedulePoll(interval: 3.0, label: "tasks_sync") { [weak self] in
+        pollingState.schedulePoll(interval: 3.0, label: "tasks_sync") { [weak self] in
             self?.fetchTasks()
             self?.fetchClusterSyncStatus()
             self?.fetchPendingNodes()
         }
-        schedulePoll(interval: 5.0, label: "node_loads") { [weak self] in
+        pollingState.schedulePoll(interval: 5.0, label: "node_loads") { [weak self] in
             self?.fetchAllNodeLoads()
         }
-        schedulePoll(interval: 10.0, label: "suggestions_alerts") { [weak self] in
+        pollingState.schedulePoll(interval: 10.0, label: "suggestions_alerts") { [weak self] in
             self?.fetchSuggestions()
             self?.fetchAlerts()
         }
@@ -266,51 +267,14 @@ class MultiNodeEngine: ObservableObject {
     }
 
     func stopPolling() {
-        pollTimers.forEach { $0.invalidate() }
-        pollTimers.removeAll()
+        pollingState.pollTimers.forEach { $0.invalidate() }
+        pollingState.pollTimers.removeAll()
         engineLog.info("MultiNode polling stopped")
     }
 
+    // ARCH-1 PR-C1 Phase 5: schedulePoll/reschedulePoll stubs → pollingState (bodies in MultiNodePollingService.swift)。
     private func schedulePoll(interval: TimeInterval, label: String, action: @escaping () -> Void) {
-        // F-R10: 指数退避轮询。失败时 interval × 2^min(consecutiveFailures,5), 封顶 60s; 成功复位 base。
-        // 单发递归 Timer 每轮重算 delay (固定 repeats Timer 无法动态调 interval)。单飞保护防慢响应风暴。
-        var runOnce: (() -> Void)?
-        runOnce = { [weak self] in
-            guard let self = self else { return }
-            self.inflightLock.lock()
-            let already = self.inflightFetches.contains(label)
-            if !already { self.inflightFetches.insert(label) }
-            self.inflightLock.unlock()
-            guard !already else {
-                engineLog.debug("Poll skip (in-flight): \(label)")
-                self.reschedulePoll(interval: interval, label: label, action: action, runOnce: runOnce!)
-                return
-            }
-            action()
-            self.inflightLock.lock()
-            self.inflightFetches.remove(label)
-            self.inflightLock.unlock()
-            self.reschedulePoll(interval: interval, label: label, action: action, runOnce: runOnce!)
-        }
-        action()
-        reschedulePoll(interval: interval, label: label, action: action, runOnce: runOnce!)
-    }
-
-    private func reschedulePoll(interval: TimeInterval, label: String, action: @escaping () -> Void, runOnce: @escaping () -> Void) {
-        // F-R10: delay = base × 2^min(consecutiveFailures,5), 封顶 60s。consecutiveFailures=0 复位 base。
-        // 审计0827 §3.5: 取 worstConsecutiveFailures (4 路最差值) 避免单路复位让全局 backoff 立归 base。
-        let backoff = TimeInterval(min(worstConsecutiveFailures, 5))
-        let delay = min(interval * pow(2.0, backoff), 60.0)
-        if delay > interval {
-            engineLog.info("Poll backoff \(label): \(interval)s -> \(Int(delay))s (failures=\(self.worstConsecutiveFailures))")
-        }
-        let timer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { _ in
-            runOnce()
-        }
-        // 审计0827 §2.3 (P1): pollTimers 单发 timer 已 fire (isValid=false) 仍留数组,
-        // 每轮 +1 无 prune, 长跑累积 (4 pollers × N cycles)。append 前剔失效项保数组紧致。
-        pollTimers = pollTimers.filter { $0.isValid }
-        pollTimers.append(timer)
+        pollingState.schedulePoll(interval: interval, label: label, action: action)
     }
 
     // MARK: - GET endpoints (ClusterHealth + Node — Phase 2 stubs, bodies in Service files)
@@ -388,30 +352,24 @@ class MultiNodeEngine: ObservableObject {
         try await autoscalerState.updateAutoscalerConfig(config)
     }
 
+    // ARCH-1 PR-C1 Phase 5: KVCache 域 stubs, bodies in MultiNodeKVCacheService.swift。
     func registerKVCache(cacheId: String, modelName: String, nodeId: String, sizeMb: Double, ttlSeconds: Int = 3600) async throws {
-        // 审计v0.1.58 P0-multinode-1: KV register 是写操作, 必经 canMutate+split-brain 门.
-        guard canMutate else {
-            ClusterAuditor.shared.record(action: "registerKV", targetNode: nodeId, targetTask: nil,
-                                         result: "blocked", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw EngineError.writeDisabled
-        }
-        try assertNoSplitBrain()
-        let body: [String: Any] = [
-            "cache_id": cacheId,
-            "model_name": modelName,
-            "node_id": nodeId,
-            "size_mb": sizeMb,
-            "ttl_seconds": ttlSeconds,
-        ]
-        do {
-            _ = try await post("/api/kv/register", body: body)
-            ClusterAuditor.shared.record(action: "registerKV", targetNode: nodeId, targetTask: nil,
-                                         result: "ok", idempotencyKey: nil, masterHost: activeMasterHost)
-        } catch {
-            ClusterAuditor.shared.record(action: "registerKV", targetNode: nodeId, targetTask: nil,
-                                         result: "failed", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw error
-        }
+        try await kvCacheState.registerKVCache(cacheId: cacheId, modelName: modelName, nodeId: nodeId, sizeMb: sizeMb, ttlSeconds: ttlSeconds)
+    }
+    func findKVCache(modelName: String, completion: @escaping (Result<KVCacheEntry, Error>) -> Void) {
+        kvCacheState.findKVCache(modelName: modelName, completion: completion)
+    }
+    func fetchAgentKVStats(completion: @escaping (Result<KVStatsResponse, Error>) -> Void) {
+        kvCacheState.fetchAgentKVStats(completion: completion)
+    }
+    func agentKVLookup(modelName: String, promptHash: String, completion: @escaping (Result<KVCacheEntry, Error>) -> Void) {
+        kvCacheState.agentKVLookup(modelName: modelName, promptHash: promptHash, completion: completion)
+    }
+    func agentKVTransfer(cacheId: String, targetNode: String, completion: @escaping (Result<Bool, Error>) -> Void) {
+        kvCacheState.agentKVTransfer(cacheId: cacheId, targetNode: targetNode, completion: completion)
+    }
+    func agentKVWarm(modelName: String, prompts: [String], completion: @escaping (Result<Int, Error>) -> Void) {
+        kvCacheState.agentKVWarm(modelName: modelName, prompts: prompts, completion: completion)
     }
 
     func exportLogs() async throws -> Data {
@@ -424,22 +382,8 @@ class MultiNodeEngine: ObservableObject {
         return data
     }
 
-    func setRoutingStrategy(_ strategy: String) async throws {
-        guard canMutate else {
-            ClusterAuditor.shared.record(action: "setRouting", targetNode: nil, targetTask: nil,
-                                         result: "blocked", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw EngineError.writeDisabled
-        }
-        do {
-            _ = try await post("/api/routing/strategy", body: ["strategy": strategy])
-            ClusterAuditor.shared.record(action: "setRouting", targetNode: nil, targetTask: nil,
-                                         result: "ok", idempotencyKey: nil, masterHost: activeMasterHost)
-        } catch {
-            ClusterAuditor.shared.record(action: "setRouting", targetNode: nil, targetTask: nil,
-                                         result: "failed", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw error
-        }
-    }
+    // ARCH-1 PR-C1 Phase 5: Routing 域 stubs, bodies in MultiNodeRoutingService.swift。
+    func setRoutingStrategy(_ strategy: String) async throws { try await routingState.setRoutingStrategy(strategy) }
 
     func joinNode(ipAddress: String, port: Int, token: String? = nil) async throws -> [String: Any] {
         try await nodeState.joinNode(ipAddress: ipAddress, port: port, token: token)
@@ -465,169 +409,18 @@ class MultiNodeEngine: ObservableObject {
 
     // MARK: - Routing
 
+    // ARCH-1 PR-C1 Phase 5: Routing 域 stubs, bodies in MultiNodeRoutingService.swift。
     func fetchRoutingSummary(completion: @escaping (Result<RoutingSummary, Error>) -> Void) {
-        get("/api/routing/summary") { result in completion(result) }
+        routingState.fetchRoutingSummary(completion: completion)
     }
 
-    // MARK: - KV Cache (Master)
-
-    func findKVCache(modelName: String, completion: @escaping (Result<KVCacheEntry, Error>) -> Void) {
-        get("/api/kv/find/\(modelName)") { result in completion(result) }
-    }
-
-    // MARK: - Agent Server (port = cfg.multiNodeAgentPort, 默认 11458, 原 11445 迁出)
-
-    func fetchAgentKVStats(completion: @escaping (Result<KVStatsResponse, Error>) -> Void) {
-        guard let url = URL(string: "\(agentBaseURL)/api/kv/stats") else {
-            completion(.failure(EngineError.invalidURL)); return
-        }
-        var req = URLRequest(url: url)
-        authHeaders(&req)
-        session.dataTask(with: req) { data, _, error in
-            if let error = error { completion(.failure(error)); return }
-            guard let data = data else { completion(.failure(EngineError.noData)); return }
-            do {
-                let decoded = try JSONDecoder().decode(KVStatsResponse.self, from: data)
-                completion(.success(decoded))
-            } catch {
-                completion(.failure(error))
-            }
-        }.resume()
-    }
-
+    // ARCH-1 PR-C1 Phase 5: AgentServer 域 stubs, bodies in MultiNodeAgentServerService.swift。
     func fetchAgentHardware(completion: @escaping (Result<AgentHardwareInfo, Error>) -> Void) {
-        guard let url = URL(string: "\(agentBaseURL)/api/hardware") else {
-            completion(.failure(EngineError.invalidURL)); return
-        }
-        var req = URLRequest(url: url)
-        authHeaders(&req)
-        session.dataTask(with: req) { data, _, error in
-            if let error = error { completion(.failure(error)); return }
-            guard let data = data else { completion(.failure(EngineError.noData)); return }
-            do {
-                let decoded = try JSONDecoder().decode(AgentHardwareInfo.self, from: data)
-                completion(.success(decoded))
-            } catch {
-                completion(.failure(error))
-            }
-        }.resume()
+        agentServerState.fetchAgentHardware(completion: completion)
     }
-
     func checkAgentHealth(completion: @escaping (Result<Bool, Error>) -> Void) {
-        guard let url = URL(string: "\(agentBaseURL)/api/health") else {
-            completion(.failure(EngineError.invalidURL)); return
-        }
-        var req = URLRequest(url: url)
-        authHeaders(&req)
-        session.dataTask(with: req) { data, _, error in
-            if let error = error { completion(.failure(error)); return }
-            guard let data = data else { completion(.failure(EngineError.noData)); return }
-            do {
-                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   json["status"] as? String == "ok" {
-                    completion(.success(true))
-                } else {
-                    completion(.success(false))
-                }
-            } catch {
-                completion(.failure(error))
-            }
-        }.resume()
+        agentServerState.checkAgentHealth(completion: completion)
     }
-
-    func agentKVLookup(modelName: String, promptHash: String, completion: @escaping (Result<KVCacheEntry, Error>) -> Void) {
-        guard let url = URL(string: "\(agentBaseURL)/api/kv/lookup") else {
-            completion(.failure(EngineError.invalidURL)); return
-        }
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        authHeaders(&req)
-        let body = ["model_name": modelName, "prompt_hash": promptHash]
-        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        session.dataTask(with: req) { data, _, error in
-            if let error = error { completion(.failure(error)); return }
-            guard let data = data else { completion(.failure(EngineError.noData)); return }
-            do {
-                let decoded = try JSONDecoder().decode(KVCacheEntry.self, from: data)
-                completion(.success(decoded))
-            } catch {
-                completion(.failure(error))
-            }
-        }.resume()
-    }
-
-    func agentKVTransfer(cacheId: String, targetNode: String, completion: @escaping (Result<Bool, Error>) -> Void) {
-        guard let url = URL(string: "\(agentBaseURL)/api/kv/transfer") else {
-            completion(.failure(EngineError.invalidURL)); return
-        }
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        authHeaders(&req)
-        let body = ["cache_id": cacheId, "target_node": targetNode]
-        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        session.dataTask(with: req) { data, _, error in
-            if let error = error { completion(.failure(error)); return }
-            if let data = data,
-               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               json["status"] as? String == "ok" {
-                completion(.success(true))
-            } else {
-                completion(.success(false))
-            }
-        }.resume()
-    }
-
-    func agentKVWarm(modelName: String, prompts: [String], completion: @escaping (Result<Int, Error>) -> Void) {
-        // 审计0827 §3.6 (P2): 无 (model) 去重, 并发 warm (多 agent / 重复点按钮) → 重复 POST
-        // → MLX 后端同模型重复分配 KV cache 显存翻倍, 8-16 节点触发 GPU OOM。
-        // 按 model 名单飞: in-flight 期间同 model 跳过, 回调完成才释放。
-        // 审计0830 P1-调度-7: 旧 [weak self] 回调若 self 已 nil → releaseInflight no-op → key 永留 inflightFetches,
-        //   后续同 model warm 恒被 skip = 永久 hang。改强引用 self 至回调结束 (engine 随 app 生命周期, 无提早释放风险),
-        //   且全路径 (URL 构造失败 / 网络错误 / 解码失败) 经统一 release 闭包释放, 无遗漏路径。
-        let inflightKey = "kv_warm:\(modelName)"
-        inflightLock.lock()
-        if inflightFetches.contains(inflightKey) {
-            inflightLock.unlock()
-            engineLog.warning("agentKVWarm skip (in-flight): \(modelName)")
-            completion(.failure(EngineError.duplicateRequest))
-            return
-        }
-        inflightFetches.insert(inflightKey)
-        inflightLock.unlock()
-        // 统一释放闭包: 任意出口 (含 early-return) 都经此, 保证 lock 不泄漏。
-        // 强引用 self: 回调持有 self 至网络完成才释放, 避免 weak-nil 跳过 releaseInflight 致 key 永留。
-        let release = { self.releaseInflight(inflightKey) }
-        guard let url = URL(string: "\(agentBaseURL)/api/kv/warm") else {
-            release()
-            completion(.failure(EngineError.invalidURL)); return
-        }
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        authHeaders(&req)
-        let body: [String: Any] = ["model_name": modelName, "prompts": prompts]
-        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        // 强引用 self: 回调持有 self 至网络完成才释放, 避免 weak-nil 路径跳过 releaseInflight。
-        session.dataTask(with: req) { data, _, error in
-            release()
-            if let error = error { completion(.failure(error)); return }
-            guard let data = data else { completion(.failure(EngineError.noData)); return }
-            do {
-                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                    let warmed = json["warmed"] as? Int ?? 0
-                    completion(.success(warmed))
-                } else {
-                    completion(.success(0))
-                }
-            } catch {
-                completion(.failure(error))
-            }
-        }.resume()
-    }
-
-    // releaseInflight 已迁 pollingState (Phase 1 shim 转发)。旧 body 删。
 
     // MARK: - Generic HTTP helpers
 
