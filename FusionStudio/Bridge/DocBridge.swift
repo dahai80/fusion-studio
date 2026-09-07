@@ -70,7 +70,8 @@ class DocBridge: ObservableObject {
     // 旧版本曾存 UserDefaults "fusion_doc_auth_token", 首次读时迁移到 Keychain 并清旧明文条目。
     private static let authTokenKeychainAccount = "fusion_doc_auth_token"
     private static let authTokenLegacyKey = "fusion_doc_auth_token"
-    private var authToken: String? {
+    // ARCH-1 Phase 2: private→internal — DocAuthService 经 bridge?.authToken reach-through Keychain infra。
+    var authToken: String? {
         get {
             if let token = KeychainStore.get(Self.authTokenKeychainAccount), !token.isEmpty {
                 return token
@@ -100,7 +101,9 @@ class DocBridge: ObservableObject {
     // F-A2: DocBridge 流式 @Published 数组无界 append (create/clone/install 回调内),
     // 连续操作不 fetch 时内存单调增长。统一 LRU cap 入口, 保留最近 cap 条, 超额丢弃最旧。
     // PERF-3 ragResults 范式。各调用方在 append 后调 capXxx 限流。
-    private static func cap<T>(_ arr: inout [T], _ cap: Int) {
+    // ARCH-1 Phase 2 (audit-product-0907 P2-2): private→internal — 域服务扩展跨文件 reach-through
+    //   bridge?.cap(...) / DocBridge.cap(...)。纯函数 (inout 数组裁剪), 单测覆盖。
+    static func cap<T>(_ arr: inout [T], _ cap: Int) {
         if arr.count > cap {
             arr.removeFirst(arr.count - cap)
         }
@@ -185,7 +188,8 @@ class DocBridge: ObservableObject {
         return NSError(domain: "DocBridge", code: code, userInfo: [NSLocalizedDescriptionKey: desc])
     }
 
-    private func get<T: Decodable>(_ path: String, completion: @escaping (Result<T, Error>) -> Void) {
+    // ARCH-1 Phase 2: private→internal — 域服务扩展经 bridge?.get(...) reach-through HTTP infra。
+    func get<T: Decodable>(_ path: String, completion: @escaping (Result<T, Error>) -> Void) {
         guard let url = URL(string: "\(baseURL)\(path)") else {
             completion(.failure(NSError(domain: "DocBridge", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))
             return
@@ -209,7 +213,8 @@ class DocBridge: ObservableObject {
         }.resume()
     }
 
-    private func post<T: Decodable>(_ path: String, body: [String: Any]? = nil, completion: @escaping (Result<T, Error>) -> Void) {
+    // ARCH-1 Phase 2: private→internal — 域服务扩展经 bridge?.post(...) reach-through HTTP infra。
+    func post<T: Decodable>(_ path: String, body: [String: Any]? = nil, completion: @escaping (Result<T, Error>) -> Void) {
         guard let url = URL(string: "\(baseURL)\(path)") else {
             completion(.failure(NSError(domain: "DocBridge", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))
             return
@@ -245,7 +250,8 @@ class DocBridge: ObservableObject {
         }.resume()
     }
 
-    private func put<T: Decodable>(_ path: String, body: [String: Any], completion: @escaping (Result<T, Error>) -> Void) {
+    // ARCH-1 Phase 2: private→internal — 域服务扩展经 bridge?.put(...) reach-through HTTP infra。
+    func put<T: Decodable>(_ path: String, body: [String: Any], completion: @escaping (Result<T, Error>) -> Void) {
         guard let url = URL(string: "\(baseURL)\(path)") else {
             completion(.failure(NSError(domain: "DocBridge", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))
             return
@@ -279,7 +285,8 @@ class DocBridge: ObservableObject {
         }.resume()
     }
 
-    private func delete<T: Decodable>(_ path: String, completion: @escaping (Result<T, Error>) -> Void) {
+    // ARCH-1 Phase 2: private→internal — 域服务扩展经 bridge?.delete(...) reach-through HTTP infra。
+    func delete<T: Decodable>(_ path: String, completion: @escaping (Result<T, Error>) -> Void) {
         guard let url = URL(string: "\(baseURL)\(path)") else {
             completion(.failure(NSError(domain: "DocBridge", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))
             return
@@ -304,7 +311,8 @@ class DocBridge: ObservableObject {
         }.resume()
     }
 
-    private func handleError(_ error: Error, context: String) {
+    // ARCH-1 Phase 2: private→internal — 域服务扩展经 bridge?.handleError(...) 汇入中央错漏斗 (协调器留此)。
+    func handleError(_ error: Error, context: String) {
         docBridgeLog.error("[\(context)] \(error.localizedDescription)")
         DispatchQueue.main.async {
             // 审计0827 §3.9.4 (P2): lastError 旧裸 "\(context): \(error.localizedDescription)" 暴露底层错
@@ -338,180 +346,11 @@ class DocBridge: ObservableObject {
 
     // MARK: - Health
 
-    func checkHealth() {
-        struct HealthResp: Decodable { var status: String? }
-        get("/api/health") { [weak self] (result: Result<HealthResp, Error>) in
-            switch result {
-            case .success:
-                DispatchQueue.main.async {
-                    self?.isConnected = true
-                    self?.lastError = nil
-                    self?.reconnectTimer?.invalidate()
-                    self?.reconnectTimer = nil
-                    self?.reconnectAttempt = 0
-                }
-            case .failure(let error):
-                self?.handleError(error, context: "health")
-            }
-        }
-    }
+    // ARCH-1 Phase 2: checkHealth 行为已迁 DocHealthService.swift (extension DocHealthState +
+    //   extension DocBridge stub)。scheduleReconnect 留此 (handleError 协调器调)。
 
-    // MARK: - Books
-
-    func fetchBooks() {
-        get("/api/books") { [weak self] (result: Result<[DocBook], Error>) in
-            switch result {
-            case .success(let list):
-                DispatchQueue.main.async { self?.books = Array(list.suffix(200)) }
-            case .failure(let error):
-                self?.handleError(error, context: "books")
-            }
-        }
-    }
-
-    func createBook(title: String, description: String? = nil, workspaceId: String? = nil) {
-        var body: [String: Any] = ["title": title]
-        if let desc = description { body["description"] = desc }
-        if let wsId = workspaceId { body["workspace_id"] = wsId }
-        post("/api/books", body: body) { [weak self] (result: Result<DocBook, Error>) in
-            switch result {
-            case .success(let book):
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    self.books.append(book)
-                    Self.cap(&self.books, 200)
-                }
-            case .failure(let error):
-                self?.handleError(error, context: "createBook")
-            }
-        }
-    }
-
-    // MARK: - Chapters
-
-    func fetchChapters(bookId: String) {
-        get("/api/chapters?bookId=\(bookId)") { [weak self] (result: Result<[DocChapter], Error>) in
-            switch result {
-            case .success(let list):
-                DispatchQueue.main.async { self?.chapters = Array(list.suffix(200)) }
-            case .failure(let error):
-                self?.handleError(error, context: "chapters")
-            }
-        }
-    }
-
-    func createChapter(bookId: String, title: String) {
-        post("/api/chapters", body: ["book_id": bookId, "title": title]) { [weak self] (result: Result<DocChapter, Error>) in
-            switch result {
-            case .success(let ch):
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    self.chapters.append(ch)
-                    Self.cap(&self.chapters, 500)
-                }
-            case .failure(let error):
-                self?.handleError(error, context: "createChapter")
-            }
-        }
-    }
-
-    // MARK: - Pages
-
-    func fetchPages(bookId: String? = nil, chapterId: String? = nil) {
-        var path = "/api/pages"
-        var params: [String] = []
-        if let bid = bookId { params.append("bookId=\(bid)") }
-        if let cid = chapterId { params.append("chapterId=\(cid)") }
-        if !params.isEmpty { path += "?" + params.joined(separator: "&") }
-
-        get(path) { [weak self] (result: Result<[DocPage], Error>) in
-            switch result {
-            case .success(let list):
-                DispatchQueue.main.async { self?.pages = Array(list.suffix(200)) }
-            case .failure(let error):
-                self?.handleError(error, context: "pages")
-            }
-        }
-    }
-
-    func fetchPage(id: String) {
-        get("/api/pages/\(id)") { [weak self] (result: Result<DocPage, Error>) in
-            switch result {
-            case .success(let page):
-                DispatchQueue.main.async { self?.currentPage = page }
-            case .failure(let error):
-                self?.handleError(error, context: "page")
-            }
-        }
-    }
-
-    func createPage(title: String, bookId: String? = nil, chapterId: String? = nil, content: String = "") {
-        var body: [String: Any] = ["title": title, "content": content]
-        if let bid = bookId { body["book_id"] = bid }
-        if let cid = chapterId { body["chapter_id"] = cid }
-        post("/api/pages", body: body) { [weak self] (result: Result<DocPage, Error>) in
-            switch result {
-            case .success(let page):
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    self.pages.append(page)
-                    Self.cap(&self.pages, 1000)
-                }
-            case .failure(let error):
-                self?.handleError(error, context: "createPage")
-            }
-        }
-    }
-
-    func updatePage(id: String, title: String, content: String, markdown: String? = nil) {
-        var body: [String: Any] = ["title": title, "content": content]
-        if let md = markdown { body["markdown"] = md }
-        put("/api/pages/\(id)", body: body) { [weak self] (result: Result<[String: Bool], Error>) in
-            switch result {
-            case .success:
-                DispatchQueue.main.async {
-                    if let idx = self?.pages.firstIndex(where: { $0.id == id }) {
-                        self?.pages[idx].title = title
-                        self?.pages[idx].content = content
-                    }
-                    if self?.currentPage?.id == id {
-                        self?.currentPage?.title = title
-                        self?.currentPage?.content = content
-                    }
-                }
-            case .failure(let error):
-                self?.handleError(error, context: "updatePage")
-            }
-        }
-    }
-
-    func deletePage(id: String) {
-        struct DeleteResp: Decodable { var deleted: Bool? }
-        delete("/api/pages/\(id)") { [weak self] (result: Result<DeleteResp, Error>) in
-            switch result {
-            case .success:
-                DispatchQueue.main.async {
-                    self?.pages.removeAll { $0.id == id }
-                    if self?.currentPage?.id == id { self?.currentPage = nil }
-                }
-            case .failure(let error):
-                self?.handleError(error, context: "deletePage")
-            }
-        }
-    }
-
-    // MARK: - Tags
-
-    func fetchTags() {
-        get("/api/tags") { [weak self] (result: Result<[DocTag], Error>) in
-            switch result {
-            case .success(let list):
-                DispatchQueue.main.async { self?.tags = Array(list.suffix(200)) }
-            case .failure(let error):
-                self?.handleError(error, context: "tags")
-            }
-        }
-    }
+    // ARCH-1 Phase 2: Library 行为已迁 DocLibraryService.swift (extension DocLibraryState +
+    //   extension DocBridge stub)。旧 Books/Chapters/Pages/Tags 方法体已删, call site 经 stub 零改。
 
     // MARK: - Graph
 
@@ -1109,67 +948,8 @@ class DocBridge: ObservableObject {
 
     // MARK: - Auth
 
-    func authSetup(username: String, password: String, completion: @escaping (Result<DocAuthResponse, Error>) -> Void) {
-        docBridgeLog.info("authSetup: username=\(username)")
-        post("/api/auth/setup", body: ["email": username, "password": password]) { [weak self] (result: Result<DocAuthResponse, Error>) in
-            switch result {
-            case .success(let resp):
-                if let token = resp.token {
-                    self?.authToken = token
-                    DispatchQueue.main.async { self?.isAuthenticated = true; self?.authError = nil }
-                    docBridgeLog.info("authSetup success, token saved")
-                }
-                completion(.success(resp))
-            case .failure(let error):
-                DispatchQueue.main.async { self?.authError = BridgeError.sanitize(error) }
-                docBridgeLog.error("authSetup failed: \(error.localizedDescription)")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func authLogin(username: String, password: String, completion: @escaping (Result<DocAuthResponse, Error>) -> Void) {
-        docBridgeLog.info("authLogin: username=\(username)")
-        post("/api/auth/login", body: ["email": username, "password": password]) { [weak self] (result: Result<DocAuthResponse, Error>) in
-            switch result {
-            case .success(let resp):
-                if let token = resp.token {
-                    self?.authToken = token
-                    DispatchQueue.main.async { self?.isAuthenticated = true; self?.authError = nil }
-                    docBridgeLog.info("authLogin success, token saved")
-                }
-                completion(.success(resp))
-            case .failure(let error):
-                DispatchQueue.main.async { self?.authError = BridgeError.sanitize(error) }
-                docBridgeLog.error("authLogin failed: \(error.localizedDescription)")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func authRefresh(completion: @escaping (Result<DocAuthResponse, Error>) -> Void) {
-        docBridgeLog.info("authRefresh")
-        post("/api/auth/refresh", body: nil) { [weak self] (result: Result<DocAuthResponse, Error>) in
-            switch result {
-            case .success(let resp):
-                if let token = resp.token {
-                    self?.authToken = token
-                    DispatchQueue.main.async { self?.isAuthenticated = true }
-                    docBridgeLog.info("authRefresh success")
-                }
-                completion(.success(resp))
-            case .failure(let error):
-                docBridgeLog.error("authRefresh failed: \(error.localizedDescription)")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func authLogout() {
-        docBridgeLog.info("authLogout")
-        authToken = nil
-        DispatchQueue.main.async { self.isAuthenticated = false }
-    }
+    // ARCH-1 Phase 2: authSetup/authLogin/authRefresh/authLogout 已迁 DocAuthService.swift (extension
+    //   DocAuthState + extension DocBridge stub)。restoreAuth/verifyToken 留此 (协调器, 编排 + 跨 /api/workspaces)。
 
     func restoreAuth() {
         if authToken != nil {
@@ -1205,78 +985,8 @@ class DocBridge: ObservableObject {
 
     // MARK: - Workspace CRUD
 
-    func fetchWorkspaces(completion: @escaping (Result<[DocWorkspace], Error>) -> Void) {
-        docBridgeLog.info("fetchWorkspaces")
-        get("/api/workspaces") { [weak self] (result: Result<[DocWorkspace], Error>) in
-            switch result {
-            case .success(let list):
-                DispatchQueue.main.async { self?.workspaces = Array(list.suffix(200)) }
-                completion(.success(list))
-            case .failure(let error):
-                self?.handleError(error, context: "fetchWorkspaces")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func createWorkspace(name: String, description: String? = nil, completion: @escaping (Result<DocWorkspace, Error>) -> Void) {
-        docBridgeLog.info("createWorkspace: name=\(name)")
-        var body: [String: Any] = ["name": name]
-        if let desc = description { body["description"] = desc }
-        post("/api/workspaces", body: body) { [weak self] (result: Result<DocWorkspace, Error>) in
-            switch result {
-            case .success(let ws):
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    self.workspaces.append(ws)
-                    Self.cap(&self.workspaces, 50)
-                    self.currentWorkspace = ws
-                }
-                docBridgeLog.info("createWorkspace success: \(ws.id)")
-                completion(.success(ws))
-            case .failure(let error):
-                self?.handleError(error, context: "createWorkspace")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func updateWorkspace(id: String, name: String? = nil, description: String? = nil, completion: @escaping (Result<DocWorkspace, Error>) -> Void) {
-        docBridgeLog.info("updateWorkspace: id=\(id)")
-        var body: [String: Any] = [:]
-        if let n = name { body["name"] = n }
-        if let d = description { body["description"] = d }
-        put("/api/workspaces/\(id)", body: body) { [weak self] (result: Result<DocWorkspace, Error>) in
-            switch result {
-            case .success(let ws):
-                DispatchQueue.main.async {
-                    self?.workspaces = self?.workspaces.map { $0.id == ws.id ? ws : $0 } ?? []
-                    if self?.currentWorkspace?.id == ws.id { self?.currentWorkspace = ws }
-                }
-                completion(.success(ws))
-            case .failure(let error):
-                self?.handleError(error, context: "updateWorkspace")
-                completion(.failure(error))
-            }
-        }
-    }
-
-    func deleteWorkspace(id: String, completion: @escaping (Result<[String: Bool], Error>) -> Void) {
-        docBridgeLog.info("deleteWorkspace: id=\(id)")
-        delete("/api/workspaces/\(id)") { [weak self] (result: Result<[String: Bool], Error>) in
-            switch result {
-            case .success(let resp):
-                DispatchQueue.main.async {
-                    self?.workspaces = self?.workspaces.filter { $0.id != id } ?? []
-                    if self?.currentWorkspace?.id == id { self?.currentWorkspace = nil }
-                }
-                completion(.success(resp))
-            case .failure(let error):
-                self?.handleError(error, context: "deleteWorkspace")
-                completion(.failure(error))
-            }
-        }
-    }
+    // ARCH-1 Phase 2: fetchWorkspaces/createWorkspace/updateWorkspace/deleteWorkspace 已迁
+    //   DocWorkspaceService.swift (extension DocWorkspaceState + extension DocBridge stub)。
 
     // MARK: - Users
 
