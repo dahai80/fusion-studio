@@ -156,6 +156,7 @@ struct DesignPreviewView: NSViewRepresentable {
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' https://cdn.tailwindcss.com; script-src 'unsafe-inline' https://cdn.tailwindcss.com; img-src 'unsafe-inline' data:; font-src 'unsafe-inline' data:">
             \(tailwindTag)
             <style>
             :root {
@@ -206,15 +207,17 @@ struct DesignPreviewView: NSViewRepresentable {
         }
 
         let tailwindScript = "<script src=\"https://cdn.tailwindcss.com\"></script>"
+        // 审计0907 P3-6: 现有 <head> 也注入 CSP meta (defense-in-depth, 与 makeNSView 的 sanitizeHtml 叠加)。
+        let cspMeta = "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline' https://cdn.tailwindcss.com; script-src 'unsafe-inline' https://cdn.tailwindcss.com; img-src 'unsafe-inline' data:; font-src 'unsafe-inline' data:\">"
         if let headRange = cleaned.range(of: "<head>") {
-            return String(cleaned[..<headRange.upperBound]) + tailwindScript + String(cleaned[headRange.upperBound...])
+            return String(cleaned[..<headRange.upperBound]) + cspMeta + tailwindScript + String(cleaned[headRange.upperBound...])
         }
         if let htmlRange = cleaned.range(of: "<html") {
             if let insertPoint = cleaned.range(of: ">", range: htmlRange.lowerBound..<cleaned.endIndex) {
-                return String(cleaned[..<insertPoint.upperBound]) + "<head>\(tailwindScript)</head>" + String(cleaned[insertPoint.upperBound...])
+                return String(cleaned[..<insertPoint.upperBound]) + "<head>\(cspMeta)\(tailwindScript)</head>" + String(cleaned[insertPoint.upperBound...])
             }
         }
-        return "<head>\(tailwindScript)</head>" + cleaned
+        return "<head>\(cspMeta)\(tailwindScript)</head>" + cleaned
     }
 
     class Coordinator: NSObject, WKNavigationDelegate {

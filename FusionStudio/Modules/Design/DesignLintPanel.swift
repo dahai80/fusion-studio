@@ -360,39 +360,37 @@ struct DesignLintPanel: View {
         violations = []
         stats = nil
 
-        DispatchQueue.global(qos: .userInitiated).async {
-            let issues = designBridge.skillLint(
+        Task { @MainActor in
+            let issues = await designBridge.skillLint(
                 documentJSON: docJSON,
                 designSystem: "apple-hig",
                 fix: false
             )
-            DispatchQueue.main.async {
-                if issues.isEmpty && (designBridge.lastRenderedDocumentJSON ?? "").isEmpty {
-                    self.errorMessage = I18nManager.shared.t(.design_lint_noResult)
-                } else {
-                    let filtered = issues.filter { !ruleStore.isLocked($0.rule) }
-                    let mapped = filtered.map { issue -> LintViolation in
-                        LintViolation(
-                            id: issue.id.uuidString,
-                            rule: issue.rule,
-                            node_id: issue.nodeID ?? "",
-                            message: issue.message,
-                            suggestion: issue.suggestion ?? "",
-                            severity: LintSeverity(rawValue: issue.severity) ?? .info
-                        )
-                    }
-                    self.violations = mapped
-                    self.stats = LintStats(
-                        total_nodes: 0,
-                        total_violations: mapped.count,
-                        errors: mapped.filter { $0.severity == .error }.count,
-                        warnings: mapped.filter { $0.severity == .warning }.count,
-                        infos: mapped.filter { $0.severity == .info }.count
+            if issues.isEmpty && (designBridge.lastRenderedDocumentJSON ?? "").isEmpty {
+                self.errorMessage = I18nManager.shared.t(.design_lint_noResult)
+            } else {
+                let filtered = issues.filter { !ruleStore.isLocked($0.rule) }
+                let mapped = filtered.map { issue -> LintViolation in
+                    LintViolation(
+                        id: issue.id.uuidString,
+                        rule: issue.rule,
+                        node_id: issue.nodeID ?? "",
+                        message: issue.message,
+                        suggestion: issue.suggestion ?? "",
+                        severity: LintSeverity(rawValue: issue.severity) ?? .info
                     )
-                    lintLog.info("Lint completed: \(mapped.count) violations (\(issues.count - filtered.count) locked/hidden)")
                 }
-                self.isRunning = false
+                self.violations = mapped
+                self.stats = LintStats(
+                    total_nodes: 0,
+                    total_violations: mapped.count,
+                    errors: mapped.filter { $0.severity == .error }.count,
+                    warnings: mapped.filter { $0.severity == .warning }.count,
+                    infos: mapped.filter { $0.severity == .info }.count
+                )
+                lintLog.info("Lint completed: \(mapped.count) violations (\(issues.count - filtered.count) locked/hidden)")
             }
+            self.isRunning = false
         }
     }
 }

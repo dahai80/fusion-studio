@@ -44,7 +44,8 @@ jobs:
         # pipefail 保 swift test 退出码 (tail 不吞码)。测试挂 → release 阻断。
         # OPS-10 (审计product-0906 P3): tail 单独用吞逐用例 fail 行, 失败无法定位。
         #   tee 全量落盘 + tail -80, 失败时全日志可下载定位 (对齐 ci.yml/nightly.yml)。
-        run: set -o pipefail && swift test 2>&1 | tee /tmp/release-test.log | tail -80
+        # 审计0907 P3-14: 加 -j 2 限并行编译作业, 缓解 CI runner 内存压力。
+        run: set -o pipefail && swift test -j 2 2>&1 | tee /tmp/release-test.log | tail -80
 
       - name: Upload test logs
         if: failure()
@@ -182,6 +183,12 @@ jobs:
           # 从 README.md Changelog 段提取本版本块 (### v0.1.X 标题到下一个 ### v 标题前)。
           # 旧源 DocGeneratorView.swift 无 ## [VERSION] 格式, 提取恒空 → 改 README.md。
           CHANGELOG=$(sed -n "/^### v${VERSION} /,/^### v[0-9]/p" README.md | sed '1d;$d' | sed '/^$/N;/^\n$/D')
+          # 审计0907 P3-13: sed 提取恒空 (版本标题缺失/格式漂移) → release body 空更新日志段。
+          #   guard: 空则 fallback 提示, 不静默发空 body。CI 后续可加 --generate-notes 双保险。
+          if [ -z "$CHANGELOG" ]; then
+            echo "::warning::Changelog 段未在 README.md 找到 (### v${VERSION}); 用 fallback。"
+            CHANGELOG="- 本版本更新日志待补; 详见 git log: https://github.com/${{ github.repository }}/commits/${{ github.ref_name }}"
+          fi
           {
             echo "version=$VERSION"
             echo "changelog<<EOF"

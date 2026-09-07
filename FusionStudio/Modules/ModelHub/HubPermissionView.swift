@@ -113,7 +113,11 @@ struct HubPermissionView: View {
             }
         } message: {
             if let key = createdRawKey {
-                Text(String(format: i18n.t(.hub_apiKeyCopyOnceWarn), key))
+                // 审计0907 P1-10: 旧 alert 全明文显示 key (截图/日志泄露)。掩码预览: 首4+尾4。
+                let masked = key.count > 12
+                    ? String(key.prefix(4)) + "••••••••" + String(key.suffix(4))
+                    : "••••••••"
+                Text(String(format: i18n.t(.hub_apiKeyCopyOnceWarn), masked))
             } else {
                 Text("")
             }

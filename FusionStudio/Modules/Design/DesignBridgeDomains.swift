@@ -54,6 +54,41 @@ final class DesignArtifactState: ObservableObject {
     @Published var artifactSaved: Bool = false
     @Published var artifactId: String = ""
     @Published var isImportingScreenshot: Bool = false
+    // 审计0907 P1-11: sendDesignChat 流式每 token 直写 @Published currentArtifactCode → SwiftUI 逐 token 重渲染风暴。
+    //   改缓冲: 热路径 appendCodeThrottled 累入 pendingCode (非 @Published), 50ms flush 到 currentArtifactCode。
+    //   parseState 重置 (="") 与 </antArtifact> 收尾仍直写 @Published (低频, 保语义一致)。
+    private var pendingCode: String = ""
+    private var codeFlushTimer: Timer?
+
+    func appendCodeThrottled(_ chunk: String) {
+        pendingCode += chunk
+        if codeFlushTimer == nil {
+            codeFlushTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: false) { [weak self] _ in
+                Task { @MainActor in self?.flushPendingCode() }
+            }
+        }
+    }
+
+    private func flushPendingCode() {
+        codeFlushTimer = nil
+        if !pendingCode.isEmpty {
+            currentArtifactCode += pendingCode
+            pendingCode = ""
+        }
+    }
+
+    func flushPendingCodeIfNeeded() {
+        codeFlushTimer?.invalidate()
+        codeFlushTimer = nil
+        flushPendingCode()
+    }
+
+    func resetCodeBuffer() {
+        codeFlushTimer?.invalidate()
+        codeFlushTimer = nil
+        pendingCode = ""
+        currentArtifactCode = ""
+    }
     // ARCH-1 Phase 3: sessionId 迁本域 (artifact 持久化会话标识, saveAsArtifact 唯一读, clearConversation 重置)。
     var sessionId: String = "design-\(UUID().uuidString.prefix(8))"
     // ARCH-1: Artifact 行为 (saveAsArtifact/kindForType/importScreenshot/sanitizeFileName Phase 3 迁入)。

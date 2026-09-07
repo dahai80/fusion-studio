@@ -429,11 +429,13 @@ struct EcosystemSyncPanel: View {
 
     // MARK: - Actions
 
+    // 审计0907 P0-3/P1-20: 旧 DispatchQueue.global + sync runFusionDesign — MainActor 隔离违规 + 180s 阻塞。
+    //   改 Task + runFusionDesignAsync。文件 I/O (tmp write/chmod/remove) 跑后台线程。
     private func syncToCode() {
         isSyncing = true
         errorMessage = nil
 
-        DispatchQueue.global(qos: .userInitiated).async {
+        Task { @MainActor in
             let ipcBase = self.ecosystemBaseDir().path
             let docJSON = designBridge.lastRenderedDocumentJSON ?? ""
             // F-I6: 固定名 fd_eco_export_input.json 散落系统 /tmp + 无 0600 → TOCTOU + 路径泄露。
@@ -441,20 +443,18 @@ struct EcosystemSyncPanel: View {
             let tmpPath = FusionTempDir.shared.tmpFilePath(prefix: "fd_eco_export", ext: "json")
             try? docJSON.write(toFile: tmpPath, atomically: true, encoding: .utf8)
             try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: tmpPath)
-            let result = designBridge.runFusionDesign(
+            let result = await designBridge.runFusionDesignAsync(
                 ["export", "--input", tmpPath, "--format", "html", "--out", ipcBase, "--ipc-base", ipcBase]
             )
             try? FileManager.default.removeItem(atPath: tmpPath)
-            DispatchQueue.main.async {
-                if result.exitCode == 0 {
-                    self.syncResult = result.output.trimmingCharacters(in: .whitespacesAndNewlines)
-                    self.successMessage = I18nManager.shared.t(.design_eco_syncDone)
-                    ecoLog.info("Sync to code completed via unified bridge")
-                } else {
-                    self.errorMessage = String(format: I18nManager.shared.t(.design_eco_syncFailFmt), String(result.error.prefix(200)))
-                }
-                self.isSyncing = false
+            if result.exitCode == 0 {
+                self.syncResult = result.output.trimmingCharacters(in: .whitespacesAndNewlines)
+                self.successMessage = I18nManager.shared.t(.design_eco_syncDone)
+                ecoLog.info("Sync to code completed via unified bridge")
+            } else {
+                self.errorMessage = String(format: I18nManager.shared.t(.design_eco_syncFailFmt), String(result.error.prefix(200)))
             }
+            self.isSyncing = false
         }
     }
 

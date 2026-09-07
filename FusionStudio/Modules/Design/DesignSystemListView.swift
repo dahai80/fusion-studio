@@ -206,14 +206,18 @@ struct DesignSystemListView: View {
         availableSystems.first(where: { $0.cliId == activeSystemId })?.localName ?? activeSystemId
     }
 
+    // 审计0907 P0-3: 旧 sync runFusionDesign 在 MainActor (button action) 阻塞最长 180s → UI 冻结。
+    //   改 async, Task 包装, 避开 MainActor 阻塞。
     private func activateSystem(_ sys: DesignSystemInfo) {
-        let result = designBridge.runFusionDesign(["activate", sys.cliId])
-        if result.exitCode == 0 {
-            activeSystemId = sys.cliId
-            dsListLog.info("Activated design system: \(sys.cliId)")
-        } else {
-            errorMessage = String(format: i18n.t(.design_ds_activateFailFmt), String(result.error.prefix(200)))
-            dsListLog.error("Activate failed: \(result.error)")
+        Task { @MainActor in
+            let result = await designBridge.runFusionDesignAsync(["activate", sys.cliId])
+            if result.exitCode == 0 {
+                activeSystemId = sys.cliId
+                dsListLog.info("Activated design system: \(sys.cliId)")
+            } else {
+                errorMessage = String(format: i18n.t(.design_ds_activateFailFmt), String(result.error.prefix(200)))
+                dsListLog.error("Activate failed: \(result.error)")
+            }
         }
     }
 

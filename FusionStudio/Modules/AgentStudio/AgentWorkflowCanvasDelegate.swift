@@ -102,9 +102,18 @@ final class AgentWorkflowCanvasDelegate: ObservableObject, WorkflowCanvasDelegat
 
     @ViewBuilder
     func configSection(for node: Binding<CanvasNode<AgentNodeType>>) -> AnyView? {
+        let models = bridge.mlxState.models.map { $0.id }
         switch node.wrappedValue.type {
         case .start, .end: return nil
-        default: return AnyView(AgentNodeConfigSection(node: node))
+        case .llm: return AnyView(AgentLLMSection(node: node, models: models))
+        case .tool: return AnyView(AgentToolSection(node: node))
+        case .condition: return AnyView(AgentConditionSection(node: node))
+        case .loop: return AnyView(AgentLoopSection(node: node))
+        case .errorHandler: return AnyView(AgentErrorHandlerSection(node: node))
+        case .retriever: return AnyView(AgentRetrieverSection(node: node))
+        case .router: return AnyView(AgentRouterSection(node: node))
+        case .memory: return AnyView(AgentMemorySection(node: node))
+        case .humanInLoop: return AnyView(AgentHumanInLoopSection(node: node))
         }
     }
 
@@ -152,7 +161,9 @@ final class AgentWorkflowCanvasDelegate: ObservableObject, WorkflowCanvasDelegat
     }
 
     func persistLayout(_ layout: [String: CGPoint]) async {
-        agentCanvasLog.info("Agent workflow layout persisted on next full save (\(layout.count) nodes)")
+        // 审计0907 P2-1: 旧日志 "layout persisted" 误导 (实为 no-op, 位置随下次 full save 持久化)。
+        //   改准确描述: 布局暂存内存, 下次 save() 整图提交时一并落盘。
+        agentCanvasLog.info("Agent workflow layout staged in memory (\(layout.count) nodes); persisted on next full save()")
     }
 
     private func mergeLabelIntoConfig(_ config: [String: JSONValue], label: String) -> [String: JSONValue] {
@@ -166,15 +177,271 @@ final class AgentWorkflowCanvasDelegate: ObservableObject, WorkflowCanvasDelegat
     }
 }
 
-private struct AgentNodeConfigSection: View {
+private extension JSONValue {
+    var doubleValue: Double? {
+        if case .double(let d) = self { return d }
+        return nil
+    }
+    var boolValue: Bool? {
+        if case .bool(let b) = self { return b }
+        return nil
+    }
+}
+
+// 审计0907 P1-1: Agent 工作流画布 inspector 仅显示节点类型名, 无真实配置字段。
+//   补 per-type 配置区 (镜像 FSB 模式), 写入 node.config:[String:JSONValue], save() 经 mergeLabelIntoConfig 持久化。
+//   上游 _handle_graph_create/_update 只读 type/label/model/system_prompt 4 字段 (见 upstream issue),
+//   其余字段先存 config, 上游扩展后即生效。LLM model 取 bridge.mlxState.models (实时拉取)。
+private struct ConfigFieldLabel: View {
+    let key: I18nKey
+    @Environment(\.studioTheme) private var theme
+    var body: some View {
+        Text(I18nManager.shared.t(key))
+            .font(.system(size: theme.captionSize, weight: .medium))
+            .foregroundStyle(theme.textSecondary)
+    }
+}
+
+private struct ConfigHint: View {
+    let key: I18nKey
+    @Environment(\.studioTheme) private var theme
+    var body: some View {
+        Text(I18nManager.shared.t(key))
+            .font(.system(size: 11))
+            .foregroundStyle(theme.textTertiary)
+    }
+}
+
+private struct AgentLLMSection: View {
     @Binding var node: CanvasNode<AgentNodeType>
-    @Environment(\.studioTheme) var theme
+    let models: [String]
+    @Environment(\.studioTheme) private var theme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: theme.spacingS) {
-            Text(node.type.rawValue.uppercased())
-                .font(.system(size: theme.captionSize, weight: .semibold))
-                .foregroundStyle(theme.textSecondary)
+        VStack(alignment: .leading, spacing: theme.spacingXS) {
+            ConfigFieldLabel(key: .wf_cv_cfgModel)
+            let current = node.config["model"]?.stringValue ?? (models.first ?? "")
+            if models.isEmpty {
+                Text(current.isEmpty ? "—" : current)
+                    .font(.system(size: theme.captionSize, design: .monospaced))
+                    .foregroundStyle(theme.textTertiary)
+            } else {
+                Picker(I18nManager.shared.t(.wf_cv_cfgModel), selection: Binding(
+                    get: { current },
+                    set: { v in node.config["model"] = .string(v) }
+                )) {
+                    ForEach(models, id: \.self) { Text($0).tag($0) }
+                }
+                .pickerStyle(.menu)
+                .frame(maxWidth: .infinity)
+                .labelsHidden()
+            }
+
+            ConfigFieldLabel(key: .wf_cv_cfgSystemPrompt)
+            TextEditor(text: Binding(
+                get: { node.config["system_prompt"]?.stringValue ?? "" },
+                set: { v in node.config["system_prompt"] = .string(v) }
+            ))
+            .font(.system(size: theme.captionSize, design: .monospaced))
+            .frame(height: 80)
+            .padding(theme.spacingXS)
+            .background(
+                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                    .fill(theme.surfaceElevated)
+            )
+
+            HStack(spacing: theme.spacingS) {
+                VStack(alignment: .leading, spacing: 2) {
+                    ConfigFieldLabel(key: .wf_cv_cfgTemperature)
+                    let temp = node.config["temperature"]?.doubleValue ?? 0.7
+                    TextField("0.7", value: Binding(
+                        get: { temp },
+                        set: { v in node.config["temperature"] = .double(v) }
+                    ), format: .number.precision(.fractionLength(1)))
+                    .font(.system(size: theme.captionSize, design: .monospaced))
+                    .textFieldStyle(.roundedBorder)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    ConfigFieldLabel(key: .wf_cv_cfgMaxTokens)
+                    let mt = Int(node.config["max_tokens"]?.doubleValue ?? 2048)
+                    TextField("2048", value: Binding(
+                        get: { mt },
+                        set: { v in node.config["max_tokens"] = .double(Double(v)) }
+                    ), format: .number)
+                    .font(.system(size: theme.captionSize, design: .monospaced))
+                    .textFieldStyle(.roundedBorder)
+                }
+            }
+
+            ConfigHint(key: .wf_cv_cfgHint)
+        }
+    }
+}
+
+private struct AgentToolSection: View {
+    @Binding var node: CanvasNode<AgentNodeType>
+    @Environment(\.studioTheme) private var theme
+    var body: some View {
+        VStack(alignment: .leading, spacing: theme.spacingXS) {
+            ConfigFieldLabel(key: .wf_cv_cfgTools)
+            TextEditor(text: Binding(
+                get: { node.config["tools"]?.stringValue ?? "" },
+                set: { v in node.config["tools"] = .string(v) }
+            ))
+            .font(.system(size: theme.captionSize, design: .monospaced))
+            .frame(height: 60)
+            .padding(theme.spacingXS)
+            .background(
+                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                    .fill(theme.surfaceElevated)
+            )
+            ConfigHint(key: .wf_cv_cfgHint)
+        }
+    }
+}
+
+private struct AgentConditionSection: View {
+    @Binding var node: CanvasNode<AgentNodeType>
+    @Environment(\.studioTheme) private var theme
+    var body: some View {
+        VStack(alignment: .leading, spacing: theme.spacingXS) {
+            ConfigFieldLabel(key: .wf_cv_cfgCondition)
+            TextEditor(text: Binding(
+                get: { node.config["expression"]?.stringValue ?? "" },
+                set: { v in node.config["expression"] = .string(v) }
+            ))
+            .font(.system(size: theme.captionSize, design: .monospaced))
+            .frame(height: 60)
+            .padding(theme.spacingXS)
+            .background(
+                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                    .fill(theme.surfaceElevated)
+            )
+            ConfigHint(key: .wf_cv_cfgHint)
+        }
+    }
+}
+
+private struct AgentLoopSection: View {
+    @Binding var node: CanvasNode<AgentNodeType>
+    @Environment(\.studioTheme) private var theme
+    var body: some View {
+        VStack(alignment: .leading, spacing: theme.spacingXS) {
+            ConfigFieldLabel(key: .wf_cv_cfgLoopCount)
+            let cnt = Int(node.config["count"]?.doubleValue ?? 3)
+            Stepper(value: Binding(
+                get: { cnt },
+                set: { v in node.config["count"] = .double(Double(v)) }
+            ), in: 1...100) {
+                Text("\(cnt)")
+                    .font(.system(size: theme.captionSize, design: .monospaced))
+            }
+            ConfigHint(key: .wf_cv_cfgHint)
+        }
+    }
+}
+
+private struct AgentRetrieverSection: View {
+    @Binding var node: CanvasNode<AgentNodeType>
+    @Environment(\.studioTheme) private var theme
+    var body: some View {
+        VStack(alignment: .leading, spacing: theme.spacingXS) {
+            ConfigFieldLabel(key: .wf_cv_cfgQuery)
+            TextEditor(text: Binding(
+                get: { node.config["query"]?.stringValue ?? "" },
+                set: { v in node.config["query"] = .string(v) }
+            ))
+            .font(.system(size: theme.captionSize, design: .monospaced))
+            .frame(height: 60)
+            .padding(theme.spacingXS)
+            .background(
+                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                    .fill(theme.surfaceElevated)
+            )
+            ConfigHint(key: .wf_cv_cfgHint)
+        }
+    }
+}
+
+private struct AgentMemorySection: View {
+    @Binding var node: CanvasNode<AgentNodeType>
+    @Environment(\.studioTheme) private var theme
+    var body: some View {
+        VStack(alignment: .leading, spacing: theme.spacingXS) {
+            ConfigFieldLabel(key: .wf_cv_cfgMemoryOp)
+            let op = node.config["op"]?.stringValue ?? "store"
+            Picker(I18nManager.shared.t(.wf_cv_cfgMemoryOp), selection: Binding(
+                get: { op },
+                set: { v in node.config["op"] = .string(v) }
+            )) {
+                Text("store").tag("store")
+                Text("recall").tag("recall")
+                Text("forget").tag("forget")
+            }
+            .pickerStyle(.segmented)
+            .frame(maxWidth: .infinity)
+            ConfigHint(key: .wf_cv_cfgHint)
+        }
+    }
+}
+
+private struct AgentRouterSection: View {
+    @Binding var node: CanvasNode<AgentNodeType>
+    @Environment(\.studioTheme) private var theme
+    var body: some View {
+        VStack(alignment: .leading, spacing: theme.spacingXS) {
+            ConfigFieldLabel(key: .wf_cv_cfgRouterTarget)
+            TextField(I18nManager.shared.t(.wf_cv_cfgRouterTarget), text: Binding(
+                get: { node.config["target"]?.stringValue ?? "" },
+                set: { v in node.config["target"] = .string(v) }
+            ))
+            .font(.system(size: theme.captionSize, design: .monospaced))
+            .textFieldStyle(.roundedBorder)
+            ConfigHint(key: .wf_cv_cfgHint)
+        }
+    }
+}
+
+private struct AgentHumanInLoopSection: View {
+    @Binding var node: CanvasNode<AgentNodeType>
+    @Environment(\.studioTheme) private var theme
+    var body: some View {
+        VStack(alignment: .leading, spacing: theme.spacingXS) {
+            ConfigFieldLabel(key: .wf_cv_cfgHumanMsg)
+            TextEditor(text: Binding(
+                get: { node.config["message"]?.stringValue ?? "" },
+                set: { v in node.config["message"] = .string(v) }
+            ))
+            .font(.system(size: theme.captionSize, design: .monospaced))
+            .frame(height: 60)
+            .padding(theme.spacingXS)
+            .background(
+                RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                    .fill(theme.surfaceElevated)
+            )
+            ConfigHint(key: .wf_cv_cfgHint)
+        }
+    }
+}
+
+private struct AgentErrorHandlerSection: View {
+    @Binding var node: CanvasNode<AgentNodeType>
+    @Environment(\.studioTheme) private var theme
+    var body: some View {
+        VStack(alignment: .leading, spacing: theme.spacingXS) {
+            ConfigFieldLabel(key: .wf_cv_cfgErrAction)
+            let act = node.config["action"]?.stringValue ?? "retry"
+            Picker(I18nManager.shared.t(.wf_cv_cfgErrAction), selection: Binding(
+                get: { act },
+                set: { v in node.config["action"] = .string(v) }
+            )) {
+                Text("retry").tag("retry")
+                Text("fallback").tag("fallback")
+                Text("abort").tag("abort")
+            }
+            .pickerStyle(.segmented)
+            .frame(maxWidth: .infinity)
+            ConfigHint(key: .wf_cv_cfgHint)
         }
     }
 }

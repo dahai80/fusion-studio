@@ -9,6 +9,10 @@ on:
       - '.gitignore'
   pull_request:
     branches: [master, main]
+  # 审计0907 P2-21: merge_group 触发构建 merge 结果 (非 PR head), 捕获仅合并后才可见的破坏。
+  #   需 repo Settings → Branches → master → Require merge queue 启用方生效 (admin 跟进)。
+  merge_group:
+    types: [checks_requested]
   workflow_dispatch:
 
 concurrency:

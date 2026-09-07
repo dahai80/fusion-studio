@@ -356,6 +356,12 @@ class ChatSessionStore: ObservableObject {
     private static let maxSessions = 200
     private static let maxMessagesPerSession = 500
 
+    // 审计0907 P1-18: 持久化本地 state 无 schema 版本 — 新增 stateSchemaVersion。
+    //   saveSessionLocal 写 schema_version 入 JSON; loadSessionsLocal 读后迁移/丢弃不兼容文件。
+    //   旧文件 (v0 无版本字段) 视为兼容当前 (字段皆可选 + 默认值), 不阻塞加载; 未来破坏性变更递增版本 + 加 migrate()。
+    private static let stateSchemaVersion = 1
+    nonisolated private static var schemaVersion: Int { 1 }
+
     private func capSessions() {
         if sessions.count > Self.maxSessions {
             let drop = sessions.count - Self.maxSessions
@@ -492,6 +498,8 @@ class ChatSessionStore: ObservableObject {
             "active_skill": s.activeSkill as Any,
             "created_at": s.createdAt,
             "updated_at": s.updatedAt,
+            // 审计0907 P1-18: stamp schema 版本, 供 load 侧迁移判定。
+            "schema_version": Self.stateSchemaVersion,
             "messages": s.messages.map { msg in
                 var m: [String: Any] = [
                     "id": msg.id, "role": msg.role, "content": msg.content,
@@ -1343,6 +1351,13 @@ class ChatSessionStore: ObservableObject {
 
     // 审计0827 §3.2 (P1): nonisolated — 纯解析无 self 状态, 供 loadSessionsLocal 后台调用。
     nonisolated private func parseSessionData(_ dict: [String: Any]) -> ChatSessionData? {
+        // 审计0907 P1-18: schema 版本校验。无版本字段 = 旧文件 (v0), 当前字段皆可选+默认值 → 兼容, 直接加载。
+        //   未来破坏性变更递增 stateSchemaVersion 并在此加 if version < N { migrate() } 分支。
+        let fileVersion = dict["schema_version"] as? Int ?? 0
+        if fileVersion > Self.schemaVersion {
+            chatStoreLog.warning("parseSessionData: file schema_version=\(fileVersion) > current=\(Self.schemaVersion); 跳过未知未来格式防损坏")
+            return nil
+        }
         guard let id = dict["id"] as? String else { return nil }
         let title = dict["title"] as? String ?? ""
         let mode = dict["mode"] as? String ?? "simple"

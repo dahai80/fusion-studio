@@ -54,7 +54,8 @@ final class MasterPool {
 
     func reload() {
         lock.lock(); defer { lock.unlock() }
-        let csv = UserDefaults.standard.string(forKey: "multiNodeMasterList") ?? ""
+        // 审计0907 P2-8: master list 旧明文存 UserDefaults.standard, 改 0600 文件。
+        let csv = KeychainStore.readMasterList()
         let parsed = ClusterEndpoint.parse(csv)
         if parsed != endpoints {
             endpoints = parsed

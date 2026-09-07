@@ -27,11 +27,13 @@ enum KeychainStore {
             return nil
         }
         if status != errSecSuccess {
-            keychainLog.error("get(\(account, privacy: .public)): SecItemCopyMatching status=\(status)")
+            // 审计0907 P3-5: account 名 (identityJwt/clusterToken/fusionCodeApiKey 等) 标记存何 secret 类型,
+            //   public 日志泄元数据。改通用消息不含 account 名 (运维调试仍可凭 status 定位)。
+            keychainLog.error("Keychain get failed: SecItemCopyMatching status=\(status)")
             return nil
         }
         guard let data = item as? Data, let str = String(data: data, encoding: .utf8) else {
-            keychainLog.error("get(\(account, privacy: .public)): data decode failed")
+            keychainLog.error("Keychain get failed: data decode failed")
             return nil
         }
         return str
@@ -67,10 +69,10 @@ enum KeychainStore {
             if addStatus == errSecSuccess {
                 return true
             }
-            keychainLog.error("set(\(account, privacy: .public)): SecItemAdd status=\(addStatus)")
+            keychainLog.error("Keychain set failed: SecItemAdd status=\(addStatus)")
             return false
         }
-        keychainLog.error("set(\(account, privacy: .public)): SecItemUpdate status=\(updateStatus)")
+        keychainLog.error("Keychain set failed: SecItemUpdate status=\(updateStatus)")
         return false
     }
 
@@ -85,7 +87,7 @@ enum KeychainStore {
         if status == errSecSuccess || status == errSecItemNotFound {
             return true
         }
-        keychainLog.error("delete(\(account, privacy: .public)): status=\(status)")
+        keychainLog.error("Keychain delete failed: status=\(status)")
         return false
     }
 
@@ -126,14 +128,23 @@ enum KeychainStore {
             attributes: [.posixPermissions: 0o700]
         )
         try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: dir)
+        // 审计0907 P2-9: 旧 write(atomically:) 后 setAttributes 0600 有 TOCTOU 窗 — atomic temp 默认 umask (0644)
+        //   可世界可读, setAttributes 前他用户可读。改 createFile 显式 0600 于创建时 (无窗口), 再 rename 原子替换。
+        let tmpPath = path + ".tmp"
+        FileManager.default.createFile(
+            atPath: tmpPath,
+            contents: Data(token.utf8),
+            attributes: [.posixPermissions: 0o600]
+        )
         do {
-            try token.write(toFile: path, atomically: true, encoding: .utf8)
-            try? FileManager.default.setAttributes(
-                [.posixPermissions: 0o600], ofItemAtPath: path
+            _ = try FileManager.default.replaceItemAt(
+                URL(fileURLWithPath: path),
+                withItemAt: URL(fileURLWithPath: tmpPath)
             )
-            keychainLog.info("fusionCodeToken: wrote shared token file \(path, privacy: .public) (0600)")
+            keychainLog.info("fusionCodeToken: wrote shared token file \(path, privacy: .public) (0600, atomic)")
         } catch {
-            keychainLog.error("fusionCodeToken: write file failed: \(error.localizedDescription)")
+            keychainLog.error("fusionCodeToken: replaceItemAt failed: \(error.localizedDescription)")
+            try? FileManager.default.removeItem(atPath: tmpPath)
         }
     }
 
@@ -147,7 +158,8 @@ enum KeychainStore {
         }
         let stale = UserDefaults.standard.string(forKey: "multiNodeClusterToken") ?? ""
         if !stale.isEmpty {
-            keychainLog.info("migrating cluster token from UserDefaults to Keychain (account \(clusterTokenAccount, privacy: .public))")
+            // 审计0907 P3-5: 不 log account 名。
+            keychainLog.info("migrating cluster token from UserDefaults to Keychain")
             _ = set(clusterTokenAccount, stale)
             UserDefaults.standard.removeObject(forKey: "multiNodeClusterToken")
             return stale
@@ -191,6 +203,57 @@ enum KeychainStore {
     static func clearIdentity() {
         delete(identityJwtAccount)
         delete(identityRefreshAccount)
-        keychainLog.info("clearIdentity: cleared jwt+refresh (accounts \(identityJwtAccount, privacy: .public), \(identityRefreshAccount, privacy: .public))")
+        // 审计0907 P3-5: 不 log account 名 (元数据泄漏)。
+        keychainLog.info("clearIdentity: cleared jwt+refresh accounts")
+    }
+
+    // MARK: - MultiNode master list (审计0907 P2-8: 明文 UserDefaults → 0600 文件)
+
+    // 集群 failover 拓扑 (有序 hostname/IP) 旧存 UserDefaults.standard 明文 plist, 助横向移动。
+    // cluster token 已迁 Keychain; master list 改 0600 文件 (~/.fusion-studio/multi-node-master-list)。
+    static let masterListFile = ".fusion-studio/multi-node-master-list"
+
+    static func readMasterList() -> String {
+        let path = (NSHomeDirectory() as NSString).appendingPathComponent(masterListFile)
+        if let fileContent = try? String(contentsOfFile: path, encoding: .utf8), !fileContent.isEmpty {
+            return fileContent
+        }
+        // 一次性迁移: 旧明文存 UserDefaults.standard → 0600 文件, 迁后删 UserDefaults。
+        let stale = UserDefaults.standard.string(forKey: "multiNodeMasterList") ?? ""
+        if !stale.isEmpty {
+            keychainLog.info("migrating master list from UserDefaults to 0600 file")
+            _ = writeMasterList(stale)
+            UserDefaults.standard.removeObject(forKey: "multiNodeMasterList")
+            return stale
+        }
+        return ""
+    }
+
+    @discardableResult
+    static func writeMasterList(_ value: String) -> Bool {
+        let path = (NSHomeDirectory() as NSString).appendingPathComponent(masterListFile)
+        let dir = (path as NSString).deletingLastPathComponent
+        try? FileManager.default.createDirectory(
+            atPath: dir, withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
+        try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: dir)
+        let tmpPath = path + ".tmp"
+        FileManager.default.createFile(
+            atPath: tmpPath,
+            contents: Data(value.utf8),
+            attributes: [.posixPermissions: 0o600]
+        )
+        do {
+            _ = try FileManager.default.replaceItemAt(
+                URL(fileURLWithPath: path),
+                withItemAt: URL(fileURLWithPath: tmpPath)
+            )
+            return true
+        } catch {
+            keychainLog.error("writeMasterList: replaceItemAt failed: \(error.localizedDescription)")
+            try? FileManager.default.removeItem(atPath: tmpPath)
+            return false
+        }
     }
 }

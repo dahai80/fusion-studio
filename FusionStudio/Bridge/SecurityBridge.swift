@@ -114,7 +114,8 @@ class SecurityBridge: ObservableObject {
         get("/api/v1/system/rules") { [weak self] (result: Result<SecRulesResponseDTO, Error>) in
             switch result {
             case .success(let resp):
-                DispatchQueue.main.async { self?.rules = resp.rules }
+                let capped = Array(resp.rules.suffix(200))
+                DispatchQueue.main.async { self?.rules = capped }
             case .failure(let error):
                 self?.handleError(error, context: "system/rules")
             }
@@ -127,7 +128,8 @@ class SecurityBridge: ObservableObject {
         get("/api/v1/projects") { [weak self] (result: Result<[SecProjectDTO], Error>) in
             switch result {
             case .success(let list):
-                DispatchQueue.main.async { self?.projects = list }
+                let capped = Array(list.suffix(200))
+                DispatchQueue.main.async { self?.projects = capped }
             case .failure(let error):
                 self?.handleError(error, context: "projects")
             }
@@ -165,7 +167,8 @@ class SecurityBridge: ObservableObject {
         get("/api/v1/scans") { [weak self] (result: Result<[SecScanDTO], Error>) in
             switch result {
             case .success(let list):
-                DispatchQueue.main.async { self?.scans = list }
+                let capped = Array(list.suffix(200))
+                DispatchQueue.main.async { self?.scans = capped }
             case .failure(let error):
                 self?.handleError(error, context: "scans")
             }
@@ -282,7 +285,8 @@ class SecurityBridge: ObservableObject {
         get("/api/v1/patches") { [weak self] (result: Result<[SecPatchDTO], Error>) in
             switch result {
             case .success(let list):
-                DispatchQueue.main.async { self?.patches = list }
+                let capped = Array(list.suffix(200))
+                DispatchQueue.main.async { self?.patches = capped }
             case .failure(let error):
                 self?.handleError(error, context: "patches")
             }

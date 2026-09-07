@@ -274,7 +274,7 @@ class MultiNodeEngine: ObservableObject {
             switch result {
             case .success(let resp):
                 DispatchQueue.main.async {
-                    self?.nodes = resp.nodes
+                    self?.nodes = Array(resp.nodes.prefix(500))
                     self?.resetFailureState(context: "nodes")
                     // F-A11 split-brain 检测 — 三层确定性信号, 取代旧 master-count heuristic:
                     //   1. #72 partitioned (server 权威: 少数派, 无法达仲裁) — 有则直接用, 无歧义。
@@ -469,7 +469,7 @@ class MultiNodeEngine: ObservableObject {
         get("/api/v1/observability/suggestions") { [weak self] (result: Result<SuggestionsResponse, Error>) in
             switch result {
             case .success(let resp):
-                DispatchQueue.main.async { self?.suggestions = resp.suggestions }
+                DispatchQueue.main.async { self?.suggestions = Array(resp.suggestions.prefix(200)) }
             case .failure:
                 break
             }
@@ -480,7 +480,7 @@ class MultiNodeEngine: ObservableObject {
         get("/api/v1/observability/alerts") { [weak self] (result: Result<AlertsResponse, Error>) in
             switch result {
             case .success(let resp):
-                DispatchQueue.main.async { self?.alerts = resp.alerts }
+                DispatchQueue.main.async { self?.alerts = Array(resp.alerts.prefix(200)) }
             case .failure:
                 engineLog.debug("Alerts endpoint not available yet")
             }

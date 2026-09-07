@@ -15,7 +15,7 @@ CONFIGURATION="${CONFIGURATION:-release}"
 
 # Callers: build.sh package/dmg/sign. Affected API: VERSION variable → DMG filename + Info.plist CFBundleShortVersionString. Data: version string. User: "修复 Release workflow"
 # 版本信息
-VERSION="0.1.62"
+VERSION="0.1.63"
 BUILD_NUM=$(date +%Y%m%d%H%M)
 
 # 颜色
@@ -313,7 +313,10 @@ PLIST
     fi
 
     # 构建 + 复制 fusion-design CLI
-    local fd_dir="$HOME/fusion/fusion-design"
+    # 审计0907 P2-18: 旧硬编码 $HOME/fusion/fusion-design, 非 ~/fusion 布局 (CI/其他 dev) 找不到。
+    #   honor MONO_ROOT (与 bundle_python L146 对齐), fallback $HOME/fusion 保向后兼容。
+    local mono_root="${MONO_ROOT:-$HOME/fusion}"
+    local fd_dir="$mono_root/fusion-design"
     if [ -f "$fd_dir/Cargo.toml" ]; then
         info "构建 fusion-design CLI..."
         (cd "$fd_dir" && cargo build --release -p fd-cli 2>&1 | tail -3)

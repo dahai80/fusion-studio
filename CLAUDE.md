@@ -67,9 +67,8 @@ FusionStudio/
 ├── System/                  # AgentBridge (1736 lines, agent orchestration), AgentBridgeDomains, SandboxManager, ScreenContext, FileWatcher
 ├── Navigation/              # FusionSidebarView, IconRailView, InspectorPanel, ChatsPanel, ProjectsPanel, ArtifactsPanel
 ├── Modules/                 # module view entries (subdirs + root files); largest single file: AgentBridge 1736 lines (System/)
-├── Components/              # Reusable UI: FusionButton, FusionCard, FusionProgressRing, FusionTabBar, FusionTag, FusionToast
+├── Components/              # Reusable UI: FusionButton, FusionCard, FusionProgressRing, FusionTabBar, FusionTag, FusionToast, WorkflowCanvasView<Delegate> (generic drag-canvas, PR#410; superseded DAG/)
 ├── Theme/                   # StudioTheme (dark/light themes)
-├── DAG/                     # DAGCanvasView
 ├── Settings/                # SettingsView
 ├── Environment/             # EnvironmentHealthCard
 ├── TaskManager/             # TaskQueueView, HardwareMonitorView

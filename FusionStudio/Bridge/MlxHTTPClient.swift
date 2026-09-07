@@ -153,6 +153,12 @@ final class MlxHTTPClient: ObservableObject {
         isRetry: Bool = false
     ) async throws -> T {
         var components = URLComponents()
+        // 审计0907 P1-7: 远程 MLX host 经明文 http 发 api_key = 泄密。本地回环用 http, 远程强制 https。
+        let isLocal = host == "127.0.0.1" || host == "localhost" || host == "0.0.0.0" || host == "::1"
+        guard isLocal else {
+            log.error("refusing plaintext http to remote MLX host \(self.host, privacy: .public); configure https/TLS")
+            throw MlxHTTPError.invalidURL
+        }
         components.scheme = "http"
         components.host = host
         components.port = port

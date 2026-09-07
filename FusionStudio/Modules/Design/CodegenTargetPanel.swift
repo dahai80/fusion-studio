@@ -244,25 +244,25 @@ struct CodegenTargetPanel: View {
             }
     }
 
+    // 审计0907 P0-3/P1-20: 旧 DispatchQueue.global + sync runFusionDesign — MainActor 隔离违规 (designBridge
+    //   @MainActor, 跨线程访问) + 180s 阻塞。改 Task + runFusionDesignAsync (Task.detached 后台跑)。
     private func runCodegen() {
         guard let docJSON = designBridge.lastRenderedDocumentJSON, !docJSON.isEmpty else { return }
         isGenerating = true
         errorMessage = nil
 
-        DispatchQueue.global(qos: .userInitiated).async {
-            let result = designBridge.runFusionDesign(
+        Task { @MainActor in
+            let result = await designBridge.runFusionDesignAsync(
                 ["codegen", "--target", selectedTarget.rawValue, "--component", componentName],
                 stdin: docJSON
             )
-            DispatchQueue.main.async {
-                if result.exitCode == 0 {
-                    self.generatedCode = result.output
-                    codegenLog.info("Codegen completed: \(result.output.count) chars, target=\(self.selectedTarget.rawValue)")
-                } else {
-                    self.errorMessage = String(format: i18n.t(.design_cg_genFailFmt), String(result.error.prefix(200)))
-                }
-                self.isGenerating = false
+            if result.exitCode == 0 {
+                self.generatedCode = result.output
+                codegenLog.info("Codegen completed: \(result.output.count) chars, target=\(self.selectedTarget.rawValue)")
+            } else {
+                self.errorMessage = String(format: i18n.t(.design_cg_genFailFmt), String(result.error.prefix(200)))
             }
+            self.isGenerating = false
         }
     }
 
