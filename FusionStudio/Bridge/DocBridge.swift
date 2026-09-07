@@ -13,8 +13,13 @@ private let docBridgeLog = Logger(subsystem: "com.fusion.studio", category: "Doc
 // ARCH-1 facade-delegate split (audit-product-0907 P2-2). 32 @Published 拆 13 域 ObservableObject。
 //   let 域引用 = 稳定身份, init() objectWillChange.sink 转发每域 (SwiftUI 不自动追踪嵌套
 //   ObservableObject, P0-1 修)。32 属性经下方计算属性 get/set 转发, 0 view 改动。
-//   行为按域 Phase 2-6 迁入 Doc<Domain>Service.swift extension; HTTP 基元 (get/post/put/delete +
-//   handleError + authToken + session/baseURL) 留 DocBridge 作 infra, 域经 bridge?.get 越界。
+//   行为按域 Phase 2-5 迁入 13 个 Doc<Domain>Service.swift extension (DocBridge 留 1 行 stub);
+//   HTTP 基元 (get/post/put/delete + handleError + authToken + session/baseURL) 留 DocBridge 作
+//   infra, 域经 bridge?.get 越界。协调器 (scheduleReconnect/restoreVersion/instantiateTemplate/
+//   importOfficeDocument/restoreAuth/verifyToken) 留 DocBridge (跨域); 无状态 util (copilot URL/
+//   searchPages/searchAdvanced/aiChat/aiCompletions) 留 DocBridge (无 @Published 不值得建域)。
+//   DispatchQueue.main.async hops 留: 逃逸 completion handler (URLSession 后台队列回调) 非 @MainActor
+//   隔离, hop 是正确性必需非冗余。Phase 6 收尾: 1657→641 行, infra+协调器+util only, 0 重复方法体。
 @MainActor
 class DocBridge: ObservableObject {
     let libraryState = DocLibraryState()
