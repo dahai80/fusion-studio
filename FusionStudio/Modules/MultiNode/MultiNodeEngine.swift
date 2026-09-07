@@ -337,38 +337,10 @@ class MultiNodeEngine: ObservableObject {
         taskState.fetchTaskTimeline(taskId: taskId, completion: completion)
     }
 
-    func fetchAutoscalerConfig() {
-        get("/api/v1/autoscaler/config") { [weak self] (result: Result<AutoscalerConfig, Error>) in
-            switch result {
-            case .success(let config):
-                DispatchQueue.main.async { self?.autoscalerConfig = config }
-            case .failure:
-                engineLog.debug("Autoscaler config not available, using default")
-            }
-        }
-    }
-
-    func fetchSuggestions() {
-        get("/api/v1/observability/suggestions") { [weak self] (result: Result<SuggestionsResponse, Error>) in
-            switch result {
-            case .success(let resp):
-                DispatchQueue.main.async { self?.suggestions = Array(resp.suggestions.prefix(200)) }
-            case .failure:
-                break
-            }
-        }
-    }
-
-    func fetchAlerts() {
-        get("/api/v1/observability/alerts") { [weak self] (result: Result<AlertsResponse, Error>) in
-            switch result {
-            case .success(let resp):
-                DispatchQueue.main.async { self?.alerts = Array(resp.alerts.prefix(200)) }
-            case .failure:
-                engineLog.debug("Alerts endpoint not available yet")
-            }
-        }
-    }
+    // ARCH-1 PR-C1 Phase 4: Autoscaler 域 stubs, bodies in MultiNodeAutoscalerService.swift。
+    func fetchAutoscalerConfig() { autoscalerState.fetchAutoscalerConfig() }
+    func fetchSuggestions() { autoscalerState.fetchSuggestions() }
+    func fetchAlerts() { autoscalerState.fetchAlerts() }
 
     func checkHealth() { clusterHealthState.checkHealth() }
 
@@ -413,28 +385,7 @@ class MultiNodeEngine: ObservableObject {
     func retryTask(_ task: ClusterTask) async throws -> [String: Any] { try await taskState.retryTask(task) }
 
     func updateAutoscalerConfig(_ config: AutoscalerConfig) async throws {
-        guard canMutate else {
-            ClusterAuditor.shared.record(action: "autoscaler", targetNode: nil, targetTask: nil,
-                                         result: "blocked", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw EngineError.writeDisabled
-        }
-        do {
-            let body: [String: Any] = [
-                "min_nodes": config.minNodes,
-                "max_nodes": config.maxNodes,
-                "scale_up_threshold": config.scaleUpThreshold,
-                "scale_down_threshold": config.scaleDownThreshold,
-                "cooldown_seconds": config.cooldownSeconds,
-            ]
-            _ = try await put("/api/v1/autoscaler/config", body: body)
-            fetchAutoscalerConfig()
-            ClusterAuditor.shared.record(action: "autoscaler", targetNode: nil, targetTask: nil,
-                                         result: "ok", idempotencyKey: nil, masterHost: activeMasterHost)
-        } catch {
-            ClusterAuditor.shared.record(action: "autoscaler", targetNode: nil, targetTask: nil,
-                                         result: "failed", idempotencyKey: nil, masterHost: activeMasterHost)
-            throw error
-        }
+        try await autoscalerState.updateAutoscalerConfig(config)
     }
 
     func registerKVCache(cacheId: String, modelName: String, nodeId: String, sizeMb: Double, ttlSeconds: Int = 3600) async throws {
@@ -496,45 +447,15 @@ class MultiNodeEngine: ObservableObject {
 
     // MARK: - Cluster Sync (#74)
 
-    func fetchClusterSyncStatus() {
-        get("/api/cluster/status") { [weak self] (result: Result<ClusterSyncStatus, Error>) in
-            switch result {
-            case .success(let status):
-                DispatchQueue.main.async { self?.clusterSyncStatus = status }
-            case .failure:
-                engineLog.debug("Cluster sync status not available")
-            }
-        }
-    }
+    // ARCH-1 PR-C1 Phase 4: Sync 域 stubs, bodies in MultiNodeSyncService.swift。
+    func fetchClusterSyncStatus() { syncState.fetchClusterSyncStatus() }
 
     func fetchModelManifest(modelName: String, completion: @escaping (Result<ModelManifest, Error>) -> Void) {
         nodeState.fetchModelManifest(modelName: modelName, completion: completion)
     }
 
     func triggerIncrementalSync(modelName: String, sourceHost: String, sourcePort: Int? = nil, completion: @escaping (Result<[String: Any], Error>) -> Void) {
-        guard let url = URL(string: "\(baseURL)/api/sync/incremental") else {
-            completion(.failure(EngineError.invalidURL)); return
-        }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        authHeaders(&request)
-        let body: [String: Any] = [
-            "model_name": modelName,
-            "source_host": sourceHost,
-            "source_port": sourcePort ?? FusionConfig.shared.multiNodePort,
-        ]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        session.dataTask(with: request) { data, _, error in
-            if let error = error { completion(.failure(error)); return }
-            guard let data = data else { completion(.failure(EngineError.noData)); return }
-            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                engineLog.info("Incremental sync triggered for \(modelName)")
-                completion(.success(json))
-            } else {
-                completion(.failure(EngineError.noData))
-            }
-        }.resume()
+        syncState.triggerIncrementalSync(modelName: modelName, sourceHost: sourceHost, sourcePort: sourcePort, completion: completion)
     }
 
     func fetchNodeLoad(nodeId: String, completion: @escaping (Result<NodeLoadReport, Error>) -> Void) {
