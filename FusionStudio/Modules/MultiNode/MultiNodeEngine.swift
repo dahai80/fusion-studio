@@ -4,6 +4,7 @@ import os.log
 
 private let engineLog = Logger(subsystem: "com.fusion.studio", category: "MultiNodeEngine")
 
+@MainActor
 class MultiNodeEngine: ObservableObject {
     @Published var clusterStats: ClusterStats = .empty
     @Published var nodes: [ClusterNode] = []
@@ -72,6 +73,10 @@ class MultiNodeEngine: ObservableObject {
     private var nodeOfflineStreak: [String: Int] = [:]
     private let offlineConfirmThreshold: Int = 2
 
+    // B2: node_loads poll throughput cap. >50 online nodes → sample top-N busiest by cpuPercent,
+    // rest rely on 2s fetchNodes heartbeat. Prevents 500 req/5s storm on large clusters.
+    private let nodeLoadSampleCap = 50
+
     // Track B: failover 健康探测单飞, 防 handleError 多路并发触发重复 checkHealth 风暴。
     private var failoverProbeInflight: Bool = false
 
@@ -84,6 +89,14 @@ class MultiNodeEngine: ObservableObject {
         return n.effectiveStatus == .offline
     }
 
+    // B1: cap unbounded mirror dicts (periodic refresh, no order — evict arbitrary excess keys).
+    private static func capDict<K: Hashable, V>(_ dict: inout [K: V], _ max: Int) {
+        if dict.count > max {
+            let drop = dict.count - max
+            for k in Array(dict.keys).prefix(drop) { dict.removeValue(forKey: k) }
+        }
+    }
+
     // F-A7: init 阶段 let 快照 baseURL/agentBaseURL/authToken → 改计算属性实时读 FusionConfig.shared。
     // FusionConfig host/port/token 全 @AppStorage 可运行时改, 但旧 let 快照让 engine 永远拿旧值,
     // 设置面板/WelcomeView/env 改后 engine 仍连旧地址旧 token, 与 IPCMultiNodeMethods 实时读口径打架。
@@ -91,7 +104,10 @@ class MultiNodeEngine: ObservableObject {
     private let overrideBaseURL: String?
     private let overrideAgentBaseURL: String?
     private let overrideAuthToken: String?
-    private var pollTimers: [Timer] = []
+    // B5: nonisolated(unsafe) — timers are only mutated on main (startPolling/stopPolling/reschedulePoll
+    // are MainActor) and deinit invalidates synchronously. No cross-queue mutation; annotation
+    // satisfies nonisolated deinit access without introducing a lock.
+    nonisolated(unsafe) private var pollTimers: [Timer] = []
 
     // Track B: TLS 会话由 ClusterTransport 统一提供 (含 TLS 委托 + 超时)。engine 不再自建 URLSession。
     private var session: URLSession { ClusterTransport.shared.session }
@@ -239,7 +255,8 @@ class MultiNodeEngine: ObservableObject {
         nodesStale = false
         consecutiveFailuresByContext[context] = 0
         // 任一路成功即认为集群可达; 离线态由 handleError 按各路独立判定。
-        if !isConnected { isConnected = true }
+        // B3: successful recovery clears MasterPool failover cycle cap.
+        if !isConnected { isConnected = true; MasterPool.shared.markRecovered() }
         // Track B: 成功恢复时同步 activeMasterHost。
         recomputeCanMutate()
     }
@@ -370,7 +387,14 @@ class MultiNodeEngine: ObservableObject {
         get("/api/nodes/pending") { [weak self] (result: Result<PendingNodeListResponse, Error>) in
             switch result {
             case .success(let resp):
-                DispatchQueue.main.async { self?.pendingNodes = resp.pending }
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    let capped = Array(resp.pending.prefix(500))
+                    if capped.count < resp.pending.count {
+                        engineLog.warning("pendingNodes truncated: \(resp.pending.count) -> \(capped.count)")
+                    }
+                    self.pendingNodes = capped
+                }
             case .failure:
                 engineLog.debug("Pending nodes endpoint not available")
             }
@@ -420,9 +444,12 @@ class MultiNodeEngine: ObservableObject {
         get("/api/v1/nodes/\(nodeId)/metrics") { [weak self] (result: Result<NodeMetricsResponse, Error>) in
             switch result {
             case .success(let resp):
-                DispatchQueue.main.async {
-                    self?.nodeMetricsRaw[nodeId] = resp
-                    self?.nodeMetrics[nodeId] = LoadMetrics.from(resp)
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.nodeMetricsRaw[nodeId] = resp
+                    self.nodeMetrics[nodeId] = LoadMetrics.from(resp)
+                    Self.capDict(&self.nodeMetricsRaw, 100)
+                    Self.capDict(&self.nodeMetrics, 500)
                 }
             case .failure(let error):
                 engineLog.error("Failed to fetch metrics for \(nodeId): \(error.localizedDescription)")
@@ -435,9 +462,12 @@ class MultiNodeEngine: ObservableObject {
             switch result {
             case .success(let resp):
                 let metrics = LoadMetrics.from(resp)
-                DispatchQueue.main.async {
-                    self?.nodeMetricsRaw[nodeId] = resp
-                    self?.nodeMetrics[nodeId] = metrics
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.nodeMetricsRaw[nodeId] = resp
+                    self.nodeMetrics[nodeId] = metrics
+                    Self.capDict(&self.nodeMetricsRaw, 100)
+                    Self.capDict(&self.nodeMetrics, 500)
                 }
                 completion(.success(metrics))
             case .failure(let error):
@@ -832,7 +862,11 @@ class MultiNodeEngine: ObservableObject {
         get("/api/models/\(modelName)/manifest") { [weak self] (result: Result<ModelManifest, Error>) in
             switch result {
             case .success(let manifest):
-                DispatchQueue.main.async { self?.modelManifests[modelName] = manifest }
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.modelManifests[modelName] = manifest
+                    Self.capDict(&self.modelManifests, 50)
+                }
                 completion(.success(manifest))
             case .failure(let error):
                 completion(.failure(error))
@@ -879,8 +913,23 @@ class MultiNodeEngine: ObservableObject {
     }
 
     func fetchAllNodeLoads() {
-        for node in nodes where node.effectiveStatus == .online || node.effectiveStatus == .busy {
-            fetchNodeLoad(nodeId: node.id) { _ in }
+        let live = nodes.filter { $0.effectiveStatus == .online || $0.effectiveStatus == .busy }
+        let liveIds = Set(live.map { $0.id })
+        let stale = nodeLoads.keys.filter { !liveIds.contains($0) }
+        if !stale.isEmpty {
+            for k in stale { nodeLoads.removeValue(forKey: k) }
+            engineLog.info("nodeLoads evicted \(stale.count) offline entries")
+        }
+        if live.count > nodeLoadSampleCap {
+            let sampled = live.sorted { a, b in
+                let la = nodeLoads[a.id]?.cpuPercent ?? 0
+                let lb = nodeLoads[b.id]?.cpuPercent ?? 0
+                return la > lb
+            }.prefix(nodeLoadSampleCap)
+            engineLog.warning("node_loads sampled \(sampled.count)/\(live.count) (cap=\(self.nodeLoadSampleCap)); full load available via fetchNodeLoad(nodeId:)")
+            for node in sampled { fetchNodeLoad(nodeId: node.id) { _ in } }
+        } else {
+            for node in live { fetchNodeLoad(nodeId: node.id) { _ in } }
         }
     }
 
@@ -1151,8 +1200,11 @@ class MultiNodeEngine: ObservableObject {
         }
     }
 
+    // B5: nonisolated deinit cannot call MainActor-isolated stopPolling(); inline timer
+    // invalidation (Timer.invalidate is safe from any queue). pollTimers is nonisolated(unsafe).
     deinit {
-        stopPolling()
+        pollTimers.forEach { $0.invalidate() }
+        pollTimers.removeAll()
     }
 }
 
