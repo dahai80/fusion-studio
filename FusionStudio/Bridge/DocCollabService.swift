@@ -47,7 +47,10 @@ extension DocCollabState {
         }
     }
 
-    private func receiveCollabMessage() {
+    // nonisolated: WS receive callback runs on URLSession delegate queue (non-MainActor).
+    //   Body only logs + recurses + hops to main for @Published write (collabConnected).
+    //   collabTask is nonisolated(unsafe). Mirrors cleanup() nonisolated pattern.
+    nonisolated private func receiveCollabMessage() {
         collabTask?.receive { [weak self] result in
             switch result {
             case .success(let message):
