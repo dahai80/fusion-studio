@@ -3,9 +3,7 @@ import SwiftUI
 import CryptoKit
 import os.log
 // Callers: UpstreamServiceManager, ContentView, SettingsView
-// Affected API: multi-node health endpoint port
 // Data: @AppStorage port properties
-// User instruction: "修复issue #111" — add multiNodePort=11452
 
 private let fusionConfigLog = Logger(subsystem: "com.fusion.studio", category: "FusionConfig")
 
@@ -73,12 +71,6 @@ class FusionConfig: ObservableObject {
     func migrateStalePorts() {
         let defaults = UserDefaults.standard
         guard !defaults.bool(forKey: Self.stalePortMigratedKey) else { return }
-        // multiNodeAgentPort: 旧默认 11445 → 11458 (fusion-multi-nodes#22/#25 迁出, 与 comfyuiPort 撞)
-        let oldAgentPort = defaults.integer(forKey: "multiNodeAgentPort")
-        if oldAgentPort == 11445 {
-            defaults.set(11458, forKey: "multiNodeAgentPort")
-            fusionConfigLog.info("F-I9 migrate: multiNodeAgentPort 11445 → 11458 (stale comfyui conflict)")
-        }
         // F-ops-1 P0: healthPort 11456 (现归 simulation-metrics) → 11469 (fusion-health, start.sh probe)。
         let oldHealthPort = defaults.integer(forKey: "healthPort")
         if oldHealthPort == 11456 {
@@ -86,7 +78,7 @@ class FusionConfig: ObservableObject {
             fusionConfigLog.info("F-ops-1 migrate: healthPort 11456 → 11469 (stale simulation-metrics conflict)")
         }
         defaults.set(true, forKey: Self.stalePortMigratedKey)
-        fusionConfigLog.info("F-I9 migrate: stale port migration v1 done (oldAgentPort=\(oldAgentPort))")
+        fusionConfigLog.info("F-I9 migrate: stale port migration v1 done")
     }
 
     // MARK: - 通用
@@ -218,7 +210,6 @@ class FusionConfig: ObservableObject {
     // Data: @AppStorage string path. User instruction: "现在还是有四个产品环境检测异常，rag，doc，science，health，请排查问题，并进行修复"
     // fix: RAG 服务实际位于 fusion-rag（非 fusion-kb，后者不存在），端口 11436。
     @AppStorage("upstreamRagPath") var upstreamRagPath = "~/fusion/fusion-rag"
-    @AppStorage("upstreamMultiNodePath") var upstreamMultiNodePath = "~/fusion/fusion-multi-node"
     @AppStorage("upstreamFusionCodePath") var upstreamFusionCodePath = "~/fusion/fusion-code"
     @AppStorage("upstreamSciencePath") var upstreamSciencePath = "~/fusion/fusion-science"
     // Callers: SimulationBridge (baseURL), UpstreamServiceManager (health + repoPath).
@@ -270,26 +261,6 @@ class FusionConfig: ObservableObject {
     // #346: fusion-event 感知层守护 UDS (NDJSON JSON-RPC, /tmp 默认, FUSION_EVENT_SOCK 可覆盖)。
     @AppStorage("fusionEventSocketPath") var fusionEventSocketPath = "/tmp/fusion-event.sock"
     @AppStorage("agentStudioHttpPort") var agentStudioHttpPort = 11453
-    @AppStorage("multiNodePort") var multiNodePort = 11452
-    // Multi-Node Agent 端口（NodeAgent /api/* 数据端口）。原 11445 与 fusion-comfyui 实跑撞,
-    // 2026-08-24 上游迁出至 11458 (fusion-multi-nodes#22/#25, port-registry.yaml)。旧用户 @AppStorage
-    // 仍可能是 11445 → init migrateStalePorts 首启迁移。
-    @AppStorage("multiNodeAgentPort") var multiNodeAgentPort = 11458
-    // 可选：手动覆盖 cluster token（留空则读取 ~/.fusion/multi-node/.cluster_token）。
-    @AppStorage("multiNodeClusterToken") var multiNodeClusterToken = ""
-    // 审计0907 P2-8: multiNodeMasterList 旧 @AppStorage 明文存 UserDefaults plist, 助横向移动。
-    //   改 0600 文件 (~/.fusion-studio/multi-node-master-list), 经 KeychainStore.readMasterList/writeMasterList。
-    //   本 @AppStorage 已删, 避免 stale 明文副本残留 (MasterPool.reload + SettingsView 已切文件读取)。
-
-    /// Multi-Node Master 服务地址（FastAPI MasterServer，需 Bearer token）。
-    // F-sec-1 P1: 远程集群强制 https:// (明文 token 走 HTTP 跨网段泄露风险); 本地单节点 http://。
-    var multiNodeBaseURL: String { "\(schemeForHost(modelHubHost))://\(modelHubHost):\(multiNodePort)" }
-    /// Multi-Node Agent 服务地址（FastAPI AgentServer，需 Bearer token）。
-    // F-A8: 旧硬编码 127.0.0.1, 远程集群场景下 7 Agent KV 方法 (fetchAgentKVStats/agentKVLookup/
-    // agentKVTransfer/agentKVWarm 等) 全打本地而非远程节点。改用 modelHubHost — 本地单节点
-    // modelHubHost 默认 127.0.0.1 行为不变, 远程集群走远程 host。端口与 comfyui 冲突属上游问题。
-    // F-sec-1 P1: 同 multiNodeBaseURL, 远程强制 https://。
-    var multiNodeAgentBaseURL: String { "\(schemeForHost(modelHubHost))://\(modelHubHost):\(multiNodeAgentPort)" }
 
     /// F-sec-1 P1: 本地回环/链路本地地址用 http://; 远程主机强制 https:// (Bearer token 明文保护)。
     /// 注: 仅选 scheme; TLS 证书校验由 URLSession 默认 ATS 负责, 远程部署需提供有效证书。
@@ -318,30 +289,13 @@ class FusionConfig: ObservableObject {
         return url
     }
 
-    /// 读取 cluster token。
-    // SEC-5 (审计product-0905 P1): 优先 Keychain (不再首选 @AppStorage 明文)。@AppStorage 仅作遗留迁移源, 读后清除。
-    // 文件 ~/.fusion/multi-node/.cluster_token (0600) 为最终兜底。
-    var multiNodeResolvedToken: String {
-        let kc = KeychainStore.readClusterToken()
-        if !kc.isEmpty { return kc }
-        if !multiNodeClusterToken.isEmpty {
-            fusionConfigLog.info("migrating cluster token: @AppStorage plaintext -> Keychain (SEC-5)")
-            _ = KeychainStore.writeClusterToken(multiNodeClusterToken)
-            multiNodeClusterToken = ""
-            return KeychainStore.readClusterToken()
-        }
-        let path = (NSHomeDirectory() as NSString).appendingPathComponent(".fusion/multi-node/.cluster_token")
-        return (try? String(contentsOfFile: path, encoding: .utf8))?
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-    }
-
     // Callers: UpstreamServiceManager (health endpoint), ScienceBridge. Affected API: scienceBaseURL.
     // Data: @AppStorage host/port. fix: fusion-science start.sh 默认端口 11462（非 8200），对齐上游。
     @AppStorage("scienceHost") var scienceHost = "127.0.0.1"
     @AppStorage("sciencePort") var sciencePort = 11462
 
     /// Fusion-Science 服务地址
-    // SEC-6 (审计product-0906 P2): 远程 science host 强制 https:// (跨网段明文), 本地 http://。复用 schemeForHost, 与 multiNodeBaseURL/modelHubBaseURL 对齐。
+    // SEC-6 (审计product-0906 P2): 远程 science host 强制 https:// (跨网段明文), 本地 http://。复用 schemeForHost, 与 modelHubBaseURL 对齐。
     var scienceBaseURL: String { "\(schemeForHost(scienceHost))://\(scienceHost):\(sciencePort)" }
 
     // Callers: SimulationBridge, UpstreamServiceManager. Port 11455 = fusion-sim dashboard (--gui).
@@ -622,7 +576,6 @@ class FusionConfig: ObservableObject {
         upstreamComfyuiPath = "~/fusion/fusion-comfyui"
         comfyuiPort = 11445
         upstreamRagPath = "~/fusion/fusion-rag"
-        upstreamMultiNodePath = "~/fusion/fusion-multi-node"
         upstreamFusionCodePath = "~/fusion/fusion-code"
         upstreamSciencePath = "~/fusion/fusion-science"
         upstreamSimulationPath = "~/fusion/fusion-simulation"
@@ -651,8 +604,5 @@ class FusionConfig: ObservableObject {
         simulationPort = 11455
         healthHost = "127.0.0.1"
         healthPort = 11469
-        // F-I9 追加: reset 补 multiNode 端口 (此前 resetToDefaults 漏设, 走 @AppStorage 默认值不一致)
-        multiNodePort = 11452
-        multiNodeAgentPort = 11458
     }
 }

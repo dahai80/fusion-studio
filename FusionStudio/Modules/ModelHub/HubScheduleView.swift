@@ -342,9 +342,6 @@ struct HubScheduleView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(i18n.t(.hub_clusterSharedCache))
                             .foregroundStyle(theme.text)
-                        Text(i18n.t(.hub_multiNodeSyncHint))
-                            .font(.caption)
-                            .foregroundStyle(theme.textTertiary)
                     }
                 }
             }

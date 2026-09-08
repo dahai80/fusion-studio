@@ -17,7 +17,6 @@ struct SettingsView: View {
         case quant      = "量化预设"
         case workspace  = "工作区"
         case mlxConnection = "MLX 连接"
-        case multiNodeSecurity = "多节点安全"
         case backendRuntime = "后端运行时"
 
         var icon: String {
@@ -29,7 +28,6 @@ struct SettingsView: View {
             case .quant:      return "dial.medium"
             case .workspace:  return "folder"
             case .mlxConnection: return "server.rack"
-            case .multiNodeSecurity: return "lock.shield"
             case .backendRuntime: return "externaldrive.connected.to.line.below"
             }
         }
@@ -64,10 +62,6 @@ struct SettingsView: View {
             MlxConnectionSettingsView()
                 .tabItem { Label(i18n.t(.tab_mlxConnection), systemImage: "server.rack") }
                 .tag(SettingsTab.mlxConnection)
-
-            MultiNodeSecuritySettingsView()
-                .tabItem { Label(i18n.t(.tab_multiNodeSecurity), systemImage: "lock.shield") }
-                .tag(SettingsTab.multiNodeSecurity)
 
             BackendRuntimeSettingsView()
                 .tabItem { Label(i18n.t(.tab_backendRuntime), systemImage: "externaldrive.connected.to.line.below") }
@@ -623,216 +617,6 @@ struct MlxConnectionSettingsView: View {
         config.mlxPort = portInt
         config.mlxEndpointOverrideEnabled = true
         log.info("MLX endpoint saved: \(trimmedHost):\(portInt) override=on (env ignored)")
-    }
-}
-
-// MARK: - 多节点安全设置 (Track B: TLS pinned certs / master list / cluster token)
-
-struct MultiNodeSecuritySettingsView: View {
-    @Environment(\.studioTheme) private var theme
-    @StateObject private var i18n = I18nManager.shared
-    @State private var tlsCerts: [CertSummary] = []
-    // 审计0907 P2-8: master list 旧明文存 UserDefaults.standard plist, 助横向移动。改 0600 文件。
-    @State private var masterList: String = KeychainStore.readMasterList()
-    @State private var tokenInput: String = ""
-    @State private var importError: String = ""
-    @State private var mtlsSummary: CertSummary? = nil
-    @State private var mtlsPassword: String = ""
-    @State private var mtlsImportError: String = ""
-    private let log = Logger(subsystem: "com.fusion.studio", category: "Settings.MultiNodeSecurity")
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: theme.spacingM) {
-                Text(i18n.t(.settings_mn_security_title))
-                    .font(.system(size: theme.captionSize, weight: .semibold))
-                    .foregroundStyle(theme.textTertiary)
-                    .padding(.bottom, theme.spacingXS)
-
-                settingRow(i18n.t(.settings_mn_certImport), "TLS pinned certificates") {
-                    Button(i18n.t(.settings_mn_certImport)) { importCert() }
-                        .font(.system(size: theme.captionSize))
-                        .buttonStyle(.plain)
-                        .foregroundStyle(theme.accent)
-                }
-
-                ForEach(tlsCerts, id: \.fingerprint) { cert in
-                    settingRow(cert.subject, cert.fingerprint) {
-                        Button(i18n.t(.settings_mn_certDelete)) {
-                            try? TlsTrustStore.shared.removeCert(fingerprint: cert.fingerprint)
-                            tlsCerts = TlsTrustStore.shared.listCerts()
-                            log.info("removed pinned cert \(cert.fingerprint, privacy: .public)")
-                        }
-                        .font(.system(size: theme.captionSize))
-                        .buttonStyle(.plain)
-                        .foregroundStyle(theme.errorText)
-                    }
-                }
-
-                if !importError.isEmpty {
-                    Text(importError).font(.system(size: theme.captionSize)).foregroundStyle(theme.errorText)
-                }
-
-                // 审计product-0907 P2-3 / C2: mTLS 客户端证书双向认证 (零信任企业集群).
-                //   导入 .p12 + 密码 -> SecIdentity -> Keychain, 运行时出示 clientCertificate challenge.
-                //   未配置时无此区 (向后兼容 Bearer-only + 服务端 pinning).
-                Divider().padding(.vertical, theme.spacingXS)
-
-                settingRow(i18n.t(.settings_mn_mtlsImport), "mTLS client certificate (.p12)") {
-                    Button(i18n.t(.settings_mn_mtlsImport)) { importMtlsCert() }
-                        .font(.system(size: theme.captionSize))
-                        .buttonStyle(.plain)
-                        .foregroundStyle(theme.accent)
-                }
-
-                if let summary = mtlsSummary {
-                    settingRow(summary.subject, "fp: \(summary.fingerprint)") {
-                        VStack(alignment: .trailing, spacing: 2) {
-                            if let days = summary.daysUntilExpiry {
-                                Text(i18n.t(.settings_mn_mtlsExpiry) + ": \(days)d")
-                                    .font(.system(size: theme.captionSize))
-                                    .foregroundStyle(summary.isNearExpiry ? theme.errorText : theme.textSecondary)
-                            }
-                            Button(i18n.t(.settings_mn_mtlsDelete)) {
-                                ClusterMTLSStore.shared.deleteClientIdentity()
-                                ClusterTransport.shared.reloadClientIdentity()
-                                mtlsSummary = ClusterMTLSStore.shared.clientIdentitySummary()
-                                log.info("removed mTLS client identity")
-                            }
-                            .font(.system(size: theme.captionSize))
-                            .buttonStyle(.plain)
-                            .foregroundStyle(theme.errorText)
-                        }
-                    }
-                }
-
-                if !mtlsImportError.isEmpty {
-                    Text(mtlsImportError).font(.system(size: theme.captionSize)).foregroundStyle(theme.errorText)
-                }
-
-                Divider().padding(.vertical, theme.spacingXS)
-
-                settingRow(i18n.t(.settings_mn_masterList), "Ordered failover hosts") {
-                    TextField(i18n.t(.settings_mn_masterList), text: $masterList)
-                        .textFieldStyle(.plain)
-                        .font(.system(size: theme.footnoteSize, design: .monospaced))
-                        .frame(width: 240)
-                        .onChange(of: masterList) { v in
-                            _ = KeychainStore.writeMasterList(v)
-                            MasterPool.shared.reload()
-                            log.info("master list updated (0600 file)")
-                        }
-                }
-
-                Divider().padding(.vertical, theme.spacingXS)
-
-                settingRow(i18n.t(.settings_mn_token), "Cluster auth token (Keychain)") {
-                    SecureField(i18n.t(.settings_mn_token), text: $tokenInput)
-                        .textFieldStyle(.plain)
-                        .font(.system(size: theme.footnoteSize, design: .monospaced))
-                        .frame(width: 240)
-                }
-                HStack(spacing: theme.spacingS) {
-                    Button(i18n.t(.settings_mn_tokenSave)) {
-                        let trimmed = tokenInput.trimmingCharacters(in: .whitespaces)
-                        guard !trimmed.isEmpty else { return }
-                        _ = KeychainStore.writeClusterToken(trimmed)
-                        tokenInput = ""
-                        log.info("cluster token saved to Keychain")
-                    }
-                    .font(.system(size: theme.footnoteSize, weight: .medium))
-                    .buttonStyle(.plain)
-                    .foregroundStyle(theme.accent)
-                    .disabled(tokenInput.trimmingCharacters(in: .whitespaces).isEmpty)
-
-                    Button(i18n.t(.settings_mn_tokenClear)) {
-                        _ = KeychainStore.deleteClusterToken()
-                        tokenInput = ""
-                        log.info("cluster token cleared")
-                    }
-                    .font(.system(size: theme.footnoteSize, weight: .medium))
-                    .buttonStyle(.plain)
-                    .foregroundStyle(theme.errorText)
-                }
-                .padding(.leading, theme.spacingM)
-            }
-            .padding(theme.spacingM)
-        }
-        .onAppear {
-            tlsCerts = TlsTrustStore.shared.listCerts()
-            masterList = KeychainStore.readMasterList()
-            mtlsSummary = ClusterMTLSStore.shared.clientIdentitySummary()
-        }
-    }
-
-    @ViewBuilder
-    private func settingRow<C: View>(_ title: String, _ desc: String, @ViewBuilder control: () -> C) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(title)
-                    .font(.system(size: theme.textSize, weight: .medium))
-                    .foregroundStyle(theme.text)
-                Spacer()
-                control()
-            }
-            Text(desc)
-                .font(.system(size: theme.captionSize))
-                .foregroundStyle(theme.textSecondary)
-        }
-    }
-
-    private func importCert() {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.x509Certificate]
-        panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = false
-        if panel.runModal() == .OK, let url = panel.url {
-            do {
-                try TlsTrustStore.shared.importCert(at: url)
-                tlsCerts = TlsTrustStore.shared.listCerts()
-                importError = ""
-                log.info("imported cert from \(url.path, privacy: .public)")
-            } catch {
-                importError = "\(error.localizedDescription)"
-                log.error("cert import failed: \(error.localizedDescription, privacy: .public)")
-            }
-        }
-    }
-
-    private func importMtlsCert() {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [UTType(filenameExtension: "p12") ?? .data]
-        panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = false
-        if panel.runModal() == .OK, let url = panel.url {
-            guard let password = promptMtlsPassword() else { return }
-            do {
-                try ClusterMTLSStore.shared.importIdentity(at: url, password: password)
-                ClusterTransport.shared.reloadClientIdentity()
-                mtlsSummary = ClusterMTLSStore.shared.clientIdentitySummary()
-                mtlsImportError = ""
-                log.info("imported mTLS client identity from \(url.path, privacy: .public)")
-            } catch {
-                mtlsImportError = "\(error.localizedDescription)"
-                log.error("mTLS import failed: \(error.localizedDescription, privacy: .public)")
-            }
-        }
-    }
-
-    private func promptMtlsPassword() -> String? {
-        let alert = NSAlert()
-        alert.alertStyle = .informational
-        alert.messageText = i18n.t(.settings_mn_mtlsPassPrompt)
-        alert.informativeText = i18n.t(.settings_mn_mtlsPassDesc)
-        let input = NSSecureTextField(frame: NSRect(x: 0, y: 0, width: 260, height: 24))
-        alert.accessoryView = input
-        alert.addButton(withTitle: i18n.t(.settings_mn_mtlsImport))
-        alert.addButton(withTitle: i18n.t(.settings_mn_tokenClear))
-        let response = alert.runModal()
-        guard response == .alertFirstButtonReturn else { return nil }
-        let pw = input.stringValue
-        guard !pw.isEmpty else { return nil }
-        return pw
     }
 }
 
