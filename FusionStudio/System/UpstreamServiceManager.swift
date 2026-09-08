@@ -3,7 +3,6 @@ import Combine
 import os.log
 import SwiftUI
 // Callers: ContentView service health UI, SettingsView
-// Affected API: multi-node health endpoint (9753→cfg.multiNodePort=11452)
 // Data: UpstreamService healthEndpoint string
 // User instruction: "修复issue #111" — eliminate hardcoded 9753
 
@@ -102,7 +101,7 @@ enum UpstreamServiceStatus: Equatable {
 /// 健康探测方式
 enum UpstreamHealthKind {
     case socket        // agent-studio: UDS 连接探测
-    case httpGet       // mlx/multi-node/rag: HTTP GET 任意响应即存活
+    case httpGet       // mlx/rag: HTTP GET 任意响应即存活
     case jsonRpcPing   // artifacts-engine: JSON-RPC POST 任意响应即存活
 }
 
@@ -175,12 +174,6 @@ final class UpstreamServiceManager: ObservableObject {
                             isCritical: false, startOrder: 3,
                             repoPathRaw: cfg.upstreamRagPath,
                             healthKind: .httpGet, healthEndpoint: "\(cfg.fusionRagURL)/health"),
-            UpstreamService(id: "multi-node",
-                            displayName: "Multi-Node Master",
-                            icon: "network",
-                            isCritical: false, startOrder: 4,
-                            repoPathRaw: cfg.upstreamMultiNodePath,
-                            healthKind: .httpGet, healthEndpoint: "http://localhost:\(cfg.multiNodePort)/api/health"),
             UpstreamService(id: "fusion-design",
                             displayName: "Fusion Design (fd-cli)",
                             icon: "paintbrush",
@@ -232,7 +225,7 @@ final class UpstreamServiceManager: ObservableObject {
                             healthKind: .httpGet, healthEndpoint: "\(cfg.healthBaseURL)/api/v1/health"),
             // Callers: DocBridge (baseURL 11449), EnvironmentHealthSheet case "doc". Affected API: httpGet health.
             // Data: UpstreamService entry. fix: fusion-doc 此前未纳入管理器，无自动启动/健康探测。
-            // 端口 11449（与 multi-node 冲突已由 multi-node 迁至 11452 解决）。健康路由 /api/health。
+            // 端口 11449。健康路由 /api/health。
             UpstreamService(id: "fusion-doc",
                             displayName: "Fusion-Doc 文档",
                             icon: "doc.text",

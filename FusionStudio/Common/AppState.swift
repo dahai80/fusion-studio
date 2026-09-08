@@ -64,7 +64,6 @@ enum ProductSheet: String, CaseIterable, Identifiable {
     case mlx = "Fusion-MLX"
     case code = "Fusion-Code"
     case agentStudio = "Agent Studio"
-    case multiNode = "Multi-Node"
     case chat = "Chat"
     case fusionProjectsSheet = "Fusion Projects"
     case coworkSheet = "CoWork"
@@ -92,7 +91,6 @@ enum ProductSheet: String, CaseIterable, Identifiable {
         case .mlx: "chip"
         case .code: "chevron.left.forwardslash.chevron.right"
         case .agentStudio: "person.2.fill"
-        case .multiNode: "network"
         case .chat: "bubble.left.and.bubble.right"
         case .fusionProjectsSheet: "folder.badge.gearshape"
         case .coworkSheet: "person.2.square.stack"
@@ -134,18 +132,6 @@ enum Module: String, CaseIterable, Identifiable {
     case tuning    = "Tuning"
     case external  = "External"
     case docgen    = "Doc Generator"
-    case clusterOverview = "Cluster Overview"
-    case clusterTopology = "Cluster Topology"
-    case clusterSync = "Cluster Sync"
-    case taskMonitor = "Task Monitor"
-    case alertCenter = "Alert Center"
-    case nodeActions = "Node Actions"
-    case submitTask = "Submit Task"
-    case taskProgress = "Task Progress"
-    case routingStrategy = "Routing Strategy"
-    case kvCache = "KV Cache"
-    case serviceWeb = "Service Web"
-    case audit = "Audit"
     case rag        = "RAG"
     case memory     = "Memory"
     case planner    = "Planner"
@@ -210,18 +196,6 @@ enum Module: String, CaseIterable, Identifiable {
         case .tuning:               key = .mod_tuning
         case .external:             key = .mod_external
         case .docgen:               key = .mod_docgen
-        case .clusterOverview:      key = .mod_clusterOverview
-        case .clusterTopology:      key = .mod_clusterTopology
-        case .clusterSync:          key = .mod_clusterSync
-        case .taskMonitor:          key = .mod_taskMonitor
-        case .alertCenter:          key = .mod_alertCenter
-        case .nodeActions:          key = .mod_nodeActions
-        case .submitTask:           key = .mod_submitTask
-        case .taskProgress:         key = .mod_taskProgress
-        case .routingStrategy:      key = .mod_routingStrategy
-        case .kvCache:              key = .mod_kvCache
-        case .serviceWeb:           key = .mod_serviceWeb
-        case .audit:                key = .mod_audit
         case .rag:                  key = .mod_rag
         case .memory:               key = .mod_memory
         case .planner:              key = .mod_planner
@@ -281,18 +255,6 @@ enum Module: String, CaseIterable, Identifiable {
         case .tuning:     return "wand.and.rays"
         case .external:   return "link.circle"
         case .docgen:     return "doc.badge.gearshape"
-        case .clusterOverview: return "square.grid.2x2"
-        case .clusterTopology: return "point.3.connected.trianglepath.dotted"
-        case .clusterSync: return "arrow.triangle.2.circlepath"
-        case .taskMonitor: return "list.bullet.clipboard"
-        case .alertCenter: return "exclamationmark.triangle"
-        case .nodeActions: return "slider.horizontal.3"
-        case .submitTask: return "paperplane"
-        case .taskProgress: return "chart.bar.doc.horizontal"
-        case .routingStrategy: return "arrow.triangle.branch"
-        case .kvCache: return "internaldrive"
-        case .serviceWeb: return "globe"
-        case .audit:      return "doc.text.magnifyingglass"
         case .rag:       return "magnifyingglass"
         case .memory:    return "brain.head.profile"
         case .planner:   return "list.bullet.rectangle"
@@ -339,13 +301,9 @@ enum Module: String, CaseIterable, Identifiable {
             return .code
         case .doc:
             return .docSheet
-        case .agent, .plugin, .security, .dataTools:
+        case .agent, .plugin, .security, .dataTools,
+             .multimodal, .analytics, .collab, .external, .operations, .deploy:
             return .agentStudio
-        case .multimodal, .analytics, .collab, .external,
-             .clusterOverview, .clusterTopology, .clusterSync, .taskMonitor, .alertCenter, .nodeActions,
-             .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb, .audit,
-             .operations, .deploy:
-            return .multiNode
         case .rag:
             return .ragSheet
         case .memory, .planner, .verification, .tokenBudget, .safety, .tools, .agentDashboard, .teamCollab, .desk:
@@ -404,7 +362,6 @@ enum SidebarSection: String, CaseIterable, Identifiable {
     case douyinOperation = "Douyin Operation"
     // 第四部分：平台扩展
     case modelHub = "Model Hub"
-    case multiNode = "Multi-Node"
     case pluginEcosystem = "Plugin Ecosystem"
     case trainer = "Fusion Trainer"
 
@@ -446,7 +403,6 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .simulation:      key = .secSimulation
         case .douyinOperation: key = .secDouyin
         case .modelHub:        key = .secModelHub
-        case .multiNode:       key = .secMultiNode
         case .pluginEcosystem: key = .secPlugin
         case .trainer:         key = .secTrainer
         }
@@ -466,7 +422,6 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .cowork:    return "person.2.square.stack"
         case .mlx:       return "chip"
         case .modelHub:  return "square.stack.3d.up.fill"
-        case .multiNode: return "network"
         case .fsb:       return "storefront"
         case .science:   return "flask"
         case .finance:   return "chart.line.uptrend.xyaxis"
@@ -497,12 +452,11 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .simulation: return [.simulation]
         case .design:    return [.design]
         case .rag:       return [.rag]
-        case .agent:     return [.agent, .agentDashboard, .teamCollab, .tools, .safety, .memory, .planner, .verification, .tokenBudget, .security, .dataTools, .plugin, .desk]
+        case .agent:     return [.agent, .agentDashboard, .teamCollab, .tools, .safety, .memory, .planner, .verification, .tokenBudget, .security, .dataTools, .plugin, .desk, .multimodal, .analytics, .collab, .external, .operations, .deploy]
         case .aiAgent:   return [.aiAgentDashboard, .aiAgentList, .aiAgentChat, .aiAgentObserver, .aiAgentKnowledgeBase]
         case .cowork:    return [.cowork]
         case .mlx:       return [.dashboard, .modelHub, .tuning, .bench]
         case .modelHub:  return [.modelHub]
-        case .multiNode: return [.clusterOverview, .clusterTopology, .clusterSync, .taskMonitor, .alertCenter, .nodeActions, .submitTask, .taskProgress, .routingStrategy, .kvCache, .serviceWeb, .audit, .multimodal, .analytics, .collab, .external, .operations, .deploy]
         case .fsb:       return [.fsb]
         case .science:   return [.science]
         case .finance:   return [.finance]

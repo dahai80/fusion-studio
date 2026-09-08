@@ -54,30 +54,6 @@ struct ModuleDetailView: View {
                 ExternalIntegrationsView()
             case .docgen:
                 DocGeneratorView()
-            case .clusterOverview:
-                ClusterOverviewView()
-            case .clusterTopology:
-                ClusterTopologyView()
-            case .clusterSync:
-                ClusterSyncView()
-            case .taskMonitor:
-                TaskMonitorView()
-            case .alertCenter:
-                AlertCenterView()
-            case .nodeActions:
-                NodeActionsView()
-            case .submitTask:
-                SubmitTaskView()
-            case .taskProgress:
-                TaskProgressView()
-            case .routingStrategy:
-                RoutingStrategyView()
-            case .kvCache:
-                KVCacheView()
-            case .serviceWeb:
-                ServiceWebView()
-            case .audit:
-                AuditTabView()
             case .rag:
                 RAGMainView()
             case .memory:

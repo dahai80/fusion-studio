@@ -27,7 +27,7 @@ enum KeychainStore {
             return nil
         }
         if status != errSecSuccess {
-            // 审计0907 P3-5: account 名 (identityJwt/clusterToken/fusionCodeApiKey 等) 标记存何 secret 类型,
+            // 审计0907 P3-5: account 名 (identityJwt/fusionCodeApiKey 等) 标记存何 secret 类型,
             //   public 日志泄元数据。改通用消息不含 account 名 (运维调试仍可凭 status 定位)。
             keychainLog.error("Keychain get failed: SecItemCopyMatching status=\(status)")
             return nil
@@ -148,35 +148,6 @@ enum KeychainStore {
         }
     }
 
-    // MARK: - MultiNode cluster token (Track B: out of @AppStorage plaintext → Keychain)
-
-    static let clusterTokenAccount = "multiNodeClusterToken"
-
-    static func readClusterToken() -> String {
-        if let cached = get(clusterTokenAccount), !cached.isEmpty {
-            return cached
-        }
-        let stale = UserDefaults.standard.string(forKey: "multiNodeClusterToken") ?? ""
-        if !stale.isEmpty {
-            // 审计0907 P3-5: 不 log account 名。
-            keychainLog.info("migrating cluster token from UserDefaults to Keychain")
-            _ = set(clusterTokenAccount, stale)
-            UserDefaults.standard.removeObject(forKey: "multiNodeClusterToken")
-            return stale
-        }
-        return ""
-    }
-
-    @discardableResult
-    static func writeClusterToken(_ value: String) -> Bool {
-        set(clusterTokenAccount, value)
-    }
-
-    @discardableResult
-    static func deleteClusterToken() -> Bool {
-        delete(clusterTokenAccount)
-    }
-
     // MARK: - Identity (fusion-identity JWT + refresh token)
 
     static let identityJwtAccount = "identityJwt"
@@ -205,55 +176,5 @@ enum KeychainStore {
         delete(identityRefreshAccount)
         // 审计0907 P3-5: 不 log account 名 (元数据泄漏)。
         keychainLog.info("clearIdentity: cleared jwt+refresh accounts")
-    }
-
-    // MARK: - MultiNode master list (审计0907 P2-8: 明文 UserDefaults → 0600 文件)
-
-    // 集群 failover 拓扑 (有序 hostname/IP) 旧存 UserDefaults.standard 明文 plist, 助横向移动。
-    // cluster token 已迁 Keychain; master list 改 0600 文件 (~/.fusion-studio/multi-node-master-list)。
-    static let masterListFile = ".fusion-studio/multi-node-master-list"
-
-    static func readMasterList() -> String {
-        let path = (NSHomeDirectory() as NSString).appendingPathComponent(masterListFile)
-        if let fileContent = try? String(contentsOfFile: path, encoding: .utf8), !fileContent.isEmpty {
-            return fileContent
-        }
-        // 一次性迁移: 旧明文存 UserDefaults.standard → 0600 文件, 迁后删 UserDefaults。
-        let stale = UserDefaults.standard.string(forKey: "multiNodeMasterList") ?? ""
-        if !stale.isEmpty {
-            keychainLog.info("migrating master list from UserDefaults to 0600 file")
-            _ = writeMasterList(stale)
-            UserDefaults.standard.removeObject(forKey: "multiNodeMasterList")
-            return stale
-        }
-        return ""
-    }
-
-    @discardableResult
-    static func writeMasterList(_ value: String) -> Bool {
-        let path = (NSHomeDirectory() as NSString).appendingPathComponent(masterListFile)
-        let dir = (path as NSString).deletingLastPathComponent
-        try? FileManager.default.createDirectory(
-            atPath: dir, withIntermediateDirectories: true,
-            attributes: [.posixPermissions: 0o700]
-        )
-        try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: dir)
-        let tmpPath = path + ".tmp"
-        FileManager.default.createFile(
-            atPath: tmpPath,
-            contents: Data(value.utf8),
-            attributes: [.posixPermissions: 0o600]
-        )
-        do {
-            _ = try FileManager.default.replaceItemAt(
-                URL(fileURLWithPath: path),
-                withItemAt: URL(fileURLWithPath: tmpPath)
-            )
-            return true
-        } catch {
-            keychainLog.error("writeMasterList: replaceItemAt failed: \(error.localizedDescription)")
-            try? FileManager.default.removeItem(atPath: tmpPath)
-            return false
-        }
     }
 }

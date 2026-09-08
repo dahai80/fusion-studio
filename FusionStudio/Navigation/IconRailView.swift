@@ -134,8 +134,6 @@ struct IconRailView: View {
                 // Model Hub 作为图标栏顶层独立入口，直接进 ModelHubMainView
                 case .modelHub:
                     navState.selectedSheet = .mlx
-                case .multiNode:
-                    navState.selectedSheet = .multiNode
                 case .fsb:
                     navState.selectedSheet = .fsbSheet
                 case .science:

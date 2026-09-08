@@ -238,8 +238,6 @@ struct SectionContentView: View {
                 ModuleDetailView()
             case .modelHub:
                 ModuleDetailView()
-            case .multiNode:
-                ModuleDetailView()
             case .fsb:
                 FSBWorkspaceView()
             case .science:

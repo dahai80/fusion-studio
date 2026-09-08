@@ -22,7 +22,6 @@ struct FusionStudioApp: App {
     @StateObject private var agentBridge = AgentBridge()
     @StateObject private var taskManager = TaskManager()
     @StateObject private var screenContext = ScreenContextManager()
-    @StateObject private var multiNodeEngine = MultiNodeEngine()
     @StateObject private var designBridge = DesignBridge()
     @StateObject private var streamingBridge = StreamingBridge()
     @StateObject private var chatStore = ChatSessionStore()
@@ -108,7 +107,6 @@ struct FusionStudioApp: App {
                 .environmentObject(agentBridge)
                 .environmentObject(taskManager)
                 .environmentObject(screenContext)
-                .environmentObject(multiNodeEngine)
                 .environmentObject(designBridge)
                 .environmentObject(streamingBridge)
                 .environmentObject(chatStore)
@@ -290,18 +288,13 @@ struct FusionStudioApp: App {
                     setupDockIcon()
                     NSApp.setActivationPolicy(.regular)
                     NSApp.activate(ignoringOtherApps: true)
-                    // F-A9: 启动即开始 MultiNode 轮询 (scenePhase onChange 不在首渲触发)。
-                    multiNodeEngine.startPolling()
-                    // F-A2子3: MLX 池可见性轮询, 复用 F-A9 scenePhase 模式。
+                    // F-A2子3: MLX 池可见性轮询。
                     agentBridge.startMlxStatusPolling()
                 }
                 // HIGH-4: app 进后台或退出时终止遗留 screencapture 进程, 防孤儿。
-                // F-A9: MultiNode 轮询提升到 App 级生命周期 — active 常驻, 后台降频/停转。
-                // 旧设计绑 8 叶子 View onAppear/onDisappear, 离开 MultiNode tab 即停, 其他子 View 拿死数据。
                 .onChange(of: scenePhase) { phase in
                     if phase == .background || phase == .inactive {
                         ScreenCapture.shared.cleanup()
-                        multiNodeEngine.stopPolling()
                         agentBridge.stopMlxStatusPolling()
                         // 审计0827 P0-3: 后台停长连接流, 释放 fd + 取消 readLoop Task,
                         // 防 fd/Task 泄漏 (旧: 后台不断, 退出亦无调用 stopStream)。
@@ -312,7 +305,6 @@ struct FusionStudioApp: App {
                         // F-perf-5: ArtifactSidebarCache 30s Timer 后台停 (singleton deinit 不触发)。
                         ArtifactSidebarCache.shared.pauseForBackground()
                     } else if phase == .active {
-                        multiNodeEngine.startPolling()
                         agentBridge.startMlxStatusPolling()
                         // 审计0830 P1-资源-5: 唤醒恢复 ScreenContext 监控 (后台已停)。
                         screenContext.startMonitoring()
