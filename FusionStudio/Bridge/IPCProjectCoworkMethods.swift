@@ -68,6 +68,48 @@ extension IPCClient {
         return try await call(method: RPCMethod.teamPlazaChannels)
     }
 
+    // M2-4: plaza message timeline + break_in (team.plaza_messages / team.plaza_break_in)
+    func teamPlazaMessages(channel: String, limit: Int = 100) async throws -> [String: Any] {
+        return try await call(method: RPCMethod.teamPlazaMessages, params: ["channel": channel, "limit": limit])
+    }
+
+    func teamPlazaBreakIn(team: String, message: String, priority: String = "high") async throws -> [String: Any] {
+        return try await call(method: RPCMethod.teamPlazaBreakIn, params: ["team": team, "message": message, "priority": priority])
+    }
+
+    // M2-1: daemon discovery (ws_port/ws_enabled/ws_token) + task health.
+    // budgetStatus() already defined in IPCExtendedMethods.swift.
+    func daemonStatus() async throws -> [String: Any] {
+        return try await call(method: RPCMethod.daemonStatus)
+    }
+
+    func taskHealth() async throws -> [String: Any] {
+        return try await call(method: RPCMethod.taskHealth)
+    }
+
+    // M2-3: task.set_review_state (upstream #317 merged 625b66e)
+    func taskSetReviewState(taskId: String, reviewState: String) async throws -> [String: Any] {
+        return try await call(method: RPCMethod.taskSetReviewState, params: ["task_id": taskId, "review_state": reviewState])
+    }
+
+    // M2-5: evidence.list / evidence.failure (upstream #316 merged 625b66e)
+    func evidenceList(team: String = "", limit: Int = 100) async throws -> [String: Any] {
+        var params: [String: Any] = ["limit": limit]
+        if !team.isEmpty { params["team"] = team }
+        return try await call(method: RPCMethod.evidenceList, params: params)
+    }
+
+    func evidenceFailure(team: String = "", limit: Int = 50) async throws -> [String: Any] {
+        var params: [String: Any] = ["limit": limit]
+        if !team.isEmpty { params["team"] = team }
+        return try await call(method: RPCMethod.evidenceFailure, params: params)
+    }
+
+    // M2-6: team.health per-team aggregation (upstream #318 merged 625b66e)
+    func teamHealthRPC(team: String) async throws -> [String: Any] {
+        return try await call(method: RPCMethod.teamHealth, params: ["team": team])
+    }
+
     // MARK: - Cron
 
     func cronRegister(name: String, schedule: String, agentId: String, input: String = "") async throws -> [String: Any] {
@@ -125,11 +167,12 @@ extension IPCClient {
         return try await call(method: RPCMethod.taskSubmit, params: params)
     }
 
-    func taskList(status: String = "", agentId: String = "", projectId: String = "", limit: Int = 100) async throws -> [String: Any] {
+    func taskList(status: String = "", agentId: String = "", projectId: String = "", team: String = "", limit: Int = 100) async throws -> [String: Any] {
         var params: [String: Any] = ["limit": limit]
         if !status.isEmpty { params["status"] = status }
         if !agentId.isEmpty { params["agent_id"] = agentId }
         if !projectId.isEmpty { params["project_id"] = projectId }
+        if !team.isEmpty { params["team"] = team }
         return try await call(method: RPCMethod.taskList, params: params)
     }
 

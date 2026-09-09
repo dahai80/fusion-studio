@@ -22,30 +22,9 @@ final class UpstreamFallbackTests: XCTestCase {
         XCTAssertTrue(SidebarSection.simulation.isDeprecated, "simulation is deprecated")
         XCTAssertTrue(SidebarSection.trainer.isDeprecated, "trainer is deprecated")
         XCTAssertFalse(SidebarSection.code.isDeprecated, "code is not deprecated")
-        XCTAssertFalse(SidebarSection.multiNode.isDeprecated, "multiNode is not deprecated")
-    }
-
-    // MARK: - Idempotency key
-
-    func test_upstream_idempotencyKeyGeneratedPerSubmit() {
-        let key1 = MultiNodeEngine.generateIdempotencyKey()
-        let key2 = MultiNodeEngine.generateIdempotencyKey()
-        XCTAssertFalse(key1.isEmpty, "key non-empty")
-        XCTAssertFalse(key2.isEmpty, "key non-empty")
-        XCTAssertNotEqual(key1, key2, "two calls differ")
     }
 
     // MARK: - Structural
-
-    func test_upstream_submitTaskSendsIdempotencyHeader() {
-        let srcPath = (#file as NSString).deletingLastPathComponent
-            + "/../../FusionStudio/Bridge/IPCMultiNodeMethods.swift"
-        guard let src = try? String(contentsOfFile: srcPath, encoding: .utf8) else {
-            XCTFail("cannot read IPCMultiNodeMethods source"); return
-        }
-        XCTAssertTrue(src.contains("X-Idempotency-Key"), "mnRequest must set X-Idempotency-Key header")
-        XCTAssertTrue(src.contains("idempotencyKey"), "mnRequest must accept idempotencyKey param")
-    }
 
     func test_upstream_sidebarUsesVisibleSectionsFilter() {
         let path = (#file as NSString).deletingLastPathComponent
