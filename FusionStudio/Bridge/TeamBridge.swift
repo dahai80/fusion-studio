@@ -26,6 +26,8 @@ final class TeamBridge: ObservableObject {
     private var ipcClient: IPCClient?
     private var pollTimer: Timer?
     private var refreshDebounceTask: Task<Void, Never>?
+    private var bootstrapTask: Task<Void, Never>?
+    private var isStopped: Bool = false
     private var cancellables = Set<AnyCancellable>()
 
     private static let pollIntervalSec: TimeInterval = 5.0
@@ -49,16 +51,19 @@ final class TeamBridge: ObservableObject {
     func setIPCClient(_ client: IPCClient) {
         self.ipcClient = client
         teamBridgeLog.info("TeamBridge IPCClient wired")
-        Task {
-            await refreshAll()
-            await connectStream()
+        bootstrapTask?.cancel()
+        bootstrapTask = Task { [weak self] in
+            guard let self = self, !self.isStopped else { return }
+            await self.refreshAll()
+            guard !Task.isCancelled, !self.isStopped else { return }
+            await self.connectStream()
         }
     }
 
     // MARK: - Event stream discovery (daemon.status → ws_port/ws_enabled/ws_token)
 
     func connectStream() async {
-        guard let ipc = ipcClient else {
+        guard !isStopped, let ipc = ipcClient else {
             teamBridgeLog.warning("TeamBridge.connectStream: no IPCClient")
             startPolling()
             return
@@ -94,7 +99,7 @@ final class TeamBridge: ObservableObject {
     // MARK: - Polling fallback (runs alongside WS; no-op tick if WS connected)
 
     func startPolling() {
-        guard pollTimer == nil else { return }
+        guard !isStopped, pollTimer == nil else { return }
         pollTimer = Timer.scheduledTimer(withTimeInterval: Self.pollIntervalSec, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             Task { @MainActor [weak self] in
@@ -291,6 +296,9 @@ final class TeamBridge: ObservableObject {
     // MARK: - Cleanup
 
     func stop() {
+        isStopped = true
+        bootstrapTask?.cancel()
+        bootstrapTask = nil
         eventStream.stop()
         stopPolling()
         refreshDebounceTask?.cancel()
@@ -300,5 +308,6 @@ final class TeamBridge: ObservableObject {
         // eventStream.stop() is @MainActor — rely on TeamEventStream.deinit to cancel WS task.
         pollTimer?.invalidate()
         refreshDebounceTask?.cancel()
+        bootstrapTask?.cancel()
     }
 }

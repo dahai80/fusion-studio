@@ -12,7 +12,12 @@ final class MockIPCClient: IPCClient {
         let params: [String: Any]
     }
 
-    private(set) var recordedCalls: [RecordedCall] = []
+    private let lock = NSLock()
+    private var _recordedCalls: [RecordedCall] = []
+    var recordedCalls: [RecordedCall] {
+        lock.lock(); defer { lock.unlock() }
+        return _recordedCalls
+    }
 
     // method → canned response。未配置且无 defaultResponse → 抛 IPCError.invalidResponse。
     var responsesByMethod: [String: [String: Any]] = [:]
@@ -32,22 +37,23 @@ final class MockIPCClient: IPCClient {
     }
 
     override func call(method: String, params: [String: Any] = [:]) async throws -> [String: Any] {
-        recordedCalls.append(RecordedCall(method: method, params: params))
-        if let err = errorsByMethod[method] {
-            throw err
-        }
-        if let resp = responsesByMethod[method] {
-            return resp
-        }
-        if let def = defaultResponse {
-            return def
-        }
+        lock.lock()
+        _recordedCalls.append(RecordedCall(method: method, params: params))
+        let err = errorsByMethod[method]
+        let resp = responsesByMethod[method]
+        let def = defaultResponse
+        lock.unlock()
+
+        if let err = err { throw err }
+        if let resp = resp { return resp }
+        if let def = def { return def }
         throw IPCError.invalidResponse
     }
 
     // 清空记录, 复用同一 mock 实例跨多用例。
     func reset() {
-        recordedCalls.removeAll()
+        lock.lock(); defer { lock.unlock() }
+        _recordedCalls.removeAll()
         responsesByMethod.removeAll()
         errorsByMethod.removeAll()
         defaultResponse = nil
@@ -55,6 +61,7 @@ final class MockIPCClient: IPCClient {
 
     // 取最近一次记录的指定 method 的 call (从后往前找)。
     func lastCall(method: String) -> RecordedCall? {
-        return recordedCalls.reversed().first { $0.method == method }
+        lock.lock(); defer { lock.unlock() }
+        return _recordedCalls.reversed().first { $0.method == method }
     }
 }
