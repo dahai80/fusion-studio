@@ -64,7 +64,8 @@ final class DesignArtifactState: ObservableObject {
         pendingCode += chunk
         if codeFlushTimer == nil {
             codeFlushTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: false) { [weak self] _ in
-                Task { @MainActor in self?.flushPendingCode() }
+                guard let self = self else { return }
+                Task { @MainActor in self.flushPendingCode() }
             }
         }
     }
