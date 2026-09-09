@@ -47,6 +47,7 @@ enum RPCMethod {
     static let teamPlazaMessages = "team.plaza_messages"
     static let teamPlazaBreakIn = "team.plaza_break_in"
     static let teamSwarmAgents = "team.swarm_agents"
+    static let teamHealth = "team.health"
 
     // MARK: - trainer
     static let trainerAdaptersDelete = "trainer.adapters.delete"
@@ -126,6 +127,9 @@ enum RPCMethod {
     static let taskRerun = "task.rerun"
     static let taskStatus = "task.status"
     static let taskSubmit = "task.submit"
+    static let taskSetReviewState = "task.set_review_state"
+    static let evidenceList = "evidence.list"
+    static let evidenceFailure = "evidence.failure"
 
     // MARK: - agent_studio
     static let agentStudioAgentChat = "agent_studio.agent.chat"

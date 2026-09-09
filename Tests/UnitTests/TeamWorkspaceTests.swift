@@ -162,6 +162,71 @@ final class TeamWorkspaceTests: XCTestCase {
         XCTAssertEqual(event.id, 50)
     }
 
+    // MARK: - TeamEvent #319 new event types (review.requested, resource.lease_granted/expired)
+
+    func test_teamEvent_decode_reviewRequested_triggersRefresh() throws {
+        let json = """
+        {"event_id": 60, "type": "review.requested", "ts": 1700000003.0, "team": "ops", "task_id": "task-001"}
+        """.data(using: .utf8)!
+        let event = try JSONDecoder().decode(TeamEvent.self, from: json)
+        XCTAssertEqual(event.type, TeamEvent.reviewRequested)
+        XCTAssertEqual(event.taskId, "task-001")
+        XCTAssertTrue(event.triggersTaskRefresh, "review.requested triggers task refresh")
+    }
+
+    func test_teamEvent_decode_resourceLeaseGranted_noRefresh() throws {
+        let json = """
+        {"event_id": 61, "type": "resource.lease_granted", "ts": 1700000004.0, "team": "ops", "lease_id": "lease-1"}
+        """.data(using: .utf8)!
+        let event = try JSONDecoder().decode(TeamEvent.self, from: json)
+        XCTAssertEqual(event.type, TeamEvent.resourceLeaseGranted)
+        XCTAssertFalse(event.triggersTaskRefresh, "lease_granted does not trigger full task refresh")
+    }
+
+    func test_teamEvent_decode_resourceLeaseExpired_noRefresh() throws {
+        let json = """
+        {"event_id": 62, "type": "resource.lease_expired", "ts": 1700000005.0, "team": "ops", "lease_id": "lease-1"}
+        """.data(using: .utf8)!
+        let event = try JSONDecoder().decode(TeamEvent.self, from: json)
+        XCTAssertEqual(event.type, TeamEvent.resourceLeaseExpired)
+        XCTAssertFalse(event.triggersTaskRefresh, "lease_expired does not trigger full task refresh")
+    }
+
+    // MARK: - TeamEvidence (#316 evidence.list/failure)
+
+    func test_teamEvidence_dictMapping_fullFields() {
+        let dict: [String: Any] = [
+            "task_id": "task-001",
+            "team": "ops",
+            "evidence_ref": "/out/ops/evidence/executions/exec-1.jsonl",
+            "status": "failed",
+            "execution_id": "exec-1",
+            "events_count": 15,
+            "created_at": 1700000000.0,
+        ]
+        guard let ev = TeamEvidence(dict: dict) else {
+            XCTFail("TeamEvidence init failed"); return
+        }
+        XCTAssertEqual(ev.id, "task-001")
+        XCTAssertEqual(ev.taskId, "task-001")
+        XCTAssertEqual(ev.team, "ops")
+        XCTAssertEqual(ev.status, "failed")
+        XCTAssertEqual(ev.executionId, "exec-1")
+        XCTAssertEqual(ev.eventsCount, 15)
+        XCTAssertTrue(ev.isFailed)
+    }
+
+    func test_teamEvidence_dictMapping_missingTaskIdReturnsNil() {
+        let dict: [String: Any] = ["status": "failed"]
+        XCTAssertNil(TeamEvidence(dict: dict), "dict without task_id → nil")
+    }
+
+    func test_teamEvidence_isFailed_canceled() {
+        let ev = TeamEvidence(id: "t", taskId: "t", team: "x", evidenceRef: "",
+                              status: "canceled", executionId: "", eventsCount: 0, createdAt: 0)
+        XCTAssertTrue(ev.isFailed, "canceled → isFailed")
+    }
+
     // MARK: - KanbanColumn
 
     func test_kanbanColumn_allCasesCount() {

@@ -4,8 +4,7 @@ import os.log
 private let budgetViewLog = Logger(subsystem: "com.fusion.studio", category: "BudgetView")
 
 // M2-6: BudgetView + team health. Uses budget.status (global, existing RPC)
-// + task.health (global, existing RPC). Per-team aggregation blocks on
-// upstream #318 (team.health RPC) — fallback shows global health.
+// + team.health (per-team, upstream #318 merged 625b66e).
 struct BudgetView: View {
     @EnvironmentObject var teamBridge: TeamBridge
 
@@ -133,7 +132,7 @@ struct BudgetView: View {
                 statBlock(label: "Max Concurrency", value: "\(health.maxConcurrency)", color: .secondary)
                 Spacer()
             }
-            Text("Global task.health (per-team aggregation requires upstream #318)")
+            Text("Per-team health (team=\(teamBridge.selectedTeam))")
                 .font(.system(size: 9))
                 .foregroundColor(.secondary)
         }

@@ -87,6 +87,29 @@ extension IPCClient {
         return try await call(method: RPCMethod.taskHealth)
     }
 
+    // M2-3: task.set_review_state (upstream #317 merged 625b66e)
+    func taskSetReviewState(taskId: String, reviewState: String) async throws -> [String: Any] {
+        return try await call(method: RPCMethod.taskSetReviewState, params: ["task_id": taskId, "review_state": reviewState])
+    }
+
+    // M2-5: evidence.list / evidence.failure (upstream #316 merged 625b66e)
+    func evidenceList(team: String = "", limit: Int = 100) async throws -> [String: Any] {
+        var params: [String: Any] = ["limit": limit]
+        if !team.isEmpty { params["team"] = team }
+        return try await call(method: RPCMethod.evidenceList, params: params)
+    }
+
+    func evidenceFailure(team: String = "", limit: Int = 50) async throws -> [String: Any] {
+        var params: [String: Any] = ["limit": limit]
+        if !team.isEmpty { params["team"] = team }
+        return try await call(method: RPCMethod.evidenceFailure, params: params)
+    }
+
+    // M2-6: team.health per-team aggregation (upstream #318 merged 625b66e)
+    func teamHealthRPC(team: String) async throws -> [String: Any] {
+        return try await call(method: RPCMethod.teamHealth, params: ["team": team])
+    }
+
     // MARK: - Cron
 
     func cronRegister(name: String, schedule: String, agentId: String, input: String = "") async throws -> [String: Any] {

@@ -197,6 +197,46 @@ struct TeamHealth {
     }
 }
 
+// MARK: - TeamEvidence (M2-5, upstream #316 evidence.list/evidence.failure)
+
+struct TeamEvidence: Identifiable {
+    let id: String
+    let taskId: String
+    let team: String
+    let evidenceRef: String
+    let status: String
+    let executionId: String
+    let eventsCount: Int
+    let createdAt: Double
+
+    init(id: String, taskId: String, team: String, evidenceRef: String,
+         status: String, executionId: String, eventsCount: Int, createdAt: Double) {
+        self.id = id
+        self.taskId = taskId
+        self.team = team
+        self.evidenceRef = evidenceRef
+        self.status = status
+        self.executionId = executionId
+        self.eventsCount = eventsCount
+        self.createdAt = createdAt
+    }
+
+    init?(dict: [String: Any]) {
+        let tid = (dict["task_id"] as? String) ?? ""
+        guard !tid.isEmpty else { return nil }
+        self.id = tid
+        self.taskId = tid
+        self.team = (dict["team"] as? String) ?? "default"
+        self.evidenceRef = (dict["evidence_ref"] as? String) ?? ""
+        self.status = (dict["status"] as? String) ?? ""
+        self.executionId = (dict["execution_id"] as? String) ?? ""
+        self.eventsCount = (dict["events_count"] as? Int) ?? 0
+        self.createdAt = (dict["created_at"] as? Double) ?? 0
+    }
+
+    var isFailed: Bool { status == "failed" || status == "canceled" }
+}
+
 // MARK: - TeamEvent (Codable — decoded from WS JSON frames)
 
 struct TeamEvent: Identifiable, Codable {
@@ -220,18 +260,23 @@ struct TeamEvent: Identifiable, Codable {
         case error
     }
 
-    // event types from M1-6 team.events WS channel
+    // event types from M1-6 team.events WS channel + #319 new events
     static let taskCreated = "task.created"
     static let executionProgress = "execution.progress"
     static let executionCompleted = "execution.completed"
     static let executionCancelled = "execution.cancelled"
     static let executionFailed = "execution.failed"
     static let subscribed = "subscribed"
+    // #319 merged: new event types
+    static let reviewRequested = "review.requested"
+    static let resourceLeaseGranted = "resource.lease_granted"
+    static let resourceLeaseExpired = "resource.lease_expired"
 
     var triggersTaskRefresh: Bool {
         switch type {
         case TeamEvent.taskCreated, TeamEvent.executionCompleted,
-             TeamEvent.executionCancelled, TeamEvent.executionFailed:
+             TeamEvent.executionCancelled, TeamEvent.executionFailed,
+             TeamEvent.reviewRequested:
             return true
         default:
             return false

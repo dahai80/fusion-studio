@@ -66,7 +66,8 @@ final class TeamBridge: ObservableObject {
         do {
             let res = try await ipc.daemonStatus()
             let wsPort = (res["ws_port"] as? Int) ?? 0
-            let wsEnabled = (res["ws_enabled"] as? Bool) ?? (wsPort > 0)
+            // #315 merged: ws_enabled + ws_token from daemon.status (no more ws_port>0 heuristic)
+            let wsEnabled = (res["ws_enabled"] as? Bool) ?? false
             let wsToken = (res["ws_token"] as? String) ?? ""
             self.wsEnabled = wsEnabled
 
@@ -129,14 +130,10 @@ final class TeamBridge: ObservableObject {
     func refreshTasks() async {
         guard let ipc = ipcClient else { return }
         do {
+            // #314 merged: server-side team filter (no more client-side filter)
             let res = try await ipc.taskList(team: selectedTeam, limit: 200)
             let taskDicts = (res["tasks"] as? [[String: Any]]) ?? (res["result"] as? [[String: Any]]) ?? []
             var mapped = taskDicts.compactMap { TeamTask(dict: $0) }
-            // client-side team filter (until upstream issue #314 adds server-side filter)
-            if !self.selectedTeam.isEmpty && self.selectedTeam != "default" {
-                mapped = mapped.filter { $0.team == self.selectedTeam }
-            }
-            // cap
             if mapped.count > Self.maxTasksCache {
                 mapped = Array(mapped.suffix(Self.maxTasksCache))
             }
@@ -193,7 +190,8 @@ final class TeamBridge: ObservableObject {
     func refreshTeamHealth() async {
         guard let ipc = ipcClient else { return }
         do {
-            let res = try await ipc.taskHealth()
+            // #318 merged: team.health per-team aggregation (was global task.health)
+            let res = try await ipc.teamHealthRPC(team: selectedTeam)
             if let health = TeamHealth(dict: res) {
                 self.teamHealth = health
                 teamBridgeLog.info("refreshTeamHealth: total=\(health.totalTasks) running=\(health.runningTasks)")
@@ -224,6 +222,55 @@ final class TeamBridge: ObservableObject {
         }
         teamBridgeLog.info("sendBreakIn team=\(self.selectedTeam, privacy: .public)")
         return try await ipc.teamPlazaBreakIn(team: selectedTeam, message: message)
+    }
+
+    // MARK: - Review operations (M2-3, upstream #317 merged 625b66e)
+
+    func setReviewState(taskId: String, reviewState: String) async throws -> Bool {
+        guard let ipc = ipcClient else {
+            teamBridgeLog.warning("setReviewState: no IPCClient")
+            throw BridgeError.notConnected
+        }
+        teamBridgeLog.info("setReviewState task=\(taskId, privacy: .public) state=\(reviewState, privacy: .public)")
+        let res = try await ipc.taskSetReviewState(taskId: taskId, reviewState: reviewState)
+        let status = (res["status"] as? String) ?? "ok"
+        if status == "error" {
+            teamBridgeLog.warning("setReviewState error: \(res["message"] as? String ?? "-", privacy: .public)")
+            return false
+        }
+        // refresh tasks to reflect new review_state
+        await refreshTasks()
+        return true
+    }
+
+    // MARK: - Evidence (M2-5, upstream #316 merged 625b66e)
+
+    @Published var evidence: [TeamEvidence] = []
+
+    func refreshEvidence() async {
+        guard let ipc = ipcClient else { return }
+        do {
+            let res = try await ipc.evidenceList(team: selectedTeam, limit: 100)
+            let dicts = (res["evidence"] as? [[String: Any]]) ?? (res["result"] as? [[String: Any]]) ?? []
+            self.evidence = dicts.compactMap { TeamEvidence(dict: $0) }
+            teamBridgeLog.info("refreshEvidence: \(self.evidence.count) entries team=\(self.selectedTeam, privacy: .public)")
+        } catch {
+            self.lastError = BridgeError.sanitize(error)
+            teamBridgeLog.warning("refreshEvidence failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    func refreshFailedEvidence() async {
+        guard let ipc = ipcClient else { return }
+        do {
+            let res = try await ipc.evidenceFailure(team: selectedTeam, limit: 50)
+            let dicts = (res["evidence"] as? [[String: Any]]) ?? (res["result"] as? [[String: Any]]) ?? []
+            self.evidence = dicts.compactMap { TeamEvidence(dict: $0) }
+            teamBridgeLog.info("refreshFailedEvidence: \(self.evidence.count) failed entries")
+        } catch {
+            self.lastError = BridgeError.sanitize(error)
+            teamBridgeLog.warning("refreshFailedEvidence failed: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     // MARK: - Team selection

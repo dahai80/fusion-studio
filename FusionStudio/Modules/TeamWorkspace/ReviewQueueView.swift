@@ -4,11 +4,12 @@ import os.log
 private let reviewQueueLog = Logger(subsystem: "com.fusion.studio", category: "ReviewQueueView")
 
 // M2-3: ReviewQueue — tasks with review_state=review/needs_fix.
-// Read-only mode: shows tasks awaiting review. Approve/reject buttons disabled
-// (full write ops need upstream #317 task.set_review_state RPC).
-// GUI 不做本地状态 — daemon SSOT, refresh on appear.
+// Write ops enabled (upstream #317 task.set_review_state merged 625b66e).
+// Approve/Request Fix/Reject → task.set_review_state RPC (daemon hard-gate).
+// GUI 不做本地状态 — daemon SSOT, refresh on appear + after write.
 struct ReviewQueueView: View {
     @EnvironmentObject var teamBridge: TeamBridge
+    @State private var actionResult: String?
 
     private var reviewTasks: [TeamTask] {
         teamBridge.tasks.filter { $0.reviewState == "review" || $0.reviewState == "needs_fix" }
@@ -42,9 +43,11 @@ struct ReviewQueueView: View {
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
             Spacer()
-            Text("Read-only — approve/reject needs upstream #317")
-                .font(.system(size: 10))
-                .foregroundColor(.secondary)
+            if let result = actionResult {
+                Text(result)
+                    .font(.system(size: 10))
+                    .foregroundColor(result.hasPrefix("Error") ? .red : .green)
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -54,7 +57,9 @@ struct ReviewQueueView: View {
         ScrollView {
             LazyVStack(spacing: 6) {
                 ForEach(reviewTasks) { task in
-                    ReviewTaskCard(task: task)
+                    ReviewTaskCard(task: task) { reviewState in
+                        performReview(taskId: task.id, reviewState: reviewState)
+                    }
                 }
             }
             .padding(8)
@@ -72,12 +77,26 @@ struct ReviewQueueView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
+
+    private func performReview(taskId: String, reviewState: String) {
+        reviewQueueLog.info("performReview task=\(taskId, privacy: .public) → \(reviewState, privacy: .public)")
+        Task {
+            do {
+                let ok = try await teamBridge.setReviewState(taskId: taskId, reviewState: reviewState)
+                actionResult = ok ? "\(reviewState) applied" : "Failed: daemon rejected"
+            } catch {
+                actionResult = "Error: \(BridgeError.sanitize(error))"
+                reviewQueueLog.warning("performReview failed: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+    }
 }
 
 // MARK: - Review task card
 
 private struct ReviewTaskCard: View {
     let task: TeamTask
+    let onReview: (String) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -108,11 +127,10 @@ private struct ReviewTaskCard: View {
                         .foregroundColor(.accentColor)
                 }
             }
-            // M2-3 write ops: disabled until upstream #317 (task.set_review_state RPC)
             HStack(spacing: 8) {
-                actionButton("Approve", icon: "checkmark.circle.fill", color: .green, enabled: false)
-                actionButton("Request Fix", icon: "wrench.adjustable", color: .orange, enabled: false)
-                actionButton("Reject", icon: "xmark.circle.fill", color: .red, enabled: false)
+                actionButton("Approve", icon: "checkmark.circle.fill", color: .green, state: "approved")
+                actionButton("Request Fix", icon: "wrench.adjustable", color: .orange, state: "needs_fix")
+                actionButton("Reject", icon: "xmark.circle.fill", color: .red, state: "review")
                 Spacer()
             }
             .padding(.top, 2)
@@ -132,9 +150,9 @@ private struct ReviewTaskCard: View {
             .cornerRadius(4)
     }
 
-    private func actionButton(_ title: String, icon: String, color: Color, enabled: Bool) -> some View {
+    private func actionButton(_ title: String, icon: String, color: Color, state: String) -> some View {
         Button {
-            // M2-3: task.set_review_state RPC (upstream #317) — not yet available
+            onReview(state)
         } label: {
             HStack(spacing: 3) {
                 Image(systemName: icon)
@@ -142,9 +160,8 @@ private struct ReviewTaskCard: View {
                 Text(title)
                     .font(.system(size: 11))
             }
-            .foregroundColor(enabled ? color : .secondary)
+            .foregroundColor(color)
         }
-        .disabled(!enabled)
-        .help(enabled ? "" : "Requires upstream #317 (task.set_review_state RPC)")
+        .buttonStyle(.plain)
     }
 }
