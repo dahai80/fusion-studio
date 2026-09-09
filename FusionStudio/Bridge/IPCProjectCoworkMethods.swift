@@ -68,6 +68,25 @@ extension IPCClient {
         return try await call(method: RPCMethod.teamPlazaChannels)
     }
 
+    // M2-4: plaza message timeline + break_in (team.plaza_messages / team.plaza_break_in)
+    func teamPlazaMessages(channel: String, limit: Int = 100) async throws -> [String: Any] {
+        return try await call(method: RPCMethod.teamPlazaMessages, params: ["channel": channel, "limit": limit])
+    }
+
+    func teamPlazaBreakIn(team: String, message: String, priority: String = "high") async throws -> [String: Any] {
+        return try await call(method: RPCMethod.teamPlazaBreakIn, params: ["team": team, "message": message, "priority": priority])
+    }
+
+    // M2-1: daemon discovery (ws_port/ws_enabled/ws_token) + task health.
+    // budgetStatus() already defined in IPCExtendedMethods.swift.
+    func daemonStatus() async throws -> [String: Any] {
+        return try await call(method: RPCMethod.daemonStatus)
+    }
+
+    func taskHealth() async throws -> [String: Any] {
+        return try await call(method: RPCMethod.taskHealth)
+    }
+
     // MARK: - Cron
 
     func cronRegister(name: String, schedule: String, agentId: String, input: String = "") async throws -> [String: Any] {
@@ -125,11 +144,12 @@ extension IPCClient {
         return try await call(method: RPCMethod.taskSubmit, params: params)
     }
 
-    func taskList(status: String = "", agentId: String = "", projectId: String = "", limit: Int = 100) async throws -> [String: Any] {
+    func taskList(status: String = "", agentId: String = "", projectId: String = "", team: String = "", limit: Int = 100) async throws -> [String: Any] {
         var params: [String: Any] = ["limit": limit]
         if !status.isEmpty { params["status"] = status }
         if !agentId.isEmpty { params["agent_id"] = agentId }
         if !projectId.isEmpty { params["project_id"] = projectId }
+        if !team.isEmpty { params["team"] = team }
         return try await call(method: RPCMethod.taskList, params: params)
     }
 

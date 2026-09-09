@@ -67,6 +67,9 @@ struct FusionStudioApp: App {
     // #394: fusion-identity 多租户登录集成. 唯一鉴权状态来源, 注入 app root.
     // 可达+loggedOut → 弹 LoginView; 不可达 → 单机模式跳过 (不阻塞).
     @StateObject private var identityService = IdentityService.shared
+    // M2-1: TeamWorkspace facade — team state via daemon RPC + team.events WS. 独立 ObservableObject
+    // 不 extend AgentBridge (design §7.2). Kanban/Members/Messages/Review/Budget/Evidence panels.
+    @StateObject private var teamBridge = TeamBridge()
     @State private var showIdentityLogin = false
 
     init() {
@@ -123,6 +126,7 @@ struct FusionStudioApp: App {
                 .environmentObject(speechBridge)
                 .environmentObject(guardBridge)
                 .environmentObject(eventBridge)
+                .environmentObject(teamBridge)
                 .environmentObject(identityService)
                 .studioThemed()
                 .onAppear {
@@ -169,6 +173,8 @@ struct FusionStudioApp: App {
                         eventBridge.startStream()
                     }
                     EventBridge.shared = eventBridge
+                    // M2-1: TeamBridge wiring — snapshot RPCs + WS event stream (daemon.status discovery).
+                    teamBridge.setIPCClient(ipcClient)
                     ArtifactSidebarCache.shared.configure(ipcClient: ipcClient)
                     // ARCH-5/PERF-5 (审计product-0906 P2): PluginManager 复用 app 级 ipcClient, 不再每调用 new IPCClient()。
                     PluginManager.shared.setIPCClient(ipcClient)
@@ -299,6 +305,8 @@ struct FusionStudioApp: App {
                         // 审计0827 P0-3: 后台停长连接流, 释放 fd + 取消 readLoop Task,
                         // 防 fd/Task 泄漏 (旧: 后台不断, 退出亦无调用 stopStream)。
                         eventBridge.stopStream()
+                        // M2-1: 后台停 TeamEventStream WS + polling, 防 fd/Task 泄漏 (mirror eventBridge).
+                        teamBridge.stop()
                         // 审计0830 P1-资源-5: ScreenContext 2s Accessibility 轮询未绑 scenePhase,
                         //   app 后台仍轮询 → 耗电 + 后台读 Accessibility 隐私风险。后台停, 唤醒恢复。
                         screenContext.stopMonitoring()
@@ -313,6 +321,9 @@ struct FusionStudioApp: App {
                         // #346: 感知层长连接在唤醒后恢复 (后台/休眠可能断 UDS), 守护缺席 fail-open 不锁死。
                         eventBridge.startStream()
                         Task { await eventBridge.checkDaemonStatus() }
+                        // M2-1: 唤醒恢复 TeamEventStream WS + polling (后台已停, mirror eventBridge).
+                        Task { await teamBridge.connectStream() }
+                        teamBridge.startPolling()
                         // #372 OPS-13: 进入前台触发 WASM 日志 dump (5min 节流), 持久化上次前台段环形缓冲。
                         if FdHostWebLogCapture.shared.triggerForegroundDump() {
                             designBridge.dumpWasmLog(clear: false)

@@ -41,8 +41,11 @@ enum RPCMethod {
     // FUNC-7 (审计product-0906 P3): 删 14 死 wrapper 后孤儿常量 (teamFmpRegister/Send/Stats,
     //   teamPlazaBreakIn/Broadcast/Circuit/Create/Messages, teamSwarmDelegate/Escalate/Evaluate/
     //   Handoff/Register/Stats) — 0 grep refs。保留 3 live: teamOrchestrate/teamSwarmAgents/teamPlazaChannels。
+    // M2: teamPlazaMessages/teamPlazaBreakIn 复活 (TeamBridge MessageStream + break_in, M2-4)。
     static let teamOrchestrate = "team.orchestrate"
     static let teamPlazaChannels = "team.plaza_channels"
+    static let teamPlazaMessages = "team.plaza_messages"
+    static let teamPlazaBreakIn = "team.plaza_break_in"
     static let teamSwarmAgents = "team.swarm_agents"
 
     // MARK: - trainer
@@ -118,6 +121,7 @@ enum RPCMethod {
     static let taskCancel = "task.cancel"
     static let taskDelete = "task.delete"
     static let taskGet = "task.get"
+    static let taskHealth = "task.health"
     static let taskList = "task.list"
     static let taskRerun = "task.rerun"
     static let taskStatus = "task.status"
@@ -251,6 +255,10 @@ enum RPCMethod {
 
     // MARK: - dashboard
     static let dashboardOverview = "dashboard.overview"
+
+    // MARK: - daemon
+    // M2-1: daemon.status returns ws_port (M1-6). ws_enabled/ws_token pending upstream issue #315.
+    static let daemonStatus = "daemon.status"
 
     // MARK: - hardware
     static let hardwareMetrics = "hardware.metrics"

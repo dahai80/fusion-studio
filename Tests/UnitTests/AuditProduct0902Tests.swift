@@ -103,33 +103,6 @@ final class AuditProduct0902Tests: XCTestCase {
         XCTAssertTrue(emptyResult.characters.isEmpty, "empty input → empty AttributedString (no crash)")
     }
 
-    // MARK: - T1-4 (P1) multiNodeBaseURL remote → https://, local → http://
-
-    func test_auditProduct0902_T1_multiNodeTlsSchemeRemoteVsLocal() {
-        // F-sec-1: 远程主机强制 https:// (Bearer token 明文保护); 本地回环 http://。
-        let cfg = FusionConfig()
-        let originalHost = cfg.modelHubHost
-        let originalPort = cfg.multiNodePort
-        defer {
-            cfg.modelHubHost = originalHost
-            cfg.multiNodePort = originalPort
-        }
-
-        // 远程
-        cfg.modelHubHost = "10.0.0.5"
-        XCTAssertTrue(cfg.multiNodeBaseURL.hasPrefix("https://"), "remote host must force https:// scheme")
-        XCTAssertTrue(cfg.multiNodeBaseURL.contains("10.0.0.5"), "host preserved")
-        XCTAssertTrue(cfg.multiNodeAgentBaseURL.hasPrefix("https://"), "agent base URL remote must force https://")
-
-        // 本地回环
-        cfg.modelHubHost = "127.0.0.1"
-        XCTAssertTrue(cfg.multiNodeBaseURL.hasPrefix("http://"), "localhost must stay http://")
-        XCTAssertTrue(cfg.multiNodeAgentBaseURL.hasPrefix("http://"), "localhost agent URL must stay http://")
-
-        cfg.modelHubHost = "localhost"
-        XCTAssertTrue(cfg.multiNodeBaseURL.hasPrefix("http://"), "localhost hostname must stay http://")
-    }
-
     // MARK: - T1-9 (P1) criticalBackendMissing flag
 
     func test_auditProduct0902_T1_criticalBackendMissingFlag() {

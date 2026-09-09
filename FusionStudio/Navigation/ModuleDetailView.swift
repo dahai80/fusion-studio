@@ -82,7 +82,7 @@ struct ModuleDetailView: View {
             case .agentDashboard:
                 AgentDashboardView()
             case .teamCollab:
-                TeamCollabView()
+                TeamWorkspaceView()
             case .chat:
                 UnifiedChatView()
             case .fusionProjects:
