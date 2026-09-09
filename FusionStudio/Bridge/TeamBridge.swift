@@ -215,6 +215,17 @@ final class TeamBridge: ObservableObject {
         }
     }
 
+    // MARK: - Break-in (M2-4)
+
+    func sendBreakIn(message: String) async throws -> [String: Any] {
+        guard let ipc = ipcClient else {
+            teamBridgeLog.warning("sendBreakIn: no IPCClient")
+            throw BridgeError.notConnected
+        }
+        teamBridgeLog.info("sendBreakIn team=\(self.selectedTeam, privacy: .public)")
+        return try await ipc.teamPlazaBreakIn(team: selectedTeam, message: message)
+    }
+
     // MARK: - Team selection
 
     func selectTeam(_ team: String) {

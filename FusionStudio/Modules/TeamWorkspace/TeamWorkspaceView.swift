@@ -44,6 +44,8 @@ struct TeamWorkspaceView: View {
                     KanbanPlaceholderView(teamBridge: teamBridge)
                 case .members:
                     MembersPlaceholderView(teamBridge: teamBridge)
+                case .messages:
+                    MessageStreamView()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

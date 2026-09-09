@@ -4,8 +4,9 @@ import Foundation
 enum TeamWorkspaceTab: String, CaseIterable, Identifiable {
     case kanban
     case members
+    case messages
     // M2-3..M2-6 (deferred):
-    // case messages, review, approval, evidence, budget
+    // case review, approval, evidence, budget
 
     var id: String { rawValue }
 
@@ -13,6 +14,7 @@ enum TeamWorkspaceTab: String, CaseIterable, Identifiable {
         switch self {
         case .kanban: return "Kanban"
         case .members: return "Members"
+        case .messages: return "Messages"
         }
     }
 
@@ -20,6 +22,7 @@ enum TeamWorkspaceTab: String, CaseIterable, Identifiable {
         switch self {
         case .kanban: return "square.grid.3x3"
         case .members: return "person.3"
+        case .messages: return "bubble.left.and.bubble.right"
         }
     }
 }
