@@ -26,6 +26,7 @@ final class TeamEventStream: ObservableObject {
     private var team: String = "default"
     private var wsURL: URL?
     private var wsToken: String = ""
+    private var isStopped: Bool = false
 
     private let session: URLSession = {
         let config = URLSessionConfiguration.default
@@ -37,6 +38,7 @@ final class TeamEventStream: ObservableObject {
     // MARK: - Lifecycle
 
     func start(team: String, wsURL: URL, wsToken: String) {
+        isStopped = false
         guard webSocketTask == nil else {
             teamStreamLog.info("TeamEventStream already connected, skip start")
             return
@@ -49,6 +51,7 @@ final class TeamEventStream: ObservableObject {
     }
 
     func stop() {
+        isStopped = true
         receiveTask?.cancel()
         receiveTask = nil
         reconnectTask?.cancel()
@@ -68,7 +71,7 @@ final class TeamEventStream: ObservableObject {
     // MARK: - Connect + subscribe
 
     private func connect() {
-        guard let url = wsURL else {
+        guard !isStopped, let url = wsURL else {
             teamStreamLog.error("TeamEventStream: no wsURL set")
             return
         }
@@ -129,6 +132,7 @@ final class TeamEventStream: ObservableObject {
                         break
                     }
                 } catch {
+                    if Task.isCancelled { break }
                     teamStreamLog.error("TeamEventStream receive error: \(error.localizedDescription, privacy: .public)")
                     self.handleDisconnect()
                     break
@@ -178,6 +182,7 @@ final class TeamEventStream: ObservableObject {
 
     @MainActor
     private func handleDisconnect() {
+        guard !isStopped else { return }
         isConnected = false
         webSocketTask?.cancel(with: .goingAway, reason: nil)
         webSocketTask = nil
@@ -187,6 +192,7 @@ final class TeamEventStream: ObservableObject {
     // MARK: - Reconnect (exponential backoff, mirror EventBridge.scheduleReconnect)
 
     private func scheduleReconnect() {
+        guard !isStopped else { return }
         reconnectTask?.cancel()
         reconnectAttempt += 1
         let baseSec = min(5 * (1 << min(reconnectAttempt - 1, 4)), 60)
