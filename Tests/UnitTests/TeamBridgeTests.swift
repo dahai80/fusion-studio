@@ -178,8 +178,10 @@ final class TeamBridgeTests: XCTestCase {
     // MARK: - connectStream WS discovery (#315)
 
     func test_connectStream_readsWsEnabledFromDaemonStatus() async {
+        // ws_port=0 avoids creating real URLSessionWebSocketTask in CI (SIGSEGV on URLSession cleanup).
+        // wsEnabled flag is still set from ws_enabled field — this test verifies parsing, not WS connection.
         mock.responsesByMethod[RPCMethod.daemonStatus] = [
-            "ws_port": 11437,
+            "ws_port": 0,
             "ws_enabled": true,
             "ws_token": "test-token-abc",
         ]
