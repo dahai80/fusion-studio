@@ -5,10 +5,9 @@ enum TeamWorkspaceTab: String, CaseIterable, Identifiable {
     case kanban
     case members
     case messages
+    case review
     case evidence
     case budget
-    // M2-3 (deferred, blocks on upstream #317):
-    // case review, approval
 
     var id: String { rawValue }
 
@@ -17,6 +16,7 @@ enum TeamWorkspaceTab: String, CaseIterable, Identifiable {
         case .kanban: return "Kanban"
         case .members: return "Members"
         case .messages: return "Messages"
+        case .review: return "Review"
         case .evidence: return "Evidence"
         case .budget: return "Budget"
         }
@@ -27,6 +27,7 @@ enum TeamWorkspaceTab: String, CaseIterable, Identifiable {
         case .kanban: return "square.grid.3x3"
         case .members: return "person.3"
         case .messages: return "bubble.left.and.bubble.right"
+        case .review: return "checkmark.message"
         case .evidence: return "stethoscope"
         case .budget: return "creditcard"
         }

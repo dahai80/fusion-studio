@@ -46,6 +46,8 @@ struct TeamWorkspaceView: View {
                     MembersPlaceholderView(teamBridge: teamBridge)
                 case .messages:
                     MessageStreamView()
+                case .review:
+                    ReviewQueueView()
                 case .evidence:
                     EvidenceDiagnosticsView()
                 case .budget:
