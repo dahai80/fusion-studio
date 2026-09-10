@@ -21,7 +21,13 @@ class IPCClient: ObservableObject {
 
     private let socketPath: String
     private var requestId: Int = 0
-    private var socketFd: Int32 = -1
+    // L0-1 (P0-5): fd 代际所有权. 旧 socketFd 裸 var, readQueue while 循环读, queue 写 (performConnect/
+    // disconnect). disconnect 关旧 fd 后 readQueue 仍持旧 fd 号读; fd 号被内核重用给新连接 → 旧读循环
+    // 读到新连接数据 (fd reuse race, Swift UB). 修复: _socketFd + socketGeneration, 同在 lock 下读写.
+    // read 循环启动时捕获 (fd, gen) 常量, 每轮校验 gen == 当前 generation, 不匹配即退出 (旧 fd 已失效).
+    // performConnect/disconnect 自增 generation 作废所有旧读循环 + 旧 writeAll.
+    private var _socketFd: Int32 = -1
+    private var socketGeneration: UInt64 = 0
     private let queue = DispatchQueue(label: "com.fusion-studio.ipc", qos: .userInitiated)
     // 读取循环独占的 queue, 不能与发送/超时共用串行 queue, 否则 while 死循环会饿死所有 call() 导致续体永不 resume (Workflows 转圈根因)
     private let readQueue = DispatchQueue(label: "com.fusion-studio.ipc.read", qos: .userInitiated)
@@ -30,18 +36,11 @@ class IPCClient: ObservableObject {
     // 改指数退避 + jitter: base 2s × 2^min(attempt,5) 封顶 60s, + 确定性 jitter (attempt×137)%1000 ms。
     // 连接成功复位 attempt=0 (performConnect 主线程块)。
     private var reconnectAttempt: Int = 0
-    // 审计0827 §2.6 (P1): IPC 级熔断器。AgentBridge.backendCircuitOpen 只护 taskExecuteImmediate 一条,
-    // 其余 ~15 RPC (taskSubmit/cronRegister/executeGraph/KV ops/tool CRUD) 裸奔 — daemon 慢响应时
-    // 连锁 8s 超时堆 pending (叠加 pendingCap 截断) 行为不一致难诊断。
-    // 此熔断全局护所有 call(): 连续 N 次超时/断连开路, 新 call fast-fail 抛 circuitOpen;
-    // 任一成功复位 (half-open 探测)。与 AgentBridge 熔断并存: IPC 级防 pending 雪崩, task 级控重试预算。
-    private let circuitThreshold: Int = 5
-    private var circuitConsecutiveFailures: Int = 0
-    private var circuitOpen: Bool = false
-    // half-open: 开路 30s 后允许一个探测 call 穿透, 成功则复位 closed, 失败则重开并续计时。
-    private let circuitRecoverySec: Double = 30
-    private var circuitOpenedAt: Double = 0
-    private var circuitHalfOpenProbing: Bool = false
+    // 审计0827 §2.6 (P1) + L0-1 (P0-4): IPC 级熔断器. 状态收进 CircuitBreaker (单锁串行化),
+    // 消除 queue 与 readQueue 跨队列裸 var 竞态. 全局护所有 call(): 连续 N 次超时/断连开路,
+    // 新 call fast-fail 抛 circuitOpen; 任一成功复位 (half-open 探测). 与 AgentBridge 熔断并存:
+    // IPC 级防 pending 雪崩, task 级控重试预算.
+    private let breaker = CircuitBreaker(threshold: 5, recoverySec: 30)
     // 续体直接存储：handleResponse / 超时 / 断连 三处 removeValue 取出并 resume，保证恰好一次
     private var pendingRequests: [Int: CheckedContinuation<[String: Any], Error>] = [:]
     private let lock = NSLock()
@@ -52,10 +51,9 @@ class IPCClient: ObservableObject {
     private let pendingCap = 500
     // 审计0902 A5 (P2): inflightReads 每 key waiter cap (见 call 合并块)。
     private let inflightWaiterCap = 100
-    // 审计0902 R5 (P2): udsCall 短连通道在飞上限。旧每调用起 DispatchQueue.global worker + 新 socket,
-    //   200 并发 projectCall/spaceCall = 200 GCD worker + 200 socket, 突发线程池耗尽。cap 32 并发短连,
-    //   超限 caller 在 semaphore 排队等槽位 (阻塞 GCD worker, 但限总数防线程池耗尽)。
-    private static let udsCallSemaphore = DispatchSemaphore(value: 32)
+    // L0-1 (P1-2): async 信号量替 DispatchSemaphore. udsCall 在 DispatchQueue.global worker 内
+    // 旧 semaphore.wait() 阻塞 GCD worker; 现 await acquire() 满容量时挂起续体不占线程.
+    private let udsCallSemaphore = AsyncSemaphore(capacity: 32)
     // F-R4: 方法级 in-flight 去重 (同 method 在途不重发)。仅对幂等读 (空 params + *.list/status/ping/health_check)
     // 合并: 第一个 caller 驱动 socket, 后续 caller 续体挂 inflightReads 等结果 fan-out, 不重发。
     // 变更类 (mlx.stop/agent.create/*.delete/env.repair_all 等) 永不合并 — 幂等性不同, 重发是正确语义。
@@ -101,10 +99,10 @@ class IPCClient: ObservableObject {
     }
 
     private func performConnect() {
-        // 关闭旧连接
-        if socketFd >= 0 {
-            close(socketFd)
-            socketFd = -1
+        // L0-1 (P0-5): 关闭旧连接 + 自增 generation 作废旧读循环.
+        let oldFd = clearSocketFd()
+        if oldFd >= 0 {
+            close(oldFd)
         }
 
         // F-A18 (#23): 连接前校验 sock 文件权限, 拒 group/other 可写 (防服务端 sock 被改 0666/替换)。
@@ -149,7 +147,7 @@ class IPCClient: ObservableObject {
         var flags = fcntl(sock, F_GETFL, 0)
         fcntl(sock, F_SETFL, flags | O_NONBLOCK)
 
-        socketFd = sock
+        setSocketFd(sock)
         DispatchQueue.main.async { [weak self] in
             self?.isConnected = true
             self?.lastError = nil
@@ -166,9 +164,10 @@ class IPCClient: ObservableObject {
     func disconnect() {
         queue.async { [weak self] in
             guard let self = self else { return }
-            if self.socketFd >= 0 {
-                close(self.socketFd)
-                self.socketFd = -1
+            // L0-1 (P0-5): 清 fd + 自增 generation 作废旧读循环.
+            let oldFd = self.clearSocketFd()
+            if oldFd >= 0 {
+                close(oldFd)
             }
             DispatchQueue.main.async {
                 self.isConnected = false
@@ -215,6 +214,29 @@ class IPCClient: ObservableObject {
         return id
     }
 
+    // L0-1 (P0-5): fd 代际访问器. 所有 _socketFd/socketGeneration 读写经 lock, 消除 readQueue 与 queue 跨队列竞态.
+    // 返回当前 (fd, generation) 快照. read 循环用此捕获常量, 每轮校验 generation 作废旧 fd.
+    func currentFdGeneration() -> (fd: Int32, gen: UInt64) {
+        lock.lock(); defer { lock.unlock() }
+        return (_socketFd, socketGeneration)
+    }
+
+    // performConnect 成功后设置新 fd + 自增 generation (作废所有旧读循环/旧 writeAll).
+    func setSocketFd(_ fd: Int32) {
+        lock.lock(); defer { lock.unlock() }
+        socketGeneration &+= 1
+        _socketFd = fd
+    }
+
+    // disconnect/重连前清 fd + 自增 generation. 旧读循环见 gen 不匹配即退出.
+    func clearSocketFd() -> Int32 {
+        lock.lock(); defer { lock.unlock() }
+        socketGeneration &+= 1
+        let old = _socketFd
+        _socketFd = -1
+        return old
+    }
+
     // F-R4: 幂等读判定 — 同 method 在途可合并。空 params + 读动词 (后缀 .list 或 ping/mlx.status/env.health_check)。
     // 变更类 (stop/create/delete/update/register/repair_all 等) 即使空 params 也绝不合并 (幂等性不同)。
     private func isCoalesceableRead(_ method: String) -> Bool {
@@ -243,45 +265,9 @@ class IPCClient: ObservableObject {
         }
     }
 
-    // 审计0827 §2.6 (P1): half-open 探测闸 — 开路满 circuitRecoverySec 后放一个 call 穿透试探。
-    // 返 true = 已转 half-open 放行该 call; false = 仍 closed-open fast-fail。跑在串行 queue 无需锁。
-    // 审计0830 P2-IPC-2: 旧实现 `if circuitHalfOpenProbing { return true }` → 探测 call 在途时, 后续所有 call 也被放行,
-    //   half-open 退化为批量重放 (后端仍故障则再次雪崩开路)。修复: 探测在途时后续 call fast-fail (返 false),
-    //   仅发起探测的那一个 call 穿透, 等 circuitOnSuccess/Failure 解除在途标志后才放下一个。
-    private func maybeHalfOpenProbe() -> Bool {
-        let now = Date().timeIntervalSince1970
-        // 探测已在途: 后续 call fast-fail, 等探测结果 (成功复位 / 失败重开) 再决定。
-        if circuitHalfOpenProbing { return false }
-        if now - circuitOpenedAt >= circuitRecoverySec {
-            circuitHalfOpenProbing = true
-            return true
-        }
-        return false
-    }
-
-    // 熔断成功复位 (half-open 探测成功 or 正常成功清连续失败)。
-    private func circuitOnSuccess() {
-        if circuitOpen || circuitHalfOpenProbing {
-            ipcLog.info("IPC circuit closed (recovered) failures=\(self.circuitConsecutiveFailures)")
-        }
-        circuitConsecutiveFailures = 0
-        circuitOpen = false
-        circuitHalfOpenProbing = false
-    }
-
-    // 熔断失败计数 + 达阈值开路。half-open 探测失败立即重开并续计时。
-    private func circuitOnFailure() {
-        circuitConsecutiveFailures += 1
-        circuitHalfOpenProbing = false
-        if circuitConsecutiveFailures >= circuitThreshold && !circuitOpen {
-            circuitOpen = true
-            circuitOpenedAt = Date().timeIntervalSince1970
-            ipcLog.error("IPC circuit OPEN failures=\(self.circuitConsecutiveFailures, privacy: .public) — fast-fail pending calls until backend recovers")
-        } else if circuitOpen {
-            // 已开路 (half-open 探测失败): 续计时, 下个 recovery 窗口再试。
-            circuitOpenedAt = Date().timeIntervalSince1970
-        }
-    }
+    // L0-1 (P0-4): 熔断逻辑移入 CircuitBreaker (单锁串行化). 此处仅保留调用点注释.
+    // half-open 探测: breaker.allowProbe() — 开路满 recoverySec 后放一个 call 穿透试探.
+    // 成功复位: breaker.recordSuccess(). 失败计数: breaker.recordFailure().
 
     /// 调用远程方法
     // 审计0902 E2 (P2): 旧 call() 零瞬态重试 (仅熔断 fast-fail) — 单瞬态超时/disconnected = 调用者错误,
@@ -293,8 +279,8 @@ class IPCClient: ObservableObject {
     // #394: 融合 identity — 登录后给 UDS JSON-RPC params 注入 _auth (jwt/tid)。
     //   nonisolated 快照读取 (IdentityService.currentAuthParams), 不阻塞 async call, 不依赖 MainActor。
     //   未登录 → 原样 params, 保留今日行为。前瞻: 上游 daemon_server 未消费 _auth 前为 no-op (已记 issue)。
-    //   mergedAuthParams 为 testable 入口 (test 传 service 设好 session → 快照已同步更新)。
-    nonisolated static func mergedAuthParams(params: [String: Any], service: IdentityService) -> [String: Any] {
+    //   L0-1 (P1-7): 删废弃 service 参数 (旧实现忽略入参, 直接读 currentAuthParams 静态快照).
+    nonisolated static func mergedAuthParams(params: [String: Any]) -> [String: Any] {
         var merged = params
         for (k, v) in IdentityService.currentAuthParams() {
             merged[k] = v
@@ -308,7 +294,7 @@ class IPCClient: ObservableObject {
         let authParams = IdentityService.currentAuthParams()
         let withAuth: [String: Any] = authParams.isEmpty
             ? params
-            : IPCClient.mergedAuthParams(params: params, service: IdentityService.shared)
+            : IPCClient.mergedAuthParams(params: params)
         if !authParams.isEmpty {
             ipcLog.debug("call: \(method, privacy: .public) authAttached=true")
         }
@@ -328,7 +314,9 @@ class IPCClient: ObservableObject {
                 } else {
                     transient = false
                 }
-                guard transient, attempt + 1 < maxAttempts else { throw error }
+                // L0-1 (P0-3): 非幂等方法 (task.submit/agent.execute/cron.register/*.delete 等) 超时不重发 —
+                // 重发可致双执行/双创建. 仅幂等读/声明幂等写重试. 直接抛错交上层.
+                guard transient, RPCMethod.isIdempotent(method), attempt + 1 < maxAttempts else { throw error }
                 let base = 0.4 * pow(2.0, Double(attempt))
                 let jitter = Double((attempt * 137) % 200) / 1000.0
                 let delay = base + jitter
@@ -371,8 +359,8 @@ class IPCClient: ObservableObject {
 
                 // 审计0827 §2.6 (P1): 熔断开路 fast-fail, 不注册续体不堆 pending。
                 // half-open 探测: 每 30s 放一个 call 穿透试探后端是否恢复 (open 计时达 30s 即半开)。
-                if self.circuitOpen {
-                    if self.maybeHalfOpenProbe() {
+                if self.breaker.isOpen {
+                    if self.breaker.allowProbe() {
                         ipcLog.info("IPC circuit half-open probe: method=\(method, privacy: .public)")
                     } else {
                         ipcLog.warning("IPC circuit open fast-fail: method=\(method, privacy: .public)")
@@ -407,7 +395,10 @@ class IPCClient: ObservableObject {
                 }
 
 
-                guard self.socketFd >= 0 else {
+                // L0-1 (P0-5): 捕获当前 (fd, gen) 快照. callOnce 跑在 queue (串行, 与 setSocketFd/clearSocketFd 同队列),
+                // fd 在此闭包内稳定. 后续 timeout/writeAll 用捕获的 fd, 避免裸读 _socketFd 跨队列竞态.
+                let (sendFd, regGen) = self.currentFdGeneration()
+                guard sendFd >= 0 else {
                     continuation.resume(throwing: IPCError.disconnected)
                     return
                 }
@@ -435,6 +426,10 @@ class IPCClient: ObservableObject {
                 let timeoutSecs = Self.rpcTimeout(for: method)
                 self.queue.asyncAfter(deadline: .now() + timeoutSecs) { [weak self] in
                     guard let self = self else { return }
+                    // L0-1 (P1-8): 代际校验 — 若注册后发生 reconnect (generation 变), drainPending 已排空
+                    // pending + inflight + 计一次熔断失败. 此超时不得重复 resume/fan-out/recordFailure (误杀新 in-flight + 双计数).
+                    let (_, curGen) = self.currentFdGeneration()
+                    if curGen != regGen { return }
                     self.lock.lock()
                     let pending = self.pendingRequests.removeValue(forKey: reqId)
                     self.lock.unlock()
@@ -445,11 +440,11 @@ class IPCClient: ObservableObject {
                     // F-R4: 合并读超时也 fan-out 给挂起的在途 waiters
                     self.resumeInflightReads(method, result: .failure(IPCError.timeout))
                     // 审计0827 §2.6 (P1): 超时 = 后端慢/挂, 计入熔断失败; 达阈值开路防 pending 雪崩。
-                    self.circuitOnFailure()
+                    self.breaker.recordFailure()
                 }
 
-                // 发送数据 (A1: writeBuf 已在 queue 外预序列化, queue 内仅写)
-                Self.writeAll(fd: self.socketFd, writeBuf)
+                // 发送数据 (A1: writeBuf 已在 queue 外预序列化, queue 内仅写). L0-1: 用捕获的 sendFd.
+                Self.writeAll(fd: sendFd, writeBuf)
             }
         }
     }
@@ -459,31 +454,31 @@ class IPCClient: ObservableObject {
     // Callers: projectCall / spaceCall. Affected API: udsCall(socketPath:method:params:) -> [String:Any].
     // 每次新建短连接, 换行分隔 JSON-RPC 2.0; 结果归一化: dict 原样 / array 包成 ["items":...] / 标量包成 ["_result":...]
     @discardableResult
-    func udsCall(socketPath: String, method: String, params: [String: Any] = [:], timeoutSecs: Int = 8) async throws -> [String: Any] {
+    func udsCall(socketPath: String, method: String, params: [String: Any] = [:], timeoutSecs: Int? = nil) async throws -> [String: Any] {
         // F-ft-4: 旧 udsCall 扁平 8s 超时, 长 RPC (RAG ingest / model pull) 误超时。
-        // 当调用方用默认值 8 (未显式传超时), 改用与主 call() 一致的 method-aware rpcTimeout,
-        // 让长方法拿 longRpcTimeout (120s), 短方法拿 defaultRpcTimeout (8s)。
-        let effectiveTimeout: Int = timeoutSecs == 8 ? Int(Self.rpcTimeout(for: method)) : timeoutSecs
+        // L0-1 (P1-1): timeoutSecs 改 Int? = nil, nil 时走 method-aware rpcTimeout (长方法 120s, 短 8s).
+        // 显式值覆盖 (调用方确知耗时). 消除旧 sentinel `== 8` 魔数判定 (8 既可能是默认也可能是显式传 8).
+        let effectiveTimeout: Int = timeoutSecs ?? Int(Self.rpcTimeout(for: method))
         // #394: 短连通道同样注 _auth (project/cowork/guard/event)。非主 actor 路径, 用 nonisolated 快照。
         let authParams = IdentityService.currentAuthParams()
         let withAuth: [String: Any] = authParams.isEmpty
             ? params
-            : IPCClient.mergedAuthParams(params: params, service: IdentityService.shared)
+            : IPCClient.mergedAuthParams(params: params)
         if !authParams.isEmpty {
             ipcLog.debug("udsCall: \(method, privacy: .public) authAttached=true")
         }
-        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[String: Any], Error>) in
-            DispatchQueue.global(qos: .userInitiated).async {
-                // 审计0902 R5 (P2): 限并发短连, acquire 在阻塞 worker 前排队; release 随 close 释放槽位。
-                Self.udsCallSemaphore.wait()
-                defer { Self.udsCallSemaphore.signal() }
-                let sock = socket(AF_UNIX, SOCK_STREAM, 0)
-                guard sock >= 0 else {
-                    continuation.resume(throwing: IPCError.invalidRequest)
-                    return
-                }
-                defer { close(sock) }
-                // 审计0827 P0-1: 短连接通道 (project-svc/cowork/guard/event 短连) 连前校验 sock 权限,
+        // L0-1 (P1-2): async acquire — 满容量时挂起续体不阻塞 GCD worker. release 在 I/O 完成后.
+        await udsCallSemaphore.acquire()
+        do {
+            let result = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[String: Any], Error>) in
+                DispatchQueue.global(qos: .userInitiated).async {
+                    let sock = socket(AF_UNIX, SOCK_STREAM, 0)
+                    guard sock >= 0 else {
+                        continuation.resume(throwing: IPCError.invalidRequest)
+                        return
+                    }
+                    defer { close(sock) }
+                    // 审计0827 P0-1: 短连接通道 (project-svc/cowork/guard/event 短连) 连前校验 sock 权限,
                 // 与主 socket performConnect 复用同一守卫, 堵 0666 冒充守护绕过门禁。
                 if let permErr = self.validateSocketPermission(socketPath) {
                     ipcLog.error("udsCall perm reject: path=\(socketPath, privacy: .public) method=\(method, privacy: .public) reason=\(permErr, privacy: .public)")
@@ -577,6 +572,12 @@ class IPCClient: ObservableObject {
                 }
             }
         }
+        await udsCallSemaphore.release()
+        return result
+        } catch {
+            await udsCallSemaphore.release()
+            throw error
+        }
     }
 
     // MARK: - 读取循环
@@ -584,22 +585,28 @@ class IPCClient: ObservableObject {
     private func startReading() {
         readQueue.async { [weak self] in
             guard let self = self else { return }
+            // L0-1 (P0-5): 捕获 (fd, gen) 常量. 读循环全程用捕获的 fd, 不再读共享 _socketFd.
+            // 每轮校验 generation == 启动 gen, 不匹配即退出 (performConnect/disconnect 已作废旧 fd).
+            // 消除旧 while self.socketFd>=0 跨队列竞态 + fd 号重用读新连接数据.
+            let (fd, startGen) = self.currentFdGeneration()
+            guard fd >= 0 else { return }
             var buffer = Data()
-            // 4KB 块读 + 0x0A 分割。单字节 read 每字节一次 syscall, 大响应 (model.list/model.detail) 上千次 read, 系统调用风暴 (PERF-1)
+            // 4KB 块读 (PERF-1). P3-3: firstRange(of:0x0A) 批量切片替逐字节 append, 大响应少 N 次 byte hop.
             var readBuf = [UInt8](repeating: 0, count: 4096)
 
-            while self.socketFd >= 0 {
-                let n = readBuf.withUnsafeMutableBufferPointer { Darwin.read(self.socketFd, $0.baseAddress!, $0.count) }
+            while true {
+                // 代际校验: disconnect/重连已自增 generation → 旧读循环退出, 不读新 fd.
+                let (_, curGen) = self.currentFdGeneration()
+                if curGen != startGen { break }
+                let n = readBuf.withUnsafeMutableBufferPointer { Darwin.read(fd, $0.baseAddress!, $0.count) }
                 if n > 0 {
-                    // 块内按 0x0A 切分, 一次 read 可能含多条消息
-                    for i in 0..<n {
-                        let byte = readBuf[i]
-                        if byte == 0x0A {
-                            self.handleResponse(buffer)
-                            buffer = Data()
-                        } else {
-                            buffer.append(byte)
-                        }
+                    // P3-3: 批量 append + firstRange 切片. 一次 read 可含多条消息 (NDJSON).
+                    buffer.append(contentsOf: readBuf[0..<n])
+                    let nlByte = Data([0x0A])
+                    while let nlRange = buffer.firstRange(of: nlByte) {
+                        let line = buffer.subdata(in: buffer.startIndex..<nlRange.lowerBound)
+                        self.handleResponse(line)
+                        buffer = Data(buffer[nlRange.upperBound...])
                     }
                 } else if n == 0 {
                     self.drainPending()
@@ -609,10 +616,8 @@ class IPCClient: ObservableObject {
                     }
                     break
                 } else if errno == EAGAIN {
-                    // 审计0827 §3.8 (P2): Thread.sleep(0.01) busy-poll 钉死 GCD worker thread 空转,
-                    // daemon 慢响应时多 Bridge 并发耗尽线程池。改 poll() 让线程在内核阻塞等可读,
-                    // 不占 CPU; 1s 超时给 socketFd>=0 检查点 (shutdown 响应), 空闲时 1 syscall/s vs 旧 100/s。
-                    var pfd = pollfd(fd: self.socketFd, events: Int16(POLLIN), revents: 0)
+                    // 审计0827 §3.8 (P2): poll() 内核阻塞等可读, 不占 CPU; 1s 超时给代际校验检查点 (shutdown 响应).
+                    var pfd = pollfd(fd: fd, events: Int16(POLLIN), revents: 0)
                     _ = withUnsafeMutablePointer(to: &pfd) { ptr in
                         Darwin.poll(ptr, 1, 1000)
                     }
@@ -682,7 +687,7 @@ class IPCClient: ObservableObject {
         case .success(let v):
             cont.resume(returning: v)
             // 审计0827 §2.6 (P1): 成功复位熔断 (含 half-open 探测成功 → closed)。
-            self.circuitOnSuccess()
+            self.breaker.recordSuccess()
         case .failure(let e):
             cont.resume(throwing: e)
             // 审计0830 P0-3: rpcError = 后端业务错 (4xx 鉴权/参数/404), 非后端不可达故障。
@@ -691,7 +696,7 @@ class IPCClient: ObservableObject {
             if let ipcErr = e as? IPCError, case .rpcError = ipcErr {
                 ipcLog.info("handleResponse rpcError (business) id=\(id) — 不计入熔断 (P0-3)")
             } else {
-                self.circuitOnFailure()
+                self.breaker.recordFailure()
             }
         }
         // F-R4: 合并读 (coalescedMethod 非 nil) → fan-out 同 method 在途 waiters
@@ -722,7 +727,7 @@ class IPCClient: ObservableObject {
         }
         // 审计0827 §2.6 (P1): 断连 = 后端不可达, 计入熔断失败; drain 可能排空多个 pending 但只计一次失败
         // (一次断连事件一个失败信号, 非 N 个 pending = N 次失败, 否则单次断连即撞阈值开路)。
-        self.circuitOnFailure()
+        self.breaker.recordFailure()
     }
 
     // MARK: - 便捷方法
@@ -863,8 +868,10 @@ class IPCClient: ObservableObject {
 
     deinit {
         reconnectTimer?.invalidate()
-        if socketFd >= 0 {
-            close(socketFd)
+        // L0-1 (P0-5): 经 lock 读 fd 关闭, 避免裸 var 竞态.
+        let (fd, _) = currentFdGeneration()
+        if fd >= 0 {
+            close(fd)
         }
     }
 }

@@ -310,4 +310,26 @@ enum RPCMethod {
     static let ruleAdd = "rule.add"
     static let ruleRemove = "rule.remove"
     static let ruleList = "rule.list"
+
+    // L0-1 (P0-3): 幂等性分类. call() transient retry 仅对幂等方法 (timeout/disconnected 时重发安全).
+    // 非幂等 (task.submit/agent.execute/cron.register/env.repair_all/agent.create/*.delete) 超时直接抛错,
+    // 交上层处理 — 重发可致双执行/双创建. 默认非幂等 (新 mutation 方法不自动获重试, 安全失败).
+    // 读动词 (list/get/status/health/count/ping/discover) 天然幂等. 显式幂等写白名单 (服务端声明幂等).
+    private static let idempotentSuffixes: Set<String> = [
+        ".list", ".get", ".status", ".health", ".count",
+        ".list_categories", ".list_executions", ".list_skills", ".list_formats",
+        ".list_recent", ".list_plans", ".list_pending_actions",
+    ]
+    private static let idempotentExplicit: Set<String> = [
+        ping, rpcDiscover,
+        mlxStatus, mlxHealth, envHealthCheck, taskHealth,
+        hardwareMetrics, modelStatus, daemonStatus, systemOfflineStatus,
+        dashboardOverview, analyticsAgentUsage, auditList, sessionList,
+        memoryRecall, memoryRecallRelevant,
+    ]
+    static func isIdempotent(_ method: String) -> Bool {
+        if idempotentExplicit.contains(method) { return true }
+        for suf in idempotentSuffixes where method.hasSuffix(suf) { return true }
+        return false
+    }
 }

@@ -84,7 +84,7 @@ final class IdentityIntegrationTests: XCTestCase {
         svc.setSessionForTest(IdentitySession(
             jwt: "jwt-1", refreshToken: "rf-1", tenantId: "t-1",
             tenantName: "T1", role: "member", scopes: [], expiresAt: Date().addingTimeInterval(3600)))
-        let merged = IPCClient.mergedAuthParams(params: ["foo": "bar"], service: svc)
+        let merged = IPCClient.mergedAuthParams(params: ["foo": "bar"])
         XCTAssertEqual(merged["foo"] as? String, "bar")
         let auth = merged["_auth"] as? [String: Any]
         XCTAssertEqual(auth?["tid"] as? String, "t-1")
