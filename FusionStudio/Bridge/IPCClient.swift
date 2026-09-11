@@ -13,6 +13,10 @@ class IPCClient: ObservableObject {
     // nil=未知(未discover/discover失败/旧上游无此方法), true=关键方法齐, false=缺关键方法。
     @Published var schemaCompatible: Bool? = nil
     @Published var availableMethods: [String] = []
+    // L0-2 (P0-1): 上游是否消费/校验 _auth. nil=未探测, true=校验 (拒绝非法 _auth), false=未消费 (忽略 _auth, 本机进程可操控).
+    // 探测: 发 ping 携带非法 _auth → 上游若校验应 401 拒; 若忽略则成功 → false + UI 警告.
+    // 上游 daemon_server 消费 _auth 待落地 (已提 issue), 未落地前此标志暴露风险.
+    @Published var authEnforced: Bool? = nil
     // 客户端依赖的关键方法子集 — 任一缺失即 schemaCompatible=false (schema 漂移)。
     // F-I3: 引用 RPCMethod 常量, 单一来源, 防拼写漂移。
     private let criticalMethods: Set<String> = [
@@ -147,6 +151,27 @@ class IPCClient: ObservableObject {
         var flags = fcntl(sock, F_GETFL, 0)
         fcntl(sock, F_SETFL, flags | O_NONBLOCK)
 
+        // L0-2 (P0-1): getpeereid 双向 uid 确认. connect 成功后取对端 uid (内核提供, 无 TOCTOU),
+        // 校验 == getuid() (同用户守护). 旧仅校验 sock 文件 mode 位, 不防跨用户进程冒充守护.
+        // 服务端侧 (daemon_server.py 消费 _auth + peer-uid) 跨工程, 已提上游 issue 对齐.
+        var peerUid: uid_t = 0
+        var peerGid: gid_t = 0
+        if getpeereid(sock, &peerUid, &peerGid) != 0 {
+            ipcLog.error("IPC getpeereid failed: \(String(cString: strerror(errno)))")
+            close(sock)
+            setError("IPC 对端 uid 校验失败 (\(String(cString: strerror(errno))))")
+            scheduleReconnect()
+            return
+        }
+        if peerUid != getuid() {
+            ipcLog.error("IPC peer uid mismatch: peer=\(peerUid) local=\(getuid()) — 拒跨用户守护连接")
+            close(sock)
+            setError("IPC 对端 uid 不匹配 (peer=\(peerUid), 须同用户) — 可能冒充守护")
+            scheduleReconnect()
+            return
+        }
+        ipcLog.info("IPC peer uid OK: peer=\(peerUid)")
+
         setSocketFd(sock)
         DispatchQueue.main.async { [weak self] in
             self?.isConnected = true
@@ -159,6 +184,8 @@ class IPCClient: ObservableObject {
         startReading()
         // F-A16: 连接建立后异步协商 schema, 不阻塞连接 (旧上游无 rpc.discover 时容错降级)。
         Task { [weak self] in await self?.discoverSchema() }
+        // L0-2 (P0-1): 异步探测上游是否消费 _auth. 未消费 → authEnforced=false + UI 警告.
+        Task { [weak self] in await self?.probeAuthEnforced() }
     }
 
     func disconnect() {
@@ -174,6 +201,8 @@ class IPCClient: ObservableObject {
                 // F-A16: 断连清 schema 状态, 重连后重新 discover。
                 self.schemaCompatible = nil
                 self.availableMethods = []
+                // L0-2: 断连清 auth 探测状态, 重连后重新探测.
+                self.authEnforced = nil
             }
         }
     }
@@ -848,6 +877,38 @@ class IPCClient: ObservableObject {
         }
     }
 
+    // L0-2 (P0-1): 探测上游是否消费/校验 _auth. 发 ping 携带非法 _auth (绕过正常 mergedAuthParams 注入,
+    // 直调 callOnce 传伪造 _auth). 上游若校验 _auth 应返 rpcError(401); 若忽略 _auth 则 ping 成功 → 未消费.
+    // 未消费 → authEnforced=false + error 日志 (UI 据此显式警告 "IPC 鉴权未启用, 本机进程可操控").
+    // 探测失败 (timeout/disconnected) → authEnforced=nil (未知, 不阻断, 与 schema 乐观降级一致).
+    private func probeAuthEnforced() async {
+        let fakeAuth: [String: Any] = ["_auth": ["jwt": "__probe_invalid__", "tid": "__probe__"] as [String: Any]]
+        do {
+            _ = try await callOnce(method: RPCMethod.ping, params: fakeAuth)
+            await MainActor.run {
+                self.authEnforced = false
+                ipcLog.error("L0-2 auth probe: 上游未消费 _auth (ping 携带非法 jwt 仍成功) — IPC 鉴权未启用, 本机进程可操控. 上游 daemon_server 消费 _auth 待落地 (issue 已提)")
+            }
+        } catch let ipcErr as IPCError {
+            if case .rpcError(let code, _) = ipcErr, code == 401 {
+                await MainActor.run {
+                    self.authEnforced = true
+                    ipcLog.info("L0-2 auth probe: 上游已校验 _auth (非法 jwt → 401), IPC 鉴权启用")
+                }
+            } else {
+                await MainActor.run {
+                    self.authEnforced = nil
+                    ipcLog.warning("L0-2 auth probe: 非结论性错误 (\(ipcErr.localizedDescription)), authEnforced 未知")
+                }
+            }
+        } catch {
+            await MainActor.run {
+                self.authEnforced = nil
+                ipcLog.warning("L0-2 auth probe: 非结论性错误 (\(error.localizedDescription)), authEnforced 未知")
+            }
+        }
+    }
+
     // F-A16: 调用前可选守卫 — 已 discover 则查存在性, 未 discover 乐观放行 (兼容旧上游)。
     func responds(to method: String) -> Bool {
         if availableMethods.isEmpty { return true }
@@ -863,6 +924,8 @@ class IPCClient: ObservableObject {
             // F-A16: 断连清 schema 状态, 重连后重新 discover。
             self?.schemaCompatible = nil
             self?.availableMethods = []
+            // L0-2: 断连清 auth 探测状态, 重连后重新探测.
+            self?.authEnforced = nil
         }
     }
 

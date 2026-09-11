@@ -99,4 +99,10 @@ final class IPCClientConcurrencyTests: XCTestCase {
         XCTAssertEqual(fd2, 20)
         XCTAssertNotEqual(gen1, gen2, "generation must bump on new set")
     }
+
+    // L0-2 (P0-1): authEnforced 初始 nil (未探测), 断连复位 nil.
+    func test_auth_enforced_initial_nil() {
+        let client = IPCClient(socketPath: "/tmp/nonexistent-auth-test.sock")
+        XCTAssertNil(client.authEnforced, "authEnforced should be nil before probe completes")
+    }
 }
