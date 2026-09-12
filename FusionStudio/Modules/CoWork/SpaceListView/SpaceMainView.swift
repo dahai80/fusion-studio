@@ -19,6 +19,7 @@ struct SpaceMainView: View {
     private let spaceManager = CoworkSpaceManager.shared
 
     private enum SpaceSidebarSection: String, CaseIterable {
+        case dashboard
         case members
         case files
         case knowledge
@@ -31,6 +32,7 @@ struct SpaceMainView: View {
 
         var localLabel: String {
             switch self {
+            case .dashboard: return "看板"
             case .members: return I18nManager.shared.t(.cw_side_members)
             case .files: return I18nManager.shared.t(.cw_side_files)
             case .knowledge: return I18nManager.shared.t(.cw_side_knowledge)
@@ -45,6 +47,7 @@ struct SpaceMainView: View {
 
         var icon: String {
             switch self {
+            case .dashboard: return "gauge.with.needle"
             case .members: return "person.2"
             case .files: return "folder"
             case .knowledge: return "books.vertical"
@@ -192,6 +195,8 @@ struct SpaceMainView: View {
             Divider().padding(.vertical, theme.spacingXS)
 
             switch activeSidebarSection {
+            case .dashboard:
+                SpaceTaskDashboardView()
             case .members:
                 SpaceMemberPanel(spaceId: spaceId)
             case .files:

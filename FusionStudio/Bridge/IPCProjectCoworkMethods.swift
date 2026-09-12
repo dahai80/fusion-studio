@@ -917,6 +917,27 @@ extension IPCClient {
         return try await spaceCall(method: "desk.space.agent.relay", params: p)
     }
 
+    // MARK: - CoWork Task Dashboard & Acceptance (audit 0912 P0-5/P1-8)
+
+    /// Aggregated collaboration dashboard: tasks (status/acceptance/parent),
+    /// plans, agent busy states and pending guard approvals in one payload.
+    func taskDashboard() async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.task.dashboard", params: [:])
+    }
+
+    /// Acceptance verdict on a finished task ("accepted" / "rejected").
+    /// rejected auto-reopens the task with retry_count+1 on the cowork side.
+    func agentAcceptTask(taskId: String, verdict: String, comment: String = "", acceptor: String = "local_user") async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.agent.accept", params: [
+            "task_id": taskId, "verdict": verdict, "comment": comment, "acceptor": acceptor,
+        ])
+    }
+
+    /// Manually reopen a failed/rejected task for rework.
+    func agentReopenTask(taskId: String) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.agent.reopen", params: ["task_id": taskId])
+    }
+
     // MARK: - CoWork Discovery (desk.space.discovery.*)
 
     func spaceDiscoveryScan() async throws -> [String: Any] {
