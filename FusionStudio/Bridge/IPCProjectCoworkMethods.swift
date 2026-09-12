@@ -938,6 +938,12 @@ extension IPCClient {
         return try await spaceCall(method: "desk.agent.reopen", params: ["task_id": taskId])
     }
 
+    /// Recent plan retrospectives (trajectory jsonl pool, newest first) —
+    /// history/复盘 section of the task dashboard.
+    func retrospectiveList(limit: Int = 20) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.retrospective.list", params: ["limit": limit])
+    }
+
     // MARK: - CoWork Discovery (desk.space.discovery.*)
 
     func spaceDiscoveryScan() async throws -> [String: Any] {

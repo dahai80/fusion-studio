@@ -24,6 +24,8 @@ struct SpaceTaskDashboardView: View {
     @State private var streamEvents: [[String: Any]] = []
     @State private var streamSubId = ""
     @State private var streamTask: Task<Void, Never>?
+    // retrospective history (复盘, desk.retrospective.list)
+    @State private var retrospectives: [[String: Any]] = []
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -134,7 +136,8 @@ struct SpaceTaskDashboardView: View {
                 if !plans.isEmpty { plansSection }
                 if !agents.isEmpty { agentsSection }
                 if !streamEvents.isEmpty { streamSection }
-                if tasks.isEmpty && plans.isEmpty && agents.isEmpty && streamEvents.isEmpty {
+                if !retrospectives.isEmpty { retrospectiveSection }
+                if tasks.isEmpty && plans.isEmpty && agents.isEmpty && streamEvents.isEmpty && retrospectives.isEmpty {
                     emptyView
                 }
             }
@@ -332,6 +335,37 @@ struct SpaceTaskDashboardView: View {
         }
     }
 
+    /// Retrospective history (复盘): recent plan outcomes from the
+    /// trajectory pool, newest first.
+    private var retrospectiveSection: some View {
+        VStack(alignment: .leading, spacing: theme.spacingXS) {
+            sectionTitle("复盘历史", icon: "clock.arrow.circlepath")
+            ForEach(Array(retrospectives.enumerated()), id: \.offset) { _, r in
+                HStack {
+                    statusBadge(str(r["status"]))
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(str(r["workflow_name"]).isEmpty ? String(str(r["plan_id"]).suffix(10)) : str(r["workflow_name"]))
+                            .font(.system(size: 10))
+                            .foregroundStyle(theme.text)
+                        if let failed = r["failed_tasks"] as? [String], !failed.isEmpty {
+                            Text("失败: \(failed.joined(separator: ", ").prefix(40))")
+                                .font(.system(size: 8))
+                                .foregroundStyle(.red)
+                                .lineLimit(1)
+                        }
+                    }
+                    Spacer()
+                    if let ts = r["ts"] as? Double {
+                        Text(Date(timeIntervalSince1970: ts).formatted(date: .abbreviated, time: .shortened))
+                            .font(.system(size: 8))
+                            .foregroundStyle(theme.textTertiary)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+        }
+    }
+
     private func eventRow(_ e: [String: Any]) -> some View {
         let type = str(e["event_type"])
         let (icon, color): (String, Color) = {
@@ -457,6 +491,11 @@ struct SpaceTaskDashboardView: View {
                     pendingApprovals = d["pending_approvals"] as? [[String: Any]]
                         ?? d["pending_guard"] as? [[String: Any]] ?? []
                     isLoading = false
+                }
+                // 复盘历史 is independent of the main payload — fetch best-effort
+                if let retro = try? await ipc.retrospectiveList(limit: 10) {
+                    let rows = retro["retrospectives"] as? [[String: Any]] ?? []
+                    await MainActor.run { retrospectives = rows }
                 }
             } catch {
                 dashboardLog.error("taskDashboard failed: \(error.localizedDescription)")
