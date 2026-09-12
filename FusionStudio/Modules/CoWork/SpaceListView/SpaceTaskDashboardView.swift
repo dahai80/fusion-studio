@@ -20,6 +20,10 @@ struct SpaceTaskDashboardView: View {
     @State private var isLoading = false
     @State private var lastError = ""
     @State private var busyTaskId = ""
+    // realtime activity stream (desk.events.subscribe + poll loop)
+    @State private var streamEvents: [[String: Any]] = []
+    @State private var streamSubId = ""
+    @State private var streamTask: Task<Void, Never>?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -35,7 +39,46 @@ struct SpaceTaskDashboardView: View {
                 content
             }
         }
-        .onAppear { load() }
+        .onAppear {
+            load()
+            startStream()
+        }
+        .onDisappear { streamTask?.cancel() }
+    }
+
+    /// Subscribe once, then poll the subscriber queue on a light timer and
+    /// merge into the feed (dedup by event_id). Fall back to recent buffer
+    /// for the initial fill when the subscription isn't ready yet.
+    private func startStream() {
+        guard streamTask == nil else { return }
+        streamTask = Task {
+            if let sub = try? await ipc.deskEventsSubscribe() {
+                streamSubId = sub["sub_id"] as? String ?? ""
+            }
+            if streamSubId.isEmpty {
+                if let recent = try? await ipc.deskEventsRecent(since: Date().timeIntervalSince1970 - 300) {
+                    merge(events: recent["events"] as? [[String: Any]] ?? [])
+                }
+            }
+            while !Task.isCancelled {
+                if !streamSubId.isEmpty, let poll = try? await ipc.deskEventsPoll(subId: streamSubId) {
+                    merge(events: poll["events"] as? [[String: Any]] ?? [])
+                }
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+            }
+        }
+    }
+
+    private func merge(events: [[String: Any]]) {
+        guard !events.isEmpty else { return }
+        let known = Set(streamEvents.compactMap { $0["event_id"] as? String })
+        let fresh = events.filter { !known.contains($0["event_id"] as? String ?? "") }
+        guard !fresh.isEmpty else { return }
+        streamEvents = (streamEvents + fresh).suffix(50)
+        // a node_denied / permission_request event means a new approval may be waiting
+        if fresh.contains(where: { ["node_denied", "permission_request"].contains($0["event_type"] as? String ?? "") }) {
+            load()
+        }
     }
 
     // MARK: - Sections
@@ -90,7 +133,8 @@ struct SpaceTaskDashboardView: View {
                 if !tasks.isEmpty { tasksSection }
                 if !plans.isEmpty { plansSection }
                 if !agents.isEmpty { agentsSection }
-                if tasks.isEmpty && plans.isEmpty && agents.isEmpty {
+                if !streamEvents.isEmpty { streamSection }
+                if tasks.isEmpty && plans.isEmpty && agents.isEmpty && streamEvents.isEmpty {
                     emptyView
                 }
             }
@@ -116,9 +160,10 @@ struct SpaceTaskDashboardView: View {
         VStack(alignment: .leading, spacing: theme.spacingXS) {
             sectionTitle("待审批", icon: "shield.lefthalf.filled")
             ForEach(Array(pendingApprovals.enumerated()), id: \.offset) { _, item in
+                let actionId = str(item["action_id"] ?? item["node_id"] ?? item["task_id"] ?? item["id"])
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(str(item["node_id"] ?? item["task_id"] ?? item["action_id"]))
+                        Text(actionId)
                             .font(.system(size: 10, weight: .medium))
                             .foregroundStyle(theme.text)
                         if let c = item["content"] as? String, !c.isEmpty {
@@ -129,6 +174,18 @@ struct SpaceTaskDashboardView: View {
                         }
                     }
                     Spacer()
+                    if busyTaskId == actionId {
+                        ProgressView().controlSize(.mini)
+                    } else {
+                        Button("批准") { confirmGuard(actionId, true) }
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(.green)
+                            .buttonStyle(.plain)
+                        Button("拒绝") { confirmGuard(actionId, false) }
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(.red)
+                            .buttonStyle(.plain)
+                    }
                     Text(str(item["risk_level"] ?? ""))
                         .font(.system(size: 8, weight: .semibold))
                         .foregroundStyle(.orange)
@@ -251,6 +308,78 @@ struct SpaceTaskDashboardView: View {
         }
     }
 
+    /// Live event feed (realtime activity stream, newest first).
+    private var streamSection: some View {
+        VStack(alignment: .leading, spacing: theme.spacingXS) {
+            HStack(spacing: 4) {
+                Circle().fill(Color.green).frame(width: 5, height: 5)
+                sectionTitle("实时动态", icon: "dot.radiowaves.left.and.right")
+                Spacer()
+                Text("每 2s 刷新")
+                    .font(.system(size: 8))
+                    .foregroundStyle(theme.textTertiary)
+            }
+            ForEach(Array(streamEvents.reversed().enumerated()), id: \.offset) { _, e in
+                eventRow(e)
+            }
+        }
+    }
+
+    private func eventRow(_ e: [String: Any]) -> some View {
+        let type = str(e["event_type"])
+        let (icon, color): (String, Color) = {
+            switch type {
+            case "workflow_start": return ("play.fill", .blue)
+            case "workflow_end": return ("flag.checkered", .green)
+            case "workflow_cancel": return ("stop.fill", .gray)
+            case "node_start": return ("arrow.right.circle", .blue)
+            case "node_end": return ("checkmark.circle", .green)
+            case "node_denied": return ("hand.raised.fill", .red)
+            case "permission_request": return ("lock.shield", .orange)
+            default: return ("circle.fill", .gray)
+            }
+        }()
+        let ts = (e["timestamp"] as? Double).map { Date(timeIntervalSince1970: $0) }
+        return HStack(alignment: .top, spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 8))
+                .foregroundStyle(color)
+                .frame(width: 12)
+            VStack(alignment: .leading, spacing: 1) {
+                HStack {
+                    Text(type)
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(theme.text)
+                    if let name = e["node_name"] as? String, !name.isEmpty {
+                        Text(name)
+                            .font(.system(size: 9))
+                            .foregroundStyle(theme.textSecondary)
+                    }
+                    Spacer()
+                    if let ts = ts {
+                        Text(ts.formatted(date: .omitted, time: .standard))
+                            .font(.system(size: 8))
+                            .foregroundStyle(theme.textTertiary)
+                    }
+                }
+                if let d = e["data"] as? [String: Any], !d.isEmpty {
+                    Text(compactData(d))
+                        .font(.system(size: 8))
+                        .foregroundStyle(theme.textTertiary)
+                        .lineLimit(1)
+                }
+            }
+        }
+        .padding(.vertical, 1)
+    }
+
+    private func compactData(_ d: [String: Any]) -> String {
+        return d.sorted { "\($0.key)" < "\($1.key)" }
+            .prefix(3)
+            .map { "\($0.key)=\(String("\($0.value)".prefix(40)))" }
+            .joined(separator: " ")
+    }
+
     // MARK: - Helpers
 
     private func sectionTitle(_ title: String, icon: String) -> some View {
@@ -356,6 +485,22 @@ struct SpaceTaskDashboardView: View {
                 dashboardLog.info("reopen \(taskId)")
             } catch {
                 dashboardLog.error("reopen failed: \(error.localizedDescription)")
+            }
+            await MainActor.run {
+                busyTaskId = ""
+                load()
+            }
+        }
+    }
+
+    private func confirmGuard(_ actionId: String, _ approved: Bool) {
+        busyTaskId = actionId
+        Task {
+            do {
+                _ = try await ipc.deskPermissionConfirmGuard(actionId: actionId, approved: approved)
+                dashboardLog.info("guard confirm \(actionId) approved=\(approved)")
+            } catch {
+                dashboardLog.error("guard confirm failed: \(error.localizedDescription)")
             }
             await MainActor.run {
                 busyTaskId = ""

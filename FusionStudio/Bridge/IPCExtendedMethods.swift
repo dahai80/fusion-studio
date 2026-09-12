@@ -459,6 +459,14 @@ extension IPCClient {
         return try await spaceCall(method: "desk.permission.reset")
     }
 
+    /// Confirm a pending guard L3 approval (audit 0912 P1-11 UI entry).
+    /// cowork handler contract: action_id + approved (bool) + approved_by.
+    func deskPermissionConfirmGuard(actionId: String, approved: Bool, approvedBy: String = "local_user") async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.permission.confirm_guard", params: [
+            "action_id": actionId, "approved": approved, "approved_by": approvedBy,
+        ])
+    }
+
     func deskTemplateList(category: String = "") async throws -> [String: Any] {
         var params: [String: Any] = [:]
         if !category.isEmpty { params["category"] = category }
