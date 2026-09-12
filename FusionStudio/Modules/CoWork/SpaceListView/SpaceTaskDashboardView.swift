@@ -291,15 +291,22 @@ struct SpaceTaskDashboardView: View {
         VStack(alignment: .leading, spacing: theme.spacingXS) {
             sectionTitle("角色", icon: "person.2")
             ForEach(Array(agents.enumerated()), id: \.offset) { _, a in
+                let st = str(a["status"] ?? a["state"])
+                let cur = str(a["current_task"])
                 HStack {
                     Circle()
-                        .fill(str(a["state"]) == "busy" ? Color.orange : Color.green)
+                        .fill(st == "busy" || st == "running" ? Color.orange : Color.green)
                         .frame(width: 6, height: 6)
                     Text(str(a["agent_id"]))
                         .font(.system(size: 10))
                         .foregroundStyle(theme.text)
+                    if !cur.isEmpty {
+                        Text("→ \(cur.suffix(10))")
+                            .font(.system(size: 8))
+                            .foregroundStyle(theme.textTertiary)
+                    }
                     Spacer()
-                    Text(str(a["state"]))
+                    Text(st)
                         .font(.system(size: 8))
                         .foregroundStyle(theme.textTertiary)
                 }
