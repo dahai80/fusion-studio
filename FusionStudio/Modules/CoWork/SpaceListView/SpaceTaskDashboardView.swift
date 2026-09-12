@@ -20,6 +20,10 @@ struct SpaceTaskDashboardView: View {
     @State private var isLoading = false
     @State private var lastError = ""
     @State private var busyTaskId = ""
+    // v2 方案三: visible failure feedback for accept/reopen/confirmGuard —
+    // these actions previously logged to os.log only, so a failed tap looked
+    // like the button did nothing.
+    @State private var actionNotice: (text: String, ok: Bool) = ("", false)
     // realtime activity stream (desk.events.subscribe + poll loop)
     @State private var streamEvents: [[String: Any]] = []
     @State private var streamSubId = ""
@@ -31,6 +35,10 @@ struct SpaceTaskDashboardView: View {
         VStack(alignment: .leading, spacing: 0) {
             header
             Divider()
+            if !actionNotice.text.isEmpty {
+                actionBanner
+                Divider()
+            }
             if isLoading {
                 ProgressView().padding()
                 Spacer()
@@ -507,14 +515,53 @@ struct SpaceTaskDashboardView: View {
         }
     }
 
+    /// v2 方案三: visible result banner for dashboard actions (success or
+    /// failure) — replaces silent os.log-only feedback.
+    private var actionBanner: some View {
+        HStack(spacing: 6) {
+            Image(systemName: actionNotice.ok ? "checkmark.circle.fill" : "xmark.octagon.fill")
+                .font(.system(size: 10))
+                .foregroundStyle(actionNotice.ok ? Color.green : Color.red)
+            Text(actionNotice.text)
+                .font(.system(size: 9))
+                .foregroundStyle(actionNotice.ok ? theme.textSecondary : Color.red)
+                .lineLimit(2)
+            Spacer()
+            Button(action: { actionNotice = ("", false) }) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 8))
+                    .foregroundStyle(theme.textTertiary)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, theme.spacingM)
+        .padding(.vertical, theme.spacingXS)
+        .background(actionNotice.ok ? Color.green.opacity(0.08) : Color.red.opacity(0.08))
+    }
+
+    private func setNotice(_ text: String, ok: Bool) {
+        actionNotice = (text, ok)
+        // auto-dismiss success after 3s; failures stay until dismissed/retry
+        if ok {
+            Task {
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                await MainActor.run {
+                    if actionNotice.ok { actionNotice = ("", false) }
+                }
+            }
+        }
+    }
+
     private func accept(_ taskId: String, _ verdict: String) {
         busyTaskId = taskId
         Task {
             do {
                 _ = try await ipc.agentAcceptTask(taskId: taskId, verdict: verdict)
                 dashboardLog.info("accept \(taskId) -> \(verdict)")
+                await MainActor.run { setNotice(verdict == "accepted" ? "任务已验收通过" : "任务已驳回，等待返工", ok: true) }
             } catch {
                 dashboardLog.error("accept failed: \(error.localizedDescription)")
+                await MainActor.run { setNotice("验收操作失败: \(error.localizedDescription)", ok: false) }
             }
             await MainActor.run {
                 busyTaskId = ""
@@ -529,8 +576,10 @@ struct SpaceTaskDashboardView: View {
             do {
                 _ = try await ipc.agentReopenTask(taskId: taskId)
                 dashboardLog.info("reopen \(taskId)")
+                await MainActor.run { setNotice("任务已重开", ok: true) }
             } catch {
                 dashboardLog.error("reopen failed: \(error.localizedDescription)")
+                await MainActor.run { setNotice("重开失败: \(error.localizedDescription)", ok: false) }
             }
             await MainActor.run {
                 busyTaskId = ""
@@ -545,8 +594,10 @@ struct SpaceTaskDashboardView: View {
             do {
                 _ = try await ipc.deskPermissionConfirmGuard(actionId: actionId, approved: approved)
                 dashboardLog.info("guard confirm \(actionId) approved=\(approved)")
+                await MainActor.run { setNotice(approved ? "已批准高危操作" : "已拒绝高危操作", ok: true) }
             } catch {
                 dashboardLog.error("guard confirm failed: \(error.localizedDescription)")
+                await MainActor.run { setNotice("审批操作失败: \(error.localizedDescription)", ok: false) }
             }
             await MainActor.run {
                 busyTaskId = ""
