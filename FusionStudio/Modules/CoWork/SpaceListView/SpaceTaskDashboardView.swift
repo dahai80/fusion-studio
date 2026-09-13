@@ -30,6 +30,12 @@ struct SpaceTaskDashboardView: View {
     @State private var streamTask: Task<Void, Never>?
     // retrospective history (复盘, desk.retrospective.list)
     @State private var retrospectives: [[String: Any]] = []
+    // v2 P2: newest retrospective ts seen (incremental re-fetch watermark) and
+    // the agent filter (tap a role row to see only its tasks)
+    @State private var lastRetroTs = 0.0
+    @State private var agentFilter = ""
+    // v2 P2: reject needs an explicit confirm (destructive-ish, triggers rework)
+    @State private var pendingRejectId = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -88,6 +94,30 @@ struct SpaceTaskDashboardView: View {
         // a node_denied / permission_request event means a new approval may be waiting
         if fresh.contains(where: { ["node_denied", "permission_request"].contains($0["event_type"] as? String ?? "") }) {
             load()
+        }
+        // v2 P2: a finished workflow/relay means a new retrospective may exist —
+        // refresh the history incrementally instead of waiting for a manual reload
+        if fresh.contains(where: { ["workflow_end", "relay_complete", "message_complete"].contains($0["event_type"] as? String ?? "") }) {
+            refreshRetrospectives()
+        }
+    }
+
+    /// v2 P2: incremental retrospective fetch — only rows newer than the last
+    /// watermark are returned by the RPC (after_ts), and merged on top.
+    private func refreshRetrospectives() {
+        Task {
+            if let retro = try? await ipc.retrospectiveList(limit: 10, afterTs: lastRetroTs) {
+                let rows = retro["retrospectives"] as? [[String: Any]] ?? []
+                guard !rows.isEmpty else { return }
+                await MainActor.run {
+                    let known = Set(retrospectives.compactMap { $0["plan_id"] as? String })
+                    let add = rows.filter { !known.contains($0["plan_id"] as? String ?? "") }
+                    retrospectives = (add + retrospectives).sorted {
+                        ($0["ts"] as? Double ?? 0) > ($1["ts"] as? Double ?? 0)
+                    }
+                    lastRetroTs = max(lastRetroTs, rows.compactMap { $0["ts"] as? Double }.max() ?? 0)
+                }
+            }
         }
     }
 
@@ -210,9 +240,27 @@ struct SpaceTaskDashboardView: View {
 
     private var tasksSection: some View {
         VStack(alignment: .leading, spacing: theme.spacingXS) {
-            sectionTitle("任务", icon: "checklist")
-            ForEach(Array(tasks.enumerated()), id: \.offset) { _, t in
+            HStack(spacing: 4) {
+                sectionTitle("任务", icon: "checklist")
+                // v2 P2: active role filter, tap again to clear
+                if !agentFilter.isEmpty {
+                    Button(action: { agentFilter = "" }) {
+                        Text("筛选: \(agentFilter) ✕")
+                            .font(.system(size: 8, weight: .medium))
+                            .foregroundStyle(theme.accent)
+                    }
+                    .buttonStyle(.plain)
+                }
+                Spacer()
+            }
+            let visible = tasks.filter { agentFilter.isEmpty || str($0["agent_id"]) == agentFilter }
+            ForEach(Array(visible.enumerated()), id: \.offset) { _, t in
                 taskRow(t)
+            }
+            if visible.isEmpty {
+                Text("该角色暂无任务")
+                    .font(.system(size: 8))
+                    .foregroundStyle(theme.textTertiary)
             }
         }
     }
@@ -257,12 +305,25 @@ struct SpaceTaskDashboardView: View {
                 HStack(spacing: theme.spacingS) {
                     if busyTaskId == taskId {
                         ProgressView().controlSize(.mini)
+                    } else if pendingRejectId == taskId {
+                        // v2 P2: reject triggers rework — require an explicit confirm
+                        Button("确认驳回?") {
+                            pendingRejectId = ""
+                            accept(taskId, "rejected")
+                        }
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.red)
+                        .buttonStyle(.plain)
+                        Button("取消") { pendingRejectId = "" }
+                            .font(.system(size: 9))
+                            .foregroundStyle(theme.textTertiary)
+                            .buttonStyle(.plain)
                     } else {
                         Button("通过") { accept(taskId, "accepted") }
                             .font(.system(size: 9, weight: .medium))
                             .foregroundStyle(.green)
                             .buttonStyle(.plain)
-                        Button("驳回") { accept(taskId, "rejected") }
+                        Button("驳回") { pendingRejectId = taskId }
                             .font(.system(size: 9, weight: .medium))
                             .foregroundStyle(.orange)
                             .buttonStyle(.plain)
@@ -283,15 +344,31 @@ struct SpaceTaskDashboardView: View {
         VStack(alignment: .leading, spacing: theme.spacingXS) {
             sectionTitle("计划", icon: "flowchart")
             ForEach(Array(plans.enumerated()), id: \.offset) { _, p in
-                HStack {
-                    statusBadge(str(p["status"]))
-                    Text(str(p["workflow_name"]))
-                        .font(.system(size: 10))
-                        .foregroundStyle(theme.text)
-                    Spacer()
-                    Text("\(str(p["plan_id"]).suffix(8))")
-                        .font(.system(size: 8))
-                        .foregroundStyle(theme.textTertiary)
+                let total = (p["total_tasks"] as? Int) ?? 0
+                let done = (p["completed"] as? Int) ?? 0
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack {
+                        statusBadge(str(p["status"]))
+                        Text(str(p["workflow_name"]))
+                            .font(.system(size: 10))
+                            .foregroundStyle(theme.text)
+                        Spacer()
+                        Text("\(done)/\(total)")
+                            .font(.system(size: 8))
+                            .foregroundStyle(theme.textTertiary)
+                    }
+                    // v2 P2: plan progress bar — key-path progress was invisible
+                    if total > 0 {
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                Capsule().fill(theme.groupBg)
+                                Capsule()
+                                    .fill(done >= total ? Color.green : Color.orange)
+                                    .frame(width: geo.size.width * CGFloat(done) / CGFloat(total))
+                            }
+                        }
+                        .frame(height: 3)
+                    }
                 }
                 .padding(.vertical, 2)
             }
@@ -304,11 +381,12 @@ struct SpaceTaskDashboardView: View {
             ForEach(Array(agents.enumerated()), id: \.offset) { _, a in
                 let st = str(a["status"] ?? a["state"])
                 let cur = str(a["current_task"])
+                let aid = str(a["agent_id"])
                 HStack {
                     Circle()
                         .fill(st == "busy" || st == "running" ? Color.orange : Color.green)
                         .frame(width: 6, height: 6)
-                    Text(str(a["agent_id"]))
+                    Text(aid)
                         .font(.system(size: 10))
                         .foregroundStyle(theme.text)
                     if !cur.isEmpty {
@@ -322,6 +400,14 @@ struct SpaceTaskDashboardView: View {
                         .foregroundStyle(theme.textTertiary)
                 }
                 .padding(.vertical, 1)
+                .contentShape(Rectangle())
+                // v2 P2: tap a role to filter the task list to its tasks
+                .onTapGesture { agentFilter = agentFilter == aid ? "" : aid }
+            }
+            if !agentFilter.isEmpty {
+                Text("点击任务区的「筛选 ✕」或再次点击角色可取消过滤")
+                    .font(.system(size: 7))
+                    .foregroundStyle(theme.textTertiary)
             }
         }
     }

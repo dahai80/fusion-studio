@@ -939,9 +939,10 @@ extension IPCClient {
     }
 
     /// Recent plan retrospectives (trajectory jsonl pool, newest first) —
-    /// history/复盘 section of the task dashboard.
-    func retrospectiveList(limit: Int = 20) async throws -> [String: Any] {
-        return try await spaceCall(method: "desk.retrospective.list", params: ["limit": limit])
+    /// history/复盘 section of the task dashboard. `afterTs` enables
+    /// incremental polling: only rows newer than the watermark are returned.
+    func retrospectiveList(limit: Int = 20, afterTs: Double = 0) async throws -> [String: Any] {
+        return try await spaceCall(method: "desk.retrospective.list", params: ["limit": limit, "after_ts": afterTs])
     }
 
     // MARK: - CoWork Discovery (desk.space.discovery.*)
