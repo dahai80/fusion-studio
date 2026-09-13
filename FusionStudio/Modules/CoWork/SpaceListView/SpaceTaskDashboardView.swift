@@ -382,13 +382,21 @@ struct SpaceTaskDashboardView: View {
                 let st = str(a["status"] ?? a["state"])
                 let cur = str(a["current_task"])
                 let aid = str(a["agent_id"])
+                // v3 方案一: stale flag — heartbeat stopped refreshing while
+                // still "busy" → likely hung, show a visible marker.
+                let isStale = (a["stale"] as? Bool) ?? false
                 HStack {
                     Circle()
-                        .fill(st == "busy" || st == "running" ? Color.orange : Color.green)
+                        .fill(isStale ? Color.yellow : (st == "busy" || st == "running" ? Color.orange : Color.green))
                         .frame(width: 6, height: 6)
                     Text(aid)
                         .font(.system(size: 10))
                         .foregroundStyle(theme.text)
+                    if isStale {
+                        Text("疑似卡死")
+                            .font(.system(size: 7))
+                            .foregroundStyle(.yellow)
+                    }
                     if !cur.isEmpty {
                         Text("→ \(cur.suffix(10))")
                             .font(.system(size: 8))
@@ -423,9 +431,46 @@ struct SpaceTaskDashboardView: View {
                     .font(.system(size: 8))
                     .foregroundStyle(theme.textTertiary)
             }
+            // v3 方案一: aggregate repeated error events per agent — a dead
+            // backend used to flood the feed; now >3 errors from one agent
+            // fold into a single root-cause banner row.
+            errorAggregationBanner
             ForEach(Array(streamEvents.reversed().enumerated()), id: \.offset) { _, e in
                 eventRow(e)
             }
+        }
+    }
+
+    /// v3 方案一: one folded row per agent that emitted >3 error events.
+    private var errorAggregationBanner: some View {
+        let counts: [String: (Int, String)] = streamEvents.reduce(into: [:]) { acc, e in
+            guard str(e["event_type"]) == "error" else { return }
+            let aid = str(e["agent_id"]).isEmpty ? "unknown" : str(e["agent_id"])
+            let reason = str(e["error"])
+            let prev = acc[aid] ?? (0, "")
+            acc[aid] = (prev.0 + 1, prev.1.isEmpty ? reason : prev.1)
+        }
+        let folded = counts.filter { $0.value.0 > 3 }
+        return ForEach(Array(folded.sorted(by: { $0.key < $1.key })).enumerated(), id: \.offset) { _, pair in
+            HStack(alignment: .top, spacing: 6) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 8))
+                    .foregroundStyle(.red)
+                    .frame(width: 12)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("\(pair.key) 持续报错 \(pair.value.0) 次")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(.red)
+                    Text("最近原因: \(pair.value.1.prefix(80))")
+                        .font(.system(size: 8))
+                        .foregroundStyle(theme.textSecondary)
+                        .lineLimit(1)
+                }
+                Spacer()
+            }
+            .padding(4)
+            .background(Color.red.opacity(0.08))
+            .cornerRadius(4)
         }
     }
 
@@ -446,6 +491,25 @@ struct SpaceTaskDashboardView: View {
                                 .font(.system(size: 8))
                                 .foregroundStyle(.red)
                                 .lineLimit(1)
+                        }
+                        // v3 方案五: delivery-note fields — side effects, retry
+                        // churn, per-task timings.
+                        if let effects = r["side_effects"] as? [String], !effects.isEmpty {
+                            Text("副作用: \(effects.prefix(2).joined(separator: ", "))\(effects.count > 2 ? " +\(effects.count - 2)" : "")")
+                                .font(.system(size: 8))
+                                .foregroundStyle(theme.textSecondary)
+                                .lineLimit(1)
+                        }
+                        if let sup = r["superseded_history"] as? [[String: Any]], !sup.isEmpty {
+                            Text("经 \(sup.count) 次纠错重试")
+                                .font(.system(size: 8))
+                                .foregroundStyle(.orange)
+                        }
+                        if let timings = r["task_timings"] as? [String: Double], !timings.isEmpty {
+                            let total = timings.values.reduce(0, +)
+                            Text("任务耗时合计 \(String(format: "%.1f", total))s")
+                                .font(.system(size: 8))
+                                .foregroundStyle(theme.textTertiary)
                         }
                     }
                     Spacer()
