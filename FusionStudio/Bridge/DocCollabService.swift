@@ -65,7 +65,8 @@ extension DocCollabState {
                 self?.receiveCollabMessage()
             case .failure(let error):
                 docCollabLog.error("collab receive error: \(error.localizedDescription)")
-                DispatchQueue.main.async { self?.collabConnected = false }
+                guard let self else { return }
+                DispatchQueue.main.async { self.collabConnected = false }
             }
         }
     }

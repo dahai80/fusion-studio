@@ -109,6 +109,13 @@ final class EventBridge: ObservableObject {
             streamSock = -1
         }
     }
+    // 审计0830 P1-IPC-1: 仅当 streamSock 仍指向该 fd 才置 -1, 防 stopStream 已关并
+    //   重连后覆盖新 fd (串号)。锁内比较+赋值原子。同步方法供 async 上下文调用,
+    //   避免 Swift 6 "lock unavailable from asynchronous contexts" (CI P3 清理)。
+    private func clearStreamSock(ifCurrent fd: Int32) {
+        streamSockLock.lock(); defer { streamSockLock.unlock() }
+        if streamSock == fd { streamSock = -1 }
+    }
     private var reconnectTask: Task<Void, Never>?
     private var nextReqId: Int = 1
     // 审计0827 P0-3: 重连退避计数。连接成功清零, 失败递增 → 指数退避 (5s→10s→20s... cap 60s) + jitter,
@@ -196,7 +203,7 @@ final class EventBridge: ObservableObject {
         addr.sun_family = sa_family_t(AF_UNIX)
         let pathC = socketPath.utf8CString
         let pathLen = min(pathC.count, MemoryLayout.size(ofValue: addr.sun_path))
-        _ = pathC.withUnsafeBufferPointer { src in
+        pathC.withUnsafeBufferPointer { src in
             withUnsafeMutableBytes(of: &addr.sun_path) { dst in
                 dst.copyMemory(from: UnsafeRawBufferPointer(
                     start: UnsafeRawPointer(src.baseAddress!),
@@ -267,11 +274,7 @@ final class EventBridge: ObservableObject {
             }
         }
         close(sock)
-        // 审计0830 P1-IPC-1: 仅当 streamSock 仍指向本 loop 的 fd 才置 -1, 防 stopStream 已关并重连后
-        //   覆盖新 fd (串号)。锁内比较+赋值原子。
-        streamSockLock.lock()
-        if streamSock == sock { streamSock = -1 }
-        streamSockLock.unlock()
+        clearStreamSock(ifCurrent: sock)
         eventBridgeLog.warning("event stream readLoop ended (disconnected)")
         await markDisconnected()
         scheduleReconnect()
