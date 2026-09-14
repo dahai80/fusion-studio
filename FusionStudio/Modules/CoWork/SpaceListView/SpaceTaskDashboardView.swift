@@ -30,6 +30,9 @@ struct SpaceTaskDashboardView: View {
     @State private var streamTask: Task<Void, Never>?
     // retrospective history (复盘, desk.retrospective.list)
     @State private var retrospectives: [[String: Any]] = []
+    // P3-4 (audit v4): expanded retrospective row (plan_id) for the detail
+    // disclosure — violations, full side effects, per-task timings.
+    @State private var expandedRetroId: String?
     // v2 P2: newest retrospective ts seen (incremental re-fetch watermark) and
     // the agent filter (tap a role row to see only its tasks)
     @State private var lastRetroTs = 0.0
@@ -480,6 +483,8 @@ struct SpaceTaskDashboardView: View {
         VStack(alignment: .leading, spacing: theme.spacingXS) {
             sectionTitle("复盘历史", icon: "clock.arrow.circlepath")
             ForEach(Array(retrospectives.enumerated()), id: \.offset) { _, r in
+                let pid = str(r["plan_id"])
+                VStack(alignment: .leading, spacing: 2) {
                 HStack {
                     statusBadge(str(r["status"]))
                     VStack(alignment: .leading, spacing: 1) {
@@ -520,6 +525,50 @@ struct SpaceTaskDashboardView: View {
                     }
                 }
                 .padding(.vertical, 2)
+                .contentShape(Rectangle())
+                .onTapGesture { expandedRetroId = (expandedRetroId == pid) ? nil : pid }
+                // P3-4: detail disclosure — tap a retro row to inspect the
+                // full delivery note (violations, side effects, timings).
+                if expandedRetroId == pid {
+                    VStack(alignment: .leading, spacing: 2) {
+                        if let sup = r["superseded_history"] as? [[String: Any]], !sup.isEmpty {
+                            Text("纠错重试明细:")
+                                .font(.system(size: 8, weight: .medium))
+                                .foregroundStyle(theme.textSecondary)
+                            ForEach(Array(sup.enumerated()), id: \.offset) { _, s in
+                                let viols = (s["violations"] as? [String] ?? []).prefix(3)
+                                Text("  · 第\(s["attempt"] as? Int ?? 0)轮: \(viols.joined(separator: "; "))")
+                                    .font(.system(size: 8))
+                                    .foregroundStyle(theme.textTertiary)
+                                    .lineLimit(2)
+                            }
+                        }
+                        if let effects = r["side_effects"] as? [String], !effects.isEmpty {
+                            Text("副作用文件:")
+                                .font(.system(size: 8, weight: .medium))
+                                .foregroundStyle(theme.textSecondary)
+                            ForEach(effects.prefix(8), id: \.self) { p in
+                                Text("  \(p)")
+                                    .font(.system(size: 8))
+                                    .foregroundStyle(theme.textTertiary)
+                                    .lineLimit(1)
+                            }
+                        }
+                        if let timings = r["task_timings"] as? [String: Double], !timings.isEmpty {
+                            Text("任务耗时:")
+                                .font(.system(size: 8, weight: .medium))
+                                .foregroundStyle(theme.textSecondary)
+                            ForEach(Array(timings.sorted(by: { $0.key < $1.key }).prefix(8)).enumerated(), id: \.offset) { _, pair in
+                                Text("  \(pair.key.suffix(12)): \(String(format: "%.1f", pair.value))s")
+                                    .font(.system(size: 8))
+                                    .foregroundStyle(theme.textTertiary)
+                            }
+                        }
+                    }
+                    .padding(.leading, 14)
+                    .padding(.vertical, 2)
+                }
+                }
             }
         }
     }
