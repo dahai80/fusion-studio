@@ -454,7 +454,7 @@ struct SpaceTaskDashboardView: View {
             acc[aid] = (prev.0 + 1, prev.1.isEmpty ? reason : prev.1)
         }
         let folded = counts.filter { $0.value.0 > 3 }
-        return ForEach(Array(folded.sorted(by: { $0.key < $1.key })).enumerated(), id: \.offset) { _, pair in
+        return ForEach(Array(folded.sorted(by: { $0.key < $1.key })), id: \.key) { pair in
             HStack(alignment: .top, spacing: 6) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 8))
@@ -558,7 +558,7 @@ struct SpaceTaskDashboardView: View {
                             Text("任务耗时:")
                                 .font(.system(size: 8, weight: .medium))
                                 .foregroundStyle(theme.textSecondary)
-                            ForEach(Array(timings.sorted(by: { $0.key < $1.key }).prefix(8)).enumerated(), id: \.offset) { _, pair in
+                            ForEach(Array(timings.sorted(by: { $0.key < $1.key }).prefix(8)), id: \.key) { pair in
                                 Text("  \(pair.key.suffix(12)): \(String(format: "%.1f", pair.value))s")
                                     .font(.system(size: 8))
                                     .foregroundStyle(theme.textTertiary)
