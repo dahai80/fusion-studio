@@ -286,7 +286,7 @@ struct FusionStudioApp: App {
                     IdentityLoginView(service: identityService)
                         .environmentObject(identityService)
                         .interactiveDismissDisabled(true)
-                        .onChange(of: identityService.isLoggedIn) { loggedIn in
+                        .onChange(of: identityService.isLoggedIn) { _, loggedIn in
                             if loggedIn { showIdentityLogin = false }
                         }
                 }
@@ -298,7 +298,7 @@ struct FusionStudioApp: App {
                     agentBridge.startMlxStatusPolling()
                 }
                 // HIGH-4: app 进后台或退出时终止遗留 screencapture 进程, 防孤儿。
-                .onChange(of: scenePhase) { phase in
+                .onChange(of: scenePhase) { _, phase in
                     if phase == .background || phase == .inactive {
                         ScreenCapture.shared.cleanup()
                         agentBridge.stopMlxStatusPolling()
