@@ -232,6 +232,9 @@ class FusionConfig: ObservableObject {
     @AppStorage("coworkHost") var coworkHost = "127.0.0.1"
     @AppStorage("coworkSyncPort") var coworkSyncPort = 11437
     @AppStorage("coworkMcpPort") var coworkMcpPort = 11438
+    // fusion-cowork web API (port-registry: fusion-cowork-web) — /api/mobile/overview,
+    // /api/runs/{id}/directive, /api/permissions/pending 等移动/远程面。
+    @AppStorage("coworkWebPort") var coworkWebPort = 11461
     @AppStorage("modelHubHost") var modelHubHost = "127.0.0.1"
     @AppStorage("modelHubPort") var modelHubPort = 11444
     // API key 存 Keychain (HIGH-2), HubPermissionView 创建后直接赋值由 didSet 透传 Keychain
@@ -260,6 +263,7 @@ class FusionConfig: ObservableObject {
     @AppStorage("fusionGuardSocketPath") var fusionGuardSocketPath = "/tmp/fusion-guard.sock"
     // #346: fusion-event 感知层守护 UDS (NDJSON JSON-RPC, /tmp 默认, FUSION_EVENT_SOCK 可覆盖)。
     @AppStorage("fusionEventSocketPath") var fusionEventSocketPath = "/tmp/fusion-event.sock"
+    @AppStorage("agentStudioHost") var agentStudioHost = "127.0.0.1"
     @AppStorage("agentStudioHttpPort") var agentStudioHttpPort = 11453
 
     /// F-sec-1 P1: 本地回环/链路本地地址用 http://; 远程主机强制 https:// (Bearer token 明文保护)。
@@ -590,6 +594,7 @@ class FusionConfig: ObservableObject {
         coworkHost = "127.0.0.1"
         coworkSyncPort = 11437
         coworkMcpPort = 11438
+        coworkWebPort = 11461
         modelHubHost = "127.0.0.1"
         modelHubPort = 11444
         modelHubApiKey = ""
@@ -597,6 +602,7 @@ class FusionConfig: ObservableObject {
         fusionDeskPort = 9761
         fusionDocPort = 11449
         fusionBenchPort = 11450
+        agentStudioHost = "127.0.0.1"
         agentStudioHttpPort = 11453
         scienceHost = "127.0.0.1"
         sciencePort = 11462

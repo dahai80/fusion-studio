@@ -494,15 +494,90 @@ struct SafetyCheckModel: Codable, Equatable {
     }
 }
 
+struct SafetyCardModel: Codable, Equatable {
+    var actionId: String = ""
+    var cardType: String = "code"
+    var category: String = ""
+    var level: String = ""
+    var status: String = "pending"
+    var content: String = ""
+    var requiresDiff: Bool = false
+    var diff: String = ""
+    var original: String = ""
+    var proposed: String = ""
+
+    enum CodingKeys: String, CodingKey {
+        case actionId = "action_id"
+        case cardType = "card_type"
+        case category, level, status, content
+        case requiresDiff = "requires_diff"
+        case diff, original, proposed
+    }
+
+    init() {}
+
+    init(actionId: String, cardType: String, category: String, level: String, status: String, content: String, requiresDiff: Bool, diff: String, original: String, proposed: String) {
+        self.actionId = actionId
+        self.cardType = cardType
+        self.category = category
+        self.level = level
+        self.status = status
+        self.content = content
+        self.requiresDiff = requiresDiff
+        self.diff = diff
+        self.original = original
+        self.proposed = proposed
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        actionId = (try? c.decodeIfPresent(String.self, forKey: .actionId)) ?? ""
+        cardType = (try? c.decodeIfPresent(String.self, forKey: .cardType)) ?? Self.deriveCardType(category: (try? c.decodeIfPresent(String.self, forKey: .category)) ?? "")
+        category = (try? c.decodeIfPresent(String.self, forKey: .category)) ?? ""
+        level = (try? c.decodeIfPresent(String.self, forKey: .level)) ?? ""
+        status = (try? c.decodeIfPresent(String.self, forKey: .status)) ?? "pending"
+        content = (try? c.decodeIfPresent(String.self, forKey: .content)) ?? ""
+        requiresDiff = (try? c.decodeIfPresent(Bool.self, forKey: .requiresDiff)) ?? false
+        diff = (try? c.decodeIfPresent(String.self, forKey: .diff)) ?? ""
+        original = (try? c.decodeIfPresent(String.self, forKey: .original)) ?? ""
+        proposed = (try? c.decodeIfPresent(String.self, forKey: .proposed)) ?? ""
+        if requiresDiff == false && !diff.isEmpty {
+            requiresDiff = true
+        }
+    }
+
+    static func deriveCardType(category: String) -> String {
+        switch category {
+        case "file_read", "file_write", "doc_retrieval", "knowledge_search":
+            return "folder"
+        case "network_access":
+            return "network"
+        case "tool_call", "llm_call":
+            return "remote"
+        default:
+            return "code"
+        }
+    }
+}
+
 struct SafetyActionModel: Codable, Equatable, Identifiable {
     var id: String
     var category: String
     var status: String
     var content: String
     var reason: String = ""
+    var card: SafetyCardModel?
+
+    var cardType: String { card?.cardType ?? SafetyCardModel.deriveCardType(category: category) }
+    var level: String { card?.level ?? "" }
+    var requiresDiff: Bool { card?.requiresDiff ?? false }
+    var diff: String { card?.diff ?? "" }
+    var original: String { card?.original ?? "" }
+    var proposed: String { card?.proposed ?? "" }
 
     // F-I4: IPC safety.get_pending_actions 响应 → JSONDecoder。action_id/id dual-key, ?? default 宽容。
-    enum CodingKeys: String, CodingKey { case id, category, status, content, reason, action_id }
+    // N9 #348: 响应同时携带扁平字段与嵌套 card; 嵌套优先, 缺失时按 category 推导。
+    enum CodingKeys: String, CodingKey { case id, category, status, content, reason, action_id, card }
     init(from decoder: Decoder) throws {
         let top = try decoder.container(keyedBy: CodingKeys.self)
         let c = try decoder.container(keyedBy: FAnyKey.self)
@@ -511,6 +586,21 @@ struct SafetyActionModel: Codable, Equatable, Identifiable {
         status = (try? top.decodeIfPresent(String.self, forKey: .status)) ?? "pending"
         content = (try? top.decodeIfPresent(String.self, forKey: .content)) ?? ""
         reason = (try? top.decodeIfPresent(String.self, forKey: .reason)) ?? ""
+        card = try? top.decodeIfPresent(SafetyCardModel.self, forKey: .card)
+        if card == nil {
+            var fallback = SafetyCardModel()
+            fallback.actionId = id
+            fallback.cardType = SafetyCardModel.deriveCardType(category: category)
+            fallback.category = category
+            fallback.status = status
+            fallback.content = content
+            fallback.level = (try? c.decodeIfPresent(String.self, forKey: .key("level"))) ?? ""
+            fallback.requiresDiff = (try? c.decodeIfPresent(Bool.self, forKey: .key("requires_diff"))) ?? false
+            fallback.diff = (try? c.decodeIfPresent(String.self, forKey: .key("diff"))) ?? ""
+            fallback.original = (try? c.decodeIfPresent(String.self, forKey: .key("original"))) ?? ""
+            fallback.proposed = (try? c.decodeIfPresent(String.self, forKey: .key("proposed"))) ?? ""
+            card = fallback
+        }
     }
     // memberwise init: safetyEvaluateAction (site A) 从方法参数注 category/content (非 IPC dict), 不能走 decode。
     init(id: String = UUID().uuidString, category: String, status: String = "pending", content: String, reason: String = "") {
@@ -519,6 +609,18 @@ struct SafetyActionModel: Codable, Equatable, Identifiable {
         self.status = status
         self.content = content
         self.reason = reason
+        self.card = SafetyCardModel(
+            actionId: id,
+            cardType: SafetyCardModel.deriveCardType(category: category),
+            category: category,
+            level: "",
+            status: status,
+            content: content,
+            requiresDiff: false,
+            diff: "",
+            original: "",
+            proposed: ""
+        )
     }
     // F-I4: 显式 encode(to:) — CodingKeys 含 dual-key 备用 case (action_id) 无对应存储属性, 合成 Encodable 失败, 故显式编码存储属性。
     func encode(to encoder: Encoder) throws {
@@ -528,6 +630,7 @@ struct SafetyActionModel: Codable, Equatable, Identifiable {
         try c.encode(status, forKey: .status)
         try c.encode(content, forKey: .content)
         try c.encode(reason, forKey: .reason)
+        try c.encodeIfPresent(card, forKey: .card)
     }
 }
 

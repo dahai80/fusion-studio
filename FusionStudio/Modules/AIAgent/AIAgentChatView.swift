@@ -28,6 +28,8 @@ struct AIAgentChatView: View {
     @State private var showRuntimeConfig = false
     @State private var rtTemperature: Double = 0.7
     @State private var rtMaxTokens: Int = 4096
+    @State private var thinkingEnabled = true
+    @State private var selectedRunArtifactId: String?
 
     struct ChatMessage: Identifiable {
         let id = UUID()
@@ -36,6 +38,8 @@ struct AIAgentChatView: View {
         let timestamp: Date
         var isStreaming = false
         var attachments: [String] = []
+        var thinking: String = ""
+        var runArtifactId: String = ""
     }
 
     var body: some View {
@@ -52,6 +56,15 @@ struct AIAgentChatView: View {
         .onAppear { loadDefaultAgent() }
         .sheet(isPresented: $showAgentPicker) {
             agentPickerSheet
+        }
+        .sheet(isPresented: Binding(
+            get: { selectedRunArtifactId != nil },
+            set: { if !$0 { selectedRunArtifactId = nil } }
+        )) {
+            if let id = selectedRunArtifactId {
+                RunArtifactDetailView(artifactId: id)
+                    .frame(minWidth: 720, minHeight: 560)
+            }
         }
     }
 
@@ -142,7 +155,7 @@ struct AIAgentChatView: View {
                 }
                 .padding(theme.spacingL)
             }
-            .onChange(of: messages.count) { _ in
+            .onChange(of: messages.count) {
                 if let last = messages.last {
                     proxy.scrollTo(last.id, anchor: .bottom)
                 }
@@ -221,6 +234,25 @@ struct AIAgentChatView: View {
                     attachmentChips(msg.attachments)
                 }
 
+                if msg.role != "user" && !msg.thinking.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Label("Thinking", systemImage: "brain")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(theme.textTertiary)
+                        Text(msg.thinking)
+                            .font(.system(size: theme.captionSize, design: .monospaced))
+                            .foregroundStyle(theme.textSecondary)
+                            .textSelection(.enabled)
+                            .lineLimit(12)
+                    }
+                    .padding(theme.spacingS)
+                    .frame(maxWidth: 520, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
+                            .fill(theme.surfaceSecondary)
+                    )
+                }
+
                 Text(msg.content)
                     .font(.system(size: theme.textSize))
                     .foregroundStyle(msg.role == "user" ? theme.accentText : theme.text)
@@ -233,6 +265,17 @@ struct AIAgentChatView: View {
                         RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
                             .strokeBorder(msg.role == "user" ? Color.clear : theme.separator, lineWidth: 1)
                     )
+
+                if !msg.runArtifactId.isEmpty {
+                    Button {
+                        selectedRunArtifactId = msg.runArtifactId
+                    } label: {
+                        Label("Run artifact \(msg.runArtifactId)", systemImage: "shippingbox")
+                            .font(.system(size: 10))
+                            .foregroundStyle(theme.accent)
+                    }
+                    .buttonStyle(.plain)
+                }
 
                 HStack(spacing: theme.spacingXS) {
                     Text(msg.timestamp, style: .time)
@@ -381,6 +424,7 @@ struct AIAgentChatView: View {
             toolboxToggle(i18n.t(.ai_chat_toolResearch), icon: "magnifyingglass", isOn: $deepResearchEnabled)
             toolboxToggle(i18n.t(.ai_chat_toolCode), icon: "terminal", isOn: $codeExecutionEnabled)
             toolboxToggle(i18n.t(.ai_chat_toolKb), icon: "books.vertical", isOn: $knowledgeQueryEnabled)
+            toolboxToggle("Thinking channel", icon: "brain", isOn: $thinkingEnabled)
         }
         .padding(theme.spacingM)
         .frame(width: 200)
@@ -500,32 +544,66 @@ struct AIAgentChatView: View {
         chatInput = ""
         isStreaming = true
 
-        var assistantMsg = ChatMessage(role: "assistant", content: "", timestamp: Date(), isStreaming: true)
+        let assistantMsg = ChatMessage(role: "assistant", content: "", timestamp: Date(), isStreaming: true)
         messages.append(assistantMsg)
         let assistantIdx = messages.count - 1
 
         chatLog.info("Send message to agent: \(selectedAgentId), input: \(text.prefix(50))")
 
         Task {
+            var receivedToken = false
             do {
-                let result = try await ipc.agentExecuteStream(
+                let client = AgentSSEClient()
+                for try await event in client.streamAgent(
                     agentId: selectedAgentId,
-                    input: finalInput
-                )
-
-                let fullContent = result["response"] as? String
-                    ?? result["output"] as? String
-                    ?? result["content"] as? String
-                    ?? i18n.t(.ai_chat_noResponse)
+                    input: finalInput,
+                    thinking: thinkingEnabled
+                ) {
+                    await MainActor.run {
+                        switch event.kind {
+                        case .token:
+                            if !event.content.isEmpty {
+                                messages[assistantIdx].content += event.content
+                                receivedToken = true
+                            }
+                        case .thinkingToken:
+                            messages[assistantIdx].thinking += event.content
+                        case .result:
+                            if messages[assistantIdx].content.isEmpty && !event.content.isEmpty {
+                                messages[assistantIdx].content = event.content
+                                receivedToken = true
+                            }
+                        case .error:
+                            if !event.content.isEmpty {
+                                messages[assistantIdx].content += "\n[error] \(event.content)"
+                            }
+                        default:
+                            break
+                        }
+                        if !event.runArtifactId.isEmpty {
+                            messages[assistantIdx].runArtifactId = event.runArtifactId
+                        }
+                    }
+                }
 
                 await MainActor.run {
-                    messages[assistantIdx].content = fullContent
+                    if messages[assistantIdx].content.isEmpty {
+                        messages[assistantIdx].content = i18n.t(.ai_chat_noResponse)
+                    }
                     messages[assistantIdx].isStreaming = false
                     isStreaming = false
                 }
-                chatLog.info("Stream response received, length: \(fullContent.count)")
+                chatLog.info("SSE response complete, tokens received: \(receivedToken)")
             } catch {
-                chatLog.error("Stream failed, falling back to sync: \(error.localizedDescription)")
+                chatLog.error("SSE failed: \(error.localizedDescription)")
+                if receivedToken {
+                    await MainActor.run {
+                        messages[assistantIdx].content += "\n[stream interrupted] \(error.localizedDescription)"
+                        messages[assistantIdx].isStreaming = false
+                        isStreaming = false
+                    }
+                    return
+                }
                 do {
                     let fallback = try await ipc.agentExecute(
                         agentId: selectedAgentId,
@@ -535,9 +613,11 @@ struct AIAgentChatView: View {
                         ?? fallback["output"] as? String
                         ?? fallback["content"] as? String
                         ?? i18n.t(.ai_chat_noResponse)
+                    let artifactId = fallback["run_artifact_id"] as? String ?? ""
 
                     await MainActor.run {
                         messages[assistantIdx].content = content
+                        messages[assistantIdx].runArtifactId = artifactId
                         messages[assistantIdx].isStreaming = false
                         isStreaming = false
                     }

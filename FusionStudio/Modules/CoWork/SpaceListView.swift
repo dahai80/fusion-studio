@@ -19,6 +19,7 @@ struct SpaceListView: View {
     @State private var filterStatus: SpaceFilterStatus = .all
     @State private var showOnboarding = true
     @State private var showMarketplace = false
+    @State private var showMobileCowork = false
 
     private enum SpaceFilterStatus: String, CaseIterable {
         case all
@@ -83,6 +84,13 @@ struct SpaceListView: View {
                 }
                 .buttonStyle(.plain)
                 .help(i18n.t(.cw_list_marketHelp))
+                Button(action: { showMobileCowork = true }) {
+                    Image(systemName: "iphone.gen3")
+                        .font(.system(size: theme.iconM))
+                        .foregroundStyle(theme.textTertiary)
+                }
+                .buttonStyle(.plain)
+                .help(i18n.t(.cw_mobile_openHelp))
             }
             .padding(.horizontal, theme.spacingM)
             .padding(.bottom, theme.spacingS)
@@ -133,6 +141,9 @@ struct SpaceListView: View {
         }
         .sheet(isPresented: $showMarketplace) {
             SpaceMarketplaceView()
+        }
+        .sheet(isPresented: $showMobileCowork) {
+            CoworkMobileView()
         }
     }
 

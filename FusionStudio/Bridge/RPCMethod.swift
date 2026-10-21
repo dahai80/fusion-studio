@@ -117,6 +117,11 @@ enum RPCMethod {
     static let safetyReject = "safety.reject"
     static let safetyRejectAction = "safety.reject_action"
 
+    // MARK: - run_artifact (N9 #348 GUI parity)
+    static let runArtifactGet = "run_artifact.get"
+    static let runArtifactList = "run_artifact.list"
+    static let runArtifactVersions = "run_artifact.versions"
+
     // MARK: - task
     static let taskAddArtifacts = "task.add_artifacts"
     static let taskCancel = "task.cancel"

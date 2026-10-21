@@ -104,6 +104,7 @@ Fusion Studio integrates with [fusion-artifacts-engine](https://github.com/dahai
 | Version History | `ArtifactVersionHistoryPanel` | Snapshot creation, version diff, rollback with named snapshot preservation |
 | Share Dialog | `ArtifactShareDialog` | Permission + expiry, share link generation, existing share list, revoke |
 | Tag/Folder Manager | `ArtifactTagFolderPopover` | Add/remove tags, move to folder, from canvas toolbar |
+| Run Artifacts | `RunArtifactsView` | Read-only versioned execution artifacts via `run_artifact.list/get/versions` — graph, environment, conversation, metadata; version history |
 
 **Competitive Differentiators vs Claude Artifacts**:
 
@@ -161,6 +162,8 @@ Fusion Studio's CoWork module provides **real-time collaborative AI spaces** tha
 | Notification bell + unread badge + popover | `SpaceNotificationPopover` | `spaceNotificationPush/List/MarkRead` |
 | Multi-Agent relay chat (sequential handoff) | `SpaceSharedChat` relay button | `spaceAgentRelay` |
 | Workflow/Artifact marketplace (D8) | `SpaceMarketplaceView` | `desk.space.artifact.list/share` |
+| Mobile Cowork panel (runs, approvals, steering, artifact preview) | `CoworkMobileView` | fusion-cowork web API `/api/mobile/overview`, `/api/permissions/pending`, `/api/runs/{id}/pause|resume|directive|artifacts` |
+| N9 thinking channel + permission cards + run artifacts | AIAgent chat / Safety / Artifacts | Agent SSE `thinking_token`, `safety.get_pending_actions` cards, `run_artifact.*` |
 
 **3 Collab Modes**: `local` (single machine), `p2p` (Bonjour LAN discovery), `gateway` (remote via fusion-gateway).
 
@@ -546,6 +549,14 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 ---
 
 ## 📋 Changelog
+
+### Unreleased — N9 GUI parity + Mobile Cowork panel (2026-10-21)
+
+Closes #417 and #418.
+
+- **#417 N9 GUI parity** — `SafetyCardModel` decodes nested `card` plus flat fallbacks; `SafetyPendingView` adds folder/code/network/remote filter chips with counts and diff/original/proposed previews. `AgentSSEClient` consumes `/v1/agents/{id}/execute/stream` with `thinking=0|1`, rendering `thinking_token` frames in a separate collapsible panel while answer tokens stream into the bubble. `RunArtifactsView` lists `run_artifact.list` summaries and opens `run_artifact.get` with version history, conversation, graph, and environment.
+- **#418 Mobile Cowork panel** — `CoworkMobileView` mirrors the mobile surface on macOS: live runs from `/api/mobile/overview`, approve/reject via `/api/permissions/pending/{id}/confirm`, pause/resume and `set_params`/`insert_node`/`skip_remaining` directives via `/api/runs/{id}`, and artifact preview via `/api/runs/{id}/artifacts`. Auth uses `FUSION_COWORK_WEB_API_KEY` (Bearer + `x-api-key`).
+- **Tests** — 11 new unit tests for SSE frame parsing, safety card decoding, and mobile overview decoding; full unit suite 371 passing.
 
 ### v0.1.64 — ARCH-1 DocBridge + MultiNode split + mTLS + cluster hardening (2026-09-07)
 

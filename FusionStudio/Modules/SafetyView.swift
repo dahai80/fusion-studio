@@ -274,33 +274,90 @@ struct SafetyEvaluateView: View {
 }
 struct SafetyPendingView: View {
     @EnvironmentObject var bridge: AgentBridge
+    @State private var cardFilter: String = "all"
 
     private let logger = Logger(subsystem: "com.fusion.studio", category: "SafetyPendingView")
+    private let cardTypes = ["all", "folder", "code", "network", "remote"]
+
+    private var filteredActions: [SafetyActionModel] {
+        guard cardFilter != "all" else { return bridge.moduleState.safetyPendingActions }
+        return bridge.moduleState.safetyPendingActions.filter { $0.cardType == cardFilter }
+    }
 
     var body: some View {
-        Group {
-            if bridge.moduleState.safetyPendingActions.isEmpty {
-                VStack(spacing: 8) {
-                    Image(systemName: "checkmark.shield")
-                        .font(.system(size: 48))
-                        .foregroundColor(.green)
-                    Text("No pending actions")
-                        .foregroundColor(.secondary)
-                    Button("Refresh") {
-                        Task { await loadPending() }
+        VStack(spacing: 0) {
+            cardFilterBar
+            Rectangle().fill(Color.secondary.opacity(0.2)).frame(height: 1)
+            Group {
+                if bridge.moduleState.safetyPendingActions.isEmpty {
+                    VStack(spacing: 8) {
+                        Image(systemName: "checkmark.shield")
+                            .font(.system(size: 48))
+                            .foregroundColor(.green)
+                        Text("No pending actions")
+                            .foregroundColor(.secondary)
+                        Button("Refresh") {
+                            Task { await loadPending() }
+                        }
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if filteredActions.isEmpty {
+                    Text("No actions in this card class")
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    List(filteredActions) { action in
+                        SafetyActionRow(action: action)
+                    }
+                    .listStyle(.inset)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                List(bridge.moduleState.safetyPendingActions) { action in
-                    SafetyActionRow(action: action)
-                }
-                .listStyle(.inset)
             }
         }
         .onAppear {
             Task { await loadPending() }
         }
+    }
+
+    private var cardFilterBar: some View {
+        HStack(spacing: 8) {
+            ForEach(cardTypes, id: \.self) { type in
+                let count = type == "all"
+                    ? bridge.moduleState.safetyPendingActions.count
+                    : bridge.moduleState.safetyPendingActions.filter { $0.cardType == type }.count
+                Button {
+                    cardFilter = type
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: SafetyActionRow.iconForCard(type))
+                            .font(.caption2)
+                        Text(type.capitalized)
+                            .font(.caption)
+                        Text("\(count)")
+                            .font(.caption2)
+                            .padding(.horizontal, 4)
+                            .background(Capsule().fill(Color.secondary.opacity(0.15)))
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(cardFilter == type ? SafetyActionRow.colorForCard(type).opacity(0.18) : Color.clear)
+                    )
+                    .foregroundColor(cardFilter == type ? SafetyActionRow.colorForCard(type) : .secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            Spacer()
+            Button {
+                Task { await loadPending() }
+            } label: {
+                Image(systemName: "arrow.clockwise")
+            }
+            .buttonStyle(.plain)
+            .help("Refresh")
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
     }
 
     private func loadPending() async {
@@ -319,6 +376,30 @@ struct SafetyActionRow: View {
     @State private var showPreview: Bool = false
 
     private let logger = Logger(subsystem: "com.fusion.studio", category: "SafetyActionRow")
+
+    static func colorForCard(_ type: String) -> Color {
+        switch type {
+        case "folder": return .blue
+        case "code": return .purple
+        case "network": return .orange
+        case "remote": return .teal
+        default: return .secondary
+        }
+    }
+
+    static func iconForCard(_ type: String) -> String {
+        switch type {
+        case "folder": return "folder"
+        case "code": return "chevron.left.forwardslash.chevron.right"
+        case "network": return "network"
+        case "remote": return "antenna.radiowaves.left.and.right"
+        default: return "shield"
+        }
+    }
+
+    private var hasPreview: Bool {
+        !action.diff.isEmpty || !action.content.isEmpty
+    }
 
     var statusIcon: String {
         switch action.status {
@@ -355,6 +436,23 @@ struct SafetyActionRow: View {
                             .background(statusColor.opacity(0.2))
                             .foregroundColor(statusColor)
                             .cornerRadius(3)
+                        Text(action.cardType.uppercased())
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 2)
+                            .background(Self.colorForCard(action.cardType).opacity(0.15))
+                            .foregroundColor(Self.colorForCard(action.cardType))
+                            .cornerRadius(3)
+                        if !action.level.isEmpty {
+                            Text(action.level)
+                                .font(.caption2)
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 2)
+                                .background(Color.secondary.opacity(0.12))
+                                .foregroundColor(.secondary)
+                                .cornerRadius(3)
+                        }
                         if action.category == "file_write" || action.category == "shell_exec" {
                             Text("GATEWAY")
                                 .font(.caption2)
@@ -379,7 +477,7 @@ struct SafetyActionRow: View {
                 Spacer()
                 if action.status == "pending" {
                     HStack(spacing: 4) {
-                        if !action.content.isEmpty {
+                        if hasPreview {
                             Button {
                                 withAnimation(.easeInOut(duration: 0.2)) { showPreview.toggle() }
                             } label: {
@@ -404,21 +502,55 @@ struct SafetyActionRow: View {
                     .disabled(isActing)
                 }
             }
-            if showPreview && !action.content.isEmpty {
-                ScrollView {
-                    Text(action.content)
-                        .font(.system(.caption, design: .monospaced))
-                        .foregroundColor(.primary)
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(8)
+            if showPreview && hasPreview {
+                VStack(alignment: .leading, spacing: 4) {
+                    if !action.diff.isEmpty {
+                        Text("Diff")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                        ScrollView {
+                            Text(action.diff)
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundColor(.primary)
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(8)
+                        }
+                        .frame(maxHeight: 160)
+                        .background(Color(nsColor: .textBackgroundColor))
+                        .cornerRadius(6)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6).stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                        )
+                    }
+                    if !action.content.isEmpty {
+                        Text(action.content)
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundColor(.secondary)
+                            .textSelection(.enabled)
+                            .lineLimit(6)
+                    }
+                    if !action.original.isEmpty || !action.proposed.isEmpty {
+                        HStack(alignment: .top, spacing: 8) {
+                            if !action.original.isEmpty {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Original").font(.caption2).foregroundColor(.secondary)
+                                    Text(action.original)
+                                        .font(.system(.caption2, design: .monospaced))
+                                        .lineLimit(4)
+                                }
+                            }
+                            if !action.proposed.isEmpty {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Proposed").font(.caption2).foregroundColor(.secondary)
+                                    Text(action.proposed)
+                                        .font(.system(.caption2, design: .monospaced))
+                                        .lineLimit(4)
+                                }
+                            }
+                        }
+                    }
                 }
-                .frame(maxHeight: 120)
-                .background(Color(nsColor: .textBackgroundColor))
-                .cornerRadius(6)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6).stroke(Color.secondary.opacity(0.3), lineWidth: 1)
-                )
             }
         }
         .padding(.vertical, 4)

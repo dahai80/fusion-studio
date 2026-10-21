@@ -69,6 +69,7 @@ struct ArtifactsRepositoryView: View {
     @State private var page = 1
     @State private var totalPages = 1
     @State private var showCanvas = false
+    @State private var showRunArtifacts = false
 
     private let typeFilters = ["all", "code", "doc", "visualization", "data", "html", "markdown"]
 
@@ -80,10 +81,14 @@ struct ArtifactsRepositoryView: View {
             filterBar
             Rectangle().fill(theme.separator).frame(height: 1)
 
-            HStack(spacing: 0) {
-                folderSidebar
-                Rectangle().fill(theme.separator).frame(width: 1)
-                mainContent
+            if showRunArtifacts {
+                RunArtifactsView()
+            } else {
+                HStack(spacing: 0) {
+                    folderSidebar
+                    Rectangle().fill(theme.separator).frame(width: 1)
+                    mainContent
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -120,6 +125,16 @@ struct ArtifactsRepositoryView: View {
             .overlay(RoundedRectangle(cornerRadius: theme.cornerRadiusSmall).stroke(theme.inputBorder, lineWidth: 1))
 
             scopePicker
+
+            Button {
+                showRunArtifacts.toggle()
+            } label: {
+                Image(systemName: showRunArtifacts ? "shippingbox.fill" : "shippingbox")
+                    .font(.system(size: theme.iconS))
+                    .foregroundStyle(showRunArtifacts ? theme.accent : theme.textTertiary)
+            }
+            .buttonStyle(.plain)
+            .help("Run artifacts")
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: theme.spacingXS) {
