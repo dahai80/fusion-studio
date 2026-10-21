@@ -2,112 +2,156 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Build & Run Commands
+## Repository Context
+
+`fusion-studio/` is its own git repository living inside the `/Users/dahai/fusion` monorepo
+(which has no root `.git`). Commit, branch, and PR only in this repo. Never modify sibling
+`fusion-*` projects from here: when the problem is upstream (IPC method missing, RPC schema
+drift, backend bug), file an issue in that project first, then a PR there, then consume the fix.
+`docs/upstream-issues.md` tracks the currently open upstream items.
+
+There are no local Rust/Python daemons in this repo anymore. `Services/` was deleted (#296/#298);
+everything under `env.*`, `hardware.metrics`, `memory.*`, `safety.*`, `mlx.*` is served by the
+central router `daemon_server.py` (fusion-agent-studio) over a Unix Domain Socket.
+
+## Build, Run, Test
 
 ```bash
-# Build (debug)
+# Debug build (SPM is canonical; FusionStudio.xcodeproj is secondary)
 swift build -c debug
 
-# Build (release)
+# Release build
 swift build -c release
 
-# Run all tests
+# All tests (XCTest; two targets: UnitTests, IntegrationTests)
 swift test
 
-# Full build pipeline (SPM build + app packaging; 无本地 Rust 后台服务, 见 #296)
-./Scripts/build.sh              # default: release
-./Scripts/build.sh debug        # debug build
-./Scripts/build.sh package      # package .app bundle
-./Scripts/build.sh sign         # code sign + notarize
-./Scripts/build.sh dmg          # create DMG
+# Single test class / case
+swift test --filter IPCClientTests
+swift test --filter IPCClientTests/testInitialState
 
-# Start all backend services
-./Scripts/start.sh
+# Run the debug binary in a loop (kills old process, relaunches)
+./Scripts/dev.sh
 
-# 无本地 Rust 后台服务 (env-daemon 已删除, env.* 由中央路由 daemon_server.py 实现)
+# Package pipeline (each stage is also callable alone)
+./Scripts/build.sh app        # SPM release build + copy Info.plist
+./Scripts/build.sh package    # app + Python runtime into .app bundle
+./Scripts/build.sh sign
+./Scripts/build.sh dmg
+./Scripts/build.sh all        # app + package + sign + dmg
+
+# Start/stop all upstream services (delegates to fusion-supervisor)
+./Scripts/start.sh start|stop|restart|status [--no-app]
 ```
 
-### 本地 0 测试 = toolchain drift, 非回归
+Build is pinned to `VERSION` near the top of `Scripts/build.sh` (currently `0.1.64`); bump it
+before cutting a release, then tag `vX.Y.Z` (signed builds) or `vX.Y.Z-beta` when the signing
+secrets are absent.
 
-本地 `swift test` 返回 **0 tests** —— 这不是测试丢失/回归，是 toolchain drift：
-本地 Swift 6.3.3 / macOS 26 / Testing Library 1902 **不发现 XCTest** 用例（`swift test list` 能枚举 ~205 用例，但执行 = 0）。
-CI（GitHub Actions macOS-14 + Xcode 15.x）`set -o pipefail && swift test 2>&1` 是**权威 gate**（~204 用例，~13-18min cold build）。
-本地与 CI 同一 `swift test` 命令，仅 toolchain 不同；无本地 flag 可恢复发现。判定测试绿否，以 CI 为准。
+### Local `swift test` returns 0 tests — toolchain drift, not regression
 
+On the local machine (Swift 6.3.3 / macOS 26 / Testing Library 1902) `swift test` discovers
+~205 XCTest cases via `swift test list` but executes zero. This is toolchain drift, not lost
+tests. CI (GitHub Actions `macos-14` + Xcode 15.x, `.github/workflows/ci.yml`) is the
+authoritative gate. Do not code around local zero-test output; verify via CI and `swift test list`.
+
+CI runs three jobs: `swift-build` (debug build + full test + release build), `lint` (build must
+succeed and warnings are inspected; treat Swift 6 concurrency warnings as blocking), and
+`security` (gitleaks over full history plus a plaintext-secret grep). `nightly.yml` repeats
+build + tests; `release.yml` builds, packages, signs, and publishes the DMG.
 
 ## Architecture
 
-Fusion Studio is a unified macOS native desktop client for the Fusion-MLX local AI ecosystem. It consolidates 25+ modules into a single SwiftUI app, running 100% offline on Apple Silicon.
+Five layers, top to bottom:
 
-### 5-Layer Stack
+1. **App layer** — SwiftUI (`FusionStudioApp.swift` is `@main`; 28 `@StateObject`s injected via
+   `.environmentObject()`).
+2. **Container layer** — module containers: native SwiftUI editors, WKWebView embeds (Design,
+   Security, Doc, Bench), Metal/simulation workbench views.
+3. **Bridge layer** — JSON-RPC 2.0 over UDS (`/tmp/fusion-studio.sock`) plus per-service HTTP REST
+   clients.
+4. **Service layer** — central router `daemon_server.py` in fusion-agent-studio, which forwards
+   to upstream daemons/services.
+5. **Base layer** — fusion-mlx (MLX/Metal inference) and the other fusion-* services.
 
-1. **App Layer** — SwiftUI main program (navigation, settings, health check, task manager)
-2. **Container Layer** — Module containers (WKWebView for Design, native editors for Code, Metal views for Simulation)
-3. **Bridge Layer** — JSON-RPC 2.0 over Unix Domain Socket (`/tmp/fusion-studio.sock`)
-4. **Service Layer** — 中央路由 daemon_server.py (Python, fusion-agent-studio): env.* · hardware.metrics · memory · safety · mlx.* 经此统一
-5. **Base Layer** — Apple Silicon native (MLX, Metal, ANE, VideoToolbox, PyBullet)
+### State and navigation
 
-### Key Patterns
+- `AppState` is split into four independently injected objects: `NavigationState`,
+  `UIPanelState`, `HealthState`, `ThemeState`; the `AppState` facade holds the same instances so
+  singletons stay consistent (F-A5). Consumers should grab the narrow object they need.
+- Navigation has three enums in `Common/AppState.swift`: `Module` (53 cases, includes sub-view
+  entries such as the plugin tabs), `ProductSheet` (19), `SidebarSection` (21).
+  `SectionContentView` switches on `activeSection`.
+- Layout is `IconRailView | FusionSidebarView (collapsible, ⌘\) | WorkspaceArea | InspectorPanel
+  (⇧⌘I)`. Theme via `StudioTheme` + `.studioThemed()`; dark-first.
+- App-level services also injected at the root include `IPCClient`, `AgentBridge`, `TaskManager`,
+  `ScreenContextManager`, `DesignBridge`, `StreamingBridge`, `ChatSessionStore`, `DeskBridge`,
+  `UpstreamServiceManager`, `MlxHTTPClient`, domain bridges (Science/Finance/Health/Simulation/
+  Trainer/Speech/Douyin/Guard), `TeamBridge`, `MultiNodeEngine`.
 
-- **State management**: `AppState` (ObservableObject) injected via `@EnvironmentObject` — the central hub for navigation (`Module`, `ProductSheet`, `SidebarSection` enums) and UI state
-- **IPC**: `IPCClient` handles all backend communication via JSON-RPC 2.0; methods are name-spaced `service.method` (e.g., `env.health_check`, `mlx.start`, `model.list`)
-- **Module routing**: `Module` enum (64 cases) → `ProductSheet` (20 cases) → `SidebarSection` (22 sections). `SectionContentView` switches on `activeSection`
-- **Layout**: 4-column HStack — IconRailView | FusionSidebarView | WorkspaceArea | InspectorPanel
-- **Theme**: `StudioTheme` with dark-first design, accent `#007AFF`, `.ultraThinMaterial` vibrancy. Applied via `.studioThemed()` modifier
-- **Zero external Swift dependencies** — Package.swift has no dependencies; everything is self-contained
+### IPC and transport
 
-### Source Layout
+- `IPCClient.call(method:params:) async throws -> [String: Any]` is the single JSON-RPC entry.
+  Methods are name-spaced `service.method` and must be referenced through `Bridge/RPCMethod.swift`
+  (200+ constants) — do not reintroduce string literals at call sites (F-I3). Compile-time
+  constants and the runtime `rpc.discover` check (F-A16) are complementary.
+- `IPCClient` handles timeouts, retry/backoff, circuit breaking, error sanitization
+  (`BridgeError.sanitize`), and REST fallbacks. Reuse those helpers instead of raw `URLSession`.
+- Major method families live in partials: `IPCAgentMethods`, `IPCArtifactsMethods`,
+  `IPCProjectCoworkMethods`, `IPCExtendedMethods`, `IPCTrainerMethods`,
+  `IPCConvenienceMethods`, `IPCErrorAndREST`, `DocBridge*` domain files.
+- Not everything is JSON-RPC. These bypass the central router and speak HTTP/REST directly:
+  `model.*` (fusion-mlx `/admin/api/models`), `sim.*` (fusion-simulation `:11455/api/*`),
+  FSB, science, finance, health, and MLX inference. Cowork `desk.*` uses its own
+  `/tmp/fusion-cowork.sock` (the central router does not forward `desk.*`).
+- Streaming paths: `ChatSessionStore` (chat/SSE, 1.4k lines), `StreamingBridge`,
+  `TeamEventStream` (team events with replay/catch-up), `EventBridge`, `ScienceSSEClient`.
 
-```
-FusionStudio/
-├── FusionStudioApp.swift    # @main entry, creates 27 @StateObject, injects via .environmentObject()
-├── ContentView.swift        # 4-column layout root
-├── Common/                  # AppState, FusionConfig, I18nService, PluginService, SecurityService, CollaborationService
-├── Bridge/                  # IPCClient (JSON-RPC 2.0 client), FusionCoderBridge
-├── System/                  # AgentBridge (1736 lines, agent orchestration), AgentBridgeDomains, SandboxManager, ScreenContext, FileWatcher
-├── Navigation/              # FusionSidebarView, IconRailView, InspectorPanel, ChatsPanel, ProjectsPanel, ArtifactsPanel
-├── Modules/                 # module view entries (subdirs + root files); largest single file: AgentBridge 1736 lines (System/)
-├── Components/              # Reusable UI: FusionButton, FusionCard, FusionProgressRing, FusionTabBar, FusionTag, FusionToast, WorkflowCanvasView<Delegate> (generic drag-canvas, PR#410; superseded DAG/)
-├── Theme/                   # StudioTheme (dark/light themes)
-├── Settings/                # SettingsView
-├── Environment/             # EnvironmentHealthCard
-├── TaskManager/             # TaskQueueView, HardwareMonitorView
-└── Resources/               # AppIcon PNGs, Entitlements.plist
+### Configuration and routing
 
-Services/                    # 空 (env-daemon/mlx-daemon 已删除, 见 #296)
-                             # env.* · hardware.metrics 由中央路由 daemon_server.py 实现
-                             # IPCClient 走 /tmp/fusion-studio.sock UDS 到该路由
-```
+- `Common/FusionConfig.swift` is the single config surface. Per-service hosts/ports are
+  `@AppStorage` keys so users can override them in Settings; add new service endpoints there,
+  never inline.
+- `mlxBaseURL` priority: user endpoint override (`mlxEndpointOverrideEnabled`) >
+  `FUSION_GATEWAY_URL` / `FUSION_MLX_URL` > `FUSION_MLX_PORT` > default `mlxHost:mlxPort`
+  (`127.0.0.1:11434`). Keep the default as literal IPv4 `127.0.0.1`; `localhost` can resolve to
+  OrbStack/Docker on `::1` and hijack port 11434.
+- `mlxResolvedApiKey` priority: Settings value > `FUSION_MLX_API_KEY` env > nested
+  `auth.api_key` in `~/.fusion-mlx/settings.json`.
+- Gateway is `:11432`; direct fusion-mlx is `:11434`. Prefer the gateway where a path supports it,
+  but MLX inference from Studio is currently direct unless the user pins an override.
 
-### Environment Objects (injected at app root)
+### I18n
 
-| Object | Role |
-|--------|------|
-| `AppState` | Navigation, UI state, health status |
-| `IPCClient` | JSON-RPC backend communication |
-| `AgentBridge` | Agent orchestration, KV ops, task routing |
-| `TaskManager` | Background task queue |
-| `SandboxManager` | Security sandboxing |
-| `ScreenContextManager` | System-level awareness (FSEvents, Accessibility) |
-| `MultiNodeEngine` | Cluster/multi-node coordination |
-
-### IPC API Namespaces (JSON-RPC 2.0 over UDS)
-
-- `env.*` — health_check, repair, repair_all
-- `mlx.*` — start, stop, restart, status, health, set_model
-- `design.*` — generate, export_code
-- `task.*` — submit, status
-- `ping` — health check
-
-> 注: `model.*` (list/pull/del) 与 `sim.*` (run/stop/status) 走 **HTTP REST**, 非 JSON-RPC。
-> `model.*` → ModelHubAPIClient 经 fusion-mlx `/admin/api/models`; `sim.*` → SimulationBridge 经 fusion-sim `:11455/api/*`。
+`I18nService` loads four balanced JSON dictionaries from `Resources/i18n/` (`en-US`, `zh-CN`,
+`ja-JP`, `ko-KR`) via `Bundle.module` (fallbacks to `Bundle.main` for the test runner). New UI
+strings go through `t(...)`; keep all four files in sync. Chinese strings appear in some
+`Module`/`ProductSheet` raw values and labels because they are persisted/stable identifiers.
 
 ## Conventions
 
-- Swift tools version 5.9, macOS 14+ target
-- Indentation: multiples of 4 spaces
-- Logging: use `os.log` with `Logger(subsystem: "com.fusion.studio", category: "...")`
-- Large monolithic views are the norm (AgentBridge 1736 lines; AgentStudioView refactored to 8.9K via ARCH-1 facade split) — follow existing pattern when adding features
-- Module views live in `FusionStudio/Modules/` as single files or subdirectories
-- Chinese UI strings are used in Module enum rawValues and some labels
-- Backend services: 无本地守护进程 (Services/ 空, 见 #296); env.* · hardware.metrics 等由中央路由 daemon_server.py (fusion-agent-studio) 经 UDS 提供
+- Swift tools 5.9, macOS 14+, zero external Swift package dependencies (`Package.swift` has an
+  empty dependency list). Do not add SPM dependencies.
+- Indentation is multiples of 4 spaces. No docstrings. Include logging for new code paths.
+- Logging uses `os.log` with `Logger(subsystem: "com.fusion.studio", category: "...")`.
+- UI-facing state is `@MainActor`; long file I/O must stay off the main actor
+  (`nonisolated`/detached). Recent history shows Swift 6 concurrency warnings breaking CI —
+  keep `@MainActor` annotations explicit on views and observable services.
+- Secrets (API keys, tokens) go to Keychain via the existing security helpers; non-secret
+  preferences use `UserDefaults`/`@AppStorage`.
+- Comments in this repo routinely cite audit IDs or issue numbers (`审计0907 P1-8`, `F-A15`,
+  `#382`). Preserve and follow that style when making non-obvious changes.
+- Large monolithic views are the norm; several have already been split into "facade + domain
+  service" files (`AgentBridge`, `DesignBridge`, `DocBridge`). Follow the facade-delegate pattern
+  when a bridge grows past ~1,000 lines instead of adding another 100-line method to the original.
+- Tests are XCTest, not Swift Testing. `MockIPCClient` exists for bridge tests.
+
+## Further Reading
+
+- `README.md` / `README_CN.md` — product overview, module matrix, roadmap (English is canonical;
+  README changes must be English-only, Chinese goes in README_CN).
+- `docs/api.md` — JSON-RPC envelope, error codes, method reference.
+- `docs/upstream-http-endpoints.md` and `docs/studio-integration.md` — per-service coverage map and
+  which GUI surfaces are still shells.
+- `docs/upstream-issues.md` — open upstream blockers and their owning repos.
+- `.github/workflows/` — the authoritative build/test/lint/security gates.
