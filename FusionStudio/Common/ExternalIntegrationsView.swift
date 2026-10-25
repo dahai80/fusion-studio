@@ -4,6 +4,9 @@
 // User instruction: "帮我用 UI/UX Pro Max 重新设计 fusion-studio 的整体 GUI - macOS 原生风格 - 三栏 - 暗色模式优先 - 主色 #007AFF"
 
 import SwiftUI
+import os.log
+
+private let extIntegrationsLog = Logger(subsystem: "com.fusion.studio", category: "ExternalIntegrations")
 
 // MARK: - 外部服务类型
 
@@ -122,9 +125,31 @@ class ExternalIntegrationManager: ObservableObject {
         }
     }
 
+    // #419: 旧实现 sleep 1.5s 假装成功。改为真实探活: GET url (带 Bearer token),
+    //   收到任意 HTTP 响应 = 服务可达; 网络错误/超时 = 失败。
     func testConnection(_ id: String) async -> Bool {
-        try? await Task.sleep(nanoseconds: 1_500_000_000)
-        return true
+        guard let idx = connections.firstIndex(where: { $0.id == id }) else { return false }
+        let conn = connections[idx]
+        guard let url = URL(string: conn.url), let scheme = url.scheme?.lowercased(),
+              scheme == "http" || scheme == "https" else {
+            extIntegrationsLog.error("testConnection: invalid url conn=\(conn.name, privacy: .public)")
+            return false
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 10
+        if !conn.token.isEmpty {
+            request.setValue("Bearer \(conn.token)", forHTTPHeaderField: "Authorization")
+        }
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+            extIntegrationsLog.info("testConnection: conn=\(conn.name, privacy: .public) status=\(status)")
+            return status > 0
+        } catch {
+            extIntegrationsLog.error("testConnection failed conn=\(conn.name, privacy: .public): \(error.localizedDescription)")
+            return false
+        }
     }
 }
 
@@ -259,6 +284,7 @@ struct ServiceDetailView: View {
     let connection: ServiceConnection
     @StateObject private var manager = ExternalIntegrationManager.shared
     @State private var isTesting = false
+    @State private var testResult: Bool? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -291,14 +317,19 @@ struct ServiceDetailView: View {
                 }
                 Button("测试连接") {
                     isTesting = true
+                    testResult = nil
                     Task {
-                        _ = await manager.testConnection(connection.id)
+                        testResult = await manager.testConnection(connection.id)
                         isTesting = false
                     }
                 }
                 .buttonStyle(.bordered)
                 .disabled(isTesting)
                 if isTesting { ProgressView().controlSize(.small) }
+                if let ok = testResult {
+                    Image(systemName: ok ? "checkmark.circle.fill" : "xmark.circle.fill")
+                        .foregroundColor(ok ? .green : .red)
+                }
             }
         }
         .padding()

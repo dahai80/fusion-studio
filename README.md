@@ -71,7 +71,7 @@ Design · Code · Simulation · MultiModal · Training · Data · Agent · KB ·
 | 7 | 🧠 **Training** | `brain` | ✅ Stable | LoRA/QLoRA fine-tuning, monitoring, checkpoints, model export |
 | 8 | ⌨️ **CLI** | `terminal` | ✅ Stable | GUI CLI panel, 18 preset commands, execution history |
 | 9 | 📄 **Doc** | `doc.text` | ✅ Stable | AI-First Document OS, 12 tabs (editor/graph/versions/office/workflow/template/search/comments/favorites/files/rag/activity), 102 routes, 90+ API methods (auth/workspace/users/pages/books/chapters/tags/graph/workflow/template/office/copilot/rag/search/comment/favorite/activity/file/branding/theme/vocabulary/webhook/metadata/system/export/notification/ai/collab), 7 copilot modes, WebSocket collab client |
-| 10 | 📚 **KB** | `books.vertical` | ✅ Stable | Knowledge base, RAG retrieval, document indexing |
+| 10 | 📚 **KB** | `books.vertical` | ✅ Stable | Knowledge base via real IPC surfaces: RAG module (`RAGMainView`, 8 sections, REST :11436), Agent KB (`AIAgentKnowledgeBaseView`, project CRUD over JSON-RPC), CoWork space KB (`SpaceKnowledgePanel`, bind/search/upload). Legacy sample-data `KBView` deleted (#419) |
 | 11 | 📊 **Bench** | `chart.bar` | ✅ Stable | Speed/memory/context/quality benchmarks |
 | 12 | 🧹 **Desk** | `desktopcomputer` | ✅ Stable | Desktop automation, 6 preset templates |
 | 13 | 📈 **Data Tools** | `tablecells` | ✅ Stable | CSV import/export, statistics, charts, SQL queries |
@@ -196,7 +196,7 @@ Fusion Studio integrates with [fusion-smallbusiness](https://github.com/dahai80/
 |------|------|-------------|
 | Workspace Manager | `FSBWorkspaceView` | CRUD + duplicate/export/import, template gallery, variable editor |
 | Workbench | `FSBWorkbenchView` | 3-panel (connectors/skills/templates + workflow grid + approval/tasks), workflow editor, connector auth |
-| Workflow Canvas | `FSBWorkflowCanvasView` | Visual DAG editor with 7 node types, edge wiring, config panels, test run, approval flow |
+| Workflow Canvas | `FSBWorkflowCanvasView` | Visual DAG editor with 7 node types, edge wiring, config panels, approval flow (fake test-run removed, #419; real execution via `fsbExecuteWorkflow`) |
 | Dialogs | `FSBDialogs` | Connector auth, skill test, approval approve/deny/edit, workflow import, schedule, variable, template CRUD |
 
 **Backend API Coverage** (57 methods via `IPCClient`):

@@ -82,8 +82,6 @@ final class AgentWorkflowCanvasDelegate: ObservableObject, WorkflowCanvasDelegat
         switch kind {
         case .autoLayout: return I18nManager.shared.t(.wf_cv_autoLayout)
         case .saveLayout: return I18nManager.shared.t(.wf_cv_saveLayout)
-        case .testRun: return I18nManager.shared.t(.wf_cv_testRun)
-        case .running: return I18nManager.shared.t(.wf_cv_running)
         case .saving: return I18nManager.shared.t(.wf_cv_saving)
         case .save: return I18nManager.shared.t(.save)
         case .close: return I18nManager.shared.t(.close)

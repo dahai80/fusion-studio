@@ -15,7 +15,7 @@
 | 5 | fusion-model-hub | 模型仓库(REST API) | HTTP(多端口) | ModelHubView | 纯静态UI | 🔴 外壳 |
 | 6 | fusion-cli | 统一CLI(Rust) | CLI进程 | CLIView | 纯静态UI(18个预设按钮) | 🔴 外壳 |
 | 7 | fusion-doc | 智能文档(20+ API) | HTTP(11435) | DocView | 纯静态UI | 🔴 外壳 |
-| 8 | fusion-kb | 向量知识库(LanceDB) | HTTP(11436) | KBView | 纯静态UI | 🔴 外壳 |
+| 8 | fusion-kb | 向量知识库(LanceDB) | HTTP(11436) | ~~KBView~~ deleted (#419 dead code; real KB = RAGMainView / AIAgentKnowledgeBaseView) | - | ✅ 由 RAG 模块承接 |
 | 9 | fusion-bench | 模型测评(REST+Web) | HTTP+Next.js | BenchView | WKWebView嵌入bench站 | 🟡 部分 |
 | 10 | fusion-cowork | 桌面自动化(15 MCP工具) | CLI+MCP | DeskView | 纯静态UI(模板列表) | 🔴 外壳 |
 | 11 | fusion-agent-studio | Agent编排(图编辑/调试/市场) | UDS JSON-RPC | AgentStudioView | 调用agent/graph/marketplace全套 | 🟢 已接 |
@@ -53,7 +53,7 @@
 | **ModelHubView.swift** | .modelHub | 模型列表(硬编码名称/大小/量化)、下载进度假数据 | REST API: `/api/v1/models` CRUD, `/api/v1/versions` 生命周期, `/api/v1/quantize`, HuggingFace导入, RBAC, Webhooks, 部署灰度 |
 | **CLIView.swift** | .cli | 18个命令预设按钮(纯文本) | Rust二进制: `fusion model list/pull`, `fusion kb query`, `fusion bench speed`, `fusion desk run` 等全部CLI |
 | **DocView.swift** | .doc | 文档分类列表(硬编码标题/标签) | HTTP(11435): 20+ API — workspaces/books/chapters/pages/versions/links/tags/search/graph/ai/chat/ai/embeddings/rag/index/rag/query/export |
-| **KBView.swift** | .kb | 知识库条目列表(硬编码标题/相关度) | HTTP(11436): `/kb/bases` CRUD, `/documents` 上传, `/scan` 扫描, `/search` 向量搜索, `/ask` RAG问答 |
+| **KBView.swift** | ~~.kb~~ | 已删除 (#419: 硬编码样例数据, 零调用方); 真实 KB 走 RAGMainView (RAG 模块) / AIAgentKnowledgeBaseView / SpaceKnowledgePanel | - |
 | **DeskView.swift** | .desk | 自动化模板列表(10个硬编码模板) | CLI: `fusion-cowork template list/run`, `ai generate`, MCP Server 15个工具, DAG工作流引擎 |
 | **TrainingView.swift** | .training | 训练参数表单(LoRA/QLoRA选项) | CLI: `fusion-trainer sft/rlsl`, `dataset import/list/info`, SFT全参数+RLSL/DPO/ORPO |
 | **DataToolsView.swift** | .dataTools | 数据集列表+图表类型选择 | 无专属上游，应接fusion-artifacts-engine的data类型产物 |
@@ -265,7 +265,7 @@
 | **P0** | ✅ 部分完成（#18）：RAG/Safety/Memory/Planner 已作为 AgentStudioView tabs 落地；MLXOpt/Deploy/Operations/License/Industry 仍待独立路由 | - | 4 个后端能力已激活 |
 | **P1** | ArtifactsPanel补全(增加create/update/inject/safety/export) | 2天 | 产物管理闭环 |
 | **P1** | ModelHubView接入fusion-model-hub REST API | 3天 | 模型管理从假数据变真实 |
-| **P1** | KBView接入fusion-kb HTTP API | 2天 | 知识库从假数据变真实 |
+| **P1** | ~~KBView接入fusion-kb HTTP API~~ 已关闭: KBView 删除 (#419), KB 由 RAG 模块承接 | - | - |
 | **P2** | DocView接入fusion-doc HTTP API | 3天 | 文档编辑/协作/RAG可用 |
 | **P2** | DeskView接入fusion-cowork MCP/CLI | 3天 | 自动化模板真实执行 |
 | **P2** | SimulationView接入fusion-simulation CLI | 3天 | 仿真训练真实可用 |

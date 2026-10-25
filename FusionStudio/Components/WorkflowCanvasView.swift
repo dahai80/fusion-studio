@@ -30,7 +30,7 @@ struct CanvasEdge: Identifiable {
 }
 
 enum CanvasToolbarLabel: String, CaseIterable {
-    case autoLayout, saveLayout, testRun, save, running, saving
+    case autoLayout, saveLayout, save, saving
     case nodeTypes, hintDrag, hintRightClick, hintConnect
     case nodeName, deleteNode, inspectorReadOnly, inspectorEdit, wfName
     case addNode, close
@@ -41,7 +41,6 @@ protocol WorkflowCanvasDelegate: AnyObject, ObservableObject {
     associatedtype NodeType: Hashable, CaseIterable, RawRepresentable where NodeType.RawValue == String
 
     var canvasNodeTypes: [NodeType] { get }
-    var supportsTestRun: Bool { get }
     func displayName(_ t: NodeType) -> String
     func icon(_ t: NodeType) -> String
     func color(_ t: NodeType) -> Color
@@ -57,9 +56,8 @@ protocol WorkflowCanvasDelegate: AnyObject, ObservableObject {
     func persistLayout(_ layout: [String: CGPoint]) async
 }
 
-extension WorkflowCanvasDelegate {
-    var supportsTestRun: Bool { false }
-}
+// #419: the fake test-run simulation (Task.sleep walk, no real execute RPC) is removed.
+//   When a real canvas test-run lands (tracked issue), add a delegate execute hook — not a sleeping fake.
 
 private let canvasLog = Logger(subsystem: "com.fusion.studio", category: "WorkflowCanvas")
 
@@ -85,9 +83,6 @@ struct WorkflowCanvasView<Delegate: WorkflowCanvasDelegate>: View where Delegate
     @State private var inspectorReadOnly = true
     @State private var layoutSaveTask: Task<Void, Never>? = nil
     @State private var lastSavedPositions: [String: CGPoint] = [:]
-    @State private var isRunning = false
-    @State private var runningNodeId: String? = nil
-
     @Environment(\.studioTheme) private var theme
 
     private let nodeWidth: CGFloat = 180
@@ -141,16 +136,6 @@ struct WorkflowCanvasView<Delegate: WorkflowCanvasDelegate>: View where Delegate
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 .disabled(nodes.isEmpty)
-
-                if delegate.supportsTestRun {
-                    Button(action: { Task { await runTest() } }) {
-                        Label(isRunning ? delegate.toolbarLabel(.running) : delegate.toolbarLabel(.testRun), systemImage: isRunning ? "stop" : "play")
-                            .font(.system(size: theme.captionSize))
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .disabled(isRunning || nodes.isEmpty)
-                }
 
                 Button(action: { Task { await saveGraph() } }) {
                     Label(isSaving ? delegate.toolbarLabel(.saving) : delegate.toolbarLabel(.save), systemImage: "square.and.arrow.down")
@@ -350,17 +335,16 @@ struct WorkflowCanvasView<Delegate: WorkflowCanvasDelegate>: View where Delegate
     private func nodeCard(node: CanvasNode<Delegate.NodeType>) -> some View {
         let isSelected = selectedNodeId == node.id
         let isHovered = hoveredNodeId == node.id
-        let isRunningNode = runningNodeId == node.id
 
         HStack(spacing: theme.spacingS) {
             outputPort(node: node)
             Image(systemName: delegate.icon(node.type))
                 .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(isRunningNode ? Color.white : delegate.color(node.type))
+                .foregroundStyle(delegate.color(node.type))
                 .frame(width: 24, height: 24)
                 .background(
                     Circle()
-                        .fill(isRunningNode ? delegate.color(node.type) : delegate.color(node.type).opacity(0.15))
+                        .fill(delegate.color(node.type).opacity(0.15))
                 )
             VStack(alignment: .leading, spacing: 2) {
                 Text(node.label)
@@ -682,21 +666,6 @@ struct WorkflowCanvasView<Delegate: WorkflowCanvasDelegate>: View where Delegate
             }
         }
         return result.isEmpty ? nodes : result
-    }
-
-    private func runTest() async {
-        guard !isRunning else { return }
-        let sorted = topologicalSort()
-        isRunning = true
-        canvasLog.info("runTest: simulating \(sorted.count) nodes")
-        for node in sorted {
-            runningNodeId = node.id
-            try? await Task.sleep(nanoseconds: 800_000_000)
-            if Task.isCancelled { break }
-        }
-        runningNodeId = nil
-        isRunning = false
-        canvasLog.info("runTest: simulation complete")
     }
 
     // MARK: - Data
