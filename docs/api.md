@@ -155,7 +155,7 @@ Get current hardware metrics: memory, CPU, GPU, MLX.
 | 7 | Training | Core | `Modules/TrainingView.swift` |
 | 8 | CLI | Core | `Modules/CLI/CLIView.swift` |
 | 9 | Doc | Core | `Modules/Doc/DocView.swift` |
-| 10 | KB | Service | `Modules/KB/KBView.swift` |
+| 10 | KB | Service | ~~`Modules/KB/KBView.swift`~~ deleted (#419, dead code; real KB = RAGMainView / AIAgentKnowledgeBaseView) |
 | 11 | Bench | Core | `Modules/Bench/BenchView.swift` |
 | 12 | Desk | Core | `Modules/Desk/DeskView.swift` |
 | 13 | Data Tools | Core | `Modules/DataToolsView.swift` |

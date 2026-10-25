@@ -79,9 +79,8 @@ final class FSBWorkflowCanvasDelegate: ObservableObject, WorkflowCanvasDelegate 
     }
 
     var canvasNodeTypes: [FSBNodeType] { FSBNodeType.allCases }
-    // 审计0907 P1-2: 旧 supportsTestRun=true 但 runTest() 仅 sleep 假模拟 (无真实执行 RPC), 误导用户以为真跑。
-    //   FSB 后端无 test-run RPC → 关闭假按钮, 避免用户被假绿误导。真实执行走 fsbExecuteWorkflow (独立入口)。
-    var supportsTestRun: Bool { false }
+    // 审计0907 P1-2 + #419: canvas 假 test-run (sleep 模拟) 已整体删除 (无 test-run 需求)。
+    //   真实执行走 fsbExecuteWorkflow (独立入口)。
     func displayName(_ t: FSBNodeType) -> String { t.displayName }
     func icon(_ t: FSBNodeType) -> String { t.icon }
     func color(_ t: FSBNodeType) -> Color { t.color }
@@ -93,8 +92,6 @@ final class FSBWorkflowCanvasDelegate: ObservableObject, WorkflowCanvasDelegate 
         switch kind {
         case .autoLayout: return I18nManager.shared.t(.fsb_cv_autoLayout)
         case .saveLayout: return I18nManager.shared.t(.fsb_cv_saveLayout)
-        case .testRun: return I18nManager.shared.t(.fsb_cv_testRun)
-        case .running: return I18nManager.shared.t(.fsb_cv_running)
         case .saving: return I18nManager.shared.t(.fsb_cv_saving)
         case .save: return I18nManager.shared.t(.save)
         case .close: return I18nManager.shared.t(.close)
