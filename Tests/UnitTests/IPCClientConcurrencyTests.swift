@@ -68,7 +68,7 @@ final class IPCClientConcurrencyTests: XCTestCase {
     func test_udsCall_nil_timeout_default() async {
         // 验证签名接受 nil (默认) — 不连真 socket, 仅验不因默认值崩.
         // 无 sock 时 fast-fail disconnected, 不阻塞.
-        let client = IPCClient(socketPath: "/tmp/nonexistent-ipc-concurrency-test.sock")
+        let client = IPCClient(socketPath: "/tmp/nonexistent-ipc-concurrency-test.sock", autoConnect: false)
         do {
             _ = try await client.udsCall(socketPath: "/tmp/nonexistent-uds-test.sock", method: RPCMethod.ping)
             XCTFail("expected failure on missing socket")
@@ -79,7 +79,7 @@ final class IPCClientConcurrencyTests: XCTestCase {
 
     // P0-5: clearSocketFd 自增 generation, 旧 gen 失效.
     func test_socket_fd_generation_invalidates_old() {
-        let client = IPCClient(socketPath: "/tmp/nonexistent-gen-test.sock")
+        let client = IPCClient(socketPath: "/tmp/nonexistent-gen-test.sock", autoConnect: false)
         client.setSocketFd(42)
         let (fd1, gen1) = client.currentFdGeneration()
         XCTAssertEqual(fd1, 42)
@@ -91,7 +91,7 @@ final class IPCClientConcurrencyTests: XCTestCase {
     }
 
     func test_socket_fd_generation_bumps_on_set() {
-        let client = IPCClient(socketPath: "/tmp/nonexistent-gen-set-test.sock")
+        let client = IPCClient(socketPath: "/tmp/nonexistent-gen-set-test.sock", autoConnect: false)
         client.setSocketFd(10)
         let (_, gen1) = client.currentFdGeneration()
         client.setSocketFd(20)
@@ -102,7 +102,7 @@ final class IPCClientConcurrencyTests: XCTestCase {
 
     // L0-2 (P0-1): authEnforced 初始 nil (未探测), 断连复位 nil.
     func test_auth_enforced_initial_nil() {
-        let client = IPCClient(socketPath: "/tmp/nonexistent-auth-test.sock")
+        let client = IPCClient(socketPath: "/tmp/nonexistent-auth-test.sock", autoConnect: false)
         XCTAssertNil(client.authEnforced, "authEnforced should be nil before probe completes")
     }
 }

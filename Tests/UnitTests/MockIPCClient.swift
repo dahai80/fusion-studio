@@ -28,8 +28,8 @@ final class MockIPCClient: IPCClient {
     // method 未配置时的兜底 response (非抛错)。留 nil 则未配置 = 抛错。
     var defaultResponse: [String: Any]? = nil
 
-    override init(socketPath: String = "/tmp/mock-fusion-studio.sock") {
-        super.init(socketPath: socketPath)
+    override init(socketPath: String = "/tmp/mock-fusion-studio.sock", autoConnect: Bool = true) {
+        super.init(socketPath: socketPath, autoConnect: autoConnect)
     }
 
     override func connect() {

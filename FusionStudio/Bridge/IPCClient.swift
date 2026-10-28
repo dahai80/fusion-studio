@@ -64,9 +64,11 @@ class IPCClient: ObservableObject {
     private var inflightReads: [String: [CheckedContinuation<[String: Any], Error>]] = [:]
     private var reqIdToMethod: [Int: String] = [:]
 
-    init(socketPath: String = "/tmp/fusion-studio.sock") {
+    // autoConnect=false: 测试 seam — init 不派发后台 performConnect (其首行 clearSocketFd
+    // 会与测试对 setSocketFd/clearSocketFd 的断言竞态, macos-15 慢 runner 上可复现, v0.1.65-beta release run).
+    init(socketPath: String = "/tmp/fusion-studio.sock", autoConnect: Bool = true) {
         self.socketPath = socketPath
-        connect()
+        if autoConnect { connect() }
     }
 
     // MARK: - 连接管理
