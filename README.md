@@ -4,7 +4,7 @@
   <img src="https://img.shields.io/badge/Swift-5.9-red" alt="Swift">
   <img src="https://img.shields.io/badge/Rust-2021-purple" alt="Rust">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License">
-  <img src="https://img.shields.io/badge/status-V0.1.64-yellow" alt="V0.1.64">
+  <img src="https://img.shields.io/badge/status-V0.1.65--beta-yellow" alt="V0.1.65-beta">
   <img src="https://img.shields.io/badge/modules-27-success" alt="27 Modules">
 </div>
 
@@ -550,12 +550,13 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 
 ## 📋 Changelog
 
-### Unreleased — N9 GUI parity + Mobile Cowork panel (2026-10-21)
+### v0.1.65 — N9 GUI parity + Mobile Cowork panel + fake-surface cleanup (2026-10-28)
 
-Closes #417 and #418.
+Closes #417, #418, #419.
 
 - **#417 N9 GUI parity** — `SafetyCardModel` decodes nested `card` plus flat fallbacks; `SafetyPendingView` adds folder/code/network/remote filter chips with counts and diff/original/proposed previews. `AgentSSEClient` consumes `/v1/agents/{id}/execute/stream` with `thinking=0|1`, rendering `thinking_token` frames in a separate collapsible panel while answer tokens stream into the bubble. `RunArtifactsView` lists `run_artifact.list` summaries and opens `run_artifact.get` with version history, conversation, graph, and environment.
 - **#418 Mobile Cowork panel** — `CoworkMobileView` mirrors the mobile surface on macOS: live runs from `/api/mobile/overview`, approve/reject via `/api/permissions/pending/{id}/confirm`, pause/resume and `set_params`/`insert_node`/`skip_remaining` directives via `/api/runs/{id}`, and artifact preview via `/api/runs/{id}/artifacts`. Auth uses `FUSION_COWORK_WEB_API_KEY` (Bearer + `x-api-key`).
+- **#419 Fake-surface cleanup** — removed the canvas "test run" simulation (never wired, `Task.sleep` walk over nodes) and the dead sample-data `KBView.swift` (zero callers; real KB surfaces are `RAGMainView`, `AIAgentKnowledgeBaseView`, `SpaceKnowledgePanel`); 14 dead i18n keys removed (4-lang dicts stay balanced). Bonus fix: `ExternalIntegrationManager.testConnection` now performs a real HTTP probe (GET with Bearer token, 10s timeout) instead of a fake 1.5s sleep-success. New `FakeSurfaceGateTests` CI gate fails any `run*/test*` function that simulates work with `Task.sleep` (process watchdogs exempt). Merged via PR #420 (c9c7775).
 - **Tests** — 11 new unit tests for SSE frame parsing, safety card decoding, and mobile overview decoding; full unit suite 371 passing.
 
 ### v0.1.64 — ARCH-1 DocBridge + MultiNode split + mTLS + cluster hardening (2026-09-07)

@@ -44,7 +44,7 @@ swift test --filter IPCClientTests/testInitialState
 ./Scripts/start.sh start|stop|restart|status [--no-app]
 ```
 
-Build is pinned to `VERSION` near the top of `Scripts/build.sh` (currently `0.1.64`); bump it
+Build is pinned to `VERSION` near the top of `Scripts/build.sh` (currently `0.1.65`); bump it
 before cutting a release, then tag `vX.Y.Z` (signed builds) or `vX.Y.Z-beta` when the signing
 secrets are absent.
 
