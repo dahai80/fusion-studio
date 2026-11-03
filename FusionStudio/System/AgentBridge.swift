@@ -45,7 +45,7 @@ actor AsyncTaskSemaphore {
     }
 }
 
-enum JSONValue: Codable, Equatable {
+enum JSONValue: Codable, Equatable, Sendable {
     case string(String)
     case double(Double)
     case bool(Bool)
@@ -133,6 +133,16 @@ struct AgentGraphModel: Codable, Equatable, Identifiable {
     // (wire 无 config 键, config 是除 id/type/label 外全部字段的 catch-all) → 解 raw [String:JSONValue] 手建 memberwise。
     enum GraphKeys: String, CodingKey {
         case id, name, nodes, edges, created_at, node_count, edge_count, graph_id
+    }
+    // 显式 memberwise (codec #421 本地构造用; custom init(from:) 存在时合成顺序不保证跨文件可见)
+    init(id: String, name: String, nodes: [NodeConfigModel], edges: [EdgeModel], created_at: String, nodeCount: Int, edgeCount: Int) {
+        self.id = id
+        self.name = name
+        self.nodes = nodes
+        self.edges = edges
+        self.created_at = created_at
+        self.nodeCount = nodeCount
+        self.edgeCount = edgeCount
     }
     init(from decoder: Decoder) throws {
         let top = try decoder.container(keyedBy: GraphKeys.self)
