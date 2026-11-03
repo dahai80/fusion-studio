@@ -92,11 +92,11 @@ final class WorkflowGraphModelTests: XCTestCase {
 
 final class NodeRegistryTests: XCTestCase {
     func testCoreSetRegisteredAndDiscoverable() {
+        // registry 单例共享 (P2 bootstrapFullSet 可能先跑) — 断言核心键存在, 不锁计数
         NodeRegistry.shared.bootstrapCoreSet()
-        XCTAssertEqual(NodeRegistry.shared.registeredKeys.count, 8)
+        XCTAssertGreaterThanOrEqual(NodeRegistry.shared.registeredKeys.count, 8)
         XCTAssertNotNil(NodeRegistry.shared.definition(for: .llm))
         XCTAssertNotNil(NodeRegistry.shared.definition(for: .condition))
-        XCTAssertNil(NodeRegistry.shared.definition(for: .subFlow), "P2 #427 类型未注册前应为 nil")
     }
 
     func testCategoriesGrouping() {
