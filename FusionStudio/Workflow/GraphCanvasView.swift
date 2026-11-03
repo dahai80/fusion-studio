@@ -448,7 +448,7 @@ struct GraphCanvasView: View {
                 Spacer()
                 statusBadge(status)
             }
-            if let def = def {
+            if let def = def, !renderFastPath {
                 Text(SecretStripper.summary(config: node.config, schema: def.configSchema).isEmpty
                      ? def.displayName
                      : SecretStripper.summary(config: node.config, schema: def.configSchema))
@@ -462,7 +462,7 @@ struct GraphCanvasView: View {
                     .foregroundStyle(.red)
                     .lineLimit(2)
             }
-            if let tok = tokenBuffer[node.id], !tok.isEmpty {
+            if let tok = tokenBuffer[node.id], !tok.isEmpty, !renderFastPath {
                 Text(tok)
                     .font(.system(size: 10, design: .monospaced))
                     .foregroundStyle(theme.textSecondary)
@@ -479,7 +479,11 @@ struct GraphCanvasView: View {
             RoundedRectangle(cornerRadius: theme.cornerRadiusSmall, style: .continuous)
                 .stroke(borderColor(isSelected, status), lineWidth: isSelected ? 2 : 1)
         )
-        .shadow(color: isSelected ? theme.accent.opacity(0.25) : .black.opacity(0.1), radius: isSelected ? 8 : 3, y: 2)
+        .shadow(
+            color: (isSelected ? theme.accent.opacity(0.25) : .black.opacity(0.1)).opacity(renderFastPath ? 0 : 1),
+            radius: renderFastPath ? 0 : (isSelected ? 8 : 3),
+            y: 2
+        )
         .overlay(alignment: .leading) { inputPorts(node) }
         .overlay(alignment: .trailing) { outputPorts(node) }
     }
@@ -832,7 +836,10 @@ struct GraphCanvasView: View {
 
     // MARK: - Minimap (#7.1 FSB 缺失能力)
 
-    private var minimapVisible: Bool { !graph.nodes.isEmpty }
+    // #432 渲染快车道: >80 节点 — 隐藏 summary/token 行, 关阴影, 关 minimap (大图流畅)
+    var renderFastPath: Bool { graph.nodes.count > 80 }
+
+    private var minimapVisible: Bool { !graph.nodes.isEmpty && !renderFastPath }
 
     private var minimap: some View {
         Canvas { ctx, size in

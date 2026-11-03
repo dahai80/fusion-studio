@@ -37,6 +37,12 @@ struct GraphFlowBuilderView: View {
     // #430: checkpoint 人类输入
     @State private var resumeAnswer = ""
     @State private var showResumePrompt = false
+    // #431: 模板画廊
+    @State private var showTemplates = false
+    // #432: 运行历史 + diff
+    @State private var showHistory = false
+    // #433: NL 构图
+    @State private var showAIBuild = false
 
     var body: some View {
         GraphCanvasView(
@@ -73,6 +79,33 @@ struct GraphFlowBuilderView: View {
                 }
                 .help("Inspect FlowState snapshot from the last local run")
             }
+            // #431: 模板画廊 (空图也可见, 一键实例化)
+            ToolbarItem {
+                Button {
+                    showTemplates = true
+                } label: {
+                    Label("Templates", systemImage: "square.grid.2x2")
+                }
+                .help("Start from a template flow")
+            }
+            // #432: 运行历史 + 回放 diff
+            ToolbarItem {
+                Button {
+                    showHistory = true
+                } label: {
+                    Label("History", systemImage: "clock.arrow.circlepath")
+                }
+                .help("Recent runs and run-to-run diff")
+            }
+            // #433: 自然语言构图
+            ToolbarItem {
+                Button {
+                    showAIBuild = true
+                } label: {
+                    Label("AI Build", systemImage: "sparkles")
+                }
+                .help("Describe the flow and let the model build it")
+            }
             // #430: 挂起 checkpoint → 收答案续跑 (重启后 flow 落盘仍带 checkpoint)
             if graph.pendingCheckpoint != nil {
                 ToolbarItem {
@@ -94,6 +127,33 @@ struct GraphFlowBuilderView: View {
         .task { await load() }
         .sheet(isPresented: $showVariables) { variablesSheet }
         .sheet(isPresented: $showResumePrompt) { resumeSheet }
+        // #431: 模板画廊 — 实例化替换当前图 (新 id, 不带 checkpoint)
+        .sheet(isPresented: $showTemplates) {
+            TemplateGallerySheet(flowStore: flowStore) { picked in
+                graph = picked
+                toastManager.show(style: .success, title: "Template loaded", message: picked.name)
+            }
+        }
+        // #432: 运行历史 + diff
+        .sheet(isPresented: $showHistory) {
+            RunHistorySheet(flowStore: flowStore, flowId: graph.id)
+        }
+        // #433: NL 构图 — plan 应用到当前图
+        .sheet(isPresented: $showAIBuild) {
+            AIBuildSheet(
+                prompt: graph.name == "Untitled flow" ? "" : graph.name,
+                infer: { messages in try await bridge.infer(messages: messages) }
+            ) { plan in
+                var editor = WorkflowGraphEditor(graph: graph)
+                let applied = editor.applyPlan(plan)
+                graph = editor.graph
+                toastManager.show(
+                    style: applied > 0 ? .success : .error,
+                    title: applied > 0 ? "Plan applied" : "Plan skipped",
+                    message: "\(applied) nodes from \"\(plan.name)\""
+                )
+            }
+        }
     }
 
     // MARK: - Variables inspector (#429)
