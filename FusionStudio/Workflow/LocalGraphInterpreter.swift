@@ -377,18 +377,68 @@ final class LocalGraphInterpreter: @unchecked Sendable {
 
 // MARK: - LocalExecutor (WorkflowExecutor seam)
 
+// #432: @Sendable yield 闭包捕获收集器 (锁盒); 直连 continuation.yield 不经 Task 跳转,
+//   事件顺序与 execute() 调用序一致, 不丢尾部事件 (finish 前 Task 未跑完会被丢弃)。
+final class RunEventSink: @unchecked Sendable {
+    private let lock = NSLock()
+    private var items: [StepEvent] = []
+    private var errored = false
+    func append(_ e: StepEvent) {
+        lock.lock(); defer { lock.unlock() }
+        if case .stepError = e { errored = true }
+        items.append(e)
+    }
+    var events: [StepEvent] {
+        lock.lock(); defer { lock.unlock() }
+        return items
+    }
+    var sawError: Bool {
+        lock.lock(); defer { lock.unlock() }
+        return errored
+    }
+}
+
 @MainActor
 final class LocalExecutor: WorkflowExecutor {
     let kind = "local"
     let supportedNodeTypes: Set<NodeTypeKey> = LocalGraphInterpreter.locallyRunnable
 
     private let flowStore: WorkflowFlowStore
+    // #432 运行历史 (flowStore.root/runs/<flowId>.json, cap 20) — 与 RunHistorySheet 同根
+    private let runHistory: RunHistoryStore
     // 变量检查器数据源 (#429): 最近一轮 FlowState 快照
     private(set) var lastStateSnapshot: [String: JSONValue] = [:]
     private var activeRunId: String?
 
     init(flowStore: WorkflowFlowStore) {
         self.flowStore = flowStore
+        self.runHistory = RunHistoryStore(root: flowStore.root.appendingPathComponent("runs"))
+    }
+
+    // #432: 从事件流折叠 nodeStatuses 并落历史
+    private func recordRun(flowId: UUID, startedAt: Double, sink: RunEventSink, outcomeSummary: String, ok: Bool) {
+        var statuses: [String: String] = [:]
+        for ev in sink.events {
+            switch ev {
+            case .stepFinished(let n, let out):
+                statuses[n] = "finished:\(String(out.prefix(80)))"
+            case .stepError(let n, let msg):
+                statuses[n] = "error:\(String(msg.prefix(80)))"
+            default:
+                break
+            }
+        }
+        runHistory.append(
+            flowId,
+            WorkflowRunRecord(
+                id: "run_\(UUID().uuidString.prefix(8))",
+                startedAt: startedAt,
+                finishedAt: Date().timeIntervalSince1970,
+                summary: outcomeSummary,
+                ok: ok,
+                nodeStatuses: statuses
+            )
+        )
     }
 
     func run(_ inputGraph: WorkflowGraph, inputs: [String: JSONValue]) -> AsyncThrowingStream<StepEvent, Error> {
@@ -396,6 +446,8 @@ final class LocalExecutor: WorkflowExecutor {
         let runId = "local_\(UUID().uuidString.prefix(8))"
         return AsyncThrowingStream { continuation in
             let task = Task { @MainActor in
+                let sink = RunEventSink()
+                let startedAt = Date().timeIntervalSince1970
                 do {
                     continuation.yield(.runStarted(runId: runId))
                     activeRunId = runId
@@ -406,9 +458,8 @@ final class LocalExecutor: WorkflowExecutor {
                             self?.loadFlowByName(name)
                         },
                         yield: { @Sendable event in
-                            Task { @MainActor in
-                                continuation.yield(event)
-                            }
+                            sink.append(event)
+                            continuation.yield(event)
                         }
                     )
                     lastStateSnapshot = finalState
@@ -417,16 +468,19 @@ final class LocalExecutor: WorkflowExecutor {
                         graph.pendingCheckpoint = nil
                         try? self.flowStore.save(graph)
                         continuation.yield(.runFinished(summary: summary))
+                        recordRun(flowId: graph.id, startedAt: startedAt, sink: sink, outcomeSummary: summary, ok: !sink.sawError)
                     case .checkpoint(let cp):
                         // checkpoint 持久化 (#430): 落盘, run 正常结束 (挂起语义)
                         graph.pendingCheckpoint = cp
                         try? self.flowStore.save(graph)
                         continuation.yield(.runFinished(summary: "waiting for human input: \(cp.question)"))
+                        recordRun(flowId: graph.id, startedAt: startedAt, sink: sink, outcomeSummary: "checkpoint: \(cp.question)", ok: !sink.sawError)
                     }
                     activeRunId = nil
                     continuation.finish()
                 } catch {
                     interpLog.error("local run failed: \(error.localizedDescription, privacy: .public)")
+                    recordRun(flowId: graph.id, startedAt: startedAt, sink: sink, outcomeSummary: error.localizedDescription, ok: false)
                     continuation.finish(throwing: error)
                 }
             }
@@ -443,6 +497,8 @@ final class LocalExecutor: WorkflowExecutor {
         let runId = "local_\(UUID().uuidString.prefix(8))"
         return AsyncThrowingStream { continuation in
             let task = Task { @MainActor in
+                let sink = RunEventSink()
+                let startedAt = Date().timeIntervalSince1970
                 do {
                     continuation.yield(.runStarted(runId: runId))
                     let interpreter = LocalGraphInterpreter()
@@ -450,7 +506,8 @@ final class LocalExecutor: WorkflowExecutor {
                         graph, inputs: [:], resumeFrom: cp, resumeAnswer: answer,
                         subFlowLoader: { [weak self] name in self?.loadFlowByName(name) },
                         yield: { @Sendable event in
-                            Task { @MainActor in continuation.yield(event) }
+                            sink.append(event)
+                            continuation.yield(event)
                         }
                     )
                     lastStateSnapshot = finalState
@@ -459,13 +516,17 @@ final class LocalExecutor: WorkflowExecutor {
                         graph.pendingCheckpoint = nil
                         try? self.flowStore.save(graph)
                         continuation.yield(.runFinished(summary: summary))
+                        recordRun(flowId: graph.id, startedAt: startedAt, sink: sink, outcomeSummary: summary, ok: !sink.sawError)
                     case .checkpoint(let newCp):
                         graph.pendingCheckpoint = newCp
                         try? self.flowStore.save(graph)
                         continuation.yield(.runFinished(summary: "waiting for human input: \(newCp.question)"))
+                        recordRun(flowId: graph.id, startedAt: startedAt, sink: sink, outcomeSummary: "checkpoint: \(newCp.question)", ok: !sink.sawError)
                     }
                     continuation.finish()
                 } catch {
+                    interpLog.error("local resume failed: \(error.localizedDescription, privacy: .public)")
+                    recordRun(flowId: graph.id, startedAt: startedAt, sink: sink, outcomeSummary: error.localizedDescription, ok: false)
                     continuation.finish(throwing: error)
                 }
             }
