@@ -95,6 +95,20 @@ final class FSBGraphAdapterTests: XCTestCase {
     }
 }
 
+// @Sendable yield 闭包捕获收集器 (Xcode 15: var 捕获拒绝; 锁保护盒)
+private final class EventCollector: @unchecked Sendable {
+    private let lock = NSLock()
+    private var items: [StepEvent] = []
+    func append(_ e: StepEvent) {
+        lock.lock(); defer { lock.unlock() }
+        items.append(e)
+    }
+    var all: [StepEvent] {
+        lock.lock(); defer { lock.unlock() }
+        return items
+    }
+}
+
 @MainActor
 final class LocalGraphInterpreterTests: XCTestCase {
     private var tmp: URL!
@@ -127,15 +141,15 @@ final class LocalGraphInterpreterTests: XCTestCase {
             WorkflowEdge(sourceNode: cond.id, sourcePort: "false", targetNode: endF.id, targetPort: "in"),
         ]
         let interp = LocalGraphInterpreter()
-        var seen: [StepEvent] = []
+        let seen = EventCollector()
         let (outcome, _) = try await interp.execute(
             g, inputs: ["flag": .string("yes")],
             yield: { seen.append($0) }
         )
         guard case .finished(let summary) = outcome else { return XCTFail("expected finished") }
         XCTAssertEqual(summary, "true", "end 节点 echo condition 分支输出")
-        XCTAssertTrue(seen.contains { if case .stepStarted(let n) = $0 { return n == endT.id.uuidString } else { return false } })
-        XCTAssertFalse(seen.contains { if case .stepStarted(let n) = $0 { return n == endF.id.uuidString } else { return false } })
+        XCTAssertTrue(seen.all.contains { if case .stepStarted(let n) = $0 { return n == endT.id.uuidString } else { return false } })
+        XCTAssertFalse(seen.all.contains { if case .stepStarted(let n) = $0 { return n == endF.id.uuidString } else { return false } })
     }
 
     func testLoopCapThrows() async throws {
