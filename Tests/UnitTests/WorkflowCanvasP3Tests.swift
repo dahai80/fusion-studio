@@ -125,6 +125,25 @@ final class RunHistoryTests: XCTestCase {
         let heavy = GraphCanvasView(graph: .constant(g), executor: nil, toast: nil, flowStore: nil)
         XCTAssertTrue(heavy.renderFastPath, ">80 节点开启快车道 (隐藏 summary/token/阴影/minimap)")
     }
+
+    // #432 50/100/200-node gate: 编码 (落盘路径) 限时; 快车道阈值覆盖 >80 段
+    func testEncodeTimingPerfGate() throws {
+        let enc = JSONEncoder.fusionWorkflow
+        for count in [50, 100, 200] {
+            var g = WorkflowGraph(name: "perf-\(count)")
+            for i in 0..<count {
+                let node = WorkflowNode(type: .note, position: GraphPoint(x: Double(i % 10) * 220, y: Double(i / 10) * 90))
+                g.nodes.append(node)
+                if i > 0 {
+                    g.edges.append(WorkflowEdge(sourceNode: g.nodes[i - 1].id, sourcePort: "out", targetNode: node.id, targetPort: "in"))
+                }
+            }
+            let start = Date()
+            _ = try enc.encode(g)
+            let elapsed = Date().timeIntervalSince(start)
+            XCTAssertLessThan(elapsed, 0.5, "\(count) 节点编码应远低于 0.5s, 实测 \(elapsed)s")
+        }
+    }
 }
 
 final class GraphEditorTests: XCTestCase {
