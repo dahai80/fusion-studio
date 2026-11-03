@@ -4,7 +4,7 @@
   <img src="https://img.shields.io/badge/Swift-5.9-red" alt="Swift">
   <img src="https://img.shields.io/badge/Rust-2021-purple" alt="Rust">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License">
-  <img src="https://img.shields.io/badge/status-V0.1.65--beta-yellow" alt="V0.1.65-beta">
+  <img src="https://img.shields.io/badge/status-V0.1.66--beta-yellow" alt="V0.1.66-beta">
   <img src="https://img.shields.io/badge/modules-27-success" alt="27 Modules">
 </div>
 
@@ -549,6 +549,15 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 ---
 
 ## 📋 Changelog
+
+### v0.1.66 — Workflow canvas epic complete: P1 unified graph + P2 real executors + P3 templates/history/MCP (2026-11-04)
+
+Closes #421–#433 (epic: `architecture/fusion-studio-workflow-enhance-0903.md`).
+
+- **P1 unified graph model & canvas (PR #434)** — single `WorkflowGraph` Codable model with typed ports and compatibility matrix (replaces three diverging subsystem shapes); node registry with metatype storage and discoverable definitions; native SwiftUI `GraphCanvasView` with wire-drag validation, rubber-band select, undo/redo, minimap, and edge selection; `WorkflowFlowStore` local persistence with snapshots, corrupt-file quarantine, and secret stripping (Keychain placeholders never hit disk); mockable `WorkflowExecutor` seam; node inspector driven by config schemas.
+- **P2 real execution (PR #435)** — full 17-type node library (agent, MCP tool, question classifier, HTTP request, iteration, variable aggregator, template, human-input checkpoint, sub-flow) with real runs for the local set; four executor backends (agent-studio, local, FSB with graph adapter + polling, cowork `desk.workflow.run`); local interpreter with condition branching, loop caps, iteration, template rendering, and `FlowState` variables inspector; crash-surviving human-input checkpoints persisted in graph metadata with a resume flow.
+- **P3 differentiators (PR #436)** — template gallery (7 starter flows, seed-if-empty, one-click instantiate); run history + replay diff (per-node statuses, A/B compare, cap 20) plus a >80-node render fast-path; workflow-as-MCP — minimal HTTP MCP server bound to `127.0.0.1:11479` (`initialize` / `tools/list` / `tools/call` running real local executions, port registered in `architecture/port-registry.yaml`); natural-language graph building via `GraphEditor` seam + `NLGraphPlanner` with a strict JSON plan schema and an AI Build sheet (plan preview before apply).
+- **Tests** — 52 new unit tests across the three waves (model round-trips, port matrix, registry, store quarantine/LRU, executor streams, interpreter semantics, checkpoint persistence, template/diff/planner/MCP JSON-RPC); full unit suite 430+ passing locally, CI green on all three PRs.
 
 ### v0.1.65 — N9 GUI parity + Mobile Cowork panel + fake-surface cleanup (2026-10-28)
 
