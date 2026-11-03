@@ -755,6 +755,7 @@ struct GraphCanvasView: View {
 
     // MARK: - Execution (#424, StepEvent 驱动, 零假动画)
 
+    @MainActor
     private func startRun(stepNode: UUID?) {
         guard let executor = executor, !isRunning else { return }
         isRunning = true
@@ -777,6 +778,7 @@ struct GraphCanvasView: View {
         }
     }
 
+    @MainActor
     private func apply(_ event: StepEvent) {
         switch event {
         case .runStarted:
@@ -795,6 +797,7 @@ struct GraphCanvasView: View {
         }
     }
 
+    @MainActor
     private func cancelRun() {
         runTask?.cancel()
         isRunning = false
@@ -802,6 +805,7 @@ struct GraphCanvasView: View {
     }
 
     // unsupported 类型 badge (#424 验收: executor 声明支持集)
+    @MainActor
     private func markUnsupportedIfNeeded() {
         guard let executor = executor else { return }
         for n in graph.nodes where !executor.supportedNodeTypes.contains(n.type) {
@@ -841,10 +845,10 @@ struct GraphCanvasView: View {
             let maxY = graph.nodes.map { $0.position.y + Double(nodeHeight) }.max() ?? 1
             let w = max(maxX - minX, 1)
             let h = max(maxY - minY, 1)
-            let fit = min(size.width / w, size.height / h)
+            let fit = min(Double(size.width) / w, Double(size.height) / h)
             func map(_ p: GraphPoint) -> CGPoint {
-                CGPoint(x: (p.x - minX) * fit + (size.width - w * fit) / 2,
-                        y: (p.y - minY) * fit + (size.height - h * fit) / 2)
+                CGPoint(x: (p.x - minX) * fit + (Double(size.width) - w * fit) / 2,
+                        y: (p.y - minY) * fit + (Double(size.height) - h * fit) / 2)
             }
             for e in graph.edges {
                 if let s = graph.nodes.first(where: { $0.id == e.sourceNode }),
