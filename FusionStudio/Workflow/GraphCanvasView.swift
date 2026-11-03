@@ -20,6 +20,9 @@ enum NodeRunStatus: Equatable {
     case unsupported(backend: String)
 }
 
+// @MainActor 全结构体: 成员触达 MainActor executor + @State; Xcode 15 下 helper 非
+// isolated 调用即报错 (审计经验: 显式标注防 CI Swift 5 隔离检查)
+@MainActor
 struct GraphCanvasView: View {
     @Environment(\.studioTheme) private var theme
     @Binding var graph: WorkflowGraph
@@ -315,7 +318,6 @@ struct GraphCanvasView: View {
             if let w = wireDrag {
                 ForEach(graph.nodes) { target in
                     if let def = NodeRegistry.shared.definition(for: target.type),
-                       let fromDef = NodeRegistry.shared.definition(for: nodeType(w.fromNode)),
                        !def.inputs.isEmpty {
                         ForEach(def.inputs) { input in
                             let verdict = PortCompatibility.validateEdge(
@@ -755,7 +757,6 @@ struct GraphCanvasView: View {
 
     // MARK: - Execution (#424, StepEvent 驱动, 零假动画)
 
-    @MainActor
     private func startRun(stepNode: UUID?) {
         guard let executor = executor, !isRunning else { return }
         isRunning = true
@@ -778,7 +779,6 @@ struct GraphCanvasView: View {
         }
     }
 
-    @MainActor
     private func apply(_ event: StepEvent) {
         switch event {
         case .runStarted:
@@ -797,7 +797,6 @@ struct GraphCanvasView: View {
         }
     }
 
-    @MainActor
     private func cancelRun() {
         runTask?.cancel()
         isRunning = false
@@ -805,7 +804,6 @@ struct GraphCanvasView: View {
     }
 
     // unsupported 类型 badge (#424 验收: executor 声明支持集)
-    @MainActor
     private func markUnsupportedIfNeeded() {
         guard let executor = executor else { return }
         for n in graph.nodes where !executor.supportedNodeTypes.contains(n.type) {

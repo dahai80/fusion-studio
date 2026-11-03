@@ -8,6 +8,7 @@ import os.log
 
 private let builderLog = Logger(subsystem: "com.fusion.studio", category: "GraphFlowBuilder")
 
+@MainActor
 struct GraphFlowBuilderView: View {
     enum Mode {
         case create
