@@ -823,11 +823,12 @@ struct WorkflowListView: View {
         case .empty:
             emptyWorkflowPlaceholder
         case .creating:
-            AgentWorkflowCanvasView(mode: .create, toastManager: toastManager) {
+            // #423: unified GraphFlowBuilderView (typed ports + registry canvas) 取代旧 canvas
+            GraphFlowBuilderView(mode: .create, toastManager: toastManager) {
                 Task { await refreshGraphs() }
             }
         case .editing(let graph):
-            AgentWorkflowCanvasView(mode: .edit(graph), toastManager: toastManager) {
+            GraphFlowBuilderView(mode: .edit(graph), toastManager: toastManager) {
                 Task { await refreshGraphs() }
             }
         }
