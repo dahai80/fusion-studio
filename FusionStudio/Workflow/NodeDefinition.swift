@@ -143,7 +143,7 @@ final class NodeRegistry: @unchecked Sendable {
         return grouped
     }
 
-    // 注册表初始化: Phase-1 core 8 型 (#422)。P2 #427 的 9 型在扩展点追加。
+    // 注册表初始化: Phase-1 core 8 型 (#422)。
     func bootstrapCoreSet() {
         register(StartNodeDefinition.self)
         register(EndNodeDefinition.self)
@@ -153,6 +153,21 @@ final class NodeRegistry: @unchecked Sendable {
         register(LoopNodeDefinition.self)
         register(KnowledgeRetrievalNodeDefinition.self)
         register(CodeNodeDefinition.self)
+    }
+
+    // #427 全量 17 型 (core 8 + P2 9)
+    func bootstrapFullSet() {
+        bootstrapCoreSet()
+        register(AgentNodeDefinition.self)
+        register(McpToolNodeDefinition.self)
+        register(QuestionClassifierNodeDefinition.self)
+        register(HttpRequestNodeDefinition.self)
+        register(IterationNodeDefinition.self)
+        register(VariableAggregatorNodeDefinition.self)
+        register(TemplateNodeDefinition.self)
+        register(HumanInputNodeDefinition.self)
+        register(SubFlowNodeDefinition.self)
+        register(NoteNodeDefinition.self)
     }
 }
 
@@ -252,7 +267,7 @@ struct ConditionNodeDefinition: NodeDefinition {
         let (keyPath, op) = (parts[0], parts[1])
         let expected = parts.count > 2 ? parts[2] : ""
         let actual: String
-        if let v = ctx.inputs["in"] {
+        if let v = ctx.flowState.value(for: keyPath) {
             switch v {
             case .string(let s): actual = s
             case .double(let d): actual = String(d)

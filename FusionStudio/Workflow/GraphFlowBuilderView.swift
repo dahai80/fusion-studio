@@ -5,6 +5,9 @@ import os.log
 //   canvas + inspector + executor + flow store 组装; 接入 AgentTaskViews DetailMode。
 //   create 模式: 空 graph (start+end 种子); edit 模式: 本地 flow 优先 (backendId 关联), 无则从后端 graph 解码。
 //   保存: codec.toBackend → 后端 create/update + 本地 flow store 落盘 (secret 占位符, #425)。
+// #428 P2-2: executor 后端选择 (agent-studio / local / fsb / cowork) — 真 backend 执行, 无假 run。
+// #429 P2-3: 变量检查器 (FlowState 快照)。
+// #430 P2-4: checkpoint 恢复入口 (pending_checkpoint 存在 → Resume 按钮收人类输入续跑)。
 
 private let builderLog = Logger(subsystem: "com.fusion.studio", category: "GraphFlowBuilder")
 
@@ -25,7 +28,15 @@ struct GraphFlowBuilderView: View {
     @State private var flowStore = WorkflowFlowStore()
     @State private var loaded = false
     @State private var isSaving = false
-    @State private var executor: AgentStudioExecutor?
+    @State private var executor: (any WorkflowExecutor)?
+    // #428: 执行后端选择 (默认 agent-studio 兼容 P1 行为)
+    @AppStorage("flowBuilderBackend") private var backendKind = "agent-studio"
+    @AppStorage("flowBuilderFsbWorkspace") private var fsbWorkspaceId = ""
+    // #429: 变量检查器
+    @State private var showVariables = false
+    // #430: checkpoint 人类输入
+    @State private var resumeAnswer = ""
+    @State private var showResumePrompt = false
 
     var body: some View {
         GraphCanvasView(
@@ -36,20 +47,147 @@ struct GraphFlowBuilderView: View {
         )
         .toolbar {
             ToolbarItem {
+                Picker("Backend", selection: $backendKind) {
+                    Text("agent-studio").tag("agent-studio")
+                    Text("local").tag("local")
+                    Text("fsb").tag("fsb")
+                    Text("cowork").tag("cowork")
+                }
+                .pickerStyle(.menu)
+                .frame(width: 120)
+                .onChange(of: backendKind) { _, _ in rebuildExecutor() }
+            }
+            if backendKind == "fsb" {
+                ToolbarItem {
+                    TextField("FSB workspace id", text: $fsbWorkspaceId)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 180)
+                        .help("FSB workspace id (from FSB module)")
+                }
+            }
+            ToolbarItem {
+                Button {
+                    showVariables = true
+                } label: {
+                    Label("Variables", systemImage: "curlybraces.square")
+                }
+                .help("Inspect FlowState snapshot from the last local run")
+            }
+            // #430: 挂起 checkpoint → 收答案续跑 (重启后 flow 落盘仍带 checkpoint)
+            if graph.pendingCheckpoint != nil {
+                ToolbarItem {
+                    Button {
+                        showResumePrompt = true
+                    } label: {
+                        Label("Resume", systemImage: "playpause")
+                    }
+                    .tint(.orange)
+                    .help("Human input checkpoint pending — answer to continue")
+                }
+            }
+            ToolbarItem {
                 FusionButton("Save", icon: "square.and.arrow.down", style: .primary, size: .small, isDisabled: isSaving) {
                     Task { await save() }
                 }
             }
         }
         .task { await load() }
+        .sheet(isPresented: $showVariables) { variablesSheet }
+        .sheet(isPresented: $showResumePrompt) { resumeSheet }
     }
+
+    // MARK: - Variables inspector (#429)
+
+    private var variablesSheet: some View {
+        VStack(alignment: .leading, spacing: theme.spacingS) {
+            Text("FlowState Variables")
+                .font(.system(size: theme.textSize, weight: .semibold))
+            let snap = currentVariableSnapshot()
+            if snap.isEmpty {
+                Text("No state recorded yet — run with the local backend to populate.")
+                    .font(.system(size: theme.captionSize))
+                    .foregroundStyle(theme.textTertiary)
+            } else {
+                ForEach(snap.keys.sorted(), id: \.self) { key in
+                    HStack(alignment: .top) {
+                        Text(key)
+                            .font(.system(size: theme.footnoteSize, weight: .medium, design: .monospaced))
+                            .frame(width: 140, alignment: .leading)
+                        Text(JSONValue.serializeScalar(snap[key] ?? .string("")))
+                            .font(.system(size: theme.footnoteSize, design: .monospaced))
+                            .foregroundStyle(theme.textSecondary)
+                            .lineLimit(3)
+                    }
+                }
+            }
+            Spacer()
+        }
+        .padding(theme.spacingM)
+        .frame(width: 460, height: 360)
+    }
+
+    private func currentVariableSnapshot() -> [String: JSONValue] {
+        if let local = executor as? LocalExecutor, !local.lastStateSnapshot.isEmpty {
+            return local.lastStateSnapshot
+        }
+        // 重启恢复路径: checkpoint 快照即最近已知 state
+        return graph.pendingCheckpoint?.stateSnapshot ?? [:]
+    }
+
+    // MARK: - Resume (#430)
+
+    private var resumeSheet: some View {
+        VStack(alignment: .leading, spacing: theme.spacingM) {
+            Text("Human Input Checkpoint")
+                .font(.system(size: theme.textSize, weight: .semibold))
+            Text(graph.pendingCheckpoint?.question ?? "")
+                .font(.system(size: theme.footnoteSize))
+                .foregroundStyle(theme.textSecondary)
+            TextField("Your answer", text: $resumeAnswer)
+                .textFieldStyle(.roundedBorder)
+            HStack {
+                Spacer()
+                FusionButton("Continue", icon: "arrow.forward", style: .primary, size: .small, isDisabled: resumeAnswer.isEmpty) {
+                    showResumePrompt = false
+                    resumeWithAnswer()
+                }
+            }
+        }
+        .padding(theme.spacingM)
+        .frame(width: 420)
+    }
+
+    private func resumeWithAnswer() {
+        if !(executor is LocalExecutor) {
+            // 非 local 后端: checkpoint 语义属本地解释器 — 自动切换
+            executor = LocalExecutor(flowStore: flowStore)
+            backendKind = "local"
+        }
+        guard let e = executor as? LocalExecutor else { return }
+        let g = graph
+        let answer = resumeAnswer
+        resumeAnswer = ""
+        Task { @MainActor in
+            do {
+                for try await _ in e.resume(g, answer: answer) {}
+                // resume 期间 checkpoint 清落盘 — 从 store 取最新 graph 回填 UI
+                if let fresh = try? flowStore.load(g.id) {
+                    graph = fresh
+                }
+                toastManager.show(style: .success, title: "Flow resumed", message: g.name)
+            } catch {
+                toastManager.show(style: .error, title: "Resume failed", message: error.localizedDescription)
+            }
+        }
+    }
+
+    // MARK: - Load / executor
 
     private func load() async {
         guard !loaded else { return }
         loaded = true
-        if executor == nil {
-            executor = AgentStudioExecutor(bridge: bridge)
-        }
+        NodeRegistry.shared.bootstrapFullSet()
+        rebuildExecutor()
         switch mode {
         case .create:
             graph = Self.seedGraph()
@@ -67,6 +205,27 @@ struct GraphFlowBuilderView: View {
         }
     }
 
+    private func rebuildExecutor() {
+        switch backendKind {
+        case "local":
+            executor = LocalExecutor(flowStore: flowStore)
+        case "fsb":
+            guard !fsbWorkspaceId.isEmpty else {
+                executor = nil
+                builderLog.warning("fsb backend selected but workspace id empty")
+                return
+            }
+            executor = FSBExecutor(ipc: bridge.ipcClient, workspaceId: fsbWorkspaceId)
+        case "cowork":
+            executor = CoWorkExecutor(ipc: bridge.ipcClient)
+        default:
+            executor = AgentStudioExecutor(bridge: bridge)
+        }
+        builderLog.info("executor rebuilt: \(backendKind, privacy: .public)")
+    }
+
+    // MARK: - Save
+
     private func save() async {
         guard !graph.name.isEmpty else {
             toastManager.show(style: .error, title: "Save failed", message: "Flow name is empty")
@@ -76,7 +235,7 @@ struct GraphFlowBuilderView: View {
         defer { isSaving = false }
         do {
             // run() 期间 executor 可能已 create 后端图 — 收编其 backendId, 防重复建图
-            if graph.backendId == nil, let runCreated = executor?.backendId(for: graph.id) {
+            if graph.backendId == nil, let runCreated = (executor as? AgentStudioExecutor)?.backendId(for: graph.id) {
                 graph.backendId = runCreated
                 builderLog.info("adopted backend id from run: \(runCreated, privacy: .public)")
             }

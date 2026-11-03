@@ -270,6 +270,19 @@ func nodeLabel(_ n: WorkflowNode) -> String {
     return n.type.rawValue
 }
 
+// JSONValue → [String: Any] (FSB/cowork 后端 dict 契约用)
+extension JSONValue {
+    static func toAny(_ v: JSONValue) -> Any {
+        switch v {
+        case .string(let s): return s
+        case .double(let d): return d
+        case .bool(let b): return b
+        case .object(let o): return o.mapValues { toAny($0) }
+        case .array(let a): return a.map { toAny($0) }
+        }
+    }
+}
+
 // MARK: - Errors
 
 enum WorkflowError: LocalizedError {
