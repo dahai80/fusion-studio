@@ -9,7 +9,7 @@ audience: engineer
 status: draft
 version: 0.1.66
 updated: 2026-11-07
-owner: @dahai
+owner: "@dahai"
 source_of_truth:
   - docs/superpowers/plans/2026-09-04-fusion-identity-integration.md
 ---

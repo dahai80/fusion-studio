@@ -9,7 +9,7 @@ audience: engineer
 status: draft
 version: 0.1.66
 updated: 2026-11-07
-owner: @dahai
+owner: "@dahai"
 source_of_truth:
   - docs/superpowers/specs/2026-09-03-upstream-issues-fallback-design.md
 ---
