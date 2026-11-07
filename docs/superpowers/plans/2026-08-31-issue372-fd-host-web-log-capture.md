@@ -1,3 +1,19 @@
+---
+doc_id: fusion-studio/guide
+product: fusion-studio
+class: app
+entry: guided-ui
+doc_type: guide
+title: { zh: "#372 — Consume fd-host-web log.capture.dump bridge (OPS-13)", en: "#372 — Consume fd-host-web log.capture.dump bridge (OPS-13)" }
+audience: engineer
+status: draft
+version: 0.1.66
+updated: 2026-11-07
+owner: @dahai
+source_of_truth:
+  - docs/superpowers/plans/2026-08-31-issue372-fd-host-web-log-capture.md
+---
+
 # #372 — Consume fd-host-web log.capture.dump bridge (OPS-13)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

@@ -1,3 +1,19 @@
+---
+doc_id: fusion-studio/guide
+product: fusion-studio
+class: app
+entry: guided-ui
+doc_type: guide
+title: { zh: "Model Hub — 配置/下载/修改模型 流程 + GUI 草图", en: "Model Hub — 配置/下载/修改模型 流程 + GUI 草图" }
+audience: engineer
+status: draft
+version: 0.1.66
+updated: 2026-11-07
+owner: @dahai
+source_of_truth:
+  - docs/design/model-hub-gui-proposal.md
+---
+
 # Model Hub — 配置/下载/修改模型 流程 + GUI 草图
 
 ## 一、完整流程

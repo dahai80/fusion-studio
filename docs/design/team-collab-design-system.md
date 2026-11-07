@@ -1,3 +1,19 @@
+---
+doc_id: fusion-studio/guide
+product: fusion-studio
+class: app
+entry: guided-ui
+doc_type: guide
+title: { zh: "团队协作 GUI 设计系统", en: "团队协作 GUI 设计系统" }
+audience: engineer
+status: draft
+version: 0.1.66
+updated: 2026-11-07
+owner: @dahai
+source_of_truth:
+  - docs/design/team-collab-design-system.md
+---
+
 # 团队协作 GUI 设计系统
 
 > fusion-studio · Module.teamCollab · macOS 原生 SwiftUI

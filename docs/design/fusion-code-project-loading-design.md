@@ -1,3 +1,19 @@
+---
+doc_id: fusion-studio/guide
+product: fusion-studio
+class: app
+entry: guided-ui
+doc_type: guide
+title: { zh: "Fusion Code — 项目加载深度设计", en: "Fusion Code — 项目加载深度设计" }
+audience: engineer
+status: draft
+version: 0.1.66
+updated: 2026-11-07
+owner: @dahai
+source_of_truth:
+  - docs/design/fusion-code-project-loading-design.md
+---
+
 # Fusion Code — 项目加载深度设计
 
 > UI/UX Pro Max · macOS Native · 暗色优先 · 主色 #007AFF

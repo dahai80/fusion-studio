@@ -1,3 +1,19 @@
+---
+doc_id: fusion-studio/api-reference
+product: fusion-studio
+class: app
+entry: guided-ui
+doc_type: api-reference
+title: { zh: "JSON-RPC 接口参考", en: "JSON-RPC API reference" }
+audience: engineer
+status: draft
+version: 0.1.66
+updated: 2026-11-07
+owner: @dahai
+source_of_truth:
+  - docs/api.md
+---
+
 # Fusion Studio API Documentation
 
 > **Version**: 1.0.0 · **Protocol**: JSON-RPC 2.0 over Unix Domain Socket

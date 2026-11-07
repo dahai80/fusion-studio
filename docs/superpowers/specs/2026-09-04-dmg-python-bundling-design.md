@@ -1,3 +1,19 @@
+---
+doc_id: fusion-studio/guide
+product: fusion-studio
+class: app
+entry: guided-ui
+doc_type: guide
+title: { zh: "DMG Python Backend Runtime Bundling (Track A) — Design Spec", en: "DMG Python Backend Runtime Bundling (Track A) — Design Spec" }
+audience: engineer
+status: draft
+version: 0.1.66
+updated: 2026-11-07
+owner: @dahai
+source_of_truth:
+  - docs/superpowers/specs/2026-09-04-dmg-python-bundling-design.md
+---
+
 # DMG Python Backend Runtime Bundling (Track A) — Design Spec
 
 > Issue #393. Tracks the F-func-1/F-ops-5 audit finding: DMG ships zero Python, fresh Mac is dead-on-arrival.

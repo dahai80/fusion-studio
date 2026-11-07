@@ -1,3 +1,19 @@
+---
+doc_id: fusion-studio/guide
+product: fusion-studio
+class: app
+entry: guided-ui
+doc_type: guide
+title: { zh: "Upstream Issues + Local Fallback — Design", en: "Upstream Issues + Local Fallback — Design" }
+audience: engineer
+status: draft
+version: 0.1.66
+updated: 2026-11-07
+owner: @dahai
+source_of_truth:
+  - docs/superpowers/specs/2026-09-03-upstream-issues-fallback-design.md
+---
+
 # Upstream Issues + Local Fallback — Design
 
 > **Status:** Approved 2026-09-03. Implements the enterprise production upstream track (Track C). Brainstorming → spec → plan → implementation. Runs in parallel with Track B (MultiNode TLS+HA).

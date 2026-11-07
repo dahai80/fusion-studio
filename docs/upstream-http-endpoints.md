@@ -1,3 +1,19 @@
+---
+doc_id: fusion-studio/guide
+product: fusion-studio
+class: app
+entry: guided-ui
+doc_type: guide
+title: { zh: "上游服务 HTTP 端点清单", en: "Upstream service HTTP endpoints" }
+audience: engineer
+status: draft
+version: 0.1.66
+updated: 2026-11-07
+owner: @dahai
+source_of_truth:
+  - docs/upstream-http-endpoints.md
+---
+
 # Upstream HTTP Endpoints — Fusion Studio Integration Reference
 
 > Generated: 2026-07-31

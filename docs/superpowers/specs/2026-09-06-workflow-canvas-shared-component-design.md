@@ -1,3 +1,19 @@
+---
+doc_id: fusion-studio/guide
+product: fusion-studio
+class: app
+entry: guided-ui
+doc_type: guide
+title: { zh: "Reusable Drag-Canvas Public Component — Design", en: "Reusable Drag-Canvas Public Component — Design" }
+audience: engineer
+status: draft
+version: 0.1.66
+updated: 2026-11-07
+owner: @dahai
+source_of_truth:
+  - docs/superpowers/specs/2026-09-06-workflow-canvas-shared-component-design.md
+---
+
 # Reusable Drag-Canvas Public Component — Design
 
 ## Context

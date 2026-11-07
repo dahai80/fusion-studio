@@ -1,3 +1,19 @@
+---
+doc_id: fusion-studio/guide
+product: fusion-studio
+class: app
+entry: guided-ui
+doc_type: guide
+title: { zh: "Studio 集成说明", en: "Studio integration guide" }
+audience: engineer
+status: draft
+version: 0.1.66
+updated: 2026-11-07
+owner: @dahai
+source_of_truth:
+  - docs/studio-integration.md
+---
+
 # Fusion Studio — 产品矩阵 GUI 覆盖深度分析
 
 > **更新**: 2026-07-27 · **范围**: ~/fusion/fusion-* 全量扫描 + FusionStudio源码逐视图审计
