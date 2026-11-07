@@ -1,3 +1,19 @@
+---
+doc_id: fusion-studio/guide
+product: fusion-studio
+class: app
+entry: guided-ui
+doc_type: guide
+title: { zh: "F-A1 deep / F-I1 — AgentBridge 类型边界重构 (state-split)", en: "F-A1 deep / F-I1 — AgentBridge 类型边界重构 (state-split)" }
+audience: engineer
+status: draft
+version: 0.1.66
+updated: 2026-11-07
+owner: @dahai
+source_of_truth:
+  - docs/superpowers/specs/2026-08-26-fa1-type-boundary-design.md
+---
+
 # F-A1 deep / F-I1 — AgentBridge 类型边界重构 (state-split)
 
 > 审计 0825 F-A1 + F-I1 (验收 P0 阻断, 同根)。用户决策: state-split (F-A5 风格), 7 域, AgentBridge 内部持有域对象。本 spec 经 brainstorming 4 节逐节审批。

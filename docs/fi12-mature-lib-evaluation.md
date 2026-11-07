@@ -1,3 +1,19 @@
+---
+doc_id: fusion-studio/guide
+product: fusion-studio
+class: app
+entry: guided-ui
+doc_type: guide
+title: { zh: "成熟库选型评估", en: "Mature library evaluation" }
+audience: engineer
+status: draft
+version: 0.1.66
+updated: 2026-11-07
+owner: @dahai
+source_of_truth:
+  - docs/fi12-mature-lib-evaluation.md
+---
+
 # F-I12 — 成熟库评估 (Batch 17e)
 
 > 审计 0825 F-I12 (`~/fusion/audit/fusion-studio-audit-report-0825.md` L516-524): "零 Swift 外部依赖自认优势, 实则 reinvent 轮子 + 难审计"。3 月债: "评估引入成熟库 (IPC/JSON/Markdown), 至少安全关键组件"。

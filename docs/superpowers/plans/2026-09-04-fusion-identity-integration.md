@@ -1,3 +1,19 @@
+---
+doc_id: fusion-studio/guide
+product: fusion-studio
+class: app
+entry: guided-ui
+doc_type: guide
+title: { zh: "fusion-identity Integration Implementation Plan", en: "fusion-identity Integration Implementation Plan" }
+audience: engineer
+status: draft
+version: 0.1.66
+updated: 2026-11-07
+owner: @dahai
+source_of_truth:
+  - docs/superpowers/plans/2026-09-04-fusion-identity-integration.md
+---
+
 # fusion-identity Integration Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -381,7 +397,8 @@ In `I18nService.swift`, after an existing identity-adjacent case (or near `hub_`
 ```swift
     case identity_login_title = "identity_login_title"
     case identity_login_username = "identity_login_username"
-    case identity_login_password = "identity_login_password"
+    case identity_login_password
+        = "identity_login_password"
     case identity_login_submit = "identity_login_submit"
     case identity_login_error = "identity_login_error"
     case identity_login_bootstrap_hint = "identity_login_bootstrap_hint"

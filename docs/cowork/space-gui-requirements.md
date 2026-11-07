@@ -1,7 +1,23 @@
+---
+doc_id: fusion-studio/guide
+product: fusion-studio
+class: app
+entry: guided-ui
+doc_type: guide
+title: { zh: "协作空间 GUI 需求规格", en: "Cowork space GUI requirements" }
+audience: engineer
+status: draft
+version: 0.1.66
+updated: 2026-11-07
+owner: @dahai
+source_of_truth:
+  - docs/cowork/space-gui-requirements.md
+---
+
 # Fusion-Cowork 协作空间 GUI 需求规格
 
 > 来源: fusion-cowork V1.0 增强方案 (`~/fusion/architecture/fusion-cowork-enhance.md`)
-> 优先级: P0 — M6-M12 里程碑逐步交付
+> 优先级: P0 — M6-M12 分批逐步交付
 
 ## 1. SpaceView — 协作空间首页
 
@@ -184,7 +200,7 @@ func spaceDiscoveryScan() async throws -> [PeerInfo]
 
 ## 交付计划
 
-| 组件 | 里程碑 | 对应 fusion-cowork 版本 |
+| 组件 | 交付批次 | 对应 fusion-cowork 版本 |
 |------|--------|------------------------|
 | SpaceView | M6 | V0.7 |
 | SpaceMemberView | M6 | V0.7 |
@@ -193,4 +209,4 @@ func spaceDiscoveryScan() async throws -> [PeerInfo]
 | SpaceSnapshotView | M9 | V0.10 |
 | IPCClient 扩展 | M6+ | V0.7+ |
 
-每个组件先实现基础版，随里程碑迭代增强。
+每个组件先实现基础版，随交付批次迭代增强。

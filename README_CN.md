@@ -1,3 +1,19 @@
+---
+doc_id: fusion-studio/readme
+product: fusion-studio
+class: app
+entry: guided-ui
+doc_type: readme
+title: { zh: "Fusion Studio 产品说明（中文）", en: "Fusion Studio README (Chinese)" }
+audience: engineer
+status: draft
+version: 0.1.66
+updated: 2026-11-07
+owner: @dahai
+source_of_truth:
+  - README_CN.md
+---
+
 <div align="center">
   <img src="https://img.shields.io/badge/macOS-14%2B-brightgreen" alt="macOS">
   <img src="https://img.shields.io/badge/Apple%20Silicon-M1--M5-orange" alt="Apple Silicon">
@@ -8,9 +24,9 @@
   <img src="https://img.shields.io/badge/modules-20-success" alt="20 Modules">
 </div>
 
-<h1 align="center">⚡ Fusion Studio</h1>
-<p align="center"><strong>Fusion-MLX 本地 AI 生态的统一 macOS 桌面客户端</strong></p>
-<p align="center"><em>一个 App 收口所有能力 — 设计 · 编码 · 仿真 · 多模态 · 训练 · 数据分析 · 智能体 · 知识库 · 自动化。100% 本地离线，Apple Silicon 原生。</em></p>
+<p align="center">**⚡ Fusion Studio**</p>
+<p align="center">**Fusion-MLX 本地 AI 生态的统一 macOS 桌面客户端**</p>
+<p align="center">*一个 App 收口所有能力 — 设计 · 编码 · 仿真 · 多模态 · 训练 · 数据分析 · 智能体 · 知识库 · 自动化。100% 本地离线，Apple Silicon 原生。*</p>
 
 ---
 
@@ -233,8 +249,8 @@ MIT License。详见 [LICENSE](LICENSE)。
 ---
 
 <p align="center">
-  <strong>Fusion Studio</strong> — 一个 App，掌控所有 Fusion 能力。100% 本地，100% 属于你。
+  **Fusion Studio** — 一个 App，掌控所有 Fusion 能力。100% 本地，100% 属于你。
 </p>
 <p align="center">
-  <sub>为 Apple Silicon 倾心打造 · 20 个模块 · 50,000+ 行 Swift 代码</sub>
+  为 Apple Silicon 打造 · 20 个模块 · 50,000+ 行 Swift 代码
 </p>

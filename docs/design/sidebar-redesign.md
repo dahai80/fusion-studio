@@ -1,3 +1,19 @@
+---
+doc_id: fusion-studio/guide
+product: fusion-studio
+class: app
+entry: guided-ui
+doc_type: guide
+title: { zh: "Sidebar Redesign — ChatGPT-style Collapsible Navigation", en: "Sidebar Redesign — ChatGPT-style Collapsible Navigation" }
+audience: engineer
+status: draft
+version: 0.1.66
+updated: 2026-11-07
+owner: @dahai
+source_of_truth:
+  - docs/design/sidebar-redesign.md
+---
+
 # Sidebar Redesign — ChatGPT-style Collapsible Navigation
 
 ## Current Architecture

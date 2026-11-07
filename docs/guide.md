@@ -1,3 +1,19 @@
+---
+doc_id: fusion-studio/guide
+product: fusion-studio
+class: app
+entry: guided-ui
+doc_type: guide
+title: { zh: "使用指南", en: "Usage guide" }
+audience: engineer
+status: draft
+version: 0.1.66
+updated: 2026-11-07
+owner: @dahai
+source_of_truth:
+  - docs/guide.md
+---
+
 # Fusion Studio User Guide
 
 > **Version**: 1.0.0 · **Platform**: macOS 14+ (Apple Silicon)

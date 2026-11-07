@@ -1,3 +1,19 @@
+---
+doc_id: fusion-studio/guide
+product: fusion-studio
+class: app
+entry: guided-ui
+doc_type: guide
+title: { zh: "fusion-identity Integration — Design Spec", en: "fusion-identity Integration — Design Spec" }
+audience: engineer
+status: draft
+version: 0.1.66
+updated: 2026-11-07
+owner: @dahai
+source_of_truth:
+  - docs/superpowers/specs/2026-09-04-fusion-identity-integration-design.md
+---
+
 # fusion-identity Integration — Design Spec
 
 > Status: DRAFT. Issue #394. Multi-tenant PRD §4. Shell = client of fusion-identity.

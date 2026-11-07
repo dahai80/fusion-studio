@@ -1,3 +1,19 @@
+---
+doc_id: fusion-studio/readme
+product: fusion-studio
+class: app
+entry: guided-ui
+doc_type: readme
+title: { zh: "Fusion Studio 产品说明", en: "Fusion Studio README" }
+audience: engineer
+status: draft
+version: 0.1.66
+updated: 2026-11-07
+owner: @dahai
+source_of_truth:
+  - README.md
+---
+
 <div align="center">
   <img src="https://img.shields.io/badge/macOS-14%2B-brightgreen" alt="macOS">
   <img src="https://img.shields.io/badge/Apple%20Silicon-M1--M5-orange" alt="Apple Silicon">
@@ -8,9 +24,9 @@
   <img src="https://img.shields.io/badge/modules-27-success" alt="27 Modules">
 </div>
 
-<h1 align="center">⚡ Fusion Studio</h1>
-<p align="center"><strong>Unified macOS Desktop Client for the Fusion-MLX Local AI Ecosystem</strong></p>
-<p align="center"><em>One app to rule them all — Design, Code, Simulation, MultiModal, Training, and more. 100% offline, Apple Silicon native.</em></p>
+<p align="center">**⚡ Fusion Studio**</p>
+<p align="center">**Unified macOS Desktop Client for the Fusion-MLX Local AI Ecosystem**</p>
+<p align="center">*One app to rule them all — Design, Code, Simulation, MultiModal, Training, and more. 100% offline, Apple Silicon native.*</p>
 
 ---
 
@@ -891,7 +907,7 @@ Three fixes for the Design module's "after generating a login-page template the 
 - **sendChat @State race**: template button `inputText = tmpl.prompt; sendChat()` synchronous read returns stale value, changed to `sendChat(explicitMessage:)` explicit param; all `onSend: sendChat` / `Button(action: sendChat)` wrapped in closures
 - **Preview background white tone**: `DesignPreviewView` `drawsTransparentBackground=false`, `buildFullHTML` fragment `--color-bg:#ffffff`, `injectTailwindIntoExisting` strips CDN tailwind script to avoid offline blocking (user chose "only change preview background")
 - **Canvas wasm loading**: `DesignCanvasView` wasm/glue resources changed to prefer `Bundle.module` (SPM `.process` flattens into module bundle); HTML changed to ES module `<script type="module"> import init, { mount, fusion_bridge_send_command }` (fd_host_web.js is the wasm-bindgen ESM output)
-- **artifact parsing**: `max_tokens` 4096→8192 to prevent truncation; `extractArtifactFromComplete` handles missing `</antArtifact>` closing tag; `extractCodeBlock` tolerates ```` ```html ```` with no newline + truncated blocks; fallback changed to unconditional trigger
+- **artifact parsing**: `max_tokens` 4096→8192 to prevent truncation; `extractArtifactFromComplete` handles missing `</antArtifact>` closing tag; `extractCodeBlock` tolerates a fenced html marker with no newline + truncated blocks; fallback changed to unconditional trigger
 - **runFusionDesign pipe deadlock**: `parseHtmlViaCLI` with large output (>64KB) `waitUntilExit` and `readDataToEndOfFile` mutually lock, changed to `DispatchGroup` concurrent read of stdout/stderr then join
 - **Design RAG temporarily disabled**: `ragEnabled=false`, `fetchRAGContextBounded` uses `nonisolated static` + `withTaskGroup` timeout protection (Swift 5.9 has no `addTask(detached:)`, uses nonisolated function to escape MainActor)
 - **E2E verification**: submit→generate (6154 tokens, `<antArtifact>` parsed successfully, codeLen 15209)→preview render; `DesignPreviewTrace` file log (`~/.fusion-design-preview-debug.log`) aids debugging
@@ -1116,8 +1132,8 @@ Apache License 2.0. See [LICENSE](LICENSE) for details.
 ---
 
 <p align="center">
-  <strong>Fusion Studio</strong> — One App, All Fusion. 100% Local, 100% Yours.
+  **Fusion Studio** — One App, All Fusion. 100% Local, 100% Yours.
 </p>
 <p align="center">
-  <sub>Built with ❤️ for Apple Silicon · 27 Modules · 260 Swift Files · Apache 2.0</sub>
+  Built with ❤️ for Apple Silicon · 27 Modules · 260 Swift Files · Apache 2.0
 </p>

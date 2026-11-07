@@ -1,3 +1,19 @@
+---
+doc_id: fusion-studio/guide
+product: fusion-studio
+class: app
+entry: guided-ui
+doc_type: guide
+title: { zh: "Upstream Issues Filed — Track C", en: "Upstream Issues Filed — Track C" }
+audience: engineer
+status: draft
+version: 0.1.66
+updated: 2026-11-07
+owner: @dahai
+source_of_truth:
+  - docs/superpowers/specs/2026-09-03-upstream-issues-filed.md
+---
+
 # Upstream Issues Filed — Track C
 
 Plan: `Upstream Issues + Local Fallback` (2026-09-03)

@@ -1,3 +1,19 @@
+---
+doc_id: fusion-studio/guide
+product: fusion-studio
+class: app
+entry: guided-ui
+doc_type: guide
+title: { zh: "上游问题跟踪", en: "Upstream issues tracker" }
+audience: engineer
+status: draft
+version: 0.1.66
+updated: 2026-11-07
+owner: @dahai
+source_of_truth:
+  - docs/upstream-issues.md
+---
+
 <!--
 Callers: Fusion Studio Design module, Phase 3 deferred tasks
 Affected API: fusion-artifacts-engine artifact CRUD, fusion-mlx /v1/chat/completions (tool_use + multimodal)
