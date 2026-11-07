@@ -20,7 +20,7 @@ source_of_truth:
   <img src="https://img.shields.io/badge/Swift-5.9-red" alt="Swift">
   <img src="https://img.shields.io/badge/Rust-2021-purple" alt="Rust">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License">
-  <img src="https://img.shields.io/badge/status-V0.1.66--beta-yellow" alt="V0.1.66-beta">
+  <img src="https://img.shields.io/badge/status-V0.1.67--beta-yellow" alt="V0.1.67-beta">
   <img src="https://img.shields.io/badge/modules-27-success" alt="27 Modules">
 </div>
 
@@ -565,6 +565,11 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 ---
 
 ## 📋 Changelog
+
+### v0.1.67 — Docs system v1.1 contract adoption + CI runner fix (2026-11-07)
+
+- **Docs system v1.1** — adopted the fusion docs-system contract across `docs/` (37 files, PR #437): guided-ui structure, new `docs/troubleshooting.md`, and refreshed per-domain guides, API map, upstream endpoint/issue trackers, and workflow canvas design notes.
+- **CI** — replaced the retired `macos-14` runner label with `macos-15` in workflows (retired label started failing job startup).
 
 ### v0.1.66 — Workflow canvas epic complete: P1 unified graph + P2 real executors + P3 templates/history/MCP (2026-11-04)
 
