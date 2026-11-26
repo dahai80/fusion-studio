@@ -20,7 +20,7 @@ source_of_truth:
   <img src="https://img.shields.io/badge/Swift-5.9-red" alt="Swift">
   <img src="https://img.shields.io/badge/Rust-2021-purple" alt="Rust">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License">
-  <img src="https://img.shields.io/badge/status-V0.1.67--beta-yellow" alt="V0.1.67-beta">
+  <img src="https://img.shields.io/badge/status-V0.1.68--beta-yellow" alt="V0.1.68-beta">
   <img src="https://img.shields.io/badge/modules-27-success" alt="27 Modules">
 </div>
 
@@ -565,6 +565,13 @@ Key design points (fusion-studio reuses the **external** fusion-mlx, it does
 ---
 
 ## 📋 Changelog
+
+### v0.1.68 — Audit 2026-11-26 residuals: .gitignore hardening + verified test signal (2026-11-27)
+
+Closes #438.
+
+- **Audit 2026-11-26 (P2, PASS-WITH-RESIDUAL)** — verified the 4.3G `.build` residue was never tracked (`git ls-files` clean) and removed it from the working tree; `.gitignore` hardened with explicit `.swiftpm/` and `.ruff_cache/` entries (PR #439, f1cd940).
+- **Test signal verified** — two consecutive full `swift test` runs green locally (UnitTests 431/431, IntegrationTests 16/16, exit 0) plus CI 3/3 on the PR as the authoritative gate.
 
 ### v0.1.67 — Docs system v1.1 contract adoption + CI runner fix (2026-11-07)
 
