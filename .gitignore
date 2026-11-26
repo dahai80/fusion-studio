@@ -1,5 +1,6 @@
 # Swift Package Manager
 .build/
+.swiftpm/
 DerivedData/
 
 # Xcode
@@ -18,6 +19,7 @@ __pycache__/
 *.pyo
 .venv/
 *.egg-info/
+.ruff_cache/
 
 # macOS
 .DS_Store
